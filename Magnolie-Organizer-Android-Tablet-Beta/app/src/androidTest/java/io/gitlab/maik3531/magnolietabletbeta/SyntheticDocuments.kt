@@ -26,7 +26,7 @@ class SyntheticDocuments : DocumentsProvider() {
                 Root.COLUMN_ROOT_ID,Root.COLUMN_DOCUMENT_ID -> "root"
                 Root.COLUMN_TITLE -> "Tablet Beta Test Documents"
                 Root.COLUMN_FLAGS -> Root.FLAG_SUPPORTS_CREATE or Root.FLAG_LOCAL_ONLY
-                Root.COLUMN_MIME_TYPES -> "application/json\napplication/pdf"
+                Root.COLUMN_MIME_TYPES -> "application/json\napplication/pdf\ntext/calendar"
                 Root.COLUMN_AVAILABLE_BYTES -> 100000000L
                 else -> null
             })
@@ -41,7 +41,7 @@ class SyntheticDocuments : DocumentsProvider() {
             for(column in columns) row.add(column,when(column) {
                 Document.COLUMN_DOCUMENT_ID -> id
                 Document.COLUMN_DISPLAY_NAME -> if(id=="root") "Tablet Beta Test Documents" else id
-                Document.COLUMN_MIME_TYPE -> if(id=="root") Document.MIME_TYPE_DIR else if(id.endsWith(".pdf")) "application/pdf" else "application/json"
+                Document.COLUMN_MIME_TYPE -> if(id=="root") Document.MIME_TYPE_DIR else if(id.endsWith(".pdf")) "application/pdf" else if(id.endsWith(".ics")) "text/calendar" else "application/json"
                 Document.COLUMN_FLAGS -> if(id=="root") Document.FLAG_DIR_SUPPORTS_CREATE else Document.FLAG_SUPPORTS_WRITE or Document.FLAG_SUPPORTS_DELETE
                 Document.COLUMN_SIZE -> f.length()
                 Document.COLUMN_LAST_MODIFIED -> f.lastModified()

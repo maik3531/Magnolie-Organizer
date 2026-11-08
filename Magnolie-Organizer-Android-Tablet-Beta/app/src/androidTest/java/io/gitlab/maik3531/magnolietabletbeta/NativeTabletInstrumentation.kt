@@ -64,7 +64,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         var error: Throwable?=null
         try {
             check(injector in listOf("shell","async")) {"Unknown injector"}
-            check(android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.MODEL.contains("sdk")) {"Disposable emulator required"}
+            check(DisposableEmulatorPolicy.accepts(android.os.Build.FINGERPRINT, android.os.Build.MODEL, android.os.Build.BRAND)) {"Disposable emulator required"}
             when(stage) {
                 "services" -> {
                     pass("native Android DAV parser and secure account transactions", NativeDavAccountSmoke.run(targetContext))
@@ -76,6 +76,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "time" -> customTimeKeyboard()
                 "navigation" -> {launch(); navigation()}
                 "saf" -> saf()
+                "calendar-files" -> calendarFiles()
                 "fault" -> fault()
                 "print" -> printPdf()
                 "notifications" -> notifications(false)
@@ -613,6 +614,90 @@ class NativeTabletInstrumentation : Instrumentation() {
         waitFor("Android DocumentsUI") {nodes().any {it.packageName?.toString()?.contains("documentsui")==true}}
         selectProvider(); clickNode(name)
         waitFor("native restore confirmation") {nodes().any {it.text?.toString()?.contains("current data will be backed up")==true}}
+    }
+    private fun calendarComparable(value:Any?):Any? = when(value) {
+        null,JSONObject.NULL -> null
+        is JSONObject -> value.keys().asSequence().toList().sorted().associateWith {calendarComparable(value.get(it))}
+        is JSONArray -> (0 until value.length()).map {calendarComparable(value.get(it))}
+        is Number -> value.toDouble()
+        else -> value
+    }
+    private fun openCalendarPicker() {
+        raw("Tablet.action('tablet_import','ics')")
+        waitFor("calendar ACTION_OPEN_DOCUMENT") {nodes().any {it.packageName?.toString()?.contains("documentsui")==true}}
+    }
+    private fun calendarFiles() {
+        val started=SystemClock.elapsedRealtime()
+        launch(); saved()
+        val beforeCancel=data()
+        openCalendarPicker()
+        sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        waitFor("calendar picker cancellation ACK") {value("document.querySelector('#tablet-status').textContent.includes('Cancel')")=="true"}
+        saved()
+        check(calendarComparable(data())==calendarComparable(beforeCancel)) {"Cancelled calendar picker changed the book"}
+        check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeCancel)) {"Cancelled calendar picker changed native saved data"}
+        pass("calendar SAF cancellation leaves the entire canonical and saved book unchanged")
+
+        val token=java.util.UUID.randomUUID().toString().take(8)
+        val eventUid="native-files-event-$token"; val taskUid="native-files-task-$token"; val anniversaryUid="native-files-anniversary-$token"
+        val lines=listOf("BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Magnolie Native Calendar Files Test//EN","X-WR-CALNAME:Synthetic calendar files $token",
+            "X-NATIVE-CALENDAR-HEADER:preserve","BEGIN:VEVENT","UID:$eventUid","DTSTART:20300401T100000Z","DTEND:20300401T110000Z",
+            "RRULE:FREQ=DAILY;COUNT=3","RDATE:20300405T100000Z","EXDATE:20300402T100000Z","SUMMARY:Synthetic calendar files appointment",
+            "X-NATIVE-CALENDAR-OPAQUE;X-PARAM=alpha:keep","BEGIN:VALARM","ACTION:DISPLAY","TRIGGER:-PT15M","DESCRIPTION:Synthetic native alarm","END:VALARM","END:VEVENT",
+            "BEGIN:VTODO","UID:$taskUid","DUE;VALUE=DATE:20300406","SUMMARY:Synthetic calendar files task","PRIORITY:1","END:VTODO",
+            "BEGIN:VEVENT","UID:$anniversaryUid","DTSTART;VALUE=DATE:19800229","RRULE:FREQ=YEARLY","X-MAGNOLIE-TYPE-ID:birthday",
+            "SUMMARY:Synthetic calendar files anniversary","END:VEVENT","END:VCALENDAR")
+        val source=lines.joinToString("\r\n",postfix="\r\n")
+        val hash=java.security.MessageDigest.getInstance("SHA-256").digest(source.toByteArray(Charsets.UTF_8)).joinToString("") {"%02x".format(java.util.Locale.ROOT,it.toInt() and 255)}
+        seedDocument("native-calendar-import.ics",source)
+        val beforeImport=data()
+        openCalendarPicker(); selectProvider(); clickNode("native-calendar-import.ics")
+        waitFor("canonical calendar merge and source metadata") {
+            value("(()=>{const d=OrganizerTest.daten();return d.termine.some(x=>x.uid==='$eventUid')&&d.aufgaben.some(x=>x.uid==='$taskUid')&&d.jahrestage.some(x=>x.uid==='$anniversaryUid')&&!!d.icsImportSources?.['$hash'];})()")=="true"
+        }
+        saved()
+        val merged=data(); val native=vault().read()!!.getJSONObject("data")
+        check(calendarComparable(native)==calendarComparable(merged)) {"Calendar records and source metadata did not reach the same native saved book"}
+        for(group in listOf("termine","aufgaben","jahrestage")) check(merged.getJSONArray(group).length()==beforeImport.getJSONArray(group).length()+1) {"Canonical calendar merge did not add exactly one item per collection"}
+        for(group in listOf("notizen","kontakte")) check(calendarComparable(merged.getJSONArray(group))==calendarComparable(beforeImport.getJSONArray(group))) {"Calendar merge changed an unrelated collection"}
+        val metadata=native.getJSONObject("icsImportSources").getJSONObject(hash)
+        check(metadata.getString("sourceSHA256")==hash && metadata.getInt("version")==1)
+        check((0 until metadata.getJSONArray("calendarProperties").length()).any {metadata.getJSONArray("calendarProperties").getString(it)=="X-NATIVE-CALENDAR-HEADER:preserve"})
+        val appointment=(0 until native.getJSONArray("termine").length()).map {native.getJSONArray("termine").getJSONObject(it)}.single {it.getString("uid")==eventUid}
+        val sourceProperties=(0 until appointment.getJSONArray("icsRoundtrip").length()).map {appointment.getJSONArray("icsRoundtrip").getString(it)}
+        check(sourceProperties.containsAll(listOf("RRULE:FREQ=DAILY;COUNT=3","RDATE:20300405T100000Z","EXDATE:20300402T100000Z","BEGIN:VALARM","TRIGGER:-PT15M","X-NATIVE-CALENDAR-OPAQUE;X-PARAM=alpha:keep"))) {"Calendar merge lost authoritative source properties"}
+        pass("real ICS ACTION_OPEN_DOCUMENT merges three collections and source SHA in one native saved book",JSONObject().put("collections",3).put("addedRecords",3).put("retainedAlarm",true))
+
+        val beforeInvalid=data()
+        val invalid=source.replace("UID:","UID:invalid-").replace("DTSTART;VALUE=DATE:19800229","DTSTART;VALUE=DATE:19800230")
+        seedDocument("native-calendar-invalid.ics",invalid)
+        openCalendarPicker(); selectProvider(); clickNode("native-calendar-invalid.ics")
+        waitFor("atomic invalid calendar rejection") {value("document.querySelector('#tablet-status').textContent.includes('Import failed.')")=="true"}
+        saved()
+        check(calendarComparable(data())==calendarComparable(beforeInvalid) && calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeInvalid)) {"Invalid later ICS component changed the book"}
+        pass("invalid later ICS component is rejected atomically through the real file picker")
+
+        documentControl("native-calendar-export.ics",delete=true)
+        raw("Tablet.exportCalendar('ics-termine')")
+        waitFor("calendar ACTION_CREATE_DOCUMENT without password") {
+            check(nodes().none {it.isVisibleToUser && it.isPassword && it.packageName?.toString()==targetContext.packageName}) {"ICS export unexpectedly requested a password"}
+            check(value("document.querySelector('#tablet-status').textContent.includes('Export failed.')")!="true") {"ICS export failed before opening its native destination picker"}
+            nodes().any {it.packageName?.toString()?.contains("documentsui")==true}
+        }
+        raw("window.__nativeCalendarExportSaved=false;window.__nativeCalendarExportObserver=new MutationObserver(()=>{if(document.querySelector('#tablet-status').textContent.includes('Saved.'))window.__nativeCalendarExportSaved=true;});window.__nativeCalendarExportObserver.observe(document.querySelector('#tablet-status'),{childList:true,subtree:true,characterData:true});")
+        selectProvider(); setNativeText("native-calendar-export.ics")
+        check(value("window.__nativeCalendarExportSaved")=="false") {"ICS export acknowledged success before destination selection"}
+        clickNode("Save")
+        waitFor("native calendar export completion ACK") {value("window.__nativeCalendarExportSaved")=="true"}
+        raw("window.__nativeCalendarExportObserver.disconnect()")
+        val bytes=documentControl("native-calendar-export.ics")
+        val exported=ICalendarImport.decode(bytes,"UTC").appointments.single {it.getString("uid")==eventUid}
+        val exportedRaw=(0 until exported.getJSONArray("icsRoundtrip").length()).map {exported.getJSONArray("icsRoundtrip").getString(it)}
+        check(exportedRaw.containsAll(listOf("RRULE:FREQ=DAILY;COUNT=3","BEGIN:VALARM","TRIGGER:-PT15M","X-NATIVE-CALENDAR-OPAQUE;X-PARAM=alpha:keep"))) {"Real calendar export lost source recurrence/alarm metadata"}
+        check(bytes.toString(Charsets.UTF_8).startsWith("BEGIN:VCALENDAR\r\n"))
+        check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeInvalid)) {"Calendar export changed the saved book"}
+        check(SystemClock.elapsedRealtime()-started<120000) {"Calendar file stage exceeded its existing 120-second budget"}
+        pass("real ICS ACTION_CREATE_DOCUMENT bytes parse after native completion without a password",JSONObject().put("exportedBytes",bytes.size).put("rawRecurrence",true).put("rawAlarm",true).put("elapsedMs",SystemClock.elapsedRealtime()-started))
     }
     private fun saf() {
         launch(); saved(); val original=data()

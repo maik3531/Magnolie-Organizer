@@ -47,7 +47,7 @@ internal object NativeCalendarSmoke {
 
     fun run(instrumentationContext: Context): JSONObject {
         check(Looper.myLooper() != Looper.getMainLooper()) { "Native calendar checks require the instrumentation worker" }
-        check(android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.MODEL.contains("sdk")) { "Disposable emulator required" }
+        check(DisposableEmulatorPolicy.accepts(android.os.Build.FINGERPRINT, android.os.Build.MODEL, android.os.Build.BRAND)) { "Disposable emulator required" }
         // Context is Instrumentation.context, never targetContext: this asset is
         // part of the test APK and must not enter the application's shipped assets.
         val bytes = instrumentationContext.assets.open(ASSET).use { it.readBytes() }

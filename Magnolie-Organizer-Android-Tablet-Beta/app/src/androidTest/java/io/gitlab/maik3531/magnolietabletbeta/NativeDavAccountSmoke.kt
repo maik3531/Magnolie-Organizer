@@ -24,7 +24,7 @@ internal object NativeDavAccountSmoke {
 
     fun run(context: Context): JSONObject {
         check(Looper.myLooper() != Looper.getMainLooper()) { "Native DAV checks require an instrumentation worker" }
-        check(android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.MODEL.contains("sdk")) { "Disposable emulator required" }
+        check(DisposableEmulatorPolicy.accepts(android.os.Build.FINGERPRINT, android.os.Build.MODEL, android.os.Build.BRAND)) { "Disposable emulator required" }
         val result = parserChecks()
         val task = AndroidStore.io.submit<JSONObject> { accountChecks(context.applicationContext) }
         val account = try { task.get(35,TimeUnit.SECONDS) }
