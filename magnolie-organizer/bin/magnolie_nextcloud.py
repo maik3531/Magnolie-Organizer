@@ -801,7 +801,7 @@ class NextcloudDav:
         return result
 
     def put(self, href, data, etag=None, create=False):
-        if not create and not str(etag or "").strip():
+        if not create and (not isinstance(etag, str) or not etag.strip() or etag.strip() == "*"):
             raise NextcloudError(
                 "Der DAV-Eintrag hat keinen ETag und wird nicht ungeschuetzt ueberschrieben.",
                 "missing_etag")
@@ -821,7 +821,7 @@ class NextcloudDav:
         return response_headers.get("etag", "")
 
     def delete(self, href, etag):
-        if not str(etag or "").strip():
+        if not isinstance(etag, str) or not etag.strip() or etag.strip() == "*":
             raise NextcloudError(
                 "Der DAV-Eintrag hat keinen ETag und wird nicht ungeschuetzt geloescht.",
                 "missing_etag")
