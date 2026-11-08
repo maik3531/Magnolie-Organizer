@@ -1,4 +1,8 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--tray-drawing") { await TrayAppearanceTests.DrawingAsync(); Console.WriteLine("Tray drawing PASS"); return 0; }
+// Refs #432: individually bounded native projection and activity checks.
+if (args.Length == 1 && args[0] == "--tray-owners") { await TrayAppearanceTests.OwnersAsync(); Console.WriteLine("Tray owners PASS"); return 0; }
+if (args.Length == 1 && args[0] == "--tray-kde") { await KdeConnectTests.TrayProjectionAsync(); Console.WriteLine("Tray KDE TLS PASS"); return 0; }
 if (args.Length == 2 && args[0] == "--mcp-stdio-fixture")
     return await MagnolieOrganizer.Windows.McpLocalServer.RunStdioAsync(args[1], Console.OpenStandardInput(), Console.OpenStandardOutput(), CancellationToken.None);
 
@@ -377,7 +381,10 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native media trash / Windows readonly preview exact retained file and withdrawal HOLD", DeviceFileMediaTrashTests.WindowsReadonlyTrashPreviewAsync);
     // Optional actual-product fixture, staged only by the bounded native probe.
     if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "preview-product")))
+    {
         runner.Add("Device file native media trash / Windows actual product drawing preview", DeviceFileMediaTrashTests.WindowsActualProductDrawingPreviewAsync);
+        runner.Add("Tray appearance / Windows actual product drawing", TrayAppearanceTests.DrawingAsync);
+    }
     runner.Add("Device file native media trash / Windows occupied restore and original retry", DeviceFileMediaTrashTests.WindowsRestoreOccupiedTargetAsync);
     runner.Add("Device file native media trash / Windows changed identity content and permit HOLD", DeviceFileMediaTrashTests.WindowsTrashChangedSourceAndPermitHoldAsync);
     runner.Add("Device file native media trash / Windows interrupted move and original recovery", DeviceFileMediaTrashTests.WindowsInterruptedMoveRecoveryAsync);

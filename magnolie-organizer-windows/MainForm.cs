@@ -12,6 +12,35 @@ internal sealed class MainForm : Form
     private readonly WindowsPaths paths;
     private readonly string bridgeName = $"bridge_{Guid.NewGuid():N}";
     private readonly NotifyIcon trayIcon;
+    private readonly Icon originalTrayIcon;
+    private Icon? ownedTrayIcon;
+    private TrayAppearanceState renderedTrayAppearance;
+    private int trayAppearanceQueued;
+
+    internal void QueueTrayAppearanceRefresh()
+    {
+        if (IsDisposed || Disposing || !IsHandleCreated || Interlocked.Exchange(ref trayAppearanceQueued, 1) != 0) return;
+        try
+        {
+            BeginInvoke(() =>
+            {
+                Interlocked.Exchange(ref trayAppearanceQueued, 0);
+                if (IsDisposed || Disposing) return;
+                try
+                {
+                    var state = dispatcher?.ReadTrayAppearance() ?? default;
+                    if (state == renderedTrayAppearance) return;
+                    var next = state.IsOriginal ? null : TrayAppearanceRenderer.Create(originalTrayIcon, state);
+                    var previous = ownedTrayIcon;
+                    try { trayIcon.Icon = next ?? originalTrayIcon; }
+                    catch { next?.Dispose(); throw; }
+                    ownedTrayIcon = next; renderedTrayAppearance = state; previous?.Dispose();
+                }
+                catch (Exception error) { WriteWebViewDiagnostic($"Tray-Darstellung: {error.Message}"); }
+            });
+        }
+        catch (InvalidOperationException) { Interlocked.Exchange(ref trayAppearanceQueued, 0); }
+    }
     private readonly TraySettingsService traySettingsService;
     private TraySettings traySettings;
     private BridgeDispatcher? dispatcher;
@@ -48,10 +77,13 @@ internal sealed class MainForm : Form
 
     internal void SetTelefonCoordinator(TelefonCoordinator coordinator)
     {
+        if (telefonCoordinator is not null) telefonCoordinator.TraySyncActivity.Changed -= QueueTrayAppearanceRefresh;
         telefonCoordinator = coordinator;
+        coordinator.TraySyncActivity.Changed += QueueTrayAppearanceRefresh;
         coordinator.NativeBookSource = () => dispatcher?.NativeActorBookSource();
         coordinator.NativeSavedBook = () => dispatcher?.NativeActorSavedBook();
         coordinator.NativeProducerBook = () => dispatcher?.NativeActorBook();
+        QueueTrayAppearanceRefresh();
     }
 
     internal MainForm(bool trayStart = false, bool reminderStart = false,
@@ -74,7 +106,8 @@ internal sealed class MainForm : Form
         traySettingsService = new TraySettingsService(this.paths.TraySettings);
         traySettings = traySettingsService.Load(this.paths.Data);
         reminderAutostart = reminderStart;
-        trayIcon = CreateTrayIcon(Icon ?? SystemIcons.Application);
+        originalTrayIcon = Icon ?? SystemIcons.Application;
+        trayIcon = CreateTrayIcon(originalTrayIcon);
         callNotifications = notifications ?? new WindowsCallNotifications(async token =>
         {
             var accepted = telefonCoordinator is not null && await telefonCoordinator.ExecuteCallActionAsync(token);
@@ -82,7 +115,7 @@ internal sealed class MainForm : Form
             return accepted;
         });
         Controls.Add(webView);
-        HandleCreated += (_, _) => NativeMethods.ApplySystemTitleBarTheme(Handle);
+        HandleCreated += (_, _) => { NativeMethods.ApplySystemTitleBarTheme(Handle); QueueTrayAppearanceRefresh(); };
         Load += async (_, _) => await InitializeWebViewAsync();
         if (setupSelections?.OpenHandbook == true) Shown += async (_, _) =>
         {
@@ -90,7 +123,9 @@ internal sealed class MainForm : Form
             await OpenHandbookAsync(manual);
         };
         FormClosing += OnFormClosing;
-        FormClosed += (_, _) => { closing.Cancel(); mcpServer?.Dispose(); callAlert?.Close(); callNotifications.Dispose(); handbookForm?.Close(); dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); };
+        FormClosed += (_, _) => { closing.Cancel(); mcpServer?.Dispose(); callAlert?.Close(); callNotifications.Dispose(); handbookForm?.Close();
+            if (telefonCoordinator is not null) telefonCoordinator.TraySyncActivity.Changed -= QueueTrayAppearanceRefresh;
+            dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); ownedTrayIcon?.Dispose(); ownedTrayIcon = null; };
         Resize += (_, _) =>
         {
             if (!fullscreen && !fullscreenTransition && WindowState != FormWindowState.Minimized)

@@ -131,6 +131,22 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
     internal int DiscoveryPort => (udp?.Client.LocalEndPoint as IPEndPoint)?.Port ?? 0;
     internal string LocalDeviceId => local.Id;
     internal bool HasPairedPeers => store.LoadPeers().Any(peer => peer.Paired);
+    // Passive projection; unlike UsableConnections this does not require SMS.
+    internal bool HasLiveConnection
+    {
+        get
+        {
+            lock (activeGate)
+            {
+                if (disposed || Volatile.Read(ref disposalStarted) != 0) return false;
+                var pins = store.LoadPeers().Where(peer => peer.Paired)
+                    .ToDictionary(peer => peer.Id, peer => peer.CertificatePin, StringComparer.Ordinal);
+                return active.Values.Any(connection => !connection.Closed &&
+                    pins.TryGetValue(connection.Identity.DeviceId, out var pin) &&
+                    string.Equals(pin, KdeConnectProtocol.CertificatePin(connection.Certificate), StringComparison.Ordinal));
+            }
+        }
+    }
     internal bool HasCandidateForTest(string deviceId) => candidates.ContainsKey(deviceId);
     internal void ExpireCandidatesForTest(DateTimeOffset now) => ExpireCandidates(now);
     internal string DebugLogForTest()

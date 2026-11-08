@@ -12,6 +12,35 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class KdeConnectTests
 {
+    internal static async Task TrayProjectionAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-tray-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new WindowsPaths(root); var protector = new TestProtector();
+            var store = new KdeConnectIdentityStore(paths, protector);
+            using var certificate = Certificate("tray_phone");
+            using var foreign = Certificate("other_phone");
+            var peer = new KdeConnectPeer("tray_phone", "Tray fixture", KdeConnectProtocol.CertificatePin(certificate), 1);
+            store.Pin(peer);
+            await using var backend = new KdeConnectDirectBackend(paths, protector, activeDiscovery: false);
+            TestAssert.That(!backend.HasLiveConnection, "Stored pairing counted as live.");
+            var phone = await ConnectIncomingPhoneAsync(backend, peer.Id, certificate, sms: false);
+            using var client = phone.Client; using var stream = phone.Stream;
+            // Status events are only wakeups; re-read the actual current TLS owner.
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            while (!backend.HasLiveConnection) await Task.Delay(10, timeout.Token);
+            TestAssert.That(!(await backend.GetStatusAsync()).Available && backend.HasLiveConnection,
+                "A genuine non-SMS connection was hidden by SMS-specific availability.");
+            store.Pin(peer with { CertificatePin = KdeConnectProtocol.CertificatePin(foreign) });
+            TestAssert.That(!backend.HasLiveConnection, "Foreign/currently replaced certificate counted as live.");
+            store.Pin(peer with { Paired = false });
+            TestAssert.That(!backend.HasLiveConnection, "Unconfirmed TLS counted as live.");
+            store.Pin(peer); TestAssert.That(backend.HasLiveConnection, "Restored current certificate lost its actual owner.");
+            backend.Remove(peer.Id); TestAssert.That(!backend.HasLiveConnection, "Removed connection remained live.");
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
     internal static async Task RunAsync()
     {
         var identityPacket = KdeConnectProtocol.Encode("kdeconnect.identity",
@@ -878,7 +907,7 @@ internal static class KdeConnectTests
 
     internal static async Task<(TcpClient Client, SslStream Stream)> ConnectIncomingPhoneAsync(
         KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false, bool digitizer = false, bool filesystem = false, bool systemVolume = false,
-        bool share = false, Action<KdeConnectPacket>? desktopIdentity = null, bool clipboard = false)
+        bool share = false, Action<KdeConnectPacket>? desktopIdentity = null, bool clipboard = false, bool sms = true)
     {
         var client = new TcpClient(AddressFamily.InterNetwork);
         await client.ConnectAsync(IPAddress.Loopback, backend.ListenerPort);
@@ -893,6 +922,7 @@ internal static class KdeConnectTests
         var greeting = await KdeConnectProtocol.ReadAsync(tls, CancellationToken.None);
         desktopIdentity?.Invoke(greeting);
         var phoneIdentity = PhoneIdentity(phoneId, KdeConnectProtocol.FirstPort);
+        if (!sms) phoneIdentity["incomingCapabilities"] = new JsonArray();
         if (contacts)
         {
             phoneIdentity["incomingCapabilities"]!.AsArray().Add(KdeConnectProtocol.ContactUidsRequest);

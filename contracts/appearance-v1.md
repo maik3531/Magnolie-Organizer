@@ -66,7 +66,33 @@ eine Kamera anstelle der Blüte oder ein Smartphone anstelle des ganzen Buchs
 zeichnen; derzeit fehlen weiterhin echte Kamera-/Spiegelungsproducer. Dafür wird
 kein aktiver Zustand oder funktionierender Backendbetrieb erfunden.
 
-**Die entsprechende native Windows-Trayanbindung bleibt offen.**
+## Native Windows-Verbindungsanzeige
+
+Auch Windows projiziert jetzt tatsächliche Notes-Onlinebesitzer und aktuelle,
+nicht geschlossene KDE-TLS-Verbindungen mit bestätigtem aktuellem Zertifikat.
+Dabei werden weder die Lazy-Fassade noch deren Backend durch die Anzeige erzeugt.
+Eine KDE-Verbindung muss dafür ausdrücklich kein SMS-Plugin anbieten.
+Ereignisse planen eine zusammengefasste frische Abfrage auf dem UI-Thread;
+Ereignisnutzlasten dienen nicht als Verbindungsnachweis.
+
+Der bestehende allgemeine Syncbesitzer und eigene kurzlebige Aktivitäts-Leases
+der tatsächlich zugelassenen manuellen/automatischen Medienläufe steuern die
+Pfeile unabhängig. Der gemeinsame Medienworker allein gilt nicht als Abgleich,
+weil ihn auch lokale Vorschau-/Wiederherstellungsoperationen verwenden.
+Die Anzeige hält ohne Verbindung/Aktivität das ursprüngliche Icon-Objekt.
+Erzeugte Icons gehören der Anzeige, ersetzte werden freigegeben; der Renderer
+klont native HICONs und gibt deren ursprüngliche Handles ausdrücklich frei.
+Blütenfarbe, Kameraersatz und Smartphoneersatz sind nativ zeichnungsfähig;
+Kamera-/Spiegelungsbetrieb wird weiterhin nicht erfunden.
+
+Die produktive Drawing-Assembly wurde auf dem bestehenden isolierten nativen
+Windows-Prüfpfad ohne Installation geprüft: 24 Varianten, tatsächliche
+Blütenfarbpixel, erhaltene Rahmen-/Bindungs-/Buchpixel außerhalb der Blüte und
+80 wiederholte Erzeugungen ohne anwachsende GDI-/USER-HICON-Ressourcen.
+Eine separate echte TLS-Probe prüft Kopplung ohne Verbindung, Nicht-SMS-Verbindung,
+aktuelles/fremdes Zertifikat, entzogene Bestätigung und Entfernen. Die passive
+Lazy-Fassade und überlappende/doppelt beendete Aktivitäts-Leases sind ebenfalls
+geprüft. Eine installierte visuelle Taskleistenabnahme ersetzt das nicht.
 
 ## Nachweise und offene Abnahme
 
@@ -84,6 +110,6 @@ Icons. Bestehende KDE-Pairing-/Verbindungsregressionen bestehen ebenfalls.
 
 Das ist keine installierte Tray-/GUI-/Paketabnahme. Die neuen zusätzlichen
 Vorschaubegriffe sind derzeit deutsch/englisch enthalten; weitere Kataloge und
-eine visuelle native Abnahme bleiben offen, ebenso die Windows-Trayanbindung
-und native OS-Testübersteuerung. Tatsächliche Kamera-/Spiegelungsbereitschaft
+eine visuelle native Abnahme bleiben offen, ebenso die
+native OS-Testübersteuerung. Tatsächliche Kamera-/Spiegelungsbereitschaft
 wird nicht freigeschaltet.

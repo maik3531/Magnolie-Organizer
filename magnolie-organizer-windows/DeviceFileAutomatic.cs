@@ -137,6 +137,7 @@ internal sealed partial class TelefonCoordinator
         }
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
         lifetime.CancelAfter(TimeSpan.FromHours(2));
+        IDisposable? activity = null;
         try
         {
             lock (state)
@@ -145,6 +146,7 @@ internal sealed partial class TelefonCoordinator
                 else if (state.Paused) return "held";
                 state.Active = lifetime; state.Phase = "running";
             }
+            activity = TraySyncActivity.Enter();
             var permit = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
             void Require()
             {
@@ -202,6 +204,7 @@ internal sealed partial class TelefonCoordinator
         {
             lock (state) if (ReferenceEquals(state.Active, lifetime)) state.Active = null;
             Interlocked.Exchange(ref nativeMediaWorker, 0);
+            activity?.Dispose();
         }
     }
 }

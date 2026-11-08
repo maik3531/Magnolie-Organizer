@@ -568,6 +568,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task HandleTelefonEventAsync(string function, object payload)
     {
+        if (function == "App.telefonVerbindungStand") form.QueueTrayAppearanceRefresh();
         var message = payload as JsonObject ?? JsonSerializer.SerializeToNode(payload, JsonOptions.Default) as JsonObject;
         if (function == "App.telefonVerbindungStand" && message is not null)
         {

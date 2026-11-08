@@ -22,6 +22,7 @@ internal sealed partial class TelefonCoordinator
             // Neither this callback nor any store IO takes the coordinator gate.
             // The connection's current native control owner detects disconnection,
             // pairing/grant/data epoch/destination changes on every actual IO.
+            using var activity = TraySyncActivity.Enter();
             return await connection.SynchronizeNativeMediaAlbumAsync(sourceVersion, catalogId, albumId, desktopChoice,
                 mediaType, token, permit.ReplacementConsent, permit.Require);
         }
