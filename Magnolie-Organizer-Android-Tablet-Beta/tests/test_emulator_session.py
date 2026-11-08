@@ -245,6 +245,33 @@ class LifecycleTest(unittest.TestCase):
         self.assertEqual([call.args[2] for call in prepare.call_args_list],
                          ['basics','restart','layout','time','navigation'])
 
+    def test_timeout_preserves_partial_tempfile_output_and_original_exception(self):
+        for failure in (session.Deadline('original deadline'), session.Stopped('original stop')):
+            owner=session.Owner(); child=object(); item={'identity': {'pid': 42}}
+            def spawn(args,label,**kwargs):
+                owner.children.append((child,item))
+                kwargs['stdout'].write('INSTRUMENTATION_STATUS: stream=PHASE navigation-fixture-start\n')
+                kwargs['stdout'].flush()
+                return child
+            with patch.object(owner,'spawn',side_effect=spawn), patch.object(owner,'wait',side_effect=failure), \
+                 patch.object(owner,'stop_child') as cleanup:
+                with self.assertRaises(type(failure)) as raised: owner.command(['synthetic'],timeout=1)
+            self.assertIs(raised.exception,failure)
+            self.assertIn('PHASE navigation-fixture-start',failure.output)
+            cleanup.assert_called_once_with(child,item)
+
+    def test_instrument_timeout_prints_bounded_partial_output_without_passing(self):
+        failure=session.Deadline('original deadline')
+        failure.output='x'*20000+'\nINSTRUMENTATION_STATUS: stream=PHASE trusted-tab-switch-1\n'
+        owner=session.Owner(); captured=io.StringIO()
+        with patch.object(session,'prepare_test_process'), patch.object(session,'adb',side_effect=failure), \
+             contextlib.redirect_stdout(captured):
+            with self.assertRaises(session.Deadline) as raised: session.run_test(owner,{},'layout',12)
+        self.assertIs(raised.exception,failure)
+        self.assertIn('trusted-tab-switch-1',captured.getvalue())
+        self.assertLess(len(captured.getvalue()),16500)
+        self.assertNotEqual(owner.state.get('phase'),'test-passed')
+
     def test_instrument_exit_zero_without_success_is_failure(self):
         with patch.object(session, 'adb', return_value='INSTRUMENTATION_FAILED'), patch.object(session, 'prepare_test_process'):
             with self.assertRaises(RuntimeError):
@@ -305,6 +332,9 @@ class LifecycleTest(unittest.TestCase):
         self.assertIn('Class.kt:42', output)
         self.assertNotIn('synthetic document text', output)
         self.assertNotIn('unrelated warning', output)
+        progress = native.technical_failure_log('11-08 12:00:00.000 111 222 I TabletNativeTest: PHASE navigation-fixture-ready\n11-08 12:00:00.001 111 222 I TabletNativeTest: PHASE trusted-tab-switch-7')
+        self.assertIn('navigation-fixture-ready',progress)
+        self.assertIn('trusted-tab-switch-7',progress)
         self.assertLessEqual(len(native.technical_failure_log(log*500)), 16000)
         self.assertLessEqual(len(native.technical_failure_log(log*500).splitlines()), 160)
         exit_info = 'process=synthetic.package reason=4 (CRASH) status=0 importance=100 pss=123 rss=456 description=private text'

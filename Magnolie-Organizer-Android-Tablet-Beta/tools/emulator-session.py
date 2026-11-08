@@ -283,9 +283,16 @@ class Owner:
                 source.seek(0)
             child = self.spawn(args, 'command', env=env, stdin=source, stdout=output, stderr=subprocess.STDOUT)
             try:
-                code = self.wait(child, timeout)
-            finally:
-                self.stop_child(child, next(item for p, item in self.children if p is child))
+                try:
+                    code = self.wait(child, timeout)
+                finally:
+                    self.stop_child(child, next(item for p, item in self.children if p is child))
+            except (Deadline, Stopped) as failure:
+                # Preserve the original exception/status after exactly the same
+                # child cleanup, including bytes written before a timeout.
+                output.seek(0)
+                failure.output = output.read()
+                raise
             output.seek(0)
             text = output.read()
             if code:
@@ -482,8 +489,12 @@ def run_test(owner, state, selector, timeout):
     if selector in COLD_START_STAGES:
         prepare_test_process(owner, state, selector)
     owner.record('test', test=selector, testTimeoutSeconds=timeout)
-    output = adb(owner, state, ['shell', 'am', 'instrument', '-w', '-r', '-e', 'stage', selector,
-        'io.gitlab.maik3531.magnolieorganizer.tablet.beta.test/io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation'], timeout)
+    try:
+        output = adb(owner, state, ['shell', 'am', 'instrument', '-w', '-r', '-e', 'stage', selector,
+            'io.gitlab.maik3531.magnolieorganizer.tablet.beta.test/io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation'], timeout)
+    except (Deadline, Stopped) as failure:
+        print('PARTIAL_INSTRUMENTATION_OUTPUT\n'+str(getattr(failure, 'output', ''))[-16000:], flush=True)
+        raise
     print(output, flush=True)
     marker = 'INSTRUMENTATION_RESULT: stream='
     try:

@@ -353,9 +353,17 @@ class NativeTabletInstrumentation : Instrumentation() {
         waitFor("fixture begins on Calendar") {value("OrganizerTest.zustand().sektion")==JSONObject.quote("kalender")}
         saved()
     }
+    private fun phase(name:String) {
+        val line="PHASE $name"
+        android.util.Log.i("TabletNativeTest",line)
+        sendStatus(1,Bundle().apply {putString("stream",line+"\n")})
+    }
     private fun navigation() {
+        phase("navigation-fixture-start")
         prepareNavigationFixture()
+        phase("navigation-fixture-ready")
         connectInputProbe()
+        phase("native-touch-probe-connected")
         val durations=JSONArray(); val labels=listOf("Planner","Tasks","Contacts","Notes","Calendar","Anniversaries","Health","Tablet custom")
         for(i in 0 until 40) {
             val label=labels[i%labels.size]; val started=SystemClock.elapsedRealtime()
@@ -394,6 +402,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 .put("ack",ack).put("prepareMs",preparedAt-started).put("ackWaitMs",SystemClock.elapsedRealtime()-returnedAt)
                 .put("totalMs",total))
             android.util.Log.i("TabletNativeTest","TOUCH_ACK "+JSONObject(ack.toString()).apply {remove("token")}.toString())
+            phase("trusted-tab-switch-${i+1}")
         }
         pass("40 real touchscreen tab switches with 17 old series",durations)
         saved()
