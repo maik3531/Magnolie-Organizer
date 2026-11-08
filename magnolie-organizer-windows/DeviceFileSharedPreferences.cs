@@ -47,8 +47,7 @@ internal sealed partial class TelefonStore
             var record = TelefonProtocolContract.ExactObject(JsonNode.Parse(plain)!, "format", "scope", "body");
             if (TelefonProtocolContract.Integer(record["format"]) != 1 || record["scope"]?.GetValue<string>() != key || record["body"] is not JsonObject body)
                 throw DeviceFileControl.Error("media_shared_record_invalid");
-            _ = MediaSyncSettings.Merge(body, body, scope.LocalId, scope.PeerId);
-            return body.DeepClone().AsObject();
+            return MediaSyncSettings.NormalizeStored(body, scope.LocalId, scope.PeerId);
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
     }

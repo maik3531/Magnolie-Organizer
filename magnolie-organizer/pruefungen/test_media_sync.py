@@ -28,7 +28,7 @@ def native_media(native):
 def test_media_defaults_are_complete_separate_and_fail_closed_without_changing_personal_defaults():
     before=personal.create(A);body=media.create(A)
     assert media.effective(body)==dict(enabled=False,photos_enabled=True,videos_enabled=False,collection_mode='phone_inventory',
-        auto_mode='manual',skip_deletions=False,direction='phone_to_pc')
+        auto_mode='manual',skip_deletions=False,direction='phone_to_pc',photos_only=False)
     assert media.DISCOVERY_VERSION==23 and media.VERSION==1
     assert not media.requested_for(body,'images') and not media.requested_for(body,'video')
     assert personal.create(A)==before and before['format']==9
@@ -77,7 +77,7 @@ def test_concurrent_manual_off_phone_scope_and_skip_deletions_win_conservatively
             ('direction','phone_to_pc'),('collection_mode','phone_inventory'),('skip_deletions',True)]:right=media.change(right,B,A,field,value)
     a=media.merge(left,right,A,B);b=media.merge(right,left,B,A)
     assert media.effective(a)==media.effective(b)==dict(enabled=False,photos_enabled=False,videos_enabled=False,auto_mode='manual',
-        direction='phone_to_pc',collection_mode='phone_inventory',skip_deletions=True)
+        direction='phone_to_pc',collection_mode='phone_inventory',skip_deletions=True,photos_only=False)
     assert media.merge(a,b,A,B)==a
 
 
@@ -165,6 +165,41 @@ def test_native_media_corrupt_cipher_is_preserved_and_never_reset_to_defaults(na
     with pytest.raises((InvalidTag,ValueError)):store.read()
     with pytest.raises((InvalidTag,ValueError)):store.change('enabled',False)
     with sqlite3.connect(service.store.database_path) as db:assert db.execute('SELECT value FROM meta WHERE key=?',(store._key,)).fetchone()[0]==broken
+
+
+def test_filter_migration_preserves_seven_registers_and_rejects_other_incomplete_states():
+    body=media.change(media.create(A),A,B,'skip_deletions',True)
+    body=media.change(body,A,B,'direction','pc_to_phone')
+    del body['settings']['photos_only'];before=copy.deepcopy(body)
+    normalized=media.normalize_stored(body,A,B)
+    assert body==before and {k:v for k,v in normalized['settings'].items() if k!='photos_only'}==body['settings']
+    assert normalized['settings']['photos_only']=={A:dict(counter=0,value=False)}
+    assert media.normalize_stored(normalized,A,B)==normalized
+    with pytest.raises(ValueError):media.validate_start(dict(format=1,settings=body))
+    with pytest.raises(ValueError):media.normalize_stored(media.create(C),A,B)
+    for field in body['settings']:
+        invalid=copy.deepcopy(body);del invalid['settings'][field]
+        with pytest.raises(ValueError):media.normalize_stored(invalid,A,B)
+    filtered=media.change(normalized,A,B,'photos_only',True)
+    unfiltered=media.change(media.create(B),B,A,'photos_only',False)
+    assert media.effective(media.merge(filtered,unfiltered,A,B))['photos_only'] is True
+    assert filtered['settings']['skip_deletions']==normalized['settings']['skip_deletions']
+
+
+def test_protected_seven_field_read_is_non_destructive_and_next_explicit_edit_persists_filter(native_media):
+    import sqlite3
+    from magnolie_telefon import canonical
+    service,_,_,store=native_media
+    previous=store.change('skip_deletions',True);del previous['settings']['photos_only']
+    encrypted=service.store._encrypt(canonical(previous),'media_settings',store._key)
+    def cipher():
+        with sqlite3.connect(service.store.database_path) as db:return db.execute('SELECT value FROM meta WHERE key=?',(store._key,)).fetchone()[0]
+    with sqlite3.connect(service.store.database_path) as db:db.execute('UPDATE meta SET value=? WHERE key=?',(encrypted,store._key))
+    projected=store.read()
+    assert cipher()==encrypted and media.effective(projected)['photos_only'] is False
+    updated=store.change('photos_only',True)
+    assert cipher()!=encrypted and store.read()==updated
+    assert {k:v for k,v in updated['settings'].items() if k!='photos_only'}==previous['settings']
 
 
 def test_native_media_rejects_foreign_registers_revoked_owner_and_unsupported_peer(native_media):

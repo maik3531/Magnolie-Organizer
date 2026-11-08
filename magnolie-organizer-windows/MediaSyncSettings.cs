@@ -30,7 +30,7 @@ internal static class MediaSyncSettings
     {
         ["photos_enabled"] = "custom_enabled", ["videos_enabled"] = "time_enabled",
         ["auto_mode"] = "auto_mode", ["skip_deletions"] = "skip_deletions",
-        ["collection_mode"] = "content_mode", ["direction"] = "content_mode", ["enabled"] = "custom_enabled"
+        ["collection_mode"] = "content_mode", ["direction"] = "content_mode", ["enabled"] = "custom_enabled", ["photos_only"] = "skip_deletions"
     };
 
     private static JsonNode? SettingValue(string field, JsonNode? value, bool toRegisters)
@@ -83,7 +83,7 @@ internal static class MediaSyncSettings
     internal static JsonObject Validate(JsonObject body)
     {
         TelefonProtocolContract.ExactObject(body, "format", "settings");
-        if (TelefonProtocolContract.Integer(body["format"]) != Version || body["settings"] is not JsonObject values || values.Count is < 1 or > 7)
+        if (TelefonProtocolContract.Integer(body["format"]) != Version || body["settings"] is not JsonObject values || values.Count < 1 || values.Count > Fields.Count)
             throw new InvalidDataException("media_shared_settings_invalid");
         foreach (var (field, raw) in values) _ = Registers(field, raw);
         return body;
@@ -103,7 +103,7 @@ internal static class MediaSyncSettings
     internal static JsonObject Create(string localActor)
     {
         var defaults = new JsonObject { ["enabled"] = false, ["photos_enabled"] = true, ["videos_enabled"] = false,
-            ["collection_mode"] = "phone_inventory", ["auto_mode"] = "manual", ["skip_deletions"] = false, ["direction"] = "phone_to_pc" };
+            ["collection_mode"] = "phone_inventory", ["auto_mode"] = "manual", ["skip_deletions"] = false, ["direction"] = "phone_to_pc", ["photos_only"] = false };
         var fields = new JsonObject();
         foreach (var (field, value) in defaults) fields[field] = new JsonObject {
             [localActor] = new JsonObject { ["counter"] = 0, ["value"] = value!.DeepClone() } };
@@ -127,6 +127,21 @@ internal static class MediaSyncSettings
         // Import scope never exports; returning to an inventory scope retains
         // the independently stored direction and its original edit history.
         if (result["collection_mode"]?.GetValue<string>() == "import_only" && result.ContainsKey("direction")) result["direction"] = "phone_to_pc";
+        return result;
+    }
+
+    // Only authenticated stored records use this migration, never wire patches.
+    // Do not rewrite existing registers or enable a filter during a passive read.
+    internal static JsonObject NormalizeStored(JsonObject body, string localActor, string peerActor)
+    {
+        Scoped(body, localActor, peerActor, complete: false);
+        var keys = body["settings"]!.AsObject().Select(field => field.Key).ToHashSet(StringComparer.Ordinal);
+        if (!keys.SetEquals(Fields.Keys) && !keys.SetEquals(Fields.Keys.Where(field => field != "photos_only")))
+            throw new InvalidDataException("media_shared_settings_incomplete_local_state");
+        var result = body.DeepClone().AsObject();
+        if (!keys.Contains("photos_only")) result["settings"]!["photos_only"] = new JsonObject {
+            [localActor] = new JsonObject { ["counter"] = 0, ["value"] = false } };
+        Scoped(result, localActor, peerActor, complete: true);
         return result;
     }
 

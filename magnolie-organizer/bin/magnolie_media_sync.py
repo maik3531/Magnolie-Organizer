@@ -15,9 +15,10 @@ KIND='file_transfer.shared_settings'
 START_KIND='file_transfer.sync_request'
 RESULT_KIND='file_transfer.sync_result'
 FIELDS={'photos_enabled':'custom_enabled','videos_enabled':'time_enabled','auto_mode':'auto_mode',
-    'skip_deletions':'skip_deletions','collection_mode':'content_mode','direction':'content_mode','enabled':'custom_enabled'}
+    'skip_deletions':'skip_deletions','collection_mode':'content_mode','direction':'content_mode','enabled':'custom_enabled',
+    'photos_only':'skip_deletions'}
 DEFAULTS=dict(enabled=False,photos_enabled=True,videos_enabled=False,collection_mode='phone_inventory',
-    auto_mode='manual',skip_deletions=False,direction='phone_to_pc')
+    auto_mode='manual',skip_deletions=False,direction='phone_to_pc',photos_only=False)
 MODES={'collection_mode':{'phone_inventory':'phone_scope','entire_collection':'two_way','import_only':'phone_import'},
     'direction':{'phone_to_pc':'phone_import','two_way':'two_way','pc_to_phone':'phone_scope'},'auto_mode':{'manual':'manual','wifi':'wifi'}}
 
@@ -62,6 +63,21 @@ def scoped(body,local_actor,peer_actor,*,complete=True):
 def create(local_actor):
     shared.actor(local_actor)
     return validate(dict(format=VERSION,settings={field:{local_actor:dict(counter=0,value=value)} for field,value in DEFAULTS.items()}))
+
+
+def normalize_stored(body,local_actor,peer_actor):
+    """Project only complete protected seven-field records, never wire patches.
+
+    Old choices/clocks remain byte-for-byte values; a passive read writes nothing.
+    The new filter starts OFF so migration does not narrow an existing inventory.
+    """
+    scoped(body,local_actor,peer_actor,complete=False)
+    keys=set(body['settings'])
+    if keys not in (set(FIELDS),set(FIELDS)-{'photos_only'}):raise ValueError('incomplete stored media settings')
+    result=copy.deepcopy(body)
+    if 'photos_only' not in keys:
+        result['settings']['photos_only']={local_actor:dict(counter=0,value=False)}
+    return scoped(result,local_actor,peer_actor)
 
 
 def effective(body):
@@ -166,7 +182,7 @@ class NativeMediaSettingsStore:
             with self._database() as db:row=db.execute('SELECT value FROM meta WHERE key=?',(self._key,)).fetchone()
             if row is None:self._fresh();return None
             body=strict_json(self._store._decrypt(row[0],'media_settings',self._key))
-            scoped(body,self._local,self._peer_id);self._fresh();return body
+            body=normalize_stored(body,self._local,self._peer_id);self._fresh();return body
 
     def _update(self,apply):
         from magnolie_telefon import canonical,strict_json
@@ -176,7 +192,7 @@ class NativeMediaSettingsStore:
                 db.execute('BEGIN IMMEDIATE')
                 row=db.execute('SELECT value FROM meta WHERE key=?',(self._key,)).fetchone()
                 previous=strict_json(self._store._decrypt(row[0],'media_settings',self._key)) if row else create(self._local)
-                scoped(previous,self._local,self._peer_id)
+                previous=normalize_stored(previous,self._local,self._peer_id)
                 updated=apply(previous);scoped(updated,self._local,self._peer_id);self._fresh()
                 if row is None or updated!=previous:
                     encrypted=self._store._encrypt(canonical(updated),'media_settings',self._key);self._fresh()

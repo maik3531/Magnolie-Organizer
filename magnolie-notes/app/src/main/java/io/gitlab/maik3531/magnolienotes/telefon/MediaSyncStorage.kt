@@ -40,9 +40,7 @@ internal class MediaSyncStorage(
                 val record = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject
                 TelefonNachrichten.exact(record, setOf("format", "scope", "body"))
                 require(record["format"] == JsonPrimitive(1) && record["scope"] == JsonPrimitive(scope))
-                val body = record.getValue("body").jsonObject
-                MediaSyncSettings.merge(body, body, expected.localActor, expected.peerActor)
-                body
+                MediaSyncSettings.normalizeStored(record.getValue("body").jsonObject, expected.localActor, expected.peerActor)
             } finally { clear.fill(0) }
         }
     }

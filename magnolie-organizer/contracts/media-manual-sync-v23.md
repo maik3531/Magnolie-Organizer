@@ -10,7 +10,7 @@ personal synchronization or confer filesystem, native media or OS permissions.
 a fresh UUIDv4 message ID, and a maximum TTL of 60 seconds. Its exact body is:
 
 ```json
-{"format":1,"settings":{"format":1,"settings":{"…":"all seven current registers"}}}
+{"format":1,"settings":{"format":1,"settings":{"…":"all eight current registers"}}}
 ```
 
 `settings` is the entire exact persisted and bilaterally confirmed media snapshot,
@@ -18,6 +18,17 @@ including actor clocks. Partial settings, paths, album IDs, extra keys or local
 permission claims are rejected. Both peers must currently support 23, the master
 and at least one domain must be on, and native metadata must be current. A request
 does not change any preference, request OS access, or enable automatic operation.
+
+The independent registers are `enabled`, `photos_enabled`, `videos_enabled`,
+`collection_mode`, `auto_mode`, `direction`, `skip_deletions`, and `photos_only`.
+The metadata filter register defaults to false; adding its codec is not proof
+that metadata filtering or the full shared runtime is implemented. Concurrent
+equal-clock filter choices resolve to true (the narrower inventory).
+Only authenticated protected stored records with exactly the previous seven
+registers may be projected to eight by adding local `photos_only=false` at clock
+zero. This projection does not write on read or alter any existing register.
+Other incomplete stored records remain invalid. Wire requests are never repaired
+by this storage migration and still require the entire current snapshot.
 
 The phone sends once on its current secure channel, without a durable outbox or
 reconnection replay. One pending explicit request per phone channel is allowed.

@@ -23,7 +23,8 @@ class MediaSyncSettingsTest {
     @Test fun mediaDefaultsAreSeparateManualAndOffWithoutAnyGrant() {
         val body = MediaSyncSettings.create(pc)
         val values = MediaSyncSettings.effective(body)
-        assertEquals(7, values.size)
+        assertEquals(8, values.size)
+        assertEquals(JsonPrimitive(false), values["photos_only"])
         assertEquals(JsonPrimitive(false), values["enabled"])
         assertEquals(JsonPrimitive(true), values["photos_enabled"])
         assertEquals(JsonPrimitive(false), values["videos_enabled"])
@@ -55,6 +56,24 @@ class MediaSyncSettingsTest {
             assertEquals(JsonPrimitive(direction), MediaSyncSettings.effective(restored)["direction"])
             assertEquals(body.getValue("settings").jsonObject["direction"], restored.getValue("settings").jsonObject["direction"])
         }
+    }
+
+    @Test fun storedSevenFieldProjectionPreservesAllChoicesAndNeverRepairsWireSnapshots() {
+        val selected = MediaSyncSettings.change(MediaSyncSettings.create(pc), pc, phone, "skip_deletions", JsonPrimitive(true))
+        val old = JsonObject(selected + ("settings" to JsonObject(selected.getValue("settings").jsonObject - "photos_only")))
+        val before = old.toString()
+        val projected = MediaSyncSettings.normalizeStored(old, pc, phone)
+        assertEquals(before, old.toString())
+        assertEquals(old.getValue("settings"), JsonObject(projected.getValue("settings").jsonObject - "photos_only"))
+        assertEquals(JsonPrimitive(false), MediaSyncSettings.effective(projected)["photos_only"])
+        assertEquals(projected, MediaSyncSettings.normalizeStored(projected, pc, phone))
+        assertThrows(IllegalArgumentException::class.java) { MediaSyncSettings.validateStart(buildJsonObject { put("format", 1); put("settings", old) }) }
+        val broken = JsonObject(old + ("settings" to JsonObject(old.getValue("settings").jsonObject - "enabled")))
+        assertThrows(IllegalArgumentException::class.java) { MediaSyncSettings.normalizeStored(broken, pc, phone) }
+        val filtered = MediaSyncSettings.change(projected, pc, phone, "photos_only", JsonPrimitive(true))
+        val unfiltered = MediaSyncSettings.change(MediaSyncSettings.create(phone), phone, pc, "photos_only", JsonPrimitive(false))
+        assertEquals(JsonPrimitive(true), MediaSyncSettings.effective(MediaSyncSettings.merge(filtered, unfiltered, pc, phone))["photos_only"])
+        assertEquals(projected.getValue("settings").jsonObject["skip_deletions"], filtered.getValue("settings").jsonObject["skip_deletions"])
     }
 
     @Test fun independentOfflineEditsMergeWithoutChangingInputsOrDependingOnOrder() {

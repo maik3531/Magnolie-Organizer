@@ -26,7 +26,7 @@ internal object MediaSyncSettings {
     }
     private val fields = linkedMapOf("photos_enabled" to "custom_enabled", "videos_enabled" to "time_enabled",
         "auto_mode" to "auto_mode", "skip_deletions" to "skip_deletions", "collection_mode" to "content_mode", "direction" to "content_mode",
-        "enabled" to "custom_enabled")
+        "enabled" to "custom_enabled", "photos_only" to "skip_deletions")
 
     private fun settingValue(field: String, raw: JsonElement, toRegisters: Boolean): JsonElement {
         val modes = when (field) {
@@ -63,7 +63,7 @@ internal object MediaSyncSettings {
         TelefonNachrichten.exact(body, setOf("format", "settings"))
         require(body["format"] == JsonPrimitive(VERSION))
         val values = body["settings"] as? JsonObject ?: error("Missing media settings")
-        require(values.size in 1..7 && values.keys.all { it in fields })
+        require(values.size in 1..fields.size && values.keys.all { it in fields })
         values.forEach { (field, raw) -> registers(field, raw) }
         return body
     }
@@ -81,13 +81,26 @@ internal object MediaSyncSettings {
     fun create(localActor: String): JsonObject {
         val defaults = linkedMapOf("enabled" to JsonPrimitive(false), "photos_enabled" to JsonPrimitive(true),
             "videos_enabled" to JsonPrimitive(false), "collection_mode" to JsonPrimitive("phone_inventory"),
-            "auto_mode" to JsonPrimitive("manual"), "skip_deletions" to JsonPrimitive(false), "direction" to JsonPrimitive("phone_to_pc"))
+            "auto_mode" to JsonPrimitive("manual"), "skip_deletions" to JsonPrimitive(false), "direction" to JsonPrimitive("phone_to_pc"),
+            "photos_only" to JsonPrimitive(false))
         return validate(buildJsonObject {
             put("format", VERSION)
             put("settings", JsonObject(defaults.mapValues { (_, value) -> buildJsonObject {
                 put(localActor, buildJsonObject { put("counter", 0); put("value", value) })
             } }))
         })
+    }
+
+    /** Protected stored records only; never complete a partial wire snapshot.
+     * Passive projection preserves every prior register and does not write. */
+    fun normalizeStored(body: JsonObject, localActor: String, peerActor: String): JsonObject {
+        scoped(body, localActor, peerActor, false)
+        val values = body.getValue("settings").jsonObject
+        require(values.keys == fields.keys || values.keys == fields.keys - "photos_only")
+        val normalized = if ("photos_only" in values) body else JsonObject(body + ("settings" to JsonObject(values +
+            ("photos_only" to buildJsonObject { put(localActor, buildJsonObject { put("counter", 0); put("value", false) }) }))))
+        scoped(normalized, localActor, peerActor, true)
+        return normalized
     }
 
     fun effective(body: JsonObject): JsonObject {

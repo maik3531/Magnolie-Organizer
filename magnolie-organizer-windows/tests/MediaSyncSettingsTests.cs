@@ -9,6 +9,23 @@ internal static class MediaSyncSettingsTests
     internal static Task RunAsync()
     {
         var initial = MediaSyncSettings.Create(Pc); var original = initial.ToJsonString();
+        var legacy = MediaSyncSettings.Change(initial, Pc, Phone, "skip_deletions", JsonValue.Create(true)!);
+        legacy["settings"]!.AsObject().Remove("photos_only"); var old = legacy.ToJsonString();
+        var projected = MediaSyncSettings.NormalizeStored(legacy, Pc, Phone);
+        TestAssert.That(legacy.ToJsonString() == old && !MediaSyncSettings.Effective(projected)["photos_only"]!.GetValue<bool>(),
+            "Seven-field migration rewrote old state or silently enabled filtering.");
+        var originalFields = projected.DeepClone().AsObject(); originalFields["settings"]!.AsObject().Remove("photos_only");
+        TestAssert.That(JsonNode.DeepEquals(legacy, originalFields) && JsonNode.DeepEquals(projected, MediaSyncSettings.NormalizeStored(projected, Pc, Phone)),
+            "Stored filter projection changed another register or was not idempotent.");
+        var broken = legacy.DeepClone().AsObject(); broken["settings"]!.AsObject().Remove("enabled");
+        TestAssert.Throws<InvalidDataException>(() => MediaSyncSettings.NormalizeStored(broken, Pc, Phone), "Migration repaired an incomplete corrupt stored snapshot.");
+        TestAssert.Throws<InvalidDataException>(() => MediaSyncSettings.ValidateStart(new JsonObject { ["format"] = 1, ["settings"] = legacy.DeepClone() }),
+            "Stored migration was incorrectly applied to wire start snapshots.");
+        var filtered = MediaSyncSettings.Change(projected, Pc, Phone, "photos_only", JsonValue.Create(true)!);
+        var unfiltered = MediaSyncSettings.Change(MediaSyncSettings.Create(Phone), Phone, Pc, "photos_only", JsonValue.Create(false)!);
+        TestAssert.That(MediaSyncSettings.Effective(MediaSyncSettings.Merge(filtered, unfiltered, Pc, Phone))["photos_only"]!.GetValue<bool>() &&
+            JsonNode.DeepEquals(projected["settings"]!["skip_deletions"], filtered["settings"]!["skip_deletions"]),
+            "Concurrent filter choices broadened selection or shared the deletion clock.");
         var start = new JsonObject { ["format"] = 1, ["settings"] = initial.DeepClone() };
         MediaSyncSettings.ValidateStart(start);
         var partial = start.DeepClone().AsObject(); partial["settings"]!["settings"]!.AsObject().Remove("enabled");
@@ -19,7 +36,7 @@ internal static class MediaSyncSettingsTests
         MediaSyncSettings.ValidateResult(report); report["state"] = "complete";
         TestAssert.Throws<InvalidDataException>(() => MediaSyncSettings.ValidateResult(report), "Content pass report claimed complete bilateral/deletion synchronization.");
         var defaults = MediaSyncSettings.Effective(initial);
-        TestAssert.That(defaults.Count == 7 && !defaults["enabled"]!.GetValue<bool>() && defaults["photos_enabled"]!.GetValue<bool>() && !defaults["videos_enabled"]!.GetValue<bool>() &&
+        TestAssert.That(defaults.Count == 8 && !defaults["photos_only"]!.GetValue<bool>() && !defaults["enabled"]!.GetValue<bool>() && defaults["photos_enabled"]!.GetValue<bool>() && !defaults["videos_enabled"]!.GetValue<bool>() &&
             defaults["auto_mode"]!.GetValue<string>() == "manual" && !defaults["skip_deletions"]!.GetValue<bool>() &&
             defaults["collection_mode"]!.GetValue<string>() == "phone_inventory" && defaults["direction"]!.GetValue<string>() == "phone_to_pc",
             "Media intent did not preserve the requested new defaults or enabled a data permission.");

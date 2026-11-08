@@ -243,6 +243,24 @@ class MediaSyncStorageTest {
         assertArrayEquals(before, blob())
     }
 
+    @Test fun sevenFieldProtectedReadPreservesCiphertextUntilExplicitFilterEdit() {
+        val store = store()
+        store.change(expected, "skip_deletions", JsonPrimitive(true), store.fieldVersion(expected, "skip_deletions"))
+        val clear = codec.decryptPayload(blob(), "native_media_shared_settings", expected.peerActor)
+        val record = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject
+        clear.fill(0)
+        val body = record.getValue("body").jsonObject
+        val oldBody = JsonObject(body + ("settings" to JsonObject(body.getValue("settings").jsonObject - "photos_only")))
+        val oldRecord = TelefonKanonisch.bytes(JsonObject(record + ("body" to oldBody)))
+        val encrypted = codec.encryptPayload(oldRecord, "native_media_shared_settings", expected.peerActor); oldRecord.fill(0)
+        helper.writableDatabase.execSQL("UPDATE native_media_shared_settings SET value=?", arrayOf(encrypted))
+        val projected = store.project(expected)
+        assertArrayEquals(encrypted, blob()); assertEquals(JsonPrimitive(false), MediaSyncSettings.effective(projected)["photos_only"])
+        val edited = store.change(expected, "photos_only", JsonPrimitive(true), store.fieldVersion(expected, "photos_only"))
+        assertEquals(edited, store.read(expected)); assertFalse(encrypted.contentEquals(blob()))
+        assertEquals(oldBody.getValue("settings"), JsonObject(edited.getValue("settings").jsonObject - "photos_only"))
+    }
+
     @Test fun changedBindingRestoreCorruptionAndFailedSealRetainHistoricalBytes() {
         val store = store()
         store.change(expected, "enabled", JsonPrimitive(true), store.fieldVersion(expected, "enabled"))
