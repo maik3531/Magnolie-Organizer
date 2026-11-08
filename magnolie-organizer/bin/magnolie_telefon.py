@@ -8681,6 +8681,12 @@ class PhoneService:
         if payload.get("type") == "ack" and set(payload) == {
                 "type", "message_id", "status", "error"}:
             phone_ack_contract.validate(payload)
+            with self.lock:
+                connection=getattr(self,'_native_file_connections',{}).get(channel)
+                binding=getattr(self,'_file_channel_bindings',{}).get(channel)
+                native_media_ack=(connection is not None and binding is not None and
+                    self._current_native_file_binding(peer.get('device_id'),peer.get('static_public'),channel,binding.generation) is binding)
+            if native_media_ack and connection.receive_media_ack(payload):return
             if personal_actor_contract.is_reserved_message(self.store.outbox_message(peer["device_id"], payload["message_id"])):
                 return
             if payload["status"] == "rejected":

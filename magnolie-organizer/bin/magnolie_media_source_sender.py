@@ -1,9 +1,10 @@
 """Private native prepared-source wire lifecycle (#400).
 
-Explicit native composition only: not installed in the production dispatcher,
-not a regular desktop SEND grant, discovery flag, backup or retirement API.
-Controls are derived from an actual prepared owner plus original consent, not
-frozen metadata or caller-supplied readiness booleans. Every wire operation owns
+The ordinary private composition retains its own source-only controls. The
+normal native connection instead lends its exact established session and keeps
+its cleanup lane until actual output drains; it never creates a second epoch.
+This is not a discovery flag, backup or retirement API. Every source requires
+an actual prepared owner plus original consent, not frozen metadata. Every wire operation owns
 the actual original-book/cache IO lease until the secure write has drained.
 """
 from contextlib import contextmanager
@@ -29,12 +30,18 @@ from magnolie_telefon import SecureChannel,canonical,now_ms
 
 
 class _NativeMediaSourceSender:
-    def __init__(self,source,job_id,*,boundary=lambda _:None,_retry=None,_verification=False):
+    def __init__(self,source,job_id,*,boundary=lambda _:None,_retry=None,_verification=False,_connection=None):
         if (type(source) is not NativeMappedMediaSource or type(job_id) is not str
                 or job_id not in source._prepared or not callable(boundary)):
             raise TransferError('media_source_sender_actual_preparation_required')
         self._source=source;self._job=job_id;self._prepared=source._prepared[job_id];self._cache=self._prepared.cache
         self._authority=source._authority;self._channel=self._authority.native_channel
+        self._connection=_connection
+        if _connection is not None:
+            from magnolie_file_desktop_connection import NativeDesktopFileConnection
+            if (type(_connection) is not NativeDesktopFileConnection or _connection._authority is not self._authority
+                    or _connection._channel is not self._channel or _connection._media_source is not source or _retry is not None):
+                raise TransferError('media_source_sender_original_connection_required')
         if type(self._channel) is not SecureChannel:raise TransferError('media_source_sender_secure_channel_required')
         self._closed=threading.Event();self._gate=threading.Lock();self._active=threading.local();self._boundary=boundary
         self._jobs=_NativeSourceJobs(self._authority);self._record=None;self._binding=None;self._requests=set()
@@ -56,7 +63,8 @@ class _NativeMediaSourceSender:
                 raise TransferError('media_source_retry_exact_history_required')
             from magnolie_media_source_retry import _NativeSourceRetryExchange
             self._journal=_NativeSourceRetryExchange(self,original,*_retry)
-        self._controls=NativeFileControlSession(self._authority.identity,self._peer,self._local)
+        self._controls=(_connection._controls if _connection is not None else
+            NativeFileControlSession(self._authority.identity,self._peer,self._local))
 
     @classmethod
     def retry(cls,source,job_id,original_exchange_version,previous_retry_version=None,*,boundary=lambda _:None):
@@ -72,6 +80,10 @@ class _NativeMediaSourceSender:
         self._closed.set()
 
     def _permission(self):
+        if self._connection is not None:
+            self._connection._ready()
+            if self._connection._media_sender is not self or self._controls is not self._connection._controls:
+                raise TransferError('media_source_sender_original_connection_required')
         if (self._closed.is_set() or self._source._prepared.get(self._job) is not self._prepared
                 or self._prepared.failed.is_set()):raise TransferError('media_source_sender_retired')
         self._prepared.permission()
@@ -111,6 +123,16 @@ class _NativeMediaSourceSender:
 
     @contextmanager
     def _operation(self,*,incoming=False):
+        if self._connection is None:
+            with self._source_operation(incoming=incoming) as reader:yield reader
+        else:
+            # One connection lane also serializes controls and protects cleanup
+            # through the actual cache/socket drain. Never take a second session.
+            with self._connection._operation(incoming=incoming):
+                with self._source_operation(incoming=incoming) as reader:yield reader
+
+    @contextmanager
+    def _source_operation(self,*,incoming=False):
         # A response may arrive before the actual send has returned. Serialize
         # it behind that bounded output, rather than discarding a positive ACK.
         acquired=self._gate.acquire(timeout=MAX_TTL_MS/1000) if incoming else self._gate.acquire(blocking=False)
@@ -132,12 +154,17 @@ class _NativeMediaSourceSender:
             expires_ms=min(at+MAX_TTL_MS,expires) if expires is not None else at+MAX_TTL_MS,body=body)
 
     def send_controls(self):
+        if self._connection is not None:
+            self._permission();return self._connection.send_controls()
         with self._operation():
             packet=self._controls.packet();message=self._message(CONTROL,packet.wire())
             self._current();self._channel.send(message);self._current();self._controls.mark_sent(packet)
             return message
 
     def observe_controls(self,channel,message):
+        if self._connection is not None:
+            if channel is not self._channel:raise TransferError('media_source_sender_foreign_channel')
+            self._permission();return self._connection.receive(message)
         with self._operation(incoming=True):
             if channel is not self._channel:raise TransferError('media_source_sender_foreign_channel')
             packet=FileControlPacket.parse(_body(message,CONTROL,now_ms()))

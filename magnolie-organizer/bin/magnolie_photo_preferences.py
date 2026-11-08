@@ -465,8 +465,9 @@ class ProtectedPhotoPreferences:
 
         Receiving choices/destinations and their pairing binding stay exact.
         Shared two-way settings, stored histories or a receive action never set
-        these bits. Actual source handlers/ownership/intent are still absent;
-        native_local_state deliberately continues to advertise SEND false.
+        these bits. The default native_local_state projection stays SEND=false;
+        only the actual connection's stable composed source-handler projection
+        may expose these rights. Every source still needs its own book/intent IO.
         """
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
@@ -628,17 +629,19 @@ class ProtectedPhotoPreferences:
     def local_grant(self,handlers_ready):
         return self.native_local_state(handlers_ready)[0]
 
-    def native_local_state(self,handlers_ready):
+    def native_local_state(self,handlers_ready,*,source_handlers_ready=False):
         """One protected read for the grant and its exact native policy input."""
-        if type(handlers_ready) is not bool:raise TransferError('photo_preferences_native_handlers_required')
+        if type(handlers_ready) is not bool or type(source_handlers_ready) is not bool:raise TransferError('photo_preferences_native_handlers_required')
         snapshot=self.read();peer=self._peer();policy=snapshot.policy
         # A requested bidirectional mode is not a half-ready one-way grant.
-        # Reverse source/target handlers are not released in this implementation.
+        # Without a composed source factory, bidirectional is not half-ready.
         enabled=(handlers_ready and policy is not None and policy.enabled and snapshot.associated and snapshot.destination_available
-            and snapshot.direction=='phone_to_desktop')
+            and (snapshot.direction=='phone_to_desktop' or source_handlers_ready))
+        sending=(source_handlers_ready and policy is not None and snapshot.associated and policy.sending is not None
+            and policy.sending.pairing_epoch==peer.pairing_epoch and (policy.sending.photos or policy.sending.videos))
         revision=(policy.permission_revision if policy.permission_revision is not None else policy.revision) if policy is not None else 1
         epoch=policy.permission_epoch if snapshot.associated and policy is not None else sha256(canonical(dict(scope=self._scope,pairing=peer.pairing_epoch,closed=snapshot.version))).hexdigest()
-        return NativeLocalFileGrant(FileGrantState(revision,epoch,False,enabled),self,handlers_ready),snapshot
+        return NativeLocalFileGrant(FileGrantState(revision,epoch,sending,enabled),self,handlers_ready),snapshot
 
     def _close_handles(self):
         if not self._gate.acquire(blocking=False):return False

@@ -356,8 +356,8 @@ Läufen. Ein zunächst zu großer Gesamtlauf erreichte sein Zeitlimit; daraus wu
 kein Prüferfolg abgeleitet. Die kleinere MIME-Hilfe wird nur mit der optionalen
 Medienkomposition ausgeliefert.
 
-Dieser Weg ist weiterhin eine explizite private Linux-Komposition, noch kein
-normaler Desktop-Verteiler oder automatischer Exportlauf. Neue Medienangebote
+Der eigenständige Senderaufruf bleibt eine explizite private Linux-Komposition;
+die zusätzliche normale Factory-Anbindung ist unten beschrieben. Neue Medienangebote
 werden nicht in die bisherigen gewöhnlichen Retry-Nachweise umgedeutet.
 
 ## Linux: Medienabschluss an der verlustfreien nativen Archivstrecke
@@ -385,9 +385,42 @@ Wiederherstellung der gesicherten alten Version, neue ausdrückliche Vorbereitun
 Saved ohne Readback, kopierte Abschlussmetadaten, veraltete Sicherung und eine
 noch blockierte echte Leserfreigabe trotz bereits gespeichertem Readback. Sechs
 gezielte bisherige Archiv-/Retry-/Abbruchregressionen bestehen ebenfalls.
-Normaler Linux-Verteiler, lokale produktive SEND-Zustimmung, automatische
-Exportauswahl und vollständige gemeinsame Abnahme bleiben offen; Capability 23
+Lokale produktive Linux-SEND-Zustimmung, automatische Exportauswahl und
+vollständige gemeinsame Abnahme bleiben offen; Capability 23
 bleibt geschlossen.
+
+## Linux: native Quell-Factory und gemeinsame Steuersitzung
+
+Die normale native Dateiverbindung komponiert für einen geeigneten bereits
+authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
+Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
+Sendezustimmung bleibt SEND aus. Die Handlerzusammensetzung bleibt über die ganze
+Verbindung stabil; aktive beziehungsweise beendete Arbeiter schalten keine
+Berechtigungsbits um. Die bisherigen eigenständigen Präferenzprojektionen
+bleiben standardmäßig SEND=false.
+
+Eine ausdrücklich vorbereitete Quelle verwendet genau die bestehende
+Steuersitzung und deren ursprüngliche Besitzer. Der normale reservierte
+Nachrichtenverteiler führt Annahme, Chunk-Anfragen, Saved und Readback an diesen
+Besitzer zurück. Medien-Einstellungs-ACKs werden nur anhand tatsächlich eigener
+ausstehender Nachrichten übernommen; fremde normale ACKs warten nicht hinter
+einer blockierten Dateiausgabe. Jeder tatsächliche Quellzugriff behält zusätzlich
+seine ursprüngliche Buch-/Zustimmungs-/Absichts-/Cachelease.
+
+Ausgabe und Archivierung halten den bestehenden Verbindungslauf bis zum
+tatsächlichen I/O-Ende. Schließen signalisiert Abbruch, gibt aber weder
+geschützte Verzeichnisse noch die native Aktivitätssperre vorzeitig frei. Erst
+nach vollständig geprüfter verlustfreier Archivierung wird der alte Sender
+abgelöst; die gemeinsame Steuersitzung und ihre Rechte bleiben stabil.
+Vier neue native Factory-/Verteilerfälle prüfen vollständige verschlüsselte
+Übertragung mit Saved/Readback/Archiv, Entzug ohne Besitzerwechsel sowie Schließen
+während blockierter echter Ausgabe und Archivbewegung. Bestehende private
+Kompositionen und die optional geschlossene Auslieferung bleiben getrennt.
+
+Der Linux-Zustimmungsdialog und die normale Exportauswahl/-planung sind damit
+noch nicht angeschlossen. Vollständige Sammlungs-, Lösch-, Galerieaufbewahrungs-
+und gemeinsame physische Abnahme bleiben ebenfalls offen; Capability 23 bleibt
+geschlossen.
 
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und

@@ -5,6 +5,7 @@ plus independently verified local source backup can hand off drained READ to a
 no-replace archive move while the original book/OS lane remains owned.
 """
 from dataclasses import dataclass
+from contextlib import nullcontext
 from hashlib import sha256
 import copy
 import os
@@ -314,6 +315,14 @@ class _NativeSourceRetirement:
             raise TransferError('media_source_retirement_original_intent_required')
 
     def run(self):
+        connection=self._sender._connection
+        with connection._operation() if connection is not None else nullcontext():
+            result=self._run()
+            if connection is not None and connection._media_sender is self._sender:
+                self._sender.close();connection._media_sender=None
+            return result
+
+    def _run(self):
         sender=self._sender
         if not sender._gate.acquire(blocking=False):raise TransferError('media_source_sender_busy')
         parent=None;handed=False

@@ -26,6 +26,10 @@ from magnolie_photo_schedule import PhotoSyncSchedule, NativePhotoSyncScope
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_offer import KIND as OFFER, validate_offer
 from magnolie_file_chunk_message import RESULT as CHUNK
+from magnolie_file_chunk_message import REQUEST as CHUNK_REQUEST
+from magnolie_file_accept_message import KIND as ACCEPT
+from magnolie_file_saved_message import KIND as SAVED
+from magnolie_file_published_readback import KIND as PUBLISHED_READBACK
 from magnolie_file_chunk_message import parse_chunk
 from magnolie_file_receive import NativeFileReceiveOperation, NativeReceiveStartError
 from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
@@ -33,7 +37,7 @@ from magnolie_transfer_job_index import ProtectedTransferJobIndex
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_photo_mappings import ProtectedPhotoMappings, PhotoMappingAssociation
 from magnolie_photo_destination import NativePhotoDestinationController, NativePhotoDestinationAction
-from magnolie_telefon import now_ms, canonical, strict_json
+from magnolie_telefon import now_ms, canonical, strict_json, SecureChannel
 
 
 def is_reserved_file_message(message):
@@ -94,8 +98,19 @@ class NativeDesktopFileConnection:
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
         self._media_trash = None
+        self._media_transport = self._media_source = self._media_sender = None
         self._destination = NativePhotoDestinationController(authority)
         try:
+            # Stable composition for this authenticated connection, never a bit
+            # toggled by transient worker activity. Discovery23 stays closed.
+            peer=authority.binding.store_owner.peer(authority.binding.peer_id) or {}
+            status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
+            if type(channel) is SecureChannel and status.get('available') is True and 23 in status.get('versions',[]):
+                from magnolie_media_transport import NativeMediaSettingsTransport
+                from magnolie_media_source import NativeMappedMediaSource
+                self._media_transport=NativeMediaSettingsTransport(authority,
+                    lambda:not self._closed.is_set() and self._media_source is not None and self._data_handlers_ready)
+                self._media_source=NativeMappedMediaSource(self._preferences,self._mappings,self._media_transport)
             self._controls = NativeFileControlSession(authority.identity, self._peer, self._local)
         except BaseException:
             self.close()
@@ -114,7 +129,7 @@ class NativeDesktopFileConnection:
     def _local(self):
         self._ready()
         # Do not claim receiver readiness from preferences or control codecs.
-        grant,snapshot=self._preferences.native_local_state(self._data_handlers_ready)
+        grant,snapshot=self._preferences.native_local_state(self._data_handlers_ready,source_handlers_ready=self._media_source is not None)
         if grant.grants.send_files or grant.grants.receive_files:
             witness=snapshot.policy.mapping_store
             if witness is not None:
@@ -317,7 +332,13 @@ class NativeDesktopFileConnection:
             return self._send_controls(clock)
 
     def receive(self, message, *, clock=now_ms):
+        if message.get('kind') in (ACCEPT,CHUNK_REQUEST,SAVED,PUBLISHED_READBACK):
+            sender=self._media_sender
+            if sender is None:raise TransferError('media_source_sender_actual_preparation_required')
+            return sender.observe(self._channel,message)
         with self._operation(incoming=True):
+            if self._media_transport is not None and message.get('kind')=='file_transfer.shared_settings':
+                return self._media_transport.observe(self._channel,message)
             if self._data_handlers_ready and message.get('kind') in (source_messages.RESULT, source_messages.CATALOG,
                     source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT, source_messages.MEDIA, source_messages.RESUME, source_messages.ABANDONED):
                 self._receive_source_result(message, clock)
@@ -333,6 +354,33 @@ class NativeDesktopFileConnection:
             packet = FileControlPacket.parse(body)
             self._controls.observe_remote(packet, self._peer())
             self._send_controls(clock)
+
+    def receive_media_ack(self,message):
+        transport=self._media_transport
+        # Ownership hint only, never an ACK/grant decision: unrelated personal
+        # ACKs must not wait behind a blocked file output. Recheck under locks.
+        if transport is None or message.get('message_id') not in transport._attempts:return False
+        with self._operation(incoming=True):
+            with transport._gate:
+                if message.get('message_id') not in transport._attempts:return False
+                return transport.observe(self._channel,message)
+
+    def prepare_media_source(self,action,expected,association,record_sha256,*,kind='images'):
+        self._take_action(action)
+        with self._operation():
+            if self._media_source is None:raise TransferError('media_source_native_composition_required')
+            if self._album_worker is not None or self._run is not None or self._source_pending is not None:
+                raise TransferError('file_desktop_album_worker_busy')
+            return self._media_source.freeze(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
+
+    def open_prepared_media_sender(self,job_id):
+        with self._operation():
+            if self._media_source is None or self._media_sender is not None:
+                raise TransferError('media_source_sender_original_connection_required')
+            from magnolie_media_source_sender import _NativeMediaSourceSender
+            sender=_NativeMediaSourceSender(self._media_source,job_id,_connection=self)
+            self._media_sender=sender
+            return sender
 
     def issue_receive_action(self):
         self._ready()
@@ -2053,6 +2101,8 @@ class NativeDesktopFileConnection:
 
     def close(self):
         self._closed.set()
+        for owner in (self._media_sender,self._media_source,self._media_transport):
+            if owner is not None:owner.close() # Signals only; active connection I/O owns cleanup.
         self._wake_album_worker()
         self._authority.revoke()  # Nonwaiting even during blocked native/socket I/O.
         return self._close_resources()
@@ -2069,7 +2119,7 @@ class NativeDesktopFileConnection:
                 except Exception as error:
                     failure = error
             receiver = self._run.receiver if self._run is not None else None
-            for resource in (receiver, self._catalog, self._destination, self._media_trash, self._mappings, self._preferences, self._controls, self._authority):
+            for resource in (receiver, self._media_sender, self._media_source, self._media_transport, self._catalog, self._destination, self._media_trash, self._mappings, self._preferences, self._controls, self._authority):
                 if resource is not None:
                     try:
                         resource.close()
