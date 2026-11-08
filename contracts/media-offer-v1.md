@@ -662,6 +662,14 @@ entzogener Medienfähigkeit darf sie nicht durch einen älteren automatischen
 Empfangs-Bootstrap ersetzt werden. Ohne solche gemeinsamen Einstellungen bleibt
 der bestehende ausdrücklich konfigurierte Legacy-Empfangsweg erhalten.
 
+Belegt ein anderer nativer Vorgang die Verbindungs-I/O-Spur unmittelbar vor
+der Erzeugung eines Sende- oder Empfangsworkers, darf ausschließlich der dort
+vor der Erzeugung auftretende `file_desktop_connection_busy` begrenzt erneut
+versucht werden. Jeder Versuch verbraucht einen neuen nativen Aktionstoken;
+ursprünglicher Laufkontext, Buchstand und Fristen bleiben unverändert. Stop,
+Widerruf, jeder andere Fehler sowie bereits erzeugte oder gehaltene Worker
+werden damit nicht wieder gestartet.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

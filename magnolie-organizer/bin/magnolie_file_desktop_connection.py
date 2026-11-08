@@ -2979,6 +2979,21 @@ class NativePhotoDesktopSession:
             self._wait(generation)
         raise TransferError('photo_sync_native_reply_timeout')
 
+    def _start_worker(self,factory,*args,**options):
+        # This exact error is raised before the factory owns the connection
+        # lane or creates a worker. Never retry an admitted/held worker or any
+        # other failure, and never renew the original operation/book deadline.
+        deadline=time.monotonic()+MAX_TTL_MS/1000
+        while time.monotonic()<deadline:
+            generation=self.connection._update_generation
+            if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
+            if self._shared_run_constraint is not None:self._shared_run_constraint.require_current()
+            try:return factory(self.connection.issue_receive_action(),*args,**options)
+            except TransferError as error:
+                if str(error)!='file_desktop_connection_busy':raise
+            self._wait(generation)
+        raise TransferError('photo_sync_native_reply_timeout')
+
     def _local_enabled(self, enabled):
         connection=self.connection; preferences=connection._preferences; before=preferences.read()
         if enabled and (before.policy is None or before.policy.mapping_store is None or before.policy.job_catalog is None):
@@ -3286,7 +3301,7 @@ class NativePhotoDesktopSession:
                     if outgoing is not None:
                         if operation=='automatic' and (not self._shared_automatic or self._shared_schedule_token is not outgoing):
                             raise TransferError('media_source_wifi_automatic_composition_required')
-                        worker=self.connection.start_mapped_media_worker(self.connection.issue_receive_action(),kind=media_type,
+                        worker=self._start_worker(self.connection.start_mapped_media_worker,kind=media_type,
                             book_fence=book_fence,automatic=operation=='automatic',
                             native_current=shared_constraint.require_current if shared_constraint is not None else None)
                         with self._lock:self._worker=worker;self._state='syncing'
@@ -3317,7 +3332,7 @@ class NativePhotoDesktopSession:
                         options=dict(media_type=media_type,activity_changed=lambda owner,active:self._notify())
                         if book_fence is not None:options['book_fence']=book_fence
                         if shared_constraint is not None:options['native_current']=shared_constraint.require_current
-                        worker=self.connection.start_album_worker(self.connection.issue_receive_action(),selected,True,**options)
+                        worker=self._start_worker(self.connection.start_album_worker,selected,True,**options)
                         with self._lock:self._worker=worker; self._state='syncing'
                         self._notify()
                         while not worker.join(.25):

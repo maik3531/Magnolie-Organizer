@@ -1,6 +1,7 @@
 """Independent native RECEIVE is required for shared incoming WLAN work (#429)."""
 import pytest
 import socket
+import threading
 from types import SimpleNamespace
 
 from test_media_source_connection import source,receiving,mappings,composition,dispatch
@@ -15,7 +16,8 @@ from magnolie_file_desktop_connection import NativePhotoDesktopSession
 from test_media_source_sender import message
 
 
-def test_shared_incoming_wifi_uses_receive_without_send_or_implicit_phone_configuration(source,native,monkeypatch):
+@pytest.mark.parametrize('busy_start',[False,True])
+def test_shared_incoming_wifi_uses_receive_without_send_or_implicit_phone_configuration(source,native,monkeypatch,busy_start):
     monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
     with composition(source,native[0]) as h:
         h.preferences.configure_sending(h.preferences.issue_action(),h.preferences.read(),photos=False,videos=False)
@@ -23,6 +25,24 @@ def test_shared_incoming_wifi_uses_receive_without_send_or_implicit_phone_config
         h.controller.change('direction','phone_to_pc');h.controller.change('auto_mode','wifi')
         before=h.preferences.read()
         monkeypatch.setattr(h.source,'plan',lambda *a,**k:pytest.fail('Incoming-only synchronization inspected PC source'))
+        attempts=[]
+        if busy_start:
+            from magnolie_file_transfer import TransferError
+            factory=c.start_album_worker
+            def start(action,*args,**options):
+                attempts.append((action,options.get('native_current'),options.get('book_fence')))
+                if len(attempts)==1:
+                    entered=threading.Event();release=threading.Event()
+                    def own_lane():
+                        with c._operation():entered.set();assert release.wait(5)
+                    lane=threading.Thread(target=own_lane);lane.start();assert entered.wait(5)
+                    try:
+                        with pytest.raises(TransferError,match='^file_desktop_connection_busy$'):factory(action,*args,**options)
+                        assert c._album_worker is None
+                        raise TransferError('file_desktop_connection_busy')
+                    finally:release.set();lane.join(5);assert not lane.is_alive()
+                return factory(action,*args,**options)
+            monkeypatch.setattr(c,'start_album_worker',start)
         token=agree_shared(h,native[0]);assert token is not None
         assert session._shared_schedule_token is token and session._shared_automatic
         h.wire.sock.settimeout(30)
@@ -41,6 +61,9 @@ def test_shared_incoming_wifi_uses_receive_without_send_or_implicit_phone_config
         assert session.join(30) and session.snapshot()['state']=='complete',session.snapshot()
         assert h.preferences.read()==before and c._run is None and c._source_run is None
         assert not h.source._prepared and h.target.read_bytes()==b'hello'
+        if busy_start:
+            assert len(attempts)==2 and attempts[0][0] is not attempts[1][0]
+            assert attempts[0][1] is attempts[1][1] and attempts[0][2]==attempts[1][2]
         session.start('stop');session.shared_settings_changed()
         assert session._automatic_paused
 

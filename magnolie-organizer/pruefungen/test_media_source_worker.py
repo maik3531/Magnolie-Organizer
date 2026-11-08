@@ -187,6 +187,44 @@ def test_import_only_scope_cannot_export_even_with_pc_to_phone_direction_and_nat
         assert not h.source._prepared
 
 
+@pytest.mark.parametrize('finish',['retry','stop','withdraw','other_error'])
+def test_shared_session_retries_only_precreation_busy_with_same_original_context(source,native,monkeypatch,finish):
+    from magnolie_file_transfer import TransferError
+    with composition(source,native[0]) as h:
+        warm_metadata(h,native[0]);h.controller.change('direction','pc_to_phone');agree(h,native[0])
+        c=h.connection;session=c.desktop_session();factory=c.start_mapped_media_worker
+        attempts=[];busy=[]
+        def start(action,**options):
+            attempts.append((action,options.get('native_current'),options.get('book_fence')))
+            if len(attempts)==1:
+                entered=threading.Event();release=threading.Event()
+                def own_lane():
+                    with c._operation():entered.set();assert release.wait(5)
+                lane=threading.Thread(target=own_lane);lane.start();assert entered.wait(5)
+                try:
+                    with pytest.raises(TransferError,match='^file_desktop_connection_busy$'):factory(action,**options)
+                    assert c._mapped_worker is None and not h.source._prepared
+                    busy.append(True)
+                finally:release.set();lane.join(5);assert not lane.is_alive()
+                if finish=='stop':session.start('stop')
+                elif finish=='withdraw':h.controller.change('enabled',False)
+                elif finish=='other_error':raise TransferError('photo_preferences_cas_conflict')
+                raise TransferError('file_desktop_connection_busy')
+            return factory(action,**options)
+        monkeypatch.setattr(c,'start_mapped_media_worker',start)
+        session.start('sync_shared');assert session.join(30),session.snapshot()
+        if finish!='retry':
+            assert session.snapshot()['state']=='held' and busy==[True] and len(attempts)==1,session.snapshot()
+            if finish=='other_error':assert session.snapshot()['error']=='photo_preferences_cas_conflict'
+            assert c._mapped_worker is None and h.target.read_bytes()==b'hello' and not h.source._prepared
+            return
+        assert session.snapshot()['state']=='complete' and session.snapshot()['known_files']==1,session.snapshot()
+        assert busy==[True] and len(attempts)==2
+        assert attempts[0][0] is not attempts[1][0] # The failed native action was consumed.
+        assert attempts[0][1] is attempts[1][1] and attempts[0][2]==attempts[1][2]
+        assert h.target.read_bytes()==b'hello' and not h.source._prepared
+
+
 def test_entire_collection_holds_explicitly_instead_of_claiming_mapped_subset_complete(source,native,monkeypatch):
     with composition(source,native[0]) as h:
         h.controller.change('collection_mode','entire_collection');agree(h,native[0])
