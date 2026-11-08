@@ -10289,3 +10289,53 @@ msgstr "Video"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "In attesa dello stato multimediale nativo"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Solo una prova visiva; connessioni e autorizzazioni non vengono modificate."
+
+msgid "Tray preview"
+msgstr "Anteprima dell’icona di notifica"
+
+msgid "Seasonal background"
+msgstr "Sfondo stagionale"
+
+msgid "Holiday watermark"
+msgstr "Filigrana festiva"
+
+msgid "Both connected"
+msgstr "Entrambi connessi"
+
+msgid "Camera"
+msgstr "Fotocamera"
+
+msgid "Snowflakes"
+msgstr "Fiocchi di neve"
+
+msgid "Stars"
+msgstr "Stelle"
+
+msgid "Boots"
+msgstr "Stivali"
+
+msgid "Santa Claus"
+msgstr "Babbo Natale"
+
+msgid "Rocket"
+msgstr "Razzo"
+
+msgid "Champagne glass"
+msgstr "Calice di champagne"
+
+msgid "Easter eggs"
+msgstr "Uova di Pasqua"
+
+msgid "Reset preview"
+msgstr "Reimposta anteprima"
+
+msgid "OS tray icon (60 s)"
+msgstr "Icona nell’area di notifica del sistema (60 s)"
+
+msgid "Saved developer mode is required."
+msgstr "La modalità sviluppatore deve essere salvata."

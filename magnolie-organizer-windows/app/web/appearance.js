@@ -96,8 +96,9 @@
   function stopNative() { if (nativeActive) nativeSender?.(null); nativeActive = false; }
   function nativeResult(result) {
     nativeActive = context.developer && !context.locked && result?.ok === true && result?.active === true;
+    const t = text => window.MagnolieI18n?.gettext(text) || text;
     if (panel?.status) panel.status.textContent = result?.ok === false ? "TEST · " +
-      (document.documentElement.lang.startsWith("de") ? "Nur mit gespeichertem Entwicklermodus verfügbar." : "Saved developer mode is required.") : nativeActive ? "TEST · OS tray · 60 s" : "";
+      t("Saved developer mode is required.") : nativeActive ? "TEST · " + t("OS tray icon (60 s)") : "";
     apply();
   }
   function simulated() { return context.developer && !context.locked && (nativeActive || Object.keys(preview).some(key => preview[key] !== defaults()[key])); }
@@ -150,11 +151,7 @@
   }
   function mountDeveloper(root, translate, sendNative = null) {
     if (!context.developer || context.locked) return;
-    const german = { "Visual test only; no connections or permissions are changed.": "Nur ein Darstellungstest; Verbindungen und Berechtigungen bleiben unverändert.",
-      "Tray preview": "Tray-Vorschau", "Seasonal background": "Saisonaler Hintergrund", "Holiday watermark": "Feiertags-Wasserzeichen",
-      "Both connected": "Beide verbunden", "Camera": "Kamera", "Snowflakes": "Eiskristalle", "Stars": "Sterne", "Boots": "Stiefel",
-      "Santa Claus": "Weihnachtsmann", "Rocket": "Rakete", "Champagne glass": "Sektglas", "Easter eggs": "Ostereier", "Reset preview": "Vorschau zurücksetzen" };
-    const t = text => { const value = translate(text); return value !== text ? value : document.documentElement.lang.startsWith("de") ? german[text] || text : text; };
+    const t = translate;
     const section = document.createElement("section"); section.className = "magnolie-darstellungstest"; section.id = "entwickler-darstellung";
     const heading = document.createElement("h3"); heading.textContent = "TEST · " + t("Preview");
     const hint = document.createElement("p"); hint.className = "einst-hinweis"; hint.textContent = t("Visual test only; no connections or permissions are changed.");
@@ -198,7 +195,7 @@
     if (typeof sendNative === "function") {
       nativeSender = sendNative;
       const test = document.createElement("button"); test.type = "button"; test.className = "knopf klein"; test.dataset.appearanceNative = "true";
-      test.textContent = document.documentElement.lang.startsWith("de") ? "TEST · OS-Tray-Symbol (60 s)" : "TEST · OS tray icon (60 s)";
+      test.textContent = "TEST · " + t("OS tray icon (60 s)");
       test.addEventListener("click", () => {
         if (!section.isConnected || !context.developer || context.locked) return;
         nativeActive = true;

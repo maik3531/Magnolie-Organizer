@@ -4,18 +4,22 @@ const harnessPath = path.resolve(__dirname, "../../magnolie-organizer-windows/te
 const harness = new Module(harnessPath, module); harness.filename = harnessPath; harness.paths = Module._nodeModulePaths(path.dirname(harnessPath));
 harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", harnessPath);
 (async () => {
-  for (const web of harness.exports.roots) for (const locale of ["en", "de"]) {
+  const locales = ["en", ...fs.readdirSync(path.resolve(__dirname, "../web/i18n")).filter(name => name.endsWith(".js")).map(name => name.slice(0, -3))];
+  for (const web of harness.exports.roots) for (const locale of locales) {
     const b = await harness.exports.boot(web, { notizen: [{ id: "keep", titel: "Unchanged", text: "Original" }],
       einstellungen: { allgemein: { entwicklermodus: true } } });
     try {
       const d = b.w.document;
-      if (locale === "de") { b.w.eval(fs.readFileSync(path.join(web, "i18n/de.js"), "utf8")); b.w.MagnolieI18n.setLocale("de"); }
+      if (locale !== "en") { b.w.eval(fs.readFileSync(path.join(web, "i18n", locale + ".js"), "utf8")); b.w.MagnolieI18n.setLocale(locale); }
       b.t.zustand().kalender.tag = "2026-12-06";
       await b.t.wechsel("aufgaben"); await b.t.wechsel("kalender");
       assert(d.querySelector('.wo-tag[data-appearance-date="2026-12-06"] [data-appearance-watermark="boots"]'));
       b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-entwickler").click();
       const panel = d.querySelector("#entwickler-darstellung"); assert(panel && panel.textContent.includes("TEST"));
-      assert(panel.textContent.includes(locale === "de" ? "Verbindungen und Berechtigungen bleiben unverändert" : "no connections or permissions are changed"));
+      const t = text => b.w.MagnolieI18n.gettext(text);
+      assert(panel.textContent.includes(t("Visual test only; no connections or permissions are changed.")));
+      assert.equal(panel.querySelector('[data-appearance-test="season"]').closest("label").firstChild.textContent, t("Seasonal background"));
+      assert.equal(panel.querySelector('[data-appearance-test="holiday"] option[value="eggs"]').textContent, t("Easter eggs"));
       const before = JSON.stringify(b.t.daten()), saves = b.saves().length, messages = b.messages.length;
       function choose(key, value) {
         const input = panel.querySelector(`[data-appearance-test="${key}"]`); input.value = value; input.dispatchEvent(new b.w.Event("change", { bubbles: true }));
@@ -36,13 +40,14 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
         "Visual developer controls must never send native connection, sync, camera or permission commands");
       panel.querySelector("button").click(); assert.equal(d.querySelector("#magnolie-test-hinweis"), null);
       const nativeButton = panel.querySelector('[data-appearance-native="true"]'); assert(nativeButton);
+      assert.equal(nativeButton.textContent, "TEST · " + t("OS tray icon (60 s)"));
       const nativeBefore = b.messages.length; nativeButton.click();
       assert.equal(b.messages.length, nativeBefore + 1);
       assert.equal(b.messages.at(-1).cmd, "tray_darstellung_test");
       assert.deepEqual(Object.keys(b.messages.at(-1)).sort(), ["cmd", "connection", "mode", "sync"]);
       assert.equal(JSON.stringify(b.t.daten()), before);
       b.w.App.trayDarstellungTestStand({ ok: false, active: false });
-      assert(panel.querySelector('[data-appearance-native-status]').textContent.includes(locale === "de" ? "gespeichertem Entwicklermodus" : "Saved developer mode"));
+      assert.equal(panel.querySelector('[data-appearance-native-status]').textContent, "TEST · " + t("Saved developer mode is required."));
       nativeButton.click(); b.w.App.trayDarstellungTestStand({ ok: true, active: true });
       assert(d.body.hasAttribute("data-appearance-test"));
       b.w.App.trayDarstellungTestStand({ ok: true, active: false });

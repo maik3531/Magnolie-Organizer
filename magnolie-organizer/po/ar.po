@@ -10190,3 +10190,53 @@ msgstr "فيديوهات"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "بانتظار حالة الوسائط من التطبيق"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "اختبار مرئي فقط؛ لا تتغير الاتصالات أو الأذونات."
+
+msgid "Tray preview"
+msgstr "معاينة أيقونة علبة النظام"
+
+msgid "Seasonal background"
+msgstr "خلفية موسمية"
+
+msgid "Holiday watermark"
+msgstr "علامة مائية للمناسبة"
+
+msgid "Both connected"
+msgstr "كلاهما متصل"
+
+msgid "Camera"
+msgstr "الكاميرا"
+
+msgid "Snowflakes"
+msgstr "رقاقات الثلج"
+
+msgid "Stars"
+msgstr "نجوم"
+
+msgid "Boots"
+msgstr "أحذية طويلة"
+
+msgid "Santa Claus"
+msgstr "بابا نويل"
+
+msgid "Rocket"
+msgstr "صاروخ"
+
+msgid "Champagne glass"
+msgstr "كأس شمبانيا"
+
+msgid "Easter eggs"
+msgstr "بيض عيد الفصح"
+
+msgid "Reset preview"
+msgstr "إعادة تعيين المعاينة"
+
+msgid "OS tray icon (60 s)"
+msgstr "أيقونة علبة النظام (60 ثانية)"
+
+msgid "Saved developer mode is required."
+msgstr "يجب حفظ وضع المطوّر."

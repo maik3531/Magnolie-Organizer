@@ -8537,3 +8537,53 @@ msgstr "コレクション全体"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone → PC"
 msgstr "スマートフォン → PC"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "表示のみのテストです。接続や権限は変更されません。"
+
+msgid "Tray preview"
+msgstr "トレイアイコンのプレビュー"
+
+msgid "Seasonal background"
+msgstr "季節の背景"
+
+msgid "Holiday watermark"
+msgstr "祝祭日の透かし"
+
+msgid "Both connected"
+msgstr "両方に接続"
+
+msgid "Camera"
+msgstr "カメラ"
+
+msgid "Snowflakes"
+msgstr "雪の結晶"
+
+msgid "Stars"
+msgstr "星"
+
+msgid "Boots"
+msgstr "ブーツ"
+
+msgid "Santa Claus"
+msgstr "サンタクロース"
+
+msgid "Rocket"
+msgstr "ロケット"
+
+msgid "Champagne glass"
+msgstr "シャンパングラス"
+
+msgid "Easter eggs"
+msgstr "イースターエッグ"
+
+msgid "Reset preview"
+msgstr "プレビューをリセット"
+
+msgid "OS tray icon (60 s)"
+msgstr "システムトレイアイコン（60秒）"
+
+msgid "Saved developer mode is required."
+msgstr "開発者モードを保存する必要があります。"

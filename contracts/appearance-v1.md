@@ -130,9 +130,16 @@ wirklichen erzeugten SVGs als 32-Pixel-Raster. Sie prüfen die Farbkombinationen
 unveränderten Rahmen, Ereignisfrische, Workerende und Beibehalten des ursprünglichen
 Icons. Bestehende KDE-Pairing-/Verbindungsregressionen bestehen ebenfalls.
 
-Das ist keine installierte Tray-/GUI-/Paketabnahme. Die neuen zusätzlichen
-Vorschaubegriffe sind derzeit deutsch/englisch enthalten; weitere Kataloge und
-eine visuelle native Abnahme bleiben offen. Die vollständige Aggregation weiterer
+Die 16 zusätzlichen Vorschau-/Saisonbegriffe einschließlich des nativen Testknopfs
+und seiner Ablehnung sind in allen 19 vorhandenen Sprachkatalogen beider Desktops
+enthalten. Vorhandene Übersetzungen bleiben unverändert; die bestehenden
+PO-Compiler prüfen und erzeugen die Laufzeitkataloge. Ein eigener Vergleich prüft
+die neuen Begriffe in beiden Desktops, der tatsächliche UI-Harness alle 20 Sprachen
+einschließlich Englisch, insgesamt 40 Kombinationen. Das ersetzt keine
+muttersprachliche redaktionelle Abnahme.
+
+Das ist keine installierte Tray-/GUI-/Paketabnahme; eine visuelle native Abnahme
+bleibt offen. Die vollständige Aggregation weiterer
 persönlicher-/Zeit-Abgleichsakteure bleibt gesondert offen; die vorhandenen
 Medienläufe und der allgemeine GUI-Abgleich sind angebunden.
 Tatsächliche Kamera-/Spiegelungsbereitschaft

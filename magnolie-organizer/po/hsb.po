@@ -10269,3 +10269,53 @@ msgstr "Wideja"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Čaka so na natiwny medijowy status"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Jenož wizuelny test; zwiski a prawa so njezměnja."
+
+msgid "Tray preview"
+msgstr "Přehlad symbola w systemowej lajsće"
+
+msgid "Seasonal background"
+msgstr "Pozadk po ročnym času"
+
+msgid "Holiday watermark"
+msgstr "Swjedźenski wodowy znamješk"
+
+msgid "Both connected"
+msgstr "Wobaj zwjazanej"
+
+msgid "Camera"
+msgstr "Kamera"
+
+msgid "Snowflakes"
+msgstr "Sněhowe płatki"
+
+msgid "Stars"
+msgstr "Hwězdy"
+
+msgid "Boots"
+msgstr "Škórnje"
+
+msgid "Santa Claus"
+msgstr "Hodowny muž"
+
+msgid "Rocket"
+msgstr "Raketa"
+
+msgid "Champagne glass"
+msgstr "Šampańska šklenčka"
+
+msgid "Easter eggs"
+msgstr "Jutrowne jejka"
+
+msgid "Reset preview"
+msgstr "Přehlad wróćo stajić"
+
+msgid "OS tray icon (60 s)"
+msgstr "Symbol w systemowej lajsće (60 s)"
+
+msgid "Saved developer mode is required."
+msgstr "Wuwiwarski modus dyrbi składowany być."

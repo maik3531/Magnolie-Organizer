@@ -8851,3 +8851,53 @@ msgstr "Toute la collection"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone → PC"
 msgstr "Téléphone → PC"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Test visuel uniquement ; aucune connexion ni autorisation n’est modifiée."
+
+msgid "Tray preview"
+msgstr "Aperçu de l’icône de notification"
+
+msgid "Seasonal background"
+msgstr "Arrière-plan saisonnier"
+
+msgid "Holiday watermark"
+msgstr "Filigrane de fête"
+
+msgid "Both connected"
+msgstr "Les deux connectés"
+
+msgid "Camera"
+msgstr "Appareil photo"
+
+msgid "Snowflakes"
+msgstr "Flocons de neige"
+
+msgid "Stars"
+msgstr "Étoiles"
+
+msgid "Boots"
+msgstr "Bottes"
+
+msgid "Santa Claus"
+msgstr "Père Noël"
+
+msgid "Rocket"
+msgstr "Fusée"
+
+msgid "Champagne glass"
+msgstr "Coupe de champagne"
+
+msgid "Easter eggs"
+msgstr "Œufs de Pâques"
+
+msgid "Reset preview"
+msgstr "Réinitialiser l’aperçu"
+
+msgid "OS tray icon (60 s)"
+msgstr "Icône de notification du système (60 s)"
+
+msgid "Saved developer mode is required."
+msgstr "Le mode développeur doit être enregistré."

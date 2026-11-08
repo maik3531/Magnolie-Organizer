@@ -1,4 +1,21 @@
 /* Nur für xgettext; diese Datei wird nicht in der Anwendung geladen. */
+/* Appearance selectors use translated data-driven labels. Refs #432. */
+gettext("Visual test only; no connections or permissions are changed.");
+gettext("Tray preview");
+gettext("Seasonal background");
+gettext("Holiday watermark");
+gettext("Both connected");
+gettext("Camera");
+gettext("Snowflakes");
+gettext("Stars");
+gettext("Boots");
+gettext("Santa Claus");
+gettext("Rocket");
+gettext("Champagne glass");
+gettext("Easter eggs");
+gettext("Reset preview");
+gettext("OS tray icon (60 s)");
+gettext("Saved developer mode is required.");
 gettext("Media recycle bin");
 gettext("Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file.");
 gettext("Read media recycle bin");
