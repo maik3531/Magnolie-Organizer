@@ -24,6 +24,7 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
     internal val manifest: DeviceFileManifest, internal val kind: GalleryMediaType,
     references: Map<String, GalleryPhoneMediaReference>) : AutoCloseable {
     private val token = incomingIntent() as? MediaSyncTransport.IntentToken ?: fail()
+    internal val photosOnly: Boolean get() = token.photosOnly
     private val originalPeer = peer()?.takeIf { it.allowed && it.pairingEpoch != null } ?: fail()
     internal val pairingEpoch = originalPeer.pairingEpoch!!
     internal val binding = session.binding(manifest.fingerprint) ?: fail()
@@ -235,7 +236,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
             verifyOriginalBytes(owner, uri, size, body.string("sha256"), cancellation)
             val original = MediaStore.setRequireOriginal(uri)
             fun probe(descriptor: ParcelFileDescriptor) {
-                NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, size, owner.kind, mime, ::current)
+                NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, size, owner.kind, mime, owner.photosOnly, ::current)
             }
             if (Build.VERSION.SDK_INT >= 31) {
                 val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
@@ -318,7 +319,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
             checkRow(); verifyOriginalBytes(uri, size, body.string("sha256"), cancellation, ::current)
             val original = MediaStore.setRequireOriginal(uri)
             fun probe(descriptor: ParcelFileDescriptor) = NativeIncomingMediaInspection.inspect(
-                descriptor.fileDescriptor, size, owner.kind, mime, ::current)
+                descriptor.fileDescriptor, size, owner.kind, mime, ensureNative = ::current)
             val observation = if (Build.VERSION.SDK_INT >= 31) {
                 val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
                     putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)

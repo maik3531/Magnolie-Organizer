@@ -52,10 +52,11 @@ class GalleryIncomingRowsTest {
         put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", if (kind == GalleryMediaType.IMAGES) "album/original.jpg" else "album/original.mp4"); put("size", size); put("sha256", hash) })))
     })
     private fun intent(kind: GalleryMediaType = GalleryMediaType.IMAGES, twoWay: Boolean = true,
-        collectionMode: String = "entire_collection"): MediaSyncTransport.IntentToken {
+        collectionMode: String = "entire_collection", photosOnly: Boolean = false): MediaSyncTransport.IntentToken {
         val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
         var body = MediaSyncSettings.change(MediaSyncSettings.create(a), a, b, "enabled", JsonPrimitive(true))
         body = MediaSyncSettings.change(body, a, b, "collection_mode", JsonPrimitive(collectionMode))
+        if (photosOnly) body = MediaSyncSettings.change(body, a, b, "photos_only", JsonPrimitive(true))
         if (twoWay) body = MediaSyncSettings.change(body, a, b, "direction", JsonPrimitive("two_way"))
         if (kind == GalleryMediaType.VIDEO) {
             body = MediaSyncSettings.change(body, a, b, "videos_enabled", JsonPrimitive(true))
@@ -954,6 +955,24 @@ class GalleryIncomingRowsTest {
                 } finally { old.close() }
             }
             assertEquals(1, provider.publishes); assertEquals(1, provider.writeOpens); assertArrayEquals(raw, file.readBytes())
+        }
+    }
+
+    @Test fun selectedPhotoFilterPreventsScreenshotPublicationAndPreservesVerifiedPendingBytes() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val raw = pngBytes(); val file = File(f.root, "native-filtered-pending.png")
+            val provider = Provider(f.app, payload = file).apply { allowPublish = true }
+            ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(photosOnly = true); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = raw), GalleryMediaType.IMAGES).use { owner ->
+                    val verified = rows.copyAndVerify(owner, rows.prepare(owner, fileId, "image/png"), { raw.copyOf() })
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.publish(owner, verified) }
+                    assertEquals(verified.body, f.index.incomingPublication(verified.id)!!.body)
+                }
+            }
+            assertEquals(0, provider.publishes); assertEquals(1L, provider.pending)
+            assertArrayEquals(raw, file.readBytes())
         }
     }
 

@@ -91,6 +91,30 @@ class NativeIncomingMediaInspectionTest {
         }
     }
 
+    @Test fun photoFilterChecksOriginalCaptureTagsBeforeAdmittingIncomingImages() = fixture<Unit> { root, io ->
+        for (capture in listOf(false, true)) {
+            val file = File(root, if (capture) "capture.txt" else "camera.jpg")
+            val bitmap = Bitmap.createBitmap(16, 9, Bitmap.Config.ARGB_8888)
+            try { file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it)) } } finally { bitmap.recycle() }
+            if (capture) {
+                val original = file.readBytes(); val metadata = CameraPhotoMetadataTest.photograph()
+                file.writeBytes(original.take(2).toByteArray() + metadata.copyOfRange(2, metadata.size - 2) + original.copyOfRange(2, original.size))
+            }
+            val before = file.readBytes()
+            readOnly(file).use { descriptor -> io {
+                if (capture) {
+                    val observation = NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, file.length(), GalleryMediaType.IMAGES,
+                        "image/jpeg", photosOnly = true) { }
+                    assertEquals(16, observation.width); assertEquals(9, observation.height)
+                } else assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, file.length(), GalleryMediaType.IMAGES,
+                        "image/jpeg", photosOnly = true) { }
+                }
+            } }
+            assertArrayEquals(before, file.readBytes())
+        }
+    }
+
     @Test fun claimedMimeGarbageDescriptorLengthAndUiThreadDoNotManufactureImageAdmission() = fixture<Unit> { root, io ->
         val png = File(root, "image.jpg")
         val bitmap = Bitmap.createBitmap(2, 3, Bitmap.Config.ARGB_8888)

@@ -5,6 +5,7 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.os.Looper
+import android.os.ParcelFileDescriptor
 import android.system.Os
 import android.system.OsConstants
 import java.io.FileDescriptor
@@ -22,13 +23,21 @@ internal data class NativeIncomingMediaObservation internal constructor(val medi
  * evidence that Android actually recognizes the requested media kind. */
 internal object NativeIncomingMediaInspection {
     internal fun inspect(descriptor: FileDescriptor, bytes: Long, kind: GalleryMediaType, mimeType: String,
-        ensureNative: () -> Unit): NativeIncomingMediaObservation {
+        photosOnly: Boolean = false, ensureNative: () -> Unit): NativeIncomingMediaObservation {
         if (Looper.myLooper() == Looper.getMainLooper() || bytes !in 1..DeviceFileManifest.MAX_FILE_BYTES)
             fail("gallery_incoming_media_io_required")
         ensureNative()
         val before = Os.fstat(descriptor)
         if (!OsConstants.S_ISREG(before.st_mode) || before.st_size != bytes) fail("gallery_incoming_media_descriptor_changed")
         Os.lseek(descriptor, 0, OsConstants.SEEK_SET)
+        if (photosOnly && kind == GalleryMediaType.IMAGES) {
+            val selected = ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor)).use {
+                CameraPhotoMetadata.matches(it)
+            }
+            ensureNative()
+            if (!selected) fail("gallery_incoming_photo_metadata_required")
+            Os.lseek(descriptor, 0, OsConstants.SEEK_SET)
+        }
         val result = if (kind == GalleryMediaType.IMAGES) {
             val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             val bitmap = BitmapFactory.decodeFileDescriptor(descriptor, null, options)

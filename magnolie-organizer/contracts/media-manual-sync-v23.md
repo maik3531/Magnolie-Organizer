@@ -31,9 +31,14 @@ alone never qualifies. Missing, redacted, invalid or unsupported EXIF is exclude
 this is a selection criterion, not proof that metadata has never been edited.
 EXIF inspection is bounded to 1 MiB, uses existing READ without requesting
 unredacted location access, and revalidates the source even for excluded members.
-Video inventory is unaffected. Exclusion does not attest deletion. The incoming
-and desktop-source filter paths remain unfinished, so this does not enable the
-reserved shared runtime or expose the unfinished cross-platform filter control.
+Video inventory is unaffected. Exclusion does not attest deletion. Android new-row
+publication also enforces the matched filter on original verified incoming bytes
+before making the row visible. Rejected entries remain pending with their verified
+bytes and journal intact; they are not published, deleted or acknowledged as saved.
+Historical published-row readback retains its independent original-proof rules
+rather than applying today's selection filter retroactively. Desktop-source filter
+paths remain unfinished, so this does not enable the reserved shared runtime or
+expose the unfinished cross-platform filter control.
 Only authenticated protected stored records with exactly the previous seven
 registers may be projected to eight by adding local `photos_only=false` at clock
 zero. This projection does not write on read or alter any existing register.
