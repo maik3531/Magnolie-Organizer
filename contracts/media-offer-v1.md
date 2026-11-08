@@ -426,8 +426,29 @@ diesen Bestand über einen gemeinsamen Digest; sie erfinden keinen neuesten
 Alteintrag. UUIDs, SQLite-Zeilenfolge und sortierte Katalogmitgliedschaften
 begründen keine zeitliche Reihenfolge. Die Projektion sind ausschließlich
 historische Metadaten, keine Lese-, Wiederaufnahme- oder Löschrechte. Die
-eigentliche Exportplanung und ihr Vergleich mit der letzten relevanten,
-abgeschlossenen Quellversion werden dadurch noch nicht eingeschaltet.
+automatische Exportplanung wird durch die Reihenfolge allein noch nicht
+eingeschaltet.
+
+### Native Vergleichsentscheidung für zugeordnete PC-Dateien
+
+Der Quellbesitzer und die bestehende native Verbindung können nun eine einzelne
+geschützte Zuordnung prüfen, ohne einen Cache oder Transfer anzulegen. Dabei
+bleiben die tatsächliche Sendezustimmung, die gemeinsame Richtungsvereinbarung,
+das gespeicherte Buch, die aktuelle Zuordnung, die originalen Dateideskriptoren
+und die exklusive Medien-I/O-Lane während des gesamten Vergleichs gebunden.
+Vor der Entscheidung werden sämtliche vorhandenen Quellabschlüsse und die
+tatsächlichen Archivbelege unabhängig geprüft. Laufende oder beschädigte
+Quellaufträge sperren den Vergleich; fehlende Mediendateien bleiben fehlend.
+
+Verglichen wird ausschließlich mit der letzten passenden abgeschlossenen
+Medienversion in der geschützten Reihenfolge. Ohne frühere Quellversion gilt die
+ursprünglich empfangene Zuordnung als Ausgangsstand. Ein Treffer in irgendeiner
+älteren Version oder in der ursprünglichen Empfangsversion darf einen Rückwechsel
+zu älteren Bytes nicht als unverändert verbergen. Ungeordnete Altversionen sowie
+generische Datei-Saved-Abschlüsse ohne normale Medien-Readback-Semantik dürfen
+keine Unverändert-Entscheidung begründen. Die Entscheidung ist weiterhin nur
+Metadaten: kein Lese-, Cache-, Wiederaufnahme- oder Löschrecht. Seitenweise
+Auswahl und automatische Ausgangsplanung sind noch nicht angeschlossen.
 
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.

@@ -380,6 +380,14 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_album_worker_busy')
             return self._media_source.freeze(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
 
+    def plan_media_source(self,action,expected,association,record_sha256,*,kind='images'):
+        self._take_action(action)
+        with self._operation():
+            if self._media_source is None:raise TransferError('media_source_native_composition_required')
+            if self._album_worker is not None or self._run is not None or self._source_pending is not None:
+                raise TransferError('file_desktop_album_worker_busy')
+            return self._media_source.plan(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
+
     def open_prepared_media_sender(self,job_id):
         with self._operation():
             if self._media_source is None or self._media_sender is not None:

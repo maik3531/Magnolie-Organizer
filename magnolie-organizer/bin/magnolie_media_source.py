@@ -114,6 +114,9 @@ class NativeMappedMediaSource:
     def inspect(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=False)
 
+    def plan(self,action,expected,association,record_sha256,*,kind='images'):
+        return self._read(action,expected,association,record_sha256,kind=kind,freeze=False,planning=True)
+
     def freeze(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=True)
 
@@ -187,9 +190,11 @@ class NativeMappedMediaSource:
             return True
         return permission,token
 
-    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None,reprepare=None):
+    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None,reprepare=None,planning=False):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
             raise TransferError('media_source_native_selection_required')
+        if type(planning) is not bool or planning and (freeze or restoration is not None or reprepare is not None):
+            raise TransferError('media_source_planning_selection_invalid')
         action.consume(self._preferences)
         if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
         try:
@@ -242,6 +247,9 @@ class NativeMappedMediaSource:
                                     unchanged()
                                     result=cache.finish(digest.hexdigest()) if cache is not None else NativeMediaSourceObservation(
                                         size,digest.hexdigest(),mapping.file_key,signature,tuple(sorted(mapping.phone_original_reference().items())))
+                                    if planning:
+                                        from magnolie_media_source_planning import compare_current_source
+                                        result=compare_current_source(self,mapping,result,unchanged)
                                     if reprepare is not None:
                                         self._cache_scope.repreparing=(reprepare,result,threading.get_ident())
                                         try:result=reprepare.complete(mapping,result,book.book_version,unchanged)

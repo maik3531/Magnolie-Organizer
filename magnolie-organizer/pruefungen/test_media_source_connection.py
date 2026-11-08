@@ -85,6 +85,22 @@ def test_normal_factory_and_dispatcher_complete_media_then_archive_without_rotat
         assert not h.connection.receive_media_ack(dict(type='ack',message_id=str(uuid.uuid4()),status='accepted',error='none'))
 
 
+def test_normal_connection_plans_actual_mapped_bytes_without_cache_output_or_send_owner_changes(source,native,monkeypatch):
+    with composition(source,native[0]) as h:
+        controls=agree(h,native[0]);owner=h.connection._local().owner;output=[]
+        monkeypatch.setattr(h.channel,'send',lambda packet:output.append(packet))
+        def plan():
+            return h.connection.plan_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,h.record.protected_record_sha256)
+        unchanged=plan()
+        assert not unchanged.changed and unchanged.basis=='original_mapping'
+        h.target.write_bytes(png());changed=plan()
+        assert changed.changed and not changed.grants_read_authority
+        assert not output and not h.source._prepared and h.connection._media_sender is None
+        after=h.connection._controls.packet()
+        assert after.session_epoch==controls.session_epoch and after.grants==controls.grants
+        assert h.connection._local().owner is owner
+
+
 def test_close_during_actual_borrowed_sender_output_retains_connection_cleanup_and_os_lane_until_drain(source,native,monkeypatch):
     with composition(source,native[0]) as h:
         agree(h,native[0]);sender,cache=prepare(h)
