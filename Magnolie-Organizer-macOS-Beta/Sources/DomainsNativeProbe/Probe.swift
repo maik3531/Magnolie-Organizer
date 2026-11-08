@@ -2,6 +2,7 @@ import Foundation
 #if os(macOS)
 import AppKit
 import WebKit
+import CoreGraphics
 import BetaCore
 
 /// Shared forms and actual WebKit/AppKit input, backed by a disposable real
@@ -126,31 +127,43 @@ import BetaCore
         }
     }
     private func stroke(_ rect: [String: Any], window: NSWindow) async throws {
+        try require(CGPreflightPostEventAccess(), "Native gesture posting is not permitted; no permission prompt was requested.")
+        let source = try unwrap(CGEventSource(stateID: .hidSystemState))
         let x1 = try unwrap(rect["x1"] as? Double), x2 = try unwrap(rect["x2"] as? Double), y = try unwrap(rect["y"] as? Double)
-        var receipts: [[String: Any]] = []
+        let primaryScreen = try unwrap(NSScreen.screens.first)
+        var receipts: [[String: Any]] = [], lastPoint: CGPoint?
+        defer {
+            if let point = lastPoint, let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left) {
+                up.post(tap: .cghidEventTap)
+            }
+        }
         for step in 0...25 {
+            try require(NSApp.isRunning && NSApp.isActive && window.isKeyWindow && window.isVisible,
+                        "Native gesture requires its own running foreground key window.")
             let fraction = Double(step) / 25
             let client = NSPoint(x: x1 + (x2 - x1) * fraction, y: y + sin(fraction * .pi) * 8)
             let local = NSPoint(x: client.x, y: web.isFlipped ? client.y : web.bounds.height - client.y)
-            let location = web.convert(local, to: nil)
-            let eventType: NSEvent.EventType = step == 0 ? .leftMouseDown : step == 25 ? .leftMouseUp : .leftMouseDragged
-            let event = try unwrap(NSEvent.mouseEvent(with: eventType, location: location, modifierFlags: [],
-                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                context: nil, eventNumber: step + 1, clickCount: 1, pressure: step == 25 ? 0 : 0.5))
-            let hitPoint = web.superview?.convert(location, from: nil) ?? location
-            let hit = web.hitTest(hitPoint)
-            receipts.append(["step": step, "type": eventType.rawValue,
-                "client": [Double(client.x), Double(client.y)], "webLocal": [Double(local.x), Double(local.y)],
-                "windowPoint": [Double(location.x), Double(location.y)], "webFlipped": web.isFlipped, "delivery": "NSApplication.postEvent",
-                "windowNumber": window.windowNumber, "eventWindowNumber": event.windowNumber,
-                "windowVisible": window.isVisible, "windowKey": window.isKeyWindow, "appActive": NSApp.isActive,
-                "appRunning": NSApp.isRunning, "pressedMouseButtons": NSEvent.pressedMouseButtons,
-                "currentEventType": NSApp.currentEvent.map { String($0.type.rawValue) } ?? "none",
-                "firstResponderClass": window.firstResponder.map { String(describing: type(of: $0)) } ?? "none",
-                "hitViewClass": hit.map { String(describing: type(of: $0)) } ?? "none"])
-            NSApp.postEvent(event, atStart: false)
+            try require(web.bounds.contains(local), "Native gesture escaped its owned web content.")
+            let location = web.convert(local, to: nil), screen = window.convertPoint(toScreen: location)
+            // AppKit global coordinates are bottom-up; Quartz mouse locations are
+            // top-down relative to the primary display. No display-size guesses.
+            let point = CGPoint(x: screen.x, y: primaryScreen.frame.maxY - screen.y)
+            let type: CGEventType = step == 0 ? .leftMouseDown : step == 25 ? .leftMouseUp : .leftMouseDragged
+            let event = try unwrap(CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: point, mouseButton: .left))
+            event.setIntegerValueField(.mouseEventClickState, value: 1)
+            event.setDoubleValueField(.mouseEventPressure, value: step == 25 ? 0 : 0.5)
+            lastPoint = point
+            event.post(tap: .cghidEventTap)
             try await Task.sleep(nanoseconds: 25_000_000)
+            receipts.append(["step": step, "type": type.rawValue,
+                "client": [Double(client.x), Double(client.y)], "quartzScreen": [Double(point.x), Double(point.y)],
+                "windowPoint": [Double(location.x), Double(location.y)], "delivery": "CGEvent.cghidEventTap",
+                "windowNumber": window.windowNumber, "windowVisible": window.isVisible,
+                "windowKey": window.isKeyWindow, "appActive": NSApp.isActive, "appRunning": NSApp.isRunning,
+                "pressedMouseButtons": NSEvent.pressedMouseButtons,
+                "sourceLeftButton": CGEventSource.buttonState(.combinedSessionState, button: .left)])
         }
+        lastPoint = nil // The normal final sample already released the button.
         proof["nativeEventReceipts"] = receipts; writeProof()
         print("Mac drawing native event receipts: " + (try Document.encode(receipts)))
     }

@@ -71,6 +71,7 @@ window.NativeDomains = (() => {
       const target={x1:rect.left+rect.width*.2,x2:rect.left+rect.width*.75,y:top+(bottom-top)*.45};
       const hit=drawingTargetReady(target);
       window.__domainCanvasBefore=canvas.toDataURL('image/png');
+      window.__domainIntendedStroke={widthFraction:(target.x2-target.x1)/rect.width};
       return {target,readiness:{...hit,geometry:sample,stableFrames:frames,stableMilliseconds:now-stableSince}};
     }
     throw Error('Drawing geometry/bitmap/fonts did not settle within 3 seconds: '+JSON.stringify(last));
@@ -152,22 +153,28 @@ window.NativeDomains = (() => {
     await addModule('drawing','Synthetic drawing sheet');await T.wechsel('custom');await tick();
     const canvas=$('.custom-zeichenblatt');assert(canvas,'Missing actual drawing canvas');
     canvas.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});await tick();
-    window.__domainPointers={down:0,move:0,up:0,untrusted:0};
+    window.__domainPointers={down:0,move:0,up:0,untrusted:0,pressedMove:0};
     for(const [type,key] of [['pointerdown','down'],['pointermove','move'],['pointerup','up']]) canvas.addEventListener(type,event=>{
-      if(event.isTrusted)window.__domainPointers[key]++;else window.__domainPointers.untrusted++;
+      if(event.isTrusted){window.__domainPointers[key]++;if(key==='move'&&(event.buttons&1))window.__domainPointers.pressedMove++;}else window.__domainPointers.untrusted++;
     });
     return (await drawingInputReady()).target;
   }
   async function drawingProof() {
     const module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
     assert(module&&window.MagnolieZeichnen.valid(module.drawing)&&module.drawing.strokes.length===1,'Native input did not create one valid stroke');
+    const stroke=module.drawing.strokes[0],points=stroke.points;
+    const distinct=new Set(points.map(point=>JSON.stringify(point.slice(0,2)))).size;
+    assert(distinct>=3,'Native gesture did not create at least three distinct vector positions');
+    const xs=points.map(point=>point[0]),extent=Math.max(...xs)-Math.min(...xs);
+    const intended=window.__domainIntendedStroke.widthFraction;
+    assert(extent>=intended*.5,'Native stroke did not traverse a meaningful fraction of its intended path');
     const canvas=$('.custom-zeichenblatt'),after=canvas.toDataURL('image/png');
     assert(after!==window.__domainCanvasBefore,'Native stroke changed no rendered pixels');
-    const pointer=window.__domainPointers;assert(pointer.down>0&&pointer.move>0&&pointer.up>0&&pointer.untrusted===0,'Native stroke lacked trusted pointer events');
+    const pointer=window.__domainPointers;assert(pointer.down>0&&pointer.move>0&&pointer.up>0&&pointer.untrusted===0&&pointer.pressedMove>0,'Native stroke lacked trusted pressed-button pointer events');
     aria('.zeichen-werkzeuge button','Undo');await tick();assert(module.drawing.strokes.length===0,'Drawing Undo did not remove stroke');
     aria('.zeichen-werkzeuge button','Redo');await tick();assert(module.drawing.strokes.length===1,'Drawing Redo did not restore stroke');
     assert(canvas.toDataURL('image/png')===after,'Drawing Redo did not restore rendered pixels');await save();
-    return {strokeCount:1,pointCount:module.drawing.strokes[0].points.length,pixelChange:true,undoRedo:true,pointer};
+    return {strokeCount:1,pointCount:points.length,distinctPoints:distinct,strokeExtent:extent,intendedExtent:intended,pixelChange:true,undoRedo:true,pointer};
   }
   const snapshot=()=>clone({health:T.daten().gesundheit,custom:T.daten().customOrganizer,tab:T.daten().einstellungen.allgemein.customTab,units:T.daten().einstellungen.kalender.gesundheitEinheiten});
   // The canonical health normalizer adds only this absent optional zero field

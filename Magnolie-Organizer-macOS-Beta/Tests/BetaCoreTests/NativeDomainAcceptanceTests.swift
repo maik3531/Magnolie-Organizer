@@ -77,11 +77,16 @@ final class NativeDomainAcceptanceTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(input["stableMilliseconds"] as? Double ?? 0, 150)
         let drawing = try XCTUnwrap(proof["drawing"] as? [String: Any])
         XCTAssertEqual(drawing["strokeCount"] as? Int, 1)
+        XCTAssertGreaterThanOrEqual(drawing["distinctPoints"] as? Int ?? 0, 3)
+        let intendedExtent = try XCTUnwrap(drawing["intendedExtent"] as? Double)
+        XCTAssertGreaterThan(intendedExtent, 0)
+        XCTAssertGreaterThanOrEqual(drawing["strokeExtent"] as? Double ?? 0, intendedExtent * 0.5)
         XCTAssertEqual(drawing["pixelChange"] as? Bool, true)
         XCTAssertEqual(drawing["undoRedo"] as? Bool, true)
         let pointer = try XCTUnwrap(drawing["pointer"] as? [String: Any])
         for key in ["down", "move", "up"] { XCTAssertGreaterThan(pointer[key] as? Int ?? 0, 0, key) }
         XCTAssertEqual(pointer["untrusted"] as? Int, 0)
+        XCTAssertGreaterThan(pointer["pressedMove"] as? Int ?? 0, 0)
     }
 }
 #endif
