@@ -38,9 +38,12 @@ class MainActivity : Activity() {
     private var importToken: String? = null
     private var documentBusy = false
     private var documentRequests = DocumentRequests()
-    private var ready = false
+    @Volatile private var ready = false
     private var printing = false
     private val network = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val accountNetwork = java.util.concurrent.Executors.newSingleThreadExecutor()
+    @Volatile private var accountCancellation: DavCancellation? = null
+    private fun cancelAccountDiscovery() { accountCancellation?.cancel(); accountCancellation = null }
     @Volatile private var holidayCancellation: DavCancellation? = null
     private fun cancelHolidayFetch() { holidayCancellation?.cancel(); holidayCancellation = null }
     private val printViews = mutableListOf<WebView>()
@@ -88,14 +91,14 @@ class MainActivity : Activity() {
                 !request.isForMainFrame || request.url.toString() != START
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) = handler.cancel()
             override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
-                cancelHolidayFetch()
+                cancelHolidayFetch(); cancelAccountDiscovery()
                 generation++; proxy = null; ready = false
                 documentSession = null; bootstrapStarted = false; restoreFenced = false
                 exporting = null; importToken = null; documentBusy = false
                 documentRequests.cancel()
             }
             override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-                cancelHolidayFetch()
+                cancelHolidayFetch(); cancelAccountDiscovery()
                 generation++; ready = false; proxy = null; documentSession = null
                 documentRequests.cancel(); view.destroy(); fatal(); return true
             }
@@ -158,7 +161,7 @@ class MainActivity : Activity() {
     }
     private fun work(onError: (Exception) -> Unit = { error ->
         if (error is CommitFailure && error.outcome != "before-commit") {
-            ready = false; restoreFenced = true
+            cancelAccountDiscovery(); ready = false; restoreFenced = true
             respond("storageBlocked",JSONObject().put("outcome",error.outcome).put("text",getString(R.string.save_failed)))
         } else respond("error",getString(R.string.failed))
     }, action: () -> Unit) {
@@ -170,6 +173,73 @@ class MainActivity : Activity() {
             }
         }
     }
+    // Account revisions are independent from saves to this page's Organizer book.
+    // Same-session authority survives a pending book-save ACK, but never a reload/restore.
+    private fun accountCurrent(epoch: Int, session: DocumentSession): Boolean =
+        !isDestroyed && epoch == generation && documentSession?.id == session.id && ready && !restoreFenced
+
+    private fun accountReply(callback: String, payload: JSONObject, epoch: Int, session: DocumentSession,
+                             cancellation: DavCancellation? = null) {
+        runOnUiThread {
+            if (accountCurrent(epoch,session) && (cancellation == null || accountCancellation === cancellation))
+                respond(callback,payload,epoch)
+        }
+    }
+
+    private fun accountFailure(command: String, requestId: String?, error: Exception, epoch: Int,
+                               session: DocumentSession, cancellation: DavCancellation? = null) {
+        if (error is java.util.concurrent.CancellationException) return
+        // Never manufacture an empty provider snapshot to stand in for a failed read.
+        AndroidStore.io.execute {
+            if (!accountCurrent(epoch,session) || cancellation != null && accountCancellation !== cancellation) return@execute
+            val code = DavAccountService.errorCode(error)
+            val actual = try { AndroidDavAccounts.service(this).status() } catch (_: Exception) { null }
+            val payload = DavAccountBridgeRequest.failure(command,requestId,actual,code)
+            accountReply(DavAccountBridgeRequest.callback(command),payload,epoch,session,cancellation)
+        }
+    }
+
+    private fun dispatchAccount(message: JSONObject, epoch: Int, session: DocumentSession) {
+        val command = message.getString("cmd")
+        val requestId = (message.opt("requestId") as? String)?.takeIf { it.isNotEmpty() && it.toByteArray().size <= 1024 }
+        val request = try { DavAccountBridgeRequest.parse(message) } catch (error: Exception) {
+            accountFailure(command,requestId,error,epoch,session); return
+        }
+        if (request.discovery || command == "baum_briefkasten_speichern") cancelAccountDiscovery()
+        val cancellation = if (request.discovery) DavCancellation().also { accountCancellation = it } else null
+        AndroidStore.io.execute {
+            if (!accountCurrent(epoch,session) || cancellation != null && accountCancellation !== cancellation) return@execute
+            try {
+                cancellation?.check()
+                // Keystore/configuration initialization and mutations never run on the UI thread.
+                val service = AndroidDavAccounts.service(this)
+                if (request.discovery) {
+                    accountNetwork.execute accountDiscovery@{
+                        if (!accountCurrent(epoch,session) || accountCancellation !== cancellation) return@accountDiscovery
+                        try {
+                            cancellation!!.check()
+                            val result = service.discover(requireNotNull(request.expectedRevision),cancellation)
+                            val payload = if (command == "baum_dav_pruefen")
+                                JSONObject(result.connectionTestPayload(requireNotNull(request.requestId)))
+                            else JSONObject(result.status.payload(request.requestId))
+                            accountReply(request.callback,payload,epoch,session,cancellation)
+                        } catch (error: Exception) { accountFailure(command,request.requestId,error,epoch,session,cancellation) }
+                    }
+                } else {
+                    if (!accountCurrent(epoch,session)) return@execute
+                    val payload = when (command) {
+                        "baum_briefkasten_speichern" -> JSONObject(service.save(requireNotNull(request.expectedRevision),
+                            requireNotNull(request.configuration),request.applicationPassword,request.clearPassword)
+                            .payload(request.requestId,true))
+                        "eds_status" -> DavAccountBridgeRequest.sources(service.status(),request.requestId)
+                        else -> JSONObject(service.status().payload(request.requestId))
+                    }
+                    accountReply(request.callback,payload,epoch,session)
+                }
+            } catch (error: Exception) { accountFailure(command,request.requestId,error,epoch,session,cancellation) }
+        }
+    }
+
     private fun dispatch(message: JSONObject) {
         val epoch = generation
         val cmd = message.getString("cmd")
@@ -177,9 +247,12 @@ class MainActivity : Activity() {
         if (cmd != "bereit") {
             // This timer only reschedules the current persisted state, never its supplied snapshot.
             // A save ACK may still be in transit when the same page's timer fires.
-            if (cmd == "erinnerung_einrichten") check(session?.id == documentSession?.id)
+            if (cmd == "erinnerung_einrichten" || cmd in DavAccountBridgeRequest.commands) check(session?.id == documentSession?.id)
             else check(session == documentSession)
             check(!restoreFenced && (ready || cmd == "tablet_loaded"))
+        }
+        if (cmd in DavAccountBridgeRequest.commands) {
+            dispatchAccount(message, epoch, requireNotNull(session)); return
         }
         when (cmd) {
             "bereit" -> {
@@ -200,7 +273,7 @@ class MainActivity : Activity() {
                 val id = message.getLong("id")
                 work({ error ->
                     val reload = !AndroidStore.vault(this).isWritable(requireNotNull(session))
-                    if (reload) { ready = false; restoreFenced = true }
+                    if (reload) { cancelAccountDiscovery(); ready = false; restoreFenced = true }
                     respond("gespeichert",JSONObject().put("id",id).put("ok",false)
                         .put("session",session!!.id).put("expectedRevision",session.revision)
                         .put("reloadRequired",reload).put("outcome",(error as? CommitFailure)?.outcome ?: "rejected")
@@ -277,7 +350,7 @@ class MainActivity : Activity() {
                     .setOnCancelListener { cancelDocument() }
                     .setPositiveButton(R.string.restore) { _,_ ->
                         if (epoch == generation && session == documentSession && !restoreFenced) {
-                            cancelHolidayFetch()
+                            cancelHolidayFetch(); cancelAccountDiscovery()
                             restoreFenced = true; ready = false
                             work({ error -> respond("restoreFailed",JSONObject().put("token",token)
                                 .put("outcome",(error as? CommitFailure)?.outcome ?: "before-commit")
@@ -483,7 +556,7 @@ class MainActivity : Activity() {
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
-        cancelHolidayFetch(); network.shutdownNow()
+        cancelHolidayFetch(); cancelAccountDiscovery(); network.shutdownNow(); accountNetwork.shutdownNow()
         generation++; ready=false; proxy=null; documentSession=null; documentRequests.cancel()
         printViews.forEach { it.destroy() }; web.destroy(); super.onDestroy()
     }

@@ -84,6 +84,44 @@ if (regionalSource.split(automaticZoneAnchor).length !== 2) throw Error('Desktop
 // Android Beta has no native source-bound detection. Preserve imported settings
 // while refusing to initiate the desktop-only background MCP transaction.
 regionalSource = regionalSource.replace(automaticZoneAnchor, automaticZoneAnchor+' return;');
+// The actual shared DAV form and source-selection renderer remain authoritative.
+// Prefixes isolate Android account setup/discovery from desktop-only services.
+const davPatch = (name, body) => '/*TABLET_DAV_'+name+'_BEGIN*/'+body+'/*TABLET_DAV_'+name+'_END*/';
+function amendDav(before, after) {
+  if (regionalSource.split(before).length !== 2) throw Error('Canonical DAV anchor changed: '+before.slice(0,90));
+  regionalSource = regionalSource.replace(before,after);
+}
+const davSyncAnchor = '  function baueSeiteSync(wurzel) {';
+amendDav(davSyncAnchor,davSyncAnchor+davPatch('PAGE',`{
+    const section = abschnitt(_("DAV account"), "Account setup and read-only discovery. Calendar/contact synchronization is not implemented.");
+    section.id = "tablet-dav-discovery";
+    const status = el("p", "sync-status", _("Checking online accounts …")); status.id = "sync-status";
+    const choices = el("div", "sync-wahl"); choices.id = "sync-wahl";
+    const start = knopf(_("Synchronize now"), "", () => starteSync(false)); start.id = "sync-jetzt"; start.disabled = true;
+    const limitation = el("p", "einst-hinweis", "Account setup and read-only discovery. Calendar/contact synchronization is not implemented."); limitation.id = "tablet-dav-limit";
+    section.append(status, choices, start, limitation); wurzel.append(section);
+    if (letzterEdsStatus) fuelleEdsAuswahl(letzterEdsStatus);
+    Bruecke.sende({ cmd: "eds_status" });
+    baueNextcloudKonto(wurzel); window.TabletDav.accountRendered(briefkastenStand); return;
+  }`));
+const davStartAnchor = '  function starteSync(stumm) {';
+amendDav(davStartAnchor,davStartAnchor+davPatch('SYNC',
+  'if (!stumm) zettel("Calendar/contact synchronization is not implemented. DAV account setup and read-only discovery are available."); return;'));
+amendDav('        kennwortLoeschen: !!kennwortLoeschen });',
+  '        kennwortLoeschen: !!kennwortLoeschen'+davPatch('REVISION',', expectedRevision: briefkastenStand.revision')+' });');
+amendDav('Bruecke.sende({ cmd: "baum_briefkasten_pruefen" })',
+  'Bruecke.sende({ cmd: "baum_briefkasten_pruefen"'+davPatch('TEST_REVISION',', expectedRevision: briefkastenStand.revision')+' })');
+const davSourceAnchor = '  function fuelleEdsAuswahl(nutzlast) {';
+const sourceStart = regionalSource.indexOf(davSourceAnchor);
+const sourceEnd = regionalSource.indexOf('  function starteImport(',sourceStart);
+if (sourceStart<0 || sourceEnd<0 || regionalSource.split(davSourceAnchor).length!==2) throw Error('Canonical DAV source renderer changed');
+let sourceRenderer = regionalSource.slice(sourceStart,sourceEnd);
+const sourceClose = sourceRenderer.lastIndexOf('}');
+sourceRenderer = sourceRenderer.slice(0,sourceClose)+davPatch('SOURCE_END',
+  '} finally { window.TabletDav.sourcesRendered(nutzlast); }')+sourceRenderer.slice(sourceClose);
+sourceRenderer = sourceRenderer.replace(davSourceAnchor,davSourceAnchor+davPatch('SOURCE_START',
+  'nutzlast = window.TabletDav.sourceView(nutzlast, DATEN.einstellungen.sync); try {'));
+regionalSource = regionalSource.slice(0,sourceStart)+sourceRenderer+regionalSource.slice(sourceEnd);
 const anchor = '  window.App = App;';
 if (appSource.split(anchor).length !== 2) throw Error('Desktop adapter anchor changed');
 generated.set('assets/web/anwendung.js', Buffer.from(regionalSource.replace(anchor,
@@ -129,7 +167,7 @@ for (const [p,b] of generated) { const dest = path.join(out,p); fs.mkdirSync(pat
 const manifest = {format:1, kind:'debug-beta-generated-build-projection', sourceHash, inputs:hashes,
   transformations:['index: beta title, adapter and responsive stylesheet',
     'fonts: live Windows font-face rules, bundled font bytes and licenses (no Android system-font substitution)',
-    'anwendung: expose existing editor guard + durable action queue without changing either implementation; expose existing regional form for local persistence; suppress unsupported native automatic time-zone polling',
+    'anwendung: expose existing editor guard + durable action queue; reuse canonical DAV account/selection renderers for native setup and read-only discovery with revision fences; keep synchronization unsupported; expose regional form and suppress unsupported native automatic time-zone polling',
     'i18n-active: concatenate canonical catalogs', 'native resources: reuse catalogs + 20 manual beta translations'],
   outputs:Object.fromEntries([...generated].map(([p,b])=>[p,sha(b)]))};
 fs.writeFileSync(path.join(out,'assets/projection.json'),JSON.stringify(manifest,null,2)+'\n');

@@ -16,8 +16,9 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===2 && x.every(Boolean)), '20 manual beta locales');
   const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
   const projected=read('anwendung.js');
-  ok(projected.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
-    'generated core differs only by reviewed guard, regional entry and native detection suppression');
+  const reviewed=projected.replace(/\/\*TABLET_DAV_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_DAV_\1_END\*\//g,'');
+  ok(reviewed.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
+    'generated core differs only by reviewed guard, regional entry, DAV prefixes and native detection suppression');
   const fontCss=read('desktop-fonts.css');
   assert.match(read('index.html'),/href="desktop-fonts\.css"/);
   for (const family of ['Noto Serif','DejaVu Sans','Noto Sans','DejaVu Sans Mono','Magnolie Handschrift'])
@@ -30,8 +31,24 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     assert.ok(read('schriften/'+license).length>100);
   ok(true,'desktop font families, faces and licenses use the live bundled Windows bytes');
   let disk=null, messages=[], failSave=false;
+  let accountChanges=0, credential='', accountCounter=1, discoveryError='';
+  let account={kontoArt:'nextcloud',davAktiv:false,briefkastenAktiv:false,url:'',benutzer:'',
+    kennwortVorhanden:false,revision:accountCounter.toString(16).padStart(64,'0'),zustand:'disabled',fehler:''};
+  const calendars=[{uid:'nextcloud-caldav:available',name:'Native DAV calendar',art:'nextcloud-caldav',supportsVtodo:false}];
+  const addressBooks=[{uid:'nextcloud-carddav:available',name:'Native DAV contacts',art:'nextcloud-carddav'}];
+  const sourceSnapshot=()=>({verfuegbar:!discoveryError,buchOk:true,kalender:calendars,adressbuecher:addressBooks,
+    fehler:discoveryError,systemAccountSyncImplemented:false});
+  const davCallbacks=['baumBriefkastenStatus','baumBriefkastenGespeichert','baumBriefkastenPruefung','baumDavPruefung','edsStatus'];
+  function callbackForwarding(target,expected,label) {
+    let forwarded=0;
+    const originals=Object.fromEntries(davCallbacks.map(name=>[name,target.App[name]]));
+    for(const name of davCallbacks) target.App[name]=()=>{forwarded++;};
+    try { for(const name of davCallbacks) target.Tablet.receive({callback:name,payload:{revision:'a'.repeat(64)}}); }
+    finally { for(const name of davCallbacks) target.App[name]=originals[name]; }
+    ok(forwarded===expected,label);
+  }
   const browserErrors=[];
-  async function open() {
+  async function open({holdReady=false}={}) {
     const session=webcrypto.randomUUID(); let revision=webcrypto.randomUUID();
     const console=new VirtualConsole(); console.on('jsdomError',error=>browserErrors.push(error));
     const dom=new JSDOM(read('index.html'),{url:'https://appassets.androidplatform.net/assets/web/index.html',
@@ -44,8 +61,29 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     w.TabletNative={postMessage(text) {
       const m=JSON.parse(text); messages.push(m);
       setTimeout(()=>{
+        if (!w.document) return;
         if(m.cmd==='bereit') w.Tablet.receive({callback:'init',payload:{daten:disk,session,revision}});
-        if(m.cmd==='tablet_loaded') w.Tablet.receive({callback:'ready',payload:{session,revision}});
+        if(['baum_briefkasten_status','baum_briefkasten_speichern','baum_briefkasten_pruefen','baum_dav_pruefen','eds_status'].includes(m.cmd)) {
+          assert.equal(m.session,session); assert.equal(m.revision,revision);
+          if(m.cmd==='baum_briefkasten_status') w.Tablet.receive({callback:'baumBriefkastenStatus',payload:{...account}});
+          if(m.cmd==='eds_status') w.Tablet.receive({callback:'edsStatus',payload:sourceSnapshot()});
+          if(m.cmd==='baum_briefkasten_speichern') {
+            const conflict=m.expectedRevision!==account.revision;
+            if(!conflict) {
+              if(m.kennwortLoeschen) credential=''; else if(m.anwendungskennwort) credential=m.anwendungskennwort;
+              account={...account,kontoArt:m.kontoArt,davAktiv:m.davAktiv,briefkastenAktiv:m.briefkastenAktiv,
+                url:m.url,benutzer:m.benutzer,kennwortVorhanden:!!credential,fehler:'',
+                revision:(++accountCounter).toString(16).padStart(64,'0')}; accountChanges++;
+            }
+            w.Tablet.receive({callback:'baumBriefkastenGespeichert',payload:{...account,ok:!conflict,
+              persisted:!conflict,verified:!conflict,fehler:conflict?'Account changed; reload its current state.':''}});
+          }
+          if(m.cmd==='baum_briefkasten_pruefen') {
+            assert.equal(m.expectedRevision,account.revision);
+            w.Tablet.receive({callback:'baumBriefkastenPruefung',payload:{...account,fehler:discoveryError}});
+          }
+        }
+        if(m.cmd==='tablet_loaded' && !holdReady) w.Tablet.receive({callback:'ready',payload:{session,revision}});
         if(m.cmd==='speichern') {
           assert.equal(m.session,session); assert.equal(m.revision,revision);
           if(!failSave) disk=JSON.parse(m.text);
@@ -116,8 +154,87 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   ok(T.daten().einstellungen.erinnerung.an && disk.einstellungen.erinnerung.an,
     'explicit native consent re-enables imported reminder projection and persists it');
   T.oeffneEinstellungen(); await wait();
-  ok(w.document.querySelector('#einst-tab-sync').disabled && w.document.querySelector('#einst-tab-baum').disabled,
-    'desktop system-account and sync tabs are disabled');
+  ok(!w.document.querySelector('#einst-tab-sync').disabled && w.document.querySelector('#einst-tab-baum').disabled,
+    'DAV setup tab is available while desktop tree integration stays disabled');
+  const originalSync=structuredClone(T.daten().einstellungen.sync);
+  Object.assign(T.daten().einstellungen.sync,{kalenderUid:'imported-offline-calendar',kalenderUids:['imported-offline-calendar'],
+    adressbuchUid:'imported-offline-book'});
+  T.speichereJetzt(); await wait();
+  const accountProfile=JSON.stringify(T.daten());
+  w.document.querySelector('#einst-tab-sync').click(); await wait(); await wait();
+  ok(!!w.document.querySelector('#nextcloud-konto') && !w.document.querySelector('#graph-konto') &&
+    !w.document.querySelector('#nextcloud-briefkasten') && !w.document.querySelector('#telefon-kontakte-quelle') &&
+    w.document.querySelector('#tablet-dav-limit').textContent.includes('read-only discovery'),
+    'actual canonical DAV form is isolated from Linux, Graph, mailbox and phone configuration');
+  const form=w.document.querySelector('#nextcloud-konto');
+  ok(!form.querySelector('#nextcloud-dav-an').disabled && !form.querySelector('#briefkasten-url').disabled,
+    'capability exceptions enable only actual native DAV account controls');
+  const input=(id,value)=>{const field=w.document.getElementById(id);field.value=value;field.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  const namedButton=label=>[...w.document.querySelectorAll('#nextcloud-konto button')].find(button=>button.textContent===label);
+  const serviceFailure={ok:false,fehler:'Native account service unavailable',fehlerCode:'native_account_unavailable'};
+  w.Tablet.receive({callback:'baumBriefkastenStatus',payload:serviceFailure}); await wait();
+  ok(namedButton('Save').disabled && w.document.getElementById('briefkasten-url').disabled &&
+    !w.document.getElementById('tablet-dav-refresh').disabled &&
+    Object.keys(serviceFailure).sort().join(',')==='fehler,fehlerCode,ok' &&
+    JSON.stringify(T.daten())===accountProfile,
+    'missing native account snapshot disables mutation without inventing account revision or changing profile');
+  const beforeRefresh=messages.filter(m=>m.cmd==='baum_briefkasten_status').length;
+  w.document.getElementById('tablet-dav-refresh').click(); await wait(); await wait();
+  ok(messages.filter(m=>m.cmd==='baum_briefkasten_status').length===beforeRefresh+1 &&
+    !namedButton('Save').disabled && !w.document.getElementById('briefkasten-url').disabled &&
+    !w.document.getElementById('tablet-dav-refresh') && JSON.stringify(T.daten())===accountProfile &&
+    JSON.stringify(disk)===accountProfile,
+    'explicit read-only Refresh obtains real native status and recovers account controls without changing profile');
+  input('briefkasten-url',' https://dav.example.test/remote.php/dav ');
+  input('briefkasten-benutzer',' synthetic-dav-user ');
+  input('briefkasten-kennwort','public-synthetic-app-password');
+  const enable=w.document.getElementById('nextcloud-dav-an'); enable.checked=true;enable.dispatchEvent(new w.Event('change',{bubbles:true}));
+  const firstRevision=account.revision;
+  namedButton('Save').click(); await wait(); await wait();
+  const accountSave=messages.filter(m=>m.cmd==='baum_briefkasten_speichern').at(-1);
+  ok(accountSave?.expectedRevision===firstRevision && accountSave.kontoArt==='nextcloud' && accountSave.davAktiv &&
+    accountSave.briefkastenAktiv===false && accountSave.url==='https://dav.example.test/remote.php/dav' &&
+    accountSave.benutzer==='synthetic-dav-user' && accountSave.anwendungskennwort==='public-synthetic-app-password' &&
+    accountChanges===1 && w.document.getElementById('briefkasten-kennwort').value==='',
+    'actual DAV GUI save sends account revision and app password to the native account service only');
+  T.speichereJetzt();await wait();
+  ok(JSON.stringify(T.daten())===accountProfile && JSON.stringify(disk)===accountProfile &&
+    !JSON.stringify(disk).includes('synthetic-dav-user') && !JSON.stringify(disk).includes('public-synthetic-app-password') &&
+    !JSON.stringify(disk).includes('dav.example.test'),
+    'account save and saved callback never insert credentials or account configuration into Organizer JSON');
+  account={...account,revision:(++accountCounter).toString(16).padStart(64,'0')};
+  const staleRevision=accountSave.expectedRevision;
+  namedButton('Save').click(); await wait();await wait();
+  const staleSave=messages.filter(m=>m.cmd==='baum_briefkasten_speichern').at(-1);
+  ok(staleSave.expectedRevision!==account.revision && staleSave.expectedRevision!==staleRevision && accountChanges===1 &&
+    w.document.getElementById('nextcloud-status').textContent.includes('Account changed'),
+    'stale GUI revision is not silently replaced and native conflict cannot change account or book');
+  discoveryError='Synthetic DAV discovery is unavailable';
+  namedButton('Test connection').click();await wait();await wait();
+  const connection=messages.filter(m=>m.cmd==='baum_briefkasten_pruefen').at(-1);
+  ok(connection.expectedRevision===account.revision && w.document.getElementById('sync-status').textContent.includes(discoveryError) &&
+    w.document.getElementById('sync-jetzt').disabled && JSON.stringify(T.daten())===accountProfile,
+    'actual connection-test GUI uses current account revision; failed discovery preserves the full document');
+  const retained=w.document.querySelector('#sync-wahl input[data-kalender-uid="imported-offline-calendar"]');
+  const available=w.document.querySelector('#sync-wahl input[data-kalender-uid="nextcloud-caldav:available"]');
+  const bookChoice=w.document.querySelector('#sync-wahl select');
+  ok(retained?.checked && !!available && bookChoice?.value==='imported-offline-book' &&
+    [...bookChoice.options].some(option=>option.value==='nextcloud-carddav:available'),
+    'canonical source renderer retains unavailable imported UIDs alongside cached native DAV choices');
+  available.checked=true;available.dispatchEvent(new w.Event('change',{bubbles:true}));
+  bookChoice.value='nextcloud-carddav:available';bookChoice.dispatchEvent(new w.Event('change',{bubbles:true}));
+  T.speichereJetzt();await wait();
+  ok(disk.einstellungen.sync.kalenderUids.includes('imported-offline-calendar') &&
+    disk.einstellungen.sync.kalenderUids.includes('nextcloud-caldav:available') &&
+    disk.einstellungen.sync.adressbuchUid==='nextcloud-carddav:available',
+    'actual cached-source controls persist through canonical UID selection handlers without dropping an offline calendar');
+  const beforeUnsupportedSync=messages.length;
+  T.starteSync(false); await wait();
+  ok(messages.length===beforeUnsupportedSync && w.document.getElementById('sync-jetzt').disabled &&
+    w.document.getElementById('zettel').textContent.includes('not implemented'),
+    'synchronization stays explicitly unsupported even after account configuration and successful discovery');
+  callbackForwarding(w,davCallbacks.length,'DAV callback router forwards all supported callbacks only in the loaded writable page');
+  discoveryError=''; T.daten().einstellungen.sync=originalSync;T.speichereJetzt();await wait();
   Object.assign(T.daten().einstellungen.ort,{land:'DE',region:'DE-BE',ferien:true,alleRegionen:false});
   w.document.querySelector('#einst-tab-ort').click(); await wait();
   ok(!w.document.querySelector('#ort-abrufen').disabled && !w.document.querySelector('#ort-jahre').disabled &&
@@ -254,6 +371,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   const token='native-selected-import';
   w.Tablet.receive({callback:'importCandidate',payload:{token,text:JSON.stringify(disk)}});
   const confirm=messages.findLast(x=>x.cmd==='tablet_replace');
+  callbackForwarding(w,0,'DAV callbacks cannot mutate account UI or source selections during replacement');
   ok(confirm?.token===token && !Object.hasOwn(confirm,'text'),'restore authorization submits no imported body or file-supplied authority');
   const count=messages.filter(x=>x.cmd==='speichern').length;
   w.Tablet.receive({callback:'restoreFailed',payload:{token,outcome:'uncertain',text:'Import failed.'}});
@@ -264,6 +382,10 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   w.Tablet.action('tablet_export'); await wait();
   ok(w.document.getElementById('schreibtisch').inert && messages.filter(x=>x.cmd==='speichern').length===count,
     'uncertain restore stays fenced through late cancel/error/ready and explicit save/pause flush');
+  callbackForwarding(w,0,'DAV callbacks stay fenced after storage becomes uncertain');
+  dom.window.close();
+  dom=await open({holdReady:true});
+  callbackForwarding(dom.window,0,'DAV callbacks are ignored before native initialization is acknowledged');
   dom.window.close();
   await wait();
   assert.equal(browserErrors.length,0,browserErrors.map(e=>String(e)).join('\n'));

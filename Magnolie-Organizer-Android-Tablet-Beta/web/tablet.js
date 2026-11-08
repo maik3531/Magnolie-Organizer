@@ -6,6 +6,11 @@
   const supported = new Set(['bereit','speichern','beenden_bereit','beenden_abgebrochen',
     'drucken','ablage_kopieren','ablage_holen','tablet_import','tablet_export',
     'feiertage','tablet_notifications','tablet_about','tablet_replace','tablet_import_cancel','erinnerung_einrichten','tablet_loaded']);
+  const davCommands = new Set(['baum_briefkasten_status','baum_briefkasten_speichern',
+    'baum_briefkasten_pruefen','baum_dav_pruefen','eds_status']);
+  const davCallbacks = new Set(['baumBriefkastenStatus','baumBriefkastenGespeichert',
+    'baumBriefkastenPruefung','baumDavPruefung','edsStatus']);
+  for (const command of davCommands) supported.add(command);
   const rejected = new Set();
   let loaded = false, pendingAction = null, replacement = null;
   let session = null, revision = null, blocked = false;
@@ -19,6 +24,48 @@
     const el = document.getElementById('tablet-status');
     if (el) el.textContent = text;
   }
+  const davNotice = 'Account setup and read-only discovery. Calendar/contact synchronization is not implemented.';
+  window.TabletDav = Object.freeze({
+    sourceView(payload, settings) {
+      const value = payload && typeof payload==='object' ? payload : {};
+      const list = (all, current) => (Array.isArray(value[all]) ? value[all] : Array.isArray(value[current]) ? value[current] : [])
+        .filter(item=>item && typeof item.uid==='string' && item.uid).map(item=>({...item}));
+      const calendars=list('alleKalender','kalender'), books=list('alleAdressbuecher','adressbuecher');
+      const selected=Array.isArray(settings.kalenderUids) ? settings.kalenderUids : settings.kalenderUid ? [settings.kalenderUid] : [];
+      const retain=(target,id)=>{
+        if (typeof id==='string' && id && !target.some(item=>item.uid===id))
+          target.push({uid:id,name:tr('Unavailable')+' — '+id,quelle:'unavailable',unavailable:true});
+      };
+      for (const id of selected) retain(calendars,id);
+      retain(books,settings.adressbuchUid);
+      return {...value,alleKalender:calendars,alleAdressbuecher:books,
+        buchOk:value.buchOk===true || books.length>0};
+    },
+    sourcesRendered(payload) {
+      const start=document.getElementById('sync-jetzt');
+      if (start) { start.disabled=true; start.title=davNotice; start.setAttribute('aria-disabled','true'); }
+      const target=document.getElementById('sync-status');
+      if (target) target.textContent=(typeof payload?.fehler==='string' && payload.fehler ? payload.fehler+' ' : payload?.verfuegbar===false ? tr('Unavailable')+'. ' : '')+davNotice;
+    },
+    accountRendered(account) {
+      const form=document.getElementById('nextcloud-konto');
+      if (!form) return;
+      const enabled=document.getElementById('nextcloud-dav-an');
+      if (enabled?.parentElement) for (const child of enabled.parentElement.childNodes)
+        if (child.nodeType===3) child.textContent=' '+tr('DAV account')+' (setup and read-only discovery)';
+      if (!account || typeof account.revision!=='string' || !/^[0-9a-f]{64}$/.test(account.revision)) {
+        for (const control of form.querySelectorAll('input,button,select')) control.disabled=true;
+        const refresh=document.createElement('button');
+        refresh.type='button'; refresh.id='tablet-dav-refresh'; refresh.textContent=tr('Refresh');
+        refresh.disabled=!loaded || blocked || !!replacement;
+        refresh.addEventListener('click',()=>{
+          if (!loaded || blocked || replacement) return;
+          send({cmd:'baum_briefkasten_status'});
+        });
+        form.append(refresh);
+      }
+    }
+  });
   function native(message) {
     if (blocked) throw Error(tr('Warning: The data could not be saved.'));
     if (!window.TabletNative) throw Error(tr('Warning: The data could not be saved.'));
@@ -106,6 +153,7 @@
     return [...new Map(result.map(x=>[x.id,x])).values()].sort((a,b)=>a.at-b.at);
   }
   function send(message) {
+    if (davCommands.has(message.cmd) && (!loaded || blocked || replacement)) throw Error(tr('Warning: The data could not be saved.'));
     if (!supported.has(message.cmd)) {
       rejected.add(message.cmd);
       status(beta(0)+' '+message.cmd);
@@ -217,6 +265,10 @@
     receive(message) {
       if (typeof message === 'string') message = JSON.parse(message);
       const p = message.payload;
+      if (davCallbacks.has(message.callback)) {
+        if (loaded && !blocked && !replacement) window.App[message.callback](p);
+        return;
+      }
       switch (message.callback) {
         case 'init': initialize(p); break;
         case 'ready':
@@ -263,7 +315,8 @@
     b.type = 'button'; b.addEventListener('click',fn); return b;
   }
   function applyCapabilities() {
-    for (const id of ['sync','baum','sicherheit','ueber']) {
+    const syncStart=document.getElementById('sync-jetzt'); if (syncStart) syncStart.disabled=true;
+    for (const id of ['baum','sicherheit','ueber']) {
       const b = document.getElementById('einst-tab-'+id);
       if (b && !b.disabled) { b.disabled = true; b.title = beta(0); b.setAttribute('aria-disabled','true'); }
       const page = document.getElementById('einst-seite-'+id);
@@ -296,7 +349,9 @@
         b.disabled = true; b.title = beta(0);
       });
     }
+    const davControlIds=new Set(['dav-konto-art','nextcloud-dav-an','briefkasten-url','briefkasten-benutzer','briefkasten-kennwort']);
     for (const b of document.querySelectorAll('button[id],input[id],select[id]')) {
+      if (b.closest('#nextcloud-konto') && davControlIds.has(b.id)) continue;
       if (/(?:sicherung|cloud|journal|telefon|sms|handbuch|wetter|eds|contributor|medikament-such)/.test(b.id)) {
         b.disabled=true; b.title=beta(0);
       }
