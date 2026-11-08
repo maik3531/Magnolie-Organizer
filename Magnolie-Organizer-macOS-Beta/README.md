@@ -313,3 +313,24 @@ Native WebKit tests load these actual generated resources and exercise search,
 result navigation, language selection, isolation and blocked external scripts.
 New source still requires native execution; host projection tests alone do not
 prove the handbook runs on Monterey or other macOS versions.
+
+## Import selected note files
+
+The native “Import note files…” action prepares an additive import from explicitly
+selected TXT, Markdown, PDF, JPEG, PNG, GIF or WebP files. It does not restore a
+profile or connect to Apple Notes. Existing KDE Connect or another user-selected
+file-transfer method can supply these files first; the Mac port does not implement
+a KDE receiver. The user reviews filenames, text samples and format notices before
+approving. Markdown stays literal editable source text. PDF/images keep original
+attachment bytes; Apple Notes drawing strokes and metadata are not converted into
+editable Magnolie objects. Unsupported selections fail together.
+
+Preparation limits are 32 files, 8 MiB total and 1 MiB per text file. Native reads
+reject symbolic links and changed sources, then revalidate source hashes after
+preview. The projected UI uses the canonical note constructor, attachment cleaner
+and normalizer, generates fresh IDs, creates a recovery checkpoint and waits for
+the normal durable save ACK. Equal filenames do not overwrite or deduplicate
+attachments. A failed final write leaves pending imported notes visibly unsaved
+for recovery/save retry; it never reports successful import. The picker and real
+transport still require native user-flow acceptance; synthetic GUI tests are not
+that evidence.

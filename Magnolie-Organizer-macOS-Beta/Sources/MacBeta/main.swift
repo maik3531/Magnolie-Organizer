@@ -10,6 +10,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private let name = "Magnolie Organizer macOS Beta"
     private let printing = PrintHost()
     private var manual: ManualHost?
+    private var noteFileImport: NoteFileImportHost?
     private var window: NSWindow!
     private var web: WKWebView!
     private var store: AtomicStore!
@@ -71,6 +72,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         appMenu.addItem(withTitle: "List macOS calendars (read-only)...", action: #selector(calendars), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "List macOS reminder lists (read-only)...", action: #selector(reminders), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "macOS " + tr("Contacts") + "…", action: #selector(systemContacts), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: "Import note files…", action: #selector(startNoteFileImport), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: tr("Quit") + " " + name, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let helpItem = NSMenuItem(), help = NSMenu(title: tr("Help"))
@@ -219,6 +221,28 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                       "kennwort": encryption != nil, "datenPfad": store.file.path,
                       "trayVerfuegbar": false, "handbuchInstalliert": true, "handbuchVersion": "2.0.30", "contributorAktiv": false])
     }
+    @objc private func startNoteFileImport() {
+        web.evaluateJavaScript("window.App?.macOSBetaStartNoteImport()")
+    }
+    private func importNoteFiles() {
+        let generation = documentGeneration
+        Task { @MainActor in
+            guard self.plain != nil, !self.restoring else { return }
+            if self.noteFileImport == nil { self.noteFileImport = NoteFileImportHost() }
+            self.noteFileImport!.begin(parent: self.window, isCurrent: { self.plain != nil && !self.restoring && self.documentGeneration == generation }) { payload, finished in
+                self.web.callAsyncJavaScript("return await window.App.macOSBetaImportNoteFiles(payload)", arguments: ["payload": payload], in: nil, in: .page) { (result: Result<Any, Error>) in
+                    defer { finished() }
+                    guard self.documentGeneration == generation, !self.restoring else { return }
+                    switch result {
+                    case .success(let value):
+                        guard let result = value as? [String: Any], result["ok"] as? Bool == true else { self.alert("Note import did not receive a durable save acknowledgement."); return }
+                        self.alert("New notes imported and saved: \(result["count"] as? Int ?? 0)")
+                    case .failure(let error): self.alert(error.localizedDescription)
+                    }
+                }
+            }
+        }
+    }
     @objc private func openManual() {
         Task { @MainActor in
             do {
@@ -247,6 +271,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private func dispatch(_ request: Request) throws {
         guard !restoring else { throw BetaError("Please wait.") }
         switch request.command {
+        case .notiz_dateien_importieren:
+            guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
+            importNoteFiles()
         case .handbuch_oeffnen: openManual()
         case .bereit:
             guard !initialized else { throw BetaError("Duplicate initialization refused.") }

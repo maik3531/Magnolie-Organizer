@@ -9,6 +9,7 @@ public struct BetaError: LocalizedError {
 public enum Command: String, CaseIterable {
     case baum_briefkasten_status, baum_briefkasten_speichern, baum_briefkasten_pruefen, baum_dav_pruefen
     case drucken
+    case notiz_dateien_importieren
     case handbuch_oeffnen
     case `import`
     case bereit, entsperren, speichern, kennwort_setzen

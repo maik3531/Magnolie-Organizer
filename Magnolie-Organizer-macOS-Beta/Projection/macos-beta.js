@@ -86,6 +86,7 @@
       button.addEventListener("click", () => { button.disabled = true; refresh(); });
       form.append(button);
     },
+    noteImportBlocked() { return !ready || restorePending; },
     calendarMetadata(data, payload, commit) {
       const metadata = payload.icsImportMetadata;
       if (!metadata) return false;
@@ -220,6 +221,10 @@
     const info = document.createElement("p"); info.textContent = notice;
     const status = document.createElement("p"); status.id = "macos-beta-status";
     status.setAttribute("role", "status"); status.textContent = "Waiting for native storage.";
+    const noteImport = document.createElement("button"); noteImport.type = "button";
+    noteImport.id = "macos-note-file-import"; noteImport.textContent = "Import note files…";
+    noteImport.addEventListener("click", () => window.App.macOSBetaStartNoteImport());
+    details.append(noteImport);
     details.append(summary, info, status); document.body.prepend(details);
   }, { once: true });
 })();

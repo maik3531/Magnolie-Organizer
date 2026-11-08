@@ -187,6 +187,8 @@ def project(snapshot, target):
     text = replace_once(text, '    { id: "ort", name: msgid("Country & holidays") },',
                         '    { id: "regional", name: msgid("Language and regional display") },\n'
                         '    { id: "ort", name: msgid("Country & holidays") },')
+    note_import = snapshot[str((BETA / "Projection/note-file-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", note_import + "\n  const App = {\n    macOSBetaStartNoteImport, macOSBetaImportNoteFiles,")
     text = replace_once(text, "  const App = {", '''  const App = {
     macOSBetaValidateRestore(text) {
       normalisiere(JSON.parse(text));
