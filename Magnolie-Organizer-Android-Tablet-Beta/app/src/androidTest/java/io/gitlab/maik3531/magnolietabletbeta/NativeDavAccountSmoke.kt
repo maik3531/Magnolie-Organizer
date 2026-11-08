@@ -121,6 +121,7 @@ internal object NativeDavAccountSmoke {
         ops.ensurePrivateDirectory(directory,true)
         var renameDenied=false;var symlinkRejected=false;var hardlinkRejected=false;var boundedReadRejected=false
         var checkpoints=0
+        var originalFailure:Throwable?=null
         try {
             val old=File(directory,"old");val pending=File(directory,"pending")
             ops.writeAndSync(old,"old".toByteArray(),32,true);ops.writeAndSync(pending,"new".toByteArray(),32,true)
@@ -177,11 +178,13 @@ internal object NativeDavAccountSmoke {
                 .put("frameworkOwnedParent0771Preserved",true)
                 .put("fixtureParentUid",Os.lstat(parent.parentFile!!.path).st_uid)
                 .put("fixtureParentMode",Os.lstat(parent.parentFile!!.path).st_mode and 0x1ff)
-        } finally {
+        } catch(failure:Throwable) { originalFailure=failure; throw failure }
+        finally { cleanupPreservingFailure(originalFailure) {
             ops.ensurePrivateDirectory(directory)
-            check(ops.children(directory).isEmpty()) { "Unexpected file in storage fixture" }
+            val remaining=ops.children(directory)
+            check(remaining.isEmpty()) { "Unexpected file in storage fixture; remainingCount=${remaining.size}" }
             Os.remove(directory.path);ops.syncDirectory(parent)
-        }
+        } }
     }
 
     private fun accountChecks(context: Context): JSONObject {
@@ -203,6 +206,7 @@ internal object NativeDavAccountSmoke {
         val secret2 = "native-only-second-$token"
         var failMetadataOnce = false
         var result: JSONObject? = null
+        var originalFailure:Throwable?=null
         try {
             val configuration = DavAccountFileStore(fixture,checkpoint={ stage ->
                 if (failMetadataOnce && stage == "directory-sync") { failMetadataOnce=false; throw DavAccountException("native_operation_failed") }
@@ -243,13 +247,15 @@ internal object NativeDavAccountSmoke {
                 .put("credentialDeletionVerified",true).put("storage",storageChecks(fixture,requireNotNull(key)))
                 .put("noBackupRootMode",mode(root)).put("frameworkDataParentMode",mode(root.parentFile!!))
                 .put("frameworkDataParentUid",Os.lstat(root.parentFile!!.path).st_uid)
-        } finally {
+        } catch(failure:Throwable) { originalFailure=failure; throw failure }
+        finally { cleanupPreservingFailure(originalFailure) {
             // Only the two previously absent UUID-bound fixture identities may be removed.
             credentials.delete(first.identity); credentials.delete(second.identity)
             check(credentials.read(first.identity) == null && credentials.read(second.identity) == null)
             val metadata = File(fixture,"nextcloud.json")
             ops.delete(metadata)
-            check(ops.children(fixture).isEmpty()) { "Unexpected file in owned fixture; refusing recursive deletion" }
+            val remaining=ops.children(fixture)
+            check(remaining.isEmpty()) { "Unexpected file in owned fixture; refusing recursive deletion; remainingCount=${remaining.size}; storageDirectoryPresent=${remaining.any { it.name=="os-storage" }}" }
             Os.remove(fixture.path);ops.syncDirectory(root)
             val credentialDirectory = File(root,"dav-credentials-v1")
             val remainingCredentials = ops.children(credentialDirectory)
@@ -257,7 +263,7 @@ internal object NativeDavAccountSmoke {
             val after = vaultBytes(root)
             check(before.keys == after.keys && before.all { (name, bytes) -> if (bytes == null) after[name] == null else after[name]?.let { bytes.contentEquals(it) } == true }) { "Account fixture altered vault bytes" }
             check(ops.stat(File(root,"nextcloud.json")) == null) { "Account fixture created production metadata" }
-        }
+        } }
         return requireNotNull(result).put("fixtureCredentialsRemoved",true).put("fixtureMetadataRemoved",true).put("vaultBytesPreserved",true)
     }
 }
