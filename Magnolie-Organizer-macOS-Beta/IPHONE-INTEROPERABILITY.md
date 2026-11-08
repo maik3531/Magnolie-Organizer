@@ -26,6 +26,38 @@ Geprüft wurde das [offizielle KDE-Repository, Commit
 
 Diese Quellprüfung bestätigt keine bestimmte installierte Store-Binärversion.
 
+## Mac-Empfänger und Alternative für ältere Macs
+
+Die [aktuellen offiziellen KDE-Downloads](https://kdeconnect.kde.org/download.html)
+bieten zusätzlich zur Swift-App einen Qt-Desktopclient. Im
+[stabilen Bestand 26.08.2](https://download.kde.org/stable/release-service/26.08.2/macos/)
+ist KDE Connect für ARM64 nachgewiesen. Der
+[geprüfte Homebrew-Cask](https://github.com/Homebrew/homebrew-cask/blob/6b5a25d97a1426b8c8326f67f639b4ec9a3b82d3/Casks/k/kde-connect.rb)
+verlangt macOS 13 und enthält einen `kdeconnect-cli`. Diese CLI-Zusage gilt
+nicht automatisch für die eigenständige Swift-App. Intel-Downloads sind als
+ungeprüfte Nightlies belegt, nicht als stabiler Monterey-Empfänger. Keiner dieser
+Clients wurde in dieser Untersuchung installiert oder nativ gestartet.
+
+Für ältere Macs gibt es einen weiteren vorhandenen Dateiweg: **AirDrop**.
+Die versionsgebundenen Anleitungen für
+[macOS Monterey 12](https://support.apple.com/guide/mac-help/send-files-between-devices-with-airdrop-mh35868/12.0/mac/12.0)
+und [iOS 15](https://support.apple.com/guide/iphone/use-airdrop-to-send-items-iphcd8b9f0af/15.0/ios/15.0)
+beschreiben Übertragen und ausdrückliches Annehmen ausgewählter Inhalte.
+Bereits exportierte Bilder/PDFs/Dateien lassen sich am Mac annehmen und danach
+bewusst in Magnolie importieren. Ein Apple-Entwicklerkonto des Projektinhabers
+oder eine neue iOS-App ist dafür nicht erforderlich. Das ist ein dokumentierter
+Ansatz, noch kein bestandener Gerätetest; er belegt keinen bestimmten
+Apple-Notizen-Export unter iOS 15.
+
+## Dateiübertragung und Livezeichnen unterscheiden
+
+Der geprüfte iOS-Pluginbestand unterstützt Dateien, Fotos/Videos und bewusstes
+Senden der Zwischenablage. Magnolies Digitizer-Protokolle für Livezeichnen
+sowie SMS-/Telefonie-Plugins sind darin nicht nachgewiesen. Deshalb exportierte
+Zeichnungen als Dateien übernehmen; daraus keine Live-Pencil-, Druckdaten-
+oder iPhone-SMS-Unterstützung ableiten. CLI-Schalter des Desktopclients allein
+beweisen keine entsprechende Fähigkeit des gekoppelten iPhones.
+
 ## Konkreter Ansatz ohne neue iOS-App
 
 1. Der Endnutzer exportiert ausgewählte Notizen bzw. Zeichnungen in ein von seiner
