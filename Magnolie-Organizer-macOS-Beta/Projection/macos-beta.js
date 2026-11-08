@@ -77,6 +77,15 @@
   }
   window.MacBeta = Object.freeze({
     preserve,
+    accountControls(account, refresh) {
+      const form = document.getElementById("nextcloud-konto");
+      if (!form || !account || (typeof account.revision === "string" && /^[a-f0-9]{64}$/.test(account.revision))) return;
+      for (const control of form.querySelectorAll("input,button,select")) control.disabled = true;
+      const button = document.createElement("button"); button.type = "button";
+      button.id = "macos-dav-refresh"; button.textContent = tr("Refresh");
+      button.addEventListener("click", () => { button.disabled = true; refresh(); });
+      form.append(button);
+    },
     calendarMetadata(data, payload, commit) {
       const metadata = payload.icsImportMetadata;
       if (!metadata) return false;

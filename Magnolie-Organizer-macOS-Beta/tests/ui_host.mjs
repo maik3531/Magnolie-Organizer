@@ -101,7 +101,14 @@ try {
     kennwortVorhanden: false, revision: davRevision, zustand: "nicht_eingerichtet", fehler: "", fehlerCode: "none" };
   const profileBeforeDAV = JSON.stringify(t.daten());
   assert.ok(messages.some(m => m.cmd === "baum_briefkasten_status")); assertions++;
+  w.MacBeta.receive("baumBriefkastenStatus", { fehler: "Synthetic Keychain unavailable", revision: null });
+  assert.ok([...w.document.querySelectorAll("#nextcloud-konto input")].every(input => input.disabled)); assertions++;
+  const beforeDAVRefresh = messages.length;
+  w.document.getElementById("macos-dav-refresh").click();
+  assert.equal(messages[beforeDAVRefresh].cmd, "baum_briefkasten_status"); assertions++;
   w.MacBeta.receive("baumBriefkastenStatus", davBase);
+  assert.equal(w.document.getElementById("macos-dav-refresh"), null); assertions++;
+  assert.equal(w.document.getElementById("briefkasten-url").disabled, false); assertions++;
   const davForm = w.document.getElementById("nextcloud-konto");
   assert.ok(davForm); assertions++;
   for (const [id, value] of [["briefkasten-url", "https://cloud.example.test"], ["briefkasten-benutzer", "synthetic-user"]]) {

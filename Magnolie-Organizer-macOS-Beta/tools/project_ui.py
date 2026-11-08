@@ -128,6 +128,11 @@ def project(snapshot, target):
                         '        kennwortLoeschen: !!kennwortLoeschen, expectedRevision: briefkastenStand.revision });')
     text = replace_once(text, 'Bruecke.sende({ cmd: "baum_briefkasten_pruefen" })',
                         'Bruecke.sende({ cmd: "baum_briefkasten_pruefen", expectedRevision: briefkastenStand.revision })')
+    text = replace_once(text, '  function baueNextcloudKonto(wurzel) {',
+                        '  function baueNextcloudKonto(wurzel) {\n'
+                        '    baueNextcloudKontoDesktop(wurzel);\n'
+                        '    window.MacBeta.accountControls(briefkastenStand, () => Bruecke.sende({ cmd: "baum_briefkasten_status" }));\n'
+                        '  }\n  function baueNextcloudKontoDesktop(wurzel) {')
     # Native time-zone management/refresh is not implemented by the Beta.
     # Keep imported preferences intact without sending unsupported MCP requests.
     text = replace_once(text, "  function oeffneZeitzonenManagement() {",
