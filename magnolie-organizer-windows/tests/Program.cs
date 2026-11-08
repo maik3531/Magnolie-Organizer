@@ -336,6 +336,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file source cache / Windows original book change during committed copy", DeviceFileSourceCacheTests.WindowsSaveDuringCopyAsync);
     runner.Add("Device file source cache / Windows cancellation drains actual cache read", DeviceFileSourceCacheTests.WindowsCancellationDrainsReadAsync);
     runner.Add("Device file source send / Windows actual secure requested chunks and peer Saved", DeviceFileSourceSendTests.WindowsActualSecureSendAsync);
+    foreach (var scenario in new[] { "none", "publication", "mime", "early", "cancel" })
+        runner.Add("Published readback / Windows actual sender " + scenario, () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync(scenario));
     runner.Add("Device file source send / Windows early Saved and missing exchange hold", DeviceFileSourceSendTests.WindowsRejectsEarlySavedAndLostAttemptAsync);
     runner.Add("Device file source send / Windows actual offer output cancellation drains", DeviceFileSourceSendTests.WindowsOfferDrainAndCancellationAsync);
     runner.Add("Device file source send / Windows early acceptance waits for actual output", DeviceFileSourceSendTests.WindowsEarlyAcceptanceWaitsForOutputAsync);

@@ -127,11 +127,44 @@ Foto- und Video-Metadaten werden getrennt geprüft. Das Ergebnis ist eine
 unveränderliche Kopie von Peer-Metadaten, keine lokale Saved-Quittung,
 Chunk-Freigabe, tatsächlicher Source-END oder Cache-Löschberechtigung.
 
-Dies ist zunächst nur der Codec, noch kein produktiver Dispatcher- oder
-Abschlussanschluss. Die automatische Verbindung des tatsächlichen Notes-
-Publikations-Readbacks mit dem abgeschlossenen Empfangsbesitzer und dem
-Windows-Sendeablauf bleibt offen. Beide optionalen Windows-Kompositionen
-(Foto-/Kameramodule ein beziehungsweise aus) bauen mit dieser Ergänzung.
+Der zusätzliche ausdrückliche Windows-Sendeeintritt
+`SendNativeMappedMediaSourceWithReadbackAsync` wartet nach Peer-Saved auf den
+Readback desselben Angebots und derselben aktuellen nativen Bindung. Er vergleicht
+den Publikationsfingerabdruck mit dem zuvor empfangenen Saved-Mitglied und den
+MIME-Typ mit dem aus tatsächlichen Quellbytes erkannten Angebot. Ein gültig neu
+gehashtes, aber sachlich falsches Readback ist deshalb weiterhin unzulässig.
+Der geschützte Austauschverlauf hält Peer-Saved und Peer-Readback getrennt fest.
+Der bisherige Saved-only-Eintritt behält seinen bisherigen Rückgabevertrag.
+
+Fünf native Windows-Proben prüfen den korrekten Ablauf, falsche Publikation,
+falschen MIME-Typ, Readback vor Saved und Abbruch während des Wartens. Der
+ursprüngliche Quellcache und die Empfangshistorie bleiben dabei erhalten.
+Auch nach dem tatsächlichen Ende ausstehender verschlüsselter Schreibarbeit sind
+beide Ergebnisse nur Peer-Metadaten: die ursprünglichen lokalen Dateihandles
+besitzt weiterhin der Quellbesitzer. Dessen tatsächlicher Source-END und eine
+eventuelle spätere Cache-Freigabe sind damit noch nicht nachgewiesen.
+
+Notes bindet zusätzlich eine einmalige native Readback-Fortsetzung direkt an den
+eigenen Empfangslauf. Sie übernimmt ausschließlich dessen ursprüngliches Angebot,
+Buch, Kanal, typspezifische Absicht und tatsächlich veröffentlichte Datei.
+Erst nach erfolgreicher Saved-Ausgabe, geschlossenen Transferressourcen und dem
+tatsächlichen Ende des Empfangsarbeiters kann diese Fortsetzung benutzt werden.
+Ein Caller kann keine Ersatzpublikation und kein anderes Buch übergeben.
+Die ursprüngliche Kontrollbindung wird vor dem Start und erneut im Hintergrund
+geprüft; die vorhandene vollständige Original-Rücklese-/Medienprüfung erzeugt
+anschließend den Readback. Aus einem gespeicherten Saved-JSON allein lässt sich
+diese Fortsetzung nicht erzeugen.
+
+38 Notes-Empfangs-/Transferfälle bestehen, darunter der neue Originalangebot-
+Readback, einmalige Nutzung, laufender/abgebrochener/metadatenbasierter Empfang,
+entzogenes Originalbuch und widerrufene Kontrollen. Die fünf bestehenden nativen
+Windows-Sendegruppen bestehen nach der Änderung ebenfalls. Beide optionalen
+Windows-Produktkompositionen (Foto-/Kameramodule ein beziehungsweise aus) bauen.
+Dies ist kein gemeinsamer physischer Telefon-/Windows-Ende-zu-Ende-Nachweis.
+
+Die automatische gemeinsame Ablaufsteuerung und der tatsächliche Source-END
+bleiben offen; Capability 23 bleibt geschlossen. Die Fortsetzung ist derzeit ein
+ausdrücklicher nativer Anschluss, keine automatisch gestartete Hintergrundaktion.
 
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und

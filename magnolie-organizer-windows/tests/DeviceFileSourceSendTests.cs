@@ -122,6 +122,60 @@ internal static class DeviceFileSourceSendTests
         }
     }
 
+    internal static async Task WindowsCorrelatedReadbackAsync(string scenario)
+    {
+        foreach (var fault in new[] { scenario })
+        {
+            using var f = await DeviceFileSourceCacheTests.Fixture(MediaBytes);
+            var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "readback-book"), Book);
+            using var source = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved));
+            using var cache = source.Freeze(); using var stop = new CancellationTokenSource();
+            DeviceFileConnectionRunsTests.Clear(f);
+            var before = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
+            var send = f.Native.Connection.SendNativeMappedMediaSourceWithReadbackAsync(cache, stop.Token);
+            try
+            {
+                var offer = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
+                var acceptance = Accept(f, cache, offer); await f.Native.Connection.HandlePlainAsync(acceptance);
+                for (var chunk = 0; chunk < 2; chunk++)
+                    await f.Native.Connection.HandlePlainAsync(Chunk(cache, acceptance, offer, chunk));
+                var file = cache.Manifest.Files.Single();
+                var context = new JsonObject { ["format"] = 1, ["offer_id"] = offer["message_id"]!.DeepClone(),
+                    ["manifest_sha256"] = cache.Manifest.Fingerprint, ["transfer_id"] = cache.Manifest.TransferId,
+                    ["source_id"] = cache.Manifest.SourceId, ["file_id"] = file.Id, ["size"] = file.Size, ["sha256"] = file.Sha256,
+                    ["media_type"] = "images", ["mime_type"] = fault == "mime" ? "image/jpeg" : "image/png",
+                    ["publication_sha256"] = new string(fault == "publication" ? 'c' : 'b', 64), ["row_sha256"] = new string('d', 64),
+                    ["permission_epoch"] = acceptance["body"]!["permission_epoch"]!.DeepClone(), ["readback_nonce"] = new string('e', 64) };
+                var binding = f.Owner.Binding(DevicePublishedReadbackEnvelope.DestinationToken(context), true)!;
+                var readback = Message(DevicePublishedReadbackEnvelope.Kind, DevicePublishedReadbackEnvelope.EncodeBody(context, binding), offer);
+                if (fault != "early")
+                {
+                    await f.Native.Connection.HandlePlainAsync(Saved(cache, acceptance, offer));
+                    TestAssert.That(!send.IsCompleted && Exchange(f, cache.JobId)["phase"]!.GetValue<string>() == "peer_saved",
+                        "Peer Saved alone completed a readback-aware sender.");
+                }
+                if (fault == "cancel") { stop.Cancel(); await Failed(send); }
+                else if (fault != "none")
+                {
+                    await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(f.Native.Connection.HandlePlainAsync(readback),
+                        "Readback bypassed native send/Saved/publication/MIME correlation: " + fault);
+                    await Failed(send);
+                }
+                else
+                {
+                    await f.Native.Connection.HandlePlainAsync(readback); var result = await send;
+                    TestAssert.That(!result.Readback.IsSavedReceipt && !result.Readback.GrantsWriteAuthority && !result.Readback.AllowsChunkOutput &&
+                        Exchange(f, cache.JobId)["phase"]!.GetValue<string>() == "peer_readback",
+                        "Correlated peer readback became native completion authority.");
+                }
+                TestAssert.That(f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == before &&
+                    f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single().Phase == "ready",
+                    "Readback or its failure retired source cache/changed receive history.");
+            }
+            finally { stop.Cancel(); try { await send; } catch { } }
+        }
+    }
+
     internal static async Task WindowsRejectsEarlySavedAndLostAttemptAsync()
     {
         foreach (var missing in new[] { false, true })

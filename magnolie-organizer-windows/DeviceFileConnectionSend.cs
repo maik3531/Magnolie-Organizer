@@ -15,11 +15,13 @@ internal sealed partial class TelefonConnection
         internal readonly CancellationTokenSource Lifetime;
         internal readonly TaskCompletionSource<RemoteFileAcceptance> Accepted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<RemoteSavedConfirmation> Saved = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal readonly TaskCompletionSource<RemotePublishedReadback> Readback = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal readonly bool ExpectReadback;
         internal TelefonStore.NativeMediaSourceExchange Exchange = null!;
         internal RemoteFileAcceptance? Acceptance;
         internal NativeMediaSendRun(TelefonConnection connection, TelefonStore.NativePreparedMediaSource cache,
-            NativeFileControlSession owner, string permissionEpoch, CancellationTokenSource lifetime)
-        { Connection = connection; Cache = cache; Owner = owner; PermissionEpoch = permissionEpoch; Lifetime = lifetime; Offer = cache.CreateMediaOffer(Now()); }
+            NativeFileControlSession owner, string permissionEpoch, CancellationTokenSource lifetime, bool expectReadback = false)
+        { Connection = connection; Cache = cache; Owner = owner; PermissionEpoch = permissionEpoch; Lifetime = lifetime; ExpectReadback = expectReadback; Offer = cache.CreateMediaOffer(Now()); }
         internal void Require()
         {
             Lifetime.Token.ThrowIfCancellationRequested(); Cache.Require(); Exchange?.Require(); Connection.RequireNativeFileControls(Owner);
@@ -33,7 +35,20 @@ internal sealed partial class TelefonConnection
     }
     private NativeMediaSendRun? nativeMediaSend;
 
-    internal async Task<RemoteSavedConfirmation> SendNativeMappedMediaSourceAsync(TelefonStore.NativePreparedMediaSource cache, CancellationToken token = default)
+    internal async Task<RemoteSavedConfirmation> SendNativeMappedMediaSourceAsync(TelefonStore.NativePreparedMediaSource cache, CancellationToken token = default) =>
+        (await SendNativeMappedMediaSourceCoreAsync(cache, false, token)).Saved;
+
+    // Explicit composition entry only. Both values remain peer metadata even
+    // after this method's actual encrypted writer has drained in finally.
+    internal async Task<(RemoteSavedConfirmation Saved, RemotePublishedReadback Readback)> SendNativeMappedMediaSourceWithReadbackAsync(
+        TelefonStore.NativePreparedMediaSource cache, CancellationToken token = default)
+    {
+        var result = await SendNativeMappedMediaSourceCoreAsync(cache, true, token);
+        return (result.Saved, result.Readback ?? throw DeviceFileControl.Error("media_source_send_readback_required"));
+    }
+
+    private async Task<(RemoteSavedConfirmation Saved, RemotePublishedReadback? Readback)> SendNativeMappedMediaSourceCoreAsync(
+        TelefonStore.NativePreparedMediaSource cache, bool expectReadback, CancellationToken token)
     {
         if (!ReferenceEquals(cache.OwnerStore, store) || !ReferenceEquals(cache.ConnectionOwner, this))
             throw DeviceFileControl.Error("media_source_send_native_cache_required");
@@ -46,7 +61,7 @@ internal sealed partial class TelefonConnection
             {
                 cache.Require(); var owner = RequireNativeFileControls();
                 var binding = owner.Binding(new string('0', 64), senderIsLocal: true) ?? throw DeviceFileControl.Error("media_source_send_grant_required");
-                run = new(this, cache, owner, binding.PermissionEpoch, lifetime);
+                run = new(this, cache, owner, binding.PermissionEpoch, lifetime, expectReadback);
                 lock (fileRouteGate)
                 {
                     if (nativeMediaSend is not null || nativeMediaSourceRun is not null || nativeEndedMediaBatch is not null || nativeMediaTransfer is not null || nativeSourceCommand is not null || nativeSourceStatus is not null)
@@ -60,7 +75,8 @@ internal sealed partial class TelefonConnection
             finally { fileControlIo.Release(); }
             _ = await run.Accepted.Task.WaitAsync(lifetime.Token);
             var saved = await run.Saved.Task.WaitAsync(lifetime.Token); run.Require();
-            return saved; // Remote assertion ONLY. Never local Saved/END, deletion, retirement or full UI completion.
+            var readback = expectReadback ? await run.Readback.Task.WaitAsync(lifetime.Token) : null; run.Require();
+            return (saved, readback); // Remote assertions ONLY. Never local Saved/END, deletion, retirement or full UI completion.
         }
         finally
         {
@@ -116,6 +132,21 @@ internal sealed partial class TelefonConnection
                     }
                     finally { CryptographicOperations.ZeroMemory(bytes); }
                 }
+                else if (kind == DevicePublishedReadbackEnvelope.Kind)
+                {
+                    if (!run.ExpectReadback || !run.Saved.Task.IsCompletedSuccessfully || run.Readback.Task.IsCompleted)
+                        throw DeviceFileControl.Error("media_source_send_unexpected_readback");
+                    var media = MediaOfferEnvelope.Validate(run.Offer, run.Cache.Manifest.SenderId, run.Cache.Manifest.ReceiverId, Now());
+                    var body = message["body"] as JsonObject ?? throw DeviceFileControl.Error("media_source_send_readback_required");
+                    var destination = body["destination_token"]?.GetValue<string>() ?? throw DeviceFileControl.Error("media_source_send_readback_required");
+                    var binding = run.Owner.Binding(destination, senderIsLocal: true) ?? throw DeviceFileControl.Error("media_source_send_grant_required");
+                    var readback = DevicePublishedReadbackEnvelope.Parse(message, media.Offer, binding, media.MediaType, Now());
+                    var member = run.Saved.Task.Result.Members.Single();
+                    if (body["publication_sha256"]?.GetValue<string>() != member.ReceiptSha256 ||
+                        body["mime_type"]?.GetValue<string>() != media.MimeTypes[member.FileId]?.GetValue<string>())
+                        throw DeviceFileControl.Error("media_source_send_publication_changed");
+                    run.Require(); run.Exchange.PeerReadback(readback.Body); run.Readback.TrySetResult(readback);
+                }
                 else
                 {
                     var saved = DeviceFileSavedEnvelope.Parse(message, run.Cache.Manifest, accepted, Now());
@@ -126,7 +157,7 @@ internal sealed partial class TelefonConnection
         }
         catch (Exception error)
         {
-            if (run is not null) { run.Accepted.TrySetException(error); run.Saved.TrySetException(error); run.Lifetime.Cancel(); }
+            if (run is not null) { run.Accepted.TrySetException(error); run.Saved.TrySetException(error); if (run.ExpectReadback) run.Readback.TrySetException(error); run.Lifetime.Cancel(); }
             CloseNativeFileRoute(); // Preserve reserved-frame failure isolation; never fall back to ordinary reception.
             throw;
         }

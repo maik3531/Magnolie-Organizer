@@ -151,6 +151,49 @@ class NativeGalleryIncomingRuntimeTest {
         }
     }
 
+    @Test fun completedIncomingOwnerReadbackKeepsOriginalOfferPublicationAndChannelWithoutCallerMetadata() {
+        Harness().use { h ->
+            val offer = h.mediaOffer(); val run = h.startDispatched(offer)
+            assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure())
+            val read = h.f.io { run.beginPublishedReadback() }.also { h.inspection = it }
+            assertTrue(read.awaitIoEnded(10000)); assertNull(read.nativeFailure())
+            val output = read.actualReadbackOutput()!!; val body = output.getValue("body").jsonObject
+            assertEquals(offer["message_id"], body["offer_id"])
+            assertEquals(JsonPrimitive(h.published().fingerprint), body["publication_sha256"])
+            val binding = h.readbackBinding(body.string("destination_token"))
+            val ordinaryOffer = MediaOfferEnvelope.validate(offer, h.f.pc.deviceId, h.identity.deviceId).offer
+            val parsed = DevicePublishedReadbackEnvelope.parse(output, ordinaryOffer, binding, GalleryMediaType.IMAGES)
+            assertFalse(parsed.grantsWriteAuthority); assertFalse(parsed.isSavedReceipt); assertFalse(parsed.allowsChunkOutput)
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
+        }
+    }
+
+    @Test fun pendingCanceledOrMetadataOnlyIncomingCannotStartCompletedReadback() {
+        Harness().use { h ->
+            h.respond = false
+            val run = h.startDispatched(); assertTrue(h.requested.await(5, TimeUnit.SECONDS))
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
+            run.cancel(); assertTrue(run.awaitIoEnded(10000))
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+        }
+        val metadataOnly = NativeGalleryIncomingRun(Any())
+        metadataOnly.finish(buildJsonObject { put("kind", DeviceFileSavedEnvelope.KIND) }, null)
+        metadataOnly.markIoEnded(); metadataOnly.ioDrained()
+        assertThrows(PhotoFolderScopeError::class.java) { metadataOnly.beginPublishedReadback() }
+    }
+
+    @Test fun completedIncomingReadbackCannotReplaceOriginalBookOrRevokedControlOwner() {
+        for (withdrawBook in listOf(false, true)) Harness().use { h ->
+            val run = h.startDispatched(); assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure())
+            if (withdrawBook) h.f.currentDocuments = null else h.withdrawPcSend()
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+        }
+    }
+
     @Test fun nativeIncomingDispatcherCannotCreateRightsFromForeignConnectionOrdinaryOfferOrSourceOnlyFactory() {
         Harness().use { h ->
             NativeGalleryIncomingTransferTest.Link().use { foreign ->

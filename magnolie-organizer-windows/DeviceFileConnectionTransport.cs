@@ -103,7 +103,7 @@ internal sealed partial class TelefonConnection
     private async Task ReceiveNativeFileControlAsync(JsonObject message)
     {
         var kind = message["kind"]?.GetValue<string>();
-        if (kind is DeviceFileAcceptanceEnvelope.Kind or DeviceFileChunkEnvelope.RequestKind or DeviceFileSavedEnvelope.Kind)
+        if (kind is DeviceFileAcceptanceEnvelope.Kind or DeviceFileChunkEnvelope.RequestKind or DeviceFileSavedEnvelope.Kind or DevicePublishedReadbackEnvelope.Kind)
         {
             await ReceiveNativeMediaSendAsync(message);
             return;

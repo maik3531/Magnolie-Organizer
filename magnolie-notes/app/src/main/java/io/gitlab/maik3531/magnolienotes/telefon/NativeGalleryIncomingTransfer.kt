@@ -30,6 +30,9 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
     private val savedSent = AtomicBoolean(false)
     private val pending = AtomicReference<Pending?>()
     internal val actualSavedOutput: Boolean get() = savedSent.get()
+    private var publishedOutput: List<GalleryIncomingPublication> = emptyList()
+    internal fun actualPublishedOutput(): List<GalleryIncomingPublication> =
+        if (savedSent.get()) publishedOutput.toList() else emptyList()
 
     private fun current() {
         if (ended.get() || wall() >= acceptance.expires || wall() < acceptance.body.long("created_ms")) fail("gallery_incoming_transfer_expired")
@@ -151,7 +154,7 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
                 }))
             }, acceptance.expires - now, now)
             DeviceFileSavedEnvelope.parse(message, owner.manifest, now)
-            current(); channel.send(message); current(); savedSent.set(true)
+            current(); channel.send(message); current(); publishedOutput = published.toList(); savedSent.set(true)
             return message // Actual output only, never peer ACK, quota retirement or bilateral completion.
         } catch (error: Exception) { close(); throw error }
     }

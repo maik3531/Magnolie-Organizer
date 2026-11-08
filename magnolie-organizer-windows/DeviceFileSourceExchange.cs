@@ -110,5 +110,11 @@ internal sealed partial class TelefonStore
                 throw DeviceFileControl.Error("media_source_exchange_unsent_chunks");
             var next = body.DeepClone().AsObject(); next["phase"] = "peer_saved"; next["peer_saved"] = saved.DeepClone(); Write(next);
         }
+        internal void PeerReadback(JsonObject readback)
+        {
+            if (!run.ExpectReadback || Phase != "peer_saved" || body["pending_chunk"] is not null || !AllChunksSent || body["peer_readback"] is not null)
+                throw DeviceFileControl.Error("media_source_exchange_readback_state");
+            var next = body.DeepClone().AsObject(); next["phase"] = "peer_readback"; next["peer_readback"] = readback.DeepClone(); Write(next);
+        }
     }
 }
