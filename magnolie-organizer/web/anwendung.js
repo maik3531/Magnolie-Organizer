@@ -7354,6 +7354,88 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return terminText(text, 500).replace(/[\r\n";:]/g, " ").trim();
   }
 
+  // #444: bind old UI IDs through their previous semantics, never a new raw hash.
+  function erhalteDisplayAlarme(termin, vorher, alt) {
+    const konflikt = () => {
+      const error = new Error(_("Conflict") + ": " + _("Unsupported alarm"));
+      error.code = "ambiguous-alarm"; throw error;
+    };
+    const semantik = alarm => JSON.stringify([alarm.offsetMinuten, alarm.aktion, alarm.related]);
+    const ansicht = record => saubereAlarme(record.alarme === undefined ? icsProjektion(alt).alarme : record.alarme)
+      .filter(alarm => alarm.bearbeitbar);
+    let bisher = ansicht(vorher || termin);
+    const gewuenscht = ansicht(termin), bloecke = [];
+    if (new Set(bisher.map(alarm => alarm.id)).size !== bisher.length ||
+        new Set(gewuenscht.map(alarm => alarm.id)).size !== gewuenscht.length) konflikt();
+    let block = null;
+    for (const zeile of alt) {
+      const eig = icsEigenschaft(zeile);
+      if (eig?.name === "BEGIN" && eig.wert.toUpperCase() === "VALARM") {
+        if (block) konflikt();
+        block = [zeile];
+      } else if (block) {
+        block.push(zeile);
+        if (eig?.name === "END" && eig.wert.toUpperCase() === "VALARM") {
+          const alarm = icsProjektion(block).alarme[0];
+          if (!alarm) konflikt();
+          if (alarm.bearbeitbar) bloecke.push({ zeilen: block, alarm });
+          block = null;
+        }
+      }
+    }
+    if (block) konflikt();
+    if (!vorher) bisher = bisher.filter(alarm => bloecke.some(item => semantik(item.alarm) === semantik(alarm)));
+    const bindung = new Map(), benutzt = new Set();
+    for (const alarm of bisher) {
+      const treffer = bloecke.filter(item => semantik(item.alarm) === semantik(alarm));
+      if (!alarm.aktiviert && !treffer.length) continue;
+      if (!alarm.aktiviert || treffer.length !== 1 || benutzt.has(treffer[0])) konflikt();
+      bindung.set(alarm.id, treffer[0]); benutzt.add(treffer[0]);
+    }
+    if (benutzt.size !== bloecke.length) konflikt();
+    const aus = [];
+    for (const alarm of gewuenscht) {
+      if (alarm.aktion !== "display") konflikt();
+      if (!alarm.aktiviert) continue;
+      const original = bindung.get(alarm.id);
+      if (!original) {
+        if (bisher.some(item => item.id === alarm.id && item.aktiviert)) konflikt();
+        aus.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":-PT" + alarm.offsetMinuten + "M",
+          "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
+        continue;
+      }
+      let trigger = 0, aktionen = 0;
+      const zeilen = original.zeilen.map(zeile => {
+        const eig = icsEigenschaft(zeile);
+        if (eig?.name === "ACTION") aktionen++;
+        if (eig?.name !== "TRIGGER") return zeile;
+        trigger++;
+        // Split only outside quotes; retain unrelated parameters lexically.
+        const teile = []; let zitat = false, start = 0, wert = null;
+        for (let i = 0; i < zeile.length; i++) {
+          if (zeile[i] === '"') zitat = !zitat;
+          if (!zitat && (zeile[i] === ";" || zeile[i] === ":")) {
+            teile.push(zeile.slice(start, i)); start = i + 1;
+            if (zeile[i] === ":") { wert = zeile.slice(start); break; }
+          }
+        }
+        if (wert === null) konflikt();
+        if (alarm.related !== original.alarm.related) {
+          const stellen = teile.map((teil, i) => /^RELATED=/i.test(teil) ? i : -1).filter(i => i >= 0);
+          if (stellen.length > 1) konflikt();
+          if (stellen.length) {
+            const i = stellen[0]; teile[i] = teile[i].slice(0, teile[i].indexOf("=") + 1) + alarm.related;
+          } else teile.push("RELATED=" + alarm.related);
+        }
+        if (alarm.offsetMinuten !== original.alarm.offsetMinuten) wert = "-PT" + alarm.offsetMinuten + "M";
+        return teile.join(";") + ":" + wert;
+      });
+      if (trigger !== 1 || aktionen !== 1) konflikt();
+      aus.push(...zeilen);
+    }
+    return aus;
+  }
+
   function spiegeleTerminInIcs(termin, vorher = null) {
     const alt = (Array.isArray(termin.icsRoundtrip) ? termin.icsRoundtrip : [])
       .map(S);
@@ -7426,11 +7508,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         (anhang.name ? ";FILENAME=" + icsParameter(anhang.name) : "") +
         (anhang.groesse ? ";SIZE=" + anhang.groesse : "") + ":" + anhang.uri);
     }
-    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {
-      const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";
-      neu.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":" + trigger,
-        "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
-    }
+    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));
     let stelle = aus.findIndex((zeile) => /^END:VEVENT\s*$/i.test(zeile));
     if (stelle < 0) stelle = aus.length;
     aus.splice(stelle, 0, ...neu);
@@ -17780,6 +17858,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           wiederholung = { art: teile[0], bis: datumswert(bisFeld) };
           if (teile[1]) wiederholung.intervall = Number(teile[1]);
         }
+      }
+      // Do not let normalization silently turn two edited source rows into one.
+      const alarmSchluessel = alarmWerte.filter(alarm => alarm.bearbeitbar)
+        .map(alarm => JSON.stringify([alarm.offsetMinuten, alarm.related, alarm.aktion]));
+      if (new Set(alarmSchluessel).size !== alarmSchluessel.length) {
+        zettel(_("Conflict") + ": " + _("Unsupported alarm")); return;
       }
       const werte = {
         datum: datumVon,
