@@ -5,7 +5,7 @@
   const name = 'Magnolie Organizer Android Tablet Beta 2.0.30Beta';
   const supported = new Set(['bereit','speichern','beenden_bereit','beenden_abgebrochen',
     'drucken','ablage_kopieren','ablage_holen','tablet_import','tablet_export',
-    'tablet_notifications','tablet_about','tablet_replace','tablet_import_cancel','erinnerung_einrichten','tablet_loaded']);
+    'feiertage','tablet_notifications','tablet_about','tablet_replace','tablet_import_cancel','erinnerung_einrichten','tablet_loaded']);
   const rejected = new Set();
   let loaded = false, pendingAction = null, replacement = null;
   let session = null, revision = null, blocked = false;
@@ -245,6 +245,7 @@
         case 'cancelled':
           if (blocked || replacement && p.token !== replacement.token) break;
           replacement=null; pendingAction=null; status(tr('Cancel')); break;
+        case 'feiertageErgebnis': if (loaded && !blocked && !replacement) window.App.feiertageErgebnis(p); break;
         case 'clipboard': window.App.ablage({text:p}); break;
         case 'notificationConsent':
           if (!loaded || replacement || blocked || p.session !== session || p.revision !== revision) break;
@@ -279,16 +280,11 @@
         (id==='erinnerung'?'':' JSON'),()=>action('tablet_'+(id==='erinnerung'?'notifications':id))));
     }
     const unsupportedIds = ['schrift-pruefung','erinnerung-wecken','knopf-sicherung',
-      'ort-abrufen','ort-jahre','ort-zeitzonenmanagement','adressen-brief','adressen-brief-layout',
+      'ort-zeitzonenmanagement','adressen-brief','adressen-brief-layout',
       'adressen-karte','adressen-route','adressen-karten','adressen-soziale-symbole'];
     for (const id of unsupportedIds) {
       const b = document.getElementById(id);
       if (b && !b.disabled) { b.disabled = true; b.title = beta(0); }
-    }
-    const holidayAction = document.getElementById('ort-abrufen');
-    if (holidayAction && !document.getElementById('tablet-holiday-limit')) {
-      const hint = document.createElement('p'); hint.id='tablet-holiday-limit'; hint.textContent=beta(0);
-      holidayAction.parentElement.before(hint);
     }
     // Contact communication buttons have no IDs and may contain icon labels.
     // Local phone/email fields remain editable; these actions have no native backend.
@@ -307,7 +303,7 @@
     }
     // These actions require native desktop services, unlike local binder editing.
     const labels = ['Synchronize','Send SMS','Call','Write a letter','Show on map','Route',
-      'Check for updates','ODS','Export ODS','Import public holidays','Import school holidays'];
+      'Check for updates','ODS','Export ODS'];
     for (const b of document.querySelectorAll('button')) if (labels.some(x=>b.textContent.trim()===tr(x)) && !b.disabled) {
       b.disabled = true; b.title = beta(0);
     }

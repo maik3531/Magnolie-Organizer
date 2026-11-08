@@ -70,7 +70,7 @@ against the projected core and through the existing shared desktop test runner.
 | PDF/printing | Canonical print HTML into a separate script/bridge-free native print WebView | Android Print dialog includes Save as PDF; no automatic completion ACK; runtime/spooler validation pending |
 | Reminders | Persisted one-off calendar/task/custom alarms, global and separate custom consent, inexact AlarmManager wakeup, boot/package restart receiver, delivery receipts | No recurrence/anniversary/health/SMS scheduling, exact alarm SLA, foreground service or force-stop bypass |
 | Localization | Existing 20-language catalogs; two small manual beta strings in all 20 locales | Native locale follows Android, web locale follows organizer settings; linguistic review not claimed |
-| Setup/holidays | Current canonical setup logic/catalogs and local country/region/cached-holiday display filter | No Android desktop setup wizard or OpenHolidays network backend; retrieval and period controls disabled |
+| Setup/holidays | Current canonical setup logic/catalogs and local country/region/cached-holiday display filter | Native bounded HTTPS public/school holiday retrieval; no Android desktop setup wizard; native integration validation pending |
 | Text editing | Current canonical context menu, Undo/Redo and accessible Tab-key help | Key/help catalogs checked in all 20 locales; actual WebView editing history/IME acceptance pending |
 
 Unsupported bridge operations reject; they never return invented success or empty
@@ -81,12 +81,12 @@ command identifier. Main statuses are visible and accessible, not console-only.
 Contact SMS/call buttons, their context-planning actions, mail/map/letter/social
 launchers and corresponding external-integration settings are disabled. Local
 contact phone/email/address editing remains available. The bridge rejects attempted
-outgoing SMS/call/holiday commands without handing them to Android.
+outgoing SMS/call commands without handing them to Android.
 
 There is **no** EDS/Akonadi, Android account integration, Nextcloud/cloud backup,
 Magnolienbaum/phone pairing, SMS/calls, Bluetooth/WLAN sync, medication/weather
 lookup, desktop spelling service, LibreOffice/ODS/letter export, update service,
-or desktop password-lock emulation. There is no INTERNET permission, system
+or desktop password-lock emulation. INTERNET permits the native HTTPS service; the WebView still rejects external resources. There is no system
 contacts/calendar permission, shared UID, or account manager permission.
 New file attachments via the WebView file picker are not implemented. Existing
 embedded note data is retained by the shared core subject to its validation.

@@ -40,6 +40,9 @@ class MainActivity : Activity() {
     private var documentRequests = DocumentRequests()
     private var ready = false
     private var printing = false
+    private val network = java.util.concurrent.Executors.newSingleThreadExecutor()
+    @Volatile private var holidayCancellation: DavCancellation? = null
+    private fun cancelHolidayFetch() { holidayCancellation?.cancel(); holidayCancellation = null }
     private val printViews = mutableListOf<WebView>()
     private val appName get() = applicationInfo.loadLabel(packageManager).toString()
 
@@ -85,12 +88,14 @@ class MainActivity : Activity() {
                 !request.isForMainFrame || request.url.toString() != START
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) = handler.cancel()
             override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                cancelHolidayFetch()
                 generation++; proxy = null; ready = false
                 documentSession = null; bootstrapStarted = false; restoreFenced = false
                 exporting = null; importToken = null; documentBusy = false
                 documentRequests.cancel()
             }
             override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                cancelHolidayFetch()
                 generation++; ready = false; proxy = null; documentSession = null
                 documentRequests.cancel(); view.destroy(); fatal(); return true
             }
@@ -208,6 +213,37 @@ class MainActivity : Activity() {
                     try { scheduleReminders(this,state) } catch (_: Exception) { respond("notice",getString(R.string.limits),epoch) }
                 }
             }
+            "feiertage" -> {
+                val authority = requireNotNull(session)
+                val requestId = message.opt("requestId") as? String
+                require(requestId == null || (requestId.isNotEmpty() && requestId.toByteArray().size <= 1024))
+                cancelHolidayFetch()
+                val cancellation = DavCancellation().also { holidayCancellation = it }
+                val failure: (Exception) -> Unit = {
+                    val payload = JSONObject().put("fehler",getString(R.string.failed))
+                    if (requestId != null) payload.put("requestId",requestId)
+                    if (holidayCancellation === cancellation && documentSession?.id == authority.id && !restoreFenced)
+                        respond("feiertageErgebnis",payload,epoch)
+                }
+                // Obtain persisted preferences on the storage queue; HTTP never blocks saves.
+                work(failure) {
+                    val vault = AndroidStore.vault(this)
+                    vault.requireSession(authority)
+                    val selected = vault.read()?.getJSONObject("data")?.optJSONObject("einstellungen")
+                        ?.optJSONObject("regional")?.optString("language","system") ?: "system"
+                    val language = if (selected == "system") java.util.Locale.getDefault().language else selected
+                    val query = HolidayService.Query.fromMessage(message,language)
+                    network.execute {
+                        try {
+                            val payload = HolidayService().fetch(query,cancellation).callbackValue()
+                            runOnUiThread {
+                                if (holidayCancellation === cancellation && documentSession?.id == authority.id && !restoreFenced)
+                                    respond("feiertageErgebnis",payload,epoch)
+                            }
+                        } catch (error: Exception) { runOnUiThread { failure(error) } }
+                    }
+                }
+            }
             "tablet_import" -> {
                 check(!documentBusy); documentBusy = true
                 openDocument(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -241,6 +277,7 @@ class MainActivity : Activity() {
                     .setOnCancelListener { cancelDocument() }
                     .setPositiveButton(R.string.restore) { _,_ ->
                         if (epoch == generation && session == documentSession && !restoreFenced) {
+                            cancelHolidayFetch()
                             restoreFenced = true; ready = false
                             work({ error -> respond("restoreFailed",JSONObject().put("token",token)
                                 .put("outcome",(error as? CommitFailure)?.outcome ?: "before-commit")
@@ -446,6 +483,7 @@ class MainActivity : Activity() {
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
+        cancelHolidayFetch(); network.shutdownNow()
         generation++; ready=false; proxy=null; documentSession=null; documentRequests.cancel()
         printViews.forEach { it.destroy() }; web.destroy(); super.onDestroy()
     }

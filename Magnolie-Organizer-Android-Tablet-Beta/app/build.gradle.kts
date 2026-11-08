@@ -66,6 +66,9 @@ tasks.withType<Test>().configureEach {
     testLogging { events("passed", "failed", "skipped") }
 }
 dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
     implementation("androidx.webkit:webkit:1.12.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")

@@ -118,10 +118,25 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   T.oeffneEinstellungen(); await wait();
   ok(w.document.querySelector('#einst-tab-sync').disabled && w.document.querySelector('#einst-tab-baum').disabled,
     'desktop system-account and sync tabs are disabled');
+  Object.assign(T.daten().einstellungen.ort,{land:'DE',region:'DE-BE',ferien:true,alleRegionen:false});
   w.document.querySelector('#einst-tab-ort').click(); await wait();
-  ok(w.document.querySelector('#ort-abrufen').disabled && w.document.querySelector('#ort-jahre').disabled &&
-    !w.document.querySelector('#ort-ferien').disabled && w.document.querySelector('#tablet-holiday-limit'),
-    'network holiday retrieval disabled; local cached-holiday filter remains usable');
+  ok(!w.document.querySelector('#ort-abrufen').disabled && !w.document.querySelector('#ort-jahre').disabled &&
+    !w.document.querySelector('#ort-ferien').disabled && !w.document.querySelector('#tablet-holiday-limit'),
+    'native holiday retrieval and period controls are available');
+  w.document.querySelector('#ort-abrufen').click(); await wait();
+  const holidayRequest=messages.filter(m=>m.cmd==='feiertage').at(-1);
+  ok(holidayRequest && holidayRequest.land==='DE' && holidayRequest.region==='DE-BE' &&
+    holidayRequest.session===dom.authority().session && Array.isArray(holidayRequest.jahre),
+    'canonical regional holiday request carries actual native document authority');
+  const holidayYear=holidayRequest.jahre[0], holidayDate=holidayYear+'-12-25';
+  w.Tablet.receive({callback:'feiertageErgebnis',payload:{jahre:[holidayYear],feiertage:[{
+    von:holidayDate,bis:holidayDate,name:'Synthetic holiday',art:'public-holiday',country:'DE',nationwide:true,regions:[]}]}});
+  await wait(); T.speichereJetzt(); await wait();
+  ok(T.daten().feiertage.some(h=>h.name==='Synthetic holiday') && disk.feiertage.some(h=>h.name==='Synthetic holiday'),
+    'native holiday result uses the canonical importer and durable save protocol');
+  const holidayBefore=JSON.stringify(T.daten().feiertage);
+  w.Tablet.receive({callback:'feiertageErgebnis',payload:{fehler:'Synthetic HTTP failure'}});
+  ok(JSON.stringify(T.daten().feiertage)===holidayBefore,'failed retrieval preserves the complete existing holiday cache');
   ok(w.document.querySelector('#ort-zeitzonenmanagement').disabled,
     'native-only time-zone management cannot open an unsupported MCP transaction');
   w.document.querySelector('#einst-tab-regional').click(); await wait();
@@ -171,7 +186,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     w.document.querySelector('#tablet-status').textContent.includes('Regional settings saved.'),
     'retry after failed regional persistence commits the chosen preferences');
   assert.throws(()=>w.webkit.messageHandlers.bridge.postMessage('{"cmd":"invented_success"}'));
-  for(const cmd of ['telefon_waehlen','kde_sms_senden','sms','feiertage']) {
+  for(const cmd of ['telefon_waehlen','kde_sms_senden','sms']) {
     assert.throws(()=>w.webkit.messageHandlers.bridge.postMessage(JSON.stringify({cmd})));
     assert.ok(!messages.some(x=>x.cmd===cmd));
   }

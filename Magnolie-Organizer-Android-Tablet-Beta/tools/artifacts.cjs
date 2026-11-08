@@ -18,8 +18,10 @@ if(!badging.includes("package: name='io.gitlab.maik3531.magnolieorganizer.tablet
    !badging.includes("application-label:'Magnolie Organizer Android Tablet Beta 2.0.30Beta'")) throw Error('APK beta identity mismatch');
 const signature=execFileSync(path.join(tools,'apksigner'),['verify','--print-certs',apkPath],{encoding:'utf8'});
 if(!signature.includes('CN=Android Debug')) throw Error('Only the explicitly generated debug certificate is authorized');
-if(/uses-permission: name='android.permission.(?:INTERNET|SEND_SMS|CALL_PHONE|READ_CONTACTS|READ_CALENDAR)'/.test(badging))
-  throw Error('Unsupported native integration permission in local beta');
+if(/uses-permission: name='android.permission.(?:SEND_SMS|CALL_PHONE|READ_CONTACTS|READ_CALENDAR)'/.test(badging))
+  throw Error('Unsupported native integration permission in beta');
+if(!badging.includes("uses-permission: name='android.permission.INTERNET'"))
+  throw Error('Native HTTPS holiday retrieval requires INTERNET permission');
 const appManifest=execFileSync(path.join(tools,'aapt'),['dump','xmltree',apkPath,'AndroidManifest.xml'],{encoding:'utf8'});
 if(/SyntheticDocument|NativeTabletInstrumentation/.test(appManifest)) throw Error('Test component leaked into app APK');
 const packagedManifest=JSON.parse(execFileSync('unzip',['-p',apkPath,'assets/projection.json'],{encoding:'utf8'}));
