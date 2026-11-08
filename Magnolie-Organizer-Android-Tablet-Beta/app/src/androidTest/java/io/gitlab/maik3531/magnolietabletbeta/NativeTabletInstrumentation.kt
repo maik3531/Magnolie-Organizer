@@ -278,9 +278,10 @@ class NativeTabletInstrumentation : Instrumentation() {
     private fun data()=JSONObject(value("OrganizerTest.daten()"))
     private fun vault()=AndroidStore.vault(targetContext)
     private fun capture(name:String) {
+        if(options.getString("stage")=="domains") domainMark("capture.begin")
         File(out,"$name-navigation-proof.json").writeText(navigationProof.toString(2))
         File(out,"$name-rpc-metrics.json").writeText(JSONObject().put("evaluations",webEvaluations).put("evaluationMs",webEvaluationMs).toString(2))
-        File(out,"$name-diagnostics.json").writeText(value("window.__nativeDiagnosticSnapshot?.() || {}"))
+        if(options.getString("stage")!="domains") File(out,"$name-diagnostics.json").writeText(value("window.__nativeDiagnosticSnapshot?.() || {}"))
         lateinit var motion:String
         synchronized(nativeMotion) {motion=JSONArray(nativeMotion.map {JSONArray(it.toList())}).toString()}
         File(out,"$name-native-motion.json").writeText(motion)
@@ -295,9 +296,18 @@ class NativeTabletInstrumentation : Instrumentation() {
             finally {bitmap.recycle()}
         }
         finally {runOnMainSync {activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}}
-        File(out,"$name-dom.json").writeText(value("({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,section:OrganizerTest.zustand().sektion,status:document.querySelector('#tablet-status').textContent,body:document.body.innerText.slice(0,20000)})"))
-        File(out,"$name-input-events.json").writeText(value("window.__nativeInputTrace || []"))
-        File(out,"$name-fonts.json").writeText(value("({title:document.title,betaLabel:document.querySelector('#tablet-bar strong').textContent,selected:OrganizerTest.daten().einstellungen.schrift,faces:[...document.fonts].map(f=>({family:f.family,status:f.status})),fields:[...document.querySelectorAll('input:not([type=password]),textarea,[contenteditable]')].slice(0,80).map(e=>({id:e.id,tag:e.tagName,readOnly:e.readOnly===true,disabled:e.disabled===true,contentEditable:e.contentEditable,fontFamily:getComputedStyle(e).fontFamily,fontStyle:getComputedStyle(e).fontStyle,fontSize:getComputedStyle(e).fontSize}))})"))
+        if(options.getString("stage")=="domains") {
+            val snapshot=JSONObject(value("({diagnostics:window.__nativeDiagnosticSnapshot?.() || {},dom:({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,section:OrganizerTest.zustand().sektion,status:document.querySelector('#tablet-status').textContent,body:document.body.innerText.slice(0,20000)}),input_events:window.__nativeInputTrace || [],fonts:({title:document.title,betaLabel:document.querySelector('#tablet-bar strong').textContent,selected:OrganizerTest.daten().einstellungen.schrift,faces:[...document.fonts].map(f=>({family:f.family,status:f.status})),fields:[...document.querySelectorAll('input:not([type=password]),textarea,[contenteditable]')].slice(0,80).map(e=>({id:e.id,tag:e.tagName,readOnly:e.readOnly===true,disabled:e.disabled===true,contentEditable:e.contentEditable,fontFamily:getComputedStyle(e).fontFamily,fontStyle:getComputedStyle(e).fontStyle,fontSize:getComputedStyle(e).fontSize}))})})"))
+            File(out,"$name-diagnostics.json").writeText(snapshot.get("diagnostics").toString())
+            File(out,"$name-dom.json").writeText(snapshot.get("dom").toString())
+            File(out,"$name-input-events.json").writeText(snapshot.get("input_events").toString())
+            File(out,"$name-fonts.json").writeText(snapshot.get("fonts").toString())
+        } else {
+            File(out,"$name-dom.json").writeText(value("({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,section:OrganizerTest.zustand().sektion,status:document.querySelector('#tablet-status').textContent,body:document.body.innerText.slice(0,20000)})"))
+            File(out,"$name-input-events.json").writeText(value("window.__nativeInputTrace || []"))
+            File(out,"$name-fonts.json").writeText(value("({title:document.title,betaLabel:document.querySelector('#tablet-bar strong').textContent,selected:OrganizerTest.daten().einstellungen.schrift,faces:[...document.fonts].map(f=>({family:f.family,status:f.status})),fields:[...document.querySelectorAll('input:not([type=password]),textarea,[contenteditable]')].slice(0,80).map(e=>({id:e.id,tag:e.tagName,readOnly:e.readOnly===true,disabled:e.disabled===true,contentEditable:e.contentEditable,fontFamily:getComputedStyle(e).fontFamily,fontStyle:getComputedStyle(e).fontStyle,fontSize:getComputedStyle(e).fontSize}))})"))
+        }
+        if(options.getString("stage")=="domains") domainMark("capture.end")
     }
     private fun nodes():List<AccessibilityNodeInfo> {
         val result=mutableListOf<AccessibilityNodeInfo>()
@@ -416,37 +426,77 @@ class NativeTabletInstrumentation : Instrumentation() {
         check(proof.getInt("checks")==148 && proof.getBoolean("bookUnchanged"))
         pass("actual WebView appointment task and Intl civil-time paths match external clocks",proof)
     }
+    private var domainStartedAt=0L
+    private val domainTimings=JSONArray()
+    private fun domainMark(phase: String) {
+        if(domainStartedAt==0L) return
+        val detail=JSONObject().put("phase",phase).put("elapsedMs",SystemClock.elapsedRealtime()-domainStartedAt)
+            .put("evaluations",webEvaluations).put("evaluationMs",webEvaluationMs)
+        domainTimings.put(detail)
+        File(out,"domains-timing.json").writeText(domainTimings.toString(2))
+        android.util.Log.i("TabletNativeTest","DOMAIN_TIMING $detail")
+        sendStatus(1,Bundle().apply {putString("stream","DOMAIN_TIMING $detail\n")})
+    }
+    /** Two RPCs minimum: start the real async action, then read its complete
+     * result/error envelope. Never poll error/result/book in separate calls. */
+    private fun domainStep(expression: String, save: Boolean=false, capture: Boolean=false): JSONObject {
+        val token=java.util.UUID.randomUUID().toString()
+        val quoted=JSONObject.quote(token)
+        val action=if(save) "NativeDomainBatch.afterSave(detail,$capture)" else "detail"
+        raw("window.__nativeDomainStep={id:$quoted,done:false}; (async()=>{const detail=await ($expression); return await ($action);})().then(result=>{if(window.__nativeDomainStep.id===$quoted)window.__nativeDomainStep={id:$quoted,done:true,result};}).catch(error=>{if(window.__nativeDomainStep.id===$quoted)window.__nativeDomainStep={id:$quoted,done:true,error:String(error.stack||error)};})")
+        var envelope=JSONObject()
+        waitFor("real domain action and durable save ACK") {
+            envelope=JSONObject(value("window.__nativeDomainStep"))
+            envelope.optString("id")==token && envelope.optBoolean("done")
+        }
+        check(!envelope.has("error")) {envelope.optString("error")}
+        return envelope.getJSONObject("result")
+    }
     private fun domains() {
+        domainStartedAt=SystemClock.elapsedRealtime()
+        domainMark("launch.begin")
         launch()
-        raw(context.assets.open("domain-scenarios.js").bufferedReader().readText())
-        pass("optional tabs and metric units configured through actual settings",scenario("NativeDomains.prepare()"))
-        saved()
-        pass("actual health tables validate and persist vital glucose medication entries",scenario("NativeDomains.health()"))
-        saved()
-        pass("actual custom designer and appointment task text editors persist",scenario("NativeDomains.custom()"))
-        saved()
-        val target=scenario("NativeDomains.drawing()")
+        domainMark("launch.ready")
+        raw(context.assets.open("domain-scenarios.js").bufferedReader().readText()+"\n"+
+            context.assets.open("domain-batch.js").bufferedReader().readText())
+        domainMark("settings.begin")
+        pass("optional tabs and metric units configured through actual settings",domainStep("NativeDomains.prepare()",save=true))
+        domainMark("settings.saved")
+        pass("actual health tables validate and persist vital glucose medication entries",domainStep("NativeDomains.health()",save=true))
+        domainMark("health.saved")
+        pass("actual custom designer and appointment task text editors persist",domainStep("NativeDomains.custom()",save=true))
+        domainMark("custom.saved")
+        val target=domainStep("NativeDomains.drawing()")
+        domainMark("drawing.editor.ready")
         val gesture=NativeDomainAcceptance.stroke(this,web,target)
+        domainMark("drawing.gesture.finished")
         waitFor("trusted native drawing stroke") {
             value("OrganizerTest.daten().customOrganizer.modules.find(module=>module.type==='drawing')?.drawing.strokes.length") == "1"
         }
-        val drawing=scenario("NativeDomains.drawingProof()")
-        drawing.put("gesture",gesture)
-        pass("native canvas stroke pixels and vectors survive actual Undo Redo controls",drawing)
-        val beforeSave=data()
-        saved()
+        val drawing=domainStep("NativeDomains.drawingProof()",save=true,capture=true)
+        drawing.getJSONObject("detail").put("gesture",gesture)
+        pass("native canvas stroke pixels and vectors survive actual Undo Redo controls",drawing.getJSONObject("detail"))
+        domainMark("drawing.saved")
+        domainMark("vault.before-reopen.begin")
         val persisted=JSONObject(vault().read()!!.getJSONObject("data").toString())
-        val expected=JSONObject(value("NativeDomains.expectedAfterReopen(NativeDomains.snapshot())"))
-        val reopenedBookExpected=JSONObject(value("NativeDomains.expectedAfterReopen(OrganizerTest.daten())"))
-        NativeDomainAcceptance.requireEqual(beforeSave,persisted,"Native save changed or dropped original book values or fields")
-        NativeDomainAcceptance.requireEqual(persisted,data(),"Native saved book differs from the actual UI domain data")
+        NativeDomainAcceptance.requireEqual(drawing.getJSONObject("beforeSave"),persisted,"Native save changed or dropped original book values or fields")
+        NativeDomainAcceptance.requireEqual(persisted,drawing.getJSONObject("afterSave"),"Native saved book differs from the actual UI domain data")
+        domainMark("vault.before-reopen.verified")
+        domainMark("reopen.begin")
         reloadVerified()
-        raw(context.assets.open("domain-scenarios.js").bufferedReader().readText())
+        domainMark("reopen.ready")
+        domainMark("renderer.snapshot.begin")
+        // Read both graphs atomically in one renderer turn. Reuse the exact
+        // pre-reload expected clone; permit only the declared oxygen-zero default.
+        val reopened=JSONObject(js(context.assets.open("domain-scenarios.js").bufferedReader().readText()+"\n"+
+            context.assets.open("domain-batch.js").bufferedReader().readText()+"\nreturn NativeDomainBatch.snapshot();"))
+        domainMark("renderer.snapshot.ready")
         NativeDomainAcceptance.requireEqual(persisted,vault().read()!!.getJSONObject("data"),"Native domain book changed after reopen")
-        NativeDomainAcceptance.requireEqual(reopenedBookExpected,data(),"Reopened renderer changed or dropped persisted book fields beyond the declared optional-zero default")
-        NativeDomainAcceptance.requireEqual(expected,JSONObject(value("NativeDomains.snapshot()")),"Reopened health custom or drawing graph differs")
+        NativeDomainAcceptance.requireEqual(drawing.getJSONObject("expectedBook"),reopened.getJSONObject("book"),"Reopened renderer changed or dropped persisted book fields beyond the declared optional-zero default")
+        NativeDomainAcceptance.requireEqual(drawing.getJSONObject("expectedFeatures"),reopened.getJSONObject("features"),"Reopened health custom or drawing graph differs")
+        domainMark("reopen.verified")
         pass("complete native book and feature graph preserve all fields through save and reopen",JSONObject()
-            .put("bookSHA256",NativeDomainAcceptance.hash(persisted)).put("featureSHA256",NativeDomainAcceptance.hash(expected)))
+            .put("bookSHA256",NativeDomainAcceptance.hash(persisted)).put("featureSHA256",NativeDomainAcceptance.hash(drawing.getJSONObject("expectedFeatures"))))
     }
 
     private fun basics() {

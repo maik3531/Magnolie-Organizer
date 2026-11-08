@@ -19,11 +19,11 @@ internal object NativeDomainAcceptance {
         val y=origin[1]+target.getDouble("y")*density
         check(listOf(x1,x2,y).all { it.isFinite() && it>=0 } && x2>x1)
         val started=SystemClock.elapsedRealtime()
-        val output=test.uiAutomation.executeShellCommand("input touchscreen swipe $x1 $y $x2 $y 180").use {
+        val output=test.uiAutomation.executeShellCommand("input touchscreen swipe $x1 $y $x2 $y 420").use {
             ParcelFileDescriptor.AutoCloseInputStream(it).bufferedReader().readText()
         }
         check(output.isBlank()) { "Native touchscreen injection failed" }
-        return JSONObject().put("source","native-touchscreen").put("durationMs",SystemClock.elapsedRealtime()-started)
+        return JSONObject().put("source","native-touchscreen").put("requestedDurationMs",420).put("durationMs",SystemClock.elapsedRealtime()-started)
     }
     private fun semantic(value: Any?): Any? = when(value) {
         null,JSONObject.NULL -> null
