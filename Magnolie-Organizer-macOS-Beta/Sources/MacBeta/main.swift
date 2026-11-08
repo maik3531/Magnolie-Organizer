@@ -591,7 +591,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 if error != nil { DispatchQueue.main.async { self.send("failure", ["cmd": "erinnerung_zeigen", "ok": false, "fehler": "Notification delivery failed."]) } }
             }
         case .notiz_anhang_datei:
-            guard plain != nil, request.text("aktion") == "speichern" else {
+            guard plain != nil, request.text("aktion") == "save" else {
                 throw BetaError("Beta supports attachment Save only, not automatic opening of files.")
             }
             let text = request.text("daten")
@@ -601,7 +601,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             guard let type = types.first(where: { prefix == "data:" + $0.key + ";base64" }),
                   let bytes = Data(base64Encoded: String(text[text.index(after: separator)...])) else { throw BetaError("Invalid attachment encoding.") }
             let path = try savePanel(bytes, suffix: type.value)
-            send("notizAnhangDateiErgebnis", ["id": request.fields["id"]!, "aktion": "speichern", "ok": path != nil, "abgebrochen": path == nil])
+            send("notizAnhangDateiErgebnis", ["id": request.fields["id"]!, "aktion": "save", "ok": path != nil, "abgebrochen": path == nil])
         }
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }

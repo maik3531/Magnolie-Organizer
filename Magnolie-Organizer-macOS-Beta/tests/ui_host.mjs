@@ -21,6 +21,22 @@ try {
   assert.equal(t.daten().futureRoot.opaque, "AA=="); assertions++;
   assert.equal(t.daten().aufgaben[0].futureTask.keep, 17); assertions++;
   assert.equal(JSON.stringify(t.daten().notizen[0].futureNote), "[true,null]"); assertions++;
+  // Exercise the real attachment dialog and its published native action spelling.
+  const image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
+  t.daten().notizen[0].anhaenge = [{ id: "attachment-action", name: "drawing.png", art: "image", daten: image }];
+  await t.wechsel("notizen");
+  const attachmentButton = w.document.querySelector(".notiz-anhang-name, .notiz-anhang-bild");
+  assert.ok(attachmentButton, "Actual note attachment must render"); assertions++;
+  attachmentButton.click(); await tick();
+  const attachmentDialog = w.document.getElementById("notiz-anhang-aktion-schleier");
+  assert.ok(attachmentDialog); assertions++;
+  const saveAttachmentButton = [...attachmentDialog.querySelectorAll("button")].find(button => button.textContent === "Save as…");
+  assert.ok(saveAttachmentButton); assertions++;
+  saveAttachmentButton.click(); await tick();
+  const attachmentRequest = messages.filter(message => message.cmd === "notiz_anhang_datei").at(-1);
+  assert.equal(attachmentRequest.aktion, "save"); assertions++;
+  assert.equal(attachmentRequest.daten, image); assertions++;
+  w.MacBeta.receive("notizAnhangDateiErgebnis", { id: attachmentRequest.id, aktion: "save", ok: false, abgebrochen: true });
   // Render the canonical sections, not a replacement landing page.
   for (const section of ["kalender", "aufgaben", "notizen", "adressen", "jahrestage", "planer", "gesundheit"]) {
     await t.wechsel(section);
