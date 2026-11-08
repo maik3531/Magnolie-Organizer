@@ -116,8 +116,22 @@ internal sealed partial class TelefonStore
         private JsonObject record;
         private string version = "";
         private volatile bool retired;
+        private bool sendAttempted;
         internal DeviceFileManifest Manifest { get; }
         internal string JobId => Manifest.SourceId;
+        internal TelefonStore OwnerStore => store;
+        internal object ConnectionOwner => source.ConnectionOwner;
+        internal string PeerId => scope.PeerId;
+        internal string Nonce { get { lock (cacheGate) { Require(); return record["nonce"]!.GetValue<string>(); } } }
+        internal void BeginSendAttempt(TelefonConnection connection)
+        {
+            lock (cacheGate)
+            {
+                Require();
+                if (!ReferenceEquals(ConnectionOwner, connection) || sendAttempted) throw DeviceFileControl.Error("media_source_exchange_original_attempt_required");
+                sendAttempted = true; // A missing exchange row must never permit replay by the surviving live owner either.
+            }
+        }
         internal string Version { get { lock (cacheGate) { Require(); return version; } } }
         internal JsonObject Originals { get { lock (cacheGate) { Require(); return record["originals"]!.DeepClone().AsObject(); } } }
 

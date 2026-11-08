@@ -59,6 +59,8 @@
     <Compile Include="..\DeviceFileNativeDirectory.Source.cs" Link="DeviceFileNativeDirectory.Source.cs" />
     <Compile Include="..\DeviceFileMappedSource.cs" Link="DeviceFileMappedSource.cs" />
     <Compile Include="..\DeviceFileSourceCache.cs" Link="DeviceFileSourceCache.cs" />
+    <Compile Include="..\DeviceFileSourceExchange.cs" Link="DeviceFileSourceExchange.cs" />
+    <Compile Include="..\DeviceFileConnectionSend.cs" Link="DeviceFileConnectionSend.cs" />
     <Compile Include="..\DeviceFileReceiveJob.cs" Link="DeviceFileReceiveJob.cs" />
     <Compile Include="..\DeviceFileReceiveReceipts.cs" Link="DeviceFileReceiveReceipts.cs" />
     <Compile Include="..\DeviceFileReconcile.cs" Link="DeviceFileReconcile.cs" />

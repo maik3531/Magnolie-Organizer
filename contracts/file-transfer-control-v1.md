@@ -306,6 +306,25 @@ preparation, corrupt/missing state, actual saved-book change after the first
 committed chunk and cancellation during a blocked native read. This ready cache
 is not offer output, peer Saved, local Saved, END, restart or retirement authority.
 
+The explicit Windows connection owner can now send that exact live cache through
+the existing encrypted file transport (Refs #429). A separate sealed exchange
+records offer intent before output and confirms output only after the actual
+secure write drains. Only the correlated current acceptance permits bounded
+requested chunks; each request is journaled before output and marked sent only
+after its encrypted response and native guards return. Early replies serialize
+behind that real write. Peer Saved requires actual output of every manifest
+chunk, exact acceptance/binding and current ownership. Its result remains a
+remote assertion, never local Saved, source END or cache-retirement authority.
+Missing/corrupt exchange state and repeated attempts cannot fabricate a new
+sender or bypass reserved-frame isolation; partial/ready cache and original
+receive history remain intact. Four native Windows groups cover multi-chunk
+encrypted output, early Saved, missing attempt/replay, cancellation during actual
+offer payload output and an acceptance arriving before output drains. Five
+existing transport groups and three native shared-control groups also pass.
+This is not physical Android acceptance: original-reference/MIME dispatcher
+composition, actual native publication readback/END, failure recovery and the
+complete common runtime still remain before readiness can be advertised.
+
 Prepared Linux PC versions now also have a native local backup path (#401),
 separate from phone Saved mappings and partner Saved assertions. The exact
 in-process preparation retains its authenticated original mapping only as

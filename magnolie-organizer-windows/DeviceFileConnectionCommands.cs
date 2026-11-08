@@ -57,6 +57,8 @@ internal sealed partial class TelefonConnection
 
     private void RequireNativeSourceChoice(NativeSourceChoice choice)
     {
+        lock (fileRouteGate)
+            if (nativeMediaSend is not null) throw DeviceFileControl.Error("media_source_send_io_busy");
         RequireNativeFileControls(choice.Owner);
         try { store.RequireNativeMediaStorageKey(); }
         catch { CloseNativeSourceCommands("file_sources_native_storage_key_changed"); throw; }

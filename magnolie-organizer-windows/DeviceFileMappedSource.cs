@@ -17,16 +17,18 @@ internal sealed partial class TelefonStore
         private DeviceFileManifest? prepared;
         internal readonly TelefonStore Store;
         internal readonly string PeerId;
+        internal readonly object ConnectionOwner;
         private readonly JsonObject provenance;
         private NativePreparedMediaSource? frozen;
         private bool freezeAttempted;
         internal NativeMappedMediaSource(DeviceFileNativeDirectory root, DeviceFileNativeDirectory? album,
             DeviceFileNativeDirectory.ManagedSource file, JsonObject original, string senderId, string receiverId, string path,
-            TelefonStore store, string peerId, JsonObject provenance)
+            TelefonStore store, string peerId, JsonObject provenance, object connectionOwner)
         {
             this.root = root; this.album = album; this.file = file; this.original = original.DeepClone().AsObject();
             this.senderId = senderId; this.receiverId = receiverId; this.path = path;
             Store = store; PeerId = peerId; this.provenance = provenance.DeepClone().AsObject();
+            ConnectionOwner = connectionOwner;
         }
         internal long Size => file.Size;
         internal JsonObject OriginalReference => original.DeepClone().AsObject(); // Correlation, never a phone grant.
@@ -93,7 +95,7 @@ internal sealed partial class TelefonStore
     // filename lookup can substitute for a protected completed mapping.
     internal NativeMappedMediaSource OpenNativeMappedMediaSource(string peerId, string mediaType, string jobId,
         string jobVersion, string fileId, DeviceTransferBinding sending, NativeMediaBookPermit book,
-        JsonObject sharedIntent, Action requireConnection)
+        JsonObject sharedIntent, Action requireConnection, object connectionOwner)
     {
         MediaDestinationKind(mediaType);
         if (!MediaSyncSettings.TransferRequestedFor(sharedIntent, mediaType, toPhone: true))
@@ -169,7 +171,7 @@ internal sealed partial class TelefonStore
                 throw DeviceFileControl.Error("media_source_photo_metadata_required");
             var provenance = new JsonObject { ["mapping_job"] = jobId, ["mapping_version"] = jobVersion, ["mapping_file"] = fileId,
                 ["book_version"] = book.Version, ["media_type"] = mediaType, ["settings"] = intent.DeepClone(), ["sending_binding"] = sending.Snapshot() };
-            Current(); return new(root, album, source, reference, sending.SenderId, sending.ReceiverId, mappedFile.Path, this, peerId, provenance);
+            Current(); return new(root, album, source, reference, sending.SenderId, sending.ReceiverId, mappedFile.Path, this, peerId, provenance, connectionOwner);
         }
         catch { source?.Dispose(); album?.Dispose(); root?.Dispose(); throw; }
     }
@@ -192,6 +194,6 @@ internal sealed partial class TelefonConnection
                 throw DeviceFileControl.Error("media_source_current_sending_owner_required");
         }
         Current();
-        return store.OpenNativeMappedMediaSource(peer.Id, mediaType, jobId, jobVersion, fileId, sending, book, intent, Current);
+        return store.OpenNativeMappedMediaSource(peer.Id, mediaType, jobId, jobVersion, fileId, sending, book, intent, Current, this);
     }
 }

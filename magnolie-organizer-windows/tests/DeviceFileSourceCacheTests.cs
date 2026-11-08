@@ -9,7 +9,7 @@ internal static class DeviceFileSourceCacheTests
 {
     private const string Book = "{\"syncEpoch\":\"source-cache-test\",\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":30}}}";
     private static readonly byte[] Bytes = Enumerable.Range(0, 70013).Select(index => (byte)(index % 251)).ToArray();
-    private static async Task<DeviceFileReceiveJobTests.Fixture> Fixture()
+    internal static async Task<DeviceFileReceiveJobTests.Fixture> Fixture()
     {
         var f = await DeviceFileMappedSourceTests.Established();
         try
@@ -20,7 +20,7 @@ internal static class DeviceFileSourceCacheTests
         }
         catch { f.Dispose(); throw; }
     }
-    private static TelefonStore.NativeMappedMediaSource Open(DeviceFileReceiveJobTests.Fixture f, NativeMediaBookPermit book)
+    internal static TelefonStore.NativeMappedMediaSource Open(DeviceFileReceiveJobTests.Fixture f, NativeMediaBookPermit book)
     {
         var mapping = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
         return f.Native.Connection.OpenNativeMappedMediaSource("images", mapping.JobId, mapping.Version, 1.ToString("x32"), new string('f', 64), book);
