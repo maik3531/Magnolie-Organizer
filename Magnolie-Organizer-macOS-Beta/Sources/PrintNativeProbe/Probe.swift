@@ -78,7 +78,7 @@ private final class PrintListenerReady: @unchecked Sendable {
         proof["noInjectedScripts"] = page.webView.configuration.userContentController.userScripts.isEmpty
         let probes = """
         <script>document.body.append('SCRIPT_MUST_NOT_RUN'); window.printProbe = true;</script>
-        <img id="inline" width="24" height="24" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j6WQAAAAASUVORK5CYII=">
+        <img id="inline" width="24" height="24" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=">
         <img id="remote" src="http://127.0.0.1:\(port)/must-not-request.png">
         <iframe src="\(local.absoluteString)"></iframe>
         """
