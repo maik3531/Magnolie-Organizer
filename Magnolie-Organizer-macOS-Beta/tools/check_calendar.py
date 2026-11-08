@@ -188,6 +188,27 @@ def validate_resource_patch(module, output):
     print('Published parser resource-patch sibling/recurrence/task oracle passed', flush=True)
 
 
+def validate_fresh_outputs(completed, module, fixtures, output):
+    # output is a newly created empty directory in this invocation's unique
+    # TemporaryDirectory. Missing files never fall back to prior build artifacts.
+    print('Native full-suite return code: ' + str(completed.returncode) + '; failure remains a mandatory final gate', flush=True)
+    required = {'patch-before.ics', 'patch-after.ics', 'patch-expected.ics'}
+    for case in fixtures:
+        required.update([case['name'] + '.ics', case['name'] + '-imported.json'])
+        for group in ['termine', 'aufgaben', 'jahrestage']:
+            if case['importExpected'][group]:
+                required.add(case['name'] + '-reimport-' + group + '.ics')
+    for name in sorted(required):
+        file = output / name
+        if file.is_symlink() or not file.is_file() or file.resolve().parent != output.resolve() or not file.stat().st_size:
+            raise AssertionError('Current-run native calendar artifact missing or invalid: ' + name)
+    validate(module, fixtures, output)
+    validate_imports(module, fixtures, output)
+    validate_resource_patch(module, output)
+    print('Independent calendar references validated: ' + str(len(fixtures)) + '; native full-suite return code: ' + str(completed.returncode), flush=True)
+    completed.check_returncode()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--swift')
@@ -205,10 +226,8 @@ def main():
         if args.swift:
             output = root / 'exported'; output.mkdir()
             env = dict(os.environ, MACOS_BETA_CALENDAR_FIXTURES=str(fixture), MACOS_BETA_CALENDAR_OUTPUT=str(output))
-            subprocess.run([args.swift, 'test', '--scratch-path', str(root / 'swift-build'), '--jobs', '2'], cwd=BETA, env=env, check=True, timeout=300)
-            validate(module, fixtures, output)
-            validate_imports(module, fixtures, output)
-            validate_resource_patch(module, output)
+            completed = subprocess.run([args.swift, 'test', '--scratch-path', str(root / 'swift-build'), '--jobs', '2'], cwd=BETA, env=env, check=False, timeout=300)
+            validate_fresh_outputs(completed, module, fixtures, output)
         else:
             print('Swift calendar export NOT executed; pass --swift for native/portable validation.', flush=True)
 

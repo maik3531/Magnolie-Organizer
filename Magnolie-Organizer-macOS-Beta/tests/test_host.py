@@ -1,4 +1,6 @@
 import base64
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -18,6 +20,7 @@ import project_ui as projection
 import crypto_vectors
 import bridge_coverage
 import check_editor
+import check_calendar
 
 
 class SwiftChildLifecycleTests(unittest.TestCase):
@@ -49,6 +52,44 @@ class SwiftChildLifecycleTests(unittest.TestCase):
         self.assertIn('Native print phase: appkit-print',result)
         self.assertNotIn('private',result)
         self.assertLessEqual(len(check_editor.technical_swift_tail(text*1000)),4096)
+
+
+class CalendarOracleGateTests(unittest.TestCase):
+    def artifacts(self, output):
+        # Real published-parser inputs; this fixture does not emulate Swift or
+        # claim native execution. It proves independent validation still runs
+        # before an already failed native process is propagated as failure.
+        def event(uid, title):
+            return 'BEGIN:VEVENT\r\nUID:' + uid + '\r\nDTSTART;VALUE=DATE:20260115\r\nSUMMARY:' + title + '\r\nEND:VEVENT\r\n'
+        task = 'BEGIN:VTODO\r\nUID:task\r\nSUMMARY:Task\r\nEND:VTODO\r\n'
+        for name, title in [('before', 'Original'), ('after', 'Changed'), ('expected', 'Changed')]:
+            (output / ('patch-' + name + '.ics')).write_text('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n' + event('first', title) + event('second', 'Original') + task + 'END:VCALENDAR\r\n')
+
+    def test_failed_native_suite_still_runs_real_oracle_and_remains_failed(self):
+        module = check_calendar.canonical()
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp); self.artifacts(output)
+            result = subprocess.CompletedProcess(['synthetic-failed-native-fixture'], 7)
+            receipt = io.StringIO()
+            with contextlib.redirect_stdout(receipt), self.assertRaises(subprocess.CalledProcessError) as failure:
+                check_calendar.validate_fresh_outputs(result, module, [], output)
+            self.assertEqual(failure.exception.returncode, 7)
+            self.assertIn('Published parser resource-patch sibling/recurrence/task oracle passed', receipt.getvalue())
+            self.assertIn('native full-suite return code: 7', receipt.getvalue())
+
+    def test_missing_and_symlinked_prior_artifacts_never_satisfy_oracle(self):
+        module = check_calendar.canonical()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); current = root / 'current'; prior = root / 'prior'
+            current.mkdir(); prior.mkdir(); self.artifacts(prior)
+            result = subprocess.CompletedProcess(['synthetic-artifact-fixture'], 0)
+            with contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(AssertionError, 'Current-run native calendar artifact'):
+                check_calendar.validate_fresh_outputs(result, module, [], current)
+            self.artifacts(current)
+            (current / 'patch-after.ics').unlink()
+            (current / 'patch-after.ics').symlink_to(prior / 'patch-after.ics')
+            with contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(AssertionError, 'Current-run native calendar artifact'):
+                check_calendar.validate_fresh_outputs(result, module, [], current)
 
 
 class ProjectionTests(unittest.TestCase):
