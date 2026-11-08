@@ -67,6 +67,7 @@ class _NativeSourceCacheReader:
             if (record['intent_sha256']!=proof['intent_sha256'] or record['parent_key']!=list(self._parent_key)):
                 raise TransferError('media_source_jobs_ready_record_required')
             self._proof_witness=proof_witness;self._metadata_witnesses=metadata;self._members_sha256=proof['chunks_sha256']
+            self.media_intent_sha256=intent['media_intent_sha256']
             self._names={'intent.enc','copying.enc','manifest.enc'}|{'chunk-%08x.enc'%index for index in range(self._count)}
             self._layout();members=sha256()
             for index in range(self._count):

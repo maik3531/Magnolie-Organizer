@@ -285,6 +285,40 @@ bauen. Linux-Parität, vollständige Sammlungs-/Lösch-/Wiederherstellungswege u
 gemeinsame physische Ende-zu-Ende-Abnahme bleiben offen; Capability 23 bleibt
 geschlossen.
 
+## Linux: expliziter nativer Medien-Quellsender
+
+Der vorhandene private Linux-Quellsender besitzt zusätzlich zu seinem unveränderten
+gewöhnlichen Dateiangebot einen ausdrücklichen `send_media_offer`-Weg. Er liest
+ausschließlich den authentifizierten vorbereiteten Cache unter dessen echter
+Buch-/I/O-/Zustimmungslease. Der Medien-Snapshot muss zum geschützten ursprünglichen
+Absichtshash der Vorbereitung passen. Der MIME-Typ kommt aus höchstens 1 MiB
+tatsächlicher Cache-Bytes nach denselben begrenzten PNG-/JPEG-/MP4-/QuickTime-
+Containerregeln wie unter Windows, nicht aus dem Dateinamen. Die vollständige
+native Medienprüfung auf Notes bleibt davon unabhängig.
+
+Ein eigener geschützter Austauschformatstand hält bei diesem neuen Weg Saved und
+den danach korrelierten Publication-Readback getrennt fest. Angebotsidentität,
+Manifest, ursprüngliche native Bindung, tatsächliche Chunk-Ausgabe, Saved-
+Publikationsfingerabdruck und bytebasiert erkannter MIME-Typ bleiben erforderlich.
+Gültig neu gehashte, aber sachlich falsche Rückmeldungen, falscher Kanal, Ablauf,
+zu früher Readback und doppelte Rückmeldung werden abgewiesen. Die Beobachtung
+bleibt Metadaten ohne native Saved-/Lese-/Archivierungsberechtigung.
+
+18 neue Fälle einschließlich tatsächlicher verschlüsselter Zwei-Chunk-Ausgabe,
+Saved-/Readback-Korrelation und begrenzter MIME-Erkennung bestehen. Alle 17
+bisherigen Senderfälle, sieben Cache-Leserfälle, fünf gezielte bestehende Retry-/
+Archivfälle und 20 optionale Kompositionsfälle bestehen in begrenzten separaten
+Läufen. Ein zunächst zu großer Gesamtlauf erreichte sein Zeitlimit; daraus wurde
+kein Prüferfolg abgeleitet. Die kleinere MIME-Hilfe wird nur mit der optionalen
+Medienkomposition ausgeliefert.
+
+Dieser Weg ist weiterhin eine explizite private Linux-Komposition, noch kein
+normaler Desktop-Verteiler oder automatischer Exportlauf. Neue Medienangebote
+werden nicht in die bisherigen gewöhnlichen Retry-/Archivwege umgedeutet;
+deren fehlender Medien-Abschlussanschluss bleibt Hold statt stiller Cache-
+Übernahme oder Archivierung. Linux-Source-END/Gesamtanbindung und Capability 23
+bleiben daher weiterhin geschlossen beziehungsweise offen zu bearbeiten.
+
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und
 keine Berechtigung, den Ausgangscache zu entfernen.

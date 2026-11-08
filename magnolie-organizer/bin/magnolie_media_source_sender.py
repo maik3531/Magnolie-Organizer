@@ -18,6 +18,8 @@ from magnolie_file_accept_message import KIND as ACCEPT,parse_acceptance
 from magnolie_file_chunk_message import REQUEST as CHUNK_REQUEST,RESULT as CHUNK,parse_request
 from magnolie_file_saved_message import KIND as SAVED,parse_saved
 from magnolie_file_published_readback import KIND as PUBLISHED_READBACK,parse_readback
+from magnolie_media_offer import KIND as MEDIA_OFFER,create_media_offer,validate_media_offer
+from magnolie_media_mime import PREFIX_BYTES,identify
 from magnolie_file_sources import _body
 from magnolie_file_transfer import TransferError
 from magnolie_media_source import NativeMappedMediaSource
@@ -142,11 +144,34 @@ class _NativeMediaSourceSender:
             self._controls.observe_remote(packet,self._peer())
 
     def send_offer(self):
-        with self._operation():
+        return self._send_offer(media=False)
+
+    def send_media_offer(self):
+        if self._retry_spec is not None:raise TransferError('media_source_sender_media_retry_unavailable')
+        return self._send_offer(media=True)
+
+    def _send_offer(self,*,media):
+        with self._operation() as reader:
             if self._record is not None:raise TransferError('media_source_sender_offer_already_attempted')
             binding=self._controls.binding('0'*64,sender_is_local=True)
             if binding is None:raise TransferError('media_source_sender_control_agreement_required')
-            self._binding=binding;offer=create_offer(self._cache.manifest)
+            self._binding=binding
+            if media:
+                manifest=self._cache.manifest;file=manifest.files[0];kind=self._cache.original_references[file.id]['media_type']
+                token=self._source._transport.intent_for(kind,to_phone=True)
+                if token is None or sha256(canonical(token.body)).hexdigest()!=reader.media_intent_sha256:
+                    raise TransferError('media_source_sender_original_intent_required')
+                prefix=bytearray()
+                try:
+                    for index in range(file.chunks):
+                        if len(prefix)>=min(file.size,PREFIX_BYTES):break
+                        self._current();data=bytearray(reader.read_chunk(index))
+                        try:prefix.extend(memoryview(data)[:min(len(data),PREFIX_BYTES-len(prefix))])
+                        finally:data[:]=b'\0'*len(data)
+                    mime=identify(prefix,file.size,kind)
+                finally:prefix[:]=b'\0'*len(prefix)
+                offer=create_media_offer(manifest,token.body,kind,{file.id:mime},self._cache.original_references)
+            else:offer=create_offer(self._cache.manifest)
             self._record=self._journal.write(None,dict(phase='offer_planned',offer=offer,permission_epoch=binding.permission_epoch,
                 acceptance=None,sent_bits=0,pending_chunk=None,peer_saved=None))
             self._boundary('source_offer_planned');self._current()
@@ -200,9 +225,13 @@ class _NativeMediaSourceSender:
         if (any(getattr(saved,key)!=getattr(accepted,key) for key in ('transfer_id','manifest_sha256','acceptance_sha256','permission_epoch','destination_token'))
                 or body['pending_chunk'] is not None or body['sent_bits']!=(1<<self._cache.manifest.files[0].chunks)-1):
             raise TransferError('media_source_sender_saved_changed')
+        if body['format']==4 and (message['created_ms']<body['offer']['created_ms'] or message['expires_ms']>body['offer']['expires_ms']):
+            raise TransferError('media_source_sender_saved_changed')
         body.update(phase='peer_saved',peer_saved=message);self._record=self._journal.write(self._record,body)
 
     def _readback(self,message):
+        if self._record is not None and self._record.body['format']==4:
+            return self._media_readback(message)
         if (self._retry_spec is None or self._record is None or self._record.body['phase']!='offer_sent'
                 or self._record.body['acceptance'] is not None or self._record.body['sent_bits']!=0
                 or self._record.body['pending_chunk'] is not None or self._record.body['peer_saved'] is not None):
@@ -215,6 +244,22 @@ class _NativeMediaSourceSender:
         parse_readback(message,body['offer'],binding,kind)
         self._binding=binding
         body.update(format=3 if self._verification else 2,phase='peer_readback',peer_readback=message)
+        self._record=self._journal.write(self._record,body)
+
+    def _media_readback(self,message):
+        body=self._record.body;raw=message.get('body')
+        if (body['phase']!='peer_saved' or body['pending_chunk'] is not None or body['peer_saved'] is None
+                or body['sent_bits']!=(1<<self._cache.manifest.files[0].chunks)-1 or type(raw) is not dict or not _hex(raw.get('destination_token'))):
+            raise TransferError('media_source_sender_readback_saved_required')
+        binding=self._controls.binding(raw['destination_token'],sender_is_local=True)
+        if binding is None or binding.permission_epoch!=body['permission_epoch']:raise TransferError('media_source_sender_binding_changed')
+        manifest=self._cache.manifest;file=manifest.files[0]
+        media=validate_media_offer(body['offer'],manifest.sender_id,manifest.receiver_id)
+        parsed=parse_readback(message,media.offer,binding,media.media_type)
+        saved=parse_saved(body['peer_saved'],manifest)
+        if parsed.body['publication_sha256']!=saved.receipts[0].receipt_sha256 or parsed.body['mime_type']!=media.mime_types[file.id]:
+            raise TransferError('media_source_sender_publication_changed')
+        self._binding=binding;body.update(phase='peer_readback',peer_readback=message)
         self._record=self._journal.write(self._record,body)
 
     def observe(self,channel,message):
