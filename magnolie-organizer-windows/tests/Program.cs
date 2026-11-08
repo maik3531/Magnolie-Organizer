@@ -246,6 +246,7 @@ runner.Add("Media backup maintenance / native resource sampling and sticky busy 
 runner.Add("Media backup maintenance / saved book stop and memory ownership", DeviceFileBackupMaintenanceTests.NativeOwnerAsync);
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
 runner.Add("Media offer envelope / strict context and shared canonical vector", MediaOfferEnvelopeTests.RunAsync);
+runner.Add("Published readback / shared vector and metadata-only authority", DevicePublishedReadbackTests.RunAsync);
 runner.Add("Media source MIME / bounded actual bytes and unknown formats", DeviceFileMediaMimeTests.ByteDerivedMimeAsync);
 runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
 runner.Add("Device file native transport / actual secure echo / read-only identity", DeviceFileConnectionTransportTests.HandshakeAsync);

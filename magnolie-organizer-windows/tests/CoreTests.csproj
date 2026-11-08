@@ -47,6 +47,7 @@
     <Compile Include="..\NativeSyncActivity.cs" Link="NativeSyncActivity.cs" />
     <Compile Include="..\TelefonTrayActivity.cs" Link="TelefonTrayActivity.cs" />
     <Compile Include="..\DeviceFileOfferEnvelope.cs" Link="DeviceFileOfferEnvelope.cs" />
+    <Compile Include="..\DeviceFilePublishedReadback.cs" Link="DeviceFilePublishedReadback.cs" />
     <Compile Include="..\DeviceFileMediaPreview.cs" Link="DeviceFileMediaPreview.cs" />
     <Compile Include="..\DeviceFileMediaMime.cs" Link="DeviceFileMediaMime.cs" />
     <Compile Include="..\PhotoSyncSchedule.cs" Link="PhotoSyncSchedule.cs" />

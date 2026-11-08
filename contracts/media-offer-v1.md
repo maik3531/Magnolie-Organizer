@@ -116,6 +116,23 @@ Speicherung; die erneute Probe besteht. Vorhandene native Zustimmungs-/Buch-/
 Lifecycle-Prüfungen und vier Compose-Einstellungsfälle bestehen ebenfalls.
 Das neue Aktionslabel ist in allen 20 Notes-Ressourcenkatalogen vorhanden.
 
+## Windows: Publication-Readback-Metadaten
+
+Windows besitzt nun denselben strikten `file_transfer.published.readback`-Codec
+wie Python und Notes. Der gemeinsame öffentliche Vektor prüft die drei
+domänengetrennten Hashes. Weitere Prüfungen ändern Angebots-/Manifest-/Datei-
+Kennungen, Größe, Inhaltshash und Medientyp mit vollständig neu berechneten
+Hashes: die Bindung an das ursprüngliche Angebot muss trotzdem scheitern.
+Foto- und Video-Metadaten werden getrennt geprüft. Das Ergebnis ist eine
+unveränderliche Kopie von Peer-Metadaten, keine lokale Saved-Quittung,
+Chunk-Freigabe, tatsächlicher Source-END oder Cache-Löschberechtigung.
+
+Dies ist zunächst nur der Codec, noch kein produktiver Dispatcher- oder
+Abschlussanschluss. Die automatische Verbindung des tatsächlichen Notes-
+Publikations-Readbacks mit dem abgeschlossenen Empfangsbesitzer und dem
+Windows-Sendeablauf bleibt offen. Beide optionalen Windows-Kompositionen
+(Foto-/Kameramodule ein beziehungsweise aus) bauen mit dieser Ergänzung.
+
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und
 keine Berechtigung, den Ausgangscache zu entfernen.
