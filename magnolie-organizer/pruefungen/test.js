@@ -7544,6 +7544,7 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(Array.from(bd.querySelectorAll('[data-media-setting]'), input => input.dataset.mediaSetting)
     .filter(field => ["collection_mode", "auto_mode", "direction"].includes(field)), ["collection_mode", "auto_mode", "direction"],
     "Gemeinsame Reihenfolge bleibt Umfang, Automatik, unabhängige Richtung");
+  assert.ok(bd.querySelector('[data-media-setting="photos_only"]').closest("label").textContent.includes("Nur Fotos"));
   const sharedBefore = baumNachrichten.length;
   const scopeChoice = bd.querySelector('[data-media-setting="collection_mode"]');
   assert.ok(scopeChoice.querySelector('option[value="entire_collection"]').disabled &&

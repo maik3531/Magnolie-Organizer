@@ -139,6 +139,7 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert(german.textContent.includes("Automatisch im WLAN synchronisieren")); assert(german.textContent.includes("Automatischer Abgleich pausiert"));
   assert(german.textContent.includes("Lokale Bearbeitungen bleiben erhalten"));
   assert(german.textContent.includes("Medienpapierkorb")); assert(german.textContent.includes("ausschließlich manuelles Leeren"));
+  assert(german.textContent.includes("Nur Fotos"));
   assert(!german.textContent.includes("Synchronize photos")); assert(!german.textContent.includes("Photos"));
   const html = fs.readFileSync(path.join(__dirname, "../app/web/index.html"), "utf8");
   assert(html.indexOf('src="phone-media.js"') >= 0 && html.indexOf('src="phone-media.js"') < html.indexOf('src="anwendung.js"'));
@@ -221,7 +222,7 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert([...legacyPanel.querySelectorAll(".telefon-medien-gruppe")].every(group => group.hidden));
   const sharedPanel = api.createPanel(peer, x => x, value => { messages.push(JSON.parse(JSON.stringify(value))); return true; }, async () => { saves++; if (!saveAllowed) throw Error("save failed"); });
   w.document.body.append(sharedPanel);
-  const values = { enabled: false, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory", auto_mode: "manual", skip_deletions: false, direction: "phone_to_pc" };
+  const values = { enabled: false, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory", auto_mode: "manual", skip_deletions: false, direction: "phone_to_pc", photos_only: false };
   const versions = Object.fromEntries(Object.keys(values).map((field, index) => [field, String(index + 1).repeat(64)]));
   let granted = false, sendPhotos = false, sendVideos = false;
   const sharedReply = (extra = {}) => reply({ ...state, shared_settings: { values: { ...values }, versions: { ...versions } },
@@ -241,6 +242,9 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   mediaSummary.click(); await tick(); assert(!mediaDetails.open);
   assert(!master.checked && !master.parentElement.hidden);
   assert(sharedInput("photos").checked && !sharedInput("videos").checked && !sharedInput("skip_deletions").checked);
+  const photosOnly = sharedInput("photos_only");
+  assert(photosOnly && !photosOnly.checked && photosOnly.disabled && !photosOnly.parentElement.hidden,
+    "Native metadata-only camera-photo filter is missing from shared media choices");
   assert.equal(sharedInput("automatic").value, "manual");
   assert.equal(sharedInput("collection_mode").value, "phone_inventory");
   assert.equal(sharedInput("direction").value, "phone_to_pc");
@@ -292,7 +296,31 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert(settingsKeys.indexOf("automatic") < settingsKeys.indexOf("direction"));
   assert(settingsKeys.indexOf("direction") < settingsKeys.indexOf("photos"));
   assert(settingsKeys.indexOf("photos") < settingsKeys.indexOf("videos"));
-  assert(settingsKeys.indexOf("videos") < settingsKeys.indexOf("skip_deletions"));
+  assert(settingsKeys.indexOf("videos") < settingsKeys.indexOf("photos_only"));
+  assert(settingsKeys.indexOf("photos_only") < settingsKeys.indexOf("skip_deletions"));
+  const beforePhotoFilter = messages.length;
+  photosOnly.checked = true; photosOnly.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, beforePhotoFilter + 1);
+  assert.deepEqual(last(), { cmd: "telefon_medien", requestId: last().requestId, device_id: peer,
+    action: "shared_setting", field: "photos_only", value: true, version: versions.photos_only });
+  assert(photosOnly.disabled && sharedInput("automatic").disabled && sharedInput("direction").disabled);
+  assert(!receiving.disabled, "Pending filter edits must not prevent withdrawal of existing native RECEIVE");
+  reply({ ok: false }); assert(!photosOnly.checked); assert.equal(last().action, "status"); sharedReply();
+  saveAllowed = false; const beforeFilterSaveFailure = messages.length;
+  photosOnly.checked = true; photosOnly.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, beforeFilterSaveFailure); assert(!photosOnly.checked); saveAllowed = true;
+  photosOnly.checked = true; photosOnly.dispatchEvent(new w.Event("change")); await tick();
+  values.photos_only = true; sharedReply(); assert(photosOnly.checked && !photosOnly.disabled);
+  const filterRefresh = [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh");
+  filterRefresh.click(); await tick();
+  const olderVersions = { ...versions }; delete olderVersions.photos_only;
+  sharedReply({ shared_settings: { values: { ...values }, versions: olderVersions } });
+  assert(photosOnly.parentElement.hidden && photosOnly.disabled, "Missing native field version must not advertise an editable filter");
+  const beforeUnsupportedFilter = messages.length;
+  photosOnly.checked = false; photosOnly.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, beforeUnsupportedFilter); assert(photosOnly.checked);
+  filterRefresh.click(); await tick(); sharedReply();
+  assert(!photosOnly.parentElement.hidden && photosOnly.checked);
   saveAllowed = false; master.checked = false; const beforeFailedSave = messages.length;
   master.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(messages.length, beforeFailedSave); assert(master.checked); saveAllowed = true;

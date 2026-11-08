@@ -10132,6 +10132,9 @@ msgstr "＋ Termin hinzufügen"
 msgid "Photos"
 msgstr "Fotos"
 
+msgid "Photos only"
+msgstr "Nur Fotos"
+
 msgid "Videos"
 msgstr "Videos"
 

@@ -4704,6 +4704,9 @@ msgstr "Foto von %(name)s"
 msgid "Photos"
 msgstr "Fotos"
 
+msgid "Photos only"
+msgstr "Nur Fotos"
+
 msgid "Photos and videos"
 msgstr "Fotos und Videos"
 

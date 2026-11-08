@@ -689,6 +689,14 @@ eindeutig als Foto- oder Videoziel bezeichneten Ordnerbuttons, nicht als
 sichtbares Pfadfeld; die native Ordnerwahl erhält weiterhin keinen Webpfad.
 Die gemeinsamen Auswahlen folgen Umfang, Automatik und unabhängiger Richtung.
 
+Auch die Windows-Oberfläche bearbeitet `photos_only` als eigenes versioniertes
+gemeinsames Feld hinter der Videos-Auswahl. Erst der dauerhafte Buch-Save geht
+der nativen Einzelfeld-Anfrage voraus; Fehler setzen die Anzeige auf den
+bestätigten Stand zurück. Fehlt die native Feldversion, wird keine bearbeitbare
+Filterfunktion angeboten. Der Regler erteilt keine SEND-/RECEIVE-Rechte und
+startet keinen Transfer. Die vorhandene native Metadatenprüfung, nicht eine
+Dateiendungsprüfung, entscheidet weiterhin über die ausgewählten Aufnahmen.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
