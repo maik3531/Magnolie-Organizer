@@ -57,12 +57,66 @@ class MainActivity : Activity() {
     private val accountNetwork = java.util.concurrent.Executors.newSingleThreadExecutor()
     @Volatile private var accountCancellation: DavCancellation? = null
     private fun cancelAccountDiscovery() { accountCancellation?.cancel(); accountCancellation = null }
+    private val systemSourceWorker = java.util.concurrent.Executors.newSingleThreadExecutor()
+    @Volatile private var systemSourceControl: AndroidSystemSources.Control? = null
+    private data class PendingSystemAccess(val request: SystemSourceRequest, val epoch: Int, val session: DocumentSession, val code: Int)
+    private var systemPermissionGate = SystemPermissionGate.restore(currentProcess=SYSTEM_PERMISSION_PROCESS)
+    private var pendingSystemAccess: PendingSystemAccess? = null
+    private fun cancelSystemSources() {
+        systemSourceControl?.cancel(); systemSourceControl = null
+    }
+    private fun dispatchSystemSources(message: JSONObject, epoch: Int, session: DocumentSession) {
+        val request = SystemSourceRequest.parse(message)
+        if (pendingSystemAccess == null) systemPermissionGate.clearIfAlreadyGranted {
+            checkSelfPermission(AndroidSystemSources.permission(it)) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (request.kind != null && systemPermissionGate.pending != null) {
+            respond("edsStatus",JSONObject().put("requestId",request.requestId).put("android",true)
+                .put("systemAccountSyncImplemented",false).put("fehlerCode","permission_request_pending")
+                .put("fehler",getString(R.string.unavailable)),epoch)
+            return // Keep the original OS request until its correlated callback arrives.
+        }
+        val kind = request.kind
+        if (kind != null) { systemSourceControl?.cancel(); systemSourceControl = null }
+        if (kind != null && checkSelfPermission(AndroidSystemSources.permission(kind)) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            val code = systemPermissionGate.begin(kind)
+            pendingSystemAccess = PendingSystemAccess(request,epoch,session,code)
+            try { requestPermissions(arrayOf(AndroidSystemSources.permission(kind)),code) }
+            catch (_: Exception) { systemPermissionGate.finish(code); pendingSystemAccess = null; readSystemSources(request,epoch,session) }
+        } else readSystemSources(request,epoch,session)
+    }
+    private fun readSystemSources(request: SystemSourceRequest, epoch: Int, session: DocumentSession) {
+        systemSourceControl?.cancel()
+        val control = AndroidSystemSources.Control().also { systemSourceControl = it }
+        systemSourceWorker.execute {
+            try {
+                if (!accountCurrent(epoch,session) || systemSourceControl !== control) return@execute
+                var failed = false
+                val snapshots = try { AndroidSystemSources(applicationContext).status(control) }
+                    catch (_: Exception) { failed = true; emptyMap() }
+                if (!accountCurrent(epoch,session) || systemSourceControl !== control) return@execute
+                AndroidStore.io.execute sourceStatus@{
+                    if (!accountCurrent(epoch,session) || systemSourceControl !== control) return@sourceStatus
+                    val dav = try { DavAccountBridgeRequest.sources(AndroidDavAccounts.service(this).status(),request.requestId) }
+                        catch (_: Exception) { JSONObject().put("android",true).put("systemAccountSyncImplemented",false)
+                            .put("fehlerCode","account_unavailable").put("fehler",getString(R.string.unavailable)) }
+                    val payload = SystemSourceBridge.merge(dav,snapshots,request.requestId)
+                    if (failed) payload.put("fehlerCode","provider_unavailable").put("fehler",getString(R.string.unavailable))
+                    runOnUiThread {
+                        if (accountCurrent(epoch,session) && systemSourceControl === control) respond("edsStatus",payload,epoch)
+                    }
+                }
+            } finally { control.close() }
+        }
+    }
+
     @Volatile private var holidayCancellation: DavCancellation? = null
     private fun cancelHolidayFetch() { holidayCancellation?.cancel(); holidayCancellation = null }
     private val printViews = mutableListOf<WebView>()
     private val appName get() = applicationInfo.loadLabel(packageManager).toString()
 
     companion object {
+        private val SYSTEM_PERMISSION_PROCESS = java.util.UUID.randomUUID().toString()
         const val ORIGIN = "https://appassets.androidplatform.net"
         const val START = "$ORIGIN/assets/web/index.html"
         fun allowedOrigin(uri: Uri): Boolean = trustedOrigin(uri.toString())
@@ -73,6 +127,9 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         startupMark(StartupPhase.CREATE_BEGIN)
         documentRequests = DocumentRequests(savedInstanceState?.getInt("nextDocumentCode",100) ?: 100)
+        systemPermissionGate = SystemPermissionGate.restore(savedInstanceState?.getInt("nextSystemAccessCode",1000) ?: 1000,
+            savedInstanceState?.getInt("systemAccessPendingCode",-1)?.takeIf {it>=1000},
+            savedInstanceState?.getString("systemAccessPendingKind"),savedInstanceState?.getString("systemAccessProcess"),SYSTEM_PERMISSION_PROCESS)
         window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE,
             android.view.WindowManager.LayoutParams.FLAG_SECURE)
         startupMark(StartupPhase.WEBVIEW_CREATE_BEGIN)
@@ -107,7 +164,7 @@ class MainActivity : Activity() {
                 !request.isForMainFrame || request.url.toString() != START
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) = handler.cancel()
             override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
-                cancelHolidayFetch(); cancelAccountDiscovery()
+                cancelHolidayFetch(); cancelAccountDiscovery(); cancelSystemSources()
                 generation++; proxy = null; ready = false; startupReadyAtElapsed = 0L
                 documentSession = null; bootstrapStarted = false; restoreFenced = false
                 exporting = null; importToken = null; documentBusy = false
@@ -117,7 +174,7 @@ class MainActivity : Activity() {
             override fun onPageCommitVisible(view: WebView, url: String) { startupMark(StartupPhase.PAGE_VISIBLE) }
             override fun onPageFinished(view: WebView, url: String) { startupMark(StartupPhase.PAGE_FINISHED) }
             override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-                cancelHolidayFetch(); cancelAccountDiscovery()
+                cancelHolidayFetch(); cancelAccountDiscovery(); cancelSystemSources()
                 generation++; ready = false; startupReadyAtElapsed = 0L; proxy = null; documentSession = null
                 documentRequests.cancel(); view.destroy(); fatal(); return true
             }
@@ -188,7 +245,7 @@ class MainActivity : Activity() {
     }
     private fun work(onError: (Exception) -> Unit = { error ->
         if (error is CommitFailure && error.outcome != "before-commit") {
-            cancelAccountDiscovery(); ready = false; startupReadyAtElapsed = 0L; restoreFenced = true
+            cancelAccountDiscovery(); cancelSystemSources(); ready = false; startupReadyAtElapsed = 0L; restoreFenced = true
             respond("storageBlocked",JSONObject().put("outcome",error.outcome).put("text",getString(R.string.save_failed)))
         } else respond("error",getString(R.string.failed))
     }, action: () -> Unit) {
@@ -274,9 +331,12 @@ class MainActivity : Activity() {
         if (cmd != "bereit") {
             // This timer only reschedules the current persisted state, never its supplied snapshot.
             // A save ACK may still be in transit when the same page's timer fires.
-            if (cmd == "erinnerung_einrichten" || cmd == "tablet_calendar_import_done" || cmd in DavAccountBridgeRequest.commands) check(session?.id == documentSession?.id)
+            if (cmd == "erinnerung_einrichten" || cmd == "tablet_calendar_import_done" || cmd in DavAccountBridgeRequest.commands || cmd in SystemSourceRequest.commands) check(session?.id == documentSession?.id)
             else check(session == documentSession)
             check(!restoreFenced && (ready || cmd == "tablet_loaded"))
+        }
+        if (cmd in SystemSourceRequest.commands) {
+            dispatchSystemSources(message,epoch,requireNotNull(session)); return
         }
         if (cmd in DavAccountBridgeRequest.commands) {
             dispatchAccount(message, epoch, requireNotNull(session)); return
@@ -312,7 +372,7 @@ class MainActivity : Activity() {
                 val id = message.getLong("id")
                 work({ error ->
                     val reload = !AndroidStore.vault(this).isWritable(requireNotNull(session))
-                    if (reload) { cancelAccountDiscovery(); ready = false; startupReadyAtElapsed = 0L; restoreFenced = true }
+                    if (reload) { cancelAccountDiscovery(); cancelSystemSources(); ready = false; startupReadyAtElapsed = 0L; restoreFenced = true }
                     respond("gespeichert",JSONObject().put("id",id).put("ok",false)
                         .put("session",session!!.id).put("expectedRevision",session.revision)
                         .put("reloadRequired",reload).put("outcome",(error as? CommitFailure)?.outcome ?: "rejected")
@@ -412,7 +472,7 @@ class MainActivity : Activity() {
                     .setOnCancelListener { cancelDocument() }
                     .setPositiveButton(R.string.restore) { _,_ ->
                         if (epoch == generation && session == documentSession && !restoreFenced) {
-                            cancelHolidayFetch(); cancelAccountDiscovery()
+                            cancelHolidayFetch(); cancelAccountDiscovery(); cancelSystemSources()
                             restoreFenced = true; ready = false; startupReadyAtElapsed = 0L
                             work({ error -> respond("restoreFailed",JSONObject().put("token",token)
                                 .put("outcome",(error as? CommitFailure)?.outcome ?: "before-commit")
@@ -698,6 +758,13 @@ class MainActivity : Activity() {
     }
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
+        val pending = pendingSystemAccess
+        // A restored slot may be cleared, but has no request object and cannot reply.
+        val matched = systemPermissionGate.finish(requestCode)
+        if (matched && pending != null && requestCode == pending.code) {
+            pendingSystemAccess = null
+            if (accountCurrent(pending.epoch,pending.session)) readSystemSources(pending.request,pending.epoch,pending.session)
+        }
         if (requestCode == 12) work {
             AndroidStore.vault(this).read()?.let { scheduleReminders(this,it) }
             respond("notice",if(notificationPermission(this)) getString(R.string.saved) else getString(R.string.unavailable))
@@ -739,10 +806,15 @@ class MainActivity : Activity() {
     override fun onBackPressed() { if(ready) web.evaluateJavascript("window.App.vorBeenden()",null) else super.onBackPressed() }
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt("nextDocumentCode",documentRequests.nextCode)
+        outState.putInt("nextSystemAccessCode",systemPermissionGate.nextCode)
+        systemPermissionGate.pending?.let {
+            outState.putInt("systemAccessPendingCode",it.code);outState.putString("systemAccessPendingKind",it.kind.wire)
+        }
+        outState.putString("systemAccessProcess",SYSTEM_PERMISSION_PROCESS)
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
-        cancelHolidayFetch(); cancelAccountDiscovery(); network.shutdownNow(); accountNetwork.shutdownNow(); calendarImportWorker.shutdownNow()
+        cancelHolidayFetch(); cancelAccountDiscovery(); cancelSystemSources(); network.shutdownNow(); accountNetwork.shutdownNow(); systemSourceWorker.shutdownNow(); calendarImportWorker.shutdownNow()
         generation++; ready=false; startupReadyAtElapsed=0L; proxy=null; documentSession=null; documentRequests.cancel()
         printViews.forEach { it.destroy() }; web.destroy(); super.onDestroy()
     }

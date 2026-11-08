@@ -395,3 +395,28 @@ canvas, Android Keystore and native persistence require the actual device stage.
 Medication online lookup, drawing file import/PDF, physical stylus behavior,
 TalkBack and IME are outside this component proof. Native success must be recorded
 for the exact APK; host checks alone do not establish that acceptance.
+
+Android system-source discovery uses public CalendarContract calendar metadata and
+ContactsContract Settings/RawContacts account metadata. Separate explicit buttons
+request READ_CALENDAR or READ_CONTACTS; startup and refresh never prompt. No
+GET_ACCOUNTS, credentials, private provider databases, contact bodies or calendar
+items are read. Android's general AccountManager visibility rules cannot expose
+every device account, so the source list represents accounts actually exposed by
+the calendar/contacts providers. Tasks/VTODO have no standard CalendarContract
+provider and remain unsupported. Source selection does not enable synchronization
+or writes; cached DAV collections keep their separate IDs.
+Queries run on a separate worker with native cancellation, a 15-second deadline,
+a 1,000-source limit and 20,000 contacts-metadata row limit. Denial, provider error
+or exceeded bounds do not clear saved selections or report truncated lists as
+complete. Pure request/discovery/merge fixtures and host permission UI tests are
+not proof of real Android account access: OS dialogs and actual provider accounts
+still need native acceptance, including API23 before any minimum-SDK reduction.
+
+Permission-dialog recreation retains only a non-authorizing code/kind quarantine
+and a process marker, never an old page request or reply authority. A same-process
+recreation blocks another dialog until the matching OS result (discarded for the
+old document) or an already-granted permission clears that slot. After process
+death the obsolete quarantine is discarded, while the saved increasing request
+code prevents an old result from completing a new request. These transitions have
+pure negative fixtures; actual Android recreation/dialog behavior still needs
+native verification.

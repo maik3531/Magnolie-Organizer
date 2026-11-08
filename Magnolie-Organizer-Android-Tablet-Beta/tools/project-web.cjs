@@ -112,7 +112,8 @@ amendDav(davSyncAnchor,davSyncAnchor+davPatch('PAGE',`{
     const choices = el("div", "sync-wahl"); choices.id = "sync-wahl";
     const start = knopf(_("Synchronize now"), "", () => starteSync(false)); start.id = "sync-jetzt"; start.disabled = true;
     const limitation = el("p", "einst-hinweis", "Account setup and read-only discovery. Calendar/contact synchronization is not implemented."); limitation.id = "tablet-dav-limit";
-    section.append(status, choices, start, limitation); wurzel.append(section);
+    const systemAccess = el("div", ""); systemAccess.id = "tablet-system-access";
+    section.append(status, systemAccess, choices, start, limitation); wurzel.append(section);
     if (letzterEdsStatus) fuelleEdsAuswahl(letzterEdsStatus);
     Bruecke.sende({ cmd: "eds_status" });
     baueNextcloudKonto(wurzel); window.TabletDav.accountRendered(briefkastenStand); return;

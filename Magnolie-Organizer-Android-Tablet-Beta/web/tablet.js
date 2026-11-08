@@ -7,7 +7,7 @@
     'drucken','ablage_kopieren','ablage_holen','tablet_import','tablet_export','tablet_export_ics',
     'feiertage','tablet_notifications','tablet_about','tablet_replace','tablet_import_cancel','tablet_calendar_import_done','erinnerung_einrichten','tablet_loaded']);
   const davCommands = new Set(['baum_briefkasten_status','baum_briefkasten_speichern',
-    'baum_briefkasten_pruefen','baum_dav_pruefen','eds_status']);
+    'baum_briefkasten_pruefen','baum_dav_pruefen','eds_status','android_systemzugriff']);
   const davCallbacks = new Set(['baumBriefkastenStatus','baumBriefkastenGespeichert',
     'baumBriefkastenPruefung','baumDavPruefung','edsStatus']);
   for (const command of davCommands) supported.add(command);
@@ -25,6 +25,37 @@
     if (el) el.textContent = text;
   }
   const davNotice = 'Account setup and read-only discovery. Calendar/contact synchronization is not implemented.';
+  let systemPermissions = {}, systemPending = null;
+  function systemSourcesRendered(payload) {
+    if (payload?.permissions && typeof payload.permissions==='object') systemPermissions={...payload.permissions};
+    if (payload?.requestId===systemPending) systemPending=null;
+    const root=document.getElementById('tablet-system-access');
+    if (!root) return;
+    root.textContent='';
+    const heading=document.createElement('h3');heading.textContent=tr('System internet accounts');root.append(heading);
+    for (const [art,label] of [['events','Calendars'],['contacts','Contacts']]) {
+      const row=document.createElement('p'),button=document.createElement('button');
+      button.type='button';button.dataset.systemAccess=art;
+      button.textContent=tr('Allow access')+': '+tr(label);
+      button.disabled=!!systemPending || systemPermissions[art]==='authorized';
+      button.addEventListener('click',()=>{
+        if(systemPending || !loaded || blocked || replacement) return;
+        const requestId=crypto.randomUUID();systemPending=requestId;
+        send({cmd:'android_systemzugriff',art,requestId});systemSourcesRendered(null);
+      });
+      row.append(button);
+      if(systemPermissions[art] && systemPermissions[art]!=='authorized') {
+        const state=document.createElement('span');state.textContent=' '+tr('Unavailable');row.append(state);
+      }
+      root.append(row);
+    }
+    const refresh=document.createElement('button');refresh.type='button';refresh.id='tablet-system-refresh';
+    refresh.textContent=tr('Refresh');refresh.disabled=!!systemPending;
+    refresh.addEventListener('click',()=>{
+      if(systemPending || !loaded || blocked || replacement) return;
+      const requestId=crypto.randomUUID();systemPending=requestId;send({cmd:'eds_status',requestId});systemSourcesRendered(null);
+    });root.append(refresh);
+  }
   window.TabletDav = Object.freeze({
     sourceView(payload, settings) {
       const value = payload && typeof payload==='object' ? payload : {};
@@ -42,6 +73,7 @@
         buchOk:value.buchOk===true || books.length>0};
     },
     sourcesRendered(payload) {
+      systemSourcesRendered(payload);
       const start=document.getElementById('sync-jetzt');
       if (start) { start.disabled=true; start.title=davNotice; start.setAttribute('aria-disabled','true'); }
       const target=document.getElementById('sync-status');
@@ -313,6 +345,7 @@
     return normalized;
   }
   function blockStorage(payload) {
+    systemPermissions={}; systemPending=null;
     blocked=true; loaded=false; pendingAction=null; pendingCalendar=null; pendingCalendarExport=null;
     document.getElementById('schreibtisch').inert=true;
     document.querySelectorAll('[role=dialog]').forEach(el=>{el.inert=true;});

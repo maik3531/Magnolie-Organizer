@@ -43,7 +43,8 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     kennwortVorhanden:false,revision:accountCounter.toString(16).padStart(64,'0'),zustand:'disabled',fehler:''};
   const calendars=[{uid:'nextcloud-caldav:available',name:'Native DAV calendar',art:'nextcloud-caldav',supportsVtodo:false}];
   const addressBooks=[{uid:'nextcloud-carddav:available',name:'Native DAV contacts',art:'nextcloud-carddav'}];
-  const sourceSnapshot=()=>({verfuegbar:!discoveryError,buchOk:true,kalender:calendars,adressbuecher:addressBooks,
+  const systemPermissions={events:'not_granted',contacts:'not_granted',reminders:'unsupported'};
+  const sourceSnapshot=()=>({permissions:{...systemPermissions},verfuegbar:!discoveryError,buchOk:true,kalender:calendars,adressbuecher:addressBooks,
     fehler:discoveryError,systemAccountSyncImplemented:false});
   const davCallbacks=['baumBriefkastenStatus','baumBriefkastenGespeichert','baumBriefkastenPruefung','baumDavPruefung','edsStatus'];
   function callbackForwarding(target,expected,label) {
@@ -70,10 +71,15 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
       setTimeout(()=>{
         if (!w.document) return;
         if(m.cmd==='bereit') w.Tablet.receive({callback:'init',payload:{daten:disk,session,revision}});
-        if(['baum_briefkasten_status','baum_briefkasten_speichern','baum_briefkasten_pruefen','baum_dav_pruefen','eds_status'].includes(m.cmd)) {
+        if(['baum_briefkasten_status','baum_briefkasten_speichern','baum_briefkasten_pruefen','baum_dav_pruefen','eds_status','android_systemzugriff'].includes(m.cmd)) {
           assert.equal(m.session,session); assert.equal(m.revision,revision);
           if(m.cmd==='baum_briefkasten_status') w.Tablet.receive({callback:'baumBriefkastenStatus',payload:{...account}});
-          if(m.cmd==='eds_status') w.Tablet.receive({callback:'edsStatus',payload:sourceSnapshot()});
+          if(m.cmd==='eds_status') w.Tablet.receive({callback:'edsStatus',payload:{...sourceSnapshot(),requestId:m.requestId}});
+          if(m.cmd==='android_systemzugriff') {
+            assert.ok(['events','contacts'].includes(m.art)); assert.equal(typeof m.requestId,'string');
+            systemPermissions[m.art]=m.art==='events'?'authorized':'not_granted';
+            w.Tablet.receive({callback:'edsStatus',payload:{...sourceSnapshot(),requestId:m.requestId}});
+          }
           if(m.cmd==='baum_briefkasten_speichern') {
             const conflict=m.expectedRevision!==account.revision;
             if(!conflict) {
@@ -173,6 +179,21 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     !w.document.querySelector('#nextcloud-briefkasten') && !w.document.querySelector('#telefon-kontakte-quelle') &&
     w.document.querySelector('#tablet-dav-limit').textContent.includes('read-only discovery'),
     'actual canonical DAV form is isolated from Linux, Graph, mailbox and phone configuration');
+  ok(messages.every(message=>message.cmd!=='android_systemzugriff'),'source discovery never requests Android permissions automatically');
+  const beforePermissions=JSON.stringify(T.daten());
+  w.document.querySelector('[data-system-access="events"]').click();await wait();
+  const accessRequest=messages.findLast(message=>message.cmd==='android_systemzugriff');
+  ok(accessRequest?.art==='events' && typeof accessRequest.requestId==='string' &&
+    w.document.querySelector('[data-system-access="events"]').disabled && JSON.stringify(T.daten())===beforePermissions,
+    'explicit calendar permission action is typed and does not mutate source selections');
+  w.document.querySelector('[data-system-access="contacts"]').click();await wait();
+  ok(!w.document.querySelector('[data-system-access="contacts"]').disabled &&
+    !w.document.querySelector('[data-system-access="reminders"]') && JSON.stringify(T.daten())===beforePermissions,
+    'denied contacts access preserves selections and Android task providers stay unsupported');
+  const refreshBefore=messages.length;
+  w.document.getElementById('tablet-system-refresh').click();await wait();
+  ok(messages.slice(refreshBefore).some(message=>message.cmd==='eds_status' && typeof message.requestId==='string'),
+    'system source refresh is correlated and performs no permission request');
   const form=w.document.querySelector('#nextcloud-konto');
   ok(!form.querySelector('#nextcloud-dav-an').disabled && !form.querySelector('#briefkasten-url').disabled,
     'capability exceptions enable only actual native DAV account controls');
@@ -235,6 +256,15 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     disk.einstellungen.sync.kalenderUids.includes('nextcloud-caldav:available') &&
     disk.einstellungen.sync.adressbuchUid==='nextcloud-carddav:available',
     'actual cached-source controls persist through canonical UID selection handlers without dropping an offline calendar');
+  const beforeSourceError=JSON.stringify(T.daten());
+  w.Tablet.receive({callback:'edsStatus',payload:{android:true,systemAccountSyncImplemented:false,
+    permissions:{events:'not_granted',contacts:'not_granted',reminders:'unsupported'},fehler:'Synthetic provider unavailable'}});
+  await wait();
+  ok(JSON.stringify(T.daten())===beforeSourceError &&
+    w.document.querySelector('#sync-wahl input[data-kalender-uid="imported-offline-calendar"]')?.checked &&
+    w.document.querySelector('#sync-wahl input[data-kalender-uid="nextcloud-caldav:available"]')?.checked &&
+    w.document.querySelector('#sync-wahl select')?.value==='nextcloud-carddav:available',
+    'permission revocation or missing provider arrays preserve every saved source selection');
   const beforeUnsupportedSync=messages.length;
   T.starteSync(false); await wait();
   ok(messages.length===beforeUnsupportedSync && w.document.getElementById('sync-jetzt').disabled &&
