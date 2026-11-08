@@ -8620,6 +8620,12 @@ msgstr "Povolit synchronizaci fotografií a videí"
 
 
 #. Native media UI package completeness (Refs #330, #392).
+msgid "Import phone → PC only"
+msgstr "Pouze importovat z telefonu do PC"
+
+msgid "PC → phone"
+msgstr "PC → telefon"
+
 msgid "Only the phone inventory"
 msgstr "Pouze obsah telefonu"
 

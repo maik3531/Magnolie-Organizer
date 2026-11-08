@@ -8742,6 +8742,12 @@ msgstr "Synchronizaciju fotow a widejow zmóžnić"
 
 
 #. Native media UI package completeness (Refs #330, #392).
+msgid "Import phone → PC only"
+msgstr "Jenož z telefona na PC importować"
+
+msgid "PC → phone"
+msgstr "PC → telefon"
+
 msgid "Only the phone inventory"
 msgstr "Jenož wobsah telefona"
 

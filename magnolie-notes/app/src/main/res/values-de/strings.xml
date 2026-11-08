@@ -491,4 +491,6 @@
     <string name="medien_sync_fotos">Fotos synchronisieren</string>
     <string name="medien_sync_videos">Videos abgleichen</string>
     <string name="medien_sync_modus">Synchronisation</string>
+    <string name="medien_sync_scope_import">Nur vom Telefon auf den PC importieren</string>
+    <string name="medien_sync_direction_export">PC → Telefon</string>
 </resources>

@@ -49,8 +49,8 @@
       for (const [value, text] of choices) { const option = node("option", text); option.value = value; input.append(option); }
       row.append(input); row.hidden = true; settingsArea.append(row); return input;
     };
-    const scope = select("collection_mode", "Scope", [["phone_inventory", "Only the phone inventory"], ["entire_collection", "Entire collection"]]);
-    const direction = select("direction", "Direction", [["phone_to_pc", "Phone → PC"], ["two_way", "Two-way synchronization"]]);
+    const scope = select("collection_mode", "Scope", [["phone_inventory", "Only the phone inventory"], ["entire_collection", "Entire collection"], ["import_only", "Import phone → PC only"]]);
+    const direction = select("direction", "Direction", [["phone_to_pc", "Phone → PC"], ["two_way", "Two-way synchronization"], ["pc_to_phone", "PC → phone"]]);
     settingsArea.append(scope.parentElement, modeRow, direction.parentElement, photos.parentElement, videos.parentElement, skip.parentElement);
     const mode = node("p", "Manual synchronization"), destinations = node("div"), controls = node("div"), albumList = node("div"), review = node("ul");
     settingsArea.append(mode, destinations); manualArea.append(controls, albumList, review);
@@ -77,6 +77,7 @@
       master.disabled = !native;
       receiveConsent.disabled = !enabled || (busy && !receiveConsent.checked);
       scope.disabled = direction.disabled = busy || !enabled;
+      direction.disabled ||= scope.value === "import_only";
       for (let i = allButtons.length - 1; i >= 0; i--) if (!root.contains(allButtons[i])) allButtons.splice(i, 1);
       for (const b of allButtons) b.disabled = busy;
       photos.disabled = videos.disabled = skip.disabled = busy || !native || !enabled;

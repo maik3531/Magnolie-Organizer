@@ -450,4 +450,6 @@
     <string name="medien_sync_fotos">Synchronizovat fotografie</string>
     <string name="medien_sync_videos">Synchronizovat videa</string>
     <string name="medien_sync_modus">Synchronizace</string>
+    <string name="medien_sync_scope_import">Pouze importovat z telefonu do PC</string>
+    <string name="medien_sync_direction_export">PC → telefon</string>
 </resources>

@@ -8442,6 +8442,12 @@ msgstr "फ़ोटो और वीडियो समन्वयन सक�
 
 
 #. Native media UI package completeness (Refs #330, #392).
+msgid "Import phone → PC only"
+msgstr "केवल फ़ोन से PC पर आयात करें"
+
+msgid "PC → phone"
+msgstr "PC → फ़ोन"
+
 msgid "Only the phone inventory"
 msgstr "केवल फ़ोन की सामग्री"
 

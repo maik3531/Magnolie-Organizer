@@ -110,6 +110,23 @@ class MedienSyncEinstellungenUiTest {
         assertNotNull(nodes().single { text(it) == syncLabel }.config.getOrNull(SemanticsProperties.Disabled))
     }
 
+    @Test fun importScopeLocksDirectionAndReturningRestoresTheNativePcToPhoneChoice() {
+        val pc = "11111111-1111-4111-8111-111111111111"
+        val phone = "22222222-2222-4222-8222-222222222222"
+        var body = MediaSyncSettings.change(MediaSyncSettings.create(pc), pc, phone, "enabled", JsonPrimitive(true))
+        body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive("pc_to_phone"))
+        body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("import_only"))
+        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.effective(body))
+        launch(); open()
+        assertTrue(nodes().any { text(it) == label(R.string.medien_sync_scope_import) })
+        assertNotNull(nodes().single { text(it) == label(R.string.medien_sync_direction_import) }.config.getOrNull(SemanticsProperties.Disabled))
+        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("phone_inventory"))
+        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.effective(body)); frames()
+        assertNull(nodes().single { text(it) == label(R.string.medien_sync_direction_export) }.config.getOrNull(SemanticsProperties.Disabled))
+        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+    }
+
     @Test fun unsupportedOrMissingNativeValuesNeverExposeMediaControls() {
         state.value = state.value.copy(mediaPreferencesSupported = false); launch()
         assertFalse(nodes().any { text(it).contains(label(R.string.medien_sync_titel)) })

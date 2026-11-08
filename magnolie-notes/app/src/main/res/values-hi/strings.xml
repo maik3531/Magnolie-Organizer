@@ -428,4 +428,6 @@
     <string name="medien_sync_fotos">फ़ोटो सिंक्रनाइज़ करें</string>
     <string name="medien_sync_videos">वीडियो का समन्वयन करें</string>
     <string name="medien_sync_modus">सिंक्रोनाइज़ेशन</string>
+    <string name="medien_sync_scope_import">केवल फ़ोन से PC पर आयात करें</string>
+    <string name="medien_sync_direction_export">PC → फ़ोन</string>
 </resources>

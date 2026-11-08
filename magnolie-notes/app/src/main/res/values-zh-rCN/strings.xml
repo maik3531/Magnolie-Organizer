@@ -408,4 +408,6 @@
     <string name="medien_sync_fotos">同步照片</string>
     <string name="medien_sync_videos">同步视频</string>
     <string name="medien_sync_modus">同步</string>
+    <string name="medien_sync_scope_import">仅从手机导入到电脑</string>
+    <string name="medien_sync_direction_export">电脑 → 手机</string>
 </resources>

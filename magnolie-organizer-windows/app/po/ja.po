@@ -8519,6 +8519,12 @@ msgstr "写真と動画の同期を有効にする"
 
 
 #. Native media UI package completeness (Refs #330, #392).
+msgid "Import phone → PC only"
+msgstr "スマートフォンから PC へのみインポート"
+
+msgid "PC → phone"
+msgstr "PC → スマートフォン"
+
 msgid "Only the phone inventory"
 msgstr "スマートフォン内の項目のみ"
 

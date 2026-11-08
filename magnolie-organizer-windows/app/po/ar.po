@@ -8673,6 +8673,12 @@ msgstr "تفعيل مزامنة الصور والفيديو"
 
 
 #. Native media UI package completeness (Refs #330, #392).
+msgid "Import phone → PC only"
+msgstr "الاستيراد من الهاتف إلى الكمبيوتر فقط"
+
+msgid "PC → phone"
+msgstr "الكمبيوتر → الهاتف"
+
 msgid "Only the phone inventory"
 msgstr "محتويات الهاتف فقط"
 

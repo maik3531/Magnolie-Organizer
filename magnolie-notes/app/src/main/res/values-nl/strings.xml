@@ -422,4 +422,6 @@
     <string name="medien_sync_fotos">Foto’s synchroniseren</string>
     <string name="medien_sync_videos">Video’s synchroniseren</string>
     <string name="medien_sync_modus">Synchronisatie</string>
+    <string name="medien_sync_scope_import">Alleen van telefoon naar pc importeren</string>
+    <string name="medien_sync_direction_export">Pc → telefoon</string>
 </resources>

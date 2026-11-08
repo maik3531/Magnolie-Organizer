@@ -523,4 +523,6 @@
     <string name="medien_sync_fotos">Synchronize photos</string>
     <string name="medien_sync_videos">Synchronize videos</string>
     <string name="medien_sync_modus">Synchronization</string>
+    <string name="medien_sync_scope_import">Import phone → PC only</string>
+    <string name="medien_sync_direction_export">PC → phone</string>
 </resources>

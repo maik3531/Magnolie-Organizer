@@ -8612,6 +8612,12 @@ msgstr "Aktivér synkronisering af billeder og videoer"
 
 
 #. Native media UI package completeness (Refs #330, #392).
+msgid "Import phone → PC only"
+msgstr "Importér kun fra telefon til pc"
+
+msgid "PC → phone"
+msgstr "Pc → telefon"
+
 msgid "Only the phone inventory"
 msgstr "Kun telefonens indhold"
 

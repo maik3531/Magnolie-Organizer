@@ -198,6 +198,8 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert.equal(sharedInput("automatic").value, "manual");
   assert.equal(sharedInput("collection_mode").value, "phone_inventory");
   assert.equal(sharedInput("direction").value, "phone_to_pc");
+  assert.deepEqual([...sharedInput("collection_mode").options].map(option => option.value), ["phone_inventory", "entire_collection", "import_only"]);
+  assert.deepEqual([...sharedInput("direction").options].map(option => option.value), ["phone_to_pc", "two_way", "pc_to_phone"]);
   assert(receiving.disabled && sharedInput("automatic").disabled && sharedInput("collection_mode").disabled);
   const sharedLabels = [...sharedPanel.querySelectorAll(".telefon-medien-gruppe")];
   assert(master.parentElement.compareDocumentPosition(sharedLabels[0]) & w.Node.DOCUMENT_POSITION_FOLLOWING);
@@ -216,6 +218,12 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   const collection = sharedInput("collection_mode"); collection.value = "entire_collection"; collection.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().field, "collection_mode"); assert.equal(last().value, "entire_collection"); assert.equal(last().version, versions.collection_mode);
   values.collection_mode = "entire_collection"; sharedReply();
+  values.collection_mode = "import_only";
+  [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh").click(); await tick(); sharedReply();
+  assert(sharedInput("direction").disabled && sharedInput("direction").value === "phone_to_pc");
+  values.collection_mode = "entire_collection";
+  [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh").click(); await tick(); sharedReply();
+  assert(!sharedInput("direction").disabled);
   const settingsKeys = [...sharedLabels[1].querySelectorAll("[data-media]")].map(input => input.dataset.media);
   assert(settingsKeys.indexOf("collection_mode") < settingsKeys.indexOf("automatic"));
   assert(settingsKeys.indexOf("automatic") < settingsKeys.indexOf("direction"));

@@ -457,4 +457,6 @@
     <string name="medien_sync_fotos">Сінхранізаваць фатаграфіі</string>
     <string name="medien_sync_videos">Сінхранізаваць відэа</string>
     <string name="medien_sync_modus">Сінхранізацыя</string>
+    <string name="medien_sync_scope_import">Толькі імпартаваць з тэлефона на ПК</string>
+    <string name="medien_sync_direction_export">ПК → тэлефон</string>
 </resources>

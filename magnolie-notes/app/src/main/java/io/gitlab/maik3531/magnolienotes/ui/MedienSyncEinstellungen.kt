@@ -53,13 +53,13 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
     if (!offen) return
     @Composable fun checkbox(field: String, label: String, active: Boolean = enabled) =
         MedienCheckbox(label, flag(field), active && field in telefon.mediaPreferencesVersions) { change(field, JsonPrimitive(it)) }
-    @Composable fun choice(field: String, label: String, options: List<Pair<String, String>>) {
+    @Composable fun choice(field: String, label: String, options: List<Pair<String, String>>, available: Boolean = true) {
         var menu by remember(field) { mutableStateOf(false) }
         Text(label, fontWeight = FontWeight.Bold, color = Magnolie.braun)
         Box {
             Papierknopf(options.firstOrNull { values[field] == JsonPrimitive(it.first) }?.second ?: label,
-                Modifier.fillMaxWidth(), aktiv = enabled && field in telefon.mediaPreferencesVersions) { menu = true }
-            DropdownMenu(menu && enabled, onDismissRequest = { menu = false }) {
+                Modifier.fillMaxWidth(), aktiv = enabled && available && field in telefon.mediaPreferencesVersions) { menu = true }
+            DropdownMenu(menu && enabled && available, onDismissRequest = { menu = false }) {
                 options.forEach { (value, text) -> DropdownMenuItem(text = { Text(text) }, onClick = {
                     menu = false; change(field, JsonPrimitive(value))
                 }) }
@@ -72,11 +72,13 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
             beiKlick = beiBerechtigungen)
         Text(stringResource(R.string.medien_sync_einstellungen), fontWeight = FontWeight.Bold, color = Magnolie.braun)
         choice("collection_mode", stringResource(R.string.medien_sync_umfang), listOf(
-            "phone_inventory" to stringResource(R.string.medien_sync_scope_phone), "entire_collection" to stringResource(R.string.medien_sync_scope_all)))
+            "phone_inventory" to stringResource(R.string.medien_sync_scope_phone), "entire_collection" to stringResource(R.string.medien_sync_scope_all),
+            "import_only" to stringResource(R.string.medien_sync_scope_import)))
         choice("auto_mode", stringResource(R.string.medien_sync_modus), listOf(
             "manual" to stringResource(R.string.shared_sync_manual), "wifi" to stringResource(R.string.personal_sync_auto_wlan)))
         choice("direction", stringResource(R.string.medien_sync_richtung), listOf(
-            "phone_to_pc" to stringResource(R.string.medien_sync_direction_import), "two_way" to stringResource(R.string.personal_note_two_way)))
+            "phone_to_pc" to stringResource(R.string.medien_sync_direction_import), "two_way" to stringResource(R.string.personal_note_two_way),
+            "pc_to_phone" to stringResource(R.string.medien_sync_direction_export)), available = values["collection_mode"] != JsonPrimitive("import_only"))
         checkbox("photos_enabled", stringResource(R.string.medien_sync_fotos))
         checkbox("videos_enabled", stringResource(R.string.medien_sync_videos))
         checkbox("skip_deletions", stringResource(R.string.personal_sync_skip_deletions))

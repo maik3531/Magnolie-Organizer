@@ -408,4 +408,6 @@
     <string name="medien_sync_fotos">写真を同期</string>
     <string name="medien_sync_videos">動画を同期</string>
     <string name="medien_sync_modus">同期</string>
+    <string name="medien_sync_scope_import">スマートフォンから PC へのみインポート</string>
+    <string name="medien_sync_direction_export">PC → スマートフォン</string>
 </resources>

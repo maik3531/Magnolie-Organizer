@@ -428,4 +428,6 @@
     <string name="medien_sync_fotos">Synkroniser fotos</string>
     <string name="medien_sync_videos">Synkroniser videoer</string>
     <string name="medien_sync_modus">Synkronisering</string>
+    <string name="medien_sync_scope_import">Importér kun fra telefon til pc</string>
+    <string name="medien_sync_direction_export">Pc → telefon</string>
 </resources>

@@ -449,4 +449,6 @@
     <string name="medien_sync_fotos">Synchroniser les photos</string>
     <string name="medien_sync_videos">Synchroniser les vidéos</string>
     <string name="medien_sync_modus">Synchronisation</string>
+    <string name="medien_sync_scope_import">Importer uniquement du téléphone vers le PC</string>
+    <string name="medien_sync_direction_export">PC → téléphone</string>
 </resources>

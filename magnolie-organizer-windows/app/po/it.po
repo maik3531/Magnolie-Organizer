@@ -8748,6 +8748,12 @@ msgstr "Attiva la sincronizzazione di foto e video"
 
 
 #. Native media UI package completeness (Refs #330, #392).
+msgid "Import phone → PC only"
+msgstr "Importa solo dal telefono al PC"
+
+msgid "PC → phone"
+msgstr "PC → telefono"
+
 msgid "Only the phone inventory"
 msgstr "Solo i contenuti del telefono"
 

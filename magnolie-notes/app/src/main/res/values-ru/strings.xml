@@ -450,4 +450,6 @@
     <string name="medien_sync_fotos">Синхронизировать фотографии</string>
     <string name="medien_sync_videos">Синхронизировать видео</string>
     <string name="medien_sync_modus">Синхронизация</string>
+    <string name="medien_sync_scope_import">Только импортировать с телефона на ПК</string>
+    <string name="medien_sync_direction_export">ПК → телефон</string>
 </resources>
