@@ -187,8 +187,10 @@ final class DAVReadDispatchTests: XCTestCase {
     func testSharedSignerCancellationRunsAfterEveryGateUnlocks() throws {
         let (signer, gate) = try gate(), done = DispatchSemaphore(value: 0)
         let operation = DispatchCancelProbe {
-            XCTAssertThrowsError(try signer.withReadStartGate {})
-            XCTAssertThrowsError(try gate.checkState())
+            do { try signer.withReadStartGate {}; XCTFail("Revoked signer remained usable inside cancellation") }
+            catch { XCTAssertEqual(error as? DAVAccountLeaseError, .signerUnavailable) }
+            do { try gate.checkState(); XCTFail("Revoked lease remained usable inside cancellation") }
+            catch { XCTAssertEqual(error as? DAVAccountLeaseError, .invalidLease) }
             done.signal()
         }
         _ = try gate.register(operation)
