@@ -239,7 +239,10 @@ def test_expired_auto_run_is_recovered_and_no_longer_blocks(tmp_path):
 
 
 def _personal_service(tmp_path, callback):
-    service = phone.PhoneService(str(tmp_path / "phone"), "Test", callback=callback)
+    # Business protocol fixtures inspect data events, not independent visual
+    # wakeups. The actual visual event/projection path has its own native tests.
+    service = phone.PhoneService(str(tmp_path / "phone"), "Test", callback=lambda kind, value:
+        callback(kind, value) if kind != 'personal_sync_activity' else None)
     peer_id = str(uuid.uuid4())
     local = phone.desktop_grants()
     remote = phone.desktop_grants()
@@ -282,6 +285,7 @@ def test_batch_ack_waits_for_exact_durable_commit_and_replay_is_deduped(tmp_path
     channel = Channel()
 
     def commit_after_save(_event, payload):
+        if _event == 'personal_sync_activity':return
         assert channel.sent[-1]["status"] == "accepted"
         assert service.store.dedupe_result(peer_id, message["message_id"]) == ("accepted", "none")
         events.append(payload)
@@ -496,6 +500,7 @@ def test_empty_nonreply_batch_uses_persisted_request_modules_once(tmp_path):
     batch = _empty_batch(run)
     batch["body"]["reply"] = False
     def commit(_event, payload):
+        if _event == 'personal_sync_activity':return
         delivered.append(("personal_sync", payload))
         assert payload["body"]["requested_modules"] == ["notes"]
         service.commit_personal_sync(peer_id, payload["pending_message_id"], payload["commit_token"], True)

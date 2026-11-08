@@ -2,6 +2,7 @@
 """Unabhaengige Magnolie-Telefonverbindung (Protokollfassung 1)."""
 
 import base64
+import contextlib
 import copy
 import hashlib
 import hmac
@@ -2324,6 +2325,51 @@ class PhoneStore:
             lambda body, local: shared_sync_contract.merge_current_choices(body, incoming, local, peer_id), initial)
 
 
+TRAY_SYNC_DATA_KINDS = frozenset((
+    'personal_sync.request', 'personal_sync.batch', 'personal_sync.report',
+    'personal_sync.attachment_request', 'personal_sync.attachment_chunk', 'personal_sync.attachment_result',
+    'personal_sync.deletion_proposals', 'personal_sync.deletion_decision', 'personal_sync.scoped_data',
+    'personal_sync.custom_request', 'personal_sync.custom_batch',
+    'personal_sync.time_request', 'personal_sync.time_batch',
+    'personal_sync.actor_start', 'personal_sync.actor_data', 'personal_sync.actor_ack', 'personal_sync.actor_cancel'))
+
+
+def tray_sync_data_frame(message):
+    return (isinstance(message, dict) and message.get('type') == 'message' and
+            isinstance(message.get('kind'), str) and message['kind'] in TRAY_SYNC_DATA_KINDS)
+
+
+class NativeSyncActivity:
+    """Only admitted in-process IO leases; observer failures never change IO."""
+    def __init__(self, changed):
+        self.lock = threading.Lock()
+        self.owners = set()
+        self.changed = changed
+
+    @property
+    def active(self):
+        with self.lock:return bool(self.owners)
+
+    def _notify(self):
+        try:self.changed()
+        except Exception:pass
+
+    def enter(self):
+        activity = self
+        class Lease:
+            def __enter__(self):return self
+            def __exit__(self, *_error):self.dispose()
+            def dispose(self):
+                with activity.lock:
+                    if self not in activity.owners:return
+                    activity.owners.remove(self)
+                activity._notify()
+        lease = Lease()
+        with self.lock:self.owners.add(lease)
+        self._notify()
+        return lease
+
+
 class SecureChannel:
     def __init__(self, sock, sid, send_key, send_prefix, receive_key, receive_prefix):
         self.sock, self.sid = sock, sid
@@ -2332,6 +2378,7 @@ class SecureChannel:
         self.send_seq = self.receive_seq = 0
         self.lock = threading.Lock()
         self.last_send = time.monotonic()
+        self.sync_activity = None
 
     def send(self, payload):
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -2345,8 +2392,12 @@ class SecureChannel:
                 self.send_prefix + self.send_seq.to_bytes(8, "big"), raw,
                 canonical(aad_object))
             self.send_seq += 1
-            send_frame(self.sock, dict(aad_object, ciphertext=b64(encrypted)))
-            self.last_send = time.monotonic()
+            activity = self.sync_activity.enter() if self.sync_activity is not None and tray_sync_data_frame(payload) else None
+            try:
+                send_frame(self.sock, dict(aad_object, ciphertext=b64(encrypted)))
+                self.last_send = time.monotonic()
+            finally:
+                if activity is not None:activity.dispose()
 
     def receive(self):
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -2776,6 +2827,7 @@ class PhoneService:
         self._native_file_controls = weakref.WeakKeyDictionary()
         self._native_file_control_receipts = weakref.WeakKeyDictionary()
         self._native_photo_activity = {}
+        self._native_sync_activity = NativeSyncActivity(lambda:self.callback('personal_sync_activity', {}))
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
         self.shared_sessions = weakref.WeakKeyDictionary()
@@ -3124,6 +3176,16 @@ class PhoneService:
     def _native_media_activity(self):
         with self.lock:
             return {'synchronizing': bool(self._native_photo_activity), 'camera': False}
+
+    def tray_sync_activity(self):
+        # Independent of the service monitor, which a blocked legacy sender can
+        # own. This passive UI projection must never wait behind its network IO.
+        activity = getattr(self, '_native_sync_activity', None)
+        return {'synchronizing': activity is not None and activity.active}
+
+    def _tray_sync_work(self):
+        activity = getattr(self, '_native_sync_activity', None)
+        return activity.enter() if activity is not None else contextlib.nullcontext()
 
     def _receive_native_file_message(self, peer, channel, payload):
         with self.lock:
@@ -6193,6 +6255,19 @@ class PhoneService:
             return result
 
     def _receive_personal_actor(self, peer, channel, payload):
+        with self.lock:
+            body = payload.get('body')
+            run = body.get('run_id') if isinstance(body, dict) else None
+            admission = self.personal_actor_admissions.get(run) if isinstance(run, str) else None
+            if (admission is None or admission['peer'] != peer['device_id'] or admission['key'] != peer['static_public'] or
+                    admission['channel'] is not channel or self.connections.get(peer['device_id']) is not channel):
+                return
+        # The original handler rechecks admission under its own monitor. This
+        # lease records only actual processing, never a stored live actor flag.
+        with self._tray_sync_work():
+            return self._receive_personal_actor_active(peer, channel, payload)
+
+    def _receive_personal_actor_active(self, peer, channel, payload):
         reply = None
         with self.lock:
             body = payload.get("body")
@@ -6902,11 +6977,12 @@ class PhoneService:
             channel = self.connections.get(peer_id)
             if success is not True or channel is None:
                 return False
-            committed = self.store.commit_time_batch(peer_id, message_id, token,
-                lambda message: self._time_allowed(peer_id, message["body"], channel=channel))
-            if committed:
-                channel.send({"type": "ack", "message_id": message_id, "status": "accepted", "error": "none"})
-            return committed
+            with self._tray_sync_work():
+                committed = self.store.commit_time_batch(peer_id, message_id, token,
+                    lambda message: self._time_allowed(peer_id, message["body"], channel=channel))
+                if committed:
+                    channel.send({"type": "ack", "message_id": message_id, "status": "accepted", "error": "none"})
+                return committed
 
     def _desktop_features_supported(self, peer):
         remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
@@ -8393,6 +8469,7 @@ class PhoneService:
                         b"magnolie-phone-fs1/session-keys\0" + transcript, 72)
         channel = SecureChannel(sock, sid, material[36:68], material[68:72],
                                 material[0:32], material[32:36])
+        channel.sync_activity = self._native_sync_activity
         capability_revision = self.store.next_revision("capabilities.update")
         grant_revision = self.store.next_revision("grants.update")
         ready = channel.receive()
@@ -8820,11 +8897,13 @@ class PhoneService:
                     elif previous:
                         status, error = previous
                     elif kind == time_sync_contract.BATCH:
-                        staged = self.store.stage_time_batch(peer["device_id"], payload)
-                        self.callback("personal_time_batch", staged)
+                        with self._tray_sync_work():
+                            staged = self.store.stage_time_batch(peer["device_id"], payload)
+                            self.callback("personal_time_batch", staged)
                         return  # Only commit_time_sync may accept this batch.
                     elif kind == time_sync_contract.REQUEST:
-                        self.callback("personal_time_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
+                        with self._tray_sync_work():
+                            self.callback("personal_time_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
                     self.store.remember_message(peer["device_id"], payload, status, error)
             except PermissionError:
                 status, error = "rejected", "not_granted"
@@ -8889,7 +8968,8 @@ class PhoneService:
                     elif kind == "personal_sync.custom_request" and self._custom_allowed(peer["device_id"], kind, value):
                         if value["trigger"] == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
                             raise PermissionError
-                        self.callback("personal_custom_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
+                        with self._tray_sync_work():
+                            self.callback("personal_custom_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
                     else:
                         raise PermissionError
                     self.store.remember_message(peer["device_id"], payload, status, error)
@@ -9190,6 +9270,7 @@ class PhoneService:
             except ValueError:
                 status, error = "rejected", "invalid_schema"
         elif kind in {"personal_sync.settings"} | PERSONAL_DATA_KINDS:
+            sync_activity = None
             try:
                 value = validate_personal_sync_body(kind, payload["body"])
                 personal = peer.get("personal_sync", {})
@@ -9216,6 +9297,7 @@ class PhoneService:
                         not local.get(name) or not remote.get(name) for name in needed))):
                     status, error = "rejected", "not_granted"
                     raise PermissionError
+                if kind != 'personal_sync.settings':sync_activity = self._tray_sync_work()
                 if kind == "personal_sync.attachment_request":
                     run = self.store.personal_run(peer["device_id"], value["run_id"])
                     if run.get("trigger") == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
@@ -9412,6 +9494,8 @@ class PhoneService:
                 pass
             except ValueError:
                 status, error = "rejected", "invalid_schema"
+            finally:
+                if sync_activity is not None:sync_activity.__exit__(None, None, None)
         else:
             status, error = "rejected", "unsupported"
         self.store.remember_message(peer["device_id"], payload, status, error)

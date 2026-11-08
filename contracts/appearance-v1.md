@@ -109,6 +109,35 @@ aktuelles/fremdes Zertifikat, entzogene Bestätigung und Entfernen. Die passive
 Lazy-Fassade und überlappende/doppelt beendete Aktivitäts-Leases sind ebenfalls
 geprüft. Eine installierte visuelle Taskleistenabnahme ersetzt das nicht.
 
+## Persönliche Daten und Zeiterfassung
+
+Zusätzlich zu Medien und allgemeinem GUI-Abgleich werden die tatsächlich
+schreibenden persönlichen-/Zeit-/Akteur-Nachrichten erfasst. Beide Plattformen
+verwenden dieselbe ausdrückliche Liste von 17 vorhandenen Datennachrichten;
+Einstellungen, bloße Modi, Heartbeats, Diagnoseabfragen, unbekannte Nachrichten
+und Timer-Fernsteuerung zählen nicht. Die Sende-Lease beginnt erst nach Aufnahme
+in den tatsächlichen verschlüsselten Schreiber, nicht schon beim Einreihen oder
+Warten auf seine Sperre. Sie bleibt bis zum abgeschlossenen oder fehlgeschlagenen
+Schreiben bestehen. Zugelassene Empfangsverarbeitung und native Zeit-Commitarbeit
+werden ebenfalls erfasst. Ein wartender dauerhaft gespeicherter Auftrag ist
+ausdrücklich kein laufender nativer Arbeiter.
+
+Linux verwendet eine eigene schmale native Aktivitätsprojektion samt ausschließlich
+lesendem IPC-Aufruf. Sie nimmt nicht den allgemeinen Telefonservice-Monitor, den
+ein älterer Sender während Netzwerk-I/O halten kann: das neue Start-/Endereignis
+darf deshalb keinen vollständigen Telefonbericht auf dem GUI-Thread anfordern.
+Die Oberfläche fragt den aktuellen unabhängigen Zähler neu ab und vereinigt ihn
+erst beim Zeichnen mit den weiterhin laufenden Medien-/GUI-Besitzern. Es werden
+keine neuen Transportdienste, Statusabonnements oder Pollingtimer erzeugt.
+
+Prüfungen blockieren den tatsächlichen verschlüsselten Schreiber, erzeugen
+Schreibfehler und prüfen überlappende Besitzer, doppelte Endmeldungen,
+beeinträchtigte Darstellungsbeobachter und die lesbare native IPC-Projektion bei
+gesperrtem Servicemonitor. Native Zeit-Empfangs-/Commit- und Akteur-Empfangsfälle
+prüfen die tatsächlichen Verarbeitungsbesitzer; vorhandene Protokoll-, Zustimmungs-
+und Empfangsregressionen bleiben erhalten. Dies ändert weder Empfangszustimmung
+noch die weiterhin geschlossene gemeinsame Medien-Runtime.
+
 ## Nachweise und offene Abnahme
 
 Reine Regeln prüfen alle vier Farbkombinationen, strenge echte Booleans statt
@@ -139,8 +168,7 @@ einschließlich Englisch, insgesamt 40 Kombinationen. Das ersetzt keine
 muttersprachliche redaktionelle Abnahme.
 
 Das ist keine installierte Tray-/GUI-/Paketabnahme; eine visuelle native Abnahme
-bleibt offen. Die vollständige Aggregation weiterer
-persönlicher-/Zeit-Abgleichsakteure bleibt gesondert offen; die vorhandenen
-Medienläufe und der allgemeine GUI-Abgleich sind angebunden.
+bleibt offen. Die Anzeige erfasst aktuelle native Arbeit, nicht eine zeitlich
+künstlich verlängerte Erfolgsmeldung nach bereits beendeten kurzen Vorgängen.
 Tatsächliche Kamera-/Spiegelungsbereitschaft
 wird nicht freigeschaltet.

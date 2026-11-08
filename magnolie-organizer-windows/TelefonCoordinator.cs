@@ -1643,6 +1643,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
+                    TraySyncActivity = TraySyncActivity,
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     PersonalSuccessConfirmed = (source, report) => RecordConfirmedPersonalSuccess(source, peer, report),
@@ -1740,7 +1741,11 @@ internal sealed partial class TelefonCoordinator : IDisposable
                     await SendPersonalSyncAsync(peer.Id, kind, TelefonStore.NewCustomSettings(false, 1));
                 await ReportStatusAsync();
             }
-            else await emit("App.personalCustomRequest", new { device_id = peer.Id, trigger = body["trigger"]!.GetValue<string>() });
+            else
+            {
+                using var syncActivity = TraySyncActivity.Enter();
+                await emit("App.personalCustomRequest", new { device_id = peer.Id, trigger = body["trigger"]!.GetValue<string>() });
+            }
             return null;
         }
         if (kind == "selected_notifications_readonly.event")
@@ -1844,6 +1849,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         var settings = store.PersonalSettings(peer.Id); if (!settings.OwnDevice || !settings.RemoteOwnDevice) return new TelefonAck(id, "rejected", "not_granted");
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) return new TelefonAck(id, "rejected", "invalid_schema");
         if (body["format"]?.GetValue<int>() is 3 or 14 && grants.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>()))) return new TelefonAck(id, "rejected", "invalid_schema");
+        using var syncActivity = TraySyncActivity.Enter();
         if (kind == "personal_sync.request") { personalSync.RememberRun(peer.Id, body, now, message["expires_ms"]!.GetValue<long>()); await EmitPersonalSyncAsync(new { device_id = peer.Id, transport, kind, body }); return null; }
         if (kind == "personal_sync.batch")
         {
@@ -2643,7 +2649,12 @@ internal sealed partial class TelefonConnection : IDisposable
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(TimeSpan.FromSeconds(15));
         await writer.WaitAsync(deadline.Token);
-        try { var envelope = Seal(value); await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token); lastSentMs = Now(); }
+        try
+        {
+            var envelope = Seal(value);
+            using var syncActivity = TraySyncFrames.IsData(value) ? TraySyncActivity?.Enter() : null;
+            await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token); lastSentMs = Now();
+        }
         catch { stream.Dispose(); throw; }
         finally { writer.Release(); }
     }

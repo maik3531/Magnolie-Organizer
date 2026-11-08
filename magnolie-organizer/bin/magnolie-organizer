@@ -11794,6 +11794,13 @@ def tray_kde_verbindungsstand():
     except Exception:return {}
 
 
+def tray_personal_sync_stand(telefon):
+    try:
+        state = telefon.tray_sync_activity() if telefon else {}
+        return isinstance(state, dict) and state.get('synchronizing') is True
+    except Exception:return False
+
+
 def tray_medien_svg(logo, synchronisieren=False, kamera=False, notes=False, kde=False, spiegeln=False):
     """Keep the actual cover; change only its flower/actual activity marks."""
     if any(type(value) is not bool for value in (synchronisieren, kamera, notes, kde, spiegeln)):
@@ -21282,6 +21289,7 @@ class Fenster(_FENSTER_BASIS):
             text = 'TEST' + (' · ' + text if text else '')
             tooltip = 'TEST · ' + tooltip
         synchronisieren, kamera = getattr(self, "_tray_medien", (False, False))
+        synchronisieren = synchronisieren or getattr(self, '_tray_personal_sync', False) is True
         if synchronisieren: tooltip += " · " + _("Synchronizing …")
         if kamera: tooltip += " · " + _("Phone camera active")
         if text:
@@ -21335,6 +21343,12 @@ class Fenster(_FENSTER_BASIS):
                             aktiv.get("camera") is True)
         self._tray_verbindungen = tray_verbindungsstand(bericht, tray_kde_verbindungsstand())
         self._tray_spiegelung = aktiv.get('mirroring') is True
+        self._tray_personal_sync = tray_personal_sync_stand(self._telefon)
+        self._tray_zaehler_anzeigen()
+        return False
+
+    def _tray_personal_sync_aktualisieren(self):
+        self._tray_personal_sync = tray_personal_sync_stand(self._telefon)
         self._tray_zaehler_anzeigen()
         return False
 
@@ -24428,6 +24442,9 @@ class Fenster(_FENSTER_BASIS):
     def _telefon_ereignis(self, art, nutzlast):
         if art == "photo_sync":
             self._telefon_stand_melden()
+            return
+        if art == 'personal_sync_activity':
+            GLib.idle_add(self._tray_personal_sync_aktualisieren)
             return
         if art == "media_activity":
             GLib.idle_add(self._tray_medien_aktualisieren)

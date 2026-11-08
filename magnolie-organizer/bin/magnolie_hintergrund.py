@@ -805,7 +805,7 @@ def _request_shape(operation, arguments):
         "configure_receive": {"clipboard_enabled", "file_enabled", "device_id",
             "clipboard_mode", "file_mode", "download_directory"},
         "accept_receive": {"receive_id", "directory"}, "reject_receive": {"receive_id"},
-        "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
+        "phone_report": set(), "phone_tray_sync_activity": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
         "phone_photo_sync_action": {"peer_id", "fingerprint", "request"},
         "phone_photo_sync_video_destination": {"peer_id", "fingerprint", "path"},
         "phone_photo_sync_photo_destination": {"peer_id", "fingerprint", "path"},
@@ -1953,6 +1953,8 @@ class IPCServer:
                 raise IPCError("phone event is unavailable")
             return self.phone_event_getter(arguments["ticket"])
         phone = self.phone_backend
+        if operation == 'phone_tray_sync_activity':
+            return phone.tray_sync_activity() if phone is not None else {'synchronizing': False}
         if phone is None:
             raise IPCError("phone service is not owned by the background service")
         if operation == "phone_actor_source":
@@ -2806,6 +2808,7 @@ class PhoneServiceProxy:
         return bool(self.report().get("enabled"))
 
     def report(self): return self._call("report")
+    def tray_sync_activity(self): return self._call('tray_sync_activity')
 
     def photo_sync_action(self, peer_id, fingerprint, request):
         return self._call("photo_sync_action", peer_id=peer_id, fingerprint=fingerprint, request=request)
