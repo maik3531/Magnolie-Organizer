@@ -13,6 +13,26 @@ final class CalendarInterchangeTests: XCTestCase {
         XCTAssertTrue(text.contains("DTEND;VALUE=DATE:20260324\r\n"))
     }
 
+    func testDueOnlyTaskCannotSilentlyDiscardStructuredRecurrence() throws {
+        let dueOnly: [String: Any] = ["uid": "due-task", "titel": "Task", "faellig": "2026-04-01", "wiederholung": ["art": "daily"]]
+        XCTAssertThrowsError(try ICalendarExport.encode([dueOnly], kind: .tasks))
+        var noRepeat = dueOnly
+        noRepeat["wiederholung"] = ["art": "none"]
+        let oneOff = try ICalendarExport.encode([noRepeat], kind: .tasks)
+        XCTAssertTrue(oneOff.contains("DUE;VALUE=DATE:20260401"))
+        XCTAssertFalse(oneOff.contains("RRULE:"))
+        var recurring = dueOnly
+        recurring["startDatum"] = "2026-03-31"
+        let repeated = try ICalendarExport.encode([recurring], kind: .tasks)
+        XCTAssertTrue(repeated.contains("DTSTART;VALUE=DATE:20260331"))
+        XCTAssertTrue(repeated.contains("RRULE:FREQ=DAILY"))
+        for malformed in ["daily", ["art": 7], ["art": "none", "unknown": "field"], ["art": "none", "intervall": 2]] as [Any] {
+            var invalid = dueOnly
+            invalid["wiederholung"] = malformed
+            XCTAssertThrowsError(try ICalendarExport.encode([invalid], kind: .tasks))
+        }
+    }
+
     func testSubtaskExternalIdentityAndCompletionArePreserved() throws {
         let parent: [String: Any] = ["uid": "internal-parent", "icsImportUid": "external-parent", "titel": "Parent", "prio": 1]
         let child: [String: Any] = ["uid": "child", "titel": "Child", "elternUid": "internal-parent", "faellig": "2026-04-01",

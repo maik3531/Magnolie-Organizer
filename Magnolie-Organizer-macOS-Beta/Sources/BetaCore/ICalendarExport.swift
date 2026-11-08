@@ -211,7 +211,7 @@ public enum ICalendarExport {
             return depth == 0
         }
     }
-    private static func recurrence(_ record: [String: Any], start: Property) throws -> [String] {
+    private static func recurrence(_ record: [String: Any], start: Property?) throws -> [String] {
         guard let value = record["wiederholung"] else { return [] }
         guard let repetition = value as? [String: Any] else { throw BetaError("Invalid structured recurrence.") }
         guard repetition["art"] == nil || repetition["art"] is String else { throw BetaError("Invalid recurrence frequency.") }
@@ -220,6 +220,7 @@ public enum ICalendarExport {
         if type.isEmpty || type == "none" {
             guard repetition.allSatisfy({ $0.key == "art" || !meaningful($0.value) }) else { throw BetaError("Contradictory recurrence.") }; return []
         }
+        guard let start else { throw BetaError("A structured recurrence has no DTSTART.") }
         let frequency = ["daily": "DAILY", "weekly": "WEEKLY", "monthly": "MONTHLY", "yearly": "YEARLY"]
         let startClock = try clock(start, defaultZone: displayZone(record))
         func dated(_ date: String) throws -> String {
@@ -434,6 +435,11 @@ public enum ICalendarExport {
                 }
             }
             byName.removeValue(forKey: property.name)
+        }
+        if kind == .tasks, start == nil {
+            // Validate even a due-only task's structured recurrence; never
+            // silently downgrade unsupported API input to a one-off task.
+            _ = try recurrence(record, start: nil)
         }
         if kind != .anniversaries, let start {
             let desired = try recurrence(record, start: start)
