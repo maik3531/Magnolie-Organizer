@@ -753,28 +753,33 @@ class NativeTabletInstrumentation : Instrumentation() {
         check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeCancel)) {"Cancelled calendar picker changed native saved data"}
         pass("calendar SAF cancellation leaves the entire canonical and saved book unchanged")
 
-        val token=java.util.UUID.randomUUID().toString().take(8)
-        val eventUid="native-files-event-$token"; val taskUid="native-files-task-$token"; val anniversaryUid="native-files-anniversary-$token"
-        val lines=listOf("BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Magnolie Native Calendar Files Test//EN","X-WR-CALNAME:Synthetic calendar files $token",
-            "X-NATIVE-CALENDAR-HEADER:preserve","BEGIN:VEVENT","UID:$eventUid","DTSTART:20300401T100000Z","DTEND:20300401T110000Z",
-            "RRULE:FREQ=DAILY;COUNT=3","RDATE:20300405T100000Z","EXDATE:20300402T100000Z","SUMMARY:Synthetic calendar files appointment",
-            "X-NATIVE-CALENDAR-OPAQUE;X-PARAM=alpha:keep","BEGIN:VALARM","ACTION:DISPLAY","TRIGGER:-PT15M","DESCRIPTION:Synthetic native alarm","END:VALARM","END:VEVENT",
-            "BEGIN:VTODO","UID:$taskUid","DUE;VALUE=DATE:20300406","SUMMARY:Synthetic calendar files task","PRIORITY:1","END:VTODO",
-            "BEGIN:VEVENT","UID:$anniversaryUid","DTSTART;VALUE=DATE:19800229","RRULE:FREQ=YEARLY","X-MAGNOLIE-TYPE-ID:birthday",
-            "SUMMARY:Synthetic calendar files anniversary","END:VEVENT","END:VCALENDAR")
-        val source=lines.joinToString("\r\n",postfix="\r\n")
-        val hash=java.security.MessageDigest.getInstance("SHA-256").digest(source.toByteArray(Charsets.UTF_8)).joinToString("") {"%02x".format(java.util.Locale.ROOT,it.toInt() and 255)}
-        seedDocument("native-calendar-import.ics",source)
-        val beforeImport=data()
-        openCalendarPicker(); selectProvider(); clickNode("native-calendar-import.ics")
-        waitFor("canonical calendar merge and source metadata") {
-            value("(()=>{const d=OrganizerTest.daten();return d.termine.some(x=>x.uid==='$eventUid')&&d.aufgaben.some(x=>x.uid==='$taskUid')&&d.jahrestage.some(x=>x.uid==='$anniversaryUid')&&!!d.icsImportSources?.['$hash'];})()")=="true"
-        }
+        val fixture=NativeCalendarFileFixture(java.util.UUID.randomUUID().toString().take(8))
+        val eventUid=fixture.eventUid;val taskUid=fixture.taskUid;val anniversaryUid=fixture.anniversaryUid
+        val source=fixture.source;val hash=fixture.sourceSHA256
+        seedDocument(fixture.fileName,source)
+        // Use the existing canonical graph normalizer on an isolated value to
+        // calculate its stable UID. Never duplicate the hash algorithm or seed DATEN.
+        val prepared=JSONObject(js("const graph=[{id:"+JSONObject.quote(fixture.sourceId+"\u0000"+taskUid)+",uid:''}];OrganizerTest.normalisiereAufgabenGraph(graph);return {book:OrganizerTest.daten(),taskUid:graph[0].uid};"))
+        val beforeImport=prepared.getJSONObject("book");val internalTaskUid=prepared.getString("taskUid")
+        check(internalTaskUid!=taskUid && internalTaskUid.startsWith("mag-task-"))
+        openCalendarPicker(); selectProvider(); clickNode(fixture.fileName)
+        var mergeObservation=JSONObject()
+        try {
+            waitFor("canonical calendar merge and source metadata") {
+                mergeObservation=JSONObject(value("(()=>{const d=OrganizerTest.daten(),task=d.aufgaben.find(x=>x.icsImportUid==='$taskUid');return {complete:d.termine.some(x=>x.uid==='$eventUid')&&!!task&&task.uid==='$internalTaskUid'&&task.icsQuelleId==='${fixture.sourceId}'&&d.jahrestage.some(x=>x.uid==='$anniversaryUid')&&!!d.icsImportSources?.['$hash'],counts:{termine:d.termine.length,aufgaben:d.aufgaben.length,jahrestage:d.jahrestage.length},task:task?{uid:task.uid,icsImportUid:task.icsImportUid,icsQuelleId:task.icsQuelleId}:null,sourceMetadata:!!d.icsImportSources?.['$hash'],status:document.querySelector('#tablet-status').textContent};})()"))
+                check(!mergeObservation.getString("status").contains("Import failed.")) {"Calendar import reported rejection"}
+                mergeObservation.getBoolean("complete")
+            }
+        } finally {File(out,"calendar-merge-observation.json").writeText(mergeObservation.toString(2))}
         saved()
         val merged=data(); val native=vault().read()!!.getJSONObject("data")
         check(calendarComparable(native)==calendarComparable(merged)) {"Calendar records and source metadata did not reach the same native saved book"}
         for(group in listOf("termine","aufgaben","jahrestage")) check(merged.getJSONArray(group).length()==beforeImport.getJSONArray(group).length()+1) {"Canonical calendar merge did not add exactly one item per collection"}
         for(group in listOf("notizen","kontakte")) check(calendarComparable(merged.getJSONArray(group))==calendarComparable(beforeImport.getJSONArray(group))) {"Calendar merge changed an unrelated collection"}
+        val importedTask=(0 until native.getJSONArray("aufgaben").length()).map {native.getJSONArray("aufgaben").getJSONObject(it)}.single {it.optString("icsImportUid")==taskUid}
+        check(importedTask.getString("uid")==internalTaskUid && importedTask.getString("icsQuelleId")==fixture.sourceId) {"Imported task lost its canonical internal identity or external source binding"}
+        check(importedTask.getString("titel")=="Synthetic calendar files task" && importedTask.getString("faellig")=="2030-04-06" &&
+            importedTask.getString("faelligZeit").isEmpty() && importedTask.getInt("prio")==1 && !importedTask.getBoolean("erledigt")) {"Imported task fields changed"}
         val metadata=native.getJSONObject("icsImportSources").getJSONObject(hash)
         check(metadata.getString("sourceSHA256")==hash && metadata.getInt("version")==1)
         check((0 until metadata.getJSONArray("calendarProperties").length()).any {metadata.getJSONArray("calendarProperties").getString(it)=="X-NATIVE-CALENDAR-HEADER:preserve"})

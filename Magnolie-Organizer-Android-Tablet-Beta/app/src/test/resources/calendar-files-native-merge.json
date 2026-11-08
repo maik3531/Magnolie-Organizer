@@ -1,0 +1,107 @@
+{
+  "sourceId": "ics:feb5065c34df79a392c35199a6f8b8628c2fff66aa5d85c45c77200a66377bb6",
+  "fileName": "native-calendar-import.ics",
+  "taskUid": "native-files-task-contract-v1",
+  "eventUid": "native-files-event-contract-v1",
+  "document": {
+    "termine": [{
+      "datum": "2030-04-01",
+      "endDatum": "",
+      "icsAnzeigeZeitzone": "UTC",
+      "icsNullDauer": false,
+      "notiz": "",
+      "icsSequence": 0,
+      "akzentFarbe": "",
+      "icsQuelleName": "Synthetic calendar files contract-v1",
+      "icsKomplex": true,
+      "icsQuelleId": "ics:feb5065c34df79a392c35199a6f8b8628c2fff66aa5d85c45c77200a66377bb6",
+      "uid": "native-files-event-contract-v1",
+      "titel": "Synthetic calendar files appointment",
+      "kostenstelle": "",
+      "icsZusatzTermine": [],
+      "kategorien": "",
+      "wiederholung": {
+        "bis": "",
+        "art": "none"
+      },
+      "geaendert": 0,
+      "icsAenderungszeitFehlt": true,
+      "kunde": "",
+      "vertraulich": false,
+      "icsRoundtrip": [
+        "DTSTART:20300401T100000Z",
+        "DTEND:20300401T110000Z",
+        "RRULE:FREQ=DAILY;COUNT=3",
+        "RDATE:20300405T100000Z",
+        "EXDATE:20300402T100000Z",
+        "X-NATIVE-CALENDAR-OPAQUE;X-PARAM=alpha:keep",
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        "TRIGGER:-PT15M",
+        "DESCRIPTION:Synthetic native alarm",
+        "END:VALARM"
+      ],
+      "individuelleErinnerungTage": 0,
+      "endZeit": "11:00",
+      "standardErinnerung": true,
+      "icsSerienUid": "native-files-event-contract-v1",
+      "zeit": "10:00",
+      "icsZusatzDaten": [],
+      "vorlaeufig": false,
+      "icsEndeFehlt": false
+    }],
+    "jahrestage": [{
+      "datum": "1980-02-29",
+      "icsQuelleId": "ics:feb5065c34df79a392c35199a6f8b8628c2fff66aa5d85c45c77200a66377bb6",
+      "uid": "native-files-anniversary-contract-v1",
+      "icsRoundtrip": [
+        "DTSTART;VALUE=DATE:19800229",
+        "RRULE:FREQ=YEARLY",
+        "X-MAGNOLIE-TYPE-ID:birthday"
+      ],
+      "notiz": "",
+      "name": "Synthetic calendar files anniversary",
+      "typ": "birthday",
+      "icsSerienUid": "native-files-anniversary-contract-v1",
+      "geaendert": 0,
+      "icsQuelleName": "Synthetic calendar files contract-v1"
+    }],
+    "icsImportMetadata": {
+      "calendarProperties": [
+        "VERSION:2.0",
+        "PRODID:-//Magnolie Native Calendar Files Test//EN",
+        "X-WR-CALNAME:Synthetic calendar files contract-v1",
+        "X-NATIVE-CALENDAR-HEADER:preserve"
+      ],
+      "sourceSHA256": "141ab390b439a82f007f325a92ace371392e78aa424e747fb944957bf415eaf3",
+      "version": 1
+    },
+    "aufgaben": [{
+      "startZeit": "",
+      "icsAnzeigeZeitzone": "UTC",
+      "icsElternUid": "",
+      "icsRoundtrip": ["DUE;VALUE=DATE:20300406"],
+      "notiz": "",
+      "individuelleErinnerungTage": 0,
+      "akzentFarbe": "",
+      "faellig": "2030-04-06",
+      "faelligZeit": "",
+      "icsSerienUid": "",
+      "erinnern": false,
+      "icsQuelleName": "Synthetic calendar files contract-v1",
+      "icsQuelleId": "ics:feb5065c34df79a392c35199a6f8b8628c2fff66aa5d85c45c77200a66377bb6",
+      "uid": "native-files-task-contract-v1",
+      "titel": "Synthetic calendar files task",
+      "icsElternQuelleId": "ics:feb5065c34df79a392c35199a6f8b8628c2fff66aa5d85c45c77200a66377bb6",
+      "elternUid": "",
+      "startDatum": "",
+      "prio": 1,
+      "kategorien": "",
+      "geaendert": 0,
+      "erledigt": false,
+      "reihenfolge": 0
+    }]
+  },
+  "anniversaryUid": "native-files-anniversary-contract-v1",
+  "source": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Native Calendar Files Test//EN\r\nX-WR-CALNAME:Synthetic calendar files contract-v1\r\nX-NATIVE-CALENDAR-HEADER:preserve\r\nBEGIN:VEVENT\r\nUID:native-files-event-contract-v1\r\nDTSTART:20300401T100000Z\r\nDTEND:20300401T110000Z\r\nRRULE:FREQ=DAILY;COUNT=3\r\nRDATE:20300405T100000Z\r\nEXDATE:20300402T100000Z\r\nSUMMARY:Synthetic calendar files appointment\r\nX-NATIVE-CALENDAR-OPAQUE;X-PARAM=alpha:keep\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT15M\r\nDESCRIPTION:Synthetic native alarm\r\nEND:VALARM\r\nEND:VEVENT\r\nBEGIN:VTODO\r\nUID:native-files-task-contract-v1\r\nDUE;VALUE=DATE:20300406\r\nSUMMARY:Synthetic calendar files task\r\nPRIORITY:1\r\nEND:VTODO\r\nBEGIN:VEVENT\r\nUID:native-files-anniversary-contract-v1\r\nDTSTART;VALUE=DATE:19800229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nSUMMARY:Synthetic calendar files anniversary\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+}

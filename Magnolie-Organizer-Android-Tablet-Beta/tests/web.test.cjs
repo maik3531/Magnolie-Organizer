@@ -431,6 +431,27 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   w.Tablet.receive(calendarReply(picker,calendarPayload)); await wait(); await wait();
   ok(disk.termine.length===preCalendar+1 && messages.filter(m=>m.cmd==='tablet_calendar_import_done').length===priorDone+1,
     'duplicate/no-op ICS import still finishes its one-shot picker without duplicating records');
+  // Exact native SAF fixture, independently bound to production decoder output
+  // by NativeCalendarFileFixtureTest. Shared task identity is source-qualified.
+  const nativeFiles=JSON.parse(fs.readFileSync(path.join(root,'app/src/test/resources/calendar-files-native-merge.json')));
+  const graph=[{id:nativeFiles.sourceId+'\u0000'+nativeFiles.taskUid,uid:''}];
+  T.normalisiereAufgabenGraph(graph);
+  const stableTaskUid=graph[0].uid;
+  const nativeBefore=Object.fromEntries(['termine','aufgaben','jahrestage'].map(key=>[key,disk[key].length]));
+  const nativeUnrelated=JSON.stringify({notizen:disk.notizen,kontakte:disk.kontakte});
+  picker=await calendarPicker();w.Tablet.receive(calendarReply(picker,structuredClone(nativeFiles.document)));await wait();await wait();
+  const nativeTask=disk.aufgaben.find(item=>item.icsImportUid===nativeFiles.taskUid);
+  ok(stableTaskUid!==nativeFiles.taskUid && nativeTask?.uid===stableTaskUid && nativeTask.icsQuelleId===nativeFiles.sourceId &&
+    !disk.aufgaben.some(item=>item.uid===nativeFiles.taskUid),
+    'actual native SAF fixture uses canonical stable task UID and preserves external UID/source; the former raw-UID wait cannot succeed');
+  ok(nativeTask.titel==='Synthetic calendar files task' && nativeTask.faellig==='2030-04-06' && nativeTask.faelligZeit==='' && nativeTask.prio===1 && !nativeTask.erledigt &&
+    ['termine','aufgaben','jahrestage'].every(key=>disk[key].length===nativeBefore[key]+1) && JSON.stringify({notizen:disk.notizen,kontakte:disk.kontakte})===nativeUnrelated,
+    'native SAF fixture preserves task fields and adds one record per collection without changing unrelated data');
+  const nativeHash=nativeFiles.document.icsImportMetadata.sourceSHA256;
+  const nativeEnvelope=messages.findLast(message=>message.cmd==='speichern' && JSON.parse(message.text).icsImportSources?.[nativeHash]);
+  ok(!!nativeEnvelope && JSON.parse(nativeEnvelope.text).aufgaben.some(item=>item.uid===stableTaskUid && item.icsImportUid===nativeFiles.taskUid && item.icsQuelleId===nativeFiles.sourceId) &&
+    messages.some(message=>message.cmd==='tablet_calendar_import_done' && message.requestId===picker.requestId),
+    'actual native fixture records and source SHA share the durable envelope before its picker is completed');
   const taskTemplates=JSON.parse(fs.readFileSync(path.join(root,'app/src/test/resources/calendar-import-v2.0.30.json'))).cases.find(item=>item.name==='tasks').importExpected.aufgaben;
   const taskGraphPayload={termine:[],jahrestage:[],aufgaben:['source-A','source-B'].flatMap(source=>taskTemplates.map(item=>({...structuredClone(item),
     icsQuelleId:source,icsQuelleName:source,icsElternQuelleId:source,titel:source+' '+item.titel}))),
