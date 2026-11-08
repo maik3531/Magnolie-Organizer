@@ -1,15 +1,11 @@
 package io.gitlab.maik3531.magnolietabletbeta
 
 import io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto
-import io.gitlab.maik3531.magnolienotes.daten.synchronisiereOrdner
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import javax.crypto.SecretKey
 
@@ -42,34 +38,31 @@ class DavCredentialIdentity(server: String, username: String, accountType: DavAc
 internal class DavCredentialStore(
     directory: File,
     key: () -> SecretKey,
-    private val syncDirectory: (File) -> Unit = ::synchronisiereOrdner,
-    private val checkpoint: (String) -> Unit = {}
+    syncDirectory: ((File) -> Unit)? = null,
+    private val checkpoint: (String) -> Unit = {},
+    private val fileOps: StorageFileOps = NioStorageFileOps
 ) {
     private val directory: File
     private val crypto = DatenDateiKrypto(key)
     private var poisoned = false
+    private val syncDirectory = syncDirectory ?: fileOps::syncDirectory
     init {
-        if (Files.isSymbolicLink(directory.toPath())) throw DavCredentialException("unsafe_directory")
-        if (!directory.exists() && !directory.mkdirs()) throw DavCredentialException("storage_unavailable")
-        if (!directory.isDirectory) throw DavCredentialException("storage_unavailable")
-        this.directory = directory.canonicalFile
-        if (!this.directory.setReadable(false, false) || !this.directory.setWritable(false, false) || !this.directory.setExecutable(false, false) ||
-            !this.directory.setReadable(true, true) || !this.directory.setWritable(true, true) || !this.directory.setExecutable(true, true)) throw DavCredentialException("storage_unavailable")
+        if (fileOps.stat(directory)?.isSymlink == true) throw DavCredentialException("unsafe_directory")
+        this.directory = fileOps.ensurePrivateDirectory(directory, create = true)
     }
     private fun file(identity: DavCredentialIdentity) = File(directory, identity.storageKey + ".enc")
     private fun pending(identity: DavCredentialIdentity) = File(directory, identity.storageKey + ".enc.pending")
     private fun ensureReadable(identity: DavCredentialIdentity) {
-        if (poisoned || pending(identity).exists()) throw DavCredentialException("recovery_required")
-        if (Files.isSymbolicLink(file(identity).toPath()) || Files.isSymbolicLink(pending(identity).toPath())) throw DavCredentialException("unsafe_file")
+        if (poisoned || fileOps.stat(pending(identity)) != null) throw DavCredentialException("recovery_required")
+        if (fileOps.stat(file(identity))?.isSymlink == true || fileOps.stat(pending(identity))?.isSymlink == true) throw DavCredentialException("unsafe_file")
     }
     @Synchronized fun read(identity: DavCredentialIdentity): String? {
         ensureReadable(identity)
         val file = file(identity)
-        if (!file.exists()) return null
-        if (!file.isFile || file.length() !in 1..(MAX_SECRET_BYTES + 1024).toLong()) throw DavCredentialException("invalid_stored_credential")
+        if (fileOps.stat(file) == null) return null
         var plain: ByteArray? = null
         try {
-            plain = crypto.entschluesseln(file.readBytes(), file.name)
+            plain = crypto.entschluesseln(fileOps.read(file, MAX_SECRET_BYTES + 1024) ?: throw DavCredentialException("credential_unavailable"), file.name)
             if (plain.size !in 1..MAX_SECRET_BYTES) throw DavCredentialException("invalid_stored_credential")
             return Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
                 .decode(ByteBuffer.wrap(plain)).toString()
@@ -86,16 +79,14 @@ internal class DavCredentialStore(
         var attemptedRename = false
         try {
             val encrypted = crypto.verschluesseln(plain, file.name)
-            if (!pending.createNewFile()) throw DavCredentialException("recovery_required")
-            if (!pending.setReadable(false, false) || !pending.setWritable(false, false) || !pending.setReadable(true, true) || !pending.setWritable(true, true)) throw DavCredentialException("storage_unavailable")
-            FileOutputStream(pending).use { it.write(encrypted); it.fd.sync() }
+            fileOps.writeAndSync(pending, encrypted, MAX_SECRET_BYTES + 1024, exclusive = true)
             checkpoint("file-sync")
             attemptedRename = true
-            Files.move(pending.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            fileOps.atomicReplace(pending, file)
             checkpoint("rename")
             syncDirectory(directory)
             checkpoint("directory-sync")
-            if (!file.readBytes().contentEquals(encrypted) || read(identity) != secret) throw DavCredentialException("readback_mismatch")
+            if (fileOps.read(file, MAX_SECRET_BYTES + 1024)?.contentEquals(encrypted) != true || read(identity) != secret) throw DavCredentialException("readback_mismatch")
         } catch (error: Exception) {
             if (attemptedRename) poisoned = true
             throw if (error is DavCredentialException) error else DavCredentialException(if (attemptedRename) "commit_uncertain" else "credential_unavailable")
@@ -104,12 +95,12 @@ internal class DavCredentialStore(
     @Synchronized fun delete(identity: DavCredentialIdentity): Boolean {
         ensureReadable(identity)
         val file = file(identity)
-        if (!file.exists()) return false
+        if (fileOps.stat(file) == null) return false
         try {
-            Files.delete(file.toPath())
+            if (!fileOps.delete(file)) throw DavCredentialException("commit_uncertain")
             syncDirectory(directory)
             checkpoint("delete-directory-sync")
-            if (file.exists()) throw DavCredentialException("readback_mismatch")
+            if (fileOps.stat(file) != null) throw DavCredentialException("readback_mismatch")
             return true
         } catch (error: Exception) {
             poisoned = true

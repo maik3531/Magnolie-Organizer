@@ -1,16 +1,10 @@
 package io.gitlab.maik3531.magnolietabletbeta
 
-import io.gitlab.maik3531.magnolienotes.daten.synchronisiereOrdner
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
-import java.nio.file.Files
-import java.nio.file.LinkOption
-import java.nio.file.StandardCopyOption
-import java.nio.file.attribute.PosixFilePermission
 import java.security.SecureRandom
 import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeUnit
@@ -79,36 +73,30 @@ internal class DavStoredAccountCredentials(private val store: DavCredentialStore
 /** Shares the same no-backup directory as the native app but never touches its vault/export files. */
 class DavAccountFileStore(
     directory: File,
-    private val syncDirectory: (File) -> Unit = ::synchronisiereOrdner,
-    private val checkpoint: (String) -> Unit = {}
+    syncDirectory: ((File) -> Unit)? = null,
+    private val checkpoint: (String) -> Unit = {},
+    private val fileOps: StorageFileOps = NioStorageFileOps
 ) : DavAccountConfigurationStore {
-    private val directory: File
-    val file: File
+    private val directory = fileOps.ensurePrivateDirectory(directory)
+    private val syncDirectory = syncDirectory ?: fileOps::syncDirectory
+    private val owner = fileOps.stat(this.directory)!!.owner
+    val file = File(this.directory, "nextcloud.json")
     override val revisionNamespace: String get() = file.absolutePath
-    init {
-        if (Files.isSymbolicLink(directory.toPath()) || !directory.isDirectory) throw DavAccountException("native_operation_failed")
-        this.directory = directory.canonicalFile
-        file = File(this.directory, "nextcloud.json")
-        validateDirectory()
-    }
     private fun validateDirectory() {
-        if (!directory.isDirectory || Files.isSymbolicLink(directory.toPath())) throw DavAccountException("native_operation_failed")
-        val permissions = Files.getPosixFilePermissions(directory.toPath(), LinkOption.NOFOLLOW_LINKS)
-        if (permissions.any { it !in setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE) }) throw DavAccountException("native_operation_failed")
+        val info = fileOps.stat(directory) ?: throw DavAccountException("native_operation_failed")
+        if (!info.isDirectory || info.owner != owner || info.mode and 0x3f != 0) throw DavAccountException("native_operation_failed")
     }
     private fun validateFile() {
-        if (Files.isSymbolicLink(file.toPath()) || !Files.isRegularFile(file.toPath(), LinkOption.NOFOLLOW_LINKS) ||
-            Files.getOwner(file.toPath(), LinkOption.NOFOLLOW_LINKS) != Files.getOwner(directory.toPath(), LinkOption.NOFOLLOW_LINKS) ||
-            Files.getPosixFilePermissions(file.toPath(), LinkOption.NOFOLLOW_LINKS).any { it !in setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE) }) throw DavAccountException("invalid_config")
-        if (file.length() !in 1..16_384) throw DavAccountException("invalid_config")
+        val info = fileOps.stat(file) ?: throw DavAccountException("invalid_config")
+        if (!info.isRegular || info.owner != owner || info.links != 1L || info.mode and 0x3f != 0 ||
+            info.size !in 1..16_384) throw DavAccountException("invalid_config")
     }
     @Synchronized override fun read(): DavAccountConfiguration? {
         validateDirectory()
-        if (!Files.exists(file.toPath(), LinkOption.NOFOLLOW_LINKS)) return null
+        if (fileOps.stat(file) == null) return null
         validateFile()
         try {
-            val data = file.readBytes()
-            if (data.size !in 1..16_384) throw DavAccountException("invalid_config")
+            val data = fileOps.read(file, 16_384) ?: throw DavAccountException("invalid_config")
             val text = Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(data)).toString()
             val tokener = JSONTokener(text)
             val parsed = tokener.nextValue() as? JSONObject ?: throw DavAccountException("invalid_config")
@@ -119,23 +107,23 @@ class DavAccountFileStore(
     }
     @Synchronized override fun replace(configuration: DavAccountConfiguration?) {
         validateDirectory()
-        if (Files.exists(file.toPath(), LinkOption.NOFOLLOW_LINKS)) validateFile()
+        if (fileOps.stat(file) != null) validateFile()
         if (configuration == null) {
-            if (!Files.exists(file.toPath(), LinkOption.NOFOLLOW_LINKS)) return
-            Files.delete(file.toPath()); syncDirectory(directory)
+            if (fileOps.stat(file) == null) return
+            if (!fileOps.delete(file)) throw DavAccountException("verification_failed")
+            syncDirectory(directory)
         } else {
             val bytes = JSONObject(configuration.toCanonicalMap()).toString().toByteArray(Charsets.UTF_8)
             if (bytes.size > 16_384) throw DavAccountException("invalid_config")
-            val temporary = Files.createTempFile(directory.toPath(), ".nextcloud-", ".tmp").toFile()
+            val temporary = fileOps.temporary(directory, ".nextcloud-")
             try {
-                Files.setPosixFilePermissions(temporary.toPath(), setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE))
-                FileOutputStream(temporary).use { it.write(bytes); it.fd.sync() }
+                fileOps.writeAndSync(temporary, bytes, 16_384)
                 checkpoint("file-sync")
-                Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+                fileOps.atomicReplace(temporary, file)
                 checkpoint("rename")
                 syncDirectory(directory)
                 checkpoint("directory-sync")
-            } finally { Files.deleteIfExists(temporary.toPath()) }
+            } finally { fileOps.delete(temporary) }
         }
         if (read() != configuration) throw DavAccountException("verification_failed")
     }

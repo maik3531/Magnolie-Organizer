@@ -2,11 +2,12 @@ package io.gitlab.maik3531.magnolietabletbeta
 
 import android.content.Context
 import android.os.Looper
+import android.system.Os
+import android.system.OsConstants
+import android.system.ErrnoException
+import java.io.IOException
 import java.io.File
 import java.net.URI
-import java.nio.file.Files
-import java.nio.file.LinkOption
-import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyStore
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -19,8 +20,9 @@ import org.json.JSONObject
  */
 internal object NativeDavAccountSmoke {
     private const val ALIAS = "magnolie-organizer-tablet-beta-dav-credentials-v1"
-    private val directoryMode = setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE)
-    private val fileMode = setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE)
+    private const val directoryMode = 0x1c0
+    private const val fileMode = 0x180
+    private val ops = AndroidOsStorageFileOps
 
     fun run(context: Context): JSONObject {
         check(Looper.myLooper() != Looper.getMainLooper()) { "Native DAV checks require an instrumentation worker" }
@@ -107,16 +109,84 @@ internal object NativeDavAccountSmoke {
             .put("nativeXmlNegativeCases",rejected).put("externalEntitiesRejected",true)
     }
 
-    private fun mode(file: File) = Files.getPosixFilePermissions(file.toPath(),LinkOption.NOFOLLOW_LINKS)
+    private fun mode(file: File) = requireNotNull(ops.stat(file)).mode and 0x1ff
     private fun vaultBytes(root: File): Map<String,ByteArray?> = listOf("tablet-vault.enc","tablet-vault.enc.pending","before-import.enc","before-import.pending")
         .associateWith { name -> File(root,name).let { file ->
-            check(!Files.isSymbolicLink(file.toPath())) { "Unsafe vault fixture" }
-            if (file.exists()) { check(file.length() <= 32 * 1024 * 1024) { "Disposable small vault required" }; file.readBytes() } else null
+            check(ops.stat(file)?.isSymlink != true) { "Unsafe vault fixture" }
+            ops.read(file,32 * 1024 * 1024 + 1024)
         } }
 
+    private fun storageChecks(parent: File,key: SecretKey): JSONObject {
+        val directory=File(parent,"os-storage");check(ops.stat(directory)==null)
+        ops.ensurePrivateDirectory(directory,true)
+        var renameDenied=false;var symlinkRejected=false;var hardlinkRejected=false;var boundedReadRejected=false
+        var checkpoints=0
+        try {
+            val old=File(directory,"old");val pending=File(directory,"pending")
+            ops.writeAndSync(old,"old".toByteArray(),32,true);ops.writeAndSync(pending,"new".toByteArray(),32,true)
+            val before=requireNotNull(ops.stat(pending));ops.atomicReplace(pending,old);ops.syncDirectory(directory)
+            check(before.sameFile(requireNotNull(ops.stat(old))) && ops.stat(pending)==null)
+            check(Os.lstat(directory.path).st_uid==Os.getuid() && mode(directory)==directoryMode)
+            check(Os.lstat(old.path).st_uid==Os.getuid() && mode(old)==fileMode)
+            ops.writeAndSync(pending,"pending".toByteArray(),32,true)
+            Os.chmod(directory.path,0x140) // 0500: force a real public Os.rename EACCES/EPERM.
+            try { ops.atomicReplace(pending,old);error("Rename incorrectly accepted readonly directory") }
+            catch (error: ErrnoException) { check(error.errno==OsConstants.EACCES || error.errno==OsConstants.EPERM);renameDenied=true }
+            finally { ops.ensurePrivateDirectory(directory) }
+            check(String(requireNotNull(ops.read(old,32)))=="new" && String(requireNotNull(ops.read(pending,32)))=="pending")
+            val link=File(directory,"link");Os.symlink(old.path,link.path)
+            try { ops.read(link,32);error("Followed storage symlink") } catch (_: IOException) { symlinkRejected=true }
+            Os.unlink(link.path)
+            val hard=File(directory,"hard");Os.link(old.path,hard.path)
+            try { ops.read(old,32);error("Accepted linked storage file") } catch (_: IOException) { hardlinkRejected=true }
+            Os.unlink(hard.path)
+            try { ops.read(old,2);error("Read past configured byte bound") } catch (_: IOException) { boundedReadRejected=true }
+            ops.delete(old);ops.delete(pending)
+            val frameworkParent=File(directory,"framework-parent");ops.ensurePrivateDirectory(frameworkParent,true)
+            Os.chmod(frameworkParent.path,0x1f9) // 0771, matching possible framework app-owned modes.
+            val child=File(frameworkParent,"private-child");ops.ensurePrivateDirectory(child,true)
+            check(mode(frameworkParent)==0x1f9 && mode(child)==directoryMode)
+            check(Os.lstat(frameworkParent.path).st_uid==Os.getuid())
+            Os.rmdir(child.path);ops.ensurePrivateDirectory(frameworkParent);ops.syncDirectory(frameworkParent)
+            Os.rmdir(frameworkParent.path);ops.syncDirectory(directory)
+            for (boundary in listOf("file-sync","rename","directory-sync")) {
+                val fixture=File(directory,boundary);ops.ensurePrivateDirectory(fixture,true)
+                fun data(title: String)=JSONObject().put("version",6).put("termine",org.json.JSONArray().put(JSONObject().put("id","fixture").put("titel",title)))
+                    .put("aufgaben",org.json.JSONArray()).put("kontakte",org.json.JSONArray()).put("notizen",org.json.JSONArray()).put("einstellungen",JSONObject().put("fixture",true))
+                val original=Vault(fixture,{key},fileOps=ops);val first=original.openSession().session;original.activate(first)
+                original.save(first,data("old").toString(),org.json.JSONArray())
+                val fault=Vault(fixture,{key},checkpoint={if(it==boundary)throw IOException("INSTRUMENTATION_STORAGE_CHECKPOINT")},fileOps=ops)
+                val session=fault.openSession().session;fault.activate(session)
+                try { fault.save(session,data("new").toString(),org.json.JSONArray());error("Faulty durable save acknowledged") }
+                catch (error: CommitFailure) {
+                    check(error.outcome==if(boundary=="file-sync")"before-commit" else if(boundary=="rename")"uncertain" else "committed")
+                }
+                if(boundary!="file-sync")check(!fault.isWritable(session))
+                val reopened=Vault(fixture,{key},fileOps=ops)
+                val value=requireNotNull(reopened.read()).getJSONObject("data").getJSONArray("termine").getJSONObject(0).getString("titel")
+                check(value==if(boundary=="file-sync")"old" else "new")
+                for(file in ops.children(fixture))check(ops.delete(file))
+                Os.rmdir(fixture.path);ops.syncDirectory(directory);checkpoints++
+            }
+            check(renameDenied && symlinkRejected && hardlinkRejected && boundedReadRejected && checkpoints==3)
+            return JSONObject().put("backend","android.system.Os").put("api",android.os.Build.VERSION.SDK_INT)
+                .put("ownerUidVerified",true).put("directory0700",true).put("file0600",true)
+                .put("realDirectoryFsync",true).put("atomicInodeMoved",true).put("readonlyDirectoryRenameRejected",renameDenied)
+                .put("nofollowSymlinkRejected",symlinkRejected).put("hardlinkRejected",hardlinkRejected)
+                .put("boundedReadRejected",boundedReadRejected).put("vaultDurabilityCheckpoints",checkpoints)
+                .put("frameworkOwnedParent0771Preserved",true)
+                .put("fixtureParentUid",Os.lstat(parent.parentFile!!.path).st_uid)
+                .put("fixtureParentMode",Os.lstat(parent.parentFile!!.path).st_mode and 0x1ff)
+        } finally {
+            ops.ensurePrivateDirectory(directory)
+            check(ops.children(directory).isEmpty()) { "Unexpected file in storage fixture" }
+            Os.rmdir(directory.path);ops.syncDirectory(parent)
+        }
+    }
+
     private fun accountChecks(context: Context): JSONObject {
-        val root = context.noBackupFilesDir
-        check(!Files.exists(File(root,"nextcloud.json").toPath(),LinkOption.NOFOLLOW_LINKS)) { "Existing native account: refusing fixture mutation" }
+        val root = ops.ensurePrivateDirectory(context.noBackupFilesDir)
+        check(ops.stat(File(root,"nextcloud.json")) == null) { "Existing native account: refusing fixture mutation" }
         val before = vaultBytes(root)
         val nativeCredentials = AndroidDavCredentials.store(context)
         val credentials = DavStoredAccountCredentials(nativeCredentials)
@@ -127,8 +197,8 @@ internal object NativeDavAccountSmoke {
         val second = DavAccountConfiguration(davEnabled=true,server=first.server,user="native-fixture-second")
         check(credentials.read(first.identity) == null && credentials.read(second.identity) == null) { "Fixture credentials already exist" }
         val fixture = File(root,".native-dav-fixture-$token")
-        check(fixture.mkdir()) { "Fixture directory already exists" }
-        Files.setPosixFilePermissions(fixture.toPath(),directoryMode)
+        check(ops.stat(fixture) == null) { "Fixture directory already exists" }
+        ops.ensurePrivateDirectory(fixture,create=true)
         val secret1 = "native-only-first-$token"
         val secret2 = "native-only-second-$token"
         var failMetadataOnce = false
@@ -136,7 +206,7 @@ internal object NativeDavAccountSmoke {
         try {
             val configuration = DavAccountFileStore(fixture,checkpoint={ stage ->
                 if (failMetadataOnce && stage == "directory-sync") { failMetadataOnce=false; throw DavAccountException("native_operation_failed") }
-            })
+            },fileOps=ops)
             val service = DavAccountService(configuration,credentials,BoundedHttpTransport { _, _ -> error("Real network forbidden in native account fixture") })
             val initial = service.status()
             check(initial.configuration == null && initial.revision != null)
@@ -144,13 +214,14 @@ internal object NativeDavAccountSmoke {
             check(saved.configuration == first && saved.credentialPresent == true && !saved.connectivityChecked)
             check(saved.revision != initial.revision && mode(fixture) == directoryMode && mode(configuration.file) == fileMode)
             val encrypted = File(File(root,"dav-credentials-v1"),first.identity.storageKey + ".enc")
-            check(mode(encrypted) == fileMode && encrypted.readBytes().isNotEmpty() &&
-                Files.getOwner(encrypted.toPath()) == Files.getOwner(root.toPath()))
-            check(!String(encrypted.readBytes(),Charsets.ISO_8859_1).contains(secret1)) { "Credential stored in plaintext" }
+            val credentialBytes = requireNotNull(ops.read(encrypted,DavCredentialStore.MAX_SECRET_BYTES + 1024))
+            check(mode(encrypted) == fileMode && credentialBytes.isNotEmpty() &&
+                ops.stat(encrypted)!!.owner == Os.getuid().toLong() && ops.stat(root)!!.owner == Os.getuid().toLong())
+            check(!String(credentialBytes,Charsets.ISO_8859_1).contains(secret1)) { "Credential stored in plaintext" }
             check(!configuration.file.readText().contains(secret1) && !JSONObject(saved.payload()).toString().contains(secret1)) { "Credential leaked into metadata" }
             val key = keyStore.getKey(ALIAS,null) as? SecretKey
             check(key != null && key.encoded == null && key.format == null && key.algorithm == "AES") { "Native account key must be non-exportable" }
-            val reopened = DavAccountService(DavAccountFileStore(fixture),credentials,
+            val reopened = DavAccountService(DavAccountFileStore(fixture,fileOps=ops),credentials,
                 BoundedHttpTransport { _, _ -> error("Real network forbidden in native account fixture") }).status()
             check(reopened.configuration == first && reopened.credentialPresent == true)
             rejectAccount("conflict") { service.save(initial.revision!!,first,secret1) }
@@ -169,21 +240,23 @@ internal object NativeDavAccountSmoke {
                 .put("keystoreNonExportable",true).put("saveReadback",true).put("reopenReadback",true)
                 .put("staleRevisionRejected",true).put("identityChangeNeedsPassword",true)
                 .put("metadataCommitRollback",true).put("identityChangeOldCredentialRemoved",true)
-                .put("credentialDeletionVerified",true)
+                .put("credentialDeletionVerified",true).put("storage",storageChecks(fixture,requireNotNull(key)))
+                .put("noBackupRootMode",mode(root)).put("frameworkDataParentMode",mode(root.parentFile!!))
+                .put("frameworkDataParentUid",Os.lstat(root.parentFile!!.path).st_uid)
         } finally {
             // Only the two previously absent UUID-bound fixture identities may be removed.
             credentials.delete(first.identity); credentials.delete(second.identity)
             check(credentials.read(first.identity) == null && credentials.read(second.identity) == null)
             val metadata = File(fixture,"nextcloud.json")
-            if (metadata.exists()) { check(metadata.delete()) }
-            check(fixture.listFiles().orEmpty().isEmpty()) { "Unexpected file in owned fixture; refusing recursive deletion" }
-            check(fixture.delete())
+            ops.delete(metadata)
+            check(ops.children(fixture).isEmpty()) { "Unexpected file in owned fixture; refusing recursive deletion" }
+            Os.rmdir(fixture.path);ops.syncDirectory(root)
             val credentialDirectory = File(root,"dav-credentials-v1")
-            val remainingCredentials = requireNotNull(credentialDirectory.listFiles()) { "Could not verify fixture credential cleanup" }
+            val remainingCredentials = ops.children(credentialDirectory)
             if (!previousAlias && remainingCredentials.isEmpty()) keyStore.deleteEntry(ALIAS)
             val after = vaultBytes(root)
             check(before.keys == after.keys && before.all { (name, bytes) -> if (bytes == null) after[name] == null else after[name]?.let { bytes.contentEquals(it) } == true }) { "Account fixture altered vault bytes" }
-            check(!File(root,"nextcloud.json").exists()) { "Account fixture created production metadata" }
+            check(ops.stat(File(root,"nextcloud.json")) == null) { "Account fixture created production metadata" }
         }
         return requireNotNull(result).put("fixtureCredentialsRemoved",true).put("fixtureMetadataRemoved",true).put("vaultBytesPreserved",true)
     }

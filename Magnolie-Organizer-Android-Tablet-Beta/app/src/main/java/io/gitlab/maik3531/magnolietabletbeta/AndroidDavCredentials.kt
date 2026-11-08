@@ -15,12 +15,14 @@ internal object AndroidDavCredentials {
     private var instance: DavCredentialStore? = null
     @Synchronized fun store(context: Context): DavCredentialStore {
         instance?.let { return it }
-        val directory = File(context.noBackupFilesDir, "dav-credentials-v1")
+        val ops = AndroidOsStorageFileOps
+        val parent = ops.ensurePrivateDirectory(context.noBackupFilesDir)
+        val directory = File(parent, "dav-credentials-v1")
         val alias = "magnolie-organizer-tablet-beta-dav-credentials-v1"
         val credentials = DavCredentialStore(directory, {
             val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
             (keyStore.getKey(alias, null) as? SecretKey) ?: run {
-                if (directory.listFiles().orEmpty().any { it.name.endsWith(".enc") || it.name.endsWith(".pending") }) {
+                if (ops.children(directory).any { it.name.endsWith(".enc") || it.name.endsWith(".pending") }) {
                     throw DavCredentialException("missing_key_existing_credentials")
                 }
                 KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
@@ -30,7 +32,7 @@ internal object AndroidDavCredentials {
                         .setKeySize(256).setRandomizedEncryptionRequired(true).build())
                 }.generateKey()
             }
-        })
+        }, fileOps = ops)
         instance = credentials
         return credentials
     }

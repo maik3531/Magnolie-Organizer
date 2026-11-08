@@ -1,16 +1,12 @@
 package io.gitlab.maik3531.magnolietabletbeta
 
 import io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto
-import io.gitlab.maik3531.magnolienotes.daten.synchronisiereOrdner
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.UUID
@@ -65,9 +61,12 @@ internal data class DocumentSession(val id: String, val revision: String)
 internal data class LoadedDocument(val session: DocumentSession, val value: JSONObject?)
 internal class CommitFailure(val outcome: String, cause: Exception) : Exception(outcome, cause)
 
-internal class Vault(private val directory: File, key: () -> SecretKey,
+internal class Vault(directory: File, key: () -> SecretKey,
     private val checkpoint: (String) -> Unit = {},
-    private val syncDirectory: (File) -> Unit = ::synchronisiereOrdner) {
+    syncDirectory: ((File) -> Unit)? = null,
+    private val fileOps: StorageFileOps = NioStorageFileOps) {
+    private val directory = fileOps.ensurePrivateDirectory(directory)
+    private val syncDirectory = syncDirectory ?: fileOps::syncDirectory
     private val crypto = DatenDateiKrypto(key)
     private val file = File(directory, "tablet-vault.enc")
     private var currentSession: DocumentSession? = null
@@ -108,13 +107,13 @@ internal class Vault(private val directory: File, key: () -> SecretKey,
     }
 
     @Synchronized fun read(): JSONObject? {
-        if (!file.exists()) {
-            check(!File(directory, "tablet-vault.enc.pending").exists() &&
-                !File(directory, "before-import.enc").exists()) { "Incomplete vault; recovery required" }
+        val encrypted = fileOps.read(file, MAX_BYTES + 1024)
+        if (encrypted == null) {
+            check(fileOps.stat(File(directory, "tablet-vault.enc.pending")) == null &&
+                fileOps.stat(File(directory, "before-import.enc")) == null) { "Incomplete vault; recovery required" }
             return null
         }
-        require(file.length() in 1..(MAX_BYTES + 1024).toLong())
-        val value = parseObject(decodeUtf8(crypto.entschluesseln(file.readBytes(), file.name)))
+        val value = parseObject(decodeUtf8(crypto.entschluesseln(encrypted, file.name)))
         require(value.getInt("format") == 1)
         validateData(value.getJSONObject("data"))
         return value
@@ -137,16 +136,16 @@ internal class Vault(private val directory: File, key: () -> SecretKey,
         var attempted = false
         var durable = false
         try {
-            FileOutputStream(pending).use { it.write(encrypted); it.fd.sync() }
+            fileOps.writeAndSync(pending, encrypted, MAX_BYTES + 1024)
             checkpoint("file-sync")
             attempted = true
-            Files.move(pending.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            fileOps.atomicReplace(pending, file)
             checkpoint("rename")
             syncDirectory(directory)
             durable = true
             checkpoint("directory-sync")
             checkpoint("commit-readback")
-            check(file.readBytes().contentEquals(encrypted)) { "Committed bytes differ on readback" }
+            check(fileOps.read(file, MAX_BYTES + 1024)?.contentEquals(encrypted) == true) { "Committed bytes differ on readback" }
             read() ?: error("Committed vault missing")
         } catch (error: Exception) {
             if (attempted) { poisoned = true; activated = false; currentSession = null; pendingImport = null }
@@ -210,9 +209,9 @@ internal class Vault(private val directory: File, key: () -> SecretKey,
             val backup = File(directory, "before-import.enc")
             val pending = File(directory, "before-import.pending")
             val bytes = crypto.verschluesseln(before.toString().toByteArray(), "before-import.enc")
-            FileOutputStream(pending).use { it.write(bytes); it.fd.sync() }
-            Files.move(pending.toPath(), backup.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-            synchronisiereOrdner(directory)
+            fileOps.writeAndSync(pending, bytes, MAX_BYTES + 1024)
+            fileOps.atomicReplace(pending, backup)
+            syncDirectory(directory)
             checkpoint("backup-sync")
             val replacement = JSONObject().put("format", 1).put("data", data).put("alarms", JSONArray())
                 .put("enabled", false).put("customEnabled", false).put("delivered", JSONObject())
