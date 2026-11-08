@@ -19,7 +19,7 @@ internal sealed partial class TelefonConnection
         internal RemoteFileAcceptance? Acceptance;
         internal NativeMediaSendRun(TelefonConnection connection, TelefonStore.NativePreparedMediaSource cache,
             NativeFileControlSession owner, string permissionEpoch, CancellationTokenSource lifetime)
-        { Connection = connection; Cache = cache; Owner = owner; PermissionEpoch = permissionEpoch; Lifetime = lifetime; Offer = DeviceFileOfferEnvelope.Create(cache.Manifest, Now()); }
+        { Connection = connection; Cache = cache; Owner = owner; PermissionEpoch = permissionEpoch; Lifetime = lifetime; Offer = cache.CreateMediaOffer(Now()); }
         internal void Require()
         {
             Lifetime.Token.ThrowIfCancellationRequested(); Cache.Require(); Exchange?.Require(); Connection.RequireNativeFileControls(Owner);

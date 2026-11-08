@@ -43,6 +43,7 @@
     <Compile Include="..\AtomicStore.cs" Link="AtomicStore.cs" />
     <Compile Include="..\DeviceFileOfferEnvelope.cs" Link="DeviceFileOfferEnvelope.cs" />
     <Compile Include="..\DeviceFileMediaPreview.cs" Link="DeviceFileMediaPreview.cs" />
+    <Compile Include="..\DeviceFileMediaMime.cs" Link="DeviceFileMediaMime.cs" />
     <Compile Include="..\PhotoSyncSchedule.cs" Link="PhotoSyncSchedule.cs" />
     <Compile Include="..\PhotoSyncPlan.cs" Link="PhotoSyncPlan.cs" />
     <Compile Include="..\DeviceFileControl.cs" Link="DeviceFileControl.cs" />

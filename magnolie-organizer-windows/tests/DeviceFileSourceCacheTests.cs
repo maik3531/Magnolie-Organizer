@@ -9,14 +9,14 @@ internal static class DeviceFileSourceCacheTests
 {
     private const string Book = "{\"syncEpoch\":\"source-cache-test\",\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":30}}}";
     private static readonly byte[] Bytes = Enumerable.Range(0, 70013).Select(index => (byte)(index % 251)).ToArray();
-    internal static async Task<DeviceFileReceiveJobTests.Fixture> Fixture()
+    internal static async Task<DeviceFileReceiveJobTests.Fixture> Fixture(byte[]? bytes = null)
     {
         var f = await DeviceFileMappedSourceTests.Established();
         try
         {
             await DeviceFileMappedSourceTests.AllowSending(f);
             using var edit = new FileStream(Path.Combine(f.Root, "first.jpg"), FileMode.Open, FileAccess.Write);
-            edit.SetLength(0); edit.Write(Bytes); return f;
+            edit.SetLength(0); edit.Write(bytes ?? Bytes); return f;
         }
         catch { f.Dispose(); throw; }
     }

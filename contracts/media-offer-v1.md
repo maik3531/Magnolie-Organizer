@@ -37,5 +37,21 @@ wirklich verschlüsselter Eingabe, nativer PNG-Veröffentlichung und Saved gepr�
 fehlende aktuelle Absicht, Inventarreferenz oder native Empfangszustimmung
 bewirken keine Provideränderung. Das ist noch keine Freigabe des normalen
 Produktionsdispatchers oder der gemeinsamen Betriebsbereitschaft. Die Ableitung
-der MIME-Angaben aus tatsächlichen Ausgangsbytes, die Sender-/Dispatcher-
-Zusammensetzung und die vollständigen Abschluss-/Wiederaufnahmewege bleiben offen.
+der MIME-Angaben ist beim expliziten Windows-Sender inzwischen an die tatsächlich
+authentifizierten verschlüsselten Cachebytes gebunden: höchstens 1 MiB Präfix,
+PNG/JPEG beziehungsweise MP4/QuickTime-Containererkennung, nie Dateiendungen.
+Unbekanntes wird vor jedem Angebot und vor dem Anlegen des Versandjournals
+abgewiesen; Cache, Original und alte Empfangshistorie bleiben erhalten.
+Das ist eine Containeridentifikation, keine vollständige Inhalts-/Pixelprüfung:
+diese bleibt beim nativen Empfänger vor der Veröffentlichung erforderlich.
+
+Der Windows-Sender sendet den neuen Umschlag mit exakt geschütztem aktuellem
+Acht-Felder-Snapshot und Originalreferenzen. Seine vorhandenen Annahme-, Chunk-,
+Saved-, Ablauf-, Abbruch- und Journalbindungen verwenden weiterhin dieselbe
+Angebots-ID und dasselbe Manifest. Fünf native Windows-Versandgruppen prüfen
+diesen Weg, darunter eine echte umbenannte PNG mit zwei verschlüsselten Chunks
+und unbekannter Inhalt trotz `.jpg`-Name ohne Ausgabe. Das ist noch kein
+Produktionsdispatcher-/Android-Ende-zu-Ende-Nachweis. Die gemeinsame native
+Zusammensetzung, Android-Nachrichtenverteilung und vollständigen Abschluss-/
+Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und
+keine Berechtigung, den Ausgangscache zu entfernen.

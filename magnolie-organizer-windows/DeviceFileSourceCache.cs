@@ -135,6 +135,31 @@ internal sealed partial class TelefonStore
         internal string Version { get { lock (cacheGate) { Require(); return version; } } }
         internal JsonObject Originals { get { lock (cacheGate) { Require(); return record["originals"]!.DeepClone().AsObject(); } } }
 
+        internal JsonObject CreateMediaOffer(long now)
+        {
+            lock (cacheGate)
+            {
+                Require();
+                var prefix = new byte[(int)Math.Min(Manifest.TotalBytes, NativeMediaContentMime.PrefixBytes)];
+                try
+                {
+                    for (var offset = 0; offset < prefix.Length;)
+                    {
+                        var chunk = ReadChunk(offset / DeviceFileManifest.ChunkBytes);
+                        try { var count = Math.Min(chunk.Length, prefix.Length - offset); chunk.AsSpan(0, count).CopyTo(prefix.AsSpan(offset)); offset += count; }
+                        finally { CryptographicOperations.ZeroMemory(chunk); }
+                    }
+                    Require(); var provenance = record["provenance"]!.AsObject();
+                    var kind = provenance["media_type"]!.GetValue<string>();
+                    var mime = NativeMediaContentMime.Identify(prefix, Manifest.TotalBytes, kind);
+                    var offer = MediaOfferEnvelope.Create(Manifest, provenance["settings"]!.AsObject(), kind,
+                        new JsonObject { [Manifest.Files[0].Id] = mime }, record["originals"]!.AsObject(), now);
+                    Require(); return offer;
+                }
+                finally { CryptographicOperations.ZeroMemory(prefix); }
+            }
+        }
+
         private NativePreparedMediaSource(TelefonStore store, NativeMappedMediaSource source, NativeMediaPreferenceScope scope, JsonObject record)
         { this.store = store; this.source = source; this.scope = scope; this.record = record; Manifest = source.PrepareManifest(); }
 
