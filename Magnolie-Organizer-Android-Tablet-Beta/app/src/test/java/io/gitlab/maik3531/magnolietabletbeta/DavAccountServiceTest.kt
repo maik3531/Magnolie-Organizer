@@ -228,6 +228,73 @@ class DavAccountServiceTest {
             assertEquals(if (partial) 1 else 0, status.calendars.size); assertEquals(before.revision, status.revision)
         }
     }
+    /** A real old calendar capability is parsed before its last response is held.
+     * New success/error then owns the cache at the unchanged account revision. */
+    private fun overlappingDiscovery(oldFailure: String? = null, newerFailure: String? = null) {
+        val store=AccountConfigurationMemory().apply {value=config()};val secrets=AccountCredentialMemory()
+        secrets.items[store.value!!.identity.storageKey]="fixture-secret"
+        fun capabilities(todo:Boolean)=replies().toMutableList().apply {
+            this[1]=xml(row("/calendars/person/personal/","<d:resourcetype><c:calendar/></d:resourcetype><d:displayname>Personal</d:displayname><c:supported-calendar-component-set><c:comp name='VEVENT'/>"+
+                (if(todo)"<c:comp name='VTODO'/>" else "")+"</c:supported-calendar-component-set>"))
+        }
+        val oldEntered=CountDownLatch(1);val oldRelease=CountDownLatch(1)
+        val role=ThreadLocal<String>()
+        val initial=AccountTransportScript(*capabilities(true).toTypedArray())
+        val older=AccountTransportScript(*capabilities(true).toTypedArray())
+        val newer=AccountTransportScript(*capabilities(false).toTypedArray())
+        var oldCalls=0;var newCalls=0
+        val transport=BoundedHttpTransport {request,cancellation ->
+            check(request.uri.host=="cloud.example" && request.method=="PROPFIND")
+            when(role.get()) {
+                "old" -> {
+                    val index=oldCalls++
+                    val held=if(oldFailure=="empty")0 else if(oldFailure=="partial")2 else 3
+                    if(index==held) {
+                        oldEntered.countDown();check(oldRelease.await(3,TimeUnit.SECONDS))
+                        if(oldFailure!=null) throw DavException("unauthorized")
+                    }
+                    older.send(request,cancellation)
+                }
+                "new" -> {
+                    val index=newCalls++
+                    if(newerFailure=="empty" && index==0 || newerFailure=="partial" && index==2) throw DavException("unauthorized")
+                    newer.send(request,cancellation)
+                }
+                else -> initial.send(request,cancellation)
+            }
+        }
+        val service=DavAccountService(store,secrets,transport);val revision=service.status().revision!!
+        check(service.discover(revision).status.calendars.single().supportsVtodo)
+        val executor=Executors.newFixedThreadPool(2)
+        try {
+            val old=executor.submit<String> {
+                role.set("old")
+                try {service.discover(revision);"unexpected_success"} catch(error:DavAccountException) {error.code}
+            }
+            assertTrue(oldEntered.await(3,TimeUnit.SECONDS))
+            // Accepted refresh clears the old connectivity result before network completion.
+            assertFalse(service.status().connectivityChecked);assertTrue(service.status().calendars.isEmpty())
+            val current=executor.submit<DavAccountDiscovery> {role.set("new");service.discover(revision)}.get(3,TimeUnit.SECONDS)
+            assertEquals(revision,current.status.revision)
+            assertEquals(if(newerFailure==null)"none" else "http_401",current.status.errorCode)
+            assertEquals(newerFailure=="partial",current.partial)
+            if(newerFailure!="empty") assertFalse(current.status.calendars.single().supportsVtodo)
+            val expected=service.status().payload()
+            oldRelease.countDown()
+            assertEquals("conflict",old.get(3,TimeUnit.SECONDS))
+            assertEquals(expected,service.status().payload())
+            assertEquals(revision,service.status().revision)
+            assertTrue(service.status().connectivityChecked)
+        } finally {oldRelease.countDown();executor.shutdownNow();assertTrue(executor.awaitTermination(2,TimeUnit.SECONDS))}
+    }
+    @Test fun olderSuccessCannotOverwriteNewerSameRevisionCapabilities() = overlappingDiscovery()
+    @Test fun olderFailureOrPartialResultCannotOverwriteNewerSuccess() {
+        overlappingDiscovery(oldFailure="empty");overlappingDiscovery(oldFailure="partial")
+    }
+    @Test fun olderSuccessCannotHideNewerFailureOrPartialStatus() {
+        overlappingDiscovery(newerFailure="empty");overlappingDiscovery(newerFailure="partial")
+    }
+
     @Test fun accountChangeDuringNetworkDiscoveryRejectsLateResults() {
         val store = AccountConfigurationMemory().apply { value = config() }; val secrets = AccountCredentialMemory()
         secrets.items[store.value!!.identity.storageKey] = "fixture-secret"

@@ -185,6 +185,7 @@ class DavAccountService(
     private var epoch = 0L
     private var poisoned = false
     private var cachedDiscovery: DavAccountDiscovery? = null
+    private var discoveryGeneration = 0L
     private class Snapshot(val configuration: DavAccountConfiguration?, val secret: String?, val revision: String)
     private fun snapshot(): Snapshot {
         if (poisoned) throw DavAccountException("verification_failed")
@@ -291,11 +292,22 @@ class DavAccountService(
         if (secret != null) credentials.write(identity, secret) else credentials.delete(identity)
     }
     fun discover(expectedRevision: String, cancellation: DavCancellation = DavCancellation()): DavAccountDiscovery {
-        val before = synchronized(this) {
-            snapshot().also {
-                if (it.revision != expectedRevision) throw DavAccountException("conflict")
-                if (it.configuration?.davEnabled != true) throw DavAccountException("not_active")
-                if (it.secret.isNullOrEmpty()) throw DavAccountException("app_password_missing")
+        cancellation.check()
+        val (before,generation) = synchronized(this) {
+            val current=snapshot()
+            if (current.revision != expectedRevision) throw DavAccountException("conflict")
+            if (current.configuration?.davEnabled != true) throw DavAccountException("not_active")
+            if (current.secret.isNullOrEmpty()) throw DavAccountException("app_password_missing")
+            cancellation.check()
+            discoveryGeneration++
+            cachedDiscovery=null
+            current to discoveryGeneration
+        }
+        fun requireCurrent() {
+            synchronized(this) {
+                val current=snapshot()
+                if (discoveryGeneration != generation || current.revision != before.revision)
+                    throw DavAccountException("conflict")
             }
         }
         val config = before.configuration!!
@@ -304,23 +316,26 @@ class DavAccountService(
             token.check()
             val remaining = deadline - monotonicNanos()
             if (remaining <= 0) throw DavException("timeout")
+            requireCurrent()
             val response = transport.send(BoundedHttpRequest(request.uri, request.method, request.headers, request.body,
                 minOf(request.timeoutMillis, TimeUnit.NANOSECONDS.toMillis(remaining).coerceAtLeast(1)), request.maxResponseBytes), token)
             token.check()
             if (monotonicNanos() > deadline) throw DavException("timeout")
+            requireCurrent()
             response
         }
         val client = DavClient(config.server, config.user, before.secret!!, config.accountType, bounded)
         var calendars = emptyList<DavCollection>(); var books = emptyList<DavCollection>(); var code = "none"
         try {
             calendars = client.collections(DavKind.CALENDAR, cancellation)
-            synchronized(this) { if (snapshot().revision != before.revision) throw DavAccountException("conflict") }
+            requireCurrent()
             books = client.collections(DavKind.ADDRESSBOOK, cancellation)
+            requireCurrent()
         } catch (error: CancellationException) { throw error }
         catch (error: Exception) { code = errorCode(error) }
         cancellation.check()
         return synchronized(this) {
-            if (snapshot().revision != before.revision) throw DavAccountException("conflict")
+            requireCurrent()
             val partial = code != "none" && (calendars.isNotEmpty() || books.isNotEmpty())
             val result = DavAccountDiscovery(status(before, calendars, books, true, code), code == "none" || partial, partial)
             cachedDiscovery = result
