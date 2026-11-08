@@ -670,6 +670,12 @@ ursprünglicher Laufkontext, Buchstand und Fristen bleiben unverändert. Stop,
 Widerruf, jeder andere Fehler sowie bereits erzeugte oder gehaltene Worker
 werden damit nicht wieder gestartet.
 
+Ein einzelner gemeinsamer Medienlauf mit aktuell vollständig gelesenem, leerem
+Telefonkatalog kann ohne Batch-/Dateianfrage abschließen. Ein leerer Katalog mit
+nur ausgewähltem oder fehlendem Lesezugriff ist kein vollständiger Scan. Auch ein
+vollständig leerer Katalog beweist keine Löschung und darf keine vorhandenen
+PC-Dateien, Zuordnungen oder Wiederherstellungskopien verändern.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

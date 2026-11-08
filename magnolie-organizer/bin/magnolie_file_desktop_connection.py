@@ -3319,6 +3319,13 @@ class NativePhotoDesktopSession:
                     if operation in ('automatic','sync_shared') or media_type=='video' or catalog is None or catalog.media_type!=media_type:
                         self._discover(media_type)
                     current=self._video_albums if media_type=='video' else self._albums
+                    if not current and len(media_types)==1 and operation in ('automatic','sync_shared'):
+                        catalog=self.connection._source_catalog
+                        if (catalog is not None and catalog.media_type==media_type and catalog.next_cursor is None
+                                and catalog.coverage==('full_videos' if media_type=='video' else 'full_images')):
+                            # Empty current inventory completes this observation,
+                            # never deletion, restore or historic mapping authority.
+                            with self._lock:self._state='complete'
                     selected_album=video_album_id if operation=='sync_selected' and media_type=='video' else album_id
                     if operation=='sync_shared' and any(album['needs_choice'] for album in current):
                         raise TransferError('file_desktop_source_album_choice_required')

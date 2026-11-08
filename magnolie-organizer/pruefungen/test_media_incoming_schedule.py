@@ -81,6 +81,34 @@ def test_shared_incoming_wifi_cannot_replace_absent_native_receive_with_shared_f
         assert session._schedule.take_due() is None and h.preferences.read()==before
 
 
+@pytest.mark.parametrize('coverage',['full_images','selected_only','none'])
+@pytest.mark.parametrize('trigger',['automatic','manual'])
+def test_empty_incoming_catalog_never_resurrects_or_deletes_originals_and_only_full_scan_completes(source,native,monkeypatch,coverage,trigger):
+    monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
+    with composition(source,native[0]) as h:
+        h.preferences.configure_sending(h.preferences.issue_action(),h.preferences.read(),photos=False,videos=False)
+        c,session=prime_receiving(h,native[0])
+        h.controller.change('direction','phone_to_pc');h.controller.change('auto_mode','wifi' if trigger=='automatic' else 'manual')
+        before=h.preferences.read();original=(h.target.stat().st_ino,h.target.read_bytes())
+        agree_shared(h,native[0])
+        if trigger=='manual':session.start('sync_shared')
+        h.wire.sock.settimeout(30)
+        status=h.wire.receive();assert status['body']['operation']=='status'
+        dispatch(h,native[0],response(status,sources.RESULT,version='b'*64,revision=2,enabled=True,
+            associated=True,repair_pending=False,kinds=sorted(sources.KINDS)))
+        discover=h.wire.receive();assert discover['body']['operation']=='discover'
+        dispatch(h,native[0],response(discover,sources.CATALOG,version='b'*64,page=dict(format=1,catalog_id=CATALOG,
+            after=0,next_cursor=None,coverage=coverage,proves_deletion=False,albums=[])))
+        assert session.join(20),session.snapshot()
+        state=session.snapshot()['state']
+        assert state==('complete' if coverage=='full_images' else 'permission_required' if coverage=='none' else 'albums'),session.snapshot()
+        assert (h.target.stat().st_ino,h.target.read_bytes())==original and h.preferences.read()==before
+        assert c._run is None and c._source_run is None and c._source_pending is None and not h.source._prepared
+        h.wire.sock.settimeout(.1)
+        with pytest.raises(TimeoutError):h.wire.receive() # No batch, READ request or deletion command.
+        session.start('stop')
+
+
 def test_incoming_automatic_status_cannot_survive_route_loss_and_later_wifi_repair(source,native,monkeypatch):
     from magnolie_file_transfer import TransferError
     monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
