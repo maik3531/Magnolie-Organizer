@@ -135,6 +135,7 @@ def candidate_files(candidate, projection):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--main-slot-granted', action='store_true')
+    parser.add_argument('--api', type=int, choices=(26,34,35), default=34)
     parser.add_argument('--image', choices=('google_apis', 'default'), default='google_apis')
     parser.add_argument('--suite', choices=SUITES, default='ui')
     opts = parser.parse_args(argv)
@@ -149,7 +150,7 @@ def main(argv=None):
     if memory == 'max' or int(memory) > 6 * 1024**3 or quota == 'max' or int(quota) > 2 * int(period):
         raise SystemExit('Use MemoryMax=6G and CPUQuota=200% as documented')
     config = session.parser().parse_args(['run', '--main-slot-granted', '--runtime', '600',
-        '--boot-timeout', '180', '--test-timeout', '120', '--progress', '30', '--image', opts.image])
+        '--boot-timeout', '180', '--test-timeout', '120', '--progress', '30', '--image', opts.image, '--api', str(opts.api)])
     config.test = SUITES[opts.suite]
     owner = session.Owner(runtime=600, progress=30)
     code = 1

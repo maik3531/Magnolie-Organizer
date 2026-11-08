@@ -185,6 +185,15 @@ class LifecycleTest(unittest.TestCase):
                     session.run_session(session.Owner(), opts)
                 spawn.assert_not_called()
 
+    def test_api26_package_and_strict_installed_metadata(self):
+        self.assertEqual(session.parser().parse_args(['prepare','--api','26']).api,26)
+        self.assertEqual(session.system_image(26,'google_apis'),'system-images;android-26;google_apis;x86_64')
+        with self.assertRaises(ValueError): session.system_image(26,'default')
+        valid = b'AndroidVersion.ApiLevel=26\nSystemImage.Abi=x86_64\nSystemImage.TagId=google_apis\nPkg.Revision=16\n'
+        session.validate_image_metadata(26,'google_apis',valid)
+        for invalid in (valid.replace(b'=26',b'=34'), valid.replace(b'Revision=16',b'Revision=17'), valid.replace(b'x86_64',b'x86'), valid.replace(b'google_apis',b'default'),valid+b'SystemImage.Abi=x86_64\n'):
+            with self.assertRaises(RuntimeError): session.validate_image_metadata(26,'google_apis',invalid)
+
     def test_wrong_prepared_api_rejected_before_spawning_sdk(self):
         with tempfile.TemporaryDirectory() as tmp:
             state=Path(tmp)/'state.json'

@@ -1,0 +1,15 @@
+{
+  "manifestURL": "https://dl.google.com/android/repository/sys-img/google_apis/sys-img2-3.xml",
+  "manifestSHA256": "f46a7c36aba029eba520189f731901a95c8f423bc446d16c326bf351efd8855e",
+  "retrievedUTC": "2026-11-08",
+  "sdkPackage": "system-images;android-26;google_apis;x86_64",
+  "revision": 16,
+  "archiveURL": "https://dl.google.com/android/repository/sys-img/google_apis/x86_64-26_r16.zip",
+  "archiveSize": 980740438,
+  "officialArchiveChecksum": {
+    "algorithm": "sha1",
+    "value": "0eb13cc91cf164b617eaf85e4030289cb18189de"
+  },
+  "archiveBytesLocallyVerified": false,
+  "nativeAcceptance": false
+}

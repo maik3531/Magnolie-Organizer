@@ -405,12 +405,28 @@ def record_preboot_exit(owner, child, log):
 
 
 def system_image(api, image):
-    if api not in (34, 35) or image not in ('google_apis', 'default'):
+    if api not in (26, 34, 35) or image not in ('google_apis', 'default'):
         raise ValueError('Only supported API and exact Google/AOSP image identifiers are allowed')
+    if api == 26 and image != 'google_apis':
+        raise ValueError('API26 comparison requires the verified Google APIs x86_64 package')
     return f'system-images;android-{api};{image};x86_64'
 
 
+def validate_image_metadata(api, image, data):
+    expected = {'AndroidVersion.ApiLevel': str(api), 'SystemImage.Abi': 'x86_64', 'SystemImage.TagId': image}
+    if api == 26:
+        expected['Pkg.Revision'] = '16'  # Exact official archive reference recorded below.
+    rows = [line.split('=',1) for line in data.decode('utf-8').splitlines() if '=' in line]
+    values = dict(rows)
+    for key, value in expected.items():
+        if values.get(key) != value or sum(row[0] == key for row in rows) != 1:
+            raise RuntimeError('Installed SDK image metadata differs from requested API/ABI/tag')
+
+
 def prepare(owner, opts):
+    system_image(opts.api, opts.image)
+    image_metadata = (SDK / f'system-images/android-{opts.api}/{opts.image}/x86_64/source.properties').read_bytes()
+    validate_image_metadata(opts.api, opts.image, image_metadata)
     idle(owner)
     run = Path.home() / '.local/share/magnolie-testing/tablet-beta' / datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
     run.mkdir(parents=True, exist_ok=False)
@@ -430,8 +446,10 @@ def prepare(owner, opts):
     for label, directory in {'systemImage': SDK / f'system-images/android-{opts.api}/{opts.image}/x86_64',
                              'emulator': SDK / 'emulator', 'platformTools': SDK / 'platform-tools',
                              'commandLineTools': SDK / 'cmdline-tools/latest'}.items():
-        data = (directory / 'source.properties').read_bytes()
+        data = image_metadata if label == 'systemImage' else (directory / 'source.properties').read_bytes()
         versions[label] = dict(sourceProperties=data.decode(), sha256=hashlib.sha256(data).hexdigest())
+    if opts.api == 26:
+        versions['systemImage']['officialArchiveReference'] = json.loads((ROOT / 'tools/api26-system-image.json').read_text())
     versions['systemImage']['sdkPackage'] = system_image(opts.api, opts.image)
     versions['systemImage']['diagnosticComparison'] = opts.image == 'default'
     (run / 'evidence/sdk-versions.json').write_text(json.dumps(versions, indent=2)+'\n')
@@ -497,7 +515,10 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
         properties = adb(owner, owner.state, ['shell', 'getprop'], 20)
         (run / 'evidence/webview-runtime.txt').write_text(webview)
         (run / 'evidence/device-runtime.txt').write_text(properties)
-        owner.record('actual-runtime', runtimeApi=int(actual_api), webviewRuntime=webview)
+        actual_abi = adb(owner, owner.state, ['shell', 'getprop', 'ro.product.cpu.abi'], 20).strip()
+        owner.record('actual-runtime', runtimeApi=int(actual_api), runtimeAbi=actual_abi, webviewRuntime=webview)
+        if actual_abi != 'x86_64':
+            raise RuntimeError('Actual runtime ABI differs from requested x86_64')
         if int(actual_api) != opts.api:
             raise RuntimeError('Actual runtime API differs from requested API')
         if after_boot:
@@ -604,7 +625,7 @@ def parser():
     result.add_argument('--state', type=Path, default=STATE)
     result.add_argument('--image', choices=('google_apis', 'default'), default='google_apis',
                         help='default is an independent AOSP diagnostic; never Google acceptance')
-    result.add_argument('--api', type=int, choices=(34, 35), default=34)
+    result.add_argument('--api', type=int, choices=(26, 34, 35), default=34)
     result.add_argument('--vm-root', type=Path, default=ROOT.parents[1] / 'Test-VMs-20260912')
     result.add_argument('--session-root', type=Path, default=Path(os.environ.get('SESS', str(Path.home() / '.local/share/magnolie-testing/vms/rebuild-20260912'))))
     result.add_argument('--main-slot-granted', action='store_true', help='Only after explicit main-owner sole-slot permission')
