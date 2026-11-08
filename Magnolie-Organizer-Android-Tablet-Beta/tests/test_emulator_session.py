@@ -151,6 +151,15 @@ class LifecycleTest(unittest.TestCase):
         self.assertIn('--max-workers=1', online)
         self.assertIn('--rerun-tasks', online)
 
+    def test_domains_is_explicit_cold_component_stage(self):
+        self.assertIn('domains', session.STAGES)
+        self.assertIn('domains', session.COLD_START_STAGES)
+        spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
+        native = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native)
+        self.assertEqual(native.SUITES['domains'], ['domains'])
+        self.assertNotIn('domains', native.SUITES['ui'])
+
     def test_api_default_and_explicit_supported_images(self):
         self.assertEqual(session.parser().parse_args(['prepare']).api,34)
         self.assertEqual(session.parser().parse_args(['run','--api','35']).api,35)
@@ -338,7 +347,7 @@ class LifecycleTest(unittest.TestCase):
         with patch.object(session,'prepare_test_process') as prepare, patch.object(session,'adb',side_effect=proof):
             for stage in session.STAGES: session.run_test(session.Owner(),{},stage,12)
         self.assertEqual([call.args[2] for call in prepare.call_args_list],
-                         ['basics','restart','layout','time','navigation','calendar-files'])
+                         ['basics','restart','layout','time','navigation','calendar-files','domains'])
 
     def test_native_suites_execute_through_owner_stage_contract(self):
         spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')

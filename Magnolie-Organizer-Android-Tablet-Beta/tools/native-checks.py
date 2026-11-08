@@ -17,6 +17,7 @@ SUITES = {
     'ui': ['basics', 'restart', 'layout', 'time'],
     'services': ['services'],
     'files': ['calendar-files'],
+    'domains': ['domains'],
     'storage': ['basics', 'saf', 'fault', 'print'],
     'notifications': ['notifications'],
 }
@@ -27,7 +28,7 @@ def technical_failure_log(output):
     # runtime/crash diagnostics, never the captured DOM, records or full logcat.
     lines = [line for line in output.splitlines()
              if re.search(r'\s[EF]\s+(?:AndroidRuntime|chromium|libc|DEBUG)\s*:', line) or
-                re.search(r'\sI\s+TabletNativeTest\s*:\s+(?:START (?:basics|restart|layout|time|navigation|services|calendar-files)\b|PASS |PHASE (?:navigation-fixture-(?:start|ready)|native-touch-probe-connected|trusted-tab-switch-\d+)\b)', line)]
+                re.search(r'\sI\s+TabletNativeTest\s*:\s+(?:START (?:basics|restart|layout|time|navigation|services|calendar-files|domains)\b|PASS |PHASE (?:navigation-fixture-(?:start|ready)|native-touch-probe-connected|trusted-tab-switch-\d+)\b)', line)]
     return '\n'.join(lines[-160:])[-16000:]
 
 
