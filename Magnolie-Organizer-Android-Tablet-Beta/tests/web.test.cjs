@@ -13,11 +13,11 @@ let passed=0;
 const ok = (condition,label) => {assert.ok(condition,label); passed++; console.log('PASS '+label);};
 (async()=>{
   const beta=JSON.parse(fs.readFileSync(path.join(root,'web/beta-i18n.json')));
-  ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===3 && x.every(Boolean)), '20 manual beta locales');
+  ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===4 && x.every(Boolean)), '20 manual beta locales');
   const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
   const projected=read('anwendung.js');
   const reviewed=projected.replace(/\/\*TABLET_ICS_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_ICS_\1_END\*\//g,'').replace(/\/\*TABLET_DAV_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_DAV_\1_END\*\//g,'');
-  ok(reviewed.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
+  ok(reviewed.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
     'generated core differs only by reviewed guard, regional entry, DAV prefixes and native detection suppression');
   const fontCss=read('desktop-fonts.css');
   assert.match(read('index.html'),/href="desktop-fonts\.css"/);
@@ -441,6 +441,40 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     !w.document.querySelector('#einst-seite-import').textContent.includes('ICS adds calendar items'),
     'German import flow explains ICS merge and confirmed JSON replacement without English implementation text');
   T.schliesseEinstellungen(); w.MagnolieI18n.setLocale('en');
+  w.MagnolieI18n.setLocale('de'); T.oeffneEinstellungen(); await wait();
+  w.document.querySelector('#einst-tab-export').click(); await wait();
+  ok(w.document.querySelector('#einst-seite-export').textContent.includes(beta.de[3]),
+    'ICS export explains its unencrypted format separately from complete encrypted JSON backup');
+  for (const [kind,label] of [['ics-termine','Appointments (.ics)'],['ics-aufgaben','Tasks (.ics)'],['ics-jahrestage','Anniversaries (.ics)']]) {
+    const priorPasswordExport=messages.filter(m=>m.cmd==='tablet_export').length;
+    const control=[...w.document.querySelectorAll('#einst-seite-export button')].find(item=>item.textContent===w.MagnolieI18n.gettext(label));
+    assert.ok(control); control.click(); await wait(); await wait();
+    const request=messages.filter(m=>m.cmd==='tablet_export_ics').at(-1);
+    assert.equal(request.art,kind); assert.equal(Object.hasOwn(request,'daten'),false);
+    assert.equal(messages.filter(m=>m.cmd==='tablet_export').length,priorPasswordExport);
+    w.Tablet.receive({callback:'exportErgebnis',payload:{requestId:'stale',session:dom.authority().session,ok:true}});
+    w.Tablet.receive({callback:'exportErgebnis',payload:{requestId:request.requestId,session:dom.authority().session,ok:false}});
+    ok(w.document.getElementById('tablet-status').textContent===w.MagnolieI18n.gettext('Export failed.'),
+      kind+' uses a bounded native-authority request without a password dialog and reports write failure');
+  }
+  T.schliesseEinstellungen(); w.MagnolieI18n.setLocale('en');
+  w.Tablet.exportCalendar('ics-termine'); await wait(); await wait();
+  const completedExport=messages.filter(m=>m.cmd==='tablet_export_ics').at(-1);
+  w.Tablet.receive({callback:'exportErgebnis',payload:{requestId:completedExport.requestId,session:'old-page',ok:true}});
+  assert.notEqual(w.document.getElementById('tablet-status').textContent,'Saved.');
+  w.Tablet.receive({callback:'exportErgebnis',payload:{requestId:completedExport.requestId,session:dom.authority().session,ok:true,anzahl:3}});
+  ok(w.document.getElementById('tablet-status').textContent==='Saved.','ICS export completion requires its correlated current-session native result');
+  const originalExportCount=messages.filter(m=>m.cmd==='tablet_export_ics').length;
+  assert.throws(()=>w.Tablet.exportCalendar('csv-termine'));
+  failSave=true; T.daten().notizen[0].text='unsaved ICS export guard';
+  w.Tablet.exportCalendar('ics-termine'); await wait(); await wait();
+  ok(messages.filter(m=>m.cmd==='tablet_export_ics').length===originalExportCount,
+    'ICS picker is not requested when preceding durable book save fails');
+  failSave=false; T.speichereJetzt(); await wait();
+  w.Tablet.exportCalendar('ics-termine'); await wait(); await wait();
+  const cancelledExport=messages.filter(m=>m.cmd==='tablet_export_ics').at(-1);
+  w.Tablet.receive({callback:'cancelled',payload:{requestId:cancelledExport.requestId}});
+  ok(w.document.getElementById('tablet-status').textContent==='Cancel','SAF ICS cancellation has no successful export acknowledgement');
   const priorExports=messages.filter(x=>x.cmd==='tablet_export').length;
   failSave=true; T.daten().notizen[0].text='unsaved change';
   w.Tablet.action('tablet_export'); await wait();

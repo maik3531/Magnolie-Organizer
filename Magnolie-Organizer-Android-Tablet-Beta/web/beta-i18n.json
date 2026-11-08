@@ -2,101 +2,121 @@
   "en": [
     "Unavailable in this beta.",
     "Local beta. No system accounts or synchronization. Notifications may be delayed; recurring events and anniversaries are not notified. Imported Custom modules need fresh notification consent.",
-    "ICS adds calendar items. JSON replaces the book after confirmation. CSV and vCard are unavailable."
+    "ICS adds calendar items. JSON replaces the book after confirmation. CSV and vCard are unavailable.",
+    "ICS files are unencrypted. Use encrypted JSON for a complete book backup."
   ],
   "de": [
     "In dieser Beta nicht verfügbar.",
     "Lokale Beta. Keine Systemkonten oder Synchronisierung. Benachrichtigungen können verspätet eintreffen; Serientermine und Jahrestage werden nicht gemeldet. Importierte eigene Module benötigen eine neue Zustimmung zu Benachrichtigungen.",
-    "ICS ergänzt Kalendereinträge. JSON ersetzt das Buch nach Bestätigung. CSV und vCard sind nicht verfügbar."
+    "ICS ergänzt Kalendereinträge. JSON ersetzt das Buch nach Bestätigung. CSV und vCard sind nicht verfügbar.",
+    "ICS-Dateien sind unverschlüsselt. Verwenden Sie für eine vollständige Buchsicherung das verschlüsselte JSON."
   ],
   "ar": [
     "غير متاح في هذا الإصدار التجريبي.",
     "إصدار تجريبي محلي. لا حسابات نظام ولا مزامنة. قد تتأخر الإشعارات؛ لا إشعارات للأحداث المتكررة والذكريات السنوية. تحتاج الوحدات المخصصة المستوردة إلى موافقة جديدة على الإشعارات.",
-    "يضيف ICS عناصر التقويم. يستبدل JSON الدفتر بعد التأكيد. لا يتوفر CSV أو vCard."
+    "يضيف ICS عناصر التقويم. يستبدل JSON الدفتر بعد التأكيد. لا يتوفر CSV أو vCard.",
+    "ملفات ICS غير مشفرة. استخدم JSON المشفر لنسخة احتياطية كاملة للدفتر."
   ],
   "be": [
     "Недаступна ў гэтай бэта-версіі.",
     "Лакальная бэта-версія. Без сістэмных уліковых запісаў і сінхранізацыі. Апавяшчэнні могуць затрымлівацца; паўторныя падзеі і гадавіны не паведамляюцца. Імпартаваныя ўласныя модулі патрабуюць новай згоды на апавяшчэнні.",
-    "ICS дадае запісы календара. JSON замяняе кнігу пасля пацверджання. CSV і vCard недаступныя."
+    "ICS дадае запісы календара. JSON замяняе кнігу пасля пацверджання. CSV і vCard недаступныя.",
+    "Файлы ICS не зашыфраваныя. Для поўнай рэзервовай копіі кнігі выкарыстоўвайце зашыфраваны JSON."
   ],
   "cs": [
     "V této beta verzi není dostupné.",
     "Místní beta verze. Bez systémových účtů a synchronizace. Oznámení mohou být opožděná; opakované události a výročí se neoznamují. Importované vlastní moduly vyžadují nový souhlas s oznámeními.",
-    "ICS přidává položky kalendáře. JSON po potvrzení nahradí celý zápisník. CSV a vCard nejsou dostupné."
+    "ICS přidává položky kalendáře. JSON po potvrzení nahradí celý zápisník. CSV a vCard nejsou dostupné.",
+    "Soubory ICS nejsou šifrované. Pro úplnou zálohu zápisníku použijte šifrovaný JSON."
   ],
   "da": [
     "Ikke tilgængelig i denne beta.",
     "Lokal beta. Ingen systemkonti eller synkronisering. Notifikationer kan være forsinkede; gentagne begivenheder og mærkedage meddeles ikke. Importerede brugerdefinerede moduler kræver nyt samtykke til notifikationer.",
-    "ICS tilføjer kalenderposter. JSON erstatter bogen efter bekræftelse. CSV og vCard er ikke tilgængelige."
+    "ICS tilføjer kalenderposter. JSON erstatter bogen efter bekræftelse. CSV og vCard er ikke tilgængelige.",
+    "ICS-filer er ukrypterede. Brug krypteret JSON til en fuld sikkerhedskopi af bogen."
   ],
   "es": [
     "No disponible en esta beta.",
     "Beta local. Sin cuentas del sistema ni sincronización. Las notificaciones pueden retrasarse; no se notifican los eventos recurrentes ni los aniversarios. Los módulos personalizados importados requieren un nuevo consentimiento para las notificaciones.",
-    "ICS añade elementos al calendario. JSON reemplaza el libro tras la confirmación. CSV y vCard no están disponibles."
+    "ICS añade elementos al calendario. JSON reemplaza el libro tras la confirmación. CSV y vCard no están disponibles.",
+    "Los archivos ICS no están cifrados. Use JSON cifrado para una copia completa del libro."
   ],
   "fr": [
     "Indisponible dans cette bêta.",
     "Bêta locale. Sans comptes système ni synchronisation. Les notifications peuvent être retardées ; les événements récurrents et anniversaires ne sont pas notifiés. Les modules personnalisés importés nécessitent un nouveau consentement aux notifications.",
-    "ICS ajoute des éléments au calendrier. JSON remplace le carnet après confirmation. CSV et vCard ne sont pas disponibles."
+    "ICS ajoute des éléments au calendrier. JSON remplace le carnet après confirmation. CSV et vCard ne sont pas disponibles.",
+    "Les fichiers ICS ne sont pas chiffrés. Utilisez le JSON chiffré pour une sauvegarde complète du carnet."
   ],
   "hi": [
     "इस बीटा में उपलब्ध नहीं है।",
     "स्थानीय बीटा। सिस्टम खाते और सिंक्रनाइज़ेशन नहीं हैं। सूचनाओं में देरी हो सकती है; आवर्ती घटनाओं और वर्षगाँठों की सूचनाएँ नहीं दी जातीं। आयात किए गए कस्टम मॉड्यूल की सूचनाओं के लिए नई सहमति आवश्यक है।",
-    "ICS कैलेंडर प्रविष्टियाँ जोड़ता है। पुष्टि के बाद JSON पूरी पुस्तक बदल देता है। CSV और vCard उपलब्ध नहीं हैं।"
+    "ICS कैलेंडर प्रविष्टियाँ जोड़ता है। पुष्टि के बाद JSON पूरी पुस्तक बदल देता है। CSV और vCard उपलब्ध नहीं हैं।",
+    "ICS फ़ाइलें एन्क्रिप्ट नहीं होतीं। पूरी पुस्तक के बैकअप के लिए एन्क्रिप्टेड JSON उपयोग करें।"
   ],
   "hsb": [
     "W tutej beta-wersiji k dispoziciji njeje.",
     "Lokalna beta-wersija. Žane systemowe konta a synchronizacija. Zdźělenki móža so wokomdźić; wospjetowace so terminy a wročnicy so njezdźěleja. Importowane swójske module trjebaja nowe zwolenje za zdźělenki.",
-    "ICS přidawa protykowe zapiski. JSON knihu po wobkrućenju naruna. CSV a vCard njejstej k dispoziciji."
+    "ICS přidawa protykowe zapiski. JSON knihu po wobkrućenju naruna. CSV a vCard njejstej k dispoziciji.",
+    "ICS-dataje njejsu zaklučowane. Za dospołnu zawěsćenku knihi wužiwajće zaklučowany JSON."
   ],
   "it": [
     "Non disponibile in questa beta.",
     "Beta locale. Nessun account di sistema o sincronizzazione. Le notifiche possono arrivare in ritardo; eventi ricorrenti e anniversari non vengono notificati. I moduli personalizzati importati richiedono un nuovo consenso alle notifiche.",
-    "ICS aggiunge elementi al calendario. JSON sostituisce il libro dopo la conferma. CSV e vCard non sono disponibili."
+    "ICS aggiunge elementi al calendario. JSON sostituisce il libro dopo la conferma. CSV e vCard non sono disponibili.",
+    "I file ICS non sono cifrati. Per un backup completo del libro, usare JSON cifrato."
   ],
   "ja": [
     "このベータ版では利用できません。",
     "ローカルのベータ版です。システムアカウントと同期はありません。通知が遅れる場合があります。繰り返しの予定と記念日は通知されません。読み込んだカスタムモジュールの通知には新たな同意が必要です。",
-    "ICSはカレンダー項目を追加します。JSONは確認後に手帳全体を置き換えます。CSVとvCardには対応していません。"
+    "ICSはカレンダー項目を追加します。JSONは確認後に手帳全体を置き換えます。CSVとvCardには対応していません。",
+    "ICSファイルは暗号化されません。手帳全体のバックアップには暗号化JSONを使用してください。"
   ],
   "nb": [
     "Ikke tilgjengelig i denne betaen.",
     "Lokal beta. Ingen systemkontoer eller synkronisering. Varsler kan bli forsinket; gjentakende hendelser og merkedager varsles ikke. Importerte egendefinerte moduler krever nytt samtykke til varsler.",
-    "ICS legger til kalenderoppføringer. JSON erstatter boken etter bekreftelse. CSV og vCard er ikke tilgjengelige."
+    "ICS legger til kalenderoppføringer. JSON erstatter boken etter bekreftelse. CSV og vCard er ikke tilgjengelige.",
+    "ICS-filer er ukrypterte. Bruk kryptert JSON for en fullstendig sikkerhetskopi av boken."
   ],
   "nl": [
     "Niet beschikbaar in deze bèta.",
     "Lokale bèta. Geen systeemaccounts of synchronisatie. Meldingen kunnen vertraagd zijn; terugkerende afspraken en gedenkdagen worden niet gemeld. Geïmporteerde aangepaste modules vereisen nieuwe toestemming voor meldingen.",
-    "ICS voegt agenda-items toe. JSON vervangt het boek na bevestiging. CSV en vCard zijn niet beschikbaar."
+    "ICS voegt agenda-items toe. JSON vervangt het boek na bevestiging. CSV en vCard zijn niet beschikbaar.",
+    "ICS-bestanden zijn niet versleuteld. Gebruik versleutelde JSON voor een volledige back-up van het boek."
   ],
   "pl": [
     "Niedostępne w tej wersji beta.",
     "Lokalna wersja beta. Bez kont systemowych i synchronizacji. Powiadomienia mogą być opóźnione; wydarzenia cykliczne i rocznice nie są zgłaszane. Importowane własne moduły wymagają ponownej zgody na powiadomienia.",
-    "ICS dodaje wpisy kalendarza. JSON zastępuje cały terminarz po potwierdzeniu. CSV i vCard są niedostępne."
+    "ICS dodaje wpisy kalendarza. JSON zastępuje cały terminarz po potwierdzeniu. CSV i vCard są niedostępne.",
+    "Pliki ICS nie są szyfrowane. Pełną kopię terminarza zapisz jako szyfrowany JSON."
   ],
   "pt": [
     "Indisponível nesta beta.",
     "Beta local. Sem contas do sistema ou sincronização. As notificações podem atrasar-se; eventos recorrentes e aniversários não são notificados. Os módulos personalizados importados exigem novo consentimento para notificações.",
-    "ICS adiciona itens ao calendário. JSON substitui o livro após confirmação. CSV e vCard não estão disponíveis."
+    "ICS adiciona itens ao calendário. JSON substitui o livro após confirmação. CSV e vCard não estão disponíveis.",
+    "Os ficheiros ICS não são encriptados. Use JSON encriptado para uma cópia completa do livro."
   ],
   "ru": [
     "Недоступно в этой бета-версии.",
     "Локальная бета-версия. Без системных учётных записей и синхронизации. Уведомления могут задерживаться; повторяющиеся события и годовщины не уведомляются. Для импортированных собственных модулей нужно новое согласие на уведомления.",
-    "ICS добавляет записи календаря. JSON заменяет книгу после подтверждения. CSV и vCard недоступны."
+    "ICS добавляет записи календаря. JSON заменяет книгу после подтверждения. CSV и vCard недоступны.",
+    "Файлы ICS не зашифрованы. Для полной резервной копии книги используйте зашифрованный JSON."
   ],
   "tr": [
     "Bu beta sürümünde kullanılamaz.",
     "Yerel beta. Sistem hesapları ve eşitleme yoktur. Bildirimler gecikebilir; yinelenen etkinlikler ve yıl dönümleri bildirilmez. İçe aktarılan özel modüllerin bildirimleri için yeniden onay gerekir.",
-    "ICS takvim öğeleri ekler. JSON, onaydan sonra defterin tamamını değiştirir. CSV ve vCard kullanılamaz."
+    "ICS takvim öğeleri ekler. JSON, onaydan sonra defterin tamamını değiştirir. CSV ve vCard kullanılamaz.",
+    "ICS dosyaları şifrelenmez. Defterin tam yedeği için şifreli JSON kullanın."
   ],
   "uk": [
     "Недоступно в цій бета-версії.",
     "Локальна бета-версія. Без системних облікових записів і синхронізації. Сповіщення можуть затримуватися; повторювані події та річниці не сповіщаються. Для імпортованих власних модулів потрібна нова згода на сповіщення.",
-    "ICS додає записи календаря. JSON замінює книгу після підтвердження. CSV і vCard недоступні."
+    "ICS додає записи календаря. JSON замінює книгу після підтвердження. CSV і vCard недоступні.",
+    "Файли ICS не зашифровані. Для повної резервної копії книги використовуйте зашифрований JSON."
   ],
   "zh_CN": [
     "此测试版暂不支持。",
     "本地测试版。不支持系统账户或同步。通知可能延迟；不通知重复事件和纪念日。导入的自定义模块需要重新同意通知。",
-    "ICS添加日历项目。JSON会在确认后替换整个记事本。暂不支持CSV和vCard。"
+    "ICS添加日历项目。JSON会在确认后替换整个记事本。暂不支持CSV和vCard。",
+    "ICS文件不加密。如需完整备份记事本，请使用加密JSON。"
   ]
 }

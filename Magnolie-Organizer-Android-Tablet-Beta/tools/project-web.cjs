@@ -130,10 +130,14 @@ regionalSource = regionalSource.replace(calendarMergeAnchor,
   '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n' +
   '      if (changed/*TABLET_ICS_SAVE_BEGIN*/ || calendarMetadata/*TABLET_ICS_SAVE_END*/) {/*TABLET_ICS_COMMIT_BEGIN*/\n' +
   '        if (calendarMetadata) window.Tablet.calendarMetadata(DATEN, nutzlast, true);/*TABLET_ICS_COMMIT_END*/');
+const calendarExportAnchor = '  function starteExport(art) {';
+if (regionalSource.split(calendarExportAnchor).length !== 2) throw Error('Canonical ICS export action anchor changed');
+regionalSource=regionalSource.replace(calendarExportAnchor,calendarExportAnchor+
+  '/*TABLET_ICS_EXPORT_BEGIN*/\n    if (["ics-termine","ics-aufgaben","ics-jahrestage"].includes(art)) return window.Tablet.exportCalendar(art);/*TABLET_ICS_EXPORT_END*/');
 const anchor = '  window.App = App;';
 if (appSource.split(anchor).length !== 2) throw Error('Desktop adapter anchor changed');
 generated.set('assets/web/anwendung.js', Buffer.from(regionalSource.replace(anchor,
-  '  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed) };\n'+anchor)));
+  '  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n'+anchor)));
 let html = buffers.get(path.join(desktop,'index.html')).toString();
 if (!html.includes('<script src="anwendung.js"></script>')) throw Error('Desktop entry point changed');
 html = html.replace('<title>Magnolie Organizer</title>', '<title>Magnolie Organizer Android Tablet Beta 2.0.30Beta</title>')

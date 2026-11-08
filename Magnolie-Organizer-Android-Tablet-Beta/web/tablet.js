@@ -4,7 +4,7 @@
   const document = window.document;
   const name = 'Magnolie Organizer Android Tablet Beta 2.0.30Beta';
   const supported = new Set(['bereit','speichern','beenden_bereit','beenden_abgebrochen',
-    'drucken','ablage_kopieren','ablage_holen','tablet_import','tablet_export',
+    'drucken','ablage_kopieren','ablage_holen','tablet_import','tablet_export','tablet_export_ics',
     'feiertage','tablet_notifications','tablet_about','tablet_replace','tablet_import_cancel','tablet_calendar_import_done','erinnerung_einrichten','tablet_loaded']);
   const davCommands = new Set(['baum_briefkasten_status','baum_briefkasten_speichern',
     'baum_briefkasten_pruefen','baum_dav_pruefen','eds_status']);
@@ -12,7 +12,7 @@
     'baumBriefkastenPruefung','baumDavPruefung','edsStatus']);
   for (const command of davCommands) supported.add(command);
   const rejected = new Set();
-  let loaded = false, pendingAction = null, replacement = null, pendingCalendar = null;
+  let loaded = false, pendingAction = null, replacement = null, pendingCalendar = null, pendingCalendarExport = null;
   let session = null, revision = null, blocked = false;
   const tr = text => window.MagnolieI18n?.gettext(text) || text;
   function beta(index) {
@@ -153,6 +153,11 @@
     return [...new Map(result.map(x=>[x.id,x])).values()].sort((a,b)=>a.at-b.at);
   }
   function send(message) {
+    if (message.cmd === 'export') {
+      if (!['ics-termine','ics-aufgaben','ics-jahrestage'].includes(message.art) || !Array.isArray(message.daten) ||
+          Object.keys(message).some(key=>!['cmd','art','daten'].includes(key))) throw Error(beta(0));
+      exportCalendar(message.art); return;
+    }
     if (message.cmd === 'import') {
       if (message.art !== 'ics' || Object.keys(message).some(key=>!['cmd','art'].includes(key))) throw Error(beta(0));
       action('tablet_import','ics'); return;
@@ -172,8 +177,9 @@
   }
   window.webkit = {messageHandlers:{bridge:{postMessage: text => send(JSON.parse(text))}}};
   function action(cmd, format = 'json') {
-    if (!loaded || blocked || replacement || pendingAction || pendingCalendar) return;
+    if (!loaded || blocked || replacement || pendingAction || pendingCalendar || pendingCalendarExport) return;
     if (cmd === 'tablet_import' && !['json','ics'].includes(format)) throw Error(beta(0));
+    if (cmd === 'tablet_export_ics' && !['ics-termine','ics-aufgaben','ics-jahrestage'].includes(format)) throw Error(beta(0));
     // Reuse the desktop editor guard and its durable-save queue before opening SAF.
     pendingAction = cmd;
     window.MagnolieTabletActions.afterSave(() => {
@@ -182,9 +188,13 @@
         const requestId = Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
         if (format === 'ics') pendingCalendar = {requestId};
         native({cmd,format,requestId});
+      } else if (cmd === 'tablet_export_ics') {
+        const requestId = Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
+        pendingCalendarExport={requestId}; native({cmd,art:format,requestId});
       } else native({cmd});
     }).then(ok => { if (!ok) pendingAction = null; });
   }
+  function exportCalendar(kind) { action('tablet_export_ics',kind); }
   function calendarMetadata(data, payload, commit) {
     const metadata = payload.icsImportMetadata;
     if (!metadata) return false;
@@ -303,7 +313,7 @@
     return normalized;
   }
   function blockStorage(payload) {
-    blocked=true; loaded=false; pendingAction=null; pendingCalendar=null;
+    blocked=true; loaded=false; pendingAction=null; pendingCalendar=null; pendingCalendarExport=null;
     document.getElementById('schreibtisch').inert=true;
     document.querySelectorAll('[role=dialog]').forEach(el=>{el.inert=true;});
     status((payload.text || tr('Warning: The data could not be saved.'))+' ['+payload.outcome+']');
@@ -313,7 +323,7 @@
     }
   }
   window.Tablet = {
-    alarms, validateImport, action, rejected, calendarMetadata,
+    alarms, validateImport, action, rejected, calendarMetadata, exportCalendar,
     flush() { if (loaded && !replacement) window.OrganizerTest.speichereJetzt(); },
     receive(message) {
       if (typeof message === 'string') message = JSON.parse(message);
@@ -332,6 +342,10 @@
           if (p.reloadRequired) { blockStorage({text:p.fehler,outcome:p.outcome}); break; }
           if (p.ok) revision=p.revision; else pendingAction=null;
           window.App.gespeichert(p); break;
+        case 'exportErgebnis':
+          if (!loaded || blocked || replacement || !pendingCalendarExport || pendingCalendarExport.requestId!==p.requestId || p.session!==session) break;
+          pendingCalendarExport=null;
+          status(p.ok===true ? tr('Saved.') : p.abgebrochen ? tr('Cancel') : tr('Export failed.')); break;
         case 'calendarImport': void calendarImport(p); break;
         case 'importCandidate':
           if (!loaded || blocked || replacement) break;
@@ -349,6 +363,10 @@
           if (p.token === replacement?.token) blockStorage(p); break;
         case 'storageBlocked': blockStorage(p); break;
         case 'cancelled':
+          if (pendingCalendarExport) {
+            if (p.requestId!==pendingCalendarExport.requestId) break;
+            pendingCalendarExport=null;
+          }
           if (blocked || replacement && p.token !== replacement.token) break;
           if (pendingCalendar && pendingCalendar.requestId !== p.requestId) break;
           pendingCalendar=null;
@@ -387,6 +405,11 @@
       const p = document.createElement('p'); p.textContent = beta(1); page.append(p);
       page.append(button(tr(id==='import'?'Import':id==='export'?'Export':'Notifications')+
         (id==='erinnerung'?'':' JSON'),()=>action('tablet_'+(id==='erinnerung'?'notifications':id))));
+      if (id==='export') {
+        for (const [kind,label] of [['ics-termine','Appointments (.ics)'],['ics-aufgaben','Tasks (.ics)'],['ics-jahrestage','Anniversaries (.ics)']])
+          page.append(button(tr(label),()=>window.MagnolieTabletActions.exportCalendar(kind)));
+        const note=document.createElement('p'); note.textContent=beta(3); page.append(note);
+      }
       if (id==='import') {
         page.append(button(tr('Import')+' ICS',()=>action('tablet_import','ics')));
         const note=document.createElement('p'); note.textContent=beta(2); page.append(note);

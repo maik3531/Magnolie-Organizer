@@ -35,6 +35,7 @@ class MainActivity : Activity() {
     private var bootstrapStarted = false
     @Volatile private var restoreFenced = false
     private var exporting: String? = null
+    private var calendarExportCount = 0
     private var importToken: String? = null
     private var documentBusy = false
     private var documentRequests = DocumentRequests()
@@ -370,6 +371,17 @@ class MainActivity : Activity() {
                     active.requestId == message.opt("requestId") && active.code == message.getInt("pickerToken"))
                 check(documentRequests.finish(active.code)); documentBusy = false
             }
+            "tablet_export_ics" -> {
+                check(!documentBusy)
+                val selected = try { CalendarExportRequest.parse(message) } catch (_: Exception) {
+                    val id = (message.opt("requestId") as? String)?.takeIf { it.isNotEmpty() && it.toByteArray().size <= 1024 }
+                    respond("exportErgebnis",JSONObject().put("requestId",id).put("session",session?.id).put("ok",false),epoch)
+                    return
+                }
+                documentBusy = true
+                val request = documentRequests.begin(true,epoch,requireNotNull(session),requestId=selected.requestId,exportFormat=ExportFormat.ICS)
+                prepareCalendarExport(selected,request)
+            }
             "tablet_export" -> {
                 check(!documentBusy); documentBusy=true
                 password { chars -> work({ cancelDocument(); respond("error",getString(R.string.failed)) }) {
@@ -476,26 +488,42 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode,resultCode,data)
         val matched = documentRequests.matches(requestCode)
-        val selectedRequestId = if (matched) documentRequests.active()?.requestId else null
+        val pendingRequest = if (matched) documentRequests.active() else null
+        val selectedRequestId = pendingRequest?.requestId
         val request = documentRequests.take(requestCode,generation,documentSession) ?: run {
-            if (matched) cancelDocument(selectedRequestId)
+            if (matched) {
+                cancelDocument(selectedRequestId)
+                if (pendingRequest?.exportFormat == ExportFormat.ICS) calendarExportReply(pendingRequest,false,true)
+            }
             return
         }
         if (!documentBusy || !currentPage(request.generation,request.session)) return
         val uri = data?.data
-        if (resultCode != RESULT_OK || uri == null) { cancelDocument(); return }
+        if (resultCode != RESULT_OK || uri == null) {
+            cancelDocument()
+            if (request.exportFormat == ExportFormat.ICS) calendarExportReply(request,false,true)
+            return
+        }
         if (request.export) {
             val text = exporting ?: run { cancelDocument(); return }
-            work({cancelDocument();respond("error",getString(R.string.failed))}) {
-                // SAF providers own commit durability. Propagate all write/flush/close errors, never claim atomic SAF writes.
-                contentResolver.openOutputStream(uri,"wt")?.use { it.write(text.toByteArray(Charsets.UTF_8)); it.flush() }
-                    ?: error("No output stream")
+            val count = calendarExportCount
+            val write: () -> Unit = {
+                check(currentPage(request.generation,request.session) && documentRequests.isActive(request))
+                // Success is emitted only after write, flush and close all return.
+                CalendarExportRequest.write(contentResolver.openOutputStream(uri,"wt"),text)
                 runOnUiThread {
-                    if (currentPage(request.generation,request.session)) {
-                        exporting=null; documentBusy=false; respond("notice",getString(R.string.saved),request.generation)
-                    }
+                    if (currentPage(request.generation,request.session) && documentRequests.isActive(request)) {
+                        exporting=null; documentBusy=false; documentRequests.finish(request.code)
+                        if (request.exportFormat == ExportFormat.ICS) calendarExportReply(request,true,count=count)
+                        else respond("notice",getString(R.string.saved),request.generation)
+                    } else if (request.exportFormat == ExportFormat.ICS) calendarExportFailed(request)
                 }
             }
+            if (request.exportFormat == ExportFormat.ICS) {
+                try { calendarImportWorker.execute {
+                    try { write() } catch (_: Exception) { calendarExportFailed(request) }
+                } } catch (_: java.util.concurrent.RejectedExecutionException) { calendarExportFailed(request) }
+            } else work({cancelDocument();respond("error",getString(R.string.failed))},write)
         } else if (request.format == ImportFormat.ICS) {
             readCalendar(uri,request)
         } else work({cancelDocument();respond("error",getString(R.string.import_failed))}) {
@@ -516,6 +544,47 @@ class MainActivity : Activity() {
             } else { validateData(obj); offerImport(text,request) }
         }
     }
+    private fun calendarExportReply(request: DocumentRequests.Request, ok: Boolean, cancelled: Boolean = false, count: Int = 0) {
+        runOnUiThread {
+            if (!accountCurrent(request.generation,request.session)) return@runOnUiThread
+            respond("exportErgebnis",JSONObject().put("requestId",request.requestId).put("session",request.session.id)
+                .put("ok",ok).put("abgebrochen",cancelled).put("anzahl",count),request.generation)
+        }
+    }
+    private fun calendarExportFailed(request: DocumentRequests.Request) {
+        runOnUiThread {
+            if (!accountCurrent(request.generation,request.session) || !documentRequests.isActive(request)) return@runOnUiThread
+            documentRequests.cancel(); exporting=null; documentBusy=false
+            calendarExportReply(request,false)
+        }
+    }
+    private fun prepareCalendarExport(selected: CalendarExportRequest, request: DocumentRequests.Request) {
+        AndroidStore.io.execute {
+            if (!calendarCurrent(request)) return@execute
+            try {
+                AndroidStore.vault(this).requireSession(request.session)
+                val book = AndroidStore.vault(this).read()?.getJSONObject("data") ?: error("No saved book")
+                val records = selected.records(book)
+                val zone = book.optJSONObject("einstellungen")?.optJSONObject("regional")?.optString("timeZone","system") ?: "system"
+                calendarImportWorker.execute {
+                    try {
+                        val text = ICalendarExport.encode(records,selected.kind,zone) {
+                            check(calendarCurrent(request) && documentSession == request.session) { "Calendar export authority changed" }
+                        }
+                        runOnUiThread {
+                            if (!calendarCurrent(request)) return@runOnUiThread
+                            if (documentSession != request.session) { calendarExportFailed(request); return@runOnUiThread }
+                            exporting=text; calendarExportCount=records.size
+                            try { startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                                addCategory(Intent.CATEGORY_OPENABLE); type="text/calendar"; putExtra(Intent.EXTRA_TITLE,selected.fileName)
+                            },request.code) } catch (_: Exception) { calendarExportFailed(request) }
+                        }
+                    } catch (_: Exception) { calendarExportFailed(request) }
+                }
+            } catch (_: Exception) { calendarExportFailed(request) }
+        }
+    }
+
     private fun calendarCurrent(request: DocumentRequests.Request): Boolean =
         accountCurrent(request.generation,request.session) && documentRequests.isActive(request)
 

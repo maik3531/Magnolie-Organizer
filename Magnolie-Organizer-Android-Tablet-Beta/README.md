@@ -70,7 +70,7 @@ against the projected core and through the existing shared desktop test runner.
 | Private persistence | AES-256-GCM, Android Keystore, synchronized file write, atomic rename, directory fsync before save ACK | Native basic save/readback, non-exportable key and process restart passed; crash/failure durability acceptance remains open |
 | Import | SAF ICS merges calendar appointments, tasks and anniversaries through the shared importer; SAF JSON accepts raw version-6 state or this beta's encrypted envelope | ICS source metadata and records share one durable book save; no VCF/CSV or desktop complete-archive importer; native SAF ICS acceptance still pending |
 | JSON replacement | Shared normalizer, explicit replacement confirmation, encrypted pre-import snapshot | Replaces the whole profile, not a merge; backup is internal, recovery UI not yet implemented |
-| Export | SAF password-encrypted JSON, PBKDF2-HMAC-SHA256 + referenced AES-GCM primitive | Beta-specific envelope, not Notes backup or desktop complete-archive format |
+| Export | SAF standard ICS for appointments, tasks and anniversaries; password-encrypted JSON for the complete book | ICS is unencrypted and collection-specific; native SAF ICS acceptance pending. JSON uses the beta envelope, not Notes backup or desktop complete-archive format |
 | PDF/printing | Canonical print HTML into a separate script/bridge-free native print WebView | Android Print dialog includes Save as PDF; no automatic completion ACK; runtime/spooler validation pending |
 | Reminders | Persisted one-off calendar/task/custom alarms, global and separate custom consent, inexact AlarmManager wakeup, boot/package restart receiver, delivery receipts | No recurrence/anniversary/health/SMS scheduling, exact alarm SLA, foreground service or force-stop bypass |
 | Localization | Existing 20-language catalogs; two small manual beta strings in all 20 locales | Native locale follows Android, web locale follows organizer settings; linguistic review not claimed |
@@ -146,7 +146,22 @@ notification permissions are **not** trusted: global and custom native consent
 are reset, and the alarm schedule is empty until the web core reprojects it.
 Custom module/item consent remains necessary in addition to native custom consent.
 
-Export passwords are 8-1024 characters. The portable envelope is JSON with
+The three canonical ICS export actions each select the entire appointments, tasks
+or anniversaries collection; they have no frontend record filter. After the
+shared editor/durable-save guard, native code reads the authoritative saved book,
+validates the selected collection and encodes the complete ICS file off the UI and
+book IO executor. Only then does the Android create-document picker open with
+`text/calendar` and an `.ics` filename. No ICS body or record array crosses back
+through WebView. ICS has no password dialog and is explicitly labeled unencrypted;
+use encrypted JSON for a complete book backup. Unsupported kinds, invalid records
+and an empty collection reject before the picker. Picker results and queued writes
+are bound to their original page, revision and one-use request. A cancellation or
+write/flush/close failure never produces a successful export acknowledgement.
+The provider can leave a partial file after an error; SAF writes are not claimed
+atomic. The pure export codec bounds the complete output to 32 MiB. Native Android
+compile and SAF interaction remain required before accepting this route.
+
+JSON export passwords are 8-1024 characters. The portable envelope is JSON with
 `format: Magnolie-Organizer-Android-Tablet-Beta-1`, fixed 210000 PBKDF2 iterations,
 random 32-byte salt, and authenticated encrypted JSON. Wrong passwords,
 unsupported parameters and tampering reject. Keep the password separately:
