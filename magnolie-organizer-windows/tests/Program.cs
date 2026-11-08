@@ -206,6 +206,8 @@ runner.Add("Magnolienbaum Crypto / Pairing / FS1 / Replay / Queues / Netzwerk", 
 runner.Add("Magnolienbaum Nextcloud / WebDAV / Authentisierung", NextcloudMailboxTests.RunAsync);
 runner.Add("DAV credential identity / checked account changes cannot reuse a retained secret", NextcloudMailboxTests.CredentialIdentityGuardAsync);
 runner.Add("Embedded timezone boundary anchors / historical UTC range", RecurrenceIntegrationTests.BoundaryAnchorsAsync);
+runner.Add("ICS unfolding / actual codec / semantic compatibility", CalendarUnfoldingTests.SemanticsAsync);
+runner.Add("ICS unfolding / bounded allocations / valid folded descriptions", CalendarUnfoldingTests.AllocationsAsync);
 runner.Add("Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit", NextcloudDavTests.RunAsync);
 runner.Add("Calendar birthday cleanup", CalendarBirthdayCleanupTests.RunAsync);
 runner.Add("Shared preference controller", SharedSyncControllerTests.RunAsync);

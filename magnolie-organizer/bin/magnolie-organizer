@@ -2602,12 +2602,16 @@ def _text_dekodieren(rohbytes):
 def _entfalte_zeilen(text):
     """Hebt die iCalendar-Zeilenfaltung auf (Folgezeilen mit Leerraum)."""
     zeilen = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-    aus = []
+    aus, teile = [], []
     for z in zeilen:
-        if z[:1] in (" ", "\t") and aus:
-            aus[-1] += z[1:]
+        if z[:1] in (" ", "\t") and teile:
+            teile.append(z[1:])
         else:
-            aus.append(z)
+            if teile:
+                aus.append("".join(teile))
+            teile = [z]
+    if teile:
+        aus.append("".join(teile))
     return [z for z in aus if z.strip()]
 
 

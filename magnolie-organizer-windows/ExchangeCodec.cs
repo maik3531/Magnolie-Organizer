@@ -1309,8 +1309,17 @@ internal static partial class ExchangeCodec
     private static IEnumerable<string> Unfold(string text)
     {
         var result = new List<string>();
+        StringBuilder? current = null;
         foreach (var line in text.ReplaceLineEndings("\n").Split('\n'))
-            if ((line.StartsWith(' ') || line.StartsWith('\t')) && result.Count > 0) result[^1] += line[1..]; else result.Add(line.TrimEnd('\r'));
+        {
+            if ((line.StartsWith(' ') || line.StartsWith('\t')) && current is not null) current.Append(line.AsSpan(1));
+            else
+            {
+                if (current is not null) result.Add(current.ToString());
+                current = new StringBuilder(line.TrimEnd('\r'));
+            }
+        }
+        if (current is not null) result.Add(current.ToString());
         return result;
     }
 
