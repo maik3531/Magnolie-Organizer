@@ -114,6 +114,13 @@ source checkpoint, not a completed native parity acceptance.
   Import preserves source-qualified task aliases. Combined export of colliding
   external task UIDs from different sources still rejects explicitly; export
   those sources separately or use JSON backup for the complete profile.
+- Native ICS entry points receive an explicit immutable timezone context from
+  the SHA-verified bundled 2026egtz database. Each operation captures the current
+  system identifier anew; OS numeric rules are not a fallback. Source VTIMEZONE
+  definitions take priority, opaque UID/TZID bytes stay distinct, and Gregorian
+  arithmetic has no 1582 cutover. The codec context migration still needs its
+  native compilation and roundtrip run; standalone point/definition oracle
+  results do not alone prove the complete codec integration.
 - A one-off task's "Custom notification" (1 through 7 days before) is independent
   of "remind me on the due date". Both may be enabled. Early times use calendar
   days in the source timezone, not a fixed 24-hour duration across DST. Global

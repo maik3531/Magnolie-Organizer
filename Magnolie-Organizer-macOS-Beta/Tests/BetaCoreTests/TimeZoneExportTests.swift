@@ -73,7 +73,7 @@ final class TimeZoneExportTests: XCTestCase {
     func testFoundationZonesHistoryGapFoldAndUnboundedFuture() throws {
         for identifier in ["Europe/Berlin", "America/New_York", "Australia/Sydney", "Etc/UTC"] {
             let zone = try XCTUnwrap(TimeZone(identifier: identifier))
-            let lines = try TimeZoneExport.definition(identifier)
+            let lines = try TimeZoneExport.definition(identifier, context: try CalendarTestContext.make())
             XCTAssertEqual(lines.first, "BEGIN:VTIMEZONE")
             XCTAssertEqual(lines.last, "END:VTIMEZONE")
             if identifier != "Etc/UTC" { XCTAssertTrue(lines.contains { $0.hasPrefix("RRULE:FREQ=YEARLY;") }, identifier) }
@@ -88,7 +88,7 @@ final class TimeZoneExportTests: XCTestCase {
             ("Europe/Berlin", [date(2026, 3, 29, 0, 59), date(2026, 3, 29, 1), date(2026, 10, 25, 0, 59), date(2026, 10, 25, 1)]),
             ("America/New_York", [date(2026, 3, 8, 6, 59), date(2026, 3, 8, 7), date(2026, 11, 1, 5, 59), date(2026, 11, 1, 6)])] {
             let zone = TimeZone(identifier: identifier)!
-            let lines = try TimeZoneExport.definition(identifier)
+            let lines = try TimeZoneExport.definition(identifier, context: try CalendarTestContext.make())
             for instant in instants { XCTAssertEqual(try exportedOffset(lines, at: instant), zone.secondsFromGMT(for: instant)) }
         }
     }
@@ -111,7 +111,7 @@ final class TimeZoneExportTests: XCTestCase {
     }
 
     func testSyntheticHistoryOffsetsRdatesAndFuture() throws {
-        let lines = try TimeZoneExport.definition("Test/Zone", data: fixture())
+        let lines = try LegacyTZifDiagnostic.definition("Test/Zone", data: fixture())
         XCTAssertTrue(lines.contains("DTSTART:00010101T010000"))
         XCTAssertTrue(lines.contains { $0.hasPrefix("RDATE:") })
         XCTAssertTrue(lines.contains("TZOFFSETFROM:+0100"))
@@ -120,14 +120,14 @@ final class TimeZoneExportTests: XCTestCase {
         XCTAssertTrue(lines.contains("RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU"))
         XCTAssertEqual(try exportedOffset(lines, at: date(8000, 1, 1)), 3600)
         XCTAssertEqual(try exportedOffset(lines, at: date(8000, 7, 1)), 7200)
-        let utc = try TimeZoneExport.definition("Fixed", data: fixture(footer: "STD-1", transitions: []))
+        let utc = try LegacyTZifDiagnostic.definition("Fixed", data: fixture(footer: "STD-1", transitions: []))
         XCTAssertFalse(utc.contains { $0.hasPrefix("RRULE:") })
         XCTAssertEqual(try exportedOffset(utc, at: date(8000, 7, 1)), 3600)
-        let seconds = try TimeZoneExport.definition("Seconds", data: fixture(footer: "STD-0:19:32", standardOffset: 1172, transitions: []))
+        let seconds = try LegacyTZifDiagnostic.definition("Seconds", data: fixture(footer: "STD-0:19:32", standardOffset: 1172, transitions: []))
         XCTAssertTrue(seconds.contains("TZOFFSETTO:+001932"))
         XCTAssertTrue(seconds.contains("DTSTART:00010101T001932"))
         XCTAssertEqual(try exportedOffset(seconds, at: date(2026, 1, 1)), 1172)
-        let southern = try TimeZoneExport.definition("Southern", data: fixture(footer: "STD-1DST,M10.1.0,M3.1.0", transitions: []))
+        let southern = try LegacyTZifDiagnostic.definition("Southern", data: fixture(footer: "STD-1DST,M10.1.0,M3.1.0", transitions: []))
         XCTAssertEqual(try exportedOffset(southern, at: date(2026, 1, 1)), 7200)
         XCTAssertEqual(try exportedOffset(southern, at: date(2026, 7, 1)), 3600)
     }
@@ -135,7 +135,7 @@ final class TimeZoneExportTests: XCTestCase {
     func testEveryObservanceStartHasRepresentableUTCInstant() throws {
         let minimum = date(1, 1, 1)
         for identifier in ["Europe/Berlin", "America/New_York", "Australia/Sydney", "Etc/UTC"] {
-            let lines = try TimeZoneExport.definition(identifier)
+            let lines = try TimeZoneExport.definition(identifier, context: try CalendarTestContext.make())
             var start: Date?
             for line in lines {
                 if line.hasPrefix("DTSTART:") { start = wall(String(line.dropFirst(8))) }
@@ -153,12 +153,12 @@ final class TimeZoneExportTests: XCTestCase {
         for footer in ["STD-1DST,M3.5.0,M10.5.0/3",
                        "STD-1DST-2,M3.5.0,M10.5.0/3",
                        "<+01>-1<+02>-2,M3.5.0,M10.5.0/3"] {
-            let lines = try TimeZoneExport.definition("Fixture", data: fixture(footer: footer, transitions: []))
+            let lines = try LegacyTZifDiagnostic.definition("Fixture", data: fixture(footer: footer, transitions: []))
             XCTAssertEqual(try exportedOffset(lines, at: date(2400, 1, 1)), 3600, footer)
             XCTAssertEqual(try exportedOffset(lines, at: date(2400, 7, 1)), 7200, footer)
             XCTAssertEqual(lines.filter { $0.hasPrefix("RRULE:") }.count, 2)
         }
-        let halfHour = try TimeZoneExport.definition("Fixture", data: fixture(
+        let halfHour = try LegacyTZifDiagnostic.definition("Fixture", data: fixture(
             footer: "STD-1DST-1:30,M3.5.0/2:15:30,M10.5.0/3", transitions: []))
         XCTAssertEqual(try exportedOffset(halfHour, at: date(2400, 7, 1)), 5400)
         XCTAssertTrue(halfHour.contains { $0.hasPrefix("DTSTART:") && $0.hasSuffix("T021530") })
@@ -167,25 +167,25 @@ final class TimeZoneExportTests: XCTestCase {
     func testRejectTruncatedMalformedAndUnrepresentableRules() throws {
         let valid = fixture()
         for length in [0, 3, 43, 44, valid.count - 1] {
-            XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: valid.prefix(length)))
+            XCTAssertThrowsError(try LegacyTZifDiagnostic.definition("Test", data: valid.prefix(length)))
         }
         for footer in ["bad", "STD-1DST,J60,J300", "STD-1DST,60,300", "STD-1DST,M3.5.0/-1,M10.5.0", "STD-1DST,M3.5.0/25,M10.5.0", "STD-1DST,M13.5.0,M10.5.0", "STD-1DST", "STD-2"] {
-            XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: fixture(footer: footer)), footer) { error in
+            XCTAssertThrowsError(try LegacyTZifDiagnostic.definition("Test", data: fixture(footer: footer)), footer) { error in
                 guard let exportError = error as? TimeZoneExport.ExportError,
                       case .unsupportedRule = exportError else {
                     return XCTFail("Expected a deliberate unsupported-rule error, got \(error)")
                 }
             }
         }
-        XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: fixture(transitions: [(1, 2)])))
-        XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: fixture(transitions: [(1, 0), (1, 1)])))
+        XCTAssertThrowsError(try LegacyTZifDiagnostic.definition("Test", data: fixture(transitions: [(1, 2)])))
+        XCTAssertThrowsError(try LegacyTZifDiagnostic.definition("Test", data: fixture(transitions: [(1, 0), (1, 1)])))
         var excessive = valid
         excessive[32] = 0x7f // Untrusted transition count in the first TZif header.
-        XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: excessive))
+        XCTAssertThrowsError(try LegacyTZifDiagnostic.definition("Test", data: excessive))
         var leapSeconds = valid
         leapSeconds[31] = 1
-        XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: leapSeconds))
-        XCTAssertThrowsError(try TimeZoneExport.definition("Injected\r\nTZID:X", data: valid))
-        XCTAssertThrowsError(try TimeZoneExport.definition("Missing/NoSuchTimeZone"))
+        XCTAssertThrowsError(try LegacyTZifDiagnostic.definition("Test", data: leapSeconds))
+        XCTAssertThrowsError(try LegacyTZifDiagnostic.definition("Injected\r\nTZID:X", data: valid))
+        XCTAssertThrowsError(try TimeZoneExport.definition("Missing/NoSuchTimeZone", context: try CalendarTestContext.make()))
     }
 }

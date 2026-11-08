@@ -23,7 +23,7 @@ final class DAVSyncPlannerTests: XCTestCase {
     private func snapshot(_ body: String, etag: String = "\"v1\"", tasks: Bool = true) throws -> DAVCalendarSnapshot.Result {
         let resources = body.isEmpty ? [] : [DAVResource(href: url.appendingPathComponent("mixed.ics"), etag: etag,
             data: "BEGIN:VCALENDAR\nVERSION:2.0\nX-CALENDAR-OPAQUE:preserve\n" + body + "END:VCALENDAR\n")]
-        return try DAVCalendarSnapshot.decode(source: source(tasks: tasks), resources: resources, displayTimeZone: "UTC")
+        return try DAVCalendarSnapshot.decode(context: try CalendarTestContext.make(), source: source(tasks: tasks), resources: resources, displayTimeZone: "UTC")
     }
     private func state(_ original: Planner.LocalState, appointments: [[String: Any]]? = nil,
                        tasks: [[String: Any]]? = nil, anniversaries: [[String: Any]]? = nil, deletions: [Planner.Deletion]? = nil) -> Planner.LocalState {
@@ -32,7 +32,7 @@ final class DAVSyncPlannerTests: XCTestCase {
     }
     private func plan(_ snapshot: DAVCalendarSnapshot.Result, _ state: Planner.LocalState, _ baseline: Planner.Baseline?,
                       restore: Bool = false) throws -> Planner.Plan {
-        try Planner.plan(snapshot: snapshot, local: state, baseline: baseline, restoreAdditive: restore, syncEpoch: epoch, createdAt: time)
+        try Planner.plan(context: try CalendarTestContext.make(), snapshot: snapshot, local: state, baseline: baseline, restoreAdditive: restore, syncEpoch: epoch, createdAt: time)
     }
     private func seed(_ snapshot: DAVCalendarSnapshot.Result) throws -> Planner.Finalized {
         try plan(snapshot, .init(appointments: [], tasks: [], anniversaries: []), nil).finalize(acknowledgements: [])
@@ -103,7 +103,7 @@ final class DAVSyncPlannerTests: XCTestCase {
         let bytes = result.operations[0].bytes!, text = String(data: bytes, encoding: .utf8)!
         XCTAssertTrue(text.contains("SUMMARY:Changed")); XCTAssertTrue(text.contains(task()))
         XCTAssertTrue(text.contains("X-CALENDAR-OPAQUE:preserve\n"))
-        XCTAssertEqual(try ICalendarImport.decode(bytes, displayTimeZone: "UTC").tasks.count, 1)
+        XCTAssertEqual(try ICalendarImport.decode(bytes, context: try CalendarTestContext.make(), displayTimeZone: "UTC").tasks.count, 1)
         let final = try result.finalize(acknowledgements: ack(result))
         XCTAssertEqual(final.state.appointments[0]["davEtag"] as? String, "\"v2\"")
         XCTAssertEqual(final.state.tasks[0]["davEtag"] as? String, "\"v2\"")
@@ -171,7 +171,7 @@ final class DAVSyncPlannerTests: XCTestCase {
             href: original.resources[0].href, etag: original.resources[0].etag, syncEpoch: epoch)
         let result = try plan(original, state(seeded.state, appointments: [], deletions: [deletion]), seeded.baseline)
         XCTAssertEqual(result.operations.count, 1); XCTAssertEqual(result.operations[0].kind, .update)
-        let parsed = try ICalendarImport.decode(result.operations[0].bytes!, displayTimeZone: "UTC")
+        let parsed = try ICalendarImport.decode(result.operations[0].bytes!, context: try CalendarTestContext.make(), displayTimeZone: "UTC")
         XCTAssertTrue(parsed.appointments.isEmpty); XCTAssertEqual(parsed.tasks.count, 1)
         XCTAssertTrue(try result.finalize(acknowledgements: ack(result)).state.deletions.isEmpty)
         let changed = try snapshot(event() + task(), etag: "\"concurrent\"")
@@ -222,7 +222,7 @@ final class DAVSyncPlannerTests: XCTestCase {
         tasks[0]["notiz"]="Changed task note";anniversaries[0]["name"]="Changed birthday"
         let result=try plan(original,state(saved.state,tasks:tasks,anniversaries:anniversaries),saved.baseline)
         XCTAssertEqual(result.operations.count,1)
-        let parsed=try ICalendarImport.decode(result.operations[0].bytes!,displayTimeZone:"UTC")
+        let parsed=try ICalendarImport.decode(result.operations[0].bytes!, context: try CalendarTestContext.make(),displayTimeZone:"UTC")
         XCTAssertEqual(parsed.tasks[0]["notiz"] as? String,"Changed task note")
         XCTAssertEqual(parsed.anniversaries[0]["name"] as? String,"Changed birthday")
         let finalized=try result.finalize(acknowledgements:ack(result))
@@ -241,7 +241,7 @@ final class DAVSyncPlannerTests: XCTestCase {
     func testPlannerCancellationNeverReturnsPartialCandidate() throws {
         let remote = try snapshot(event() + task())
         do {
-            _ = try Planner.plan(snapshot: remote, local: .init(appointments: [], tasks: [], anniversaries: []), baseline: nil,
+            _ = try Planner.plan(context: try CalendarTestContext.make(), snapshot: remote, local: .init(appointments: [], tasks: [], anniversaries: []), baseline: nil,
                 restoreAdditive: false, syncEpoch: epoch, createdAt: time, cancellation: { true })
             XCTFail("Expected cancellation")
         } catch is CancellationError { }
@@ -272,7 +272,7 @@ final class DAVSyncPlannerTests: XCTestCase {
         XCTAssertEqual(result.operations.count, 1)
         let written = String(data: result.operations[0].bytes!, encoding: .utf8)!
         XCTAssertEqual(written.components(separatedBy: "X-MAGNOLIE-ACCENT-COLOR:#112233").count - 1, 2)
-        let updated = try DAVCalendarSnapshot.decode(source: source(), resources: [.init(href: remote.resources[0].href, etag: "\"v2\"", data: written)], displayTimeZone: "UTC")
+        let updated = try DAVCalendarSnapshot.decode(context: try CalendarTestContext.make(), source: source(), resources: [.init(href: remote.resources[0].href, etag: "\"v2\"", data: written)], displayTimeZone: "UTC")
         XCTAssertEqual(updated.appointments[0].value["akzentFarbe"] as? String, "#112233")
         XCTAssertEqual(updated.tasks![0].value["akzentFarbe"] as? String, "#112233")
         let saved = try result.finalize(acknowledgements: ack(result))
@@ -322,7 +322,7 @@ final class DAVSyncPlannerTests: XCTestCase {
         let result = try plan(remote, state(seeded.state, tasks: tasks), seeded.baseline)
         XCTAssertEqual(result.operations.count, 1)
         let text = String(data: result.operations[0].bytes!, encoding: .utf8)!
-        let fresh = try DAVCalendarSnapshot.decode(source: source(), resources: [.init(href: remote.resources[0].href, etag: "\"v2\"", data: text)], displayTimeZone: "UTC")
+        let fresh = try DAVCalendarSnapshot.decode(context: try CalendarTestContext.make(), source: source(), resources: [.init(href: remote.resources[0].href, etag: "\"v2\"", data: text)], displayTimeZone: "UTC")
         XCTAssertEqual(fresh.tasks!.first { $0.value["uid"] as? String == "original-parent" }?.wireKey.uid, alias)
         XCTAssertEqual(fresh.tasks!.first { $0.value["uid"] as? String == "child" }?.value["elternUid"] as? String, "original-parent")
         let saved = try result.finalize(acknowledgements: ack(result))
@@ -338,9 +338,9 @@ final class DAVSyncPlannerTests: XCTestCase {
     }
     func testExplicitEncoderTimestampIsRepeatableAndOnlyGeneratedStampChanges() throws {
         let record = try snapshot(event()).appointments[0].value
-        let one = try ICalendarExport.encode([record], kind: .appointments, timestamp: time)
-        XCTAssertEqual(one, try ICalendarExport.encode([record], kind: .appointments, timestamp: time))
-        XCTAssertNotEqual(one, try ICalendarExport.encode([record], kind: .appointments, timestamp: time.addingTimeInterval(3600)))
+        let one = try ICalendarExport.encode([record], context: try CalendarTestContext.make(), kind: .appointments, timestamp: time)
+        XCTAssertEqual(one, try ICalendarExport.encode([record], context: try CalendarTestContext.make(), kind: .appointments, timestamp: time))
+        XCTAssertNotEqual(one, try ICalendarExport.encode([record], context: try CalendarTestContext.make(), kind: .appointments, timestamp: time.addingTimeInterval(3600)))
         XCTAssertTrue(one.contains("X-OPAQUE:keep-event"))
     }
 }

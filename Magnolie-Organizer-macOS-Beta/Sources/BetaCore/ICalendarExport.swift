@@ -45,10 +45,11 @@ public enum ICalendarExport {
         }
     }
     private struct Clock {
-        let instant: Date
+        let instant: CalendarInstant
         let dateOnly: Bool
-        let zone: TimeZone
-        let floating: Bool
+        let zone: CalendarResolvedZone
+        let source: CalendarTimeSource
+        var floating: Bool { dateOnly || source == .floating }
     }
     private static func matches(_ text: String, _ pattern: String) -> Bool { text.range(of: pattern, options: .regularExpression) != nil }
     private static func meaningful(_ value: Any) -> Bool {
@@ -81,46 +82,19 @@ public enum ICalendarExport {
         }
         if escaped { output.append("\\") }; return output
     }
-    private static func calendar(_ zone: TimeZone) -> Calendar {
-        var value = Calendar(identifier: .gregorian); value.timeZone = zone; value.locale = Locale(identifier: "en_US_POSIX"); return value
+    private struct Resolver {
+        let context: CalendarTimeContext, sourceZones: [OpaqueUTF8Identity: CalendarResolvedZone], display: CalendarResolvedZone
+        func named(_ name: String) throws -> CalendarResolvedZone {
+            if let source = sourceZones[OpaqueUTF8Identity(name)] { return source }
+            return try context.named(name)
+        }
     }
-    private static let utc = TimeZone(secondsFromGMT: 0)!
-    private static func format(_ date: Date, _ pattern: String, _ zone: TimeZone = utc) -> String {
-        let formatter = DateFormatter(); formatter.calendar = calendar(zone); formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = zone; formatter.dateFormat = pattern; return formatter.string(from: date)
-    }
-    private static func day(_ value: String) throws -> Date {
-        guard matches(value, "^[0-9]{4}-[0-9]{2}-[0-9]{2}$") else { throw BetaError("Invalid calendar date.") }
-        let formatter = DateFormatter(); formatter.calendar = calendar(utc); formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = utc; formatter.dateFormat = "yyyy-MM-dd"; formatter.isLenient = false
-        guard let result = formatter.date(from: value), formatter.string(from: result) == value else { throw BetaError("Invalid calendar date.") }
-        return result
-    }
-    private static func zone(_ name: String) throws -> TimeZone {
-        guard !name.isEmpty, matches(name, "^[A-Za-z0-9_+./-]+$"), !name.contains(".."), let zone = TimeZone(identifier: name) else {
-            throw BetaError("This calendar time zone is unavailable; export was cancelled.")
-        }; return zone
-    }
-    private static func displayZone(_ record: [String: Any]) throws -> TimeZone {
-        let name = text(record, "icsAnzeigeZeitzone")
-        if name.isEmpty || name == "system" { return .current }
-        return try zone(name)
-    }
-    /// Strict wall-clock construction: DST gaps are rejected and folds select the
-    /// first occurrence, matching the canonical desktop's source-time contract.
-    private static func wall(_ date: String, _ time: String, _ zone: TimeZone) throws -> Date {
-        _ = try day(date)
-        guard matches(time, "^(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$") else { throw BetaError("Invalid calendar clock.") }
-        let values = date.split(separator: "-").compactMap { Int($0) } + time.split(separator: ":").compactMap { Int($0) }
-        let components = DateComponents(year: values[0], month: values[1], day: values[2], hour: values[3], minute: values[4], second: values.count == 6 ? values[5] : 0)
-        let cal = calendar(zone)
-        let anchor = try day(date).addingTimeInterval(-172800)
-        guard let result = cal.nextDate(after: anchor, matching: components, matchingPolicy: .strict, repeatedTimePolicy: .first, direction: .forward),
-              format(result, "yyyy-MM-dd", zone) == date, format(result, time.count == 8 ? "HH:mm:ss" : "HH:mm", zone) == time else {
-            throw BetaError("A calendar wall time falls in a daylight-saving gap; export was cancelled.")
-        }; return result
-    }
-    private static func clock(_ property: Property, defaultZone: TimeZone) throws -> Clock {
+    private static func calendar(_ zone: CalendarResolvedZone) -> CalendarCivilCalendar { CalendarCivilCalendar(zone: zone) }
+    private static let utc = CalendarResolvedZone.utc
+    private static func format(_ date: CalendarInstant, _ pattern: String, _ zone: CalendarResolvedZone = utc) throws -> String { try CalendarCivil.format(date, pattern, zone) }
+    private static func day(_ value: String) throws -> CalendarInstant { try CalendarCivil.day(value) }
+    private static func wall(_ date: String, _ time: String, _ zone: CalendarResolvedZone) throws -> CalendarInstant { try CalendarCivil.wall(date, time, zone: zone) }
+    private static func clock(_ property: Property, defaultZone: CalendarResolvedZone, resolver: Resolver) throws -> Clock {
         let value = property.value, allDay = property.parameters["VALUE"]?.uppercased() == "DATE" || matches(value, "^[0-9]{8}$")
         guard Set(property.parameters.keys).isSubset(of: ["TZID", "VALUE", "RANGE"]),
               property.parameters["RANGE"] == nil || property.name == "RECURRENCE-ID" && property.parameters["RANGE"]!.uppercased() == "THISANDFUTURE" else {
@@ -130,27 +104,26 @@ public enum ICalendarExport {
             guard matches(value, "^[0-9]{8}$"), property.parameters["TZID"] == nil else { throw BetaError("Invalid date-only calendar property.") }
             let index = value.index(value.startIndex, offsetBy: 4), month = value.index(index, offsetBy: 2)
             let date = String(value[..<index]) + "-" + value[index..<month] + "-" + value[month...]
-            return Clock(instant: try day(date), dateOnly: true, zone: utc, floating: true)
+            return Clock(instant: try day(date), dateOnly: true, zone: utc, source: .absoluteUTC)
         }
         guard matches(value, "^[0-9]{8}T[0-9]{6}Z?$"), property.parameters["VALUE"] == nil || property.parameters["VALUE"]?.uppercased() == "DATE-TIME" else {
             throw BetaError("Invalid calendar date-time.")
         }
-        let sourceZone: TimeZone
+        let sourceZone: CalendarResolvedZone
         if value.hasSuffix("Z") { sourceZone = utc }
-        else { sourceZone = try property.parameters["TZID"].map(zone) ?? defaultZone }
+        else { sourceZone = try property.parameters["TZID"].map(resolver.named) ?? defaultZone }
         guard !value.hasSuffix("Z") || property.parameters["TZID"] == nil else { throw BetaError("UTC calendar times cannot also have TZID.") }
         let digits = Array(value.prefix(15))
         let date = String(digits[0..<4]) + "-" + String(digits[4..<6]) + "-" + String(digits[6..<8])
         let time = String(digits[9..<11]) + ":" + String(digits[11..<13]) + ":" + String(digits[13..<15])
         return Clock(instant: try wall(date, time, sourceZone), dateOnly: false, zone: sourceZone,
-                     floating: !value.hasSuffix("Z") && property.parameters["TZID"] == nil)
+                     source: value.hasSuffix("Z") ? .absoluteUTC : property.parameters["TZID"].map { .named(OpaqueUTF8Identity($0)) } ?? .floating)
     }
-    private static func timeLine(_ name: String, date: String, time: String, zoneName: String) throws -> String {
+    private static func timeLine(_ name: String, date: String, time: String, zoneName: String, resolver: Resolver) throws -> String {
         _ = try day(date)
         if time.isEmpty { return name + ";VALUE=DATE:" + date.replacingOccurrences(of: "-", with: "") }
-        let zone: TimeZone
-        if zoneName.isEmpty || zoneName == "system" { zone = .current }
-        else { zone = try self.zone(zoneName) }
+        let zone: CalendarResolvedZone
+        zone = try resolver.context.display(zoneName)
         _ = try wall(date, time, zone)
         let digits = time.replacingOccurrences(of: ":", with: "") + (time.count == 5 ? "00" : "")
         let header = zoneName.isEmpty || zoneName == "system" ? name : zoneName == "UTC" ? name : name + ";TZID=" + zoneName
@@ -250,8 +223,8 @@ public enum ICalendarExport {
             if let zone = trigger.parameters["TZID"], !zone.isEmpty { alarm["triggerTzid"] = zone }
             expected.append(alarm); block = []
         }
-        func semantics(_ values: [[String: Any]]) throws -> [String] {
-            var result: [String] = []
+        func semantics(_ values: [[String: Any]]) throws -> [OpaqueUTF8Identity] {
+            var result: [OpaqueUTF8Identity] = []
             let allowed: Set<String> = ["id", "offsetMinuten", "aktion", "aktiviert", "quelle", "related", "bearbeitbar", "triggerRaw", "triggerTzid"]
             for value in values {
                 guard Set(value.keys).isSubset(of: allowed), value["id"] is String, value["quelle"] is String else { throw BetaError("Invalid normalized alarm schema.") }
@@ -264,7 +237,7 @@ public enum ICalendarExport {
                     item.removeValue(forKey: "triggerRaw"); item.removeValue(forKey: "triggerTzid")
                     if value["aktiviert"] as? Bool == false { continue }
                 }
-                result.append(try Document.encode(item))
+                result.append(OpaqueUTF8Identity(try Document.encode(item)))
             }
             return result.sorted()
         }
@@ -281,7 +254,7 @@ public enum ICalendarExport {
             return depth == 0
         }
     }
-    private static func recurrence(_ record: [String: Any], start: Property?) throws -> [String] {
+    private static func recurrence(_ record: [String: Any], start: Property?, resolver: Resolver) throws -> [String] {
         guard let value = record["wiederholung"] else { return [] }
         guard let repetition = value as? [String: Any] else { throw BetaError("Invalid structured recurrence.") }
         guard repetition["art"] == nil || repetition["art"] is String else { throw BetaError("Invalid recurrence frequency.") }
@@ -292,7 +265,7 @@ public enum ICalendarExport {
         }
         guard let start else { throw BetaError("A structured recurrence has no DTSTART.") }
         let frequency = ["daily": "DAILY", "weekly": "WEEKLY", "monthly": "MONTHLY", "yearly": "YEARLY"]
-        let startClock = try clock(start, defaultZone: displayZone(record))
+        let startClock = try clock(start, defaultZone: resolver.display, resolver: resolver)
         func dated(_ date: String) throws -> String {
             _ = try day(date)
             // Keep the exact DATE/UTC/source-local representation of DTSTART.
@@ -324,14 +297,14 @@ public enum ICalendarExport {
             let ending: String
             if startClock.dateOnly { ending = until.replacingOccurrences(of: "-", with: "") }
             else {
-                let last = try wall(until, format(startClock.instant, "HH:mm:ss", startClock.zone), startClock.zone)
-                ending = format(last, "yyyyMMdd'T'HHmmss", startClock.floating ? startClock.zone : utc) + (startClock.floating ? "" : "Z")
+                let last = try wall(until, try format(startClock.instant, "HH:mm:ss", startClock.zone), startClock.zone)
+                ending = try format(last, "yyyyMMdd'T'HHmmss", startClock.floating ? startClock.zone : utc) + (startClock.floating ? "" : "Z")
             }
             rule += ";UNTIL=" + ending
         }
         return ["RRULE:" + rule]
     }
-    private static func ruleParts(_ value: String, start: Property) throws -> [String: String] {
+    private static func ruleParts(_ value: String, start: Property, resolver: Resolver) throws -> [String: String] {
         var parts: [String: String] = [:]
         for field in value.uppercased().split(separator: ";", omittingEmptySubsequences: false) {
             let pair = field.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
@@ -358,13 +331,13 @@ public enum ICalendarExport {
         }
         if let week = parts["WKST"], !["MO", "TU", "WE", "TH", "FR", "SA", "SU"].contains(week) { throw BetaError("Invalid recurrence week start.") }
         if let until = parts["UNTIL"] {
-            let ending = try clock(Property("DTSTART" + (until.count == 8 ? ";VALUE=DATE" : "") + ":" + until), defaultZone: clock(start, defaultZone: utc).zone)
-            let initial = try clock(start, defaultZone: utc)
+            let ending = try clock(Property("DTSTART" + (until.count == 8 ? ";VALUE=DATE" : "") + ":" + until), defaultZone: clock(start, defaultZone: utc, resolver: resolver).zone, resolver: resolver)
+            let initial = try clock(start, defaultZone: utc, resolver: resolver)
             guard ending.dateOnly == initial.dateOnly, ending.instant >= initial.instant else { throw BetaError("Recurrence end contradicts its start.") }
         }
         return parts
     }
-    private static func duration(_ value: String, from start: Clock) throws -> Date {
+    private static func duration(_ value: String, from start: Clock) throws -> CalendarInstant {
         let pattern = "^\\+?P(?:(\\d+)W|(?:(\\d+)D)?(?:T(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?)?)$"
         let expression = try NSRegularExpression(pattern: pattern)
         let range = NSRange(value.startIndex..<value.endIndex, in: value)
@@ -378,29 +351,35 @@ public enum ICalendarExport {
         }
         guard specified, !start.dateOnly || values[2...4].allSatisfy({ $0 == 0 }),
               let days = calendar(start.zone).date(byAdding: .day, value: values[0] * 7 + values[1], to: start.instant) else { throw BetaError("Invalid calendar duration.") }
-        return days.addingTimeInterval(TimeInterval(values[2] * 3600 + values[3] * 60 + values[4]))
+        return try days.adding(seconds: Int64(values[2] * 3600 + values[3] * 60 + values[4]))
     }
-    private static func validateProjection(_ source: Clock, name: String, record: [String: Any], kind: Kind) throws {
+    private static func validateProjection(_ source: Clock, name: String, record: [String: Any], kind: Kind, resolver: Resolver) throws {
         let dateField = kind == .tasks ? (name == "DTSTART" ? "startDatum" : "faellig") : (name == "DTSTART" ? "datum" : "endDatum")
         let clockField = kind == .tasks ? (name == "DTSTART" ? "startZeit" : "faelligZeit") : (name == "DTSTART" ? "zeit" : "endZeit")
         let storedDate = text(record, dateField).isEmpty && kind == .appointments ? text(record, "datum") : text(record, dateField)
         let storedTime = kind == .appointments && name == "DTEND" && text(record, clockField).isEmpty && record["icsNullDauer"] as? Bool == true
             ? text(record, "zeit") : text(record, clockField)
         var value = source.instant
-        if source.dateOnly && kind == .appointments && name == "DTEND" { value = calendar(utc).date(byAdding: .day, value: -1, to: value)! }
-        let projectionZone: TimeZone
+        if source.dateOnly && kind == .appointments && name == "DTEND" { value = try CalendarCivil.addingDays(value, -1) }
+        let projectionZone: CalendarResolvedZone
         if source.dateOnly { projectionZone = utc }
-        else { projectionZone = try displayZone(record) }
-        guard !storedDate.isEmpty, format(value, "yyyy-MM-dd", projectionZone) == storedDate,
-              source.dateOnly ? storedTime.isEmpty : format(value, storedTime.count == 8 ? "HH:mm:ss" : "HH:mm", projectionZone) == storedTime else {
+        else { projectionZone = resolver.display }
+        let projectedDate = try format(value, "yyyy-MM-dd", projectionZone)
+        let projectedTime = source.dateOnly ? "" : try format(value, storedTime.count == 8 ? "HH:mm:ss" : "HH:mm", projectionZone)
+        guard !storedDate.isEmpty, projectedDate == storedDate, projectedTime == storedTime else {
             throw BetaError("Source calendar times contradict the visible record. Export was cancelled instead of replacing them.")
         }
     }
-    private static func component(_ record: [String: Any], kind: Kind, taskParent: String? = nil, timestamp: Date, wireUID: String? = nil) throws -> [String] {
+    private static func component(_ record: [String: Any], kind: Kind, context: CalendarTimeContext, taskParent: String? = nil, timestamp: CalendarInstant, wireUID: String? = nil) throws -> [String] {
         try validateRecord(record, kind: kind)
-        let sources = try raw(record), top = topLevel(sources), display = try displayZone(record)
+        let sources = try raw(record), top = topLevel(sources)
+        let blocks: [[String]]
+        if let supplied = record["icsTimezones"] { guard let value = supplied as? [[String]] else { throw BetaError("Invalid source timezone definitions.") }; blocks = value }
+        else { blocks = [] }
+        let resolver = Resolver(context: context, sourceZones: try ICalendarImport.sourceZones(blocks), display: try context.display(text(record, "icsAnzeigeZeitzone")))
+        let display = resolver.display
         if kind == .appointments { try validateSourceAlarms(record, sources: sources) }
-        var generated: [String] = ["UID:" + escape(wireUID ?? identifier(record)), "DTSTAMP:" + format(timestamp, "yyyyMMdd'T'HHmmss'Z'")]
+        var generated: [String] = ["UID:" + escape(wireUID ?? identifier(record)), "DTSTAMP:" + (try format(timestamp, "yyyyMMdd'T'HHmmss'Z'"))]
         let title = text(record, kind == .anniversaries ? "name" : "titel")
         guard !title.isEmpty else { throw BetaError("Calendar records need a title.") }
         generated.append("SUMMARY:" + escape(title))
@@ -411,20 +390,20 @@ public enum ICalendarExport {
             let endTime = text(record, "endZeit")
             _ = try day(start); _ = try day(endDate)
             if record["ganztag"] as? Bool == true && !startTime.isEmpty { throw BetaError("Ambiguous all-day calendar record.") }
-            generated.append(try timeLine("DTSTART", date: start, time: startTime, zoneName: zoneName))
+            generated.append(try timeLine("DTSTART", date: start, time: startTime, zoneName: zoneName, resolver: resolver))
             if startTime.isEmpty {
                 guard endTime.isEmpty, let exclusive = try calendar(utc).date(byAdding: .day, value: 1, to: day(endDate)) else { throw BetaError("Invalid all-day end.") }
-                generated.append("DTEND;VALUE=DATE:" + format(exclusive, "yyyyMMdd"))
+                generated.append("DTEND;VALUE=DATE:" + (try format(exclusive, "yyyyMMdd")))
             } else if !endTime.isEmpty {
-                generated.append(try timeLine("DTEND", date: endDate, time: endTime, zoneName: zoneName))
+                generated.append(try timeLine("DTEND", date: endDate, time: endTime, zoneName: zoneName, resolver: resolver))
             } else if !top.contains(where: { $0.name == "DURATION" }) && record["icsEndeFehlt"] as? Bool != true {
                 let startValue = try wall(start, startTime, display)
-                let ending = startValue.addingTimeInterval(record["icsNullDauer"] as? Bool == true ? 0 : 1800)
-                generated.append(try timeLine("DTEND", date: format(ending, "yyyy-MM-dd", display), time: format(ending, "HH:mm:ss", display), zoneName: zoneName))
+                let ending = try startValue.adding(seconds: record["icsNullDauer"] as? Bool == true ? 0 : 1800)
+                generated.append(try timeLine("DTEND", date: try format(ending, "yyyy-MM-dd", display), time: try format(ending, "HH:mm:ss", display), zoneName: zoneName, resolver: resolver))
             }
         } else if kind == .tasks {
             for (dateField, clockField, name) in [("startDatum", "startZeit", "DTSTART"), ("faellig", "faelligZeit", "DUE")] {
-                if !text(record, dateField).isEmpty { generated.append(try timeLine(name, date: text(record, dateField), time: text(record, clockField), zoneName: zoneName)) }
+                if !text(record, dateField).isEmpty { generated.append(try timeLine(name, date: text(record, dateField), time: text(record, clockField), zoneName: zoneName, resolver: resolver)) }
                 else if !text(record, clockField).isEmpty { throw BetaError("A task clock has no date.") }
             }
             let priority = try integer(record["prio"], default: 2)
@@ -479,13 +458,13 @@ public enum ICalendarExport {
             }
             if property.name == "RELATED-TO", property.parameters["RELTYPE"]?.uppercased() != "PARENT" { continue }
             if ["DTSTART", "DTEND", "DUE"].contains(property.name) {
-                if kind != .anniversaries { try validateProjection(clock(property, defaultZone: display), name: property.name, record: record, kind: kind) }
+                if kind != .anniversaries { try validateProjection(clock(property, defaultZone: display, resolver: resolver), name: property.name, record: record, kind: kind, resolver: resolver) }
                 else if let own = byName[property.name] { guard property.line == own.line else { throw BetaError("Anniversary source date contradicts its visible date.") } }
             } else if property.name == "DURATION" {
                 guard let start, !top.contains(where: { ["DTEND", "DUE"].contains($0.name) }) else { throw BetaError("Ambiguous source calendar duration.") }
-                let source = try clock(start, defaultZone: display)
-                let ending = Clock(instant: try duration(property.value, from: source), dateOnly: source.dateOnly, zone: source.zone, floating: source.floating)
-                try validateProjection(ending, name: kind == .tasks ? "DUE" : "DTEND", record: record, kind: kind)
+                let source = try clock(start, defaultZone: display, resolver: resolver)
+                let ending = Clock(instant: try duration(property.value, from: source), dateOnly: source.dateOnly, zone: source.zone, source: source.source)
+                try validateProjection(ending, name: kind == .tasks ? "DUE" : "DTEND", record: record, kind: kind, resolver: resolver)
                 byName.removeValue(forKey: kind == .tasks ? "DUE" : "DTEND")
             } else if let own = byName[property.name], !["RRULE", "X-MAGNOLIE-TASK-IDENTITY"].contains(property.name) {
                 if kind == .tasks && property.name == "PRIORITY" {
@@ -500,14 +479,14 @@ public enum ICalendarExport {
             }
             if ["RRULE", "EXRULE"].contains(property.name) {
                 guard let start else { throw BetaError("A recurrence has no DTSTART.") }
-                _ = try ruleParts(property.value, start: start)
+                _ = try ruleParts(property.value, start: start, resolver: resolver)
             }
             if ["RDATE", "EXDATE", "RECURRENCE-ID"].contains(property.name) {
                 guard let start else { throw BetaError("Recurrence dates have no DTSTART.") }
-                let initial = try clock(start, defaultZone: display)
+                let initial = try clock(start, defaultZone: display, resolver: resolver)
                 for value in property.value.split(separator: ",", omittingEmptySubsequences: false) {
                     let header = property.line.prefix(while: { $0 != ":" })
-                    let candidate = try clock(Property(String(header) + ":" + value), defaultZone: display)
+                    let candidate = try clock(Property(String(header) + ":" + value), defaultZone: display, resolver: resolver)
                     guard candidate.dateOnly == initial.dateOnly else { throw BetaError("Recurrence value types do not match DTSTART.") }
                 }
             }
@@ -516,16 +495,16 @@ public enum ICalendarExport {
         if kind == .tasks, start == nil {
             // Validate even a due-only task's structured recurrence; never
             // silently downgrade unsupported API input to a one-off task.
-            _ = try recurrence(record, start: nil)
+            _ = try recurrence(record, start: nil, resolver: resolver)
         }
         if kind != .anniversaries, let start {
-            let desired = try recurrence(record, start: start)
+            let desired = try recurrence(record, start: start, resolver: resolver)
             let rawRule = top.first(where: { $0.name == "RRULE" })
             if let rawRule, let generatedRule = desired.first(where: { $0.hasPrefix("RRULE:") }) {
-                let wanted = try ruleParts(String(generatedRule.dropFirst(6)), start: start), actual = try ruleParts(rawRule.value, start: start)
+                let wanted = try ruleParts(String(generatedRule.dropFirst(6)), start: start, resolver: resolver), actual = try ruleParts(rawRule.value, start: start, resolver: resolver)
                 guard wanted.allSatisfy({ actual[$0.key] == $0.value }), actual["COUNT"] == nil else { throw BetaError("Structured recurrence contradicts the source RRULE.") }
-                let source = try clock(start, defaultZone: display)
-                let components = calendar(source.zone).dateComponents([.weekday, .day, .month], from: source.instant)
+                let source = try clock(start, defaultZone: display, resolver: resolver)
+                let components = try calendar(source.zone).dateComponents([.weekday, .day, .month], from: source.instant)
                 let weekday = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][components.weekday! - 1]
                 for (key, value) in actual where wanted[key] == nil {
                     let redundant = key == "INTERVAL" && value == "1" || key == "WKST" ||
@@ -542,15 +521,15 @@ public enum ICalendarExport {
                 let rawDates = try Set(top.filter { $0.name == "EXDATE" }.flatMap { property -> [String] in
                     try property.value.split(separator: ",").map { item in
                         let header = String(property.line.prefix(while: { $0 != ":" }))
-                        let source = try clock(Property(header + ":" + item), defaultZone: display)
-                        return format(source.instant, "yyyy-MM-dd", source.dateOnly ? utc : display)
+                        let source = try clock(Property(header + ":" + item), defaultZone: display, resolver: resolver)
+                        return try format(source.instant, "yyyy-MM-dd", source.dateOnly ? utc : display)
                     }
                 })
                 let missing = Array(Set(exceptions)).sorted().filter { !rawDates.contains($0) }
                 if !missing.isEmpty {
-                    let source = try clock(start, defaultZone: display)
+                    let source = try clock(start, defaultZone: display, resolver: resolver)
                     let additions = try missing.map { value -> Property in
-                        let line = try timeLine("EXDATE", date: value, time: source.dateOnly ? "" : format(source.instant, "HH:mm:ss", display), zoneName: source.floating ? "" : text(record, "icsAnzeigeZeitzone"))
+                        let line = try timeLine("EXDATE", date: value, time: source.dateOnly ? "" : try format(source.instant, "HH:mm:ss", display), zoneName: source.floating ? "" : text(record, "icsAnzeigeZeitzone"), resolver: resolver)
                         return try Property(line)
                     }
                     let header = String(additions[0].line.prefix(while: { $0 != ":" }))
@@ -559,8 +538,8 @@ public enum ICalendarExport {
             }
         }
         let endName = kind == .tasks ? "DUE" : "DTEND"
-        let effectiveStart = try start.map { try clock($0, defaultZone: display) }
-        let effectiveEnd = try top.first(where: { $0.name == endName }).map { try clock($0, defaultZone: display) } ?? byName[endName].map { try clock($0, defaultZone: display) }
+        let effectiveStart = try start.map { try clock($0, defaultZone: display, resolver: resolver) }
+        let effectiveEnd = try top.first(where: { $0.name == endName }).map { try clock($0, defaultZone: display, resolver: resolver) } ?? byName[endName].map { try clock($0, defaultZone: display, resolver: resolver) }
         if let lower = effectiveStart, let upper = effectiveEnd { guard upper.instant >= lower.instant else { throw BetaError("Calendar end precedes start.") } }
         let type = kind == .tasks ? "VTODO" : "VEVENT"
         return ["BEGIN:" + type] + generated.compactMap { line -> String? in
@@ -568,31 +547,32 @@ public enum ICalendarExport {
         } + byName.keys.sorted().compactMap { byName[$0]?.line } + sources.map { $0.line } + ["END:" + type]
     }
 
-    public static func encode(_ input: [[String: Any]], kind: Kind, defaultTimeZone: String = "system", timestamp: Date = Date(), wireUIDs: [OpaqueUTF8Identity: String] = [:]) throws -> String {
+    public static func encode(_ input: [[String: Any]], context: CalendarTimeContext, kind: Kind, defaultTimeZone: String = "system", timestamp: Date = Date(), wireUIDs: [OpaqueUTF8Identity: String] = [:]) throws -> String {
         guard !input.isEmpty else { throw BetaError("There are no calendar records to export.") }
+        let integerTimestamp = try CalendarInstant.timestamp(timestamp)
         let records = input.map { value -> [String: Any] in
             var copy = value
             let requested = text(copy, "icsAnzeigeZeitzone").isEmpty ? defaultTimeZone : text(copy, "icsAnzeigeZeitzone")
             if requested.isEmpty || requested == "system" {
-                let identifier = TimeZone.current.identifier
+                let identifier = context.systemIdentifier
                 copy["icsAnzeigeZeitzone"] = ["UTC", "GMT", "Etc/UTC", "Etc/GMT"].contains(identifier) ? "UTC" : identifier
             } else { copy["icsAnzeigeZeitzone"] = requested }
             return copy
         }
-        var definitions: [String: [String]] = [:], components: [[String]] = [], identities: Set<String> = [], owners: [String: String] = [:]
-        let localTasks = Dictionary(grouping: records, by: { text($0, "uid") })
+        var definitions: [OpaqueUTF8Identity: [String]] = [:], components: [[String]] = [], identities: Set<OpaqueUTF8Identity> = [], owners: [OpaqueUTF8Identity: OpaqueUTF8Identity] = [:]
+        let localTasks = Dictionary(grouping: records, by: { OpaqueUTF8Identity(text($0, "uid")) })
         for record in records {
             guard ["icsSerienUid", "icsImportUid", "uid", "id"].contains(where: { !text(record, $0).isEmpty }) else {
                 throw BetaError("Calendar record has no stable identity; export was cancelled.")
             }
-            let uid = identifier(record), source = text(record, "icsQuelleId")
+            let uid = identifier(record), source = text(record, "icsQuelleId"), uidKey = OpaqueUTF8Identity(identifier(record))
             let properties = try topLevel(raw(record))
-            let recurrenceID = properties.first(where: { $0.name == "RECURRENCE-ID" })?.line ?? "master"
-            guard identities.insert(uid + "\u{0}" + recurrenceID).inserted,
-                  owners[uid] == nil || owners[uid] == source else {
+            let recurrenceID = properties.first(where: { $0.name == "RECURRENCE-ID" })?.line
+            guard identities.insert(OpaqueUTF8Identity(parts: [uid, recurrenceID == nil ? "absent" : "present", recurrenceID ?? ""])).inserted,
+                  owners[uidKey] == nil || owners[uidKey] == OpaqueUTF8Identity(source) else {
                 throw BetaError("Colliding calendar source identities require source-aware alias export; nothing was exported.")
             }
-            owners[uid] = source
+            owners[uidKey] = OpaqueUTF8Identity(source)
             for field in ["icsZusatzDaten", "icsZusatzTermine"] {
                 if let value = record[field], meaningful(value), !properties.contains(where: { $0.name == "RDATE" }) {
                     throw BetaError("Additional occurrence metadata has no authoritative RDATE; export was cancelled.")
@@ -600,7 +580,7 @@ public enum ICalendarExport {
             }
             if let value = record["icsRangeOverrides"], meaningful(value) {
                 guard let ranges = value as? [[String]], ranges.allSatisfy({ range in
-                    records.contains(where: { identifier($0) == uid && ($0["icsRoundtrip"] as? [String]) == range })
+                    records.contains(where: { OpaqueUTF8Identity(identifier($0)) == uidKey && ($0["icsRoundtrip"] as? [String]).map { OpaqueUTF8Identity(parts: $0) } == OpaqueUTF8Identity(parts: range) })
                 }) else { throw BetaError("Export the complete series including its range exceptions.") }
             }
             if kind == .tasks, record["erinnerungsMinute"] != nil {
@@ -608,11 +588,11 @@ public enum ICalendarExport {
             }
             var parent: String?
             if kind == .tasks, !text(record, "elternUid").isEmpty {
-                let matches = localTasks[text(record, "elternUid")] ?? []
+                let matches = localTasks[OpaqueUTF8Identity(text(record, "elternUid"))] ?? []
                 if matches.count == 1 { parent = identifier(matches[0]) }
                 else if matches.count > 1 { throw BetaError("Ambiguous task parent identity.") }
             }
-            let lines = try component(record, kind: kind, taskParent: parent, timestamp: timestamp, wireUID: wireUIDs[OpaqueUTF8Identity(text(record, "uid"))])
+            let lines = try component(record, kind: kind, context: context, taskParent: parent, timestamp: integerTimestamp, wireUID: wireUIDs[OpaqueUTF8Identity(text(record, "uid"))])
             components.append(lines)
             if let value = record["icsTimezones"] {
                 guard let blocks = value as? [[String]] else { throw BetaError("Invalid source time-zone definitions.") }
@@ -631,14 +611,14 @@ public enum ICalendarExport {
                         }
                     }
                     guard stack.isEmpty else { throw BetaError("Unclosed source time-zone definition.") }
-                    let name = names[0].value
-                    if let previous = definitions[name], previous != block { throw BetaError("Conflicting source definitions share a TZID; export was cancelled.") }
+                    let name = OpaqueUTF8Identity(names[0].value)
+                    if let previous = definitions[name], OpaqueUTF8Identity(parts: previous) != OpaqueUTF8Identity(parts: block) { throw BetaError("Conflicting source definitions share a TZID; export was cancelled.") }
                     definitions[name] = block
                 }
             }
         }
-        let referenced = try Set(components.flatMap { lines in try lines.compactMap { try Property($0).parameters["TZID"] } })
-        for name in referenced.sorted() where definitions[name] == nil { definitions[name] = try TimeZoneExport.definition(name) }
+        let referenced = try Set(components.flatMap { lines in try lines.compactMap { try Property($0).parameters["TZID"].map(OpaqueUTF8Identity.init) } })
+        for name in referenced.sorted() where definitions[name] == nil { definitions[name] = try TimeZoneExport.definition(String(decoding: name.bytes, as: UTF8.self), context: context) }
         var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Magnolie Organizer macOS Beta//EN", "CALSCALE:GREGORIAN"]
         for name in definitions.keys.sorted() { lines += definitions[name]! }
         lines += components.flatMap { $0 }; lines.append("END:VCALENDAR")

@@ -58,7 +58,7 @@ public enum DAVCalendarSnapshot {
         public let projectedByteCount: Int
     }
 
-    public static func decode(source: DAVCollection, resources: [DAVResource], displayTimeZone: String = "system",
+    public static func decode(context: CalendarTimeContext, source: DAVCollection, resources: [DAVResource], displayTimeZone: String = "system",
                               limits: Limits = Limits(), cancellation: () -> Bool = { false }) throws -> Result {
         func checkCancellation() throws {
             if cancellation() { throw CancellationError() }
@@ -126,7 +126,7 @@ public enum DAVCalendarSnapshot {
                     wireOwners[identity] = OpaqueUTF8Identity(path)
                 }
                 try checkCancellation()
-                parsed = try ICalendarImport.decode(bytes, displayTimeZone: displayTimeZone, sourceName: source.name, sourceID: source.uid)
+                parsed = try ICalendarImport.decode(bytes, context: context, displayTimeZone: displayTimeZone, sourceName: source.name, sourceID: source.uid)
             } catch let error as DAVCalendarSnapshotError { throw error }
             catch is CancellationError { throw CancellationError() }
             catch { throw DAVCalendarSnapshotError.unsupportedOrMalformedResource }

@@ -67,11 +67,10 @@ public enum ICalendarImport {
         func property(_ name: String) -> Property? { properties.first(where: { $0.name == name }) }
         func value(_ name: String) -> String { property(name).map { ICalendarImport.unescape($0.value) } ?? "" }
     }
-    private struct Clock { let instant: Date, wall: Date; let dateOnly: Bool; let source: String }
-    private static let utc = TimeZone(secondsFromGMT: 0)!
-    private static let absoluteUTC = "@magnolie-utc-instant"
-    private static var utcCalendar: Calendar { ICalendarImport.calendar(ICalendarImport.utc) }
-    private static func calendar(_ zone: TimeZone) -> Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = zone; c.locale = Locale(identifier: "en_US_POSIX"); return c }
+    private struct Clock { let instant: CalendarInstant, wall: CalendarInstant; let dateOnly: Bool; let source: CalendarTimeSource }
+    private static let utc = CalendarResolvedZone.utc
+    private static var utcCalendar: CalendarCivilCalendar { calendar(utc) }
+    private static func calendar(_ zone: CalendarResolvedZone) -> CalendarCivilCalendar { CalendarCivilCalendar(zone: zone) }
     private static func matches(_ text: String, _ pattern: String) -> Bool { text.range(of: pattern, options: .regularExpression) != nil }
     private static func hash(_ bytes: Data) -> String { SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined() }
     private static func unescape(_ value: String) -> String {
@@ -83,27 +82,10 @@ public enum ICalendarImport {
         }
         if escaped { result.append("\\") }; return result
     }
-    private static func format(_ date: Date, _ pattern: String, _ zone: TimeZone = ICalendarImport.utc) -> String {
-        let f = DateFormatter(); f.calendar = ICalendarImport.calendar(zone); f.timeZone = zone; f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = pattern; return f.string(from: date)
+    private static func format(_ date: CalendarInstant, _ pattern: String, _ zone: CalendarResolvedZone = utc) throws -> String {
+        try CalendarCivil.format(date, pattern, zone)
     }
-    private static func naive(_ text: String) throws -> Date {
-        let value = text.uppercased()
-        guard ICalendarImport.matches(value, "^[0-9]{8}(?:T[0-9]{4}(?:[0-9]{2})?)?$"), let year = Int(value.prefix(4)), (1...9999).contains(year) else { throw BetaError("Invalid calendar date/time.") }
-        let pattern = value.count == 8 ? "yyyyMMdd" : value.count == 13 ? "yyyyMMdd'T'HHmm" : "yyyyMMdd'T'HHmmss"
-        let f = DateFormatter(); f.calendar = ICalendarImport.utcCalendar; f.timeZone = ICalendarImport.utc; f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = pattern; f.isLenient = false
-        guard let result = f.date(from: value), f.string(from: result) == value else { throw BetaError("Invalid calendar date/time.") }; return result
-    }
-    private static func knownZone(_ name: String) throws -> TimeZone {
-        guard !name.isEmpty, name.utf8.count <= 255, let zone = TimeZone(identifier: name) else { throw BetaError("The calendar references an unresolved time zone.") }; return zone
-    }
-    private static func ordinaryWall(_ wall: Date, zone: TimeZone) throws -> Date {
-        let components = ICalendarImport.utcCalendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: wall)
-        guard let instant = ICalendarImport.calendar(zone).nextDate(after: wall.addingTimeInterval(-172800), matching: components,
-                      matchingPolicy: .strict, repeatedTimePolicy: .first, direction: .forward),
-              ICalendarImport.format(instant, "yyyyMMdd'T'HHmmss", zone) == ICalendarImport.format(wall, "yyyyMMdd'T'HHmmss") else {
-            throw BetaError("A calendar wall time falls in a daylight-saving gap.")
-        }; return instant
-    }
+    private static func naive(_ text: String) throws -> CalendarInstant { try CalendarCivil.parse(text.uppercased()) }
     private static func integer(_ text: String, default fallback: Int = 0) throws -> Int {
         if text.isEmpty { return fallback }
         guard let n = Int(text), abs(Double(n)) <= 9_007_199_254_740_991 else { throw BetaError("Invalid integer calendar property.") }; return n
@@ -188,10 +170,10 @@ public enum ICalendarImport {
     /// adjacent to a queried clock; the event's RRULE is never expanded here.
     private final class EmbeddedZone {
         struct Observance {
-            let start: Date, before: Int, after: Int, dates: [Date], rule: [String: String]
+            let start: CalendarInstant, before: Int, after: Int, dates: [CalendarInstant], rule: [String: String]
         }
         let observations: [Observance]
-        private var cachedTransitions: [Int: [(Date, Int)]] = [:]
+        private var cachedTransitions: [Int: [(CalendarInstant, Int)]] = [:]
         static func offset(_ value: String) throws -> Int {
             guard ICalendarImport.matches(value, "^[+-][0-9]{4}(?:[0-9]{2})?$") else { throw BetaError("Invalid embedded time-zone offset.") }
             let chars = Array(value), hour = Int(String(chars[1...2]))!, minute = Int(String(chars[3...4]))!
@@ -208,7 +190,7 @@ public enum ICalendarImport {
                       child.properties.filter({ $0.name == "TZOFFSETTO" }).count == 1 else { throw BetaError("Incomplete embedded time-zone observance.") }
                 let before = try Self.offset(child.value("TZOFFSETFROM")), after = try Self.offset(child.value("TZOFFSETTO"))
                 let begin = try ICalendarImport.naive(start.value)
-                var dates: [Date] = []
+                var dates: [CalendarInstant] = []
                 for property in child.properties where property.name == "RDATE" {
                     guard property.parameters.isEmpty, dates.count <= 50_000 else { throw BetaError("Unsupported embedded transition dates.") }
                     dates += try property.value.split(separator: ",", omittingEmptySubsequences: false).map { try ICalendarImport.naive(String($0)) }
@@ -229,17 +211,17 @@ public enum ICalendarImport {
             }
             observations = result
         }
-        private func ruleDates(_ observation: Observance, year: Int) throws -> [Date] {
+        private func ruleDates(_ observation: Observance, year: Int) throws -> [CalendarInstant] {
             let rule = observation.rule
             if rule.isEmpty { return [] }
-            let anchor = ICalendarImport.utcCalendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: observation.start)
+            let anchor = try ICalendarImport.utcCalendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: observation.start)
             let interval = try ICalendarImport.integer(rule["INTERVAL"] ?? "1", default: 1)
             guard interval > 0 else { throw BetaError("Invalid embedded time-zone interval.") }
             if year < anchor.year! || (year - anchor.year!) % interval != 0 { return [] }
             let months = try rule["BYMONTH"].map { try $0.split(separator: ",").map { try ICalendarImport.integer(String($0)) } } ?? [anchor.month!]
             guard months.allSatisfy({ (1...12).contains($0) }) else { throw BetaError("Invalid embedded time-zone month.") }
             let dayRules = rule["BYDAY"]?.split(separator: ",").map(String.init) ?? []
-            var dates: [Date] = []
+            var dates: [CalendarInstant] = []
             for month in months {
                 guard let first = ICalendarImport.utcCalendar.date(from: DateComponents(year: year, month: month, day: 1)),
                       let range = ICalendarImport.utcCalendar.range(of: .day, in: .month, for: first) else { throw BetaError("Invalid embedded transition year.") }
@@ -248,7 +230,7 @@ public enum ICalendarImport {
                     if let monthDays, !monthDays.contains(day), !monthDays.contains(day - range.count - 1) { continue }
                     if monthDays == nil && dayRules.isEmpty && day != anchor.day! { continue }
                     let date = ICalendarImport.utcCalendar.date(from: DateComponents(year: year, month: month, day: day, hour: anchor.hour, minute: anchor.minute, second: anchor.second))!
-                    let weekday = ICalendarImport.utcCalendar.component(.weekday, from: date)
+                    let weekday = try ICalendarImport.utcCalendar.component(.weekday, from: date)
                     if !dayRules.isEmpty {
                         var accepted = false
                         for selector in dayRules {
@@ -270,7 +252,7 @@ public enum ICalendarImport {
             }
             dates = Array(Set(dates)).sorted()
             if let positions = rule["BYSETPOS"] {
-                var selected: [Date] = []
+                var selected: [CalendarInstant] = []
                 for field in positions.split(separator: ",") {
                     let number = try ICalendarImport.integer(String(field)); guard number != 0, abs(number) <= 366 else { throw BetaError("Invalid embedded transition position.") }
                     let index = number > 0 ? number - 1 : dates.count + number
@@ -281,17 +263,17 @@ public enum ICalendarImport {
             if let until = rule["UNTIL"] {
                 let utcUntil = until.hasSuffix("Z")
                 let last = try ICalendarImport.naive(utcUntil ? String(until.dropLast()) : until)
-                dates = dates.filter { (utcUntil ? $0.addingTimeInterval(Double(-observation.before)) : $0) <= last }
+                dates = try dates.filter { (utcUntil ? try $0.adding(seconds: Int64(-observation.before)) : $0) <= last }
             }
             return dates
         }
-        private func activeOffset(at instant: Date) throws -> Int {
-            let earliest = observations.min { $0.start.addingTimeInterval(Double(-$0.before)) < $1.start.addingTimeInterval(Double(-$1.before)) }!
-            let year = ICalendarImport.utcCalendar.component(.year, from: instant)
-            let transitions: [(Date, Int)]
+        private func activeOffset(at instant: CalendarInstant) throws -> Int {
+            let earliest = try observations.min { try $0.start.adding(seconds: Int64(-$0.before)) < $1.start.adding(seconds: Int64(-$1.before)) }!
+            let year = try ICalendarImport.utcCalendar.component(.year, from: instant)
+            let transitions: [(CalendarInstant, Int)]
             if let cached = cachedTransitions[year] { transitions = cached }
             else {
-                var collected: [(Date, Int)] = []
+                var collected: [(CalendarInstant, Int)] = []
                 for observation in observations {
                     var walls = [observation.start] + observation.dates
                     if !observation.rule.isEmpty {
@@ -300,12 +282,12 @@ public enum ICalendarImport {
                         // after UNTIL. Evaluate its boundary, not all intervening years.
                         if let until = observation.rule["UNTIL"] {
                             let last = try ICalendarImport.naive(until.hasSuffix("Z") ? String(until.dropLast()) : until)
-                            let endYear = ICalendarImport.utcCalendar.component(.year, from: last)
+                            let endYear = try ICalendarImport.utcCalendar.component(.year, from: last)
                             years.formUnion(max(1, endYear - 1)...min(9999, endYear + 1))
                         }
                         for candidate in years.sorted() { walls += try ruleDates(observation, year: candidate) }
                     }
-                    collected += walls.map { ($0.addingTimeInterval(Double(-observation.before)), observation.after) }
+                    collected += try walls.map { (try $0.adding(seconds: Int64(-observation.before)), observation.after) }
                 }
                 collected.sort { $0.0 < $1.0 }
                 for index in collected.indices.dropFirst() {
@@ -318,36 +300,43 @@ public enum ICalendarImport {
             while low < high { let mid = (low + high) / 2; if transitions[mid].0 <= instant { low = mid + 1 } else { high = mid } }
             return low == 0 ? earliest.before : transitions[low - 1].1
         }
-        func instant(_ wall: Date) throws -> Date {
-            var candidates: [Date] = []
+        func wall(_ instant: CalendarInstant) throws -> CalendarInstant {
+            try instant.adding(seconds: Int64(activeOffset(at: instant)))
+        }
+        func instant(_ wall: CalendarInstant) throws -> CalendarInstant {
+            var candidates: [CalendarInstant] = []
             for offset in Set(observations.flatMap { [$0.before, $0.after] }) {
-                let instant = wall.addingTimeInterval(Double(-offset))
+                let instant = try wall.adding(seconds: Int64(-offset))
                 if try activeOffset(at: instant) == offset { candidates.append(instant) }
             }
             guard let first = candidates.min() else { throw BetaError("A source time falls in an embedded time-zone gap.") }; return first
         }
     }
     private struct Resolver {
-        let display: TimeZone, displayName: String, zones: [String: EmbeddedZone]
-        func instant(_ wall: Date, source: String) throws -> Date {
-            if source == ICalendarImport.absoluteUTC { return wall }
-            if let zone = zones[source] { return try zone.instant(wall) }
-            return try ICalendarImport.ordinaryWall(wall, zone: source.isEmpty ? display : ICalendarImport.knownZone(source))
+        let context: CalendarTimeContext, display: CalendarResolvedZone, displayName: String, zones: [OpaqueUTF8Identity: EmbeddedZone]
+        func instant(_ wall: CalendarInstant, source: CalendarTimeSource) throws -> CalendarInstant {
+            switch source {
+            case .absoluteUTC: return wall
+            case .floating: return try display.instant(wall)
+            case .named(let name):
+                if let zone = zones[name] { return try zone.instant(wall) }
+                return try context.named(String(decoding: name.bytes, as: UTF8.self)).instant(wall)
+            }
         }
         func clock(_ property: Property) throws -> Clock {
             let value = property.value.trimmingCharacters(in: .whitespaces).uppercased()
             let dateOnly = property.parameters["VALUE"]?.uppercased() == "DATE" || ICalendarImport.matches(value, "^[0-9]{8}$")
             if dateOnly {
                 guard ICalendarImport.matches(value, "^[0-9]{8}$"), property.parameters["TZID"] == nil else { throw BetaError("Invalid date-only source property.") }
-                let date = try ICalendarImport.naive(value); return Clock(instant: date, wall: date, dateOnly: true, source: ICalendarImport.absoluteUTC)
+                let date = try ICalendarImport.naive(value); return Clock(instant: date, wall: date, dateOnly: true, source: .absoluteUTC)
             }
             guard property.parameters["VALUE"] == nil || property.parameters["VALUE"]?.uppercased() == "DATE-TIME",
                   ICalendarImport.matches(value, "^[0-9]{8}T[0-9]{4}(?:[0-9]{2})?Z?$"), !value.hasSuffix("Z") || property.parameters["TZID"] == nil else { throw BetaError("Invalid source calendar date-time.") }
-            let source = value.hasSuffix("Z") ? ICalendarImport.absoluteUTC : property.parameters["TZID"] ?? ""
+            let source: CalendarTimeSource = value.hasSuffix("Z") ? .absoluteUTC : property.parameters["TZID"].map { .named(OpaqueUTF8Identity($0)) } ?? .floating
             let wall = try ICalendarImport.naive(value.hasSuffix("Z") ? String(value.dropLast()) : value)
             let resolved = try instant(wall, source: source)
-            let year = ICalendarImport.calendar(display).component(.year, from: resolved)
-            guard ICalendarImport.calendar(display).component(.era, from: resolved) == 1, (1...9999).contains(year) else { throw BetaError("Calendar time is outside the supported display range.") }
+            let year = try ICalendarImport.calendar(display).component(.year, from: resolved)
+            guard try ICalendarImport.calendar(display).component(.era, from: resolved) == 1, (1...9999).contains(year) else { throw BetaError("Calendar time is outside the supported display range.") }
             return Clock(instant: resolved, wall: wall, dateOnly: false, source: source)
         }
         func duration(_ specification: String, from start: Clock) throws -> Clock {
@@ -362,12 +351,12 @@ public enum ICalendarImport {
             }
             guard present, !start.dateOnly || values[2...4].allSatisfy({ $0 == 0 }),
                   let wall = ICalendarImport.utcCalendar.date(byAdding: .day, value: values[0] * 7 + values[1], to: start.wall) else { throw BetaError("Invalid calendar duration.") }
-            let exact = Double(values[2] * 3600 + values[3] * 60 + values[4])
-            let instant = try self.instant(wall, source: start.source).addingTimeInterval(exact)
-            return Clock(instant: instant, wall: wall.addingTimeInterval(exact), dateOnly: start.dateOnly, source: start.source)
+            let exact = Int64(values[2] * 3600 + values[3] * 60 + values[4])
+            let instant = try self.instant(wall, source: start.source).adding(seconds: exact)
+            return Clock(instant: instant, wall: try wall.adding(seconds: exact), dateOnly: start.dateOnly, source: start.source)
         }
-        func date(_ clock: Clock) -> String { ICalendarImport.format(clock.instant, "yyyy-MM-dd", clock.dateOnly ? ICalendarImport.utc : display) }
-        func time(_ clock: Clock) -> String { clock.dateOnly ? "" : ICalendarImport.format(clock.instant, "HH:mm", display) }
+        func date(_ clock: Clock) throws -> String { try ICalendarImport.format(clock.instant, "yyyy-MM-dd", clock.dateOnly ? ICalendarImport.utc : display) }
+        func time(_ clock: Clock) throws -> String { if clock.dateOnly { return "" }; return try ICalendarImport.format(clock.instant, "HH:mm", display) }
     }
     private static func ruleDictionary(_ value: String) throws -> [String: String] {
         var result: [String: String] = [:]
@@ -398,8 +387,8 @@ public enum ICalendarImport {
         guard let type = frequencies[fields["FREQ"] ?? ""], Set(fields.keys).isSubset(of: ["FREQ", "INTERVAL", "UNTIL", "BYDAY", "BYMONTHDAY", "BYMONTH", "BYSETPOS", "WKST"]) else { return nil }
         let interval = try ICalendarImport.integer(fields["INTERVAL"] ?? "1", default: 1)
         guard (1...3660).contains(interval), ["daily", "weekly"].contains(type) || interval == 1 else { return nil }
-        let date = try ICalendarImport.naive(resolver.date(start).replacingOccurrences(of: "-", with: ""))
-        let components = ICalendarImport.utcCalendar.dateComponents([.weekday, .day, .month], from: date)
+        let date = try ICalendarImport.naive((try resolver.date(start)).replacingOccurrences(of: "-", with: ""))
+        let components = try ICalendarImport.utcCalendar.dateComponents([.weekday, .day, .month], from: date)
         var ordinal: Int?, weekday = ""
         if type == "daily" {
             if ["BYDAY", "BYMONTHDAY", "BYMONTH", "BYSETPOS"].contains(where: { fields[$0] != nil }) { return nil }
@@ -427,10 +416,11 @@ public enum ICalendarImport {
             let property = try Property("DTSTART" + (value.count == 8 ? ";VALUE=DATE" : "") + ":" + value)
             let ending = try resolver.clock(property)
             var last = ending.instant
-            if !ending.dateOnly && !resolver.time(start).isEmpty && resolver.time(ending) < resolver.time(start) {
-                last = ICalendarImport.calendar(resolver.display).date(byAdding: .day, value: -1, to: last)!
+            let startTime = try resolver.time(start), endingTime = try resolver.time(ending)
+            if !ending.dateOnly && !startTime.isEmpty && endingTime < startTime {
+                last = try CalendarCivil.addingDays(last, -1, zone: resolver.display)
             }
-            until = ICalendarImport.format(last, "yyyy-MM-dd", ending.dateOnly ? ICalendarImport.utc : resolver.display)
+            until = try ICalendarImport.format(last, "yyyy-MM-dd", ending.dateOnly ? ICalendarImport.utc : resolver.display)
         }
         var result: [String: Any] = ["art": type, "bis": until]
         if interval > 1 { result["intervall"] = interval }
@@ -460,7 +450,7 @@ public enum ICalendarImport {
             return safe.isEmpty || safe == "." || safe == ".." ? nil : safe.replacingOccurrences(of: ":", with: "_")
         }.joined(separator: "/")
     }
-    private static func componentRecord(_ component: Component, complexUIDs: Set<String>, resolver: Resolver) throws -> (String, [String: Any]) {
+    private static func componentRecord(_ component: Component, complexUIDs: Set<OpaqueUTF8Identity>, resolver: Resolver) throws -> (String, [String: Any]) {
         let wireUID = component.value("UID")
         guard !wireUID.isEmpty else { throw BetaError("Calendar items require a UID; nothing was imported.") }
         var baseUID = wireUID, taskIdentity: [String: Any]?
@@ -472,7 +462,7 @@ public enum ICalendarImport {
                   !(identity["uid"] as! String).isEmpty else { throw BetaError("Invalid source task identity.") }
             let sourceUID = identity["uid"] as! String, source = identity["source"] as! String
             let alias = "urn:magnolie:task:" + ICalendarImport.hash(Data((source + "\0" + sourceUID).utf8))
-            guard wireUID == sourceUID || wireUID == alias || wireUID.hasPrefix(alias + "-") && ICalendarImport.matches(String(wireUID.dropFirst(alias.count + 1)), "^[1-9][0-9]*$") else {
+            guard OpaqueUTF8Identity(wireUID) == OpaqueUTF8Identity(sourceUID) || wireUID == alias || wireUID.hasPrefix(alias + "-") && ICalendarImport.matches(String(wireUID.dropFirst(alias.count + 1)), "^[1-9][0-9]*$") else {
                 throw BetaError("Task identity does not match its calendar UID.")
             }
             baseUID = sourceUID; taskIdentity = identity
@@ -489,7 +479,7 @@ public enum ICalendarImport {
             if let property = component.property(name) {
                 let clock = try resolver.clock(property)
                 guard !clock.dateOnly else { throw BetaError("Invalid calendar modification timestamp.") }
-                modified = Int64((clock.instant.timeIntervalSince1970 * 1000).rounded()); if modified != 0 { break }
+                modified = clock.instant.milliseconds; if modified != 0 { break }
             }
         }
         let sequence = try ICalendarImport.integer(component.value("SEQUENCE")); guard sequence >= 0 else { throw BetaError("Invalid calendar sequence.") }
@@ -503,7 +493,7 @@ public enum ICalendarImport {
         }
         func reminder(_ name: String) throws -> Int { let n = try ICalendarImport.integer(component.value(name)); return (1...7).contains(n) ? n : 0 }
         func color() -> String { let text = component.value("X-MAGNOLIE-ACCENT-COLOR"); return ICalendarImport.matches(text, "^#[0-9a-fA-F]{6}$") ? text.lowercased() : "" }
-        var raw = try rawProperties(component, complex: complexUIDs.contains(seriesUID))
+        var raw = try rawProperties(component, complex: complexUIDs.contains(OpaqueUTF8Identity(seriesUID)))
         let title = component.value("SUMMARY")
         if component.name == "VTODO" {
             guard !title.isEmpty else { throw BetaError("An imported task has no title.") }
@@ -543,21 +533,29 @@ public enum ICalendarImport {
             guard end == nil else { throw BetaError("An event has both DTEND and DURATION.") }; end = try resolver.duration(specification.value, from: start)
         }
         if let end { guard end.instant >= start.instant, end.dateOnly == start.dateOnly else { throw BetaError("Invalid event time range.") } }
-        let date = resolver.date(start), time = resolver.time(start)
+        let date = (try resolver.date(start)), time = (try resolver.time(start))
         var endDate = "", endTime = ""
         if let end {
             var exclusive = end.instant
-            if start.dateOnly { exclusive = ICalendarImport.utcCalendar.date(byAdding: .day, value: -1, to: exclusive)! }
-            let projected = ICalendarImport.format(exclusive, "yyyy-MM-dd", start.dateOnly ? ICalendarImport.utc : resolver.display)
+            if start.dateOnly { exclusive = try CalendarCivil.addingDays(exclusive, -1) }
+            let projected = try ICalendarImport.format(exclusive, "yyyy-MM-dd", start.dateOnly ? ICalendarImport.utc : resolver.display)
             if projected > date { endDate = projected }
-            if !start.dateOnly && (resolver.date(end) > date || resolver.time(end) != time) { endTime = resolver.time(end) }
+            let endingDate = try resolver.date(end), endingTime = try resolver.time(end)
+            if !start.dateOnly && (endingDate > date || endingTime != time) { endTime = endingTime }
         }
         let recurrenceNames = component.properties.filter { ["RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID"].contains($0.name) }.map { $0.name }
-        var complex = complexUIDs.contains(seriesUID) || recurrenceNames.contains(where: { ["EXDATE", "EXRULE", "RECURRENCE-ID"].contains($0) })
-        let sourceName = start.source == ICalendarImport.absoluteUTC ? "UTC" : start.source
-        if rules["RRULE"] != nil && !time.isEmpty && !sourceName.isEmpty && sourceName != resolver.displayName { complex = true }
+        var complex = complexUIDs.contains(OpaqueUTF8Identity(seriesUID)) || recurrenceNames.contains(where: { ["EXDATE", "EXRULE", "RECURRENCE-ID"].contains($0) })
+        let sourceName: String
+        switch start.source {
+        case .absoluteUTC: sourceName = "UTC"
+        case .floating: sourceName = ""
+        case .named(let name): sourceName = String(decoding: name.bytes, as: UTF8.self)
+        }
+        if rules["RRULE"] != nil && !time.isEmpty && !sourceName.isEmpty && OpaqueUTF8Identity(sourceName) != OpaqueUTF8Identity(resolver.displayName) { complex = true }
         if rules["RRULE"] != nil && component.property("DURATION") != nil { complex = true }
-        if rules["RRULE"] != nil && !time.isEmpty && (endTime.isEmpty || ICalendarImport.utcCalendar.component(.second, from: start.wall) != 0 || end.map({ ICalendarImport.utcCalendar.component(.second, from: $0.wall) != 0 }) == true) { complex = true }
+        let startSeconds = try ICalendarImport.utcCalendar.component(.second, from: start.wall)
+        let endHasSeconds = try end.map { try ICalendarImport.utcCalendar.component(.second, from: $0.wall) != 0 } ?? false
+        if rules["RRULE"] != nil && !time.isEmpty && (endTime.isEmpty || startSeconds != 0 || endHasSeconds) { complex = true }
         var additions: [String] = [], additionRecords: [[String: String]] = []
         for property in component.properties where ["RDATE", "EXDATE", "RECURRENCE-ID"].contains(property.name) {
             for value in property.value.split(separator: ",", omittingEmptySubsequences: false) {
@@ -576,7 +574,7 @@ public enum ICalendarImport {
                 let clock = try resolver.clock(Property(header + ":" + value))
                 guard clock.dateOnly == start.dateOnly else { throw BetaError("Recurrence dates do not match DTSTART's value type.") }
                 if property.name == "RDATE" && !complex {
-                    let rd = resolver.date(clock), rt = resolver.time(clock)
+                    let rd = (try resolver.date(clock)), rt = (try resolver.time(clock))
                     if rd < date || rd == date && rt < time { complex = true; additions = []; additionRecords = []; continue }
                     if rd == date && rt == time { continue }
                     additions.append(rd)
@@ -613,7 +611,36 @@ public enum ICalendarImport {
             "icsAenderungszeitFehlt": component.property("LAST-MODIFIED") == nil, "geaendert": modified]
         return ("termine", record)
     }
-    public static func decode(_ bytes: Data, displayTimeZone: String = "system", sourceName: String = "", sourceID: String = "") throws -> Result {
+    static func sourceZones(_ blocks: [[String]]) throws -> [OpaqueUTF8Identity: CalendarResolvedZone] {
+        guard blocks.count <= 4096 else { throw BetaError("Too many source timezone definitions.") }
+        var byteCount = 64, lineCount = 3
+        for block in blocks {
+            for line in block {
+                lineCount += 1
+                let size = line.utf8.count
+                guard lineCount <= 250_000, size <= 1_048_576, size <= maximumBytes - byteCount - 2 else { throw BetaError("Source timezone definitions exceed their byte/line bounds.") }
+                byteCount += size + 2
+            }
+        }
+        let lines = ["BEGIN:VCALENDAR", "VERSION:2.0"] + blocks.flatMap { $0 } + ["END:VCALENDAR"]
+        let text = lines.joined(separator: "\r\n")
+        guard text.utf8.count <= maximumBytes else { throw BetaError("Source timezone definitions exceed their size bound.") }
+        let roots = try parse(unfold(text))
+        guard roots.count == 1, roots[0].children.count == blocks.count,
+              roots[0].children.allSatisfy({ $0.name == "VTIMEZONE" }) else { throw BetaError("Invalid source timezone components.") }
+        var result: [OpaqueUTF8Identity: CalendarResolvedZone] = [:], bodies: [OpaqueUTF8Identity: OpaqueUTF8Identity] = [:]
+        for component in roots[0].children {
+            let identifiers = component.properties.filter { $0.name == "TZID" }
+            guard identifiers.count == 1, !identifiers[0].value.isEmpty else { throw BetaError("Missing source timezone identity.") }
+            let identifier = identifiers[0].value, key = OpaqueUTF8Identity(identifier), body = OpaqueUTF8Identity(parts: component.lines)
+            if let old = bodies[key] { guard old == body else { throw BetaError("Conflicting source timezone definitions.") }; continue }
+            let source = try EmbeddedZone(component)
+            bodies[key] = body
+            result[key] = CalendarResolvedZone(identifier: identifier, absoluteUTC: false, instant: source.instant, wall: source.wall)
+        }
+        return result
+    }
+    public static func decode(_ bytes: Data, context: CalendarTimeContext, displayTimeZone: String = "system", sourceName: String = "", sourceID: String = "") throws -> Result {
         guard !bytes.isEmpty, bytes.count <= maximumBytes, var input = String(data: bytes, encoding: .utf8) else { throw BetaError("Calendar import requires a UTF-8 file no larger than 32 MiB.") }
         if input.first == "\u{feff}" { input.removeFirst() }
         let roots = try parse(unfold(input))
@@ -621,22 +648,20 @@ public enum ICalendarImport {
         let components = wrapper?.children ?? roots
         let items = components.filter { ["VEVENT", "VTODO"].contains($0.name) }
         guard !items.isEmpty, items.count <= maximumRecords else { throw BetaError("The calendar contains no supported items or too many items.") }
-        let display: TimeZone
-        if displayTimeZone.isEmpty || displayTimeZone == "system" { display = .current }
-        else { display = try ICalendarImport.knownZone(displayTimeZone) }
-        let displayName = displayTimeZone.isEmpty || displayTimeZone == "system" ? display.identifier : displayTimeZone
-        var zoneBlocks: [[String]] = [], zoneSources: [String: [String]] = [:], zones: [String: EmbeddedZone] = [:]
+        let display = try context.display(displayTimeZone)
+        let displayName = display.identifier
+        var zoneBlocks: [[String]] = [], zoneSources: [OpaqueUTF8Identity: [String]] = [:], zones: [OpaqueUTF8Identity: EmbeddedZone] = [:]
         for component in components where component.name == "VTIMEZONE" {
             let names = component.properties.filter { $0.name == "TZID" }
             guard names.count == 1, !names[0].value.isEmpty else { throw BetaError("A source time zone has no unique TZID.") }
-            let name = names[0].value
+            let name = OpaqueUTF8Identity(names[0].value)
             if let previous = zoneSources[name] {
-                guard previous == component.lines else { throw BetaError("Conflicting source definitions share a TZID.") }; continue
+                guard OpaqueUTF8Identity(parts: previous) == OpaqueUTF8Identity(parts: component.lines) else { throw BetaError("Conflicting source definitions share a TZID.") }; continue
             }
             zones[name] = try EmbeddedZone(component); zoneSources[name] = component.lines; zoneBlocks.append(component.lines)
         }
-        let resolver = Resolver(display: display, displayName: displayName, zones: zones)
-        let complexUIDs = Set(items.filter { $0.name == "VEVENT" && $0.property("RECURRENCE-ID") != nil }.map { $0.value("UID") })
+        let resolver = Resolver(context: context, display: display, displayName: displayName, zones: zones)
+        let complexUIDs = Set(items.filter { $0.name == "VEVENT" && $0.property("RECURRENCE-ID") != nil }.map { OpaqueUTF8Identity($0.value("UID")) })
         let calendarName = wrapper?.value("X-WR-CALNAME").trimmingCharacters(in: .whitespaces) ?? ""
         let fallback = sourcePath(sourceName).isEmpty ? "Calendar" : sourcePath(sourceName)
         let label = calendarName.isEmpty ? fallback : calendarName
@@ -644,7 +669,7 @@ public enum ICalendarImport {
         let stableSource = sourceID.isEmpty ? (sourceName.isEmpty ? "calendar" : fallback) : sourceID
         let source = "ics:" + ICalendarImport.hash(Data((stableSource + "\n" + calendarName).utf8))
         var collections: [String: [[String: Any]]] = ["termine": [], "aufgaben": [], "jahrestage": []]
-        var identities: Set<[String]> = [], projectedBytes = 0
+        var identities: Set<OpaqueUTF8Identity> = [], projectedBytes = 0
         let zoneBytes = zoneBlocks.reduce(0) { $0 + $1.reduce(0) { $0 + $1.utf8.count + 2 } }
         for component in items {
             // Account for repeated source-zone payloads and worst-case JSON
@@ -655,7 +680,7 @@ public enum ICalendarImport {
             var (collection, record) = try componentRecord(component, complexUIDs: complexUIDs, resolver: resolver)
             if qualified { record["icsQuelleName"] = label; if record["icsQuelleId"] == nil { record["icsQuelleId"] = source } }
             guard let uid = record["uid"] as? String,
-                  identities.insert([collection, record["icsQuelleId"] as? String ?? "", uid]).inserted else { throw BetaError("Duplicate calendar item identity; nothing was imported.") }
+                  identities.insert(OpaqueUTF8Identity(parts: [collection, record["icsQuelleId"] as? String ?? "", uid])).inserted else { throw BetaError("Duplicate calendar item identity; nothing was imported.") }
             if collection == "aufgaben", record["icsElternQuelleId"] as? String == "", component.property("X-MAGNOLIE-TASK-IDENTITY") == nil {
                 record["icsElternQuelleId"] = record["icsQuelleId"] as? String ?? ""
             }
@@ -666,13 +691,13 @@ public enum ICalendarImport {
         // source-qualified exclusions and THISANDFUTURE range bodies.
         for collection in ["termine", "aufgaben"] {
             let records = collections[collection]!
-            var exclusions: [String: [String]] = [:], ranges: [String: [[String]]] = [:]
+            var exclusions: [OpaqueUTF8Identity: [String]] = [:], ranges: [OpaqueUTF8Identity: [[String]]] = [:]
             for record in records {
                 let raw = record["icsRoundtrip"] as? [String] ?? []
                 if let line = raw.first(where: { (try? Property($0).name) == "RECURRENCE-ID" }) {
                     let property = try Property(line)
                     let uid = (record["icsSerienUid"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? record["uid"] as! String
-                    let key = (record["icsQuelleId"] as? String ?? "") + "\0" + uid
+                    let key = OpaqueUTF8Identity(parts: [record["icsQuelleId"] as? String ?? "", uid])
                     exclusions[key, default: []].append(property.renamed("EXDATE", removing: ["RANGE"]))
                     if property.parameters["RANGE"]?.uppercased() == "THISANDFUTURE" { ranges[key, default: []].append(raw) }
                 }
@@ -682,9 +707,9 @@ public enum ICalendarImport {
                 var raw = record["icsRoundtrip"] as? [String] ?? []
                 if !raw.contains(where: { (try? Property($0).name) == "RECURRENCE-ID" }) {
                     let uid = (record["icsSerienUid"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? record["uid"] as! String
-                    let key = (record["icsQuelleId"] as? String ?? "") + "\0" + uid
+                    let key = OpaqueUTF8Identity(parts: [record["icsQuelleId"] as? String ?? "", uid])
                     if let additions = exclusions[key] {
-                        for line in additions where !raw.contains(line) { raw.append(line) }
+                        for line in additions where !raw.contains(where: { OpaqueUTF8Identity($0) == OpaqueUTF8Identity(line) }) { raw.append(line) }
                         record["icsRoundtrip"] = raw; record["icsRangeOverrides"] = ranges[key] ?? []
                     }
                 }

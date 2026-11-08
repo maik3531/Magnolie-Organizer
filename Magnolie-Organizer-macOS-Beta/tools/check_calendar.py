@@ -53,6 +53,21 @@ def cases(module):
               'RRULE:FREQ=DAILY;COUNT=4\r\nRDATE;TZID=Europe/Berlin:20260402T100000\r\n'
               'EXDATE;TZID=Europe/Berlin:20260330T100000\r\nSUMMARY:DST calendar\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n')
     result.append(dict(name='dst-series', kind='ics-termine', records=module.ics_lesen(source)['termine'], source=source))
+    # These UTF8 identities were independently checked against published2.0.30
+    # and Kotlin; no Swift canonical-equivalence assumption supplies expected data.
+    for fixture in sorted((BETA / 'tests/fixtures/opaque-ics').glob('*.ics')):
+        source = fixture.read_text()
+        result.append(dict(name='opaque-' + fixture.stem, kind='ics-termine', records=module.ics_lesen(source)['termine'], source=source))
+    for identifier in ['@utc', '@magnolie-utc-instant', 'UTC', 'Factory']:
+        source = ('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTIMEZONE\r\nTZID:' + identifier +
+                  '\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\nTZOFFSETFROM:+0300\r\nTZOFFSETTO:+0300\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n'
+                  'BEGIN:VEVENT\r\nUID:source-zone\r\nDTSTART;TZID=' + identifier + ':20260115T120000\r\nSUMMARY:Source authority\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n')
+        name = {'@utc': 'at-utc', '@magnolie-utc-instant': 'private-marker', 'UTC': 'utc', 'Factory': 'factory'}[identifier]
+        result.append(dict(name='source-zone-' + name, kind='ics-termine', records=module.ics_lesen(source)['termine'], source=source))
+    source = ('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n' + ''.join(
+        'BEGIN:VEVENT\r\nUID:civil-' + day + '\r\nDTSTART:' + day + 'T120000Z\r\nSUMMARY:Gregorian civil\r\nEND:VEVENT\r\n'
+        for day in ['00010615', '00990615', '15821004', '15821005', '15821010', '15821011', '24000229', '99990615']) + 'END:VCALENDAR\r\n')
+    result.append(dict(name='proleptic-civil', kind='ics-termine', records=module.ics_lesen(source)['termine'], source=source))
     writers = {'ics-termine': module.ics_schreiben_termine, 'ics-aufgaben': module.ics_schreiben_aufgaben, 'ics-jahrestage': module.ics_schreiben_jahrestage}
     groups = {'ics-termine': 'termine', 'ics-aufgaben': 'aufgaben', 'ics-jahrestage': 'jahrestage'}
     for case in result:

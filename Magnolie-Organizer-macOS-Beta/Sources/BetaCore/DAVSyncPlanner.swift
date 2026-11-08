@@ -168,7 +168,7 @@ public enum DAVSyncPlanner {
         return key
     }
 
-    public static func plan(snapshot: DAVCalendarSnapshot.Result, local: LocalState, baseline: Baseline?,
+    public static func plan(context: CalendarTimeContext, snapshot: DAVCalendarSnapshot.Result, local: LocalState, baseline: Baseline?,
                             restoreAdditive: Bool, syncEpoch: String, createdAt: Date,
                             cancellation: () -> Bool = { false }) throws -> Plan {
         func check() throws { if cancellation() { throw CancellationError() }; try Task.checkCancellation() }
@@ -372,7 +372,7 @@ public enum DAVSyncPlanner {
             try check()
             let keys = newGroups[identity]!.sorted { ordered($0) < ordered($1) }
             let values = keys.map { desired[$0]! }
-            let bytes = try encode(values, keys: keys, createdAt: createdAt)
+            let bytes = try encode(values, keys: keys, context: context, createdAt: createdAt)
             let href = source.href.appendingPathComponent(digest(Data((keys[0].kind + "\0" + keys[0].uid).utf8)) + ".ics")
             for key in keys { hrefs[key] = href; etags[key] = "" }
             try operation(.create, href, nil, bytes, keys)
@@ -392,7 +392,7 @@ public enum DAVSyncPlanner {
                 let identity = group(key)
                 if extractedGroups[identity] == nil {
                     let members = desiredGroups[identity]!.sorted { ordered($0) < ordered($1) }
-                    let encoded = try encode(members.map { desired[$0]! }, keys: members, createdAt: createdAt)
+                    let encoded = try encode(members.map { desired[$0]! }, keys: members, context: context, createdAt: createdAt)
                     guard extractionBytes < ICalendarImport.maximumProjectedBytes else { throw DAVSyncPlannerError.limit }
                     let extracted = try ICalendarResourcePatch.extract(original: encoded, keys: members,
                         maximumOutputBytes: ICalendarImport.maximumProjectedBytes - extractionBytes)
@@ -427,7 +427,7 @@ public enum DAVSyncPlanner {
             preservedTaskEntries: supportsTasks ? [] : (baseline?.entries.filter { $0.domain == .task } ?? []),
             priorTasksInitialized: !restoreAdditive && baseline?.syncEpoch == syncEpoch ? (baseline?.tasksInitialized ?? false) : false)
     }
-    private static func encode(_ values: [Desired], keys: [Key], createdAt: Date) throws -> Data {
+    private static func encode(_ values: [Desired], keys: [Key], context: CalendarTimeContext, createdAt: Date) throws -> Data {
         guard !values.isEmpty, values.count == keys.count, let domain = values.first?.domain,
               values.allSatisfy({ $0.domain == domain }) else { throw DAVSyncPlannerError.unsupportedRecord }
         let kind: ICalendarExport.Kind = domain == .task ? .tasks : domain == .anniversary ? .anniversaries : .appointments
@@ -442,7 +442,7 @@ public enum DAVSyncPlanner {
         }
         do {
             let wireUIDs = Dictionary(uniqueKeysWithValues: zip(records, keys).map { (OpaqueUTF8Identity(text($0.0, "uid")), $0.1.uid) })
-            let bytes = Data(try ICalendarExport.encode(records, kind: kind, timestamp: createdAt, wireUIDs: wireUIDs).utf8)
+            let bytes = Data(try ICalendarExport.encode(records, context: context, kind: kind, timestamp: createdAt, wireUIDs: wireUIDs).utf8)
             guard Set(try ICalendarResourcePatch.keys(from: bytes)) == Set(keys) else { throw DAVSyncPlannerError.unsupportedRecord }
             return bytes
         } catch { throw DAVSyncPlannerError.unsupportedRecord }

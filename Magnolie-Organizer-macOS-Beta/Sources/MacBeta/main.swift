@@ -30,11 +30,13 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var documentGeneration = UUID()
     private var catalog: [String: String] = [:]
     private let systemAccounts = SystemAccounts()
+    private var calendarDatabase: NormativeTimeZoneDatabase?
     private var davAccounts: DAVAccountService!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
             guard let resources = Bundle.main.resourceURL else { throw BetaError("Application resources missing.") }
+            calendarDatabase = try CalendarTimeContext.bundledDatabase(resources: resources)
             entry = resources.appendingPathComponent("UI/web/index.html")
             guard FileManager.default.fileExists(atPath: entry.path) else {
                 throw BetaError("No frozen generated UI. Run the documented macOS Beta development build.")
@@ -529,6 +531,8 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             }
             let zone = regional(plain)["timeZone"] as? String ?? "system"
             let sourceName = url.lastPathComponent
+            guard let database = calendarDatabase else { throw BetaError("Verified calendar timezone data is unavailable.") }
+            let timeContext = try CalendarTimeContext(database: database, systemIdentifier: TimeZone.current.identifier)
             // Only the explicitly selected file is read, with a hard byte bound.
             // Parsing and time-zone projection must not block AppKit or WebKit.
             DispatchQueue.global(qos: .userInitiated).async {
@@ -537,7 +541,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                     let handle = try FileHandle(forReadingFrom: url)
                     defer { try? handle.close() }
                     let bytes = try handle.read(upToCount: ICalendarImport.maximumBytes + 1) ?? Data()
-                    response = try ICalendarImport.decode(bytes, displayTimeZone: zone, sourceName: sourceName).document
+                    response = try ICalendarImport.decode(bytes, context: timeContext, displayTimeZone: zone, sourceName: sourceName).document
                 } catch { response = ["fehler": error.localizedDescription] }
                 DispatchQueue.main.async {
                     guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
@@ -571,7 +575,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                   let records = request.fields["daten"] as? [[String: Any]] else {
                 throw BetaError("Choose appointment, task or anniversary ICS export; use encrypted JSON backup for the whole document.")
             }
-            let text = try ICalendarExport.encode(records, kind: kind,
+            guard let database = calendarDatabase else { throw BetaError("Verified calendar timezone data is unavailable.") }
+            let timeContext = try CalendarTimeContext(database: database, systemIdentifier: TimeZone.current.identifier)
+            let text = try ICalendarExport.encode(records, context: timeContext, kind: kind,
                 defaultTimeZone: regional(plain)["timeZone"] as? String ?? "system")
             let path = try savePanel(Data(text.utf8), suffix: ".ics")
             send("exportErgebnis", ["ok": path != nil, "pfad": path ?? "", "abgebrochen": path == nil,

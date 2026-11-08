@@ -87,14 +87,14 @@ final class OpaqueUTF8IdentityTests: XCTestCase {
         let second = URL(string: "https://calendar.example.test/cal/cafe%CC%81.ics")!
         let values = [DAVResource(href: first, etag: "\"one\"", data: String(decoding: calendar(event("one")), as: UTF8.self)),
                       DAVResource(href: second, etag: "\"two\"", data: String(decoding: calendar(event("two")), as: UTF8.self))]
-        XCTAssertEqual(try DAVCalendarSnapshot.decode(source: source(), resources: values, displayTimeZone: "UTC").resources.count, 2)
+        XCTAssertEqual(try DAVCalendarSnapshot.decode(context: try CalendarTestContext.make(), source: source(), resources: values, displayTimeZone: "UTC").resources.count, 2)
         let sameWireUID = [values[0], DAVResource(href: second, etag: "\"two\"", data: values[0].data)]
-        XCTAssertThrowsError(try DAVCalendarSnapshot.decode(source: source(), resources: sameWireUID, displayTimeZone: "UTC")) {
+        XCTAssertThrowsError(try DAVCalendarSnapshot.decode(context: try CalendarTestContext.make(), source: source(), resources: sameWireUID, displayTimeZone: "UTC")) {
             XCTAssertEqual($0 as? DAVCalendarSnapshotError, .ambiguousWireUID)
         }
         let selected = source(URL(string: "https://calendar.example.test/cal/caf%C3%A9/")!)
         let outside = DAVResource(href: URL(string: "https://calendar.example.test/cal/cafe%CC%81/item.ics")!, etag: "\"one\"", data: values[0].data)
-        XCTAssertThrowsError(try DAVCalendarSnapshot.decode(source: selected, resources: [outside], displayTimeZone: "UTC")) {
+        XCTAssertThrowsError(try DAVCalendarSnapshot.decode(context: try CalendarTestContext.make(), source: selected, resources: [outside], displayTimeZone: "UTC")) {
             XCTAssertEqual($0 as? DAVCalendarSnapshotError, .resourceOutsideCollection)
         }
     }
@@ -108,7 +108,7 @@ final class OpaqueUTF8IdentityTests: XCTestCase {
         let resource = DAVCalendarSnapshot.Resource(href: href, etag: "\"one\"", bytes: calendar(event(nfc) + event(nfd)),
             wireKeys: rows.map(\.wireKey), calendarProperties: [], sourceSHA256: "", records: rows)
         let remote = DAVCalendarSnapshot.Result(source: chosen, resources: [resource], appointments: rows, tasks: [], anniversaries: [], byteCount: resource.bytes.count, projectedByteCount: 0)
-        let plan = try DAVSyncPlanner.plan(snapshot: remote, local: .init(appointments: [], tasks: [], anniversaries: []), baseline: nil,
+        let plan = try DAVSyncPlanner.plan(context: try CalendarTestContext.make(), snapshot: remote, local: .init(appointments: [], tasks: [], anniversaries: []), baseline: nil,
             restoreAdditive: false, syncEpoch: "epoch", createdAt: Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertTrue(plan.operations.isEmpty)
         let final = try plan.finalize(acknowledgements: [])
