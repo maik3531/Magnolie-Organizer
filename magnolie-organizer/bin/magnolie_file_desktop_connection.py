@@ -53,9 +53,10 @@ class NativeDesktopFileConnection:
     _video_data_handlers_ready = True
 
     def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None, status_changed=None,
-                 native_wifi_current=lambda:False):
-        if not callable(native_wifi_current):raise TransferError('media_source_native_wifi_required')
+                 native_wifi_current=lambda:False,native_metadata_current=lambda:False):
+        if not callable(native_wifi_current) or not callable(native_metadata_current):raise TransferError('media_source_native_wifi_required')
         self._native_wifi_current=native_wifi_current
+        self._native_metadata_current=native_metadata_current
         if (type(authority) is not NativeDesktopFileAuthority or channel is not authority.native_channel
                 or not callable(getattr(channel, 'send', None)) or not callable(released)):
             raise TransferError('file_desktop_native_owner_required')
@@ -3130,6 +3131,8 @@ class NativePhotoDesktopSession:
                         with self._lock:self._state=progress['state'];self._error=progress['error']
                         if progress['state']!='complete':break
                         if not outgoing.requested_for(media_type):continue # PC-only never requests phone READ.
+                        if operation=='automatic' and not self._enabled:
+                            raise TransferError('media_source_shared_incoming_review_required')
                     if media_type=='video':self._prepare_video()
                     catalog=self.connection._source_catalog
                     if operation in ('automatic','sync_shared') or media_type=='video' or catalog is None or catalog.media_type!=media_type:

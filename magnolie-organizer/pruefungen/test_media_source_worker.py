@@ -2,6 +2,8 @@
 from pathlib import Path
 import threading
 import os
+import socket
+from types import SimpleNamespace
 from contextlib import contextmanager
 import pytest
 
@@ -9,7 +11,24 @@ from test_media_source_connection import source,native,receiving,mappings,compos
 from test_media_source_sender import message
 
 
-def start(h):return h.connection.start_mapped_media_worker(h.connection.issue_receive_action())
+def start(h):
+    if not h.connection._native_metadata_current():warm_metadata(h,h.service)
+    return h.connection.start_mapped_media_worker(h.connection.issue_receive_action())
+
+
+def warm_metadata(h,service):
+    from copy import deepcopy
+    for kind,body in (('capabilities.update',deepcopy(h.peer['capabilities'])),
+            ('grants.update',deepcopy(h.peer['grants'])),('personal_sync.settings',dict(format=1,own_device=True))):
+        if kind!='personal_sync.settings':body['revision']+=1
+        packet=message(kind,body);dispatch(h,service,packet)
+        for _ in range(16):
+            reply=h.wire.receive()
+            if reply['type']=='ack' and reply['message_id']==packet['message_id']:
+                assert reply['status']=='accepted',reply
+                break
+            assert reply['type']=='message',reply
+        else:pytest.fail('Current-channel native metadata ACK missing')
 
 
 def test_actual_worker_skips_unchanged_mapped_file_without_cache_or_phone_read(source,native,monkeypatch):
@@ -32,6 +51,7 @@ def test_actual_worker_sends_changed_bytes_then_backs_up_archives_and_skips_seco
         if trigger=='wifi':
             from magnolie_file_desktop_connection import NativePhotoDesktopSession
             monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.1)
+            warm_metadata(h,native[0])
             h.controller.change('direction','pc_to_phone');h.controller.change('auto_mode','wifi')
         controls=agree(h,native[0])
         h.wire.sock.settimeout(30);worker=start(h) if trigger=='manual' else None
@@ -88,21 +108,10 @@ def test_worker_without_actual_send_control_holds_before_creating_cache(source,n
 
 def test_normal_session_pc_only_manual_pass_never_discovers_or_requests_phone_read(source,native,monkeypatch):
     with composition(source,native[0]) as h:
-        from copy import deepcopy
         import magnolie_telefon as phone
         # The high-level Organizer action additionally requires real current-
         # channel metadata ACKs, not the source fixture's persisted capabilities.
-        for kind,body in (('capabilities.update',deepcopy(h.peer['capabilities'])),
-                ('grants.update',deepcopy(h.peer['grants'])),('personal_sync.settings',dict(format=1,own_device=True))):
-            if kind!='personal_sync.settings':body['revision']+=1
-            packet=message(kind,body);dispatch(h,native[0],packet)
-            for _ in range(16):
-                reply=h.wire.receive()
-                if reply['type']=='ack' and reply['message_id']==packet['message_id']:
-                    assert reply['status']=='accepted',reply
-                    break
-                assert reply['type']=='message',reply # Actual native capability/settings output before the ACK.
-            else:pytest.fail('Current-channel native metadata ACK missing')
+        warm_metadata(h,native[0])
         h.controller.change('direction','pc_to_phone');agree(h,native[0])
         with monkeypatch.context() as patch:
             patch.setattr(h.preferences,'read',lambda:pytest.fail('Passive UI snapshot performed protected preference I/O'))
@@ -216,6 +225,7 @@ def test_actual_shared_wifi_arms_native_pc_only_automatic_pass_without_receiving
     from magnolie_file_desktop_connection import NativePhotoDesktopSession
     monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
     with composition(source,native[0]) as h:
+        warm_metadata(h,native[0])
         session=h.connection.desktop_session();completed=threading.Event()
         h.connection._status_changed=lambda:completed.set() if session.snapshot()['state']=='complete' else None
         monkeypatch.setattr(h.connection,'request_source',lambda *a,**k:pytest.fail('Automatic PC-only pass requested phone READ'))
@@ -241,6 +251,7 @@ def test_actual_wifi_automatic_worker_denies_route_change_during_source_read(sou
     from magnolie_file_desktop_connection import NativePhotoDesktopSession
     monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',60)
     with composition(source,native[0]) as h:
+        warm_metadata(h,native[0])
         h.controller.change('direction','pc_to_phone');h.controller.change('auto_mode','wifi');agree(h,native[0])
         def boundary(phase):
             if phase=='source_chunk_read':native[0].connection_transports[h.peer['device_id']]='bluetooth'
@@ -255,6 +266,7 @@ def test_actual_wifi_automatic_worker_denies_route_change_during_source_read(sou
 
 def test_automatic_worker_requires_shared_wifi_mode_even_on_real_wifi_channel(source,native,monkeypatch):
     with composition(source,native[0]) as h:
+        warm_metadata(h,native[0])
         agree(h,native[0]);assert h.connection._native_wifi_current() is True
         monkeypatch.setattr(h.source,'plan',lambda *a,**k:pytest.fail('Shared manual mode started automatic export'))
         worker=h.connection.start_mapped_media_worker(h.connection.issue_receive_action(),automatic=True)
@@ -279,3 +291,92 @@ def test_matched_wifi_and_peer_receive_do_not_arm_sending_without_independent_na
         session=h.connection.desktop_session()
         assert not session._shared_automatic and session._timer is None
         assert session._schedule_scope() is None and not h.source._prepared
+
+
+@pytest.mark.parametrize('mode',['manual','wifi'])
+def test_new_channel_recomposes_existing_native_send_only_without_reenabling_receive_or_read(source,native,monkeypatch,mode):
+    import magnolie_telefon as phone
+    from magnolie_file_native_authority import capture_authenticated_binding
+    from test_media_transport import PeerWire
+    from magnolie_file_control import FileControlPacket,FileGrantState,KIND as CONTROL
+    from magnolie_media_source import NativeMappedMediaSource
+    from magnolie_file_desktop_connection import NativePhotoDesktopSession
+    monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
+    service=native[0]
+    with composition(source,service) as old:
+        old.controller.change('direction','pc_to_phone');old.controller.change('auto_mode',mode)
+        before=old.preferences.read();assert not before.policy.enabled and before.policy.sending.photos
+        shared=old.controller._store.read()
+    left,right=socket.socketpair();left.settimeout(2);right.settimeout(10)
+    channel=phone.SecureChannel(left,bytes([3])*16,bytes([1])*32,bytes([1])*4,bytes([2])*32,bytes([2])*4)
+    h=SimpleNamespace(peer=source.peer,channel=channel,wire=PeerWire(right))
+    binding=capture_authenticated_binding(dict(service.store.identity),dict(h.peer),service._generation,service.store)
+    service._activate_connection(h.peer['device_id'],channel,'wifi',file_binding=binding)
+    try:
+        assert channel not in service._native_file_connections
+        with monkeypatch.context() as patch:
+            patch.setattr(NativeMappedMediaSource,'_file',lambda *a,**k:pytest.fail('Reconnection read media before fresh agreement'))
+            warm_metadata(h,service)
+        connection=service._native_file_connections.get(channel)
+        assert connection is not None,'Current metadata ACKs did not compose the saved SEND-only backend'
+        assert connection._media_source is not None and not connection._preferences.read().policy.enabled
+        assert connection._preferences.read()==before # Reconnection must not rewrite native consent/settings.
+        assert not connection._media_source._prepared and connection._mapped_worker is None
+        assert connection._source_pending is None # No phone READ/discovery or incoming activation.
+        assert connection._media_transport.intent_for('images',to_phone=True) is None # Fresh shared ACK/echo still missing.
+        announced=[h.wire.receive(),h.wire.receive()]
+        assert {packet['kind'] for packet in announced}=={'file_transfer.shared_settings',CONTROL}
+        settings=next(packet for packet in announced if packet['kind']=='file_transfer.shared_settings')
+        local=FileControlPacket.parse(next(packet for packet in announced if packet['kind']==CONTROL)['body'])
+        assert settings['body']==shared and local.grants.send_files and not local.grants.receive_files
+        completed=threading.Event()
+        connection._status_changed=lambda:completed.set() if connection.desktop_snapshot()['state']=='complete' else None
+        with monkeypatch.context() as patch:
+            patch.setattr(NativeMappedMediaSource,'_file',lambda *a,**k:pytest.fail('Shared echo replaced current file-control ACK'))
+            dispatch(h,service,dict(type='ack',message_id=settings['message_id'],status='accepted',error='none'))
+            dispatch(h,service,message('file_transfer.shared_settings',settings['body']));assert h.wire.receive()['type']=='ack'
+            assert connection._mapped_worker is None and connection.desktop_session()._schedule.active is None
+        remote=FileControlPacket(FileGrantState(1,'6'*64,False,True),'7'*64,1,local.challenge)
+        dispatch(h,service,message(CONTROL,remote.wire()));assert h.wire.receive()['kind']==CONTROL
+        if mode=='wifi':
+            assert completed.wait(30),connection.desktop_snapshot()
+            assert connection.desktop_session().join(10)
+            assert connection.desktop_snapshot()['known_files']==1 and not connection._media_source._prepared
+        else:
+            assert connection._mapped_worker is None and connection.desktop_session()._timer is None
+        assert connection._preferences.read()==before and connection._source_pending is None
+    finally:
+        service._end_native_file_connection(channel)
+        connection=service._native_file_connections.get(channel)
+        if connection is not None:assert connection.desktop_session().join(15)
+        left.close();right.close()
+
+
+def test_lost_current_metadata_stops_live_source_and_later_real_ack_cannot_revive_ended_worker(source,native):
+    from magnolie_file_transfer import TransferError
+    with composition(source,native[0]) as h:
+        agree(h,native[0])
+        def boundary(phase):
+            if phase=='source_chunk_read':native[0]._native_file_controls[h.channel].pop('grants.update',None)
+        h.source._boundary=boundary
+        worker=start(h);assert worker.join(30),worker.progress()
+        assert worker.progress()['state']=='held' and worker.progress()['error']=='media_source_current_metadata_required',worker.progress()
+        assert not h.source._prepared and h.target.read_bytes()==b'hello'
+        h.source._boundary=lambda phase:None
+        warm_metadata(h,native[0]);assert h.connection._native_metadata_current() is True
+        with pytest.raises(TransferError,match='native_operation_ended'):worker._current()
+
+
+def test_shared_two_way_automatic_does_not_invent_an_unjoined_phone_read_path(source,native,monkeypatch):
+    from magnolie_file_desktop_connection import NativePhotoDesktopSession
+    monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
+    with composition(source,native[0]) as h:
+        warm_metadata(h,native[0]);session=h.connection.desktop_session();held=threading.Event()
+        h.connection._status_changed=lambda:held.set() if session.snapshot()['state']=='held' else None
+        monkeypatch.setattr(h.connection,'request_source',lambda *a,**k:pytest.fail('Unjoined shared receiving path requested phone READ'))
+        h.controller.change('auto_mode','wifi');agree(h,native[0]) # Existing two-way shared choice, receiving remains OFF.
+        assert held.wait(30),session.snapshot()
+        assert session.join(10),session.snapshot()
+        assert session.snapshot()['error']=='media_source_shared_incoming_review_required'
+        assert session.snapshot()['known_files']==1 and session._automatic_paused
+        assert not h.source._prepared and h.connection._source_pending is None

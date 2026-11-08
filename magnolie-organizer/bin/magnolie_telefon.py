@@ -2954,8 +2954,9 @@ class PhoneService:
             connection = NativeDesktopFileConnection(authority, channel, released=released,
                 activity_changed=lambda owner, active: self._native_photo_activity_changed(connection, owner, active),
                 status_changed=lambda: self.callback('photo_sync', {}),
-                native_wifi_current=lambda:(self.connections.get(peer_id) is channel
-                    and self.connection_transports.get(peer_id)=='wifi' and not self.stop_event.is_set()))
+                native_metadata_current=lambda:self._current_native_source_metadata(peer_id,static_public,channel,generation),
+                native_wifi_current=lambda:(self._current_native_source_metadata(peer_id,static_public,channel,generation)
+                    and self.connection_transports.get(peer_id)=='wifi'))
         except BaseException:
             authority.close()
             raise
@@ -3162,14 +3163,51 @@ class PhoneService:
                 preferences=import_module('magnolie_photo_preferences').ProtectedPhotoPreferences(authority)
                 try:stored=preferences.read()
                 finally:preferences.close()
-                if (stored.policy is None or not stored.associated or not stored.policy.enabled or stored.mode!='automatic'
-                        or not stored.destination_available or stored.policy.mapping_store is None or stored.policy.job_catalog is None):return
+                policy=stored.policy
+                if policy is None or not stored.associated:return
+                receiver_auto=(policy.enabled and stored.mode=='automatic' and stored.destination_available
+                    and policy.mapping_store is not None and policy.job_catalog is not None)
+                consent=policy.sending
+                sender=(consent is not None and consent.pairing_epoch==binding.pairing_epoch
+                    and (consent.photos or consent.videos)
+                    and self._current_native_source_metadata(peer['device_id'],peer['static_public'],channel,binding.generation))
+                if not receiver_auto and not sender:return
             finally:authority.close()
             connection=self.open_native_file_connection(peer['device_id'],peer['static_public'],channel,binding.generation)
-            connection.desktop_session().start('resume_automatic')
+            shared_waiting=False
+            if sender:
+                # Composition/control only. No discovery, RECEIVE, media scan,
+                # default directory, or cached shared-intent adoption on reconnect.
+                connection.send_controls()
+                shared_waiting=connection._media_transport._store.read() is not None
+                connection._media_transport.send_settings()
+            # A saved shared direction must not be replaced by the older
+            # receiver-only bootstrap before this channel's fresh agreement.
+            if receiver_auto and not shared_waiting:connection.desktop_session().start('resume_automatic')
         except (ValueError,OSError):
             if connection is not None:connection.close()
             # Uncertain metadata is HOLD; no default record or automatic repair.
+
+    def _current_native_source_metadata(self,peer_id,static_public,channel,generation):
+        """Lock-free deny-only witness for source/socket worker callbacks.
+
+        File/book/mapping authority is checked independently by the live source.
+        Never take the service monitor or read native files from this callback.
+        """
+        binding=self._file_channel_bindings.get(channel)
+        peers=self.store.peers;controls=self._native_file_controls.get(channel,{})
+        if (not self.enabled or self.stop_event.is_set() or binding is None or generation!=self._generation
+                or binding.generation!=generation or binding.peer_id!=peer_id or binding.static_public!=static_public
+                or binding.store_owner is not self.store
+                or self.connections.get(peer_id) is not channel or len(peers)!=1):return False
+        peer=peers[0];personal=peer.get('personal_sync',{});status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
+        return bool(peer.get('device_id')==peer_id and peer.get('static_public')==static_public and peer.get('state')=='paired'
+            and personal.get('own_device') is True and personal.get('remote_own_device') is True
+            and status.get('available') is True and 21 in status.get('versions',[]) and 23 in status.get('versions',[])
+            and 'capabilities.update' in controls and 'grants.update' in controls
+            and controls.get('capabilities.update')==peer.get('capabilities')
+            and controls.get('grants.update')==peer.get('grants')
+            and controls.get('personal_sync.settings')=={'format':1,'own_device':True})
 
     def _native_photo_activity_changed(self, connection, owner, active):
         # These are in-process native owners, never serialized client claims.

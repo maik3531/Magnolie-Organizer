@@ -38,6 +38,7 @@ class NativeMappedMediaWorker:
                 or self._deadline is None or time.monotonic()>=self._deadline
                 or self._token is None or c._media_transport.intent_for(self._kind,to_phone=True) is not self._token):
             raise TransferError('media_source_native_operation_ended')
+        if c._native_metadata_current() is not True:raise TransferError('media_source_current_metadata_required')
         if self._automatic:
             from magnolie_media_sync import effective
             if effective(self._token.body)['auto_mode']!='wifi' or c._native_wifi_current() is not True:

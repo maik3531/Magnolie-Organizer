@@ -19,7 +19,7 @@ from magnolie_media_retention import NativeMediaRetention
 def composition(h,service):
     connection=service.open_native_file_connection(h.peer['device_id'],h.peer['static_public'],h.channel,h.authority.binding.generation)
     scoped=SimpleNamespace(**dict(vars(h),authority=connection._authority,source=connection._media_source,
-        controller=connection._media_transport,preferences=connection._preferences,mappings=connection._mappings,connection=connection))
+        controller=connection._media_transport,preferences=connection._preferences,mappings=connection._mappings,connection=connection,service=service))
     try:
         assert scoped.source is not None
         policy=scoped.preferences.read()

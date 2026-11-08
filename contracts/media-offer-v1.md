@@ -534,6 +534,24 @@ oder geschützten Einstellungsstores. Dieser Anzeigehinweis verleiht keine Recht
 Der echte Dienst prüft weiterhin Kanal, aktuelle native Metadaten-ACKs,
 Fingerabdruck und sämtliche individuellen Quellbedingungen beim Start.
 
+Nach einem neuen Kanalaufbau kann eine bestehende geschützte reine
+Sendezustimmung denselben Quell-/Steuerbesitzer wieder zusammensetzen, ohne
+RECEIVE einzuschalten. Voraussetzung sind die tatsächlich auf diesem Kanal
+bestätigten Fähigkeiten, Grants und gegenseitigen Own-Device-Metadaten sowie
+der vorhandene aktuelle Paarungsbezug. Vorhandene native Einstellungen bleiben
+dabei unverändert; fehlende Schlüssel, Historien oder Verzeichnisse werden
+nicht aus der Wiederanbindung erfunden. Die neue Verbindung sendet ihre eigenen
+Steuer-/gemeinsamen Einstellungen und wartet auf frischen ACK-/Peer-Echo- und
+Dateisteuerabgleich. Gespeicherte Übereinstimmung ist keine neue Leseautorität.
+
+Ein zusätzlicher monitorfreier nativer Metadatennachweis begrenzt den Arbeiter
+auch während Quell- und Socket-I/O. Fehlende oder inzwischen unbestätigte
+Kanalmetadaten stoppen ihn; spätere gültige ACKs beleben diesen beendeten
+Arbeiter nicht wieder. Eine gespeicherte gemeinsame Richtung darf bei der
+Wiederanbindung nicht durch den älteren Empfangs-Autostart ersetzt werden.
+Noch nicht wieder angebundene gemeinsame automatische Empfangspfade erhalten
+eine ausdrückliche Review-Sperre statt unangeforderter Telefon-READ-Aktionen.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
