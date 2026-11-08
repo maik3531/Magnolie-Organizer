@@ -60,14 +60,20 @@ import WebKit
         let selected = try await web.evaluateJavaScript("document.querySelector('.handbuch-suchtreffer').click(); document.getElementById('handbuch-suche').hidden")
         XCTAssertEqual(selected as? Bool, true)
         XCTAssertTrue(content.permits(try XCTUnwrap(web.url)))
-        let blocked = try await web.callAsyncJavaScript("""
-            return await new Promise(resolve => {
-              const script = document.createElement('script');
-              script.src = 'https://example.invalid/forbidden-native-bridge.js';
-              script.onload = () => resolve(false); script.onerror = () => resolve(true);
-              document.head.append(script); setTimeout(() => resolve(false), 3000);
-            });
-            """, arguments: [:], in: nil, in: .page)
+        // Use the explicit completion overload, as in WebKitTests: some SDKs
+        // otherwise select the default-handler Void method even with try/await.
+        let blocked: Any = try await withCheckedThrowingContinuation { continuation in
+            web.callAsyncJavaScript("""
+                return await new Promise(resolve => {
+                  const script = document.createElement('script');
+                  script.src = 'https://example.invalid/forbidden-native-bridge.js';
+                  script.onload = () => resolve(false); script.onerror = () => resolve(true);
+                  document.head.append(script); setTimeout(() => resolve(false), 3000);
+                });
+                """, arguments: [:], in: nil, in: .page) { result in
+                    continuation.resume(with: result)
+                }
+        }
         XCTAssertEqual(blocked as? Bool, true, "External script must be blocked")
         _ = try await web.evaluateJavaScript("const link = document.createElement('a'); link.href='https://example.invalid/programmatic'; document.body.append(link); link.click();")
         try await Task.sleep(nanoseconds: 100_000_000)
