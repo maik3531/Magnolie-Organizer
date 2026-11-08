@@ -160,6 +160,15 @@ class LifecycleTest(unittest.TestCase):
         self.assertEqual(native.SUITES['domains'], ['domains'])
         self.assertNotIn('domains', native.SUITES['ui'])
 
+    def test_timezone_interop_is_an_isolated_optional_stage(self):
+        self.assertIn('timezone-interop',session.STAGES)
+        self.assertIn('timezone-interop',session.COLD_START_STAGES)
+        spec = importlib.util.spec_from_file_location('native_checks',session.ROOT/'tools/native-checks.py')
+        native = importlib.util.module_from_spec(spec); spec.loader.exec_module(native)
+        self.assertEqual(native.SUITES['timezone'],['timezone-interop'])
+        for name in ('ui','services','files','domains'):
+            self.assertNotIn('timezone-interop',native.SUITES[name])
+
     def test_api_default_and_explicit_supported_images(self):
         self.assertEqual(session.parser().parse_args(['prepare']).api,34)
         self.assertEqual(session.parser().parse_args(['run','--api','35']).api,35)
@@ -356,7 +365,7 @@ class LifecycleTest(unittest.TestCase):
         with patch.object(session,'prepare_test_process') as prepare, patch.object(session,'adb',side_effect=proof):
             for stage in session.STAGES: session.run_test(session.Owner(),{},stage,12)
         self.assertEqual([call.args[2] for call in prepare.call_args_list],
-                         ['basics','restart','layout','time','navigation','calendar-files','domains'])
+                         ['basics','restart','layout','time','navigation','calendar-files','domains','timezone-interop'])
 
     def test_native_suites_execute_through_owner_stage_contract(self):
         spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')

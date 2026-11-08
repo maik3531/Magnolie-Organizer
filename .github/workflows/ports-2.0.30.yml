@@ -7,7 +7,7 @@ on:
         description: Candidate to build (tablet-aosp is a diagnostic comparison only)
         type: choice
         default: all
-        options: [all, macos, tablet, tablet-aosp, tablet-components, tablet-api26-components]
+        options: [all, macos, tablet, tablet-aosp, tablet-components, tablet-api26-components, tablet-timezone-interop]
   push:
     branches: [codex/ports-2.0.30]
     paths:
@@ -128,12 +128,12 @@ jobs:
           retention-days: 14
 
   tablet:
-    name: ${{ inputs.target == 'tablet-api26-components' && format('tablet-API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || inputs.target == 'tablet-components' && format('tablet-component-only-{0}', matrix.suite) || 'tablet' }}
+    name: ${{ inputs.target == 'tablet-timezone-interop' && 'tablet-timezone-interop-comparison-only' || inputs.target == 'tablet-api26-components' && format('tablet-API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || inputs.target == 'tablet-components' && format('tablet-component-only-{0}', matrix.suite) || 'tablet' }}
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
-        suite: ${{ fromJSON((inputs.target == 'tablet-components' || inputs.target == 'tablet-api26-components') && '["services","files","domains"]' || '["ui"]') }}
+        suite: ${{ fromJSON((inputs.target == 'tablet-components' || inputs.target == 'tablet-api26-components') && '["services","files","domains"]' || inputs.target == 'tablet-timezone-interop' && '["timezone"]' || '["ui"]') }}
     if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -287,6 +287,23 @@ jobs:
             -p MemoryMax=6G -p MemorySwapMax=0 -p CPUQuota=200% -p RuntimeMaxSec=620 \
             -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
             --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite domains --image "$TABLET_SYSTEM_IMAGE" --api "$TABLET_RUNTIME_API" </dev/null
+      - name: Compare actual WebView and native time-zone clocks against independent golden data
+        if: ${{ !cancelled() && steps.tablet_build.outcome == 'success' && matrix.suite == 'timezone' }}
+        working-directory: Magnolie-Organizer-Android-Tablet-Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -c /dev/kvm
+          sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          test -d "$ANDROID_HOME/system-images/android-$TABLET_RUNTIME_API/$TABLET_SYSTEM_IMAGE/x86_64"
+          # Manual component evidence only; the original UI acceptance is unchanged.
+          systemd-run --user --wait --pipe --collect \
+            --setenv="ANDROID_HOME=$ANDROID_HOME" --setenv="ANDROID_SDK_ROOT=$ANDROID_HOME" \
+            --setenv="JAVA_HOME=$JAVA_HOME" --setenv="MAGNOLIE_JS_RUNTIME=node" \
+            --setenv="NODE_PATH=$NODE_PATH" \
+            -p MemoryMax=6G -p MemorySwapMax=0 -p CPUQuota=200% -p RuntimeMaxSec=620 \
+            -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
+            --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite timezone --image "$TABLET_SYSTEM_IMAGE" --api "$TABLET_RUNTIME_API" </dev/null
       - name: Collect synthetic native evidence
         if: always()
         shell: bash
@@ -305,7 +322,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Android-Tablet-2.0.30Beta-${{ inputs.target == 'tablet-aosp' && 'AOSP-diagnostic-only' || inputs.target == 'tablet-api26-components' && format('API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-components' && format('component-only-{0}', matrix.suite) || 'Google-candidate' }}-and-proof
+          name: Android-Tablet-2.0.30Beta-${{ inputs.target == 'tablet-timezone-interop' && 'timezone-interop-comparison-only' || inputs.target == 'tablet-aosp' && 'AOSP-diagnostic-only' || inputs.target == 'tablet-api26-components' && format('API26-component-only-{0}', matrix.suite) || inputs.target == 'tablet-components' && format('component-only-{0}', matrix.suite) || 'Google-candidate' }}-and-proof
           path: |
             Magnolie-Organizer-Android-Tablet-Beta/artifacts/
             Magnolie-Organizer-Android-Tablet-Beta/app/build/test-results/testDebugUnitTest/
