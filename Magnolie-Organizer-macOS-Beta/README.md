@@ -140,8 +140,12 @@ source checkpoint, not a completed native parity acceptance.
   canonical cache importer. DAV account configuration and explicit discovery use native Keychain storage and
   verified rollback. Complete Nextcloud synchronization and conflict/deletion
   transactions remain unfinished; successful setup is not a synchronization ACK.
+- Printing renders an immutable selected HTML snapshot in a separate ephemeral,
+  JavaScript-disabled WKWebView with no native bridge, network or local-file access.
+  AppKit supplies the system print dialog and its Save as PDF action. The native
+  PDF-engine test does not establish manual print-panel or physical-paper acceptance.
 - No Graph sync, Magnolia tree, phone/SMS/Bluetooth, weather download,
-  tray/background service, autostart, scheduled backup, printing/PDF/office export,
+  tray/background service, autostart, scheduled backup, office export,
   full ICS/vCard/CSV import, updater, manual downloader, contributor validation or
   native protected-image rendering is implemented.
 - Unsupported desktop controls retain an explicit Beta limitation notice or

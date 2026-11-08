@@ -49,7 +49,7 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `cloud_sicherung_test` | yes | yes | UNSUPPORTED: negative Beta response |
 | `contributor_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `debug_startphase` | yes | — | UNSUPPORTED: negative Beta response |
-| `drucken` | yes | yes | UNSUPPORTED: negative Beta response |
+| `drucken` | yes | yes | source: isolated JS-free print renderer and AppKit system print/PDF dialog; native acceptance pending |
 | `eds_status` | yes | yes | partial: passive native EventKit/Contacts discovery; no synchronization |
 | `eigenes_profil_office` | yes | yes | UNSUPPORTED: negative Beta response |
 | `eigenes_profil_telefon` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -73,7 +73,7 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `graph_mcp_start` | — | yes | UNSUPPORTED: negative Beta response |
 | `graph_mcp_status` | — | yes | UNSUPPORTED: negative Beta response |
 | `handbuch_herunterladen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `handbuch_oeffnen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `handbuch_oeffnen` | yes | yes | source: bundled canonical 2.0.30 manual; isolated local WKWebView/search; native validation pending |
 | `import` | yes | yes | partial: native selected UTF-8 ICS file; atomic codec and canonical merge; no vCard/CSV/archive import |
 | `import_lokal` | yes | yes | UNSUPPORTED: negative Beta response |
 | `internet_konten_mcp` | — | yes | UNSUPPORTED: negative Beta response |

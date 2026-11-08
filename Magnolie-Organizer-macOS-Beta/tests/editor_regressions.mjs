@@ -26,6 +26,9 @@ try {
   w.MacBeta.receive("init", { daten: { termine: [], aufgaben: [], kontakte: [], notizen: [],
     einstellungen: { allgemein: { handbuchHinweisGezeigt: true } } }, neu: false,
     regional: { language: "en", timeZone: "UTC" } });
+  const printHTML = t.druckSeite([{ vorname: "Native", nachname: "PrintProof", notiz: "PDF evidence 2.0.30" }]);
+  assert.match(printHTML, /^<!doctype html>/i);
+  assert.ok(printHTML.includes("PrintProof"));
   for (const [name, location] of [["location", "Office"], ["escaped-location", "Room A, West; Floor 2 \\ Annex"]]) {
     t.oeffneTerminBlatt(null, "2026-05-10");
     field("#tb-titel", name); field("#tb-ganztaegig", false);
@@ -97,7 +100,7 @@ try {
   t.daten().einstellungen.erinnerung.an = true;
   if (process.argv.includes("--probe")) {
     t.daten().aufgaben = [tasks[0]]; b.at("2026-05-09T10:00:00Z"); t.pruefeErinnerungen();
-    console.log(JSON.stringify({ cases, tasks, saveRequest, earlyOnlyCallbacks: messages.filter(m => m.cmd === "erinnerung_zeigen").length }));
+    console.log(JSON.stringify({ cases, tasks, saveRequest, printHTML, earlyOnlyCallbacks: messages.filter(m => m.cmd === "erinnerung_zeigen").length }));
   } else {
     t.daten().aufgaben = tasks;
     checkAt("2026-05-09T09:59:59Z", 0, "not early yet");
@@ -182,6 +185,6 @@ try {
     t.daten().einstellungen.erinnerung.an = true;
     t.daten().aufgaben = [{ ...base, id: "locked-candidate" }];
     checkAt("2026-05-10T10:00:00Z", 0, "locked profile gate remains intact");
-    console.log(JSON.stringify({ cases, tasks, saveRequest, checks }));
+    console.log(JSON.stringify({ cases, tasks, saveRequest, printHTML, checks }));
   }
 } finally { b.close(); }

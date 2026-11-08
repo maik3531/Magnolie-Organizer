@@ -8,6 +8,7 @@ import BetaCore
 final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMessageHandler,
                   WKNavigationDelegate, UNUserNotificationCenterDelegate {
     private let name = "Magnolie Organizer macOS Beta"
+    private let printing = PrintHost()
     private var manual: ManualHost?
     private var window: NSWindow!
     private var web: WKWebView!
@@ -514,6 +515,15 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                     guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
                     self.send("importErgebnis", response)
                 }
+            }
+        case .drucken:
+            guard plain != nil, !restoring else { throw BetaError("Printing requires an unlocked document.") }
+            _ = try PrintDocument.isolatedHTML(request.text("html"))
+            let requestID = request.fields["requestId"] as? String
+            printing.begin(html: request.text("html"), parent: window) { [weak self] result in
+                var reply = result
+                if let requestID { reply["requestId"] = requestID }
+                self?.send("printErgebnis", reply)
             }
         case .export:
             guard plain != nil, let kind = ICalendarExport.Kind(rawValue: request.text("art")),

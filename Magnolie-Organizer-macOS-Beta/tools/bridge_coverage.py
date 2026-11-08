@@ -5,6 +5,7 @@ import re
 from project_ui import BETA, REPO, LINUX, inputs, commands, digest
 
 SCOPES = {
+    "drucken": "source: isolated JS-free print renderer and AppKit system print/PDF dialog; native acceptance pending",
     "handbuch_oeffnen": "source: bundled canonical 2.0.30 manual; isolated local WKWebView/search; native validation pending",
     "bereit": "source: load/new/locked document; native local startup verified",
     "entsperren": "partial: v1/v2 Apple crypto fixtures verified; full password lifecycle pending",

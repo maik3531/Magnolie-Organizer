@@ -65,7 +65,7 @@ class ProjectionTests(unittest.TestCase):
         self.assertIn("LIMITATION RESPONSE ONLY", report)
         self.assertIn("| `sync` | yes | yes | UNSUPPORTED", report)
         self.assertIn("| `kennwort_entfernen` | yes | yes | UNSUPPORTED", report)
-        self.assertIn("| `drucken` | yes | yes | UNSUPPORTED", report)
+        self.assertIn("| `drucken` | yes | yes | source: isolated JS-free print renderer", report)
 
     def test_projection_is_reproducible_and_full_ui(self):
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-host-") as temp:
