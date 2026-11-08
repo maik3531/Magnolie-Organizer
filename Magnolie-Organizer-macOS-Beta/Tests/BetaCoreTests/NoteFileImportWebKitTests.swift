@@ -10,10 +10,11 @@ import XCTest
     private var store: AtomicStore!
     private var web: WKWebView!
     private var firstSave: XCTestExpectation?
+    private var initialDocument: String!
     private var checkpoints = 0
     private let seed = #"{"termine":[],"aufgaben":[],"kontakte":[],"notizen":[],"futureRoot":{"keep":"opaque"},"einstellungen":{"allgemein":{"handbuchHinweisGezeigt":true}}}"#
     private func send(_ method: String, _ payload: [String: Any]) {
-        web.callAsyncJavaScript("window.MacBeta.receive(method,payload)", arguments: ["method": method, "payload": payload], in: nil, in: .page) { (_: Result<Any, Error>) in }
+        web.callAsyncJavaScript("window.MacBeta.receive(method,payload); if (method === 'init') window.OrganizerTest.speichereJetzt(); return true;", arguments: ["method": method, "payload": payload], in: nil, in: .page) { (_: Result<Any, Error>) in }
     }
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         do {
@@ -21,10 +22,10 @@ import XCTest
             let request = try Request(raw)
             switch request.command {
             case .bereit:
-                let text = try store.load() ?? seed
-                send("init", ["daten": try Document.object(text), "neu": false, "regional": ["language": "en", "timeZone": "UTC"]])
+                send("init", ["daten": try Document.object(initialDocument), "neu": false, "regional": ["language": "en", "timeZone": "UTC"]])
             case .speichern:
                 try store.commit(request.text("text"))
+                initialDocument = request.text("text")
                 send("gespeichert", ["id": request.fields["id"]!, "ok": true])
                 firstSave?.fulfill(); firstSave = nil
             case .mutations_snapshot:
@@ -53,6 +54,7 @@ import XCTest
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         store = try AtomicStore(directory: directory)
+        initialDocument = try store.load() ?? seed // one load per store lease
         let configuration = WKWebViewConfiguration(); configuration.websiteDataStore = .nonPersistent()
         configuration.userContentController.add(self, name: "noteImportTest")
         configuration.userContentController.addUserScript(WKUserScript(source: "window.__MAGNOLIE_BRUECKE__='noteImportTest';", injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -74,14 +76,19 @@ import XCTest
         let response = try XCTUnwrap(value as? [String: Any])
         XCTAssertEqual(response["ok"] as? Bool, true); XCTAssertEqual(response["count"] as? Int, 2)
         XCTAssertEqual(checkpoints, 1)
-        let saved = try XCTUnwrap(store.load())
+        let saved = try String(contentsOf: store.file, encoding: .utf8) // owned test file, not a second load
         let document = try Document.object(saved)
         let notes = try XCTUnwrap(document["notizen"] as? [[String: Any]])
         XCTAssertEqual(notes.count, 2); XCTAssertEqual(notes[0]["text"] as? String, text)
         let attachment = try XCTUnwrap((notes[1]["anhaenge"] as? [[String: Any]])?.first)
         XCTAssertEqual(attachment["daten"] as? String, "data:application/pdf;base64," + pdf.base64EncodedString())
         XCTAssertEqual((document["futureRoot"] as? [String: Any])?["keep"] as? String, "opaque")
-        _ = try await javascript("window.MacBeta.receive('init', {daten: document, neu:false, regional:{language:'en',timeZone:'UTC'}}); return window.OrganizerTest.daten().notizen.length;", arguments: ["document": document])
+        store = nil // release the old lease before an actual fresh-store reopen
+        store = try AtomicStore(directory: directory)
+        let reloaded = try XCTUnwrap(store.load())
+        XCTAssertEqual(reloaded, saved)
+        let reopenedDocument = try Document.object(reloaded)
+        _ = try await javascript("window.MacBeta.receive('init', {daten: document, neu:false, regional:{language:'en',timeZone:'UTC'}}); return window.OrganizerTest.daten().notizen.length;", arguments: ["document": reopenedDocument])
         let reopened = try await javascript("return JSON.stringify(window.OrganizerTest.daten().notizen);")
         XCTAssertEqual(try Document.encode(JSONSerialization.jsonObject(with: Data((reopened as! String).utf8))), try Document.encode(notes))
     }

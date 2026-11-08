@@ -8,6 +8,7 @@ import XCTest
 /// AtomicStore. This does not automate the production Host's permission dialogs.
 @MainActor final class NativeDomainAcceptanceTests: XCTestCase, WKScriptMessageHandler {
     private var store: AtomicStore!
+    private var initialDocument: String!
     private var web: WKWebView!
     private var pendingReplies = 0
     private var savedCount = 0
@@ -15,7 +16,7 @@ import XCTest
     private let seed = #"{"termine":[],"aufgaben":[],"kontakte":[],"notizen":[],"futureRoot":{"domains":"preserve unchanged"},"einstellungen":{"allgemein":{"handbuchHinweisGezeigt":true}}}"#
     private func reply(_ method: String, _ payload: [String: Any]) {
         pendingReplies += 1
-        web.callAsyncJavaScript("window.MacBeta.receive(method,payload); return true;", arguments: ["method": method, "payload": payload], in: nil, in: .page) { (result: Result<Any, Error>) in
+        web.callAsyncJavaScript("window.MacBeta.receive(method,payload); if (method === 'init') window.OrganizerTest.speichereJetzt(); return true;", arguments: ["method": method, "payload": payload], in: nil, in: .page) { (result: Result<Any, Error>) in
             if case .failure(let error) = result { self.transportError = error }
             self.pendingReplies -= 1
         }
@@ -26,9 +27,10 @@ import XCTest
             let request = try Request(raw)
             switch request.command {
             case .bereit:
-                reply("init", ["daten": try Document.object(store.load() ?? seed), "neu": false, "regional": ["language": "en", "timeZone": "UTC"]])
+                reply("init", ["daten": try Document.object(initialDocument), "neu": false, "regional": ["language": "en", "timeZone": "UTC"]])
             case .speichern:
                 try store.commit(request.text("text")); savedCount += 1
+                initialDocument = request.text("text")
                 reply("gespeichert", ["ok": true, "id": request.fields["id"]!])
             case .mutations_snapshot:
                 _ = try store.checkpoint()
@@ -54,9 +56,12 @@ import XCTest
         let deadline = ProcessInfo.processInfo.systemUptime + 10
         while ProcessInfo.processInfo.systemUptime < deadline {
             if let error = transportError { throw error }
-            if savedCount > 0, pendingReplies == 0,
-               let current = try? await javascript("return JSON.stringify(window.OrganizerTest.daten());") as? String,
-               let saved = try store.load(), saved == current { return saved }
+            if savedCount > 0, pendingReplies == 0 {
+                let value = try await javascript("return JSON.stringify(window.OrganizerTest.daten());")
+                guard let current = value as? String else { throw BetaError("Domain UI snapshot is not a JSON string.") }
+                let saved = try String(contentsOf: store.file, encoding: .utf8)
+                if saved == current { return saved }
+            }
             try await Task.sleep(nanoseconds: 50_000_000)
         }
         throw BetaError("Domain UI did not reach matching durable native save/ACK within 10 seconds.")
@@ -81,6 +86,7 @@ import XCTest
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         store = try AtomicStore(directory: directory)
+        initialDocument = try store.load() ?? seed // exactly once per store lease
         let configuration = WKWebViewConfiguration(); configuration.websiteDataStore = .nonPersistent()
         configuration.userContentController.add(self, name: "domainsTest")
         configuration.userContentController.addUserScript(WKUserScript(source: "window.__MAGNOLIE_BRUECKE__='domainsTest';", injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -116,7 +122,12 @@ import XCTest
         let original = try Document.object(saved)
         let expectedValue = try await javascript("return JSON.stringify(window.NativeDomains.expectedAfterReopen(book));", arguments: ["book": original])
         let expected = try XCTUnwrap(expectedValue as? String)
-        _ = try await javascript("window.MacBeta.receive('init',{daten:book,neu:false,regional:{language:'en',timeZone:'UTC'}}); window.OrganizerTest.speichereJetzt(); return true;", arguments: ["book": original])
+        store = nil // real reopen: release the original private profile lease
+        store = try AtomicStore(directory: directory)
+        let reopenedBytes = try XCTUnwrap(store.load())
+        XCTAssertEqual(reopenedBytes, saved)
+        let reopenedBook = try Document.object(reopenedBytes)
+        _ = try await javascript("window.MacBeta.receive('init',{daten:book,neu:false,regional:{language:'en',timeZone:'UTC'}}); window.OrganizerTest.speichereJetzt(); return true;", arguments: ["book": reopenedBook])
         let reopened = try await settle()
         XCTAssertEqual(try Document.encode(Document.object(reopened)), try Document.encode(Document.object(expected)), "Only agreed absent vital.sauerstoff=0 enrichment may differ")
         XCTAssertEqual((try Document.object(reopened)["futureRoot"] as? [String: Any])?["domains"] as? String, "preserve unchanged")
