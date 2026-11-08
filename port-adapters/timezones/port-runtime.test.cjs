@@ -70,4 +70,4 @@ if(process.argv.includes('--projection')) {
  assert.ok(html.indexOf('normative-timezones.js')<html.indexOf('<script src="anwendung.js"'));
  for(const name of ['tzdb-2026egtz.json','provenance.json','LICENSE-tzdb.txt'])assert.deepEqual(fs.readFileSync(path.join(web,'timezones',name)),read(name));
 }
-console.log(JSON.stringify({checkpoint:'bootstrap/runtime only; app time hooks unchanged',externalClocks:clocks,localeFormats:formats,byteIdenticalProjectors:true,workerPreludeSyntax:true,actualBrowserWorkerProof:false,nativeDeviceProof:false}));
+console.log(JSON.stringify({testScope:'bootstrap/runtime; actual app hooks tested separately',externalClocks:clocks,localeFormats:formats,byteIdenticalProjectors:true,workerPreludeSyntax:true,actualBrowserWorkerProof:false,nativeDeviceProof:false}));

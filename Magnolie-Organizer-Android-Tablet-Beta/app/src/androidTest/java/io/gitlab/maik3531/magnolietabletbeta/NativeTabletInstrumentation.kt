@@ -422,9 +422,28 @@ class NativeTabletInstrumentation : Instrumentation() {
         check(calendarComparable(data())==calendarComparable(before)) {"Civil-time audit changed the book"}
         check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(savedBefore)) {"Civil-time audit changed saved data"}
         File(out,"timezone-interop-comparison.json").writeText(proof.toString(2))
-        check(proof.getJSONArray("failures").length()==0) {"Actual WebView civil-time disagreement; see timezone-interop-comparison.json"}
+        check(proof.getJSONArray("failures").length()==0 && proof.getBoolean("appParity")) {"Actual App civil-time disagreement; see timezone-interop-comparison.json"}
         check(proof.getInt("checks")==148 && proof.getBoolean("bookUnchanged"))
-        pass("actual WebView appointment task and Intl civil-time paths match external clocks",proof)
+        check(proof.getString("usedForPointRules")=="normative-tzif-posix")
+        check(proof.getJSONObject("providerIdentity").getString("payloadSHA256")==providerIdentity.getString("payloadSHA256"))
+        val os=proof.getJSONObject("osIntlDiagnostics")
+        check(os.getInt("checks")==37 && !os.getBoolean("usedForPointRules"))
+        // Raw OS-Intl disagreements remain visible. The App uses its verified
+        // provider; this stage does not claim the OS timezone database was fixed.
+        pass("actual App appointment task and datumText offset paths match37 external clocks; raw OS diagnostics retained",proof)
+        raw("window.__nativeTZWorkerItem={uid:'public-native-timezone-worker',icsRoundtrip:['DTSTART;TZID=Asia/Gaza:20740715T123045','DURATION:PT1H','RRULE:FREQ=DAILY;COUNT=2']};window.__nativeTZWorkerArgs=[Date.parse('2074-07-14T00:00Z'),Date.parse('2074-07-17T00:00Z')];OrganizerTest.icsRuntime('expand',window.__nativeTZWorkerItem,window.__nativeTZWorkerArgs)")
+        check(value("!!OrganizerTest.icsRuntime.state.worker")=="true") {"Actual WebView worker was not created"}
+        waitFor("actual WebView normative worker result") {
+            value("(()=>{const rows=OrganizerTest.icsRuntime('expand',window.__nativeTZWorkerItem,window.__nativeTZWorkerArgs);const job=[...OrganizerTest.icsRuntime.state.jobs.entries()].find(([key])=>key.includes('public-native-timezone-worker'));window.__nativeTZWorkerProof={workerPresent:!!OrganizerTest.icsRuntime.state.worker,status:job?.[1].status,errorCode:job?.[1].error||'',identity:job?JSON.parse(job[0])[0]:'',instants:Array.isArray(rows)?rows.map(row=>row.icsStartUtc):[]};return Array.isArray(rows)||job?.[1].status==='error';})()") == "true"
+        }
+        val worker=JSONObject(value("window.__nativeTZWorkerProof"))
+        check(worker.getBoolean("workerPresent") && worker.getString("status")=="ready") {"Actual WebView normative worker failed: "+worker.optString("errorCode")}
+        check(worker.getString("identity")==providerIdentity.getString("payloadSHA256")) {"Worker cache used another timezone identity"}
+        val points=worker.getJSONArray("instants")
+        check(points.length()==2 && points.getLong(0)==org.threeten.bp.Instant.parse("2074-07-15T09:30:45Z").toEpochMilli() &&
+            points.getLong(1)==org.threeten.bp.Instant.parse("2074-07-16T09:30:45Z").toEpochMilli()) {"Actual WebView worker did not preserve normative Gaza seconds"}
+        check(calendarComparable(data())==calendarComparable(before) && calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(savedBefore)) {"Worker timezone proof changed the book"}
+        pass("actual isolated WebView worker preserves normative points and seconds",JSONObject().put("occurrences",2).put("identity",worker.getString("identity")).put("appParity",true).put("usedForPointRules","normative-tzif-posix").put("bookUnchanged",true))
     }
     private var domainStartedAt=0L
     private val domainTimings=JSONArray()

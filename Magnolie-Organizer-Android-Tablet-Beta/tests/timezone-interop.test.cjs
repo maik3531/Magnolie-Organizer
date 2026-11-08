@@ -29,20 +29,25 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
       w.eval(source);
     }
     await tick(); await tick();
-    w.eval(fs.readFileSync(path.join(root,'../port-adapters/tests/timezone-interop.js'),'utf8'));
+    const published=process.env.TIMEZONE_INTEROP_PUBLISHED==='1';
+    const probe=published?require('node:child_process').execFileSync('git',['show','85c8b201:port-adapters/tests/timezone-interop.js'],{cwd:path.join(root,'..'),encoding:'utf8'}):fs.readFileSync(path.join(root,'../port-adapters/tests/timezone-interop.js'),'utf8');
+    w.eval(probe);
     const fixture=JSON.parse(fs.readFileSync(path.join(root,'../port-adapters/tests/timezone-interop-oracle.json'),'utf8'));
     const result=w.NativeTimezoneInterop.run(fixture);
     assert.equal(result.clocks,37); assert.equal(result.checks,148); assert.equal(result.bookUnchanged,true);
-    // The installed host Intl can predate Morocco's normative 2026-09-20 change.
-    // Keep this visible; the actual native acceptance stage rejects all differences.
-    assert.equal(result.failures.length,process.versions.tz==='2026b'?9:0);
-    for (const failure of result.failures) {
-      assert.equal(failure.identifier,'Africa/Casablanca'); assert.ok((failure.wall.startsWith('2400-') || failure.wall==='2026-10-15T12:30'));
-      assert.ok(['shared-appointment-reminder','shared-task-source-reminder','webview-intl-wall'].includes(failure.path));
-      if(failure.path==='webview-intl-wall') assert.equal(failure.actual,failure.wall.replace('12:30','13:30'));
-      else assert.equal(failure.actual,failure.expected-3600000);
+    if(published) {
+      assert.equal(result.failures.length,process.versions.tz==='2026b'?9:0);
+      for(const failure of result.failures) {
+        assert.equal(failure.identifier,'Africa/Casablanca');assert.ok(failure.wall.startsWith('2400-')||failure.wall==='2026-10-15T12:30');
+      }
+    } else {
+      assert.deepEqual(JSON.parse(JSON.stringify(result.failures)),[]);assert.equal(result.appParity,true);
+      assert.equal(result.usedForPointRules,'normative-tzif-posix');assert.equal(result.osIntlDiagnostics.checks,37);
+      assert.equal(result.osIntlDiagnostics.usedForPointRules,false);
+      if(process.versions.tz==='2026b') assert.equal(result.osIntlDiagnostics.failures.length,3);
+      // Other installed OS databases are recorded, never assumed corrected.
     }
     assert.equal(errors.length,0);
-    global.console.log(JSON.stringify({hostAudit:true,node:process.version,icu:process.versions.icu,tzdb:process.versions.tz,coreSHA256,core:process.env.TIMEZONE_INTEROP_PUBLISHED==='1'?'published-v2.0.30':'current-projection',clocks:result.clocks,checks:result.checks,differences:result.failures,nativeAndroidProof:false}));
+    global.console.log(JSON.stringify({hostAudit:true,node:process.version,icu:process.versions.icu,tzdb:process.versions.tz,coreSHA256,core:process.env.TIMEZONE_INTEROP_PUBLISHED==='1'?'published-v2.0.30':'current-projection',clocks:result.clocks,checks:result.checks,differences:result.failures,appParity:result.appParity,osIntlParity:result.osIntlParity,osDiagnostics:result.osIntlDiagnostics,nativeAndroidProof:false}));
   } finally {dom.window.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

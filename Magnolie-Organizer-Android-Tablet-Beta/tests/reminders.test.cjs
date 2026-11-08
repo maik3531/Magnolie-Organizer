@@ -20,7 +20,7 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
     }
   },0);}};
   try {
-    for(const f of ['beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','anwendung.js']) w.eval(read(f));
+    for(const f of ['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','anwendung.js']) w.eval(read(f));
     await tick(); await tick();
     const T=w.OrganizerTest, d=w.document;
     T.daten().einstellungen.regional.timeZone='UTC';

@@ -30,7 +30,7 @@ w.TabletNative={postMessage(text){const m=JSON.parse(text);setTimeout(()=>{
     revision=webcrypto.randomUUID();w.Tablet.receive({callback:'gespeichert',payload:{id:m.id,ok:true,session,expectedRevision:m.revision,revision}});
   }
 },0)}};
-for(const name of ['beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','mcp-protocol.js','anwendung.js'])w.eval(fs.readFileSync(path.join(web,name),'utf8'));
+for(const name of ['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','mcp-protocol.js','anwendung.js'])w.eval(fs.readFileSync(path.join(web,name),'utf8'));
 const wait=()=>new Promise(resolve=>setTimeout(resolve,40));
 (async()=>{
  await wait();await wait();

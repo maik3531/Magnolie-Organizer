@@ -64,6 +64,37 @@ def timezone_assets(snapshot):
     return result
 
 
+def apply_timezone_patches(source, snapshot):
+    prefix = "port-adapters/timezones/"
+    patches = json.loads(snapshot[prefix + "projection-patches.json"])
+    hooks = snapshot[prefix + "app-hooks.snippets"].decode()
+    canonical = source
+    for patch in patches:
+        if canonical.count(patch["start"]) != 1:
+            raise ValueError("Timezone start anchor changed: " + patch["id"])
+        start = canonical.index(patch["start"])
+        end = start + len(patch["start"])
+        if patch["end"]:
+            end = canonical.index(patch["end"], end)
+            if patch["includeEnd"]:
+                end += len(patch["end"])
+        before = canonical[start:end]
+        if digest(before.encode()) != patch["sha256"]:
+            raise ValueError("Timezone canonical block changed: " + patch["id"])
+        if patch.get("hook"):
+            begin = "/*TZ_HOOK:" + patch["hook"] + "*/\n"
+            finish = "/*TZ_HOOK_END:" + patch["hook"] + "*/"
+            if hooks.count(begin) != 1 or hooks.count(finish) != 1:
+                raise ValueError("Timezone hook changed: " + patch["id"])
+            after = hooks.split(begin)[1].split(finish)[0]
+        else:
+            after = patch["replacement"]
+        if source.count(before) != 1:
+            raise ValueError("Timezone projection match changed: " + patch["id"])
+        source = source.replace(before, "/*TZ_PORT:" + patch["id"] + ":BEGIN*/" + after + "/*TZ_PORT:" + patch["id"] + ":END*/", 1)
+    return source
+
+
 def replace_once(text, old, new):
     if text.count(old) != 1:
         raise ValueError("Canonical UI anchor changed; review the projection: " + old[:100])
@@ -104,6 +135,7 @@ def project(snapshot, target):
             path.write_bytes(data)
     app = target / "web/anwendung.js"
     text = app.read_text()
+    text = apply_timezone_patches(text, snapshot)
     alarm_helper = snapshot["port-adapters/display-alarm-roundtrip.js"].decode()
     alarm_anchor = "  function spiegeleTerminInIcs(termin, vorher = null) {"
     text = replace_once(text, alarm_anchor,

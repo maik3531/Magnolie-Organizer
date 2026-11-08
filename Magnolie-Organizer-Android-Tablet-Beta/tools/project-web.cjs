@@ -83,7 +83,9 @@ for (const match of fontFaces.join('\n').matchAll(/url\(["']?([^"')]+)["']?\)/g)
   if (!match[1].startsWith('schriften/') || !generated.has('assets/web/'+match[1])) throw Error('Unbundled desktop font: '+match[1]);
 }
 generated.set('assets/web/desktop-fonts.css',Buffer.from(fontFaces.join('\n\n')+'\n'));
-const appSource = buffers.get(path.join(desktop,'anwendung.js')).toString();
+const timezonePatcher={module:{exports:{}},require:timezoneBuilder.require};
+vm.runInNewContext(timezoneInput('projection-patches.cjs').toString(),timezonePatcher,{filename:'shared-timezone-patches.cjs'});
+const appSource = timezonePatcher.module.exports(buffers.get(path.join(desktop,'anwendung.js')).toString(),timezoneInput);
 const regionalAnchor = '    { id: "ort", name: msgid("Country & holidays") },';
 if (appSource.split(regionalAnchor).length !== 2) throw Error('Desktop regional settings anchor changed');
 let regionalSource = appSource.replace(regionalAnchor,
@@ -205,7 +207,7 @@ fs.rmSync(out,{recursive:true});
 for (const [p,b] of generated) { const dest = path.join(out,p); fs.mkdirSync(path.dirname(dest),{recursive:true}); fs.writeFileSync(dest,b); }
 const manifest = {format:1, kind:'debug-beta-generated-build-projection', sourceHash, inputs:hashes,
   transformations:['index: beta title, adapter and responsive stylesheet',
-    'timezones: verified common normative data/resolver/runtime/license loaded synchronously before the adapter and app (no UI time-path hooks yet)',
+    'timezones: verified common normative data/resolver/runtime/license loaded synchronously before the adapter and app with hash-checked shared app/worker time-path adapters',
     'alarms: shared port-adapters helper preserves opaque DISPLAY properties/parameters and blocks ambiguous edits',
     'fonts: live Windows font-face rules, bundled font bytes and licenses (no Android system-font substitution)',
     'anwendung: expose existing editor guard + durable action queue; reuse canonical DAV account/selection renderers for native setup and read-only discovery with revision fences; keep synchronization unsupported; expose regional form and suppress unsupported native automatic time-zone polling',

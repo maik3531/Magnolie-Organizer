@@ -26,15 +26,18 @@
     const absolute=Math.abs(seconds),pad=value=>String(value).padStart(2,'0');
     return 'UTC'+(seconds<0?'-':'+')+pad(Math.floor(absolute/3600))+':'+pad(Math.floor(absolute/60)%60)+(absolute%60?':'+pad(absolute%60):'');
   };
+  const formats=new Map();
   const formatter=(locale,options)=>{
-    const effective=Object.assign({},options,{timeZone:'UTC'});
-    try{return new Intl.DateTimeFormat(locale,effective);}
+    const effective=Object.assign({},options,{timeZone:'UTC'}),key=JSON.stringify([locale||'',effective]);
+    if(formats.has(key))return formats.get(key);
+    const remember=value=>{if(formats.size>=128)formats.delete(formats.keys().next().value);formats.set(key,value);return value;};
+    try{return remember(new Intl.DateTimeFormat(locale,effective));}
     catch(first) {
       // Unsupported CLDR name styles may use a supported UTC token: its value
       // is replaced below. Locale fallback never changes the offset authority.
       if(effective.timeZoneName)effective.timeZoneName='short';
-      try{return new Intl.DateTimeFormat(locale,effective);}
-      catch(second) {try{return new Intl.DateTimeFormat(undefined,effective);}catch(third){return fail('unsupported-timezone-locale-format');}}
+      try{return remember(new Intl.DateTimeFormat(locale,effective));}
+      catch(second) {try{return remember(new Intl.DateTimeFormat(undefined,effective));}catch(third){return fail('unsupported-timezone-locale-format');}}
     }
   };
   const formatParts=(value,locale,options={},id)=>{
@@ -49,12 +52,27 @@
     const later=provider.resolveWall(zone,input,{gap:'omit',fold:'later'});
     return earlier===later?[earlier]:[earlier,later];
   };
+  const localeDefaults=(options,kind)=>{
+    if(options===null || options!==undefined && typeof options!=='object')fail('unsupported-timezone-locale-format');
+    const result=Object.assign({},options);
+    if(kind==='date' && result.timeStyle!==undefined || kind==='time' && result.dateStyle!==undefined)fail('unsupported-timezone-locale-format');
+    const date=['weekday','year','month','day'],time=['hour','minute','second','fractionalSecondDigits'];
+    const fields=kind==='date'?date:kind==='time'?time:[...date,...time];
+    if(result.dateStyle===undefined && result.timeStyle===undefined && fields.every(key=>result[key]===undefined)) {
+      if(kind!=='time')for(const key of ['year','month','day'])result[key]='numeric';
+      if(kind!=='date')for(const key of ['hour','minute','second'])result[key]='numeric';
+    }
+    return result;
+  };
   return Object.freeze({identity,identifiers:provider.identifiers,has:id=>provider.has(id),zoneId,systemIdentifier,offsetLabel,
     offsetAt:(id,value)=>provider.offsetAt(zoneId(id),epoch(value)),
     wallParts:(id,value)=>provider.wallParts(zoneId(id),epoch(value)),
     wallMillis:(id,value)=>{const at=epoch(value);return at+provider.offsetAt(zoneId(id),at)*1000;},
     resolveWall:(id,parts,options)=>provider.resolveWall(zoneId(id),parts,options),candidates,
     formatParts,
+    localeString:(value,locale,options)=>formatParts(value,locale,localeDefaults(options,'all'),'system').map(p=>p.value).join(''),
+    localeDate:(value,locale,options)=>formatParts(value,locale,localeDefaults(options,'date'),'system').map(p=>p.value).join(''),
+    localeTime:(value,locale,options)=>formatParts(value,locale,localeDefaults(options,'time'),'system').map(p=>p.value).join(''),
     format:(value,locale,options,id)=>formatParts(value,locale,options,id).map(part=>part.value).join(''),
     formatCivil:(parts,locale,options={})=>{
       // DATE/floating values are already civil fields, not named-zone instants.

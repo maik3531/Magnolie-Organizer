@@ -15,7 +15,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   const beta=JSON.parse(fs.readFileSync(path.join(root,'web/beta-i18n.json')));
   ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===4 && x.every(Boolean)), '20 manual beta locales');
   const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
-  const projected=read('anwendung.js');
+  const projected=require(path.join(root,'../port-adapters/timezones/projection-patches.cjs'))(read('anwendung.js'),name=>fs.readFileSync(path.join(root,'../port-adapters/timezones',name)),true,canonical);
   const alarmAnchor='    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {';
   const alarmStart=canonical.indexOf(alarmAnchor);assert.ok(alarmStart>=0);
   const alarmEnd=canonical.indexOf('\n    }',alarmStart)+6;
@@ -105,7 +105,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
         }
       },0);
     }};
-    for(const f of ['beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','mcp-protocol.js','anwendung.js']) w.eval(read(f));
+    for(const f of ['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','mcp-protocol.js','anwendung.js']) w.eval(read(f));
     await wait(); await wait();
     return dom;
   }

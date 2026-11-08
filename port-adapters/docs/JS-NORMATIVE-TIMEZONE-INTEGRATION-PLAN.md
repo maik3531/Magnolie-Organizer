@@ -119,3 +119,36 @@ blocks. No400year occurrence expansion happens during bootstrap or rendering.
 5. Compare original native cold-start, main/worker memory and point latency under
    the existing caps. No new timeout, prewarm, ForceACK or acceptance bypass.
    Successful host tests alone do not establish WebView/WebKit or release parity.
+
+
+## Integrated checkpoint B and evidence boundary
+
+Both projectors now apply the same 51 SHA-checked transformations from
+`timezones/projection-patches.json` and `app-hooks.snippets`. The Android source
+equivalence gate first reverses these exact transformations, then runs its
+existing byte comparison. Changed canonical bodies, duplicate/missing anchors
+or changed wrapper markers reject generation/verification. Neither original
+Linux nor Windows product source is edited.
+
+Named validation, organizer points/parts, strict and referenced fold handling,
+planning seconds, existing integer-minute tracking, ICS named-zone point/fold
+logic and isolated worker bootstrap/cache keys use the normative provider.
+Explicit embedded VTIMEZONE wins even for a built-in TZID. DATE and floating
+values retain their civil semantics. Dated labels use the exact instant offset;
+selectors without an instant show stable city/identifier labels. Default system
+formatting obtains only the system identifier from the OS and formats a UTC
+civil carrier with the normative offset. No global Intl replacement is installed.
+
+The optional native `timezone-interop` stage retains the unchanged 37 external
+clocks and requires 148 real App comparisons, including actual datumText and its
+offset label, while recording 37 raw OS-Intl comparisons separately. Raw OS
+disagreements are diagnostic, explicitly not used for point rules; App failures
+still fail the stage. It also creates the actual WebView worker and checks two
+Gaza 2074 occurrences with seconds, the bound payload identity, and unchanged
+live/saved books. The original stage timeout and resource limits are unchanged.
+
+Host evidence is distinct: focused projected-App domain tests also run the actual
+worker source in an isolated Node thread, alias save/restart/restore, historical
+seconds, gap/fold policies and strict unsupported tracking precision. Node-thread
+success does not establish WebView/WK worker acceptance, startup/memory limits,
+native OS interoperability or an installable release. Those remain native gates.
