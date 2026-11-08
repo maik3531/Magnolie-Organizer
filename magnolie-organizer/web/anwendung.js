@@ -29182,10 +29182,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         check("enabled", _("Enable photo and video synchronization"));
         select("collection_mode", _("Scope"), [["phone_inventory", _("Only the phone inventory")],
           ["entire_collection", _("Entire collection"), true], ["import_only", _("Import phone → PC only")]]);
-        select("direction", _("Direction"), [["phone_to_pc", _("Phone → PC")],
-          ["two_way", _("Two-way synchronization")], ["pc_to_phone", _("PC → phone")]]);
         select("auto_mode", _("Mode"), [["manual", pgettext("photo synchronization", "Manual")],
           ["wifi", _("Automatically synchronize over Wi-Fi")]]);
+        select("direction", _("Direction"), [["phone_to_pc", _("Phone → PC")],
+          ["two_way", _("Two-way synchronization")], ["pc_to_phone", _("PC → phone")]]);
         check("photos_enabled", _("Synchronize photos"));
         if (stand.video_supported === true) check("videos_enabled", _("Synchronize videos"));
         check("photos_only", _("Photos only"));
@@ -29311,12 +29311,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           videoAn.addEventListener("change", () => sende(videoAn.checked ? "videos_enable" : "videos_disable"));
           const videoLabel = el("label", "hak"); videoLabel.append(videoAn, document.createTextNode(" " + _("Also synchronize videos")));
           videos.append(videoLabel);
-          const videoOrdner = el("div", "kde-empfangsordner"), videoPfad = document.createElement("input");
-          videoPfad.type = "text"; videoPfad.readOnly = true; videoPfad.className = "feld";
-          videoPfad.setAttribute("aria-label", _("Destination folder")); videoPfad.dataset.videoDestinationPath = "true";
-          videoPfad.value = stand.video_destination || ""; videoPfad.title = videoPfad.value; videoOrdner.append(videoPfad);
-          const videoZiel = knopf(_("Choose folder …"), "", () => Bruecke.sende({ cmd: "telefon_videoziel_waehlen",
+          const videoOrdner = el("div", "kde-empfangsordner");
+          const videoZiel = knopf(_("Videos") + " · " + _("Destination folder"), "", () => Bruecke.sende({ cmd: "telefon_videoziel_waehlen",
             kennung: peer.device_id, fingerprint: peer.fingerprint }));
+          videoZiel.title = stand.video_destination || "";
           videoZiel.dataset.videoDestination = "true"; videoZiel.disabled = stand.busy === true || stand.video_enabled === true;
           const videoStandard = knopf(_("Use default"), "", () => sende("videos_default_destination"));
           videoStandard.dataset.videoDestinationDefault = "true"; videoStandard.disabled = videoZiel.disabled;
@@ -29343,15 +29341,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
       }
       if (stand.destination) {
-        const fotoOrdner = el("div", "kde-empfangsordner"), fotoPfad = document.createElement("input");
-        fotoPfad.type = "text"; fotoPfad.readOnly = true; fotoPfad.className = "feld";
-        fotoPfad.dataset.photoDestinationPath = "true"; fotoPfad.setAttribute("aria-label", _("Destination folder"));
-        fotoPfad.value = stand.destination; fotoPfad.title = fotoPfad.value;
-        const fotoZiel = knopf(_("Choose folder …"), "", () => Bruecke.sende({ cmd: "telefon_fotoziel_waehlen",
+        const fotoOrdner = el("div", "kde-empfangsordner");
+        const fotoZiel = knopf(_("Photos") + " · " + _("Destination folder"), "", () => Bruecke.sende({ cmd: "telefon_fotoziel_waehlen",
           kennung: peer.device_id, fingerprint: peer.fingerprint })); fotoZiel.dataset.photoDestination = "true";
+        fotoZiel.title = stand.destination;
         const fotoStandard = knopf(_("Use default"), "", () => sende("photos_default_destination")); fotoStandard.dataset.photoDestinationDefault = "true";
         fotoZiel.disabled = fotoStandard.disabled = stand.busy === true || stand.enabled === true;
-        fotoOrdner.append(fotoPfad, fotoZiel, fotoStandard); gruppe.append(fotoOrdner,
+        fotoOrdner.append(fotoZiel, fotoStandard); gruppe.append(fotoOrdner,
           el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));

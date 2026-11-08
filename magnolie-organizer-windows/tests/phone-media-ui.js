@@ -20,14 +20,15 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert.equal(messages.length, mixedCount); assert(skipChoice.indeterminate); assert(!firstPhoto.checked);
   skipChoice.indeterminate = false; skipChoice.checked = true; skipChoice.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().action, "settings"); reply(state);
-   buttons("Choose folder …")[0].click(); await tick(); assert.equal(last().action, "pick_destination");
+   panel.querySelector('[data-destination="images"]').click(); await tick(); assert.equal(last().action, "pick_destination");
   assert.equal(last().media_type, "images"); assert.equal(last().version, null); assert(!("pfad" in last()));
   const withRoot = { ...state, pictures: { version: "d".repeat(64), display_path: "C:\\Pictures\\<img onerror=evil>" } };
    reply(withRoot); assert.equal(panel.querySelector("img"), null);
    const folderInput = panel.querySelector('[data-destination="images"]');
-   assert(folderInput.readOnly && folderInput.value === withRoot.pictures.display_path && folderInput.title === folderInput.value);
+   assert(folderInput.tagName === "BUTTON" && folderInput.title === withRoot.pictures.display_path);
+   assert(!panel.querySelector('input[data-destination]') && !panel.textContent.includes(withRoot.pictures.display_path));
    const folderButtons = [...folderInput.parentElement.querySelectorAll("button")];
-   assert.deepEqual(folderButtons.map(button => button.textContent), ["Choose folder …", "Use default"]);
+   assert.deepEqual(folderButtons.map(button => button.textContent), ["Photos · Destination folder", "Use default"]);
    folderButtons[1].click(); await tick(); assert.equal(last().action, "default_destination");
    assert.equal(last().media_type, "images"); assert.equal(last().version, withRoot.pictures.version);
    assert(!("path" in last()) && !("directory" in last()), "Browser supplied a default filesystem path");

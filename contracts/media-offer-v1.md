@@ -683,6 +683,12 @@ sein noch laufender Fortschritt wird zusätzlich angezeigt. Der nächste Abgleic
 beginnt bei null. Das sind Vorgangs-/Übertragungszähler, keine deduplizierte
 Sammlungsgröße, keine Saved-/END-Autorität und kein Vollständigkeitsnachweis.
 
+Die Linux-/Windows-Medienordner werden durch explizite Ordner- und
+Standardaktionen bedient. Vorhandene Pfade stehen nur im Tooltip des jeweils
+eindeutig als Foto- oder Videoziel bezeichneten Ordnerbuttons, nicht als
+sichtbares Pfadfeld; die native Ordnerwahl erhält weiterhin keinen Webpfad.
+Die gemeinsamen Auswahlen folgen Umfang, Automatik und unabhängiger Richtung.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

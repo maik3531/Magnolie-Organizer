@@ -7541,6 +7541,9 @@ function knopfMit(text, wurzel) {
     shared_media: { version: "d".repeat(64), values: sharedChoices, agreed: false } });
   assert.ok(bd.querySelector('[data-media-setting="collection_mode"]') && bd.querySelector('[data-media-setting="direction"]') &&
     bd.querySelector('[data-media-setting="auto_mode"]'), "Gemeinsamer Bereich, Richtung und Modus fehlen bei ausgeschaltetem Empfang");
+  assert.deepStrictEqual(Array.from(bd.querySelectorAll('[data-media-setting]'), input => input.dataset.mediaSetting)
+    .filter(field => ["collection_mode", "auto_mode", "direction"].includes(field)), ["collection_mode", "auto_mode", "direction"],
+    "Gemeinsame Reihenfolge bleibt Umfang, Automatik, unabhängige Richtung");
   const sharedBefore = baumNachrichten.length;
   const scopeChoice = bd.querySelector('[data-media-setting="collection_mode"]');
   assert.ok(scopeChoice.querySelector('option[value="entire_collection"]').disabled &&
@@ -7626,9 +7629,11 @@ function knopfMit(text, wurzel) {
   assert.ok(fotoGruppe && bd.querySelector(".telefon-karte").contains(fotoGruppe) &&
     !bd.querySelector(".telefon-kde-karte").contains(fotoGruppe), "Fotoeinstellungen gehören ausschließlich zu Notes");
    const fotoAn = fotoGruppe.querySelector('input[type="checkbox"]');
-   const fotoPfad = fotoGruppe.querySelector("[data-photo-destination-path]");
-   assert.ok(fotoPfad.readOnly && fotoPfad.value === "/native/Pictures/Notes-Fotos" && fotoPfad.title === fotoPfad.value &&
-     fotoPfad.parentElement.classList.contains("kde-empfangsordner"));
+    const fotoPfad = fotoGruppe.querySelector("[data-photo-destination]");
+    assert.ok(fotoPfad.tagName === "BUTTON" && fotoPfad.title === "/native/Pictures/Notes-Fotos" &&
+      fotoPfad.parentElement.classList.contains("kde-empfangsordner"));
+    assert.ok(!fotoGruppe.querySelector('[data-photo-destination-path]') && !fotoGruppe.textContent.includes("/native/Pictures/Notes-Fotos"),
+      "Medienpfade stehen nur im Tooltip der Ordneraktion, nicht in sichtbaren Textfeldern");
    assert.strictEqual(fotoPfad.parentElement.querySelectorAll("button").length, 2);
    fotoGruppe.querySelector("[data-photo-destination]").click();
    assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1))), {
@@ -7700,9 +7705,10 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1))), {
     cmd: "telefon_videoziel_waehlen", kennung: fotoPeer.device_id, fingerprint: fotoPeer.fingerprint
    }, "Der native Ordnerdialog erhält keinen Webpfad und keine historische Zielautorität");
-   const videoPfadLeer = videoGruppe.querySelector("[data-video-destination-path]");
-   assert.ok(videoPfadLeer.readOnly && videoPfadLeer.parentElement.classList.contains("kde-empfangsordner") &&
-     videoPfadLeer.parentElement.querySelectorAll("button").length === 2, "Videoziel folgt der gemeinsamen schreibgeschützten Ordnerzeile");
+    const videoPfadLeer = videoGruppe.querySelector("[data-video-destination]");
+    assert.ok(videoPfadLeer.tagName === "BUTTON" && videoPfadLeer.parentElement.classList.contains("kde-empfangsordner") &&
+      videoPfadLeer.parentElement.querySelectorAll("button").length === 2 && !videoGruppe.querySelector('[data-video-destination-path]'),
+      "Videoziel ist eine Ordneraktion ohne sichtbares Pfadfeld");
    videoGruppe.querySelector("[data-video-destination-default]").click();
    assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_default_destination" },
      "Der Standardordner wird nativ ermittelt, nicht als Webpfad gesendet");
@@ -7714,8 +7720,9 @@ function knopfMit(text, wurzel) {
     video_enabled: true, video_destination: "/native/Videos/Notes-Videos", albums: [],
     video_albums: [{ album_id: "video-native-1", display_name: "Camera videos", visible_images: 1 }] };
   fotoStand(videoStand); videoGruppe = bd.querySelector(".notes-video-sync");
-   const videoPfad = videoGruppe.querySelector("[data-video-destination-path]");
-   assert.strictEqual(videoPfad.value, videoStand.video_destination); assert.strictEqual(videoPfad.title, videoPfad.value);
+    const videoPfad = videoGruppe.querySelector("[data-video-destination]");
+    assert.strictEqual(videoPfad.title, videoStand.video_destination);
+    assert.ok(!videoGruppe.textContent.includes(videoStand.video_destination));
    assert.ok(videoGruppe.querySelector("[data-video-destination]").disabled && videoGruppe.querySelector("[data-video-destination-default]").disabled,
      "Die nur bei ausgeschalteten Videos nutzbare Ordnerwahl wird nicht als aktive Funktion angeboten");
   videoGruppe.querySelector("[data-video-action='read']").click();

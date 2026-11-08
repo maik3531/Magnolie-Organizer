@@ -216,13 +216,11 @@
     direction.addEventListener("change", () => sharedSetting("direction", direction.value));
     const kinds = [["images", "Photos", "pictures"], ["video", "Videos", "video_destination"]];
     for (const [mediaType, label, key] of kinds) {
-      const row = node("div"), path = node("input"), picker = node("div");
+      const row = node("div"), picker = node("div");
       row.dataset.destinationKind = mediaType; picker.className = "kde-empfangsordner";
-      path.type = "text"; path.readOnly = true; path.className = "feld";
-      path.dataset.destination = mediaType; path.placeholder = t("No destination selected");
-      path.setAttribute("aria-label", t(label));
-      picker.append(path); row.append(node("strong", label), picker); destinations.append(row);
-      button("Choose folder …", () => request("pick_destination", { media_type: mediaType, version: native?.[key]?.version ?? null }), picker);
+      row.append(picker); destinations.append(row);
+      const folder = button("Choose folder …", () => request("pick_destination", { media_type: mediaType, version: native?.[key]?.version ?? null }), picker);
+      folder.dataset.destination = mediaType; folder.textContent = t(label) + " · " + t("Destination folder");
       defaultDestinations.set(key, button("Use default", () => request("default_destination", {
         media_type: mediaType, version: native?.[key]?.version ?? null }), picker));
       const rights = node("div"); rights.append(node("strong", label)); rightsArea.append(rights);
@@ -364,7 +362,7 @@
         mode.textContent = t(automatic.value === "wifi" ? "Automatically synchronize over Wi-Fi" : "Manual synchronization");
         for (const [mediaType, , key] of kinds) {
           const path = destinations.querySelector(`[data-destination="${mediaType}"]`);
-          path.value = reply[key]?.display_path || ""; path.title = path.value;
+          path.title = reply[key]?.display_path || "";
         }
         status.textContent = t(busy ? "A native media operation is still running." : reply.metadata_ready?.images !== true
           ? "Media transfer is not available on this connection yet." : "Native settings loaded. No transfer has been started.");
