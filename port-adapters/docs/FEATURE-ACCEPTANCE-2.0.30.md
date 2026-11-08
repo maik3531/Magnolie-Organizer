@@ -89,6 +89,30 @@ confirm PDF export on iOS18 and PDF/Markdown export on iOS26; a whole-note PDF
 can omit later pages of an embedded scan, so complete original attachments must
 be transferred separately. There is no physical iPhone end-to-end acceptance yet.
 
+Subsequent native evidence on 2026-11-08:
+
+- [Android WebView/worker interop](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42534910289/job/128896953006)
+  at `1e94748a` passes 148 actual App checks against 37 independent clocks and
+  two actual isolated WebView-worker Gaza occurrences, including seconds.
+  Native, App and worker identities use the same verified normative payload;
+  the book is unchanged. Raw OS Intl comparisons remain separate diagnostics.
+- The Intel Mac at `c922053e` completes all 19 independent published-Python
+  export checks, all 19 native import/reexport checks and the resource-patch
+  oracle. Its overall job still fails the stale editor expectation described
+  above. The ARM result is not upgraded by the Intel evidence.
+- Drawing correction `61ad9ac6` makes completed strokes use the existing
+  canonical replay renderer in both port projections. Canonical Linux/Windows
+  sources and strict native image assertions remain unchanged. Host/browser
+  checks pass; native run `42535545844` at `2163f88e` is pending acceptance.
+  Dense browser drawings show measurable finish latency (about 220 ms for
+  100,000 points); no universal native smoothness claim follows.
+- Android API26 components at `9e47e97e` and the separate Mac leased-DAV-read
+  tests are queued for native execution. Source review and grammar parsing of
+  the latter do not establish Swift type correctness or test execution.
+
+Full Nextcloud/system-account synchronization, restore-host integration and the
+remaining inventory gaps continue to block an all-feature completion claim.
+
 | Family | Published operations | Mac current scope | Tablet current scope | Actual evidence type | Missing adapter / acceptance |
 | --- | --- | --- | --- | --- | --- |
 | Binder/navigation | 8 sections, day/week/month pages, page flips, tab order/visibility, modal focus/dirty-editor guard | shared local UI | shared local UI | host editor/navigation; native geometry/basic earlier | native 40 trusted touches, IME/RTL/accessibility, low-end devices |
