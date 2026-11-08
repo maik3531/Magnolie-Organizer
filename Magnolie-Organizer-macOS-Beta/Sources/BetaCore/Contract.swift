@@ -28,7 +28,11 @@ public struct Request {
         var optional: Set<String> = []
         switch command {
         case .entsperren: schema["kennwort"] = "string"
-        case .speichern: schema.merge(["id": "integer", "text": "string"]) { _, b in b }
+        case .speichern:
+            // Canonical desktop saves include a null tree-sync context for
+            // ordinary local writes. A real sync context is still unsupported.
+            schema.merge(["id": "integer", "text": "string", "baumSyncLauf": "null"]) { _, b in b }
+            optional = ["baumSyncLauf"]
         case .kennwort_setzen:
             schema.merge(["alt": "string", "neu": "string", "sicherungen": "bool",
                           "sicherungsordner": "string"]) { _, b in b }
@@ -64,6 +68,7 @@ public struct Request {
             case "string": valid = value is String
             case "array": valid = value is [Any]
             case "object": valid = value is [String: Any]
+            case "null": valid = value is NSNull
             case "bool": valid = boolean
             case "integer": valid = integer
             case "minutes": valid = value is String || integer

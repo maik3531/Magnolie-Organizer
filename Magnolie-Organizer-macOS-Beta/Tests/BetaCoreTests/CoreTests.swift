@@ -6,7 +6,14 @@ final class CoreTests: XCTestCase {
 
     func testAllowlistAndTypes() throws {
         XCTAssertEqual(try Request(#"{"cmd":"speichern","id":1,"text":"{}"}"#).command, .speichern)
-        for text in [#"{"cmd":"speichern","id":true,"text":"{}"}"#,
+        XCTAssertEqual(try Request(#"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":null}"#).command, .speichern)
+        for text in [#"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":{"run":"unsupported"}}"#,
+                     #"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":false}"#,
+                     #"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":""}"#,
+                     #"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":0}"#,
+                     #"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":[]}"#,
+                     #"{"cmd":"speichern","id":1,"text":"{}","baumSyncLauf":null,"unknown":null}"#,
+                     #"{"cmd":"speichern","id":true,"text":"{}"}"#,
                      #"{"cmd":"speichern","id":1.5,"text":"{}"}"#,
                      #"{"cmd":"speichern","id":9007199254740992,"text":"{}"}"#,
                      #"{"cmd":"speichern","id":0,"text":"{}"}"#,
@@ -46,6 +53,9 @@ final class CoreTests: XCTestCase {
         var store: AtomicStore? = try AtomicStore(directory: directory)
         XCTAssertThrowsError(try store!.commit(plain))
         XCTAssertNil(try store!.load())
+        // Host's explicit fresh-profile {} state does not need a recovery
+        // checkpoint before the first normalized organizer save.
+        XCTAssertNoThrow(try Document.assertNoLoss(Document.object("{}"), Document.plain(plain)))
         XCTAssertThrowsError(try AtomicStore(directory: directory))
         try store!.commit(plain)
         let file = store!.file
@@ -190,6 +200,17 @@ final class CoreTests: XCTestCase {
             throw XCTSkip("Run tools/check_editor.py --swift with a JS runtime to test live canonical editor records.")
         }
         let fixture = try Document.object(String(contentsOfFile: path, encoding: .utf8))
+        // This envelope is emitted by the actual current projected editor's
+        // save queue, not reconstructed by a test's fake native transport.
+        let save = try XCTUnwrap(fixture["saveRequest"] as? [String: Any])
+        let request = try Request(Document.encode(save))
+        XCTAssertEqual(request.command, .speichern)
+        XCTAssertTrue(request.fields["baumSyncLauf"] is NSNull)
+        XCTAssertNoThrow(try Document.plain(request.text("text")))
+        var unsupported = save; unsupported["baumSyncLauf"] = ["run": "unsupported"]
+        XCTAssertThrowsError(try Request(Document.encode(unsupported)))
+        var unknown = save; unknown["unexpected"] = NSNull()
+        XCTAssertThrowsError(try Request(Document.encode(unknown)))
         let cases = try XCTUnwrap(fixture["cases"] as? [[String: Any]])
         XCTAssertGreaterThanOrEqual(cases.count, 9)
         for item in cases {

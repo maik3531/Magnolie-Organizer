@@ -87,10 +87,17 @@ try {
       [name, "2026-05-10", "10:00", due, early], "actual task editor record");
     tasks.push(clone(task));
   }
+  // Exercise the real save queue and carry its unmodified envelope into the
+  // Swift Request tests. Fake save acknowledgements alone cannot detect drift
+  // between canonical web messages and the production native schema.
+  t.speichereJetzt();
+  const saveRequest = clone(messages.filter(message => message.cmd === "speichern").at(-1));
+  equal(Object.keys(saveRequest).sort(), ["baumSyncLauf", "cmd", "id", "text"], "canonical local save envelope");
+  equal(saveRequest.baumSyncLauf, null, "ordinary local writes have no tree-sync authority");
   t.daten().einstellungen.erinnerung.an = true;
   if (process.argv.includes("--probe")) {
     t.daten().aufgaben = [tasks[0]]; b.at("2026-05-09T10:00:00Z"); t.pruefeErinnerungen();
-    console.log(JSON.stringify({ cases, tasks, earlyOnlyCallbacks: messages.filter(m => m.cmd === "erinnerung_zeigen").length }));
+    console.log(JSON.stringify({ cases, tasks, saveRequest, earlyOnlyCallbacks: messages.filter(m => m.cmd === "erinnerung_zeigen").length }));
   } else {
     t.daten().aufgaben = tasks;
     checkAt("2026-05-09T09:59:59Z", 0, "not early yet");
@@ -175,6 +182,6 @@ try {
     t.daten().einstellungen.erinnerung.an = true;
     t.daten().aufgaben = [{ ...base, id: "locked-candidate" }];
     checkAt("2026-05-10T10:00:00Z", 0, "locked profile gate remains intact");
-    console.log(JSON.stringify({ cases, tasks, checks }));
+    console.log(JSON.stringify({ cases, tasks, saveRequest, checks }));
   }
 } finally { b.close(); }
