@@ -9,7 +9,8 @@ module.exports=function timezonePatches(source,read,undo=false,canonical=source)
     let end=start+entry.start.length;
     if(entry.end) {end=canonical.indexOf(entry.end,end);if(end<0)throw Error('Timezone end anchor changed: '+entry.id);if(entry.includeEnd)end+=entry.end.length;}
     const text=canonical.slice(start,end);
-    if(sha(text)!==entry.sha256)throw Error('Timezone canonical block changed: '+entry.id);
+    const allowed=[entry.sha256,...(entry.reviewedVariants||[]).map(variant=>variant.sha256)];
+    if(!allowed.includes(sha(text)))throw Error('Timezone canonical block changed: '+entry.id);
     return text;
   };
   for(const entry of undo?[...manifest].reverse():manifest) {

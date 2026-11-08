@@ -5,7 +5,14 @@
     "end": "\n  }\n",
     "includeEnd": true,
     "sha256": "b8a842b53718e38d2c02f28a2eee4fe3004f380993f87fb2a144118e532c3d6f",
-    "hook": "validate-zone"
+    "hook": "validate-zone",
+    "reviewedVariants": [
+      {
+        "sha256": "e6caa3e69bcb7eadeeb6b9075e2406088debbafd9a3cc3ace51bd5596a34bd00",
+        "source": "v2.0.30@067c38934b539943d8e1720abafd8a80b401d797",
+        "difference": "Same validation, alias normalization and Intl canonicalization; direct lookup without current bounded128-entry memoization. Replaced by the same normative identifier-preserving hook."
+      }
+    ]
   },
   {
     "id": "own-zone",

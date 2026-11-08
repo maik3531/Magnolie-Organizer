@@ -79,7 +79,8 @@ def apply_timezone_patches(source, snapshot):
             if patch["includeEnd"]:
                 end += len(patch["end"])
         before = canonical[start:end]
-        if digest(before.encode()) != patch["sha256"]:
+        allowed = [patch["sha256"]] + [variant["sha256"] for variant in patch.get("reviewedVariants", [])]
+        if digest(before.encode()) not in allowed:
             raise ValueError("Timezone canonical block changed: " + patch["id"])
         if patch.get("hook"):
             begin = "/*TZ_HOOK:" + patch["hook"] + "*/\n"

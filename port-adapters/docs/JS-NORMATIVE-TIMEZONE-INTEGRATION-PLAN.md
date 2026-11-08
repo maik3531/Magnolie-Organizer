@@ -152,3 +152,25 @@ worker source in an isolated Node thread, alias save/restart/restore, historical
 seconds, gap/fold policies and strict unsupported tracking precision. Node-thread
 success does not establish WebView/WK worker acceptance, startup/memory limits,
 native OS interoperability or an installable release. Those remain native gates.
+
+
+### Exact published/current input variants
+
+Native CI restores desktop tag v2.0.30 at
+`067c38934b539943d8e1720abafd8a80b401d797`. Its `gueltigeIanaZeitzone`
+body has SHA256 `e6caa3e69bcb7eadeeb6b9075e2406088debbafd9a3cc3ace51bd5596a34bd00`;
+the current canonical body has SHA256
+`b8a842b53718e38d2c02f28a2eee4fe3004f380993f87fb2a144118e532c3d6f`.
+Both normalize GMT/Etc aliases, check the same identifier syntax and return Intl's
+canonical identifier or an empty string. Current adds bounded128-entry lookup
+memoization; published calls Intl directly. The replacement intentionally uses
+the same normative registry for both and preserves input aliases. The cache is
+not a point-rule authority. Call signature and consumers are unchanged. Of the
+51 reviewed canonical blocks, this is the only published/current difference.
+
+The manifest accepts these two explicit body hashes for that entry only. Both
+projectors still require a unique exact anchor/body match. The inverse restores
+the actual selected canonical body, never a fabricated common original. Unknown
+third variants remain rejected. Tests must run both actual projectors against
+the exact published desktop tree and current desktop tree in disposable copies;
+a current-only host run does not cover the CI restore contract.
