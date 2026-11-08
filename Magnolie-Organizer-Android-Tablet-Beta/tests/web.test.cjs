@@ -211,6 +211,17 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     x.items.some(item=>item.title==='Synthetic custom appointment' && item.time==='12:35')),
     'actual instrumentation custom designer and time editor scenario persists its new item');
   await T.wechsel('gesundheit'); await wait();
+  const diagnosticScript=fs.readFileSync(path.join(root,'app/src/androidTest/assets/startup-diagnostics.js'),'utf8');
+  const priorStatus=w.document.getElementById('tablet-status').textContent;
+  w.document.getElementById('tablet-status').textContent='Import failed. [load-validation]';
+  const startup=w.eval(diagnosticScript);
+  assert.equal(startup.origin,'https://appassets.androidplatform.net');
+  assert.equal(startup.statusCode,'load-validation');
+  assert.ok(startup.tabletPresent && startup.organizerPresent);
+  assert.deepEqual(Object.keys(startup).sort(),['readyState','origin','tabletPresent','organizerPresent','storageBlocked','statusCode'].sort());
+  assert.ok(!JSON.stringify(startup).includes('Synthetic'));
+  w.document.getElementById('tablet-status').textContent=priorStatus;
+  ok(true,'startup diagnostics expose fixed technical fields without document or status message content');
   const priorExports=messages.filter(x=>x.cmd==='tablet_export').length;
   failSave=true; T.daten().notizen[0].text='unsaved change';
   w.Tablet.action('tablet_export'); await wait();

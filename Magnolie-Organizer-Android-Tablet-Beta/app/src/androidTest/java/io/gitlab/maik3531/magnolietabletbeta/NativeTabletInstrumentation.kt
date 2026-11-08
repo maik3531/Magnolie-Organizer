@@ -19,6 +19,7 @@ import java.io.File
 import java.security.KeyStore
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import javax.crypto.SecretKey
 
 /** No test entry points are added to the production/debug application's manifest. */
@@ -27,6 +28,8 @@ class NativeTabletInstrumentation : Instrumentation() {
     private lateinit var activity: MainActivity
     private lateinit var web: WebView
     private val checks=JSONArray()
+    private var startupState:JSONObject?=null
+    @Volatile private var observedMainResumed=false
     private var lastTouchTiming=JSONObject()
     private var lastIssuedTouch=emptyList<AsyncTouchPair.Delivery>()
     private var previousNativeDownTime=-1L
@@ -79,11 +82,20 @@ class NativeTabletInstrumentation : Instrumentation() {
             .put("brand",android.os.Build.BRAND).put("applicationId",targetContext.packageName)
             .put("applicationLabel",targetContext.applicationInfo.loadLabel(targetContext.packageManager).toString())
             .put("sourceHash",JSONObject(targetContext.assets.open("projection.json").bufferedReader().readText()).getString("sourceHash"))
-            .put("webview",WebView.getCurrentWebViewPackage()?.versionName).put("error",error?.stackTraceToString() ?: JSONObject.NULL)
+            .put("webview",WebView.getCurrentWebViewPackage()?.versionName).put("startup",startupState ?: JSONObject.NULL)
+            .put("error",error?.stackTraceToString() ?: JSONObject.NULL)
         File(out,"$stage.json").writeText(proof.toString(2))
         if(inputPort!=null) runOnMainSync {inputPort?.close()}
         val result=Bundle().apply {putString("stream",proof.toString(2)+"\n")}
         finish(if(error==null) Activity.RESULT_OK else Activity.RESULT_CANCELED,result)
+    }
+    override fun callActivityOnResume(target: Activity) {
+        super.callActivityOnResume(target)
+        if (target is MainActivity) observedMainResumed=true
+    }
+    override fun callActivityOnPause(target: Activity) {
+        if (target is MainActivity) observedMainResumed=false
+        super.callActivityOnPause(target)
     }
     private fun pass(name:String,detail:Any=true) {
         checks.put(JSONObject().put("name",name).put("detail",detail))
@@ -99,8 +111,18 @@ class NativeTabletInstrumentation : Instrumentation() {
     private fun launch() {
         activity=startActivitySync(Intent(targetContext,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
         web=MainActivity::class.java.getDeclaredField("web").apply {isAccessible=true}.get(activity) as WebView
-        waitFor("native initialization acknowledged") {
-            var ready=false; runOnMainSync {ready=MainActivity::class.java.getDeclaredField("ready").apply {isAccessible=true}.getBoolean(activity)}; ready
+        try {
+            waitFor("native initialization acknowledged") {
+                var ready=false; runOnMainSync {ready=MainActivity::class.java.getDeclaredField("ready").apply {isAccessible=true}.getBoolean(activity)}; ready
+            }
+        } catch (failure: IllegalStateException) {
+            startupState=try {startupDiagnostics()} catch (diagnosticsFailure: Exception) {
+                JSONObject().put("diagnosticError",diagnosticsFailure.javaClass.simpleName)
+            }
+            val line="STARTUP_DIAGNOSTICS "+startupState.toString()
+            android.util.Log.e("TabletNativeTest",line)
+            sendStatus(1,Bundle().apply {putString("stream",line+"\n")})
+            throw failure
         }
         js("window.MagnolieI18n.setLocale('en'); OrganizerTest.daten().einstellungen.regional.language='en'; OrganizerTest.daten().einstellungen.regional.timeZone='UTC'; true")
         raw(context.assets.open("scenarios.js").bufferedReader().readText())
@@ -118,6 +140,37 @@ class NativeTabletInstrumentation : Instrumentation() {
             }
         }
         saved()
+    }
+    private fun startupDiagnostics():JSONObject {
+        val started=SystemClock.elapsedRealtime()
+        val native=AtomicReference<String?>(null)
+        val renderer=AtomicReference<String?>(null)
+        val problem=AtomicReference<String?>(null)
+        val done=CountDownLatch(1)
+        val script=context.assets.open("startup-diagnostics.js").bufferedReader().use {it.readText()}
+        activity.runOnUiThread {
+            try {
+                fun field(name:String)=MainActivity::class.java.getDeclaredField(name).apply {isAccessible=true}.get(activity)
+                native.set(JSONObject().put("ready",field("ready"))
+                    .put("generation",field("generation")).put("bootstrapStarted",field("bootstrapStarted"))
+                    .put("restoreFenced",field("restoreFenced")).put("pageSessionPresent",field("documentSession")!=null)
+                    .put("entryUrlMatches",web.url==MainActivity.START)
+                    .put("activityResumed",observedMainResumed).put("windowFocused",activity.hasWindowFocus())
+                    .put("interactive",activity.getSystemService(android.os.PowerManager::class.java).isInteractive)
+                    .put("keyguardLocked",activity.getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked)
+                    .put("deviceLocked",activity.getSystemService(android.app.KeyguardManager::class.java).isDeviceLocked).toString())
+                web.evaluateJavascript(script) {result -> renderer.set(result); done.countDown()}
+            } catch (failure: Exception) { problem.set(failure.javaClass.simpleName); done.countDown() }
+        }
+        val completed=done.await(2500,TimeUnit.MILLISECONDS)
+        val result=JSONObject().put("completed",completed).put("elapsedMs",SystemClock.elapsedRealtime()-started)
+        native.get()?.let {result.put("native",JSONObject(it))}
+        renderer.get()?.let {
+            try {result.put("web",JSONObject(it))}
+            catch (failure: Exception) {result.put("webResultError",failure.javaClass.simpleName)}
+        }
+        problem.get()?.let {result.put("diagnosticError",it)}
+        return result
     }
     private fun raw(script:String):String {
         val started=SystemClock.elapsedRealtime(); webEvaluations++
