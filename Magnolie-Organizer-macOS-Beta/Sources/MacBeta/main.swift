@@ -402,6 +402,38 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             try store.commit(output)
             self.plain = next; envelope = encryption == nil ? nil : output
             send("regionalErgebnis", ["ok": true, "regional": settings])
+        case .import:
+            guard plain != nil else { throw BetaError("Unlock first.") }
+            guard request.text("art") == "ics" else {
+                throw BetaError("This import format is not implemented in macOS Beta.")
+            }
+            let generation = documentGeneration
+            let panel = NSOpenPanel(); panel.title = tr("Import")
+            panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+            panel.allowedFileTypes = ["ics"]
+            guard panel.runModal() == .OK, let url = panel.url else {
+                send("importErgebnis", ["abgebrochen": true]); return
+            }
+            guard plain != nil, !restoring, documentGeneration == generation else {
+                throw BetaError("The current document changed. Start the import again.")
+            }
+            let zone = regional(plain)["timeZone"] as? String ?? "system"
+            let sourceName = url.lastPathComponent
+            // Only the explicitly selected file is read, with a hard byte bound.
+            // Parsing and time-zone projection must not block AppKit or WebKit.
+            DispatchQueue.global(qos: .userInitiated).async {
+                let response: [String: Any]
+                do {
+                    let handle = try FileHandle(forReadingFrom: url)
+                    defer { try? handle.close() }
+                    let bytes = try handle.read(upToCount: ICalendarImport.maximumBytes + 1) ?? Data()
+                    response = try ICalendarImport.decode(bytes, displayTimeZone: zone, sourceName: sourceName).document
+                } catch { response = ["fehler": error.localizedDescription] }
+                DispatchQueue.main.async {
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                    self.send("importErgebnis", response)
+                }
+            }
         case .export:
             guard plain != nil, let kind = ICalendarExport.Kind(rawValue: request.text("art")),
                   let records = request.fields["daten"] as? [[String: Any]] else {

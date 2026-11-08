@@ -7,6 +7,7 @@ public struct BetaError: LocalizedError {
 }
 
 public enum Command: String, CaseIterable {
+    case `import`
     case bereit, entsperren, speichern, kennwort_setzen
     case beenden, beenden_bereit, beenden_abgebrochen
     case ablage_kopieren, ablage_holen, sicherung, export
@@ -52,6 +53,7 @@ public struct Request {
         case .macos_systemzugriff:
             schema.merge(["art": "string", "requestId": "string"]) { _, b in b }
         case .regional_einstellungen: schema["regional"] = "object"
+        case .import: schema["art"] = "string"
         case .export: schema.merge(["art": "string", "daten": "array"]) { _, b in b }
         case .erinnerung_zeigen:
             for key in ["kopf", "rumpf", "art", "stil"] { schema[key] = "string" }

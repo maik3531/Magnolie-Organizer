@@ -3,6 +3,12 @@ import XCTest
 @testable import BetaCore
 
 final class ICalendarImportTests: XCTestCase {
+    func testNativeImportCommandIsASelectedFileCapability() throws {
+        XCTAssertNoThrow(try Request(#"{"cmd":"import","art":"ics"}"#))
+        XCTAssertThrowsError(try Request(#"{"cmd":"import","art":"ics","pfad":"/unselected.ics"}"#))
+        XCTAssertThrowsError(try Request(#"{"cmd":"import","art":"ics","daten":"arbitrary"}"#))
+        XCTAssertThrowsError(try Request(#"{"cmd":"import","art":true}"#))
+    }
     private func data(_ body: String) -> Data { Data(("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" + body + "END:VCALENDAR\r\n").utf8) }
     private let event = "BEGIN:VEVENT\r\nUID:public\r\nDTSTART:20260328T100000Z\r\nDTEND:20260328T110000Z\r\nSUMMARY:Public item\r\nEND:VEVENT\r\n"
     func testUnfoldingUnknownFieldsAndWrapperMetadataArePreserved() throws {
@@ -39,6 +45,10 @@ final class ICalendarImportTests: XCTestCase {
         XCTAssertEqual((result.appointments[0]["icsTimezones"] as? [[String]])?.first?.first, "BEGIN:VTIMEZONE")
         let conflict = zone.replacingOccurrences(of: "+0530", with: "+0630")
         XCTAssertThrowsError(try ICalendarImport.decode(data(zone + conflict + body), displayTimeZone: "UTC"))
+        for rule in ["FREQ=YEARLY;INTERVAL=2", "FREQ=YEARLY;BYDAY=-1SU"] {
+            let unsupported = zone.replacingOccurrences(of: "TZOFFSETTO:+0530\r\n", with: "TZOFFSETTO:+0530\r\nRRULE:" + rule + "\r\n")
+            XCTAssertThrowsError(try ICalendarImport.decode(data(event + unsupported + body), displayTimeZone: "UTC"), "A valid first item must not escape a later unsupported zone: " + rule)
+        }
     }
     func testMasterAndExceptionShareTheWireUIDAndKeepRangeSourceBodies() throws {
         let master = "BEGIN:VEVENT\r\nUID:series\r\nDTSTART:20260328T100000Z\r\nDTEND:20260328T110000Z\r\nRRULE:FREQ=DAILY;COUNT=5\r\nSUMMARY:Master\r\nEND:VEVENT\r\n"

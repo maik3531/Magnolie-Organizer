@@ -5,7 +5,7 @@
   const allowed = new Set(/*GENERATED_COMMANDS*/[]);
   const identity = /*GENERATED_IDENTITY*/{};
   const methods = new Set(["init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
-    "exportErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
+    "exportErgebnis", "importErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
     "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus"]);
   const unsupported = "Not implemented in Magnolie Organizer macOS Beta. Nothing was changed.";
   const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; calendar, task and anniversary ICS; " +
@@ -76,6 +76,25 @@
   }
   window.MacBeta = Object.freeze({
     preserve,
+    calendarMetadata(data, payload, commit) {
+      const metadata = payload.icsImportMetadata;
+      if (!metadata) return false;
+      const hash = metadata.sourceSHA256, old = data.icsImportSources;
+      if (metadata.version !== 1 || typeof hash !== "string" || !/^[a-f0-9]{64}$/.test(hash) ||
+          !Array.isArray(metadata.calendarProperties) || metadata.calendarProperties.some(line => typeof line !== "string") ||
+          (old !== undefined && (!old || typeof old !== "object" || Array.isArray(old)))) {
+        throw new Error("Calendar source metadata is invalid; import was not applied.");
+      }
+      if (old && Object.hasOwn(old, hash)) {
+        if (JSON.stringify(old[hash]) !== JSON.stringify(metadata)) throw new Error("Conflicting calendar source metadata.");
+        return false;
+      }
+      if (commit) {
+        if (old === undefined) data.icsImportSources = {};
+        data.icsImportSources[hash] = structuredClone(metadata);
+      }
+      return true;
+    },
     validateRestore(text) {
       if (!ready || restorePending) throw new Error("Storage is not ready.");
       window.App.macOSBetaValidateRestore(text);

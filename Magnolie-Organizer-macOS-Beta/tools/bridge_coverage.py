@@ -19,6 +19,7 @@ SCOPES = {
     "sicherung_wiederherstellen": "partial: full JSON replacement + checkpoint + UI preflight; no additive/section restore",
     "mutations_snapshot": "partial: durable exact file checkpoint; no desktop journal index/retention",
     "regional_einstellungen": "source: validated durable preferences; native locale handling untested",
+    "import": "partial: native selected UTF-8 ICS file; atomic codec and canonical merge; no vCard/CSV/archive import",
     "export": "partial: source-preserving appointment/task/anniversary ICS; native extended roundtrips pending",
     "eds_status": "partial: passive native EventKit/Contacts discovery; no synchronization",
     "macos_systemzugriff": "partial: explicit OS access prompt and refreshed source status; no synchronization",

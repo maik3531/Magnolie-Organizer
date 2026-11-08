@@ -209,6 +209,8 @@ public enum ICalendarImport {
                 if let source = rules.first {
                     rule = try ICalendarImport.ruleDictionary(source.value)
                     guard rule["FREQ"] == "YEARLY", rule["COUNT"] == nil,
+                          rule["INTERVAL"] == nil || rule["INTERVAL"] == "1",
+                          rule["BYMONTH"] != nil || ["BYMONTHDAY", "BYDAY", "BYSETPOS"].allSatisfy({ rule[$0] == nil }),
                           Set(rule.keys).isSubset(of: ["FREQ", "INTERVAL", "BYMONTH", "BYMONTHDAY", "BYDAY", "BYSETPOS", "UNTIL", "WKST"]) else {
                         throw BetaError("This embedded time-zone rule cannot be resolved safely.")
                     }
@@ -444,7 +446,7 @@ public enum ICalendarImport {
     }
     private static func sourcePath(_ value: String) -> String {
         value.replacingOccurrences(of: "\\", with: "/").split(separator: "/").compactMap { piece -> String? in
-            let safe = String(piece.unicodeScalars.filter { $0.value >= 32 && $0.value != 127 }).trimmingCharacters(in: .whitespaces)
+            let safe = String(String.UnicodeScalarView(piece.unicodeScalars.filter { $0.value >= 32 && $0.value != 127 })).trimmingCharacters(in: .whitespaces)
             return safe.isEmpty || safe == "." || safe == ".." ? nil : safe.replacingOccurrences(of: ":", with: "_")
         }.joined(separator: "/")
     }

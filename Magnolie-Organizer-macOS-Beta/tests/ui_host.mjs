@@ -72,6 +72,29 @@ try {
   assert.equal(accountPage.querySelector("#macos-system-addressbook").value, "macos-contacts:one"); assertions++;
   assert.equal(JSON.stringify(oldSync.kalenderUids), '["macos-events:one","legacy-calendar"]'); assertions++;
   assert.equal(messages.filter(m => m.cmd === "macos_systemzugriff").length, 1); assertions++;
+  const oldHeader = { version: 1, sourceSHA256: "b".repeat(64), calendarProperties: ["X-OLD:retain"] };
+  t.daten().icsImportSources = { [oldHeader.sourceSHA256]: oldHeader };
+  const importedHeader = { version: 1, sourceSHA256: "a".repeat(64), calendarProperties: ["METHOD:PUBLISH", "X-PROVIDER:retain"] };
+  const calendarPayload = { termine: [{ uid: "synthetic-import", titel: "Imported source", datum: "2030-03-28", zeit: "10:00",
+    icsRoundtrip: ["UID:synthetic-import", "DTSTART:20300328T100000", "SUMMARY:Imported source", "X-OPAQUE:retain"] }],
+    aufgaben: [], jahrestage: [], icsImportMetadata: importedHeader };
+  w.MacBeta.receive("importErgebnis", calendarPayload);
+  assert.ok(t.daten().termine.some(item => item.uid === "synthetic-import")); assertions++;
+  assert.equal(t.daten().icsImportSources[oldHeader.sourceSHA256].calendarProperties[0], "X-OLD:retain"); assertions++;
+  assert.equal(t.daten().icsImportSources[importedHeader.sourceSHA256].calendarProperties[1], "X-PROVIDER:retain"); assertions++;
+  t.speichereJetzt();
+  const calendarSave = messages.filter(m => m.cmd === "speichern").at(-1);
+  assert.equal(JSON.parse(calendarSave.text).icsImportSources[importedHeader.sourceSHA256].calendarProperties[0], "METHOD:PUBLISH"); assertions++;
+  w.MacBeta.receive("gespeichert", { id: calendarSave.id, ok: true });
+  const importedCount = t.daten().termine.length;
+  w.MacBeta.receive("importErgebnis", calendarPayload);
+  assert.equal(t.daten().termine.length, importedCount); assertions++;
+  const beforeRejected = JSON.stringify(t.daten().icsImportSources);
+  w.MacBeta.receive("importErgebnis", { fehler: "Synthetic invalid calendar", icsImportMetadata: { ...importedHeader, sourceSHA256: "c".repeat(64) } });
+  assert.equal(JSON.stringify(t.daten().icsImportSources), beforeRejected); assertions++;
+  assert.throws(() => w.MacBeta.calendarMetadata(t.daten(), { icsImportMetadata: { ...importedHeader, sourceSHA256: "__proto__" } }, false)); assertions++;
+  assert.throws(() => w.MacBeta.receive("importErgebnis", { ...calendarPayload, icsImportMetadata: { ...importedHeader, calendarProperties: ["X-CONFLICT:reject"] } })); assertions++;
+  assert.equal(t.daten().termine.length, importedCount); assertions++;
   // Ensure encryption still waits for a real pending native save.
   t.daten().notizen[0].text = "pending native save before encryption";
   t.speichereJetzt();

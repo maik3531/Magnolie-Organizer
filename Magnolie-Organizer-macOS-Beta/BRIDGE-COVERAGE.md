@@ -74,7 +74,7 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `graph_mcp_status` | — | yes | UNSUPPORTED: negative Beta response |
 | `handbuch_herunterladen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `handbuch_oeffnen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `import` | yes | yes | UNSUPPORTED: negative Beta response |
+| `import` | yes | yes | partial: native selected UTF-8 ICS file; atomic codec and canonical merge; no vCard/CSV/archive import |
 | `import_lokal` | yes | yes | UNSUPPORTED: negative Beta response |
 | `internet_konten_mcp` | — | yes | UNSUPPORTED: negative Beta response |
 | `internet_konten_status` | — | yes | UNSUPPORTED: negative Beta response |

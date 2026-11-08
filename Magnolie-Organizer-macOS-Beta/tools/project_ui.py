@@ -53,7 +53,7 @@ def replace_once(text, old, new):
 def commands(snapshot):
     source = snapshot[str((BETA / "Sources/BetaCore/Contract.swift").relative_to(REPO))].decode()
     block = source.split("public enum Command: String, CaseIterable {", 1)[1].split("\n}", 1)[0]
-    return [name.strip() for line in block.splitlines() if line.strip().startswith("case ")
+    return [name.strip().strip("`") for line in block.splitlines() if line.strip().startswith("case ")
              for name in line.strip()[5:].split(",")]
 
 
@@ -231,6 +231,11 @@ def project(snapshot, target):
     # No automatic deletion of tombstones/trash in a port without a recovery journal.
     text = replace_once(text, "      raeumeTombstonesAuf();\n      const papierkorbBereinigt = raeumePapierkorbAuf();",
                         "      const papierkorbBereinigt = false;")
+    text = replace_once(text, '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n      if (changed) {',
+                        '      const calendarMetadata = window.MacBeta.calendarMetadata(DATEN, nutzlast, false);\n'
+                        '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n'
+                        '      if (calendarMetadata) window.MacBeta.calendarMetadata(DATEN, nutzlast, true);\n'
+                        '      if (changed || calendarMetadata) {')
     app.write_text(text)
     adapter = snapshot[str((BETA / "Projection/macos-beta.js").relative_to(REPO))].decode()
     adapter = replace_once(adapter, "/*GENERATED_COMMANDS*/[]", json.dumps(commands(snapshot)))
