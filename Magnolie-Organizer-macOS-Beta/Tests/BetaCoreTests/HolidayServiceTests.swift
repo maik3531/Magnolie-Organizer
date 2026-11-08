@@ -64,7 +64,7 @@ final class HolidayServiceTests: XCTestCase {
             ]))
         }
         let query = try HolidayService.Query(country: "DE", regions: [.init(code: "DE-BE", name: "Berlin"),
-            .init(code: "DE-BB", name: "Brandenburg")], years: [2026], includeSchool: false)
+            .init(code: "DE-BB", name: "Brandenburg")], years: [2026], includeSchool: false, language: "DE")
         let rows = try await HolidayService(transport: transport).fetch(query)
         XCTAssertEqual(rows.count, 1)
         XCTAssertEqual(rows[0].regions, ["DE-BB", "DE-BE"])
