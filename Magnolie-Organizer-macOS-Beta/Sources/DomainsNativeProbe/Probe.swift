@@ -107,6 +107,18 @@ import BetaCore
         if let text = value as? String { proof["drawing-" + phase] = try? Document.object(text); writeProof() }
         print("Mac drawing diagnostics: " + (value as? String ?? "invalid diagnostic result"))
     }
+    private func nativeClick(_ target: [String: Any], window: NSWindow) async throws {
+        let x = try unwrap(target["x"] as? Double), y = try unwrap(target["y"] as? Double)
+        let local = NSPoint(x: x, y: web.isFlipped ? y : web.bounds.height - y)
+        let location = web.convert(local, to: nil)
+        for (step, type) in [NSEvent.EventType.leftMouseDown, .leftMouseUp].enumerated() {
+            let event = try unwrap(NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, eventNumber: step + 1, clickCount: 1, pressure: step == 0 ? 0.5 : 0))
+            NSApp.postEvent(event, atStart: false)
+            try await Task.sleep(nanoseconds: 25_000_000)
+        }
+    }
     private func stroke(_ rect: [String: Any], window: NSWindow) async throws {
         let x1 = try unwrap(rect["x1"] as? Double), x2 = try unwrap(rect["x2"] as? Double), y = try unwrap(rect["y"] as? Double)
         var receipts: [[String: Any]] = []
@@ -157,6 +169,14 @@ import BetaCore
         _ = try await settle()
         let harness = try String(contentsOf: harnessURL, encoding: .utf8)
         _ = try await javascript(harness + "\nreturn true;")
+        mark("book-cover-target")
+        let coverValue = try await javascript("return window.NativeDomains.coverTarget();")
+        let cover = try unwrap(coverValue as? [String: Any])
+        try require(NSApp.isRunning && NSApp.isActive && window.isKeyWindow, "Native cover input requires the running foreground application")
+        try await nativeClick(cover, window: window)
+        mark("book-opening")
+        proof["bookOpening"] = try await javascript("return await window.NativeDomains.opened();")
+        writeProof()
         for stage in ["prepare", "health", "custom"] {
             mark(stage)
             _ = try await javascript("return await window.NativeDomains[stage]();", arguments: ["stage": stage])
@@ -182,6 +202,8 @@ import BetaCore
         proof["applicationLifecycle"] = ["running": NSApp.isRunning, "active": NSApp.isActive, "keyWindow": window.isKeyWindow, "visible": window.isVisible]
         try await drawingDiagnostics("before-native-input")
         try require(NSApp.isRunning && NSApp.isActive && window.isKeyWindow, "Domain probe must have a running foreground application and key input window")
+        proof["drawingTarget"] = try await javascript("return window.NativeDomains.drawingTargetReady(target);", arguments: ["target": rectangle])
+        writeProof()
         try await stroke(rectangle, window: window)
         try await drawingDiagnostics("after-native-input")
         mark("drawing-proof")

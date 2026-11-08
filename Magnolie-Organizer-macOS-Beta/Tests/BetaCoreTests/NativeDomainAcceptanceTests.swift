@@ -66,6 +66,11 @@ final class NativeDomainAcceptanceTests: XCTestCase {
         let lifecycle = try XCTUnwrap(proof["applicationLifecycle"] as? [String: Any])
         for key in ["running", "active", "keyWindow", "visible"] { XCTAssertEqual(lifecycle[key] as? Bool, true, key) }
         XCTAssertGreaterThan(proof["nativeDurableSaves"] as? Int ?? 0, 0)
+        let opening = try XCTUnwrap(proof["bookOpening"] as? [String: Any])
+        XCTAssertEqual(opening["trustedCoverClick"] as? Bool, true)
+        XCTAssertEqual(opening["coverRemoved"] as? Bool, true)
+        XCTAssertGreaterThanOrEqual(opening["stableFrames"] as? Int ?? 0, 2)
+        XCTAssertEqual((proof["drawingTarget"] as? [String: Any])?["canvasHit"] as? Bool, true)
         let drawing = try XCTUnwrap(proof["drawing"] as? [String: Any])
         XCTAssertEqual(drawing["strokeCount"] as? Int, 1)
         XCTAssertEqual(drawing["pixelChange"] as? Bool, true)

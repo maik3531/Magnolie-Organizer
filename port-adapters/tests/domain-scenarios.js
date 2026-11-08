@@ -14,6 +14,43 @@ window.NativeDomains = (() => {
   const date=(field,value)=>{T.setzeDatumswert(field,value);field.dispatchEvent(new Event('input',{bubbles:true}));field.dispatchEvent(new Event('change',{bubbles:true}));};
   const clone=value=>JSON.parse(JSON.stringify(value));
   const save=async()=>{T.speichereJetzt();await tick();};
+  let coverReceipt=null;
+  function coverTarget() {
+    const book=$('#buch'),cover=$('#deckel');assert(book&&cover,'Missing actual book cover');
+    assert(!book.classList.contains('offen'),'Domain opening must start with the actual closed cover');
+    const rect=cover.getBoundingClientRect(),left=Math.max(0,rect.left),right=Math.min(innerWidth,rect.right),
+      top=Math.max(0,rect.top),bottom=Math.min(innerHeight,rect.bottom);
+    assert(right-left>40&&bottom-top>40,'Book cover is not visibly clickable');
+    const x=(left+right)/2,y=(top+bottom)/2,hit=document.elementFromPoint(x,y);
+    assert(hit&&cover.contains(hit),'Book cover target is covered');
+    cover.addEventListener('click',event=>{coverReceipt={trusted:event.isTrusted,tag:event.target?.tagName||'',className:String(event.target?.className||'').slice(0,160)};},{capture:true,once:true});
+    return {x,y};
+  }
+  async function opened() {
+    const deadline=performance.now()+3000;let stable=0;
+    while(performance.now()<deadline) {
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      assert(!coverReceipt||coverReceipt.trusted,'Book must open through trusted native input');
+      const book=$('#buch'),cover=$('#deckel');
+      const ready=coverReceipt?.trusted&&book?.classList.contains('offen')&&cover&&getComputedStyle(cover).display==='none'&&
+        (!cover.getAnimations||cover.getAnimations().every(animation=>!['running','pending'].includes(animation.playState)));
+      stable=ready?stable+1:0;
+      if(stable>=2)return {trustedCoverClick:true,coverRemoved:true,stableFrames:stable,receipt:coverReceipt};
+    }
+    throw Error('Actual native book opening/animation did not complete within3seconds');
+  }
+  function drawingTargetReady(target) {
+    const canvas=$('.custom-zeichenblatt');assert(canvas,'Missing actual drawing canvas');
+    const points=[];
+    for(let index=0;index<=8;index++) {
+      const fraction=index/8,x=target.x1+(target.x2-target.x1)*fraction;
+      for(const y of [target.y,target.y+Math.sin(fraction*Math.PI)*8]) {
+        assert(document.elementFromPoint(x,y)===canvas,'Native drawing coordinates are covered instead of hitting the actual canvas');
+        points.push({x,y});
+      }
+    }
+    return {canvasHit:true,checkedPoints:points.length};
+  }
   async function prepare() {
     assert(T.daten().customOrganizer.modules.length===0,'Domain acceptance requires an unused disposable custom organizer');
     assert(['vitalwerte','blutzucker','medikamente'].every(key=>T.daten().gesundheit[key].length===0),'Domain acceptance requires unused disposable health tables');
@@ -98,7 +135,8 @@ window.NativeDomains = (() => {
     window.__domainCanvasBefore=canvas.toDataURL('image/png');
     const rect=canvas.getBoundingClientRect(),top=Math.max(rect.top,0),bottom=Math.min(rect.bottom,innerHeight);
     assert(rect.width>100&&bottom-top>80,'Drawing canvas is not visible enough for a native stroke');
-    return {x1:rect.left+rect.width*.2,x2:rect.left+rect.width*.75,y:top+(bottom-top)*.45};
+    const target={x1:rect.left+rect.width*.2,x2:rect.left+rect.width*.75,y:top+(bottom-top)*.45};
+    drawingTargetReady(target);return target;
   }
   async function drawingProof() {
     const module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
@@ -120,5 +158,5 @@ window.NativeDomains = (() => {
     for(const row of health?.vitalwerte||[]) if(!Object.hasOwn(row,'sauerstoff')) row.sauerstoff=0;
     return expected;
   };
-  return {prepare,health,custom,drawing,drawingProof,snapshot,expectedAfterReopen};
+  return {coverTarget,opened,drawingTargetReady,prepare,health,custom,drawing,drawingProof,snapshot,expectedAfterReopen};
 })();
