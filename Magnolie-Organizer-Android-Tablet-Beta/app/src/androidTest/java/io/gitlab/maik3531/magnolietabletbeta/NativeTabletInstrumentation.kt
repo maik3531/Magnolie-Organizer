@@ -66,7 +66,10 @@ class NativeTabletInstrumentation : Instrumentation() {
             check(injector in listOf("shell","async")) {"Unknown injector"}
             check(android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.MODEL.contains("sdk")) {"Disposable emulator required"}
             when(stage) {
-                "services" -> pass("native Android DAV parser and secure account transactions", NativeDavAccountSmoke.run(targetContext))
+                "services" -> {
+                    pass("native Android DAV parser and secure account transactions", NativeDavAccountSmoke.run(targetContext))
+                    pass("native Android calendar codecs and system time zones", NativeCalendarSmoke.run(context))
+                }
                 "basics" -> basics()
                 "restart" -> {launch(); assertPersisted()}
                 "layout" -> {launch(); checkLayout(); navigation()}
