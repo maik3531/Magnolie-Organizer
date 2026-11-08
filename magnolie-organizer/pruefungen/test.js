@@ -7577,8 +7577,11 @@ function knopfMit(text, wurzel) {
    assert.ok(fotoGruppe.querySelector("details.notes-foto-sync").open, "Native Statusänderungen bewahren auch die innere Mediengruppe");
   fotoGruppe.querySelector("select[data-photo-album]").value = "album-native-2";
   Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Jetzt synchronisieren").click();
-  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "sync" &&
-    value.request.album_id === "album-native-2"), "Nur die aktuelle explizite Albumauswahl wird gesendet, kein Zielpfad");
+  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "sync_selected" &&
+    value.request.album_id === "album-native-2" && value.request.video_album_id === null), "Nur die aktuelle explizite Albumauswahl wird gesendet, kein Zielpfad");
+  assert.strictEqual(fotoGruppe.querySelectorAll("[data-photo-manual-sync]").length, 1);
+  assert.ok(fotoGruppe.querySelector(".notes-foto-sync").lastElementChild.classList.contains("notes-medien-manuell"),
+    "Der gemeinsame Handlauf steht nach Einstellungen, Ordnern und Wiederherstellungsaktionen");
   fotoStand({ available: true, enabled: true, state: "syncing", busy: true, albums: [] });
   fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
   assert.ok(Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Jetzt synchronisieren").disabled);
@@ -7619,11 +7622,18 @@ function knopfMit(text, wurzel) {
      "Die nur bei ausgeschalteten Videos nutzbare Ordnerwahl wird nicht als aktive Funktion angeboten");
   videoGruppe.querySelector("[data-video-action='read']").click();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_request_read" });
-  videoGruppe.querySelector("[data-video-action='sync']").click();
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_sync", album_id: "video-native-1" });
+  bd.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_selected", album_id: null, video_album_id: "video-native-1" });
+  fotoStand({ ...videoStand, albums: [{ album_id: "photo-both", display_name: "Camera", visible_images: 1 }] });
+  assert.strictEqual(bd.querySelectorAll(".notes-foto-sync [data-photo-manual-sync]").length, 1, "Keine getrennten Foto-/Video-Startknöpfe");
+  bd.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_selected", album_id: "photo-both", video_album_id: "video-native-1" });
+  fotoStand({ ...videoStand, video_supported: false, albums: [{ album_id: "photo-only", display_name: "Camera", visible_images: 1 }] });
+  assert.ok(!bd.querySelector(".notes-video-sync")); bd.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_selected", album_id: "photo-only", video_album_id: null });
   fotoStand({ ...videoStand, state: "syncing", busy: true, active_media: "video" });
   videoGruppe = bd.querySelector(".notes-video-sync");
-  assert.ok(videoGruppe.querySelector("[data-video-action='sync']").disabled &&
+  assert.ok(bd.querySelector("[data-photo-manual-sync]").disabled &&
     !videoGruppe.querySelector("[data-video-enabled]").disabled && !bd.querySelector(".notes-foto-sync").textContent.includes("Fotoabgleich aktiv"));
   videoGruppe.querySelector("[data-video-enabled]").checked = false;
   videoGruppe.querySelector("[data-video-enabled]").dispatchEvent(new bw.Event("change", { bubbles: true }));

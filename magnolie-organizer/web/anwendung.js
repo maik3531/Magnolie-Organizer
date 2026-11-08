@@ -28982,6 +28982,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const label = el("label", "telefon-medien-aktivierung"); label.title = _("Synchronize photos"); label.append(an);
       label.addEventListener("click", event => event.stopPropagation());
       label.addEventListener("keydown", event => event.stopPropagation()); titel.append(label);
+      let fotoAlbumWahl = null, videoAlbumWahl = null;
       if (stand.enabled) {
         const richtung = document.createElement("select");
         const nurHandy = document.createElement("option"); nurHandy.value = "phone_to_desktop";
@@ -29038,6 +29039,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const alben = knopf(_("Refresh albums"), "", () => sende("discover"));
         lesen.disabled = alben.disabled = stand.busy === true; reihe.append(lesen, alben); gruppe.append(reihe);
         const auswahl = document.createElement("select"); auswahl.dataset.photoAlbum = "true";
+        fotoAlbumWahl = auswahl;
         auswahl.setAttribute("aria-label", _("Phone album"));
         for (const album of stand.albums || []) {
           const option = document.createElement("option"); option.value = album.album_id;
@@ -29045,9 +29047,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
         if ([...auswahl.options].some(option => option.value === ansicht.album)) auswahl.value = ansicht.album;
         if (auswahl.options.length) gruppe.append(formZeile(_("Phone album"), auswahl));
-        const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => sende("sync", auswahl.value));
-        jetzt.disabled = stand.busy === true || !auswahl.options.length; gruppe.append(jetzt);
-        if (stand.busy) gruppe.append(knopf(_("Stop"), "", () => sende("stop")));
         if (stand.recovery_supported === true) {
           const pruefen = knopf(_("Review interrupted transfers"), "", () => sende("inspect_recovery"));
           pruefen.dataset.photoRecovery = "inspect";
@@ -29100,6 +29099,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             videoLesen.disabled = videoAlben.disabled = stand.busy === true;
             videoReihe.append(videoLesen, videoAlben); videos.append(videoReihe);
             const videoAuswahl = document.createElement("select"); videoAuswahl.dataset.videoAlbum = "true";
+            videoAlbumWahl = videoAuswahl;
             videoAuswahl.setAttribute("aria-label", _("Phone album"));
             for (const album of stand.video_albums || []) {
               const option = document.createElement("option"); option.value = album.album_id;
@@ -29107,9 +29107,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             }
             if ([...videoAuswahl.options].some(option => option.value === ansicht.videoAlbum)) videoAuswahl.value = ansicht.videoAlbum;
             if (videoAuswahl.options.length) videos.append(formZeile(_("Phone album"), videoAuswahl));
-            const videoJetzt = knopf(_("Synchronize now"), "hauptknopf", () => sende("videos_sync", videoAuswahl.value));
-            videoJetzt.dataset.videoAction = "sync"; videoJetzt.disabled = stand.busy === true || !videoAuswahl.options.length;
-            videos.append(videoJetzt);
           }
           gruppe.append(videos);
         }
@@ -29127,6 +29124,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
+      if (stand.enabled) {
+        const manuell = el("div", "knopfreihe notes-medien-manuell");
+        const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
+          telefonFotoFehler.delete(peer.device_id);
+          Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint,
+            request: { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
+        });
+        jetzt.dataset.photoManualSync = "true";
+        jetzt.disabled = stand.busy === true || !(fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length);
+        manuell.append(jetzt);
+        if (stand.busy) manuell.append(knopf(_("Stop"), "", () => sende("stop")));
+        gruppe.append(manuell);
+      }
       erweitert.append(gruppe); wurzel.append(erweitert);
     }
   }

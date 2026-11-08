@@ -166,7 +166,7 @@ class NativeDesktopFileConnection:
             self._update_generation += 1
             self._update_condition.notify_all()
 
-    def start_album_worker(self, action, album_id, desktop_choice, *, activity_changed=None, media_type='images'):
+    def start_album_worker(self, action, album_id, desktop_choice, *, activity_changed=None, media_type='images',book_fence=None):
         """Explicit native worker start; construction/import/pairing starts nothing."""
         self._take_action(action)
         with self._operation():
@@ -188,7 +188,7 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_source_album_not_current')
             if activity_changed is not None and not callable(activity_changed):
                 raise TransferError('file_desktop_native_activity_callback_required')
-            worker = NativePhotoAlbumWorker(self, album_id, desktop_choice, activity_changed, media_type=media_type)
+            worker = NativePhotoAlbumWorker(self, album_id, desktop_choice, activity_changed, media_type=media_type,book_fence=book_fence)
             self._album_worker = worker
         try:
             worker._thread.start() # Never race a first command against our held operation lock.
@@ -2144,10 +2144,11 @@ class NativePhotoAlbumWorker:
     Activity callbacks receive this exact owner, so an old END cannot clear a
     newer worker's tray state. OS/UI consumers must marshal callbacks themselves.
     """
-    def __init__(self, connection, album_id, desktop_choice, activity_changed, *, media_type='images'):
+    def __init__(self, connection, album_id, desktop_choice, activity_changed, *, media_type='images',book_fence=None):
         self._connection = connection
         self._album_id = album_id; self._desktop_choice = desktop_choice
         self._media_type = media_type
+        self._book_fence=book_fence;self._book_policy=None;self._cleaning=False
         self._activity_changed = activity_changed
         self._stop = threading.Event(); self._ended = threading.Event()
         self._state_gate = threading.Lock()
@@ -2195,6 +2196,7 @@ class NativePhotoAlbumWorker:
             with connection._update_condition:
                 generation = connection._update_generation
             if connection._closed.is_set(): raise TransferError('file_desktop_connection_closed')
+            self._require_book()
             try:
                 value = predicate()
                 if value: return value
@@ -2205,6 +2207,14 @@ class NativePhotoAlbumWorker:
             with connection._update_condition:
                 if generation == connection._update_generation:
                     connection._update_condition.wait(min(remaining, 0.25))
+
+    def _require_book(self):
+        if self._book_fence is not None and not self._cleaning:
+            version,started,deadline=self._book_fence
+            now=time.monotonic()
+            if (now<started or now>=deadline or self._book_policy is None
+                    or self._book_policy.saved_book_version()!=version):
+                raise TransferError('media_retention_lease_changed')
 
     def _command(self, operation, **options):
         connection = self._connection
@@ -2260,6 +2270,7 @@ class NativePhotoAlbumWorker:
         from magnolie_media_backups import NativeMediaBackups,NativeMediaBackupLocations
         from magnolie_media_retention import NativeMediaRetention
         def native_current():
+            self._require_book()
             connection._ready()
             if self._stop.is_set() or connection._album_worker is not self:
                 raise TransferError('file_desktop_album_stop_requested')
@@ -2374,6 +2385,8 @@ class NativePhotoAlbumWorker:
         try:
             from magnolie_media_retention import NativeMediaRetention
             policy=activity.enter_context(NativeMediaRetention(connection._authority.binding.native_directory))
+            self._book_policy=policy
+            self._require_book()
             lease=activity.enter_context(policy.activity(lambda:not connection._closed.is_set()))
             if lease is None:raise TransferError('media_retention_maintenance_busy')
             admitted=True
@@ -2425,6 +2438,7 @@ class NativePhotoAlbumWorker:
                 result = self._prepared(self._command('next_batch'))
         except Exception as error:
             cleanup_error = None
+            self._cleaning=True # Retired book blocks new work, never the owned END/drain.
             try:
                 if admitted:self._cleanup()
             except Exception as failure: cleanup_error = str(failure)
@@ -2490,11 +2504,14 @@ class NativePhotoDesktopSession:
             try:callback()
             except Exception:pass # A failed frontend cannot replace native ownership.
 
-    def start(self, operation, album_id=None, *, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None):
+    def start(self, operation, album_id=None, *, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None,video_album_id=None):
         if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic',
                 'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
                 'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_destination','videos_default_destination',
-                'photos_destination','photos_default_destination'):
+                'photos_destination','photos_default_destination','sync_selected'):
+            raise TransferError('photo_sync_invalid_action')
+        if (video_album_id is not None and (operation!='sync_selected' or type(video_album_id) is not str)
+                or operation=='sync_selected' and (album_id is not None and type(album_id) is not str or album_id is None and video_album_id is None)):
             raise TransferError('photo_sync_invalid_action')
         if ((operation in ('videos_destination','photos_destination')) != (destination_path is not None)
                 or destination_path is not None and (type(destination_path) is not str or not destination_path or len(destination_path)>4096)):
@@ -2526,18 +2543,25 @@ class NativePhotoDesktopSession:
                     raise TransferError('file_desktop_source_album_not_current')
                 if operation=='videos_sync' and not any(album['album_id']==album_id for album in self._video_albums):
                     raise TransferError('file_desktop_source_album_not_current')
+                if operation=='sync_selected':
+                    if album_id is not None and not any(album['album_id']==album_id for album in self._albums):
+                        raise TransferError('file_desktop_source_album_not_current')
+                    if video_album_id is not None and (not self._video_enabled or not any(album['album_id']==video_album_id for album in self._video_albums)):
+                        raise TransferError('file_desktop_source_album_not_current')
                 if operation=='automatic' and (schedule_run is None or self._schedule.active is not schedule_run
                         or self._schedule.mode!='automatic'):
                     raise TransferError('photo_sync_invalid_action')
-                if operation in ('sync','videos_sync'):schedule_run=self._schedule.request_now()
+                if operation in ('sync','videos_sync','sync_selected'):schedule_run=self._schedule.request_now()
                 self._stop.clear(); self._error=None; self._state=operation;self._recovery_result=None
                 if not operation.startswith('mode_'):
-                    self._active_media='video' if operation.startswith('videos_') else 'images'
+                    self._active_media='video' if operation.startswith('videos_') or operation=='sync_selected' and album_id is None else 'images'
                 if operation not in ('automatic','inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together',
                         'captures_separate','captures_together','videos_destination','videos_default_destination','photos_destination','photos_default_destination'):
                     self._automatic_paused=False
                 self._running=True
-                self._thread=threading.Thread(target=self._run,args=(operation,album_id,schedule_run,job_owner,historical_choice,destination_path),
+                arguments=(operation,album_id,schedule_run,job_owner,historical_choice,destination_path)
+                if operation=='sync_selected':arguments+=(video_album_id,)
+                self._thread=threading.Thread(target=self._run,args=arguments,
                     name='magnolie-photo-desktop-action',daemon=True)
                 try:self._thread.start()
                 except BaseException:
@@ -2759,14 +2783,20 @@ class NativePhotoDesktopSession:
             else:self._albums=albums
             self._state='albums' if state['catalog'].coverage!='none' else 'permission_required'
 
-    def _run(self, operation, album_id, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None):
-        syncing=operation in ('sync','videos_sync','automatic')
+    def _run(self, operation, album_id, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None,video_album_id=None):
+        syncing=operation in ('sync','videos_sync','sync_selected','automatic')
         if syncing:self._sync_activity(True)
         try:
+            book_fence=None
             if syncing:
                 from magnolie_media_retention import maintain_native_media_trash
                 maintain_native_media_trash(self.connection._authority.binding.native_directory,
                     lambda:not self._stop.is_set() and not self.connection._closed.is_set())
+            if operation=='sync_selected':
+                from magnolie_media_retention import NativeMediaRetention
+                with NativeMediaRetention(self.connection._authority.binding.native_directory) as policy:
+                    started=time.monotonic()
+                    book_fence=(policy.saved_book_version(),started,started+policy.MAX_ACTIVE_COPY_SECONDS)
             if operation in ('enable','resume_automatic'):
                 if operation=='resume_automatic':
                     before=self.connection._preferences.read();policy=before.policy
@@ -2841,32 +2871,43 @@ class NativePhotoDesktopSession:
                 with self._lock:self._state='albums' if self._albums else 'permission_required'
             elif syncing:
                 media_types=['video'] if operation=='videos_sync' else ['images']
+                if operation=='sync_selected':media_types=(['images'] if album_id is not None else [])+(['video'] if video_album_id is not None else [])
                 if (operation=='automatic' and self._video_enabled and self.connection._video_data_handlers_ready
                         and self.connection._authority.video_available()):media_types.append('video')
                 for media_type in media_types:
                     if self._stop.is_set():break
+                    if book_fence is not None:
+                        with NativeMediaRetention(self.connection._authority.binding.native_directory) as policy:
+                            if policy.saved_book_version()!=book_fence[0]:raise TransferError('media_retention_lease_changed')
                     with self._lock:self._active_media=media_type
                     if media_type=='video':self._prepare_video()
                     catalog=self.connection._source_catalog
                     if operation=='automatic' or media_type=='video' or catalog is None or catalog.media_type!=media_type:
                         self._discover(media_type)
                     current=self._video_albums if media_type=='video' else self._albums
-                    albums=[album['album_id'] for album in current if not album['needs_choice']] if operation=='automatic' else [album_id]
+                    selected_album=video_album_id if operation=='sync_selected' and media_type=='video' else album_id
+                    albums=[album['album_id'] for album in current if not album['needs_choice']] if operation=='automatic' else [selected_album]
                     if any(selected not in {album['album_id'] for album in current} for selected in albums):
                         raise TransferError('file_desktop_source_album_not_current')
                     complete=True
                     for selected in albums:
                         if self._stop.is_set():break
-                        worker=self.connection.start_album_worker(self.connection.issue_receive_action(),selected,True,
-                            media_type=media_type,activity_changed=lambda owner,active:self._notify())
+                        options=dict(media_type=media_type,activity_changed=lambda owner,active:self._notify())
+                        if book_fence is not None:options['book_fence']=book_fence
+                        worker=self.connection.start_album_worker(self.connection.issue_receive_action(),selected,True,**options)
                         with self._lock:self._worker=worker; self._state='syncing'
                         self._notify()
                         while not worker.join(.25):
                             if self._stop.is_set():worker.stop()
                         progress=worker.progress()
-                        with self._lock:self._state=progress['state'];self._error=progress['error']
+                        with self._lock:
+                            self._state=('syncing' if operation=='sync_selected' and media_type!=media_types[-1] and progress['state']=='complete' else progress['state'])
+                            self._error=progress['error']
                         if progress['state']!='complete':complete=False;break
                     if not complete:break
+                if operation=='sync_selected' and self._stop.is_set():
+                    with self._lock:
+                        if self._state in ('stopping','syncing','albums','discover'):self._state='canceled'
         except Exception as error:
             with self._lock:self._state='held';self._error=str(error)
         finally:

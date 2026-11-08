@@ -3004,16 +3004,18 @@ class PhoneService:
 
     def photo_sync_action(self, peer_id, expected_fingerprint, request):
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
-        if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','job_owner','historical_choice'}
+        if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','video_album_id','job_owner','historical_choice'}
                  or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
                     'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
-                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination')
-                or ('album_id' in request) != (request['action'] in ('sync','videos_sync'))
+                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination','sync_selected')
+                or ('album_id' in request) != (request['action'] in ('sync','videos_sync','sync_selected'))
+                or ('video_album_id' in request) != (request['action']=='sync_selected')
                 or ('job_owner' in request) != (request['action'] in ('recover_saved','repair_receipt'))
                 or ('historical_choice' in request) != (request['action'] in ('animations_separate','animations_together','captures_separate','captures_together'))
                 or 'historical_choice' in request and (type(request['historical_choice']) is not str or request['historical_choice']!='keep_existing')
                 or 'job_owner' in request and (type(request['job_owner']) is not str or re.fullmatch('[0-9a-f]{32}',request['job_owner']) is None)
-                or request.get('album_id') is not None and type(request['album_id']) is not str):
+                or request.get('album_id') is not None and type(request['album_id']) is not str
+                or request.get('video_album_id') is not None and type(request['video_album_id']) is not str):
             raise ValueError('photo_sync_invalid_action')
         if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
         with self.lock:
@@ -3046,8 +3048,9 @@ class PhoneService:
                 binding=adopted[0]
         if connection is None:
             connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation)
-        return connection.desktop_session().start(request['action'],request.get('album_id'),job_owner=request.get('job_owner'),
-            historical_choice=request.get('historical_choice'))
+        options=dict(job_owner=request.get('job_owner'),historical_choice=request.get('historical_choice'))
+        if request['action']=='sync_selected':options['video_album_id']=request['video_album_id']
+        return connection.desktop_session().start(request['action'],request.get('album_id'),**options)
 
     def _observe_native_file_control(self, peer, channel, kind, message, *, duplicate=False, acknowledged=True):
         # Positive connection metadata requires actual secure ACK completion.
