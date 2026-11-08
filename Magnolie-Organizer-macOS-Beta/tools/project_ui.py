@@ -259,6 +259,15 @@ def project(snapshot, target):
                         '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n'
                         '      if (calendarMetadata) window.MacBeta.calendarMetadata(DATEN, nutzlast, true);\n'
                         '      if (changed || calendarMetadata) {')
+    # Reuse canonical offline phone metadata; never guess native country prefixes.
+    text = replace_once(text, '  function oeffneSozial(eintrag) {\n    if (!Bruecke.vorhanden) return nurImProgramm();',
+                        '  function oeffneSozial(eintrag) {\n    if (!Bruecke.vorhanden) return nurImProgramm();\n'
+                        '    const nummer = telefonSchluessel(eintrag.wert, telefonHeimatland()).split("x", 1)[0];')
+    text = replace_once(text, '      aktionArt: eintrag.aktionArt || "", aktionZiel: eintrag.aktionZiel || "",\n      land: telefonHeimatland() });',
+                        '      aktionArt: eintrag.aktionArt || "", aktionZiel: eintrag.aktionZiel || "",\n      land: telefonHeimatland(), nummer: /^\\+[1-9][0-9]{5,14}$/.test(nummer) ? nummer : "" });')
+    # Retain imported GNOME preference as data, but name its macOS adapter.
+    text = replace_once(text, '["gnome-maps", _("GNOME Maps only")]',
+                        '["gnome-maps", _("Apple Maps")]')
     app.write_text(text)
     adapter = snapshot[str((BETA / "Projection/macos-beta.js").relative_to(REPO))].decode()
     adapter = replace_once(adapter, "/*GENERATED_COMMANDS*/[]", json.dumps(commands(snapshot)))

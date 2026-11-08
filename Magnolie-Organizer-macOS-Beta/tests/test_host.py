@@ -255,6 +255,31 @@ class ProjectionTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
 
+    def test_communication_published_ui_payloads(self):
+        runtime = self.javascript()
+        args = [runtime]
+        if Path(runtime).name == "deno":
+            args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+        result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/communication-payloads.cjs")],
+                                cwd=BETA, capture_output=True, text=True, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        print(result.stdout.strip())
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-communication-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            app = (target / "web/anwendung.js").read_text()
+            self.assertIn('["gnome-maps", _("Apple Maps")]', app)
+            self.assertNotIn('["gnome-maps", _("GNOME Maps only")]', app)
+            phone = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/communication-payloads.cjs"),
+                                           str(target / "web"), "--phone-projection"], cwd=BETA,
+                                   capture_output=True, text=True, timeout=120)
+            self.assertEqual(phone.returncode, 0, phone.stdout + phone.stderr)
+            print(phone.stdout.strip())
+            adapter = (target / "web/macos-beta.js").read_text()
+            self.assertIn('"adressWeg"', adapter)
+            for command in ["mail", "karte", "sozial"]:
+                self.assertIn(command + ': "adressWeg"', adapter)
+
     def test_shared_legacy_css_fallbacks(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-legacy-css-") as temp:

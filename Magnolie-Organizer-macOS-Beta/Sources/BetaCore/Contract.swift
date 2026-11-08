@@ -9,6 +9,7 @@ public struct BetaError: LocalizedError {
 public enum Command: String, CaseIterable {
     case baum_briefkasten_status, baum_briefkasten_speichern, baum_briefkasten_pruefen, baum_dav_pruefen
     case drucken
+    case mail, karte, sozial
     case notiz_dateien_importieren
     case handbuch_oeffnen
     case `import`
@@ -69,6 +70,14 @@ public struct Request {
         case .macos_systemzugriff:
             schema.merge(["art": "string", "requestId": "string"]) { _, b in b }
         case .regional_einstellungen: schema["regional"] = "object"
+        case .mail:
+            schema.merge(["email": "string", "name": "string"]) { _, b in b }
+        case .karte:
+            schema.merge(["kontakt": "object", "land": "string", "dienst": "string", "route": "bool", "absender": "string"]) { _, b in b }
+            optional = ["dienst", "route", "absender"]
+        case .sozial:
+            schema.merge(["dienst": "string", "wert": "string", "aktionArt": "string", "aktionZiel": "string", "land": "string", "nummer": "string"]) { _, b in b }
+            optional = ["aktionArt", "aktionZiel", "land", "nummer"]
         case .drucken:
             schema.merge(["html": "string", "requestId": "string"]) { _, b in b }
             optional = ["requestId"]

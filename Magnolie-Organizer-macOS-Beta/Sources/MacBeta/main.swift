@@ -9,6 +9,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                   WKNavigationDelegate, UNUserNotificationCenterDelegate {
     private let name = "Magnolie Organizer macOS Beta"
     private let printing = PrintHost()
+    private lazy var communication = CommunicationLaunchBroker(system: CommunicationSystemLauncher())
     private var manual: ManualHost?
     private var noteFileImport: NoteFileImportHost?
     private var window: NSWindow!
@@ -542,6 +543,19 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                     guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
                     self.send("importErgebnis", response)
                 }
+            }
+        case .mail, .karte, .sozial:
+            guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
+            let target = try CommunicationLaunchPolicy.target(command: request.command.rawValue, fields: request.fields)
+            let generation = documentGeneration
+            communication.begin(target, isCurrent: { [weak self] in
+                guard let self else { return false }
+                return self.plain != nil && !self.restoring && self.documentGeneration == generation
+            }) { [weak self] result in
+                guard let self else { return }
+                var payload = result
+                if let error = payload["fehler"] as? String { payload["fehler"] = self.tr(error) }
+                self.send("adressWeg", payload)
             }
         case .drucken:
             guard plain != nil, !restoring else { throw BetaError("Printing requires an unlocked document.") }

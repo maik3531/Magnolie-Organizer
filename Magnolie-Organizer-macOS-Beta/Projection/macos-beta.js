@@ -4,7 +4,7 @@
 (() => {
   const allowed = new Set(/*GENERATED_COMMANDS*/[]);
   const identity = /*GENERATED_IDENTITY*/{};
-  const methods = new Set(["handbuchGeoeffnet", "init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
+  const methods = new Set(["adressWeg", "handbuchGeoeffnet", "init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
     "printErgebnis", "exportErgebnis", "importErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
     "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus", "baumBriefkastenStatus",
     "baumBriefkastenGespeichert", "baumBriefkastenPruefung", "baumDavPruefung"]);
@@ -34,6 +34,7 @@
       speichern: "gespeichert", entsperren: "entsperrtFehler",
       kennwort_setzen: "kennwortStand", kennwort_entfernen: "kennwortStand",
       mutations_snapshot: "mutationsSnapshot", sicherung: "sicherungFertig",
+      mail: "adressWeg", karte: "adressWeg", sozial: "adressWeg",
       drucken: "printErgebnis", feiertage: "feiertageErgebnis", export: "exportErgebnis", import: "importErgebnis", import_lokal: "importErgebnis",
       erinnerung_einrichten: "erinnerungStand", erinnerung_zeigen: "erinnerungStand",
       notiz_anhang_datei: "notizAnhangDateiErgebnis", sicherung_waehlen: "sicherungAusgewaehlt",

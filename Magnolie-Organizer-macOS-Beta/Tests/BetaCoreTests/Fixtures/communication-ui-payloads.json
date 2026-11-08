@@ -1,0 +1,308 @@
+[
+  {
+    "cmd": "mail",
+    "email": "ada@example.org",
+    "name": "Ada Example"
+  },
+  {
+    "cmd": "mail",
+    "email": "ada@bücher.example",
+    "name": "Ada Example"
+  },
+  {
+    "cmd": "karte",
+    "kontakt": {
+      "vorname": "",
+      "nachname": "Example, Ada",
+      "firma": "",
+      "strasse": "Musterweg 12",
+      "plz": "10115",
+      "ort": "Berlin",
+      "region": "",
+      "land": "",
+      "typen": [
+        "HOME"
+      ],
+      "anschriften": [
+        {
+          "strasse": "Musterweg 12",
+          "plz": "10115",
+          "ort": "Berlin",
+          "region": "",
+          "land": "",
+          "typen": [
+            "HOME"
+          ]
+        }
+      ]
+    },
+    "dienst": "auto",
+    "land": "Deutschland",
+    "route": false,
+    "absender": ""
+  },
+  {
+    "cmd": "karte",
+    "kontakt": {
+      "vorname": "",
+      "nachname": "Example, Ada",
+      "firma": "",
+      "strasse": "Musterweg 12",
+      "plz": "10115",
+      "ort": "Berlin",
+      "region": "",
+      "land": "",
+      "typen": [
+        "HOME"
+      ],
+      "anschriften": [
+        {
+          "strasse": "Musterweg 12",
+          "plz": "10115",
+          "ort": "Berlin",
+          "region": "",
+          "land": "",
+          "typen": [
+            "HOME"
+          ]
+        }
+      ]
+    },
+    "dienst": "auto",
+    "land": "Deutschland",
+    "route": true,
+    "absender": "Alex Example\nStartweg 5\n10117 Berlin"
+  },
+  {
+    "cmd": "karte",
+    "kontakt": {
+      "vorname": "",
+      "nachname": "Example, Ada",
+      "firma": "",
+      "strasse": "Musterweg 12",
+      "plz": "10115",
+      "ort": "Berlin",
+      "region": "",
+      "land": "",
+      "typen": [
+        "HOME"
+      ],
+      "anschriften": [
+        {
+          "strasse": "Musterweg 12",
+          "plz": "10115",
+          "ort": "Berlin",
+          "region": "",
+          "land": "",
+          "typen": [
+            "HOME"
+          ]
+        }
+      ]
+    },
+    "dienst": "gnome-maps",
+    "land": "Deutschland",
+    "route": false,
+    "absender": "Alex Example\nStartweg 5\n10117 Berlin"
+  },
+  {
+    "cmd": "karte",
+    "kontakt": {
+      "vorname": "",
+      "nachname": "Example, Ada",
+      "firma": "",
+      "strasse": "Musterweg 12",
+      "plz": "10115",
+      "ort": "Berlin",
+      "region": "",
+      "land": "",
+      "typen": [
+        "HOME"
+      ],
+      "anschriften": [
+        {
+          "strasse": "Musterweg 12",
+          "plz": "10115",
+          "ort": "Berlin",
+          "region": "",
+          "land": "",
+          "typen": [
+            "HOME"
+          ]
+        }
+      ]
+    },
+    "dienst": "gnome-maps",
+    "land": "Deutschland",
+    "route": true,
+    "absender": "Alex Example\nStartweg 5\n10117 Berlin"
+  },
+  {
+    "cmd": "karte",
+    "kontakt": {
+      "vorname": "",
+      "nachname": "Example, Ada",
+      "firma": "",
+      "strasse": "Musterweg 12",
+      "plz": "10115",
+      "ort": "Berlin",
+      "region": "",
+      "land": "",
+      "typen": [
+        "HOME"
+      ],
+      "anschriften": [
+        {
+          "strasse": "Musterweg 12",
+          "plz": "10115",
+          "ort": "Berlin",
+          "region": "",
+          "land": "",
+          "typen": [
+            "HOME"
+          ]
+        }
+      ]
+    },
+    "dienst": "openstreetmap",
+    "land": "Deutschland",
+    "route": false,
+    "absender": "Alex Example\nStartweg 5\n10117 Berlin"
+  },
+  {
+    "cmd": "karte",
+    "kontakt": {
+      "vorname": "",
+      "nachname": "Example, Ada",
+      "firma": "",
+      "strasse": "Musterweg 12",
+      "plz": "10115",
+      "ort": "Berlin",
+      "region": "",
+      "land": "",
+      "typen": [
+        "HOME"
+      ],
+      "anschriften": [
+        {
+          "strasse": "Musterweg 12",
+          "plz": "10115",
+          "ort": "Berlin",
+          "region": "",
+          "land": "",
+          "typen": [
+            "HOME"
+          ]
+        }
+      ]
+    },
+    "dienst": "openstreetmap",
+    "land": "Deutschland",
+    "route": true,
+    "absender": "Alex Example\nStartweg 5\n10117 Berlin"
+  },
+  {
+    "cmd": "karte",
+    "kontakt": {
+      "vorname": "",
+      "nachname": "Example, Ada",
+      "firma": "",
+      "strasse": "Musterweg 12",
+      "plz": "10115",
+      "ort": "Berlin",
+      "region": "",
+      "land": "",
+      "typen": [
+        "HOME"
+      ],
+      "anschriften": [
+        {
+          "strasse": "Musterweg 12",
+          "plz": "10115",
+          "ort": "Berlin",
+          "region": "",
+          "land": "",
+          "typen": [
+            "HOME"
+          ]
+        }
+      ]
+    },
+    "dienst": "google",
+    "land": "Deutschland",
+    "route": false,
+    "absender": "Alex Example\nStartweg 5\n10117 Berlin"
+  },
+  {
+    "cmd": "karte",
+    "kontakt": {
+      "vorname": "",
+      "nachname": "Example, Ada",
+      "firma": "",
+      "strasse": "Musterweg 12",
+      "plz": "10115",
+      "ort": "Berlin",
+      "region": "",
+      "land": "",
+      "typen": [
+        "HOME"
+      ],
+      "anschriften": [
+        {
+          "strasse": "Musterweg 12",
+          "plz": "10115",
+          "ort": "Berlin",
+          "region": "",
+          "land": "",
+          "typen": [
+            "HOME"
+          ]
+        }
+      ]
+    },
+    "dienst": "google",
+    "land": "Deutschland",
+    "route": true,
+    "absender": "Alex Example\nStartweg 5\n10117 Berlin"
+  },
+  {
+    "cmd": "sozial",
+    "dienst": "custom",
+    "wert": "https://example.org/calendar/item",
+    "aktionArt": "",
+    "aktionZiel": "",
+    "land": "DE"
+  },
+  {
+    "cmd": "sozial",
+    "dienst": "custom",
+    "wert": "https://bücher.example:8443/calendar",
+    "aktionArt": "",
+    "aktionZiel": "",
+    "land": "DE"
+  },
+  {
+    "cmd": "sozial",
+    "dienst": "custom",
+    "wert": "Ada & Bob",
+    "aktionArt": "website",
+    "aktionZiel": "https://example.org/search?q={wert}",
+    "land": "DE"
+  },
+  {
+    "cmd": "sozial",
+    "dienst": "telegram",
+    "wert": "@example",
+    "aktionArt": "",
+    "aktionZiel": "",
+    "land": "DE"
+  },
+  {
+    "cmd": "sozial",
+    "dienst": "custom",
+    "wert": "Ada",
+    "aktionArt": "program",
+    "aktionZiel": "arbitrary-command {wert}",
+    "land": "DE"
+  }
+]

@@ -90,7 +90,7 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `journal_manuell` | — | yes | UNSUPPORTED: negative Beta response |
 | `journal_vorschau` | yes | yes | UNSUPPORTED: negative Beta response |
 | `journal_wiederherstellen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `karte` | yes | yes | UNSUPPORTED: negative Beta response |
+| `karte` | yes | yes | partial: Apple Maps adaptation or selected OSM/Google HTTPS location/route; native handler unverified |
 | `kde_dateisystem_oeffnen` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_dateisystem_stand` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_empfangsordner_waehlen` | yes | — | UNSUPPORTED: negative Beta response |
@@ -121,13 +121,14 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `kennwort_setzen` | yes | yes | partial: enable for current profile only; no change/rekey |
 | `lo_benutzer` | yes | yes | UNSUPPORTED: negative Beta response |
 | `macos_systemzugriff` | — | — | partial: explicit OS access prompt and refreshed source status; no synchronization |
-| `mail` | yes | yes | UNSUPPORTED: negative Beta response |
+| `mail` | yes | yes | partial: bounded single-recipient mailto to resolved system app; open acceptance only; native handler unverified |
 | `mcp_antwort` | yes | yes | UNSUPPORTED: negative Beta response |
 | `medien_backup` | yes | — | UNSUPPORTED: negative Beta response |
 | `medien_papierkorb` | yes | — | UNSUPPORTED: negative Beta response |
 | `medikament_suchen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `mutations_snapshot` | yes | yes | partial: durable exact file checkpoint; no desktop journal index/retention |
 | `notiz_anhang_datei` | yes | yes | partial: selected data-URL attachment Save only; no Open |
+| `notiz_dateien_importieren` | — | — | source: additive selected TXT/literal Markdown/PDF/image notes; explicit preview + recovery + save ACK; native picker unverified |
 | `notiz_versand` | — | yes | UNSUPPORTED: negative Beta response |
 | `ordner_waehlen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `password_status` | — | yes | UNSUPPORTED: negative Beta response |
@@ -151,7 +152,7 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `sicherung_pruefen` | — | yes | UNSUPPORTED: negative Beta response |
 | `sicherung_waehlen` | yes | yes | source: native JSON picker pins selected path/bytes |
 | `sicherung_wiederherstellen` | yes | yes | partial: full JSON replacement + checkpoint + UI preflight; no additive/section restore |
-| `sozial` | yes | yes | UNSUPPORTED: negative Beta response |
+| `sozial` | yes | yes | partial: bounded HTTPS web services/templates; explicit no custom process/tel/SMS; native handler unverified |
 | `speichern` | yes | yes | source: durable document commit; destructive save requires checkpoint |
 | `sync` | yes | yes | UNSUPPORTED: negative Beta response |
 | `sync_bestaetigen` | yes | — | UNSUPPORTED: negative Beta response |
