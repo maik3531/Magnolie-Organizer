@@ -20,6 +20,19 @@ from test_save_restore_boundary import native as gui_native,Probe,fixture_data
 
 def book(days):return dict(einstellungen=dict(papierkorb=dict(an=True,tage=days)))
 
+
+@pytest.fixture
+def first_adoption_trash(trash):
+    # receiving deliberately supplies an already adopted saved book for actual
+    # version-copy workers. Only these first-adoption tests need the state BEFORE
+    # that adoption. Remove its synthetic derived row, not any production guard,
+    # saved book, trash history, mappings or connection permissions.
+    with NativeMediaRetention(str(root(trash))) as policy:
+        with policy._transaction():
+            policy._db.execute('DELETE FROM meta WHERE key=?',(policy.KEY,))
+        assert policy._read() is None
+    return trash
+
 def test_media_copy_activity_blocks_cleanup_without_blocking_saved_book_writer(receiving):
     directory=receiving[3]._authority.binding.native_directory
     with NativeMediaRetention(directory) as copy,NativeMediaRetention(directory) as cleanup,NativeMediaRetention(directory) as writer:
@@ -123,12 +136,15 @@ def test_foreground_restore_witness_rejects_changed_actual_book_bytes_without_po
             with pytest.raises(TransferError,match='lease_changed'):permit.require_current()
 
 
-def test_policy_is_absent_until_commit_then_persists_and_is_encrypted(trash):
+def test_policy_is_absent_until_commit_then_persists_and_is_encrypted(first_adoption_trash):
+    trash=first_adoption_trash
     directory=root(trash)
     with NativeMediaRetention(str(directory)) as policy:
         with policy.permit() as permit:assert permit is None
         with saved_book_retention(str(directory),book(7)):
             with policy.permit() as permit:assert permit is None
+            from magnolie_telefon import canonical
+            (directory.parent/'daten.json').write_bytes(canonical(book(7)))
         with policy.permit() as permit:assert permit.require_current()==7
         blob=policy._db.execute('SELECT value FROM meta WHERE key=?',(policy.KEY,)).fetchone()[0]
         assert b'book_sha256' not in blob and b'"days"' not in blob
@@ -319,7 +335,8 @@ def test_maintenance_preserves_existing_operation_and_byte_bounds(tmp_path,monke
 
 
 @pytest.mark.parametrize('days',[0,7])
-def test_initial_automatic_maintenance_adopts_actual_saved_days_without_another_save(trash,days):
+def test_initial_automatic_maintenance_adopts_actual_saved_days_without_another_save(first_adoption_trash,days):
+    trash=first_adoption_trash
     from magnolie_telefon import canonical
     owner=trash[4];owner._wall_clock_ms=lambda:1_600_000_000_000
     snapshot,entry=prepare(trash);original,payload=paths(trash,entry)
@@ -329,7 +346,8 @@ def test_initial_automatic_maintenance_adopts_actual_saved_days_without_another_
     assert payload.exists()==(days==0) and not original.exists()
 
 
-def test_adoption_never_revives_a_failed_save_pause_and_rejects_raced_book(trash):
+def test_adoption_never_revives_a_failed_save_pause_and_rejects_raced_book(first_adoption_trash):
+    trash=first_adoption_trash
     import json
     directory=root(trash);path=directory.parent/'daten.json'
     path.write_text(json.dumps(book(7)))
