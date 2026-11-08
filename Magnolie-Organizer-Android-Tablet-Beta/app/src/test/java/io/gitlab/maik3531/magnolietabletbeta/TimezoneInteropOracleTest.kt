@@ -30,7 +30,7 @@ class TimezoneInteropOracleTest {
         }
         // The independently installed host JDK may carry older normative IANA data.
         // Native WebView acceptance still fails on every such disagreement.
-        println("Independent host JDK TZDB="+java.time.zone.ZoneRulesProvider.getVersions("Africa/Casablanca").lastKey()+
+        println("Independent host JDK runtime="+System.getProperty("java.version")+
             "; normative IANA="+fixture.getString("ianaVersion")+"; differences="+mismatches.joinToString("; "))
         assertEquals(9,identifiers.size); assertEquals(setOf(2026,2400),years)
     }
