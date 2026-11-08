@@ -34530,7 +34530,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const papierkorbBereinigt = raeumePapierkorbAuf();
       const nachAufraeumen = performance.now();
       if (nutzlast.neu && !DATEN.notizen.length) {
-        DATEN.notizen.push(willkommensNotiz());
+        DATEN.notizen.push(normalisiere({ notizen: [willkommensNotiz()] }).notizen[0]);
       }
       initialisiert = true;
       setTimeout(starteSetupFerienAbruf, 0);

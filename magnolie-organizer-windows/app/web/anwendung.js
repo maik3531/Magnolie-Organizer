@@ -33771,7 +33771,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       raeumeTombstonesAuf();
       const papierkorbBereinigt = raeumePapierkorbAuf();
       if (nutzlast.neu && !DATEN.notizen.length) {
-        DATEN.notizen.push(willkommensNotiz());
+        DATEN.notizen.push(normalisiere({ notizen: [willkommensNotiz()] }).notizen[0]);
       }
       initialisiert = true;
       setTimeout(starteSetupFerienAbruf, 0);
