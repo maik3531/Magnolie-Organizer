@@ -34,11 +34,36 @@ Diese Quellprüfung bestätigt keine bestimmte installierte Store-Binärversion.
 3. Am Ziel wird die vollständig empfangene Datei bewusst in Magnolie ausgewählt.
    Bild/PDF bleiben Originalanhänge; Text benötigt einen additiven Notizenimport.
 
-Die genaue Apple-Exportfunktion je Betriebssystemversion ist noch zu prüfen.
-Die aktuelle Apple-Dokumentation war beim Abruf in der Cloud durch die
-Netzwerkfreigabe blockiert; deshalb enthält dieses Dokument keine zugesicherte
-Apple-Menüfolge. Dieser Ansatz verlangt die Geräte-/App-Freigabe des jeweiligen
-Endnutzers, keinen Apple-Kontozugriff durch Magnolie oder den Projektinhaber.
+Dieser Ansatz verlangt die Geräte-/App-Freigabe des jeweiligen Endnutzers,
+keinen Apple-Kontozugriff durch Magnolie oder den Projektinhaber.
+
+## Durch Apple-Dokumentation bestätigte Exportmöglichkeiten
+
+Nach erneuter Bereitstellung der Cloud waren die offiziellen Anleitungen am
+2026-11-08 erreichbar. Die versionsgebundenen Seiten wurden getrennt gelesen:
+
+- [iPhone mit iOS 26: Notizen exportieren oder drucken](https://support.apple.com/guide/iphone/iphdf551cfa2/26/ios/26)
+  beschreibt PDF- und Markdown-Export mit anschließender Auswahl des Speicher-
+  oder Sendeziels. Eine neue Magnolie-iOS-App ist dafür nicht erforderlich.
+- [iPhone mit iOS 18](https://support.apple.com/guide/iphone/iphdf551cfa2/18.0/ios/18.0)
+  beschreibt den PDF-Export über Teilen/Markieren und Speichern. Markdown wird
+  in dieser versionsgebundenen Anleitung nicht angeboten.
+- [Apple Notes auf dem Mac](https://support.apple.com/guide/notes/import-export-and-print-notes-not201900c07/mac)
+  beschreibt ebenfalls PDF-/Markdown-Export. Das ist eine zusätzliche Option
+  für Nutzer mit Mac, keine Voraussetzung für den iPhone-Dateiweg.
+
+Eine konkrete Begrenzung nennen beide geprüften iPhone-Anleitungen: Wird eine
+ganze Notiz als PDF exportiert, enthält sie von einem eingebetteten mehrseitigen
+PDF oder Scan nur dessen erste Seite. Deshalb die vollständigen Originalanhänge
+zusätzlich als eigene Dateien sichern und übertragen; der spätere Import kann
+bereits beim Apple-Export weggelassene Seiten nicht wiederherstellen.
+
+Markdown ist zunächst ein Textweg. Magnolies ausgewählter Mac-Dateiimport
+übernimmt Markdown als editierbaren Literaltext mit entsprechendem Hinweis;
+referenzierte Bilder oder editierbare Apple-Zeichenstriche werden dadurch nicht
+automatisch übernommen. Zeichnungen/Bilder und Original-PDFs separat übertragen.
+Die Anleitung belegt die angebotenen Apple-Funktionen, keinen bereits bestandenen
+Gerätetest und keine unveränderte Menüfolge auf allen älteren iOS-Versionen.
 
 ## Was getrennt geprüft werden muss
 
