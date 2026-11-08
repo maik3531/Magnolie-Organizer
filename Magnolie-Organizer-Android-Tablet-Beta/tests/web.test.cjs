@@ -211,6 +211,15 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     x.items.some(item=>item.title==='Synthetic custom appointment' && item.time==='12:35')),
     'actual instrumentation custom designer and time editor scenario persists its new item');
   await T.wechsel('gesundheit'); await wait();
+  // Prime the old index first: omitting canonical mutation notification must
+  // not turn the native 17-series stress fixture into a zero-worker no-op.
+  T.daten().einstellungen.regional.timeZone='UTC'; // Same explicit zone as native launch().
+  T.termineAm('2030-05-10',true);
+  w.NativeScenario.navigationFixture(); await wait();
+  const recurrence=w.NativeScenario.recurrenceProof();
+  ok(recurrence.active && recurrence.series===17 && recurrence.occurrences===17 &&
+    recurrence.uniqueOccurrences===17 && recurrence.datedOccurrences===17,
+    'actual native navigation fixture invalidates a primed index and projects all 17 old series');
   const diagnosticScript=fs.readFileSync(path.join(root,'app/src/androidTest/assets/startup-diagnostics.js'),'utf8');
   const priorStatus=w.document.getElementById('tablet-status').textContent;
   w.document.getElementById('tablet-status').textContent='Import failed. [load-validation]';

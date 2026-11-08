@@ -341,9 +341,9 @@ class NativeTabletInstrumentation : Instrumentation() {
         val fixture=File(targetContext.getExternalFilesDir(null),"input-ab-fixture.json")
         if(options.getString("fixture")=="restore") {
             check(fixture.isFile) {"A/B fixture was not captured by basics"}
-            js("const d=OrganizerTest.daten(),seed=JSON.parse(${JSONObject.quote(fixture.readText())});for(const k of Object.keys(d))delete d[k];Object.assign(d,seed);OrganizerTest.speichereJetzt();return true")
+            scenario("NativeScenario.navigationFixture(JSON.parse(${JSONObject.quote(fixture.readText())}))")
         } else {
-            js("const d=OrganizerTest.daten();d.termine=d.termine.filter(x=>!String(x.id).startsWith('old-series-'));const base=d.termine[0];if(!base)throw Error('Missing seeded calendar'); for(let i=0;i<17;i++) d.termine.push({...base,id:'old-series-'+i,titel:'Old series '+i,datum:'2000-01-01',zeit:'10:00',endDatum:'2000-01-01',endZeit:'11:00',icsRoundtrip:['DTSTART:20000101T100000Z','DTEND:20000101T110000Z','RRULE:FREQ=DAILY;COUNT=20000'],wiederholung:{art:'daily'}}); OrganizerTest.speichereJetzt(); return true")
+            scenario("NativeScenario.navigationFixture()")
             if(options.getString("fixture")=="capture") fixture.writeText(value("OrganizerTest.daten()"))
         }
         val fixtureText=value("OrganizerTest.daten()")
@@ -351,7 +351,15 @@ class NativeTabletInstrumentation : Instrumentation() {
         File(out,"fixture.json").writeText(fixtureText)
         raw("OrganizerTest.wechsel('kalender')")
         waitFor("fixture begins on Calendar") {value("OrganizerTest.zustand().sektion")==JSONObject.quote("kalender")}
+        try {
+            waitFor("17 real old-series occurrences and indexed worker results") {value("NativeScenario.recurrenceProof().active")=="true"}
+        } catch (failure: IllegalStateException) {
+            error("Recurrence fixture was not active: "+value("NativeScenario.recurrenceProof()"))
+        }
+        val recurrence=JSONObject(value("NativeScenario.recurrenceProof()"))
+        check(recurrence.getBoolean("workerAvailable") && recurrence.getBoolean("workerActive") && recurrence.getInt("workerSeriesReady")==17) {"Real recurrence worker missing: $recurrence"}
         saved()
+        pass("17 old recurrence series indexed with real dated occurrences",recurrence)
     }
     private fun phase(name:String) {
         val line="PHASE $name"

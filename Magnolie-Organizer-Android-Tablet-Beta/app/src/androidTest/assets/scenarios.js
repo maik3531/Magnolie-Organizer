@@ -59,5 +59,42 @@ window.NativeScenario = (() => {
     const module=T.daten().customOrganizer.modules.find(x=>x.type==='appointments');
     if(!module.items.length || module.items[0].time!==time) throw Error('Custom editor did not preserve time'); return module;
   }
-  return {task,calendar,contact,note,custom,set,click};
+  function navigationFixture(seed=null) {
+    const data=T.daten();
+    if(seed) {
+      for(const key of Object.keys(data)) delete data[key]; Object.assign(data,seed);
+    } else {
+      data.termine=data.termine.filter(x=>!String(x.id).startsWith('old-series-'));
+      const base=data.termine[0]; if(!base) throw Error('Missing seeded calendar');
+      for(let i=0;i<17;i++) data.termine.push({...base,id:'old-series-'+i,titel:'Old series '+i,
+        datum:'2000-01-01',zeit:'10:00',endDatum:'2000-01-01',endZeit:'11:00',
+        icsRoundtrip:['DTSTART:20000101T100000Z','DTEND:20000101T110000Z','RRULE:FREQ=DAILY;COUNT=20000'],
+        wiederholung:{art:'daily'}});
+    }
+    // This is a real data mutation: notify the existing canonical index/save
+    // path rather than merely serializing data behind an already cached index.
+    T.planeSpeichern(); T.speichereJetzt();
+    return {series:data.termine.filter(x=>String(x.id).startsWith('old-series-')).length};
+  }
+  function recurrenceProof() {
+    const series=T.daten().termine.filter(x=>String(x.id).startsWith('old-series-'));
+    const metadata=series.filter(x=>x.datum==='2000-01-01' && x.wiederholung?.art==='daily' &&
+      x.icsRoundtrip.includes('RRULE:FREQ=DAILY;COUNT=20000') &&
+      x.icsRoundtrip.includes('DTSTART:20000101T100000Z') && x.icsRoundtrip.includes('DTEND:20000101T110000Z')).length;
+    const rows=T.termineAm('2030-05-10',true).filter(x=>String(x.id).startsWith('old-series-'));
+    const projected=rows.filter(x=>x.datum==='2030-05-10' && x.zeit==='10:00' &&
+      x.icsOccurrence && Number.isFinite(x.icsStartUtc) && Number.isFinite(x.icsEndUtc) && x.icsEndUtc>x.icsStartUtc);
+    const state=T.icsRuntime.state, workerAvailable=typeof Worker==='function';
+    const readySeries=new Set();
+    for(const [key,job] of state?.jobs || []) {
+      const query=JSON.parse(key);
+      if(query[0]==='expand' && String(query[1]?.id).startsWith('old-series-') && job.status==='ready') readySeries.add(query[1].id);
+    }
+    return {series:series.length,validMetadata:metadata,occurrences:rows.length,
+      uniqueOccurrences:new Set(rows.map(x=>x.id)).size,datedOccurrences:projected.length,
+      workerAvailable,workerActive:!!state?.worker,workerSeriesReady:readySeries.size,
+      active:series.length===17 && metadata===17 && rows.length===17 && projected.length===17 &&
+        new Set(rows.map(x=>x.id)).size===17 && (!workerAvailable || !!state?.worker && readySeries.size===17)};
+  }
+  return {task,calendar,contact,note,custom,navigationFixture,recurrenceProof,set,click};
 })();
