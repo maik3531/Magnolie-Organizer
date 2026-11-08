@@ -2,6 +2,12 @@ name: Organizer 2.0.30 port candidates
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: Candidate to build
+        type: choice
+        default: all
+        options: [all, macos, tablet]
   push:
     branches: [codex/ports-2.0.30]
     paths:
@@ -21,7 +27,8 @@ env:
 
 jobs:
   macos:
-    runs-on: macos-14
+    if: github.event_name != 'workflow_dispatch' || inputs.target != 'tablet'
+    runs-on: macos-15
     timeout-minutes: 25
     defaults:
       run:
@@ -97,6 +104,7 @@ jobs:
           retention-days: 14
 
   tablet:
+    if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
