@@ -44,7 +44,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(MagnoliePhotoSync)' != 'true'">
-    <Compile Remove="DeviceFile*.cs;PhotoDestinationPaths.cs;PhotoSyncPlan.cs;PhotoSyncSchedule.cs" />
+    <Compile Remove="DeviceFile*.cs;MediaOfferEnvelope.cs;PhotoDestinationPaths.cs;PhotoSyncPlan.cs;PhotoSyncSchedule.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(MagnoliePhoneCamera)' != 'true'">
     <Compile Remove="PhoneCamera*.cs;PhoneWebcam*.cs" />
