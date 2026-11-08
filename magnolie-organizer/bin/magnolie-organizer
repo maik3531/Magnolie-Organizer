@@ -11740,6 +11740,44 @@ def magnolie_logo_pfad(vector=False):
                   if os.path.isfile(pfad)), "")
 
 
+def tray_entwicklermodus_gespeichert(daten, gesperrt):
+    if gesperrt is not False or not isinstance(daten, dict):return False
+    einstellungen = daten.get('einstellungen')
+    allgemein = einstellungen.get('allgemein') if isinstance(einstellungen, dict) else None
+    return isinstance(allgemein, dict) and allgemein.get('entwicklermodus') is True
+
+
+class TrayVisualTest:
+    """Time-bounded visual override only; no transport/storage/permission APIs."""
+    def __init__(self, clock=time.monotonic):
+        self.clock = clock
+        self.clear()
+
+    def clear(self):
+        self.owner = None
+        self.deadline = 0
+        self.state = None
+
+    def start(self, request, saved_developer, owner):
+        self.clear()
+        if saved_developer is not True:
+            raise ValueError('native_developer_mode_required')
+        if (not isinstance(request, dict) or set(request) != {'cmd', 'connection', 'mode', 'sync'} or
+                request['connection'] not in ('none', 'notes', 'kde', 'both') or
+                request['mode'] not in ('flower', 'camera', 'phone') or type(request['sync']) is not bool):
+            raise ValueError('invalid_tray_visual_test')
+        self.state = (request['sync'], request['mode'] == 'camera',
+                      request['connection'] in ('notes', 'both'), request['connection'] in ('kde', 'both'),
+                      request['mode'] == 'phone')
+        self.owner = owner
+        self.deadline = self.clock() + 60
+
+    def current(self, saved_developer, owner):
+        if saved_developer is not True or owner is not self.owner or self.clock() >= self.deadline:
+            self.clear()
+        return self.state
+
+
 def tray_verbindungsstand(telefon, kde):
     """Native current connections only, never stored pairing or discovery."""
     peers = telefon.get('peers') if isinstance(telefon, dict) else None
@@ -20931,6 +20969,9 @@ class Fenster(_FENSTER_BASIS):
                 getattr(getattr(self, "_speicher_auftraege", None), "unfinished_tasks", 0)):
             return True
         self._wirklich_beenden = True
+        if getattr(self, '_tray_test_timer', 0):
+            GLib.source_remove(self._tray_test_timer)
+            self._tray_test_timer = 0
         Fenster._hintergrund_gui_sichtbarkeit(self, False)
         if getattr(self, "_chromium", None):
             self._chromium.close()
@@ -21237,6 +21278,9 @@ class Fenster(_FENSTER_BASIS):
         text = ("99+" if anzahl > 99 else str(anzahl)) if (
             self._tray_einstellungen.get("zaehler") and anzahl) else ""
         tooltip = FENSTER_TITEL
+        if getattr(self, '_tray_test_stand', lambda:None)() is not None:
+            text = 'TEST' + (' · ' + text if text else '')
+            tooltip = 'TEST · ' + tooltip
         synchronisieren, kamera = getattr(self, "_tray_medien", (False, False))
         if synchronisieren: tooltip += " · " + _("Synchronizing …")
         if kamera: tooltip += " · " + _("Phone camera active")
@@ -21260,6 +21304,8 @@ class Fenster(_FENSTER_BASIS):
     def _tray_medien_symbol_setzen(self, synchronisieren, kamera):
         notes, kde = getattr(self, '_tray_verbindungen', (False, False))
         schluessel = (synchronisieren, kamera, notes, kde, getattr(self, '_tray_spiegelung', False))
+        test = getattr(self, '_tray_test_stand', lambda:None)()
+        if test is not None:schluessel = test
         if getattr(self, "_tray_medien_symbol", None) == (self._tray_indikator, schluessel):
             return
         symbol = "magnolie-organizer"
@@ -21291,6 +21337,38 @@ class Fenster(_FENSTER_BASIS):
         self._tray_spiegelung = aktiv.get('mirroring') is True
         self._tray_zaehler_anzeigen()
         return False
+
+    def _tray_test_stand(self):
+        test = getattr(self, '_tray_darstellung_test', None)
+        if test is None:return None
+        data = getattr(self, '_aktuelle_daten', None)
+        enabled = tray_entwicklermodus_gespeichert(data, getattr(self, '_gesperrt', True))
+        return test.current(enabled, data)
+
+    def _tray_test_tick(self):
+        active = self._tray_test_stand() is not None
+        self._tray_zaehler_anzeigen()
+        if not active:
+            self._tray_test_timer = 0
+            self.antwort('App.trayDarstellungTestStand', {'ok': True, 'active': False, 'seconds': 0})
+        return active
+
+    def _tray_test_setzen(self, nachricht, clear=False):
+        if not hasattr(self, '_tray_darstellung_test'):self._tray_darstellung_test = TrayVisualTest()
+        if getattr(self, '_tray_test_timer', 0):GLib.source_remove(self._tray_test_timer)
+        self._tray_test_timer = 0
+        ok = False
+        try:
+            self._tray_darstellung_test.clear()
+            if not clear:
+                data = getattr(self, '_aktuelle_daten', None)
+                enabled = tray_entwicklermodus_gespeichert(data, getattr(self, '_gesperrt', True))
+                self._tray_darstellung_test.start(nachricht, enabled, data)
+                self._tray_test_timer = GLib.timeout_add(1000, self._tray_test_tick)
+            ok = True
+        except (ValueError, TypeError, AttributeError):self._tray_darstellung_test.clear()
+        self._tray_zaehler_anzeigen()
+        self.antwort('App.trayDarstellungTestStand', {'ok': ok, 'active': ok and not clear, 'seconds': 60 if ok and not clear else 0})
 
     def _tray_zaehler_setzen(self, roh):
         try:
@@ -21813,6 +21891,9 @@ class Fenster(_FENSTER_BASIS):
                 self.antwort("App.trayStand", {"ok": True, "requestId": nachricht.get("requestId"), **self._tray_stand()})
             except Exception:
                 self.antwort("App.trayStand", {"ok": False, "requestId": nachricht.get("requestId")})
+
+        elif befehl in ('tray_darstellung_test', 'tray_darstellung_test_ende'):
+            self._tray_test_setzen(nachricht, clear=befehl == 'tray_darstellung_test_ende')
 
         elif befehl == "tray_zaehler":
             self._tray_zaehler_setzen(nachricht.get("anzahl") or 0)

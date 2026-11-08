@@ -1,5 +1,6 @@
 using MagnolieOrganizer.Windows.Tests;
 if (args.Length == 1 && args[0] == "--tray-drawing") { await TrayAppearanceTests.DrawingAsync(); Console.WriteLine("Tray drawing PASS"); return 0; }
+if (args.Length == 1 && args[0] == "--tray-visual-test") { await TrayAppearanceTests.VisualLeaseAsync(); Console.WriteLine("Tray visual lease PASS"); return 0; }
 // Refs #432: individually bounded native projection and activity checks.
 if (args.Length == 1 && args[0] == "--tray-owners") { await TrayAppearanceTests.OwnersAsync(); Console.WriteLine("Tray owners PASS"); return 0; }
 if (args.Length == 1 && args[0] == "--tray-kde") { await KdeConnectTests.TrayProjectionAsync(); Console.WriteLine("Tray KDE TLS PASS"); return 0; }
@@ -107,6 +108,9 @@ if (args.FirstOrDefault() == "--published-release-audit")
 }
 
 var runner = new TestRunner();
+runner.Add("Tray appearance / passive owners and independent activity", TrayAppearanceTests.OwnersAsync);
+runner.Add("Tray appearance / native visual lease and saved developer gate", TrayAppearanceTests.VisualLeaseAsync);
+runner.Add("Tray appearance / actual KDE TLS without SMS", KdeConnectTests.TrayProjectionAsync);
 runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
 runner.Add("Media shared preferences / independent registers safe defaults replay and actor guards", MediaSyncSettingsTests.RunAsync);
 runner.Add("Media photo metadata / bounded actual TIFF JPEG PNG tags / unknown exclusion", PhotoCaptureMetadataTests.RunAsync);

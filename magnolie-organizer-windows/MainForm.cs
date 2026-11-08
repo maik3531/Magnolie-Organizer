@@ -16,6 +16,12 @@ internal sealed class MainForm : Form
     private Icon? ownedTrayIcon;
     private TrayAppearanceState renderedTrayAppearance;
     private int trayAppearanceQueued;
+    private int trayCounter;
+    private bool trayVisualLabel;
+    private void UpdateTrayLabel()
+        => trayIcon.Text = (trayVisualLabel ? "TEST · " : "") + "Magnolie Organizer" +
+            (trayCounter > 0 ? $" – {trayCounter}" : "");
+    private readonly System.Windows.Forms.Timer trayVisualTestTimer = new() { Interval = 1000 };
 
     internal void QueueTrayAppearanceRefresh()
     {
@@ -28,7 +34,12 @@ internal sealed class MainForm : Form
                 if (IsDisposed || Disposing) return;
                 try
                 {
-                    var state = dispatcher?.ReadTrayAppearance() ?? default;
+                    var wasTesting = trayVisualTestTimer.Enabled;
+                    var visual = dispatcher?.CurrentTrayVisualTest();
+                    trayVisualTestTimer.Enabled = dispatcher?.TrayVisualTestActive == true;
+                    if (wasTesting && !trayVisualTestTimer.Enabled) _ = SendAsync("App.trayDarstellungTestStand", new { ok = true, active = false, seconds = 0 });
+                    trayVisualLabel = visual.HasValue; UpdateTrayLabel();
+                    var state = visual ?? dispatcher?.ReadTrayAppearance() ?? default;
                     if (state == renderedTrayAppearance) return;
                     var next = state.IsOriginal ? null : TrayAppearanceRenderer.Create(originalTrayIcon, state);
                     var previous = ownedTrayIcon;
@@ -108,6 +119,7 @@ internal sealed class MainForm : Form
         reminderAutostart = reminderStart;
         originalTrayIcon = Icon ?? SystemIcons.Application;
         trayIcon = CreateTrayIcon(originalTrayIcon);
+        trayVisualTestTimer.Tick += (_, _) => QueueTrayAppearanceRefresh();
         callNotifications = notifications ?? new WindowsCallNotifications(async token =>
         {
             var accepted = telefonCoordinator is not null && await telefonCoordinator.ExecuteCallActionAsync(token);
@@ -125,7 +137,7 @@ internal sealed class MainForm : Form
         FormClosing += OnFormClosing;
         FormClosed += (_, _) => { closing.Cancel(); mcpServer?.Dispose(); callAlert?.Close(); callNotifications.Dispose(); handbookForm?.Close();
             if (telefonCoordinator is not null) telefonCoordinator.TraySyncActivity.Changed -= QueueTrayAppearanceRefresh;
-            dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); ownedTrayIcon?.Dispose(); ownedTrayIcon = null; };
+            trayVisualTestTimer.Dispose(); dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); ownedTrayIcon?.Dispose(); ownedTrayIcon = null; };
         Resize += (_, _) =>
         {
             if (!fullscreen && !fullscreenTransition && WindowState != FormWindowState.Minimized)
@@ -224,9 +236,7 @@ internal sealed class MainForm : Form
 
     internal void UpdateTrayCounter(int count)
     {
-        trayIcon.Text = count > 0
-            ? $"Magnolie Organizer – {Math.Min(count, 999)}"
-            : "Magnolie Organizer";
+        trayCounter = Math.Clamp(count, 0, 999); UpdateTrayLabel();
     }
 
     internal void ShowNotification(string title, string message)
@@ -503,6 +513,7 @@ internal sealed class MainForm : Form
 
     internal async Task SendAsync(string function, object payload, Func<object>? currentPayload)
     {
+        if (function == "App.init") QueueTrayAppearanceRefresh();
         if (IsDisposed || Disposing || shutdownStarted) return;
         if (InvokeRequired)
         {

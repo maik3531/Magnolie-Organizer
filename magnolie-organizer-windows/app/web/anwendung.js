@@ -25733,7 +25733,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (DATEN.einstellungen.allgemein.entwicklermodus !== true) return;
     const ab = abschnitt(_("Developer options"));
     window.MagnolieAppearance?.update({ today: isoHeute(), developer: true, locked: gesperrt });
-    window.MagnolieAppearance?.mountDeveloper(ab, _);
+    window.MagnolieAppearance?.mountDeveloper(ab, _, Bruecke.vorhanden ? state =>
+      Bruecke.sende(state ? { cmd: "tray_darstellung_test", ...state } : { cmd: "tray_darstellung_test_ende" }) : null);
     const log = document.createElement("input"); log.type = "checkbox"; log.id = "erinnerung-protokoll-an";
     log.checked = DATEN.einstellungen.erinnerung.protokoll === true;
     const row = el("label", "hak"); row.append(log, document.createTextNode(" " + _("Keep a troubleshooting log")));
@@ -33694,6 +33695,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(uebersetzt("File saved: %(name)s", { name: nutzlast?.name || _("Unknown file") }));
     },
     backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
+    trayDarstellungTestStand(value) { window.MagnolieAppearance?.nativeResult(value); },
     init(nutzlast) {
       window.MagnolieAppearance?.update({ today: "", developer: false, locked: true });
       verwerfeKdeEmpfangDialoge();

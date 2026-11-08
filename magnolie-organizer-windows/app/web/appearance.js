@@ -92,8 +92,15 @@
   }
   let context = { today: "", developer: false, locked: true };
   const defaults = () => ({ connected: "auto", mode: "auto", sync: false, season: "auto", holiday: "auto", date: "" });
-  let preview = defaults(), panel = null, backgroundKey = "";
-  function simulated() { return context.developer && !context.locked && Object.keys(preview).some(key => preview[key] !== defaults()[key]); }
+  let preview = defaults(), panel = null, backgroundKey = "", nativeActive = false, nativeSender = null;
+  function stopNative() { if (nativeActive) nativeSender?.(null); nativeActive = false; }
+  function nativeResult(result) {
+    nativeActive = context.developer && !context.locked && result?.ok === true && result?.active === true;
+    if (panel?.status) panel.status.textContent = result?.ok === false ? "TEST · " +
+      (document.documentElement.lang.startsWith("de") ? "Nur mit gespeichertem Entwicklermodus verfügbar." : "Saved developer mode is required.") : nativeActive ? "TEST · OS tray · 60 s" : "";
+    apply();
+  }
+  function simulated() { return context.developer && !context.locked && (nativeActive || Object.keys(preview).some(key => preview[key] !== defaults()[key])); }
   function day(node, iso) {
     node.dataset.appearanceDate = iso;
     node.querySelectorAll(":scope > [data-appearance-watermark]").forEach(old => old.remove());
@@ -138,10 +145,10 @@
   }
   function update({ today, developer, locked }) {
     context = { today: dateParts(today) ? today : "", developer: developer === true, locked: locked !== false };
-    if (!context.developer || context.locked) { preview = defaults(); panel = null; }
+    if (!context.developer || context.locked) { stopNative(); nativeSender = null; preview = defaults(); panel = null; }
     apply();
   }
-  function mountDeveloper(root, translate) {
+  function mountDeveloper(root, translate, sendNative = null) {
     if (!context.developer || context.locked) return;
     const german = { "Visual test only; no connections or permissions are changed.": "Nur ein Darstellungstest; Verbindungen und Berechtigungen bleiben unverändert.",
       "Tray preview": "Tray-Vorschau", "Seasonal background": "Saisonaler Hintergrund", "Holiday watermark": "Feiertags-Wasserzeichen",
@@ -181,13 +188,28 @@
     const reset = document.createElement("button"); reset.type = "button"; reset.className = "knopf klein"; reset.textContent = t("Reset preview");
     reset.addEventListener("click", () => {
       if (!section.isConnected || !context.developer || context.locked) return;
-      preview = defaults();
+      stopNative(); preview = defaults();
       for (const input of section.querySelectorAll("[data-appearance-test]")) {
         if (input.type === "checkbox") input.checked = false; else input.value = preview[input.dataset.appearanceTest];
       }
       changed();
-    }); section.append(reset); root.append(section); panel = { root: section, icon, sample, attached: false }; apply();
+    }); section.append(reset);
+    const status = document.createElement("p"); status.className = "einst-hinweis"; status.dataset.appearanceNativeStatus = "true"; status.setAttribute("role", "status");
+    if (typeof sendNative === "function") {
+      nativeSender = sendNative;
+      const test = document.createElement("button"); test.type = "button"; test.className = "knopf klein"; test.dataset.appearanceNative = "true";
+      test.textContent = document.documentElement.lang.startsWith("de") ? "TEST · OS-Tray-Symbol (60 s)" : "TEST · OS tray icon (60 s)";
+      test.addEventListener("click", () => {
+        if (!section.isConnected || !context.developer || context.locked) return;
+        nativeActive = true;
+        sendNative({ connection: preview.connected === "auto" ? "none" : preview.connected,
+          mode: preview.mode === "auto" ? "flower" : preview.mode, sync: preview.sync });
+        changed();
+      }); section.append(test, status);
+    }
+    root.append(section); panel = { root: section, icon, sample, status, attached: false }; apply();
   }
-  // No native messages, connection APIs, timers or persistent data are used.
-  window.MagnolieAppearance = Object.freeze({ connection, season, holiday, tray, stamp, crystal, star, update, day, mountDeveloper });
+  // Only the explicit OS-test button calls a supplied visual-only bridge callback.
+  // Ordinary preview selectors never call native APIs or persist anything.
+  window.MagnolieAppearance = Object.freeze({ connection, season, holiday, tray, stamp, crystal, star, update, day, mountDeveloper, nativeResult });
 })();

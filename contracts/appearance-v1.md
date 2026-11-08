@@ -34,11 +34,26 @@ visuelle Vorschau bietet:
   verwerfen die Übersteuerung ebenfalls; verspätete alte Bedienelemente greifen
   nicht mehr ein.
 
-Der Baustein besitzt keine native Brücke, keine Verbindungs-/Berechtigungs-API,
-keine Speicherung und keine eigene Uhr. Vorschauauswahlen ändern weder Notizen
-noch Synchronisierungszustände und starten keine Kamera oder Spiegelung.
-Die Symbol-Testvorschau bleibt derzeit innerhalb der Entwickleransicht; eine
-abgesicherte Testübersteuerung des echten OS-Trays ist noch nicht angeschlossen.
+Die gewöhnlichen Vorschauauswahlen besitzen keine Verbindungs-/Berechtigungs-API,
+keine Speicherung und keine eigene Uhr. Sie ändern weder Notizen noch echte
+Synchronisierungszustände und starten keine Kamera oder Spiegelung.
+
+Zusätzlich gibt es in beiden Desktop-Oberflächen einen ausdrücklichen Knopf
+`TEST · OS-Tray-Symbol (60 s)`. Nur dieser sendet einen schmalen visuellen
+Testauftrag an den nativen Host. Der Host prüft den tatsächlich gespeicherten
+Entwicklermodus und den entsperrten Buchkontext selbst; ein vom Browser behaupteter
+Entwicklermodus oder ein Bereitschafts-/Berechtigungsfeld reicht nicht aus.
+Akzeptiert werden ausschließlich vier Verbindungsfarben, drei Symbolformen und
+ein echter boolescher Pfeilzustand. Es gibt keine Transport-/Berechtigungssetter.
+
+Die native Test-Lease endet nach 60 Sekunden anhand monotoner Zeit, bei Sperre,
+Abschalten des Entwicklermodus, anderem gespeicherten Buchkontext oder explizitem
+Zurücksetzen. Auch eine zwischenzeitlich neu gespeicherte Buchfassung beendet
+den Test vorsorglich. Der native zeitliche Wächter läuft ausschließlich während
+eines Tests und wird danach entfernt/gestoppt; eine ausgebliebene Browsermeldung
+kann ihn nicht verlängern. Das native Tray wird als `TEST` bezeichnet; vorhandene
+Benachrichtigungszähler bleiben erhalten. Die echten Verbindungs-/Arbeitsbesitzer
+werden nicht verändert und bestimmen nach Testende wieder das Icon.
 
 ## Native Linux-Verbindungsanzeige
 
@@ -100,7 +115,14 @@ Reine Regeln prüfen alle vier Farbkombinationen, strenge echte Booleans statt
 Kopplungs-/Wahrheitswerten, die Datumsgrenzen, Ostern in März/April und 24
 Symbolvarianten. Der echte Oberflächenharness prüft Linux/Windows jeweils en/de:
 Wochenmotiv, Entwicklervorschau, Größenbegrenzung, unveränderte Daten/keine nativen
-Befehle und Zurücksetzen beim Sperren/Deaktivieren. Die bestehenden vollständigen
+Befehle beim bloßen Umschalten und Zurücksetzen beim Sperren/Deaktivieren. Der
+ausdrückliche OS-Knopf prüft exakt den visuellen Auftrag, Ablehnung ohne
+gespeicherten Entwicklermodus, Ablaufmeldung und Zurücksetzen beim Sperren;
+verspätete Bestätigung reaktiviert die gesperrte Vorschau nicht. Native Tests
+prüfen die gespeicherten Gates, alle 24 Typkombinationen, exakte Fristgrenzen,
+entzogenen Modus, neuen Buchbesitzer und abgewiesene Fremdfelder. Linux prüft
+zusätzlich die tatsächliche GTK-Methodenverknüpfung bis zum erzeugten Test-Icon
+und Wiederherstellen des echten aktuellen Icons samt Zähler. Die bestehenden vollständigen
 Linux-JS-Prüfungen und Desktop-Zustandsregressionen bestehen ebenfalls.
 
 Zusätzliche Linux-Prüfungen lesen native Projektions-/IPCpfade und dekodieren die
@@ -110,6 +132,8 @@ Icons. Bestehende KDE-Pairing-/Verbindungsregressionen bestehen ebenfalls.
 
 Das ist keine installierte Tray-/GUI-/Paketabnahme. Die neuen zusätzlichen
 Vorschaubegriffe sind derzeit deutsch/englisch enthalten; weitere Kataloge und
-eine visuelle native Abnahme bleiben offen, ebenso die
-native OS-Testübersteuerung. Tatsächliche Kamera-/Spiegelungsbereitschaft
+eine visuelle native Abnahme bleiben offen. Die vollständige Aggregation weiterer
+persönlicher-/Zeit-Abgleichsakteure bleibt gesondert offen; die vorhandenen
+Medienläufe und der allgemeine GUI-Abgleich sind angebunden.
+Tatsächliche Kamera-/Spiegelungsbereitschaft
 wird nicht freigeschaltet.

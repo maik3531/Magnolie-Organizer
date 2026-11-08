@@ -35,9 +35,26 @@ harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(
       assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves); assert.equal(b.messages.length, messages,
         "Visual developer controls must never send native connection, sync, camera or permission commands");
       panel.querySelector("button").click(); assert.equal(d.querySelector("#magnolie-test-hinweis"), null);
+      const nativeButton = panel.querySelector('[data-appearance-native="true"]'); assert(nativeButton);
+      const nativeBefore = b.messages.length; nativeButton.click();
+      assert.equal(b.messages.length, nativeBefore + 1);
+      assert.equal(b.messages.at(-1).cmd, "tray_darstellung_test");
+      assert.deepEqual(Object.keys(b.messages.at(-1)).sort(), ["cmd", "connection", "mode", "sync"]);
+      assert.equal(JSON.stringify(b.t.daten()), before);
+      b.w.App.trayDarstellungTestStand({ ok: false, active: false });
+      assert(panel.querySelector('[data-appearance-native-status]').textContent.includes(locale === "de" ? "gespeichertem Entwicklermodus" : "Saved developer mode"));
+      nativeButton.click(); b.w.App.trayDarstellungTestStand({ ok: true, active: true });
+      assert(d.body.hasAttribute("data-appearance-test"));
+      b.w.App.trayDarstellungTestStand({ ok: true, active: false });
+      assert.equal(d.body.hasAttribute("data-appearance-test"), false, "Native expiry must remove the TEST marker without changing real state");
+      nativeButton.click(); b.w.App.trayDarstellungTestStand({ ok: true, active: true });
+      panel.querySelector("button").click(); assert.equal(b.messages.at(-1).cmd, "tray_darstellung_test_ende");
       assert(d.querySelector('.wo-tag[data-appearance-date="2026-12-06"] [data-appearance-watermark="boots"]'));
       choose("season", "stars");
+      nativeButton.click(); b.w.App.trayDarstellungTestStand({ ok: true, active: true });
       b.w.App.init({ gesperrt: true });
+      assert.equal(b.messages.at(-1).cmd, "tray_darstellung_test_ende");
+      b.w.App.trayDarstellungTestStand({ ok: true, active: true });
       assert.equal(d.querySelector("#magnolie-test-hinweis"), null); assert.equal(d.querySelector("#magnolie-saison"), null);
       choose("season", "crystals"); assert.equal(d.querySelector("#magnolie-saison"), null, "Detached developer controls cannot revive a locked preview");
       b.w.App.init({ daten: JSON.parse(before), neu: false });

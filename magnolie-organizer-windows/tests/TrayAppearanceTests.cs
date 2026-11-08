@@ -4,6 +4,43 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class TrayAppearanceTests
 {
+    internal static Task VisualLeaseAsync()
+    {
+        const string saved = "{\"einstellungen\":{\"allgemein\":{\"entwicklermodus\":true}}}";
+        TestAssert.That(TrayVisualTest.SavedDeveloperMode(saved, true) && !TrayVisualTest.SavedDeveloperMode(saved, false), "Saved developer flag ignored native lock.");
+        foreach (var invalid in new[] { "{}", "[]", "null", "invalid", saved.Replace("true", "1"), saved.Replace("true", "false"), saved.Replace("true", "\"true\"") })
+            TestAssert.That(!TrayVisualTest.SavedDeveloperMode(invalid, true), "Malformed/truthy saved flag enabled native test.");
+        var lease = new TrayVisualTest(); var owner = new object();
+        System.Text.Json.JsonDocument Request(string connection = "both", string mode = "camera", string sync = "true", string extra = "")
+            => System.Text.Json.JsonDocument.Parse("{\"cmd\":\"tray_darstellung_test\",\"connection\":\"" + connection +
+                "\",\"mode\":\"" + mode + "\",\"sync\":" + sync + extra + "}");
+        using var valid = Request();
+        using var bridge = BridgeDispatcherContract.Parse(valid.RootElement.GetRawText());
+        using var clear = BridgeDispatcherContract.Parse("{\"cmd\":\"tray_darstellung_test_ende\"}");
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"tray_darstellung_test\",\"connection\":\"both\",\"mode\":\"camera\",\"sync\":1}"), "Bridge accepted a non-boolean visual state.");
+        TestAssert.Throws<InvalidOperationException>(() => lease.Start(valid.RootElement, false, owner, 100), "Browser preview bypassed saved developer gate.");
+        foreach (var connection in new[] { "none", "notes", "kde", "both" }) foreach (var mode in new[] { "flower", "camera", "phone" })
+        foreach (var sync in new[] { "true", "false" })
+        {
+            using var request = Request(connection, mode, sync); lease.Start(request.RootElement, true, owner, 100);
+            TestAssert.That(lease.Current(true, owner, 60099).HasValue && !lease.Current(true, owner, 60100).HasValue, "Native preview deadline was not exactly 60 seconds.");
+        }
+        lease.Start(valid.RootElement, true, owner, 100);
+        TestAssert.That(!lease.Current(true, new object(), 101).HasValue, "New book retained old preview.");
+        lease.Start(valid.RootElement, true, owner, 100);
+        TestAssert.That(!lease.Current(false, owner, 101).HasValue, "Lock/developer disable retained preview.");
+        foreach (var request in new[] { Request("paired"), Request(mode: "live_camera"), Request(sync: "1"), Request(extra: ",\"ready\":true"), Request(extra: ",\"sync\":false") })
+        {
+            using (request)
+            {
+                var rejected = false;
+                try { lease.Start(request.RootElement, true, owner, 100); }
+                catch (Exception error) when (error is InvalidOperationException or InvalidDataException) { rejected = true; }
+                TestAssert.That(rejected && !lease.HasLease, "Malformed/native-readiness claim was accepted as visual state.");
+            }
+        }
+        return Task.CompletedTask;
+    }
     internal static Task DrawingAsync()
     {
         var folder = Path.Combine(AppContext.BaseDirectory, "preview-product");
