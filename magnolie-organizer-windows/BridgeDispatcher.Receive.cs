@@ -12,15 +12,16 @@ internal sealed partial class BridgeDispatcher
     private bool ReceiveOwnerCurrent(string? owner) => owner is not null && !disposed &&
         currentPlainTextAvailable && !restoreInProgress && NativeActorBookSource() == owner;
 
-    private void ConfigureReceive(bool enabled, string device)
+    private void ConfigureReceive(bool enabled, string device, string directory = "", bool chooseEach = true)
     {
         var owner = NativeActorBookSource();
         if (!ReceiveOwnerCurrent(owner)) enabled = false;
-        var signature = JsonSerializer.Serialize(new { enabled, device = enabled ? device : "", owner });
+        var destination = !enabled || chooseEach ? "" : directory.Length != 0 ? directory : NativeMethods.UserDownloadsPath();
+        var signature = JsonSerializer.Serialize(new { enabled, device = enabled ? device : "", destination, owner });
         lock (receiveConfigurationGate)
         {
             if (signature == receiveConfigurationSignature) return;
-            if (enabled) kdeConnectSms.ConfigureFileReceive(true, device, "", () => ReceiveOwnerCurrent(owner));
+            if (enabled) kdeConnectSms.ConfigureFileReceive(true, device, destination, () => ReceiveOwnerCurrent(owner));
             else kdeInstance?.ConfigureFileReceive(false, "", "");
             receiveConfigurationSignature = signature;
         }
@@ -34,7 +35,8 @@ internal sealed partial class BridgeDispatcher
             var root = document.RootElement;
             if (root.TryGetProperty("einstellungen", out var settings) && settings.TryGetProperty("sync", out var sync) &&
                 sync.TryGetProperty("kdeEmpfang", out var receive) && receive.ValueKind == JsonValueKind.Object)
-                ConfigureReceive(Boolean(receive, "dateien"), Text(receive, "geraetId"));
+                ConfigureReceive(Boolean(receive, "dateien"), Text(receive, "geraetId"), Text(receive, "ordner"),
+                    !receive.TryGetProperty("ordnerBeiAnnahme", out var choose) || choose.ValueKind != JsonValueKind.False);
             else ConfigureReceive(false, "");
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or IOException or UnauthorizedAccessException)
@@ -53,7 +55,21 @@ internal sealed partial class BridgeDispatcher
         if (command == "kde_receive_settings")
         {
             if (!ReceiveOwnerCurrent(NativeActorBookSource())) return;
-            ConfigureReceive(Boolean(message, "files"), Text(message, "deviceId"));
+            ConfigureReceive(Boolean(message, "files"), Text(message, "deviceId"), Text(message, "directory"),
+                !message.TryGetProperty("chooseEach", out var choose) || choose.ValueKind != JsonValueKind.False);
+            return;
+        }
+        if (command == "kde_receive_directory")
+        {
+            var requestId = Text(message, "requestId");
+            if (!Guid.TryParse(requestId, out _)) return;
+            var owner = NativeActorBookSource();
+            if (!ReceiveOwnerCurrent(owner)) return;
+            using var dialog = new FolderBrowserDialog { Description = T("Choose folder …"), UseDescriptionForTitle = true,
+                ShowNewFolderButton = true, SelectedPath = Text(message, "directory") };
+            var selected = dialog.ShowDialog(form) == DialogResult.OK && ReceiveOwnerCurrent(owner) &&
+                KdeIncomingFileBatch.RealDirectoryChain(dialog.SelectedPath) ? dialog.SelectedPath : "";
+            await form.SendAsync("App.kdeEmpfangsordner", new { requestId, pfad = selected });
             return;
         }
         var id = Text(message, "id");

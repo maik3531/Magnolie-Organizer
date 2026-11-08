@@ -7,6 +7,10 @@ using MagnolieOrganizer.Windows;
 // Actual TLS/staging/publication have separate real-backend integration tests.
 namespace MagnolieOrganizer.Windows
 {
+    internal static class NativeMethods
+    {
+        internal static string UserDownloadsPath() => "C:\\Native-Downloads-Fixture";
+    }
     internal enum DialogResult { OK, Cancel }
     internal sealed class FolderBrowserDialog : IDisposable
     {
@@ -29,11 +33,11 @@ namespace MagnolieOrganizer.Windows
     internal sealed class KdeReceiveBridgeService
     {
         internal KdeFileReceiveProposal? Proposal;
-        internal readonly List<(bool Enabled, string Device, Func<bool>? Permission)> Configurations = [];
+        internal readonly List<(bool Enabled, string Device, string Directory, Func<bool>? Permission)> Configurations = [];
         internal readonly List<(string Id, string Directory)> Accepted = [];
         internal readonly List<string> Rejected = [];
         internal void ConfigureFileReceive(bool enabled, string device, string directory, Func<bool>? permission = null) =>
-            Configurations.Add((enabled, device, permission));
+            Configurations.Add((enabled, device, directory, permission));
         internal KdeFileReceiveProposal? CurrentFileReceiveProposal(string id) => Proposal?.Id == id ? Proposal : null;
         internal Task RejectFileReceiveAsync(string id) { Rejected.Add(id); return Task.CompletedTask; }
         internal Task<JsonObject> AcceptFileReceiveAsync(string id, string directory, CancellationToken cancellation)
@@ -74,6 +78,12 @@ namespace MagnolieOrganizer.Windows
                 "A new native owner did not receive a separate live permission lease.");
             restoreInProgress = true; Tests.TestAssert.That(!kdeInstance.Configurations.Last().Permission!(), "Restore retained receive permission.");
             restoreInProgress = false;
+            ConfigureReceive(true, "fixture", "C:\\Saved-Receive-Fixture", chooseEach: false);
+            Tests.TestAssert.That(kdeInstance.Configurations.Last().Directory == "C:\\Saved-Receive-Fixture", "Saved native receive folder was ignored.");
+            ConfigureReceive(true, "fixture", chooseEach: false);
+            Tests.TestAssert.That(kdeInstance.Configurations.Last().Directory == NativeMethods.UserDownloadsPath(), "Default receive folder was guessed instead of using native Downloads.");
+            ConfigureReceive(true, "fixture", "C:\\Saved-Receive-Fixture", chooseEach: true);
+            Tests.TestAssert.That(kdeInstance.Configurations.Last().Directory == "", "Per-file choice retained a fixed receive destination.");
             async Task Send(string command, string id, bool accept = true)
             {
                 using var input = JsonDocument.Parse(JsonSerializer.Serialize(new { cmd = command, id, accept, directory = "C:\\Injected" }));

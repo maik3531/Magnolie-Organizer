@@ -4709,6 +4709,12 @@ msgstr "就绪。"
 msgid "Reason"
 msgstr "原因"
 
+msgid "Receive with KDE Connect"
+msgstr "通过 KDE Connect 接收"
+
+msgid "Receive files in Downloads"
+msgstr "在“下载”中接收文件"
+
 msgid "Receive files"
 msgstr "接收文件"
 

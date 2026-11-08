@@ -4982,6 +4982,12 @@ msgstr "Bereit."
 msgid "Reason"
 msgstr "Grund"
 
+msgid "Receive with KDE Connect"
+msgstr "Mit KDE Connect empfangen"
+
+msgid "Receive files in Downloads"
+msgstr "Dateien in Downloads empfangen"
+
 msgid "Receive files"
 msgstr "Dateien empfangen"
 

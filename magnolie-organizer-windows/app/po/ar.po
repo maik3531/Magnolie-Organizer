@@ -4999,6 +4999,12 @@ msgstr "جاهز."
 msgid "Reason"
 msgstr "السبب"
 
+msgid "Receive with KDE Connect"
+msgstr "الاستقبال عبر KDE Connect"
+
+msgid "Receive files in Downloads"
+msgstr "استقبال الملفات في التنزيلات"
+
 msgid "Receive files"
 msgstr "استقبال الملفات"
 

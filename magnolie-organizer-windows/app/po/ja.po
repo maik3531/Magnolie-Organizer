@@ -4863,6 +4863,12 @@ msgstr "準備完了。"
 msgid "Reason"
 msgstr "理由"
 
+msgid "Receive with KDE Connect"
+msgstr "KDE Connect で受信"
+
+msgid "Receive files in Downloads"
+msgstr "ダウンロードでファイルを受信"
+
 msgid "Receive files"
 msgstr "ファイルを受信"
 

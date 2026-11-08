@@ -4964,6 +4964,12 @@ msgstr "Готово."
 msgid "Reason"
 msgstr "Причина"
 
+msgid "Receive with KDE Connect"
+msgstr "Принимать через KDE Connect"
+
+msgid "Receive files in Downloads"
+msgstr "Принимать файлы в папку «Загрузки»"
+
 msgid "Receive files"
 msgstr "Получать файлы"
 

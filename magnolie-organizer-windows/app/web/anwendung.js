@@ -28993,22 +28993,60 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     const erweitert = el("details", "einst-gruppe kde-erweiterte-funktionen");
     const empfang = DATEN.einstellungen.sync.kdeEmpfang;
+    const empfangMoeglich = !!kde.paired && !!kde.device_id;
+    const empfangSpeichern = () => {
+      empfang.geraetId = empfang.dateien ? kde.device_id || "" : "";
+      planeSpeichern();
+      Bruecke.sende({ cmd: "kde_receive_settings", files: empfang.dateien, deviceId: empfang.geraetId,
+        directory: empfang.ordner, chooseEach: empfang.ordnerBeiAnnahme });
+    };
     const empfangOption = el("div", "kde-empfang-option");
     const empfangAn = document.createElement("input"); empfangAn.type = "checkbox";
     empfangAn.checked = empfang.dateien;
     empfangAn.disabled = !empfang.dateien && (!kde.paired || !kde.device_id);
     const empfangLabel = el("label", "hak");
-    empfangLabel.append(empfangAn, document.createTextNode(" " + _("Incoming KDE Connect files (always confirm)")));
+    empfangLabel.append(empfangAn, document.createTextNode(" " + _("Receive files")));
     empfangAn.addEventListener("change", () => {
       empfang.dateien = empfangAn.checked;
-      empfang.geraetId = empfang.dateien ? kde.device_id : "";
-      planeSpeichern();
-      Bruecke.sende({ cmd: "kde_receive_settings", files: empfang.dateien, deviceId: empfang.geraetId });
+      ordnerBeiAnnahme.disabled = !empfangMoeglich || !empfang.dateien;
+      aktualisiereOrdner(); empfangSpeichern();
     });
-    empfangOption.append(empfangLabel, el("p", "einst-hinweis", _("Choose the save location for each accepted file")));
+    empfangOption.append(empfangLabel);
+    const ordnerBeiAnnahme = document.createElement("input"); ordnerBeiAnnahme.type = "checkbox";
+    ordnerBeiAnnahme.id = "kde-empfang-ordner-bei-annahme";
+    ordnerBeiAnnahme.checked = empfang.ordnerBeiAnnahme;
+    ordnerBeiAnnahme.disabled = !empfangMoeglich || !empfang.dateien;
+    const ordnerLabel = el("label", "hak hak-eingerueckt");
+    ordnerLabel.append(ordnerBeiAnnahme, document.createTextNode(" " + _("Choose the save location for each accepted file")));
+    const ordnerPfad = eingabe("text", empfang.ordner || ""); ordnerPfad.id = "kde-empfangsordner";
+    ordnerPfad.readOnly = true; ordnerPfad.placeholder = _("Receive files in Downloads");
+    ordnerPfad.setAttribute("aria-label", _("Receive with KDE Connect"));
+    const ordnerWaehlen = knopf(_("Choose folder …"), "klein", () => {
+      const requestId = crypto.randomUUID(), book = DATEN;
+      kdeEmpfangOrdnerAnfragen.clear();
+      kdeEmpfangOrdnerAnfragen.set(requestId, pfad => {
+        if (gesperrt || DATEN !== book || !ordnerPfad.isConnected || !empfangMoeglich || !pfad) return;
+        empfang.ordner = pfad; ordnerPfad.value = pfad; aktualisiereOrdner(); empfangSpeichern();
+      });
+      if (!Bruecke.sende({ cmd: "kde_receive_directory", requestId, directory: empfang.ordner || "" }))
+        kdeEmpfangOrdnerAnfragen.delete(requestId);
+    });
+    const ordnerStandard = knopf(_("Use default"), "klein", () => {
+      empfang.ordner = ""; ordnerPfad.value = ""; aktualisiereOrdner(); empfangSpeichern();
+    });
+    const aktualisiereOrdner = () => {
+      ordnerWaehlen.disabled = !empfangMoeglich || !empfang.dateien || empfang.ordnerBeiAnnahme;
+      ordnerStandard.disabled = ordnerWaehlen.disabled || !empfang.ordner;
+    };
+    aktualisiereOrdner();
+    ordnerBeiAnnahme.addEventListener("change", () => {
+      empfang.ordnerBeiAnnahme = ordnerBeiAnnahme.checked; aktualisiereOrdner(); empfangSpeichern();
+    });
+    const ordnerReihe = el("div", "kde-empfangsordner"); ordnerReihe.append(ordnerPfad, ordnerWaehlen, ordnerStandard);
+    kdeBlock.append(el("h4", null, _("Receive with KDE Connect")),
+      el("p", "einst-hinweis", _("Incoming KDE Connect files (always confirm)")), empfangOption, ordnerLabel, ordnerReihe);
     erweitert.id = "kde-erweiterte-funktionen";
     erweitert.append(el("summary", null, _("Advanced functions")));
-    erweitert.append(empfangOption);
     baueKdeEingabe(erweitert);
     baueKdeSpieler(erweitert);
     kdeBlock.append(erweitert);
@@ -29017,6 +29055,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     wurzel.append(kdeAb);
   }
 
+  const kdeEmpfangOrdnerAnfragen = new Map();
   const kdeMedienAnfragen = new Map();
   const kdeMedienSpieler = new Map();
   let kdeMedienGeraet = "";
@@ -33565,6 +33604,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!nutzlast || !/^[0-9a-f]{32}$/.test(String(nutzlast.id || ""))) return;
       if (kdeEmpfangAktiv?.id === nutzlast.id || kdeEmpfangAngebote.some(x => x.id === nutzlast.id)) return;
       kdeEmpfangAngebote.push({ id: nutzlast.id }); frageKdeEmpfang();
+    },
+    kdeEmpfangsordner(nutzlast) {
+      const apply = kdeEmpfangOrdnerAnfragen.get(nutzlast?.requestId);
+      if (!apply) return;
+      kdeEmpfangOrdnerAnfragen.delete(nutzlast.requestId);
+      if (typeof nutzlast.pfad === "string") apply(nutzlast.pfad);
     },
     kdeEmpfangGeprueft(nutzlast) {
       const aktiv = kdeEmpfangAktiv;

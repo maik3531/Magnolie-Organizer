@@ -4972,6 +4972,12 @@ msgstr "Pronto."
 msgid "Reason"
 msgstr "Motivo"
 
+msgid "Receive with KDE Connect"
+msgstr "Receber com o KDE Connect"
+
+msgid "Receive files in Downloads"
+msgstr "Receber ficheiros em Transferências"
+
 msgid "Receive files"
 msgstr "Receber ficheiros"
 

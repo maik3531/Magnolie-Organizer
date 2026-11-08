@@ -5013,6 +5013,12 @@ msgstr "Hotowo."
 msgid "Reason"
 msgstr "Přičina"
 
+msgid "Receive with KDE Connect"
+msgstr "Z KDE Connect přijimać"
+
+msgid "Receive files in Downloads"
+msgstr "Dataje do Zećehnjenjow přijimać"
+
 msgid "Receive files"
 msgstr "Dataje přijimać"
 

@@ -4919,6 +4919,12 @@ msgstr "Klar."
 msgid "Reason"
 msgstr "Årsak"
 
+msgid "Receive with KDE Connect"
+msgstr "Motta med KDE Connect"
+
+msgid "Receive files in Downloads"
+msgstr "Motta filer i Nedlastinger"
+
 msgid "Receive files"
 msgstr "Motta filer"
 

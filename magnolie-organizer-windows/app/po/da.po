@@ -4916,6 +4916,12 @@ msgstr "Klar."
 msgid "Reason"
 msgstr "Årsag"
 
+msgid "Receive with KDE Connect"
+msgstr "Modtag med KDE Connect"
+
+msgid "Receive files in Downloads"
+msgstr "Modtag filer i Hentede filer"
+
 msgid "Receive files"
 msgstr "Modtag filer"
 

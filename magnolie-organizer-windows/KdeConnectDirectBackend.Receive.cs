@@ -302,7 +302,8 @@ internal sealed partial class KdeConnectDirectBackend
     }
 
     private KdeFileReceiveProposal ReceiveProposal(ReceiveContext context) => new(context.Id, context.Source.DeviceId,
-        context.Offer!.Proposal(), context.Reserved, context.Deadline, context.Offer.Saved.Count != 0);
+        context.Offer!.Proposal(), context.Reserved, context.Deadline,
+        context.Offer.Saved.Count != 0 || context.Preferences.Directory.Length != 0);
 
     internal KdeFileReceiveProposal? CurrentFileReceiveProposal(string id)
     {

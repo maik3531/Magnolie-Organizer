@@ -4930,6 +4930,12 @@ msgstr "Připraveno."
 msgid "Reason"
 msgstr "Důvod"
 
+msgid "Receive with KDE Connect"
+msgstr "Přijímat pomocí KDE Connect"
+
+msgid "Receive files in Downloads"
+msgstr "Přijímat soubory do složky Stažené"
+
 msgid "Receive files"
 msgstr "Přijímat soubory"
 

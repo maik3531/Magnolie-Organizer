@@ -86,15 +86,20 @@ internal static class NativeMethods
     private static extern int SHGetKnownFolderPath(ref Guid folder, uint flags, nint token, out nint path);
 
     internal static string UserProgramsPath()
+        => UserKnownFolderPath(new Guid("A77F5D77-2E2B-44C3-A6A2-ABA601054A51"));
+
+    internal static string UserDownloadsPath()
+        => UserKnownFolderPath(new Guid("374DE290-123F-4565-9164-39C4925E467B"));
+
+    private static string UserKnownFolderPath(Guid folder)
     {
         using var identity = WindowsIdentity.GetCurrent();
-        var folder = new Guid("A77F5D77-2E2B-44C3-A6A2-ABA601054A51");
         var error = SHGetKnownFolderPath(ref folder, 0, identity.AccessToken.DangerousGetHandle(), out var path);
         try
         {
             Marshal.ThrowExceptionForHR(error);
             var value = Marshal.PtrToStringUni(path) ?? "";
-            return Path.IsPathFullyQualified(value) ? value : throw new IOException("Programs folder is unavailable.");
+            return Path.IsPathFullyQualified(value) ? value : throw new IOException("Native user folder is unavailable.");
         }
         finally { Marshal.FreeCoTaskMem(path); }
     }

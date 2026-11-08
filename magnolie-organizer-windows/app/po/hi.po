@@ -4828,6 +4828,12 @@ msgstr "तैयार।"
 msgid "Reason"
 msgstr "कारण"
 
+msgid "Receive with KDE Connect"
+msgstr "KDE Connect से प्राप्त करें"
+
+msgid "Receive files in Downloads"
+msgstr "फ़ाइलें डाउनलोड में प्राप्त करें"
+
 msgid "Receive files"
 msgstr "फ़ाइलें प्राप्त करें"
 

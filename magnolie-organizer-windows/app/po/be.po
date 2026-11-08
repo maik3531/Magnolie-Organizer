@@ -4953,6 +4953,12 @@ msgstr "Гатова."
 msgid "Reason"
 msgstr "Прычына"
 
+msgid "Receive with KDE Connect"
+msgstr "Атрымліваць праз KDE Connect"
+
+msgid "Receive files in Downloads"
+msgstr "Атрымліваць файлы ў «Спампоўкі»"
+
 msgid "Receive files"
 msgstr "Атрымліваць файлы"
 

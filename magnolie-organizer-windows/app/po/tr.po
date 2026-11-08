@@ -4913,6 +4913,12 @@ msgstr "Hazır."
 msgid "Reason"
 msgstr "Neden"
 
+msgid "Receive with KDE Connect"
+msgstr "KDE Connect ile al"
+
+msgid "Receive files in Downloads"
+msgstr "Dosyaları İndirilenler'e al"
+
 msgid "Receive files"
 msgstr "Dosyaları al"
 

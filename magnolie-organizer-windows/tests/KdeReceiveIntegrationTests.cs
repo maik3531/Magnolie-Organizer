@@ -101,6 +101,7 @@ internal static class KdeReceiveIntegrationTests
                 await SendAsync(stream, certificate, desktopPin, "second.txt", [2, 2], 2, 3, deadline.Token);
                 await WaitAsync(() => proposals.Count == 1, deadline.Token);
                 var proposal = proposals.Single();
+                TestAssert.That(proposal.DestinationFixed, "A configured destination still demanded a per-file folder chooser.");
                 TestAssert.That(proposal.Files.Select(value => value.Name).SequenceEqual(["first.txt", "second.txt"]) &&
                     proposal.Size == 3 && backend.FileReceiveStatus()["pending_count"]!.GetValue<int>() == 1,
                     "Native backend did not offer the exact two-file list once.");

@@ -477,6 +477,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kde_input_einstellungen":
                     case "kde_input_senden": await KdeInputAsync(message); break;
                     case "kde_receive_settings":
+                    case "kde_receive_directory":
                     case "kde_receive_decide":
                     case "kde_receive_angebot":
                     case "kde_receive_ziel_waehlen": await KdeReceiveAsync(message); break;
