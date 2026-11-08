@@ -41,6 +41,8 @@ class MedienWiederherstellungUiTest {
     private val busy = mutableStateOf(false)
     private val failed = mutableStateOf(false)
     private val restored = mutableListOf<NativeGalleryRecoveryRow>()
+    private val previewed = mutableListOf<NativeGalleryRecoveryRow>()
+    private val thumbnails = mutableStateMapOf<String, android.graphics.Bitmap?>()
     private var refreshed = 0
 
     private fun row(state: String?, name: String = "Synthetic photo.jpg"): NativeGalleryRecoveryRow {
@@ -56,7 +58,8 @@ class MedienWiederherstellungUiTest {
         controller!!.get().setContentView(view)
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
         view.setContent { MagnolieThema {
-            MedienWiederherstellungListe(rows.value, busy.value, failed.value, { refreshed++ }, { restored += it })
+            MedienWiederherstellungListe(rows.value, busy.value, failed.value, { refreshed++ },
+                thumbnails = thumbnails, showPreview = { previewed += it }, restore = { restored += it })
         } }
         controller!!.start().resume().visible().windowFocusChanged(true); frames()
     }
@@ -100,6 +103,18 @@ class MedienWiederherstellungUiTest {
         click(R.string.journal_restore); dialog = ShadowDialog.getLatestDialog()
         click(R.string.journal_restore, dialog.window!!.decorView)
         assertSame(selected, restored.single())
+    }
+
+    @Test fun actualThumbnailAndPreviewSelectionNeverRestoreOrRefreshTheArchive() {
+        val selected = row("trashed"); rows.value = listOf(selected)
+        val image = android.graphics.Bitmap.createBitmap(12, 6, android.graphics.Bitmap.Config.ARGB_8888)
+        thumbnails[selected.entry.version] = image
+        launch()
+        assertTrue(nodes().any { it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(selected.entry.displayName) == true })
+        click(R.string.journal_vorschau)
+        assertSame(selected, previewed.single()); assertTrue(restored.isEmpty()); assertEquals(0, refreshed)
+        busy.value = true; frames()
+        assertNotNull(buttons(R.string.journal_vorschau).single().config.getOrNull(SemanticsProperties.Disabled))
     }
 
     @Test fun changedSelectionDismissesConfirmationAndBusyStateDisablesActions() {

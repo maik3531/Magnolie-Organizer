@@ -2,9 +2,12 @@ package io.gitlab.maik3531.magnolienotes.ui
 
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -12,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.dp
 import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.telefon.*
@@ -26,7 +31,13 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
     var busy by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     var session by remember { mutableStateOf<NativeGalleryRestoreSession?>(null) }
-    DisposableEffect(owner) { onDispose { session?.close(); owner.close() } }
+    val thumbnails = remember(owner) { mutableStateMapOf<String, Bitmap?>() }
+    var preview by remember { mutableStateOf<Pair<NativeGalleryRecoveryRow, Bitmap>?>(null) }
+    var previewRestore by remember { mutableStateOf<NativeGalleryRecoveryRow?>(null) }
+    DisposableEffect(owner) { onDispose {
+        session?.close(); owner.close(); thumbnails.values.forEach { it?.recycle() }; thumbnails.clear()
+        preview?.second?.recycle(); preview = null
+    } }
     if (!owner.present) return
 
     fun permit() = NativeGalleryTrashBookPermit.capture(ablage) {
@@ -43,7 +54,7 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
         } catch (_: Exception) { busy = false; failed = true; rows = emptyList() }
     }
     LaunchedEffect(owner) { refresh() }
-    MedienWiederherstellungListe(rows, busy, failed, ::refresh) { row ->
+    fun restore(row: NativeGalleryRecoveryRow) {
         failed = false
         try {
             val activity = recoveryActivity(context) ?: throw IllegalStateException("Native Activity required")
@@ -55,11 +66,63 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
             }
         } catch (_: Exception) { session?.close(); session = null; busy = false; failed = true }
     }
+    fun showPreview(row: NativeGalleryRecoveryRow) {
+        if (busy) return
+        busy = true
+        try {
+            owner.preview(row, permit(), 1024) { result ->
+                busy = false
+                result.onSuccess { bitmap ->
+                    if (row in rows) { preview?.second?.recycle(); preview = row to bitmap }
+                    else bitmap.recycle()
+                }.onFailure { failed = true }
+            }
+        } catch (_: Exception) { busy = false; failed = true }
+    }
+    LaunchedEffect(rows, busy, preview, previewRestore) {
+        if (!busy && preview == null && previewRestore == null) {
+            val row = rows.take(NativeGalleryTrashArchive.MAX_ENTRIES).firstOrNull { it.entry.version !in thumbnails }
+            if (row != null) {
+                thumbnails[row.entry.version] = null; busy = true
+                try {
+                    owner.preview(row, permit(), 192) { result ->
+                        busy = false
+                        result.onSuccess { bitmap ->
+                            if (row in rows) thumbnails[row.entry.version] = bitmap else bitmap.recycle()
+                        }
+                    }
+                } catch (_: Exception) { busy = false }
+            }
+        }
+        val versions = rows.map { it.entry.version }.toSet()
+        thumbnails.keys.filter { it !in versions }.forEach { thumbnails.remove(it)?.recycle() }
+        if (preview?.first?.let { it !in rows } == true) { preview?.second?.recycle(); preview = null }
+    }
+    MedienWiederherstellungListe(rows, busy, failed, ::refresh, thumbnails, ::showPreview, ::restore)
+    preview?.let { (row, bitmap) ->
+        fun closePreview() { preview = null; bitmap.recycle() }
+        AlertDialog(onDismissRequest = { closePreview() }, title = { Text(row.entry.displayName) },
+            text = { Image(bitmap.asImageBitmap(), row.entry.displayName, Modifier.fillMaxWidth()) },
+            confirmButton = {
+                if (row.canRestore) TextButton(enabled = !busy, onClick = { closePreview(); previewRestore = row }) {
+                    Text(stringResource(R.string.journal_restore))
+                }
+            }, dismissButton = { TextButton(onClick = { closePreview() }) { Text(stringResource(R.string.abbrechen)) } })
+    }
+    previewRestore?.let { row ->
+        AlertDialog(onDismissRequest = { previewRestore = null }, title = { Text(stringResource(R.string.journal_restore)) },
+            text = { Text(stringResource(R.string.media_recovery_confirm, row.entry.displayName)) },
+            confirmButton = { TextButton(enabled = !busy && row in rows, onClick = {
+                previewRestore = null; if (row in rows) restore(row)
+            }) { Text(stringResource(R.string.journal_restore)) } },
+            dismissButton = { TextButton(onClick = { previewRestore = null }) { Text(stringResource(R.string.abbrechen)) } })
+    }
 }
 
 @Composable
 internal fun MedienWiederherstellungListe(rows: List<NativeGalleryRecoveryRow>, busy: Boolean, failed: Boolean,
-    refresh: () -> Unit, restore: (NativeGalleryRecoveryRow) -> Unit) {
+    refresh: () -> Unit, thumbnails: Map<String, Bitmap?> = emptyMap(),
+    showPreview: ((NativeGalleryRecoveryRow) -> Unit)? = null, restore: (NativeGalleryRecoveryRow) -> Unit) {
     var selected by remember { mutableStateOf<NativeGalleryRecoveryRow?>(null) }
     LaunchedEffect(rows) { if (selected != null && selected !in rows) selected = null }
     Abschnitt(stringResource(R.string.media_recovery_title), hinweis = stringResource(R.string.media_recovery_hint)) {
@@ -68,7 +131,11 @@ internal fun MedienWiederherstellungListe(rows: List<NativeGalleryRecoveryRow>, 
         Papierknopf(stringResource(R.string.media_recovery_refresh), Modifier.fillMaxWidth(), aktiv = !busy) { refresh() }
         rows.forEach { row ->
             Column {
+                thumbnails[row.entry.version]?.let { bitmap ->
+                    Image(bitmap.asImageBitmap(), row.entry.displayName, Modifier.size(96.dp))
+                }
                 Text(row.entry.displayName)
+                if (showPreview != null) Papierknopf(stringResource(R.string.journal_vorschau), aktiv = !busy) { showPreview(row) }
                 Text(stringResource(when (row.action?.state) {
                     "trashed" -> R.string.media_recovery_trashed
                     "restore_row_prepared" -> R.string.media_recovery_unfinished

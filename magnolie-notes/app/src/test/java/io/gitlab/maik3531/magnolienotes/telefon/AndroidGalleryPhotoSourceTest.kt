@@ -313,6 +313,67 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test @Config(sdk = [35]) @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun actualRecoveryPreviewReadsEncryptedArchiveWithoutProviderAccessOrHistoryMutation() {
+        Fixture().use { f ->
+            val pixels = android.graphics.Bitmap.createBitmap(800, 400, android.graphics.Bitmap.Config.ARGB_8888)
+            pixels.eraseColor(android.graphics.Color.GREEN)
+            val encoded = ByteArrayOutputStream().also { assertTrue(pixels.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)) }.toByteArray()
+            pixels.recycle()
+            File(f.root, "source.bin").writeBytes(encoded)
+            f.provider.rows = listOf(Row(bytes = encoded.size.toLong(), mime = "image/png", name = "renamed.bin"))
+            val documents = archiveBook(f); var unlocked = true
+            val permit = NativeGalleryTrashBookPermit.capture(documents) { unlocked }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 41 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "preview-recovery-").toFile()
+            val lease = f.lease(); val entry = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest(encoded).joinToString("") { "%02x".format(it) }
+            NativeGalleryTrashArchive(root, protection).use { archive ->
+                val archived = archive.archive(lease, f.scope, entry, f.reader, hash, permit)
+                val before = archive.entries(permit); val actions = archive.actions(permit)
+                val opens = f.provider.opens.size
+                f.request = null
+                for (side in listOf(192, 1024)) {
+                    val bitmap = NativeGalleryRecoveryPreview.read(archive, archived, permit, side, CancellationSignal()) { }
+                    assertTrue(bitmap.width in 1..side && bitmap.height in 1..side)
+                    assertEquals(android.graphics.Color.GREEN, bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)); bitmap.recycle()
+                }
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeGalleryRecoveryPreview.read(archive, archived.copy(version = "0".repeat(64)), permit, 192, CancellationSignal()) { }
+                }
+                assertEquals(before, archive.entries(permit)); assertEquals(actions, archive.actions(permit))
+                assertEquals(opens, f.provider.opens.size); assertEquals(0, f.provider.writeRequests)
+                assertEquals(0, f.provider.trashWrites); assertEquals(0, f.provider.restoreInserts)
+                val canceled = CancellationSignal().apply { cancel() }
+                assertThrows(android.os.OperationCanceledException::class.java) {
+                    NativeGalleryRecoveryPreview.read(archive, archived, permit, 192, canceled) { }
+                }
+                unlocked = false
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeGalleryRecoveryPreview.read(archive, archived, permit, 192, CancellationSignal()) { }
+                }
+                assertArrayEquals(encoded, File(f.root, "source.bin").readBytes())
+            }
+        }
+    }
+
+    @Test @Config(sdk = [35]) @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun recoveryPreviewRejectsActiveContentBoundsAndWithdrawalAfterDecode() {
+        for (bytes in listOf("<svg/>".toByteArray(), ByteArray(0))) assertThrows(PhotoFolderScopeError::class.java) {
+            NativeGalleryRecoveryPreview.decode(bytes, "images", 192) { }
+        }
+        val pixels = android.graphics.Bitmap.createBitmap(20, 10, android.graphics.Bitmap.Config.ARGB_8888)
+        val bytes = ByteArrayOutputStream().also { pixels.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }.toByteArray(); pixels.recycle()
+        var checks = 0
+        assertThrows(PhotoFolderScopeError::class.java) {
+            NativeGalleryRecoveryPreview.decode(bytes, "images", 192) {
+                if (++checks == 3) throw PhotoFolderScopeError("preview_owner_retired")
+            }
+        }
+        assertEquals(3, checks)
+        assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryRecoveryPreview.decode(bytes, "images", 9000) { } }
+    }
+
     @Test @Config(sdk = [30]) fun actualRecoveryArchiveSurvivesSourceRevocationWithoutBecomingMutationAuthority() {
         Fixture().use { f ->
             val documents = archiveBook(f); var unlocked = true
