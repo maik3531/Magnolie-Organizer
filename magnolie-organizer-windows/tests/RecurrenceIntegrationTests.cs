@@ -7,6 +7,61 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class RecurrenceIntegrationTests
 {
+    internal static Task BoundaryAnchorsAsync()
+    {
+        string[] Definition(string stamp = "00010101T000000", string before = "+0100", string? after = null) => [
+            "BEGIN:VTIMEZONE", "TZID:External/Initial", "BEGIN:STANDARD", "DTSTART:" + stamp,
+            "TZOFFSETFROM:" + before, "TZOFFSETTO:" + (after ?? before), "END:STANDARD", "END:VTIMEZONE"];
+        var zone = new CalendarRecurrence.EmbeddedZone(Definition());
+        TestAssert.That(zone.ToUtc(new DateTime(2026, 3, 28, 10, 0, 0)) == new DateTime(2026, 3, 28, 9, 0, 0),
+            "Historical constant anchor changed the modern event offset.");
+        foreach (var stamp in new[] { "00010101T000000", "99991231T235959" })
+            foreach (var (offset, seconds) in new[] { ("+0100", 3600), ("-0100", -3600), ("+005328", 3208), ("-005328", -3208) })
+            {
+                var current = new CalendarRecurrence.EmbeddedZone(Definition(stamp, offset));
+                foreach (var utc in new[] { new DateTime(2026, 3, 28, 9, 0, 0), new DateTime(1, 1, 2, 12, 0, 0), new DateTime(9999, 12, 30, 12, 0, 0) })
+                {
+                    var wall = utc.AddSeconds(seconds);
+                    TestAssert.That(current.FromUtc(utc) == wall && current.ToUtc(wall) == utc && current.FoldSpan(wall) == TimeSpan.Zero,
+                        "Boundary anchor changed exact offset/seconds or fabricated a fold.");
+                }
+            }
+        foreach (var (stamp, before, after, seconds) in new[] {
+            ("00010101T000000", "+0100", "+0200", 7200), ("99991231T235959", "-0100", "-0200", -3600) })
+        {
+            var current = new CalendarRecurrence.EmbeddedZone(Definition(stamp, before, after));
+            var utc = new DateTime(2026, 3, 28, 9, 0, 0);
+            TestAssert.That(current.FromUtc(utc) == utc.AddSeconds(seconds), "Genuine outside-range transition was moved or clamped.");
+        }
+        foreach (var (stamp, offset, until) in new[] {
+            ("99990101T000000", "+0100", "99991231T235959Z"), ("00010101T000000", "-0100", "00010101T000000Z") })
+        {
+            var lines = Definition(stamp, offset).ToList(); lines.Insert(lines.Count - 2, "RRULE:FREQ=YEARLY;UNTIL=" + until);
+            TestAssert.Throws<InvalidDataException>(() => new CalendarRecurrence.EmbeddedZone(lines.ToArray()), "Unrepresentable local UNTIL escaped as a raw date overflow.");
+        }
+        var yearOne = Definition().ToList(); yearOne.Insert(yearOne.Count - 2, "RRULE:FREQ=YEARLY;UNTIL=00010101T000000Z");
+        TestAssert.That(new CalendarRecurrence.EmbeddedZone(yearOne.ToArray()).ToUtc(new DateTime(2026, 3, 28, 10, 0, 0)).Hour == 9, "Year-one UNTIL lost its four-digit year.");
+        TestAssert.Throws<InvalidDataException>(() => zone.FromUtc(DateTime.MaxValue), "Out-of-domain result was not a clear format error.");
+        var unbounded = Definition("99980101T000000", "-0100").ToList();
+        unbounded.Insert(unbounded.Count - 2, "RRULE:FREQ=YEARLY");
+        TestAssert.That(new CalendarRecurrence.EmbeddedZone(unbounded.ToArray()).FromUtc(new DateTime(9999, 12, 30, 12, 0, 0)).Hour == 11,
+            "Unbounded timezone rule did not terminate correctly at year 9999.");
+
+        var text = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" + string.Join("\r\n", Definition()) +
+            "\r\nBEGIN:VEVENT\r\nUID:synthetic-boundary-event\r\nSUMMARY:Synthetic boundary event\r\n" +
+            "DTSTART;TZID=External/Initial:20260328T100000\r\nDTEND;TZID=External/Initial:20260328T110000\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        var imported = ExchangeCodec.ParseIcs(text, "fixture", TimeZoneInfo.Utc);
+        using var data = JsonDocument.Parse(imported.Termine.ToJsonString());
+        var occurrences = data.RootElement.EnumerateArray().SelectMany(item => CalendarRecurrence.Expand(item,
+            new DateTime(2026, 3, 28), new DateTime(2026, 3, 29), TimeZoneInfo.Utc, false)).ToArray();
+        TestAssert.That(occurrences.Length == 1 && occurrences[0].Start == new DateTime(2026, 3, 28, 9, 0, 0) &&
+            occurrences[0].End == new DateTime(2026, 3, 28, 10, 0, 0), "Codec lost historical-anchor event or changed its exact instant.");
+        var exported = ExchangeCodec.WriteIcs("ics-termine", data.RootElement);
+        TestAssert.That(exported.Skipped == 0 && exported.Text.Contains("DTSTART:00010101T000000") &&
+            exported.Text.Contains("DTSTART;TZID=External/Initial:20260328T100000"), "Codec discarded original timezone/source properties.");
+        return Task.CompletedTask;
+    }
+
     internal static void Probe()
     {
         using var input = JsonDocument.Parse(Console.In.ReadToEnd());

@@ -172,13 +172,18 @@ class CalendarZone(tzinfo):
                 return timedelta(seconds=(1 if m[1] == '+' else -1) * (int(m[2]) * 3600 + int(m[3]) * 60 + int(m[4] or 0)))
             start = date_time(get('DTSTART'), {}, None)[0]
             before, after = offset(get('TZOFFSETFROM')), offset(get('TZOFFSETTO'))
+            def local_until(match):
+                try:
+                    wall = date_time(match[1], {}, None)[0].replace(tzinfo=None) + before
+                except OverflowError:
+                    raise ValueError('Timezone UNTIL is outside the supported date range.') from None
+                return 'UNTIL=' + f'{wall.year:04d}' + wall.strftime('%m%dT%H%M%S')
             rules, dates = [], {start}
             for name, params, value in props:
                 if name == 'RRULE':
                     # Observance UNTIL is UTC; the transition DTSTART is local
                     # under TZOFFSETFROM, not under the zone being constructed.
-                    value = re.sub(r'UNTIL=(\d{8}T\d{6}Z)', lambda m: 'UNTIL=' +
-                        (date_time(m[1], {}, None)[0].replace(tzinfo=None) + before).strftime('%Y%m%dT%H%M%S'), value.upper())
+                    value = re.sub(r'UNTIL=(\d{8}T\d{6}Z)', local_until, value.upper())
                     rules.append(Rule(value, start))
                 elif name == 'RDATE':
                     dates.update(date_time(v, params, None)[0] for v in value.split(','))
@@ -186,7 +191,10 @@ class CalendarZone(tzinfo):
         if not self.observances:
             raise ValueError('Missing timezone observance.')
         self.offsets = sorted({v for o in self.observances for v in o[1:3]}, reverse=True)
-        self.initial = min(self.observances, key=lambda o: o[0] - o[1])[1]
+        # A UTC transition may lie just outside datetime's domain even though
+        # every requested event is representable. Relative durations preserve
+        # exact ordering/offsets there, without clamping or moving transitions.
+        self.initial = min(self.observances, key=lambda o: (o[0] - datetime.min) - o[1])[1]
         self.lock = threading.RLock()
         self.through = 0
         self.transitions = []
@@ -204,7 +212,7 @@ class CalendarZone(tzinfo):
                 for rule in rules:
                     values.update(rule.between(start, upper))
                 for value in values:
-                    at = value - before
+                    at = (value - datetime.min) - before
                     if at in transitions and transitions[at] != (before, after):
                         raise ValueError('Conflicting timezone transitions.')
                     transitions[at] = (before, after)
@@ -214,8 +222,8 @@ class CalendarZone(tzinfo):
             self.instants = [v[0] for v in self.transitions]
             self.through = through
 
-    def _offset_at(self, utc):
-        self._ensure(utc.year)
+    def _offset_at(self, utc, year):
+        self._ensure(year)
         i = bisect.bisect_right(self.instants, utc) - 1
         return self.transitions[i][2] if i >= 0 else self.initial
 
@@ -223,20 +231,25 @@ class CalendarZone(tzinfo):
         if value is None:
             return None
         wall = value.replace(tzinfo=None)
-        valid = [offset for offset in self.offsets if self._offset_at(wall - offset) == offset]
+        relative = wall - datetime.min
+        valid = [offset for offset in self.offsets if self._offset_at(relative - offset, wall.year) == offset]
         if valid:
             return valid[-1 if value.fold else 0]
         for at, before, after in self.transitions:
-            if after > before and at + before <= wall < at + after:
+            if after > before and at + before <= relative < at + after:
                 return after if value.fold else before
         raise ValueError('Unresolved timezone wall time.')
 
     def fromutc(self, value):
         utc = value.replace(tzinfo=None)
-        offset = self._offset_at(utc)
-        i = bisect.bisect_right(self.instants, utc) - 1
-        fold = i >= 0 and self.transitions[i][1] > offset and utc < self.transitions[i][0] + self.transitions[i][1] - offset
-        return (utc + offset).replace(tzinfo=self, fold=int(fold))
+        relative = utc - datetime.min
+        offset = self._offset_at(relative, utc.year)
+        i = bisect.bisect_right(self.instants, relative) - 1
+        fold = i >= 0 and self.transitions[i][1] > offset and relative < self.transitions[i][0] + self.transitions[i][1] - offset
+        try:
+            return (utc + offset).replace(tzinfo=self, fold=int(fold))
+        except OverflowError:
+            raise ValueError('Calendar instant is outside the supported date range.') from None
 
     def dst(self, value):
         return timedelta(0)
