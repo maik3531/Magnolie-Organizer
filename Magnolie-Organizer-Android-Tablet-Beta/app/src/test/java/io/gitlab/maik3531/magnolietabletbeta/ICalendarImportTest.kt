@@ -156,6 +156,18 @@ class ICalendarImportTest {
         rejected { decode(task.replace("\"v\":1", "\"v\":true")) }
         rejected { decode(task.replace("\"source\"", "source")) }
     }
+    @Test fun dealiasedTaskUIDsRemainDistinctAcrossSourcesAndRejectSameSourceDuplicates() {
+        fun task(source: String): String {
+            val alias = "urn:magnolie:task:" + MessageDigest.getInstance("SHA-256").digest((source + "\u0000shared").toByteArray()).joinToString("") { "%02x".format(it.toInt() and 255) }
+            val identity = JSONObject().put("v", 1).put("source", source).put("uid", "shared").put("parent", "").put("parentSource", "")
+            val escaped = identity.toString().replace("\\", "\\\\").replace(",", "\\,")
+            return "BEGIN:VTODO\r\nUID:$alias\r\nSUMMARY:Task $source\r\nX-MAGNOLIE-TASK-IDENTITY:$escaped\r\nEND:VTODO\r\n"
+        }
+        val result = decode(task("A") + task("B"))
+        assertEquals(listOf("shared", "shared"), result.tasks.map { it.getString("uid") })
+        assertEquals(listOf("A", "B"), result.tasks.map { it.getString("icsQuelleId") })
+        rejected { decode(task("A") + task("A")) }
+    }
     @Test fun durationUsesCalendarDaysAcrossDSTAndExactHoursSeparately() {
         val start = zonedEvent("20260328T100000")
         val day = decode(seasonalZone + start.replace("DURATION:PT1H", "DURATION:P1D")).appointments.single()

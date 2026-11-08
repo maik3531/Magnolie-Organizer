@@ -608,7 +608,10 @@ object ICalendarImport {
             projected += (itemBytes + zoneBytes) * 6 + 8192
             requireImport(projected <= maximumProjectedBytes, "Projected calendar data exceeds the bounded import size; nothing was imported.")
             val (collection, record) = componentRecord(component, complexUIDs, resolver)
-            requireImport(identities.add(collection + "\u0000" + record.getValue("uid")), "Duplicate calendar item identity; nothing was imported.")
+            // Dealiased external task UIDs may intentionally be equal across
+            // accounts. Preserve their original source in the identity key.
+            val identitySource = record["icsQuelleId"] as? String ?: if (qualified) source else ""
+            requireImport(identities.add(collection + "\u0000" + identitySource + "\u0000" + record.getValue("uid")), "Duplicate calendar item identity; nothing was imported.")
             if (qualified) { record["icsQuelleName"] = label; if (!record.containsKey("icsQuelleId")) record["icsQuelleId"] = source }
             if (collection == "aufgaben" && record["icsElternQuelleId"] == "" && component.property("X-MAGNOLIE-TASK-IDENTITY") == null) record["icsElternQuelleId"] = record["icsQuelleId"] ?: ""
             if (zoneBlocks.isNotEmpty()) record["icsTimezones"] = zoneBlocks
