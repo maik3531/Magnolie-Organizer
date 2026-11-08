@@ -80,6 +80,10 @@ internal sealed partial class TelefonConnection
         internal void Revoke() { lock (gate) revoked = true; }
     }
     private NativeMediaUiAuthority? nativeMediaUiAuthority;
+    private readonly string nativeMediaUiStartEpoch = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+    internal string NativeMediaSharedUiVersion(JsonObject intent)
+        => Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(new JsonObject {
+            ["channel"] = nativeMediaUiStartEpoch, ["settings"] = intent.DeepClone() }))).ToLowerInvariant();
     internal void RevokeNativeMediaUiConsent() => nativeMediaUiAuthority?.Revoke();
 
     internal async Task PrepareNativeMediaUiAsync(Func<NativeBookSaveState?> savedBook, string mediaType, CancellationToken token)
@@ -295,12 +299,59 @@ internal sealed partial class TelefonCoordinator
             var currentPeer = store.LoadPeers().Single(value => value.Id == peerId);
             result["shared_settings"] = store.NativeMediaSharedSettingsView(peerId, currentPeer.PublicKey);
             result["shared_matched"] = connection.MediaSharedSettingsReady;
+            // Availability/version hints only, never native file authority.
+            result["shared_runtime_ready"] = connection.MediaSharedControlsReady;
+            var intent = store.ReadNativeMediaSharedSettings(peerId, currentPeer.PublicKey);
+            if (intent is not null && connection.MediaSharedSettingsReady && NativeMediaSharedUiChoiceAvailable(peerId, intent))
+                result["shared_start_version"] = connection.NativeMediaSharedUiVersion(intent);
             var receive = store.ReadNativeMediaReceiveConsent(peerId);
             result["receive_consent"] = new JsonObject { ["granted"] = receive.Granted, ["version"] = receive.Version };
             var send = store.ReadNativeMediaSendConsent(peerId);
             result["send_consent"] = new JsonObject { ["photos"] = send.Photos, ["videos"] = send.Videos, ["version"] = send.Version };
         }
         return result;
+    }
+
+    private bool NativeMediaSharedUiChoiceAvailable(string peerId, JsonObject intent)
+    {
+        var receive = store.ReadNativeMediaReceiveConsent(peerId);
+        var send = store.ReadNativeMediaSendConsent(peerId);
+        return new[] { "images", "video" }.Any(kind =>
+            receive.Granted && MediaSyncSettings.TransferRequestedFor(intent, kind, toPhone: false) ||
+            send.Explicit && (kind == "images" ? send.Photos : send.Videos) && MediaSyncSettings.TransferRequestedFor(intent, kind, toPhone: true));
+    }
+
+    internal async Task<string> DispatchNativeMediaUiSharedAsync(NativeMediaUiRequest request, Func<object, Task> reply, CancellationToken token)
+    {
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var pass = RunNativeMediaUiSharedAsync(request, lifetime.Token);
+        try { await reply(new { requestId = request.RequestId, device_id = request.PeerId, ok = true, state = "running" }); }
+        catch
+        {
+            lifetime.Cancel();
+            try { await pass; } catch { /* Retain the original reply failure, after actual worker exit. */ }
+            throw;
+        }
+        var phase = await pass;
+        await reply(new { requestId = request.RequestId, device_id = request.PeerId, ok = true, state = phase });
+        return phase;
+    }
+
+    internal Task<string> RunNativeMediaUiSharedAsync(NativeMediaUiRequest request, CancellationToken token)
+    {
+        if (request.Action != "sync_shared" || !DeviceFileControl.Hash(request.Version ?? ""))
+            throw DeviceFileControl.Error("file_media_ui_request_invalid");
+        token.ThrowIfCancellationRequested();
+        var connection = NativeMediaOnlineConnection(request.PeerId);
+        var peer = store.LoadPeers().Single(value => value.Id == request.PeerId);
+        var intent = store.ReadNativeMediaSharedSettings(request.PeerId, peer.PublicKey);
+        if (intent is null || !connection.MediaSharedSettingsReady || connection.NativeMediaSharedUiVersion(intent) != request.Version)
+            throw DeviceFileControl.Error("file_media_manual_intent_changed");
+        if (!NativeMediaSharedUiChoiceAvailable(request.PeerId, intent))
+            throw DeviceFileControl.Error("file_media_manual_choice_required");
+        // Capture only native state; browser input carries neither intent nor grants.
+        NativeMediaLocalBookPermit().Require();
+        return RunNativeMediaInventoryOnceAsync(request.PeerId, intent.DeepClone().AsObject(), token, connection);
     }
 
     internal async Task<JsonObject> ChangeNativeMediaUiSharedSettingAsync(string peerId, string field, JsonNode value, string version)

@@ -262,6 +262,9 @@ internal static class DeviceFileSourceSendTests
     }
 
     internal static Task WindowsNativeUiOutgoingPassAsync() => NativeUiOutgoingPassAsync("end");
+    internal static Task WindowsSharedUiRequestPassAsync() => NativeUiOutgoingPassAsync("shared_ui");
+    internal static Task WindowsSharedUiRequestCancelAsync() => NativeUiOutgoingPassAsync("shared_ui_cancel");
+    internal static Task WindowsSharedUiReplyFailureAsync() => NativeUiOutgoingPassAsync("shared_ui_reply_failure");
     internal static Task WindowsNativeUiSendWithdrawalAsync() => NativeUiOutgoingPassAsync("withdraw");
     internal static Task WindowsNativeUiSendCloseAsync() => NativeUiOutgoingPassAsync("close");
     private static async Task NativeUiOutgoingPassAsync(string scenario)
@@ -292,7 +295,48 @@ internal static class DeviceFileSourceSendTests
         DeviceFileConnectionRunsTests.Clear(f);
         var intent = f.Native.Store.ReadNativeMediaSharedSettings(f.Native.Peer.Id, f.Native.Peer.PublicKey)!;
         using var stop = new CancellationTokenSource();
-        var pass = coordinator.RunNativeMediaManualOnceAsync(f.Native.Peer.Id, intent, stop.Token);
+        Task<string> pass;
+        var uiReplies = new List<JsonObject>();
+        if (scenario.StartsWith("shared_ui", StringComparison.Ordinal))
+        {
+            var status = coordinator.NativeMediaUiStatus(f.Native.Peer.Id);
+            TestAssert.That(status["shared_runtime_ready"]!.GetValue<bool>() && status["shared_matched"]!.GetValue<bool>() &&
+                status["receive_consent"]!["granted"]!.GetValue<bool>() == false,
+                "The native shared UI hint required RECEIVE or fabricated an agreement.");
+            var request = new JsonObject { ["cmd"] = "telefon_medien", ["requestId"] = "shared-ui-request", ["device_id"] = f.Native.Peer.Id,
+                ["action"] = "sync_shared", ["version"] = status["shared_start_version"]!.DeepClone() };
+            TestAssert.That(f.Native.Connection.NativeMediaSharedUiVersion(intent) == request["version"]!.GetValue<string>(),
+                "Start hint did not name the actual connection's intent.");
+            using (var otherStream = new MemoryStream())
+            using (var otherConnection = f.Native.NewConnection(otherStream))
+            {
+                var foreign = request.DeepClone().AsObject(); foreign["version"] = otherConnection.NativeMediaSharedUiVersion(intent);
+                TestAssert.That(foreign["version"]!.GetValue<string>() != request["version"]!.GetValue<string>(),
+                    "A shared-start version was reusable on a different connection with identical peer/settings.");
+                TestAssert.Throws<InvalidDataException>(() => coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(foreign), stop.Token),
+                    "Current connection accepted another channel's shared-start version.");
+            }
+            foreach (var field in new[] { "media_type", "catalog_id", "album_id", "granted", "settings", "path" })
+            {
+                var forged = request.DeepClone().AsObject(); forged[field] = "forged";
+                TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(forged), "Shared start accepted browser authority: " + field);
+            }
+            foreach (var version in new string?[] { null, "invalid" })
+            {
+                var invalid = request.DeepClone().AsObject(); invalid["version"] = version;
+                TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(invalid), "Shared start accepted a missing/invalid version.");
+            }
+            var stale = request.DeepClone().AsObject(); stale["version"] = new string('0', 64);
+            TestAssert.Throws<InvalidDataException>(() => coordinator.RunNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(stale), stop.Token),
+                "Stale shared-start version reached the worker.");
+            pass = coordinator.DispatchNativeMediaUiSharedAsync(NativeMediaUiRequest.Parse(request), response =>
+            {
+                uiReplies.Add(System.Text.Json.JsonSerializer.SerializeToNode(response)!.AsObject());
+                if (scenario == "shared_ui_reply_failure") throw new IOException("Synthetic shared UI reply failure");
+                return Task.CompletedTask;
+            }, stop.Token);
+        }
+        else pass = coordinator.RunNativeMediaManualOnceAsync(f.Native.Peer.Id, intent, stop.Token);
         try
         {
             var control = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind);
@@ -301,7 +345,7 @@ internal static class DeviceFileSourceSendTests
                 f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0 &&
                 !DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(frame => frame["kind"]!.GetValue<string>() == MediaOfferEnvelope.Kind),
                 "Native SEND substituted the control owner, inherited RECEIVE, skipped the dialog or offered data before bilateral ACK.");
-            if (scenario is "withdraw" or "close")
+            if (scenario is "withdraw" or "close" or "shared_ui_cancel" or "shared_ui_reply_failure")
             {
                 if (scenario == "withdraw")
                 {
@@ -314,11 +358,15 @@ internal static class DeviceFileSourceSendTests
                     TestAssert.That(!withdrawn.Grants.SendFiles && !withdrawn.Grants.ReceiveFiles && withdrawn.Grants.Revision > packet.Grants.Revision &&
                         withdrawn.SessionEpoch == packet.SessionEpoch, "Withdrawal substituted the session or changed bits without a newer revision.");
                 }
+                else if (scenario.StartsWith("shared_ui", StringComparison.Ordinal)) stop.Cancel();
                 else f.Native.Connection.Dispose();
                 try { await pass.WaitAsync(TimeSpan.FromSeconds(5)); throw new Exception("Native outgoing preparation survived withdrawal/close."); }
                 catch (Exception error) when (error is OperationCanceledException or InvalidDataException) { }
+                catch (IOException error) when (scenario == "shared_ui_reply_failure" && error.Message == "Synthetic shared UI reply failure") { }
                 TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0 && File.ReadAllBytes(Path.Combine(f.Root, "first.jpg")).SequenceEqual(MediaBytes),
                     "Aborted native SEND preparation reserved a cache or changed source bytes.");
+                if (scenario.StartsWith("shared_ui", StringComparison.Ordinal)) TestAssert.That(uiReplies.Count == 1 && uiReplies[0]["state"]!.GetValue<string>() == "running",
+                    "Canceled UI dispatch announced a successful content pass.");
                 return;
             }
             f.Phone.ObserveRemote(packet, f.RemotePeer);
@@ -333,6 +381,26 @@ internal static class DeviceFileSourceSendTests
                 "The actual normal native-UI source path failed without RECEIVE or replaced the established control session.");
             TestAssert.That(!DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(frame => frame["kind"]!.GetValue<string>() == DeviceFileSources.RequestKind),
                 "Native PC-only SEND discovered/read/imported phone sources.");
+            if (scenario == "shared_ui")
+            {
+                TestAssert.That(uiReplies.Count == 2 && uiReplies[0]["state"]!.GetValue<string>() == "running" &&
+                    uiReplies[1]["state"]!.GetValue<string>() == "content_pass" && uiReplies.All(reply =>
+                        reply["requestId"]!.GetValue<string>() == "shared-ui-request" && reply["device_id"]!.GetValue<string>() == f.Native.Peer.Id),
+                    "Actual shared UI dispatch did not retain response correlation through real source END.");
+                var current = coordinator.NativeMediaUiStatus(f.Native.Peer.Id);
+                var oldRequest = NativeMediaUiRequest.Parse(new JsonObject { ["cmd"] = "telefon_medien", ["requestId"] = "withdrawn-ui-start",
+                    ["device_id"] = f.Native.Peer.Id, ["action"] = "sync_shared", ["version"] = current["shared_start_version"]!.DeepClone() });
+                var currentConsent = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+                coordinator.ConfirmNativeMediaUiSendConsent(f.Native.Peer.Id, currentConsent.Version, false, false,
+                    () => throw new Exception("Withdrawing SEND must not ask positive confirmation."));
+                var wireBytes = f.Native.Stream.Length;
+                TestAssert.That(coordinator.NativeMediaUiStatus(f.Native.Peer.Id)["shared_start_version"] is null,
+                    "Shared settings manufactured a manual-start hint after all relevant native rights were withdrawn.");
+                TestAssert.Throws<InvalidDataException>(() => coordinator.RunNativeMediaUiSharedAsync(oldRequest, stop.Token),
+                    "A formerly valid UI request bypassed withdrawn independent SEND consent.");
+                TestAssert.That(f.Native.Stream.Length == wireBytes && File.ReadAllBytes(Path.Combine(f.Root, "first.jpg")).SequenceEqual(MediaBytes),
+                    "Rejected shared UI start emitted new wire data or changed the original source.");
+            }
         }
         finally { stop.Cancel(); try { await pass; } catch { } }
     }

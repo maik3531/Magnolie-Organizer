@@ -166,6 +166,17 @@ internal sealed partial class BridgeDispatcher
                     if (stopping) { try { running!.Cancel(); } catch (ObjectDisposedException) { stopping = false; } }
                     stopping |= telefon.StopNativeMediaAutomatic(peerId);
                     await Reply(new { requestId, device_id = peerId, ok = true, state = stopping ? "stopping" : "idle" }); return;
+                case "sync_shared":
+                    using (var lifetime = NetworkDeadline(TimeSpan.FromHours(2)))
+                    {
+                        if (!nativeMediaUiRuns.TryAdd(peerId, lifetime)) throw DeviceFileControl.Error("file_media_native_worker_busy");
+                        try
+                        {
+                            await telefon.DispatchNativeMediaUiSharedAsync(request, Reply, lifetime.Token);
+                        }
+                        finally { nativeMediaUiRuns.TryRemove(peerId, out _); }
+                    }
+                    return;
                 case "discover":
                 case "page":
                     using (var deadline = NetworkDeadline(TimeSpan.FromMinutes(2)))

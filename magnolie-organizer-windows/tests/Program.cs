@@ -359,6 +359,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Mapped export / Windows actual manual pass versions and unchanged dedup", DeviceFileSourceSendTests.WindowsMappedOutgoingPassAsync);
     runner.Add("Mapped export / Windows actual WiFi automatic pass and unchanged dedup", DeviceFileSourceSendTests.WindowsMappedAutomaticOutgoingPassAsync);
     runner.Add("Mapped native UI export / Windows own SEND dialog control ACK and source END without RECEIVE", DeviceFileSourceSendTests.WindowsNativeUiOutgoingPassAsync);
+    runner.Add("Shared UI request export / Windows strict request native status and source END without RECEIVE", DeviceFileSourceSendTests.WindowsSharedUiRequestPassAsync);
+    runner.Add("Shared UI request export / Windows cancel before control ACK preserves source", DeviceFileSourceSendTests.WindowsSharedUiRequestCancelAsync);
+    runner.Add("Shared UI reply failure / Windows cancels and drains before releasing UI dispatch", DeviceFileSourceSendTests.WindowsSharedUiReplyFailureAsync);
     runner.Add("Mapped native UI export / Windows SEND-only withdrawal while awaiting actual peer ACK", DeviceFileSourceSendTests.WindowsNativeUiSendWithdrawalAsync);
     runner.Add("Mapped native UI export / Windows close while awaiting actual peer ACK", DeviceFileSourceSendTests.WindowsNativeUiSendCloseAsync);
     runner.Add("Mapped export / Windows import-only and unknown content before output", DeviceFileSourceSendTests.WindowsMappedOutgoingRejectsScopeAndUnknownBytesAsync);

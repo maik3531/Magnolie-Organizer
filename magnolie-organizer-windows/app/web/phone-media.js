@@ -153,7 +153,9 @@
       stop.disabled = !transfer;
       if (refresh) refresh.disabled = false;
       albumChoice.disabled = busy || !catalog;
-      if (manualSync) manualSync.disabled = busy || !enabled || !runtimeReady || !selectedAlbum || !catalog || native?.metadata_ready?.[kind] !== true;
+      if (manualSync) manualSync.disabled = busy || !enabled || !runtimeReady || (shared
+        ? native.shared_matched !== true || !/^[a-f0-9]{64}$/.test(native.shared_start_version || "")
+        : !selectedAlbum || !catalog || native?.metadata_ready?.[kind] !== true);
       for (const entry of rightActions) {
         entry.row.hidden = native?.metadata_ready?.[entry.mediaType] !== true;
         entry.button.disabled = busy || !enabled || !runtimeReady || !(entry.mediaType === "video" ? videos.checked : photos.checked);
@@ -187,10 +189,10 @@
         toggle(); pumpThumbnails();
       }, 65000);
       if (action !== "status" && action !== "cancel") busy = true;
-      if (action === "sync") { transfer = true; status.textContent = t("Waiting for native media status"); }
-      if (action === "sync" || action === "discover") review.replaceChildren();
+      if (action === "sync" || action === "sync_shared") { transfer = true; status.textContent = t("Waiting for native media status"); }
+      if (["sync", "sync_shared", "discover"].includes(action)) review.replaceChildren();
       toggle();
-      if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (action === "sync") transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
+      if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (["sync", "sync_shared"].includes(action)) transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
     };
     const settings = () => {
       if (skip.indeterminate) {
@@ -248,8 +250,12 @@
     button("Read media recycle bin", () => request("trash_list", { after: 0 }), trashArea);
     const moreTrash = button("Next entries", () => Number.isSafeInteger(nextTrash) && request("trash_list", { after: nextTrash }), trashArea); moreTrash.hidden = true;
     const activate = button("Enable", () => request("activate"), root); activate.hidden = true;
-    manualSync = button("Synchronize now", () => selectedAlbum && catalog && request("sync", {
-      media_type: kind, version: catalog.version, catalog_id: catalog.id, album_id: selectedAlbum }), manualArea);
+    manualSync = button("Synchronize now", () => {
+      if (native?.shared_settings) {
+        if (!manualSync.disabled) request("sync_shared", { version: native.shared_start_version });
+      } else if (selectedAlbum && catalog) request("sync", {
+        media_type: kind, version: catalog.version, catalog_id: catalog.id, album_id: selectedAlbum });
+    }, manualArea);
     function receive(reply, action, sequence, data) {
       if (action === "trash_thumbnail" || action === "trash_preview") {
         busy = false;
@@ -314,7 +320,7 @@
         busy = true; toggle(); status.textContent = t(reply.state === "stopping" ? "Stopping… Waiting for the native operation to end." : "Comparing media content… The total is not known yet."); return;
       }
       busy = false;
-      if (action === "sync" || reply.state === "idle") transfer = false;
+      if (["sync", "sync_shared"].includes(action) || reply.state === "idle") transfer = false;
       if (!reply.ok) {
         restoreSharedInputs();
         status.textContent = t(reply.state === "partial" ? "Stopped or incomplete. Original files and recovery history are retained." : "Media operation paused. No completion was confirmed.") + (reply.error ? " · " + String(reply.error) : "");
@@ -401,6 +407,9 @@
         status.textContent = t("Check the access request on your phone, then read the albums again.");
       } else if (action === "cancel" && reply.state === "idle") {
         status.textContent = t("No active media operation.");
+      } else if (action === "sync_shared") {
+        status.textContent = t(reply.state === "content_pass" ? "Content comparison finished." : "Content comparison needs review.") +
+          " · " + t("Deletions are not synchronized yet.");
       } else if (action === "sync") {
         review.replaceChildren();
         status.textContent = t(reply.state === "review" ? "Content comparison needs review." : "Content comparison finished.") +

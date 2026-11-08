@@ -726,6 +726,17 @@ I/O-Handles vor tatsächlichem END zu schließen. Späte Vorschaubilder werden i
 geschlossenen Bereich verworfen statt erneut angezeigt. Dies ersetzt weder
 Aufbewahrungs-/Leeren-Funktion noch native Geräteabnahme.
 
+Der Windows-Handstart eines gemeinsamen Abgleichs verwendet `sync_shared`
+mit einer ausschließlich nativ erzeugten, an aktuelle Verbindung und vollständige
+Einstellungsregister gebundenen Version. Er benötigt kein ausgewähltes
+Telefonalbum, wenn nur PC→Telefon angefordert ist. Die strikte Browsergrammatik
+akzeptiert dabei weder Pfade, Kataloge, Einstellungen noch Berechtigungsflags.
+Native Kanal-ACK/Übereinstimmung, unabhängige SEND-/RECEIVE-Zustimmung und das
+aktuell gespeicherte Buch werden vor dem bestehenden gemeinsamen Lauf erneut
+geprüft. Ein Anzeigehinweis erteilt keine Datei- oder Android-Leserechte.
+Stop bleibt während des Laufs erreichbar; bei fehlgeschlagener Startantwort
+wird der native Lauf abgebrochen und sein tatsächliches Ende abgewartet.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

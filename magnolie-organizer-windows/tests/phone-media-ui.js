@@ -360,5 +360,32 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   values.enabled = false; sharedReply(); await tick();
   assert.equal(last().action, "status", "A native change during an edit must be refreshed once that edit finishes");
   sharedReply(); assert(!master.checked);
+  values.enabled = true; values.direction = "pc_to_phone"; granted = false; sendPhotos = true;
+  const startVersion = "9".repeat(64);
+  const sharedStart = [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Synchronize now");
+  for (const unavailable of [
+    { shared_matched: false, shared_runtime_ready: true, shared_start_version: startVersion },
+    { shared_matched: true, shared_runtime_ready: false, shared_start_version: startVersion },
+    { shared_matched: true, shared_runtime_ready: true },
+    { shared_matched: true, shared_runtime_ready: true, shared_start_version: "bad" }
+  ]) {
+    sharedRefresh.click(); await tick(); sharedReply(unavailable);
+    assert(sharedStart.disabled); const before = messages.length;
+    sharedStart.dispatchEvent(new w.Event("click")); await tick(); assert.equal(messages.length, before);
+  }
+  sharedRefresh.click(); await tick(); sharedReply({ shared_matched: true, shared_runtime_ready: true, shared_start_version: startVersion });
+  assert(!sharedStart.disabled, "Shared PC-only start must not require a phone catalog/album or RECEIVE");
+  saveAllowed = false; const beforeStartSaveFailure = messages.length;
+  sharedStart.click(); await tick(); assert.equal(messages.length, beforeStartSaveFailure); saveAllowed = true;
+  const startBefore = messages.length;
+  sharedStart.click(); await tick();
+  assert.equal(messages.length, startBefore + 1);
+  assert.deepEqual(last(), { cmd: "telefon_medien", requestId: last().requestId, device_id: peer,
+    action: "sync_shared", version: startVersion });
+  reply({ state: "running" }); assert(sharedStart.disabled);
+  assert(![...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Stop").disabled);
+  reply({ state: "content_pass" });
+  assert(!sharedStart.disabled);
+  assert(sharedPanel.textContent.includes("Content comparison finished."));
   console.log("Native media UI: legacy guards, native path-only choice, manual/video OFF, album/stop/recovery, shared master OFF, independent field edits/local rights, requested order, no activation-start and failed-choice rollback PASS");
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => dom.window.close());
