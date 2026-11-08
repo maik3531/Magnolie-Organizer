@@ -37,10 +37,36 @@ visuelle Vorschau bietet:
 Der Baustein besitzt keine native Brücke, keine Verbindungs-/Berechtigungs-API,
 keine Speicherung und keine eigene Uhr. Vorschauauswahlen ändern weder Notizen
 noch Synchronisierungszustände und starten keine Kamera oder Spiegelung.
-Die Symbolvorschau bleibt derzeit innerhalb der Entwickleransicht: **die echte
-native Tray-Verbindungsanzeige und ihre abgesicherte OS-Testübersteuerung sind
-noch nicht angeschlossen**. Der unveränderte native Tray-Zustand wird damit nicht
-als bereits umgesetzte Verbindungsfarbanzeige ausgegeben.
+Die Symbol-Testvorschau bleibt derzeit innerhalb der Entwickleransicht; eine
+abgesicherte Testübersteuerung des echten OS-Trays ist noch nicht angeschlossen.
+
+## Native Linux-Verbindungsanzeige
+
+Der Linux-Tray liest inzwischen die tatsächlichen nativen Notes-Transportzustände
+und eine eigene schmale KDE-Verbindungsprojektion. Bloße Kopplung, Discovery,
+fremde Zertifikate oder beendete Worker zählen nicht als Verbindung. Der normale
+KDE-Statusaufruf wird hierfür ausdrücklich nicht verwendet, da er den direkten
+Transport starten könnte. Die neue Projektion startet keinen Dienst und erzeugt
+keine Identität: direkt prüft sie aktuelle bestätigte TLS-Besitzer samt Zertifikat,
+beim Systemdienst fragt sie mit `NO_AUTO_START` nur gekoppelte erreichbare Geräte
+ab und prüft den unveränderten Dienstbesitzer. Der lokale IPC-Aufruf akzeptiert
+keine vom Browser vorgegebenen Verbindungswerte.
+
+Die Blüte wird bei Notes weiß, bei KDE gelb und bei beiden orange. Goldrahmen und
+das tatsächliche Buch bleiben erhalten; ohne Verbindung/Aktivität wird exakt der
+bisherige ursprüngliche Icon-Name verwendet. Synchronisierungspfeile bleiben
+unabhängig von der Farbe. Zusätzlich zum vorhandenen echten Medienworkerstatus
+ist der tatsächlich laufende allgemeine Syncworker berücksichtigt; dessen Ende
+versteckt keinen anderen weiterhin laufenden Medienworker.
+
+KDE-Verbindungs-/Dienstbesitzerereignisse sowie Notes-Ereignisse veranlassen eine
+frische native Abfrage, statt veraltete Ereignisnutzlasten als Zustand zu nehmen.
+Native D-Bus-Abonnements werden beim Beenden entfernt. Die Vektordarstellung kann
+eine Kamera anstelle der Blüte oder ein Smartphone anstelle des ganzen Buchs
+zeichnen; derzeit fehlen weiterhin echte Kamera-/Spiegelungsproducer. Dafür wird
+kein aktiver Zustand oder funktionierender Backendbetrieb erfunden.
+
+**Die entsprechende native Windows-Trayanbindung bleibt offen.**
 
 ## Nachweise und offene Abnahme
 
@@ -51,7 +77,13 @@ Wochenmotiv, Entwicklervorschau, Größenbegrenzung, unveränderte Daten/keine n
 Befehle und Zurücksetzen beim Sperren/Deaktivieren. Die bestehenden vollständigen
 Linux-JS-Prüfungen und Desktop-Zustandsregressionen bestehen ebenfalls.
 
-Das ist keine native Tray-/installierte GUI-/Paketabnahme. Die neuen zusätzlichen
+Zusätzliche Linux-Prüfungen lesen native Projektions-/IPCpfade und dekodieren die
+wirklichen erzeugten SVGs als 32-Pixel-Raster. Sie prüfen die Farbkombinationen,
+unveränderten Rahmen, Ereignisfrische, Workerende und Beibehalten des ursprünglichen
+Icons. Bestehende KDE-Pairing-/Verbindungsregressionen bestehen ebenfalls.
+
+Das ist keine installierte Tray-/GUI-/Paketabnahme. Die neuen zusätzlichen
 Vorschaubegriffe sind derzeit deutsch/englisch enthalten; weitere Kataloge und
-eine visuelle native Abnahme bleiben offen, ebenso die native Verbindung zum
-Tray. Tatsächliche Kamera-/Spiegelungsbereitschaft wird nicht freigeschaltet.
+eine visuelle native Abnahme bleiben offen, ebenso die Windows-Trayanbindung
+und native OS-Testübersteuerung. Tatsächliche Kamera-/Spiegelungsbereitschaft
+wird nicht freigeschaltet.

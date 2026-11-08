@@ -782,7 +782,7 @@ def _request_shape(operation, arguments):
     if not isinstance(arguments, dict):
         raise IPCError("operation arguments must be an object")
     allowed = {
-        "ping": set(), "status": {"timeout"}, "discover": {"timeout"},
+        "ping": set(), "status": {"timeout"}, "tray_connection_state": set(), "discover": {"timeout"},
         "get_settings": set(), "set_settings": {"settings"},
         "event_cursor": set(), "poll_events": {"after", "timeout", "subscriber"},
         "gui_subscribe": {"subscriber"}, "gui_unsubscribe": {"subscriber"},
@@ -1903,10 +1903,13 @@ class IPCServer:
                     if operation == "configure_receive":
                         arguments = dict(arguments, file_mode="confirm")
                     if self.backend is None:
-                        if operation != "status":
+                        if operation == 'tray_connection_state':
+                            result = {'connected': False, 'count': 0}
+                        elif operation != "status":
                             raise IPCError(_("KDE Connect is unavailable; other background services remain active."))
-                        result = {"available": False, "listening": False,
-                                  "reason": "transport_unavailable"}
+                        else:
+                            result = {"available": False, "listening": False,
+                                      "reason": "transport_unavailable"}
                     elif operation in ("begin_pairing", "complete_pairing", "confirm_pairing", "mcp_action"):
                         with self._mutation_lock:
                             if self.setup_sessions.connecting_transport == "kdeconnect":
@@ -2276,6 +2279,9 @@ class KDEConnectProxy:
 
     def status(self, timeout=0.25):
         return self._call("status", timeout=timeout)
+
+    def tray_connection_state(self):
+        return ipc_request('tray_connection_state', {}, self.path, timeout=1)
 
     def discover(self, timeout=0.7):
         return self._call("discover", timeout=timeout)

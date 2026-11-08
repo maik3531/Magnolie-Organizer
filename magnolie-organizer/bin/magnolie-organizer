@@ -11725,7 +11725,7 @@ def planer_ods_inhalte_pruefen(inhalte, zeilen, spalten):
     return ausgabe
 
 
-def magnolie_logo_pfad():
+def magnolie_logo_pfad(vector=False):
     hier = os.path.dirname(os.path.abspath(__file__))
     kandidaten = [
         os.path.join(hier, "..", "symbole", "128x128", "magnolie-organizer.png"),
@@ -11735,17 +11735,55 @@ def magnolie_logo_pfad():
         os.path.join(hier, "..", "symbole", "magnolie-organizer.svg"),
         "/usr/share/icons/hicolor/scalable/apps/magnolie-organizer.svg",
     ]
+    if vector:kandidaten.sort(key=lambda pfad:not pfad.endswith('.svg'))
     return next((os.path.abspath(pfad) for pfad in kandidaten
                   if os.path.isfile(pfad)), "")
 
 
-def tray_medien_svg(logo, synchronisieren=False, kamera=False):
-    """Keep the actual book; independent activity marks stay on its cover."""
+def tray_verbindungsstand(telefon, kde):
+    """Native current connections only, never stored pairing or discovery."""
+    peers = telefon.get('peers') if isinstance(telefon, dict) else None
+    notes = isinstance(peers, (list, tuple)) and any(isinstance(peer, dict) and
+        peer.get('state') in ('online_wifi', 'online_bluetooth') for peer in peers)
+    verbunden = isinstance(kde, dict) and kde.get('connected') is True and type(kde.get('count')) is int and kde['count'] > 0
+    return notes, verbunden
+
+
+def tray_kde_verbindungsstand():
+    # status() may start a transport; this narrow passive projection must not.
+    backend = globals().get('_KDECONNECT_BACKEND')
+    try:return backend.tray_connection_state() if backend is not None else {}
+    except Exception:return {}
+
+
+def tray_medien_svg(logo, synchronisieren=False, kamera=False, notes=False, kde=False, spiegeln=False):
+    """Keep the actual cover; change only its flower/actual activity marks."""
+    if any(type(value) is not bool for value in (synchronisieren, kamera, notes, kde, spiegeln)):
+        raise ValueError('invalid_tray_state')
     with open(logo, "rb") as quelle:
         bild = quelle.read(2 * 1024 * 1024 + 1)
     if len(bild) > 2 * 1024 * 1024:
         raise ValueError("Tray logo is too large")
     mime = "image/png" if bild.startswith(b"\x89PNG") else "image/svg+xml"
+    if kamera or notes or kde or spiegeln:
+        from xml.etree import ElementTree as ET
+        if mime != 'image/svg+xml':raise ValueError('native_tray_vector_required')
+        farbe = '#ee9846' if notes and kde else '#ffffff' if notes else '#f7d777' if kde else '#d8b25c'
+        root = ET.fromstring(bild)
+        blumen = [node for node in root if node.tag.endswith('}g') and
+            node.get('transform') in ('translate(121,129.5) scale(1.9) translate(-32,-32)',
+                'translate(121,127.5) scale(1.9) translate(-32,-32)')]
+        if len(blumen) != 2:raise ValueError('native_tray_flower_required')
+        if spiegeln:
+            root = ET.fromstring('''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<g id="phone"><rect x="57" y="10" width="142" height="236" rx="23" fill="#55291c" stroke="#d8b25c" stroke-width="6"/>
+<rect x="68" y="34" width="120" height="183" rx="6" fill="#e9ddbd"/>
+<path d="M108 23H148M119 232H137" stroke="#d8b25c" stroke-width="5" stroke-linecap="round"/></g></svg>''')
+            blume = blumen[1];blume.set('stroke', '#55291c');root.append(blume)
+        elif kamera:
+            for node in blumen:root.remove(node)
+        else:blumen[1].set('stroke', farbe)
+        bild = ET.tostring(root, encoding='utf-8')
     inhalt = '<image width="256" height="256" href="data:%s;base64,%s"/>' % (
         mime, base64.b64encode(bild).decode("ascii"))
     if synchronisieren is True:
@@ -11754,10 +11792,10 @@ def tray_medien_svg(logo, synchronisieren=False, kamera=False):
 <path d="M66 113 A57 57 0 0 1 165 85 M176 143 A57 57 0 0 1 77 171"/>
 </g><g fill="#f7d777"><path d="M149 85 L178 96 L176 65 Z"/>
 <path d="M93 171 L64 160 L66 191 Z"/></g>'''
-    if kamera is True:
-        inhalt += '''<g id="camera" fill="#302015" stroke="#f7d777" stroke-width="7" stroke-linejoin="round">
+    if kamera is True and not spiegeln:
+        inhalt += '''<g id="camera" fill="#302015" stroke="%s" stroke-width="7" stroke-linejoin="round">
 <path d="M84 108 H102 L109 98 H135 L142 108 H160 V151 H84 Z"/>
-<circle cx="122" cy="130" r="13"/></g>'''
+<circle cx="122" cy="130" r="13"/></g>''' % farbe
     return ('<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">'
             + inhalt + '</svg>').encode("utf-8")
 
@@ -21200,7 +21238,7 @@ class Fenster(_FENSTER_BASIS):
             self._tray_einstellungen.get("zaehler") and anzahl) else ""
         tooltip = FENSTER_TITEL
         synchronisieren, kamera = getattr(self, "_tray_medien", (False, False))
-        if synchronisieren: tooltip += " · " + _("Photo synchronization active")
+        if synchronisieren: tooltip += " · " + _("Synchronizing …")
         if kamera: tooltip += " · " + _("Phone camera active")
         if text:
             tooltip += " · " + (ngettext(
@@ -21220,7 +21258,8 @@ class Fenster(_FENSTER_BASIS):
             debug_ausnahme("tray.count.failed", error=fehler)
 
     def _tray_medien_symbol_setzen(self, synchronisieren, kamera):
-        schluessel = (synchronisieren, kamera)
+        notes, kde = getattr(self, '_tray_verbindungen', (False, False))
+        schluessel = (synchronisieren, kamera, notes, kde, getattr(self, '_tray_spiegelung', False))
         if getattr(self, "_tray_medien_symbol", None) == (self._tray_indikator, schluessel):
             return
         symbol = "magnolie-organizer"
@@ -21228,9 +21267,9 @@ class Fenster(_FENSTER_BASIS):
             if not getattr(self, "_tray_medien_ordner", None):
                 self._tray_medien_ordner = tempfile.TemporaryDirectory(prefix="magnolie-tray-")
             symbol = os.path.join(self._tray_medien_ordner.name,
-                                 "book-%d-%d.svg" % schluessel)
+                                  "book-%d-%d-%d-%d-%d.svg" % schluessel)
             if not os.path.isfile(symbol):
-                bild = tray_medien_svg(magnolie_logo_pfad(), *schluessel)
+                bild = tray_medien_svg(magnolie_logo_pfad(vector=True), *schluessel)
                 with open(symbol, "xb") as ausgabe:
                     ausgabe.write(bild)
         if self._tray_art == "statusicon":
@@ -21246,7 +21285,10 @@ class Fenster(_FENSTER_BASIS):
         # Read current native ownership, not the possibly delayed event payload.
         bericht = self._telefon.report() if self._telefon else {}
         aktiv = bericht.get("media_activity") or {}
-        self._tray_medien = (aktiv.get("synchronizing") is True, aktiv.get("camera") is True)
+        self._tray_medien = (aktiv.get("synchronizing") is True or getattr(self, '_sync_laeuft', False) is True,
+                            aktiv.get("camera") is True)
+        self._tray_verbindungen = tray_verbindungsstand(bericht, tray_kde_verbindungsstand())
+        self._tray_spiegelung = aktiv.get('mirroring') is True
         self._tray_zaehler_anzeigen()
         return False
 
@@ -25059,6 +25101,8 @@ class Fenster(_FENSTER_BASIS):
             empfang.get("zwischenablageAutomatisch") is True, directory)
 
     def _kde_ereignis(self, art, nutzlast):
+        if art in ('connection_changed', 'pairing_status'):
+            GLib.idle_add(self._tray_medien_aktualisieren)
         if art == 'digitizer':
             def zeichnen():
                 if self._organizer_vertraut():
@@ -27384,6 +27428,8 @@ class Fenster(_FENSTER_BASIS):
         debug_einrichten()
         start = time.monotonic()
         debug_notiz("sync.begin")
+        tray_refresh = getattr(self, '_tray_medien_aktualisieren', None)
+        if callable(tray_refresh):GLib.idle_add(tray_refresh)
         try:
             if nachricht.get("mcp") is True:
                 self.antwort("App.syncMcpGestartet", {"nativeId": nachricht.get("requestId")})
@@ -27405,6 +27451,7 @@ class Fenster(_FENSTER_BASIS):
                 self.sende_js("App.syncFehler(JSON.parse(%s));" % js_zeichenkette(text))
         finally:
             self._sync_laeuft = False
+            if callable(tray_refresh):GLib.idle_add(tray_refresh)
             debug_notiz("sync.end",
                         duration_ms=round((time.monotonic() - start) * 1000, 1))
 

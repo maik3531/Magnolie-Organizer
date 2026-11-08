@@ -244,6 +244,9 @@ class KDEConnectNativeBackend(_KdeMcpControl):
         self.pairing = None
         self.listening = False
         self._activation_attempted = False
+        self._tray_subscriptions = []
+        self._tray_closed_handler = None
+        self._tray_started = False
         self._media_lock = threading.RLock()
         self._media_contexts = {}
         self._input_contexts = {}
@@ -311,10 +314,52 @@ class KDEConnectNativeBackend(_KdeMcpControl):
                 # Missing/filtered system support must not stop independent Notes
                 # services. status() reports the actual native availability.
                 pass
+        if self.callback is not None and not self._tray_subscriptions and hasattr(self.bus, 'signal_subscribe'):
+            def changed(*_args):
+                try:self.callback('connection_changed', {})
+                except Exception:pass
+            try:
+                flags = self.gio.DBusSignalFlags.NONE
+                self._tray_subscriptions.append(self.bus.signal_subscribe('org.kde.kdeconnect',
+                    'org.kde.kdeconnect.device', None, None, None, flags, changed))
+                self._tray_subscriptions.append(self.bus.signal_subscribe('org.freedesktop.DBus',
+                    'org.freedesktop.DBus', 'NameOwnerChanged', '/org/freedesktop/DBus',
+                    'org.kde.kdeconnect', flags, changed))
+                if hasattr(self.bus, 'connect'):
+                    self._tray_closed_handler = self.bus.connect('closed', changed)
+            except Exception:pass
+        if self.callback is not None and not self._tray_started:
+            self._tray_started = True
+            try:self.callback('connection_changed', {})
+            except Exception:pass
         return True
 
     def stop(self):
+        for subscription in self._tray_subscriptions:
+            try:self.bus.signal_unsubscribe(subscription)
+            except Exception:pass
+        self._tray_subscriptions.clear()
+        if self._tray_closed_handler is not None:
+            try:self.bus.disconnect(self._tray_closed_handler)
+            except Exception:pass
+            self._tray_closed_handler = None
+        self._tray_started = False
         return None
+
+    def tray_connection_state(self):
+        """Passive paired+reachable query: no activation, plugins or identities."""
+        deadline = time.monotonic() + 0.25
+        try:
+            owner = self._owner(deadline=deadline)
+            ids = self._call(owner, '/modules/kdeconnect', 'org.kde.kdeconnect.daemon',
+                'devices', '(bb)', (True, True), '(as)', deadline=deadline)[0]
+            if (not isinstance(ids, (list, tuple)) or len(ids) > 64 or
+                    any(not isinstance(value, str) or not DEVICE_ID.fullmatch(value) for value in ids) or
+                    self._owner(deadline=deadline) != owner):
+                raise ProtocolError('native_tray_source_changed')
+            count = len(set(ids))
+            return {'connected': count > 0, 'count': count}
+        except Exception:return {'connected': False, 'count': 0}
 
     def _media_source(self, device_id, deadline=None):
         if not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id):
@@ -1944,6 +1989,20 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         except Exception:  # noqa: S110 - Client callbacks cannot break the transport service.
             pass
 
+    def tray_connection_state(self):
+        """Only actual live TLS owners with the current confirmed certificate."""
+        count = 0
+        with self._state_lock:
+            with self._connection_lock:
+                for device_id, entry in self._connections.items():
+                    peer = self.store.peers.get(device_id)
+                    if not peer or peer.get('paired') is not True or entry['worker'].stopped.is_set():continue
+                    try:
+                        expected = x509.load_pem_x509_certificate(peer['certificate'].encode('ascii')).fingerprint(hashes.SHA256())
+                        if entry['certificate'].fingerprint(hashes.SHA256()) == expected:count += 1
+                    except Exception:continue
+        return {'connected': count > 0, 'count': count}
+
     def _emit_pairing_context(self, pending, event, payload):
         if not pending.get("mcp_owned"):
             self._emit(event, payload)
@@ -3075,6 +3134,7 @@ class KDEConnectSMSBackend(_KdeMcpControl):
             worker.transfer_sms_state(previous["worker"])
             if start:
                 worker.start()
+        if self._is_confirmed(device_id):self._emit('connection_changed', {})
         return worker
 
     def _forget_connection(self, device_id, connection):
@@ -3086,6 +3146,7 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         if removed is not None:
             removed["worker"].close(join=True)
             self._filesystem_browser.close(removed['worker'])
+            self._emit('connection_changed', {})
         else:
             connection.close()
 
@@ -3117,6 +3178,7 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         worker.connection.close()
         if removed:
             self._filesystem_browser.close(worker)
+            self._emit('connection_changed', {})
         if removed and not self._stop_event.is_set():
             self._reschedule_discovery(immediate=False)
 
