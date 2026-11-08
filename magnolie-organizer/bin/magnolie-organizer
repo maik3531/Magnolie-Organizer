@@ -22490,6 +22490,8 @@ class Fenster(_FENSTER_BASIS):
             self._telefon_videoziel_waehlen(nachricht)
         elif befehl == "telefon_backupziel":
             self._telefon_backupziel(nachricht)
+        elif befehl == "telefon_medien_senden":
+            self._telefon_medien_senden(nachricht)
         elif befehl == "medien_backup":
             self._medien_backup_aktion(nachricht)
 
@@ -24960,6 +24962,71 @@ class Fenster(_FENSTER_BASIS):
                 return worker
             return start("read")
         except (ValueError,RuntimeError,OSError):antwort(ok=False)
+
+    def _telefon_medien_senden(self,nachricht):
+        """A native modal answer, bound to the exact saved/unlocked GUI book."""
+        source=self._telefon;kennung=nachricht.get("kennung");owned=[False];selection=[None]
+        result={"requestId":nachricht.get("requestId"),"device_id":kennung}
+        def answer(**value):
+            if owned[0]:self._telefon_senden_pending=False
+            self.antwort("App.telefonFotoErgebnis",dict(result,**value))
+            if owned[0]:self._telefon_stand_melden()
+        try:
+            if (set(nachricht)!={"cmd","kennung","fingerprint","photos","videos","requestId","version"}
+                    or nachricht["cmd"]!="telefon_medien_senden" or type(kennung) is not str
+                    or type(nachricht["fingerprint"]) is not str or type(nachricht["photos"]) is not bool or type(nachricht["videos"]) is not bool
+                    or type(nachricht["version"]) is not str
+                    or type(nachricht["requestId"]) is not str or not 1<=len(nachricht["requestId"])<=128
+                    or getattr(self,"_telefon_senden_pending",False)):
+                raise ValueError("photo_sync_invalid_action")
+            saved=self._telefon_actor_buchnachweis();deadline=time.monotonic()+60
+            def current():
+                if (source is None or self._telefon is not source or self._gesperrt or not self._organizer_vertraut()
+                        or saved is None or self._telefon_actor_buchnachweis()!=saved or time.monotonic()>=deadline):
+                    raise ValueError("media_sending_native_context_changed")
+            current();self._telefon_senden_pending=True;owned[0]=True
+            def cancel():
+                if selection[0] is not None:
+                    try:source.photo_sync_sending_consent(kennung,nachricht["fingerprint"],"cancel",selection=selection[0])
+                    except Exception:pass
+            def work(operation):
+                try:
+                    if operation in ("cancel","reject"):
+                        cancel();answer(ok=operation=="cancel",**({"canceled":True} if operation=="cancel" else {}));return
+                    current()
+                    page=source.photo_sync_sending_consent(kennung,nachricht["fingerprint"],operation,
+                        photos=nachricht["photos"] if operation=="prepare" else None,
+                        videos=nachricht["videos"] if operation=="prepare" else None,selection=selection[0],
+                        version=nachricht["version"] if operation=="prepare" else None)
+                    current()
+                    if operation=="commit":answer(ok=True);return
+                    selection[0]=page["selection"]
+                    def dialog():
+                        try:
+                            current()
+                            increasing=page["photos"] and not page["current_photos"] or page["videos"] and not page["current_videos"]
+                            confirmed=True
+                            if increasing:
+                                question=Gtk.MessageDialog(transient_for=self,flags=Gtk.DialogFlags.MODAL,message_type=Gtk.MessageType.QUESTION,
+                                    buttons=Gtk.ButtonsType.YES_NO,text=_("Send"))
+                                try:
+                                    question.set_default_response(Gtk.ResponseType.NO)
+                                    question.format_secondary_text("Organizer → "+page["display_name"]+"\n\n"+
+                                        "\n".join(label for selected,label in ((page["photos"],_("Photos")),(page["videos"],_("Videos"))) if selected))
+                                    confirmed=question.run()==Gtk.ResponseType.YES
+                                finally:question.destroy()
+                            current()
+                            if confirmed:start("commit")
+                            else:start("cancel")
+                        except Exception:start("reject")
+                        return False
+                    GLib.idle_add(dialog)
+                except Exception:cancel();answer(ok=False)
+            def start(operation):
+                worker=threading.Thread(target=work,args=(operation,),name="magnolie-media-native-consent",daemon=True)
+                self._telefon_senden_worker=worker;worker.start();return worker
+            return start("prepare")
+        except Exception:answer(ok=False)
 
     def _telefon_videoziel_waehlen(self, nachricht):
         kennung=nachricht.get("kennung")

@@ -7523,6 +7523,39 @@ function knopfMit(text, wurzel) {
     bluetooth: { available: false, devices: [] }, kdeconnect: { available: false }, ...extras });
   fotoStand(undefined);
   assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Verbindung allein ist keine native Fotobereitschaft");
+  const sendRights = { available: true, enabled: false, state: "off", albums: [],
+    sending_consent: { version: "a".repeat(64), photos: false, videos: false } };
+  fotoStand(sendRights);
+  assert.ok(bd.querySelector('[data-media-send="photos"]') && !bd.querySelector('[data-media-send="videos"]'),
+    "Sendezustimmung ist unabhängig vom Empfang, nicht unterstützte Videos bleiben verborgen");
+  const sendBefore = baumNachrichten.length;
+  bd.querySelector('[data-media-send="photos"]').click(); await tick(); await tick();
+  const sendChoice = baumNachrichten.filter(value => value.cmd === "telefon_medien_senden").at(-1);
+  assert.ok(sendChoice && sendChoice.photos === true && sendChoice.videos === false && sendChoice.version === "a".repeat(64),
+    "Native Sendeauswahl wartet auf den tatsächlichen Speicher-ACK: " + JSON.stringify(baumNachrichten.slice(sendBefore).map(value => value.cmd)));
+  assert.deepStrictEqual(Object.keys(sendChoice).sort(), ["cmd", "kennung", "fingerprint", "photos", "videos", "requestId", "version"].sort(),
+    "Browser darf weder native Bestätigung noch Verbindungsticket oder Dateipfad senden");
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && bd.querySelector('[data-media-send="photos"]').disabled,
+    "Ausstehende native Zustimmung darf kein vorweggenommenes Recht anzeigen");
+  assert.ok(!baumNachrichten.slice(sendBefore).some(value => value.cmd === "telefon_foto_aktion"), "Sendezustimmung startet keinen Abgleich");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: sendChoice.requestId, ok: true, canceled: true });
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && !bd.querySelector('[data-media-send="photos"]').disabled);
+  bd.querySelector('[data-media-send="photos"]').click(); await tick(); await tick();
+  const nextSendChoice = baumNachrichten.filter(value => value.cmd === "telefon_medien_senden").at(-1);
+  assert.notStrictEqual(nextSendChoice.requestId, sendChoice.requestId);
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: sendChoice.requestId, ok: true });
+  assert.ok(bd.querySelector('[data-media-send="photos"]').disabled, "Verspätete alte Antwort ersetzt keinen neueren nativen Auftrag");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: nextSendChoice.requestId, ok: true });
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked, "Eine Antwort allein ist keine aktuelle native Zustandsprojektion");
+  fotoStand({ ...sendRights, video_supported: true, sending_consent: { version: "b".repeat(64), photos: true, videos: false } });
+  assert.ok(bd.querySelector('[data-media-send="photos"]').checked && !bd.querySelector('[data-media-send="videos"]').checked);
+  bd.querySelector('[data-media-send="videos"]').click(); await tick(); await tick();
+  const staleSendChoice = baumNachrichten.filter(value => value.cmd === "telefon_medien_senden").at(-1);
+  fotoStand(sendRights, { peers: [{ ...fotoPeer, fingerprint: "replacement-native-fingerprint", photo_sync: sendRights }] });
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').disabled, "Alte Zustimmung blockiert keine neue Kopplung");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: staleSendChoice.requestId, ok: false, error: "stale forbidden error" });
+  assert.ok(!bd.querySelector(".notes-erweiterte-funktionen").textContent.includes("stale forbidden error"), "Alte Antwort verändert keinen neuen Kopplungskontext");
+  fotoStand(undefined);
   fotoStand({ available: true, enabled: false, state: "off", albums: [], destination: "/native/Pictures/Notes-Fotos" });
   let fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
   assert.ok(fotoGruppe && bd.querySelector(".telefon-karte").contains(fotoGruppe) &&

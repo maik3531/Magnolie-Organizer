@@ -99,11 +99,14 @@ class NativeDesktopFileConnection:
         self._mappings = ProtectedPhotoMappings(authority)
         self._media_trash = None
         self._media_transport = self._media_source = self._media_sender = None
+        self._media_sending_state = None
+        self._media_sending_choice = None
         self._destination = NativePhotoDestinationController(authority)
         try:
             # Stable composition for this authenticated connection, never a bit
             # toggled by transient worker activity. Discovery23 stays closed.
-            peer=authority.binding.store_owner.peer(authority.binding.peer_id) or {}
+            peers=strict_json(authority.protection.read_native_peers_blob())['items']
+            peer=peers[0] if len(peers)==1 else {}
             status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
             if type(channel) is SecureChannel and status.get('available') is True and 23 in status.get('versions',[]):
                 from magnolie_media_transport import NativeMediaSettingsTransport
@@ -130,6 +133,10 @@ class NativeDesktopFileConnection:
         self._ready()
         # Do not claim receiver readiness from preferences or control codecs.
         grant,snapshot=self._preferences.native_local_state(self._data_handlers_ready,source_handlers_ready=self._media_source is not None)
+        consent=snapshot.policy.sending if snapshot.associated and snapshot.policy is not None else None
+        if consent is not None and consent.pairing_epoch!=snapshot.policy.pairing_epoch:consent=None
+        self._media_sending_state=dict(version=snapshot.version,photos=bool(consent is not None and consent.photos),
+            videos=bool(consent is not None and consent.videos))
         if grant.grants.send_files or grant.grants.receive_files:
             witness=snapshot.policy.mapping_store
             if witness is not None:
@@ -402,7 +409,58 @@ class NativeDesktopFileConnection:
 
     def desktop_snapshot(self):
         session=self._desktop_session
-        return session.snapshot() if session is not None else dict(available=True,state='off',enabled=False,mode='manual',albums=[])
+        value=session.snapshot() if session is not None else dict(available=True,state='off',enabled=False,mode='manual',albums=[])
+        if self._media_source is not None and self._media_sending_state is not None:
+            value['sending_consent']=dict(self._media_sending_state) # Memory only: report may own the service monitor.
+        return value
+
+    def native_sending_consent(self,operation,*,photos=None,videos=None,selection=None,version=None):
+        """Two-phase private native dialog choice; never a wire/browser approval.
+
+        The one-use ticket belongs to this exact connection, saved book, policy,
+        desired type choices and a bounded monotonic lifetime. No file is opened
+        and no worker is started by preparing or confirming local rights.
+        """
+        from magnolie_file_control import _hex
+        from hashlib import sha256
+        from magnolie_media_retention import NativeMediaRetention
+        if (operation not in ('prepare','commit','cancel') or
+                (type(photos) is not bool or type(videos) is not bool or selection is not None or not _hex(version) if operation=='prepare'
+                 else not _hex(selection) or photos is not None or videos is not None or version is not None)):
+            raise TransferError('media_sending_native_choice_invalid')
+        with self._operation():
+            if self._media_source is None:raise TransferError('media_source_native_composition_required')
+            if operation=='cancel':
+                choice=self._media_sending_choice
+                if choice is None or choice[0]!=selection:raise TransferError('media_sending_native_choice_changed')
+                self._media_sending_choice=None
+                return dict(canceled=True)
+            expected=self._preferences.read()
+            if operation=='prepare' and expected.version!=version:raise TransferError('media_sending_native_choice_changed')
+            def current():self._ready();return True
+            with NativeMediaRetention(self._authority.binding.native_directory) as retention:
+                with retention.permit(current) as permit:
+                    if permit is None:raise TransferError('media_sending_saved_book_required')
+                    book_version=sha256(canonical(retention._read())).hexdigest()
+                    if operation=='prepare':
+                        ticket=uuid.uuid4().hex+uuid.uuid4().hex
+                        self._media_sending_choice=(ticket,time.monotonic()+60,expected,book_version,photos,videos)
+                        consent=expected.policy.sending if expected.associated and expected.policy is not None else None
+                        if consent is not None and consent.pairing_epoch!=expected.policy.pairing_epoch:consent=None
+                        return dict(selection=ticket,version=expected.version,photos=photos,videos=videos,
+                            current_photos=bool(consent is not None and consent.photos),current_videos=bool(consent is not None and consent.videos),
+                            display_name=self._authority.current_peer().display_name)
+                    choice=self._media_sending_choice
+                    if choice is None or choice[0]!=selection:raise TransferError('media_sending_native_choice_changed')
+                    self._media_sending_choice=None
+                    if (time.monotonic()>=choice[1] or expected!=choice[2] or book_version!=choice[3]):
+                        raise TransferError('media_sending_native_choice_changed')
+                    permit.require_current();self._ready()
+                    result=self._preferences.configure_sending(self._preferences.issue_action(),expected,photos=choice[4],videos=choice[5])
+                    permit.require_current();self._ready()
+                    if self._preferences.read()!=result:raise TransferError('media_sending_native_choice_changed')
+                    self._send_controls(now_ms)
+                    return dict(version=result.version,photos=choice[4],videos=choice[5])
 
     def native_backup_locations(self,media_type,*,operation='read',version=None,book_version=None,native_path=None):
         """Private native picker/preflight API; never a source-wire command.
@@ -2101,6 +2159,7 @@ class NativeDesktopFileConnection:
 
     def close(self):
         self._closed.set()
+        self._media_sending_choice=None
         for owner in (self._media_sender,self._media_source,self._media_transport):
             if owner is not None:owner.close() # Signals only; active connection I/O owns cleanup.
         self._wake_album_worker()

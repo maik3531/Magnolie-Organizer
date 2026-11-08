@@ -810,6 +810,7 @@ def _request_shape(operation, arguments):
         "phone_photo_sync_video_destination": {"peer_id", "fingerprint", "path"},
         "phone_photo_sync_photo_destination": {"peer_id", "fingerprint", "path"},
         "phone_photo_sync_backup_locations": {"peer_id", "fingerprint", "media_type", "backup_action", "version", "book_version", "path"},
+        "phone_photo_sync_sending_consent": {"peer_id", "fingerprint", "consent_action", "photos", "videos", "selection", "version"},
         "phone_actor_source": {"peer_id", "fingerprint", "subscriber", "book_source"},
         "phone_actor_scope": {"peer_id", "fingerprint", "subscriber", "book_source", "expected_source", "offset", "limit"},
         "phone_actor_producer": {"subscriber", "book_source", "request"},
@@ -2041,6 +2042,7 @@ class IPCServer:
             "phone_photo_sync_video_destination": ("photo_sync_video_destination", ("peer_id", "fingerprint", "path")),
             "phone_photo_sync_photo_destination": ("photo_sync_photo_destination", ("peer_id", "fingerprint", "path")),
             "phone_photo_sync_backup_locations": ("photo_sync_backup_locations", ("peer_id", "fingerprint", "media_type", "backup_action", "version", "book_version", "path")),
+            "phone_photo_sync_sending_consent": ("photo_sync_sending_consent", ("peer_id", "fingerprint", "consent_action", "photos", "videos", "selection", "version")),
             "phone_contact_groups": ("contact_groups", ("peer_id", "fingerprint", "request")),
             "phone_contact_values": ("contact_values", ("peer_id", "fingerprint", "request")),
             "phone_contact_group_title": ("contact_group_title", ("peer_id", "fingerprint", "request")),
@@ -2817,6 +2819,10 @@ class PhoneServiceProxy:
 
     def photo_sync_photo_destination(self, peer_id, fingerprint, path):
         return self._call("photo_sync_photo_destination", peer_id=peer_id, fingerprint=fingerprint, path=path)
+
+    def photo_sync_sending_consent(self,peer_id,fingerprint,operation,photos=None,videos=None,selection=None,version=None):
+        return self._call("photo_sync_sending_consent",peer_id=peer_id,fingerprint=fingerprint,consent_action=operation,
+            photos=photos,videos=videos,selection=selection,version=version)
 
     def photo_sync_backup_locations(self,peer_id,fingerprint,media_type,operation,version=None,book_version=None,path=None):
         return self._call("photo_sync_backup_locations",peer_id=peer_id,fingerprint=fingerprint,media_type=media_type,

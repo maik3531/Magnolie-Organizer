@@ -30,7 +30,7 @@ internal sealed partial class BridgeDispatcher
                     await Reply(receiving); return;
                 case "send_consent":
                     var sending = telefon.ConfirmNativeMediaUiSendConsent(peerId, request.Version!, request.Photos, request.Videos, () =>
-                        MessageBox.Show(form, T("Send files") + " — Organizer → " + telefon.Peers.Single(value => value.Id == peerId).Name + "\n\n" +
+                        MessageBox.Show(form, T("Send") + " — Organizer → " + telefon.Peers.Single(value => value.Id == peerId).Name + "\n\n" +
                             string.Join("\n", new[] { request.Photos ? T("Photos") : null, request.Videos ? T("Videos") : null }.OfType<string>()),
                             T("Access rights"), MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes);
                     sending["requestId"] = requestId; sending["device_id"] = peerId; sending["ok"] = true;

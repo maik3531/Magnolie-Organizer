@@ -28879,6 +28879,34 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   const telefonFotoFehler = new Map();
+  const telefonSendeZustimmungen = new Map();
+
+  function telefonSendeZustimmung(peer, stand, field, wanted) {
+    if (telefonSendeZustimmungen.has(peer.device_id)) return;
+    const requestId = crypto.randomUUID(), book = DATEN;
+    const pending = { requestId, book, fingerprint: peer.fingerprint };
+    const clear = () => {
+      if (telefonSendeZustimmungen.get(peer.device_id) !== pending) return false;
+      clearTimeout(pending.timer); telefonSendeZustimmungen.delete(peer.device_id); return true;
+    };
+    const failed = () => {
+      if (!clear()) return;
+      if (DATEN === book) telefonFotoFehler.set(peer.device_id, _("Photo synchronization could not be started."));
+      zeichneTelefonFotos();
+    };
+    pending.timer = setTimeout(failed, 65000);
+    telefonSendeZustimmungen.set(peer.device_id, pending);
+    const choices = { photos: stand.sending_consent.photos === true, videos: stand.sending_consent.videos === true };
+    choices[field] = wanted;
+    nachDauerhaftemSpeichern(() => {
+      const current = telefonStand?.peers?.find(value => value.device_id === peer.device_id);
+      if (telefonSendeZustimmungen.get(peer.device_id) !== pending || DATEN !== book || current?.fingerprint !== peer.fingerprint ||
+          current.photo_sync?.sending_consent?.version !== stand.sending_consent.version) { failed(); return; }
+      if (!Bruecke.sende({ cmd: "telefon_medien_senden", kennung: peer.device_id, fingerprint: peer.fingerprint,
+        version: stand.sending_consent.version, requestId, ...choices })) failed();
+    }, failed);
+    zeichneTelefonFotos();
+  }
   const telefonFotoAnsichten = new Map();
   const telefonBackupAnsichten = new Map();
 
@@ -28968,6 +28996,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const peer = peers[0], stand = peer.photo_sync;
       // Native readiness only, never ContributorKey, Notes-content grants or KDE.
       if (stand?.available !== true || !peer.own_device || !peer.remote_own_device || !peer.transport) continue;
+      const oldConsent = telefonSendeZustimmungen.get(peer.device_id);
+      if (oldConsent && (oldConsent.book !== DATEN || oldConsent.fingerprint !== peer.fingerprint)) {
+        clearTimeout(oldConsent.timer); telefonSendeZustimmungen.delete(peer.device_id);
+      }
       wurzel.dataset.photoPeer = peer.device_id;
       const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
       const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
@@ -28988,6 +29020,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const label = el("label", "telefon-medien-aktivierung"); label.title = _("Synchronize photos"); label.append(an);
       label.addEventListener("click", event => event.stopPropagation());
       label.addEventListener("keydown", event => event.stopPropagation()); titel.append(label);
+      if (stand.sending_consent) {
+        const rights = el("section", "notes-medien-rechte"); rights.append(el("h4", null, _("Send")));
+        for (const [field, title] of [["photos", _("Photos")], ["videos", _("Videos")]]) {
+          if (field === "videos" && stand.video_supported !== true) continue;
+          const input = document.createElement("input"); input.type = "checkbox"; input.dataset.mediaSend = field;
+          input.checked = stand.sending_consent[field] === true;
+          input.disabled = telefonSendeZustimmungen.has(peer.device_id) || (stand.busy === true && !input.checked);
+          input.addEventListener("change", () => {
+            const wanted = input.checked; input.checked = stand.sending_consent[field] === true;
+            telefonSendeZustimmung(peer, stand, field, wanted);
+          });
+          const row = el("label", "hak"); row.append(input, document.createTextNode(" Organizer → " + _("Send") + " · " + title)); rights.append(row);
+        }
+        gruppe.append(rights);
+      }
       let fotoAlbumWahl = null, videoAlbumWahl = null;
       if (stand.enabled) {
         const richtung = document.createElement("select");
@@ -34771,6 +34818,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     telefonBackupErgebnis,
     telefonFotoErgebnis(value) {
       if (typeof value?.device_id !== "string") return;
+      if (typeof value.requestId === "string") {
+        const pending = telefonSendeZustimmungen.get(value.device_id);
+        if (!pending || pending.requestId !== value.requestId) return;
+        clearTimeout(pending.timer); telefonSendeZustimmungen.delete(value.device_id);
+        if (pending.book !== DATEN || !telefonStand?.peers?.some(peer => peer.device_id === value.device_id && peer.fingerprint === pending.fingerprint)) return;
+      }
       if (value.ok) telefonFotoFehler.delete(value.device_id);
       else telefonFotoFehler.set(value.device_id, value.error || _("Photo synchronization could not be started."));
       zeichneTelefonFotos();

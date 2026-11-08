@@ -417,9 +417,41 @@ Vier neue native Factory-/Verteilerfälle prüfen vollständige verschlüsselte
 während blockierter echter Ausgabe und Archivbewegung. Bestehende private
 Kompositionen und die optional geschlossene Auslieferung bleiben getrennt.
 
-Der Linux-Zustimmungsdialog und die normale Exportauswahl/-planung sind damit
-noch nicht angeschlossen. Vollständige Sammlungs-, Lösch-, Galerieaufbewahrungs-
+Die normale Linux-Exportauswahl/-planung ist damit noch nicht angeschlossen.
+Vollständige Sammlungs-, Lösch-, Galerieaufbewahrungs-
 und gemeinsame physische Abnahme bleiben ebenfalls offen; Capability 23 bleibt
+geschlossen.
+
+## Linux: lokale Sendezustimmung über nativen Dialog und privaten IPC
+
+Die Oberfläche bietet bei tatsächlich komponierter nativer Quelle eigene
+Foto-/Video-Senderechte unabhängig vom Empfangsschalter. Sie wartet vor der
+Anfrage auf die vorhandene dauerhafte Speicherbestätigung und zeigt vor einer
+nativen Zusage kein positives Recht an. Verspätete Antworten gehören zur genauen
+Anfrage, Kopplung und geöffneten Dateninstanz; sie ersetzen keinen neueren Zustand.
+Die Statusprojektion verwendet nur bereits nativ gelesene Speicherwerte und
+führt unter dem Dienstmonitor keine neue geschützte Datei-I/O aus.
+
+Der tatsächliche GTK-Bestätigungsdialog ist standardmäßig ablehnend. Nur eine
+Erweiterung der Rechte fragt positiv nach; Entzug benötigt keine Zustimmung.
+Seine Vorbereitung erzeugt ein kurzlebiges einmaliges Verbindungsticket für die
+genauen Foto-/Videowahlen, die angezeigte Präferenzversion und das tatsächlich
+gespeicherte Buch. Ein geänderter oder bereits verbrauchter Kontext darf keine
+Wahl übernehmen. Falsche alte Tickets verwerfen auch keine neuere gültige Wahl.
+Der Browser darf weder ein solches Ticket noch einen Bestätigungs-, Grant- oder
+Dateipfad mitgeben. Bestätigen und Abbrechen laufen über den bestehenden privaten
+Unix-IPC und außerhalb des UI-Threads. Abbruch, Buchsperre, Schlüsselwechsel,
+veraltete Version und Fehler behalten die bisherigen Rechte und Dateien.
+
+Eine erhaltene Sendezustimmung einer älteren Kopplung wird weder als aktuelles
+Recht angezeigt noch als bereits bestätigt behandelt, selbst wenn die unabhängige
+Empfangszuordnung inzwischen erneuert wurde.
+
+Siebzehn gezielte native Fälle einschließlich des tatsächlichen GTK-Callbacks und
+privaten IPC sowie die vollständige Browseroberflächenprüfung bestehen. Dazu
+kommen 94 betroffene bestehende Authority-/Verteiler-/Präferenz-/Kompositionsfälle
+und drei IPC-Regressionen. Dies ist keine installierte Dialog-Klickabnahme und
+keine vollständige automatische Sammlungssynchronisation; Capability 23 bleibt
 geschlossen.
 
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/

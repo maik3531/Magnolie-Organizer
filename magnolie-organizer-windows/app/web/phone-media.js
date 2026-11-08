@@ -36,7 +36,7 @@
     for (const [key, label, mediaType] of [["photos", "Photos", "images"], ["videos", "Videos", "video"]]) {
       const row = node("label"), input = node("input"); input.type = "checkbox"; input.dataset.media = "send_" + key;
       row.className = "hak"; row.hidden = true;
-      row.append(input, document.createTextNode(" Organizer → " + t("Send files") + " · " + t(label))); rightsArea.append(row);
+      row.append(input, document.createTextNode(" Organizer → " + t("Send") + " · " + t(label))); rightsArea.append(row);
       sendChoices.set(key, { input, row, mediaType });
     }
     const check = (text, key) => {
