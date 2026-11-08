@@ -2,7 +2,7 @@
 window.NativeScenario = (() => {
   const T=window.OrganizerTest, $=s=>document.querySelector(s), tick=()=>new Promise(r=>setTimeout(r,50));
   const set=(s,v)=>{const e=$(s); if(!e) throw Error('Missing '+s); e.value=v; e.dispatchEvent(new Event('input',{bubbles:true})); e.dispatchEvent(new Event('change',{bubbles:true}));};
-  const click=(s,text)=>{const b=[...document.querySelectorAll(s)].find(e=>e.textContent.trim()===text); if(!b) throw Error('Missing button '+text); b.click();};
+  const click=(s,text,scope=document)=>{const b=[...scope.querySelectorAll(s)].find(e=>e.textContent.trim()===text); if(!b) throw Error('Missing button '+text); b.click();};
   async function task(title,date,time,early=0,due=true) {
     const existing=new Set(T.daten().aufgaben.map(x=>x.id));
     await T.wechsel('aufgaben'); click('#kopf-links button','New task'); await tick();
@@ -29,10 +29,18 @@ window.NativeScenario = (() => {
     const record=T.daten().kontakte.find(x=>!existing.has(x.id)&&x.nachname==='Tablet'); if(!record) throw Error('Contact editor did not save a new record'); return record;
   }
   async function note() {
+    const existing=new Set(T.daten().notizen.map(x=>x.id));
     await T.wechsel('notizen'); click('#kopf-links button','New page'); await tick();
+    const dialog=[...document.querySelectorAll('.eingabe-dialog')].find(e=>e.querySelector('h2')?.textContent==='New page');
+    if(!dialog) throw Error('Missing new-page creation dialog');
+    const title=dialog.querySelector('input[type=text]'); if(!title) throw Error('Missing new-page title');
+    title.value='Synthetic native note'; title.dispatchEvent(new Event('input',{bubbles:true}));
+    click('.dialog-knoepfe button','Create',dialog); await tick();
+    if(dialog.isConnected) throw Error('New-page creation dialog did not close');
     set('#notiz-titel','Synthetic native note'); $('#notiz-text').textContent='Private synthetic note body';
     $('#notiz-text').dispatchEvent(new Event('input',{bubbles:true})); T.sichereNotizSnapshot(); T.speichereJetzt();
-    return T.daten().notizen.find(x=>x.titel==='Synthetic native note');
+    const record=T.daten().notizen.find(x=>!existing.has(x.id)&&x.titel==='Synthetic native note');
+    if(!record || record.text!=='Private synthetic note body') throw Error('Note editor did not save the new title and body'); return record;
   }
   async function custom(title='Synthetic custom appointment',date='2030-05-10',time='12:35') {
     T.daten().einstellungen.allgemein.customTab.enabled=true;
@@ -46,7 +54,7 @@ window.NativeScenario = (() => {
     $('.custom-modul-appointments .custom-modul-kopf-aktionen button').click(); await tick();
     set('.custom-titel-zeile input',title);
     T.setzeDatumswert($('.custom-eintrag-formular .datumsfeld') || $('.custom-eintrag-formular input[type=date]'),date);
-    set('.custom-eintrag-formular input[type=time]',time);
+    set('.custom-eintrag-formular .zeitfeld',time);
     click('.custom-eintrag-aktionen button','Add'); await tick(); T.speichereJetzt();
     const module=T.daten().customOrganizer.modules.find(x=>x.type==='appointments');
     if(!module.items.length || module.items[0].time!==time) throw Error('Custom editor did not preserve time'); return module;

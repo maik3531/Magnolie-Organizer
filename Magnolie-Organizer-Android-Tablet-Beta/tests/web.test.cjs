@@ -191,6 +191,26 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   assert.throws(()=>w.Tablet.validateImport(extension)); T.normalisiere=normalize;
   ok(w.Tablet.validateImport(before).kontakte.length===1,'shared normalizer validates JSON import, rejects dropped records');
   T.schliesseEinstellungen();
+  w.eval(fs.readFileSync(path.join(root,'app/src/androidTest/assets/scenarios.js'),'utf8'));
+  const createdCalendar=await w.NativeScenario.calendar(); await wait();
+  ok(disk.termine.some(x=>x.id===createdCalendar.id && x.titel==='Synthetic native calendar'),
+    'actual instrumentation calendar editor scenario persists its new record');
+  const createdTask=await w.NativeScenario.task('Synthetic native task','2030-05-10','11:00',1,true); await wait();
+  ok(disk.aufgaben.some(x=>x.id===createdTask.id && x.faelligZeit==='11:00' && x.individuelleErinnerungTage===1 && x.erinnern),
+    'actual instrumentation task editor scenario preserves early and due reminders');
+  const createdContact=await w.NativeScenario.contact(); await wait();
+  ok(disk.kontakte.some(x=>x.id===createdContact.id && x.vorname==='Synthetic' && x.nachname==='Tablet'),
+    'actual instrumentation contact editor scenario persists its new record');
+  const createdNote=await w.NativeScenario.note(); await wait();
+  ok(createdNote.titel==='Synthetic native note' && createdNote.text==='Private synthetic note body' &&
+    disk.notizen.some(x=>x.id===createdNote.id && x.text===createdNote.text) &&
+    !w.document.querySelector('.eingabe-dialog'),
+    'actual instrumentation note scenario confirms the creation dialog and saves editor title/body');
+  const createdModule=await w.NativeScenario.custom(); await wait();
+  ok(disk.customOrganizer.modules.some(x=>x.id===createdModule.id &&
+    x.items.some(item=>item.title==='Synthetic custom appointment' && item.time==='12:35')),
+    'actual instrumentation custom designer and time editor scenario persists its new item');
+  await T.wechsel('gesundheit'); await wait();
   const priorExports=messages.filter(x=>x.cmd==='tablet_export').length;
   failSave=true; T.daten().notizen[0].text='unsaved change';
   w.Tablet.action('tablet_export'); await wait();
