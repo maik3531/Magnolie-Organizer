@@ -18859,6 +18859,7 @@ def nextcloud_fehlertext(fehler):
         "invalid_config": _("The Nextcloud settings are invalid."),
         "account_busy": _("The Nextcloud account settings are being changed. Try again after the current operation finishes."),
         "account_recovery_required": _("The Nextcloud account transaction needs recovery. Account changes and new synchronization connections are blocked until the configuration and credentials have been checked."),
+        "calendar_anniversaries_unsupported": _("This Nextcloud calendar contains marked anniversaries. Calendar synchronization is blocked until this scope is supported; no complete synchronization was confirmed."),
         "not_configured": _("Nextcloud is not configured."),
         "not_active": _("Nextcloud is not enabled."),
         "timeout": _("The Nextcloud request timed out."),
@@ -27663,14 +27664,33 @@ class Fenster(_FENSTER_BASIS):
 
         if kal_uids:
             ausgewaehlt = set(kal_uids)
+            # Marked anniversaries are a separate typed parser result, not
+            # ordinary yearly appointments. Until their full DAV merge/write/
+            # deletion lifecycle is supported, fail BEFORE any selected calendar
+            # can write, run duplicate cleanup or advance its success cursor.
+            def pruefe_jahrestagsbereich(gelesen, text):
+                # Existing contact-derived legacy birthday resources have a
+                # separate supported duplicate-cleanup/recovery lifecycle.
+                # Fence the explicit marker from this confirmed missing scope,
+                # without disabling that existing lifecycle.
+                if gelesen.get("jahrestage") and any(line.split(":", 1)[0].split(";", 1)[0].upper() ==
+                        "X-MAGNOLIE-JAHRESTAG-TYP" for line in _entfalte_zeilen(text)):
+                    raise NextcloudError("Marked CalDAV anniversaries are not supported.",
+                                         "calendar_anniversaries_unsupported")
+            kalender_vorab = {}
+            for uid in kal_uids:
+                quelle = _nextcloud_quelle(dav, "calendar", uid)
+                resources = dav.report(quelle["href"], "calendar")
+                for resource in resources:
+                    pruefe_jahrestagsbereich(ics_lesen(resource["data"]), resource["data"])
+                kalender_vorab[uid] = (quelle, resources)
             rest = [item for item in termine if item.get("syncKalenderUid") and
                     item.get("syncKalenderUid") not in ausgewaehlt]
             rest_tote = [item for item in tote_termine if item.get("syncKalenderUid") and
                          item.get("syncKalenderUid") not in ausgewaehlt]
             standard = kal_uids[0]
             for uid in kal_uids:
-                quelle = _nextcloud_quelle(dav, "calendar", uid)
-                resources = dav.report(quelle["href"], "calendar")
+                quelle, resources = kalender_vorab[uid]
                 basis = kalender_meta.get(uid) if isinstance(kalender_meta.get(uid), dict) else {}
                 if basis.get("initialisiert") and not restore_additiv and not quelle.get("readOnly"):
                     cleanup = dav_geburtstagsdubletten_bereinigen(
@@ -27683,6 +27703,7 @@ class Fenster(_FENSTER_BASIS):
                 for resource in resources:
                     remote_data[resource["href"]] = resource["data"]
                     gelesen = ics_lesen(resource["data"])
+                    pruefe_jahrestagsbereich(gelesen, resource["data"])
                     if gelesen.get("uebersprungenTermine"):
                         raise RuntimeError(_("The Nextcloud calendar was not read completely."))
                     komplexe_serien.update(gelesen.get("komplexeSerien") or [])
