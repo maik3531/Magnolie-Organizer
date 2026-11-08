@@ -51,6 +51,7 @@ toolchain is required to run the bundle. A current SDK/toolchain is required to 
 | Area | Current Scope |
 | --- | --- |
 | Desktop interface | Entire canonical Linux web tree, styles, fonts, symbols and catalogs projected by generator, not a separate hand-maintained organizer UI |
+| Handbook | Canonical 2.0.30 handbook bundled unchanged, including languages, search and assets; separate nonpersistent local WKWebView, no Organizer bridge; user-clicked HTTPS links open in the system browser |
 | Shell | AppKit window, WKWebView, application/edit menus, save-before-quit handshake |
 | Bridge | Main-frame/local-document check, randomized handler name, typed native allowlist, explicit negative results |
 | Local data | Whole JSON text, private profile lease, 0700 directory/0600 files, atomic same-directory replacement, file and directory synchronization, external-change detection |
@@ -291,3 +292,20 @@ license unless a file says otherwise. See [LICENSE.md](LICENSE.md). Generated
 fonts and assets retain their existing notices. The generator copies the
 unmodified protected MGA containers and their separate permission; it does not
 decrypt, extract for redistribution or relicense them.
+
+## Bundled handbook
+
+Help → Handbook and the existing `handbuch_oeffnen` UI command open the same
+canonical 2.0.30 handbook bundled under `Contents/Resources/UI/manual`.
+The handbook tree is included in source freezes and generated bundle hashes;
+there is no separate content fork or automatic handbook download/install.
+Its window uses a separate nonpersistent WebKit store without any native message
+handler. File read access is limited to its handbook directory. Navigation accepts
+only the bundled entry and safe fragments; arbitrary paths, queries and schemes
+are rejected. Language selection reuses the original catalogs and controls.
+Network scripts/subresources are blocked. Only explicit HTTPS link clicks may
+open the system browser. Handbook printing/native commands are not bridged.
+Native WebKit tests load these actual generated resources and exercise search,
+result navigation, language selection, isolation and blocked external scripts.
+New source still requires native execution; host projection tests alone do not
+prove the handbook runs on Monterey or other macOS versions.

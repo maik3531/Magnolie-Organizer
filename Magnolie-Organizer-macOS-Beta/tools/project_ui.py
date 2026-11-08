@@ -21,7 +21,7 @@ def digest(data):
 
 
 def inputs():
-    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources"]
+    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources", REPO / "magnolie-handbuch/web"]
     files = []
     for root in roots:
         if root.is_symlink():
@@ -281,6 +281,17 @@ def project(snapshot, target):
         native[locale].update(extras.get(locale, {}))
     (target / "native-i18n.json").write_text(json.dumps(native, ensure_ascii=False, sort_keys=True) + "\n")
     (target / "BetaIdentity.json").write_text(json.dumps(identity, sort_keys=True) + "\n")
+    # Bundle the canonical manual unchanged. Every asset participates in the
+    # input freeze and generated tree hashes; no second manual content fork.
+    manual_prefix = "magnolie-handbuch/web/"
+    manual_version = json.loads(snapshot[manual_prefix + "version.json"])["version"]
+    if manual_version != "2.0.30":
+        raise ValueError("Bundled manual must match the 2.0.30 desktop baseline.")
+    for name, data in snapshot.items():
+        if name.startswith(manual_prefix):
+            destination = target / "manual" / name[len(manual_prefix):]
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
     mobile = snapshot["magnolie-handbuch/web/mobile-downloads.json"]
     notes = json.loads(mobile)["notes"]
     if notes["filename"] != "Magnolie-Notes.apk" or not notes["url"].endswith("/Magnolie-Notes.apk"):

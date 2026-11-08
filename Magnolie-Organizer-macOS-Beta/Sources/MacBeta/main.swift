@@ -8,6 +8,7 @@ import BetaCore
 final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMessageHandler,
                   WKNavigationDelegate, UNUserNotificationCenterDelegate {
     private let name = "Magnolie Organizer macOS Beta"
+    private var manual: ManualHost?
     private var window: NSWindow!
     private var web: WKWebView!
     private var store: AtomicStore!
@@ -71,6 +72,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         appMenu.addItem(withTitle: "macOS " + tr("Contacts") + "…", action: #selector(systemContacts), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: tr("Quit") + " " + name, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let helpItem = NSMenuItem(), help = NSMenu(title: tr("Help"))
+        root.addItem(helpItem); helpItem.submenu = help; NSApp.helpMenu = help
+        help.addItem(withTitle: tr("Handbook"), action: #selector(openManual), keyEquivalent: "?").target = self
         let editItem = NSMenuItem(), edit = NSMenu(title: tr("Edit"))
         root.addItem(editItem); editItem.submenu = edit
         edit.addItem(withTitle: tr("Undo"), action: Selector(("undo:")), keyEquivalent: "z")
@@ -212,7 +216,20 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         send("init", ["daten": data, "neu": new, "echterErststart": new, "gesperrt": locked,
                       "regional": preferences.isEmpty ? ["language": "system"] : preferences,
                       "kennwort": encryption != nil, "datenPfad": store.file.path,
-                      "trayVerfuegbar": false, "handbuchInstalliert": false, "contributorAktiv": false])
+                      "trayVerfuegbar": false, "handbuchInstalliert": true, "handbuchVersion": "2.0.30", "contributorAktiv": false])
+    }
+    @objc private func openManual() {
+        Task { @MainActor in
+            do {
+                guard let resources = Bundle.main.resourceURL else { throw BetaError("Bundled manual missing.") }
+                if self.manual == nil { self.manual = ManualHost() }
+                let requested = (self.regional(self.plain)["language"] as? String ?? "system").replacingOccurrences(of: "_", with: "-").lowercased()
+                let baseLanguage = String(requested.split(separator: "-").first ?? "")
+                let language = ManualContent.languages.contains(requested) ? requested : ManualContent.languages.contains(baseLanguage) ? baseLanguage : "system"
+                try await self.manual!.show(root: resources.appendingPathComponent("UI/manual"), language: language)
+                self.send("handbuchGeoeffnet", ["ok": true])
+            } catch { self.send("handbuchGeoeffnet", ["ok": false, "fehler": error.localizedDescription]); self.alert(error.localizedDescription) }
+        }
     }
     private func savePanel(_ data: Data, suffix: String) throws -> String? {
         let panel = NSSavePanel()
@@ -229,6 +246,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private func dispatch(_ request: Request) throws {
         guard !restoring else { throw BetaError("Please wait.") }
         switch request.command {
+        case .handbuch_oeffnen: openManual()
         case .bereit:
             guard !initialized else { throw BetaError("Duplicate initialization refused.") }
             initialized = true

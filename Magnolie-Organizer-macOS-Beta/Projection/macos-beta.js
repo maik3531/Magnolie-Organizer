@@ -4,7 +4,7 @@
 (() => {
   const allowed = new Set(/*GENERATED_COMMANDS*/[]);
   const identity = /*GENERATED_IDENTITY*/{};
-  const methods = new Set(["init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
+  const methods = new Set(["handbuchGeoeffnet", "init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
     "exportErgebnis", "importErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
     "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus", "baumBriefkastenStatus",
     "baumBriefkastenGespeichert", "baumBriefkastenPruefung", "baumDavPruefung"]);

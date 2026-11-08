@@ -24,6 +24,20 @@ class ProjectionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.snapshot = projection.inputs()
 
+    def test_canonical_manual_is_bundled_unchanged_and_hashed(self):
+        prefix = "magnolie-handbuch/web/"
+        self.assertEqual(json.loads(self.snapshot[prefix + "version.json"])["version"], "2.0.30")
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            manual = [name for name in self.snapshot if name.startswith(prefix)]
+            self.assertGreater(len(manual), 30)
+            for name in manual:
+                self.assertEqual((target / "manual" / name[len(prefix):]).read_bytes(), self.snapshot[name])
+            hashes = projection.tree_hashes(target)
+            self.assertIn("manual/index.html", hashes)
+            self.assertIn("manual/handbuch.js", hashes)
+
     def test_identity_and_no_stable_workflow(self):
         with (BETA / "Resources/Info.plist").open("rb") as stream:
             info = plistlib.load(stream)
