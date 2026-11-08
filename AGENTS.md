@@ -54,6 +54,17 @@ konkrete Schritte prüfen. Reproduzierten Programmfehler, Konfigurations- oder
 Bedienungsursache und weiterhin unbestätigten Befund im Issue auseinanderhalten.
 Nutzern keine Ursache unterstellen, die nicht überprüft wurde.
 
+Bei allen künftigen Tests und Fehlerkorrekturen prüfen, ob ein Befund auch andere
+Editionen oder Plattformen betreffen kann, insbesondere Linux und Windows.
+Solche gemeinsamen oder möglicherweise übertragbaren Befunde als eigenes Issue
+erfassen; Reproduktion, betroffene Quell-/Paketstände und nachgewiesene Auswirkungen
+von noch ungeprüften Verdachtsfällen klar trennen. Vorhandene Issues zuvor auf
+Dopplungen prüfen. Einen vorhandenen Fix oder übertragbaren Korrekturansatz direkt
+im Issue mit konkretem Patch bzw. Quellverweis, erforderlichen Anpassungen und
+Prüfstand dokumentieren. Auch bei späteren Fixes diese Hinweise im Issue ergänzen;
+eine Mac-/Tablet-Korrektur nicht als bereits geprüften Linux-/Windows-Fix ausgeben.
+Diese Regel gilt dauerhaft, nicht nur für die aktuell bearbeitete Portierung.
+
 ## Native Startprüfung vor jeder Veröffentlichung
 
 Jedes installierbare Release-Paket in einer passenden vorhandenen VM bzw. nativ
