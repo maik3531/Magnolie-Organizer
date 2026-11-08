@@ -165,16 +165,36 @@ class VaultTest {
         val dir=Files.createTempDirectory("tablet-a2-channel").toFile()
         try {
             val key=key(); var armed=false
+            val vault=Vault(dir,{key},checkpoint={if(it=="backup-sync") armed=true},syncDirectory={directory ->
+                val channel=java.nio.channels.FileChannel.open(directory.toPath(),java.nio.file.StandardOpenOption.READ)
+                channel.use {if(armed) {armed=false; it.close()}; it.force(true)}
+            })
+            vault.save(data("A").toString(),JSONArray()); val page=vault.session()
+            val token=vault.prepareImport(page,data("B").toString())
+            try {vault.replace(page,token); fail("Expected channel failure")}
+            catch(e: CommitFailure) {assertEquals("uncertain",e.outcome); assertTrue(e.cause is java.nio.channels.ClosedChannelException)}
+            reject {vault.save(page,data("A").toString(),JSONArray())}
+            assertEquals("B",vault.read()!!.getJSONObject("data").getJSONArray("termine").getJSONObject(0).getString("titel"))
+        } finally {dir.deleteRecursively()}
+    }
+    @Test fun closedFileChannelAtBackupDirectorySyncKeepsPrimaryAndFencesRestore() {
+        val dir=Files.createTempDirectory("tablet-a2-backup-channel").toFile()
+        try {
+            val key=key(); var armed=false
             val vault=Vault(dir,{key},syncDirectory={directory ->
                 val channel=java.nio.channels.FileChannel.open(directory.toPath(),java.nio.file.StandardOpenOption.READ)
                 channel.use {if(armed) {armed=false; it.close()}; it.force(true)}
             })
             vault.save(data("A").toString(),JSONArray()); val page=vault.session()
             val token=vault.prepareImport(page,data("B").toString()); armed=true
-            try {vault.replace(page,token); fail("Expected channel failure")}
-            catch(e: CommitFailure) {assertEquals("uncertain",e.outcome); assertTrue(e.cause is java.nio.channels.ClosedChannelException)}
-            reject {vault.save(page,data("A").toString(),JSONArray())}
-            assertEquals("B",vault.read()!!.getJSONObject("data").getJSONArray("termine").getJSONObject(0).getString("titel"))
+            try {vault.replace(page,token); fail("Expected backup directory barrier failure")}
+            catch(e: CommitFailure) {assertEquals("before-commit",e.outcome); assertTrue(e.cause is java.nio.channels.ClosedChannelException)}
+            assertFalse(vault.isWritable(page))
+            reject {vault.save(page,data("B").toString(),JSONArray())}
+            assertEquals("A",vault.read()!!.getJSONObject("data").getJSONArray("termine").getJSONObject(0).getString("titel"))
+            val loaded=vault.openSession(); vault.activate(loaded.session)
+            assertTrue(vault.isWritable(loaded.session)); assertNotEquals(page.id,loaded.session.id)
+            reject {vault.replace(loaded.session,token)}
         } finally {dir.deleteRecursively()}
     }
     @Test fun nativeImportTokenBindsSelectedBytesSessionAndLatestRevision() {
