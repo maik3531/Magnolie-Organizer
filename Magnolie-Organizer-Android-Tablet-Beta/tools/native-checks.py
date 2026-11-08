@@ -30,6 +30,17 @@ def technical_failure_log(output):
     return '\n'.join(lines[-160:])[-16000:]
 
 
+def startup_milestones(output):
+    phases = ('CREATE_BEGIN', 'WEBVIEW_CREATE_BEGIN', 'WEBVIEW_CREATE_END', 'LOAD_URL',
+              'PAGE_STARTED', 'PAGE_VISIBLE', 'PAGE_FINISHED', 'BOOTSTRAP_REQUEST',
+              'VAULT_OPEN_BEGIN', 'VAULT_OPEN_END', 'INIT_REPLY', 'PAGE_ACKNOWLEDGED',
+              'ACTIVATION_BEGIN', 'ACTIVATION_END', 'NATIVE_READY', 'READY_REPLY')
+    pattern = re.compile(r'\sD\s+MagnolieStartup\s*:\s+(event=(?:'+ '|'.join(phases) +
+        r') pid=\d+ generation=\d+ elapsedRealtimeMs=\d+ sinceCreateMs=\d+)\s*$')
+    lines = [match.group(1) for line in output.splitlines() if (match := pattern.search(line))]
+    return '\n'.join(lines[-48:])[-6000:]
+
+
 def system_dependency_log(output):
     package = re.escape(session.BETA_PACKAGE)
     target = re.compile(r'(?<![A-Za-z0-9_.])'+package+r'(?=[:/\s,})]|$)')
@@ -183,7 +194,7 @@ def main(argv=None):
                 if owner.state.get('booted') and not owner.signal and session.time.monotonic() < owner.deadline:
                     for name, command in {
                         'android-test-log': ['logcat', '-b', 'all', '-d', '-v', 'threadtime', '-s',
-                            'AndroidRuntime:E', 'chromium:E', 'libc:F', 'DEBUG:F', 'ActivityManager:I', 'WebViewUpdateService:I', 'TabletNativeTest:I'],
+                            'AndroidRuntime:E', 'chromium:E', 'libc:F', 'DEBUG:F', 'ActivityManager:I', 'WebViewUpdateService:I', 'TabletNativeTest:I', 'MagnolieStartup:D'],
                         'app-exit-info': ['shell', 'dumpsys', 'activity', 'exit-info',
                             'io.gitlab.maik3531.magnolieorganizer.tablet.beta'],
                         **({'webview-provider-state': ['shell', 'dumpsys', 'webviewupdate'],
@@ -200,6 +211,7 @@ def main(argv=None):
                             if code and name == 'android-test-log':
                                 print('NATIVE_RUNTIME_FAILURE_LOG\n'+technical_failure_log(output), flush=True)
                                 print('NATIVE_SYSTEM_DEPENDENCY_LOG\n'+system_dependency_log(output), flush=True)
+                                print('NATIVE_STARTUP_MILESTONES\n'+startup_milestones(output), flush=True)
                             elif code and name == 'app-exit-info':
                                 print('NATIVE_EXIT_REASON_SIGNATURE\n'+exit_info_signature(output), flush=True)
                                 print('NATIVE_DEPENDENCY_DESCRIPTION\n'+dependency_exit_descriptions(output), flush=True)

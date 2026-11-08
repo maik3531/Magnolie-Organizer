@@ -39,6 +39,16 @@ class MainActivity : Activity() {
     private var documentBusy = false
     private var documentRequests = DocumentRequests()
     @Volatile private var ready = false
+    @Volatile private var startupReadyAtElapsed = 0L
+    private val startupOriginMs = android.os.SystemClock.elapsedRealtime()
+    private enum class StartupPhase { CREATE_BEGIN, WEBVIEW_CREATE_BEGIN, WEBVIEW_CREATE_END,
+        LOAD_URL, PAGE_STARTED, PAGE_VISIBLE, PAGE_FINISHED, BOOTSTRAP_REQUEST,
+        VAULT_OPEN_BEGIN, VAULT_OPEN_END, INIT_REPLY, PAGE_ACKNOWLEDGED,
+        ACTIVATION_BEGIN, ACTIVATION_END, NATIVE_READY, READY_REPLY }
+    private fun startupMark(event: StartupPhase, epoch: Int = generation) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        android.util.Log.d("MagnolieStartup", "event=${event.name} pid=${android.os.Process.myPid()} generation=$epoch elapsedRealtimeMs=$now sinceCreateMs=${now-startupOriginMs}")
+    }
     private var printing = false
     private val network = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val accountNetwork = java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -58,10 +68,13 @@ class MainActivity : Activity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        startupMark(StartupPhase.CREATE_BEGIN)
         documentRequests = DocumentRequests(savedInstanceState?.getInt("nextDocumentCode",100) ?: 100)
         window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE,
             android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        startupMark(StartupPhase.WEBVIEW_CREATE_BEGIN)
         web = WebView(this)
+        startupMark(StartupPhase.WEBVIEW_CREATE_END)
         // Target 35 edge-to-edge: keep binder controls outside system bars and the IME.
         web.setOnApplyWindowInsetsListener { view, insets ->
             if (Build.VERSION.SDK_INT >= 30) {
@@ -92,14 +105,17 @@ class MainActivity : Activity() {
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) = handler.cancel()
             override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
                 cancelHolidayFetch(); cancelAccountDiscovery()
-                generation++; proxy = null; ready = false
+                generation++; proxy = null; ready = false; startupReadyAtElapsed = 0L
                 documentSession = null; bootstrapStarted = false; restoreFenced = false
                 exporting = null; importToken = null; documentBusy = false
                 documentRequests.cancel()
+                startupMark(StartupPhase.PAGE_STARTED)
             }
+            override fun onPageCommitVisible(view: WebView, url: String) { startupMark(StartupPhase.PAGE_VISIBLE) }
+            override fun onPageFinished(view: WebView, url: String) { startupMark(StartupPhase.PAGE_FINISHED) }
             override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
                 cancelHolidayFetch(); cancelAccountDiscovery()
-                generation++; ready = false; proxy = null; documentSession = null
+                generation++; ready = false; startupReadyAtElapsed = 0L; proxy = null; documentSession = null
                 documentRequests.cancel(); view.destroy(); fatal(); return true
             }
         }
@@ -121,6 +137,7 @@ class MainActivity : Activity() {
             } catch (_: Exception) { respond("error", getString(R.string.failed)) }
         }
         setContentView(web)
+        startupMark(StartupPhase.LOAD_URL)
         web.loadUrl(START)
     }
 
@@ -139,8 +156,12 @@ class MainActivity : Activity() {
     private fun blocked() = WebResourceResponse("text/plain", "UTF-8", 403, "Forbidden", emptyMap(), ByteArrayInputStream(byteArrayOf()))
     private fun respond(callback: String, payload: Any, epoch: Int = generation) {
         runOnUiThread {
-            if (!isDestroyed && epoch == generation) proxy?.postMessage(JSONObject()
-                .put("callback", callback).put("payload", payload).toString())
+            if (!isDestroyed && epoch == generation) {
+                val target = proxy
+                target?.postMessage(JSONObject().put("callback", callback).put("payload", payload).toString())
+                if (target != null && callback == "init") startupMark(StartupPhase.INIT_REPLY, epoch)
+                if (target != null && callback == "ready") startupMark(StartupPhase.READY_REPLY, epoch)
+            }
         }
     }
     private fun fatal() {
@@ -161,7 +182,7 @@ class MainActivity : Activity() {
     }
     private fun work(onError: (Exception) -> Unit = { error ->
         if (error is CommitFailure && error.outcome != "before-commit") {
-            cancelAccountDiscovery(); ready = false; restoreFenced = true
+            cancelAccountDiscovery(); ready = false; startupReadyAtElapsed = 0L; restoreFenced = true
             respond("storageBlocked",JSONObject().put("outcome",error.outcome).put("text",getString(R.string.save_failed)))
         } else respond("error",getString(R.string.failed))
     }, action: () -> Unit) {
@@ -257,23 +278,35 @@ class MainActivity : Activity() {
         when (cmd) {
             "bereit" -> {
                 check(!bootstrapStarted); bootstrapStarted = true
+                startupMark(StartupPhase.BOOTSTRAP_REQUEST, epoch)
                 work({ fatal() }) {
+                    startupMark(StartupPhase.VAULT_OPEN_BEGIN, epoch)
                     val loaded = AndroidStore.vault(this).openSession()
+                    startupMark(StartupPhase.VAULT_OPEN_END, epoch)
                     runOnUiThread { if (epoch == generation) documentSession = loaded.session }
                     respond("init",JSONObject().put("daten",loaded.value?.getJSONObject("data") ?: JSONObject.NULL)
                         .put("session",loaded.session.id).put("revision",loaded.session.revision),epoch)
                 }
             }
-            "tablet_loaded" -> work({ fatal() }) {
-                AndroidStore.vault(this).activate(requireNotNull(session))
-                runOnUiThread { if (epoch == generation) ready = true }
-                respond("ready",JSONObject().put("session",session.id).put("revision",session.revision),epoch)
+            "tablet_loaded" -> {
+                startupMark(StartupPhase.PAGE_ACKNOWLEDGED, epoch)
+                work({ fatal() }) {
+                    startupMark(StartupPhase.ACTIVATION_BEGIN, epoch)
+                    AndroidStore.vault(this).activate(requireNotNull(session))
+                    startupMark(StartupPhase.ACTIVATION_END, epoch)
+                    runOnUiThread { if (epoch == generation) {
+                        startupReadyAtElapsed = android.os.SystemClock.elapsedRealtime()
+                        ready = true
+                        startupMark(StartupPhase.NATIVE_READY, epoch)
+                    } }
+                    respond("ready",JSONObject().put("session",session.id).put("revision",session.revision),epoch)
+                }
             }
             "speichern" -> {
                 val id = message.getLong("id")
                 work({ error ->
                     val reload = !AndroidStore.vault(this).isWritable(requireNotNull(session))
-                    if (reload) { cancelAccountDiscovery(); ready = false; restoreFenced = true }
+                    if (reload) { cancelAccountDiscovery(); ready = false; startupReadyAtElapsed = 0L; restoreFenced = true }
                     respond("gespeichert",JSONObject().put("id",id).put("ok",false)
                         .put("session",session!!.id).put("expectedRevision",session.revision)
                         .put("reloadRequired",reload).put("outcome",(error as? CommitFailure)?.outcome ?: "rejected")
@@ -351,7 +384,7 @@ class MainActivity : Activity() {
                     .setPositiveButton(R.string.restore) { _,_ ->
                         if (epoch == generation && session == documentSession && !restoreFenced) {
                             cancelHolidayFetch(); cancelAccountDiscovery()
-                            restoreFenced = true; ready = false
+                            restoreFenced = true; ready = false; startupReadyAtElapsed = 0L
                             work({ error -> respond("restoreFailed",JSONObject().put("token",token)
                                 .put("outcome",(error as? CommitFailure)?.outcome ?: "before-commit")
                                 .put("text",getString(R.string.import_failed)),epoch) }) {
@@ -557,7 +590,7 @@ class MainActivity : Activity() {
     }
     override fun onDestroy() {
         cancelHolidayFetch(); cancelAccountDiscovery(); network.shutdownNow(); accountNetwork.shutdownNow()
-        generation++; ready=false; proxy=null; documentSession=null; documentRequests.cancel()
+        generation++; ready=false; startupReadyAtElapsed=0L; proxy=null; documentSession=null; documentRequests.cancel()
         printViews.forEach { it.destroy() }; web.destroy(); super.onDestroy()
     }
 }

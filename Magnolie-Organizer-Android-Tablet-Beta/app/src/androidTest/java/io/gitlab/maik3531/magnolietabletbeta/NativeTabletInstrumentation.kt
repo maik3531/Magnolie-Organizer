@@ -31,6 +31,7 @@ class NativeTabletInstrumentation : Instrumentation() {
     private var startupState:JSONObject?=null
     private var startupTiming:JSONObject?=null
     @Volatile private var observedMainResumed=false
+    @Volatile private var observedMainDestroyed=false
     private var lastTouchTiming=JSONObject()
     private var lastIssuedTouch=emptyList<AsyncTouchPair.Delivery>()
     private var previousNativeDownTime=-1L
@@ -98,6 +99,10 @@ class NativeTabletInstrumentation : Instrumentation() {
         val result=Bundle().apply {putString("stream",proof.toString(2)+"\n")}
         finish(if(error==null) Activity.RESULT_OK else Activity.RESULT_CANCELED,result)
     }
+    override fun callActivityOnDestroy(target: Activity) {
+        if (target is MainActivity) observedMainDestroyed=true
+        super.callActivityOnDestroy(target)
+    }
     override fun callActivityOnResume(target: Activity) {
         super.callActivityOnResume(target)
         if (target is MainActivity) observedMainResumed=true
@@ -118,6 +123,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         error("Timeout: $name")
     }
     private fun launch() {
+        observedMainDestroyed=false
         val activityStartedAt=SystemClock.elapsedRealtime()
         activity=startActivitySync(Intent(targetContext,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
         val activityReturnedAt=SystemClock.elapsedRealtime()
@@ -153,52 +159,50 @@ class NativeTabletInstrumentation : Instrumentation() {
     }
     private fun observeNativeReadiness(startActivityMs:Long) {
         val field=MainActivity::class.java.getDeclaredField("ready").apply {isAccessible=true}
+        check(java.lang.reflect.Modifier.isVolatile(field.modifiers)) {"Readiness flag must be published as volatile"}
+        val published=MainActivity::class.java.getDeclaredField("startupReadyAtElapsed").apply {isAccessible=true}
         val started=SystemClock.elapsedRealtime()
         val gate=ReadinessObservation(started,25000)
-        val done=CountDownLatch(1)
-        val cancelled=java.util.concurrent.atomic.AtomicBoolean(false)
-        val polls=java.util.concurrent.atomic.AtomicInteger(0)
-        val maximumQueueDelay=java.util.concurrent.atomic.AtomicLong(0)
-        val observationError=AtomicReference<String?>(null)
-        val handler=android.os.Handler(android.os.Looper.getMainLooper())
-        var nextDueAt=started
-        lateinit var poll:Runnable
-        poll=Runnable {
-            if(!cancelled.get()) {
-                val entered=SystemClock.elapsedRealtime()
-                maximumQueueDelay.set(maxOf(maximumQueueDelay.get(),maxOf(0,entered-nextDueAt)))
-                try {
-                    if(activity.isDestroyed) {observationError.set("ActivityDestroyed");done.countDown()}
-                    else {
-                        val ready=field.getBoolean(activity)
-                        val observedAt=SystemClock.elapsedRealtime() // After the actual main-thread flag read.
-                        polls.incrementAndGet()
-                        if(gate.observe(observedAt,ready)) done.countDown()
-                        else {
-                            nextDueAt=minOf(gate.deadline,observedAt+100)
-                            handler.postDelayed(poll,maxOf(0,nextDueAt-SystemClock.elapsedRealtime()))
-                        }
-                    }
-                } catch(failure:Exception) {observationError.set(failure.javaClass.simpleName);done.countDown()}
-            }
-        }
+        val mainThreadStacks=JSONArray()
+        var polls=0; var maximumSchedulingDelay=0L; var nextDueAt=started; var nextSampleAt=started+5000
+        var publishedReadyAt=0L; var observationError:String?=null
         try {
-            handler.post(poll)
-            done.await(25,TimeUnit.SECONDS)
+            while(SystemClock.elapsedRealtime()<=gate.deadline && !gate.finished) {
+                val entered=SystemClock.elapsedRealtime()
+                maximumSchedulingDelay=maxOf(maximumSchedulingDelay,maxOf(0,entered-nextDueAt))
+                if(observedMainDestroyed) {observationError="ActivityDestroyed";break}
+                // The same production ready flag is volatile because native account workers
+                // also read it. No main-queue RPC or alternate success predicate is needed.
+                val ready=field.getBoolean(activity)
+                val observedAt=SystemClock.elapsedRealtime()
+                publishedReadyAt=published.getLong(activity)
+                polls++
+                if(gate.observe(observedAt,ready)) break
+                if(observedAt>=nextSampleAt && mainThreadStacks.length()<4) {
+                    val frames=JSONArray(android.os.Looper.getMainLooper().thread.stackTrace.take(12).map {
+                        JSONObject().put("class",it.className).put("method",it.methodName).put("line",it.lineNumber)
+                    })
+                    mainThreadStacks.put(JSONObject().put("afterMs",SystemClock.elapsedRealtime()-started).put("frames",frames))
+                    nextSampleAt=observedAt+5000
+                }
+                nextDueAt=minOf(gate.deadline,observedAt+100)
+                SystemClock.sleep(maxOf(0,nextDueAt-SystemClock.elapsedRealtime()))
+            }
         } finally {
-            cancelled.set(true);handler.removeCallbacks(poll);gate.stop()
-            startupTiming=JSONObject().put("startActivityMs",startActivityMs)
-                .put("observationElapsedMs",SystemClock.elapsedRealtime()-started).put("polls",polls.get())
-                .put("maxUiQueueDelayMs",maximumQueueDelay.get())
+            gate.stop()
+            startupTiming=JSONObject().put("observer","volatile-ready-flag").put("startActivityMs",startActivityMs)
+                .put("observationStartedAtMs",started).put("deadlineAtMs",gate.deadline)
+                .put("mainThreadStacks",mainThreadStacks).put("observationElapsedMs",SystemClock.elapsedRealtime()-started)
+                .put("polls",polls).put("maxObserverSchedulingDelayMs",maximumSchedulingDelay)
+                .put("publishedReadyAfterMs",if(publishedReadyAt>0) publishedReadyAt-started else JSONObject.NULL)
                 .put("firstReadyAfterMs",gate.readyObservedAt?.minus(started) ?: JSONObject.NULL)
                 .put("lastObservationAfterMs",gate.lastObservedAt?.minus(started) ?: JSONObject.NULL)
-                .put("acceptedBeforeDeadline",gate.accepted)
-                .put("observationError",observationError.get() ?: JSONObject.NULL)
+                .put("acceptedBeforeDeadline",gate.accepted).put("observationError",observationError ?: JSONObject.NULL)
             val line="STARTUP_TIMING "+startupTiming.toString()
             android.util.Log.i("TabletNativeTest",line)
             sendStatus(1,Bundle().apply {putString("stream",line+"\n")})
         }
-        check(gate.accepted && observationError.get()==null) {"Timeout: native initialization acknowledged within 25 seconds"}
+        check(gate.accepted && observationError==null) {"Timeout: native initialization acknowledged within 25 seconds"}
     }
     private fun startupDiagnostics():JSONObject {
         val started=SystemClock.elapsedRealtime()

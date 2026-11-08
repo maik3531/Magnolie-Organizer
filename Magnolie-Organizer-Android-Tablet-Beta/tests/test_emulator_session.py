@@ -319,6 +319,16 @@ class LifecycleTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'different source snapshot'):
                 session.run_test(session.Owner(), {'expectedSourceHash': 'new'}, 'basics', 120)
 
+    def test_startup_milestones_only_allow_fixed_numeric_telemetry(self):
+        spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
+        native = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native)
+        line = '11-08 12:00:00.000 111 222 D MagnolieStartup: event=VAULT_OPEN_END pid=111 generation=1 elapsedRealtimeMs=123 sinceCreateMs=12'
+        output = native.startup_milestones(line+'\n'+line+' private record\n'+line.replace('VAULT_OPEN_END','PRIVATE_VALUE'))
+        self.assertEqual(output, line.split('MagnolieStartup: ')[1])
+        self.assertLessEqual(len(native.startup_milestones((line+'\n')*100)), 6000)
+        self.assertLessEqual(len(native.startup_milestones((line+'\n')*100).splitlines()), 48)
+
     def test_native_failure_output_retains_technical_stack_and_is_bounded(self):
         spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
         native = importlib.util.module_from_spec(spec)
