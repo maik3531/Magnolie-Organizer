@@ -1,23 +1,37 @@
 package io.gitlab.maik3531.magnolietabletbeta
 
-/** One-use SAF result routing. Codes are never reused across page/activity recreation. */
-internal class DocumentRequests(var nextCode: Int = 100) {
-    data class Request(val code: Int, val export: Boolean, val generation: Int, val session: DocumentSession)
-    private var pending: Request? = null
-    fun matches(code: Int): Boolean = pending?.code == code
+internal enum class ImportFormat { JSON, ICS }
 
-    fun begin(export: Boolean, generation: Int, session: DocumentSession): Request {
+/** One-use SAF result routing, including the selected file's background decode lifetime.
+ * Codes are never reused across page/activity recreation; a new request invalidates old work.
+ */
+internal class DocumentRequests(var nextCode: Int = 100) {
+    data class Request(val code: Int, val export: Boolean, val generation: Int, val session: DocumentSession,
+                       val format: ImportFormat = ImportFormat.JSON, val requestId: String? = null)
+    private var pending: Request? = null
+    private var selected: Request? = null
+    @Synchronized fun matches(code: Int): Boolean = pending?.code == code
+    @Synchronized fun active(): Request? = pending ?: selected
+    @Synchronized fun isActive(request: Request): Boolean = pending == request || selected == request
+
+    @Synchronized fun begin(export: Boolean, generation: Int, session: DocumentSession,
+                            format: ImportFormat = ImportFormat.JSON, requestId: String? = null): Request {
         check(pending == null)
+        check(!export || format == ImportFormat.JSON)
         check(nextCode in 100..65535) { "Document request codes exhausted; reopen the activity" }
-        return Request(nextCode++, export, generation, session).also { pending = it }
+        selected = null
+        return Request(nextCode++, export, generation, session, format, requestId).also { pending = it }
     }
 
-    fun take(code: Int, generation: Int, session: DocumentSession?): Request? {
+    @Synchronized fun take(code: Int, generation: Int, session: DocumentSession?): Request? {
         val request = pending ?: return null
         if (request.code != code) return null // An old result must not cancel a newer chooser.
         pending = null
-        return request.takeIf { it.generation == generation && it.session == session }
+        return request.takeIf { it.generation == generation && it.session == session }?.also { selected = it }
     }
-
-    fun cancel() { pending = null }
+    @Synchronized fun finish(code: Int): Boolean {
+        if (selected?.code != code) return false
+        selected = null; return true
+    }
+    @Synchronized fun cancel() { pending = null; selected = null }
 }

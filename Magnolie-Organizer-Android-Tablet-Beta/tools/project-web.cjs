@@ -122,6 +122,14 @@ sourceRenderer = sourceRenderer.slice(0,sourceClose)+davPatch('SOURCE_END',
 sourceRenderer = sourceRenderer.replace(davSourceAnchor,davSourceAnchor+davPatch('SOURCE_START',
   'nutzlast = window.TabletDav.sourceView(nutzlast, DATEN.einstellungen.sync); try {'));
 regionalSource = regionalSource.slice(0,sourceStart)+sourceRenderer+regionalSource.slice(sourceEnd);
+// Preserve calendar-level source properties in the very same canonical book save as its records.
+const calendarMergeAnchor = '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n      if (changed) {';
+if (regionalSource.split(calendarMergeAnchor).length !== 2) throw Error('Canonical calendar merge anchor changed');
+regionalSource = regionalSource.replace(calendarMergeAnchor,
+  '/*TABLET_ICS_MERGE_BEGIN*/      const calendarMetadata = window.Tablet.calendarMetadata(DATEN, nutzlast, false);\n/*TABLET_ICS_MERGE_END*/' +
+  '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n' +
+  '      if (changed/*TABLET_ICS_SAVE_BEGIN*/ || calendarMetadata/*TABLET_ICS_SAVE_END*/) {/*TABLET_ICS_COMMIT_BEGIN*/\n' +
+  '        if (calendarMetadata) window.Tablet.calendarMetadata(DATEN, nutzlast, true);/*TABLET_ICS_COMMIT_END*/');
 const anchor = '  window.App = App;';
 if (appSource.split(anchor).length !== 2) throw Error('Desktop adapter anchor changed');
 generated.set('assets/web/anwendung.js', Buffer.from(regionalSource.replace(anchor,

@@ -13,10 +13,10 @@ let passed=0;
 const ok = (condition,label) => {assert.ok(condition,label); passed++; console.log('PASS '+label);};
 (async()=>{
   const beta=JSON.parse(fs.readFileSync(path.join(root,'web/beta-i18n.json')));
-  ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===2 && x.every(Boolean)), '20 manual beta locales');
+  ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===3 && x.every(Boolean)), '20 manual beta locales');
   const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
   const projected=read('anwendung.js');
-  const reviewed=projected.replace(/\/\*TABLET_DAV_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_DAV_\1_END\*\//g,'');
+  const reviewed=projected.replace(/\/\*TABLET_ICS_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_ICS_\1_END\*\//g,'').replace(/\/\*TABLET_DAV_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_DAV_\1_END\*\//g,'');
   ok(reviewed.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
     'generated core differs only by reviewed guard, regional entry, DAV prefixes and native detection suppression');
   const fontCss=read('desktop-fonts.css');
@@ -363,6 +363,84 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   assert.ok(!JSON.stringify(startup).includes('Synthetic'));
   w.document.getElementById('tablet-status').textContent=priorStatus;
   ok(true,'startup diagnostics expose fixed technical fields without document or status message content');
+  // The production codec's release-oracle shape enters the real shared importer,
+  // then records and source metadata must appear in the same native save envelope.
+  const calendarOracle=JSON.parse(fs.readFileSync(path.join(root,'app/src/test/resources/calendar-import-v2.0.30.json'))).cases[0];
+  const calendarPayload={...structuredClone(calendarOracle.importExpected),icsImportMetadata:{version:1,
+    sourceSHA256:createHash('sha256').update(calendarOracle.importSource).digest('hex'),calendarProperties:['VERSION:2.0','X-WR-CALNAME:Synthetic import']}};
+  const calendarReply=(request,data,extra={})=>({callback:'calendarImport',payload:{requestId:request.requestId,
+    pickerToken:301,...dom.authority(),data,...extra}});
+  async function calendarPicker() {
+    const count=messages.filter(m=>m.cmd==='tablet_import').length;
+    w.Tablet.action('tablet_import','ics'); await wait(); await wait();
+    assert.equal(messages.filter(m=>m.cmd==='tablet_import').length,count+1);
+    const request=messages.filter(m=>m.cmd==='tablet_import').at(-1);
+    assert.equal(request.format,'ics'); return request;
+  }
+  let picker=await calendarPicker();
+  const preCalendar=disk.termine.length;
+  const preStaleCalendar=JSON.stringify(disk);
+  w.Tablet.receive(calendarReply(picker,calendarPayload,{revision:'old-book-revision'})); await wait();
+  ok(JSON.stringify(disk)===preStaleCalendar,'ICS result from an obsolete book revision cannot mutate the current page');
+  w.Tablet.receive(calendarReply(picker,calendarPayload)); await wait(); await wait();
+  const calendarSave=messages.filter(m=>m.cmd==='speichern' && JSON.parse(m.text).icsImportSources?.[calendarPayload.icsImportMetadata.sourceSHA256]).at(-1);
+  ok(disk.termine.length===preCalendar+1 && !!calendarSave &&
+    JSON.parse(calendarSave.text).termine.some(item=>item.uid==='monthly-ordinal') &&
+    disk.icsImportSources[calendarPayload.icsImportMetadata.sourceSHA256].calendarProperties.includes('X-WR-CALNAME:Synthetic import'),
+    'ICS merges through shared UI and saves its source metadata with records in one native book save');
+  ok(messages.some(m=>m.cmd==='tablet_calendar_import_done' && m.requestId===picker.requestId),
+    'ICS picker is consumed only after durable book-save acknowledgement');
+  picker=await calendarPicker(); const priorDone=messages.filter(m=>m.cmd==='tablet_calendar_import_done').length;
+  w.Tablet.receive(calendarReply(picker,calendarPayload)); await wait(); await wait();
+  ok(disk.termine.length===preCalendar+1 && messages.filter(m=>m.cmd==='tablet_calendar_import_done').length===priorDone+1,
+    'duplicate/no-op ICS import still finishes its one-shot picker without duplicating records');
+  const taskTemplates=JSON.parse(fs.readFileSync(path.join(root,'app/src/test/resources/calendar-import-v2.0.30.json'))).cases.find(item=>item.name==='tasks').importExpected.aufgaben;
+  const taskGraphPayload={termine:[],jahrestage:[],aufgaben:['source-A','source-B'].flatMap(source=>taskTemplates.map(item=>({...structuredClone(item),
+    icsQuelleId:source,icsQuelleName:source,icsElternQuelleId:source,titel:source+' '+item.titel}))),
+    icsImportMetadata:{version:1,sourceSHA256:'c'.repeat(64),calendarProperties:['VERSION:2.0']}};
+  picker=await calendarPicker(); w.Tablet.receive(calendarReply(picker,taskGraphPayload)); await wait(); await wait();
+  function taskGraphPreserved(book) {
+    return ['source-A','source-B'].every(source=>{
+      const tasks=book.aufgaben.filter(item=>item.icsQuelleId===source);
+      const parent=tasks.find(item=>item.icsImportUid==='task-parent');
+      const child=tasks.find(item=>item.icsImportUid==='task-child');
+      return tasks.length===2 && parent && child && child.elternUid===parent.uid && child.icsElternQuelleId===source;
+    }) && new Set(book.aufgaben.filter(item=>['source-A','source-B'].includes(item.icsQuelleId)).map(item=>item.uid)).size===4;
+  }
+  ok(taskGraphPreserved(disk),'common ICS merge preserves two source-qualified task graphs sharing external parent and child UIDs');
+  const cancelledPicker=await calendarPicker();
+  w.Tablet.receive({callback:'cancelled',payload:{requestId:cancelledPicker.requestId}});
+  picker=await calendarPicker(); const unchanged=JSON.stringify(disk);
+  w.Tablet.receive(calendarReply(cancelledPicker,calendarPayload)); await wait();
+  ok(JSON.stringify(disk)===unchanged,'cancelled older ICS result cannot consume the new picker or mutate its book');
+  w.Tablet.receive(calendarReply(picker,{...calendarPayload,icsImportMetadata:{version:1,sourceSHA256:'invalid',calendarProperties:[]}})); await wait();
+  ok(JSON.stringify(disk)===unchanged,'invalid ICS source metadata rejects the whole candidate before the shared merge');
+  picker=await calendarPicker();
+  const failedPayload=structuredClone(calendarPayload); failedPayload.termine[0].uid='failed-import-unique';
+  failedPayload.icsImportMetadata.sourceSHA256='b'.repeat(64);
+  failSave=true; w.Tablet.receive(calendarReply(picker,failedPayload)); await wait(); await wait();
+  ok(JSON.stringify(disk)===unchanged && w.document.getElementById('tablet-status').textContent.includes('could not be saved'),
+    'failed atomic ICS save reports failure without writing records or metadata to the native book');
+  failSave=false; T.speichereJetzt(); await wait(); await wait();
+  ok(disk.termine.some(item=>item.uid==='failed-import-unique') && !!disk.icsImportSources['b'.repeat(64)],
+    'retry commits the complete unsaved ICS merge with its metadata');
+  dom.window.close(); dom=await open(); w=dom.window; T=w.OrganizerTest;
+  ok(taskGraphPreserved(T.daten()),'reopened book retains both source-qualified task graphs without cross-linking parents');
+  ok(T.daten().termine.some(item=>item.uid==='failed-import-unique') && !!T.daten().icsImportSources['b'.repeat(64)],
+    'reopened native book retains the merged ICS records and source metadata');
+  picker=await calendarPicker();
+  w.Tablet.receive({callback:'calendarImport',payload:{requestId:picker.requestId,...dom.authority(),revision:'old-book-revision',fehler:'Import failed.'}});
+  await wait(); const jsonCount=messages.filter(m=>m.cmd==='tablet_import').length;
+  w.Tablet.action('tablet_import'); await wait(); await wait();
+  ok(messages.filter(m=>m.cmd==='tablet_import').length===jsonCount+1 && messages.filter(m=>m.cmd==='tablet_import').at(-1).format==='json',
+    'failed or obsolete-revision ICS read releases its picker and JSON backup import remains an explicit independent format');
+  w.Tablet.receive({callback:'cancelled',payload:{}});
+  w.MagnolieI18n.setLocale('de'); T.oeffneEinstellungen(); await wait();
+  w.document.querySelector('#einst-tab-import').click(); await wait();
+  ok(w.document.querySelector('#einst-seite-import').textContent.includes(beta.de[2]) &&
+    !w.document.querySelector('#einst-seite-import').textContent.includes('ICS adds calendar items'),
+    'German import flow explains ICS merge and confirmed JSON replacement without English implementation text');
+  T.schliesseEinstellungen(); w.MagnolieI18n.setLocale('en');
   const priorExports=messages.filter(x=>x.cmd==='tablet_export').length;
   failSave=true; T.daten().notizen[0].text='unsaved change';
   w.Tablet.action('tablet_export'); await wait();

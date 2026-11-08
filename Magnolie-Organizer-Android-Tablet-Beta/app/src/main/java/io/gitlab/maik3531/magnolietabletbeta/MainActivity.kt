@@ -51,6 +51,7 @@ class MainActivity : Activity() {
     }
     private var printing = false
     private val network = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val calendarImportWorker = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val accountNetwork = java.util.concurrent.Executors.newSingleThreadExecutor()
     @Volatile private var accountCancellation: DavCancellation? = null
     private fun cancelAccountDiscovery() { accountCancellation?.cancel(); accountCancellation = null }
@@ -173,10 +174,11 @@ class MainActivity : Activity() {
     private fun currentPage(epoch: Int, session: DocumentSession): Boolean =
         !isDestroyed && epoch == generation && session == documentSession && !restoreFenced
 
-    private fun openDocument(intent: Intent, export: Boolean, epoch: Int, session: DocumentSession) {
+    private fun openDocument(intent: Intent, export: Boolean, epoch: Int, session: DocumentSession,
+                             format: ImportFormat = ImportFormat.JSON, requestId: String? = null) {
         if (!currentPage(epoch,session)) return
         try {
-            val request = documentRequests.begin(export,epoch,session)
+            val request = documentRequests.begin(export,epoch,session,format,requestId)
             startActivityForResult(intent,request.code)
         } catch (_: Exception) { cancelDocument(); respond("error",getString(R.string.unavailable),epoch) }
     }
@@ -268,7 +270,7 @@ class MainActivity : Activity() {
         if (cmd != "bereit") {
             // This timer only reschedules the current persisted state, never its supplied snapshot.
             // A save ACK may still be in transit when the same page's timer fires.
-            if (cmd == "erinnerung_einrichten" || cmd in DavAccountBridgeRequest.commands) check(session?.id == documentSession?.id)
+            if (cmd == "erinnerung_einrichten" || cmd == "tablet_calendar_import_done" || cmd in DavAccountBridgeRequest.commands) check(session?.id == documentSession?.id)
             else check(session == documentSession)
             check(!restoreFenced && (ready || cmd == "tablet_loaded"))
         }
@@ -351,10 +353,22 @@ class MainActivity : Activity() {
                 }
             }
             "tablet_import" -> {
-                check(!documentBusy); documentBusy = true
+                check(!documentBusy)
+                val format = when (message.opt("format")) { "json" -> ImportFormat.JSON; "ics" -> ImportFormat.ICS; else -> error("Explicit import format required") }
+                val requestId = message.opt("requestId") as? String
+                check(format != ImportFormat.ICS || requestId != null && requestId.isNotEmpty() && requestId.toByteArray().size <= 1024)
+                documentBusy = true
                 openDocument(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                    addCategory(Intent.CATEGORY_OPENABLE); type="application/json"
-                },false,epoch,requireNotNull(session))
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = if (format == ImportFormat.ICS) "*/*" else "application/json"
+                    if (format == ImportFormat.ICS) putExtra(Intent.EXTRA_MIME_TYPES,arrayOf("text/calendar","application/ics","text/plain","application/octet-stream"))
+                },false,epoch,requireNotNull(session),format,requestId)
+            }
+            "tablet_calendar_import_done" -> {
+                val active = documentRequests.active()
+                check(active != null && active.format == ImportFormat.ICS && active.session.id == session?.id &&
+                    active.requestId == message.opt("requestId") && active.code == message.getInt("pickerToken"))
+                check(documentRequests.finish(active.code)); documentBusy = false
             }
             "tablet_export" -> {
                 check(!documentBusy); documentBusy=true
@@ -445,24 +459,26 @@ class MainActivity : Activity() {
         }
         dialog.show()
     }
-    private fun cancelDocument() {
+    private fun cancelDocument(requestIdOverride: String? = null) {
         runOnUiThread {
             if (restoreFenced) return@runOnUiThread
             val token = importToken; val session = documentSession
+            val requestId = requestIdOverride ?: documentRequests.active()?.requestId
              exporting=null; importToken=null; documentBusy=false
              documentRequests.cancel()
             if (token != null && session != null) work {
                 AndroidStore.vault(this).cancelImport(session,token)
                 respond("cancelled",JSONObject().put("token",token))
-            } else respond("cancelled",JSONObject())
+            } else respond("cancelled",JSONObject().also { if (requestId != null) it.put("requestId",requestId) })
         }
     }
     @Deprecated("Platform Activity result API is sufficient for this isolated host")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode,resultCode,data)
         val matched = documentRequests.matches(requestCode)
+        val selectedRequestId = if (matched) documentRequests.active()?.requestId else null
         val request = documentRequests.take(requestCode,generation,documentSession) ?: run {
-            if (matched) cancelDocument()
+            if (matched) cancelDocument(selectedRequestId)
             return
         }
         if (!documentBusy || !currentPage(request.generation,request.session)) return
@@ -480,6 +496,8 @@ class MainActivity : Activity() {
                     }
                 }
             }
+        } else if (request.format == ImportFormat.ICS) {
+            readCalendar(uri,request)
         } else work({cancelDocument();respond("error",getString(R.string.import_failed))}) {
             val bytes = contentResolver.openInputStream(uri)?.use { input ->
                 val output = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192)
@@ -498,6 +516,68 @@ class MainActivity : Activity() {
             } else { validateData(obj); offerImport(text,request) }
         }
     }
+    private fun calendarCurrent(request: DocumentRequests.Request): Boolean =
+        accountCurrent(request.generation,request.session) && documentRequests.isActive(request)
+
+    private fun readCalendar(uri: Uri, request: DocumentRequests.Request) {
+        // Obtain the saved display zone on book IO, then stream/decode independently of saves.
+        AndroidStore.io.execute {
+            if (!calendarCurrent(request)) return@execute
+            val zone = try {
+                AndroidStore.vault(this).requireSession(request.session)
+                AndroidStore.vault(this).read()?.getJSONObject("data")?.optJSONObject("einstellungen")
+                    ?.optJSONObject("regional")?.optString("timeZone","system") ?: "system"
+            } catch (_: Exception) { calendarImportFailure(request); return@execute }
+            try { calendarImportWorker.execute calendarRead@{
+                try {
+                    fun checkCurrent() {
+                        if (!calendarCurrent(request) || Thread.currentThread().isInterrupted)
+                            throw java.util.concurrent.CancellationException()
+                        check(documentSession == request.session) { "Book changed during calendar import; retry the selected file" }
+                    }
+                    checkCurrent()
+                    val bytes = contentResolver.openInputStream(uri)?.use { input ->
+                        val output = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192)
+                        while (true) {
+                            checkCurrent(); val count = input.read(buffer); if (count < 0) break
+                            require(output.size().toLong() + count <= ICalendarImport.maximumBytes)
+                            output.write(buffer,0,count)
+                        }
+                        output.toByteArray()
+                    } ?: error("No calendar input stream")
+                    checkCurrent()
+                    val name = contentResolver.query(uri,arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),null,null,null)?.use { cursor ->
+                        if (cursor.moveToFirst()) cursor.getString(0)?.takeIf { it.toByteArray().size <= 4096 } else null
+                    } ?: "calendar.ics"
+                    val result = ICalendarImport.decode(bytes,displayTimeZone=zone,sourceName=name,checkCancelled=::checkCurrent).document
+                    require(result.toString().toByteArray(Charsets.UTF_8).size <= 8 * 1024 * 1024)
+                    require(listOf("termine","aufgaben","jahrestage").sumOf { result.getJSONArray(it).length() } <= 5000)
+                    val payload = JSONObject().put("requestId",request.requestId).put("pickerToken",request.code)
+                        .put("session",request.session.id).put("revision",request.session.revision).put("data",result)
+                    // Serialize large DTOs off UI; the UI only hands the completed message to WebView.
+                    val envelope = JSONObject().put("callback","calendarImport").put("payload",payload).toString()
+                    require(envelope.toByteArray(Charsets.UTF_8).size <= 8 * 1024 * 1024 + 4096)
+                    runOnUiThread {
+                        if (calendarCurrent(request)) {
+                            if (documentSession == request.session) proxy?.postMessage(envelope)
+                            else calendarImportFailure(request)
+                        }
+                    }
+                } catch (_: java.util.concurrent.CancellationException) { /* Stale bytes never become an import candidate. */ }
+                catch (_: Exception) { calendarImportFailure(request) }
+            } } catch (_: java.util.concurrent.RejectedExecutionException) { calendarImportFailure(request) }
+        }
+    }
+    private fun calendarImportFailure(request: DocumentRequests.Request) {
+        runOnUiThread {
+            if (!calendarCurrent(request)) return@runOnUiThread
+            documentRequests.finish(request.code); documentBusy = false
+            respond("calendarImport",JSONObject().put("requestId",request.requestId)
+                .put("session",request.session.id).put("revision",request.session.revision)
+                .put("fehler",getString(R.string.import_failed)),request.generation)
+        }
+    }
+
     private fun offerImport(text: String, request: DocumentRequests.Request) {
         val epoch = request.generation
         val session = request.session
@@ -589,7 +669,7 @@ class MainActivity : Activity() {
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
-        cancelHolidayFetch(); cancelAccountDiscovery(); network.shutdownNow(); accountNetwork.shutdownNow()
+        cancelHolidayFetch(); cancelAccountDiscovery(); network.shutdownNow(); accountNetwork.shutdownNow(); calendarImportWorker.shutdownNow()
         generation++; ready=false; startupReadyAtElapsed=0L; proxy=null; documentSession=null; documentRequests.cancel()
         printViews.forEach { it.destroy() }; web.destroy(); super.onDestroy()
     }

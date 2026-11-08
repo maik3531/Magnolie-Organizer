@@ -68,8 +68,8 @@ against the projected core and through the existing shared desktop test runner.
 | Portrait | Pages stacked vertically, scrollable binder | Small-screen, large-text and IME acceptance pending |
 | Input/accessibility | Native WebView input, keyboard guard/shortcuts, focus outlines, touch targets, reduced motion, pinch zoom | TalkBack, RTL, stylus and keyboard hardware not exercised |
 | Private persistence | AES-256-GCM, Android Keystore, synchronized file write, atomic rename, directory fsync before save ACK | Native basic save/readback, non-exportable key and process restart passed; crash/failure durability acceptance remains open |
-| Import | SAF JSON: raw canonical version-6 state or this beta's encrypted JSON envelope | Rejects invalid/lossy rows rather than silently dropping them; no ICS/VCF/CSV or desktop complete-archive importer |
-| Import replacement | Shared normalizer, explicit replacement confirmation, encrypted pre-import snapshot | Replaces the whole profile, not a merge; backup is internal, recovery UI not yet implemented |
+| Import | SAF ICS merges calendar appointments, tasks and anniversaries through the shared importer; SAF JSON accepts raw version-6 state or this beta's encrypted envelope | ICS source metadata and records share one durable book save; no VCF/CSV or desktop complete-archive importer; native SAF ICS acceptance still pending |
+| JSON replacement | Shared normalizer, explicit replacement confirmation, encrypted pre-import snapshot | Replaces the whole profile, not a merge; backup is internal, recovery UI not yet implemented |
 | Export | SAF password-encrypted JSON, PBKDF2-HMAC-SHA256 + referenced AES-GCM primitive | Beta-specific envelope, not Notes backup or desktop complete-archive format |
 | PDF/printing | Canonical print HTML into a separate script/bridge-free native print WebView | Android Print dialog includes Save as PDF; no automatic completion ACK; runtime/spooler validation pending |
 | Reminders | Persisted one-off calendar/task/custom alarms, global and separate custom consent, inexact AlarmManager wakeup, boot/package restart receiver, delivery receipts | No recurrence/anniversary/health/SMS scheduling, exact alarm SLA, foreground service or force-stop bypass |
@@ -121,21 +121,27 @@ provided. A missing Keystore key, authentication failure, incomplete first write
 or invalid vault blocks startup rather than initializing an empty organizer.
 Save acknowledgments contain the desktop request ID and are sent only after
 file fsync, atomic rename and directory fsync. The serial executor also orders
-notification settings, imports and reminder delivery with saves.
+notification settings, JSON replacement and reminder delivery with saves.
 
 Native random sessions/revisions now fence saves and restore confirmations.
 Initialization must be acknowledged before writes are enabled. Uncertain
 publication and committed-readback failures leave the old page non-writable;
 only verified disk reload and a fresh page acknowledgment can reopen writes.
-The selected native import bytes, not a frontend-supplied replacement body, are
-committed and read back. Reminder follow-up failure cannot undo that commit.
+For JSON replacement, the selected native import bytes, not a frontend-supplied
+replacement body, are committed and read back. Reminder follow-up failure cannot
+undo that commit. ICS follows a separate merge route: native bounded file reading
+and decoding run off the UI and book-save executor, then the shared web importer
+merges the complete candidate. Its calendar properties and source SHA-256 metadata
+are persisted with the imported records in the same ordinary atomic book save.
+Cancellation or a decoding/metadata error applies no candidate; a failed book save
+retains the unsaved complete merge for explicit retry and never reports success.
 SAF request codes are one-use and page/session-bound, with the next code retained
 across Activity recreation. Late results do not consume a newer picker; background
 import/export completions retain the original page authority. Destruction and
 renderer loss invalidate queued work and callbacks.
 
-`before-import.enc` is an encrypted internal pre-import snapshot. Each confirmed
-import replaces it after syncing it, then replaces the main vault. Imported
+`before-import.enc` is an encrypted internal pre-import snapshot for JSON
+replacement. Each confirmed JSON replacement replaces it after syncing it, then replaces the main vault. Imported
 notification permissions are **not** trusted: global and custom native consent
 are reset, and the alarm schedule is empty until the web core reprojects it.
 Custom module/item consent remains necessary in addition to native custom consent.
@@ -148,7 +154,13 @@ Keystore data cannot be recovered after app uninstall; exported data can be
 reopened with its password. There is no plaintext export switch in this MVP.
 
 JSON state is limited to 16 MiB, incoming files/bridge envelopes to 32 MiB and
-nesting to 64. SAF provider write, flush and close failures are surfaced; provider
+nesting to 64. ICS files are limited to 32 MiB; their serialized decoded candidate
+is limited to 8 MiB and 5000 records before delivery to the UI. The completed
+message is serialized on the background worker, and the candidate plus current
+book must fit the 16 MiB preflight bound; native whole-book validation remains
+authoritative. New pickers, cancellation, reload and restore invalidate old ICS
+work; a normal book save during decoding rejects that candidate and releases its
+picker for retry. Duplicate/no-op imports also consume their picker exactly once. SAF provider write, flush and close failures are surfaced; provider
 durability and atomicity are not promised. An interrupted provider export may
 leave an incomplete encrypted destination document and must be retried.
 
