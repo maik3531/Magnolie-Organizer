@@ -141,6 +141,18 @@ internal static class DeviceFileUiTests
         TestAssert.That(NativeMediaUiRequest.Parse(consent).ReceiveConsent, "Explicit local consent was not parsed independently.");
         consent["granted"] = "true";
         TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(consent), "Local permission accepted a truthy string.");
+        var send = request.DeepClone().AsObject(); send["action"] = "send_consent";
+        send["photos"] = true; send["videos"] = false; send["version"] = new string('c', 64);
+        TestAssert.That(NativeMediaUiRequest.Parse(send) is { Photos: true, Videos: false }, "Independent send choices were not parsed.");
+        foreach (var field in new[] { "confirmed", "send_files", "path" })
+        {
+            var forged = send.DeepClone().AsObject(); forged[field] = true;
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(forged), "Browser manufactured native send approval: " + field);
+        }
+        send["photos"] = "true";
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(send), "Send consent accepted a truthy string.");
+        send["photos"] = true; send["version"] = null;
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(send), "Send consent accepted an unversioned choice.");
         var unknownField = request.DeepClone().AsObject(); unknownField["action"] = "shared_setting";
         unknownField["field"] = "receive_files"; unknownField["value"] = true; unknownField["version"] = new string('a', 64);
         TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(unknownField), "A shared edit attempted to manufacture native receiving rights.");

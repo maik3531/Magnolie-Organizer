@@ -7,6 +7,52 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileSendConsentTests
 {
+    internal static async Task NativeDialogContextAsync()
+    {
+        foreach (var scenario in new[] { "cancel", "accept", "book", "connection", "stale" })
+        {
+            using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sharedMedia: true);
+            var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "send-dialog-book"),
+                "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":30}}}");
+            using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+            coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+            var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+            online.Add(f.Native.Peer.Id, f.Native.Connection);
+            var before = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+            var receiving = f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id);
+            var calls = 0;
+            bool Confirm()
+            {
+                calls++;
+                TestAssert.That(f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id) == before, "Permission was persisted before the native answer.");
+                if (scenario == "book") typeof(PersonalActorNativeSaveHost).GetProperty("currentPlainTextAvailable",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(host, false);
+                if (scenario == "connection") online.Remove(f.Native.Peer.Id);
+                if (scenario == "stale") f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, before.Version, false, false);
+                return scenario != "cancel";
+            }
+            if (scenario is "book" or "connection" or "stale")
+                TestAssert.Throws<InvalidDataException>(() => coordinator.ConfirmNativeMediaUiSendConsent(f.Native.Peer.Id, before.Version, true, false, Confirm),
+                    "A stale native dialog authorized SEND: " + scenario);
+            else
+            {
+                var result = coordinator.ConfirmNativeMediaUiSendConsent(f.Native.Peer.Id, before.Version, true, false, Confirm);
+                var after = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+                TestAssert.That(scenario == "cancel" ? result["canceled"]?.GetValue<bool>() == true && after == before : after is { Photos: true, Videos: false, Explicit: true },
+                    "Native dialog result did not control the exact independent send choice.");
+                if (scenario == "accept")
+                {
+                    _ = coordinator.ConfirmNativeMediaUiSendConsent(f.Native.Peer.Id, after.Version, false, false,
+                        () => throw new Exception("Revocation must not require positive confirmation."));
+                }
+            }
+            TestAssert.That(calls == 1 && f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id) == receiving,
+                "Dialog replayed or modified independent receiving consent.");
+            if (scenario is "book" or "connection")
+                TestAssert.That(f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id) == before, "Stale native context changed SEND consent.");
+        }
+    }
+
     private static void Protect(DeviceFileConnectionMetadataTests.Fixture f)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();

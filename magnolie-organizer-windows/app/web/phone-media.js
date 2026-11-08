@@ -32,6 +32,13 @@
     const receiveRow = node("label"), receiveConsent = node("input"); receiveConsent.type = "checkbox"; receiveConsent.dataset.media = "receive_consent";
     receiveRow.className = "hak"; receiveRow.hidden = true;
     receiveRow.append(receiveConsent, document.createTextNode(" Organizer – " + t("Receive files"))); rightsArea.append(receiveRow);
+    const sendChoices = new Map();
+    for (const [key, label, mediaType] of [["photos", "Photos", "images"], ["videos", "Videos", "video"]]) {
+      const row = node("label"), input = node("input"); input.type = "checkbox"; input.dataset.media = "send_" + key;
+      row.className = "hak"; row.hidden = true;
+      row.append(input, document.createTextNode(" Organizer → " + t("Send files") + " · " + t(label))); rightsArea.append(row);
+      sendChoices.set(key, { input, row, mediaType });
+    }
     const check = (text, key) => {
       const label = node("label"), input = node("input"); input.type = "checkbox"; input.dataset.media = key;
       label.className = "hak"; label.append(input, document.createTextNode(" " + t(text))); settingsArea.append(label); return input;
@@ -112,7 +119,7 @@
     let native = null, busy = false, transfer = false, catalog = null, kind = "images", selectedAlbum = null;
     let requestSequence = 0, appliedSettingsSequence = 0;
     let deferredStatus = false;
-    const settingsActions = new Set(["status", "mode", "settings", "pick_destination", "default_destination", "shared_setting", "receive_consent"]);
+    const settingsActions = new Set(["status", "mode", "settings", "pick_destination", "default_destination", "shared_setting", "receive_consent", "send_consent"]);
     const defaultDestinations = new Map();
     const allButtons = [], actions = [], rightActions = []; let refresh, manualSync;
     const albumChoice = node("select"); albumChoice.className = "feld"; albumChoice.hidden = true;
@@ -127,6 +134,10 @@
       masterRow.hidden = receiveRow.hidden = scope.parentElement.hidden = direction.parentElement.hidden = !shared;
       master.disabled = !native;
       receiveConsent.disabled = !enabled || (busy && !receiveConsent.checked);
+      for (const entry of sendChoices.values()) {
+        entry.row.hidden = !shared || !native?.send_consent || native.metadata_ready?.[entry.mediaType] !== true;
+        entry.input.disabled = !native?.send_consent || (busy && !entry.input.checked);
+      }
       scope.disabled = direction.disabled = busy || !enabled;
       direction.disabled ||= scope.value === "import_only";
       for (let i = allButtons.length - 1; i >= 0; i--) if (!root.contains(allButtons[i])) allButtons.splice(i, 1);
@@ -191,9 +202,13 @@
       videos.checked = values.videos_enabled === true; skip.checked = values.skip_deletions === true;
       automatic.value = values.auto_mode; scope.value = values.collection_mode; direction.value = values.direction;
       receiveConsent.checked = native.receive_consent?.granted === true;
+      for (const [key, entry] of sendChoices) entry.input.checked = native.send_consent?.[key] === true;
     };
     master.addEventListener("change", () => sharedSetting("enabled", master.checked));
     receiveConsent.addEventListener("change", () => request("receive_consent", { granted: receiveConsent.checked, version: native.receive_consent.version }));
+    for (const entry of sendChoices.values()) entry.input.addEventListener("change", () => request("send_consent", {
+      photos: sendChoices.get("photos").input.checked, videos: sendChoices.get("videos").input.checked, version: native.send_consent.version
+    }));
     for (const [input, field] of [[photos, "photos_enabled"], [videos, "videos_enabled"], [skip, "skip_deletions"]])
       input.addEventListener("change", () => native?.shared_settings ? sharedSetting(field, input.checked) : settings());
     automatic.addEventListener("change", () => native?.shared_settings ? sharedSetting("auto_mode", automatic.value) : request("mode", { version: native.version ?? null, automatic: automatic.value === "wifi" }));
@@ -296,7 +311,7 @@
         restoreSharedInputs();
         status.textContent = t(reply.state === "partial" ? "Stopped or incomplete. Original files and recovery history are retained." : "Media operation paused. No completion was confirmed.") + (reply.error ? " · " + String(reply.error) : "");
         toggle();
-        if (native?.shared_settings && ["shared_setting", "receive_consent"].includes(action)) request("status", {}, false);
+        if (native?.shared_settings && ["shared_setting", "receive_consent", "send_consent"].includes(action)) request("status", {}, false);
         return;
       }
       if (reply.canceled) { restoreSharedInputs(); toggle(); return; }
@@ -332,6 +347,7 @@
         const shared = reply.shared_settings?.values;
         master.checked = shared?.enabled === true;
         receiveConsent.checked = reply.receive_consent?.granted === true;
+        for (const [key, entry] of sendChoices) entry.input.checked = reply.send_consent?.[key] === true;
         if (shared) {
           photos.checked = shared.photos_enabled === true; videos.checked = shared.videos_enabled === true;
           scope.value = shared.collection_mode; direction.value = shared.direction;

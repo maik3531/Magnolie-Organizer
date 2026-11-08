@@ -296,6 +296,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media local sending consent / Windows independent defaults persistence and pairing", DeviceFileSendConsentTests.DefaultsAndPersistenceAsync);
     runner.Add("Media local sending consent / Windows corrupted ciphertext stays held", DeviceFileSendConsentTests.CorruptionStaysHeldAsync);
     runner.Add("Media local sending consent / Windows actual mapped source and cache withdrawal", DeviceFileMappedSourceTests.WindowsSendingConsentWithdrawalAsync);
+    runner.Add("Media native sending dialog / Windows exact native answer and stale context", DeviceFileSendConsentTests.NativeDialogContextAsync);
     runner.Add("Media local receiving consent / Windows actual receiver withdrawal is sticky", DeviceFileReceiveConsentTests.ActualWithdrawalAsync);
     runner.Add("Media shared projection / Windows local rights master and unchanged idempotence", DeviceFileSharedProjectionTests.RightsAndMasterAsync);
     runner.Add("Media shared projection / Windows stale snapshot and native write rollback", DeviceFileSharedProjectionTests.AtomicFenceAsync);

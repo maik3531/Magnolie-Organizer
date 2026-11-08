@@ -222,9 +222,10 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   w.document.body.append(sharedPanel);
   const values = { enabled: false, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory", auto_mode: "manual", skip_deletions: false, direction: "phone_to_pc" };
   const versions = Object.fromEntries(Object.keys(values).map((field, index) => [field, String(index + 1).repeat(64)]));
-  let granted = false;
+  let granted = false, sendPhotos = false, sendVideos = false;
   const sharedReply = (extra = {}) => reply({ ...state, shared_settings: { values: { ...values }, versions: { ...versions } },
-    receive_consent: { granted, version: "e".repeat(64) }, shared_matched: false, shared_runtime_ready: false, ...extra });
+    receive_consent: { granted, version: "e".repeat(64) }, send_consent: { photos: sendPhotos, videos: sendVideos, version: "f".repeat(64) },
+    shared_matched: false, shared_runtime_ready: false, ...extra });
   sharedReply();
   const sharedInput = key => sharedPanel.querySelector(`[data-media="${key}"]`);
   const master = sharedInput("enabled"), receiving = sharedInput("receive_consent");
@@ -259,6 +260,23 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   receiving.checked = true; receiving.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().action, "receive_consent"); assert.equal(last().granted, true); assert.equal(last().version, "e".repeat(64));
   granted = true; sharedReply();
+  const sendingPhotos = sharedInput("send_photos"), sendingVideos = sharedInput("send_videos");
+  assert(!sendingPhotos.checked && !sendingVideos.checked && !sendingPhotos.parentElement.hidden);
+  sendingPhotos.checked = true; sendingPhotos.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(last().action, "send_consent"); assert.equal(last().photos, true); assert.equal(last().videos, false);
+  assert.equal(last().version, "f".repeat(64)); assert(!("confirmed" in last()) && !("send_files" in last()));
+  sharedReply({ canceled: true }); assert(!sendingPhotos.checked && !sendingVideos.checked && receiving.checked);
+  saveAllowed = false; const sendBeforeFailedSave = messages.length;
+  sendingVideos.checked = true; sendingVideos.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, sendBeforeFailedSave); assert(!sendingVideos.checked); saveAllowed = true;
+  sendingPhotos.checked = true; sendingPhotos.dispatchEvent(new w.Event("change")); await tick();
+  sendPhotos = true; sharedReply(); assert(sendingPhotos.checked && !sendingVideos.checked);
+  [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh").click(); await tick();
+  sharedReply({ busy: true, metadata_ready: { images: true, video: false } });
+  assert(!sendingPhotos.disabled && sendingVideos.disabled && sendingVideos.parentElement.hidden);
+  sendingPhotos.checked = false; sendingPhotos.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(last().action, "send_consent"); assert.equal(last().photos, false);
+  sendPhotos = false; sharedReply();
   const collection = sharedInput("collection_mode"); collection.value = "entire_collection"; collection.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().field, "collection_mode"); assert.equal(last().value, "entire_collection"); assert.equal(last().version, versions.collection_mode);
   values.collection_mode = "entire_collection"; sharedReply();

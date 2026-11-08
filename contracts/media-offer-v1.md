@@ -267,8 +267,17 @@ lokale Zustimmung jetzt ausdrücklich; sie wird nicht aus ihren Steuergrants
 abgeleitet. Native Prüfungen belegen Standard-Aus, unabhängige Foto-/Videowahl,
 geschützte Persistenz, Kopplungswechsel, beschädigten Chiffretext und Entzug beim
 echten Quell-/Cachezugriff. Manueller und WLAN-Export bestehen mit der zusätzlichen
-Prüfung weiterhin. Der produktive UI-Dialog und dessen SEND-Projektion bleiben
-noch offen; `NativeMediaUiAuthority` erteilt weiterhin ausschließlich RECEIVE.
+Prüfung weiterhin. Die Oberfläche bietet nun getrennte lokale Foto-/Video-
+Sendezustimmungen. Eine positive Erweiterung erfordert den nativen standardmäßig
+ablehnenden Bestätigungsdialog; die Browsernachricht kann keine Bestätigung oder
+Steuergrants mitgeben. Buch, ursprüngliche Verbindung und genaue Zustimmungsversion
+werden nach der nativen Antwort erneut geprüft. Abbruch schreibt nichts; Entzug
+erfordert keine positive Bestätigung. Der Dialogweg ist über die native
+Entscheidungsfunktion mit Zustimmung, Abbruch, tatsächlicher Buchsperre,
+Verbindungswechsel und konkurrierender Änderung sowie die vollständige Browser-
+Oberflächenprüfung belegt. Eine tatsächliche installierte GUI-Klickabnahme ist
+damit nicht behauptet. Die SEND-Projektion bleibt noch offen;
+`NativeMediaUiAuthority` erteilt weiterhin ausschließlich RECEIVE.
 Dies ist keine Freischaltung von Capability 23.
 
 Der gemeinsame manuelle und WLAN-Automatiklauf enthält jetzt einen

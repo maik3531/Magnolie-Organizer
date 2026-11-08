@@ -242,6 +242,8 @@ internal sealed partial class TelefonCoordinator
             result["shared_matched"] = connection.MediaSharedSettingsReady;
             var receive = store.ReadNativeMediaReceiveConsent(peerId);
             result["receive_consent"] = new JsonObject { ["granted"] = receive.Granted, ["version"] = receive.Version };
+            var send = store.ReadNativeMediaSendConsent(peerId);
+            result["send_consent"] = new JsonObject { ["photos"] = send.Photos, ["videos"] = send.Videos, ["version"] = send.Version };
         }
         return result;
     }
@@ -269,6 +271,39 @@ internal sealed partial class TelefonCoordinator
         connection.RevokeNativeMediaUiConsent();
         if (!granted) StopNativeMediaAutomatic(peerId);
         ApplyMatchedNativeMediaPreferences(peerId, connection);
+        permit.Require(); return NativeMediaUiStatus(peerId);
+    }
+
+    internal JsonObject ConfirmNativeMediaUiSendConsent(string peerId, string version, bool photos, bool videos, Func<bool> confirmNative)
+    {
+        ArgumentNullException.ThrowIfNull(confirmNative);
+        var connection = NativeMediaOnlineConnection(peerId);
+        var permit = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
+        var before = store.ReadNativeMediaSendConsent(peerId);
+        if (before.Version != version) throw DeviceFileControl.Error("media_send_consent_stale_choice");
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        void Current()
+        {
+            permit.Require();
+            if (!ReferenceEquals(connection, NativeMediaOnlineConnection(peerId)) || !connection.MediaSharedControlsReady ||
+                !connection.NativeMediaUiMetadataAvailable() || timer.Elapsed > TimeSpan.FromSeconds(60))
+                throw DeviceFileControl.Error("media_send_consent_native_context_changed");
+            if (store.ReadNativeMediaSendConsent(peerId) != before) throw DeviceFileControl.Error("media_send_consent_stale_choice");
+        }
+        Current();
+        var increasing = photos && !before.Photos || videos && !before.Videos;
+        if (increasing && Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
+        // Only the native bridge supplies this modal-dialog callback. There is
+        // no browser-confirmed bit, and dismissal never persists a choice.
+        if (increasing && !confirmNative())
+        {
+            var canceled = NativeMediaUiStatus(peerId); canceled["canceled"] = true; return canceled;
+        }
+        Current();
+        if (increasing && Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
+        store.ChangeNativeMediaSendConsent(peerId, version, photos, videos);
+        connection.RevokeNativeMediaUiConsent();
+        if (before.Photos && !photos || before.Videos && !videos) StopNativeMediaAutomatic(peerId);
         permit.Require(); return NativeMediaUiStatus(peerId);
     }
 
