@@ -597,17 +597,24 @@ public enum ICalendarExport {
             if let value = record["icsTimezones"] {
                 guard let blocks = value as? [[String]] else { throw BetaError("Invalid source time-zone definitions.") }
                 for block in blocks {
-                    guard block.first == "BEGIN:VTIMEZONE", block.last == "END:VTIMEZONE" else { throw BetaError("Invalid source time-zone component.") }
                     let properties = try block.map(Property.init)
+                    func token(_ property: Property) throws -> String {
+                        guard matches(property.value, "^[A-Za-z0-9-]+$") else { throw BetaError("Invalid source component token.") }
+                        return property.value.uppercased()
+                    }
+                    guard let first = properties.first, let last = properties.last,
+                          first.name == "BEGIN", last.name == "END", first.parameters.isEmpty, last.parameters.isEmpty,
+                          try token(first) == "VTIMEZONE", try token(last) == "VTIMEZONE" else { throw BetaError("Invalid source time-zone component.") }
                     let names = properties.filter { $0.name == "TZID" }
                     guard names.count == 1, !names[0].value.isEmpty else { throw BetaError("Missing or duplicate source TZID.") }
                     var stack: [String] = []
                     for property in properties {
                         if property.name == "BEGIN" {
-                            guard stack.isEmpty ? property.value == "VTIMEZONE" : stack.count == 1 && ["STANDARD", "DAYLIGHT"].contains(property.value) else { throw BetaError("Invalid time-zone component nesting.") }
-                            stack.append(property.value)
+                            let name = try token(property)
+                            guard stack.isEmpty ? name == "VTIMEZONE" : stack.count == 1 && ["STANDARD", "DAYLIGHT"].contains(name) else { throw BetaError("Invalid time-zone component nesting.") }
+                            stack.append(name)
                         } else if property.name == "END" {
-                            guard stack.popLast() == property.value else { throw BetaError("Unbalanced source time-zone definition.") }
+                            guard stack.popLast() == (try token(property)) else { throw BetaError("Unbalanced source time-zone definition.") }
                         }
                     }
                     guard stack.isEmpty else { throw BetaError("Unclosed source time-zone definition.") }

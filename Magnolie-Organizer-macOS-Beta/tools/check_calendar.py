@@ -58,6 +58,9 @@ def cases(module):
     for fixture in sorted((BETA / 'tests/fixtures/opaque-ics').glob('*.ics')):
         source = fixture.read_text()
         result.append(dict(name='opaque-' + fixture.stem, kind='ics-termine', records=module.ics_lesen(source)['termine'], source=source))
+    for fixture in sorted((BETA.parent / 'port-adapters/tests/fixtures/source-vtimezone-case').glob('*.ics')):
+        source = fixture.read_text()
+        result.append(dict(name='source-vtz-case-' + fixture.stem, kind='ics-termine', records=module.ics_lesen(source)['termine'], source=source))
     for identifier in ['@utc', '@magnolie-utc-instant', 'UTC', 'Factory']:
         source = ('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTIMEZONE\r\nTZID:' + identifier +
                   '\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\nTZOFFSETFROM:+0300\r\nTZOFFSETTO:+0300\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n'
