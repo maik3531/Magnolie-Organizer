@@ -84,8 +84,8 @@ public enum DAVCalendarSnapshot {
         do { validator = try DAVClient(server: source.href.absoluteString, username: "snapshot-validation", password: "") }
         catch { throw DAVCalendarSnapshotError.invalidSource }
         let collectionPath = try scopedPath(source.href)
-        let collectionPrefix = collectionPath == "/" ? "/" : collectionPath + "/"
-        var seenHrefs = Set<String>(), wireOwners: [String: URL] = [:], projectedIdentities = Set<String>()
+        let collectionPrefix = Data((collectionPath == "/" ? "/" : collectionPath + "/").utf8)
+        var seenHrefs = Set<OpaqueUTF8Identity>(), wireOwners: [OpaqueUTF8Identity: OpaqueUTF8Identity] = [:], projectedIdentities = Set<OpaqueUTF8Identity>()
         var byteCount = 0, projectedByteCount = 0, recordCount = 0
         var output: [Resource] = [], appointments: [Record] = [], tasks: [Record] = [], anniversaries: [Record] = []
         func consumeProjection(_ value: Any) throws {
@@ -99,11 +99,11 @@ public enum DAVCalendarSnapshot {
             do { href = try validator.sameOriginURL(resource.href.absoluteString) }
             catch { throw DAVCalendarSnapshotError.resourceOutsideCollection }
             let path = try scopedPath(href)
-            guard path.hasPrefix(collectionPrefix), path.count > collectionPrefix.count else {
+            guard Data(path.utf8).starts(with: collectionPrefix), path.utf8.count > collectionPrefix.count else {
                 throw DAVCalendarSnapshotError.resourceOutsideCollection
             }
             // Percent-encoded aliases and dot-normalized paths cannot masquerade as two resources.
-            guard seenHrefs.insert(path).inserted else { throw DAVCalendarSnapshotError.duplicateResource }
+            guard seenHrefs.insert(OpaqueUTF8Identity(path)).inserted else { throw DAVCalendarSnapshotError.duplicateResource }
             let trimmedETag = resource.etag.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmedETag.isEmpty, trimmedETag != "*",
                   !resource.etag.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }) else {
@@ -121,9 +121,9 @@ public enum DAVCalendarSnapshot {
                 guard keys.count <= limits.maximumRecords - recordCount else { throw DAVCalendarSnapshotError.recordLimit }
                 if !source.supportsVtodo && keys.contains(where: { $0.kind == "VTODO" }) { throw DAVCalendarSnapshotError.unsupportedTasks }
                 for key in keys {
-                    let identity = key.kind + "\0" + key.uid
-                    if let owner = wireOwners[identity], owner != href { throw DAVCalendarSnapshotError.ambiguousWireUID }
-                    wireOwners[identity] = href
+                    let identity = OpaqueUTF8Identity(parts: [key.kind, key.uid])
+                    if let owner = wireOwners[identity], owner != OpaqueUTF8Identity(path) { throw DAVCalendarSnapshotError.ambiguousWireUID }
+                    wireOwners[identity] = OpaqueUTF8Identity(path)
                 }
                 try checkCancellation()
                 parsed = try ICalendarImport.decode(bytes, displayTimeZone: displayTimeZone, sourceName: source.name, sourceID: source.uid)
@@ -143,7 +143,7 @@ public enum DAVCalendarSnapshot {
                 guard let uid = input["uid"] as? String, !uid.isEmpty,
                       matched.insert(key).inserted else { throw DAVCalendarSnapshotError.incompleteProjection }
                 let domain = kind == .task ? "VTODO" : "VEVENT"
-                guard projectedIdentities.insert(domain + "\0" + uid).inserted else { throw DAVCalendarSnapshotError.duplicateProjection }
+                guard projectedIdentities.insert(OpaqueUTF8Identity(parts: [domain, uid])).inserted else { throw DAVCalendarSnapshotError.duplicateProjection }
                 var value = input
                 if kind == .appointment && value["icsKomplex"] as? Bool == true {
                     value["icsReadOnly"] = true; value["icsReadOnlyGrund"] = "Nextcloud"

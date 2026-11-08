@@ -9,6 +9,11 @@ public enum ICalendarResourcePatch {
         public init(kind: String, uid: String, recurrenceID: String? = nil) {
             self.kind = kind; self.uid = uid; self.recurrenceID = recurrenceID
         }
+        private var identity: OpaqueUTF8Identity {
+            OpaqueUTF8Identity(parts: [kind, uid, recurrenceID == nil ? "absent" : "present", recurrenceID ?? ""])
+        }
+        public static func == (lhs: Self, rhs: Self) -> Bool { lhs.identity == rhs.identity }
+        public func hash(into hasher: inout Hasher) { hasher.combine(identity) }
     }
     public struct Replacement {
         public let key: Key, calendar: Data
@@ -154,12 +159,12 @@ public enum ICalendarResourcePatch {
         for part in parts { if let key = part.key, !identities.insert(key).inserted { throw fail("duplicate identity") } }
         return Calendar(bytes: data, parts: parts, end: end)
     }
-    private static func zones(_ calendar: Calendar) throws -> [String: Data] {
-        var result: [String: Data] = [:]
+    private static func zones(_ calendar: Calendar) throws -> [OpaqueUTF8Identity: Data] {
+        var result: [OpaqueUTF8Identity: Data] = [:]
         for part in calendar.parts where part.name == "VTIMEZONE" {
             let ids = try part.properties.filter { try property($0).0 == "TZID" }
             guard ids.count == 1 else { throw fail("ambiguous timezone") }
-            let id = try text(property(ids[0]).2)
+            let id = OpaqueUTF8Identity(try text(property(ids[0]).2))
             guard result[id] == nil else { throw fail("duplicate timezone") }
             result[id] = calendar.bytes.subdata(in: part.range)
         }

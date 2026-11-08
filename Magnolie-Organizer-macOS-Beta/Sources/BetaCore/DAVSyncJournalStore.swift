@@ -11,6 +11,10 @@ public actor DAVSyncJournalStore {
     public struct Source: Codable, Equatable {
         public let uid: String, href: URL, supportsVtodo: Bool
         public init(uid: String, href: URL, supportsVtodo: Bool) { self.uid = uid; self.href = href; self.supportsVtodo = supportsVtodo }
+        public static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.supportsVtodo == rhs.supportsVtodo &&
+            OpaqueUTF8Identity(parts: [lhs.uid, lhs.href.absoluteString]) == OpaqueUTF8Identity(parts: [rhs.uid, rhs.href.absoluteString])
+        }
     }
     public struct Binding: Codable, Equatable {
         public let accountIdentity: String, accountRevision: String, server: URL
@@ -24,6 +28,12 @@ public actor DAVSyncJournalStore {
             self.bookIdentity = bookIdentity; self.bookGeneration = bookGeneration; self.syncEpoch = syncEpoch
             self.inputDigest = inputDigest; self.sources = sources
         }
+        public static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.sources == rhs.sources && OpaqueUTF8Identity(parts: [lhs.accountIdentity, lhs.accountRevision, lhs.server.absoluteString,
+                lhs.bookIdentity, lhs.bookGeneration, lhs.syncEpoch, lhs.inputDigest]) ==
+                OpaqueUTF8Identity(parts: [rhs.accountIdentity, rhs.accountRevision, rhs.server.absoluteString,
+                    rhs.bookIdentity, rhs.bookGeneration, rhs.syncEpoch, rhs.inputDigest])
+        }
     }
     public struct FrozenOperation: Codable, Equatable {
         public enum Method: String, Codable { case create, update, delete }
@@ -31,6 +41,11 @@ public actor DAVSyncJournalStore {
         public var ifNoneMatch: String? { method == .create ? "*" : nil }
         public init(id: String, sourceUID: String, method: Method, href: URL, ifMatch: String? = nil, body: Data? = nil) {
             self.id = id; self.sourceUID = sourceUID; self.method = method; self.href = href; self.ifMatch = ifMatch; self.body = body
+        }
+        public static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.method == rhs.method && lhs.body == rhs.body &&
+            OpaqueUTF8Identity(parts: [lhs.id, lhs.sourceUID, lhs.href.absoluteString, lhs.ifMatch == nil ? "absent" : "present", lhs.ifMatch ?? ""]) ==
+                OpaqueUTF8Identity(parts: [rhs.id, rhs.sourceUID, rhs.href.absoluteString, rhs.ifMatch == nil ? "absent" : "present", rhs.ifMatch ?? ""])
         }
     }
     public struct PreparedRun: Codable, Equatable {
@@ -49,6 +64,11 @@ public actor DAVSyncJournalStore {
         public let kind: Kind, status: Int?, etag: String?
         public static func acknowledgement(status: Int, etag: String? = nil) -> Outcome { Outcome(kind: .acknowledged, status: status, etag: etag) }
         public static var uncertain: Outcome { Outcome(kind: .uncertain, status: nil, etag: nil) }
+        public static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.kind == rhs.kind && lhs.status == rhs.status &&
+            OpaqueUTF8Identity(parts: [lhs.etag == nil ? "absent" : "present", lhs.etag ?? ""]) ==
+                OpaqueUTF8Identity(parts: [rhs.etag == nil ? "absent" : "present", rhs.etag ?? ""])
+        }
     }
     public struct PendingSummary {
         public let id: String, prepared: Int, acknowledged: Int, uncertain: Int, staged: Bool
@@ -140,19 +160,19 @@ public actor DAVSyncJournalStore {
               frozen.input.count <= maximumBytes, frozen.plan.count <= maximumBytes,
               (1...100).contains(binding.sources.count), frozen.operations.count <= DAVClient.listLimit else { throw DAVSyncJournalError.invalidInput }
         let origin = try url(binding.server)
-        var sources: [String: URLComponents] = [:], hrefs = Set<String>(), sourceHrefs = Set<String>()
+        var sources: [OpaqueUTF8Identity: URLComponents] = [:], hrefs = Set<OpaqueUTF8Identity>(), sourceHrefs = Set<OpaqueUTF8Identity>()
         for source in binding.sources {
             let href = try url(source.href)
             guard !source.uid.isEmpty, source.uid.utf8.count <= 1024, sameOrigin(origin, href), href.percentEncodedPath.hasSuffix("/"),
-                  sourceHrefs.insert((href.host!.lowercased()) + ":" + String(href.port ?? 443) + canonicalPath(href)).inserted,
-                  sources.updateValue(href, forKey: source.uid) == nil else { throw DAVSyncJournalError.invalidInput }
+                  sourceHrefs.insert(OpaqueUTF8Identity(parts: [href.host!.lowercased(), String(href.port ?? 443), canonicalPath(href)])).inserted,
+                  sources.updateValue(href, forKey: OpaqueUTF8Identity(source.uid)) == nil else { throw DAVSyncJournalError.invalidInput }
         }
         var ids = Set<String>(), total = 0
         for operation in frozen.operations {
             let href = try url(operation.href)
-            guard validDigest(operation.id), ids.insert(operation.id).inserted, hrefs.insert((href.host!.lowercased()) + ":" + String(href.port ?? 443) + canonicalPath(href)).inserted,
-                  let source = sources[operation.sourceUID], sameOrigin(source, href), canonicalPath(href).hasPrefix(canonicalPath(source)),
-                  canonicalPath(href) != canonicalPath(source) else { throw DAVSyncJournalError.invalidInput }
+            guard validDigest(operation.id), ids.insert(operation.id).inserted, hrefs.insert(OpaqueUTF8Identity(parts: [href.host!.lowercased(), String(href.port ?? 443), canonicalPath(href)])).inserted,
+                  let source = sources[OpaqueUTF8Identity(operation.sourceUID)], sameOrigin(source, href), Data(canonicalPath(href).utf8).starts(with: Data(canonicalPath(source).utf8)),
+                  OpaqueUTF8Identity(canonicalPath(href)) != OpaqueUTF8Identity(canonicalPath(source)) else { throw DAVSyncJournalError.invalidInput }
             switch operation.method {
             case .create: guard operation.ifMatch == nil, let body = operation.body, !body.isEmpty else { throw DAVSyncJournalError.invalidInput }
             case .update: guard let etag = operation.ifMatch, validETag(etag), let body = operation.body, !body.isEmpty else { throw DAVSyncJournalError.invalidInput }

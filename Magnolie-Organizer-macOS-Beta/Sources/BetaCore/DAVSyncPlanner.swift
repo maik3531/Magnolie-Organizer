@@ -101,17 +101,17 @@ public enum DAVSyncPlanner {
             }
             var values = ["appointment": preview.appointments, "task": preview.tasks, "anniversary": preview.anniversaries]
             var entries: [Entry] = preservedTaskEntries
-            var lookup: [String: Int] = [:]
+            var lookup: [OpaqueUTF8Identity: Int] = [:]
             for domain in [Domain.appointment, .task, .anniversary] {
-                for (index, value) in values[domain.rawValue]!.enumerated() where DAVSyncPlanner.text(value, "syncKalenderUid") == sourceUID {
-                    let key = domain.rawValue + "\0" + DAVSyncPlanner.text(value, "uid")
+                for (index, value) in values[domain.rawValue]!.enumerated() where OpaqueUTF8Identity(DAVSyncPlanner.text(value, "syncKalenderUid")) == OpaqueUTF8Identity(sourceUID) {
+                    let key = OpaqueUTF8Identity(parts: [domain.rawValue, DAVSyncPlanner.text(value, "uid")])
                     guard lookup.updateValue(index, forKey: key) == nil else { throw DAVSyncPlannerError.invalidAcknowledgement }
                 }
             }
             for domain in [Domain.appointment, .task, .anniversary] {
               var records = values[domain.rawValue]!
               for assignment in assignments where assignment.domain == domain {
-                guard let index = lookup[assignment.domain.rawValue + "\0" + assignment.uid] else { throw DAVSyncPlannerError.invalidAcknowledgement }
+                guard let index = lookup[OpaqueUTF8Identity(parts: [assignment.domain.rawValue, assignment.uid])] else { throw DAVSyncPlannerError.invalidAcknowledgement }
                 let etag = resourceETags[assignment.href] ?? assignment.etag
                 guard DAVSyncPlanner.validETag(etag) else { throw DAVSyncPlannerError.invalidAcknowledgement }
                 let hash = try DAVSyncBaseline.hash(records[index], kind: assignment.domain)
@@ -135,8 +135,8 @@ public enum DAVSyncPlanner {
     private struct Desired { let domain: Domain, value: [String: Any] }
     private static func text(_ value: [String: Any], _ key: String) -> String { value[key] as? String ?? "" }
     private static func digest(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
-    private static func group(_ key: Key) -> String { key.kind + "\0" + key.uid }
-    private static func ordered(_ key: Key) -> String { group(key) + "\0" + (key.recurrenceID ?? "") }
+    private static func group(_ key: Key) -> OpaqueUTF8Identity { OpaqueUTF8Identity(parts: [key.kind, key.uid]) }
+    private static func ordered(_ key: Key) -> OpaqueUTF8Identity { OpaqueUTF8Identity(parts: [key.kind, key.uid, key.recurrenceID == nil ? "absent" : "present", key.recurrenceID ?? ""]) }
     private static func validETag(_ etag: String) -> Bool {
         let trimmed = etag.trimmingCharacters(in: .whitespacesAndNewlines)
         return !trimmed.isEmpty && trimmed != "*" && !etag.unicodeScalars.contains { $0.value < 32 || $0.value == 127 }
@@ -178,7 +178,7 @@ public enum DAVSyncPlanner {
               local.deletions.count <= ICalendarImport.maximumRecords,
               (baseline?.entries.count ?? 0) <= ICalendarImport.maximumRecords else { throw DAVSyncPlannerError.limit }
         let source = snapshot.source, supportsTasks = snapshot.tasks != nil
-        guard baseline == nil || baseline!.sourceUID == source.uid else { throw DAVSyncPlannerError.invalidInput }
+        guard baseline == nil || OpaqueUTF8Identity(baseline!.sourceUID) == OpaqueUTF8Identity(source.uid) else { throw DAVSyncPlannerError.invalidInput }
         let arrays = ["appointment": local.appointments, "task": local.tasks, "anniversary": local.anniversaries]
         let deletionData: [[String: Any]] = local.deletions.map {
             ["domain": $0.domain.rawValue, "sourceUID": $0.sourceUID, "uid": $0.key.uid, "kind": $0.key.kind,
@@ -196,11 +196,11 @@ public enum DAVSyncPlanner {
         var appended: [String: [[String: Any]]] = ["appointment": [], "task": [], "anniversary": []]
         let remoteRows = snapshot.resources.flatMap(\.records)
         var remote: [Key: DAVCalendarSnapshot.Record] = [:], base: [Key: Entry] = [:]
-        var remoteByUID: [String: DAVCalendarSnapshot.Record] = [:], baseByUID: [String: Entry] = [:]
-        var remoteByGroup: [String: [DAVCalendarSnapshot.Record]] = [:]
+        var remoteByUID: [OpaqueUTF8Identity: DAVCalendarSnapshot.Record] = [:], baseByUID: [OpaqueUTF8Identity: Entry] = [:]
+        var remoteByGroup: [OpaqueUTF8Identity: [DAVCalendarSnapshot.Record]] = [:]
         for row in remoteRows {
             guard remote.updateValue(row, forKey: row.wireKey) == nil,
-                  remoteByUID.updateValue(row, forKey: row.kind.rawValue + "\0" + text(row.value, "uid")) == nil else { throw DAVSyncPlannerError.duplicateIdentity }
+                  remoteByUID.updateValue(row, forKey: OpaqueUTF8Identity(parts: [row.kind.rawValue, text(row.value, "uid")])) == nil else { throw DAVSyncPlannerError.duplicateIdentity }
             remoteByGroup[group(row.wireKey), default: []].append(row)
         }
         for entry in baseline?.entries ?? [] {
@@ -209,7 +209,7 @@ public enum DAVSyncPlanner {
             let normalized = Entry(domain: entry.domain, key: key, localUID: entry.localUID, href: entry.href, etag: entry.etag,
                 format: entry.format, localHash: entry.localHash, remoteHash: entry.remoteHash)
             guard base.updateValue(normalized, forKey: key) == nil,
-                  baseByUID.updateValue(normalized, forKey: entry.domain.rawValue + "\0" + entry.localUID) == nil else { throw DAVSyncPlannerError.duplicateIdentity }
+                  baseByUID.updateValue(normalized, forKey: OpaqueUTF8Identity(parts: [entry.domain.rawValue, entry.localUID])) == nil else { throw DAVSyncPlannerError.duplicateIdentity }
         }
         var additiveDomains: [String: Bool] = [:]
         for domain in [Domain.appointment, .task, .anniversary] {
@@ -221,24 +221,24 @@ public enum DAVSyncPlanner {
             }
         }
         func additive(_ domain: Domain) -> Bool { additiveDomains[domain.rawValue]! }
-        var items: [Item] = [], seenLocal = Set<String>()
+        var items: [Item] = [], seenLocal = Set<OpaqueUTF8Identity>()
         for domain in [Domain.appointment, .task, .anniversary] {
             if domain == .task && !supportsTasks { continue }
             let unbound = domain == .appointment ? local.assignUnboundAppointments : domain == .task ? local.assignUnboundTasks : local.assignUnboundAnniversaries
             for (index, value) in arrays[domain.rawValue]!.enumerated() {
                 try check()
                 let owner = text(value, "syncKalenderUid"), bindings = value["syncQuellen"] as? [String: Any] ?? [:]
-                guard owner == source.uid || bindings[source.uid] != nil || owner.isEmpty && bindings.isEmpty && unbound else { continue }
+                guard OpaqueUTF8Identity(owner) == OpaqueUTF8Identity(source.uid) || bindings[source.uid] != nil || owner.isEmpty && bindings.isEmpty && unbound else { continue }
                 let uid = text(value, "uid")
-                guard !uid.isEmpty, seenLocal.insert(domain.rawValue + "\0" + uid).inserted else { throw DAVSyncPlannerError.duplicateIdentity }
-                let key = try baseByUID[domain.rawValue + "\0" + uid]?.key ?? remoteByUID[domain.rawValue + "\0" + uid]?.wireKey ?? localKey(value, domain: domain)
+                guard !uid.isEmpty, seenLocal.insert(OpaqueUTF8Identity(parts: [domain.rawValue, uid])).inserted else { throw DAVSyncPlannerError.duplicateIdentity }
+                let key = try baseByUID[OpaqueUTF8Identity(parts: [domain.rawValue, uid])]?.key ?? remoteByUID[OpaqueUTF8Identity(parts: [domain.rawValue, uid])]?.wireKey ?? localKey(value, domain: domain)
                 items.append(Item(domain: domain, index: index, key: key, value: value))
             }
         }
         var localByKey: [Key: Item] = [:]
         let localByGroup = Dictionary(grouping: items, by: { group($0.key) })
         for item in items { guard localByKey.updateValue(item, forKey: item.key) == nil else { throw DAVSyncPlannerError.duplicateIdentity } }
-        var conflictingGroups = Set<String>()
+        var conflictingGroups = Set<OpaqueUTF8Identity>()
         for item in items {
             guard let row = remote[item.key] else { continue }
             if row.kind != item.domain { conflictingGroups.insert(group(item.key)); continue }
@@ -255,18 +255,20 @@ public enum DAVSyncPlanner {
                 conflictingGroups.insert(group(item.key))
             }
         }
-        var conflictCopies = 0, copiedRows: [(Domain, [String: Any])] = [], taskCopyUIDs: [String: String] = [:]
+        var conflictCopies = 0, copiedRows: [(Domain, [String: Any])] = [], taskCopyUIDs: [OpaqueUTF8Identity: String] = [:]
         for identity in conflictingGroups.sorted() {
             let members = localByGroup[identity]!.sorted { ordered($0.key) < ordered($1.key) }
+            // Preserve the existing v1 raw-UTF8 digest wire contract. Typed lookup/order
+            // keys must not rewrite previously deterministic conflict/resource identifiers.
             let material = try members.map { item -> String in
                 let hash = try DAVSyncBaseline.hash(item.value, kind: item.domain)
-                return ordered(item.key) + "\0" + (base[item.key]?.etag ?? "") + "\0" + hash
+                return item.key.kind + "\0" + item.key.uid + "\0" + (item.key.recurrenceID ?? "") + "\0" + (base[item.key]?.etag ?? "") + "\0" + hash
             }.joined(separator: "\n")
             let newUID = "mag-" + digest(Data(("native-dav-conflict-v1\0" + source.uid + "\0" + material).utf8)).prefix(32) + "@magnolie-organizer"
             for item in members {
                 var copy = item.value
                 let uid = item.key.recurrenceID.map { newUID + "-magnolie-instanz-" + digest(Data($0.utf8)).prefix(16) } ?? newUID
-                if item.domain == .task { taskCopyUIDs[text(item.value, "uid")] = uid }
+                if item.domain == .task { taskCopyUIDs[OpaqueUTF8Identity(text(item.value, "uid"))] = uid }
                 copy["uid"] = uid; copy["id"] = digest(Data((source.uid + "\0" + uid).utf8)).prefix(32).description
                 copy["icsSerienUid"] = newUID; copy["icsImportUid"] = newUID; copy["syncKalenderUid"] = source.uid; copy["sync"] = false
                 for field in ["syncQuellen", "davHref", "davEtag"] { copy.removeValue(forKey: field) }
@@ -276,7 +278,7 @@ public enum DAVSyncPlanner {
         }
         for (domain, value) in copiedRows {
             var copy = value
-            if domain == .task, let parent = taskCopyUIDs[text(copy, "elternUid")] { copy["elternUid"] = parent; copy["icsElternUid"] = parent }
+            if domain == .task, let parent = taskCopyUIDs[OpaqueUTF8Identity(text(copy, "elternUid"))] { copy["elternUid"] = parent; copy["icsElternUid"] = parent }
             appended[domain.rawValue]!.append(copy)
         }
         var desired: [Key: Desired] = [:], hrefs: [Key: URL] = [:], etags: [Key: String] = [:], seenRemote = Set<Key>()
@@ -284,7 +286,7 @@ public enum DAVSyncPlanner {
         var pendingDeletes: [Deletion] = [], quarantined = 0
         var selectedDeletes: [Key: Deletion] = [:]
         for deletion in local.deletions {
-            guard deletion.sourceUID == source.uid, deletion.domain != .task || supportsTasks else { pendingDeletes.append(deletion); continue }
+            guard OpaqueUTF8Identity(deletion.sourceUID) == OpaqueUTF8Identity(source.uid), deletion.domain != .task || supportsTasks else { pendingDeletes.append(deletion); continue }
             if additive(deletion.domain) || deletion.syncEpoch != syncEpoch { pendingDeletes.append(deletion); quarantined += 1; continue }
             guard deletion.key.kind == (deletion.domain == .task ? "VTODO" : "VEVENT") else { throw DAVSyncPlannerError.invalidInput }
             let key = try localKey(["uid": deletion.key.uid, "icsRoundtrip": deletion.key.recurrenceID.map { [$0] } ?? []], domain: deletion.domain)
@@ -352,7 +354,7 @@ public enum DAVSyncPlanner {
         // A complete successful REPORT also confirms absence. Only current-epoch trusted
         // deletion intents are retired; unknown/restore intents remain explicitly quarantined.
         for (key, _) in selectedDeletes { guard remote[key] == nil else { throw DAVSyncPlannerError.deletionConflict } }
-        var newGroups: [String: [Key]] = [:]
+        var newGroups: [OpaqueUTF8Identity: [Key]] = [:]
         for key in insertKeys {
             if let sibling = remoteByGroup[group(key)]?.first { hrefs[key] = sibling.href; etags[key] = sibling.etag }
             else { newGroups[group(key), default: []].append(key) }
@@ -371,7 +373,7 @@ public enum DAVSyncPlanner {
             let keys = newGroups[identity]!.sorted { ordered($0) < ordered($1) }
             let values = keys.map { desired[$0]! }
             let bytes = try encode(values, keys: keys, createdAt: createdAt)
-            let href = source.href.appendingPathComponent(digest(Data(identity.utf8)) + ".ics")
+            let href = source.href.appendingPathComponent(digest(Data((keys[0].kind + "\0" + keys[0].uid).utf8)) + ".ics")
             for key in keys { hrefs[key] = href; etags[key] = "" }
             try operation(.create, href, nil, bytes, keys)
         }
@@ -385,7 +387,7 @@ public enum DAVSyncPlanner {
             let deletions = Set(deletesByHref[resource.href] ?? [])
             guard !updates.isEmpty || !insertions.isEmpty || !deletions.isEmpty else { continue }
             var replacements: [ICalendarResourcePatch.Replacement] = [], additions: [ICalendarResourcePatch.Replacement] = []
-            var extractedGroups: [String: [Key: Data]] = [:], extractionBytes = 0
+            var extractedGroups: [OpaqueUTF8Identity: [Key: Data]] = [:], extractionBytes = 0
             for key in (updates.union(insertions)).sorted(by: { ordered($0) < ordered($1) }) {
                 let identity = group(key)
                 if extractedGroups[identity] == nil {
@@ -439,7 +441,7 @@ public enum DAVSyncPlanner {
             return record
         }
         do {
-            let wireUIDs = Dictionary(uniqueKeysWithValues: zip(records, keys).map { (text($0.0, "uid"), $0.1.uid) })
+            let wireUIDs = Dictionary(uniqueKeysWithValues: zip(records, keys).map { (OpaqueUTF8Identity(text($0.0, "uid")), $0.1.uid) })
             let bytes = Data(try ICalendarExport.encode(records, kind: kind, timestamp: createdAt, wireUIDs: wireUIDs).utf8)
             guard Set(try ICalendarResourcePatch.keys(from: bytes)) == Set(keys) else { throw DAVSyncPlannerError.unsupportedRecord }
             return bytes
@@ -447,7 +449,7 @@ public enum DAVSyncPlanner {
     }
     /// Only generated, already validated exporter output is scanned here. Matching source-zone
     /// definitions remain byte-exact in the original resource instead of being rewritten as CRLF.
-    private static func stripExistingZones(_ generated: Data, definitions: [[String]]) -> Data {
+    internal static func stripExistingZones(_ generated: Data, definitions: [[String]]) -> Data {
         guard !definitions.isEmpty, let text = String(data: generated, encoding: .utf8) else { return generated }
         let lines = text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
         var output: [String] = [], block: [String] = [], inZone = false
@@ -458,7 +460,7 @@ public enum DAVSyncPlanner {
                 if line.uppercased() == "END:VTIMEZONE" {
                     var unfolded: [String] = []
                     for part in block { if (part.hasPrefix(" ") || part.hasPrefix("\t")), !unfolded.isEmpty { unfolded[unfolded.count - 1] += part.dropFirst() } else { unfolded.append(part) } }
-                    if !definitions.contains(unfolded) { output.append(contentsOf: block) }
+                    if !definitions.contains(where: { OpaqueUTF8Identity(parts: $0) == OpaqueUTF8Identity(parts: unfolded) }) { output.append(contentsOf: block) }
                     inZone = false
                 }
             } else { output.append(line) }

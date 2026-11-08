@@ -568,7 +568,7 @@ public enum ICalendarExport {
         } + byName.keys.sorted().compactMap { byName[$0]?.line } + sources.map { $0.line } + ["END:" + type]
     }
 
-    public static func encode(_ input: [[String: Any]], kind: Kind, defaultTimeZone: String = "system", timestamp: Date = Date(), wireUIDs: [String: String] = [:]) throws -> String {
+    public static func encode(_ input: [[String: Any]], kind: Kind, defaultTimeZone: String = "system", timestamp: Date = Date(), wireUIDs: [OpaqueUTF8Identity: String] = [:]) throws -> String {
         guard !input.isEmpty else { throw BetaError("There are no calendar records to export.") }
         let records = input.map { value -> [String: Any] in
             var copy = value
@@ -612,7 +612,7 @@ public enum ICalendarExport {
                 if matches.count == 1 { parent = identifier(matches[0]) }
                 else if matches.count > 1 { throw BetaError("Ambiguous task parent identity.") }
             }
-            let lines = try component(record, kind: kind, taskParent: parent, timestamp: timestamp, wireUID: wireUIDs[text(record, "uid")])
+            let lines = try component(record, kind: kind, taskParent: parent, timestamp: timestamp, wireUID: wireUIDs[OpaqueUTF8Identity(text(record, "uid"))])
             components.append(lines)
             if let value = record["icsTimezones"] {
                 guard let blocks = value as? [[String]] else { throw BetaError("Invalid source time-zone definitions.") }
