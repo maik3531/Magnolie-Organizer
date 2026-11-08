@@ -119,4 +119,32 @@ try {
   console.error("Recovery host failed after " + checks + " checks", error);
   throw error;
 } finally { await tick(); b.close(); }
+// Mirror the production Host's fresh-profile and reopen init/close payloads.
+// Compare the actual serialized whole documents, retaining all metadata checks.
+let firstProfile;
+const fresh = await boot(process.argv[2]);
+try {
+  fresh.w.MacBeta.receive("init", { daten: {}, neu: true, echterErststart: true,
+    regional: { language: "system" }, datenPfad: "/synthetic/macOS-Beta/organizer.json",
+    kennwort: false, trayVerfuegbar: false, handbuchInstalliert: false, contributorAktiv: false });
+  fresh.w.MacBeta.receive("vorBeenden", {});
+  const save = fresh.messages.filter(message => message.cmd === "speichern").at(-1);
+  assert.ok(save); checks++;
+  firstProfile = JSON.parse(save.text);
+  equal(firstProfile.notizen.length, 1, "fresh native startup creates one welcome note");
+  fresh.w.MacBeta.receive("gespeichert", { id: save.id, ok: true });
+  equal(fresh.messages.at(-1).cmd, "beenden_bereit", "fresh native close follows durable-save acknowledgment");
+} finally { await tick(); fresh.close(); }
+const reopened = await boot(process.argv[2]);
+try {
+  reopened.w.MacBeta.receive("init", { daten: firstProfile, neu: false,
+    regional: firstProfile.einstellungen.regional, datenPfad: "/synthetic/macOS-Beta/organizer.json",
+    kennwort: false, trayVerfuegbar: false, handbuchInstalliert: false, contributorAktiv: false });
+  reopened.w.MacBeta.receive("vorBeenden", {});
+  const save = reopened.messages.filter(message => message.cmd === "speichern").at(-1);
+  assert.ok(save); checks++;
+  equal(JSON.parse(save.text), firstProfile, "reopen and normal quit preserve the complete fresh profile exactly");
+  reopened.w.MacBeta.receive("gespeichert", { id: save.id, ok: true });
+  equal(reopened.messages.at(-1).cmd, "beenden_bereit", "reopened native close follows durable-save acknowledgment");
+} finally { await tick(); reopened.close(); }
 console.log(`macOS Beta recovery/regional/keyboard: ${checks} host checks. Fake native transport, NOT WKWebView validation.`);

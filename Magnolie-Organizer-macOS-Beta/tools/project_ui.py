@@ -225,6 +225,11 @@ def project(snapshot, target):
       }
     }''' + reminder[task_end:]
     text = text[:reminder_start] + reminder + text[reminder_end:]
+    # The desktop creates its first welcome note after normalizing the book.
+    # Normalize that newly generated record before its first native save so a
+    # reopen adds no delayed metadata defaults to an otherwise untouched profile.
+    text = replace_once(text, "        DATEN.notizen.push(willkommensNotiz());",
+                        "        DATEN.notizen.push(normalisiere({ notizen: [willkommensNotiz()] }).notizen[0]);")
     # No automatic deletion of tombstones/trash in a port without a recovery journal.
     text = replace_once(text, "      raeumeTombstonesAuf();\n      const papierkorbBereinigt = raeumePapierkorbAuf();",
                         "      const papierkorbBereinigt = false;")
