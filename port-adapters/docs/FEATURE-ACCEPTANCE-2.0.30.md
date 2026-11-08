@@ -55,6 +55,40 @@ implementation and test evidence does not silently upgrade that snapshot:
 All these are partial, source-bound results. They do not establish complete
 feature parity, old-device compatibility, production signing or release approval.
 
+### Native checkpoint at `be3480e6` / `c922053e` (2026-11-08; Refs #121)
+
+This later checkpoint supersedes the pending status of the individual checks
+listed here, while preserving the inventory table as its historical snapshot:
+
+- Android API34: the isolated [services job](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42533115056/job/128891477481)
+  passes actual native DAV XML parsing, encrypted account/Keystore transactions,
+  and Android filesystem durability checks. Hardlink creation was denied by the
+  OS; this is not a native exercise of the adapter's multiple-link rejection.
+  These fixtures use no live DAV server and do not accept full synchronization.
+- The same installed APK passes all eight published calendar cases (11 imported
+  and 11 exported records), two Gaza product-codec cases and 30 independent
+  normative clock checks through year 8000. It contains the verified 597-zone
+  `2026egtz` payload. The legacy Android clock disagrees on ten of the 30
+  diagnostic comparisons; its numeric rules are not the product authority.
+- The separate Android file-picker job passes cancellation without book changes,
+  three-collection import with retained source hash and durable native save, and
+  atomic rejection of an invalid later ICS component. It then fails to locate
+  the actual DocumentsUI `SAVE` button because the test asks for `Save`.
+  Export byte verification has not been reached; this is not export acceptance.
+- The ARM Mac at `c922053e` compiles the production calendar-context migration.
+  Its seven context tests and three case-insensitive VTIMEZONE structure tests
+  pass. The overall job remains red: an editor fixture still expects floating
+  values after resolved-system named-zone editing, and strict drawing replay
+  detects antialiased edge differences despite identical stroke models.
+  Independent calendar-oracle validation and both-architecture acceptance remain
+  separate gates. No current all-feature or release acceptance is asserted.
+
+The iPhone route remains explicit exported-file transfer through the existing
+KDE Connect app, followed by selected-file import. Public Apple instructions
+confirm PDF export on iOS18 and PDF/Markdown export on iOS26; a whole-note PDF
+can omit later pages of an embedded scan, so complete original attachments must
+be transferred separately. There is no physical iPhone end-to-end acceptance yet.
+
 | Family | Published operations | Mac current scope | Tablet current scope | Actual evidence type | Missing adapter / acceptance |
 | --- | --- | --- | --- | --- | --- |
 | Binder/navigation | 8 sections, day/week/month pages, page flips, tab order/visibility, modal focus/dirty-editor guard | shared local UI | shared local UI | host editor/navigation; native geometry/basic earlier | native 40 trusted touches, IME/RTL/accessibility, low-end devices |
