@@ -109,6 +109,25 @@ class LifecycleTest(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             session.parser().parse_args(['run','--api','36'])
 
+    def test_image_selection_is_closed_and_package_is_fixed(self):
+        self.assertEqual(session.parser().parse_args(['prepare']).image, 'google_apis')
+        self.assertEqual(session.system_image(34, 'default'), 'system-images;android-34;default;x86_64')
+        self.assertEqual(session.system_image(34, 'google_apis'), 'system-images;android-34;google_apis;x86_64')
+        for invalid in ('../default', '/tmp/image', 'google_apis_playstore', 'default;x86'):
+            with self.assertRaises(ValueError): session.system_image(34, invalid)
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                session.parser().parse_args(['prepare', '--image', invalid])
+
+    def test_wrong_prepared_image_rejected_before_spawning_sdk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)/'state.json'
+            state.write_text(json.dumps({'requestedApi':34, 'image':'google_apis'}))
+            opts = session.parser().parse_args(['run', '--image', 'default', '--state', str(state)])
+            with patch.object(session, 'idle'), patch.object(session.subprocess, 'Popen') as spawn:
+                with self.assertRaisesRegex(RuntimeError, 'Prepared image identifier differs'):
+                    session.run_session(session.Owner(), opts)
+                spawn.assert_not_called()
+
     def test_wrong_prepared_api_rejected_before_spawning_sdk(self):
         with tempfile.TemporaryDirectory() as tmp:
             state=Path(tmp)/'state.json'

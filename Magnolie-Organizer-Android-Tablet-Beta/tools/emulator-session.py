@@ -355,6 +355,12 @@ def adb(owner, state, args, timeout=30):
                          timeout=timeout, env=environment(Path(state['run'])))
 
 
+def system_image(api, image):
+    if api not in (34, 35) or image not in ('google_apis', 'default'):
+        raise ValueError('Only supported API and exact Google/AOSP image identifiers are allowed')
+    return f'system-images;android-{api};{image};x86_64'
+
+
 def prepare(owner, opts):
     idle(owner)
     run = Path.home() / '.local/share/magnolie-testing/tablet-beta' / datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
@@ -363,7 +369,7 @@ def prepare(owner, opts):
         (run / name).mkdir()
     name = 'Magnolie_Tablet_Beta_' + run.name
     owner.command([SDK / 'cmdline-tools/latest/bin/avdmanager', 'create', 'avd', '--name', name,
-        '--package', f'system-images;android-{opts.api};google_apis;x86_64', '--device', 'medium_tablet',
+        '--package', system_image(opts.api, opts.image), '--device', 'medium_tablet',
         '--path', run / 'avds' / (name + '.avd')], input='no\n', env=environment(run), timeout=BOOT)
     config = run / 'avds' / (name + '.avd') / 'config.ini'
     entries = dict(line.split('=', 1) for line in config.read_text().splitlines() if '=' in line)
@@ -372,15 +378,17 @@ def prepare(owner, opts):
         'hw.gpu.mode': 'swiftshader', 'skin.name': '1280x800', 'showDeviceFrame': 'no', 'disk.dataPartition.size': '4G'})
     config.write_text(''.join(f'{k}={v}\n' for k, v in entries.items()))
     versions = {}
-    for label, directory in {'systemImage': SDK / f'system-images/android-{opts.api}/google_apis/x86_64',
+    for label, directory in {'systemImage': SDK / f'system-images/android-{opts.api}/{opts.image}/x86_64',
                              'emulator': SDK / 'emulator', 'platformTools': SDK / 'platform-tools',
                              'commandLineTools': SDK / 'cmdline-tools/latest'}.items():
         data = (directory / 'source.properties').read_bytes()
         versions[label] = dict(sourceProperties=data.decode(), sha256=hashlib.sha256(data).hexdigest())
+    versions['systemImage']['sdkPackage'] = system_image(opts.api, opts.image)
+    versions['systemImage']['diagnosticComparison'] = opts.image == 'default'
     (run / 'evidence/sdk-versions.json').write_text(json.dumps(versions, indent=2)+'\n')
     owner.state_path = opts.state
     owner.record('prepared', run=str(run), avd=name, serial='emulator-5580', adbPort=5039,
-                 requestedApi=opts.api, compileApi=35, guestRamMiB=2048, cores=2, sdkVersions=versions)
+                 requestedApi=opts.api, systemImage=system_image(opts.api, opts.image), image=opts.image, compileApi=35, guestRamMiB=2048, cores=2, sdkVersions=versions)
 
 
 def run_session(owner, opts, after_boot=None, run_tests=None):
@@ -388,9 +396,11 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
     state = json.loads(opts.state.read_text())
     if state.get('requestedApi', state.get('runtimeApi')) != opts.api:
         raise RuntimeError('Prepared image API differs from requested API')
+    if state.get('image', 'google_apis') != opts.image:
+        raise RuntimeError('Prepared image identifier differs from requested image')
     run = Path(state['run'])
     owner.state.update({k: state[k] for k in ('run', 'avd', 'serial', 'adbPort')})
-    owner.state.update(requestedApi=opts.api, sdkVersions=state.get('sdkVersions', {}))
+    owner.state.update(requestedApi=opts.api, image=opts.image, systemImage=system_image(opts.api, opts.image), sdkVersions=state.get('sdkVersions', {}))
     owner.state_path = opts.state
     owner.record('starting', locks=[str(p) for p in lock_paths(opts)], bootSeconds=opts.boot_timeout,
                  testSeconds=opts.test_timeout, permission='main-slot-granted')
@@ -542,6 +552,8 @@ def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument('action', choices=['prepare', 'run', 'wait', 'collect', 'stop', 'adb', 'test'])
     result.add_argument('--state', type=Path, default=STATE)
+    result.add_argument('--image', choices=('google_apis', 'default'), default='google_apis',
+                        help='default is an independent AOSP diagnostic; never Google acceptance')
     result.add_argument('--api', type=int, choices=(34, 35), default=34)
     result.add_argument('--vm-root', type=Path, default=ROOT.parents[1] / 'Test-VMs-20260912')
     result.add_argument('--session-root', type=Path, default=Path(os.environ.get('SESS', str(Path.home() / '.local/share/magnolie-testing/vms/rebuild-20260912'))))
