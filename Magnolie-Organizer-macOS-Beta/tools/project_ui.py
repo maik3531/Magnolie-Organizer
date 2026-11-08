@@ -21,7 +21,7 @@ def digest(data):
 
 
 def inputs():
-    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", BETA / "Projection", BETA / "Sources", BETA / "Resources"]
+    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources"]
     files = []
     for root in roots:
         if root.is_symlink():
@@ -84,6 +84,16 @@ def project(snapshot, target):
             path.write_bytes(data)
     app = target / "web/anwendung.js"
     text = app.read_text()
+    alarm_helper = snapshot["port-adapters/display-alarm-roundtrip.js"].decode()
+    alarm_anchor = "  function spiegeleTerminInIcs(termin, vorher = null) {"
+    text = replace_once(text, alarm_anchor,
+                        "/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n" + alarm_helper +
+                        "/*PORT_DISPLAY_ALARM_HELPER_END*/\n" + alarm_anchor)
+    text = replace_once(text, '''    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {
+      const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";
+      neu.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":" + trigger,
+        "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
+    }''', "    neu.push(...portDisplayAlarmLines(termin, vorher, alt));")
     identity = json.loads(snapshot[str((BETA / "Resources/BetaIdentity.json").relative_to(REPO))])
     text, count = re.subn(r'^const FASSUNG = "[^"]+";', 'const FASSUNG = ' + json.dumps(identity["version"]) + ';', text, flags=re.M)
     if count != 1:

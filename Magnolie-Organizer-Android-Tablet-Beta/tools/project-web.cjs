@@ -16,6 +16,7 @@ function walk(dir) {
       return e.isDirectory() ? walk(p) : [p]; });
 }
 const inputs = [...walk(desktop), ...walk(path.join(windowsWeb,'schriften')), path.join(windowsWeb,'stil.css'), ...walk(path.join(root, 'web')),
+  ...walk(path.join(parent,'port-adapters')),
   path.join(windowsWeb,'anwendung.js'), ...walk(path.join(windowsWeb,'i18n')),
   ...walk(path.join(root, 'app/src')), ...walk(path.join(root, 'tests')),
   ...walk(path.join(root, 'tools')), ...walk(path.join(parent, 'contracts')),
@@ -79,6 +80,18 @@ const regionalAnchor = '    { id: "ort", name: msgid("Country & holidays") },';
 if (appSource.split(regionalAnchor).length !== 2) throw Error('Desktop regional settings anchor changed');
 let regionalSource = appSource.replace(regionalAnchor,
   '    { id: "regional", name: msgid("Language and regional display") },\n'+regionalAnchor);
+const alarmHelper = buffers.get(path.join(parent,'port-adapters/display-alarm-roundtrip.js')).toString();
+const alarmHelperAnchor = '  function spiegeleTerminInIcs(termin, vorher = null) {';
+const alarmRebuildAnchor = `    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {
+      const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";
+      neu.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":" + trigger,
+        "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
+    }`;
+for (const anchor of [alarmHelperAnchor,alarmRebuildAnchor])
+  if (regionalSource.split(anchor).length !== 2) throw Error('Canonical DISPLAY alarm anchor changed');
+regionalSource = regionalSource.replace(alarmHelperAnchor,
+  '/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n'+alarmHelper+'/*PORT_DISPLAY_ALARM_HELPER_END*/\n'+alarmHelperAnchor)
+  .replace(alarmRebuildAnchor,'    neu.push(...portDisplayAlarmLines(termin, vorher, alt));');
 const automaticZoneAnchor = '  async function aktualisiereAutomatischeZeitzone() {';
 if (regionalSource.split(automaticZoneAnchor).length !== 2) throw Error('Desktop automatic time-zone anchor changed');
 // Android Beta has no native source-bound detection. Preserve imported settings
@@ -178,6 +191,7 @@ fs.rmSync(out,{recursive:true});
 for (const [p,b] of generated) { const dest = path.join(out,p); fs.mkdirSync(path.dirname(dest),{recursive:true}); fs.writeFileSync(dest,b); }
 const manifest = {format:1, kind:'debug-beta-generated-build-projection', sourceHash, inputs:hashes,
   transformations:['index: beta title, adapter and responsive stylesheet',
+    'alarms: shared port-adapters helper preserves opaque DISPLAY properties/parameters and blocks ambiguous edits',
     'fonts: live Windows font-face rules, bundled font bytes and licenses (no Android system-font substitution)',
     'anwendung: expose existing editor guard + durable action queue; reuse canonical DAV account/selection renderers for native setup and read-only discovery with revision fences; keep synchronization unsupported; expose regional form and suppress unsupported native automatic time-zone polling',
     'i18n-active: concatenate canonical catalogs', 'native resources: reuse catalogs + 20 manual beta translations'],

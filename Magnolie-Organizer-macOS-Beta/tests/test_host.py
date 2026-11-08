@@ -96,6 +96,24 @@ class ProjectionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "anchor changed"):
                 projection.project(changed, Path(temp) / "UI")
 
+    def test_shared_display_alarm_adapter_binding_and_anchor_drift(self):
+        helper = self.snapshot["port-adapters/display-alarm-roundtrip.js"].decode()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-projection-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            app = (target / "web/anwendung.js").read_text()
+            self.assertEqual(app.count("/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n" + helper +
+                                       "/*PORT_DISPLAY_ALARM_HELPER_END*/"), 1)
+            self.assertEqual(app.count("    neu.push(...portDisplayAlarmLines(termin, vorher, alt));"), 1)
+        changed = dict(self.snapshot)
+        key = "magnolie-organizer/web/anwendung.js"
+        before = b'const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";'
+        self.assertEqual(changed[key].count(before), 1)
+        changed[key] = changed[key].replace(before, b'const trigger = "different canonical alarm builder";')
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-drift-") as temp:
+            with self.assertRaisesRegex(ValueError, "anchor changed"):
+                projection.project(changed, Path(temp) / "UI")
+
     def test_regional_form_drift_refuses_instead_of_guessing_native_contract(self):
         changed = dict(self.snapshot)
         key = projection.LINUX.relative_to(projection.REPO).as_posix() + "/web/anwendung.js"
@@ -171,6 +189,20 @@ class ProjectionTests(unittest.TestCase):
             if Path(runtime).name == "deno":
                 args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
             result = subprocess.run(args + ["tests/ui_host.mjs", str(target)], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
+    def test_shared_display_alarm_actual_form(self):
+        runtime = self.javascript()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-form-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/display-alarm-roundtrip.cjs"),
+                                            "macos", str(target / "web")], cwd=BETA,
                                     capture_output=True, text=True, timeout=120)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
