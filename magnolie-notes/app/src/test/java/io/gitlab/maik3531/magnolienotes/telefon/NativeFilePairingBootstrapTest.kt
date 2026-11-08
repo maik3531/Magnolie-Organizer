@@ -542,8 +542,9 @@ class NativeFilePairingBootstrapTest {
                             }))
                             work.receiveMessage(peer, offer, channel, generation)
                             val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(15)
-                            var saved = false; var accepted = false
-                            while (!saved && System.nanoTime() < deadline) {
+                            var saved = false; var accepted = false; var readback = false
+                            var savedBody: JsonObject? = null
+                            while (!readback && System.nanoTime() < deadline) {
                                 for (message in frames()) when (message.string("kind")) {
                                     DeviceFileControl.KIND -> desktop.observeRemote(DeviceFileControlEnvelope.validate(message), desktopPeer)
                                     DeviceFileAcceptanceEnvelope.KIND -> { assertEquals(offer["message_id"], message.getValue("body").jsonObject["offer_id"]); accepted = true }
@@ -551,11 +552,20 @@ class NativeFilePairingBootstrapTest {
                                         val request = DeviceFileChunkEnvelope.parseRequest(message); val start = request.chunkIndex * 65536
                                         work.receiveMessage(peer, DeviceFileChunkEnvelope.response(request, raw.copyOfRange(start, minOf(raw.size, start + 65536))), channel, generation)
                                     }
-                                    DeviceFileSavedEnvelope.KIND -> saved = true
+                                    DeviceFileSavedEnvelope.KIND -> { saved = true; savedBody = message.getValue("body").jsonObject }
+                                    DevicePublishedReadbackEnvelope.KIND -> {
+                                        assertTrue(saved)
+                                        val body = message.getValue("body").jsonObject
+                                        val binding = desktop.binding(body.string("destination_token"), senderIsLocal = true)!!
+                                        val parsed = DevicePublishedReadbackEnvelope.parse(message, ordinary, binding, GalleryMediaType.IMAGES)
+                                        assertFalse(parsed.isSavedReceipt); assertFalse(parsed.grantsWriteAuthority)
+                                        assertEquals(savedBody!!.getValue("receipts").jsonArray.single().jsonObject["receipt_sha256"], body["publication_sha256"])
+                                        readback = true
+                                    }
                                 }
-                                if (!saved) Thread.yield()
+                                if (!readback) Thread.yield()
                             }
-                            assertTrue("Normal Werk dispatcher did not produce native acceptance and Saved", accepted && saved)
+                            assertTrue("Normal Werk dispatcher did not produce native acceptance, Saved and automatic readback", accepted && saved && readback)
                             assertArrayEquals(raw, file.readBytes()); assertEquals(1, provider.inserts); assertEquals(1, provider.publishes)
                         } finally { connection.close() }
                     }

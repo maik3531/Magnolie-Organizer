@@ -51,6 +51,7 @@ class NativeGalleryIncomingRuntimeTest {
         var held: JsonObject? = null
         var run: NativeGalleryIncomingRun? = null
         var inspection: NativeGalleryPublishedReadRun? = null
+        var incomingAgreement = true
         private var connection: NativeGalleryFileConnection? = null
         init {
             if (joined && localConsent) helper.grant(f)
@@ -106,7 +107,10 @@ class NativeGalleryIncomingRuntimeTest {
             }))
         }
         fun startMedia(offer: JsonObject = mediaOffer()) = runtime.beginIncomingMediaOffer(link.receive(offer), f.book()).also { run = it }
-        fun nativeConnection(): NativeGalleryFileConnection = connection ?: NativeGalleryFileConnection(link.channel) { }.also {
+        fun nativeConnection(): NativeGalleryFileConnection = connection ?: NativeGalleryFileConnection(link.channel, requireIncomingAgreement = {
+            check(Looper.myLooper() != Looper.getMainLooper())
+            if (!incomingAgreement) DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        }) { }.also {
             it.bind(runtime); connection = it
         }
         fun startDispatched(offer: JsonObject = mediaOffer()) = checkNotNull(nativeConnection().receiveIncomingMedia(link.channel, link.receive(offer), f::book)).also { run = it }
@@ -123,6 +127,10 @@ class NativeGalleryIncomingRuntimeTest {
         override fun close() {
             runtime.revokeControl()
             run?.let { check(it.awaitIoEnded(10000)) }
+            run?.takeIf { it.automaticReadbackRequested }?.let {
+                check(it.awaitAutomaticReadbackStart(5000))
+                runCatching { it.automaticReadbackRun() }.getOrNull()?.let { read -> check(read.awaitIoEnded(10000)) }
+            }
             inspection?.let { check(it.awaitIoEnded(10000)) }
             connection?.close(); runtime.close(); pc.close(); f.close(); link.close()
             Shadows.shadowOf(Looper.getMainLooper()).idle()
@@ -148,12 +156,15 @@ class NativeGalleryIncomingRuntimeTest {
             assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
             val acceptance = h.link.frames.single { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) }
             assertEquals(offer["message_id"], acceptance.getValue("body").jsonObject["offer_id"])
+            assertTrue(run.awaitAutomaticReadbackStart(5000))
+            val read = run.automaticReadbackRun()!!; assertTrue(read.awaitIoEnded(10000)); assertNull(read.nativeFailure())
+            assertEquals(offer["message_id"], read.actualReadbackOutput()!!.getValue("body").jsonObject["offer_id"])
         }
     }
 
     @Test fun completedIncomingOwnerReadbackKeepsOriginalOfferPublicationAndChannelWithoutCallerMetadata() {
         Harness().use { h ->
-            val offer = h.mediaOffer(); val run = h.startDispatched(offer)
+            val offer = h.mediaOffer(); val run = h.startMedia(offer)
             assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure())
             val read = h.f.io { run.beginPublishedReadback() }.also { h.inspection = it }
             assertTrue(read.awaitIoEnded(10000)); assertNull(read.nativeFailure())
@@ -186,11 +197,45 @@ class NativeGalleryIncomingRuntimeTest {
 
     @Test fun completedIncomingReadbackCannotReplaceOriginalBookOrRevokedControlOwner() {
         for (withdrawBook in listOf(false, true)) Harness().use { h ->
-            val run = h.startDispatched(); assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure())
+            val run = h.startMedia(); assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure())
             if (withdrawBook) h.f.currentDocuments = null else h.withdrawPcSend()
             assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
             assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
             assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun automaticReadbackRechecksNativeAgreementAfterSavedWithoutChangingThePublishedFile() {
+        Harness().use { h ->
+            val observe = h.link.onMessage
+            h.link.onMessage = { message ->
+                observe(message)
+                if (message.string("kind") == DeviceFileSavedEnvelope.KIND) h.incomingAgreement = false
+            }
+            val run = h.startDispatched(); assertTrue(run.awaitIoEnded(10000)); assertNotNull(run.actualSavedOutput())
+            assertTrue(run.awaitAutomaticReadbackStart(5000))
+            assertThrows(PhotoFolderScopeError::class.java) { run.automaticReadbackRun() }
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun automaticReadbackCancellationRetainsTheActualBlockedOutputOwnerUntilDrain() {
+        Harness().use { h ->
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val observe = h.link.onMessage
+            h.link.onMessage = { message ->
+                observe(message)
+                if (message.string("kind") == DevicePublishedReadbackEnvelope.KIND) { entered.countDown(); check(release.await(8, TimeUnit.SECONDS)) }
+            }
+            val run = h.startDispatched()
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); assertTrue(run.awaitAutomaticReadbackStart(5000))
+                val read = run.automaticReadbackRun()!!
+                run.cancel(); assertTrue(read.cancelRequested); assertFalse(read.ioEnded)
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown() }
+            val read = run.automaticReadbackRun()!!; assertTrue(read.awaitIoEnded(5000)); assertNull(read.actualReadbackOutput())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes); assertArrayEquals(h.raw, h.file.readBytes())
         }
     }
 

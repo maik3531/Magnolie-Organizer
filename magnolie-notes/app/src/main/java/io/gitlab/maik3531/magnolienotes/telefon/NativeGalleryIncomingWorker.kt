@@ -6,7 +6,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 internal class NativeGalleryIncomingRun internal constructor(private val workerOwner: Any,
-    private val completedReadback: ((NativeGalleryIncomingRun) -> NativeGalleryPublishedReadRun)? = null) {
+    private val completedReadback: ((NativeGalleryIncomingRun) -> NativeGalleryPublishedReadRun)? = null,
+    internal val automaticReadbackRequested: Boolean = false) {
     internal val cancellation = CancellationSignal()
     private val ended = AtomicBoolean(false)
     private val canceled = AtomicBoolean(false)
@@ -17,12 +18,15 @@ internal class NativeGalleryIncomingRun internal constructor(private val workerO
     private val publications = AtomicReference<List<GalleryIncomingPublication>>(emptyList())
     private val readbackStarted = AtomicBoolean(false)
     private val drained = java.util.concurrent.CountDownLatch(1)
+    private val automaticStarted = java.util.concurrent.CountDownLatch(1)
+    private val automaticReadback = AtomicReference<NativeGalleryPublishedReadRun?>()
+    private val automaticError = AtomicReference<Throwable?>()
     val ioEnded: Boolean get() = ended.get()
     val phase: String get() = state.get()
     val cancelRequested: Boolean get() = canceled.get()
     fun cancel() {
         canceled.set(true)
-        try { transfer.get()?.close() } finally { cancellation.cancel() }
+        try { transfer.get()?.close(); automaticReadback.get()?.cancel() } finally { cancellation.cancel() }
     }
     internal fun install(value: NativeGalleryIncomingTransfer) {
         if (!transfer.compareAndSet(null, value)) DeviceFileControl.fail("gallery_incoming_worker_foreign_transfer")
@@ -53,8 +57,10 @@ internal class NativeGalleryIncomingRun internal constructor(private val workerO
     }
     /** Native continuation only: no caller-supplied offer, publication, book or
      * channel. A Saved JSON object alone cannot construct this continuation. */
-    internal fun beginPublishedReadback(): NativeGalleryPublishedReadRun {
-        if (!ended.get() || drained.count != 0L || actualSavedOutput() == null || error.get() != null)
+    internal fun beginPublishedReadback(): NativeGalleryPublishedReadRun = startReadback(automatic = false)
+    private fun startReadback(automatic: Boolean): NativeGalleryPublishedReadRun {
+        if (!ended.get() || (!automatic && drained.count != 0L) || automatic && !automaticReadbackRequested ||
+            actualSavedOutput() == null || error.get() != null)
             DeviceFileControl.fail("gallery_incoming_completed_owner_required")
         val start = completedReadback ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required")
         if (!readbackStarted.compareAndSet(false, true)) DeviceFileControl.fail("gallery_incoming_readback_already_attempted")
@@ -63,6 +69,21 @@ internal class NativeGalleryIncomingRun internal constructor(private val workerO
     internal fun actualPublishedOutput(): GalleryIncomingPublication {
         if (actualSavedOutput() == null || error.get() != null) DeviceFileControl.fail("gallery_incoming_completed_owner_required")
         return publications.get().singleOrNull() ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required")
+    }
+    internal fun startAutomaticReadback() {
+        try {
+            val readback = startReadback(automatic = true)
+            automaticReadback.set(readback)
+            if (canceled.get()) readback.cancel()
+        } catch (error: Throwable) { automaticError.set(error) }
+        finally { automaticStarted.countDown() }
+    }
+    internal fun awaitAutomaticReadbackStart(timeoutMillis: Long): Boolean =
+        automaticStarted.await(timeoutMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
+    internal fun automaticReadbackRun(): NativeGalleryPublishedReadRun? {
+        if (!automaticReadbackRequested || automaticStarted.count != 0L) DeviceFileControl.fail("gallery_incoming_readback_pending")
+        automaticError.get()?.let { throw it }
+        return automaticReadback.get()
     }
 }
 
@@ -78,11 +99,12 @@ internal class NativeGalleryIncomingWorker(private val onEnded: () -> Unit = {})
     internal fun owns(run: NativeGalleryIncomingRun): Boolean = run.belongsTo(this)
 
     internal fun start(completedReadback: ((NativeGalleryIncomingRun) -> NativeGalleryPublishedReadRun)? = null,
+        automaticReadback: Boolean = false,
         prepare: () -> NativeGalleryIncomingTransfer): NativeGalleryIncomingRun {
         val run = synchronized(gate) {
             if (closed) DeviceFileControl.fail("gallery_incoming_worker_closed")
             if (active != null) DeviceFileControl.fail("gallery_incoming_worker_busy")
-            NativeGalleryIncomingRun(this, completedReadback).also {
+            NativeGalleryIncomingRun(this, completedReadback, automaticReadback).also {
                 if (!NativeGalleryMediaIoLane.acquire(it)) DeviceFileControl.fail("gallery_incoming_worker_busy")
                 active = it
             }
@@ -91,7 +113,10 @@ internal class NativeGalleryIncomingWorker(private val onEnded: () -> Unit = {})
             run.finish(message, error, published)
             synchronized(gate) { if (active === run) active = null }
             NativeGalleryMediaIoLane.release(run); run.markIoEnded()
-            try { onEnded() } finally { run.ioDrained() }
+            // Reuse this native worker thread; never block the authenticated
+            // receiver or create a second waiter/polling thread for Saved.
+            try { if (automaticReadback) run.startAutomaticReadback() }
+            finally { try { onEnded() } finally { run.ioDrained() } }
         }
         val thread = Thread({
             var transfer: NativeGalleryIncomingTransfer? = null

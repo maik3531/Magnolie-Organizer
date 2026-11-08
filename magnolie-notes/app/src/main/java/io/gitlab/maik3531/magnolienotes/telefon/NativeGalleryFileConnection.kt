@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * or quota receipt is implied by closing the control plane.
  */
 internal class NativeGalleryFileConnection internal constructor(internal val channel: TelefonSecureChannel,
+    private val requireIncomingAgreement: () -> Unit = {},
     private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
     private val ended = AtomicBoolean(false)
     private val permissionQueued = AtomicBoolean(false)
@@ -33,7 +34,8 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         book: () -> NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun? {
         if (authenticatedChannel !== channel || ended.get()) DeviceFileControl.fail("gallery_incoming_foreign_connection")
         return when (message.string("kind")) {
-            MediaOfferEnvelope.KIND -> runtime.beginIncomingMediaOffer(message, book())
+            MediaOfferEnvelope.KIND -> runtime.beginIncomingMediaOffer(message, book(), automaticReadback = true,
+                requireReadbackAgreement = requireIncomingAgreement)
             DeviceFileChunkEnvelope.RESULT -> {
                 if (!runtime.observeIncomingChunk(authenticatedChannel, message)) DeviceFileControl.fail("gallery_incoming_unsolicited_chunk")
                 null

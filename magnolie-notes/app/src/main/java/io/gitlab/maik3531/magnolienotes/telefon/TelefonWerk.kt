@@ -796,7 +796,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 ?: DeviceFileControl.fail("file_control_native_identity_unavailable")
             peer = currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady())
                 ?: DeviceFileControl.fail("file_control_native_channel_changed")
-            connection = NativeGalleryFileConnection(channel) { released ->
+            connection = NativeGalleryFileConnection(channel, requireIncomingAgreement = {
+                val current = synchronized(this) { mediaSessions[channel]?.takeIf { activeChannel === channel } }
+                    ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+                if (!current.matched()) DeviceFileControl.fail("gallery_incoming_current_intent_required")
+            }) { released ->
                 synchronized(this) { if (galleryFileConnection === released) galleryFileConnection = null }
             }
             galleryFileConnection = connection

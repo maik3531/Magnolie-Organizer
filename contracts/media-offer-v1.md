@@ -162,9 +162,28 @@ Windows-Sendegruppen bestehen nach der Änderung ebenfalls. Beide optionalen
 Windows-Produktkompositionen (Foto-/Kameramodule ein beziehungsweise aus) bauen.
 Dies ist kein gemeinsamer physischer Telefon-/Windows-Ende-zu-Ende-Nachweis.
 
-Die automatische gemeinsame Ablaufsteuerung bleibt offen; Capability 23 bleibt
-geschlossen. Die Fortsetzung ist derzeit ein
-ausdrücklicher nativer Anschluss, keine automatisch gestartete Hintergrundaktion.
+Der normale Notes-Nachrichtenverteiler startet diese Fortsetzung inzwischen
+automatisch nach erfolgreichem eigenem Medienempfang. Er verwendet dafür denselben
+Empfangsarbeiter nach dessen tatsächlichem Transfer-/Ressourcenende, keinen
+zusätzlichen Wartethread und keinen blockierten Nachrichtenempfänger. Die native
+Startoperation darf dafür auf diesem Arbeiter höchstens eine Sekunde beziehungsweise
+bis zum Angebotsablauf warten; danach werden alle ursprünglichen Besitzer erneut
+geprüft. Der produktive Anschluss prüft die tatsächliche gemeinsame Abstimmung
+frisch außerhalb des UI-Threads und geschützter Indexsperren. Schlägt dies fehl,
+bleibt die bereits veröffentlichte Datei unverändert erhalten; es wird kein
+Readback-Erfolg erfunden.
+
+Abbruch des ursprünglichen Laufs erreicht auch den automatisch gestarteten
+Readback. Der bestehende Lese-/Ausgabebesitzer bleibt dabei bis zum tatsächlichen
+I/O-Ende gehalten. Die öffentliche native Drain-Wartesperre wird wie bisher erst
+nach dem Aufräum-Rückruf freigegeben. 41 betroffene Notes-Fälle bestehen,
+einschließlich des produktiven Factory-/Dialog-/Verteilerwegs bis zum automatisch
+gesendeten Readback, entzogener Abstimmung nach Saved und Abbruch bei blockierter
+verschlüsselter Readback-Ausgabe. Private explizite Runtime-Aufrufe behalten ihre
+gesonderte einmalige Fortsetzung.
+
+Die vollständige gemeinsame Ablaufsteuerung beider Desktops und aller
+Synchronisierungsrichtungen bleibt offen; Capability 23 bleibt geschlossen.
 
 ## Windows: tatsächlicher lokaler Source-END
 

@@ -128,18 +128,20 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation(allowIncoming = true) {
         controls.observe(message, now).also { incomingWorker.current?.retireIfChanged(); publishedReadWorker.current?.retireIfChanged() }
     }
-    internal fun beginIncomingMediaOffer(message: JsonObject, book: NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun {
+    internal fun beginIncomingMediaOffer(message: JsonObject, book: NativeGalleryReceiveBookPermit,
+        automaticReadback: Boolean = false, requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun {
         val peer = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
         val media = MediaOfferEnvelope.validate(message, peer.peerId, localIdentity.deviceId)
         val intent = currentIncomingIntent?.invoke(media.kind) as? MediaSyncTransport.IntentToken
             ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
         if (intent.body != media.settings) DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
-        return beginIncoming(media.offer, media.kind, media.mimeTypes, book, media.originals, intent)
+        return beginIncoming(media.offer, media.kind, media.mimeTypes, book, media.originals, intent, automaticReadback, requireReadbackAgreement)
     }
 
     internal fun beginIncoming(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
         book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference> = emptyMap(),
-        expectedIntent: MediaSyncTransport.IntentToken? = null): NativeGalleryIncomingRun = withOperation {
+         expectedIntent: MediaSyncTransport.IntentToken? = null, automaticReadback: Boolean = false,
+         requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun = withOperation {
         if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
         if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
@@ -153,8 +155,20 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val originalIntent = currentIncomingIntent?.invoke(kind)
             ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
         incomingWorker.start(completedReadback = { completed ->
-            beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent)
-        }) {
+            if (!automaticReadback) beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent)
+            else {
+                val remaining = minOf(1000L, offer.long("expires_ms") - System.currentTimeMillis())
+                if (remaining <= 0 || !operationGate.tryLock(remaining, java.util.concurrent.TimeUnit.MILLISECONDS))
+                    DeviceFileControl.fail("file_control_configuration_busy")
+                try {
+                    // The original start operation may still be returning on the
+                    // receiver. Wait only on this native thread, bounded, with no
+                    // index guard held. All owners are checked again below.
+                    requireReadbackAgreement()
+                    beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent)
+                } finally { operationGate.unlock() }
+            }
+        }, automaticReadback = automaticReadback) {
             val owner = NativeGalleryIncomingOwner.capture(controls.session, index, book, nativePeer,
                 { currentIncomingIntent?.invoke(kind)?.takeIf { expectedIntent == null || it === expectedIntent } }, manifest, kind, originalReferences)
             try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
