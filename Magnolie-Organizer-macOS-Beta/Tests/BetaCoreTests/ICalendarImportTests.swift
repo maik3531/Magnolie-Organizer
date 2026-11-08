@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import XCTest
 @testable import BetaCore
 
@@ -22,6 +23,39 @@ final class ICalendarImportTests: XCTestCase {
         XCTAssertTrue(result.calendarProperties.contains("X-PROVIDER-CALENDAR;X-PARAM=opaque:keep"))
         XCTAssertNotNil(result.document["icsImportMetadata"])
         XCTAssertEqual(result.sourceSHA256.count, 64)
+    }
+    func testDealiasedTaskUIDsRemainQualifiedByOriginalSource() throws {
+        func task(_ wire: String, source: String, uid: String, parent: String = "") throws -> String {
+            let identity = try Document.encode(["v": 1, "source": source, "uid": uid, "parent": parent, "parentSource": source])
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: ",", with: "\\,")
+                .replacingOccurrences(of: ";", with: "\\;")
+            let digest = SHA256.hash(data: Data((source + "\0" + uid).utf8)).map { String(format: "%02x", $0) }.joined()
+            let wireUID = "urn:magnolie:task:" + digest + (wire == "other-wire-alias" ? "-1" : "")
+            let relationship = parent.isEmpty ? "" : "RELATED-TO;RELTYPE=PARENT:" + parent + "\r\n"
+            return "BEGIN:VTODO\r\nUID:\(wireUID)\r\nSUMMARY:Task\r\n\(relationship)X-MAGNOLIE-TASK-IDENTITY:\(identity)\r\nEND:VTODO\r\n"
+        }
+        let first = try task("alias-a", source: "source-a", uid: "same-parent")
+        let second = try task("alias-b", source: "source-b", uid: "same-parent")
+        let childA = try task("child-a", source: "source-a", uid: "same-child", parent: "same-parent")
+        let childB = try task("child-b", source: "source-b", uid: "same-child", parent: "same-parent")
+        let result = try ICalendarImport.decode(data(first + second + childA + childB), displayTimeZone: "UTC", sourceID: "outer-import")
+        XCTAssertEqual(result.tasks.count, 4)
+        for source in ["source-a", "source-b"] {
+            let tasks = result.tasks.filter { $0["icsQuelleId"] as? String == source }
+            XCTAssertEqual(tasks.count, 2)
+            let child = try XCTUnwrap(tasks.first { $0["uid"] as? String == "same-child" })
+            XCTAssertEqual(child["icsElternUid"] as? String, "same-parent")
+            XCTAssertEqual(child["icsElternQuelleId"] as? String, source)
+            // Each source separately remains representable by the current exporter.
+            let encoded = try ICalendarExport.encode(tasks, kind: .tasks)
+            let roundtrip = try ICalendarImport.decode(Data(encoded.utf8), displayTimeZone: "UTC")
+            XCTAssertEqual(roundtrip.tasks.count, 2)
+            XCTAssertTrue(roundtrip.tasks.allSatisfy { $0["icsQuelleId"] as? String == source })
+        }
+        let duplicate = try task("other-wire-alias", source: "source-a", uid: "same-parent")
+        XCTAssertThrowsError(try ICalendarImport.decode(data(first + duplicate), displayTimeZone: "UTC"))
+        XCTAssertThrowsError(try ICalendarImport.decode(data(first + second + duplicate), displayTimeZone: "UTC"))
     }
     func testPhysicalLineBudgetAndUnfoldedSizeAreRejectedBeforeExpansion() throws {
         let newlineFlood = Data(repeating: 10, count: 250_000)

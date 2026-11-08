@@ -644,7 +644,7 @@ public enum ICalendarImport {
         let stableSource = sourceID.isEmpty ? (sourceName.isEmpty ? "calendar" : fallback) : sourceID
         let source = "ics:" + ICalendarImport.hash(Data((stableSource + "\n" + calendarName).utf8))
         var collections: [String: [[String: Any]]] = ["termine": [], "aufgaben": [], "jahrestage": []]
-        var identities: Set<String> = [], projectedBytes = 0
+        var identities: Set<[String]> = [], projectedBytes = 0
         let zoneBytes = zoneBlocks.reduce(0) { $0 + $1.reduce(0) { $0 + $1.utf8.count + 2 } }
         for component in items {
             // Account for repeated source-zone payloads and worst-case JSON
@@ -653,8 +653,9 @@ public enum ICalendarImport {
             projectedBytes += (itemBytes + zoneBytes) * 6 + 8192
             guard projectedBytes <= maximumProjectedBytes else { throw BetaError("The projected calendar data exceeds the bounded import size; nothing was imported.") }
             var (collection, record) = try componentRecord(component, complexUIDs: complexUIDs, resolver: resolver)
-            guard let uid = record["uid"] as? String, identities.insert(collection + "\0" + uid).inserted else { throw BetaError("Duplicate calendar item identity; nothing was imported.") }
             if qualified { record["icsQuelleName"] = label; if record["icsQuelleId"] == nil { record["icsQuelleId"] = source } }
+            guard let uid = record["uid"] as? String,
+                  identities.insert([collection, record["icsQuelleId"] as? String ?? "", uid]).inserted else { throw BetaError("Duplicate calendar item identity; nothing was imported.") }
             if collection == "aufgaben", record["icsElternQuelleId"] as? String == "", component.property("X-MAGNOLIE-TASK-IDENTITY") == nil {
                 record["icsElternQuelleId"] = record["icsQuelleId"] as? String ?? ""
             }
