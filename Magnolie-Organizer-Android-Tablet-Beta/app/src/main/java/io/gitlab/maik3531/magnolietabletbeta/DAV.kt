@@ -276,7 +276,7 @@ class DavClient(
             val hash = MessageDigest.getInstance("SHA-256").digest(href.toASCIIString().toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 0xff) }
             return "${accountType.wireName}-${kind.wireName}:$hash"
         }
-        private fun validEtag(etag: String?) = !etag.isNullOrBlank() && etag != "*" && etag.none { it < ' ' || it == '\u007f' }
+        private fun validEtag(etag: String?) = !etag.isNullOrBlank() && etag.trim() != "*" && etag.none { it < ' ' || it == '\u007f' }
         private fun canonicalServer(value: String): URI {
             try {
                 val trimmed = value.trim()

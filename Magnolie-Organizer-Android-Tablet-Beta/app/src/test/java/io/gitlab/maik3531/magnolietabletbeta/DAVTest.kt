@@ -188,6 +188,27 @@ class DAVTest {
         assertTrue(transport.requests.isEmpty())
     }
 
+    @Test fun wildcardEtagWhitespaceCannotWeakenPutOrDeletePreconditions() {
+        val transport = DavScriptTransport()
+        val client = client(transport)
+        for (etag in listOf("*", " * ", "* ", " *", "  *  ", "\t*\t", " \t* \t")) {
+            expect("missing_etag") { client.put(item, "BEGIN:VCALENDAR", etag = etag) }
+            expect("missing_etag") { client.delete(item, etag) }
+        }
+        assertTrue(transport.requests.isEmpty())
+    }
+
+    @Test fun nonWildcardEtagsKeepOriginalBytesForPutAndDelete() {
+        val etags = listOf("\"fixture-v1\"", " \"fixture-v1\" ", "W/\"fixture-v1\"")
+        val transport = DavScriptTransport(*Array(etags.size * 2) { BoundedHttpResponse(204) })
+        val client = client(transport)
+        for (etag in etags) {
+            client.put(item, "BEGIN:VCALENDAR", etag = etag)
+            client.delete(item, etag)
+        }
+        assertEquals(etags.flatMap { listOf(it, it) }, transport.requests.map { it.headers["If-Match"] })
+    }
+
     @Test fun authenticationPermissionAndConflictsNeverReturnSuccess() {
         for ((status, code) in listOf(401 to "unauthorized", 403 to "forbidden", 409 to "conflict", 412 to "conflict", 500 to "http_500")) {
             val transport = DavScriptTransport(BoundedHttpResponse(status))

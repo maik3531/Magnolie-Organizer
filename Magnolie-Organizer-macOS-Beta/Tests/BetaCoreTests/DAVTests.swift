@@ -231,6 +231,27 @@ final class DAVTests: XCTestCase {
         XCTAssertTrue(transport.requests.isEmpty)
     }
 
+    func testWildcardETagWhitespaceCannotWeakenPutOrDeletePreconditions() async throws {
+        let transport = DAVScriptTransport([])
+        let client = try client(transport)
+        for etag in ["*", " * ", "* ", " *", "  *  ", "\t*\t", " \t* \t"] {
+            await expect(.missingETag) { _ = try await client.put(href: self.itemURL, data: "BEGIN:VCALENDAR", etag: etag) }
+            await expect(.missingETag) { _ = try await client.delete(href: self.itemURL, etag: etag) }
+        }
+        XCTAssertTrue(transport.requests.isEmpty)
+    }
+
+    func testNonWildcardETagsKeepOriginalBytesForPutAndDelete() async throws {
+        let etags = ["\"fixture-v1\"", " \"fixture-v1\" ", "W/\"fixture-v1\""]
+        let transport = DAVScriptTransport(Array(repeating: BoundedHTTPResponse(status: 204), count: etags.count * 2))
+        let client = try client(transport)
+        for etag in etags {
+            _ = try await client.put(href: itemURL, data: "BEGIN:VCALENDAR", etag: etag)
+            _ = try await client.delete(href: itemURL, etag: etag)
+        }
+        XCTAssertEqual(transport.requests.compactMap { $0.headers["If-Match"] }, etags.flatMap { [$0, $0] })
+    }
+
     func testAuthenticationPermissionAndConflictErrorsNeverReturnSuccess() async throws {
         for (status, expected) in [(401, DAVError.unauthorized), (403, .forbidden), (409, .conflict(status: 409)), (412, .conflict(status: 412)), (500, .httpStatus(500))] {
             let transport = DAVScriptTransport([BoundedHTTPResponse(status: status)])

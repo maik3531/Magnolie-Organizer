@@ -390,7 +390,8 @@ public final class DAVClient {
 
     private static func validETag(_ etag: String?) -> Bool {
         guard let etag else { return false }
-        return !etag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && etag != "*" &&
+        let trimmed = etag.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmed.isEmpty && trimmed != "*" &&
             !etag.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 })
     }
 
