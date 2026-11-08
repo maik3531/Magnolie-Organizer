@@ -778,6 +778,19 @@ class NativeTabletInstrumentation : Instrumentation() {
             }
         }
     }
+    private fun confirmDocumentDestination(name:String) {
+        var control:AccessibilityNodeInfo?=null
+        waitFor("owned DocumentsUI destination Save control",15) {
+            val snapshot=nodes().filter {it.isVisibleToUser && it.packageName?.toString() in setOf("com.android.documentsui","com.google.android.documentsui")}
+            val expectedRoot=snapshot.any {it.viewIdResourceName?.endsWith(":id/breadcrumb_text")==true && it.text?.toString()=="Tablet Beta Test Documents"}
+            val expectedName=snapshot.any {it.className?.toString()=="android.widget.EditText" && it.viewIdResourceName=="android:id/title" && it.text?.toString()==name}
+            control=if(expectedRoot && expectedName) snapshot.filter {
+                NativeDocumentProviderControls.isSaveButton(it.packageName?.toString(),it.viewIdResourceName,it.className?.toString(),it.isVisibleToUser,it.isEnabled,it.isClickable)
+            }.singleOrNull() else null
+            control!=null
+        }
+        check(control!!.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {"Cannot confirm owned DocumentsUI destination"}
+    }
     private fun importFile(name:String) {
         raw("Tablet.action('tablet_import')")
         waitFor("Android DocumentsUI") {nodes().any {it.packageName?.toString()?.contains("documentsui")==true}}
@@ -861,7 +874,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         raw("window.__nativeCalendarExportSaved=false;window.__nativeCalendarExportObserver=new MutationObserver(()=>{if(document.querySelector('#tablet-status').textContent.includes('Saved.'))window.__nativeCalendarExportSaved=true;});window.__nativeCalendarExportObserver.observe(document.querySelector('#tablet-status'),{childList:true,subtree:true,characterData:true});")
         selectProvider(); setNativeText("native-calendar-export.ics")
         check(value("window.__nativeCalendarExportSaved")=="false") {"ICS export acknowledged success before destination selection"}
-        clickNode("Save")
+        confirmDocumentDestination("native-calendar-export.ics")
         waitFor("native calendar export completion ACK") {value("window.__nativeCalendarExportSaved")=="true"}
         raw("window.__nativeCalendarExportObserver.disconnect()")
         val bytes=documentControl("native-calendar-export.ics")

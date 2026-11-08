@@ -10,3 +10,10 @@ data class NativeDocumentProviderState(val selectedBreadcrumb: Boolean, val root
         else -> Action.OPEN_ROOTS
     }
 }
+
+/** DocumentsUI's public positive button ID is stable even when its caption is SAVE or localized. */
+object NativeDocumentProviderControls {
+    fun isSaveButton(packageName: String?, resourceId: String?, className: String?, visible: Boolean, enabled: Boolean, clickable: Boolean): Boolean =
+        packageName in setOf("com.android.documentsui", "com.google.android.documentsui") &&
+            resourceId == "android:id/button1" && className == "android.widget.Button" && visible && enabled && clickable
+}
