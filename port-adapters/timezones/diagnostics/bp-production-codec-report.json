@@ -1,0 +1,22 @@
+{
+  "importStatus": "accepted",
+  "reimportStatus": "accepted",
+  "directOffsetSeconds": 7200,
+  "provider": "org.threeten:threetenbp:1.7.5",
+  "importUTCTime": "10:30",
+  "exportStatus": "accepted",
+  "reimportUTCTime": "10:30",
+  "normativeUTCTime": "09:30",
+  "tzdbVersion": "2026egtz",
+  "exportBytes": 5711,
+  "normativeOffsetSeconds": 10800,
+  "importUTCDate": "2074-07-15",
+  "sourceSHA256": {
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarImport.kt": "a16e0b9a5a7236e2eb37c037d1d501834b73d2b7065a19d6b2760b66206c15b3",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/ICalendarExport.kt": "e5e7b98abaafa7c70c934312beae35ea0da7d0bff39cbe13a4e3af593c52aca2",
+    "Magnolie-Organizer-Android-Tablet-Beta/app/src/main/java/io/gitlab/maik3531/magnolietabletbeta/TimeZoneExport.kt": "f7296b10f98a0e10e120de86d64d6604a8551c3fa6135ce38b42daa13d153f39",
+    "port-adapters/timezones/diagnostics/ProbeThreeTenGaza.kt": "abf79efa8ceac754a7891e7e6f4b4f501e72b2955135442f6961fed4db8ee4be"
+  },
+  "exportSHA256": "7e1bf20032cce08e29a169fe68e915135433f7cb1473f88dd8a9733ca7e40e87",
+  "status": "accepted with wrong UTC time; not safely rejected"
+}

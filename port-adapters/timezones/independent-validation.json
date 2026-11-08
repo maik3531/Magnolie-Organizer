@@ -1,0 +1,22 @@
+{
+  "inputSHA256": {
+    "tzdb-2026egtz.json": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+    "tzdata2026egtz-rearguard.tar.gz": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+    "check-independent.py": "8535e65a68813d8a7806b5eb821c363c5c7b1219898f3b79f6b59ce278a6b550",
+    "resolver.js": "052009fbe3fedeb3d59c937ddf6c8ac924f52d13c5992bc1b9d27fc355acf2da",
+    "oracle-worker.cjs": "006725fceca87f2532ef41083c4be428b25f04290b7a50588d71261c045d214b"
+  },
+  "pythonVersion": "3.12.14",
+  "zicVersion": "zic (Debian GLIBC 2.41-12+deb13u4) 2.41",
+  "zones": 597,
+  "checks": 269817,
+  "historicalTransitions": 40521,
+  "futureTransitions": 24060,
+  "independentPOSIXModels": 93,
+  "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+  "comparedEngine": "JS normative TZif/POSIX schema2",
+  "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+  "mismatches": 0,
+  "mismatchZones": {},
+  "samples": []
+}
