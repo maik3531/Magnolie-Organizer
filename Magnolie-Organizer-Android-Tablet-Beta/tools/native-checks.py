@@ -29,6 +29,47 @@ def technical_failure_log(output):
     return '\n'.join(lines[-160:])[-16000:]
 
 
+def system_dependency_log(output):
+    package = re.escape(session.BETA_PACKAGE)
+    target = re.compile(r'(?<![A-Za-z0-9_.])'+package+r'(?=[:/\s,})]|$)')
+    lines = []
+    for line in output.splitlines():
+        if re.search(r'\s[IW]\s+ActivityManager\s*:', line) and target.search(line) and re.search(
+                r'\b(?:Killing|killed|died|Force stopping|depends on|dependency)\b', line):
+            lines.append(line[:700])
+        elif re.search(r'\s[IEW]\s+WebViewUpdateService\s*:', line) and re.search(
+                r'provider|package|relro|multiprocess|changed|webview', line, re.I):
+            lines.append(line[:700])
+    return '\n'.join(lines[-40:])[-8000:]
+
+
+def provider_readiness(output):
+    labels = ('Multiprocess enabled:', 'Current WebView package (name, version):',
+              'Current WebView package is null', 'Preferred WebView package is null',
+              'Preferred WebView package (name, version):', 'Number of relros started:',
+              'Number of relros finished:', 'WebView package dirty:', 'Any WebView package installed:')
+    return '\n'.join(line.strip()[:300] for line in output.splitlines()
+                     if line.strip().startswith(labels))[:2000]
+
+
+def dependency_exit_descriptions(output):
+    summaries = []
+    for record in re.split(r'(?=\btimestamp=)', output)[:12]:
+        if not re.search(r'\breason=12\b', record):
+            continue
+        description = re.search(r'\bdescription=([^\n]*)', record)
+        if not description:
+            continue
+        text = description.group(1)
+        # Dependency-death descriptions are system metadata. Emit its category
+        # and package/component identifiers, not arbitrary description prose.
+        packages = sorted(set(re.findall(r'\b[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*){2,}(?:/[A-Za-z0-9_.$]+)?(?::[A-Za-z0-9_.]+)?', text)))[:6]
+        summaries.append(json.dumps(dict(dependencyDescription=True,
+            provider='provider' in text.lower(), webview='webview' in text.lower(),
+            package='package' in text.lower(), packages=packages), sort_keys=True))
+    return '\n'.join(summaries)[:2000]
+
+
 def exit_info_signature(output):
     fields = re.finditer(r'\b(?:timestamp=\d{4}-\d{2}-\d{2}[ T][0-9:.+-]+|'
                          r'(?:pid|reason|status|importance|pss|rss)=\d+(?:[ \t]+\([A-Z_ ]+\))?)', output)
@@ -118,17 +159,22 @@ def main(argv=None):
                 if owner.state.get('booted') and not owner.signal and session.time.monotonic() < owner.deadline:
                     for name, command in {
                         'android-test-log': ['logcat', '-b', 'all', '-d', '-v', 'threadtime', '-s',
-                            'AndroidRuntime:E', 'chromium:E', 'libc:F', 'DEBUG:F', 'ActivityManager:W', 'TabletNativeTest:I'],
+                            'AndroidRuntime:E', 'chromium:E', 'libc:F', 'DEBUG:F', 'ActivityManager:I', 'WebViewUpdateService:I', 'TabletNativeTest:I'],
                         'app-exit-info': ['shell', 'dumpsys', 'activity', 'exit-info',
                             'io.gitlab.maik3531.magnolieorganizer.tablet.beta'],
+                        **({'webview-provider-state': ['shell', 'dumpsys', 'webviewupdate']} if code else {}),
                     }.items():
                         try:
                             output = session.adb(owner, owner.state, command, 15)
                             (Path(owner.state['run']) / 'evidence' / (name+'.txt')).write_text(output)
                             if code and name == 'android-test-log':
                                 print('NATIVE_RUNTIME_FAILURE_LOG\n'+technical_failure_log(output), flush=True)
+                                print('NATIVE_SYSTEM_DEPENDENCY_LOG\n'+system_dependency_log(output), flush=True)
                             elif code and name == 'app-exit-info':
                                 print('NATIVE_EXIT_REASON_SIGNATURE\n'+exit_info_signature(output), flush=True)
+                                print('NATIVE_DEPENDENCY_DESCRIPTION\n'+dependency_exit_descriptions(output), flush=True)
+                            elif code and name == 'webview-provider-state':
+                                print('NATIVE_WEBVIEW_PROVIDER_READINESS\n'+provider_readiness(output), flush=True)
                         except Exception as exc:
                             owner.record('diagnostic-collection-failed', name=name, reason=str(exc))
                     try:

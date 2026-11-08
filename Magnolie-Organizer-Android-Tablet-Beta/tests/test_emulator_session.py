@@ -350,6 +350,36 @@ class LifecycleTest(unittest.TestCase):
         self.assertIn('reason=12 (DEPENDENCY DIED)', correlated)
         self.assertNotIn('private', correlated)
 
+    def test_system_dependency_diagnostics_are_scoped_and_do_not_return_records(self):
+        spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
+        native = importlib.util.module_from_spec(spec); spec.loader.exec_module(native)
+        package=session.BETA_PACKAGE
+        log=('11-08 12:00:00.000 100 200 I ActivityManager: Killing 3086:'+package+'/u0a12: depends on provider com.android.webview\n'
+             '11-08 12:00:00.001 100 200 I ActivityManager: Killing 4000:unrelated.notes/u0a15: cached\n'
+             '11-08 12:00:00.002 100 200 I ActivityManager: Killing 4001:'+package+'.test/u0a16: cached\n'
+             '11-08 12:00:00.003 100 200 I ActivityManager: '+package+' private record text\n'
+             '11-08 12:00:00.004 100 200 I WebViewUpdateService: Current WebView package changed: com.android.webview')
+        summary=native.system_dependency_log(log)
+        self.assertIn('Killing 3086:',summary)
+        self.assertIn('WebView package changed',summary)
+        self.assertNotIn('unrelated.notes',summary)
+        self.assertNotIn(package+'.test',summary)
+        self.assertNotIn('private record text',summary)
+        self.assertLessEqual(len(native.system_dependency_log(log*500)),8000)
+        state='Current WebView package (name, version): (com.android.webview, 113.0)\nNumber of relros started: 2\nNumber of relros finished: 1\nWebView package dirty: true\nprivate document title: unrelated'
+        readiness=native.provider_readiness(state)
+        self.assertIn('relros finished: 1',readiness)
+        self.assertIn('package dirty: true',readiness)
+        self.assertNotIn('private document',readiness)
+        descriptions=('timestamp=2026-11-08 12:00:00.000 pid=3086 reason=12 (DEPENDENCY DIED)\n'
+                      'description=depends on provider com.android.webview/.Provider in dying proc com.android.webview private words\n'
+                      'timestamp=2026-11-08 11:59:00.000 reason=4 (CRASH)\ndescription=private record com.private.document')
+        result=native.dependency_exit_descriptions(descriptions)
+        self.assertIn('com.android.webview/.Provider',result)
+        self.assertNotIn('private words',result)
+        self.assertNotIn('com.private.document',result)
+        self.assertLessEqual(len(native.dependency_exit_descriptions(descriptions*500)),2000)
+
     def test_next_suite_requires_main_before_process_or_lock(self):
         spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
         native = importlib.util.module_from_spec(spec)
