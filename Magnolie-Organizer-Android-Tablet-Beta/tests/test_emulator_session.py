@@ -380,6 +380,27 @@ class LifecycleTest(unittest.TestCase):
         self.assertNotIn('com.private.document',result)
         self.assertLessEqual(len(native.dependency_exit_descriptions(descriptions*500)),2000)
 
+    def test_gms_lifecycle_signature_excludes_all_free_text_and_unrelated_processes(self):
+        spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
+        native = importlib.util.module_from_spec(spec); spec.loader.exec_module(native)
+        output=('ACTIVITY MANAGER PROCESS EXIT INFO\nApplicationExitInfo #0:\n'
+                'timestamp=2026-11-08 14:10:17.800 pid=123 realUid=1000\n'
+                'process=com.google.android.gms.persistent reason=1 (EXIT_SELF) status=0\n'
+                'description=unrelated@example.test token=not-for-output\n'
+                'ApplicationExitInfo #1:\ntimestamp=2026-11-08 14:00:00.000 pid=999\n'
+                'process=com.google.android.gms.other reason=4 (CRASH) status=9\n')
+        data=json.loads(native.gms_exit_signature(output))
+        self.assertTrue(data['available'])
+        self.assertEqual(data['records'],[dict(timestamp='2026-11-08 14:10:17.800',pid=123,reason=1,status=0)])
+        self.assertNotIn('unrelated@example.test',native.gms_exit_signature(output))
+        self.assertNotIn('not-for-output',native.gms_exit_signature(output))
+        self.assertNotIn('realUid',native.gms_exit_signature(output))
+        self.assertLessEqual(len(native.gms_exit_signature(output*500)),2000)
+        self.assertFalse(json.loads(native.gms_exit_signature('Permission denied'))['available'])
+        process=json.loads(native.gms_process_signature('PID NAME\n123 com.google.android.gms.persistent\n999 unrelated.app\n124 com.google.android.gms.persistent.extra'))
+        self.assertEqual(process['pids'],[123])
+        self.assertFalse(json.loads(native.gms_process_signature('error: offline'))['available'])
+
     def test_next_suite_requires_main_before_process_or_lock(self):
         spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
         native = importlib.util.module_from_spec(spec)

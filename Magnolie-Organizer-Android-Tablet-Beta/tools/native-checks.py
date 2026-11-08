@@ -77,6 +77,29 @@ def exit_info_signature(output):
     return '\n'.join(match.group() for match in list(fields)[:56])[:3000]
 
 
+def gms_exit_signature(output):
+    records = []
+    for block in re.split(r'(?=ApplicationExitInfo #\d+:)', output):
+        if not re.search(r'\bprocess=com\.google\.android\.gms\.persistent(?=\s|$)', block):
+            continue
+        timestamp = re.search(r'\btimestamp=(\d{4}-\d{2}-\d{2}[ T][0-9:.+-]+)', block)
+        fields = {key: int(value) for key, value in re.findall(r'\b(pid|reason|status)=(-?\d+)', block)}
+        if timestamp and set(fields) == {'pid', 'reason', 'status'}:
+            records.append(dict(timestamp=timestamp.group(1), **fields))
+        if len(records) == 6:
+            break
+    return json.dumps(dict(process='com.google.android.gms.persistent',
+        available='ACTIVITY MANAGER PROCESS EXIT INFO' in output, records=records), sort_keys=True)[:2000]
+
+
+def gms_process_signature(output):
+    lines = [line.split() for line in output.splitlines() if line.strip()]
+    valid = bool(lines) and lines[0] in (['PID', 'NAME'], ['PID', 'CMD'])
+    pids = sorted({int(row[0]) for row in lines[1:] if len(row) == 2 and row[0].isdigit() and
+                   row[1] == 'com.google.android.gms.persistent'}) if valid else []
+    return json.dumps(dict(process='com.google.android.gms.persistent', available=valid, pids=pids[:8]), sort_keys=True)
+
+
 def candidate_files(candidate, projection):
     if candidate.get('stale') is not False or candidate.get('signing') != 'debug only' or \
             candidate.get('sourceHash') != projection['sourceHash'] or \
@@ -162,10 +185,16 @@ def main(argv=None):
                             'AndroidRuntime:E', 'chromium:E', 'libc:F', 'DEBUG:F', 'ActivityManager:I', 'WebViewUpdateService:I', 'TabletNativeTest:I'],
                         'app-exit-info': ['shell', 'dumpsys', 'activity', 'exit-info',
                             'io.gitlab.maik3531.magnolieorganizer.tablet.beta'],
-                        **({'webview-provider-state': ['shell', 'dumpsys', 'webviewupdate']} if code else {}),
+                        **({'webview-provider-state': ['shell', 'dumpsys', 'webviewupdate'],
+                            'gms-exit-info': ['shell', 'dumpsys', 'activity', 'exit-info', 'com.google.android.gms'],
+                            'gms-process-state': ['shell', 'ps', '-A', '-o', 'PID,NAME']} if code else {}),
                     }.items():
                         try:
                             output = session.adb(owner, owner.state, command, 15)
+                            if name == 'gms-exit-info':
+                                output = gms_exit_signature(output)
+                            elif name == 'gms-process-state':
+                                output = gms_process_signature(output)
                             (Path(owner.state['run']) / 'evidence' / (name+'.txt')).write_text(output)
                             if code and name == 'android-test-log':
                                 print('NATIVE_RUNTIME_FAILURE_LOG\n'+technical_failure_log(output), flush=True)
@@ -175,6 +204,8 @@ def main(argv=None):
                                 print('NATIVE_DEPENDENCY_DESCRIPTION\n'+dependency_exit_descriptions(output), flush=True)
                             elif code and name == 'webview-provider-state':
                                 print('NATIVE_WEBVIEW_PROVIDER_READINESS\n'+provider_readiness(output), flush=True)
+                            elif code and name in ('gms-exit-info', 'gms-process-state'):
+                                print('NATIVE_GMS_LIFECYCLE '+name+'\n'+output, flush=True)
                         except Exception as exc:
                             owner.record('diagnostic-collection-failed', name=name, reason=str(exc))
                     try:
