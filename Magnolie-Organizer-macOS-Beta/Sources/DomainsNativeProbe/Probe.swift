@@ -24,7 +24,13 @@ import BetaCore
     }
     private func finish(_ error: Error?) {
         proof["ok"] = error == nil; proof["phase"] = phase
-        if let error { proof["error"] = error.localizedDescription }
+        if let error {
+            proof["error"] = error.localizedDescription
+            let native = error as NSError
+            for key in ["WKJavaScriptExceptionMessage", "WKJavaScriptExceptionLineNumber", "WKJavaScriptExceptionColumnNumber"] {
+                if let value = native.userInfo[key] { proof[key] = String(String(describing: value).prefix(2000)) }
+            }
+        }
         writeProof(); exit(error == nil ? 0 : 1)
     }
     private func unwrap<T>(_ value: T?) throws -> T {
@@ -73,7 +79,7 @@ import BetaCore
                 continuation.resume(throwing: BetaError("Native domains JavaScript phase exceeded 45 seconds."))
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 45, execute: timeout)
-            web.callAsyncJavaScript(source, arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
+            web.callAsyncJavaScript("try {\n" + source + "\n} catch(error) { throw new Error(String(error?.message||error).slice(0,500)+'\\n'+String(error?.stack||'').slice(0,1200)); }", arguments: arguments, in: nil, in: .page) { (result: Result<Any, Error>) in
                 guard !finished else { return }; finished = true; timeout.cancel(); continuation.resume(with: result)
             }
         }
@@ -184,7 +190,7 @@ import BetaCore
         }
         mark("drawing-prepare")
         let rectangleValue = try await javascript("return await window.NativeDomains.drawing();")
-        let rectangle = try unwrap(rectangleValue as? [String: Any])
+        _ = try unwrap(rectangleValue as? [String: Any])
         _ = try await javascript("""
             window.__domainEventReceipts=[];
             for(const type of ['pointerdown','pointermove','pointerup','pointercancel','gotpointercapture','lostpointercapture','mousedown','mousemove','mouseup']) {
@@ -202,7 +208,10 @@ import BetaCore
         proof["applicationLifecycle"] = ["running": NSApp.isRunning, "active": NSApp.isActive, "keyWindow": window.isKeyWindow, "visible": window.isVisible]
         try await drawingDiagnostics("before-native-input")
         try require(NSApp.isRunning && NSApp.isActive && window.isKeyWindow, "Domain probe must have a running foreground application and key input window")
-        proof["drawingTarget"] = try await javascript("return window.NativeDomains.drawingTargetReady(target);", arguments: ["target": rectangle])
+        let readyValue = try await javascript("return await window.NativeDomains.drawingInputReady();")
+        let ready = try unwrap(readyValue as? [String: Any])
+        let rectangle = try unwrap(ready["target"] as? [String: Any])
+        proof["drawingTarget"] = ready["readiness"]
         writeProof()
         try await stroke(rectangle, window: window)
         try await drawingDiagnostics("after-native-input")

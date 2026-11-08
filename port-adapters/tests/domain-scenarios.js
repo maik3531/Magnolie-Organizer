@@ -45,11 +45,35 @@ window.NativeDomains = (() => {
     for(let index=0;index<=8;index++) {
       const fraction=index/8,x=target.x1+(target.x2-target.x1)*fraction;
       for(const y of [target.y,target.y+Math.sin(fraction*Math.PI)*8]) {
-        assert(document.elementFromPoint(x,y)===canvas,'Native drawing coordinates are covered instead of hitting the actual canvas');
+        const hit=document.elementFromPoint(x,y);
+        assert(hit===canvas,'Native drawing target missed canvas: '+JSON.stringify({x,y,tag:hit?.tagName||'',className:String(hit?.className||'').slice(0,160)}));
         points.push({x,y});
       }
     }
     return {canvasHit:true,checkedPoints:points.length};
+  }
+  async function drawingInputReady() {
+    const deadline=performance.now()+3000;let previous='',stableSince=0,frames=0,last=null;
+    while(performance.now()<deadline) {
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      const canvas=$('.custom-zeichenblatt');assert(canvas,'Missing actual drawing canvas');
+      const rect=canvas.getBoundingClientRect(),module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
+      const sample={left:rect.left,top:rect.top,width:rect.width,height:rect.height,
+        bitmapWidth:canvas.width,bitmapHeight:canvas.height,modelWidth:module?.drawing?.width,modelHeight:module?.drawing?.height,
+        fonts:document.fonts?.status||'unsupported'};
+      const key=JSON.stringify(sample),now=performance.now();last=sample;
+      if(key!==previous||sample.fonts==='loading'){previous=key;stableSince=now;frames=0;}else frames++;
+      if(frames<4||now-stableSince<150)continue;
+      assert(window.MagnolieZeichnen.valid(module?.drawing)&&module.drawing.strokes.length===0,'Input preparation requires an empty valid drawing');
+      assert(window.__domainPointers.down===0&&window.__domainPointers.move===0&&window.__domainPointers.up===0,'Input baseline must precede native pointers');
+      const top=Math.max(rect.top,0),bottom=Math.min(rect.bottom,innerHeight);
+      assert(rect.width>100&&bottom-top>80,'Drawing canvas is not visible enough for a native stroke');
+      const target={x1:rect.left+rect.width*.2,x2:rect.left+rect.width*.75,y:top+(bottom-top)*.45};
+      const hit=drawingTargetReady(target);
+      window.__domainCanvasBefore=canvas.toDataURL('image/png');
+      return {target,readiness:{...hit,geometry:sample,stableFrames:frames,stableMilliseconds:now-stableSince}};
+    }
+    throw Error('Drawing geometry/bitmap/fonts did not settle within 3 seconds: '+JSON.stringify(last));
   }
   async function prepare() {
     assert(T.daten().customOrganizer.modules.length===0,'Domain acceptance requires an unused disposable custom organizer');
@@ -132,11 +156,7 @@ window.NativeDomains = (() => {
     for(const [type,key] of [['pointerdown','down'],['pointermove','move'],['pointerup','up']]) canvas.addEventListener(type,event=>{
       if(event.isTrusted)window.__domainPointers[key]++;else window.__domainPointers.untrusted++;
     });
-    window.__domainCanvasBefore=canvas.toDataURL('image/png');
-    const rect=canvas.getBoundingClientRect(),top=Math.max(rect.top,0),bottom=Math.min(rect.bottom,innerHeight);
-    assert(rect.width>100&&bottom-top>80,'Drawing canvas is not visible enough for a native stroke');
-    const target={x1:rect.left+rect.width*.2,x2:rect.left+rect.width*.75,y:top+(bottom-top)*.45};
-    drawingTargetReady(target);return target;
+    return (await drawingInputReady()).target;
   }
   async function drawingProof() {
     const module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
@@ -158,5 +178,5 @@ window.NativeDomains = (() => {
     for(const row of health?.vitalwerte||[]) if(!Object.hasOwn(row,'sauerstoff')) row.sauerstoff=0;
     return expected;
   };
-  return {coverTarget,opened,drawingTargetReady,prepare,health,custom,drawing,drawingProof,snapshot,expectedAfterReopen};
+  return {coverTarget,opened,drawingTargetReady,drawingInputReady,prepare,health,custom,drawing,drawingProof,snapshot,expectedAfterReopen};
 })();
