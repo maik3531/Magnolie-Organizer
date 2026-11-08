@@ -248,8 +248,42 @@ dritte Version sowie beschädigte Vorgängerbytes während einer bereits laufend
 neuen Kopie. Im letzten Fall bleibt die neue Vorbereitung als unvollständig
 erhalten, statt fälschlich Ready zu werden oder alte Daten zu reparieren/löschen.
 Die vier bisherigen Cache-/Korruptions-/Buch-/Drain-Gruppen
-bestehen ebenfalls. Die Einbindung in die periodische Desktop-Auswahl bleibt
-noch offen; Capability 23 bleibt geschlossen.
+bestehen ebenfalls; Capability 23 bleibt geschlossen.
+
+## Windows: Auswahl zugeordneter PC-Änderungen im normalen Lauf
+
+Der gemeinsame manuelle und WLAN-Automatiklauf enthält jetzt einen
+Desktop→Telefon-Schritt für bereits zugeordnete Medien. Seine Kandidaten kommen
+ausschließlich aus geschützten, abgeschlossenen lokalen Saved-/END-Zuordnungen
+des aktuellen Zieles. Er scannt keine beliebigen Dateipfade. Ersetzte Vorgänger
+und mehrdeutige Zuordnungen werden nicht als neue Quellrechte übernommen; jeder
+tatsächliche Zugriff öffnet die ursprüngliche Datei mit den bestehenden nativen
+Buch-/Bindungs-/Identitätsprüfungen neu.
+
+Unveränderte ursprüngliche Dateien ohne ausgehende Versionshistorie benötigen
+keinen Quellcache. Bei vorhandener Historie entscheidet dagegen nur der letzte
+vollständig abgeschlossene Stand über unveränderte Bytes; spätere Änderungen
+erhalten eine neue erhaltene Quellversion. Unbekannte tatsächliche Medienbytes
+werden vor einer persistenten Vorbereitung abgewiesen. „Nur Fotos“ verwendet die
+vorhandene native Metadatenprüfung und überspringt nicht passende Dateien vor
+der Vorbereitung, statt Dateiendung/MIME allein zu vertrauen.
+
+Die unabhängige Richtung wird vor beiden Teilabläufen geprüft. PC→Telefon fällt
+nicht in Telefon-Discovery/READ/Import durch; reiner Import erlaubt keine
+PC-Ausgabe. Für den Umfang „gesamte Sammlung“ fehlen weiterhin die bisher nicht
+zugeordneten reinen PC-Dateien: der Lauf meldet dafür Review statt vollständigen
+Erfolg zu behaupten. Fehler oder unvollständige frühere Versionen bleiben Hold,
+ohne automatische Wiederaufnahme, Löschung oder Ersetzung geschützter Daten.
+
+Native Windows-Prüfungen umfassen den normalen manuellen Lauf über zwei echte
+Quellversionen, einen tatsächlichen WLAN-Automatiklauf, jeweils einen
+unveränderten Folgelauf ohne erneute Ausgabe/Vorbereitung, PC-only ohne
+Telefon-Import, Import-only und unbekannte Bytes vor Ausgabe sowie den nativen
+Foto-Metadatenfilter vor Vorbereitung. Drei betroffene bisherige Import-/Video-
+Regressionsgruppen bestehen ebenfalls. Beide optionalen Produktkompositionen
+bauen. Linux-Parität, vollständige Sammlungs-/Lösch-/Wiederherstellungswege und
+gemeinsame physische Ende-zu-Ende-Abnahme bleiben offen; Capability 23 bleibt
+geschlossen.
 
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und

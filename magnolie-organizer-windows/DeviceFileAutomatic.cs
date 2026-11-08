@@ -161,6 +161,16 @@ internal sealed partial class TelefonCoordinator
                 if (!(kind == "images" ? preferences.PhotosEnabled : preferences.VideosEnabled)) continue;
                 Require();
                 if (kind == "video" && !connection.NativeMediaUiMetadataAvailable(videos: true)) { review = true; continue; }
+                var sharedIntent = connection.MediaSharedSettingsReady
+                    ? store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey) : null;
+                if (sharedIntent is not null && MediaSyncSettings.TransferRequestedFor(sharedIntent, kind, toPhone: true))
+                {
+                    var outgoing = await connection.SynchronizeNativeMappedMediaChangesAsync(kind, permit, Require, lifetime.Token);
+                    Require(); review |= outgoing.NeedsReview;
+                }
+                // Scope, mode and direction remain independent. PC-only direction
+                // must not fall through to phone-source discovery/READ/import.
+                if (sharedIntent is not null && !MediaSyncSettings.TransferRequestedFor(sharedIntent, kind, toPhone: false)) continue;
                 EnsureConfiguredNativeMediaDefault(peerId, kind); Require();
                 await connection.PrepareNativeMediaUiAsync(NativeSavedBook, kind, lifetime.Token); Require();
                 var status = await connection.ReadNativeFileSourceStatusAsync(lifetime.Token); Require();

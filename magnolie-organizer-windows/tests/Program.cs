@@ -345,6 +345,10 @@ if (OperatingSystem.IsWindows())
     runner.Add("Source successor / Windows actual sender successor-chain", () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync("successor-chain"));
     runner.Add("Source successor / Windows unattempted preparation stays held", DeviceFileSourceSendTests.WindowsSuccessorBeforeOfferAsync);
     runner.Add("Source successor / Windows actual sender successor-during-copy", () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync("successor-during-copy"));
+    runner.Add("Mapped export / Windows actual manual pass versions and unchanged dedup", DeviceFileSourceSendTests.WindowsMappedOutgoingPassAsync);
+    runner.Add("Mapped export / Windows actual WiFi automatic pass and unchanged dedup", DeviceFileSourceSendTests.WindowsMappedAutomaticOutgoingPassAsync);
+    runner.Add("Mapped export / Windows import-only and unknown content before output", DeviceFileSourceSendTests.WindowsMappedOutgoingRejectsScopeAndUnknownBytesAsync);
+    runner.Add("Mapped export / Windows actual photos-only filter before preparation", DeviceFileSourceSendTests.WindowsMappedPhotoFilterBeforePreparationAsync);
     runner.Add("Device file source send / Windows early Saved and missing exchange hold", DeviceFileSourceSendTests.WindowsRejectsEarlySavedAndLostAttemptAsync);
     runner.Add("Device file source send / Windows actual offer output cancellation drains", DeviceFileSourceSendTests.WindowsOfferDrainAndCancellationAsync);
     runner.Add("Device file source send / Windows early acceptance waits for actual output", DeviceFileSourceSendTests.WindowsEarlyAcceptanceWaitsForOutputAsync);

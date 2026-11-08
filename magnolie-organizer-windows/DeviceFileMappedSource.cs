@@ -4,8 +4,60 @@ using System.Security.Cryptography;
 
 namespace MagnolieOrganizer.Windows;
 
+internal sealed record NativeMappedMediaCandidate(string JobId, string JobVersion, string FileId, string SourceEpoch, string PhotoId);
+internal sealed record NativeMappedMediaCandidatePlan(IReadOnlyList<NativeMappedMediaCandidate> Candidates, bool NeedsReview);
+
 internal sealed partial class TelefonStore
 {
+    // Bounded protected mapping inventory only. No filename scan, source owner,
+    // absence/deletion evidence or authority is created by this projection.
+    internal NativeMappedMediaCandidatePlan NativeMappedMediaCandidates(string peerId, string mediaType)
+    {
+        MediaDestinationKind(mediaType);
+        lock (gate)
+        {
+            RequireNativeMediaStorageKey(); var scope = MediaPreferenceScope(peerId);
+            var destination = ReadNativeMediaDestination(peerId, mediaType);
+            if (destination is null) return new([], false);
+            using var db = OpenNativeMediaDatabase(); db.Open();
+            var heads = ReceiveHeads(db, null, scope);
+            var superseded = new HashSet<(string Job, string File)>();
+            foreach (var head in heads)
+                foreach (var file in head.Body["files"]!.AsArray().OfType<JsonObject>())
+                    superseded.UnionWith(ReplacementAncestors(heads, head.Body, TelefonMessagingContract.String(file, "id")));
+            var expectedDestination = new JsonObject { ["native_path"] = destination.NativePath, ["volume_path"] = destination.VolumePath,
+                ["identity"] = NativeMediaReceiveJob.NativeIdentity(destination.RootIdentity), ["token"] = destination.DestinationToken };
+            var candidates = new List<NativeMappedMediaCandidate>(); var review = false;
+            foreach (var head in heads)
+            {
+                if (head.Body["media"] is not JsonObject media || TelefonMessagingContract.String(media, "media_type") != mediaType ||
+                    TelefonMessagingContract.String(head.Body, "destination_version") != destination.Version || !JsonNode.DeepEquals(head.Body["destination"], expectedDestination)) continue;
+                foreach (var member in media["entries"]!.AsArray().OfType<JsonObject>())
+                {
+                    var fileId = TelefonMessagingContract.String(member, "file_id");
+                    if (superseded.Contains((head.JobId, fileId))) continue;
+                    if (!head.Body.ContainsKey("saved") || !head.Body.ContainsKey("source_end")) { review = true; continue; }
+                    candidates.Add(new(head.JobId, head.Version, fileId, TelefonMessagingContract.String(media, "source_epoch"), TelefonMessagingContract.String(member, "photo_id")));
+                }
+            }
+            var unique = new List<NativeMappedMediaCandidate>();
+            foreach (var group in candidates.GroupBy(item => (item.SourceEpoch, item.PhotoId)))
+            { if (group.Count() == 1) unique.Add(group.Single()); else review = true; }
+            return new(unique.OrderBy(item => item.JobId, StringComparer.Ordinal).ThenBy(item => item.FileId, StringComparer.Ordinal).ToArray(), review);
+        }
+    }
+
+    internal bool HasNativeMediaSourceReference(string peerId, JsonObject original)
+    {
+        lock (gate)
+        {
+            RequireNativeMediaStorageKey(); var scope = MediaPreferenceScope(peerId);
+            using var db = OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction(deferred: true);
+            var exists = SourceRecords(db, transaction, scope).Any(item => JsonNode.DeepEquals(item.Body["originals"]!.AsObject().Single().Value, original));
+            transaction.Commit(); return exists; // Scheduling fact only, never live source rights.
+        }
+    }
+
     internal sealed class NativeMappedMediaSource : IDisposable
     {
         private readonly object sourceGate = new();
@@ -181,6 +233,56 @@ internal sealed partial class TelefonStore
 
 internal sealed partial class TelefonConnection
 {
+    internal async Task<(int Sent, bool NeedsReview)> SynchronizeNativeMappedMediaChangesAsync(string mediaType, NativeMediaBookPermit book,
+        Action requireCurrent, CancellationToken token)
+    {
+        var intent = store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey) ?? throw DeviceFileControl.Error("media_source_current_intent_required");
+        void Current()
+        {
+            token.ThrowIfCancellationRequested(); book.Require(); requireCurrent();
+            if (!MediaSharedSettingsReady || !JsonNode.DeepEquals(intent, store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey)) ||
+                !MediaSyncSettings.TransferRequestedFor(intent, mediaType, toPhone: true))
+                throw DeviceFileControl.Error("media_source_current_sending_owner_required");
+        }
+        Current(); var plan = store.NativeMappedMediaCandidates(peer.Id, mediaType); var sent = 0;
+        var review = plan.NeedsReview || MediaSyncSettings.Effective(intent)["collection_mode"]!.GetValue<string>() == "entire_collection";
+        foreach (var candidate in plan.Candidates)
+        {
+            Current();
+            var destination = DeviceFileControl.Digest("magnolie-media-source-candidate-v1\0", new JsonObject {
+                ["job_id"] = candidate.JobId, ["job_version"] = candidate.JobVersion, ["file_id"] = candidate.FileId });
+            TelefonStore.NativeMappedMediaSource source;
+            try { source = OpenNativeMappedMediaSource(mediaType, candidate.JobId, candidate.JobVersion, candidate.FileId, destination, book); }
+            catch (InvalidDataException error) when (error.Message == "media_source_photo_metadata_required")
+            { Current(); continue; } // Explicit photos-only filter, not a missing-file/deletion assumption.
+            using var heldSource = source;
+            var manifest = source.PrepareManifest(); var file = manifest.Files.Single(); var original = source.OriginalReference;
+            if (file.Sha256 == original["original_sha256"]!.GetValue<string>() && file.Size == TelefonProtocolContract.Integer(original["original_size"]) &&
+                !store.HasNativeMediaSourceReference(peer.Id, original)) { Current(); continue; }
+            // Reject unsupported actual bytes before reserving a cache. The real
+            // sender independently checks its authenticated frozen bytes again.
+            var prefix = new byte[(int)Math.Min(file.Size, NativeMediaContentMime.PrefixBytes)];
+            try
+            {
+                for (var offset = 0; offset < prefix.Length;)
+                {
+                    Current(); var chunk = source.ReadExact(offset, Math.Min(DeviceFileManifest.ChunkBytes, prefix.Length - offset));
+                    try { chunk.CopyTo(prefix, offset); offset += chunk.Length; }
+                    finally { CryptographicOperations.ZeroMemory(chunk); }
+                }
+                _ = NativeMediaContentMime.Identify(prefix, file.Size, mediaType);
+            }
+            finally { CryptographicOperations.ZeroMemory(prefix); }
+            TelefonStore.NativePreparedMediaSource cache;
+            try { cache = source.FreezeCompletedSuccessor(); }
+            catch (InvalidDataException error) when (error.Message == "media_source_cache_latest_payload_already_sent")
+            { Current(); continue; }
+            using (cache) { await SendNativeMappedMediaSourceToSourceEndAsync(cache, token); }
+            Current(); sent++;
+        }
+        Current(); return (sent, review);
+    }
+
     internal TelefonStore.NativeMappedMediaSource OpenNativeMappedMediaSource(string mediaType, string jobId, string jobVersion,
         string fileId, string phoneDestinationToken, NativeMediaBookPermit book)
     {

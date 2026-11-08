@@ -261,6 +261,125 @@ internal static class DeviceFileSourceSendTests
             "Rejected successor altered the original unattempted source or emitted output.");
     }
 
+    internal static Task WindowsMappedOutgoingPassAsync() => MappedOutgoingPassAsync(automatic: false);
+    internal static Task WindowsMappedAutomaticOutgoingPassAsync() => MappedOutgoingPassAsync(automatic: true);
+    private static async Task MappedOutgoingPassAsync(bool automatic)
+    {
+        using var f = await DeviceFileSourceCacheTests.Fixture(MediaBytes);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "mapped-pass-book"), Book);
+        f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "direction", JsonValue.Create("pc_to_phone")!,
+            f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "direction"));
+        if (automatic) f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "auto_mode", JsonValue.Create("wifi")!,
+            f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "auto_mode"));
+        await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+        using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(f.Native.Peer.Id, f.Native.Connection);
+        var intent = f.Native.Store.ReadNativeMediaSharedSettings(f.Native.Peer.Id, f.Native.Peer.PublicKey)!;
+        var before = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
+        using var stop = new CancellationTokenSource(); Task<string>? pass = null;
+        async Task<string> Run()
+        {
+            if (!automatic) return await coordinator.RunNativeMediaManualOnceAsync(f.Native.Peer.Id, intent, stop.Token);
+            await coordinator.RunNativeMediaAutomaticOnceAsync(f.Native.Peer.Id, stop.Token);
+            var states = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("nativeAutomaticMedia", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
+            var state = states[f.Native.Peer.Id]!;
+            return (string)state.GetType().GetField("Phase", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(state)!;
+        }
+        try
+        {
+            for (var version = 0; version < (automatic ? 1 : 2); version++)
+            {
+                if (version != 0)
+                {
+                    using var edit = new FileStream(Path.Combine(f.Root, "first.jpg"), FileMode.Open, FileAccess.Write);
+                    edit.SetLength(0); edit.Write(PaddedPng(version));
+                }
+                DeviceFileConnectionRunsTests.Clear(f); pass = Run();
+                var manifest = await DriveMappedExportAsync(f);
+                TestAssert.That(await pass == "content_pass" && Exchange(f, manifest.SourceId)["phase"]!.GetValue<string>() == "source_ended" &&
+                    f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == before,
+                    "The actual mapped pass did not finish source END or rewrote its receive baseline.");
+                TestAssert.That(!DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(frame => frame["kind"]?.GetValue<string>() == DeviceFileSources.RequestKind),
+                    "PC-only direction started phone discovery/READ/import.");
+                var history = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+                DeviceFileConnectionRunsTests.Clear(f); pass = Run();
+                TestAssert.That(await pass == "content_pass" && f.Native.Stream.Length == 0 &&
+                    f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(history),
+                    "Unchanged latest source was retransmitted, adopted or prepared twice.");
+            }
+            TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == (automatic ? 1 : 2), "The normal mapped pass discarded previous content versions.");
+        }
+        finally { stop.Cancel(); if (pass is not null) try { await pass; } catch { } }
+    }
+
+    private static async Task<DeviceFileManifest> DriveMappedExportAsync(DeviceFileReceiveJobTests.Fixture f)
+    {
+        var offer = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
+        var identity = f.Native.Store.LoadOrCreateIdentity(); DeviceFileManifest manifest;
+        try { manifest = MediaOfferEnvelope.Validate(offer, identity.Id, f.Native.Peer.Id, Now()).Manifest; }
+        finally { CryptographicOperations.ZeroMemory(identity.PrivateKey); }
+        return await DriveMappedManifestAsync(f, offer, manifest);
+    }
+
+    private static async Task<DeviceFileManifest> DriveMappedManifestAsync(DeviceFileReceiveJobTests.Fixture f, JsonObject offer, DeviceFileManifest manifest)
+    {
+        var file = manifest.Files.Single(); var binding = f.Owner.Binding(new string('f', 64), true)!;
+        var acceptedBody = new JsonObject { ["format"] = 1, ["offer_id"] = offer["message_id"]!.DeepClone(), ["transfer_id"] = manifest.TransferId,
+            ["manifest_sha256"] = manifest.Fingerprint, ["permission_epoch"] = binding.PermissionEpoch, ["destination_token"] = binding.DestinationToken,
+            ["acceptance_sha256"] = new string('a', 64) };
+        await f.Native.Connection.HandlePlainAsync(Message(DeviceFileAcceptanceEnvelope.Kind, acceptedBody, offer));
+        var chunk = acceptedBody.DeepClone().AsObject(); chunk.Remove("offer_id"); chunk["file_id"] = file.Id;
+        for (var index = 0; index < (file.Size + DeviceFileManifest.ChunkBytes - 1) / DeviceFileManifest.ChunkBytes; index++)
+        { var request = chunk.DeepClone().AsObject(); request["chunk_index"] = index; await f.Native.Connection.HandlePlainAsync(Message(DeviceFileChunkEnvelope.RequestKind, request, offer)); }
+        var saved = acceptedBody.DeepClone().AsObject(); saved.Remove("offer_id");
+        saved["receipts"] = new JsonArray(new JsonObject { ["file_id"] = file.Id, ["size"] = file.Size, ["sha256"] = file.Sha256, ["receipt_sha256"] = new string('b', 64) });
+        await f.Native.Connection.HandlePlainAsync(Message(DeviceFileSavedEnvelope.Kind, saved, offer));
+        var context = new JsonObject { ["format"] = 1, ["offer_id"] = offer["message_id"]!.DeepClone(), ["manifest_sha256"] = manifest.Fingerprint,
+            ["transfer_id"] = manifest.TransferId, ["source_id"] = manifest.SourceId, ["file_id"] = file.Id, ["size"] = file.Size, ["sha256"] = file.Sha256,
+            ["media_type"] = "images", ["mime_type"] = "image/png", ["publication_sha256"] = new string('b', 64), ["row_sha256"] = new string('d', 64),
+            ["permission_epoch"] = binding.PermissionEpoch, ["readback_nonce"] = new string('e', 64) };
+        var readbackBinding = f.Owner.Binding(DevicePublishedReadbackEnvelope.DestinationToken(context), true)!;
+        await f.Native.Connection.HandlePlainAsync(Message(DevicePublishedReadbackEnvelope.Kind, DevicePublishedReadbackEnvelope.EncodeBody(context, readbackBinding), offer));
+        return manifest;
+    }
+
+    internal static async Task WindowsMappedOutgoingRejectsScopeAndUnknownBytesAsync()
+    {
+        foreach (var importOnly in new[] { false, true })
+        {
+            using var f = await DeviceFileSourceCacheTests.Fixture(importOnly ? MediaBytes : null);
+            var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "mapped-rejection-book"), Book);
+            if (importOnly)
+            {
+                f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "collection_mode", JsonValue.Create("import_only")!,
+                    f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "collection_mode"));
+                await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+            }
+            DeviceFileConnectionRunsTests.Clear(f);
+            var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+            await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(
+                f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, book.Require, CancellationToken.None),
+                "Import-only or unknown actual bytes entered mapped source output.");
+            TestAssert.That(f.Native.Stream.Length == 0 && f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0,
+                "Rejected mapped pass emitted PC data or reserved an unusable source cache.");
+        }
+    }
+
+    internal static async Task WindowsMappedPhotoFilterBeforePreparationAsync()
+    {
+        using var f = await DeviceFileSourceCacheTests.Fixture(MediaBytes);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "mapped-photo-filter-book"), Book);
+        f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "photos_only", JsonValue.Create(true)!,
+            f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "photos_only"));
+        await DeviceFileSharedTransportTests.MatchAsync(f.Native); DeviceFileConnectionRunsTests.Clear(f);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var pass = await f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, book.Require, CancellationToken.None);
+        TestAssert.That(pass.Sent == 0 && f.Native.Stream.Length == 0 && f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0,
+            "Photos-only used filename/MIME instead of actual camera metadata or reserved a filtered cache.");
+    }
+
     private static async Task VerifySuccessorMutationAsync(DeviceFileReceiveJobTests.Fixture f, PersonalActorNativeSaveHost host,
         TelefonStore.NativePreparedMediaSource original)
     {
