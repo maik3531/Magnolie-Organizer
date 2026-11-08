@@ -156,6 +156,9 @@ internal sealed partial class TelefonStore
             throw DeviceFileControl.Error("media_source_current_sending_intent_required");
         var intent = sharedIntent.DeepClone().AsObject();
         var scope = MediaPreferenceScope(peerId);
+        var consent = ReadNativeMediaSendConsent(peerId);
+        if (!consent.Explicit || !(mediaType == "images" ? consent.Photos : consent.Videos))
+            throw DeviceFileControl.Error("media_source_local_sending_consent_required");
         var destination = ReadNativeMediaDestination(peerId, mediaType) ?? throw DeviceFileControl.Error("media_source_original_destination_required");
         if (sending.SenderId != scope.LocalId || sending.SenderIdentitySha256 != scope.LocalKey ||
             sending.ReceiverId != scope.PeerId || sending.ReceiverIdentitySha256 != scope.PeerKey)
@@ -197,6 +200,8 @@ internal sealed partial class TelefonStore
         void Current()
         {
             book.Require(); requireConnection(); RequireNativeMediaStorageKey();
+            if (ReadNativeMediaSendConsent(peerId) != consent)
+                throw DeviceFileControl.Error("media_source_local_sending_consent_changed");
             if (MediaPreferenceScope(peerId) != scope || ReadNativeMediaDestination(peerId, mediaType) != destination ||
                 !JsonNode.DeepEquals(intent, sharedIntent)) throw DeviceFileControl.Error("media_source_original_scope_changed");
             _ = Mapping(); book.Require(); requireConnection();

@@ -252,6 +252,25 @@ bestehen ebenfalls; Capability 23 bleibt geschlossen.
 
 ## Windows: Auswahl zugeordneter PC-Änderungen im normalen Lauf
 
+Die lokale Sendezustimmung wird unabhängig von Empfangszustimmung, Medienauswahl
+und gemeinsamer Richtung geschützt gespeichert, getrennt für Fotos und Videos.
+Ohne eigene ausdrückliche Wahl bleiben beide aus; auch frühere native
+Empfangseinstellungen erzeugen keine Sendezustimmung. Der Datensatz ist an beide
+Identitäten und die Kopplung gebunden. Veraltete Fenster dürfen ihn nicht ersetzen;
+ein Entzug mit erneuter Zustimmung erzeugt eine neue Version.
+
+Der tatsächliche zugeordnete Quellzugriff verlangt diese Zustimmung zusätzlich
+zur positiven SEND-Steuerbindung und hält deren genaue Version während eigener
+Datei- und Cache-Zugriffe fest. Entzug oder Aus-/Einschalten sperrt den alten
+Besitzer, ohne Dateien, Cache oder Historien zu löschen. Die Tests erteilen diese
+lokale Zustimmung jetzt ausdrücklich; sie wird nicht aus ihren Steuergrants
+abgeleitet. Native Prüfungen belegen Standard-Aus, unabhängige Foto-/Videowahl,
+geschützte Persistenz, Kopplungswechsel, beschädigten Chiffretext und Entzug beim
+echten Quell-/Cachezugriff. Manueller und WLAN-Export bestehen mit der zusätzlichen
+Prüfung weiterhin. Der produktive UI-Dialog und dessen SEND-Projektion bleiben
+noch offen; `NativeMediaUiAuthority` erteilt weiterhin ausschließlich RECEIVE.
+Dies ist keine Freischaltung von Capability 23.
+
 Der gemeinsame manuelle und WLAN-Automatiklauf enthält jetzt einen
 Desktop→Telefon-Schritt für bereits zugeordnete Medien. Seine Kandidaten kommen
 ausschließlich aus geschützten, abgeschlossenen lokalen Saved-/END-Zuordnungen

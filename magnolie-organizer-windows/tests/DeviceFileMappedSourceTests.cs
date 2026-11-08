@@ -28,6 +28,8 @@ internal static class DeviceFileMappedSourceTests
 
     internal static async Task AllowSending(DeviceFileReceiveJobTests.Fixture f)
     {
+        var consent = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+        f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, consent.Version, true, false);
         f.Local = new(new(8, new string('c', 64), true, true), f.Local.Owner, true);
         f.RemoteLocal = new(new(4, new string('d', 64), true, true), f.RemoteLocal.Owner, true);
         DeviceFileConnectionRunsTests.Clear(f);
@@ -40,6 +42,30 @@ internal static class DeviceFileMappedSourceTests
         var echo = DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Last(frame => frame["kind"]!.GetValue<string>() == DeviceFileControl.Kind);
         f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(echo, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), f.RemotePeer);
         TestAssert.That(f.Owner.Binding(PhoneTarget, senderIsLocal: true) is not null, "Positive native SEND/RECEIVE did not match.");
+    }
+
+    internal static async Task WindowsSendingConsentWithdrawalAsync()
+    {
+        using var f = await Established(); await AllowSending(f);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "send-consent-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
+        TelefonStore.NativeMappedMediaSource Open() => f.Native.Connection.OpenNativeMappedMediaSource(
+            "images", history.JobId, history.Version, 1.ToString("x32"), PhoneTarget, book);
+        var original = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+        var denied = f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, original.Version, false, true);
+        TestAssert.Throws<InvalidDataException>(() => Open(), "Positive control SEND or video consent granted photo access.");
+        var allowed = f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, denied.Version, true, false);
+        using var source = Open(); using var cache = source.Freeze();
+        var retained = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single();
+        var off = f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, allowed.Version, false, false);
+        TestAssert.Throws<InvalidDataException>(() => cache.ReadChunk(0), "Prepared cache ignored explicit SEND withdrawal.");
+        f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, off.Version, true, false);
+        TestAssert.Throws<InvalidDataException>(() => source.ReadExact(0, 1), "Off/on revived an old source permission owner.");
+        TestAssert.Throws<InvalidDataException>(() => cache.ReadChunk(0), "Off/on revived the old prepared cache.");
+        TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single() == retained &&
+            f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == history && File.Exists(Path.Combine(f.Root, "first.jpg")),
+            "Consent withdrawal discarded source bytes, cache or protected receive baseline.");
     }
 
     internal static async Task WindowsCompletedMappingAsync()

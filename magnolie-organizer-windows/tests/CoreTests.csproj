@@ -216,6 +216,7 @@
     <Compile Include="..\DeviceFileSharedPreferences.cs" Link="DeviceFileSharedPreferences.cs" />
     <Compile Include="..\DeviceFileConnectionSharedSettings.cs" Link="DeviceFileConnectionSharedSettings.cs" />
     <Compile Include="..\DeviceFileReceiveConsent.cs" Link="DeviceFileReceiveConsent.cs" />
+    <Compile Include="..\DeviceFileSendConsent.cs" Link="DeviceFileSendConsent.cs" />
     <Compile Include="..\DeviceFileSharedProjection.cs" Link="DeviceFileSharedProjection.cs" />
     <Compile Include="..\DeviceFileBackupExclusions.cs" Link="DeviceFileBackupExclusions.cs" />
     <Compile Include="..\DeviceFileBackupLocations.cs" Link="DeviceFileBackupLocations.cs" />
