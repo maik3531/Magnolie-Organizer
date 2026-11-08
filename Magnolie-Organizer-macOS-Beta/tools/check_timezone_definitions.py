@@ -7,10 +7,32 @@ from datetime import datetime, timedelta, timezone
 import json
 import hashlib
 import types
+import time
+from collections import OrderedDict
 from pathlib import Path
 import subprocess
 import sys
 from check_timezone_provider import BETA, DATA, run_owned
+
+
+def rule_cache_key(rule, lower, upper):
+    def freeze(value):
+        if value is None or type(value) in (str, bool, int):
+            return (type(value).__name__, value)
+        if type(value) is datetime and value.tzinfo is None:
+            return ('datetime', value.year, value.month, value.day, value.hour, value.minute, value.second, value.microsecond, value.fold)
+        if type(value) in (list, tuple):
+            return (type(value).__name__, tuple(freeze(item) for item in value))
+        if type(value) is dict and all(type(key) is str for key in value):
+            return ('dict', tuple((key, freeze(item)) for key, item in sorted(value.items())))
+        raise TypeError('Unrecognized mutable/opaque rule state; bypass cache')
+    try:
+        # Include every instance field, including all mutable derived selectors.
+        # Only our installed method wrapper is excluded; the pinned original
+        # method does not inspect that wrapper as recurrence input.
+        return (freeze({key: value for key, value in vars(rule).items() if key != 'between'}), freeze(lower), freeze(upper))
+    except TypeError:
+        return None
 
 
 def serve(worker):
@@ -26,7 +48,34 @@ def serve(worker):
     exec(compile(source, recurrence.__file__, 'exec'), recurrence.__dict__)
     process = subprocess.Popen([str(worker), str(DATA / 'tzdb-2026egtz.json'), str(DATA / 'provenance.json'), '--definitions'],
                                stdout=subprocess.PIPE, text=True)
-    zones = {}
+    zones, expansions = {}, OrderedDict()
+    started = time.monotonic()
+    counters = {'ruleCacheHits': 0, 'ruleEvaluations': 0}
+    def memoize(rule):
+        original = rule.between
+        def between(lower, upper, *, seek=None):
+            # Exact complete instance state and bounds identify a result.
+            # Every definition/Rule is still parsed by the original published
+            # implementation; only immutable completed results share.
+            if seek is not None or rule.start.tzinfo is not None:
+                return original(lower, upper, seek=seek)
+            key = rule_cache_key(rule, lower, upper)
+            if key is None:
+                return original(lower, upper)
+            if key in expansions:
+                counters['ruleCacheHits'] += 1
+                expansions.move_to_end(key)
+                return list(expansions[key])
+            counters['ruleEvaluations'] += 1
+            result = original(lower, upper)
+            # Short/empty early-year bounds are cheap and must not evict the
+            # expensive far-future expansions shared by equivalent rules.
+            if 1000 <= len(result) <= 20_000:
+                expansions[key] = tuple(result)
+                while len(expansions) > 128:
+                    expansions.popitem(last=False)
+            return result
+        rule.between = between
     try:
         for line in process.stdout:
             if len(line.encode()) > 8 * 1024 * 1024 or len(zones) >= 597:
@@ -34,7 +83,14 @@ def serve(worker):
             item = json.loads(line)
             if item['identifier'] in zones:
                 raise ValueError('Duplicate Swift definition')
-            zones[item['identifier']] = recurrence.CalendarZone(item['lines'])
+            lines = item['lines']
+            zone = recurrence.CalendarZone(lines)
+            if zone.key != item['identifier']:
+                raise ValueError('Published parser changed the original emitted TZID')
+            for _, _, _, rules, _ in zone.observances:
+                for rule in rules:
+                    memoize(rule)
+            zones[item['identifier']] = zone
         if process.wait(timeout=20) != 0 or len(zones) != 597:
             raise ValueError('Swift definition registry incomplete')
     finally:
@@ -45,6 +101,7 @@ def serve(worker):
             except subprocess.TimeoutExpired:
                 process.kill(); process.wait(timeout=2)
         process.stdout.close()
+    print(json.dumps({'phase': 'emitted-definition-parse', 'namedDefinitions': len(zones), 'seconds': time.monotonic() - started}), file=sys.stderr, flush=True)
     epoch, utc = datetime(1970, 1, 1), timezone.utc
     def stamp(date):
         return (date - epoch) // timedelta(milliseconds=1)
@@ -71,6 +128,7 @@ def serve(worker):
             except Exception as error:
                 failures.append({'identifier': row[1], 'sample': row, 'error': str(error)})
         print(json.dumps({'checked': len(rows), 'failures': failures}, separators=(',', ':')), flush=True)
+    print(json.dumps({'phase': 'emitted-definition-complete', **counters, 'retainedExpansions': len(expansions), 'seconds': time.monotonic() - started}), file=sys.stderr, flush=True)
 
 
 def main():

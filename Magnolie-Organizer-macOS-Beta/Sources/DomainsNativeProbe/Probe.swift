@@ -16,6 +16,10 @@ import BetaCore
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
         Task { do { try await run(); finish(nil) } catch {
+            proof["originalFailure"] = error.localizedDescription
+            let original = error as NSError
+            proof["originalJavaScriptFailure"] = String(String(describing: original.userInfo["WKJavaScriptExceptionMessage"] ?? "").prefix(2000))
+            writeProof()
             if phase.hasPrefix("drawing") { try? await drawingDiagnostics("failure") }
             finish(error)
         } }
@@ -35,7 +39,12 @@ import BetaCore
                 if let value = native.userInfo[key] { proof[key] = String(String(describing: value).prefix(2000)) }
             }
         }
-        writeProof(); exit(error == nil ? 0 : 1)
+        writeProof()
+        web?.stopLoading()
+        web?.configuration.userContentController.removeScriptMessageHandler(forName: "domainsTest")
+        inputWindow?.orderOut(nil); inputWindow?.close()
+        inputWindow = nil; web = nil; store = nil
+        exit(error == nil ? 0 : 1)
     }
     private func unwrap<T>(_ value: T?) throws -> T {
         guard let value else { throw BetaError("Missing domain probe value at " + phase) }; return value
@@ -46,6 +55,7 @@ import BetaCore
     private var store: AtomicStore!
     private var initialDocument: String!
     private var web: WKWebView!
+    private var inputWindow: NSWindow?
     private var pendingReplies = 0
     private var savedCount = 0
     private var transportError: Error?
@@ -65,10 +75,12 @@ import BetaCore
             case .bereit:
                 reply("init", ["daten": try Document.object(initialDocument), "neu": false, "regional": ["language": "en", "timeZone": "UTC"]])
             case .speichern:
+                guard let store else { throw BetaError("Native domain profile lease is unavailable.") }
                 try store.commit(request.text("text")); savedCount += 1
                 initialDocument = request.text("text")
                 reply("gespeichert", ["ok": true, "id": request.fields["id"]!])
             case .mutations_snapshot:
+                guard let store else { throw BetaError("Native domain profile lease is unavailable.") }
                 _ = try store.checkpoint()
                 reply("mutationsSnapshot", ["ok": true, "token": request.text("token")])
             default: break
@@ -76,7 +88,8 @@ import BetaCore
         } catch { transportError = error }
     }
     private func javascript(_ source: String, arguments: [String: Any] = [:]) async throws -> Any {
-        try await withCheckedThrowingContinuation { continuation in
+        guard let web else { throw BetaError("Native domains web view was already released at " + phase) }
+        return try await withCheckedThrowingContinuation { continuation in
             var finished = false
             let timeout = DispatchWorkItem {
                 guard !finished else { return }; finished = true
@@ -182,10 +195,7 @@ import BetaCore
         let window = NSWindow(contentRect: web.frame, styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false; window.contentView = web
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
-        defer {
-            web.stopLoading(); configuration.userContentController.removeScriptMessageHandler(forName: "domainsTest")
-            window.orderOut(nil); window.close(); web = nil; store = nil
-        }
+        inputWindow = window // Retain until failure diagnostics have been collected, then finish owns cleanup.
         mark("loading")
         web.loadFileURL(uiRoot.appendingPathComponent("web/index.html"), allowingReadAccessTo: uiRoot)
         _ = try await settle()

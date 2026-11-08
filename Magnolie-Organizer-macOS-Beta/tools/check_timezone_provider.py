@@ -10,6 +10,7 @@ import json
 import os
 import selectors
 import signal
+import sys
 from pathlib import Path
 import subprocess
 import tempfile
@@ -28,6 +29,7 @@ def cleanup_group(process):
             return True
         except ProcessLookupError:
             return False
+    probe_denied, group_exit_observed = False, False
     if send(signal.SIGTERM):
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline:
@@ -35,7 +37,12 @@ def cleanup_group(process):
             try:
                 os.killpg(process.pid, 0)
             except ProcessLookupError:
+                group_exit_observed = True
                 break
+            except PermissionError:
+                # Darwin may deny a zero-signal liveness probe during group
+                # teardown. Do not mistake that for exit; reach bounded KILL.
+                probe_denied = True
             time.sleep(.02)
         else:
             send(signal.SIGKILL)
@@ -47,13 +54,18 @@ def cleanup_group(process):
                 try:
                     os.killpg(process.pid, 0)
                 except ProcessLookupError:
+                    group_exit_observed = True
                     break
+                except PermissionError:
+                    probe_denied = True
                 time.sleep(.02)
     try:
         process.wait(timeout=2)
     except subprocess.TimeoutExpired:
         send(signal.SIGKILL)
         process.wait(timeout=2)
+    if probe_denied and not group_exit_observed:
+        print('Owned group cleanup: direct child reaped, but descendant-group exit remains unverified because Darwin denied liveness probes.', file=sys.stderr, flush=True)
 
 
 def run_owned(command, *, timeout, cwd=None, capture=False):
@@ -65,9 +77,16 @@ def run_owned(command, *, timeout, cwd=None, capture=False):
             raise subprocess.CalledProcessError(process.returncode, command, output=output)
         return output
     finally:
-        cleanup_group(process)
-        if process.stdout:
-            process.stdout.close()
+        original_failure = sys.exc_info()[0] is not None
+        try:
+            cleanup_group(process)
+        except Exception as cleanup_error:
+            if not original_failure:
+                raise
+            print('Owned process-group cleanup also failed: ' + str(cleanup_error), file=sys.stderr, flush=True)
+        finally:
+            if process.stdout:
+                process.stdout.close()
 
 
 def civil_reference(worker, payload, manifest):
