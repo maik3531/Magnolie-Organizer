@@ -1,6 +1,6 @@
 /* Test APK only: no activation, state assignment, perpetual observer or style reads in event callbacks. */
 (() => {
-  const ids = new WeakMap(); let next = 0, active = null, port = null;
+  const ids = new WeakMap(); let next = 0, active = null, port = null, candidate = null;
   const documentId = crypto.randomUUID();
   const id = e => { if (!e) return 0; if (!ids.has(e)) ids.set(e, ++next); return ids.get(e); };
   const ring = new Array(256); let written = 0;
@@ -30,7 +30,20 @@
         if (matches.length !== 1) throw Error('Expected exactly one register: '+label);
         const e = matches[0]; e.scrollIntoView({block:'nearest',behavior:'instant'});
         const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,hit=document.elementFromPoint(x,y);
-        if (!hit || !(hit===e || e.contains(hit)) || e.disabled || !e.isConnected) return {ready:false};
+        if (!hit || !(hit===e || e.contains(hit)) || e.disabled || !e.isConnected) {candidate=null; return {ready:false};}
+        let moving=false;
+        for(let ancestor=e;ancestor;ancestor=ancestor.parentElement) {
+          moving ||= (ancestor.getAnimations?.() || []).some(animation=>animation.playState==='running' && animation.effect?.getTiming().iterations!==Infinity);
+        }
+        const bounds=[r.x,r.y,r.width,r.height,visualViewport.scale,visualViewport.offsetLeft,visualViewport.offsetTop];
+        if(moving) {candidate=null; return {ready:false};}
+        if(!candidate || candidate.e!==e || candidate.bounds.some((value,index)=>Math.abs(value-bounds[index])>0.001)) {
+          const current=candidate={e,bounds,frames:0};
+          requestAnimationFrame(()=>{if(candidate!==current) return; current.frames=1;
+            requestAnimationFrame(()=>{if(candidate===current) current.frames=2;});});
+          return {ready:false};
+        }
+        if(candidate.frames!==2) return {ready:false};
         if (e.dataset.fokus !== 'register:'+section) throw Error('Label/section identity mismatch');
         const before=OrganizerTest.zustand().sektion;
         if (before===section) throw Error('No transition: expected section is already active');
@@ -41,8 +54,17 @@
         return {ready:true,step,documentId,node,label,section,before,armedAt,sourceHash:this.sourceHash,
           x,y,width:r.width,height:r.height,dpr:devicePixelRatio,pageScale:visualViewport.scale,
           viewportX:visualViewport.offsetLeft,viewportY:visualViewport.offsetTop,touchAction:getComputedStyle(e).touchAction,
-          jsPrepareMs:performance.now()-started};
+          stableFrames:candidate.frames,jsPrepareMs:performance.now()-started};
       } catch(e) {return {error:String(e)};}
+    },
+    failure() {
+      const a=active, rect=a?.e.getBoundingClientRect(), x=rect?rect.x+rect.width/2:0, y=rect?rect.y+rect.height/2:0;
+      const hit=rect?document.elementFromPoint(x,y):null;
+      return {activeStep:a?.step || 0,expectedSection:a?.section || '',actualSection:OrganizerTest.zustand().sektion,
+        targetNode:id(a?.e),rect:rect?{x:rect.x,y:rect.y,width:rect.width,height:rect.height}:null,
+        targetConnected:a?.e.isConnected===true,currentCenterHit:!!a && !!hit && (hit===a.e || a.e.contains(hit)),
+        hidden:document.hidden,focused:document.hasFocus(),pageScale:visualViewport.scale,
+        events:snapshot().events.slice(-16)};
     }
   };
   function acknowledge(a) {
@@ -69,7 +91,7 @@
       const a=active; if (!a) return;
       const target=e.target.closest?.('.registerknopf');
       const at=performance.now();
-      record([a.step,index+1,id(target),e.timeStamp,at,e.pointerId||0,e.isTrusted?1:0,target?.isConnected?1:0]);
+      record([a.step,index+1,id(target),e.timeStamp,at,e.pointerId||0,e.isTrusted?1:0,target?.isConnected?1:0,e.clientX,e.clientY]);
       if (a.proof.observe({type,target,trusted:e.isTrusted,documentId,token:NativeTouchProbe.token,
           step:a.step,node:id(target),connected:target?.isConnected===true,
           stamp:e.timeStamp,at,pointerId:e.pointerId,pointerType:e.pointerType,button:e.button})) {

@@ -382,7 +382,11 @@ class NativeTabletInstrumentation : Instrumentation() {
             val preparedAt=SystemClock.elapsedRealtime()
             injectTouch(prepared.getDouble("screenX").toFloat(),prepared.getDouble("screenY").toFloat())
             val returnedAt=SystemClock.elapsedRealtime()
-            check(ackLatch.await(10,TimeUnit.SECONDS)) {"Timeout: trusted touch acknowledgement $section"}
+            check(ackLatch.await(10,TimeUnit.SECONDS)) {
+                val diagnostic=touchFailureDiagnostics()
+                sendStatus(1,Bundle().apply {putString("stream","TOUCH_TIMEOUT_DIAGNOSTICS $diagnostic\n")})
+                "Timeout: trusted touch acknowledgement $section; technicalState=$diagnostic"
+            }
             val ack=requireNotNull(incomingAck)
             check(ack.optString("kind")=="ack" && ack.optBoolean("trusted") &&
                 ack.getString("token")==inputToken && ack.getString("documentId")==inputDocument && ack.getInt("step")==i+1 &&
@@ -438,6 +442,20 @@ class NativeTabletInstrumentation : Instrumentation() {
         check(ready.await(5,TimeUnit.SECONDS)) {"Test-only WebMessagePort handshake failed"}
     }
 
+    private fun touchFailureDiagnostics():String {
+        val done=CountDownLatch(1); val result=AtomicReference<String?>(null)
+        activity.runOnUiThread {
+            try {web.evaluateJavascript("NativeTouchProbe.failure()") {value -> result.set(value); done.countDown()}}
+            catch (failure:Exception) {result.set(JSONObject().put("diagnosticError",failure.javaClass.simpleName).toString()); done.countDown()}
+        }
+        done.await(2500,TimeUnit.MILLISECONDS)
+        val snapshot=JSONObject()
+        try {snapshot.put("web",JSONObject(result.get() ?: "{\"diagnosticTimeout\":true}"))}
+        catch (_:Exception) {snapshot.put("webDiagnosticInvalid",true)}
+        synchronized(nativeMotion) {snapshot.put("nativeMotion",JSONArray(nativeMotion.toList().takeLast(8).map {JSONArray(it.toList())}))}
+        snapshot.put("injection",lastTouchTiming)
+        return snapshot.toString().take(5000)
+    }
     private fun prepareTouch(step:Int,label:String,section:String):JSONObject {
         lateinit var prepared:JSONObject
         val before=webEvaluations
@@ -462,6 +480,7 @@ class NativeTabletInstrumentation : Instrumentation() {
             check(!prepared.has("error")) {prepared.optString("error")}
             if(prepared.optBoolean("ready")) {
                 check(prepared.getString("documentId")==inputDocument) {"Wrong renderer document"}
+                check(prepared.getInt("stableFrames")==2) {"Touch target has not crossed two stable rendering frames"}
                 check(prepared.getDouble("pageScale")==1.0 && prepared.getDouble("viewportX")==0.0 && prepared.getDouble("viewportY")==0.0) {"Unverified zoom conversion"}
                 prepared.put("originX",location[0]).put("originY",location[1]).put("density",density)
                     .put("nativeEvaluationStart",nativeEvaluationStart).put("nativeArmedUptime",nativeArmedUptime)
