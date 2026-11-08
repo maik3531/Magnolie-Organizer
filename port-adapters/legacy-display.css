@@ -1,0 +1,11 @@
+/* Port-only fallbacks; the canonical styles and all modern color rules remain authoritative. */
+@supports not (background: color-mix(in srgb, red, white)) {
+  body .zyklus-schnellknopf:not(.aktiv),
+  body .schicht-marke,
+  body .muell-marke { background: var(--papier); }
+  body .pm-anlass:not(.pm-feiertag):not(.pm-ferien):not(.pm-urlaub) { background: white; }
+}
+
+/* Monterey WebKit requires the prefixed form. Preserve selectable note/conflict text. */
+.ring, .ecke, .registerknopf, .knopf, .abc, .lotus-felder summary { -webkit-user-select: none; }
+#sicherung-dialog h3, .personal-note-conflict pre, .kaffee-anschrift { -webkit-user-select: text; }

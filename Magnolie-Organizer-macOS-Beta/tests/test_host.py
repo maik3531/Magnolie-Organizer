@@ -210,6 +210,20 @@ class ProjectionTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
 
+    def test_shared_legacy_css_fallbacks(self):
+        runtime = self.javascript()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-legacy-css-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/legacy-display.cjs"),
+                                            "macos", str(target / "web")], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
     def test_shared_display_alarm_actual_form(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-form-") as temp:

@@ -157,6 +157,8 @@ html = html.replace('<title>Magnolie Organizer</title>', '<title>Magnolie Organi
   .replace('</head>', '<link rel="stylesheet" href="desktop-fonts.css">\n<link rel="stylesheet" href="tablet.css">\n<script src="tablet.js"></script>\n</head>');
 generated.set('assets/web/index.html',Buffer.from(html));
 for (const f of ['tablet.js','tablet.css']) generated.set('assets/web/'+f,buffers.get(path.join(root,'web',f)));
+generated.set('assets/web/tablet.css',Buffer.concat([generated.get('assets/web/tablet.css'),
+  Buffer.from('\n'),buffers.get(path.join(parent,'port-adapters/legacy-display.css'))]));
 generated.set('assets/web/beta-i18n.js',Buffer.from('window.TabletStrings = '+buffers.get(path.join(root,'web/beta-i18n.json'))+';'));
 const catalogs = {};
 let active = '/* Generated from the live canonical catalogs. */\n';

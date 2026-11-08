@@ -263,7 +263,8 @@ def project(snapshot, target):
     adapter = replace_once(adapter, "/*GENERATED_IDENTITY*/{}", json.dumps(identity))
     (target / "web/macos-beta.js").write_text(adapter)
     (target / "web/system-accounts.js").write_bytes(snapshot[str((BETA / "Projection/system-accounts.js").relative_to(REPO))])
-    (target / "web/macos-beta.css").write_bytes(snapshot[str((BETA / "Projection/macos-beta.css").relative_to(REPO))])
+    (target / "web/macos-beta.css").write_bytes(snapshot[str((BETA / "Projection/macos-beta.css").relative_to(REPO))] +
+                                              b"\n" + snapshot["port-adapters/legacy-display.css"])
     index = target / "web/index.html"
     html = replace_once(index.read_text(), "<title>Magnolie Organizer</title>",
                         "<title>Magnolie Organizer macOS Beta</title>\n<link rel=\"stylesheet\" href=\"macos-beta.css\">")
