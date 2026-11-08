@@ -190,6 +190,15 @@ class ProjectionTests(unittest.TestCase):
         if not swift:
             print("Swift core execution NOT run in this host collection; use MACOS_BETA_SWIFT or tools/check_editor.py --swift.")
 
+    def test_canonical_calendar_export_contract(self):
+        swift = os.environ.get("MACOS_BETA_SWIFT") or shutil.which("swift")
+        args = [sys.executable, "tools/check_calendar.py"]
+        if swift:
+            args += ["--swift", swift]
+        result = subprocess.run(args, cwd=BETA, capture_output=True, text=True, timeout=360)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        print(result.stdout.strip())
+
     def test_recovery_regional_keyboard_contract(self):
         runtime = self.javascript()
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-recovery-host-") as temp:

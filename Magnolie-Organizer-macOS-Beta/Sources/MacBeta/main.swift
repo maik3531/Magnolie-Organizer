@@ -24,7 +24,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var selection: BackupSelection?
     private var restoring = false
     private var catalog: [String: String] = [:]
-    private let events = EKEventStore()
+    private let systemAccounts = SystemAccounts()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -65,6 +65,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         appMenu.addItem(withTitle: "Enable in-app notifications...", action: #selector(consent), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "List macOS calendars (read-only)...", action: #selector(calendars), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "List macOS reminder lists (read-only)...", action: #selector(reminders), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: "macOS " + tr("Contacts") + "…", action: #selector(systemContacts), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: tr("Quit") + " " + name, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let editItem = NSMenuItem(), edit = NSMenu(title: tr("Edit"))
@@ -112,21 +113,27 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             }
         }
     }
-    @objc private func calendars() { list(.event) }
-    @objc private func reminders() { list(.reminder) }
-    private func list(_ type: EKEntityType) {
-        let completion: (Bool, Error?) -> Void = { granted, error in
-            DispatchQueue.main.async {
-                guard granted, error == nil else { self.alert("Access denied or unavailable. Nothing was imported or changed."); return }
-                let names = self.events.calendars(for: type).map { $0.title + " (" + $0.source.title + ")" }.sorted()
-                self.alert("Read-only discovery, not synchronization:\n\n" +
-                           (names.isEmpty ? "No lists returned by EventKit." : names.joined(separator: "\n")))
+    @objc private func calendars() { listSystemSources(.events) }
+    @objc private func reminders() { listSystemSources(.reminders) }
+    @objc private func systemContacts() { listSystemSources(.contacts) }
+    private func listSystemSources(_ kind: SystemSourcePolicy.Kind) {
+        Task {
+            do {
+                try await systemAccounts.requestAccess(kind)
+                let status = try await systemAccounts.status()
+                let key = kind == .contacts ? "adressbuecher" : "kalender"
+                let sources = (status[key] as? [[String: Any]] ?? []).filter {
+                    kind == .contacts || $0["art"] as? String == kind.rawValue
+                }
+                let names = sources.compactMap { $0["name"] as? String }.sorted()
+                DispatchQueue.main.async {
+                    self.alert(names.isEmpty ? "No accessible sources in this macOS service." :
+                        "macOS sources (discovery only; full synchronization is not yet enabled):\n\n" + names.joined(separator: "\n"))
+                }
+            } catch {
+                DispatchQueue.main.async { self.alert(error.localizedDescription) }
             }
         }
-        if #available(macOS 14.0, *) {
-            if type == .event { events.requestFullAccessToEvents(completion: completion) }
-            else { events.requestFullAccessToReminders(completion: completion) }
-        } else { events.requestAccess(to: type, completion: completion) }
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
@@ -156,6 +163,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             var result: [String: Any] = ["ok": false, "fehler": message, "cmd": command]
             if let id = fields["id"] as? NSNumber { result["id"] = id }
             if let token = fields["token"] as? String { result["token"] = token }
+            if let requestID = fields["requestId"] as? String, requestID.utf8.count <= 1024 { result["requestId"] = requestID }
             if command == "entsperren" {
                 failureCount += 1
                 if failureCount >= 3 { unlockAfter = Date().addingTimeInterval(300); failureCount = 0 }
@@ -325,6 +333,38 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                     self.send("failure", ["cmd": "sicherung_wiederherstellen", "ok": false, "fehler": self.tr(error.localizedDescription)])
                 }
             }
+        case .feiertage:
+            var regions: [HolidayService.Region] = []
+            let selected = request.text("region")
+            if !selected.isEmpty { regions = [.init(code: selected, name: "")] }
+            else if let raw = request.fields["regionen"] as? [Any] {
+                guard raw.count <= 26 else { throw BetaError("Too many holiday regions were selected.") }
+                for item in raw {
+                    if let pair = item as? [String], pair.count == 2 { regions.append(.init(code: pair[0], name: pair[1])) }
+                    else if let item = item as? [String: String], let code = item["code"], let title = item["name"] {
+                        regions.append(.init(code: code, name: title))
+                    } else { throw BetaError("The selected holiday region is invalid.") }
+                }
+            }
+            let selectedLanguage = regional(plain)["language"] as? String ?? "system"
+            let holidayLanguage = selectedLanguage == "system" ? (Locale.preferredLanguages.first ?? "EN") : selectedLanguage
+            let holidayRequestID = request.fields["requestId"] as? String
+            let holidayMessage = tr("The holidays were imported.")
+            let query = try HolidayService.Query(country: request.text("land"), regions: regions,
+                years: request.fields["jahre"] as? [Int] ?? [], includeSchool: request.fields["ferien"] as? Bool ?? true,
+                regionRequired: request.fields["regionErforderlich"] as? Bool ?? false,
+                language: holidayLanguage)
+            Task {
+                var response: [String: Any]
+                do {
+                    let entries = try await HolidayService().fetch(query)
+                    response = ["feiertage": entries.map { $0.organizerValue }, "jahre": query.years,
+                                "bericht": holidayMessage]
+                } catch { response = ["fehler": error.localizedDescription] }
+                if let id = holidayRequestID { response["requestId"] = id }
+                let result = response
+                DispatchQueue.main.async { self.send("feiertageErgebnis", result) }
+            }
         case .regional_einstellungen:
             guard let plain else { throw BetaError("Unlock first.") }
             let settings = try RegionalSettings.validate(request.fields["regional"] as! [String: Any])
@@ -334,15 +374,16 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             self.plain = next; envelope = encryption == nil ? nil : output
             send("regionalErgebnis", ["ok": true, "regional": settings])
         case .export:
-            guard plain != nil, request.text("art") == "ics-termine",
+            guard plain != nil, let kind = ICalendarExport.Kind(rawValue: request.text("art")),
                   let records = request.fields["daten"] as? [[String: Any]] else {
-                throw BetaError("Only simple appointment ICS export is implemented; use encrypted JSON backup for the whole document.")
+                throw BetaError("Choose appointment, task or anniversary ICS export; use encrypted JSON backup for the whole document.")
             }
-            let text = try CalendarExport.appointments(records)
+            let text = try ICalendarExport.encode(records, kind: kind,
+                defaultTimeZone: regional(plain)["timeZone"] as? String ?? "system")
             let path = try savePanel(Data(text.utf8), suffix: ".ics")
             send("exportErgebnis", ["ok": path != nil, "pfad": path ?? "", "abgebrochen": path == nil,
                                     "anzahl": records.count,
-                                    "bericht": "macOS Beta: simple appointments only; application metadata and global reminder preferences are not ICS fields. Use JSON backup for a complete copy."])
+                                    "bericht": "Calendar export completed. Application metadata and global reminder preferences are not ICS fields; use JSON backup for a complete profile copy."])
         case .erinnerung_einrichten:
             send("erinnerungStand", ["fehler": "macOS Beta: reminders only while open and unlocked; no wake or background scheduler. Enable notifications in the application menu."])
         case .erinnerung_zeigen:

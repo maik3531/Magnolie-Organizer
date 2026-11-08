@@ -91,7 +91,7 @@ jobs:
           export MACOS_BETA_UI_PATH="$PWD/Generated"
           "$RUNNER_TEMP/mac-python/bin/python" tools/crypto_vectors.py --check
           "$RUNNER_TEMP/mac-python/bin/python" tests/test_host.py
-          python3 tools/build_dev.py
+          MACOS_BETA_LIVE_HOLIDAYS=1 python3 tools/build_dev.py
           python3 tools/project_ui.py check
       - name: Start, save, quit and reopen the real app bundle
         working-directory: Magnolie-Organizer-macOS-Beta

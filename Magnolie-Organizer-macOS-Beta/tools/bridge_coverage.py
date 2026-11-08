@@ -5,11 +5,11 @@ import re
 from project_ui import BETA, REPO, LINUX, inputs, commands, digest
 
 SCOPES = {
-    "bereit": "source: load/new/locked document; native startup untested",
-    "entsperren": "partial: v1/v2 Apple crypto source; no macOS crypto run",
+    "bereit": "source: load/new/locked document; native local startup verified",
+    "entsperren": "partial: v1/v2 Apple crypto fixtures verified; full password lifecycle pending",
     "speichern": "source: durable document commit; destructive save requires checkpoint",
     "kennwort_setzen": "partial: enable for current profile only; no change/rekey",
-    "beenden": "source: AppKit quit handshake; native lifecycle untested",
+    "beenden": "source: AppKit quit/save/reopen handshake verified for fresh local profiles",
     "beenden_bereit": "source: correlated pending quit only",
     "beenden_abgebrochen": "source: cancel pending quit",
     "ablage_kopieren": "source: text clipboard; native pasteboard untested",
@@ -19,7 +19,8 @@ SCOPES = {
     "sicherung_wiederherstellen": "partial: full JSON replacement + checkpoint + UI preflight; no additive/section restore",
     "mutations_snapshot": "partial: durable exact file checkpoint; no desktop journal index/retention",
     "regional_einstellungen": "source: validated durable preferences; native locale handling untested",
-    "export": "partial: simple appointment ICS only",
+    "export": "partial: source-preserving appointment/task/anniversary ICS; native extended roundtrips pending",
+    "feiertage": "source: bounded HTTPS public/school holiday retrieval with regional scope; native validation pending",
     "erinnerung_zeigen": "partial: open/unlocked/consented session only; delivery untested",
     "erinnerung_einrichten": "LIMITATION RESPONSE ONLY: no native scheduler is configured",
     "notiz_anhang_datei": "partial: selected data-URL attachment Save only; no Open"

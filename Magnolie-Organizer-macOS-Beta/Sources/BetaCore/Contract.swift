@@ -11,7 +11,7 @@ public enum Command: String, CaseIterable {
     case beenden, beenden_bereit, beenden_abgebrochen
     case ablage_kopieren, ablage_holen, sicherung, export
     case erinnerung_zeigen, erinnerung_einrichten, notiz_anhang_datei
-    case mutations_snapshot, sicherung_waehlen, sicherung_wiederherstellen, regional_einstellungen
+    case mutations_snapshot, sicherung_waehlen, sicherung_wiederherstellen, regional_einstellungen, feiertage
 }
 
 public struct Request {
@@ -43,6 +43,10 @@ public struct Request {
         case .sicherung_wiederherstellen:
             schema.merge(["pfad": "string", "kennwort": "string", "sicherungsordner": "string"]) { _, b in b }
             optional = ["sicherungsordner"]
+        case .feiertage:
+            schema.merge(["land": "string", "region": "string", "regionen": "array", "jahre": "years",
+                          "ferien": "bool", "regionErforderlich": "bool", "requestId": "string"]) { _, b in b }
+            optional = ["region", "regionen", "ferien", "regionErforderlich", "requestId"]
         case .regional_einstellungen: schema["regional"] = "object"
         case .export: schema.merge(["art": "string", "daten": "array"]) { _, b in b }
         case .erinnerung_zeigen:
@@ -71,6 +75,11 @@ public struct Request {
             case "null": valid = value is NSNull
             case "bool": valid = boolean
             case "integer": valid = integer
+            case "years":
+                if let years = value as? [NSNumber], !years.isEmpty, years.count <= 3 {
+                    valid = years.allSatisfy { CFGetTypeID($0) != CFBooleanGetTypeID() &&
+                        $0.doubleValue.rounded() == $0.doubleValue && (1...9999).contains($0.intValue) }
+                } else { valid = false }
             case "minutes": valid = value is String || integer
             default: valid = false
             }

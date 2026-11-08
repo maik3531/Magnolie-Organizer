@@ -5,8 +5,8 @@ This is a command inventory, **not a passed-feature count or a native validation
 Static literal calls are compared with the Windows typed contract. Computed command names
 and native-only menu actions need the separate feature matrix; absence here is not support.
 
-Frontend SHA-256: `58496dbe2d8c9edf8c3e2a0993551b1986faa7e5a553bfd1054186ec54e6b849`
-Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef3453c82212f`
+Frontend SHA-256: `34e2d269ec76c1542f660626c0970afe2ae3f9922b886ad4e285790058e88a0c`
+Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f6193b4fa737fc2`
 
 | Command | Shared frontend literal | Windows contract | macOS Beta scope |
 | --- | --- | --- | --- |
@@ -39,10 +39,10 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `baum_weitergabe_annehmen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_weitergabe_erlauben` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_weitergeben` | yes | yes | UNSUPPORTED: negative Beta response |
-| `beenden` | yes | yes | source: AppKit quit handshake; native lifecycle untested |
+| `beenden` | yes | yes | source: AppKit quit/save/reopen handshake verified for fresh local profiles |
 | `beenden_abgebrochen` | yes | yes | source: cancel pending quit |
 | `beenden_bereit` | yes | yes | source: correlated pending quit only |
-| `bereit` | yes | yes | source: load/new/locked document; native startup untested |
+| `bereit` | yes | yes | source: load/new/locked document; native local startup verified |
 | `brief` | yes | yes | UNSUPPORTED: negative Beta response |
 | `cloud_sicherung_kennwort` | yes | yes | UNSUPPORTED: negative Beta response |
 | `cloud_sicherung_status` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -53,12 +53,12 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `eds_status` | yes | yes | UNSUPPORTED: negative Beta response |
 | `eigenes_profil_office` | yes | yes | UNSUPPORTED: negative Beta response |
 | `eigenes_profil_telefon` | yes | yes | UNSUPPORTED: negative Beta response |
-| `entsperren` | yes | yes | partial: v1/v2 Apple crypto source; no macOS crypto run |
+| `entsperren` | yes | yes | partial: v1/v2 Apple crypto fixtures verified; full password lifecycle pending |
 | `erinnerung_einrichten` | yes | yes | LIMITATION RESPONSE ONLY: no native scheduler is configured |
 | `erinnerung_zeigen` | yes | yes | partial: open/unlocked/consented session only; delivery untested |
-| `export` | yes | yes | partial: simple appointment ICS only |
+| `export` | yes | yes | partial: source-preserving appointment/task/anniversary ICS; native extended roundtrips pending |
 | `exportieren` | yes | — | UNSUPPORTED: negative Beta response |
-| `feiertage` | yes | yes | UNSUPPORTED: negative Beta response |
+| `feiertage` | yes | yes | source: bounded HTTPS public/school holiday retrieval with regional scope; native validation pending |
 | `gesamtarchiv_exportieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `gesamtarchiv_importieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `gesamtarchiv_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -122,6 +122,8 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `lo_benutzer` | yes | yes | UNSUPPORTED: negative Beta response |
 | `mail` | yes | yes | UNSUPPORTED: negative Beta response |
 | `mcp_antwort` | yes | yes | UNSUPPORTED: negative Beta response |
+| `medien_backup` | yes | — | UNSUPPORTED: negative Beta response |
+| `medien_papierkorb` | yes | — | UNSUPPORTED: negative Beta response |
 | `medikament_suchen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `mutations_snapshot` | yes | yes | partial: durable exact file checkpoint; no desktop journal index/retention |
 | `notiz_anhang_datei` | yes | yes | partial: selected data-URL attachment Save only; no Open |
@@ -159,11 +161,14 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `telefon_anruf_audio_pruefen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_anruf_lautstaerke_wiederherstellen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_auflegen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_backupziel` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_bluetooth_einstellungen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_bluetooth_schalten` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_ein` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_entfernen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_entwickler_diagnose` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_foto_aktion` | yes | — | UNSUPPORTED: negative Beta response |
+| `telefon_fotoziel_waehlen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_freigabe` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_freigaben` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_kontakte` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -172,6 +177,7 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `telefon_kontaktgruppentitel` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_kontaktwerte` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_mcp` | — | yes | UNSUPPORTED: negative Beta response |
+| `telefon_medien` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_meldung_anzeigen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_oeffnen` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_paarung_bestaetigen` | — | yes | UNSUPPORTED: negative Beta response |
@@ -185,6 +191,7 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `telefon_verbinden` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_verbindung_ein` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_verbindung_stand` | — | yes | UNSUPPORTED: negative Beta response |
+| `telefon_videoziel_waehlen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_waehlen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `thunderbird_einrichten` | — | yes | UNSUPPORTED: negative Beta response |
 | `tray_einstellungen` | yes | yes | UNSUPPORTED: negative Beta response |

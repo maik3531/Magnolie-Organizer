@@ -11,8 +11,9 @@
   <key>MagnolieBetaVersion</key><string>2.0.30-beta.1</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
-  <key>NSCalendarsUsageDescription</key><string>Optional read-only listing of macOS calendar names. No synchronization or changes.</string>
-  <key>NSRemindersUsageDescription</key><string>Optional read-only listing of macOS reminder lists. No synchronization or changes.</string>
-  <key>NSCalendarsFullAccessUsageDescription</key><string>Optional read-only listing of macOS calendar names. No synchronization or changes.</string>
-  <key>NSRemindersFullAccessUsageDescription</key><string>Optional read-only listing of macOS reminder lists. No synchronization or changes.</string>
+  <key>NSCalendarsUsageDescription</key><string>Access calendars that you select in macOS for reading and explicitly requested changes.</string>
+  <key>NSRemindersUsageDescription</key><string>Access reminder lists that you select in macOS for reading and explicitly requested changes.</string>
+  <key>NSCalendarsFullAccessUsageDescription</key><string>Access calendars that you select in macOS for reading and explicitly requested changes.</string>
+  <key>NSRemindersFullAccessUsageDescription</key><string>Access reminder lists that you select in macOS for reading and explicitly requested changes.</string>
+  <key>NSContactsUsageDescription</key><string>Read contacts from address books that you select in macOS. Your account credentials remain with macOS.</string>
 </dict></plist>

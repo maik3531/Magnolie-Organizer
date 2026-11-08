@@ -211,6 +211,9 @@ final class CoreTests: XCTestCase {
         XCTAssertThrowsError(try Request(Document.encode(unsupported)))
         var unknown = save; unknown["unexpected"] = NSNull()
         XCTAssertThrowsError(try Request(Document.encode(unknown)))
+        let tasks = try XCTUnwrap(fixture["tasks"] as? [[String: Any]])
+        let taskExport = try ICalendarExport.encode(tasks, kind: .tasks, defaultTimeZone: "UTC")
+        XCTAssertEqual(taskExport.components(separatedBy: "BEGIN:VTODO").count - 1, tasks.count)
         let cases = try XCTUnwrap(fixture["cases"] as? [[String: Any]])
         XCTAssertGreaterThanOrEqual(cases.count, 9)
         for item in cases {
@@ -218,6 +221,10 @@ final class CoreTests: XCTestCase {
             let raw = try XCTUnwrap(record["icsRoundtrip"] as? [String])
             XCTAssertTrue(raw.contains(where: { $0.hasPrefix("LOCATION:") }))
             let text = try CalendarExport.appointments([record])
+            let caseName = item["name"] as? String ?? ""
+            let context = ["Europe/Berlin", "America/New_York", "system"].contains(caseName) ? caseName : "UTC"
+            let fullExport = try ICalendarExport.encode([record], kind: .appointments, defaultTimeZone: context)
+            XCTAssertEqual(fullExport.components(separatedBy: "BEGIN:VEVENT").count - 1, 1)
             let location = try XCTUnwrap(item["location"] as? String)
                 .replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: ";", with: "\\;")
                 .replacingOccurrences(of: ",", with: "\\,")

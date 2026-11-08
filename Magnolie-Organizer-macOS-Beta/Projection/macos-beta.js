@@ -6,11 +6,11 @@
   const identity = /*GENERATED_IDENTITY*/{};
   const methods = new Set(["init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
     "exportErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
-    "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis"]);
+    "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis"]);
   const unsupported = "Not implemented in Magnolie Organizer macOS Beta. Nothing was changed.";
-  const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; simple appointment ICS; " +
+  const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; calendar, task and anniversary ICS; " +
     "attachment Save; clipboard; reminders only while open. No sync, background " +
-    "wake, auto-update, password change/removal, printing or office export. Native code is not yet validated.";
+    "wake, auto-update, password change/removal, printing or office export. Native feature acceptance remains incomplete.";
   let ready = false, restorePending = false;
   const tr = text => window.MagnolieI18n.gettext(text);
 
@@ -33,7 +33,7 @@
       speichern: "gespeichert", entsperren: "entsperrtFehler",
       kennwort_setzen: "kennwortStand", kennwort_entfernen: "kennwortStand",
       mutations_snapshot: "mutationsSnapshot", sicherung: "sicherungFertig",
-      export: "exportErgebnis", import: "importErgebnis", import_lokal: "importErgebnis",
+      feiertage: "feiertageErgebnis", export: "exportErgebnis", import: "importErgebnis", import_lokal: "importErgebnis",
       erinnerung_einrichten: "erinnerungStand", erinnerung_zeigen: "erinnerungStand",
       notiz_anhang_datei: "notizAnhangDateiErgebnis", sicherung_waehlen: "sicherungAusgewaehlt",
       sicherung_wiederherstellen: "sicherungWiederhergestellt",
