@@ -9,6 +9,8 @@ public final class AtomicStore {
     public let file: URL
     private let directory: URL
     private var lease: Int32 = -1
+    private var directoryIdentity = stat()
+    private var leaseIdentity = stat()
     private var expected: Data?
     private var loaded = false
     private var poisoned = false
@@ -29,6 +31,7 @@ public final class AtomicStore {
               (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFDIR), info.st_mode & 0o077 == 0 else {
             throw BetaError("Profile must be a private, owner-controlled directory (0700).")
         }
+        directoryIdentity = info
         let lock = directory.appendingPathComponent("profile.lock")
         lease = open(lock.path, O_CREAT | O_RDWR | O_NOFOLLOW | O_CLOEXEC, mode_t(0o600))
         guard lease >= 0 else { throw BetaError("Cannot open profile lease.") }
@@ -38,6 +41,7 @@ public final class AtomicStore {
             close(lease); lease = -1
             throw BetaError("Profile is unsafe or already open in another macOS Beta process.")
         }
+        leaseIdentity = info
     }
     deinit { if lease >= 0 { close(lease) } }
 
@@ -64,6 +68,71 @@ public final class AtomicStore {
             poisoned = true
             throw error
         }
+    }
+
+    /// Evidence-only actual disk read. Like load/commit, caller must serialize access to this
+    /// profile instance; this does not authorize a sync commit or replace the profile lease.
+    internal func durableSnapshotBytes(checkpoint: (String) throws -> Void = { _ in }) throws -> Data {
+        guard loaded, !poisoned, let saved = expected else { throw BetaError("No loaded saved profile is available for disk verification.") }
+        func sameFileGeneration(_ lhs: stat, _ rhs: stat) -> Bool {
+            guard lhs.st_dev == rhs.st_dev, lhs.st_ino == rhs.st_ino, lhs.st_size == rhs.st_size,
+                  lhs.st_uid == rhs.st_uid, lhs.st_mode == rhs.st_mode, lhs.st_nlink == rhs.st_nlink else { return false }
+            #if canImport(Darwin)
+            return lhs.st_mtimespec.tv_sec == rhs.st_mtimespec.tv_sec && lhs.st_mtimespec.tv_nsec == rhs.st_mtimespec.tv_nsec &&
+                lhs.st_ctimespec.tv_sec == rhs.st_ctimespec.tv_sec && lhs.st_ctimespec.tv_nsec == rhs.st_ctimespec.tv_nsec
+            #else
+            return lhs.st_mtim.tv_sec == rhs.st_mtim.tv_sec && lhs.st_mtim.tv_nsec == rhs.st_mtim.tv_nsec &&
+                lhs.st_ctim.tv_sec == rhs.st_ctim.tv_sec && lhs.st_ctim.tv_nsec == rhs.st_ctim.tv_nsec
+            #endif
+        }
+        func validateLease() throws {
+            var parent = stat(), path = stat(), descriptor = stat()
+            guard directory.standardizedFileURL.path == directory.resolvingSymlinksInPath().path,
+                  lstat(directory.path, &parent) == 0, parent.st_uid == getuid(), parent.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR), parent.st_mode & 0o077 == 0,
+                  parent.st_dev == directoryIdentity.st_dev, parent.st_ino == directoryIdentity.st_ino,
+                  lstat(directory.appendingPathComponent("profile.lock").path, &path) == 0,
+                  fstat(lease, &descriptor) == 0, path.st_dev == leaseIdentity.st_dev, path.st_ino == leaseIdentity.st_ino,
+                  descriptor.st_dev == leaseIdentity.st_dev, descriptor.st_ino == leaseIdentity.st_ino,
+                  descriptor.st_uid == getuid(), descriptor.st_nlink == 1, descriptor.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), descriptor.st_mode & 0o077 == 0 else {
+                throw BetaError("Profile storage authority changed during verification.")
+            }
+        }
+        do {
+            try validateLease()
+            guard try Self.read(file) == saved else { throw BetaError("The actual profile changed; disk verification refused.") }
+            let descriptor = open(file.path, O_RDWR | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
+            guard descriptor >= 0 else { throw BetaError("Cannot open the actual profile for durability verification.") }
+            defer { close(descriptor) }
+            var info = stat(), path = stat()
+            guard fstat(descriptor, &info) == 0, info.st_uid == getuid(), info.st_nlink == 1,
+                  info.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), info.st_mode & 0o077 == 0,
+                  info.st_size == saved.count, lstat(file.path, &path) == 0, sameFileGeneration(info, path) else {
+                throw BetaError("Unsafe actual profile snapshot.")
+            }
+            try checkpoint("snapshot-read")
+            guard fsync(descriptor) == 0 else { throw BetaError("Profile verification file sync failed.") }
+            try checkpoint("snapshot-fsync")
+            #if canImport(Darwin)
+            guard fcntl(descriptor, F_FULLFSYNC) == 0 else { throw BetaError("Profile verification durable file sync failed.") }
+            #endif
+            try checkpoint("snapshot-fullsync")
+            var afterFileSync = stat()
+            guard fstat(descriptor, &afterFileSync) == 0, sameFileGeneration(info, afterFileSync) else { throw BetaError("Profile was written during its durability barrier.") }
+            let parent = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+            guard parent >= 0 else { throw BetaError("Cannot synchronize the profile directory.") }
+            defer { close(parent) }
+            var parentInfo = stat()
+            guard fstat(parent, &parentInfo) == 0, parentInfo.st_dev == directoryIdentity.st_dev, parentInfo.st_ino == directoryIdentity.st_ino,
+                  fsync(parent) == 0 else { throw BetaError("Profile verification directory sync failed.") }
+            try checkpoint("snapshot-dirsync")
+            try validateLease()
+            var afterRead = stat()
+            guard expected == saved, try Self.read(file) == saved, lstat(file.path, &path) == 0,
+                  fstat(descriptor, &afterRead) == 0, sameFileGeneration(info, path), sameFileGeneration(info, afterRead) else {
+                throw BetaError("Profile changed during disk verification.")
+            }
+            return saved
+        } catch { poisoned = true; throw error }
     }
 
     /// Exact on-disk bytes, including the encrypted envelope. Never a plaintext shadow

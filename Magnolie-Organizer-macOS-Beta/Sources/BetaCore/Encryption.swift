@@ -105,6 +105,28 @@ public struct Encryption {
         return (result, session)
     }
 
+    /// Independently authenticate actual V2 disk ciphertext using the already-unlocked session.
+    /// No cached plaintext or password argument is accepted. Legacy V1 must first undergo the
+    /// existing ordinary durable save, which upgrades the envelope with this session's DEK.
+    public func openSnapshot(_ text: String) throws -> String {
+        let root = try Document.object(text)
+        guard root["magnolie"] as? String == Self.marker, root["verfahren"] as? String == Self.algorithm,
+              let version = root["fassung"] as? NSNumber, CFGetTypeID(version) != CFBooleanGetTypeID(), version.doubleValue == 2,
+              try Self.bytes(root, "dekKennung", count: 16) == Self.bytes(envelope, "dekKennung", count: 16) else {
+            throw BetaError("The disk profile does not match this unlocked encryption session.")
+        }
+        for (field, count) in [("salz", 16), ("dekNonce", 12), ("dekDaten", 48)] {
+            guard try Self.bytes(root, field, count: count) == Self.bytes(envelope, field, count: count) else { throw BetaError("The disk key wrapping changed.") }
+        }
+        guard let rounds = root["runden"] as? NSNumber, CFGetTypeID(rounds) != CFBooleanGetTypeID(),
+              let expectedRounds = envelope["runden"] as? NSNumber, rounds == expectedRounds else { throw BetaError("The disk key derivation changed.") }
+        let id = try Self.bytes(root, "dekKennung", count: 16)
+        let plain = try Self.open(Self.bytes(root, "daten"), key, Self.bytes(root, "datenNonce", count: 12), Self.aad("inhalt", id))
+        guard let decoded = String(data: plain, encoding: .utf8) else { throw BetaError("Invalid decrypted disk UTF-8.") }
+        _ = try Document.plain(decoded)
+        return decoded
+    }
+
     public func encrypt(_ text: String) throws -> String {
         _ = try Document.plain(text)
         var root = envelope
