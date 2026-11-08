@@ -315,6 +315,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native source / Windows original mapped file bounded read", DeviceFileNativeReceiveTests.WindowsManagedSourceAsync);
     runner.Add("Device file native source / Windows cancellation drains original read", DeviceFileNativeReceiveTests.WindowsManagedSourceDrainAsync);
     runner.Add("Device file native source / Windows metadata selection on held original", DeviceFileNativeReceiveTests.WindowsManagedSourceMetadataAsync);
+    runner.Add("Device file mapped source / Windows actual completed mapping and matched send intent", DeviceFileMappedSourceTests.WindowsCompletedMappingAsync);
+    runner.Add("Device file mapped source / Windows original saved book and file identity", DeviceFileMappedSourceTests.WindowsOriginalBookAndFileAsync);
+    runner.Add("Device file mapped source / Windows import scope and actual metadata filter", DeviceFileMappedSourceTests.WindowsScopeAndMetadataAsync);
     runner.Add("Device file native receive / Windows actual content verification", DeviceFileNativeReceiveTests.WindowsVerificationAsync);
     runner.Add("Device file native receive / Windows uncertain publication and reparse", DeviceFileNativeReceiveTests.WindowsUncertainAndReparseAsync);
     runner.Add("Device file native destination / Windows independent protected roots", DeviceFileStoreDestinationsTests.WindowsPersistenceAsync);
