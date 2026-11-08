@@ -65,6 +65,23 @@ private actor AccountScriptTransport: BoundedHTTPTransport {
 }
 
 final class DAVAccountServiceTests: XCTestCase {
+    func testNativeGUIAccountCommandsRequireCurrentRevisionAndTypedFields() throws {
+        let revision = String(repeating: "a", count: 64)
+        var save: [String: Any] = ["cmd": "baum_briefkasten_speichern", "kontoArt": "nextcloud",
+            "davAktiv": true, "briefkastenAktiv": false, "url": "https://cloud.example.test", "benutzer": "fixture-user",
+            "anwendungskennwort": "fixture-only", "kennwortLoeschen": false, "expectedRevision": revision]
+        XCTAssertNoThrow(try Request(Document.encode(save)))
+        save.removeValue(forKey: "expectedRevision")
+        XCTAssertThrowsError(try Request(Document.encode(save)))
+        save["expectedRevision"] = revision; save["davAktiv"] = 1
+        XCTAssertThrowsError(try Request(Document.encode(save)))
+        save["davAktiv"] = true; save["pfad"] = "/unselected-config.json"
+        XCTAssertThrowsError(try Request(Document.encode(save)))
+        XCTAssertNoThrow(try Request(Document.encode(["cmd": "baum_briefkasten_pruefen", "expectedRevision": revision])))
+        XCTAssertThrowsError(try Request(Document.encode(["cmd": "baum_dav_pruefen", "expectedRevision": revision])))
+        XCTAssertNoThrow(try Request(Document.encode(["cmd": "baum_dav_pruefen", "expectedRevision": revision, "requestId": "fixture-request"])))
+    }
+
     private func configuration(server: String = "https://cloud.example/nextcloud", user: String = "person", active: Bool = true) throws -> DAVAccountConfiguration {
         try DAVAccountConfiguration(davAktiv: active, server: server, benutzer: user)
     }
