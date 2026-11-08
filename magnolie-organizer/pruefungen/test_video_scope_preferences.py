@@ -72,6 +72,14 @@ def test_replacing_existing_video_destination_requires_separate_historical_reass
         prefs.set_video_scope(prefs.issue_action(),saved,enabled=True,destination_choice=selected)
     assert prefs.read()==saved
     assert (original.stat().st_ino,original.read_bytes(),existing.stat().st_ino,existing.read_bytes())==before
+    off=prefs.set_video_scope(prefs.issue_action(),saved,enabled=False)
+    changed=prefs.set_video_scope(prefs.issue_action(),off,enabled=False,destination_choice=selected,historical_choice='keep_existing')
+    assert changed.policy.videos.destination==selected.destination and not changed.include_videos
+    assert changed.policy.videos.destination_token==selected.destination_token!=saved.policy.videos.destination_token
+    assert replace(changed.policy,revision=saved.policy.revision,videos=saved.policy.videos)==saved.policy
+    assert (original.stat().st_ino,original.read_bytes(),existing.stat().st_ino,existing.read_bytes())==before
+    reselected=videos[0].choose_custom(videos[0].issue_action(),other)
+    assert prefs.set_video_scope(prefs.issue_action(),changed,enabled=False,destination_choice=reselected,historical_choice='keep_existing')==changed
 
 
 def test_video_off_does_not_need_missing_root_and_cannot_silently_reenable_it(preferences,videos):

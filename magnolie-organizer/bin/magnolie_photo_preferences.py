@@ -524,21 +524,22 @@ class ProtectedPhotoPreferences:
     def set_capture_layout(self,action,expected,*,separate,historical_choice):
         return self._set_behavior(action,expected,dict(separate_own_recordings=separate),historical_choice=historical_choice)
 
-    def set_video_scope(self,action,expected,*,enabled,destination_choice=None):
+    def set_video_scope(self,action,expected,*,enabled,destination_choice=None,historical_choice=None):
         """Separate explicit native video consent; photo grants/history stay exact.
 
         Re-selecting the same original directory retains its video token. Moving
-        an existing video destination needs a separate historical reassociation,
-        never a silent metadata replacement or migration.
+        an existing video destination requires the native caller's explicit
+        keep-existing-files choice; this never moves or rewrites old mappings.
         """
-        return self._set_behavior(action,expected,{},video_settings=(enabled,destination_choice))
+        return self._set_behavior(action,expected,{},video_settings=(enabled,destination_choice),historical_choice=historical_choice)
 
     def _set_behavior(self,action,expected,changes,*,historical_choice=None,video_settings=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
         if video_settings is not None:
             if (changes or type(video_settings) is not tuple or len(video_settings)!=2 or type(video_settings[0]) is not bool
-                    or video_settings[1] is not None and type(video_settings[1]) is not NativeVideoDestinationChoice):
+                    or video_settings[1] is not None and type(video_settings[1]) is not NativeVideoDestinationChoice
+                    or historical_choice not in (None,'keep_existing')):
                 raise TransferError('video_preferences_invalid_settings')
         elif set(changes) in ({'separate_animations'},{'separate_own_recordings'}):
             if type(next(iter(changes.values()))) is not bool or type(historical_choice) is not str or historical_choice!='keep_existing':
@@ -566,7 +567,11 @@ class ProtectedPhotoPreferences:
                             raise TransferError('video_preferences_foreign_destination_choice')
                         selected=video_choice.owner.verify_choice(video_choice)
                         if destination is not None and selected!=destination:
-                            raise TransferError('video_preferences_destination_reassociation_required')
+                            if historical_choice!='keep_existing':raise TransferError('video_preferences_destination_reassociation_required')
+                            # Old files, mappings and catalogs retain their
+                            # original destination witness; only future storage
+                            # gets the newly chosen native directory/token.
+                            destination,token=selected,video_choice.destination_token
                         if destination is None:destination,token=selected,video_choice.destination_token
                     if enabled:
                         if destination is None:raise TransferError('video_preferences_destination_required')

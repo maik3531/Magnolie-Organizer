@@ -7583,7 +7583,14 @@ function knopfMit(text, wurzel) {
   videoGruppe.querySelector("[data-video-destination]").click();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1))), {
     cmd: "telefon_videoziel_waehlen", kennung: fotoPeer.device_id, fingerprint: fotoPeer.fingerprint
-  }, "Der native Ordnerdialog erhält keinen Webpfad und keine historische Zielautorität");
+   }, "Der native Ordnerdialog erhält keinen Webpfad und keine historische Zielautorität");
+   const videoPfadLeer = videoGruppe.querySelector("[data-video-destination-path]");
+   assert.ok(videoPfadLeer.readOnly && videoPfadLeer.parentElement.classList.contains("kde-empfangsordner") &&
+     videoPfadLeer.parentElement.querySelectorAll("button").length === 2, "Videoziel folgt der gemeinsamen schreibgeschützten Ordnerzeile");
+   videoGruppe.querySelector("[data-video-destination-default]").click();
+   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_default_destination" },
+     "Der Standardordner wird nativ ermittelt, nicht als Webpfad gesendet");
+   assert.ok(!videoGruppe.querySelector("[data-video-enabled]").checked, "Standardordner aktiviert keine Videos");
   videoGruppe.querySelector("[data-video-enabled]").checked = true;
   videoGruppe.querySelector("[data-video-enabled]").dispatchEvent(new bw.Event("change", { bubbles: true }));
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_enable" });
@@ -7591,7 +7598,10 @@ function knopfMit(text, wurzel) {
     video_enabled: true, video_destination: "/native/Videos/Notes-Videos", albums: [],
     video_albums: [{ album_id: "video-native-1", display_name: "Camera videos", visible_images: 1 }] };
   fotoStand(videoStand); videoGruppe = bd.querySelector(".notes-video-sync");
-  assert.ok(videoGruppe.textContent.includes(videoStand.video_destination));
+   const videoPfad = videoGruppe.querySelector("[data-video-destination-path]");
+   assert.strictEqual(videoPfad.value, videoStand.video_destination); assert.strictEqual(videoPfad.title, videoPfad.value);
+   assert.ok(videoGruppe.querySelector("[data-video-destination]").disabled && videoGruppe.querySelector("[data-video-destination-default]").disabled,
+     "Die nur bei ausgeschalteten Videos nutzbare Ordnerwahl wird nicht als aktive Funktion angeboten");
   videoGruppe.querySelector("[data-video-action='read']").click();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_request_read" });
   videoGruppe.querySelector("[data-video-action='sync']").click();

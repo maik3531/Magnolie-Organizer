@@ -2493,7 +2493,7 @@ class NativePhotoDesktopSession:
     def start(self, operation, album_id=None, *, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None):
         if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic',
                 'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
-                'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_destination'):
+                'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_destination','videos_default_destination'):
             raise TransferError('photo_sync_invalid_action')
         if ((operation=='videos_destination') != (destination_path is not None)
                 or destination_path is not None and (type(destination_path) is not str or not destination_path or len(destination_path)>4096)):
@@ -2533,7 +2533,7 @@ class NativePhotoDesktopSession:
                 if not operation.startswith('mode_'):
                     self._active_media='video' if operation.startswith('videos_') else 'images'
                 if operation not in ('automatic','inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together',
-                        'captures_separate','captures_together'):
+                        'captures_separate','captures_together','videos_destination','videos_default_destination'):
                     self._automatic_paused=False
                 self._running=True
                 self._thread=threading.Thread(target=self._run,args=(operation,album_id,schedule_run,job_owner,historical_choice,destination_path),
@@ -2704,8 +2704,23 @@ class NativePhotoDesktopSession:
         from magnolie_photo_destination import NativeVideoDestinationController
         chooser=NativeVideoDestinationController(connection._authority)
         try:
-            choice=chooser.choose_custom(chooser.issue_action(),path)
-            saved=preferences.set_video_scope(preferences.issue_action(),before,enabled=False,destination_choice=choice)
+            choice=(chooser.choose_default(chooser.issue_action()) if path is None else chooser.choose_custom(chooser.issue_action(),path))
+            previous=before.policy.videos.destination if before.policy.videos is not None else None
+            if previous is not None and previous!=choice.destination:
+                # A later target change must not make a former default backup
+                # disappear from the retained local recovery locations.
+                from magnolie_media_backups import NativeMediaBackupLocations
+                from hashlib import sha256
+                scope=sha256(canonical(dict(subject=preferences._subject,media_type='video'))).hexdigest()
+                def current():
+                    connection._ready()
+                    if preferences.read()!=before:raise TransferError('photo_preferences_cas_conflict')
+                    return True
+                with NativeMediaBackupLocations(connection._authority.binding.native_directory,scope,current) as locations:
+                    retained=locations.read()
+                    if retained.parents and previous not in retained.parents:
+                        locations.choose(locations.issue_action(),retained,previous,retained.selected)
+            saved=preferences.set_video_scope(preferences.issue_action(),before,enabled=False,destination_choice=choice,historical_choice='keep_existing')
         finally:chooser.close()
         with self._lock:
             self._video_supported=True;self._video_enabled=False
@@ -2786,7 +2801,7 @@ class NativePhotoDesktopSession:
                     with self._lock:self._video_permission=state['result'].state
                 self._discover('video') # Actual native coverage, never a permission reply as READ.
             elif operation=='videos_disable':self._disable_video()
-            elif operation=='videos_destination':self._choose_video_destination(destination_path)
+            elif operation in ('videos_destination','videos_default_destination'):self._choose_video_destination(destination_path)
             elif operation in ('animations_separate','animations_together','captures_separate','captures_together'):
                 if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
                 setter=self.connection.set_future_animation_layout if operation.startswith('animations_') else self.connection.set_future_capture_layout

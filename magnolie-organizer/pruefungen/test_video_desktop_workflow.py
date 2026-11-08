@@ -122,6 +122,43 @@ def test_video_session_busy_disable_waits_for_actual_worker_end_and_keeps_origin
         assert commands[-1]['operation']=='configure_videos' and commands[-1]['enabled'] is False
 
 
+def test_explicit_native_video_default_preserves_old_files_history_and_idempotent_choice(receiving,tmp_path,monkeypatch):
+    old,_=prepared_video(receiving,tmp_path,monkeypatch);connection=receiving[3];prefs=connection._preferences
+    before=prefs.read();prefs.set_video_scope(prefs.issue_action(),before,enabled=False)
+    photo=prefs.read().policy.destination;history=(prefs.read().policy.job_catalog,connection._catalog)
+    original=old/'keep-existing.mp4';original.write_bytes(b'keep this old destination untouched')
+    from magnolie_media_backups import NativeMediaBackupLocations
+    from magnolie_file_acceptance import NativeAcceptedDestination
+    from magnolie_telefon import canonical
+    from hashlib import sha256
+    scope=sha256(canonical(dict(subject=prefs._subject,media_type='video'))).hexdigest()
+    first_root=tmp_path/'former-default';first_root.mkdir(mode=0o700)
+    with NativeMediaBackupLocations(connection._authority.binding.native_directory,scope,lambda:True) as locations:
+        locations.choose(locations.issue_action(),locations.read(),NativeAcceptedDestination.capture(first_root),None)
+    from gi.repository import GLib
+    videos=tmp_path/'Native-Videos';videos.mkdir(mode=0o700)
+    def directory(kind):
+        assert kind==GLib.UserDirectory.DIRECTORY_VIDEOS;return str(videos)
+    monkeypatch.setattr(GLib,'get_user_special_dir',directory)
+    session=connection.desktop_session();session._automatic_paused=True
+    sent=receiving[2].send.call_count
+    action(receiving,'videos_default_destination');assert session.join(15),session.snapshot()
+    state=session.snapshot();saved=prefs.read()
+    assert state['state']=='videos_off',state.get('error')
+    assert not state['video_enabled'] and session._automatic_paused
+    assert saved.policy.videos.destination.path.startswith(str(videos)+'/') and not saved.policy.videos.enabled
+    assert saved.policy.destination==photo and (saved.policy.job_catalog,connection._catalog)==history and original.read_bytes()==b'keep this old destination untouched'
+    with NativeMediaBackupLocations(connection._authority.binding.native_directory,scope,lambda:True) as locations:
+        paths={str(parent.path) for _,parent in locations.sources(saved.policy.videos.destination)}
+        assert {str(old),str(first_root),saved.policy.videos.destination.path}<=paths
+    assert receiving[2].send.call_count==sent # Choosing storage is not a READ, data grant or synchronization.
+    action(receiving,'videos_default_destination');assert session.join(15),session.snapshot()
+    assert prefs.read()==saved and session._automatic_paused # No token/revision rotation for an already selected default.
+    enabled=prefs.set_video_scope(prefs.issue_action(),saved,enabled=True)
+    action(receiving,'videos_default_destination');assert session.join(15),session.snapshot()
+    assert session.snapshot()['state']=='held' and prefs.read()==enabled
+
+
 def test_unsupported_video_session_action_cannot_create_destination_or_emit_positive_metadata(receiving,tmp_path,monkeypatch):
     prepared_images(receiving);connection=receiving[3];session=connection.desktop_session();before=connection._preferences.read()
     monkeypatch.setattr(receiving[0],'_resume_automatic_photos',lambda *args:None)

@@ -29083,11 +29083,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           videoAn.addEventListener("change", () => sende(videoAn.checked ? "videos_enable" : "videos_disable"));
           const videoLabel = el("label", "hak"); videoLabel.append(videoAn, document.createTextNode(" " + _("Also synchronize videos")));
           videos.append(videoLabel);
-          if (stand.video_destination) videos.append(formZeile(_("Destination folder"), el("span", null, stand.video_destination)));
+          const videoOrdner = el("div", "kde-empfangsordner"), videoPfad = document.createElement("input");
+          videoPfad.type = "text"; videoPfad.readOnly = true; videoPfad.className = "feld";
+          videoPfad.setAttribute("aria-label", _("Destination folder")); videoPfad.dataset.videoDestinationPath = "true";
+          videoPfad.value = stand.video_destination || ""; videoPfad.title = videoPfad.value; videoOrdner.append(videoPfad);
           const videoZiel = knopf(_("Choose folder …"), "", () => Bruecke.sende({ cmd: "telefon_videoziel_waehlen",
             kennung: peer.device_id, fingerprint: peer.fingerprint }));
           videoZiel.dataset.videoDestination = "true"; videoZiel.disabled = stand.busy === true || stand.video_enabled === true;
-          videos.append(videoZiel);
+          const videoStandard = knopf(_("Use default"), "", () => sende("videos_default_destination"));
+          videoStandard.dataset.videoDestinationDefault = "true"; videoStandard.disabled = videoZiel.disabled;
+          videoOrdner.append(videoZiel, videoStandard); videos.append(videoOrdner);
+          videos.append(el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
           if (stand.video_enabled === true) {
             const videoReihe = el("div", "knopfreihe");
             const videoLesen = knopf(_("Allow video access on phone"), "", () => sende("videos_request_read"));
