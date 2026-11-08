@@ -15124,6 +15124,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function zeichneAlles() {
     sichereNotizSnapshot();
     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
+    window.MagnolieAppearance?.update({ today: isoHeute(), developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
     stabilisiereAktiveOrtszeiten();
     beendeZeicheneingabe(true);
     beendeGesundheitReserve();
@@ -18164,6 +18165,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function wochenTag(d, schmal, farbAufgaben) {
     const iso = isoVon(d);
     const kasten = el("div", "wo-tag" + (schmal ? " schmal" : ""));
+    window.MagnolieAppearance?.day(kasten, iso);
     kasten.setAttribute("role", "gridcell");
     kasten.setAttribute("aria-label", fmtLang(iso));
     kasten.tabIndex = iso === zustand.kalender.tag ? 0 : -1;
@@ -25730,6 +25732,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function baueSeiteEntwickler(wurzel) {
     if (DATEN.einstellungen.allgemein.entwicklermodus !== true) return;
     const ab = abschnitt(_("Developer options"));
+    window.MagnolieAppearance?.update({ today: isoHeute(), developer: true, locked: gesperrt });
+    window.MagnolieAppearance?.mountDeveloper(ab, _);
     const log = document.createElement("input"); log.type = "checkbox"; log.id = "erinnerung-protokoll-an";
     log.checked = DATEN.einstellungen.erinnerung.protokoll === true;
     const row = el("label", "hak"); row.append(log, document.createTextNode(" " + _("Keep a troubleshooting log")));
@@ -25749,6 +25753,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ab.append(row, show, knopf(_("Disable developer mode"), "", () => {
       entwicklerDiagnoseAnfrage = null; output.textContent = "";
       DATEN.einstellungen.allgemein.entwicklermodus = false;
+      window.MagnolieAppearance?.update({ today: isoHeute(), developer: false, locked: gesperrt });
       DATEN.einstellungen.erinnerung.protokoll = false; entwicklerVersionsKlicks = 0;
       planeSpeichern(); speichereJetzt(); einstSeite = "ueber"; baueEinstellungen();
     })); wurzel.append(ab);
@@ -33690,6 +33695,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
     init(nutzlast) {
+      window.MagnolieAppearance?.update({ today: "", developer: false, locked: true });
       verwerfeKdeEmpfangDialoge();
       kontaktFotoDialogSchliessen?.();
       syncKontaktDialogSchliessen?.();
@@ -41800,6 +41806,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       aktualisiereKontaktOrtszeiten();
       const heute = isoHeute();
       if (heute !== letzterTag) {
+        window.MagnolieAppearance?.update({ today: heute, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
         if (editorIstGeaendert()) return;
         letzterTag = heute;
         if (initialisiert) {

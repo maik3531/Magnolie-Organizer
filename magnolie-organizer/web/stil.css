@@ -363,6 +363,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
    -------------------------------------------------------------------------- */
 
 #schreibtisch {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -373,6 +374,18 @@ body[data-hilfsrahmen="an"] :focus-visible {
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/></svg>"),
     radial-gradient(120% 90% at 50% 32%, #3b4a41 0%, #2e3a34 55%, #1e2723 100%);
 }
+
+#magnolie-saison { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: #e5ddc8; opacity: .12; z-index: 0; }
+#magnolie-saison svg { position: absolute; height: auto; max-width: 1cm; max-height: 1cm; }
+#schreibtisch > :not(#magnolie-saison) { z-index: 1; }
+.wo-tag[data-appearance-date] { position: relative; }
+.magnolie-feiertags-schatten { position: absolute; pointer-events: none; width: min(40%, 4cm); height: 75%; right: 8px; bottom: 5px; color: #826846; opacity: .055; }
+.magnolie-darstellungstest { margin-block: 14px; }
+.magnolie-testmuster { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.magnolie-testmuster > div { width: 128px; height: 128px; }
+.magnolie-testmuster svg { width: 100%; height: 100%; }
+#magnolie-test-hinweis { position: fixed; bottom: 5px; left: 8px; padding: 2px 7px; border-radius: 4px; background: #e7ddbd; color: #55291c; font: 11px var(--sans); z-index: 9999; pointer-events: none; }
+@media print { #magnolie-saison, .magnolie-feiertags-schatten, #magnolie-test-hinweis { display: none !important; } }
 
 /* --------------------------------------------------------------------------
    Buch
