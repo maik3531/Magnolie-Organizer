@@ -124,8 +124,16 @@ def verify_retirement_exchange(jobs,db,key,ready,body):
     if original is None or original.version!=body['exchange_version']:
         raise TransferError('media_source_retirement_original_exchange_required')
     if body['format']==1:
-        if original.body['phase']!='peer_saved' or db.execute('SELECT 1 FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone():
+        if db.execute('SELECT 1 FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone():
             raise TransferError('media_source_retirement_original_exchange_required')
+        if original.body['format']==4:
+            peer=jobs._authority.current_peer();local=jobs._authority.identity
+            manifest=FileManifest.parse(ready.body['manifest'])
+            if peer is None or manifest.sender_id!=local.receiver_id or manifest.receiver_id!=peer.peer_id:
+                raise TransferError('media_source_retirement_readback_pair_required')
+            verify_completed_media_exchange(original.body,manifest,local.receiver_identity_sha256,
+                peer.identity_sha256,ready.body['original_references'])
+        elif original.body['phase']!='peer_saved':raise TransferError('media_source_retirement_original_exchange_required')
         return
     from magnolie_media_source_retry import _read_retry_history
     history=_read_retry_history(jobs,db,key,job,ready,body['exchange_version'])
@@ -171,6 +179,35 @@ def verify_completed_saved_exchange(record,manifest):
             or any(getattr(accepted,field)!=getattr(saved,field) for field in
                 ('transfer_id','manifest_sha256','acceptance_sha256','permission_epoch','destination_token'))):
         raise TransferError('media_source_retirement_completed_retry_required')
+
+
+def verify_completed_media_exchange(record,manifest,local_key,peer_key,originals):
+    """Pinned historical DATA only; native reader, backup and drain stay separate."""
+    from magnolie_media_offer import validate_media_offer
+    from magnolie_file_accept_message import parse_acceptance
+    from magnolie_file_saved_message import parse_saved
+    from magnolie_file_published_readback import parse_readback
+    from magnolie_file_transfer import NativeTransferBinding
+    if (record['format']!=4 or record['phase']!='peer_readback' or record['pending_chunk'] is not None
+            or type(record['sent_bits']) is not int or record['sent_bits']!=(1<<manifest.files[0].chunks)-1
+            or any(type(record.get(field)) is not dict for field in ('offer','acceptance','peer_saved','peer_readback'))):
+        raise TransferError('media_source_retirement_completed_media_required')
+    offer=record['offer'];accepted_message=record['acceptance'];saved_message=record['peer_saved'];readback_message=record['peer_readback']
+    media=validate_media_offer(offer,manifest.sender_id,manifest.receiver_id,now=offer.get('created_ms'))
+    if media.manifest!=manifest or media.originals!=originals:raise TransferError('media_source_retirement_completed_media_required')
+    accepted=parse_acceptance(accepted_message,now=accepted_message.get('created_ms'))
+    saved=parse_saved(saved_message,manifest,now=saved_message.get('created_ms'))
+    raw=readback_message.get('body')
+    if type(raw) is not dict:raise TransferError('media_source_retirement_completed_media_required')
+    binding=NativeTransferBinding(manifest.sender_id,manifest.receiver_id,local_key,peer_key,record['permission_epoch'],raw.get('destination_token'))
+    parsed=parse_readback(readback_message,media.offer,binding,media.media_type,now=readback_message.get('created_ms'))
+    file=manifest.files[0]
+    if (accepted.offer_id!=offer['message_id'] or accepted.manifest_sha256!=manifest.fingerprint or accepted.transfer_id!=manifest.transfer_id
+            or accepted.permission_epoch!=record['permission_epoch'] or any(getattr(accepted,field)!=getattr(saved,field) for field in
+                ('transfer_id','manifest_sha256','acceptance_sha256','permission_epoch','destination_token'))
+            or saved_message['created_ms']<offer['created_ms'] or saved_message['expires_ms']>offer['expires_ms']
+            or parsed.body['publication_sha256']!=saved.receipts[0].receipt_sha256 or parsed.body['mime_type']!=media.mime_types[file.id]):
+        raise TransferError('media_source_retirement_completed_media_required')
 
 
 def verify_archived_cache(jobs,parent,body,current):
@@ -251,8 +288,15 @@ class _NativeSourceRetirement:
         if getattr(sender._source._cache_scope,'permit',None) is not self._permit:
             raise TransferError('media_source_retirement_live_lease_required')
         self._permit[2]()
-        if sender._record is None or not (sender._record.body['phase']=='peer_saved' or
-                sender._retry_spec is not None and sender._record.body['phase']=='peer_readback'):
+        if sender._record is None:
+            raise TransferError('media_source_retirement_actual_completed_sender_required')
+        record=sender._record.body
+        if record['format']==4:
+            peer=sender._authority.current_peer()
+            if peer is None:raise TransferError('media_source_retirement_readback_pair_required')
+            verify_completed_media_exchange(record,sender._cache.manifest,sender._authority.identity.receiver_identity_sha256,
+                peer.identity_sha256,sender._cache.original_references)
+        elif not (record['phase']=='peer_saved' or sender._retry_spec is not None and record['phase']=='peer_readback'):
             raise TransferError('media_source_retirement_actual_completed_sender_required')
         sender._journal.require(sender._record)
         if sender._controls.binding(sender._binding.destination_token,sender_is_local=True)!=sender._binding:

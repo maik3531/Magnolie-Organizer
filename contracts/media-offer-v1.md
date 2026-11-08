@@ -314,10 +314,36 @@ Medienkomposition ausgeliefert.
 
 Dieser Weg ist weiterhin eine explizite private Linux-Komposition, noch kein
 normaler Desktop-Verteiler oder automatischer Exportlauf. Neue Medienangebote
-werden nicht in die bisherigen gewöhnlichen Retry-/Archivwege umgedeutet;
-deren fehlender Medien-Abschlussanschluss bleibt Hold statt stiller Cache-
-Übernahme oder Archivierung. Linux-Source-END/Gesamtanbindung und Capability 23
-bleiben daher weiterhin geschlossen beziehungsweise offen zu bearbeiten.
+werden nicht in die bisherigen gewöhnlichen Retry-Nachweise umgedeutet.
+
+## Linux: Medienabschluss an der verlustfreien nativen Archivstrecke
+
+Ein eigener Medien-Abschlussprüfer verbindet den neuen Saved-/Readback-Verlauf
+inzwischen mit dem vorhandenen nativen Archivbesitzer. Ein Medien-Saved allein
+reicht hierfür nicht: ursprüngliches Medienangebot, tatsächliche vollständige
+Chunk-Ausgabe, exakte Annahme/Saved/Publikation/MIME und Readback-Bindung bleiben
+erforderlich. Die bisherigen gewöhnlichen Datei-/Retry-Prüfer werden dafür nicht
+abgeschwächt.
+
+Zusätzlich muss die unabhängig vorhandene lokale Quellversionssicherung exakt
+zum vorbereiteten Cache passen und tatsächlich erneut geprüft werden. Die
+vorhandene native Übergabe hält Buch und I/O-Sperre bis zum Ende, schließt die
+eigenen Cache-Deskriptoren und verschiebt das vollständige private Cache-Verzeichnis
+ohne Ersetzen in sein erhaltenes Archiv. Erst nach tatsächlicher Bewegung,
+Synchronisation und erneuter Prüfung darf der geschützte Verlauf `archived`
+festhalten. Es werden weder Cache-Bytes noch Vorgänger gelöscht. Der alte
+vorbereitete Besitzer wird beendet; eine neue ausdrücklich ausgewählte Version
+braucht einen neuen echten Besitzer. Historische Beobachtungen erteilen weiterhin
+keine Lese-, Lösch- oder wiederverwendbare Slotberechtigung.
+
+Fünf zusätzliche native Linux-Fälle prüfen erhaltene Dateiidentitäten und Bytes,
+Wiederherstellung der gesicherten alten Version, neue ausdrückliche Vorbereitung,
+Saved ohne Readback, kopierte Abschlussmetadaten, veraltete Sicherung und eine
+noch blockierte echte Leserfreigabe trotz bereits gespeichertem Readback. Sechs
+gezielte bisherige Archiv-/Retry-/Abbruchregressionen bestehen ebenfalls.
+Normaler Linux-Verteiler, lokale produktive SEND-Zustimmung, automatische
+Exportauswahl und vollständige gemeinsame Abnahme bleiben offen; Capability 23
+bleibt geschlossen.
 
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und

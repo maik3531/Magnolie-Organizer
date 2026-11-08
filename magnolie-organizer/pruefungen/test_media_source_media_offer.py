@@ -13,9 +13,9 @@ from magnolie_file_transfer import TransferError
 from magnolie_telefon import now_ms
 
 
-def png():
+def png(salt=0):
     image=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNg+M8AAAICAQB7CYF4AAAAAElFTkSuQmCC')
-    payload=bytes(index%251 for index in range(70013-len(image)-12)); chunk=b'npAD'+payload
+    payload=bytes((index+salt)%251 for index in range(70013-len(image)-12)); chunk=b'npAD'+payload
     return image[:-12]+struct.pack('>I',len(payload))+chunk+struct.pack('>I',zlib.crc32(chunk))+image[-12:]
 
 
