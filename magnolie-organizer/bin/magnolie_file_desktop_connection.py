@@ -94,6 +94,7 @@ class NativeDesktopFileConnection:
         self._update_condition = threading.Condition()
         self._update_generation = 0
         self._album_worker = None
+        self._mapped_worker = None
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
@@ -201,7 +202,7 @@ class NativeDesktopFileConnection:
                 if not self._video_data_handlers_ready:
                     raise TransferError('file_desktop_video_data_join_unavailable')
                 self._require_video_metadata_scope()
-            if self._album_worker is not None or self._source_pending is not None or self._source_run is not None or self._run is not None:
+            if self._album_worker is not None or self._mapped_worker is not None or self._source_pending is not None or self._source_run is not None or self._run is not None:
                 raise TransferError('file_desktop_album_worker_busy')
             if self._ended_batch is not None and self._ended_batch.batch_end is not True:
                 raise TransferError('file_desktop_album_worker_busy')
@@ -412,6 +413,19 @@ class NativeDesktopFileConnection:
                     native_current=native_current,mapping_snapshot=mapping_snapshot)
             from magnolie_media_source_planning import NativeMediaSourcePreparation
             return NativeMediaSourcePreparation(plan,cache)
+
+    def start_mapped_media_worker(self,action,*,kind='images',book_fence=None):
+        self._take_action(action)
+        with self._operation():
+            if self._media_source is None:raise TransferError('media_source_native_composition_required')
+            if (self._mapped_worker is not None or self._album_worker is not None or self._run is not None
+                    or self._source_pending is not None or self._source_run is not None or self._media_sender is not None):
+                raise TransferError('file_desktop_album_worker_busy')
+            from magnolie_media_source_worker import NativeMappedMediaWorker
+            worker=NativeMappedMediaWorker(self,kind,book_fence);self._mapped_worker=worker
+            try:worker.start()
+            except BaseException:self._mapped_worker=None;raise
+            return worker
 
     def open_prepared_media_sender(self,job_id):
         with self._operation():
@@ -2192,6 +2206,7 @@ class NativeDesktopFileConnection:
 
     def close(self):
         self._closed.set()
+        if self._mapped_worker is not None:self._mapped_worker.stop()
         self._media_sending_choice=None
         for owner in (self._media_sender,self._media_source,self._media_transport):
             if owner is not None:owner.close() # Signals only; active connection I/O owns cleanup.
@@ -2203,6 +2218,7 @@ class NativeDesktopFileConnection:
         if not self._gate.acquire(blocking=False):
             return False
         try:
+            if self._mapped_worker is not None:return False # Its real I/O lane has not drained yet.
             failure = None
             if self._source_pending is not None and self._controls is not None:
                 try:
@@ -2650,7 +2666,7 @@ class NativePhotoDesktopSession:
         if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic',
                 'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
                 'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_destination','videos_default_destination',
-                'photos_destination','photos_default_destination','sync_selected'):
+                'photos_destination','photos_default_destination','sync_selected','sync_shared'):
             raise TransferError('photo_sync_invalid_action')
         if (video_album_id is not None and (operation!='sync_selected' or type(video_album_id) is not str)
                 or operation=='sync_selected' and (album_id is not None and type(album_id) is not str or album_id is None and video_album_id is None)):
@@ -2693,7 +2709,7 @@ class NativePhotoDesktopSession:
                 if operation=='automatic' and (schedule_run is None or self._schedule.active is not schedule_run
                         or self._schedule.mode!='automatic'):
                     raise TransferError('photo_sync_invalid_action')
-                if operation in ('sync','videos_sync','sync_selected'):schedule_run=self._schedule.request_now()
+                if operation in ('sync','videos_sync','sync_selected','sync_shared'):schedule_run=self._schedule.request_now()
                 self._stop.clear(); self._error=None; self._state=operation;self._recovery_result=None
                 if not operation.startswith('mode_'):
                     self._active_media='video' if operation.startswith('videos_') or operation=='sync_selected' and album_id is None else 'images'
@@ -2724,6 +2740,17 @@ class NativePhotoDesktopSession:
         # Scheduling is not READ authority. Its generation is the authenticated
         # source-policy witness; every scan/file still obtains fresh native grants.
         # Do not take the UI lock from the schedule's native-scope callback.
+        transport=self.connection._media_transport
+        if transport is not None:
+            outgoing=next((token for kind in ('images','video')
+                if (token:=transport.intent_for(kind,to_phone=True)) is not None),None)
+            if outgoing is not None:
+                try:
+                    binding=self.connection._controls.binding('0'*64,sender_is_local=True)
+                    if binding is not None:
+                        from hashlib import sha256
+                        return NativePhotoSyncScope(binding,sha256(canonical(outgoing.body)).hexdigest(),self.connection)
+                except (TransferError,OSError):return None
         status=self.connection._source_status
         if not self._enabled or status is None or not status.enabled or not status.associated or status.repair_pending:return None
         try:return NativePhotoSyncScope(self.connection._receive_binding(),status.version,self.connection)
@@ -2926,7 +2953,7 @@ class NativePhotoDesktopSession:
             self._state='albums' if state['catalog'].coverage!='none' else 'permission_required'
 
     def _run(self, operation, album_id, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None,video_album_id=None):
-        syncing=operation in ('sync','videos_sync','sync_selected','automatic')
+        syncing=operation in ('sync','videos_sync','sync_selected','sync_shared','automatic')
         if syncing:self._sync_activity(True)
         try:
             book_fence=None
@@ -2934,7 +2961,7 @@ class NativePhotoDesktopSession:
                 from magnolie_media_retention import maintain_native_media_trash
                 maintain_native_media_trash(self.connection._authority.binding.native_directory,
                     lambda:not self._stop.is_set() and not self.connection._closed.is_set())
-            if operation=='sync_selected':
+            if operation in ('sync_selected','sync_shared'):
                 from magnolie_media_retention import NativeMediaRetention
                 with NativeMediaRetention(self.connection._authority.binding.native_directory) as policy:
                     started=time.monotonic()
@@ -3013,6 +3040,11 @@ class NativePhotoDesktopSession:
                 with self._lock:self._state='albums' if self._albums else 'permission_required'
             elif syncing:
                 media_types=['video'] if operation=='videos_sync' else ['images']
+                if operation=='sync_shared':
+                    transport=self.connection._media_transport
+                    media_types=[kind for kind in ('images','video') if transport is not None and (
+                        transport.intent_for(kind) is not None or transport.intent_for(kind,to_phone=True) is not None)]
+                    if not media_types:raise TransferError('media_source_current_intent_required')
                 if operation=='sync_selected':media_types=(['images'] if album_id is not None else [])+(['video'] if video_album_id is not None else [])
                 if (operation=='automatic' and self._video_enabled and self.connection._video_data_handlers_ready
                         and self.connection._authority.video_available()):media_types.append('video')
@@ -3022,13 +3054,29 @@ class NativePhotoDesktopSession:
                         with NativeMediaRetention(self.connection._authority.binding.native_directory) as policy:
                             if policy.saved_book_version()!=book_fence[0]:raise TransferError('media_retention_lease_changed')
                     with self._lock:self._active_media=media_type
+                    transport=self.connection._media_transport
+                    outgoing=transport.intent_for(media_type,to_phone=True) if transport is not None else None
+                    if outgoing is not None:
+                        if operation=='automatic':
+                            raise TransferError('media_source_wifi_automatic_composition_required')
+                        worker=self.connection.start_mapped_media_worker(self.connection.issue_receive_action(),kind=media_type,book_fence=book_fence)
+                        with self._lock:self._worker=worker;self._state='syncing'
+                        self._notify()
+                        while not worker.join(.25):
+                            if self._stop.is_set():worker.stop()
+                        progress=worker.progress()
+                        with self._lock:self._state=progress['state'];self._error=progress['error']
+                        if progress['state']!='complete':break
+                        if not outgoing.requested_for(media_type):continue # PC-only never requests phone READ.
                     if media_type=='video':self._prepare_video()
                     catalog=self.connection._source_catalog
-                    if operation=='automatic' or media_type=='video' or catalog is None or catalog.media_type!=media_type:
+                    if operation in ('automatic','sync_shared') or media_type=='video' or catalog is None or catalog.media_type!=media_type:
                         self._discover(media_type)
                     current=self._video_albums if media_type=='video' else self._albums
                     selected_album=video_album_id if operation=='sync_selected' and media_type=='video' else album_id
-                    albums=[album['album_id'] for album in current if not album['needs_choice']] if operation=='automatic' else [selected_album]
+                    if operation=='sync_shared' and any(album['needs_choice'] for album in current):
+                        raise TransferError('file_desktop_source_album_choice_required')
+                    albums=[album['album_id'] for album in current if not album['needs_choice']] if operation in ('automatic','sync_shared') else [selected_album]
                     if any(selected not in {album['album_id'] for album in current} for selected in albums):
                         raise TransferError('file_desktop_source_album_not_current')
                     complete=True

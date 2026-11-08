@@ -3071,7 +3071,7 @@ class PhoneService:
         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','video_album_id','job_owner','historical_choice'}
                  or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
                     'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
-                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination','sync_selected')
+                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination','sync_selected','sync_shared')
                 or ('album_id' in request) != (request['action'] in ('sync','videos_sync','sync_selected'))
                 or ('video_album_id' in request) != (request['action']=='sync_selected')
                 or ('job_owner' in request) != (request['action'] in ('recover_saved','repair_receipt'))

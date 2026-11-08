@@ -487,6 +487,27 @@ darf auch mit einem aktuellen Snapshot nicht zur automatischen Auswahl werden.
 Die bisherige ausdrückliche historische Backup-/Restore-Auswahl bleibt ohne
 diese zusätzlichen, ausschließlich einschränkenden Bedingungen unverändert.
 
+### Begrenzter nativer Ausgangslauf über vorhandene Zuordnungen
+
+Die normale Linux-Verbindung besitzt einen nativen Arbeiter für seitenweise
+ausgewählte Zuordnungen. Er hält denselben Zuordnungs-Snapshot über alle Seiten,
+prüft jede Datei mit der bedingten Vorbereitung und überspringt unveränderte
+Bytes ohne Cache. Für geänderte Dateien benutzt er den bestehenden gemeinsamen
+Steuersender. Erst tatsächliches Saved plus authentifiziertes Readback, eine
+unabhängige lokale Sicherung und native Archivierung erlauben die nächste Datei.
+Eine Readback-Projektion allein genügt nicht: Vor dem Backup muss die echte
+Socket-/Cache-I/O-Lane frei sein. Stop und Verbindungsende entziehen Rechte,
+melden aber keine Freigabe, während die tatsächliche I/O noch läuft.
+
+Der manuelle native Sitzungseinstieg `sync_shared` verwendet die aktuelle
+gemeinsame Richtungsvereinbarung. Ein reiner PC-Ausgangslauf fordert weder
+Telefon-READ noch dessen Empfangszustimmung an. Import-only kann diesen Arbeiter
+nicht zum Export veranlassen. Nicht implementierte gesamte PC-Sammlungen erhalten
+eine ausdrückliche Review-Sperre statt eines Erfolgsergebnisses für eine Teilmenge.
+Dies ersetzt keine native/physische Gesamtabnahme. Die vollständige gemeinsame
+UI- und WLAN-Automatikkomposition bleibt offen; automatische Ausgangsläufe
+bleiben bis zur eigenen geprüften WLAN-Anbindung ausdrücklich gesperrt.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
