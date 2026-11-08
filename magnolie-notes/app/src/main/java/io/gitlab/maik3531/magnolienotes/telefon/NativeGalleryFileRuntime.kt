@@ -126,19 +126,31 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation(allowIncoming = true) {
         controls.observe(message, now).also { incomingWorker.current?.retireIfChanged(); publishedReadWorker.current?.retireIfChanged() }
     }
+    internal fun beginIncomingMediaOffer(message: JsonObject, book: NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun {
+        val peer = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+        val media = MediaOfferEnvelope.validate(message, peer.peerId, localIdentity.deviceId)
+        val intent = currentIncomingIntent?.invoke(media.kind) as? MediaSyncTransport.IntentToken
+            ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        if (intent.body != media.settings) DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
+        return beginIncoming(media.offer, media.kind, media.mimeTypes, book, media.originals, intent)
+    }
+
     internal fun beginIncoming(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
-        book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference> = emptyMap()): NativeGalleryIncomingRun = withOperation {
+        book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference> = emptyMap(),
+        expectedIntent: MediaSyncTransport.IntentToken? = null): NativeGalleryIncomingRun = withOperation {
         if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
         if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
             DeviceFileControl.fail("gallery_sync_run_busy")
         val current = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+        if (expectedIntent != null && currentIncomingIntent?.invoke(kind) !== expectedIntent)
+            DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
         val manifest = DeviceFileOfferEnvelope.validate(offer, current.peerId, localIdentity.deviceId)
         val types = mimeTypes.toMap()
         val originalReferences = references.toMap()
         incomingWorker.start {
             val owner = NativeGalleryIncomingOwner.capture(controls.session, index, book, nativePeer,
-                { currentIncomingIntent?.invoke(kind) }, manifest, kind, originalReferences)
+                { currentIncomingIntent?.invoke(kind)?.takeIf { expectedIntent == null || it === expectedIntent } }, manifest, kind, originalReferences)
             try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
             catch (error: Throwable) { owner.close(); throw error }
         }

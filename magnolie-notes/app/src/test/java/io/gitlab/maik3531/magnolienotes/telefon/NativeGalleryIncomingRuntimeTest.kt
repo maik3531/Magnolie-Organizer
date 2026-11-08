@@ -95,6 +95,14 @@ class NativeGalleryIncomingRuntimeTest {
         }
         fun start(): NativeGalleryIncomingRun = runtime.beginIncoming(DeviceFileOfferEnvelope.create(manifest), GalleryMediaType.IMAGES,
             mapOf("1".repeat(32) to "image/png"), f.book()).also { run = it }
+        fun mediaOffer(settings: JsonObject = token.body): JsonObject {
+            val offer = DeviceFileOfferEnvelope.create(manifest)
+            return JsonObject(offer + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
+                put("format", 1); put("offer", offer.getValue("body")); put("settings", settings); put("media_type", "images")
+                put("mime_types", buildJsonObject { put("1".repeat(32), "image/png") }); put("originals", buildJsonObject {})
+            }))
+        }
+        fun startMedia(offer: JsonObject = mediaOffer()) = runtime.beginIncomingMediaOffer(link.receive(offer), f.book()).also { run = it }
         fun published(): GalleryIncomingPublication {
             val id = f.rows().keys.single { it.startsWith(GalleryIncomingPublication.PREFIX) }.removePrefix(GalleryIncomingPublication.PREFIX)
             return f.index.incomingPublication(id)!!
@@ -111,6 +119,36 @@ class NativeGalleryIncomingRuntimeTest {
             inspection?.let { check(it.awaitIoEnded(10000)) }
             runtime.close(); pc.close(); f.close(); link.close()
             Shadows.shadowOf(Looper.getMainLooper()).idle()
+        }
+    }
+
+    @Test fun mediaOfferWrapperUsesActualEncryptedNativeIncomingAndPreservesOfferIdThroughSaved() {
+        Harness().use { h ->
+            val offer = h.mediaOffer(); val run = h.startMedia(offer)
+            assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure()); assertNotNull(run.actualSavedOutput())
+            val acceptance = h.link.frames.single { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) }
+            assertEquals(offer["message_id"], acceptance.getValue("body").jsonObject["offer_id"])
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+            assertTrue(h.link.frames.any { it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
+            assertEquals(JsonPrimitive(DeviceFileSavedEnvelope.KIND), run.actualSavedOutput()!!["kind"])
+        }
+    }
+
+    @Test fun mediaOfferWrapperCannotSubstituteCurrentIntentInventoryProofOrNativeReceivingConsent() {
+        Harness().use { h ->
+            val changed = MediaSyncSettings.change(h.token.body, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222",
+                "photos_only", JsonPrimitive(true))
+            assertThrows(PhotoFolderScopeError::class.java) { h.startMedia(h.mediaOffer(changed)) }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens)
+        }
+        Harness(collectionMode = "phone_inventory").use { h ->
+            assertThrows(PhotoFolderScopeError::class.java) { h.startMedia() }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens)
+        }
+        Harness(localConsent = false).use { h ->
+            val run = h.startMedia(); assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualSavedOutput())
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.publishes)
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) })
         }
     }
 

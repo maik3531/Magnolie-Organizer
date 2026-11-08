@@ -235,6 +235,7 @@ runner.Add("Media backup maintenance / policy age Never savings and content keys
 runner.Add("Media backup maintenance / native resource sampling and sticky busy state", DeviceFileBackupMaintenanceTests.ProbeAsync);
 runner.Add("Media backup maintenance / saved book stop and memory ownership", DeviceFileBackupMaintenanceTests.NativeOwnerAsync);
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
+runner.Add("Media offer envelope / strict context and shared canonical vector", MediaOfferEnvelopeTests.RunAsync);
 runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
 runner.Add("Device file native transport / actual secure echo / read-only identity", DeviceFileConnectionTransportTests.HandshakeAsync);
 runner.Add("Device file native transport / uncertain write / scope withdrawal", DeviceFileConnectionTransportTests.FailureAsync);

@@ -60,6 +60,7 @@
     <Compile Include="..\DeviceFileMappedSource.cs" Link="DeviceFileMappedSource.cs" />
     <Compile Include="..\DeviceFileSourceCache.cs" Link="DeviceFileSourceCache.cs" />
     <Compile Include="..\DeviceFileSourceExchange.cs" Link="DeviceFileSourceExchange.cs" />
+    <Compile Include="..\MediaOfferEnvelope.cs" Link="MediaOfferEnvelope.cs" />
     <Compile Include="..\DeviceFileConnectionSend.cs" Link="DeviceFileConnectionSend.cs" />
     <Compile Include="..\DeviceFileReceiveJob.cs" Link="DeviceFileReceiveJob.cs" />
     <Compile Include="..\DeviceFileReceiveReceipts.cs" Link="DeviceFileReceiveReceipts.cs" />
