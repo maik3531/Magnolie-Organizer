@@ -183,11 +183,14 @@ public actor DAVAccountService {
     private var cachedDiscovery: DAVAccountDiscovery?
     private let leaseOwner = UUID()
     private let leaseClock: () -> TimeInterval
+    private let readClock: DAVReadClock?
+    private var activeReads: [UUID: UUID] = [:]
     private var leaseGeneration: UInt64 = 0
     private var discoveryGeneration: UInt64 = 0
     private struct ActiveLease {
         let binding: DAVSyncAccountLeaseBinding, signer: DAVAccountBindingSigner
         let generation: UInt64, discoveryGeneration: UInt64, expires: TimeInterval
+        let gate: DAVReadLeaseGate?
     }
     private var leases: [UUID: ActiveLease] = [:]
     private struct Snapshot {
@@ -198,10 +201,17 @@ public actor DAVAccountService {
     public init(configuration: any DAVAccountConfigurationStore,
                 credentials: any DAVCredentialStore = KeychainDAVCredentialStore(),
                 transport: any BoundedHTTPTransport = URLSessionBoundedTransport(),
-                monotonicTime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+                monotonicTime: (() -> TimeInterval)? = nil) {
         self.configurationStore = configuration; self.credentials = credentials; self.transport = transport
-        self.leaseClock = monotonicTime
+        if let monotonicTime { self.leaseClock = monotonicTime; self.readClock = nil }
+        else { self.leaseClock = { DAVReadClock.system.now() }; self.readClock = .system }
     }
+    internal init(configuration: any DAVAccountConfigurationStore, credentials: any DAVCredentialStore,
+                  transport: any BoundedHTTPTransport, readClock: DAVReadClock) {
+        self.configurationStore = configuration; self.credentials = credentials; self.transport = transport
+        self.leaseClock = { readClock.now() }; self.readClock = readClock
+    }
+    deinit { for active in leases.values { active.gate?.revoke() } }
     private func snapshot() throws -> Snapshot {
         guard !poisoned else { throw DAVAccountError.verificationFailed }
         let configuration = try configurationStore.read()
@@ -335,7 +345,11 @@ public actor DAVAccountService {
         cachedDiscovery = discovery
         return discovery
     }
-    private func revokeLeases() { leaseGeneration &+= 1; leases.removeAll() }
+    private func revokeLeases() {
+        leaseGeneration &+= 1
+        for active in leases.values { active.gate?.revoke() }
+        leases.removeAll()
+    }
     private func stableLeaseSnapshot() throws -> Snapshot {
         let first = try snapshot(), second = try snapshot()
         guard first.revision == second.revision else { throw DAVAccountLeaseError.bindingChanged }
@@ -392,13 +406,16 @@ public actor DAVAccountService {
         let sources = try selectedLeaseSources(orderedCalendarUIDs, snapshot: current)
         let now = leaseClock()
         guard now.isFinite, now >= 0, (now + 300).isFinite else { throw DAVAccountLeaseError.expired }
+        for active in leases.values where active.expires <= now { active.gate?.revoke() }
         leases = leases.filter { $0.value.expires > now }
         guard leases.count < 16 else { throw DAVAccountLeaseError.capacity }
         let stable = try signer.bind(configuration: configuration, secret: secret, storeNamespace: configurationStore.revisionNamespace)
         let binding = DAVSyncAccountLeaseBinding(calendars: sources, accountIdentity: try configuration.identity.storageKey,
             persistentAccountBinding: stable, sessionRevision: current.revision, discoveryFingerprint: fingerprint(sources))
         let handle = DAVSyncAccountLease(owner: leaseOwner, id: UUID())
-        leases[handle.id] = ActiveLease(binding: binding, signer: signer, generation: generation, discoveryGeneration: discovery, expires: now + 300)
+        let gate = readClock.map { DAVReadLeaseGate(signer: signer, expires: now + 300, clock: $0) }
+        if let gate { try signer.registerReadGate(gate) }
+        leases[handle.id] = ActiveLease(binding: binding, signer: signer, generation: generation, discoveryGeneration: discovery, expires: now + 300, gate: gate)
         return handle
     }
     public func revalidate(_ handle: DAVSyncAccountLease) async throws {
@@ -410,6 +427,7 @@ public actor DAVAccountService {
                   discoveryGeneration == active.discoveryGeneration else { throw DAVAccountLeaseError.invalidLease }
             let now = leaseClock()
             guard now.isFinite, now >= 0, now < active.expires else { throw DAVAccountLeaseError.expired }
+            try active.gate?.checkState()
             let current = try stableLeaseSnapshot(), (configuration, secret) = try leaseContext(current)
             guard current.revision == active.binding.sessionRevision else { throw DAVAccountLeaseError.bindingChanged }
             let sources = try selectedLeaseSources(active.binding.calendars.map(\.uid), snapshot: current)
@@ -417,14 +435,92 @@ public actor DAVAccountService {
                   try active.signer.bind(configuration: configuration, secret: secret, storeNamespace: configurationStore.revisionNamespace) == active.binding.persistentAccountBinding else {
                 throw DAVAccountLeaseError.bindingChanged
             }
-        } catch { leases.removeValue(forKey: handle.id); throw error }
+        } catch { leases[handle.id]?.gate?.revoke(); leases.removeValue(forKey: handle.id); throw error }
     }
     public func binding(_ handle: DAVSyncAccountLease) async throws -> DAVSyncAccountLeaseBinding {
         try await revalidate(handle)
         guard let active = leases[handle.id] else { throw DAVAccountLeaseError.invalidLease }; return active.binding
     }
     public func release(_ handle: DAVSyncAccountLease) {
-        guard handle.owner == leaseOwner else { return }; leases.removeValue(forKey: handle.id)
+        guard handle.owner == leaseOwner else { return }
+        leases[handle.id]?.gate?.revoke(); leases.removeValue(forKey: handle.id)
+    }
+
+    public struct LeaseReport {
+        public let source: DAVCollection, resources: [DAVResource]
+    }
+    private func reserveRead(_ handle: DAVSyncAccountLease) throws -> (ActiveLease, UUID) {
+        guard readClock != nil else { throw DAVAccountLeaseError.unsupportedClock }
+        guard handle.owner == leaseOwner, let active = leases[handle.id], active.gate != nil else { throw DAVAccountLeaseError.invalidLease }
+        guard transport is any DispatchFencedHTTPTransport else { throw DAVAccountLeaseError.unsupportedTransport }
+        guard activeReads.count < 4, activeReads[handle.id] == nil else { throw DAVAccountLeaseError.capacity }
+        let token = UUID(); activeReads[handle.id] = token; return (active, token)
+    }
+    private func readClient(_ handle: DAVSyncAccountLease, sourceUID: String, token: UUID, deadline: TimeInterval) throws -> (DAVClient, DAVCollection) {
+        guard activeReads[handle.id] == token, let active = leases[handle.id], let base = transport as? any DispatchFencedHTTPTransport,
+              let source = active.binding.calendars.first(where: { OpaqueUTF8Identity($0.uid) == OpaqueUTF8Identity(sourceUID) }) else { throw DAVAccountLeaseError.invalidSelection }
+        let current = try stableLeaseSnapshot(), (configuration, secret) = try leaseContext(current)
+        guard current.revision == active.binding.sessionRevision,
+              try active.signer.bind(configuration: configuration, secret: secret, storeNamespace: configurationStore.revisionNamespace) == active.binding.persistentAccountBinding else { throw DAVAccountLeaseError.bindingChanged }
+        let wrapper = DAVLeaseReadTransport(service: self, lease: handle, sourceUID: sourceUID, token: token, deadline: deadline, base: base)
+        let client = try DAVClient(server: configuration.server, username: configuration.benutzer, password: secret,
+            accountType: configuration.kontoArt, transport: wrapper)
+        return (client, source)
+    }
+    /// Native read-only foundations; not a sync result, write permit or journal resolution.
+    public func readReport(_ handle: DAVSyncAccountLease, sourceUID: String) async throws -> LeaseReport {
+        guard !sourceUID.isEmpty, sourceUID.utf8.count <= 1024 else { throw DAVAccountLeaseError.invalidSelection }
+        try Task.checkCancellation()
+        guard let readClock else { throw DAVAccountLeaseError.unsupportedClock }
+        let deadline = readClock.now() + 60
+        try await revalidate(handle)
+        let (_, token) = try reserveRead(handle)
+        defer { activeReads.removeValue(forKey: handle.id) }
+        let (client, source) = try readClient(handle, sourceUID: sourceUID, token: token, deadline: deadline)
+        let resources = try await client.reportScoped(in: source)
+        try Task.checkCancellation(); try await revalidate(handle)
+        guard activeReads[handle.id] == token else { throw DAVAccountLeaseError.invalidLease }
+        guard readClock.now() < deadline else { throw DAVError.timeout }
+        return LeaseReport(source: source, resources: resources)
+    }
+    public func readResource(_ handle: DAVSyncAccountLease, sourceUID: String, href: URL, maximumBytes: Int = DAVClient.itemLimit) async throws -> DAVResourceRead {
+        guard !sourceUID.isEmpty, sourceUID.utf8.count <= 1024 else { throw DAVAccountLeaseError.invalidSelection }
+        try Task.checkCancellation()
+        guard let readClock else { throw DAVAccountLeaseError.unsupportedClock }
+        let deadline = readClock.now() + 60
+        try await revalidate(handle)
+        let (_, token) = try reserveRead(handle)
+        defer { activeReads.removeValue(forKey: handle.id) }
+        let (client, source) = try readClient(handle, sourceUID: sourceUID, token: token, deadline: deadline)
+        let result = try await client.getResource(href: href, in: source, maximumBytes: maximumBytes)
+        try Task.checkCancellation(); try await revalidate(handle)
+        guard activeReads[handle.id] == token else { throw DAVAccountLeaseError.invalidLease }
+        guard readClock.now() < deadline else { throw DAVError.timeout }
+        return result
+    }
+    internal func authorizeRead(_ handle: DAVSyncAccountLease, sourceUID: String, token: UUID, deadline: TimeInterval, request: BoundedHTTPRequest) async throws -> (BoundedHTTPRequest, DAVReadDispatchAuthorization) {
+        guard !sourceUID.isEmpty, sourceUID.utf8.count <= 1024 else { throw DAVAccountLeaseError.invalidSelection }
+        try Task.checkCancellation(); try await revalidate(handle)
+        guard activeReads[handle.id] == token, let active = leases[handle.id], let gate = active.gate,
+              let source = active.binding.calendars.first(where: { OpaqueUTF8Identity($0.uid) == OpaqueUTF8Identity(sourceUID) }) else { throw DAVAccountLeaseError.invalidLease }
+        let path = try DAVClient.recoveryPath(request.url.absoluteString), sourcePath = try DAVClient.recoveryPath(source.href.absoluteString)
+        guard request.method == "REPORT" ? path == sourcePath : request.method == "GET" && path.count > sourcePath.count && path.starts(with: sourcePath) else { throw DAVAccountLeaseError.invalidSelection }
+        let current = try stableLeaseSnapshot()
+        guard current.revision == active.binding.sessionRevision else {
+            gate.revoke(); leases.removeValue(forKey: handle.id); throw DAVAccountLeaseError.bindingChanged
+        }
+        let configuration = try leaseContext(current).0
+        let validator = try DAVClient(server: configuration.server, username: configuration.benutzer, password: "", accountType: configuration.kontoArt)
+        _ = try validator.sameOriginURL(request.url.absoluteString)
+        let remaining = min(deadline, active.expires) - gate.clock.now()
+        guard remaining > 0 else { throw DAVError.timeout }
+        let bounded = BoundedHTTPRequest(url: request.url, method: request.method, headers: request.headers, body: request.body,
+            timeout: min(request.timeout, remaining), maximumResponseBytes: request.maximumResponseBytes)
+        return (bounded, try DAVReadDispatchAuthorization(gate: gate, deadline: deadline, request: bounded))
+    }
+    internal func finishReadResponse(_ handle: DAVSyncAccountLease, token: UUID) async throws {
+        try Task.checkCancellation(); try await revalidate(handle)
+        guard activeReads[handle.id] == token else { throw DAVAccountLeaseError.invalidLease }
     }
 
     public static func code(_ error: Error) -> String {
@@ -471,6 +567,20 @@ private struct DAVAccountDeadlineTransport: BoundedHTTPTransport {
         let response = try await base.send(bounded)
         try Task.checkCancellation()
         guard ProcessInfo.processInfo.systemUptime <= deadline else { throw DAVError.timeout }
+        return response
+    }
+}
+
+/// The wrapper never rewrites auth: every redirect uses the same local immutable DAVClient.
+private struct DAVLeaseReadTransport: BoundedHTTPTransport {
+    let service: DAVAccountService, lease: DAVSyncAccountLease, sourceUID: String, token: UUID, deadline: TimeInterval
+    let base: any DispatchFencedHTTPTransport
+    func send(_ request: BoundedHTTPRequest) async throws -> BoundedHTTPResponse {
+        let (bounded, authorization) = try await service.authorizeRead(lease, sourceUID: sourceUID, token: token, deadline: deadline, request: request)
+        let response = try await base.send(bounded, authorization: authorization)
+        try authorization.checkResponseDeadline()
+        try await service.finishReadResponse(lease, token: token)
+        try authorization.checkResponseDeadline()
         return response
     }
 }

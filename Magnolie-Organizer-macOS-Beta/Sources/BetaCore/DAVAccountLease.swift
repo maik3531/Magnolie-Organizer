@@ -3,6 +3,7 @@ import CryptoKit
 
 public enum DAVAccountLeaseError: Error, Equatable {
     case invalidLease, expired, capacity, discoveryRequired, invalidSelection, signerUnavailable, bindingChanged
+    case unsupportedTransport, unsupportedClock
 }
 
 /// Opaque native handle. Not serializable and never a transport/auth credential.
@@ -25,10 +26,27 @@ public final class DAVAccountBindingSigner {
     private let validateJournal: () async throws -> Void
     private let lock = NSLock()
     private var active = true
+    private var readGates: [WeakDAVReadLeaseGate] = []
     internal init(namespace: String, key: SymmetricKey, validateJournal: @escaping () async throws -> Void) {
         self.namespace = namespace; self.key = key; self.validateJournal = validateJournal
     }
-    internal func invalidate() { lock.lock(); active = false; lock.unlock() }
+    internal func invalidate() {
+        lock.lock(); active = false
+        let gates = readGates.compactMap(\.value); readGates.removeAll(); lock.unlock()
+        for gate in gates { gate.revoke() }
+    }
+    internal func registerReadGate(_ gate: DAVReadLeaseGate) throws {
+        lock.lock(); defer { lock.unlock() }
+        guard active else { throw DAVAccountLeaseError.signerUnavailable }
+        readGates = readGates.filter { $0.value != nil }
+        guard readGates.count < 64 else { throw DAVAccountLeaseError.capacity }
+        readGates.append(WeakDAVReadLeaseGate(gate))
+    }
+    internal func withReadStartGate(_ start: () throws -> Void) throws {
+        lock.lock(); defer { lock.unlock() }
+        guard active else { throw DAVAccountLeaseError.signerUnavailable }
+        try start()
+    }
     private func checkActive() throws {
         lock.lock(); defer { lock.unlock() }
         guard active else { throw DAVAccountLeaseError.signerUnavailable }

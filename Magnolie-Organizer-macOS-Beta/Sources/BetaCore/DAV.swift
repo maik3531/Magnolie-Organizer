@@ -64,18 +64,33 @@ public enum DAVError: Error, Equatable {
 
 /// Uses the operating system's HTTPS trust evaluation, without a trust challenge override.
 /// An ephemeral session avoids persisting credentials, DAV payloads or HTTP cookies to disk.
-public struct URLSessionBoundedTransport: BoundedHTTPTransport {
-    public init() {}
+public struct URLSessionBoundedTransport: BoundedHTTPTransport, DispatchFencedHTTPTransport {
+    private let startProbe: DAVHTTPStartProbe?
+    private let protocolClasses: [AnyClass]?
+    public init() { startProbe = nil; protocolClasses = nil }
+    internal init(startProbe: DAVHTTPStartProbe?, protocolClasses: [AnyClass]? = nil) {
+        self.startProbe = startProbe; self.protocolClasses = protocolClasses
+    }
     public func send(_ request: BoundedHTTPRequest) async throws -> BoundedHTTPResponse {
-        let operation = BoundedHTTPOperation(request)
+        try await perform(request, authorization: nil)
+    }
+    internal func send(_ request: BoundedHTTPRequest, authorization: DAVReadDispatchAuthorization) async throws -> BoundedHTTPResponse {
+        try await perform(request, authorization: authorization)
+    }
+    private func perform(_ request: BoundedHTTPRequest, authorization: DAVReadDispatchAuthorization?) async throws -> BoundedHTTPResponse {
+        let operation = BoundedHTTPOperation(request, authorization: authorization, probe: startProbe, protocolClasses: protocolClasses)
         return try await withTaskCancellationHandler(operation: {
             try await withCheckedThrowingContinuation { operation.start($0) }
         }, onCancel: { operation.cancel() })
     }
 }
 
-private final class BoundedHTTPOperation: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+private final class BoundedHTTPOperation: NSObject, URLSessionDataDelegate, DAVReadOperationCancellation, @unchecked Sendable {
     private let input: BoundedHTTPRequest
+    private let authorization: DAVReadDispatchAuthorization?
+    private let probe: DAVHTTPStartProbe?
+    private let protocolClasses: [AnyClass]?
+    private var registration: UUID?
     private let lock = NSLock()
     private var continuation: CheckedContinuation<BoundedHTTPResponse, Error>?
     private var finished = false
@@ -85,7 +100,9 @@ private final class BoundedHTTPOperation: NSObject, URLSessionDataDelegate, @unc
     private var deadline: DispatchWorkItem?
     private var response: HTTPURLResponse?
     private var data = Data()
-    init(_ request: BoundedHTTPRequest) { input = request }
+    init(_ request: BoundedHTTPRequest, authorization: DAVReadDispatchAuthorization?, probe: DAVHTTPStartProbe?, protocolClasses: [AnyClass]?) {
+        input = request; self.authorization = authorization; self.probe = probe; self.protocolClasses = protocolClasses
+    }
 
     func start(_ continuation: CheckedContinuation<BoundedHTTPResponse, Error>) {
         lock.lock()
@@ -105,6 +122,7 @@ private final class BoundedHTTPOperation: NSObject, URLSessionDataDelegate, @unc
         configuration.httpCookieStorage = nil
         configuration.urlCredentialStorage = nil
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        if let protocolClasses { configuration.protocolClasses = protocolClasses }
         let session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
         self.session = session
         var request = URLRequest(url: input.url, timeoutInterval: input.timeout)
@@ -115,9 +133,28 @@ private final class BoundedHTTPOperation: NSObject, URLSessionDataDelegate, @unc
         self.task = task
         let deadline = DispatchWorkItem { [weak self] in self?.finish(.failure(DAVError.timeout)) }
         self.deadline = deadline
-        DispatchQueue.global().asyncAfter(deadline: .now() + input.timeout, execute: deadline)
-        task.resume()
+        let remaining = authorization.map { min(input.timeout, min($0.deadline, $0.gate.expires) - $0.gate.clock.now()) } ?? input.timeout
+        guard remaining > 0 else { lock.unlock(); finish(.failure(DAVError.timeout)); return }
+        DispatchQueue.global().asyncAfter(deadline: .now() + remaining, execute: deadline)
         lock.unlock()
+        // The operation lock must be released BEFORE entering signer -> lease gates.
+        guard probe?.beforeAuthorization() ?? true else { finish(.failure(DAVError.timeout)); return }
+        do {
+            if let authorization {
+                let token = try authorization.gate.register(self)
+                lock.lock(); let live = !finished
+                if live { registration = token }; lock.unlock()
+                if !live { authorization.gate.unregister(token); return }
+            }
+            func resume() throws {
+                lock.lock(); defer { lock.unlock() }
+                guard !finished, !cancelled, self.task === task else { throw CancellationError() }
+                try authorization?.checkDeadlineAtResume()
+                task.resume(); probe?.recordResume()
+            }
+            if let authorization { try authorization.start(input, resume) }
+            else { try resume() }
+        } catch { finish(.failure(error)) }
     }
 
     func cancel() {
@@ -131,8 +168,10 @@ private final class BoundedHTTPOperation: NSObject, URLSessionDataDelegate, @unc
         finished = true; self.continuation = nil
         let session = self.session; self.session = nil
         let task = self.task; self.task = nil
+        let registration = self.registration; self.registration = nil
         deadline?.cancel(); deadline = nil
         lock.unlock()
+        if let registration { authorization?.gate.unregister(registration) }
         task?.cancel(); session?.invalidateAndCancel()
         continuation.resume(with: result)
     }
@@ -367,6 +406,28 @@ public final class DAVClient {
     }
 
     public func report(collection: URL, kind: DAVKind) async throws -> [DAVResource] {
+        try await report(collection: collection, kind: kind, validateDestination: nil, validateResource: nil)
+    }
+    internal func reportScoped(in source: DAVCollection) async throws -> [DAVResource] {
+        let sourcePath = try Self.recoveryPath(source.href.absoluteString)
+        var rawResourcePaths = Set<Data>()
+        let resources = try await report(collection: source.href, kind: source.kind, validateDestination: { reference, base in
+            guard try Self.rawResolvedRecoveryPath(reference, relativeTo: base) == sourcePath,
+                  try Self.recoveryPath(self.sameOriginURL(reference, relativeTo: base).absoluteString) == sourcePath else { throw DAVError.resourceScopeRejected }
+        }, validateResource: { reference, base in
+            let path = try Self.rawResolvedRecoveryPath(reference, relativeTo: base)
+            guard path.count > sourcePath.count, path.starts(with: sourcePath), rawResourcePaths.insert(path).inserted else { throw DAVError.resourceScopeRejected }
+            return path
+        })
+        var seen = Set<Data>()
+        for resource in resources {
+            let path = try Self.recoveryPath(resource.href.absoluteString)
+            guard path.count > sourcePath.count, path.starts(with: sourcePath), seen.insert(path).inserted else { throw DAVError.resourceScopeRejected }
+        }
+        return resources
+    }
+    private func report(collection: URL, kind: DAVKind, validateDestination: ((String, URL?) throws -> Void)?,
+                        validateResource: ((String, URL) throws -> Data)?) async throws -> [DAVResource] {
         let collection = try sameOriginURL(collection.absoluteString)
         let calendar = kind == .calendar
         let namespace = calendar ? Self.cal : Self.card
@@ -375,7 +436,7 @@ public final class DAVClient {
         let filter = calendar ? "<x:filter><x:comp-filter name=\"VCALENDAR\"/></x:filter>" : "<x:filter/>"
         let body = "<x:\(query) xmlns:d=\"DAV:\" xmlns:x=\"\(namespace)\"><d:prop><d:getetag/><x:\(dataTag)/></d:prop>\(filter)</x:\(query)>"
         let (response, finalURL) = try await request("REPORT", url: collection, body: Data(body.utf8),
-            headers: ["Depth": "1", "Content-Type": "application/xml; charset=utf-8"], limit: Self.itemLimit, expected: [207])
+            headers: ["Depth": "1", "Content-Type": "application/xml; charset=utf-8"], limit: Self.itemLimit, expected: [207], validateDestination: validateDestination)
         let rows = try DAVXML.rows(response.body, strict: true)
         var result: [DAVResource] = []
         var seen = Set<URL>()
@@ -384,9 +445,13 @@ public final class DAVClient {
         for row in rows {
             guard let raw = row.properties[namespace + "|" + dataTag]?.text,
                   !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw DAVError.incompleteReport }
+            let rawPath = try validateResource?(row.href, finalURL)
             let href = try sameOriginURL(row.href, relativeTo: finalURL)
-            let path = (href.path as NSString).standardizingPath
-            guard path.hasPrefix(collectionPrefix), seen.insert(href).inserted else { throw DAVError.reportOutsideCollection }
+            if let rawPath, try Self.recoveryPath(href.absoluteString) != rawPath { throw DAVError.resourceScopeRejected }
+            if rawPath == nil {
+                let path = (href.path as NSString).standardizingPath
+                guard path.hasPrefix(collectionPrefix), seen.insert(href).inserted else { throw DAVError.reportOutsideCollection }
+            }
             result.append(DAVResource(href: href, etag: row.properties[Self.dav + "|getetag"]?.text ?? "", data: raw))
         }
         return result
@@ -404,17 +469,7 @@ public final class DAVClient {
         let requestedPath = try Self.recoveryPath(href.absoluteString)
         func validate(_ reference: String, relativeTo base: URL?) throws {
             // Inspect raw redirect syntax before URL resolution/standardization can remove dots.
-            let rawPath = try Self.recoveryPath(reference)
-            let absoluteRawPath: Data
-            if rawPath.first == 47 { absoluteRawPath = rawPath }
-            else if let base {
-                let basePath = try Self.recoveryPath(base.absoluteString)
-                if rawPath.isEmpty { absoluteRawPath = basePath }
-                else {
-                    guard let slash = basePath.lastIndex(of: 47) else { throw DAVError.resourceScopeRejected }
-                    absoluteRawPath = Data(basePath.prefix(through: slash)) + rawPath
-                }
-            } else { absoluteRawPath = rawPath }
+            let absoluteRawPath = try Self.rawResolvedRecoveryPath(reference, relativeTo: base)
             // Compare raw resolved bytes BEFORE Foundation may standardize Unicode or escapes.
             guard absoluteRawPath == requestedPath else { throw DAVError.resourceScopeRejected }
             let resolved = try sameOriginURL(reference, relativeTo: base)
@@ -437,6 +492,15 @@ public final class DAVClient {
         guard bytes.count >= 2, bytes.first == 34, bytes.last == 34,
               bytes.dropFirst().dropLast().allSatisfy({ $0 == 33 || (35...126).contains($0) || $0 >= 128 }) else { throw DAVError.missingETag }
         return .present(DAVResourceRead.Present(binding: binding, etag: etag, bytes: response.body))
+    }
+    internal static func rawResolvedRecoveryPath(_ reference: String, relativeTo base: URL?) throws -> Data {
+        let rawPath = try recoveryPath(reference)
+        if rawPath.first == 47 { return rawPath }
+        guard let base else { return rawPath }
+        let basePath = try recoveryPath(base.absoluteString)
+        if rawPath.isEmpty { return basePath }
+        guard let slash = basePath.lastIndex(of: 47) else { throw DAVError.resourceScopeRejected }
+        return Data(basePath.prefix(through: slash)) + rawPath
     }
     /// Percent-decode into bytes, never Swift String equality (NFC and NFD filenames differ).
     /// Encoded separators, backslashes, dot segments, controls and URI credentials/query are unsafe.
