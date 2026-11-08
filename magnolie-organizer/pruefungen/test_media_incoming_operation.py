@@ -168,6 +168,7 @@ def test_actual_encrypted_shared_incoming_png_is_saved_then_ends_without_changin
             first=h.wire.receive() # The incoming phase follows real backup/retirement, never Saved alone.
             assert not cache.directory.exists() and list(Path(c._authority.binding.native_directory).glob('.magnolie-source-*.retired'))
         batch=first;assert batch['body']['operation']=='batch_run'
+        assert session.snapshot()['saved_files']==(1 if pc_change else 0)
         secure_dispatch(h,native[0],result(batch,RUN,True))
         page_request=h.wire.receive();assert page_request['body']['operation']=='media_page'
         page=media(page_request,full)
@@ -209,7 +210,8 @@ def test_actual_encrypted_shared_incoming_png_is_saved_then_ends_without_changin
             secure_dispatch(h,native[0],result(request,RUN,True,state='canceled_held'))
         assert session.join(30),session.snapshot()
         assert session.snapshot()['state']=='complete',session.snapshot()
-        assert session.snapshot()['saved_files']==1
+        assert session.snapshot()['saved_files']==(2 if pc_change else 1)
+        assert session.snapshot()['saved_files']==(2 if pc_change else 1) and session._worker is None
         assert (Path(h.record.destination.path)/path).read_bytes()==content
         assert h.target.read_bytes()==pc_content and c._run is None and c._source_run is None
         if automatic:

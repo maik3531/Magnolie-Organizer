@@ -2729,6 +2729,7 @@ class NativePhotoDesktopSession:
     def __init__(self, connection):
         self.connection=connection; self._lock=threading.RLock()
         self._thread=None; self._running=False; self._stop=threading.Event(); self._worker=None
+        self._progress_totals=None
         self._state='off'; self._error=None; self._enabled=False
         self._active_media='images'
         self._destination=None; self._albums=[]; self._permission=None
@@ -2757,10 +2758,23 @@ class NativePhotoDesktopSession:
                 value.update(video_supported=True,video_enabled=self._video_enabled,video_destination=self._video_destination,
                     video_albums=[dict(album) for album in self._video_albums],video_permission=self._video_permission)
             worker=self._worker
+            totals=dict(self._progress_totals or {})
         if worker is not None:
             progress=worker.progress()
-            value.update(saved_files=progress['saved_files'],known_files=progress['known_files'],conflicts=len(progress['conflicts']))
+            for field,count in (('saved_files',progress['saved_files']),('known_files',progress['known_files']),('conflicts',len(progress['conflicts']))):
+                totals[field]=totals.get(field,0)+count
+        value.update(totals)
         return value
+
+    def _credit_worker_end(self,worker,progress):
+        # Called under the session lock only AFTER join proved this worker's
+        # actual END. Atomic pointer retirement prevents double-counted snapshots.
+        if self._worker is not worker:return
+        totals=self._progress_totals
+        if totals is None:totals=self._progress_totals=dict(saved_files=0,known_files=0,conflicts=0)
+        totals['saved_files']+=progress['saved_files'];totals['known_files']+=progress['known_files']
+        totals['conflicts']+=len(progress['conflicts'])
+        self._worker=None
 
     def _notify(self):
         callback=self.connection._status_changed
@@ -2817,6 +2831,8 @@ class NativePhotoDesktopSession:
                         or self._schedule.mode!='automatic'):
                     raise TransferError('photo_sync_invalid_action')
                 if operation in ('sync','videos_sync','sync_selected','sync_shared'):schedule_run=self._schedule.request_now()
+                if operation in ('sync','videos_sync','sync_selected','sync_shared','automatic'):
+                    self._progress_totals=dict(saved_files=0,known_files=0,conflicts=0)
                 self._stop.clear(); self._error=None; self._state=operation;self._recovery_result=None
                 if not operation.startswith('mode_'):
                     self._active_media='video' if operation.startswith('videos_') or operation=='sync_selected' and album_id is None else 'images'
@@ -3309,7 +3325,9 @@ class NativePhotoDesktopSession:
                         while not worker.join(.25):
                             if self._stop.is_set():worker.stop()
                         progress=worker.progress()
-                        with self._lock:self._state=progress['state'];self._error=progress['error']
+                        with self._lock:
+                            self._credit_worker_end(worker,progress)
+                            self._state=progress['state'];self._error=progress['error']
                         if progress['state']!='complete':break
                         if not outgoing.requested_for(media_type):continue # PC-only never requests phone READ.
                     if shared_constraint is not None and operation in ('automatic','sync_shared'):
@@ -3346,6 +3364,7 @@ class NativePhotoDesktopSession:
                             if self._stop.is_set():worker.stop()
                         progress=worker.progress()
                         with self._lock:
+                            self._credit_worker_end(worker,progress)
                             self._state=('syncing' if operation=='sync_selected' and media_type!=media_types[-1] and progress['state']=='complete' else progress['state'])
                             self._error=progress['error']
                         if progress['state']!='complete':complete=False;break

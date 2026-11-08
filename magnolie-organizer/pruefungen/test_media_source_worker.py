@@ -166,10 +166,12 @@ def test_normal_session_pc_only_manual_pass_never_discovers_or_requests_phone_re
             assert state['mapped_outgoing'] is True and state['mapped_direction']=='pc_to_phone'
         session=h.connection.desktop_session()
         monkeypatch.setattr(h.connection,'request_source',lambda *a,**k:pytest.fail('PC-only session requested phone source/READ'))
-        native[0].photo_sync_action(h.peer['device_id'],phone.fingerprint(phone.unb64(h.peer['static_public'],32)),{'action':'sync_shared'})
-        assert session.join(30),session.snapshot()
-        assert session.snapshot()['state']=='complete',session.snapshot()
-        assert session.snapshot()['known_files']==1 and session.snapshot()['enabled'] is False
+        for cycle in range(2):
+            native[0].photo_sync_action(h.peer['device_id'],phone.fingerprint(phone.unb64(h.peer['static_public'],32)),{'action':'sync_shared'})
+            assert session.join(30),session.snapshot()
+            assert session.snapshot()['state']=='complete',session.snapshot()
+            assert session.snapshot()['known_files']==1 and session.snapshot()['enabled'] is False
+            assert session.snapshot()['known_files']==1 and session._worker is None # No double credit or previous-run carry.
         assert h.connection._mapped_worker is None and not h.source._prepared
 
 
