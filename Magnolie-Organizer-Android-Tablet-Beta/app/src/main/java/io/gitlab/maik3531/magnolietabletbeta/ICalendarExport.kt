@@ -219,7 +219,6 @@ object ICalendarExport {
             expected.putIfAbsent(key,mapOf("offsetMinuten" to offset, "aktion" to action, "related" to related,
                 "triggerRaw" to raw,"triggerTzid" to tzid,"bearbeitbar" to editable))
         }
-        requireExport(alarms.length() == expected.size, "Structured alarms differ from their source VALARM blocks.")
         val seen = mutableSetOf<String>()
         val allowed = setOf("id","offsetMinuten","aktion","aktiviert","quelle","related","triggerRaw","triggerTzid","bearbeitbar")
         for (index in 0 until alarms.length()) {
@@ -228,17 +227,25 @@ object ICalendarExport {
             for (key in listOf("aktion","related","triggerRaw","triggerTzid")) if (alarm.has(key))
                 requireExport(alarm.opt(key) is String, "Invalid structured alarm field type.")
             requireExport(alarm.opt("id") is String && matches(text(alarm,"id"),"[A-Za-z0-9_.:@-]{1,160}") &&
-                alarm.opt("aktiviert") == true && alarm.opt("bearbeitbar") is Boolean && text(alarm,"quelle") in setOf("ics","magnolie"),
+                alarm.opt("aktiviert") is Boolean && alarm.opt("bearbeitbar") is Boolean && text(alarm,"quelle") in setOf("ics","magnolie"),
                 "Edited or disabled alarms require matching source VALARM data.")
             val offset = integer(alarm.opt("offsetMinuten"),-1)
             val editable = alarm.getBoolean("bearbeitbar"); val raw = text(alarm,"triggerRaw")
             val related = text(alarm,"related"); val action = text(alarm,"aktion")
             val key = if (editable) "$offset|$related|$action" else "raw|$raw|$related"
+            if (!alarm.getBoolean("aktiviert")) {
+                // Disabled editable alarms may remain as local JSON metadata only
+                // after their corresponding authoritative VALARM has been removed.
+                requireExport(editable && action == "display" && related in setOf("START","END") && offset in 0..525600 &&
+                    key !in expected && seen.add(key), "Disabled alarms still have source VALARM data or are not editable.")
+                continue
+            }
             val source = expected[key] ?: throw ExportException("Structured alarm contradicts its source VALARM.")
             requireExport(seen.add(key) && offset == source["offsetMinuten"] && action == source["aktion"] &&
                 related == source["related"] && (editable || raw == source["triggerRaw"]) && (editable || text(alarm,"triggerTzid") == source["triggerTzid"]) &&
                 editable == source["bearbeitbar"], "Structured alarm contradicts its source VALARM.")
         }
+        requireExport(expected.keys.all { it in seen }, "Structured alarms omit an existing source VALARM.")
     }
     private fun identifier(record: JSONObject): String = listOf("icsSerienUid", "icsImportUid", "uid", "id").firstNotNullOfOrNull { text(record, it).takeIf(String::isNotEmpty) }
         ?: throw ExportException("Calendar record has no stable identity.")

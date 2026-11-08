@@ -174,6 +174,30 @@ class ICalendarExportTest {
         val unknown=copy(); unknown.getJSONArray("alarme").getJSONObject(0).put("emailRecipients","must not silently disappear")
         rejected { ICalendarExport.encode(listOf(unknown),"ics-termine","UTC") }
     }
+    @Test fun coherentlyDisabledEditableAlarmNeedsItsRawBlockRemovedAndCannotDisableReadonly() {
+        val original=sharedUiFixture().getJSONObject("normalizedRecord")
+        val disabled=JSONObject(original.toString())
+        disabled.getJSONArray("alarme").getJSONObject(0).put("aktiviert",false)
+        rejected { ICalendarExport.encode(listOf(disabled),"ics-termine","UTC") }
+        val raw=disabled.getJSONArray("icsRoundtrip");val retained=JSONArray()
+        var block=0;var skip=false
+        for(index in 0 until raw.length()) {
+            val line=raw.getString(index)
+            if(line=="BEGIN:VALARM") { block++;skip=block==1 }
+            if(!skip) retained.put(line)
+            if(line=="END:VALARM") skip=false
+        }
+        disabled.put("icsRoundtrip",retained)
+        val before=disabled.toString()
+        val output=ICalendarExport.encode(listOf(disabled),"ics-termine","UTC")
+        assertEquals(before,disabled.toString())
+        assertEquals(1,output.split("BEGIN:VALARM").size-1)
+        assertFalse(output.contains("ACTION:DISPLAY"));assertTrue(output.contains("ACTION:AUDIO"))
+        val readonly=JSONObject(original.toString()).put("icsRoundtrip",JSONArray())
+        readonly.getJSONArray("alarme").getJSONObject(0).put("aktiviert",false)
+        readonly.getJSONArray("alarme").getJSONObject(1).put("aktiviert",false)
+        rejected { ICalendarExport.encode(listOf(readonly),"ics-termine","UTC") }
+    }
     @Test fun readonlyAlarmTriggerAndTimezoneRemainAuthoritative() {
         val original=sharedUiFixture().getJSONObject("normalizedRecord")
         for(field in listOf("triggerRaw","triggerTzid")) {
