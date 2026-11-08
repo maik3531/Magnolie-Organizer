@@ -69,6 +69,13 @@ vm.runInNewContext(timezoneInput('projection-assets.cjs').toString(),timezoneBui
 const timezoneAssets=timezoneBuilder.module.exports(timezoneInput);
 const generated = new Map();
 for (const [p,b] of buffers) if (p.startsWith(desktop + path.sep)) generated.set('assets/web/'+path.relative(desktop,p),b);
+// Finalized strokes share Undo/Redo/reopen/export rendering without changing
+// the canonical Linux/Windows source or the live pointer-motion path.
+const drawingPatch = JSON.parse(buffers.get(path.join(parent,'port-adapters/drawing-finish-patch.json')));
+const drawingSource = generated.get('assets/web/zeichenblatt.js').toString();
+if (drawingPatch.schema !== 1 || sha(drawingSource) !== drawingPatch.canonicalSHA256 ||
+    drawingSource.split(drawingPatch.before).length !== 2) throw Error('Canonical drawing finish anchor changed');
+generated.set('assets/web/zeichenblatt.js',Buffer.from(drawingSource.replace(drawingPatch.before,drawingPatch.after)));
 // Android does not provide the desktop's Noto Serif / DejaVu families by name.
 // Reuse live Windows @font-face definitions and bytes, never host font discovery.
 const fontFaces = buffers.get(path.join(windowsWeb,'stil.css')).toString().match(/@font-face\s*\{[^}]+\}/g) || [];

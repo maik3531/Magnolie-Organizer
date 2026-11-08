@@ -134,6 +134,14 @@ def project(snapshot, target):
             path = target / name.removeprefix(prefix)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
+    # Finalized strokes use the same renderer as Undo/Redo, reopen and export.
+    # The shared patch is frozen input; canonical Linux/Windows sources stay intact.
+    drawing = target / "web/zeichenblatt.js"
+    drawing_source = drawing.read_text()
+    drawing_patch = json.loads(snapshot["port-adapters/drawing-finish-patch.json"])
+    if drawing_patch.get("schema") != 1 or digest(drawing_source.encode()) != drawing_patch["canonicalSHA256"]:
+        raise ValueError("Canonical drawing source changed; review the finish projection")
+    drawing.write_text(replace_once(drawing_source, drawing_patch["before"], drawing_patch["after"]))
     app = target / "web/anwendung.js"
     text = app.read_text()
     text = apply_timezone_patches(text, snapshot)

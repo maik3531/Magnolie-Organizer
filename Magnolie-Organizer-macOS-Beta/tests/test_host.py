@@ -108,7 +108,15 @@ class ProjectionTests(unittest.TestCase):
             original = projection.LINUX.relative_to(projection.REPO).as_posix() + "/web/"
             for name, data in self.snapshot.items():
                 if name.startswith(original) and not name.endswith(("/index.html", "/anwendung.js")):
-                    self.assertEqual((a / "web" / name.removeprefix(original)).read_bytes(), data)
+                    actual = (a / "web" / name.removeprefix(original)).read_bytes()
+                    if name == original + "zeichenblatt.js":
+                        drawing_patch = json.loads(self.snapshot["port-adapters/drawing-finish-patch.json"])
+                        before, after = drawing_patch["before"].encode(), drawing_patch["after"].encode()
+                        self.assertEqual(data.count(before), 1)
+                        self.assertEqual(actual, data.replace(before, after, 1))
+                        self.assertEqual(actual.replace(after, before, 1), data)
+                    else:
+                        self.assertEqual(actual, data)
             html = (a / "web/index.html").read_text()
             self.assertIn("Magnolie Organizer macOS Beta", html)
             self.assertIn("connect-src 'none'", html)
@@ -162,6 +170,34 @@ class ProjectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-drift-") as temp:
             with self.assertRaisesRegex(ValueError, "anchor changed"):
                 projection.project(changed, Path(temp) / "UI")
+
+    def test_drawing_finish_projection_and_exact_renderer_commands(self):
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            runtime = self.javascript()
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            subprocess.run(args + [str(projection.REPO / "port-adapters/tests/drawing-finish.cjs"),
+                                   str(target / "web")], cwd=BETA, check=True, timeout=30)
+        changed = dict(self.snapshot)
+        key = "magnolie-organizer/web/zeichenblatt.js"
+        changed[key] += b"\n// canonical drift"
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-drift-") as temp:
+            with self.assertRaisesRegex(ValueError, "Canonical drawing source changed"):
+                projection.project(changed, Path(temp) / "UI")
+        patch_key = "port-adapters/drawing-finish-patch.json"
+        self.assertEqual(projection.inventory(self.snapshot)[patch_key], projection.digest(self.snapshot[patch_key]))
+        original_patch = json.loads(self.snapshot[patch_key])
+        for field, value, message in [("schema", 2, "Canonical drawing source changed"),
+                                      ("canonicalSHA256", "0" * 64, "Canonical drawing source changed"),
+                                      ("before", original_patch["before"] + " changed", "anchor changed")]:
+            changed = dict(self.snapshot)
+            changed[patch_key] = json.dumps(dict(original_patch, **{field: value})).encode()
+            with self.subTest(field=field), tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-manifest-") as temp:
+                with self.assertRaisesRegex(ValueError, message):
+                    projection.project(changed, Path(temp) / "UI")
 
     def test_regional_form_drift_refuses_instead_of_guessing_native_contract(self):
         changed = dict(self.snapshot)
