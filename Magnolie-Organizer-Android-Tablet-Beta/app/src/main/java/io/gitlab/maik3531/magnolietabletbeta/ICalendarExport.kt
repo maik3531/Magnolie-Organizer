@@ -3,12 +3,12 @@ package io.gitlab.maik3531.magnolietabletbeta
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZoneOffset
+import org.threeten.bp.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.CancellationException
 
@@ -86,11 +86,11 @@ object ICalendarExport {
     private val days = listOf("SU", "MO", "TU", "WE", "TH", "FR", "SA")
     private fun day(value: String): LocalDate {
         requireExport(matches(value, "[0-9]{4}-[0-9]{2}-[0-9]{2}"), "Invalid calendar date.")
-        return try { LocalDate.parse(value).also { requireExport(it.year in 1..9999, "Invalid calendar year.") } } catch (_: java.time.DateTimeException) { throw ExportException("Invalid calendar date.") }
+        return try { LocalDate.parse(value).also { requireExport(it.year in 1..9999, "Invalid calendar year.") } } catch (_: org.threeten.bp.DateTimeException) { throw ExportException("Invalid calendar date.") }
     }
     private fun zone(value: String): ZoneId {
         requireExport(value.isNotEmpty() && value.length <= 255 && matches(value, "[A-Za-z0-9_+./-]+") && !value.contains(".."), "Unavailable calendar time zone.")
-        return try { ZoneId.of(value) } catch (_: java.time.DateTimeException) { throw ExportException("Unavailable calendar time zone.") }
+        return try { ZoneId.of(value) } catch (_: org.threeten.bp.DateTimeException) { throw ExportException("Unavailable calendar time zone.") }
     }
     private fun displayZone(record: JSONObject) = text(record, "icsAnzeigeZeitzone").let { if (it.isEmpty() || it == "system") ZoneId.systemDefault() else zone(it) }
     private fun wall(date: String, time: String): LocalDateTime {
@@ -121,7 +121,7 @@ object ICalendarExport {
             return resolved[key] ?: run {
                 // Reuse the existing public, bounded, calendar-scoped resolver.
                 // DTSTAMP preserves exact epoch seconds, including custom offsets
-                // beyond java.time.ZoneOffset's 18-hour limit. No event expansion.
+                // beyond org.threeten.bp.ZoneOffset's 18-hour limit. No event expansion.
                 val parameter = if (source.any { it == ':' || it == ';' || it == ',' }) "\"$source\"" else source
                 val lines = listOf("BEGIN:VCALENDAR", "VERSION:2.0") + definitions.getValue(source) + listOf(
                     "BEGIN:VEVENT", "UID:timezone-probe", "DTSTART:20000101T000000Z", "DTSTAMP;TZID=$parameter:" + wall.format(stamp), "SUMMARY:Timezone resolution", "END:VEVENT", "END:VCALENDAR")

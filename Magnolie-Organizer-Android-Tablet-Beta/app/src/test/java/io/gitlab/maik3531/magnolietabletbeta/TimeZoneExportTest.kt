@@ -5,14 +5,14 @@ import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZoneOffset
 
 class TimeZoneExportTest {
     private fun at(year: Int, month: Int, day: Int, hour: Int = 12, minute: Int = 0) = LocalDateTime.of(year, month, day, hour, minute)
     private fun offset(definition: List<String>, wall: LocalDateTime): Int {
-        val value = wall.format(java.time.format.DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss"))
+        val value = wall.format(org.threeten.bp.format.DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss"))
         val lines = listOf("BEGIN:VCALENDAR", "VERSION:2.0") + definition + listOf("BEGIN:VEVENT", "UID:probe", "DTSTART:20000101T000000Z", "DTSTAMP;TZID=" + definition[1].removePrefix("TZID:") + ":$value", "SUMMARY:Timezone probe", "END:VEVENT", "END:VCALENDAR")
         val parsed = ICalendarImport.decode(lines.joinToString("\r\n", postfix = "\r\n").toByteArray(), "UTC").appointments.single()
         return (wall.toEpochSecond(ZoneOffset.UTC) - parsed.getLong("geaendert") / 1000).toInt()
@@ -33,6 +33,14 @@ class TimeZoneExportTest {
             vectors.put(JSONObject().put("identifier", identifier).put("definition", JSONArray(definition)))
         }
         output?.resolve("timezone-definitions.json")?.writeText(vectors.toString(), Charsets.UTF_8)
+    }
+    @Test fun completeFixedOffsetRulesRemainLosslessWithoutSeasonalRules() {
+        for ((identifier, expected) in listOf("UTC" to 0, "Etc/UTC" to 0, "Etc/GMT-1" to 3600)) {
+            val definition = TimeZoneExport.definition(identifier)
+            assertFalse(definition.any { it.startsWith("RRULE:") })
+            assertEquals(1, definition.count { it == "BEGIN:STANDARD" })
+            for (year in listOf(2, 2026, 8000)) assertEquals(expected, offset(definition, at(year, 7, 15)))
+        }
     }
     @Test fun gapsFoldsAndInitialPositiveOffsetAnchorsKeepExactInstants() {
         for ((identifier, walls) in listOf(

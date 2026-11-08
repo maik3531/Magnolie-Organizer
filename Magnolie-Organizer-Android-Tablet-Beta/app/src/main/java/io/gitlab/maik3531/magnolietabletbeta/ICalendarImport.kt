@@ -6,11 +6,11 @@ import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 import java.text.Normalizer
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZoneOffset
+import org.threeten.bp.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.CancellationException
 
@@ -178,13 +178,13 @@ object ICalendarImport {
                 if (value.length > 8) value.substring(9, 11).toInt() else 0,
                 if (value.length > 8) value.substring(11, 13).toInt() else 0,
                 if (value.length > 13) value.substring(13, 15).toInt() else 0)
-        } catch (error: java.time.DateTimeException) { throw ImportException("Invalid calendar date/time.") }
+        } catch (error: org.threeten.bp.DateTimeException) { throw ImportException("Invalid calendar date/time.") }
     }
     private fun naiveSeconds(value: LocalDateTime) = value.toEpochSecond(ZoneOffset.UTC)
     private fun fromSeconds(value: Long) = LocalDateTime.ofEpochSecond(value, 0, ZoneOffset.UTC)
     private fun knownZone(name: String): ZoneId {
         requireImport(name.isNotEmpty() && name.toByteArray(Charsets.UTF_8).size <= 255, "Unresolved source time zone.")
-        return try { ZoneId.of(name) } catch (_: java.time.DateTimeException) { throw ImportException("Unresolved source time zone.") }
+        return try { ZoneId.of(name) } catch (_: org.threeten.bp.DateTimeException) { throw ImportException("Unresolved source time zone.") }
     }
     private fun ordinaryWall(wall: LocalDateTime, zone: ZoneId): Long {
         val offsets = zone.rules.getValidOffsets(wall)
@@ -213,7 +213,7 @@ object ICalendarImport {
         return result
     }
     /** Manual UTC seconds permit RFC 5545 offsets up to 23:59:59 without the
-     * narrower +/-18h java.time.ZoneOffset limit or any invented OS zone. */
+     * narrower +/-18h org.threeten.bp.ZoneOffset limit or any invented OS zone. */
     private class EmbeddedZone(component: Component, private val check: () -> Unit) {
         data class Observation(val start: LocalDateTime, val before: Int, val after: Int, val dates: List<LocalDateTime>, val rule: Map<String, String>)
         private val observations: List<Observation>
@@ -341,7 +341,7 @@ object ICalendarImport {
             requireImport(property.parameters["VALUE"]?.let { upper(it) in setOf("DATE-TIME") } != false && matches(value, "[0-9]{8}T[0-9]{4}(?:[0-9]{2})?Z?") && (!value.endsWith('Z') || property.parameters["TZID"] == null), "Invalid source calendar date-time.")
             val source = if (value.endsWith('Z')) absoluteUTC else property.parameters["TZID"] ?: ""
             val wall = naive(value.removeSuffix("Z")); val resolved = instant(wall, source)
-            requireImport(java.time.Instant.ofEpochSecond(resolved).atZone(display).year in 1..9999, "Calendar time is outside the supported display range.")
+            requireImport(org.threeten.bp.Instant.ofEpochSecond(resolved).atZone(display).year in 1..9999, "Calendar time is outside the supported display range.")
             return Clock(resolved, wall, false, source)
         }
         fun duration(specification: String, start: Clock): Clock {
@@ -352,12 +352,12 @@ object ICalendarImport {
             val wall = start.wall.plusDays(values[0] * 7 + values[1])
             val exact = values[2] * 3600 + values[3] * 60 + values[4]
             val end = instant(wall, start.source) + exact
-            val projected = java.time.Instant.ofEpochSecond(end).atZone(if (start.dateOnly) ZoneOffset.UTC else display)
+            val projected = org.threeten.bp.Instant.ofEpochSecond(end).atZone(if (start.dateOnly) ZoneOffset.UTC else display)
             requireImport(projected.year in 1..9999, "Calendar duration is outside the supported range.")
             return Clock(end, wall.plusSeconds(exact), start.dateOnly, start.source)
         }
-        fun date(clock: Clock) = java.time.Instant.ofEpochSecond(clock.instant).atZone(if (clock.dateOnly) ZoneOffset.UTC else display).toLocalDate().toString()
-        fun time(clock: Clock) = if (clock.dateOnly) "" else java.time.Instant.ofEpochSecond(clock.instant).atZone(display).format(DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT))
+        fun date(clock: Clock) = org.threeten.bp.Instant.ofEpochSecond(clock.instant).atZone(if (clock.dateOnly) ZoneOffset.UTC else display).toLocalDate().toString()
+        fun time(clock: Clock) = if (clock.dateOnly) "" else org.threeten.bp.Instant.ofEpochSecond(clock.instant).atZone(display).format(DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT))
     }
     private fun simpleRule(fields: Map<String, String>, start: Clock, resolver: Resolver): Map<String, Any>? {
         val type = mapOf("DAILY" to "daily", "WEEKLY" to "weekly", "MONTHLY" to "monthly", "YEARLY" to "yearly")[fields["FREQ"]] ?: return null
@@ -383,7 +383,7 @@ object ICalendarImport {
         fields["UNTIL"]?.let { value ->
             if ('T' in value && !value.endsWith("00") && !value.endsWith("00Z")) return null
             val ending = resolver.clock(Property("DTSTART" + (if (value.length == 8) ";VALUE=DATE" else "") + ":" + value))
-            var last = java.time.Instant.ofEpochSecond(ending.instant).atZone(if (ending.dateOnly) ZoneOffset.UTC else resolver.display)
+            var last = org.threeten.bp.Instant.ofEpochSecond(ending.instant).atZone(if (ending.dateOnly) ZoneOffset.UTC else resolver.display)
             if (!ending.dateOnly && resolver.time(start).isNotEmpty() && resolver.time(ending) < resolver.time(start)) last = last.minusDays(1)
             until = last.toLocalDate().toString()
         }
@@ -514,7 +514,7 @@ object ICalendarImport {
         val date = resolver.date(start); val time = resolver.time(start); var endDate = ""; var endTime = ""
         end?.let { ending ->
             val exclusive = ending.instant - if (start.dateOnly) 86400 else 0
-            val projected = java.time.Instant.ofEpochSecond(exclusive).atZone(if (start.dateOnly) ZoneOffset.UTC else resolver.display).toLocalDate().toString()
+            val projected = org.threeten.bp.Instant.ofEpochSecond(exclusive).atZone(if (start.dateOnly) ZoneOffset.UTC else resolver.display).toLocalDate().toString()
             if (projected > date) endDate = projected
             if (!start.dateOnly && (resolver.date(ending) > date || resolver.time(ending) != time)) endTime = resolver.time(ending)
         }

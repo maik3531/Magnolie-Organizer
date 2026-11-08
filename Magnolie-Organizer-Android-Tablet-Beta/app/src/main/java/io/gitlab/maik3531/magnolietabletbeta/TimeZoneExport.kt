@@ -1,18 +1,22 @@
 package io.gitlab.maik3531.magnolietabletbeta
 
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.time.zone.ZoneOffsetTransitionRule
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZoneOffset
+import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.zone.ZoneOffsetTransitionRule
+import org.threeten.bp.zone.ZoneRules
+import org.threeten.bp.zone.ZoneRulesProvider
 import java.util.Locale
 
-/** RFC 5545 history and infinite future from the public ZoneRules database.
+/** RFC 5545 history and infinite future from the pinned, complete ThreeTen TZDB.
  * No event occurrence expansion, guessed DST rules or finite future snapshots. */
 object TimeZoneExport {
     class UnsupportedException(message: String) : IllegalArgumentException(message)
+    /** The public data version actually loaded from the bundled TZDB resource. */
+    val databaseVersion: String get() = ZoneRulesProvider.getVersions("Europe/Berlin").lastKey()
     private val names = listOf("SU", "MO", "TU", "WE", "TH", "FR", "SA")
     private val stamp = DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss", Locale.ROOT)
     private data class Key(val daylight: Boolean, val before: Int, val after: Int)
@@ -31,7 +35,7 @@ object TimeZoneExport {
         dates.drop(1).chunked(100).forEach { lines.add("RDATE:" + it.joinToString(",") { date -> date.format(stamp) }) }
         rule?.let { lines.add("RRULE:$it") }; lines.add("END:$kind"); return lines
     }
-    private fun candidates(pattern: FuturePattern, year: Int, clock: java.time.LocalTime): List<LocalDateTime> {
+    private fun candidates(pattern: FuturePattern, year: Int, clock: org.threeten.bp.LocalTime): List<LocalDateTime> {
         val dates = mutableListOf<LocalDateTime>()
         for (month in pattern.months.sorted()) {
             val length = LocalDate.of(year, month, 1).lengthOfMonth()
@@ -81,11 +85,22 @@ object TimeZoneExport {
         }
         throw UnsupportedException("The system time zone's future rule has no verified lossless RFC 5545 representation.")
     }
+    /** Empty lists may mean unknown, not fixed (notably desugar's public
+     * TimeZone-backed provider). Require a complete fixed-offset value before
+     * representing such a provider as one observance for all time. */
+    internal fun requireCompleteRules(rules: ZoneRules) {
+        if (rules.transitions.isEmpty()) {
+            requireZone(rules.transitionRules.isEmpty() && rules.isFixedOffset &&
+                rules == ZoneRules.of(rules.getOffset(Instant.EPOCH)))
+        }
+    }
     @JvmOverloads
     fun definition(identifier: String, checkCancelled: () -> Unit = {}): List<String> {
         requireZone(identifier.isNotEmpty() && identifier.toByteArray(Charsets.UTF_8).size <= 255 && identifier.none { it.code < 32 || it.code == 127 || it == ':' || it == ';' })
-        val zone = try { ZoneId.of(identifier) } catch (_: java.time.DateTimeException) { throw UnsupportedException("The system time zone is unavailable.") }
-        val rules = zone.rules; val history = rules.transitions; val future = rules.transitionRules
+        val zone = try { ZoneId.of(identifier) } catch (_: org.threeten.bp.DateTimeException) { throw UnsupportedException("The system time zone is unavailable.") }
+        val rules = zone.rules
+        requireCompleteRules(rules)
+        val history = rules.transitions; val future = rules.transitionRules
         requireZone(history.size <= 100_000 && future.size <= 16 && (future.isEmpty() || history.isNotEmpty()))
         val minimum = LocalDate.of(1, 1, 1).atStartOfDay()
         val firstOffset = history.firstOrNull()?.offsetBefore ?: rules.getOffset(Instant.EPOCH)

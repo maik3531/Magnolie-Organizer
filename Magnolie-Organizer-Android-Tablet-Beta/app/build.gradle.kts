@@ -1,3 +1,6 @@
+import java.security.MessageDigest
+import java.util.zip.ZipFile
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -9,6 +12,32 @@ val projection = tasks.register<Exec>("projectDesktop") {
     // Always reread the live canonical source, including concurrent UI corrections.
     outputs.upToDateWhen { false }
 }
+// Verify the resolved dependency, not merely the version string in this script.
+// This intentionally targets the new TZDB backport only; it does not weaken any
+// repository-wide dependency verification or accept replacement providers.
+val verifyThreeTenRuntime = tasks.register("verifyThreeTenRuntime") {
+    doLast {
+        val candidates = configurations.getByName("debugRuntimeClasspath").resolvedConfiguration.resolvedArtifacts
+            .filter { it.moduleVersion.id.group == "org.threeten" && it.moduleVersion.id.name == "threetenbp" }
+        check(candidates.size == 1) { "Exactly one verified ThreeTenBP runtime artifact is required" }
+        val artifact = candidates.single()
+        check(artifact.moduleVersion.id.version == "1.7.5" && artifact.file.extension == "jar") {
+            "Unexpected ThreeTenBP version or runtime artifact type"
+        }
+        fun sha256(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+        check(sha256(artifact.file.readBytes()) == "58c5593452f871ebf736dfda3bf8f3bc0de4e92cec61bc19c8ad81f9dfb70d72") {
+            "Resolved ThreeTenBP runtime JAR does not match the verified published artifact"
+        }
+        ZipFile(artifact.file).use { archive ->
+            val entry = archive.getEntry("org/threeten/bp/TZDB.dat") ?: error("ThreeTenBP runtime has no complete TZDB resource")
+            check(sha256(archive.getInputStream(entry).use { it.readBytes() }) == "e28750a597bca9fe12fc927d6e8dd71cc71e9195a90e2bc7490265ffa10f1b12") {
+                "ThreeTenBP TZDB resource does not match the verified full database"
+            }
+        }
+    }
+}
+
 val betaDebugKey = rootProject.file(".debug-signing/beta-debug.keystore")
 val createBetaDebugKey = tasks.register<Exec>("createBetaDebugKey") {
     onlyIf { !betaDebugKey.exists() }
@@ -52,9 +81,10 @@ kotlin {
             "io/gitlab/maik3531/magnolienotes/daten/DateiDauerhaft.kt")
     }
 }
-tasks.named("preBuild") { dependsOn(projection) }
+tasks.named("preBuild") { dependsOn(projection, verifyThreeTenRuntime) }
 tasks.matching { it.name == "validateSigningDebug" }.configureEach { dependsOn(createBetaDebugKey) }
 tasks.configureEach {
+    if (name.startsWith("compile") || name.startsWith("test")) dependsOn(verifyThreeTenRuntime)
     if (name.contains("Release")) doFirst { error("Tablet Beta is debug-only; production builds are not authorized.") }
 }
 tasks.withType<Test>().configureEach {
@@ -71,6 +101,7 @@ dependencies {
     testImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("androidx.core:core:1.13.1")
+    implementation("org.threeten:threetenbp:1.7.5")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }

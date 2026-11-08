@@ -5,11 +5,11 @@ import android.os.Looper
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZoneOffset
+import org.threeten.bp.format.DateTimeFormatter
 import java.util.Locale
 
 /** Production calendar codecs on Android's actual org.json / java.time runtime.
@@ -98,7 +98,7 @@ internal object NativeCalendarSmoke {
         }
         val custom = customOffsetAndFiniteRecurrence()
         val aliasRecords = qualifiedTasks()
-        val timeZones = systemTimeZones()
+        val timeZones = systemTimeZones(instrumentationContext)
         rejectExport { ICalendarExport.encode(listOf(event().put("datum", "2026-03-29").put("zeit", "02:30").put("endZeit", "03:30").put("icsAnzeigeZeitzone", "Europe/Berlin")), "ics-termine") }
         rejectExport {
             ICalendarExport.encode(listOf(event().put("endZeit", "").put("icsNullDauer", true)
@@ -106,8 +106,10 @@ internal object NativeCalendarSmoke {
         }
         return JSONObject().put("publishedCases", cases.length()).put("importedRecords", importedRecords).put("exportedRecords", exportedRecords)
             .put("retainedSourceProperties", rawProperties).put("retainedTimeZoneBlocks", sourceZones).put("customOffsetSeconds", custom)
-            .put("qualifiedTaskRecords", aliasRecords).put("systemTimeZones", timeZones).put("systemZoneApis", 2)
-            .put("systemZoneClockChecks", 30).put("maximumProofYear", 8000)
+            .put("qualifiedTaskRecords", aliasRecords).put("systemTimeZones", timeZones)
+            .put("timeZoneProvider", "org.threeten.bp").put("timeZoneDatabaseVersion", TimeZoneExport.databaseVersion)
+            .put("systemZoneClockChecks", 30).put("legacyOsOffsetComparisons", if (android.os.Build.VERSION.SDK_INT >= 26) 30 else 10)
+            .put("maximumProofYear", 8000)
             .put("negativeCases", 2).put("liveNetworkUsed", false).put("fullSyncAccepted", false)
     }
 
@@ -137,30 +139,46 @@ internal object NativeCalendarSmoke {
         check(unfold(encoded).count { it.startsWith("UID:urn:magnolie:task:") } == 2) { "Native colliding task UIDs were not aliased" }
         return result.size
     }
-    private fun systemTimeZones(): Int {
+    private fun systemTimeZones(instrumentationContext: Context): Int {
+        val bytes = instrumentationContext.assets.open("timezone-native-tzdb-oracle.json").use { it.readBytes() }
+        check(hash(bytes) == "74551065e797d10df72caa7f82a13bfb8d923e2f33a16546728cd6ecf7bfb5cf") { "Native timezone oracle checksum mismatch" }
+        val oracle = JSONObject(bytes.toString(Charsets.UTF_8))
+        check(oracle.getString("canonicalCommit") == "067c38934b539943d8e1720abafd8a80b401d797" &&
+            oracle.getString("expectedBundledTZDBVersion") == TimeZoneExport.databaseVersion) { "Native timezone oracle/provider version mismatch" }
+        val clocks = oracle.getJSONArray("clocks"); check(clocks.length() == 30)
         val identifiers = listOf("Europe/Berlin", "America/New_York", "Australia/Sydney", "Australia/Lord_Howe", "Pacific/Chatham")
+        var verified = 0
         for (identifier in identifiers) {
             val zone = ZoneId.of(identifier); val legacy = java.util.TimeZone.getTimeZone(identifier)
-            // These five zones have seasonal futures. A provider exposing only
-            // a finite/frozen transition table cannot satisfy this native proof.
-            check(zone.rules.transitionRules.isNotEmpty()) { "Android provider exposes no verified infinite seasonal future" }
+            check(zone.rules.transitionRules.isNotEmpty()) { "Bundled provider exposes no verified infinite seasonal future" }
             val definition = TimeZoneExport.definition(identifier)
             check(definition.count { it.startsWith("RRULE:") } == zone.rules.transitionRules.size) { "Native zone future observances were lost" }
             check(definition.none { it.startsWith("RRULE:") && ("COUNT=" in it || "UNTIL=" in it) }) { "Native zone future was bounded" }
-            for (year in listOf(2026, 2400, 8000)) for (month in listOf(1, 7)) {
-                val wall = LocalDateTime.of(year, month, 15, 12, 0)
+            for (index in 0 until clocks.length()) {
+                val clock = clocks.getJSONObject(index)
+                if (clock.getString("identifier") != identifier) continue
+                val year = clock.getInt("year")
+                val wall = LocalDateTime.of(year, clock.getInt("month"), clock.getInt("day"), clock.getInt("hour"), clock.getInt("minute"))
                 val lines = listOf("BEGIN:VCALENDAR", "VERSION:2.0") + definition + listOf("BEGIN:VEVENT", "UID:native-zone-probe", "DTSTART:20000101T000000Z",
                     "DTSTAMP;TZID=$identifier:" + wall.format(stamp), "SUMMARY:Synthetic timezone probe", "END:VEVENT", "END:VCALENDAR")
                 val record = ICalendarImport.decode(lines.joinToString("\r\n", postfix = "\r\n").toByteArray(Charsets.UTF_8), "UTC").appointments.single()
                 val actual = wall.toEpochSecond(ZoneOffset.UTC) - record.getLong("geaendert") / 1000
                 val expected = zone.rules.getValidOffsets(wall).first()
                 val instant = wall.toEpochSecond(expected)
-                check(actual == expected.totalSeconds.toLong() && actual == zone.rules.getOffset(Instant.ofEpochSecond(instant)).totalSeconds.toLong()) {
-                    "Native generated zone offset differs from Android ZoneRules"
+                check(actual == clock.getLong("offsetSeconds") && actual == expected.totalSeconds.toLong() &&
+                    actual == zone.rules.getOffset(Instant.ofEpochSecond(instant)).totalSeconds.toLong()) {
+                    "Native generated timezone differs from the independent published Python oracle or bundled rules"
                 }
-                check(actual == legacy.getOffset(instant * 1000).toLong()) { "Native generated zone offset differs from Android TimeZone" }
+                // API23 OS data may itself freeze after 2038. Never replace the
+                // complete bundled future with that limited legacy API. Core
+                // checks against the independent oracle always run for all 30 clocks.
+                if (android.os.Build.VERSION.SDK_INT >= 26 || year == 2026) {
+                    check(actual == legacy.getOffset(instant * 1000).toLong()) { "Native generated timezone differs from the public OS offset API" }
+                }
+                verified++
             }
         }
+        check(verified == 30) { "Native timezone oracle clocks were omitted" }
         return identifiers.size
     }
 }

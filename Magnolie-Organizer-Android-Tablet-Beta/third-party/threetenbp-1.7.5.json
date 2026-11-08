@@ -1,0 +1,20 @@
+{
+  "module": "org.threeten:threetenbp",
+  "version": "1.7.5",
+  "artifact": "threetenbp-1.7.5.jar",
+  "repository": "https://repo.maven.apache.org/maven2/org/threeten/threetenbp/1.7.5/",
+  "artifactSHA256": "58c5593452f871ebf736dfda3bf8f3bc0de4e92cec61bc19c8ad81f9dfb70d72",
+  "pomSHA256": "c20813316ebd45f6015c2cf5e7eb848ee162a4af0c90545e1d540814d5ddf803",
+  "tzdbResource": "org/threeten/bp/TZDB.dat",
+  "tzdbVersion": "2026egtz",
+  "tzdbResourceSHA256": "e28750a597bca9fe12fc927d6e8dd71cc71e9195a90e2bc7490265ffa10f1b12",
+  "license": "BSD-3-Clause",
+  "licenseResource": "META-INF/LICENSE.txt",
+  "licenseSHA256": "d1bc53b493a3ab387b42717ed5c4b1976a5048996f81154278100bff86d39331",
+  "retainedLicense": "app/src/main/resources/third-party/ThreeTenBP-1.7.5-LICENSE.txt",
+  "classFileMajorVersion": 50,
+  "releaseSigningFingerprint": "B41089A2DA79B0FA5810252872385FF0AF338D52",
+  "releaseSigningKeySource": "https://api.github.com/users/jodastephen/gpg_keys",
+  "releaseDetachedSignature": "https://repo.maven.apache.org/maven2/org/threeten/threetenbp/1.7.5/threetenbp-1.7.5.jar.asc",
+  "verification": "Maven Central SHA-256 and SHA-1 matched; detached OpenPGP signature verified against the published project-maintainer key with the recorded fingerprint."
+}

@@ -724,7 +724,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         launch(); saved()
         val key=KeyStore.getInstance("AndroidKeyStore").apply {load(null)}.getKey("magnolie-organizer-tablet-beta-vault-v1",null) as SecretKey
         val armed=java.util.concurrent.atomic.AtomicBoolean(false)
-        val faultVault=Vault(targetContext.noBackupFilesDir,{key},{if(it=="rename" && armed.compareAndSet(true,false)) throw java.io.IOException("INSTRUMENTATION_ONLY_POST_RENAME")})
+        val faultVault=Vault(targetContext.noBackupFilesDir,{key},{if(it=="rename" && armed.compareAndSet(true,false)) throw java.io.IOException("INSTRUMENTATION_ONLY_POST_RENAME")},fileOps=AndroidOsStorageFileOps)
         AndroidStore.io.submit {AndroidStore::class.java.getDeclaredField("instance").apply {isAccessible=true}.set(AndroidStore,faultVault)}.get(10,TimeUnit.SECONDS)
         reloadVerified(); saved()
         val b=data(); b.getJSONArray("notizen").getJSONObject(0).put("titel","Synthetic fault B")
@@ -788,7 +788,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         if(boxes[1].isChecked) boxes[1].performAction(AccessibilityNodeInfo.ACTION_CLICK)
         clickNode("android:id/button1"); SystemClock.sleep(300)
         val at=((System.currentTimeMillis()/60000)+2)*60000
-        val due=java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneOffset.UTC)
+        val due=org.threeten.bp.Instant.ofEpochMilli(at).atZone(org.threeten.bp.ZoneOffset.UTC)
         val date=due.toLocalDate().toString(); val time=due.toLocalTime().toString().take(5)
         val prefix=(if(reboot) "Reboot-" else "Live-")+SystemClock.elapsedRealtime()
         val created=scenario("NativeScenario.task('$prefix due','$date','$time',0,true)")
