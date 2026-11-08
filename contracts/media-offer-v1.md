@@ -276,9 +276,25 @@ erfordert keine positive Bestätigung. Der Dialogweg ist über die native
 Entscheidungsfunktion mit Zustimmung, Abbruch, tatsächlicher Buchsperre,
 Verbindungswechsel und konkurrierender Änderung sowie die vollständige Browser-
 Oberflächenprüfung belegt. Eine tatsächliche installierte GUI-Klickabnahme ist
-damit nicht behauptet. Die SEND-Projektion bleibt noch offen;
-`NativeMediaUiAuthority` erteilt weiterhin ausschließlich RECEIVE.
-Dies ist keine Freischaltung von Capability 23.
+damit nicht behauptet.
+
+Die produktive `NativeMediaUiAuthority` projiziert diese Zustimmung inzwischen
+in derselben vorhandenen Steuersitzung. Sie hält ihren Besitzer stabil und
+erhöht bei Änderungen beziehungsweise Entzug die Berechtigungsrevision. Die
+laufende Steuersitzung liest dabei weiterhin nicht unter ihrer Sperre aus dem
+geschützten Store. Ein normaler ausgehender Lauf verlangt seine genaue lokale
+Zustimmung, das gespeicherte Buch, die abgestimmte Richtung und anschließend
+die tatsächliche positive Gegenstellenbestätigung; vorher gibt es kein
+Medienangebot und keine vorbereitete Quellkopie. SEND funktioniert dabei ohne
+RECEIVE. Die lokale Auswahlprojektion berücksichtigt beide unabhängigen Rechte
+und die jeweilige tatsächliche Richtung, statt ausgehende Läufe durch eine
+fehlende Empfangszustimmung zu deaktivieren. Entzug und Verbindungsschluss
+während der Gegenstellenabstimmung beenden den Lauf ohne Daten-/Cacheverlust.
+Native Prüfungen führen diesen normalen UI-eigenen Weg ohne vorgegebenen
+SEND-Testgrant bis zum Source-END aus und prüfen beide Abbrüche. Vorhandene
+manuelle/WLAN-Exporte und Import-/Videoabläufe bestehen ebenfalls; die
+Importprobe beantwortet nun auch den nach einer Zustimmungsprojektion erneuerten
+tatsächlichen Steuer-ACK. Dies ist keine Freischaltung von Capability 23.
 
 Der gemeinsame manuelle und WLAN-Automatiklauf enthält jetzt einen
 Desktop→Telefon-Schritt für bereits zugeordnete Medien. Seine Kandidaten kommen

@@ -351,6 +351,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Source successor / Windows actual sender successor-during-copy", () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync("successor-during-copy"));
     runner.Add("Mapped export / Windows actual manual pass versions and unchanged dedup", DeviceFileSourceSendTests.WindowsMappedOutgoingPassAsync);
     runner.Add("Mapped export / Windows actual WiFi automatic pass and unchanged dedup", DeviceFileSourceSendTests.WindowsMappedAutomaticOutgoingPassAsync);
+    runner.Add("Mapped native UI export / Windows own SEND dialog control ACK and source END without RECEIVE", DeviceFileSourceSendTests.WindowsNativeUiOutgoingPassAsync);
+    runner.Add("Mapped native UI export / Windows SEND-only withdrawal while awaiting actual peer ACK", DeviceFileSourceSendTests.WindowsNativeUiSendWithdrawalAsync);
+    runner.Add("Mapped native UI export / Windows close while awaiting actual peer ACK", DeviceFileSourceSendTests.WindowsNativeUiSendCloseAsync);
     runner.Add("Mapped export / Windows import-only and unknown content before output", DeviceFileSourceSendTests.WindowsMappedOutgoingRejectsScopeAndUnknownBytesAsync);
     runner.Add("Mapped export / Windows actual photos-only filter before preparation", DeviceFileSourceSendTests.WindowsMappedPhotoFilterBeforePreparationAsync);
     runner.Add("Device file source send / Windows early Saved and missing exchange hold", DeviceFileSourceSendTests.WindowsRejectsEarlySavedAndLostAttemptAsync);

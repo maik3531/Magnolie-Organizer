@@ -261,6 +261,82 @@ internal static class DeviceFileSourceSendTests
             "Rejected successor altered the original unattempted source or emitted output.");
     }
 
+    internal static Task WindowsNativeUiOutgoingPassAsync() => NativeUiOutgoingPassAsync("end");
+    internal static Task WindowsNativeUiSendWithdrawalAsync() => NativeUiOutgoingPassAsync("withdraw");
+    internal static Task WindowsNativeUiSendCloseAsync() => NativeUiOutgoingPassAsync("close");
+    private static async Task NativeUiOutgoingPassAsync(string scenario)
+    {
+        var initial = new NativeBookOwnerScope(); initial.SetReady(true); initial.RecordSaved("native-send-bootstrap", true, new string('a', 64));
+        PersonalActorNativeSaveHost? host = null;
+        NativeBookSaveState? Saved() => host is null ? initial.SaveState("native-send-bootstrap", true) : host.Saved();
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sharedMedia: true, uiSavedBook: Saved);
+        f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "enabled", JsonValue.Create(true)!,
+            f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "enabled"));
+        await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+        await DeviceFileReconcileTests.Establish(f);
+        var originalSession = f.Owner;
+        host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "native-send-ui-book"), Book);
+        using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(f.Native.Peer.Id, f.Native.Connection);
+        f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "direction", JsonValue.Create("pc_to_phone")!,
+            f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "direction"));
+        await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+        var receiving = f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id);
+        coordinator.ChangeNativeMediaUiReceiveConsent(f.Native.Peer.Id, receiving.Version, false);
+        var consent = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id); var answers = 0;
+        coordinator.ConfirmNativeMediaUiSendConsent(f.Native.Peer.Id, consent.Version, true, false, () => { answers++; return true; });
+        using (var edit = new FileStream(Path.Combine(f.Root, "first.jpg"), FileMode.Open, FileAccess.Write))
+        { edit.SetLength(0); edit.Write(MediaBytes); }
+        DeviceFileConnectionRunsTests.Clear(f);
+        var intent = f.Native.Store.ReadNativeMediaSharedSettings(f.Native.Peer.Id, f.Native.Peer.PublicKey)!;
+        using var stop = new CancellationTokenSource();
+        var pass = coordinator.RunNativeMediaManualOnceAsync(f.Native.Peer.Id, intent, stop.Token);
+        try
+        {
+            var control = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind);
+            var packet = DeviceFileControlEnvelope.Validate(control, Now());
+            TestAssert.That(packet.Grants.SendFiles && !packet.Grants.ReceiveFiles && ReferenceEquals(f.Owner, originalSession) && answers == 1 &&
+                f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0 &&
+                !DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(frame => frame["kind"]!.GetValue<string>() == MediaOfferEnvelope.Kind),
+                "Native SEND substituted the control owner, inherited RECEIVE, skipped the dialog or offered data before bilateral ACK.");
+            if (scenario is "withdraw" or "close")
+            {
+                if (scenario == "withdraw")
+                {
+                    var currentConsent = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+                    coordinator.ConfirmNativeMediaUiSendConsent(f.Native.Peer.Id, currentConsent.Version, false, false,
+                        () => throw new Exception("Withdrawal must not require native positive confirmation."));
+                    TestAssert.That(f.Owner.Binding(new string('0', 64), senderIsLocal: true) is null, "SEND-only UI owner ignored withdrawal.");
+                    TestAssert.That(await f.Native.Connection.SendNativeFileControlsAsync(), "Withdrawal did not emit its actual control update.");
+                    var withdrawn = DeviceFileControlEnvelope.Validate(await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind, 1), Now());
+                    TestAssert.That(!withdrawn.Grants.SendFiles && !withdrawn.Grants.ReceiveFiles && withdrawn.Grants.Revision > packet.Grants.Revision &&
+                        withdrawn.SessionEpoch == packet.SessionEpoch, "Withdrawal substituted the session or changed bits without a newer revision.");
+                }
+                else f.Native.Connection.Dispose();
+                try { await pass.WaitAsync(TimeSpan.FromSeconds(5)); throw new Exception("Native outgoing preparation survived withdrawal/close."); }
+                catch (Exception error) when (error is OperationCanceledException or InvalidDataException) { }
+                TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0 && File.ReadAllBytes(Path.Combine(f.Root, "first.jpg")).SequenceEqual(MediaBytes),
+                    "Aborted native SEND preparation reserved a cache or changed source bytes.");
+                return;
+            }
+            f.Phone.ObserveRemote(packet, f.RemotePeer);
+            f.RemoteLocal = new(new(f.RemoteLocal.Grants.Revision + 1, new string('6', 64), sendFiles: false, receiveFiles: true), f.RemoteLocal.Owner, true);
+            var response = f.Phone.Packet(); f.Phone.MarkSent(response);
+            await f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(response, Now()));
+            var echo = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind, 1);
+            f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(echo, Now()), f.RemotePeer);
+            var manifest = await DriveMappedExportAsync(f);
+            TestAssert.That(await pass == "content_pass" && Exchange(f, manifest.SourceId)["phase"]!.GetValue<string>() == "source_ended" &&
+                !f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id).Granted && ReferenceEquals(f.Owner, originalSession),
+                "The actual normal native-UI source path failed without RECEIVE or replaced the established control session.");
+            TestAssert.That(!DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(frame => frame["kind"]!.GetValue<string>() == DeviceFileSources.RequestKind),
+                "Native PC-only SEND discovered/read/imported phone sources.");
+        }
+        finally { stop.Cancel(); try { await pass; } catch { } }
+    }
+
     internal static Task WindowsMappedOutgoingPassAsync() => MappedOutgoingPassAsync(automatic: false);
     internal static Task WindowsMappedAutomaticOutgoingPassAsync() => MappedOutgoingPassAsync(automatic: true);
     private static async Task MappedOutgoingPassAsync(bool automatic)

@@ -94,7 +94,6 @@ internal static class DeviceFileAutomaticTests
         }
         var automatic = manual ? RunWire() : Run();
         if (automatic.IsCompleted) await automatic;
-        if (!manual)
         {
             var outgoing = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind);
             TestAssert.That(!automatic.IsCompleted && !DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(message =>

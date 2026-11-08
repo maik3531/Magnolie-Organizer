@@ -165,6 +165,7 @@ internal sealed partial class TelefonCoordinator
                     ? store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey) : null;
                 if (sharedIntent is not null && MediaSyncSettings.TransferRequestedFor(sharedIntent, kind, toPhone: true))
                 {
+                    await connection.PrepareNativeMediaSendUiAsync(NativeSavedBook, kind, lifetime.Token); Require();
                     var outgoing = await connection.SynchronizeNativeMappedMediaChangesAsync(kind, permit, Require, lifetime.Token);
                     Require(); review |= outgoing.NeedsReview;
                 }
