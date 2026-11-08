@@ -132,7 +132,7 @@
           ["icsRangeOverrides", "icsAusnahmeTermine", "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine", "icsTimezones"].some(key => task[key]?.length)) return [];
       const days = Number(task.individuelleErinnerungTage) || 0;
       if (task.erinnern !== true && !(Number.isInteger(days) && days >= 1 && days <= 7)) return [];
-      const displayZone = task.icsAnzeigeZeitzone || organizerZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const displayZone = task.icsAnzeigeZeitzone || organizerZone || MagnolieTime.systemIdentifier();
       const wall = (day, time) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error("Invalid task date/time.");
         const value = Date.parse(day + "T" + time + ":00Z");
@@ -140,20 +140,10 @@
         return value;
       };
       const resolve = (local, zone, preferred = null) => {
-        const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit",
-          day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
-        const parts = instant => {
-          const p = Object.fromEntries(formatter.formatToParts(new Date(instant)).map(v => [v.type, v.value]));
-          return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
-        };
-        // Sample both offsets around a transition. First fold occurrence is deterministic;
-        // nonexistent local times have no match and are not silently shifted into another hour.
-        const candidates = new Set();
-        for (const delta of [-2, 0, 2]) {
-          const sample = local + delta * 86400000, instant = local - (parts(sample) - sample);
-          if (parts(instant) === local) candidates.add(instant);
-        }
-        return candidates.has(preferred) ? preferred : candidates.size ? Math.min(...candidates) : null;
+        // Exact normative candidates: gaps are omitted, earlier folds remain
+        // deterministic, and a raw UTC occurrence can select the later fold.
+        const candidates = MagnolieTime.candidates(zone, local);
+        return candidates.includes(preferred) ? preferred : candidates.length ? candidates[0] : null;
       };
       let sourceWall = wall(task.faellig, task.faelligZeit || "08:00"), sourceZone = displayZone;
       const displayWall = sourceWall;

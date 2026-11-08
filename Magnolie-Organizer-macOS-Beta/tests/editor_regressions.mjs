@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { boot } from "./ui_harness.mjs";
 
 const b = await boot(process.argv[2], Date.parse("2026-05-01T12:00:00Z"));
@@ -138,6 +139,19 @@ try {
       const list = alarms({ faellig: day }, "Europe/Berlin");
       equal(list.map(a => new Date(a.at).toISOString()), [due, early], "calendar day offsets across DST");
     }
+    // Actual Mac-specific adapter, independently pinned external clocks.
+    const clocks = JSON.parse(fs.readFileSync(new URL("../../port-adapters/tests/timezone-interop-oracle.json", import.meta.url))).clocks;
+    for (const row of clocks) {
+      const [day, time] = row.wall.split("T");
+      const values = alarms({ faellig: day, faelligZeit: time, individuelleErinnerungTage: 0 }, row.identifier);
+      equal(values.map(value => value.at), [row.epochMs], "Mac task adapter external clock " + row.identifier + " " + row.wall);
+    }
+    equal(alarms({ faellig: "2074-07-15", faelligZeit: "12:30", individuelleErinnerungTage: 0 }, "Asia/Gaza")
+      .map(value => new Date(value.at).toISOString()), ["2074-07-15T09:30:00.000Z"], "Mac task adapter normative Gaza future");
+    const alias = alarms({ faellig: "2026-10-15", faelligZeit: "12:30", individuelleErinnerungTage: 0 }, "US/Eastern");
+    equal(alias.map(value => value.at), alarms({ faellig: "2026-10-15", faelligZeit: "12:30", individuelleErinnerungTage: 0 }, "America/New_York").map(value => value.at), "Mac task adapter retains alias rule equivalence");
+    equal(alarms({ faellig: "1910-01-15", faelligZeit: "12:30", individuelleErinnerungTage: 0 }, "Europe/Paris")
+      .map(value => new Date(value.at).toISOString()), ["1910-01-15T12:20:39.000Z"], "Mac task adapter historical offset seconds");
     const source = { faellig: "2026-03-29", faelligZeit: "16:00", icsAnzeigeZeitzone: "Europe/Berlin",
       icsRoundtrip: ["DUE;TZID=America/New_York:20260329T100000"] };
     const sourceAlarms = alarms(source);
