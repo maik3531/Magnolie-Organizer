@@ -130,6 +130,31 @@ async function preview(web, data, mode = "apply", provider = "kde") {
       { id: "three", vorname: "Third", email: "shared@example.org" }
     ] });
     try {
+      b.t.baueEinstellungen(); b.w.document.querySelector("#einst-tab-sync").click();
+      const section = b.w.document.querySelector("#telefon-kontakt-import");
+      const importButton = section.querySelector("#kde-kontakte-abrufen");
+      assert(section.hidden && importButton.disabled, "No phone source must not expose contact import");
+      b.w.App.telefonStand({ peers: [], kdeconnect: { paired: true, available: false,
+        contacts_available: true, contacts_device_id: "stale-cache" } });
+      assert(section.hidden, "Cached KDE contact metadata made an offline import visible");
+      b.w.App.telefonStand({ peers: [], kdeconnect: { paired: true, available: true,
+        contacts_available: true, contacts_device_id: "live-kde" } });
+      assert(!section.hidden && !importButton.disabled);
+      const notePeer = { device_id: "11111111-1111-4111-8111-111111111111", state: "online_wifi",
+        own_device: true, remote_own_device: true, contacts_read_available: true };
+      b.w.App.telefonStand({ peers: [notePeer], kdeconnect: { available: false } });
+      assert(!section.hidden && !importButton.disabled, "A readable online Notes source did not expose import");
+      b.w.App.telefonStand({ peers: [{ ...notePeer, contacts_read_available: false }] });
+      assert(section.hidden && importButton.disabled, "Connection without contact capability exposed import");
+      b.w.App.telefonStand({ peers: [{ ...notePeer, state: "offline" }] }); assert(section.hidden);
+      b.w.App.telefonStand(null); assert(section.hidden);
+      b.w.App.telefonStand({ peers: [notePeer], kdeconnect: { available: false } });
+      b.w.document.querySelector("#einst-tab-baum").click();
+      const contactLink = b.w.document.querySelector("#kde-telefonkontakte-verweis");
+      assert(contactLink && !contactLink.hidden);
+      b.w.App.telefonStand({ peers: [], kdeconnect: { available: false } });
+      assert(contactLink.hidden, "Lost contact source left a dead navigation link visible");
+      assert(!b.messages.some(message => message.cmd === "telefon_kontakte"), "Visibility updates started an import");
       const original = plain(b.t.daten().kontakte);
       const first = card({ vorname: "Remote", anzeigename: "Remote", email: "one@example.org", firma: "Company", notiz: "New note" });
       const plan = b.t.kdePlan(first, b.t.daten().kontakte);

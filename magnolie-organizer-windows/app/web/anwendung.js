@@ -5530,6 +5530,19 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return telefonStand?.kdeconnect?.contacts_available ? telefonStand.kdeconnect : null;
   }
 
+  function aktualisiereTelefonKontaktImport() {
+    const bereich = $("#telefon-kontakt-import");
+    const quelle = kontaktDatenQuelle();
+    const verfuegbar = Bruecke.vorhanden && !!quelle?.contacts_device_id &&
+      (quelle.provider === "notes" || telefonStand?.kdeconnect?.available === true);
+    const verweis = $("#kde-telefonkontakte-verweis");
+    if (verweis) verweis.hidden = !verfuegbar;
+    if (!bereich) return;
+    bereich.hidden = !verfuegbar;
+    const knopf = bereich.querySelector("#kde-kontakte-abrufen");
+    if (knopf) knopf.disabled = !verfuegbar;
+  }
+
   function planeKontaktFotoAbruf() {
     const quelle = kontaktDatenQuelle();
     const beschaeftigt = () => aktiverEditor || syncLaeuft || kdeKontaktLauf || kontaktGruppenLauf || kontaktWerteLauf || kontaktGruppenTitelLauf ||
@@ -26487,10 +26500,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     baueNextcloudKonto(wurzel);
     const telefonKontakte = abschnitt(_("Contacts") + " (KDE Connect / Magnolie Notes)",
       _("Preview contacts from the paired phone. Changes are saved only in Organizer; no contacts are deleted."));
+    telefonKontakte.id = "telefon-kontakt-import";
     const abrufen = knopf(_("Import preview"), "", () => starteKdeKontaktImport());
     abrufen.id = "kde-kontakte-abrufen";
     abrufen.disabled = !Bruecke.vorhanden;
     telefonKontakte.append(abrufen); wurzel.append(telefonKontakte);
+    aktualisiereTelefonKontaktImport();
     baueInternetKonten(wurzel);
     baueBriefkasten(wurzel);
   }
@@ -28941,6 +28956,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       einstSeite = "sync"; baueEinstellungen(); $("#kde-kontakte-abrufen")?.focus();
     });
     kontakteVerweis.id = "kde-telefonkontakte-verweis"; kdeBlock.append(kontakteVerweis);
+    const kontaktQuelle = kontaktDatenQuelle();
+    kontakteVerweis.hidden = !Bruecke.vorhanden || !kontaktQuelle?.contacts_device_id ||
+      (kontaktQuelle.provider !== "notes" && telefonStand?.kdeconnect?.available !== true);
     kdeBlock.append(el("p", "einst-hinweis", _("The KDE Connect support is built into the Organizer. Only the KDE Connect app on Android is required; no additional KDE Connect desktop program is needed.")));
     kdeBlock.append(el("p", "einst-hinweis", _("Magnolie Notes phones and KDE Connect phones are separate: the Android model name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect.")));
     const neuerKdePeer = kde.unpaired_candidate_count === 1 && kde.unpaired_candidate_id;
@@ -34001,6 +34019,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     telefonEntwicklerDiagnose,
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      aktualisiereTelefonKontaktImport();
       for (const render of kdeDateisystemAnsichten) render(telefonStand?.kdeconnect?.filesystem);
       const diagnoseQuelle = entwicklerDiagnoseQuelle(), diagnoseAusgabe = $("#entwickler-wlan-diagnose");
       if (entwicklerDiagnoseAnfrage && (!diagnoseQuelle || diagnoseQuelle.device_id !== entwicklerDiagnoseAnfrage.peer ||
