@@ -380,7 +380,10 @@ internal static class DeviceFileCollectionSourceTests
     internal static async Task WindowsCollectionPreviousDestinationAsync()
         => await CollectionMappedOverlap(changed: false, previousDestination: true);
 
-    private static async Task CollectionMappedOverlap(bool changed, bool previousDestination = false)
+    internal static async Task WindowsCollectionChangedMappedAfterStagingAsync()
+        => await CollectionMappedOverlap(changed: true, stagedDestination: true);
+
+    private static async Task CollectionMappedOverlap(bool changed, bool previousDestination = false, bool stagedDestination = false)
     {
         using var f = await DeviceFileMappedSourceTests.Established();
         foreach (var (field, value) in new[] { ("direction", "pc_to_phone"), ("collection_mode", "entire_collection") })
@@ -410,6 +413,16 @@ internal static class DeviceFileCollectionSourceTests
         var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "mapped-overlap-book"), Book);
         var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
         var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray();
+        string? stagedPath = null;
+        IReadOnlyList<TelefonStore.NativeMediaDestinationChoice>? choices = null;
+        if (stagedDestination)
+        {
+            stagedPath = Path.Combine(f.Native.Paths.Root, "inert-destination-for-source"); Directory.CreateDirectory(stagedPath);
+            using var selected = DeviceFileNativeDirectory.OpenExistingForReceive(stagedPath);
+            f.Native.Store.StageNativeMediaDestinationChoice(f.Native.Peer.Id, "images", f.Destination.Version,
+                f.Native.Store.ReadNativeMediaDestinationChoices(f.Native.Peer.Id, "images"), selected, book.Require);
+            choices = f.Native.Store.ReadNativeMediaDestinationChoices(f.Native.Peer.Id, "images");
+        }
         if (changed) File.WriteAllBytes(Path.Combine(f.Root, "first.jpg"), DeviceFileSourceSendTests.PaddedPng(length: 256));
         var first = File.ReadAllBytes(Path.Combine(f.Root, "first.jpg")); var second = File.ReadAllBytes(Path.Combine(f.Root, "second.jpg"));
         DeviceFileConnectionRunsTests.Clear(f);
@@ -431,6 +444,9 @@ internal static class DeviceFileCollectionSourceTests
                 "Actual fully compared mapped originals inside selected root were duplicated, relabelled or mutated.");
             if (changed) TestAssert.That(DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Count(frame => frame["kind"]!.GetValue<string>() == MediaOfferEnvelope.Kind) == 1,
                 "A completed mapped original was offered a second time as a PC source.");
+            if (stagedDestination) TestAssert.That(f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "images") == f.Destination &&
+                f.Native.Store.ReadNativeMediaDestinationChoices(f.Native.Peer.Id, "images").SequenceEqual(choices!) && !Directory.EnumerateFileSystemEntries(stagedPath!).Any(),
+                "An inert destination decision displaced or participated in an original mapped source's actual backup/END.");
         }
         finally { deadline.Cancel(); try { await production; } catch { } }
     }

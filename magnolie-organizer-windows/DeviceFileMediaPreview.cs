@@ -72,10 +72,8 @@ internal sealed partial class TelefonStore
             var member = job.Body["files"]!.AsArray().OfType<JsonObject>()
                 .Single(item => TelefonMessagingContract.String(item, "id") == selected.FileId);
             var kind = TelefonMessagingContract.String(job.Body, "media_type");
-            var destination = ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_trash_original_destination_required");
-            if (destination.Version != TelefonMessagingContract.String(job.Body, "destination_version") ||
-                destination.DestinationToken != TelefonMessagingContract.String(job.Body["binding"]!.AsObject(), "destination_token"))
-                throw DeviceFileControl.Error("media_trash_original_destination_required");
+            var destinationOwner = new NativeCompletedDestinationOwner(this, scope, job);
+            var destination = destinationOwner.Destination;
             using var root = destination.OpenNative();
             using var album = job.Body["album_root"] is JsonObject albumRoot ? root.OpenOriginalChild(
                 TelefonMessagingContract.String(albumRoot, "folder"), NativeMediaReceiveJob.NativeAlbumIdentity(albumRoot["identity"]!.AsObject())) : null;
@@ -83,8 +81,8 @@ internal sealed partial class TelefonStore
             void Bound()
             {
                 Current(); _ = root.CurrentIdentity(); _ = parent.CurrentIdentity();
-                if (ReadNativeMediaDestination(peerId, kind) != destination ||
-                    ReadMediaTrash(db, null, scope).SingleOrDefault(head => head.Entry.Operation == selected.Operation)?.Entry != selected)
+                destinationOwner.Require();
+                if (ReadMediaTrash(db, null, scope).SingleOrDefault(head => head.Entry.Operation == selected.Operation)?.Entry != selected)
                     throw DeviceFileControl.Error("media_trash_stale_selection");
             }
             Bound();

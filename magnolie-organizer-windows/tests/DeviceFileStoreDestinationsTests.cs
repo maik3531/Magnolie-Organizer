@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
+using System.Reflection;
 using MagnolieOrganizer.Windows;
 
 namespace MagnolieOrganizer.Windows.Tests;
@@ -238,6 +240,138 @@ internal static class DeviceFileStoreDestinationsTests
         }
         TestAssert.Throws<InvalidDataException>(() => f.Store.ReadNativeMediaDestinationChoices(f.Peer.Id, "images"), "Orphan inert choices reconstructed a lost original destination.");
         return Task.CompletedTask;
+    }
+
+    private static (object Scope, object Head, byte[] Cipher) OriginalJobInputs(DeviceFileReceiveJobTests.Fixture f)
+    {
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var scope = typeof(TelefonStore).GetMethod("MediaPreferenceScope", flags)!.Invoke(f.Native.Store, [f.Native.Peer.Id])!;
+        var job = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
+        using var db = f.Native.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+        read.CommandText = "SELECT value FROM native_media_receive_jobs WHERE job_id=$job"; read.Parameters.AddWithValue("$job", job.JobId);
+        var cipher = (byte[])read.ExecuteScalar()!;
+        var head = typeof(TelefonStore).GetMethod("ReadReceiveHead", flags)!.Invoke(f.Native.Store, [cipher, job.JobId, scope])!;
+        return (scope, head, cipher);
+    }
+    private static object OriginalJobOwner(TelefonStore store, object scope, object head) => Activator.CreateInstance(
+        typeof(TelefonStore).GetNestedType("NativeCompletedDestinationOwner", BindingFlags.NonPublic)!,
+        BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, [store, scope, head], null)!;
+    private static void RequireOriginalJobOwner(object owner) => owner.GetType().GetMethod("Require", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(owner, null);
+
+    internal static async Task WindowsOriginalJobRecoveryAfterStagingAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
+        var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aX0AAAAASUVORK5CYII=");
+        await DeviceFileBackupCatalogTests.Seed(f, png);
+        var job = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single(); var legacy = Blob(f.Native.Store, f.Native.Peer.Id, "images");
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "original-job-book"), "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":30}}}");
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        bool Current() { book.Require(); return true; }
+        var backup = DeviceFileBackupCatalogTests.Save(f, permit: Current);
+        var path = Path.Combine(f.Native.Paths.Root, "inert-candidate"); System.IO.Directory.CreateDirectory(path);
+        DeviceFileConnectionRunsTests.Clear(f);
+        using (var candidate = DeviceFileNativeDirectory.OpenExistingForReceive(path))
+            f.Native.Store.StageNativeMediaDestinationChoice(f.Native.Peer.Id, "images", f.Destination.Version,
+                f.Native.Store.ReadNativeMediaDestinationChoices(f.Native.Peer.Id, "images"), candidate, book.Require);
+        TestAssert.That(DeviceFileBackupCatalogTests.Save(f, permit: Current) == backup, "Inert metadata renewed or replaced the original raw backup.");
+        using (var root = f.Destination.OpenNative())
+        using (var target = root.CreateStagedFile("independent-restored.png"))
+            f.Native.Store.RestoreNativeMediaBackup(f.Destination, backup, target, Current);
+        var entry = f.Native.Store.TrashNativeMediaSavedFile(f.Native.Peer.Id, job.JobId, job.Version, 1.ToString("x32"), Current);
+        var rendered = 0;
+        var preview = f.Native.Store.PreviewNativeMediaTrash(f.Native.Peer.Id, entry, Current, 192, (bytes, kind, side, current) =>
+        {
+            current(); rendered++; TestAssert.That(bytes.SequenceEqual(png) && kind == "images", "Original preview read another root or unauthenticated bytes.");
+            return new("image/png", 1, 1, Convert.ToBase64String(png));
+        });
+        var restored = f.Native.Store.RestoreNativeMediaTrash(f.Native.Peer.Id, entry, Current);
+        var album = Path.Combine(f.Root, new NativeMediaAlbumContext(new string('e', 64), "Kamera").Folder);
+        TestAssert.That(rendered == 1 && preview.Width == 1 && restored.State == "restored" &&
+            File.ReadAllBytes(Path.Combine(album, "first.jpg")).SequenceEqual(png) && File.ReadAllBytes(Path.Combine(f.Root, "independent-restored.png")).SequenceEqual(png) &&
+            Blob(f.Native.Store, f.Native.Peer.Id, "images").SequenceEqual(legacy) && f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == job &&
+            f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "images") == f.Destination && !System.IO.Directory.EnumerateFileSystemEntries(path).Any() && f.Native.Stream.Length == 0,
+            "Staging displaced original backup/trash/preview/restore ownership, bytes or receive history.");
+    }
+
+    internal static async Task WindowsOriginalJobOwnerGuardsAsync()
+    {
+        foreach (var scenario in new[] { "substituted_root", "lost_job", "missing_key", "staged_version", "forged_body", "saved_without_end" })
+        {
+            using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); await DeviceFileReconcileTests.Establish(f);
+            var inputs = OriginalJobInputs(f); var owner = OriginalJobOwner(f.Native.Store, inputs.Scope, inputs.Head);
+            var job = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single(); var legacy = Blob(f.Native.Store, f.Native.Peer.Id, "images");
+            var key = File.ReadAllBytes(f.Native.Paths.TelefonStorageKey); var first = File.ReadAllBytes(Path.Combine(f.Root, "first.jpg"));
+            var path = Path.Combine(f.Native.Paths.Root, "inert-root"); System.IO.Directory.CreateDirectory(path);
+            using var candidate = DeviceFileNativeDirectory.OpenExistingForReceive(path);
+            var staged = f.Native.Store.StageNativeMediaDestinationChoice(f.Native.Peer.Id, "images", f.Destination.Version,
+                f.Native.Store.ReadNativeMediaDestinationChoices(f.Native.Peer.Id, "images"), candidate, () => { });
+            void Held(Action action)
+            {
+                try { action(); }
+                catch (TargetInvocationException error) when (error.InnerException is InvalidDataException or CryptographicException) { return; }
+                throw new Exception("Invalid completed-job owner survived: " + scenario);
+            }
+            if (scenario is "staged_version" or "forged_body" or "saved_without_end")
+            {
+                var body = ((JsonObject)inputs.Head.GetType().GetProperty("Body")!.GetValue(inputs.Head)!).DeepClone().AsObject();
+                if (scenario == "saved_without_end") body.Remove("source_end");
+                else
+                {
+                    body["destination_version"] = staged.Destination.Version;
+                    body["destination"] = new JsonObject { ["native_path"] = staged.Destination.NativePath, ["volume_path"] = staged.Destination.VolumePath,
+                        ["identity"] = TelefonStore.NativeMediaReceiveJob.NativeIdentity(staged.Destination.RootIdentity), ["token"] = staged.Destination.DestinationToken };
+                    body["binding"]!["destination_token"] = staged.Destination.DestinationToken;
+                }
+                var fake = Activator.CreateInstance(inputs.Head.GetType(), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
+                    [job.JobId, (long)inputs.Head.GetType().GetProperty("Revision")!.GetValue(inputs.Head)!, scenario == "staged_version" ? staged.Destination.Version : job.Version, body], null)!;
+                Held(() => OriginalJobOwner(f.Native.Store, inputs.Scope, fake));
+                RequireOriginalJobOwner(owner); // A failed foreign proposal does not retire the actual original metadata owner.
+            }
+            else
+            {
+                if (scenario == "missing_key") File.Delete(f.Native.Paths.TelefonStorageKey);
+                else
+                {
+                    using var db = f.Native.Store.OpenDatabase(); db.Open(); using var write = db.CreateCommand();
+                    if (scenario == "lost_job")
+                    { write.CommandText = "DELETE FROM native_media_receive_jobs WHERE job_id=$job"; write.Parameters.AddWithValue("$job", job.JobId); }
+                    else
+                    {
+                        var plain = f.Native.Store.Open("native_media_destinations", f.Native.Peer.Id + "/images", legacy); byte[] cipher;
+                        try
+                        {
+                            var body = JsonNode.Parse(plain)!.AsObject(); body["native_path"] = staged.Destination.NativePath; body["volume_path"] = staged.Destination.VolumePath;
+                            body["volume_serial"] = staged.Destination.RootIdentity.VolumeSerial.ToString("x16");
+                            body["file_id_low"] = staged.Destination.RootIdentity.FileIdLow.ToString("x16"); body["file_id_high"] = staged.Destination.RootIdentity.FileIdHigh.ToString("x16");
+                            var bytes = TelefonCrypto.Canonical(body);
+                            try { cipher = f.Native.Store.Seal("native_media_destinations", f.Native.Peer.Id + "/images", bytes); }
+                            finally { CryptographicOperations.ZeroMemory(bytes); }
+                        }
+                        finally { CryptographicOperations.ZeroMemory(plain); }
+                        write.CommandText = "UPDATE native_media_destinations SET value=$value WHERE peer_id=$peer AND media_type='images'";
+                        write.Parameters.AddWithValue("$value", cipher); write.Parameters.AddWithValue("$peer", f.Native.Peer.Id);
+                    }
+                    write.ExecuteNonQuery();
+                }
+                Held(() => RequireOriginalJobOwner(owner));
+                if (scenario == "missing_key")
+                { TestAssert.That(!File.Exists(f.Native.Paths.TelefonStorageKey), "Original-job owner recreated a missing native key."); File.WriteAllBytes(f.Native.Paths.TelefonStorageKey, key); }
+                else
+                {
+                    using var db = f.Native.Store.OpenDatabase(); db.Open(); using var restore = db.CreateCommand();
+                    restore.CommandText = scenario == "lost_job" ? "INSERT INTO native_media_receive_jobs(peer_id,job_id,value) VALUES($peer,$job,$value)" :
+                        "UPDATE native_media_destinations SET value=$value WHERE peer_id=$peer AND media_type='images'";
+                    restore.Parameters.AddWithValue("$peer", f.Native.Peer.Id); restore.Parameters.AddWithValue("$value", scenario == "lost_job" ? inputs.Cipher : legacy);
+                    if (scenario == "lost_job") restore.Parameters.AddWithValue("$job", job.JobId);
+                    restore.ExecuteNonQuery();
+                }
+                Held(() => RequireOriginalJobOwner(owner)); // Restoration never revives the old metadata owner.
+                RequireOriginalJobOwner(OriginalJobOwner(f.Native.Store, inputs.Scope, inputs.Head));
+            }
+            TestAssert.That(File.ReadAllBytes(Path.Combine(f.Root, "first.jpg")).SequenceEqual(first) &&
+                f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == job && !System.IO.Directory.EnumerateFileSystemEntries(path).Any(),
+                "Invalid metadata owner read/mutated a staged root or lost original job facts.");
+        }
     }
     internal static Task WindowsBindingAndTamperAsync()
     {

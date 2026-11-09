@@ -1967,6 +1967,53 @@ Linux-Zielwechselbelege sind kein Windows-Aktivierungsnachweis. Androidpause,
 Capability23, automatischer gesamter Export und Video-/Mehrdatei-/Liefergates
 bleiben unverändert; keine Installation oder Veröffentlichung.
 
+### Windows: ursprünglicher abgeschlossener Jobowner vor Zielaktivierung (#496)
+
+Backup, Trash-Move/Restore, Trash-Vorschau und endgültige lokale Entfernung
+verwenden jetzt einen privaten typisierten Owner des exakten ursprünglichen
+abgeschlossenen Receivejobs. Er prüft die tatsächliche bestehende Schlüsseldatei,
+aktuellen Peer-/Pairing-/Local-Keyscope und den frisch authentifizierten Job mit
+identischer Revision, Version und vollständigem Bodyfingerprint. Gespeicherte
+Saved-/Source-END-Bezüge sind dabei historische Korrelation, kein neuer IO-END-,
+Cleanup-, Lese- oder Mutationsgrant.
+
+Der vollständige ursprüngliche Rootdescriptor einschließlich Native-Identität,
+Pfad, Volume, Zielversion und Token muss zum unveränderlichen Legacy-Zielrecord
+passen. Inaktive Zielvormerkungen werden dazu niemals abgefragt oder als neue
+admittierte Generation angenommen. Auch gefälschte CLR-Metadaten mit derselben
+nominalen Version ersetzen nicht den wirklichen authentifizierten Jobbody. Fehler
+verwerfen den Metadatenowner dauerhaft; Wiederherstellung der alten DB-/Keybytes
+belebt ihn nicht wieder. Native Dateihandles, volle Bytes/Hashes, aktuelles Buch,
+Auswahl, Retention und gegebenenfalls ausdrückliche Löschbestätigung bleiben
+unabhängig in den jeweiligen Operationen erforderlich.
+
+Der vorhandene gemappte Sourceowner authentifiziert sein Mapping weiterhin selbst
+bei IO. Er und seine Kandidatenplanung lesen nun ausdrücklich den unveränderlichen
+ursprünglichen Legacy-Root statt des künftig umschaltbaren öffentlichen aktuellen
+Zielgetters. Kein zweiter redundanter Historyscan ersetzt dort den bereits echten
+Mappingowner; keine native Prüfung wird aus einem gecachten Ready-Flag abgeleitet.
+Der öffentliche aktuelle Getter bleibt bis zum fehlenden Aktivierungspfad beim
+Legacy-Ziel; neue zugelassene Zielgenerationen sind noch nicht implementiert.
+
+33 unterschiedliche betroffene native Windows-Gruppen bestehen: drei neue
+Owner-/Sourcegruppen, 14 Backup-/Pending-/Recoverygruppen, sieben Trashgruppen,
+sechs Purgegruppen und drei vorhandene Mappinggruppen. Die neuen Fälle prüfen
+echte Rohsicherung, unabhängige Rohwiederherstellung, Trash-Vorschau und Restore
+nach inaktiver Vormerkung, außerdem einen tatsächlichen geänderten Mappingexport
+bis zum eigenen Rawbackup/Quell-END bei weiterhin ausgeschaltetem PC RECEIVE und
+Telefon READ. Sechs negative Ownerfälle halten, darunter gleicher Token/Version
+bei ausgetauschtem Root, verlorener Job/Key, Vormerkung als vorgeblicher Jobbeleg,
+anderer Body unter gleicher Version und Saved ohne tatsächlichen Endbeleg.
+Vorschau-Rendering ist in diesen neuen Fällen modelliert; authentifizierte native
+Datei-IO ist echt, keine neue Decoder-/Androidabnahme wird behauptet.
+
+Core- und tatsächliche WinForms-Produktquelle bauen ohne Warnungen/Fehler. Native
+Fristen, Source-/Receive-Historiengrenzen und das 32er-Vormerkungsregister bleiben
+unverändert. Weitere zugelassene Generationen, authentifizierte aktuelle Auswahl
+und original gebundener nativer Dialog fehlen noch; Zielwechsel und Lieferung
+bleiben gesperrt. Eine Vormerkung oder ein alter Jobflag darf diese Lücke nicht
+schließen. Linux-/Notes-Nachweise bleiben separat erhalten, #423 bleibt pausiert.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

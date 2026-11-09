@@ -165,11 +165,8 @@ internal sealed partial class TelefonStore
             var manifest = job.Body["manifest"]!["files"]!.AsArray().OfType<JsonObject>().SingleOrDefault(file => TelefonMessagingContract.String(file, "id") == fileId)
                 ?? throw DeviceFileControl.Error("media_trash_original_file_required");
             var member = job.Body["files"]!.AsArray().OfType<JsonObject>().Single(file => TelefonMessagingContract.String(file, "id") == fileId);
-            var mediaType = TelefonMessagingContract.String(job.Body, "media_type");
-            var destination = ReadNativeMediaDestination(peerId, mediaType) ?? throw DeviceFileControl.Error("media_trash_original_destination_required");
-            if (destination.Version != TelefonMessagingContract.String(job.Body, "destination_version") ||
-                destination.DestinationToken != TelefonMessagingContract.String(job.Body["binding"]!.AsObject(), "destination_token"))
-                throw DeviceFileControl.Error("media_trash_original_destination_required");
+            var destinationOwner = new NativeCompletedDestinationOwner(this, scope, job);
+            var destination = destinationOwner.Destination;
             using var root = destination.OpenNative();
             using var album = job.Body["album_root"] is JsonObject albumRoot
                 ? root.OpenOriginalChild(TelefonMessagingContract.String(albumRoot, "folder"), NativeMediaReceiveJob.NativeAlbumIdentity(albumRoot["identity"]!.AsObject())) : null;
@@ -177,7 +174,7 @@ internal sealed partial class TelefonStore
             void Bound()
             {
                 Current(); _ = root.CurrentIdentity(); _ = parent.CurrentIdentity();
-                if (ReadNativeMediaDestination(peerId, mediaType) != destination) throw DeviceFileControl.Error("media_trash_original_destination_changed");
+                destinationOwner.Require();
             }
             var operation = replacementOperation ?? selected?.Operation ?? Guid.NewGuid().ToString("N"); var trashName = ".magnolie-trash-" + operation;
             var leaf = DeviceFileNativeDirectory.ReceiveLeaf(TelefonMessagingContract.String(manifest, "path"));

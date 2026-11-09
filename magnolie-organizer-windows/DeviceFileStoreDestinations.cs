@@ -40,19 +40,24 @@ internal sealed partial class TelefonStore
     }
 
     internal NativeMediaDestination? ReadNativeMediaDestination(string peerId, string mediaType)
+        => ReadOriginalLegacyDestination(peerId, mediaType); // No active-generation switch implemented yet.
+
+    private NativeMediaDestination? ReadOriginalLegacyDestination(string peerId, string mediaType)
     {
         MediaDestinationKind(mediaType);
         lock (gate)
         {
             var scope = MediaPreferenceScope(peerId);
             using var connection = OpenNativeMediaDatabase(); connection.Open();
-            var result = ReadNativeMediaDestination(connection, null, scope, mediaType);
+            var result = ReadLegacyNativeMediaDestination(connection, null, scope, mediaType);
             if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("file_destination_scope_changed");
             return result;
         }
     }
 
-    private NativeMediaDestination? ReadNativeMediaDestination(SqliteConnection connection, SqliteTransaction? transaction,
+    // Immutable original record, deliberately NOT the future current-selection
+    // resolver and never an inert staged choice.
+    private NativeMediaDestination? ReadLegacyNativeMediaDestination(SqliteConnection connection, SqliteTransaction? transaction,
         NativeMediaPreferenceScope scope, string mediaType)
     {
         using var exists = connection.CreateCommand(); exists.Transaction = transaction;
@@ -119,7 +124,7 @@ internal sealed partial class TelefonStore
             RequireNativeMediaStorageKey();
             var scope = MediaPreferenceScope(peerId);
             using var db = OpenNativeMediaDatabase(); db.Open();
-            var original = ReadNativeMediaDestination(db, null, scope, mediaType); // Never create or replace it.
+            var original = ReadLegacyNativeMediaDestination(db, null, scope, mediaType); // Never create or replace it.
             var result = ReadNativeMediaDestinationChoices(db, null, scope, mediaType);
             if (original is null && result.Count != 0) throw DeviceFileControl.Error("file_destination_choice_original_required");
             RequireNativeMediaStorageKey();
@@ -180,7 +185,7 @@ internal sealed partial class TelefonStore
             var generation = owner.CurrentReceiveCreationFileTime();
             NativeMediaBackupExclusions.RequireMediaDirectory(owner.NativePath, owner.VolumePath);
             using var db = OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction();
-            var original = ReadNativeMediaDestination(db, transaction, scope, mediaType);
+            var original = ReadLegacyNativeMediaDestination(db, transaction, scope, mediaType);
             if (original is null || original.Version != originalVersion) throw DeviceFileControl.Error("file_destination_stale_choice");
             var before = ReadNativeMediaDestinationChoices(db, transaction, scope, mediaType);
             if (!before.SequenceEqual(expected)) throw DeviceFileControl.Error("file_destination_choice_catalog_changed");
@@ -188,7 +193,7 @@ internal sealed partial class TelefonStore
             {
                 requireCurrent(); RequireNativeMediaStorageKey();
                 if (MediaPreferenceScope(peerId) != scope || owner.CurrentReceiveIdentity() != identity || owner.CurrentReceiveCreationFileTime() != generation ||
-                    ReadNativeMediaDestination(db, transaction, scope, mediaType) != original)
+                    ReadLegacyNativeMediaDestination(db, transaction, scope, mediaType) != original)
                     throw DeviceFileControl.Error("file_destination_choice_context_changed");
             }
             Current();
@@ -204,7 +209,7 @@ internal sealed partial class TelefonStore
             if (before.Count >= MediaDestinationChoiceLimit) throw DeviceFileControl.Error("file_destination_choice_capacity");
             static bool Within(string child, string parent) => child.Equals(parent, StringComparison.OrdinalIgnoreCase) ||
                 child.StartsWith(parent.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
-            var other = ReadNativeMediaDestination(db, transaction, scope, mediaType == "images" ? "video" : "images");
+            var other = ReadLegacyNativeMediaDestination(db, transaction, scope, mediaType == "images" ? "video" : "images");
             var preserved = before.Select(choice => choice.Destination).Append(original).Concat(other is null ? [] : new[] { other });
             if (preserved.Any(value => value.RootIdentity == identity || Within(value.VolumePath, owner.VolumePath) || Within(owner.VolumePath, value.VolumePath)))
                 throw DeviceFileControl.Error("file_destination_choice_roots_overlap");
@@ -247,7 +252,7 @@ internal sealed partial class TelefonStore
             var scope = MediaPreferenceScope(peerId); var root = owner.CurrentReceiveIdentity();
             NativeMediaBackupExclusions.RequireMediaDirectory(owner.NativePath, owner.VolumePath);
             using var connection = OpenNativeMediaDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
-            var before = ReadNativeMediaDestination(connection, transaction, scope, mediaType);
+            var before = ReadLegacyNativeMediaDestination(connection, transaction, scope, mediaType);
             if (before?.Version != expectedVersion) throw DeviceFileControl.Error("file_destination_stale_choice");
             if (before is not null)
             {
@@ -257,7 +262,7 @@ internal sealed partial class TelefonStore
                     throw DeviceFileControl.Error("file_destination_scope_changed");
                 return before; // No token/version/ciphertext rotation for the same destination.
             }
-            var other = ReadNativeMediaDestination(connection, transaction, scope, mediaType == "images" ? "video" : "images");
+            var other = ReadLegacyNativeMediaDestination(connection, transaction, scope, mediaType == "images" ? "video" : "images");
             static bool Within(string child, string parent) => child.Equals(parent, StringComparison.OrdinalIgnoreCase) ||
                 child.StartsWith(parent.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
             if (other is not null && (other.RootIdentity == root || Within(owner.VolumePath, other.VolumePath) || Within(other.VolumePath, owner.VolumePath)))
@@ -278,9 +283,66 @@ internal sealed partial class TelefonStore
                 "INSERT INTO native_media_destinations(peer_id,media_type,value) VALUES($peer,$kind,$value)";
             write.Parameters.AddWithValue("$peer", peerId); write.Parameters.AddWithValue("$kind", mediaType); write.Parameters.AddWithValue("$value", encrypted);
             write.ExecuteNonQuery();
-            if (ReadNativeMediaDestination(connection, transaction, scope, mediaType) != result || owner.CurrentIdentity() != root || MediaPreferenceScope(peerId) != scope)
+            if (ReadLegacyNativeMediaDestination(connection, transaction, scope, mediaType) != result || owner.CurrentIdentity() != root || MediaPreferenceScope(peerId) != scope)
                 throw DeviceFileControl.Error("file_destination_readback_failed");
             transaction.Commit(); return result;
+        }
+    }
+
+    // This typed owner authenticates ONLY the exact completed job's original
+    // destination metadata. Callers must separately retain their book, native
+    // file handles, full byte checks and operation-specific data authority.
+    // It cannot resolve a staged choice or infer a future admitted generation.
+    private sealed class NativeCompletedDestinationOwner
+    {
+        private readonly TelefonStore store;
+        private readonly NativeMediaPreferenceScope scope;
+        private readonly string jobId, jobVersion, mediaType, jobFingerprint;
+        private readonly long jobRevision;
+        private bool revoked;
+        internal NativeMediaDestination Destination { get; }
+        internal bool GrantsMutationAuthority => false;
+        internal bool GrantsReadAuthority => false;
+
+        internal NativeCompletedDestinationOwner(TelefonStore store, NativeMediaPreferenceScope scope, ReceiveHead job)
+        {
+            this.store = store; this.scope = scope; jobId = job.JobId; jobVersion = job.Version;
+            jobRevision = job.Revision; jobFingerprint = DeviceFileControl.Digest("magnolie-completed-destination-job-v1\0", job.Body);
+            mediaType = TelefonMessagingContract.String(job.Body, "media_type"); MediaDestinationKind(mediaType);
+            store.RequireNativeMediaStorageKey();
+            using var db = store.OpenNativeMediaDatabase(); db.Open();
+            Destination = store.ReadLegacyNativeMediaDestination(db, null, scope, mediaType)
+                ?? throw DeviceFileControl.Error("media_completed_destination_original_required");
+            Require();
+        }
+
+        internal void Require()
+        {
+            lock (store.gate)
+            {
+                try
+                {
+                    if (revoked || store.MediaPreferenceScope(scope.PeerId) != scope)
+                        throw DeviceFileControl.Error("media_completed_destination_owner_changed");
+                    store.RequireNativeMediaStorageKey();
+                    using var db = store.OpenNativeMediaDatabase(); db.Open();
+                    var job = store.ReceiveHeads(db, null, scope).SingleOrDefault(head => head.JobId == jobId && head.Version == jobVersion);
+                    if (job is null || job.Revision != jobRevision || DeviceFileControl.Digest("magnolie-completed-destination-job-v1\0", job.Body) != jobFingerprint ||
+                        !job.Body.ContainsKey("saved") || !job.Body.ContainsKey("source_end") ||
+                        TelefonMessagingContract.String(job.Body, "media_type") != mediaType ||
+                        TelefonMessagingContract.String(job.Body, "destination_version") != Destination.Version ||
+                        job.Body["binding"] is not JsonObject binding || TelefonMessagingContract.String(binding, "destination_token") != Destination.DestinationToken ||
+                        !JsonNode.DeepEquals(job.Body["destination"], new JsonObject {
+                            ["native_path"] = Destination.NativePath, ["volume_path"] = Destination.VolumePath,
+                            ["identity"] = NativeMediaReceiveJob.NativeIdentity(Destination.RootIdentity), ["token"] = Destination.DestinationToken }) ||
+                        store.ReadLegacyNativeMediaDestination(db, null, scope, mediaType) != Destination)
+                        throw DeviceFileControl.Error("media_completed_destination_original_required");
+                    store.RequireNativeMediaStorageKey();
+                    if (store.MediaPreferenceScope(scope.PeerId) != scope)
+                        throw DeviceFileControl.Error("media_completed_destination_owner_changed");
+                }
+                catch { revoked = true; throw; }
+            }
         }
     }
 }

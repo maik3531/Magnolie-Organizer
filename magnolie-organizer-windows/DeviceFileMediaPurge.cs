@@ -89,11 +89,8 @@ internal sealed partial class TelefonStore
             if (!job.Body.ContainsKey("saved") || !job.Body.ContainsKey("source_end")) throw DeviceFileControl.Error("media_trash_original_saved_job_required");
             var manifest = job.Body["manifest"]!["files"]!.AsArray().OfType<JsonObject>().Single(file => TelefonMessagingContract.String(file, "id") == selected.FileId);
             var member = job.Body["files"]!.AsArray().OfType<JsonObject>().Single(file => TelefonMessagingContract.String(file, "id") == selected.FileId);
-            var kind = TelefonMessagingContract.String(job.Body, "media_type");
-            var destination = ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_trash_original_destination_required");
-            if (destination.Version != TelefonMessagingContract.String(job.Body, "destination_version") ||
-                destination.DestinationToken != TelefonMessagingContract.String(job.Body["binding"]!.AsObject(), "destination_token"))
-                throw DeviceFileControl.Error("media_trash_original_destination_required");
+            var destinationOwner = new NativeCompletedDestinationOwner(this, scope, job);
+            var destination = destinationOwner.Destination;
             using var root = destination.OpenNative();
             using var album = job.Body["album_root"] is JsonObject albumRoot
                 ? root.OpenOriginalChild(TelefonMessagingContract.String(albumRoot, "folder"), NativeMediaReceiveJob.NativeAlbumIdentity(albumRoot["identity"]!.AsObject())) : null;
@@ -101,7 +98,7 @@ internal sealed partial class TelefonStore
             void Bound()
             {
                 Current(); _ = root.CurrentIdentity(); _ = parent.CurrentIdentity();
-                if (ReadNativeMediaDestination(peerId, kind) != destination) throw DeviceFileControl.Error("media_trash_original_destination_changed");
+                destinationOwner.Require();
                 // A preserved replacement original is not disposable until the
                 // NEW job earned local Saved AND its correlated source END.
                 if (ReceiveHeads(db, null, scope).Any(head => head.Body["replacements"] is JsonArray records &&

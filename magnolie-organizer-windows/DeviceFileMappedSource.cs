@@ -17,7 +17,7 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             RequireNativeMediaStorageKey(); var scope = MediaPreferenceScope(peerId);
-            var destination = ReadNativeMediaDestination(peerId, mediaType);
+            var destination = ReadOriginalLegacyDestination(peerId, mediaType);
             if (destination is null) return new([], false);
             using var db = OpenNativeMediaDatabase(); db.Open();
             var heads = ReceiveHeads(db, null, scope);
@@ -171,7 +171,10 @@ internal sealed partial class TelefonStore
         var consent = ReadNativeMediaSendConsent(peerId);
         if (!consent.Explicit || !(mediaType == "images" ? consent.Photos : consent.Videos))
             throw DeviceFileControl.Error("media_source_local_sending_consent_required");
-        var destination = ReadNativeMediaDestination(peerId, mediaType) ?? throw DeviceFileControl.Error("media_source_original_destination_required");
+        // The existing source owner independently reauthenticates its exact
+        // Mapping on every IO. Resolve its immutable original root, not a future
+        // current receive choice and never an inert staged destination.
+        var destination = ReadOriginalLegacyDestination(peerId, mediaType) ?? throw DeviceFileControl.Error("media_source_original_destination_required");
         if (sending.SenderId != scope.LocalId || sending.SenderIdentitySha256 != scope.LocalKey ||
             sending.ReceiverId != scope.PeerId || sending.ReceiverIdentitySha256 != scope.PeerKey)
             throw DeviceFileControl.Error("media_source_current_sending_scope_required");
@@ -214,7 +217,7 @@ internal sealed partial class TelefonStore
             book.Require(); requireConnection(); RequireNativeMediaStorageKey();
             if (ReadNativeMediaSendConsent(peerId) != consent)
                 throw DeviceFileControl.Error("media_source_local_sending_consent_changed");
-            if (MediaPreferenceScope(peerId) != scope || ReadNativeMediaDestination(peerId, mediaType) != destination ||
+            if (MediaPreferenceScope(peerId) != scope || ReadOriginalLegacyDestination(peerId, mediaType) != destination ||
                 !JsonNode.DeepEquals(intent, sharedIntent)) throw DeviceFileControl.Error("media_source_original_scope_changed");
             _ = Mapping(); book.Require(); requireConnection();
         }
