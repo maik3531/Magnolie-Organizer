@@ -2047,6 +2047,60 @@ nicht reproduziert und kein Linux-Fix behauptet. #497 setzt den ursprünglichen
 Zieldialog und danach die weiter fehlende tatsächliche Aktivierung fort; Geräte-
 und Liefergates bleiben unverändert, keine Installation oder Veröffentlichung.
 
+### Windows: ursprünglicher Empfangszieldialog vor aktiver Umwahl (#497)
+
+`pick_destination` und `default_destination` benötigen nun einen eigenen
+vollständigen Kontextstempel aus dem nativen Status, nicht mehr die unveränderliche
+Rootversion oder `null`. Kanal, stabile Buchidentität, Peer-/Pairingscope,
+vollständiger gemeinsamer Intent, lokale Einstellungen, SEND-/RECEIVE-Entscheidungen,
+beide Originalziele, Quellordner und inaktive Zielentscheidungen gehen in diesen
+Hash ein. Native IDs bleiben dabei lokal; nur der Digest wird projiziert. Fehlender
+ursprünglicher Speicherschlüssel erzeugt im reinen Legacy-Status weder Ersatzkey
+noch Auswahlstempel. Ungültige vorhandene Schlüssel werden nicht dadurch geheilt.
+
+Der native Callbackowner erfasst vor jeder Vorbereitung die ursprüngliche
+Saved-Buchfreigabe, tatsächliche Connection, Kontrollowner/-position und exakten
+Metadatenreceipt-Objekte. Die 60-Sekunden-Frist beginnt vor der Vorbereitung und
+wird weder nach dem Dialog noch im Store neu gestartet. Geänderte oder verworfene
+Kontexte bleiben verworfen. Die echte WinForms-Bridge prüft den Callback auch vor
+`CreateChild`; ausgewählte Nativeowner werden vor Ergebnisprojektion geschlossen.
+Quelle, Ziel und SEND-Dialog teilen sich den Coordinator-Slot; der Bridge-Slot
+schützt zusätzlich die Standardzielaktion gegen andere native Dialoge.
+
+Der Zielsetter prüft denselben deny-only Callback auch nach dem SQL-Insert vor
+Commit. Er darf dort weder `Packet()` noch eine callbackführende Datenvereinbarung
+aufrufen. Ein später Fehler rollt die neue Erstwahlzeile zurück. Gleiches Ziel
+bleibt idempotent, anderer Root hält weiterhin mit
+`file_destination_existing_history_required`. Keine Stagewahl wird aktiviert,
+keine Datei verschoben und keine neue Datenzustimmung gesetzt. Metadatenwahl ist
+auch ohne SEND, ohne gesamte Sammlung und für bestehende Legacy-Metadatenpeers
+möglich; das vorhandene lokale RECEIVE-Consentgate bleibt bestehen.
+
+Der Renderer wartet für beide Zielaktionen wie für die Quellwahl auf tatsächlichen
+Save-ACK, hält dabei einen gemeinsamen Slot und verwirft abgelöste Panels, andere
+Bücher und geänderte native Kontextstempel. Fehlende Kontextstempel schließen die
+Buttons. Auch ein nicht unterstütztes oder durch frischeren Status überholtes
+Dialogergebnis gibt den Warte-Slot frei, ohne alte Einstellungen anzuwenden.
+
+22 unterschiedliche betroffene native Windows-Gruppen bestehen, darunter vier
+neue Zielgruppen (16 Dialogszenarien und später SQL-Rollback), strikte Grammatik,
+Quell-/SEND-Dialoge, bestehende UI-/Legacyfälle sowie Originalziel-/Verlustguards.
+Der Fristtest wartet tatsächlich 61 Sekunden; die ursprüngliche Grenze bleibt 60.
+29 gezielte Frontendfälle und die bestehende breitere Medien-UI-Probe bestehen.
+Core und tatsächliche WinForms-Produktquelle bauen ohne Warnungen/Fehler. Native
+Dialogantworten sind in den Coretests kontrollierte Callbacks, nicht eine neu
+installierte interaktive Windows-/Androidabnahme. Linux-Gegenprüfung ist #499:
+anderer privater IPC-/GTK-Vertrag, gleicher Fehler dort noch nicht bestätigt.
+
+Echte zugelassene neue Generationen, rollback-/teilcommitfester aktiver Auswahlkopf
+und ABA-sicherer Auswahlstempel fehlen weiter. Der bestehende Backupkataloganker
+allein ist dafür kein Beweis: er behält alte Snapshots, auf die ein zurückgelegter
+alter DB-Anker weiterhin zeigen könnte. Inaktive Registereinträge oder höchste
+historische Zeilen ersetzen daher keine bestätigte aktuelle Benutzerwahl. Diese
+Aktivierung bleibt gesperrt; ursprüngliche Job-/Rohbackup-Recovery bleibt getrennt.
+Gesamtabnahme, Androidpause und Lieferung werden durch diesen Dialogschutz nicht
+freigegeben; keine Installation oder Veröffentlichung.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

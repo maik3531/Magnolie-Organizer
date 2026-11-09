@@ -20,7 +20,7 @@ internal sealed partial class BridgeDispatcher
         try
         {
             var request = NativeMediaUiRequest.Parse(JsonNode.Parse(message.GetRawText())!.AsObject());
-            if (request.Action is "pick_collection_source" or "send_consent" or "pick_destination" or "pick_backup_parent" or "activate" or "backup_restore" or "trash_purge")
+            if (request.Action is "pick_collection_source" or "send_consent" or "pick_destination" or "default_destination" or "pick_backup_parent" or "activate" or "backup_restore" or "trash_purge")
             {
                 if (Interlocked.CompareExchange(ref nativeMediaDialog, 1, 0) != 0)
                     throw DeviceFileControl.Error("media_collection_native_choice_pending");
@@ -143,45 +143,40 @@ internal sealed partial class BridgeDispatcher
                     settings["requestId"] = requestId; settings["device_id"] = peerId; settings["ok"] = true;
                     await Reply(settings); return;
                 case "default_destination":
-                    telefon.ResetNativeMediaUiDestination(peerId, request.MediaType, request.Version);
-                    var defaultDestination = telefon.NativeMediaUiStatus(peerId);
+                    var defaultDestination = telefon.ResetNativeMediaUiDestination(peerId, request.MediaType, request.Version!);
                     defaultDestination["requestId"] = requestId; defaultDestination["device_id"] = peerId; defaultDestination["ok"] = true;
                     await Reply(defaultDestination); return;
                 case "pick_destination":
-                    telefon.RequireNativeMediaUiDestinationConsent(peerId);
-                    // Only the actual native picker supplies a path. Request
-                    // grammar has no path, root identity or destination token.
-                    var book = NativeActorSavedBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required");
-                    var peer = telefon.Peers.Single(value => value.Id == peerId);
-                    var parent = request.MediaType == "video" ? VideoDestinationPaths.NativeVideosDirectory() : PhotoDestinationPaths.NativePicturesDirectory();
-                    var leaf = request.MediaType == "video" ? VideoDestinationPaths.NativeFolderComponent(peer.Name) : PhotoDestinationPaths.NativeFolderComponent(peer.Name);
-                    var local = telefon.NativeMediaUiStatus(peerId);
-                    var destinationKey = request.MediaType == "video" ? "video_destination" : "pictures";
-                    if (local[destinationKey]?["version"]?.GetValue<string>() != request.Version) throw DeviceFileControl.Error("file_destination_stale_choice");
-                    var proposed = Path.Combine(parent, leaf);
-                    using (var dialog = new FolderBrowserDialog { Description = T("Choose folder …") + " · " + leaf,
-                        UseDescriptionForTitle = true, ShowNewFolderButton = true,
-                        SelectedPath = local[destinationKey]?["display_path"]?.GetValue<string>() ?? (Directory.Exists(proposed) ? proposed : parent) })
+                    var picked = telefon.ChooseNativeMediaDestination(peerId, request.MediaType, request.Version!, current =>
                     {
-                        if (dialog.ShowDialog(form) != DialogResult.OK)
-                        { await Reply(new { requestId, device_id = peerId, ok = true, canceled = true }); return; }
-                        if (NativeActorSavedBook() != book) throw DeviceFileControl.Error("file_media_current_saved_book_required");
-                        if (request.Version is null && string.Equals(Path.GetFullPath(dialog.SelectedPath).TrimEnd('\\'), Path.GetFullPath(parent).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+                        current();
+                        // Native context is captured before all preparation/dialog IO.
+                        var peer = telefon.Peers.Single(value => value.Id == peerId);
+                        var parent = request.MediaType == "video" ? VideoDestinationPaths.NativeVideosDirectory() : PhotoDestinationPaths.NativePicturesDirectory();
+                        var leaf = request.MediaType == "video" ? VideoDestinationPaths.NativeFolderComponent(peer.Name) : PhotoDestinationPaths.NativeFolderComponent(peer.Name);
+                        var local = telefon.NativeMediaUiStatus(peerId);
+                        var destinationKey = request.MediaType == "video" ? "video_destination" : "pictures";
+                        var initial = local[destinationKey]?["version"] is null;
+                        var proposed = Path.Combine(parent, leaf);
+                        using (var dialog = new FolderBrowserDialog { Description = T("Choose folder …") + " · " + leaf,
+                            UseDescriptionForTitle = true, ShowNewFolderButton = true,
+                            SelectedPath = local[destinationKey]?["display_path"]?.GetValue<string>() ?? (Directory.Exists(proposed) ? proposed : parent) })
                         {
-                            // Explicit first choice of the native Pictures/Videos
-                            // base creates its proposed phone child with NT
-                            // CREATE_ONLY. Never recreate an existing mapping.
-                            using var baseOwner = DeviceFileNativeDirectory.OpenExistingForReceive(parent);
-                            using var owner = baseOwner.CreateChild(leaf);
-                            telefon.SetNativeMediaUiDestination(peerId, request.MediaType, null, owner);
+                            current();
+                            if (dialog.ShowDialog(form) != DialogResult.OK) return null;
+                            current();
+                            if (initial && string.Equals(Path.GetFullPath(dialog.SelectedPath).TrimEnd('\\'), Path.GetFullPath(parent).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Explicit first choice of the native Pictures/Videos
+                                // base creates its proposed phone child with NT
+                                // CREATE_ONLY. Never recreate an existing mapping.
+                                using var baseOwner = DeviceFileNativeDirectory.OpenExistingForReceive(parent);
+                                current(); return baseOwner.CreateChild(leaf);
+                            }
+                            return DeviceFileNativeDirectory.OpenExistingForReceive(dialog.SelectedPath);
                         }
-                        else
-                        {
-                            using var owner = DeviceFileNativeDirectory.OpenExistingForReceive(dialog.SelectedPath);
-                            telefon.SetNativeMediaUiDestination(peerId, request.MediaType, request.Version, owner);
-                        }
-                    }
-                    var picked = telefon.NativeMediaUiStatus(peerId); picked["requestId"] = requestId; picked["device_id"] = peerId; picked["ok"] = true;
+                    });
+                    picked["requestId"] = requestId; picked["device_id"] = peerId; picked["ok"] = true;
                     await Reply(picked); return;
                 case "cancel":
                     var stopping = nativeMediaUiRuns.TryGetValue(peerId, out var running);

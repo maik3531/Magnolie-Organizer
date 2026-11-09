@@ -299,6 +299,10 @@ if (OperatingSystem.IsWindows())
     runner.Add("Collection inventory / Windows actual reparse hardlink and paged enumeration", DeviceFileCollectionInventoryTests.WindowsHazardsAsync);
     runner.Add("Collection roots / Windows independent read-only selection protected persistence and replacement HOLD", DeviceFileCollectionRootsTests.WindowsPersistenceAsync);
     runner.Add("Collection folder choice / Windows original native picker metadata only and append-only roots", DeviceFileCollectionSourceTests.WindowsNativeFolderChoiceAsync);
+    runner.Add("Destination folder choice / Windows initial same cancel and legacy remain metadata only", DeviceFileDestinationChoiceTests.WindowsChoicesAsync);
+    runner.Add("Destination folder choice / Windows original book connection full settings consent control and stale guards", DeviceFileDestinationChoiceTests.WindowsContextAsync);
+    runner.Add("Destination folder choice / Windows original deadline and sticky worker retirement", DeviceFileDestinationChoiceTests.WindowsLifetimeAsync);
+    runner.Add("Destination folder choice / Windows late original context denies and rolls back initial SQL record", DeviceFileDestinationChoiceTests.WindowsStoreRollbackAsync);
     runner.Add("Collection producer / Windows two original offers actual END and fresh unchanged pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerAsync);
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);

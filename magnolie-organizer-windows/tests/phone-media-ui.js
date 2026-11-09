@@ -10,7 +10,7 @@ w.document.body.append(panel);
 const last = () => messages.at(-1), tick = () => new Promise(resolve => setImmediate(resolve));
 const buttons = title => [...panel.querySelectorAll("button")].filter(x => x.textContent === title);
 function reply(value) { api.receive({ requestId: last().requestId, device_id: peer, ok: true, ...value }); }
-const state = { supported: true, version: "a".repeat(64), photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true } };
+const state = { supported: true, version: "a".repeat(64), destination_choices: { images: "7".repeat(64), video: "8".repeat(64) }, photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true } };
 (async () => {
   assert.equal(last().action, "status"); assert.equal(saves, 0); assert(panel.hidden);
   api.receive({ requestId: last().requestId, device_id: "foreign-peer", ok: true, ...state }); assert(panel.hidden);
@@ -21,7 +21,7 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   skipChoice.indeterminate = false; skipChoice.checked = true; skipChoice.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().action, "settings"); reply(state);
    panel.querySelector('[data-destination="images"]').click(); await tick(); assert.equal(last().action, "pick_destination");
-  assert.equal(last().media_type, "images"); assert.equal(last().version, null); assert(!("pfad" in last()));
+   assert.equal(last().media_type, "images"); assert.equal(last().version, state.destination_choices.images); assert(!("pfad" in last()));
   const withRoot = { ...state, pictures: { version: "d".repeat(64), display_path: "C:\\Pictures\\<img onerror=evil>" } };
    reply(withRoot); assert.equal(panel.querySelector("img"), null);
    const folderInput = panel.querySelector('[data-destination="images"]');
@@ -30,7 +30,7 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
    const folderButtons = [...folderInput.parentElement.querySelectorAll("button")];
    assert.deepEqual(folderButtons.map(button => button.textContent), ["Photos · Destination folder", "Use default"]);
    folderButtons[1].click(); await tick(); assert.equal(last().action, "default_destination");
-   assert.equal(last().media_type, "images"); assert.equal(last().version, withRoot.pictures.version);
+   assert.equal(last().media_type, "images"); assert.equal(last().version, withRoot.destination_choices.images);
    assert(!("path" in last()) && !("directory" in last()), "Browser supplied a default filesystem path");
    reply({ ...withRoot, pictures: { ...withRoot.pictures, default: true } });
    assert(folderButtons[1].disabled, "Already-default destination still offered a reset");

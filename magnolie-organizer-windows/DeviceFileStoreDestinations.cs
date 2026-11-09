@@ -244,11 +244,12 @@ internal sealed partial class TelefonStore
     // The caller supplies the actual picked/default native directory owner, not
     // a bridge-selected path/identity. This persists intent only, never receive.
     internal NativeMediaDestination SetNativeMediaDestination(string peerId, string mediaType, string? expectedVersion,
-        DeviceFileNativeDirectory owner)
+        DeviceFileNativeDirectory owner, Action? nativeContext = null)
     {
         MediaDestinationKind(mediaType);
         lock (gate)
         {
+            nativeContext?.Invoke();
             var scope = MediaPreferenceScope(peerId); var root = owner.CurrentReceiveIdentity();
             NativeMediaBackupExclusions.RequireMediaDirectory(owner.NativePath, owner.VolumePath);
             using var connection = OpenNativeMediaDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
@@ -260,6 +261,7 @@ internal sealed partial class TelefonStore
                     throw DeviceFileControl.Error("file_destination_existing_history_required");
                 if (MediaPreferenceScope(peerId) != scope || owner.CurrentIdentity() != root)
                     throw DeviceFileControl.Error("file_destination_scope_changed");
+                nativeContext?.Invoke();
                 return before; // No token/version/ciphertext rotation for the same destination.
             }
             // Absence is not proof of a first choice. Authenticate existing
@@ -293,6 +295,7 @@ internal sealed partial class TelefonStore
                 encrypted = Seal("native_media_destinations", scope.PeerId + "/" + mediaType, plain);
             }
             finally { CryptographicOperations.ZeroMemory(plain); }
+            nativeContext?.Invoke();
             using var write = connection.CreateCommand(); write.Transaction = transaction;
             write.CommandText = "CREATE TABLE IF NOT EXISTS native_media_destinations(peer_id TEXT NOT NULL,media_type TEXT NOT NULL,value BLOB NOT NULL,PRIMARY KEY(peer_id,media_type)); " +
                 "INSERT INTO native_media_destinations(peer_id,media_type,value) VALUES($peer,$kind,$value)";
@@ -300,6 +303,7 @@ internal sealed partial class TelefonStore
             write.ExecuteNonQuery();
             if (ReadLegacyNativeMediaDestination(connection, transaction, scope, mediaType) != result || owner.CurrentIdentity() != root || MediaPreferenceScope(peerId) != scope)
                 throw DeviceFileControl.Error("file_destination_readback_failed");
+            nativeContext?.Invoke();
             transaction.Commit(); return result;
         }
     }

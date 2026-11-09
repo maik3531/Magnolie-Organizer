@@ -86,6 +86,26 @@ internal sealed partial class TelefonConnection
             ["channel"] = nativeMediaUiStartEpoch, ["settings"] = intent.DeepClone() }))).ToLowerInvariant();
     internal void RevokeNativeMediaUiConsent() => nativeMediaUiAuthority?.Revoke();
 
+    internal Action CaptureNativeDestinationContext()
+    {
+        var controls = Volatile.Read(ref fileControls);
+        var position = controls?.RemoteControlWitness();
+        KeyValuePair<string, JsonObject>[] receipts;
+        lock (fileMetadataGate) receipts = fileMetadataReceipts.ToArray();
+        // Deny-only: no Scope(), Packet() or callbackful data agreement under
+        // the destination store CAS. Actual metadata readiness is checked outside.
+        return () => {
+            cancellation.ThrowIfCancellationRequested();
+            if (disposed || !ReferenceEquals(controls, Volatile.Read(ref fileControls)) ||
+                controls is not null && !controls.NativeMetadataPositionUnchanged(position))
+                throw DeviceFileControl.Error("file_destination_native_context_changed");
+            lock (fileMetadataGate)
+                if (fileMetadataRevoked || fileMetadataReceipts.Count != receipts.Length ||
+                    receipts.Any(value => !fileMetadataReceipts.TryGetValue(value.Key, out var actual) || !ReferenceEquals(value.Value, actual)))
+                    throw DeviceFileControl.Error("file_destination_native_context_changed");
+        };
+    }
+
     internal Action CaptureNativeCollectionFolderContext(string mediaType)
     {
         if (mediaType is not ("images" or "video")) throw DeviceFileControl.Error("media_collection_native_choice_invalid");
@@ -222,6 +242,76 @@ internal sealed partial class TelefonConnection
 internal sealed partial class TelefonCoordinator
 {
     private int nativeMediaCollectionDialog;
+
+    private string NativeDestinationChoiceVersion(string peerId, string mediaType, TelefonConnection connection)
+    {
+        var peer = store.LoadPeers().Single(value => value.Id == peerId && value.State == "paired");
+        // Local descriptors contain unsigned native IDs, outside the signed
+        // protocol integer range. Bind their complete deterministic JSON as
+        // opaque text; only the final digest crosses the renderer boundary.
+        string Snapshot<T>(T value) => System.Text.Json.JsonSerializer.Serialize(value);
+        return connection.NativeMediaSharedUiVersion(new JsonObject {
+            ["media_type"] = mediaType, ["book"] = NativeSavedBook()?.BookSource,
+            ["peer_key"] = Convert.ToBase64String(peer.PublicKey), ["pairing_epoch"] = peer.FilePairingEpoch,
+            ["intent"] = store.ReadNativeMediaSharedSettings(peerId, peer.PublicKey)?.DeepClone(),
+            ["preferences"] = Snapshot(store.ReadNativeMediaPreferences(peerId)),
+            ["send"] = Snapshot(store.ReadNativeMediaSendConsent(peerId)),
+            ["receive"] = Snapshot(store.ReadNativeMediaReceiveConsent(peerId)),
+            ["sources"] = Snapshot(store.NativeMediaCollectionRoots(peerId)),
+            ["images"] = Snapshot(store.ReadNativeMediaDestination(peerId, "images")),
+            ["video"] = Snapshot(store.ReadNativeMediaDestination(peerId, "video")),
+            ["image_choices"] = Snapshot(store.ReadNativeMediaDestinationChoices(peerId, "images")),
+            ["video_choices"] = Snapshot(store.ReadNativeMediaDestinationChoices(peerId, "video")) });
+    }
+
+    internal JsonObject ChooseNativeMediaDestination(string peerId, string mediaType, string version,
+        Func<Action, DeviceFileNativeDirectory?> pickNative)
+    {
+        ArgumentNullException.ThrowIfNull(pickNative);
+        if (mediaType is not ("images" or "video")) throw DeviceFileControl.Error("file_media_type_invalid");
+        if (Interlocked.CompareExchange(ref nativeMediaCollectionDialog, 1, 0) != 0)
+            throw DeviceFileControl.Error("media_collection_native_choice_pending");
+        var timer = System.Diagnostics.Stopwatch.StartNew(); var canceled = false;
+        try
+        {
+            var connection = NativeMediaOnlineConnection(peerId);
+            var control = connection.CaptureNativeDestinationContext();
+            var permit = NativeMediaLocalBookPermit();
+            var destination = store.ReadNativeMediaDestination(peerId, mediaType);
+            var revoked = false;
+            void Current()
+            {
+                try
+                {
+                    permit.Require(); control(); store.RequireNativeMediaStorageKey();
+                    if (revoked || timer.Elapsed >= TimeSpan.FromSeconds(60) ||
+                        !ReferenceEquals(connection, NativeMediaOnlineConnection(peerId)) ||
+                        NativeDestinationChoiceVersion(peerId, mediaType, connection) != version)
+                        throw DeviceFileControl.Error("file_destination_native_context_changed");
+                    if (Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
+                }
+                catch { revoked = true; throw; }
+            }
+            void Ready()
+            {
+                Current();
+                if (!connection.NativeMediaUiMetadataAvailable(mediaType == "video"))
+                    throw DeviceFileControl.Error("file_media_native_peer_unavailable");
+                RequireNativeMediaUiDestinationConsent(peerId);
+                Current();
+            }
+            Ready();
+            using var selected = pickNative(Current);
+            Ready();
+            if (selected is null) canceled = true;
+            else store.SetNativeMediaDestination(peerId, mediaType, destination?.Version, selected, Current);
+            permit.Require();
+        }
+        finally { Volatile.Write(ref nativeMediaCollectionDialog, 0); }
+        var result = NativeMediaUiStatus(peerId);
+        if (canceled) result["canceled"] = true;
+        return result;
+    }
 
     internal JsonObject ChooseNativeMediaCollectionFolder(string peerId, string mediaType, string version,
         Func<Action, DeviceFileNativeDirectory?> pickNative)
@@ -361,6 +451,18 @@ internal sealed partial class TelefonCoordinator
             ["metadata_ready"] = new JsonObject { ["images"] = imagesReady, ["video"] = videosReady },
             ["automatic_phase"] = automaticPhase, ["automatic_busy"] = automaticBusy,
             ["busy"] = Volatile.Read(ref nativeMediaWorker) != 0, ["deletions_ready"] = false, ["automatic_ready"] = true };
+        try
+        {
+            result["destination_choices"] = new JsonObject {
+                ["images"] = NativeDestinationChoiceVersion(peerId, "images", connection),
+                ["video"] = videosReady ? NativeDestinationChoiceVersion(peerId, "video", connection) : null };
+        }
+        catch (InvalidDataException error) when (error.Message == "file_receive_existing_storage_key_required")
+        {
+            // A read-only legacy status must not bootstrap the native key.
+            // No choice hint is exposed until its original context is provable.
+            result["destination_choices"] = null;
+        }
         if (connection.MediaSharedControlsReady)
         {
             var currentPeer = store.LoadPeers().Single(value => value.Id == peerId);
@@ -544,14 +646,18 @@ internal sealed partial class TelefonCoordinator
         SetNativeMediaDefaultDestination(peerId, mediaType, nativeKnownFolder, null);
     }
 
-    internal void ResetNativeMediaUiDestination(string peerId, string mediaType, string? version)
-    {
-        var connection = NativeMediaOnlineConnection(peerId);
-        if (!connection.NativeMediaUiMetadataAvailable(videos: mediaType == "video")) throw DeviceFileControl.Error("file_media_native_peer_unavailable");
-        if (Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
-        SetNativeMediaDefaultDestination(peerId, mediaType, mediaType == "images" ? PhotoDestinationPaths.NativePicturesDirectory()
-            : mediaType == "video" ? VideoDestinationPaths.NativeVideosDirectory() : throw DeviceFileControl.Error("file_media_type_invalid"), version);
-    }
+    internal JsonObject ResetNativeMediaUiDestination(string peerId, string mediaType, string version)
+        => ChooseNativeMediaDestination(peerId, mediaType, version, current => {
+            current();
+            var parentPath = mediaType == "images" ? PhotoDestinationPaths.NativePicturesDirectory() : VideoDestinationPaths.NativeVideosDirectory();
+            var name = store.LoadPeers().Single(value => value.Id == peerId && value.State == "paired").Name;
+            var leaf = mediaType == "images" ? PhotoDestinationPaths.NativeFolderComponent(name) : VideoDestinationPaths.NativeFolderComponent(name);
+            using var parent = DeviceFileNativeDirectory.OpenExistingForReceive(parentPath);
+            current();
+            try { return DeviceFileNativeDirectory.OpenExistingForReceive(Path.Combine(parent.NativePath, leaf)); }
+            catch (IOException error) when (error.InnerException is System.ComponentModel.Win32Exception native && native.NativeErrorCode is 2 or 3)
+            { current(); return parent.CreateChild(leaf); }
+        });
 
     private void SetNativeMediaDefaultDestination(string peerId, string mediaType, string nativeKnownFolder, string? version)
     {
@@ -583,15 +689,6 @@ internal sealed partial class TelefonCoordinator
         if (store.ReadNativeMediaDestination(peerId, mediaType) is null)
             EnsureNativeMediaDefaultDestination(peerId, mediaType, mediaType == "images"
                 ? PhotoDestinationPaths.NativePicturesDirectory() : VideoDestinationPaths.NativeVideosDirectory());
-    }
-
-    internal void SetNativeMediaUiDestination(string peerId, string mediaType, string? version, DeviceFileNativeDirectory nativeOwner)
-    {
-        RequireNativeMediaUiDestinationConsent(peerId);
-        store.RequireNativeMediaStorageKey();
-        _ = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
-        if (Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
-        store.SetNativeMediaDestination(peerId, mediaType, version, nativeOwner);
     }
 
     internal async Task<(string Version, DeviceFileCatalogPage Page)> DiscoverNativeMediaUiAsync(string peerId, string mediaType, CancellationToken token)

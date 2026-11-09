@@ -33,7 +33,7 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         var kind = value.ContainsKey("media_type") ? Text("media_type") : "images";
         if (kind is not ("images" or "video")) throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var version = value["version"] is null ? null : Text("version");
-        if (version is not null && !DeviceFileControl.Hash(version) || action is "pick_collection_source" or "sync_shared" or "shared_setting" or "receive_consent" or "send_consent" or "backup_restore" or "trash_restore" or "trash_purge" or "trash_thumbnail" or "trash_preview" or "page" or "sync" && version is null)
+        if (version is not null && !DeviceFileControl.Hash(version) || action is "pick_destination" or "default_destination" or "pick_collection_source" or "sync_shared" or "shared_setting" or "receive_consent" or "send_consent" or "backup_restore" or "trash_restore" or "trash_purge" or "trash_thumbnail" or "trash_preview" or "page" or "sync" && version is null)
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var catalog = value.ContainsKey("catalog_id") ? Text("catalog_id") : null;
         var album = value.ContainsKey("album_id") ? Text("album_id") : null;

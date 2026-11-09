@@ -16,6 +16,8 @@ function boot() {
     shared_runtime_ready: true, shared_matched: true, shared_settings: { values, versions: {} },
     receive_consent: { granted: false, version: "b".repeat(64) }, send_consent: { photos: true, videos: true, version: "c".repeat(64) },
     collection_sources_supported: true, collection_sources_version: "a".repeat(64),
+    destination_choices: { images: "d".repeat(64), video: "e".repeat(64) },
+    pictures: { version: "f".repeat(64), default: false }, video_destination: { version: null, default: false },
     collection_sources: [{ id: "opaque-root", media_type: "images", display_path: "C:\\private\\<img src=x>" }] };
   function reply(request, value) { api.receive({ requestId: request.requestId, device_id: peer, ok: true, ...value }); }
   reply(messages.at(-1), state);
@@ -71,5 +73,47 @@ function boot() {
   await test("a retained panel cannot adopt a different book during save", async b => {
     b.add("images").click(); b.changeBook(); b.save(); await tick(); assert.equal(b.sourceMessages().length, 0);
   });
+  for (const action of ["pick_destination", "default_destination"]) {
+    for (const newer of [false, true]) await test(action + " releases its Save-ACK slot after unsupported or superseded reply " + newer, async b => {
+      const state = { ...b.state, receive_consent: { ...b.state.receive_consent, granted: true } };
+      b.refresh(); b.reply(b.messages.at(-1), state);
+      const pick = () => b.panel.querySelector(`[data-destination="images"][data-destination-action="${action}"]`);
+      pick().click(); b.save(); await tick(); const choice = b.messages.at(-1);
+      if (newer) { b.refresh(); b.reply(b.messages.at(-1), state); }
+      b.reply(choice, newer ? { ...state, canceled: true } : { supported: false });
+      b.refresh(); b.reply(b.messages.at(-1), state);
+      assert(!pick().disabled, "Completed native choice left Save-ACK slot stuck");
+    });
+    for (const scenario of ["accept", "save-failure", "book", "detached", "context", "missing-context"]) {
+      await test(action + " original Save-ACK fence " + scenario, async b => {
+        const state = { ...b.state, receive_consent: { ...b.state.receive_consent, granted: true } };
+        b.refresh(); b.reply(b.messages.at(-1), state);
+        if (scenario === "missing-context") {
+          b.refresh(); b.reply(b.messages.at(-1), { ...state, destination_choices: null });
+          assert(b.panel.querySelector(`[data-destination="images"][data-destination-action="${action}"]`).disabled); return;
+        }
+        b.refresh(); const statusRequest = b.messages.at(-1);
+        b.panel.querySelector(`[data-destination="images"][data-destination-action="${action}"]`).click();
+        assert.equal(b.messages.filter(m => m.action === action).length, 0);
+        assert(b.add("images").disabled);
+        if (scenario === "save-failure") b.fail();
+        else {
+          if (scenario === "book") b.changeBook();
+          if (scenario === "detached") b.panel.remove();
+          if (scenario === "context") b.reply(statusRequest, { ...state, destination_choices: { ...state.destination_choices, images: "9".repeat(64) } });
+          b.save();
+        }
+        await tick(); const requests = b.messages.filter(m => m.action === action);
+        assert.equal(requests.length, scenario === "accept" ? 1 : 0);
+        if (requests.length) {
+          assert.equal(requests[0].version, state.destination_choices.images);
+          assert.notEqual(requests[0].version, state.pictures.version);
+          assert.deepEqual(Object.keys(requests[0]).sort(), ["cmd", "requestId", "device_id", "action", "media_type", "version"].sort());
+          b.reply(requests[0], { ...state, canceled: true }); assert(!b.add("images").disabled);
+        }
+        assert(!b.messages.some(m => ["sync", "sync_shared", "trash_preview", "trash_thumbnail"].includes(m.action)));
+      });
+    }
+  }
   console.log(cases + " Windows source-folder frontend cases passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });

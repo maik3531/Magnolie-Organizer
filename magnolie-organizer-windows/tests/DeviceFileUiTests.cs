@@ -117,6 +117,8 @@ internal static class DeviceFileUiTests
         foreach (var kind in new[] { "capabilities.update", "grants.update", "personal_sync.settings" })
             await fresh.HandlePlainAsync(f.Message(kind, revision: 2));
         status = coordinator.NativeMediaUiStatus(f.Peer.Id);
+        TestAssert.That(status["destination_choices"] is null && !File.Exists(f.Paths.TelefonStorageKey),
+            "Read-only fresh legacy status bootstrapped a native key or an unprovable destination choice.");
         TestAssert.That(status["supported"]!.GetValue<bool>() && status["activation_required"] is null &&
             !status["photos"]!.GetValue<bool>() && !status["videos"]!.GetValue<bool>() && !status["automatic"]!.GetValue<bool>(),
             "Fresh acknowledged reconnect did not expose manual media settings with photo/video policy still disabled: " + status.ToJsonString() +
@@ -189,6 +191,11 @@ internal static class DeviceFileUiTests
         foreach (var action in new[] { "pick_backup_parent", "backup_default", "pick_destination", "default_destination" })
         {
             var pick = request.DeepClone().AsObject(); pick["action"] = action; pick["media_type"] = "images"; pick["version"] = null;
+            if (action is "pick_destination" or "default_destination")
+            {
+                TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(pick), "Destination choice accepted missing full context.");
+                pick["version"] = new string('a', 64);
+            }
             _ = NativeMediaUiRequest.Parse(pick);
             pick["path"] = @"C:\untrusted";
             TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(pick), "Backup parent action accepted a browser path.");
