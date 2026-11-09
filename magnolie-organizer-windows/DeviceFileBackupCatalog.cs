@@ -397,9 +397,9 @@ internal sealed partial class TelefonStore
             var member = job.Body["files"]!.AsArray().OfType<JsonObject>().Single(item => TelefonMessagingContract.String(item, "id") == fileId);
             var receipt = job.Body["saved"]!["receipts"]!.AsArray().OfType<JsonObject>().Single(item => TelefonMessagingContract.String(item, "file_id") == fileId);
             var kind = TelefonMessagingContract.String(job.Body, "media_type");
-            var backupLocations = ReadNativeMediaBackupLocations(peerId, kind);
             var destinationOwner = new NativeCompletedDestinationOwner(this, scope, job);
             var destination = destinationOwner.Destination;
+            var backupLocations = ReadOriginalNativeMediaBackupLocations(peerId, kind, destination);
             using var root = destination.OpenNative();
             using var album = job.Body["album_root"] is JsonObject albumRoot ? root.OpenOriginalChild(TelefonMessagingContract.String(albumRoot, "folder"),
                 NativeMediaReceiveJob.NativeAlbumIdentity(albumRoot["identity"]!.AsObject())) : null;
@@ -408,7 +408,7 @@ internal sealed partial class TelefonStore
             {
                 Current(); _ = root.CurrentIdentity(); _ = parent.CurrentIdentity();
                 destinationOwner.Require();
-                if (ReadNativeMediaBackupLocations(peerId, kind).Version != backupLocations.Version)
+                if (ReadOriginalNativeMediaBackupLocations(peerId, kind, destination).Version != backupLocations.Version)
                     throw DeviceFileControl.Error("media_backup_locations_stale_choice");
             }
             var name = DeviceFileNativeDirectory.ReceiveLeaf(TelefonMessagingContract.String(file, "path"));

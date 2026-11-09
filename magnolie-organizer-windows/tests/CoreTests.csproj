@@ -64,6 +64,8 @@
     <Compile Include="..\DeviceFileStorePreferences.cs" Link="DeviceFileStorePreferences.cs" />
     <Compile Include="..\DeviceFileStoreDestinations.cs" Link="DeviceFileStoreDestinations.cs" />
     <Compile Include="..\DeviceFileSelectionWitness.cs" Link="DeviceFileSelectionWitness.cs" />
+    <Compile Include="..\DeviceFileDestinationAdmissions.cs" Link="DeviceFileDestinationAdmissions.cs" />
+    <Compile Include="..\DeviceFileDestinationAdmissionUi.cs" Link="DeviceFileDestinationAdmissionUi.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.cs" Link="DeviceFileNativeDirectory.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.Receive.cs" Link="DeviceFileNativeDirectory.Receive.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.Source.cs" Link="DeviceFileNativeDirectory.Source.cs" />

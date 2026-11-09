@@ -2103,10 +2103,10 @@ freigegeben; keine Installation oder Veröffentlichung.
 
 ### Windows: unabhängiger Metadatenzeuge vor einem aktuellen Zielkopf (#500)
 
-Der neue native Auswahlzeuge ist noch **kein aktives Ziel und keine zugelassene
-historische Generation**. Kein Zielgetter, Dialog oder Datenpfad konsumiert ihn.
-Er erprobt das notwendige unabhängige Metadatenprotokoll, während ein tatsächlicher
-anderer Root im bestehenden Setter weiter gesperrt bleibt.
+Der bloße native Auswahlzeuge ist **kein aktives Ziel und allein keine zugelassene
+historische Generation**. Kein aktueller Runtime-Zielgetter konsumiert ihn.
+Die separat gebundene native Zulassung wird im folgenden Abschnitt beschrieben;
+ein tatsächlicher anderer Root bleibt im bestehenden UI-Setter weiter gesperrt.
 
 Ein authentifizierter SQL-Kopf bindet den vollständigen unveränderten Legacyrecord,
 Scope, eine ursprüngliche private native Verzeichnisidentität samt Creation-Zeuge
@@ -2179,6 +2179,77 @@ diese externe Kontextprüfung als aktuellen Kopf lesen: Er muss den ursprünglic
 Kopf und das ursprüngliche Readset gesondert per CAS und Originalhandles prüfen.
 Tatsächliche laufende Datenowner sind weiterhin nicht angebunden; der Metadaten-
 ABA-Test ist keine Behauptung eines bereits fertigen Live-Daten-ABA-Schutzes.
+
+### Windows: separate native Zulassung und ursprünglicher Generationsbeleg (#500)
+
+Ein neuer interner nativer Callbackpfad bindet vor der Vorbereitung das tatsächliche
+Saved-Buch, Connection und Kontroll-/Metadatenposition, vollständiges lokales Readset,
+beide ursprünglichen Zeugenstände und die unverlängerte 60-Sekunden-Frist. Er teilt
+den ursprünglichen Dialogslot mit Quelle und SEND-Zustimmung, besitzt einen nur
+einmal nutzbaren Schreibkontext und schließt gewählte Nativeowner vor Rückgabe.
+Abbruch und Fehler verwerfen auch den ursprünglichen Callback. Pfad, Bestätigungs-
+boolean oder Browserflag können diesen Kontext nicht herstellen. Die bestehende
+RECEIVE-Consentprüfung bleibt; SEND und gesamte Sammlung sind nicht erforderlich.
+
+Der eigene noch uncommittete Zeuge wird nicht rekursiv als aktueller Kopf gelesen.
+Stattdessen bleiben Buch/Kontrollposition/Connection/Key/Scope/Native-Root/Frist an
+jedem IO-Checkpoint geprüft; das vollständige ursprüngliche lokale Readset wird
+vor nativem Schreiben, vor SQL-Schreiben sowie vor und nach Commit geprüft.
+Native Einstellungen sind während dieses Schreibens durch den Storegate serialisiert.
+Der ursprüngliche ausgewählte Kopf bleibt zusätzlich am exakten SQL-CAS gebunden.
+Keine Prüfung ersetzt eine echte Datenvereinbarung oder verwendet `Packet()` als
+scheinbar schreibgeschützten Kontrollvergleich.
+
+Die native Zulassung erzeugt ein ausdrücklich gebundenes Version-2-Ereignis und
+einen separaten unveränderlichen AEAD-Generationsrecord in derselben Transaktion
+wie den Kopf. Ein normaler Version-1-Metadatenzeuge bleibt ungelassen: Selbst eine
+authentifizierte künstliche Generationszeile, die auf dessen echten Nativefilebeleg
+zeigt, wird abgewiesen. Der Generationsrecord bindet vollständigen Zielrecord und
+Creation sowie genau die ursprüngliche native Zulassungsdatei mit Verzeichnis-ID,
+File-ID, Creation, Größe und vollem Hash. Wiederwahl behält diesen Originalrecord
+bytegenau; nur der neue Auswahlstempel ändert sich. Eine verlorene bekannte
+Zulassung wird nicht aus historischen Zulassungsflags rekonstruiert.
+
+Die historische Metadatenauflösung prüft diesen einen ursprünglichen Beleg, nicht
+den aktuellen Kopf, das gesamte aktuelle Inventar oder den lebenden Legacyrecord.
+Sie bleibt bei verlorenem Kopf, unbekannten späteren Dateien und verlorenem
+Legacyrecord nutzbar; fehlt oder verändert sich ihr eigener Originalbeleg, hält sie.
+Grants für READ/SEND/RECEIVE bleiben falsch. Bekannte Gen-Metadaten dürfen unabhängig
+von verlorenen aktuellen Belegen ausschließlich gegen Erstauswahlrekonstruktion
+und Fremdtyp-Überlappung verwendet werden, nicht als Freigabe oder Reparatur.
+
+Ursprüngliche abgeschlossene Jobowner können jetzt diesen separat zugelassenen
+Originalbeleg pinnen, einschließlich seines vollständigen Recordfingerprints.
+Ein alter nur am Legacyrecord gebundener Owner wird nicht nachträglich auf einen
+neuen Generationsbeleg umgestellt. Backup-Save verwendet außerdem die authentifizierte
+ursprüngliche Jobdestination für die Backup-Standortauswahl, nicht den aktuellen
+Empfangsgetter. Ein vorhandenes Standortregister mit anderem Defaultroot bleibt
+HOLD; es wird nicht auf eine andere Generation kopiert oder migriert.
+
+61 unterschiedliche betroffene native Windows-Gruppen bestehen: zehn neue
+Zulassungs-/Originaljobgruppen, 19 direkt betroffene Zeugen-/Zielgruppen und 32
+Backup-/Standort-/Trash-/Purge-/ursprüngliche-Ownergruppen. Darunter echte native
+Zulassung über kontrollierte Callbackantwort, unveränderte Wiederwahl, Verlust-
+und Fälschungsfälle, tatsächlicher 61-Sekunden-Wartefall sowie ein erzwungener
+SQL-Insertfehler, der Kopf und Generation gemeinsam zurückrollt und den geflushten
+ungewissen Dateibeleg nicht als höchsten Datensatz übernimmt. Keine Stromausfall-
+oder vollständige Disk-Rollback-Abnahme behauptet.
+
+Eine neue tatsächliche Receive/Saved/Source-END→Backup→Trash→authentifizierte
+Vorschau→Restore-Probe nutzt einen separat zugelassenen Root0-Originalbeleg trotz
+verlorenem Kopf und Legacyrecord, ohne diese zu rekonstruieren. Datei-IO und
+Rohbytes sind echt; Preview-Rendering ist modelliert. Das ist keine erfundene
+Root1-Receivehistorie und noch keine Root1-End-to-End-/Decoder-/Androidabnahme.
+Core und tatsächliche WinForms-Produktquelle bauen ohne Warnungen/Fehler.
+
+Bridge/Renderer und aktiver Runtime-Zielgetter sind weiter nicht auf diesen
+Zulassungspfad umgestellt; ein neuer nicht aktiver Root wird nicht als erfolgreiche
+UI-Umschaltung gemeldet. Live-ABA-/IO-Drain-/Revocation, Root1-Mappingprojektion und
+die generationstreue Backup-Standortwahl bei vorhandenem altem Defaultregister
+müssen vor Aktivierung noch zusammengeführt und nativ geprüft werden. Unabhängiger
+PC SEND und ursprüngliche Recovery dürfen dafür nicht an positive PC RECEIVE oder
+Telefon READ gekoppelt werden. Androidpause und Liefergates bleiben bestehen;
+keine Installation oder Veröffentlichung.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

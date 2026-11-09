@@ -313,6 +313,16 @@ if (OperatingSystem.IsWindows())
     runner.Add("Destination independent witness / Windows opposite legacy witness stage and received roots never overlap", DeviceFileDestinationSelectionTests.WindowsWitnessOtherKindAsync);
     runner.Add("Destination independent witness / Windows actual post-SQL withdrawal rolls back head and retains independent intent", DeviceFileDestinationSelectionTests.WindowsWitnessSqlRollbackAsync);
     runner.Add("Destination metadata context / Windows unobserved ABA and observed failure never revive original owner", DeviceFileDestinationSelectionTests.WindowsWitnessOriginalContextAsync);
+    runner.Add("Destination native admission / Windows original native picker admits immutable generation without activation", DeviceFileDestinationAdmissionTests.WindowsNativeAdmissionAsync);
+    runner.Add("Destination native admission / Windows original proof stays independent of current head and legacy record", DeviceFileDestinationAdmissionTests.WindowsHistoricalAdmissionIndependentAsync);
+    runner.Add("Destination native admission / Windows original callback cancellation book consent channel control and slot guards", DeviceFileDestinationAdmissionTests.WindowsAdmissionPickerGuardsAsync);
+    runner.Add("Destination native admission / Windows lost original admission never rebuilds from historical flags", DeviceFileDestinationAdmissionTests.WindowsLostAdmissionNeverRebuiltAsync);
+    runner.Add("Destination native admission / Windows authenticated generic intent is never actual native admission", DeviceFileDestinationAdmissionTests.WindowsIntentIsNotAdmissionAsync);
+    runner.Add("Destination native admission / Windows admission-only loss evidence denies bootstrap and opposite root overlap", DeviceFileDestinationAdmissionTests.WindowsAdmissionLossAndOtherKindAsync);
+    runner.Add("Destination native admission / Windows immutable original descriptor native bytes file identity and key guards", DeviceFileDestinationAdmissionTests.WindowsAdmissionOriginalGuardsAsync);
+    runner.Add("Destination native admission / Windows actual original deadline never restarts after native picker", DeviceFileDestinationAdmissionTests.WindowsAdmissionOriginalDeadlineAsync);
+    runner.Add("Destination native admission / Windows actual generation SQL failure rolls back head without adopting intent", DeviceFileDestinationAdmissionTests.WindowsAdmissionSqlAtomicityAsync);
+    runner.Add("Destination admitted original job / Windows actual backup trash preview restore independent of lost current and legacy records", DeviceFileDestinationAdmissionTests.WindowsOriginalJobUsesIndependentAdmissionAsync);
     runner.Add("Collection producer / Windows two original offers actual END and fresh unchanged pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerAsync);
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);

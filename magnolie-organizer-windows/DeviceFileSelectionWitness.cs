@@ -7,7 +7,7 @@ namespace MagnolieOrganizer.Windows;
 
 // Metadata protocol only. No current destination getter, UI or data operation
 // consumes this witness until admission and live-owner invalidation are joined.
-internal sealed record NativeMediaSelectionWitness(string Stamp, NativeMediaDestination Destination, ulong CreationFileTime, int Count)
+internal sealed record NativeMediaSelectionWitness(string Stamp, NativeMediaDestination Destination, ulong CreationFileTime, int Count, bool NativeAdmission = false)
 {
     internal bool GrantsReceiveAuthority => false;
     internal bool GrantsSendAuthority => false;
@@ -18,6 +18,24 @@ internal sealed partial class TelefonStore
     private const int SelectionWitnessLimit = 32, SelectionWitnessRowLimit = 128 * 1024, SelectionWitnessFileLimit = 256 * 1024;
     private sealed record SelectionWitnessState(JsonObject Body, IReadOnlyList<NativeMediaSelectionWitness> Events)
     { internal NativeMediaSelectionWitness Head => Events[^1]; }
+
+    private sealed record SelectionEvent(NativeMediaDestination Destination, ulong Creation, bool NativeAdmission);
+    private static SelectionEvent ParseSelectionEvent(JsonObject value, NativeMediaPreferenceScope scope, string kind, string stamp, string? previous)
+    {
+        var format = TelefonProtocolContract.Integer(value["format"]);
+        if (format == 1) TelefonProtocolContract.ExactObject(value, "format", "scope", "media_type", "stamp", "previous", "destination", "creation");
+        else if (format == 2)
+        {
+            TelefonProtocolContract.ExactObject(value, "format", "scope", "media_type", "stamp", "previous", "destination", "creation", "native_admission");
+            if (value["native_admission"] is not JsonValue flag || !flag.TryGetValue<bool>(out var admitted) || !admitted)
+                throw DeviceFileControl.Error("file_selection_witness_invalid");
+        }
+        else throw DeviceFileControl.Error("file_selection_witness_invalid");
+        if (value["scope"]?.GetValue<string>() != SelectionScope(scope) || value["media_type"]?.GetValue<string>() != kind ||
+            value["stamp"]?.GetValue<string>() != stamp || value["previous"]?.GetValue<string>() != previous)
+            throw DeviceFileControl.Error("file_selection_witness_invalid");
+        return new(ParseNativeMediaDestination(value["destination"]!.AsObject(), scope, kind), SelectionHex(value["creation"]), format == 2);
+    }
 
     private static string SelectionScope(NativeMediaPreferenceScope scope) => DeviceFileControl.Digest("magnolie-selection-witness-scope-v1\0", new JsonObject {
         ["peer"] = scope.PeerId, ["key"] = scope.PeerKey, ["epoch"] = scope.PairingEpoch, ["local"] = scope.LocalId, ["local_key"] = scope.LocalKey });
@@ -117,14 +135,8 @@ internal sealed partial class TelefonStore
                     var plain = Open("native_media_selection_witness_event", scope.PeerId + "/" + kind + "/" + stamp, bytes);
                     try
                     {
-                        var value = TelefonProtocolContract.ExactObject(JsonNode.Parse(plain)!, "format", "scope", "media_type", "stamp", "previous", "destination", "creation");
-                        if (TelefonProtocolContract.Integer(value["format"]) != 1 || value["scope"]?.GetValue<string>() != SelectionScope(scope) ||
-                            value["media_type"]?.GetValue<string>() != kind || value["stamp"]?.GetValue<string>() != stamp ||
-                            value["previous"]?.GetValue<string>() != previous)
-                            throw DeviceFileControl.Error("file_selection_witness_invalid");
-                        var destination = ParseNativeMediaDestination(value["destination"]!.AsObject(), scope, kind);
-                        var creation = SelectionHex(value["creation"]);
-                        events.Add(new(stamp, destination, creation, events.Count + 1)); previous = stamp;
+                        var value = ParseSelectionEvent(JsonNode.Parse(plain)!.AsObject(), scope, kind, stamp, previous);
+                        events.Add(new(stamp, value.Destination, value.Creation, events.Count + 1, value.NativeAdmission)); previous = stamp;
                     }
                     finally { CryptographicOperations.ZeroMemory(plain); }
                 }
@@ -207,6 +219,10 @@ internal sealed partial class TelefonStore
     // or an admitted historical generation. Current runtime readers are unchanged.
     internal NativeMediaSelectionWitness RecordNativeMediaSelectionWitness(string peerId, string kind, string? expectedStamp,
         DeviceFileNativeDirectory picked, Action nativeContext)
+        => RecordSelectionWitness(peerId, kind, expectedStamp, picked, nativeContext, null);
+
+    private NativeMediaSelectionWitness RecordSelectionWitness(string peerId, string kind, string? expectedStamp,
+        DeviceFileNativeDirectory picked, Action nativeContext, TelefonCoordinator.NativeDestinationAdmissionContext? admission)
     {
         ArgumentNullException.ThrowIfNull(nativeContext); MediaDestinationKind(kind);
         lock (gate)
@@ -233,6 +249,7 @@ internal sealed partial class TelefonStore
             if (before?.Events.Count >= SelectionWitnessLimit) throw DeviceFileControl.Error("file_selection_witness_capacity");
             var otherKind = kind == "images" ? "video" : "images";
             var other = ReadLegacyNativeMediaDestination(db, null, scope, otherKind);
+            RequireNoNativeAdmissionOverlap(db, null, scope, otherKind, picked);
             var otherWitness = ReadSelectionWitness(db, null, scope, otherKind, Current);
             static bool Overlap(DeviceFileNativeDirectory selected, NativeMediaDestination candidate) => selected.OriginalIdentity == candidate.RootIdentity ||
                 selected.VolumePath.Equals(candidate.VolumePath, StringComparison.OrdinalIgnoreCase) ||
@@ -259,13 +276,18 @@ internal sealed partial class TelefonStore
                 throw DeviceFileControl.Error("file_selection_witness_context_changed");
             var target = isLegacy ? legacy : known?.Destination ?? new NativeMediaDestination(1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(),
                 kind, picked.NativePath, picked.VolumePath, root, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
+            if (admission is not null && before?.Events.Any(item => item.NativeAdmission && item.Destination.Version == target.Version) == true &&
+                ReadNativeDestinationAdmission(db, null, scope, kind, target.Version, Current) is null)
+                throw DeviceFileControl.Error("file_destination_admission_original_required");
             var stamp = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
             var value = new JsonObject { ["format"] = 1, ["scope"] = SelectionScope(scope), ["media_type"] = kind, ["stamp"] = stamp,
                 ["previous"] = expectedStamp, ["destination"] = NativeMediaDestinationValue(scope, target), ["creation"] = SelectionHex(creation) };
+            if (admission is not null) { admission.RequireForWrite(); value["format"] = 2; value["native_admission"] = true; }
             var plain = TelefonCrypto.Canonical(value); byte[] cipher;
             try { cipher = Seal("native_media_selection_witness_event", scope.PeerId + "/" + kind + "/" + stamp, plain); }
             finally { CryptographicOperations.ZeroMemory(plain); }
             if (cipher.Length > SelectionWitnessFileLimit) throw DeviceFileControl.Error("file_selection_witness_capacity");
+            admission?.RequireFullReadsetForWrite();
             Current();
             using var parent = DeviceFileNativeDirectory.OpenExistingForReceive(paths.Telefon);
             using var directory = before is null ? parent.CreateChild(Path.GetFileName(SelectionDirectory(scope, kind)))
@@ -286,7 +308,7 @@ internal sealed partial class TelefonStore
                 }
                 finally { CryptographicOperations.ZeroMemory(cipher); }
             }
-            Current();
+            admission?.RequireFullReadsetForWrite(); Current();
             var inventory = directory.NativeMetadataFiles(Current, SelectionWitnessLimit);
             var member = inventory.Single(item => item.Name == stamp + ".seal");
             if (member.Identity != fileIdentity || member.Size != fileSize || member.CreationFileTime != fileCreation)
@@ -315,9 +337,12 @@ internal sealed partial class TelefonStore
             write.ExecuteNonQuery();
             var readback = ReadSelectionWitness(db, transaction, scope, kind, Current)?.Head;
             if (readback?.Stamp != stamp) throw DeviceFileControl.Error("file_selection_witness_head_changed");
-            Current(); transaction.Commit();
+            if (admission is not null)
+                SaveNativeDestinationAdmission(db, transaction, scope, kind, next, readback, expectedStamp, Current);
+            admission?.RequireFullReadsetForWrite(); Current(); transaction.Commit();
             if (ReadSelectionWitness(db, null, scope, kind, Current)?.Head != readback)
                 throw DeviceFileControl.Error("file_selection_witness_head_changed");
+            admission?.RequireFullReadsetForWrite();
             return readback;
         }
     }

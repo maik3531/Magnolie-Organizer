@@ -267,7 +267,8 @@ internal sealed partial class TelefonStore
             // Absence is not proof of a first choice. Authenticate existing
             // evidence only to DENY reconstruction; never infer an old root,
             // token, generation or data permission from history/staging.
-            if (ReadSelectionWitnessBody(connection, transaction, scope, mediaType) is not null)
+            if (ReadSelectionWitnessBody(connection, transaction, scope, mediaType) is not null ||
+                HasDestinationAdmissionEvidence(connection, transaction, scope, mediaType))
                 throw DeviceFileControl.Error("file_destination_original_record_required");
             using (var witnessDirectory = OpenSelectionDirectory(SelectionDirectory(scope, mediaType)))
                 if (witnessDirectory is not null) throw DeviceFileControl.Error("file_destination_original_record_required");
@@ -276,6 +277,7 @@ internal sealed partial class TelefonStore
                 ReadNativeMediaDestinationChoices(connection, transaction, scope, mediaType).Count != 0)
                 throw DeviceFileControl.Error("file_destination_original_record_required");
             var other = ReadLegacyNativeMediaDestination(connection, transaction, scope, mediaType == "images" ? "video" : "images");
+            RequireNoNativeAdmissionOverlap(connection, transaction, scope, mediaType == "images" ? "video" : "images", owner);
             static bool Within(string child, string parent) => child.Equals(parent, StringComparison.OrdinalIgnoreCase) ||
                 child.StartsWith(parent.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
             if (other is not null && (other.RootIdentity == root || Within(owner.VolumePath, other.VolumePath) || Within(other.VolumePath, owner.VolumePath)))
@@ -315,13 +317,15 @@ internal sealed partial class TelefonStore
     // This typed owner authenticates ONLY the exact completed job's original
     // destination metadata. Callers must separately retain their book, native
     // file handles, full byte checks and operation-specific data authority.
-    // It cannot resolve a staged choice or infer a future admitted generation.
+    // Resolve only the immutable legacy record or a separately native-admitted
+    // original generation, never a staged choice or the current selection head.
     private sealed class NativeCompletedDestinationOwner
     {
         private readonly TelefonStore store;
         private readonly NativeMediaPreferenceScope scope;
         private readonly string jobId, jobVersion, mediaType, jobFingerprint;
         private readonly long jobRevision;
+        private readonly NativeMediaDestinationAdmission? admission;
         private bool revoked;
         internal NativeMediaDestination Destination { get; }
         internal bool GrantsMutationAuthority => false;
@@ -334,9 +338,25 @@ internal sealed partial class TelefonStore
             mediaType = TelefonMessagingContract.String(job.Body, "media_type"); MediaDestinationKind(mediaType);
             store.RequireNativeMediaStorageKey();
             using var db = store.OpenNativeMediaDatabase(); db.Open();
-            Destination = store.ReadLegacyNativeMediaDestination(db, null, scope, mediaType)
+            admission = store.ReadNativeDestinationAdmission(db, null, scope, mediaType,
+                TelefonMessagingContract.String(job.Body, "destination_version"), RequireScope);
+            Destination = admission?.Destination ?? store.ReadLegacyNativeMediaDestination(db, null, scope, mediaType)
                 ?? throw DeviceFileControl.Error("media_completed_destination_original_required");
             Require();
+        }
+
+        private void RequireScope()
+        {
+            store.RequireNativeMediaStorageKey();
+            if (store.MediaPreferenceScope(scope.PeerId) != scope) throw DeviceFileControl.Error("media_completed_destination_owner_changed");
+        }
+
+        private NativeMediaDestination? OriginalDestination(SqliteConnection db)
+        {
+            if (admission is null) return store.ReadLegacyNativeMediaDestination(db, null, scope, mediaType);
+            var current = store.ReadNativeDestinationAdmission(db, null, scope, mediaType, admission.Destination.Version, RequireScope);
+            if (current != admission) throw DeviceFileControl.Error("media_completed_destination_original_required");
+            return current.Destination;
         }
 
         internal void Require()
@@ -358,7 +378,7 @@ internal sealed partial class TelefonStore
                         !JsonNode.DeepEquals(job.Body["destination"], new JsonObject {
                             ["native_path"] = Destination.NativePath, ["volume_path"] = Destination.VolumePath,
                             ["identity"] = NativeMediaReceiveJob.NativeIdentity(Destination.RootIdentity), ["token"] = Destination.DestinationToken }) ||
-                        store.ReadLegacyNativeMediaDestination(db, null, scope, mediaType) != Destination)
+                        OriginalDestination(db) != Destination)
                         throw DeviceFileControl.Error("media_completed_destination_original_required");
                     store.RequireNativeMediaStorageKey();
                     if (store.MediaPreferenceScope(scope.PeerId) != scope)

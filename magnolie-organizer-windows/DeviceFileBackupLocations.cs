@@ -81,11 +81,22 @@ internal sealed partial class TelefonStore
         {
             var scope = MediaPreferenceScope(peerId);
             var destination = ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
-            using var db = OpenNativeMediaDatabase(); db.Open();
-            var result = ReadBackupLocations(db, null, scope, kind, NativeMediaBackupParent.FromDestination(destination));
+            var result = ReadOriginalNativeMediaBackupLocations(peerId, kind, destination);
             if (scope != MediaPreferenceScope(peerId)) throw DeviceFileControl.Error("media_backup_locations_scope_changed");
             return result;
         }
+    }
+
+    // Completed-job backup selection is relative to its authenticated original
+    // destination, never the current receive getter. Existing nonmatching parent
+    // registries HOLD; they are not migrated or copied to another generation.
+    private NativeMediaBackupLocations ReadOriginalNativeMediaBackupLocations(string peerId, string kind, NativeMediaDestination destination)
+    {
+        var scope = MediaPreferenceScope(peerId);
+        using var db = OpenNativeMediaDatabase(); db.Open();
+        var result = ReadBackupLocations(db, null, scope, kind, NativeMediaBackupParent.FromDestination(destination));
+        if (scope != MediaPreferenceScope(peerId)) throw DeviceFileControl.Error("media_backup_locations_scope_changed");
+        return result;
     }
 
     // Explicit local native picker only. Recording a parent creates NO Backup
