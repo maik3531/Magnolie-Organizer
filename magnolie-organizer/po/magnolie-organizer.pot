@@ -9000,3 +9000,12 @@ msgstr ""
 
 msgid "Saved developer mode is required."
 msgstr ""
+
+msgid "Add PC source folder …"
+msgstr ""
+
+msgid "Selected PC source folders"
+msgstr ""
+
+msgid "PC source folders are separate from receive destinations."
+msgstr ""

@@ -1594,6 +1594,45 @@ keine übertragene native Windows-Prüfung. Auswahloberfläche, ganze Sammlung u
 automatische Komposition sowie Video-/Mehrdateiersetzung werden unter #486
 weiterbearbeitet. Keine Capability- oder Lieferfreigabe wird daraus abgeleitet.
 
+### Linux: ursprüngliche native Auswahl separater PC-Quellordner (#488, Teilstand)
+
+Die Linux-Oberfläche kann ausdrücklich PC-Quellordner für Bilder oder Videos
+hinzufügen und die geschützte Auswahl lesen. Diese Ordner sind keine
+Empfangsziele. Die Aktion startet weder Inventur noch Dateilesen oder Transfer
+und erteilt keine SEND-/RECEIVE-Rechte. Ein Datenfreigabe-ACK der Gegenseite ist
+für diese Konfiguration nicht erforderlich; ursprüngliche authentifizierte
+Metadaten, passende gesamte-Sammlungsrichtung und gespeichertes entsperrtes Buch
+bleiben erforderlich. Hinzufügen verlangt die separate lokale Sendezustimmung.
+
+Der Renderer wartet auf den tatsächlichen Speicher-ACK und übergibt nur
+Medientyp, Aktionsart und Versions-/Requestkorrelation, niemals Pfad oder
+Bestätigungsflag. Der native Auftrag bindet ursprünglichen vollständigen Intent,
+Controlkontext, Buch, Preferences und eine nicht erneuerbare Frist. Nur der echte
+GTK-Ordnerdialog liefert den Pfad; sein Besitzer hält den tatsächlichen
+Verzeichnis-FD über die private Unix-RPC bis zur serverseitigen Prüfung des
+exakten Native-Zeugen. Vor der Ergebnisantwort wird dieser FD geschlossen.
+Kontextwechsel, spätes Ergebnis und Abbruch erneuern keine Auswahlbefugnis.
+Cancellation widerruft auch neben belegter IO-Gate sofort; ein bereits
+committender Owner behält seinen Slot bis zum tatsächlichen IO-Ende.
+
+Registrierung bleibt append-only unter dem bisherigen geschützten Rootkatalog.
+Nur tatsächlich fehlender Speicher darf erstmals gebunden werden; unbekannter
+ungebundener Bestand wird nicht übernommen. Bestehende Grantfelder bleiben
+unverändert. Reines Lesen fehlender Konfiguration erzeugt keinen Katalog oder
+Sourceowner. UI-Pfade stehen ausschließlich im Tooltip, nicht im sichtbaren
+Text oder editierbaren Pfadfeld. Import-only/Empfangsrichtung bieten keine
+Exportauswahl; aktive native Dialoge schließen sich gegenseitig aus.
+
+Hostnachweise dieses Teilstands: neun API-Fälle, 13 native Handler-/private-IPC-
+Fälle, zehn gezielte Linux-Frontendfälle sowie 22 bestehende native UI-Fälle
+und der vollständige Linux-UI-Regressionslauf bestanden. Der echte GTK-Dialog
+wird in den Handlerproben modelliert; eine installierte native Dialogabnahme
+wird nicht behauptet. Windows benötigt seine separate native Integration in
+`phone-media.js`/`DeviceFileBridge.cs`; gemeinsame deutsche Texte sind vorbereitet,
+der Windows-Picker ist hier noch nicht implementiert. Der echte Sammlungslauf,
+automatische Exportkomposition, Video-/Mehrdateiersetzung und alle übrigen
+Geräte-/Liefergates bleiben offen. #488 und #486 sind nicht abgeschlossen.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

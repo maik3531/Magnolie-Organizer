@@ -3040,6 +3040,18 @@ class PhoneService:
     def photo_sync_photo_destination(self,peer_id,expected_fingerprint,path):
         return self._photo_sync_native_destination(peer_id,expected_fingerprint,path,'photos_destination')
 
+    def photo_sync_collection_choice(self,peer_id,expected_fingerprint,operation,media_type,selection=None,path=None,witness=None,version=None):
+        """Private native GTK selection only; no public action/wire path fields."""
+        if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
+        with self.lock:
+            channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
+            if (binding is None or type(expected_fingerprint) is not str
+                    or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
+                raise ValueError('phone_control_conflict')
+            connection=self._native_file_connections.get(channel)
+        if connection is None:raise ValueError('photo_sync_not_enabled')
+        return connection.native_collection_choice(operation,kind=media_type,selection=selection,path=path,witness=witness,version=version)
+
     def _photo_sync_native_destination(self,peer_id,expected_fingerprint,path,operation):
         if operation not in ('photos_destination','videos_destination') or type(path) is not str or not path or len(path)>4096:
             raise ValueError('photo_sync_invalid_action')

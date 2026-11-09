@@ -10356,3 +10356,12 @@ msgstr "OS-Tray-Symbol (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "Nur mit gespeichertem Entwicklermodus verfügbar."
+
+msgid "Add PC source folder …"
+msgstr "PC-Quellordner hinzufügen …"
+
+msgid "Selected PC source folders"
+msgstr "Ausgewählte PC-Quellordner"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "PC-Quellordner sind unabhängig von Empfangszielen."

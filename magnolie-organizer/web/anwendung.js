@@ -29018,6 +29018,30 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   const telefonFotoFehler = new Map();
   const telefonSendeZustimmungen = new Map();
   const telefonMedienEinstellungen = new Map();
+  const telefonSammlungsOrdner = new Map();
+
+  function telefonSammlungsOrdnerAktion(peer, stand, kind, action) {
+    const shared = stand.shared_media;
+    if (telefonSammlungsOrdner.has(peer.device_id) || !shared?.agreed || stand.collection_sources_supported !== true ||
+        shared.values.collection_mode !== "entire_collection" || !["pc_to_phone", "two_way"].includes(shared.values.direction)) return;
+    const pending = { requestId: crypto.randomUUID(), book: DATEN, fingerprint: peer.fingerprint, version: shared.version };
+    const failed = () => {
+      if (telefonSammlungsOrdner.get(peer.device_id) !== pending) return;
+      clearTimeout(pending.timer); telefonSammlungsOrdner.delete(peer.device_id);
+      if (DATEN === pending.book) telefonFotoFehler.set(peer.device_id, _("Photo synchronization could not be started."));
+      zeichneTelefonFotos();
+    };
+    pending.timer = setTimeout(failed, 65000); telefonSammlungsOrdner.set(peer.device_id, pending);
+    nachDauerhaftemSpeichern(() => {
+      const current = telefonStand?.peers?.find(value => value.device_id === peer.device_id);
+      if (telefonSammlungsOrdner.get(peer.device_id) !== pending || DATEN !== pending.book ||
+          current?.fingerprint !== pending.fingerprint || current.photo_sync?.shared_media?.version !== pending.version ||
+          current.photo_sync?.collection_sources_supported !== true) { failed(); return; }
+      if (!Bruecke.sende({ cmd: "telefon_sammlungsordner", kennung: peer.device_id, fingerprint: peer.fingerprint,
+        media_type: kind, action, version: pending.version, requestId: pending.requestId })) failed();
+    }, failed);
+    zeichneTelefonFotos();
+  }
 
   function telefonMedienEinstellung(peer, stand, field, value) {
     if (telefonMedienEinstellungen.has(peer.device_id) || !stand.shared_media) return;
@@ -29167,6 +29191,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (oldSetting && (oldSetting.book !== DATEN || oldSetting.fingerprint !== peer.fingerprint)) {
         clearTimeout(oldSetting.timer); telefonMedienEinstellungen.delete(peer.device_id);
       }
+      const oldFolder = telefonSammlungsOrdner.get(peer.device_id);
+      if (oldFolder && (oldFolder.book !== DATEN || oldFolder.fingerprint !== peer.fingerprint)) {
+        clearTimeout(oldFolder.timer); telefonSammlungsOrdner.delete(peer.device_id);
+      }
       wurzel.dataset.photoPeer = peer.device_id;
       const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
       const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
@@ -29194,7 +29222,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (field === "videos" && stand.video_supported !== true) continue;
           const input = document.createElement("input"); input.type = "checkbox"; input.dataset.mediaSend = field;
           input.checked = sendeStand[field] === true;
-          input.disabled = telefonSendeZustimmungen.has(peer.device_id) || (stand.busy === true && !input.checked);
+          input.disabled = telefonSendeZustimmungen.has(peer.device_id) || telefonSammlungsOrdner.has(peer.device_id) || (stand.busy === true && !input.checked);
           input.addEventListener("change", () => {
             const wanted = input.checked; input.checked = sendeStand[field] === true;
             telefonSendeZustimmung(peer, stand, field, wanted);
@@ -29208,7 +29236,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const shared = stand.shared_media, settings = el("section", "notes-medien-einstellungen");
         settings.append(el("h4", null, _("Shared settings")));
         if (shared.configured === false) settings.append(el("p", "einst-hinweis", _("Shared settings are not configured yet.")));
-        const waiting = telefonMedienEinstellungen.has(peer.device_id);
+        const waiting = telefonMedienEinstellungen.has(peer.device_id) || telefonSammlungsOrdner.has(peer.device_id);
         const check = (field, title, unsupported = false) => {
           const input = document.createElement("input"); input.type = "checkbox"; input.dataset.mediaSetting = field;
           input.checked = shared.values[field] === true; input.disabled = waiting || stand.busy === true || unsupported;
@@ -29402,6 +29430,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         fotoZiel.disabled = fotoStandard.disabled = stand.busy === true || stand.enabled === true;
         fotoOrdner.append(fotoZiel, fotoStandard); gruppe.append(fotoOrdner,
           el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
+      }
+      const sharedSources = stand.shared_media;
+      if (stand.collection_sources_supported === true && sharedSources?.values.collection_mode === "entire_collection" &&
+          ["pc_to_phone", "two_way"].includes(sharedSources.values.direction)) {
+        const sources = el("section", "notes-pc-sammlungsordner"); sources.append(el("h4", null, _("Selected PC source folders")));
+        sources.append(el("p", "einst-hinweis", _("PC source folders are separate from receive destinations.")));
+        for (const [kind, label, consent] of [["images", _("Photos"), "photos"], ["video", _("Videos"), "videos"]]) {
+          if (kind === "video" && stand.video_supported !== true) continue;
+          const row = el("div", "knopfreihe"); row.dataset.collectionSourceKind = kind;
+          const add = knopf(label + " · " + _("Add PC source folder …"), "", () => telefonSammlungsOrdnerAktion(peer, stand, kind, "choose"));
+          const refresh = knopf(_("Refresh"), "", () => telefonSammlungsOrdnerAktion(peer, stand, kind, "read"));
+          add.dataset.collectionSourceAdd = kind; refresh.dataset.collectionSourceRead = kind;
+          refresh.disabled = stand.busy === true || !sharedSources.agreed || sharedSources.values.enabled !== true || telefonSendeZustimmungen.has(peer.device_id) ||
+            sharedSources.values[kind === "images" ? "photos_enabled" : "videos_enabled"] !== true || telefonSammlungsOrdner.has(peer.device_id);
+          add.disabled = refresh.disabled || sendeStand?.[consent] !== true;
+          row.append(add, refresh);
+          const roots = stand.collection_sources?.roots?.filter(root => root.media_type === kind) || [];
+          roots.forEach((root, index) => { const hint = el("span", "einst-hinweis", label + " " + (index + 1)); hint.title = root.display_path; row.append(hint); });
+          sources.append(row);
+        }
+        gruppe.append(sources);
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
       if (stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
@@ -35152,7 +35201,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (typeof value?.device_id !== "string") return;
       if (typeof value.requestId === "string") {
         const settings = telefonMedienEinstellungen.get(value.device_id);
-        const choices = settings?.requestId === value.requestId ? telefonMedienEinstellungen : telefonSendeZustimmungen;
+        const choices = settings?.requestId === value.requestId ? telefonMedienEinstellungen :
+          telefonSammlungsOrdner.get(value.device_id)?.requestId === value.requestId ? telefonSammlungsOrdner : telefonSendeZustimmungen;
         const pending = choices.get(value.device_id);
         if (!pending || pending.requestId !== value.requestId) return;
         clearTimeout(pending.timer); choices.delete(value.device_id);

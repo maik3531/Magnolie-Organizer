@@ -108,6 +108,9 @@ class NativeDesktopFileConnection:
         self._media_pc_source = None
         self._media_sending_state = None
         self._media_sending_choice = None
+        self._media_collection_choice = None
+        self._media_collection_gate = threading.Lock()
+        self._media_collection_roots_state = None
         self._destination = NativePhotoDestinationController(authority)
         try:
             # Stable composition for this authenticated connection, never a bit
@@ -552,6 +555,10 @@ class NativeDesktopFileConnection:
         if self._media_source is not None and self._media_transport is not None:
             shared=self._media_transport.display_snapshot()
             if shared is not None:value['shared_media']=shared
+        if self._media_collection_roots_state is not None:
+            value['collection_sources']=dict(version=self._media_collection_roots_state['version'],
+                roots=[dict(root) for root in self._media_collection_roots_state['roots']])
+        value['collection_sources_supported']=self._media_pc_source is not None and self._data_handlers_ready
         return value
 
     def native_shared_media_setting(self,field,value,version):
@@ -634,6 +641,65 @@ class NativeDesktopFileConnection:
                     if self._preferences.read()!=result:raise TransferError('media_sending_native_choice_changed')
                     self._send_controls(now_ms)
                     return dict(version=result.version,photos=choice[4],videos=choice[5])
+
+    def native_collection_choice(self,operation,*,kind='images',selection=None,path=None,witness=None,version=None):
+        """One original private native dialog, never a public path/approval."""
+        from magnolie_file_control import _hex
+        from magnolie_media_source_choice import NativeCollectionFolderChoice,roots_projection
+        if (kind not in ('images','video') or operation not in ('read','prepare','commit','cancel') or
+                (selection is not None or path is not None or witness is not None or not _hex(version) if operation in ('read','prepare')
+                 else not _hex(selection) or version is not None) or
+                operation=='cancel' and (path is not None or witness is not None)):
+            raise TransferError('media_collection_native_choice_invalid')
+        if operation=='cancel':
+            # Retire even while another native/socket operation owns _gate.
+            # A committing choice retains its slot until its actual IO drains.
+            with self._media_collection_gate:
+                choice=self._media_collection_choice
+                if choice is None or choice.selection!=selection or choice._kind!=kind:
+                    raise TransferError('media_collection_native_choice_changed')
+                choice.close()
+                if not choice._used:self._media_collection_choice=None
+            return dict(canceled=True)
+        with self._operation():
+            if self._media_pc_source is None:raise TransferError('media_source_native_composition_required')
+            if operation in ('read','prepare'):
+                if operation=='prepare':
+                    with self._media_collection_gate:
+                        previous=self._media_collection_choice
+                        if previous is not None and not previous._used and (previous._closed or time.monotonic()-previous._issued>=60):
+                            previous.close();self._media_collection_choice=None
+                        if self._media_collection_choice is not None:raise TransferError('media_collection_native_choice_pending')
+                choice=NativeCollectionFolderChoice(self,kind,version)
+                if operation=='prepare':
+                    consent=choice._expected.policy.sending
+                    if (consent is None or consent.pairing_epoch!=choice._expected.policy.pairing_epoch
+                            or not (consent.photos if kind=='images' else consent.videos)):
+                        choice.close();raise TransferError('media_source_local_consent_required')
+                try:page=choice.page()
+                except BaseException:choice.close();raise
+                self._media_collection_roots_state=roots_projection(choice._snapshot)
+                if operation=='read':choice.close();return dict(self._media_collection_roots_state)
+                with self._media_collection_gate:
+                    if self._closed.is_set():choice.close();raise TransferError('file_desktop_connection_closed')
+                    self._media_collection_choice=choice
+                return page
+            with self._media_collection_gate:
+                choice=self._media_collection_choice
+                if choice is None or choice.selection!=selection or choice._kind!=kind:
+                    raise TransferError('media_collection_native_choice_changed')
+            try:
+                if (self._mapped_worker is not None or self._album_worker is not None or self._run is not None
+                        or self._source_pending is not None or self._source_run is not None or self._media_sender is not None
+                        or self._media_source._prepared or self._media_pc_source._prepared):
+                    raise TransferError('file_desktop_album_worker_busy')
+                result=choice.commit(path,witness)
+                self._media_collection_roots_state=result
+                return result
+            finally:
+                choice.close()
+                with self._media_collection_gate:
+                    if self._media_collection_choice is choice:self._media_collection_choice=None
 
     def native_backup_locations(self,media_type,*,operation='read',version=None,book_version=None,native_path=None):
         """Private native picker/preflight API; never a source-wire command.
@@ -2348,6 +2414,9 @@ class NativeDesktopFileConnection:
         self._closed.set()
         if self._mapped_worker is not None:self._mapped_worker.stop()
         self._media_sending_choice=None
+        with self._media_collection_gate:
+            choice=self._media_collection_choice;self._media_collection_choice=None
+            if choice is not None:choice.close()
         for owner in (self._media_sender,self._media_source,self._media_pc_source,self._media_transport):
             if owner is not None:owner.close() # Signals only; active connection I/O owns cleanup.
         self._wake_album_worker()
