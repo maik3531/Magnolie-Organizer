@@ -777,6 +777,20 @@ eine 90-Grad-Displaymatrix, der reale Produkt-JPEG-Renderer sowie Vorschau nach
 echtem Empfang/Saved/Source-END und expliziter lokaler Papierkorboperation.
 Das ist keine vollständige Codec-/Geräte-/installierte GUI-Abnahme.
 
+Für bisher nicht zugeordnete Windows-PC-Dateien gibt es zunächst eine getrennte
+native Quellgrundlage: verschlüsselt gespeicherte, unabhängig identifizierte,
+nur lesbare Quellwurzeln sowie begrenzte handle-relative Bestandsaufnahme und
+Wiederöffnung anhand tatsächlicher Verzeichnis-/Datei-IDs. Auswahl und Inventar
+erteilen keine SEND-/RECEIVE-Rechte, erzeugen keine Telefonreferenz und sind
+kein vollständiger Snapshot, Löschbeleg oder abgeschlossener Transfer.
+Backup- und private `.magnolie-`-Unterbäume sind ausgeschlossen; Reparse-Ziele
+werden nicht verfolgt, mehrfach verknüpfte Dateien abgewiesen und Grenzen nicht
+als vollständiger Bestand ausgegeben. Fehlende ursprüngliche Schlüssel,
+geänderte Paarung, beschädigte Quellaufzeichnung und ersetzte Wurzeln bleiben
+HOLD unter Erhalt der gespeicherten Daten. Die native Benutzerauswahl und der
+gesamte Sende-/Versionsweg für diesen bislang nicht zugeordneten PC-Bestand
+sind damit noch **nicht** angeschlossen oder als benutzbar abgenommen.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

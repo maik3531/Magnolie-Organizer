@@ -294,6 +294,10 @@ runner.Add("Device file native media UI / strict requests reject browser paths a
 if (OperatingSystem.IsWindows())
 {
     runner.Add("Calendar legacy Android alias / Windows actual source wire and RID fixture", CalendarLegacyAndroidImportTests.RunAsync);
+    runner.Add("Collection inventory / Windows read-only native identities exclusions and cancellation", DeviceFileCollectionInventoryTests.WindowsInventoryAsync);
+    runner.Add("Collection inventory / Windows actual reparse hardlink and paged enumeration", DeviceFileCollectionInventoryTests.WindowsHazardsAsync);
+    runner.Add("Collection roots / Windows independent read-only selection protected persistence and replacement HOLD", DeviceFileCollectionRootsTests.WindowsPersistenceAsync);
+    runner.Add("Collection roots / Windows pairing ciphertext and missing-key HOLD preserve source records", DeviceFileCollectionRootsTests.WindowsTamperAsync);
     runner.Add("Media independent choices / Windows import display does not expand authority", DeviceFileSharedPreferencesTests.IndependentDirectionViewAsync);
     runner.Add("Media shared storage / Windows readonly persistence independent fields and merge", DeviceFileSharedPreferencesTests.PersistenceAsync);
     runner.Add("Media shared storage / Windows seven-field projection preserves original ciphertext and clocks", DeviceFileSharedPreferencesTests.SevenFieldProjectionAsync);
