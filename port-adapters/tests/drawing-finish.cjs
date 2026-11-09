@@ -84,11 +84,40 @@ module.exports=function run({web}) {
     target.handlers.pointerdown(event(20));target.handlers.pointermove(event(40));target.handlers[termination](event(90));
     target.handlers.pointerup({...event(95),buttons:0,pressure:0});assert.equal(sheet.strokes[0].points.at(-1)[0],.4,'cancel must not invent endpoint');editor.destroy();
   }
+  for(const includesCurrent of [false,true]) {
+    const target=canvas(),sheet={version:4,width:100,height:100,autoSize:false,strokes:[]};const editor=drawing.attach(target,sheet,()=>{});
+    const event=(x,buttons,pointerId=1)=>({clientX:x,clientY:50,buttons,button:0,pointerId,pointerType:'touch',pressure:1,preventDefault(){}});
+    target.handlers.pointerdown(event(20,1));target.handlers.pointermove(event(40,1));
+    const up=event(90,0);up.getCoalescedEvents=()=>[event(99,0,2),event(60,0),...(includesCurrent?[event(90,0)]:[])];
+    target.handlers.pointerup(up);
+    assert.deepEqual(JSON.parse(JSON.stringify(sheet.strokes[0].points.map(point=>point[0]))),[.2,.4,.6,.9],
+      'foreign coalesced samples are ignored and current release is always included exactly once');editor.destroy();
+  }
+  { const target=canvas(),sheet={version:4,width:100,height:100,autoSize:false,strokes:[]};const editor=drawing.attach(target,sheet,()=>{});
+    const event=(x,buttons)=>({clientX:x,clientY:50,buttons,button:0,pointerId:1,pointerType:'touch',pressure:1,preventDefault(){}});
+    target.handlers.pointerdown(event(20,1));target.handlers.pointerup(event(20,0));assert.equal(sheet.strokes[0].points.length,1);
+    editor.destroy(); }
+  { const target=canvas(),sheet={version:4,width:100,height:100,autoSize:false,strokes:[]};const editor=drawing.attach(target,sheet,()=>{});
+    const event=(x,buttons)=>({clientX:x,clientY:50,buttons,button:0,pointerId:1,pointerType:'touch',pressure:1,preventDefault(){}});
+    target.handlers.pointerdown(event(20,1));target.handlers.pointermove(event(40,0));target.handlers.pointerup(event(90,0));
+    assert.equal(sheet.strokes[0].points.length,1,'zero-buttons motion retains cancellation behavior');editor.destroy(); }
+  { const target=canvas(),sheet={version:4,width:100,height:100,autoSize:false,strokes:[]};const editor=drawing.attach(target,sheet,()=>{});
+    const event=(x,buttons,pressure)=>({clientX:x,clientY:50,buttons,pressure,button:5,pointerId:1,pointerType:'pen',preventDefault(){}});
+    target.handlers.pointerdown(event(20,32,.7));target.handlers.pointerup(event(90,0,0));
+    assert.equal(sheet.strokes[0].tool,'eraser');assert.equal(sheet.strokes[0].points.at(-1)[0],.9);editor.destroy(); }
+  { const target=canvas(),context=Object.fromEntries(['save','restore','clearRect','setTransform','beginPath','arc','fill','moveTo','lineTo','stroke','closePath','bezierCurveTo','drawImage'].map(name=>[name,()=>{}]));
+    target.getContext=()=>context;
+    const sheet={version:4,width:100,height:100,autoSize:false,strokes:[{tool:'pen',color:'#000000',width:4,points:Array.from({length:199999},()=>[.1,.5,1]),renderVersion:4}]};
+    const errors=[],editor=drawing.attach(target,sheet,()=>{},code=>errors.push(code));
+    const event=x=>({clientX:x,clientY:50,buttons:1,button:0,pointerId:1,pointerType:'touch',pressure:1,preventDefault(){}});
+    target.handlers.pointerdown(event(20));const up={...event(90),buttons:0};up.getCoalescedEvents=()=>[event(60)];target.handlers.pointerup(up);
+    assert.equal(sheet.strokes.reduce((sum,stroke)=>sum+stroke.points.length,0),200000);
+    assert.deepEqual(errors,['drawing_limit']);editor.destroy(); }
   { const target=canvas(),sheet={version:4,width:100,height:100,autoSize:false,strokes:[]};const editor=drawing.attach(target,sheet,()=>{});
     const event=(x,buttons,pressure)=>({clientX:x,clientY:50,buttons,pressure,button:0,pointerId:1,pointerType:'pen',preventDefault(){}});
     target.handlers.pointerdown(event(20,1,.7));target.handlers.pointerup(event(90,0,0));
     assert.deepEqual(JSON.parse(JSON.stringify(sheet.strokes[0].points.at(-1))),[.9,.5,0]);editor.destroy(); }
-  console.log('PASS drawing release: 10 tools, zero-buttons endpoint, foreign/repeated owner, cancellation, pen pressure, Undo/Redo (synthetic events/mock canvas)');
+  console.log('PASS drawing release: 10 tools, owner/coalescing/current endpoint, tap/cancel/pressure/eraser, actual200000-point limit, Undo/Redo (synthetic events/mock canvas)');
   console.log('PASS drawing completion: 10 tools, exact model/direct commands, erasure, Undo/Redo, idle-finish bounds (mock canvas; native pixels remain required)');
   return 1;
 };
