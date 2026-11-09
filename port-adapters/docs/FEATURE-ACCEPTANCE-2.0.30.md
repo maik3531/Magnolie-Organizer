@@ -60,8 +60,12 @@ each of actual AOSP Android JSON and the Gradle JSON dependency. Its fixtures
 are byte-identical to the Mac fixtures; typed copies avoid JSON stringify
 coercion. It is not yet connected to Vault/Main and therefore does not establish
 native Tablet restore acceptance. An independent existing Vault serialization
-defect is tracked separately in #466 with a literal-input storage/reopen
-reproduction and a correction approach; no storage fix is claimed here.
+defect was corrected in `c00b0ff8` (#466). Its native Android services job
+[128977490166](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42561105295/job/128977490166)
+passes numeric wire save/replacement/reopen, exact generated recovery bytes and
+wrong-filename AAD rejection with actual OS storage/Keystore. Exact manufactured
+legacy plaintext recovery also passes on the JVM. Native full UI acceptance,
+arbitrary-precision parsing and complete synchronization remain separate work.
 
 ### Later component checkpoints (2026-11-08; Refs #121)
 

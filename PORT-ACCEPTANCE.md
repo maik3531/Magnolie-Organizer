@@ -11,6 +11,10 @@ Das ist eine Komponentenabnahme; die unten offenen Funktionen bleiben offen.
 
 ## Ziel und verbindliche Nachweise
 
+Aktueller Auftrag: Organizer für Mac und Android-Tablet samt Handbuch.
+Notes-Begleitapps und die Übernahme von iPhone-Notizen sind auf Nutzerwunsch
+vorerst zurückgestellt.
+
 Beide Anwendungen sollen stabil und flüssig bedienbar sein. Unterstützte
 Funktionen müssen tatsächlich arbeiten; fehlende native Anschlüsse dürfen keine
 erfundenen Erfolgsantworten, leeren Kontenlisten bei verweigertem Zugriff oder
