@@ -1680,6 +1680,32 @@ Der eigentliche gesamte-Sammlung-Lauf und automatische Angebotskomposition samt
 Archiv-/Quell-END zwischen Dateien fehlen weiterhin. #488 bleibt dafür offen;
 Video-/Mehrdatei- und Android-/Auslieferungsgates bleiben unverändert.
 
+### Linux: unveränderte native Peerprojektion ohne Verlust frischer IO (#489)
+
+Der erweiterte Linux-Sammlungstest traf zunächst beim geänderten Folgeexport auf
+die ursprüngliche Aktionsfrist. Eine gezielte Messung zeigte unter anderem
+23.772 vollständige native Peerprojektionen und mehr als 55 Millionen
+Funktionsaufrufe bereits in einem rund 30-sekündigen Ausschnitt. Wiederholte
+Historienprüfung war zunächst eine Hypothese, nicht der nachgewiesene Fix.
+
+Der gebundene native Authorityowner darf jetzt ausschließlich die deterministische
+immutable Projektion exakt gleicher authentifiziert entschlüsselter Peerbytes
+wiederverwenden. Jeder Aufruf liest weiterhin den tatsächlichen Peer-FD und den
+Originalschlüssel, prüft Ancestor-/Key-/Link-/Mode-/Namenszeugen, entschlüsselt
+wirklich und prüft die native Bindung vor und nach dieser IO. Geänderte Bytes
+werden neu geparst; Fehler, Revocation und Kanal-/Pairingwechsel verwerfen den
+Owner samt Projektion endgültig. Bereits geparste Daten sind kein Ready-, SEND-,
+READ-, RECEIVE-, Saved- oder Source-END-Nachweis. Die eigenständigen aktuellen
+Grant-, Buch-, Intent-, Native-Datei- und Historienprüfungen bleiben unverändert.
+
+59 betroffene Hostfälle bestehen einschließlich warmer Projektion bei fehlendem,
+korruptem, unsicherem oder während tatsächlicher Entschlüsselung ausgetauschtem
+Peerbestand, fehlendem/erneuertem Schlüssel und nicht wiederbelebbarer alter
+Bindung. Die erweiterte tatsächliche Sammlungskette besteht mit unveränderten
+Originalfristen; weder Zeitlimit noch Quote, Recordformat oder Historiengrenze
+wurde erhöht. Dies ist ein Linux-Projektions-/Hostnachweis, keine übertragene
+Windows-Korrektur oder physische Android-/Lieferabnahme.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

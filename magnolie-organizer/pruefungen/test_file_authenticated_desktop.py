@@ -10,6 +10,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey,X25519PublicKey
 from cryptography.hazmat.primitives.serialization import Encoding,PublicFormat
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.exceptions import InvalidTag
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 import magnolie_telefon as phone
@@ -59,6 +60,34 @@ def test_actual_native_binding_cache_never_reloads_identity_and_factory_uses_onl
         assert not identity.exists()
     finally:held.rename(identity)
 
+
+def test_immutable_peer_projection_reuse_still_reads_authenticates_and_checks_the_actual_native_metadata_every_time(native,monkeypatch):
+    import magnolie_file_native_authority as native_authority
+    service,peer,_=native;channel,binding=bind(service,peer)
+    project=native_authority._project_native_file_peer;projected=[];reads=[]
+    def projection(*args):projected.append(True);return project(*args)
+    monkeypatch.setattr(native_authority,'_project_native_file_peer',projection)
+    authority=service.open_native_file_authority(peer['device_id'],peer['static_public'],channel,binding.generation)
+    try:
+        read=authority.protection.read_native_peers_blob
+        def actual_read():reads.append(True);return read()
+        monkeypatch.setattr(authority.protection,'read_native_peers_blob',actual_read)
+        initial=authority.current_peer()
+        for _ in range(4):assert authority.current_peer() is initial
+        assert len(reads)==5 and len(projected)==1
+        # Even a display-only metadata edit must re-project the full genuinely
+        # decrypted record; a matching native pathname/inode is never enough.
+        peer['display_name']='New actual native name';service.store.save_peers()
+        changed=authority.current_peer()
+        assert changed.display_name==peer['display_name'] and changed is not initial and len(projected)==2
+        key=Path(service.store.storage_path);held=key.with_name('held-projection-storage-key');key.rename(held)
+        try:
+            with pytest.raises((OSError,TransferError)):authority.current_peer()
+            assert authority._peer_projection is None
+        finally:held.rename(key)
+        assert authority.current_peer() is None # No revival from the old projection.
+    finally:authority.close()
+
 def test_normal_legacy_factory_reads_native_peer_metadata_without_normalizing_personal_peer(native,monkeypatch):
     service,peer,_=native;channel,binding=bind(service,peer)
     monkeypatch.setattr(service.store,'peer',lambda *args:pytest.fail('Native factory normalized a personal peer'))
@@ -66,6 +95,31 @@ def test_normal_legacy_factory_reads_native_peer_metadata_without_normalizing_pe
     try:
         assert connection._media_source is None and not connection._local().grants.send_files
     finally:service._end_native_file_connection(channel)
+
+
+@pytest.mark.parametrize('fault',['missing','corrupt','permissions','during_decrypt'])
+def test_warm_peer_projection_cannot_hide_failed_or_changed_actual_native_read_and_never_revives_after_restoration(native,monkeypatch,fault):
+    service,peer,_=native;channel,binding=bind(service,peer)
+    authority=service.open_native_file_authority(peer['device_id'],peer['static_public'],channel,binding.generation)
+    path=Path(service.store.peers_path)
+    try:
+        assert authority.current_peer() is not None and authority._peer_projection is not None
+        original=path.read_bytes()
+        if fault=='missing':path.rename(path.with_name('retained-native-peers'))
+        elif fault=='corrupt':path.write_bytes(original[:-1]+bytes([original[-1]^1]))
+        elif fault=='permissions':path.chmod(0o644)
+        else:
+            decrypt=AESGCM.decrypt
+            def replaced(cipher,*args):
+                plain=decrypt(cipher,*args);service.store.save_peers();return plain
+            monkeypatch.setattr(AESGCM,'decrypt',replaced)
+        before=set(path.parent.iterdir())
+        with pytest.raises((OSError,TransferError,InvalidTag)):authority.current_peer()
+        assert authority._peer_projection is None and set(path.parent.iterdir())==before
+        if fault=='missing':path.with_name('retained-native-peers').rename(path)
+        else:path.write_bytes(original);path.chmod(0o600)
+        assert authority.current_peer() is None
+    finally:authority.close()
 
 
 def test_missing_native_key_cannot_be_recreated_even_with_an_authenticated_cached_identity(native):

@@ -45,6 +45,7 @@ class NativeDesktopFileAuthority:
             raise TransferError('file_authority_native_video_witness_required')
         self._video_witness=video_witness or (lambda: False)
         self._revoked=threading.Event()
+        self._peer_projection=None
         self.protection=ExistingFileTransferProtection(binding.native_directory)
         try:
             if self.current_peer() is None:raise TransferError('file_authority_native_pairing_unavailable')
@@ -56,7 +57,14 @@ class NativeDesktopFileAuthority:
         try:
             if self._current() is not self.binding:
                 self.revoke();return None
-            peer=read_native_file_peer(self.protection,self.binding.peer_id,self.binding.static_public)
+            # Always perform the real key/ancestor/FD/witness/decryption read.
+            # Only the deterministic projection of IDENTICAL authenticated
+            # plaintext may be reused; no current readiness/grant is cached.
+            plain=self.protection.read_native_peers_blob();observed=self._peer_projection
+            if observed is not None and observed[0]==plain:peer=observed[1]
+            else:
+                peer=_project_native_file_peer(plain,self.binding.peer_id,self.binding.static_public)
+                self._peer_projection=(plain,peer)
             if (peer is None or peer.pairing_epoch!=self.binding.pairing_epoch or self._current() is not self.binding or self._revoked.is_set()):
                 self.revoke();return None
             return peer
@@ -73,6 +81,7 @@ class NativeDesktopFileAuthority:
 
     def revoke(self):
         self._revoked.set() # No metadata/key read or wait on its I/O gate.
+        self._peer_projection=None
 
     def close(self):
         self.revoke();self.protection.close()
@@ -106,7 +115,12 @@ class NativeFilePeerSnapshot:
 def read_native_file_peer(protection,peer_id,static_public):
     if type(protection) is not ExistingFileTransferProtection:
         raise TransferError('file_authority_existing_native_protection_required')
-    value=strict_json(protection.read_native_peers_blob())
+    return _project_native_file_peer(protection.read_native_peers_blob(),peer_id,static_public)
+
+
+def _project_native_file_peer(plain,peer_id,static_public):
+    """Pure validated public projection, not native IO or live authority."""
+    value=strict_json(plain)
     if (type(value) is not dict or set(value)!={'storage_version','items'} or type(value['storage_version']) is not int
             or value['storage_version']!=1 or type(value['items']) is not list or len(value['items'])>8):
         raise TransferError('file_authority_invalid_native_peers')
