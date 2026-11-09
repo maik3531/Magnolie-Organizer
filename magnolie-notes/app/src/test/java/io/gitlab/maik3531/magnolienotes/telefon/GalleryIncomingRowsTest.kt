@@ -33,9 +33,34 @@ import org.robolectric.shadows.StorageVolumeBuilder
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class, shadows = [GalleryIncomingRowsTest.WriteTargetLinux::class])
+@Config(sdk = [35], application = Application::class, shadows = [GalleryIncomingRowsTest.WriteTargetLinux::class,
+    GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GalleryIncomingRowsTest {
+    /** Stock Robolectric dup(fd) copies bytes into a DIFFERENT temp file. That
+     * cannot test an in-place writer. Registered fixture descriptors reopen the
+     * same actual inode without truncation, retaining their access mode. These
+     * tests explicitly seek before each borrowed stream; this fixture does NOT
+     * claim Android's shared-offset or reliable-close syscall acceptance. */
+    @org.robolectric.annotation.Implements(ParcelFileDescriptor::class)
+    class SameFileDescriptorDuplicate : org.robolectric.shadows.ShadowParcelFileDescriptor() {
+        companion object {
+            @JvmStatic @org.robolectric.annotation.Implementation(methodName = "dup") fun sameFileDup(fd: java.io.FileDescriptor): ParcelFileDescriptor {
+                val file = NativeIncomingMediaInspectionTest.FixtureLinux.files[fd]
+                if (file == null) {
+                    val original = org.robolectric.shadows.ShadowParcelFileDescriptor::class.java
+                        .getDeclaredMethod("dup", java.io.FileDescriptor::class.java).apply { isAccessible = true }
+                    return original.invoke(null, fd) as ParcelFileDescriptor
+                }
+                val access = WriteTargetLinux.access[fd] ?: android.system.OsConstants.O_RDONLY
+                return ParcelFileDescriptor.open(file, if (access == android.system.OsConstants.O_RDWR)
+                    ParcelFileDescriptor.MODE_READ_WRITE else ParcelFileDescriptor.MODE_READ_ONLY).also {
+                    NativeIncomingMediaInspectionTest.FixtureLinux.files[it.fileDescriptor] = file
+                    WriteTargetLinux.access[it.fileDescriptor] = access
+                }
+            }
+        }
+    }
     @org.robolectric.annotation.Implements(className = "libcore.io.Linux", isInAndroidSdk = false)
     class WriteTargetLinux : NativeIncomingMediaInspectionTest.FixtureLinux() {
         @org.robolectric.annotation.Implementation fun fcntlInt(fd: java.io.FileDescriptor, command: Int, argument: Int): Int {
@@ -896,15 +921,19 @@ class GalleryIncomingRowsTest {
             }
         }
         fun assertOriginal() {
-            assertArrayEquals(oldBytes, originalFile.readBytes()); assertEquals(original.body, f.index.incomingPublication(original.id)!!.body)
+            assertArrayEquals(oldBytes, originalFile.readBytes()); assertLineage()
+        }
+        fun assertLineage() {
+            assertEquals(original.body, f.index.incomingPublication(original.id)!!.body)
             assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
             assertTrue(link.frames.none { it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND) })
         }
         override fun close() { transfers.forEach { it.close(); check(it.awaitIoEnded(5000)) }; link.onMessage = {} }
     }
-    private fun withPcStage(unrecognized: Boolean = false, photosOnly: Boolean = false, shortOffer: Boolean = false, action: (PcStageCase) -> Unit) {
+    private fun withPcStage(unrecognized: Boolean = false, photosOnly: Boolean = false, shortOffer: Boolean = false,
+        oldPaddedBytes: Int = 0, action: (PcStageCase) -> Unit) {
         NativeGalleryIncomingTransferTest.Link().use { link ->
-            withPublishedInspection(link.channel, pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            withPublishedInspection(link.channel, pcSource = true, paddedBytes = oldPaddedBytes) { f, rows, provider, published, raw, payload, token ->
                 val pcLocalField = GalleryReceiveConsentTest.Fixture::class.java.getDeclaredField("pcLocal").apply { isAccessible = true }
                 val pcLocal = pcLocalField.get(f) as NativeLocalFileGrant
                 pcLocalField.set(f, NativeLocalFileGrant(DeviceFileGrantState(4, "e".repeat(64), true, false), pcLocal.owner, true)); f.handshake()
@@ -1508,6 +1537,111 @@ class GalleryIncomingRowsTest {
         assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0)); h.assertOriginal()
         assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.markWriteStarted() } }
         assertEquals(started.body, h.f.index.pcBeforeWrite(h.plan.id)!!.body)
+    }
+
+    private fun PcStageCase.prepareStartedCopy(): NativeGalleryPcReplacementTransfer {
+        val transfer = prepare(); serve(transfer)
+        f.io {
+            transfer.sendAcceptance(); transfer.receiveAndStage(); provider.allowRwTarget = true
+            NativeGalleryTrashArchive(archiveRoot, f.protection, allowCreate = false).use { archive ->
+                transfer.prepareBeforeWrite(rows, archive); transfer.prepareWriteTarget(rows, archive); transfer.markWriteStarted()
+            }
+        }
+        return transfer
+    }
+    private fun PcStageCase.assertOldArchive() = f.io {
+        NativeGalleryTrashArchive(archiveRoot, f.protection, allowCreate = false).use { archive ->
+            val bytes = java.io.ByteArrayOutputStream()
+            archive.readContent(grant.request.entry, grant.request.admission.archiveBook) { bytes.write(it) }
+            assertArrayEquals(oldBytes, bytes.toByteArray())
+        }
+    }
+
+    @Test fun pcByteCopyWritesOnlyTheCompleteStageAndVerifiesLongerAndShorterOriginalsWithoutClaimingProviderOrHistoryCompletion() {
+        for (oldSize in listOf(0, DeviceFileManifest.CHUNK_BYTES * 2 + 39)) withPcStage(oldPaddedBytes = oldSize) { h ->
+            val transfer = h.prepareStartedCopy(); val retained = h.f.rows(); val reads = h.provider.readOpens
+            val observation = h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                transfer.copyReplacementBytes(archive)
+            } }
+            assertArrayEquals(h.bytes, h.originalFile.readBytes()); assertEquals(h.bytes.size.toLong(), h.originalFile.length())
+            assertEquals(h.bytes.size.toLong(), observation.bytes); assertEquals("image/png", observation.media.mimeType)
+            assertEquals(8, observation.media.width); assertEquals(8, observation.media.height)
+            assertEquals(h.bytes.size.toLong(), observation.descriptor.long("size"))
+            assertFalse(observation.grantsWriteAuthority); assertFalse(observation.isSavedReceipt)
+            assertFalse(h.provider.lastRwDescriptor!!.valid()); assertEquals(reads, h.provider.readOpens)
+            assertTrue(WriteTargetLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.none { it.valid() })
+            assertEquals(retained, h.f.rows()); assertEquals("write_started", h.f.index.pcBeforeWrite(h.plan.id)!!.state)
+            h.assertOldArchive(); h.assertLineage()
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                transfer.copyReplacementBytes(archive)
+            } } }
+            assertArrayEquals(h.bytes, h.originalFile.readBytes()); assertEquals(retained, h.f.rows()); assertTrue(transfer.awaitIoEnded(0))
+        }
+    }
+
+    @Test fun pcByteCopyRejectsMissingStartWrongArchiveAndChangedStageBeforeWritingAnyOriginalBytes() {
+        for (reason in listOf("not_started", "wrong_archive", "stage")) withPcStage { h ->
+            val transfer = h.prepare(); h.serve(transfer); h.provider.allowRwTarget = true
+            h.f.io {
+                transfer.sendAcceptance(); transfer.receiveAndStage()
+                NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                    transfer.prepareBeforeWrite(h.rows, archive); transfer.prepareWriteTarget(h.rows, archive)
+                    if (reason != "not_started") transfer.markWriteStarted()
+                }
+            }
+            if (reason == "stage") {
+                val file = File(h.f.index.pcStages().single().body.string("root_path"), "chunk-0.enc")
+                file.writeBytes(file.readBytes().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() })
+            }
+            val root = if (reason == "wrong_archive") java.nio.file.Files.createTempDirectory(h.f.root.toPath(), "wrong-copy-archive-").toFile() else h.archiveRoot
+            val retained = h.f.rows()
+            h.f.io { NativeGalleryTrashArchive(root, h.f.protection, allowCreate = reason == "wrong_archive").use { archive ->
+                assertThrows(PhotoFolderScopeError::class.java) { transfer.copyReplacementBytes(archive) }
+            } }
+            assertEquals(retained, h.f.rows()); h.assertOriginal(); assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0))
+        }
+    }
+
+    @Test fun pcByteCopyCancellationAfterAnActualChunkKeepsOriginalArchiveFenceAndLaneUntilBothWriteFdsClose() = withPcStage { h ->
+        val transfer = h.prepareStartedCopy(); val retained = h.f.rows()
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val worker = Thread { try { h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            transfer.copyReplacementBytes(archive) { if (it == "pc-replacement-bytes-written") {
+                entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            } }
+        } } } catch (error: Throwable) { failure.set(error) } }.also { it.start() }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            assertArrayEquals(h.bytes.copyOf(DeviceFileManifest.CHUNK_BYTES), h.originalFile.readBytes())
+            assertEquals(2, WriteTargetLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.count { it.valid() })
+            transfer.close(); assertTrue(worker.isAlive); assertTrue(h.provider.lastRwDescriptor!!.valid()); assertFalse(transfer.awaitIoEnded(0))
+            val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+        } finally { release.countDown(); worker.join(7000) }
+        assertFalse(worker.isAlive); assertTrue(failure.get() is PhotoFolderScopeError)
+        assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0))
+        assertTrue(WriteTargetLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.none { it.valid() })
+        assertEquals(retained, h.f.rows()); h.assertLineage()
+        // The original admission is intentionally retired. Independently fresh
+        // local recovery ownership, not the dead write grant, reads the archive.
+        h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            val permit = NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }
+            val recovered = java.io.ByteArrayOutputStream()
+            archive.readContent(h.grant.request.entry, permit) { recovered.write(it) }
+            assertArrayEquals(h.oldBytes, recovered.toByteArray())
+        } }
+    }
+
+    @Test fun pcByteCopyDetectsAChangedFinalFileAfterForceAndLeavesUncertainBytesFencedWithoutAutomaticRestore() = withPcStage { h ->
+        val transfer = h.prepareStartedCopy(); val retained = h.f.rows()
+        h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            assertThrows(PhotoFolderScopeError::class.java) { transfer.copyReplacementBytes(archive) { if (it == "pc-replacement-bytes-forced") {
+                h.originalFile.writeBytes(h.bytes.copyOf().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() })
+            } } }
+        } }
+        assertFalse(h.bytes.contentEquals(h.originalFile.readBytes())); assertEquals(retained, h.f.rows()); h.assertLineage()
+        assertEquals("write_started", h.f.index.pcBeforeWrite(h.plan.id)!!.state)
+        assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0))
     }
 
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {

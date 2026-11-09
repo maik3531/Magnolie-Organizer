@@ -1261,8 +1261,8 @@ Offline lässt sich die erhaltene Beobachtung passiv wiederlesen, ohne daraus
 Rechte zu gewinnen. Originalbytes, Publikation und Historie bleiben unverändert,
 kein Saved oder sonstiger Abschluss wird erzeugt. Vor der künftig ersten
 Byte-Mutation sind weiterhin Recovery-Archiv, Staging-Rohbytes und Ziel erneut
-unter dem tatsächlichen Owner zu prüfen; die eigentliche bounded Kopie,
-Force/Truncate/Postwrite-Prüfung und History-CAS sind noch nicht implementiert.
+unter dem tatsächlichen Owner zu prüfen. Der folgende Kopierkern ergänzt die
+rohe Mutation; dauerhafter Postwrite-/Providerabschluss und History-CAS fehlen.
 Normaler PC-Nachfolger-HOLD, Runtime/UI-Gate, Android-Gerätepause sowie fehlende
 Geräte-/Auslieferungsabnahme bleiben unverändert. Ein zusätzlicher tatsächlicher
 Release-R8-Lauf für den Quellstand `3bc3454c` besteht. In seinem tatsächlichen
@@ -1272,6 +1272,49 @@ R8-Mappingdatei zugeordnet. Das sind Klassen, keine zusätzlichen Testfälle.
 Es wurden keine neuen Keep-Regeln hinzugefügt und keine APK paketiert,
 signiert oder installiert. Dieser DEX-Nachweis ersetzt keine native Geräte-
 oder OS-Provider-Abnahme.
+
+### Notes: tatsächliche rohe PC-Bild-Ersetzung ohne Abschlussbeleg
+
+Der interne Kopierkern verlangt denselben tatsächlich gehaltenen rw-Zielowner,
+seinen dauerhaft gespeicherten `write_started`-Fence und den genau dort
+verbrauchten ursprünglichen Grant. Unmittelbar vor den ersten Bytes werden
+Original-Rohhash und Native-Target, unabhängiges Recovery-Archiv sowie vollständige
+Staging-Rohbytes erneut geprüft. Nur während dieser genau einmal aufgenommenen
+eigenen Kopie dürfen erwartete Größe und Zeitstempel fortschreiten; Gerät/Inode,
+Modus, Linkzahl und UID/GID bleiben unverändert gebunden. Die allgemeine
+unveränderte Originalprüfung wird dadurch nicht abgeschwächt.
+
+Die begrenzte Kopie liest ausschließlich den aktuellen entschlüsselnden
+Stagingowner, niemals Netzwerkbytes oder beliebige Leser-Callbacks. Sie prüft
+den streaming Rohhash, kürzt einen alten Dateischwanz explizit auf die neue
+Größe, erzwingt die Ausgabe und liest das gesamte tatsächliche Ergebnis erneut
+auf Rohhash, native Bildgrenzen/MIME und stabile Native-Target-Zeugen zurück.
+Archiv und Stage werden nochmals geprüft. Alle duplizierten Schreib-FDs und
+der gehaltene ursprüngliche rw-FD werden tatsächlich geschlossen, bevor eine
+rohe lokale Bytebeobachtung zurückgegeben wird. Der Parent hält seine IO-Bahn
+auch bei Abbruch bis zum wirklichen Ende aller IO und Descriptoren.
+
+Der geschützte Zustand bleibt bewusst `write_started`. Eine rohe Bytebeobachtung
+ist weder dauerhafter Postwrite-/History-Abschluss noch Provider-Publikation,
+Saved, Quell-END oder Wiederaufnahmerecht. Fehler und Teilkopien behalten
+Originalarchiv, Stage, bisherigen Publikationseintrag und Unsicherheits-Fence;
+kein automatisches Wiederholen, Zurückschreiben oder Löschen findet statt.
+Die anschließende tatsächliche Providerprüfung nach asynchronem Close und
+History-CAS sowie der normale Runtime/UI-Anschluss fehlen weiterhin.
+
+136 betroffene Rows-/Runtime-/Transfer-Hostfälle bestehen. Mit unveränderten
+51 Index- und fünf Descriptor-Medienfällen sind es 192 unterschiedliche Fälle.
+Neue Fälle prüfen längeren und kürzeren Ersatz einschließlich echten
+Tail-Truncate, vollständige Zielbytes und unveränderte alte Archivbytes,
+Vorab-HOLD bei fehlendem Start/falschem Archiv/manipulierter Stage, zwei wirklich
+offene Schreib-FDs während einer tatsächlichen Teilkopie bis zum Drain sowie
+Manipulation nach Force ohne automatisches Restore. Der bisherige Robolectric-
+Standard `dup(fd)` kopiert in eine andere temporäre Datei und ist dafür kein
+Nachweis. Das registrierte Hostfixture öffnet stattdessen dieselbe tatsächliche
+Inode mit erhaltenem Zugriffsmodus ohne Kürzung; ausdrücklich nicht modelliert
+werden Androids Shared-Offset- und Reliable-Close-Syscallannahmen. Keine dieser
+Hostprüfungen ersetzt die weiterhin pausierte Android-Geräteabnahme. Für diesen
+neuen Kopierstand wird kein aktueller R8- oder Auslieferungsnachweis behauptet.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

@@ -184,6 +184,14 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
         val target = synchronized(lifecycle) { writeTarget } ?: fail("gallery_pc_before_write_native_proof_required")
         target.startWrite().also { current() }
     }
+    /** Internal mutation only. The durable journal remains write_started until
+     * separate actual provider readback and history CAS exist. Never Saved. */
+    internal fun copyReplacementBytes(archive: NativeGalleryTrashArchive,
+        boundary: (String) -> Unit = {}): NativeGalleryPcWrittenBytesObservation = io {
+        current()
+        val target = synchronized(lifecycle) { writeTarget } ?: fail("gallery_pc_before_write_native_proof_required")
+        target.copyVerifiedBytes(archive, boundary).also { current() }
+    }
     override fun close() {
         synchronized(lifecycle) { if (!ended.compareAndSet(false, true)) return }
         try { stage.close(); owner.close(); grant.request.close() }
