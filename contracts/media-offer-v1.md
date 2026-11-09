@@ -1025,6 +1025,37 @@ deutsche Texte sind vorhanden. PC-Folgeversionsaustausch, synchronisierte
 Wiederanbindung und OS-Schreib-/Löschowner bleiben offen; ihre HOLDs und die
 Feature-/Auslieferungsgates werden durch diesen manuellen Kopierweg nicht gelöst.
 
+Als separater interner Ersetzungsbaustein gibt es einen eigenen PC-spezifischen
+OS-Schreibanfrage-Owner. Er bindet vor Originalprüfung und Archivierung die
+ursprüngliche PC-Publikation, Control-Sitzung, vollen Incoming-Intent, Empfangs-
+Policy, echten Peer und beide ursprünglichen Buchpermits. Die monotone Frist
+läuft über Archivierung und OS-Anfrage hinweg; Schließen des geliehenen reinen
+Lesebesitzers erzeugt keine neue Aufnahme. Der genaue CancellationSignal bleibt
+auch nach Archivierung gebunden.
+
+Nur der echte threadlokale Rows-Archivabschlusspermit darf nach vollständiger
+Originalbyte-/MIME-/Zeilenprüfung und verifizierter PC-Archivkopie eine tatsächliche
+`MediaStore.createWriteRequest` für genau diese Original-URI erzeugen. Eine bloße
+Archiv-/Publikationsreferenz genügt nicht. Der bisherige ausgehende Telefonowner
+wird weder nachgebaut noch erweitert. Das neue ActivityResult-Host-Objekt hat
+request-spezifische Schlüssel; ein zurückgezogener noch ausstehender OS-Dialog
+behält seinen Platz bis zu seinem wirklichen Resultat. Alte Resultate können
+keine neuere Anfrage bestätigen. Ein positives Resultat allein genügt nicht:
+die aktuelle echte URI-WRITE-Berechtigung muss vorhanden sein und vor Benutzung
+unter einer tatsächlich fortgesetzten Activity erneut bestehen. Grants sind
+einmalig; spätere Activity-Pause oder ursprünglicher Sitzungs-/Intent-/Buchentzug
+erneuern sie nicht. Eine konkurrierende Berechtigungsanfrage kann den Host sperren.
+
+110 gezielte Hostfälle bestehen, darunter fünf neue PC-Anfrage-/Grantfälle und
+drei passende bisherige Telefon-OS-Consentfälle. Tatsächliche Anfrageerzeugung,
+separate Registry-Resultate und URI-Berechtigungsabfragen laufen gegen synthetische
+Robolectric-Provider/Activity-Fixtures, nicht gegen ein tatsächlich zugestimmtes
+Android-Gerät. Der neue Owner enthält ausdrücklich keinen Dateiwriter und ist
+noch nicht in Runtime-/OS-Dialog-Benutzerführung eingehängt. Ein zukünftiger
+Writer braucht zusätzlich ein dauerhaftes Vor-Schreib-Journal sowie neue genaue
+Ziel-/Archiv-/Rohbyteprüfungen vor und nach Mutation. Der PC-Nachfolger-HOLD und
+alle Geräte-/Feature-/Auslieferungsgates bleiben unverändert.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

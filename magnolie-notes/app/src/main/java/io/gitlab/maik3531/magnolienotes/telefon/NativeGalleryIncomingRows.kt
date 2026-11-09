@@ -95,11 +95,12 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         val recovery: NativeGalleryPublishedReadback)
     private val verifiedRead = ThreadLocal<VerifiedRead?>()
     private class ArchiveTarget(val permit: NativeGalleryTrashBookPermit, private val supplied: NativeGalleryTrashArchive? = null,
-        private val protection: DeviceTransferProtection? = null) {
+        private val protection: DeviceTransferProtection? = null, val writeAdmission: NativeGalleryPcWriteAdmission? = null) {
         var archive: NativeGalleryTrashArchive? = supplied
             private set
         val ownsArchive: Boolean get() = supplied == null
         var result: NativeGalleryArchiveEntry? = null
+        var writeRequest: NativeGalleryPcWriteRequest? = null
         fun open(app: Context): NativeGalleryTrashArchive = archive ?: NativeGalleryTrashArchive.openForApplication(app,
             protection ?: DeviceFileControl.fail("gallery_archive_published_pc_owner_required")).also { archive = it }
     }
@@ -318,6 +319,18 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal): NativeGalleryArchiveEntry =
         archivePublishedPc(owner, ArchiveTarget(permit, protection = protection), cancellation)
 
+    /** Only prepares an OS request after the real archive/row proof; no writer,
+     * replacement history transition or old phone READ owner is created. */
+    internal fun preparePublishedPcWrite(admission: NativeGalleryPcWriteAdmission, archive: NativeGalleryTrashArchive,
+        cancellation: CancellationSignal = CancellationSignal()): NativeGalleryPcWriteRequest {
+        val target = ArchiveTarget(admission.archiveBook, supplied = archive, writeAdmission = admission)
+        try {
+            admission.bindCancellation(cancellation)
+            archivePublishedPc(admission.inspection(), target, cancellation)
+            return target.writeRequest ?: fail("gallery_pc_write_os_owner_required")
+        } catch (error: Throwable) { target.writeRequest?.close(); admission.close(); throw error }
+    }
+
     private fun archivePublishedPc(owner: NativeGalleryPublishedInspection, target: ArchiveTarget,
         cancellation: CancellationSignal): NativeGalleryArchiveEntry {
         try {
@@ -435,6 +448,11 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 try {
                     archive.result = target.archivePublishedPc(this, owner, archive.permit, cancellation)
                     checkRow(); current()
+                    archive.writeAdmission?.let { admission ->
+                        archive.writeRequest = NativeGalleryPcWriteRequest.prepare(app, this, owner, target, archive.permit,
+                            archive.result!!, admission)
+                        checkRow(); current()
+                    }
                 } finally { verifiedArchive.remove() }
             }
             return observation

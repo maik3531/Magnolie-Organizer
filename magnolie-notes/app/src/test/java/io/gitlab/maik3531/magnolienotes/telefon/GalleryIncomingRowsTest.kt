@@ -12,6 +12,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.Bundle
 import android.os.CancellationSignal
+import android.os.Looper
 import android.os.Environment
 import android.os.Process
 import android.os.ParcelFileDescriptor
@@ -80,11 +81,21 @@ class GalleryIncomingRowsTest {
         var publishes = 0
         var afterPublish: () -> Unit = {}
         var beforeQuery: () -> Unit = {}
+        var allowWriteRequest = false
+        var writeRequests = 0
         private var lastSize = 0L
         private var values: ContentValues? = null
         init { attachInfo(app, ProviderInfo().apply { authority = "media"; exported = true }) }
         override fun onCreate() = true
         override fun call(method: String, arg: String?, extras: Bundle?): Bundle {
+            if (method == "create_write_request") {
+                check(allowWriteRequest)
+                @Suppress("DEPRECATION") val clip = extras!!.getParcelable<android.content.ClipData>("clip_data")!!
+                check(clip.itemCount == 1 && clip.getItemAt(0).uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+                writeRequests++
+                return Bundle().apply { putParcelable("result", android.app.PendingIntent.getActivity(app, writeRequests,
+                    Intent("fixture.pc.write.$writeRequests").setData(clip.getItemAt(0).uri), android.app.PendingIntent.FLAG_IMMUTABLE)) }
+            }
             check(method == "get_version"); return Bundle().apply { putString(Intent.EXTRA_TEXT, namespace) }
         }
         override fun insert(uri: Uri, values: ContentValues?): Uri {
@@ -543,6 +554,179 @@ class GalleryIncomingRowsTest {
             }
         }
     }
+
+    class PcWriteActivity : androidx.activity.ComponentActivity() {
+        var writeAllowed = false
+        var writeChecks = 0
+        override fun checkUriPermission(uri: Uri?, pid: Int, uid: Int, modeFlags: Int): Int {
+            check(uri.toString() == "content://media/external_primary/images/media/99")
+            check(modeFlags == Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            writeChecks++
+            return if (writeAllowed) android.content.pm.PackageManager.PERMISSION_GRANTED else android.content.pm.PackageManager.PERMISSION_DENIED
+        }
+    }
+
+    @Test fun actualPcWriteRequestRequiresTheRowsArchivePermitAndDoesNotManufacturePhoneReadOrAMutation() =
+        withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30); provider.allowWriteRequest = true
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-write-").toFile(); val before = f.rows()
+            f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    val admission = NativeGalleryPcWriteAdmission.capture(f.session, f.index, f.book(), permit, { f.peer }, { token }, published)
+                    rows.preparePublishedPcWrite(admission, archive).use { request ->
+                        assertEquals(Uri.parse(published.row!!.string("uri")), request.uri)
+                        assertEquals(1, provider.writeRequests)
+                        request.requireCurrent() // Original read inspection closed, original mutation admission still current.
+                        assertTrue(archive.actions(permit).isEmpty())
+                        assertEquals(published.body, archive.verifiedOrigin(request.entry, permit)["publication"])
+                        val borrowed = admission.inspection()
+                        try {
+                            assertThrows(PhotoFolderScopeError::class.java) {
+                                NativeGalleryPcWriteRequest.prepare(f.app, rows, borrowed, archive, permit, request.entry, admission)
+                            }
+                        } finally { borrowed.close() }
+                        assertEquals(1, provider.writeRequests)
+                        assertThrows(PhotoFolderScopeError::class.java) { archive.verifiedOriginalOrigin(request.entry, permit) }
+                    }
+                    assertThrows(PhotoFolderScopeError::class.java) { admission.requireCurrent() }
+                }
+            }
+            assertEquals(android.content.pm.PackageManager.PERMISSION_DENIED, f.app.checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES))
+            assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
+
+    @Test fun pcWriteConsentUsesItsOwnRegistryResultAndActualUriPermissionNotAnOkBoolean() =
+        withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30); provider.allowWriteRequest = true
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-write-").toFile(); val before = f.rows()
+            fun prepare() = f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    val admission = NativeGalleryPcWriteAdmission.capture(f.session, f.index, f.book(), permit, { f.peer }, { token }, published)
+                    rows.preparePublishedPcWrite(admission, archive)
+                }
+            }
+            val controller = org.robolectric.Robolectric.buildActivity(PcWriteActivity::class.java).setup()
+            val activity = controller.get(); val results = mutableListOf<Result<NativeGalleryPcWriteGrant>>()
+            val host = NativeGalleryPcWriteConsentHost(activity)
+            fun deliver(code: Int) {
+                val requestCode = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+                assertTrue(activity.activityResultRegistry.dispatchResult(requestCode, code, Intent()))
+                Shadows.shadowOf(Looper.getMainLooper()).idle()
+            }
+            try {
+                val first = prepare(); host.request(first) { results += it }
+                deliver(android.app.Activity.RESULT_OK)
+                assertTrue(results.single().isFailure); assertTrue(activity.writeChecks > 0)
+                activity.writeAllowed = true; results.clear()
+                host.request(prepare()) { results += it }; deliver(android.app.Activity.RESULT_CANCELED)
+                assertTrue(results.single().isFailure)
+                results.clear()
+                host.request(prepare()) { results += it }
+                controller.pause().resume() // Its own pending OS dialog is allowed; old granted rights are not.
+                deliver(android.app.Activity.RESULT_OK)
+                val grant = results.single().getOrThrow(); grant.requireCurrent(); grant.consume()
+                assertThrows(PhotoFolderScopeError::class.java) { grant.consume() }
+                controller.pause().resume()
+                assertThrows(PhotoFolderScopeError::class.java) { grant.requireCurrent() }
+            } finally { host.close(); controller.pause().stop().destroy() }
+            assertEquals(3, provider.writeRequests); assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
+
+    @Test fun pcWriteAdmissionCannotBeRenewedByLaterControlIntentOrBookAfterTheRealArchiveCopy() {
+        for (reason in listOf("control", "intent", "book", "cancel")) withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30); provider.allowWriteRequest = true
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-write-").toFile(); val before = f.rows()
+            var incoming: Any? = token
+            val cancellation = CancellationSignal()
+            val request = f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    val admission = NativeGalleryPcWriteAdmission.capture(f.session, f.index, f.book(), permit, { f.peer }, { incoming }, published)
+                    rows.preparePublishedPcWrite(admission, archive, cancellation)
+                }
+            }
+            request.use {
+                when (reason) {
+                    "control" -> {
+                        val own = f.session.packet(); f.session.markSent(own)
+                        val remote = NativeFileControlSession::class.java.getDeclaredField("remote").apply { isAccessible = true }.get(f.session) as DeviceFileControlPacket
+                        f.session.observeRemote(remote.copy(sessionEpoch = "a".repeat(64), sequence = 1, echo = own.challenge), f.peer)
+                        val echo = f.session.packet(); f.session.markSent(echo)
+                    }
+                    "intent" -> incoming = MediaSyncTransport.IntentToken(MediaSyncSettings.change(token.body,
+                        "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "auto_mode", JsonPrimitive("wifi")))
+                    "book" -> f.unlocked = false
+                    "cancel" -> cancellation.cancel()
+                }
+                if (reason == "cancel") assertThrows(android.os.OperationCanceledException::class.java) { request.launch(Any()) }
+                else assertThrows(PhotoFolderScopeError::class.java) { request.launch(Any()) }
+            }
+            assertEquals(1, provider.writeRequests); assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
+    }
+
+    @Test fun pcWriteRequestDoesNotReachTheOsBeforeDetectingEditedOriginalBytes() =
+        withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30); provider.allowWriteRequest = true
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-write-").toFile(); val before = f.rows()
+            val edited = raw.copyOf().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() }; payload.writeBytes(edited)
+            f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    val admission = NativeGalleryPcWriteAdmission.capture(f.session, f.index, f.book(), permit, { f.peer }, { token }, published)
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.preparePublishedPcWrite(admission, archive) }
+                    assertTrue(archive.entries(permit).isEmpty())
+                }
+            }
+            assertEquals(0, provider.writeRequests); assertEquals(before, f.rows()); assertArrayEquals(edited, payload.readBytes())
+        }
+
+    @Test fun pcWriteHostRetainsRetiredPendingSlotAndCannotApplyAnOldOsResultToANewerRequest() =
+        withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30); provider.allowWriteRequest = true
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-write-").toFile(); val before = f.rows()
+            fun prepare() = f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    rows.preparePublishedPcWrite(NativeGalleryPcWriteAdmission.capture(f.session, f.index, f.book(), permit,
+                        { f.peer }, { token }, published), archive)
+                }
+            }
+            val controller = org.robolectric.Robolectric.buildActivity(PcWriteActivity::class.java).setup()
+            val activity = controller.get().apply { writeAllowed = true }; var otherPending = true
+            val host = NativeGalleryPcWriteConsentHost(activity) { otherPending }
+            val old = mutableListOf<Result<NativeGalleryPcWriteGrant>>(); val fresh = mutableListOf<Result<NativeGalleryPcWriteGrant>>()
+            try {
+                prepare().use { first -> prepare().use { second ->
+                    assertThrows(PhotoFolderScopeError::class.java) { host.request(first) { old += it } }
+                    otherPending = false
+                    host.request(first) { old += it }
+                    val oldCode = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+                    host.retirePending(); assertTrue(host.requestPending)
+                    assertThrows(PhotoFolderScopeError::class.java) { host.request(second) { fresh += it } }
+                    activity.activityResultRegistry.dispatchResult(oldCode, android.app.Activity.RESULT_OK, Intent())
+                    Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    assertTrue(old.single().isFailure); assertTrue(fresh.isEmpty())
+                    host.request(second) { fresh += it }
+                    val newCode = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+                    assertNotEquals(oldCode, newCode)
+                    activity.activityResultRegistry.dispatchResult(oldCode, android.app.Activity.RESULT_OK, Intent())
+                    Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    assertTrue(fresh.isEmpty()); assertTrue(host.requestPending)
+                    f.unlocked = false
+                    activity.activityResultRegistry.dispatchResult(newCode, android.app.Activity.RESULT_OK, Intent())
+                    Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    assertTrue(fresh.single().isFailure)
+                } }
+            } finally { host.close(); controller.pause().stop().destroy() }
+            assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
 
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {
         NativeGalleryIncomingTransferTest.Link().use { link ->
