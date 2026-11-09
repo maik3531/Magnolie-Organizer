@@ -1299,8 +1299,8 @@ ist weder dauerhafter Postwrite-/History-Abschluss noch Provider-Publikation,
 Saved, Quell-END oder Wiederaufnahmerecht. Fehler und Teilkopien behalten
 Originalarchiv, Stage, bisherigen Publikationseintrag und Unsicherheits-Fence;
 kein automatisches Wiederholen, Zurückschreiben oder Löschen findet statt.
-Die anschließende tatsächliche Providerprüfung nach asynchronem Close und
-History-CAS sowie der normale Runtime/UI-Anschluss fehlen weiterhin.
+Die folgende tatsächliche Providerprüfung nach asynchronem Close ergänzt den
+Kopierkern; History-CAS und der normale Runtime/UI-Anschluss fehlen weiterhin.
 
 136 betroffene Rows-/Runtime-/Transfer-Hostfälle bestehen. Mit unveränderten
 51 Index- und fünf Descriptor-Medienfällen sind es 192 unterschiedliche Fälle.
@@ -1315,6 +1315,61 @@ Inode mit erhaltenem Zugriffsmodus ohne Kürzung; ausdrücklich nicht modelliert
 werden Androids Shared-Offset- und Reliable-Close-Syscallannahmen. Keine dieser
 Hostprüfungen ersetzt die weiterhin pausierte Android-Geräteabnahme. Für diesen
 neuen Kopierstand wird kein aktueller R8- oder Auslieferungsnachweis behauptet.
+
+### Notes: kanonischer Provider-Readback und dauerhafter Postwrite-Zeuge
+
+Nur der gleiche lebende ursprüngliche Targetowner und exakt seine tatsächlich
+nach erfolgreichem rw-FD-Close erzeugte Raw-Ergebnisinstanz können den neuen
+Inhalt kanonisch beim Provider zurücklesen. Kopierte oder gespeicherte
+Ergebnisdaten, ein anderer Index oder eine neue Sitzung reichen nicht.
+Transfer, native Kopie und Postwrite-Prüfung teilen denselben ursprünglichen
+Deadlineowner mit unverändertem Monoton-/Wallclock- und Acceptance-Ende; gerade
+ein kurzes neues Angebot wird innerhalb jeder nativen IO-Prüfung begrenzt,
+nicht nur vor und nach dem gesamten Kopiervorgang. Keine neue Frist entsteht.
+
+Die Prüfung beginnt erst nach tatsächlichem Close sämtlicher Schreib-FDs.
+Alte Größen-/Revisionsmetadaten nach asynchronem Provider-Close erlauben nur
+begrenztes Warten: höchstens 32 Warteintervalle von jeweils höchstens 100 ms,
+zusätzlich immer innerhalb der verbleibenden ursprünglichen Angebots- und
+OS-Aktionsfrist. Statische Zeilenidentität, Eigentümer, Namespace, Pfad, Name
+und Medientyp müssen weiterhin exakt passen. Die tatsächliche neue Größe und
+fortgeschrittene Providerrevision sind Voraussetzung zum Öffnen des kanonischen
+Original-Lese-FDs. Dieser muss den tatsächlich geschriebenen vollständigen
+Native-Target-Zeugen, Rohhash und native MIME/Bildgrenzen bestätigen; Assetoffset,
+Dateitausch oder veränderte neue Bytes bleiben HOLD.
+
+Der tatsächliche kanonische Lese-FD bleibt während der geschützten CAS und ihres
+Readback offen. Nur die prüfende Rows-Instanz mit exaktem threadlokalem
+Target-/Raw-Ergebnis-/Vorher-/Nachher-/gültigem Lese-FD-Besitz darf denselben
+Journal-Datensatz nach `provider_verified` überführen. Innerhalb der Indexsperre
+werden nur lokale Deadline-/Aktions-/Lane-/Cancellationzeugen geprüft, keine
+Transportsperren. Vollständige alte Stage, Originalpublikation und alter nativer
+Vorprüfzeuge bleiben unverändert erhalten; der neue Postwrite-Abschnitt bindet
+genaue Providerzeile, neuen nativen FD-Zeugen, Größe und Rohhash. Es entsteht
+kein zusätzlicher Metadatentyp oder erhöhtes History-/Stagingbudget.
+
+`provider_verified` ist weder History-CAS, Saved noch Neustartrecht. Entzug
+unmittelbar nach Commit erhält diesen Zeugen, verhindert aber den weiteren
+Abschluss. Doppelte Aufnahme öffnet keinen weiteren Provider-FD. Passive
+Offline-Lesbarkeit erteilt keine frühere Autorität. Abbruch während tatsächlicher
+Readback-IO hält die gemeinsame IO-Bahn bis zum wirklichen FD-Ende.
+
+192 betroffene Rows-/Runtime-/Transfer-/Index-Hostfälle bestehen, mit fünf
+unveränderten Descriptor-Medienfällen 197 unterschiedliche Fälle. Neue Nachweise
+verbinden echte rohe Ersetzung, tatsächlich geschlossenen rw-FD, verzögert
+modellierte Providerrevision auch bei gleich großer Bildersetzung, tatsächlichen
+kanonischen Native-Readback und geschützten Postwrite-Readback. Negative prüfen
+kopierte Ergebnisinstanz, falschen Index, fremde Providerzeile, gleiche Bytes
+einer anderen Inode, manipulierte Bytes und Cancellation mit wirklich offenem
+Lese-FD. Dazu kommen strikte Postwrite-Dekodierung, fehlender threadlokaler
+Prüfbesitz, Entzug nach dauerhaftem Commit, Duplikat-HOLD und passives Offline-
+Wiederlesen. Die kurze Originalfrist darf bereits während der Vorprüfung
+ablehnen oder nach dem ersten Chunk stoppen, niemals spätere Chunks nach
+Fristende fertigstellen. Das ist keine Android-Provider-/Sharedoffset-/OS-
+Einwilligungsabnahme. History-CAS, endgültiger Saved-Abschluss und Runtime/UI-
+Ersetzungsanbindung fehlen weiterhin; normale Nachfolgersperre, Gerätepause und
+Auslieferungsgates bleiben bestehen. Kein aktueller R8-Nachweis für diesen
+neuen Postwrite-Code wird behauptet.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

@@ -10,8 +10,27 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-/** Exact live replacement acceptance -> encrypted staging only. There is no
- * insert, old-row writer, Saved output, resume-by-metadata or discovery hook. */
+/** One original transfer clock shared with native writes/readback. Passing into
+ * a later owner must never recapture a fresh offer interval. */
+internal class NativeGalleryPcReplacementDeadline(private val issued: Long, private val ttl: Long,
+    private val acceptance: GalleryIncomingAcceptance) : AutoCloseable {
+    private var last = issued
+    private var closed = false
+    @Synchronized internal fun requireCurrent() {
+        val now = DeviceFileControl.monotonicMs(); val wall = System.currentTimeMillis()
+        if (closed || now < last || now - issued >= ttl || wall < acceptance.body.long("created_ms") || wall >= acceptance.expires)
+            DeviceFileControl.fail("gallery_pc_stage_offer_expired")
+        last = now
+    }
+    @Synchronized internal fun remainingMs(): Long {
+        requireCurrent()
+        return minOf(ttl - (DeviceFileControl.monotonicMs() - issued), acceptance.expires - System.currentTimeMillis()).coerceAtLeast(0)
+    }
+    @Synchronized override fun close() { closed = true }
+}
+
+/** Exact live acceptance -> encrypted staging -> fenced raw replacement.
+ * No insert, Saved output, resume-by-metadata or discovery hook. */
 internal class NativeGalleryPcReplacementTransfer private constructor(private val owner: NativeGalleryIncomingOwner,
     private val channel: TelefonSecureChannel, private val stage: NativeGalleryPcStage, private val grant: NativeGalleryPcWriteGrant,
     private val lane: Any, private val issued: Long, private val ttl: Long) : AutoCloseable {
@@ -33,14 +52,9 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
     private var drainPublished = false
     private var writeTarget: NativeGalleryPcWriteTarget? = null
     private val drained = CountDownLatch(1)
-    private var last = issued
     private val acceptance = stage.record.acceptance
-    @Synchronized private fun clock() {
-        val now = DeviceFileControl.monotonicMs(); val wall = System.currentTimeMillis()
-        if (ended.get() || now < last || now - issued >= ttl || wall < acceptance.body.long("created_ms") || wall >= acceptance.expires)
-            fail("gallery_pc_stage_offer_expired")
-        last = now
-    }
+    private val deadline = NativeGalleryPcReplacementDeadline(issued, ttl, acceptance)
+    private fun clock() { if (ended.get()) fail("gallery_pc_stage_offer_expired"); deadline.requireCurrent() }
     private fun current() {
         try { clock(); stage.requireCurrent(); clock() } catch (error: Throwable) { close(); throw error }
     }
@@ -169,7 +183,7 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
         cancellation: android.os.CancellationSignal = android.os.CancellationSignal()): Unit = io {
         current()
         if (!finished.get() || !writeTargetAttempted.compareAndSet(false, true)) fail("gallery_pc_write_target_original_operation_required")
-        val target = rows.preparePcWriteTarget(stage, grant, archive, lane, cancellation)
+        val target = rows.preparePcWriteTarget(stage, grant, archive, lane, cancellation, deadline)
         try {
             current(); target.requireCurrent()
             synchronized(lifecycle) {
@@ -192,9 +206,15 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
         val target = synchronized(lifecycle) { writeTarget } ?: fail("gallery_pc_before_write_native_proof_required")
         target.copyVerifiedBytes(archive, boundary).also { current() }
     }
+    internal fun inspectWrittenReplacement(rows: NativeGalleryIncomingRows,
+        observation: NativeGalleryPcWrittenBytesObservation): NativeGalleryIncomingRows.NativeGalleryPcProviderObservation = io {
+        current()
+        val target = synchronized(lifecycle) { writeTarget } ?: fail("gallery_pc_before_write_native_proof_required")
+        rows.inspectPcWritten(target, observation, lane).also { current() }
+    }
     override fun close() {
         synchronized(lifecycle) { if (!ended.compareAndSet(false, true)) return }
-        try { stage.close(); owner.close(); grant.request.close() }
+        try { deadline.close(); stage.close(); owner.close(); grant.request.close() }
         finally {
             pending.getAndSet(null)?.let { it.bytes.getAndSet(null)?.fill(0); it.ready.countDown() }
             synchronized(lifecycle) { retired = true; finishDrain() }
