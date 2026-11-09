@@ -213,6 +213,7 @@ internal object NativeDavAccountSmoke {
                 .put("nofollowSymlinkRejected",symlinkRejected).put("hardlinkEvidence",hardlinkProof)
                 .put("boundedReadRejected",boundedReadRejected).put("vaultDurabilityCheckpoints",checkpoints)
                 .put("numericVault",numericVaultChecks(directory,key))
+                .put("restoreDurability",restoreDurabilityChecks(directory,key))
                 .put("frameworkOwnedParent0771Preserved",true)
                 .put("fixtureParentUid",Os.lstat(parent.parentFile!!.path).st_uid)
                 .put("fixtureParentMode",Os.lstat(parent.parentFile!!.path).st_mode and 0x1ff)
@@ -276,6 +277,64 @@ internal object NativeDavAccountSmoke {
             for(file in children) check(ops.delete(file))
             Os.remove(directory.path);ops.syncDirectory(parent)
         }}
+    }
+
+    /** Inject only after real OS operations; reopening must expose one complete book. */
+    private fun restoreDurabilityChecks(parent:File,key:SecretKey):JSONObject {
+        val outcomes=JSONObject()
+        for (boundary in listOf("backup-sync","file-sync","rename","directory-sync","commit-readback")) {
+            val directory=File(parent,"restore-"+boundary)
+            check(ops.stat(directory)==null);ops.ensurePrivateDirectory(directory,true)
+            var originalFailure:Throwable?=null
+            try {
+                fun data(title:String)=JSONObject().put("version",6)
+                    .put("termine",org.json.JSONArray().put(JSONObject().put("id","fixture").put("titel",title)))
+                    .put("aufgaben",org.json.JSONArray()).put("kontakte",org.json.JSONArray())
+                    .put("notizen",org.json.JSONArray()).put("einstellungen",JSONObject().put("fixture",true))
+                    .put("futureRoot",JSONObject().put("keep","exact"))
+                val original=Vault(directory,{key},fileOps=ops)
+                val first=original.openSession().session;original.activate(first)
+                original.save(first,VaultJson.encode(data("old"),MAX_BYTES),org.json.JSONArray())
+                val before=requireNotNull(ops.read(File(directory,"tablet-vault.enc"),MAX_BYTES+1024))
+                val crypto=io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({key})
+                val beforePlain=crypto.entschluesseln(before,"tablet-vault.enc")
+                try {
+                    val fault=Vault(directory,{key},checkpoint={if(it==boundary)throw IOException("INSTRUMENTATION_RESTORE_CHECKPOINT")},fileOps=ops)
+                    val session=fault.openSession().session;fault.activate(session)
+                    val token=fault.prepareImport(session,VaultJson.encode(data("new"),MAX_BYTES))
+                    val expected=when(boundary) {"backup-sync","file-sync"->"before-commit";"rename"->"uncertain";else->"committed"}
+                    try {fault.replace(session,token);error("Faulty restore acknowledged")}
+                    catch(error:CommitFailure) {check(error.outcome==expected)}
+                    check(!fault.isWritable(session))
+                    var staleRejected=false
+                    try {fault.save(session,VaultJson.encode(data("stale"),MAX_BYTES),org.json.JSONArray())}
+                    catch(_:Exception) {staleRejected=true}
+                    check(staleRejected)
+                    val backup=requireNotNull(ops.read(File(directory,"before-import.enc"),MAX_BYTES+1024))
+                    crypto.entschluesseln(backup,"before-import.enc").also {check(it.contentEquals(beforePlain));it.fill(0)}
+                    val reopened=Vault(directory,{key},fileOps=ops).openSession().value!!.getJSONObject("data")
+                    val keptOld=boundary in listOf("backup-sync","file-sync")
+                    check(reopened.getJSONArray("termine").getJSONObject(0).getString("titel")==if(keptOld)"old" else "new")
+                    check(reopened.getJSONObject("futureRoot").getString("keep")=="exact")
+                    if(keptOld) {
+                        check(before.contentEquals(ops.read(File(directory,"tablet-vault.enc"),MAX_BYTES+1024)))
+                        check(!reopened.has("syncEpoch"))
+                    } else {
+                        val epoch=reopened.getString("syncEpoch");UUID.fromString(epoch)
+                        check(reopened.getJSONObject("syncMetadaten").getString("syncEpoch")==epoch)
+                    }
+                    outcomes.put(boundary,JSONObject().put("outcome",expected).put("completeBookReopened",true)
+                        .put("backupPlaintextExact",true).put("oldPageRevoked",true).put("staleSaveRejected",true))
+                } finally {beforePlain.fill(0)}
+            } catch(failure:Throwable) {originalFailure=failure;throw failure}
+            finally {cleanupPreservingFailure(originalFailure) {
+                val children=ops.children(directory)
+                check(children.all {it.name in setOf("tablet-vault.enc","tablet-vault.enc.pending","before-import.enc")})
+                for(file in children) check(ops.delete(file))
+                Os.remove(directory.path);ops.syncDirectory(parent)
+            }}
+        }
+        return outcomes
     }
 
     private fun accountChecks(context: Context): JSONObject {
