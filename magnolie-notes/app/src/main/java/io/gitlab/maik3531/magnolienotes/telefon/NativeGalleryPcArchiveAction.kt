@@ -17,13 +17,20 @@ internal class NativeGalleryPcArchiveAction private constructor(private val sess
     private var cancellation: CancellationSignal? = null
 
     init { requireCurrent() }
-    @Synchronized internal fun requireCurrent() {
+    /** Local IO guard only; no control-session or protected-index callback. */
+    @Synchronized internal fun requireLocal() {
         try {
             cancellation?.throwIfCanceled()
             val now = DeviceFileControl.monotonicMs()
             if (closed.get() || now < last || now - issued >= DeviceFileControl.MAX_TTL_MS || !ready() ||
-                incomingIntent() !== token || !token.requestedIncoming(kind) || session.operationBinding("0".repeat(64)) != original) fail()
+                incomingIntent() !== token || !token.requestedIncoming(kind)) fail()
             book.requireArchiveBook(archiveBook); archiveBook.requireTrashEnabled(); last = now
+        } catch (error: Exception) { closed.set(true); throw error }
+    }
+    @Synchronized internal fun requireCurrent() {
+        try {
+            requireLocal()
+            if (session.operationBinding("0".repeat(64)) != original) fail()
         } catch (error: Exception) { closed.set(true); throw error }
     }
     @Synchronized internal fun bindCancellation(actual: CancellationSignal) {
@@ -31,6 +38,10 @@ internal class NativeGalleryPcArchiveAction private constructor(private val sess
         cancellation = actual; requireCurrent()
     }
     internal fun currentIntent(): Any? { requireCurrent(); return token }
+    @Synchronized internal fun remainingMs(): Long {
+        requireCurrent()
+        return maxOf(0L, DeviceFileControl.MAX_TTL_MS - (DeviceFileControl.monotonicMs() - issued))
+    }
     internal fun expectedControl(destination: String): NativeFileOperationBinding {
         requireCurrent()
         val actual = session.operationBinding(destination) ?: fail()

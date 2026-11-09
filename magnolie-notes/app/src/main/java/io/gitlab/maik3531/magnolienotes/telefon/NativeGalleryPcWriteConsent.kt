@@ -47,6 +47,8 @@ internal class NativeGalleryPcWriteAdmission private constructor(private val ses
         }, publication, expectedControl = action.expectedControl(destination))
     }
     internal fun bindCancellation(cancellation: CancellationSignal) { action.bindCancellation(cancellation) }
+    internal fun requireLocal() { action.requireLocal() } // Its ready callback is the constant native admission guard, not transport IO.
+    internal fun remainingMs(): Long { requireCurrent(); return action.remainingMs() }
     internal fun requireIndex(actual: PhotoSourceJobIndex) {
         requireCurrent()
         if (actual !== index) { close(); fail() }
@@ -62,6 +64,14 @@ internal class NativeGalleryPcWriteAdmission private constructor(private val ses
         val plan = GalleryPcReplacementPlan.create(publication, grant.request.entry, archiveBook.version,
             action.expectedControl(media.manifest.fingerprint).binding, offer)
         requireCurrent(); grant.requireCurrent(); return plan
+    }
+    internal fun incomingOwner(media: NativeMediaOffer): NativeGalleryIncomingOwner {
+        requireCurrent()
+        val token = action.currentIntent()
+        val result = NativeGalleryIncomingOwner.capture(session, index, book, peer,
+            { incomingIntent().takeIf { it === token } }, media.manifest, media.kind, media.originals, media.pcOrigins,
+            expectedControl = action.expectedControl(media.manifest.fingerprint))
+        try { requireCurrent(); return result } catch (error: Throwable) { result.close(); throw error }
     }
     internal fun requireOwner(owner: NativeGalleryPublishedInspection, permit: NativeGalleryTrashBookPermit) {
         requireCurrent()
@@ -142,6 +152,10 @@ internal class NativeGalleryPcWriteGrant internal constructor(internal val reque
     internal fun consume() {
         requireCurrent()
         if (!used.compareAndSet(false, true)) DeviceFileControl.fail("gallery_pc_write_grant_already_used")
+    }
+    internal fun requireUnused() {
+        requireCurrent()
+        if (used.get()) DeviceFileControl.fail("gallery_pc_write_grant_already_used")
     }
 }
 

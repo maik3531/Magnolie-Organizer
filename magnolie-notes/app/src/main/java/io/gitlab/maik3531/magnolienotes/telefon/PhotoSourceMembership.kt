@@ -100,6 +100,7 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
         var incomingAcceptances = 0
         var knownPhoneMedia = 0
         var pcReplacementPlans = 0
+        var pcStages = 0
         db.query("source_meta", arrayOf("name", "sealed"), "name<>?", arrayOf(NAME), null, null, "name").use {
             while (it.moveToNext()) {
                 val name = it.getString(0)
@@ -123,10 +124,12 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
                 val pcPlan = name.startsWith(GalleryPcReplacementPlan.PREFIX) &&
                     Regex("[0-9a-f]{32}").matches(name.removePrefix(GalleryPcReplacementPlan.PREFIX))
                 if (pcPlan && ++pcReplacementPlans > GalleryPcReplacementPlan.MAX_RECORDS) fail("gallery_pc_replacement_plan_capacity")
+                val pcStage = name.startsWith(GalleryPcStageRecord.PREFIX) && Regex("[0-9a-f]{32}").matches(name.removePrefix(GalleryPcStageRecord.PREFIX))
+                if (pcStage && ++pcStages > GalleryPcStageRecord.MAX_RECORDS) fail("gallery_pc_stage_capacity")
                 if ((name !in setOf("format", "gallery-policy-v1", "gallery-policy-v1-repair") &&
-                    !incoming && !acceptance && !known && !pcPlan && (remoteJob == null || members.none { member -> member["id"] == JsonPrimitive(remoteJob) })) ||
+                    !incoming && !acceptance && !known && !pcPlan && !pcStage && (remoteJob == null || members.none { member -> member["id"] == JsonPrimitive(remoteJob) })) ||
                     metadata.size >= 3 + 4 * PhotoSourceJobIndex.MAX_JOBS + GalleryIncomingPublication.MAX_RECORDS + GalleryIncomingAcceptance.MAX_RECORDS +
-                        GalleryKnownPhoneMedia.MAX_RECORDS + GalleryPcReplacementPlan.MAX_RECORDS)
+                        GalleryKnownPhoneMedia.MAX_RECORDS + GalleryPcReplacementPlan.MAX_RECORDS + GalleryPcStageRecord.MAX_RECORDS)
                     fail("photo_jobs_membership_unknown_metadata")
                 val bytes = it.getBlob(1)
                 if (bytes.size !in 28..DeviceTransferProtection.MAX_CLEAR_BYTES + 28) fail("photo_jobs_membership_invalid")

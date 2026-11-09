@@ -7,5 +7,6 @@ import java.util.concurrent.atomic.AtomicReference
 internal object NativeGalleryMediaIoLane {
     private val owner = AtomicReference<Any?>()
     internal fun acquire(selected: Any): Boolean = owner.compareAndSet(null, selected)
+    internal fun isOwnedBy(selected: Any): Boolean = owner.get() === selected
     internal fun release(selected: Any) { owner.compareAndSet(selected, null) }
 }

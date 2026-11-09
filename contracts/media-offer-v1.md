@@ -1084,11 +1084,61 @@ echtem archivierten Vorgänger, synthetischem OS-Grant, geschütztem Readback,
 Entzug unmittelbar nach Commit, unveränderten Original-/Indexaufzeichnungen,
 128er-Grenze samt tatsächlichem Membership-Rollback bei zusätzlichem Eintrag und
 passiver Lesbarkeit nach Schließen von Sitzung und Index. Die normale
-PC-Nachfolgeraufnahme bleibt nachweislich weiterhin gesperrt. Es gibt dadurch
-noch keine Acceptance, Chunkleser, verschlüsselte Nachfolger-Stagingkopie oder
-Vor-/Nach-Schreib-Transition. Gerade ein Netzwerkstrom direkt in die bisherige
-veröffentlichte Datei ist nicht freigegeben; der zerstörungsfreie vollständige
-Nachfolger-Zwischenspeicher und eigentliche Writer bleiben offen.
+PC-Nachfolgeraufnahme bleibt nachweislich weiterhin gesperrt. Die vorgeschlagene
+Absicht allein erzeugt keine Acceptance, Chunkrechte oder Vor-/Nach-Schreib-
+Transition. Gerade ein Netzwerkstrom direkt in die bisherige veröffentlichte
+Datei ist nicht freigegeben.
+
+### Notes: separater verschlüsselter PC-Bild-Nachfolger-Zwischenspeicher
+
+Ein interner Stagingeintritt verlangt zusätzlich zur exakt gespeicherten Absicht
+weiterhin denselben lebenden ursprünglichen PC-OS-Grant, Kanal, Index, vollen
+Intent, Buch und Control-Sitzungsowner. Er ist noch nicht mit dem normalen
+Runtime-/UI-Ersetzungsablauf verbunden. Er erzeugt eine eigene tatsächliche
+Acceptance und streng gebundene einzelne Chunkanfragen, aber keine neue
+Medienzeile, Schreiböffnung des Originals oder Saved-Ausgabe. PC-SEND benötigt
+weiterhin weder PC-RECEIVE noch Telefon-READ. Der normale Nachfolger-HOLD bleibt
+unverändert; gespeicherte Pläne oder Stagingmetadaten umgehen ihn nicht.
+
+Die eigene geschützte Stagingmitgliedschaft reserviert vor Nutzdaten den neu
+erzeugten privaten Root samt nativer Identität. Sie hat getrennt höchstens 128
+Datensätze und insgesamt 400 MiB reservierte Manifestbytes; bisherige Source-,
+History- und Incominggrenzen bleiben gleich. Unklare oder abgebrochene Einträge
+halten ihren Platz und ihre Dateien. Vorhandene Roots werden weder übernommen
+noch gelöscht. Header, Chunks und Abschlussmitgliedschaft werden ausschließlich
+verschlüsselt mit CREATE_NEW, Force und tatsächlichem Readback geschrieben.
+Native Dateiidentitäten, Cipherhashes, private Rechte, Hardlink- und genaue
+Verzeichnis-Mitgliedschaftsprüfungen schützen die laufenden Besitzer.
+
+Vor dem Zustand `sealed` werden vollständiger Rohhash sowie native Bildgrenzen
+und MIME über einen exakt besessenen entschlüsselnden InputStream geprüft;
+Klartextdateien auf Platte gibt es nicht. Der optionale Fotometadatenfilter gilt
+weiter. Video-Staging bleibt bis zum eigenen geprüften Parserpfad gesperrt.
+`sealed` bescheinigt lediglich diese Zwischenspeicherkopie, weder Saved noch
+lokale Schreib-, Wiederaufnahme-, Quell-END- oder Löschrechte. Nach Neustart ist
+keine Aufnahme alter Chunkrechte oder Öffnung des Originals aus Metadaten möglich.
+
+Die ursprüngliche OS-Aktionsfrist begrenzt auch Acceptance und Chunkwarten;
+weder Archivierung noch OS-Anfrage oder Staging starten sie neu. Die gemeinsame
+IO-Bahn bleibt bis zum tatsächlichen Ende aller Empfänger-, Observer- und
+Metadaten-IO gehalten. Cancellation allein ist kein Drain. Ein kurzer
+Mitgliedschaftsmutex umfasst keine Nutzdaten-IO oder native Parser. Unveränderliche
+Vor-/Commit-/Nach-Snapshots erlauben nur den exakt lokal vorbereiteten Übergang
+dieser Reservierung zu ihrer geprüften Versiegelung bei parallelen Observern.
+
+177 unterschiedliche passende Hostfälle bestehen: zuletzt 64 Rows-, 48 Runtime-
+und neun Transferfälle, ergänzt um unveränderte 51 Index- und fünf bisherige
+Descriptor-Medienprüfungen. Neue Nachweise umfassen echte AEAD-Frames, zweichunkige
+Bilddaten und native Bildgrenzen, unaligned Reads, Manipulationen, Fristen mit
+tatsächlich verstrichener ursprünglicher Aktionszeit, getrennte Rollen,
+Kapazitäts-HOLD, fremde Dateien/Roottausch/Hardlinks sowie tatsächlichen
+Observer-FD-Drain und paralleles Versiegeln. Die Budgetprobe verwendet nur
+synthetische geschützte Reservierungsmetadaten, keine 400-MiB-Nutzdatenkopie.
+Dies sind Hostnachweise mit synthetischem Provider/OS-Grant, keine Android-Geräte-
+oder Einwilligungsabnahme. Für diesen Stagingstand wird kein R8-Nachweis behauptet.
+Der eigentliche Writer mit dauerhaftem Vor-/Nach-Schreib-Journal, erneuter
+Ziel-/FD-/Archivprüfung und History-CAS sowie Runtime/UI-Anschluss fehlen noch.
+Gerätepause, Feature- und Auslieferungsgates bleiben bestehen.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

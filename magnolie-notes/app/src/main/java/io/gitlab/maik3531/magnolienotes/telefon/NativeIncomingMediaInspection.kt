@@ -22,6 +22,28 @@ internal data class NativeIncomingMediaObservation internal constructor(val medi
  * A name, remote MIME claim, stored copy_verified flag or hash alone is not
  * evidence that Android actually recognizes the requested media kind. */
 internal object NativeIncomingMediaInspection {
+    /** Encrypted incoming staging has no plaintext disk descriptor. The closed
+     * actual staging owner supplies bounded transient raw reads, not a caller's
+     * arbitrary byte reader, filename, hash, or claimed native MIME flag. */
+    internal fun inspectStagedPc(stage: NativeGalleryPcStage, photosOnly: Boolean): NativeIncomingMediaObservation {
+        if (Looper.myLooper() == Looper.getMainLooper() || stage.kind != GalleryMediaType.IMAGES) fail("gallery_incoming_media_io_required")
+        stage.requireCurrent()
+        if (stage.kind == GalleryMediaType.IMAGES) {
+            if (photosOnly) {
+                val selected = stage.input().use { CameraPhotoMetadata.matches(it) }
+                stage.requireCurrent()
+                if (!selected) fail("gallery_incoming_photo_metadata_required")
+            }
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            val bitmap = stage.input().use { BitmapFactory.decodeStream(it, null, options) }
+            bitmap?.recycle(); stage.requireCurrent()
+            if (bitmap != null || options.outMimeType != stage.mimeType || !stage.mimeType.startsWith("image/")) fail("gallery_incoming_image_not_recognized")
+            dimensions(options.outWidth, options.outHeight)
+            return NativeIncomingMediaObservation(stage.kind, stage.mimeType, options.outWidth, options.outHeight, null)
+        }
+        fail("gallery_pc_stage_video_owner_required")
+    }
+
     internal fun inspect(descriptor: FileDescriptor, bytes: Long, kind: GalleryMediaType, mimeType: String,
         photosOnly: Boolean = false, ensureNative: () -> Unit): NativeIncomingMediaObservation {
         if (Looper.myLooper() == Looper.getMainLooper() || bytes !in 1..DeviceFileManifest.MAX_FILE_BYTES)

@@ -837,6 +837,404 @@ class GalleryIncomingRowsTest {
         }
     }
 
+    private class PcStageCase(val f: GalleryReceiveConsentTest.Fixture, val provider: Provider,
+        val original: GalleryIncomingPublication, val oldBytes: ByteArray, val originalFile: File,
+        val token: MediaSyncTransport.IntentToken, val incoming: java.util.concurrent.atomic.AtomicReference<Any?>,
+        val link: NativeGalleryIncomingTransferTest.Link, val grant: NativeGalleryPcWriteGrant,
+        val plan: GalleryPcReplacementPlan, val bytes: ByteArray, val context: android.content.Context) : AutoCloseable {
+        private val transfers = mutableListOf<NativeGalleryPcReplacementTransfer>()
+        fun prepare(boundary: (String) -> Unit = {}) = f.io {
+            NativeGalleryPcReplacementTransfer.prepare(context, f.index, plan, grant, link.channel, boundary)
+        }.also { transfers += it }
+        fun serve(transfer: NativeGalleryPcReplacementTransfer, corrupt: Boolean = false, duplicate: Boolean = false,
+            change: (JsonObject) -> JsonObject = { it }) {
+            link.onMessage = { message ->
+                if (message.string("kind") == DeviceFileChunkEnvelope.REQUEST) {
+                    val request = DeviceFileChunkEnvelope.parseRequest(message); val start = request.chunkIndex * DeviceFileManifest.CHUNK_BYTES
+                    val clear = bytes.copyOfRange(start, minOf(bytes.size, start + DeviceFileManifest.CHUNK_BYTES))
+                    try {
+                        if (corrupt && request.chunkIndex == 0) clear[0] = (clear[0].toInt() xor 1).toByte()
+                        val response = change(DeviceFileChunkEnvelope.response(request, clear))
+                        assertTrue(transfer.observeChunk(link.channel, link.receive(response)))
+                        if (duplicate) assertTrue(transfer.observeChunk(link.channel, link.receive(response)))
+                    } finally { clear.fill(0) }
+                }
+            }
+        }
+        fun assertOriginal() {
+            assertArrayEquals(oldBytes, originalFile.readBytes()); assertEquals(original.body, f.index.incomingPublication(original.id)!!.body)
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            assertTrue(link.frames.none { it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND) })
+        }
+        override fun close() { transfers.forEach { it.close(); check(it.awaitIoEnded(5000)) }; link.onMessage = {} }
+    }
+    private fun withPcStage(unrecognized: Boolean = false, photosOnly: Boolean = false, shortOffer: Boolean = false, action: (PcStageCase) -> Unit) {
+        NativeGalleryIncomingTransferTest.Link().use { link ->
+            withPublishedInspection(link.channel, pcSource = true) { f, rows, provider, published, raw, payload, token ->
+                val pcLocalField = GalleryReceiveConsentTest.Fixture::class.java.getDeclaredField("pcLocal").apply { isAccessible = true }
+                val pcLocal = pcLocalField.get(f) as NativeLocalFileGrant
+                pcLocalField.set(f, NativeLocalFileGrant(DeviceFileGrantState(4, "e".repeat(64), true, false), pcLocal.owner, true)); f.handshake()
+                f.documents.setzePapierkorb(true, 30); provider.allowWriteRequest = true
+                val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+                val activeToken = if (photosOnly) MediaSyncTransport.IntentToken(MediaSyncSettings.change(token.body,
+                    "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "photos_only", JsonPrimitive(true))) else token
+                val incoming = java.util.concurrent.atomic.AtomicReference<Any?>(activeToken)
+                val archiveRoot = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-stage-archive-").toFile()
+                val request = f.io {
+                    NativeGalleryTrashArchive(archiveRoot, f.protection).use { archive ->
+                        rows.preparePublishedPcWrite(NativeGalleryPcWriteAdmission.capture(f.session, f.index, f.book(), permit,
+                            { f.peer }, { incoming.get() }, published), archive)
+                    }
+                }
+                val controller = org.robolectric.Robolectric.buildActivity(PcWriteActivity::class.java).setup()
+                val activity = controller.get().apply { writeAllowed = true }; val host = NativeGalleryPcWriteConsentHost(activity)
+                try {
+                    var grant: NativeGalleryPcWriteGrant? = null
+                    host.request(request) { grant = it.getOrThrow() }
+                    activity.activityResultRegistry.dispatchResult(Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode, android.app.Activity.RESULT_OK, Intent())
+                    Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    val bitmap = android.graphics.Bitmap.createBitmap(8, 8, android.graphics.Bitmap.Config.ARGB_8888).apply { eraseColor(0xff57a836.toInt()) }
+                    val bytes = if (unrecognized) ByteArray(DeviceFileManifest.CHUNK_BYTES + 19) { 42 } else try {
+                        java.io.ByteArrayOutputStream().use { output ->
+                            check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output))
+                            output.toByteArray().copyOf(DeviceFileManifest.CHUNK_BYTES + 19)
+                        }
+                    } finally { bitmap.recycle() }
+                    if (unrecognized) bitmap.recycle()
+                    val oldManifest = DeviceFileOfferEnvelope.create(manifest(f.pc.deviceId, raw = raw)).getValue("body").jsonObject.getValue("manifest").jsonObject
+                    val oldFile = oldManifest.getValue("files").jsonArray.single().jsonObject
+                    val hash = NativeHex.lower(java.security.MessageDigest.getInstance("SHA-256").digest(bytes))
+                    val successor = DeviceFileManifest.parse(JsonObject(oldManifest + mapOf("transfer_id" to JsonPrimitive("9".repeat(32)),
+                        "source_id" to JsonPrimitive("8".repeat(32)), "total_bytes" to JsonPrimitive(bytes.size), "files" to JsonArray(listOf(JsonObject(oldFile + mapOf(
+                            "size" to JsonPrimitive(bytes.size), "sha256" to JsonPrimitive(hash))))))))
+                    val fullOffer = DeviceFileOfferEnvelope.create(successor)
+                    val ordinary = if (shortOffer) JsonObject(fullOffer + ("expires_ms" to JsonPrimitive(System.currentTimeMillis() + 2000))) else fullOffer
+                    val offer = link.receive(JsonObject(ordinary + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
+                        put("format", 2); put("offer", ordinary.getValue("body")); put("settings", activeToken.body); put("media_type", "images")
+                        put("mime_types", buildJsonObject { put(fileId, "image/png") }); put("originals", buildJsonObject {})
+                        put("pc_origins", buildJsonObject { put(fileId, buildJsonObject {
+                            put("format", 1); put("origin_sha256", published.pcOrigin!!.origin); put("previous_publication_sha256", published.fingerprint)
+                        }) })
+                    })))
+                    val plan = f.io { f.index.proposePcReplacement(grant!!, link.channel, offer) }
+                    val base = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-stage-private-").toFile()
+                    val context = object : android.content.ContextWrapper(f.app) {
+                        override fun getApplicationContext(): android.content.Context = this
+                        override fun getNoBackupFilesDir(): File = base
+                    }
+                    PcStageCase(f, provider, published, raw, payload, activeToken, incoming, link, grant!!, plan, bytes, context).use(action)
+                } finally { host.close(); controller.pause().stop().destroy(); request.close() }
+            }
+        }
+    }
+
+    @Test fun actualPcSuccessorStagesEncryptedChunksAndNativeMetadataWithoutOpeningTheOldRowForWriteOrSendingSaved() = withPcStage { h ->
+        val before = h.f.rows(); val reads = h.provider.readOpens; val transfer = h.prepare()
+        val local = NativeFileControlSession::class.java.getDeclaredField("local").apply { isAccessible = true }.get(h.f.session) as NativeLocalFileGrant
+        assertFalse(local.grants.sendFiles); assertTrue(local.grants.receiveFiles)
+        val pcLocal = GalleryReceiveConsentTest.Fixture::class.java.getDeclaredField("pcLocal").apply { isAccessible = true }.get(h.f) as NativeLocalFileGrant
+        assertTrue(pcLocal.grants.sendFiles); assertFalse(pcLocal.grants.receiveFiles)
+        assertFalse(h.f.index.pcStages().single().sealed)
+        val stageRoot = File(h.f.index.pcStages().single().body.string("root_path"))
+        assertEquals(setOf("owner.enc"), stageRoot.list()!!.toSet())
+        h.serve(transfer, duplicate = true)
+        h.f.io {
+            val acceptance = DeviceFileAcceptanceEnvelope.parse(transfer.sendAcceptance())
+            assertEquals(h.f.index.pcStages().single().acceptance.id, acceptance.acceptanceSha256)
+            val observed = transfer.receiveAndStage()
+            assertEquals("image/png", observed.mimeType); assertEquals(8, observed.width); assertEquals(8, observed.height)
+            assertFalse(observed.grantsWriteAuthority)
+            val sealed = transfer.sealedRecord(); assertTrue(sealed.sealed); assertFalse(sealed.grantsWriteAuthority)
+            val acceptanceBody = sealed.body.getValue("acceptance").jsonObject
+            val invalidRecords = listOf(
+                JsonObject(sealed.body + ("state" to JsonPrimitive("reserved"))),
+                JsonObject(sealed.body + ("write_grant" to JsonPrimitive(true))),
+                JsonObject(sealed.body + ("bytes" to JsonPrimitive(sealed.bytes.toString()))),
+                JsonObject(sealed.body + ("root_path" to JsonPrimitive("relative/root"))),
+                JsonObject(sealed.body + ("acceptance" to JsonObject(acceptanceBody + ("transfer_id" to JsonPrimitive("7".repeat(32)))))),
+                JsonObject(sealed.body + ("acceptance" to JsonObject(acceptanceBody + ("scope_sha256" to JsonPrimitive("7".repeat(64)))))),
+                JsonObject(sealed.body + ("acceptance" to JsonObject(acceptanceBody + ("total_bytes" to JsonPrimitive(sealed.bytes + 1))))),
+                JsonObject(sealed.body + ("seal" to JsonObject(sealed.body.getValue("seal").jsonObject + ("sha256" to JsonPrimitive("bad"))))),
+                JsonObject(sealed.body + ("observation" to JsonObject(sealed.body.getValue("observation").jsonObject + ("width" to JsonPrimitive(0)))))
+            )
+            for (invalid in invalidRecords) assertThrows(PhotoFolderScopeError::class.java) { GalleryPcStageRecord.parse(invalid) }
+            val sample = ByteArray(21); val start = DeviceFileManifest.CHUNK_BYTES - 7
+            assertEquals(sample.size, transfer.readStagedAt(start.toLong(), sample, 0, sample.size))
+            assertArrayEquals(h.bytes.copyOfRange(start, start + sample.size), sample); sample.fill(0)
+        }
+        assertEquals(setOf("owner.enc", "chunk-0.enc", "chunk-1.enc", "complete.enc"), stageRoot.list()!!.toSet())
+        assertEquals(2, h.link.frames.count { it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
+        stageRoot.listFiles()!!.forEach { file ->
+            assertFalse(file.readBytes().take(8).toByteArray().contentEquals(h.bytes.take(8).toByteArray()))
+        }
+        assertEquals(before.filterKeys { it != PhotoSourceMembership.NAME },
+            h.f.rows().filterKeys { !it.startsWith(GalleryPcStageRecord.PREFIX) && it != PhotoSourceMembership.NAME })
+        assertEquals(reads, h.provider.readOpens); h.assertOriginal(); transfer.close()
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.readStagedAt(0, ByteArray(1), 0, 1) } }
+        val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+    }
+
+    @Test fun pcStageRejectsWrongContentHashOrUnrecognizedNativeMediaWithoutPublishingOrDiscardingItsReservation() {
+        for (badMedia in listOf(false, true)) withPcStage(unrecognized = badMedia) { h ->
+            val transfer = h.prepare(); h.serve(transfer, corrupt = !badMedia)
+            h.f.io {
+                transfer.sendAcceptance()
+                assertThrows(PhotoFolderScopeError::class.java) { transfer.receiveAndStage() }
+            }
+            assertFalse(h.f.index.pcStages().single().sealed); h.assertOriginal()
+            assertTrue(File(h.f.index.pcStages().single().body.string("root_path"), "chunk-0.enc").exists())
+            val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+        }
+    }
+
+    @Test fun pcStageCipherChangesCannotBeAdoptedEvenIfBytesArePutBackAfterTheFirstFailedRead() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer)
+        h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        val root = File(h.f.io { transfer.sealedRecord().body.string("root_path") }); val chunk = File(root, "chunk-1.enc"); val old = chunk.readBytes()
+        chunk.writeBytes(old.copyOf().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() })
+        val target = ByteArray(27) { 126 }
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.readStagedAt((DeviceFileManifest.CHUNK_BYTES - 7).toLong(), target, 3, 21) } }
+        assertTrue(target.copyOfRange(0, 3).all { it == 126.toByte() }); assertTrue(target.copyOfRange(3, 10).all { it == 0.toByte() })
+        assertTrue(target.copyOfRange(10, target.size).all { it == 126.toByte() })
+        chunk.writeBytes(old)
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.readStagedAt(0, ByteArray(3), 0, 3) } }
+        assertTrue(h.f.index.pcStages().single().sealed); h.assertOriginal()
+    }
+
+    @Test fun canceledPcStagingRetainsTheMediaLaneWhileItsActualCipherFileDescriptorIsStillOpen() = withPcStage { h ->
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        val checkpoints = java.util.concurrent.atomic.AtomicInteger()
+        val transfer = h.prepare { if (it == "pc-stage-cipher-durable-before-close" && checkpoints.incrementAndGet() == 2) {
+            entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        } }
+        h.serve(transfer); h.f.io { transfer.sendAcceptance() }
+        val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val worker = Thread { try { h.f.io { transfer.receiveAndStage() } } catch (error: Throwable) { failure.set(error) } }.also { it.start() }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); transfer.close()
+            val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe)); assertTrue(worker.isAlive); assertFalse(transfer.awaitIoEnded(0))
+        } finally { release.countDown(); worker.join(7000) }
+        assertFalse(worker.isAlive); assertTrue(failure.get() is PhotoFolderScopeError); assertTrue(transfer.awaitIoEnded(0))
+        assertFalse(h.f.index.pcStages().single().sealed); h.assertOriginal()
+        val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+    }
+
+    @Test fun storedPcProposalCannotStartStagingAfterBookOrFullIntentRevocationAndBusyMediaDoesNotAllocateARoot() {
+        for (reason in listOf("book", "intent", "busy", "control", "used")) withPcStage { h ->
+            when (reason) {
+                "book" -> h.f.unlocked = false
+                "intent" -> h.incoming.set(MediaSyncTransport.IntentToken(MediaSyncSettings.change(h.token.body,
+                    "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "auto_mode", JsonPrimitive("wifi"))))
+                "control" -> {
+                    val own = h.f.session.packet(); h.f.session.markSent(own)
+                    val old = NativeFileControlSession::class.java.getDeclaredField("remote").apply { isAccessible = true }.get(h.f.session) as DeviceFileControlPacket
+                    assertTrue(h.f.session.observeRemote(old.copy(sessionEpoch = "a".repeat(64), sequence = 1, echo = own.challenge), h.f.peer))
+                    val echo = h.f.session.packet(); h.f.session.markSent(echo)
+                    assertEquals(h.plan.body["binding"], h.f.session.binding(GalleryPcStageRecord.media(h.plan).manifest.fingerprint)!!.snapshot())
+                }
+                "used" -> h.grant.consume()
+            }
+            val lane = Any()
+            if (reason == "busy") assertTrue(NativeGalleryMediaIoLane.acquire(lane))
+            try { assertThrows(PhotoFolderScopeError::class.java) { h.prepare() } }
+            finally { if (reason == "busy") NativeGalleryMediaIoLane.release(lane) }
+            assertTrue(h.f.index.pcStages().isEmpty()); assertTrue(h.context.noBackupFilesDir.list()!!.isEmpty()); h.assertOriginal()
+        }
+    }
+
+    @Test fun pcStagingKeepsTheActualOriginalOfferExpiryAfterAcceptanceAndDoesNotOpenAnyChunkReaderLater() = withPcStage(shortOffer = true) { h ->
+        val transfer = h.prepare(); h.serve(transfer)
+        h.f.io { transfer.sendAcceptance() }
+        val deadline = h.plan.body.getValue("offer").jsonObject.long("expires_ms")
+        assertTrue(System.currentTimeMillis() < deadline)
+        java.util.concurrent.CountDownLatch(1).await(maxOf(0L, deadline - System.currentTimeMillis()) + 20, java.util.concurrent.TimeUnit.MILLISECONDS)
+        assertTrue(System.currentTimeMillis() >= deadline)
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.receiveAndStage() } }
+        assertFalse(h.f.index.pcStages().single().sealed)
+        assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
+        h.assertOriginal()
+    }
+
+    @Test fun photosOnlyPcStageRejectsAHashCorrectScreenshotInsteadOfInventingCaptureMetadata() = withPcStage(photosOnly = true) { h ->
+        val transfer = h.prepare(); h.serve(transfer)
+        h.f.io {
+            transfer.sendAcceptance()
+            val error = assertThrows(PhotoFolderScopeError::class.java) { transfer.receiveAndStage() }
+            assertEquals("gallery_incoming_photo_metadata_required", error.message)
+        }
+        assertFalse(h.f.index.pcStages().single().sealed); h.assertOriginal()
+    }
+
+    @Test fun pcStageReservedByteBudgetHoldsWithoutAllocatingFilesOrDiscardingOtherProtectedReservations() = withPcStage { h ->
+        h.f.io {
+            val ordinaryBody = h.plan.body.getValue("offer").jsonObject.getValue("body").jsonObject.getValue("offer").jsonObject
+            val rawManifest = ordinaryBody.getValue("manifest").jsonObject
+            val oldFile = rawManifest.getValue("files").jsonArray.single().jsonObject
+            val large = DeviceFileManifest.parse(JsonObject(rawManifest + mapOf("total_bytes" to JsonPrimitive(DeviceFileManifest.MAX_FILE_BYTES),
+                "files" to JsonArray(listOf(JsonObject(oldFile + ("size" to JsonPrimitive(DeviceFileManifest.MAX_FILE_BYTES))))))))
+            val wire = h.plan.body.getValue("offer").jsonObject
+            val largeOffer = JsonObject(wire + ("body" to JsonObject(wire.getValue("body").jsonObject +
+                ("offer" to JsonObject(ordinaryBody + mapOf("manifest" to large.wire(), "manifest_sha256" to JsonPrimitive(large.fingerprint)))))))
+            val binding = JsonObject(h.plan.body.getValue("binding").jsonObject + ("destination_token" to JsonPrimitive(large.fingerprint)))
+            val transaction = PhotoSourceJobIndex::class.java.getDeclaredMethod("transaction", java.lang.Boolean.TYPE, kotlin.jvm.functions.Function0::class.java)
+                .apply { isAccessible = true }
+            val put = PhotoSourceJobIndex::class.java.getDeclaredMethod("putMeta", String::class.java, ByteArray::class.java).apply { isAccessible = true }
+            fun metadata(name: String, body: JsonObject) {
+                val plain = java.io.ByteArrayOutputStream().use { output -> TelefonRahmen.schreiben(output, body, DeviceTransferProtection.MAX_CLEAR_BYTES - 4); output.toByteArray() }
+                val cipher = try { h.f.protection.seal(plain, "photo-source-jobs-v1/" + name) } finally { plain.fill(0) }
+                put.invoke(h.f.index, name, cipher)
+            }
+            // Synthetic reservation metadata ONLY; no 400-MiB payload is allocated or claimed verified.
+            val count = (DeviceFileManifest.MAX_TOTAL_BYTES / DeviceFileManifest.MAX_FILE_BYTES).toInt()
+            val prepared = mutableListOf<Pair<String, JsonObject>>()
+            repeat(count) { number ->
+                    val id = (number + 1).toString(16).padStart(32, '0')
+                    val plan = GalleryPcReplacementPlan.parse(JsonObject(h.plan.body + mapOf("id" to JsonPrimitive(id), "offer" to largeOffer, "binding" to binding)))
+                    val media = GalleryPcStageRecord.media(plan)
+                    h.grant.request.admission.incomingOwner(media).use { owner ->
+                        val acceptance = GalleryIncomingAcceptance.create(owner, media.offer, System.currentTimeMillis())
+                        val record = GalleryPcStageRecord.create(plan, File(h.context.noBackupFilesDir, "uncreated-$id"), "synthetic-reservation-$id", acceptance)
+                        prepared += GalleryPcReplacementPlan.PREFIX + id to plan.body
+                        prepared += GalleryPcStageRecord.PREFIX + id to record.body
+                    }
+            }
+            transaction.invoke(h.f.index, false, { prepared.forEach { (name, body) -> metadata(name, body) } })
+            assertEquals(DeviceFileManifest.MAX_TOTAL_BYTES, h.f.index.pcStages().sumOf { it.bytes })
+        }
+        val retained = h.f.rows()
+        val failure = assertThrows(PhotoFolderScopeError::class.java) { h.prepare() }
+        assertEquals("gallery_pc_stage_capacity", failure.message)
+        assertTrue(h.context.noBackupFilesDir.list()!!.isEmpty()); assertTrue(retained == h.f.rows()); h.assertOriginal()
+    }
+
+    @Test fun pcStageCannotTreatFailedSecureOutputOrWrongChunkBindingAsReceivedSuccessorData() {
+        for (reason in listOf("acceptance_output", "request_output", "binding", "hash")) withPcStage { h ->
+            val transfer = h.prepare()
+            if (reason == "acceptance_output") h.link.failKind = DeviceFileAcceptanceEnvelope.KIND
+            else if (reason == "request_output") h.link.failKind = DeviceFileChunkEnvelope.REQUEST
+            else h.serve(transfer, change = { message ->
+                val field = if (reason == "binding") "destination_token" else "data_sha256"
+                JsonObject(message + ("body" to JsonObject(message.getValue("body").jsonObject + (field to JsonPrimitive("a".repeat(64))))))
+            })
+            h.f.io {
+                if (reason == "acceptance_output") assertThrows(java.io.IOException::class.java) { transfer.sendAcceptance() }
+                else {
+                    transfer.sendAcceptance()
+                    if (reason == "request_output") assertThrows(java.io.IOException::class.java) { transfer.receiveAndStage() }
+                    else assertThrows(PhotoFolderScopeError::class.java) { transfer.receiveAndStage() }
+                }
+            }
+            assertFalse(h.f.index.pcStages().single().sealed); h.assertOriginal()
+            assertEquals(setOf("owner.enc"), File(h.f.index.pcStages().single().body.string("root_path")).list()!!.toSet())
+        }
+    }
+
+    @Test fun pcStageDoesNotRestartTheOriginalWriteAdmissionClockWhileWaitingForAnUnansweredChunk() = withPcStage { h ->
+        val remaining = h.grant.request.admission.remainingMs()
+        assertTrue(remaining > 3000)
+        // Actual elapsed admission time, not a substituted clock or modified product TTL.
+        java.util.concurrent.CountDownLatch(1).await(remaining - 3000, java.util.concurrent.TimeUnit.MILLISECONDS)
+        val transfer = h.prepare()
+        val accepted = h.f.io { transfer.sendAcceptance() }
+        assertTrue(accepted.long("expires_ms") < h.plan.body.getValue("offer").jsonObject.long("expires_ms"))
+        val before = h.grant.request.admission.remainingMs(); val started = System.nanoTime()
+        h.f.io { assertThrows(PhotoFolderScopeError::class.java) { transfer.receiveAndStage() } }
+        assertTrue(java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) <= before + 1000)
+        assertFalse(h.f.index.pcStages().single().sealed); h.assertOriginal()
+        val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+    }
+
+    @Test fun pcStageEndWaitsForARealConcurrentChunkObserverDescriptorEvenAfterTheReceiveWorkerHasEnded() = withPcStage { h ->
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        val transfer = h.prepare { if (it == "pc-stage-cipher-read-open" && Thread.currentThread().name == "fixture-pc-stage-observer") {
+            entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        } }
+        val observer = java.util.concurrent.atomic.AtomicReference<Thread?>()
+        val observerFailure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        h.link.onMessage = { message -> if (message["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST)) {
+            val request = DeviceFileChunkEnvelope.parseRequest(message)
+            val clear = h.bytes.copyOfRange(0, DeviceFileManifest.CHUNK_BYTES)
+            val response = try { DeviceFileChunkEnvelope.response(request, clear) } finally { clear.fill(0) }
+            Thread({
+                try { transfer.observeChunk(h.link.channel, h.link.receive(response)) }
+                catch (error: Throwable) { observerFailure.set(error) }
+            }, "fixture-pc-stage-observer").also { observer.set(it); it.start() }
+        } }
+        h.f.io { transfer.sendAcceptance() }
+        val receiveFailure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val receiver = Thread { try { h.f.io { transfer.receiveAndStage() } } catch (error: Throwable) { receiveFailure.set(error) } }.also { it.start() }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); transfer.close()
+            receiver.join(2000); assertFalse(receiver.isAlive)
+            assertTrue(observer.get()!!.isAlive); assertFalse(transfer.awaitIoEnded(0))
+            val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+        } finally { release.countDown(); receiver.join(7000); observer.get()?.join(7000) }
+        assertFalse(receiver.isAlive); assertFalse(observer.get()!!.isAlive)
+        assertTrue(receiveFailure.get() is PhotoFolderScopeError); assertTrue(observerFailure.get() is PhotoFolderScopeError)
+        assertTrue(transfer.awaitIoEnded(0)); h.assertOriginal()
+        val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+    }
+
+    @Test fun legitimateLateDuplicateChunkObserverCanOverlapTheExactReservedToSealedTransitionWithoutAdoptingNewRights() = withPcStage { h ->
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        val blocked = java.util.concurrent.atomic.AtomicBoolean(false)
+        val transfer = h.prepare { if (it == "pc-stage-before-record-check" && Thread.currentThread().name == "fixture-stage-late-duplicate" && blocked.compareAndSet(false, true)) {
+            entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        } }
+        val duplicate = java.util.concurrent.atomic.AtomicReference<Thread?>()
+        val duplicateResult = java.util.concurrent.atomic.AtomicReference<Boolean?>()
+        val duplicateFailure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        h.link.onMessage = { message -> if (message["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST)) {
+            val request = DeviceFileChunkEnvelope.parseRequest(message); val start = request.chunkIndex * DeviceFileManifest.CHUNK_BYTES
+            val clear = h.bytes.copyOfRange(start, minOf(h.bytes.size, start + DeviceFileManifest.CHUNK_BYTES))
+            val response = try { DeviceFileChunkEnvelope.response(request, clear) } finally { clear.fill(0) }
+            assertTrue(transfer.observeChunk(h.link.channel, h.link.receive(response)))
+            if (request.chunkIndex == 1) {
+                Thread({
+                    try { duplicateResult.set(transfer.observeChunk(h.link.channel, h.link.receive(response))) }
+                    catch (error: Throwable) { duplicateFailure.set(error) }
+                }, "fixture-stage-late-duplicate").also { duplicate.set(it); it.start() }
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            }
+        } }
+        h.f.io { transfer.sendAcceptance() }
+        val received = java.util.concurrent.atomic.AtomicReference<NativeIncomingMediaObservation?>()
+        val receiveFailure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val receiver = Thread { try { received.set(h.f.io { transfer.receiveAndStage() }) } catch (error: Throwable) { receiveFailure.set(error) } }.also { it.start() }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); receiver.join(7000)
+            assertFalse(receiver.isAlive); assertNull(receiveFailure.get()); assertEquals("image/png", received.get()!!.mimeType)
+            assertTrue(h.f.io { transfer.sealedRecord().sealed }); assertTrue(duplicate.get()!!.isAlive)
+        } finally { release.countDown(); receiver.join(7000); duplicate.get()?.join(7000) }
+        assertFalse(duplicate.get()!!.isAlive); assertNull(duplicateFailure.get()); assertEquals(false, duplicateResult.get())
+        val target = ByteArray(17); h.f.io { assertEquals(target.size, transfer.readStagedAt(0, target, 0, target.size)) }
+        assertArrayEquals(h.bytes.copyOf(target.size), target); target.fill(0)
+        h.assertOriginal(); transfer.close(); assertTrue(transfer.awaitIoEnded(0))
+    }
+
+    @Test fun pcStageRejectsForeignFilesSubstituteRootsAndHardlinksWithoutDeletingOrAdoptingThem() {
+        for (reason in listOf("extra", "root", "hardlink")) withPcStage { h ->
+            val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+            val root = File(h.f.io { transfer.sealedRecord().body.string("root_path") })
+            val foreign = when (reason) {
+                "extra" -> File(root, "foreign.enc").apply { writeText("foreign data remains") }
+                "root" -> {
+                    assertTrue(root.renameTo(File(root.parentFile, root.name + "-retained")))
+                    java.nio.file.Files.createDirectory(root.toPath(), java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                        java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")))
+                    File(root, "foreign.txt").apply { writeText("replacement root remains") }
+                }
+                else -> File(h.context.noBackupFilesDir, "held-cipher-link.enc").also {
+                    java.nio.file.Files.createLink(it.toPath(), File(root, "chunk-0.enc").toPath())
+                }
+            }
+            val retained = foreign.readBytes()
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.readStagedAt(0, ByteArray(3), 0, 3) } }
+            assertArrayEquals(retained, foreign.readBytes()); h.assertOriginal()
+            assertTrue(h.f.index.pcStages().single().sealed)
+        }
+    }
+
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {
         NativeGalleryIncomingTransferTest.Link().use { link ->
             withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->
