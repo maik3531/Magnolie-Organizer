@@ -54,15 +54,33 @@ window.NativeDomains = (() => {
   }
   async function drawingInputReady() {
     const deadline=performance.now()+3000;let previous='',stableSince=0,frames=0,last=null;
+    const started=deadline-3000,diagnostic={schema:1,outcome:'sampling',deadlineMilliseconds:3000,
+      requiredStableFrames:4,requiredStableMilliseconds:150,frameCount:0,maxRafGapMilliseconds:0,
+      sampleChanges:0,documentChanges:0,changeLimit:12,droppedChanges:0,changes:[]};
+    window.__domainDrawingReadiness=diagnostic;
+    let previousFrameAt=started,previousDocument='';
     while(performance.now()<deadline) {
-      await new Promise(resolve=>requestAnimationFrame(resolve));
+      const frameAt=await new Promise(resolve=>requestAnimationFrame(resolve));
       const canvas=$('.custom-zeichenblatt');assert(canvas,'Missing actual drawing canvas');
       const rect=canvas.getBoundingClientRect(),module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
       const sample={left:rect.left,top:rect.top,width:rect.width,height:rect.height,
         bitmapWidth:canvas.width,bitmapHeight:canvas.height,modelWidth:module?.drawing?.width,modelHeight:module?.drawing?.height,
         fonts:document.fonts?.status||'unsupported'};
       const key=JSON.stringify(sample),now=performance.now();last=sample;
+      const observedFrameAt=Number.isFinite(frameAt)?frameAt:now;
+      const gap=Math.max(0,observedFrameAt-previousFrameAt);previousFrameAt=observedFrameAt;
+      diagnostic.frameCount++;diagnostic.maxRafGapMilliseconds=Math.max(diagnostic.maxRafGapMilliseconds,gap);
+      const documentState={visibility:document.visibilityState||'unknown',focused:document.hasFocus?.()??null};
+      const documentKey=JSON.stringify(documentState),sampleChanged=key!==previous,documentChanged=documentKey!==previousDocument;
+      if(sampleChanged)diagnostic.sampleChanges++;if(documentChanged)diagnostic.documentChanges++;
+      if(sampleChanged||documentChanged) {
+        if(diagnostic.changes.length<diagnostic.changeLimit)diagnostic.changes.push({afterMilliseconds:now-started,
+          frameGapMilliseconds:gap,sample,document:documentState});else diagnostic.droppedChanges++;
+      }
+      previousDocument=documentKey;
       if(key!==previous||sample.fonts==='loading'){previous=key;stableSince=now;frames=0;}else frames++;
+      diagnostic.last={afterMilliseconds:now-started,frameGapMilliseconds:gap,sample,document:documentState,
+        stableFrames:frames,stableMilliseconds:now-stableSince};
       if(frames<4||now-stableSince<150)continue;
       assert(window.MagnolieZeichnen.valid(module?.drawing)&&module.drawing.strokes.length===0,'Input preparation requires an empty valid drawing');
       assert(window.__domainPointers.down===0&&window.__domainPointers.move===0&&window.__domainPointers.up===0,'Input baseline must precede native pointers');
@@ -72,8 +90,10 @@ window.NativeDomains = (() => {
       const hit=drawingTargetReady(target);
       window.__domainCanvasBefore=canvas.toDataURL('image/png');
       window.__domainIntendedStroke={widthFraction:(target.x2-target.x1)/rect.width};
+      diagnostic.outcome='ready';
       return {target,readiness:{...hit,geometry:sample,stableFrames:frames,stableMilliseconds:now-stableSince}};
     }
+    diagnostic.outcome='deadline';
     throw Error('Drawing geometry/bitmap/fonts did not settle within 3 seconds: '+JSON.stringify(last));
   }
   async function prepare() {

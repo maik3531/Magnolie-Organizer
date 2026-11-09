@@ -492,8 +492,6 @@ class NativeTabletInstrumentation : Instrumentation() {
         domainMark("health.saved")
         pass("actual custom designer and appointment task text editors persist",domainStep("NativeDomains.custom()",save=true))
         domainMark("custom.saved")
-        val target=domainStep("NativeDomains.drawing()")
-        domainMark("drawing.editor.ready")
         val inputReceipt=JSONObject()
         val inputArtifact=File(out,"domains-drawing-input.json")
         fun writeInputReceipt() {
@@ -501,6 +499,16 @@ class NativeTabletInstrumentation : Instrumentation() {
             check(encoded.length<=16384) {"Drawing input diagnostic exceeded its bound"}
             inputArtifact.writeText(encoded)
         }
+        NativeDomainAcceptance.requireOwnership(this,activity,web,"beforeReadiness") { native ->
+            inputReceipt.put("beforeReadiness",native);writeInputReceipt()
+        }
+        val target=try {domainStep("NativeDomains.drawing()")} finally {
+            try {inputReceipt.put("readiness",JSONObject(value("window.__domainDrawingReadiness || {}")));writeInputReceipt()}
+            catch(failure:Exception) {
+                try {inputReceipt.put("readinessSnapshotError",failure.javaClass.simpleName);writeInputReceipt()} catch(_:Exception) {}
+            }
+        }
+        domainMark("drawing.editor.ready")
         fun drawingSnapshot(phase: String) {
             inputReceipt.put(phase,JSONObject(value("""
                 (()=>{const c=document.querySelector('.custom-zeichenblatt'),m=OrganizerTest.daten().customOrganizer.modules.find(x=>x.type==='drawing');

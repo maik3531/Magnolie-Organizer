@@ -11,6 +11,40 @@ import java.security.MessageDigest
 
 /** Test-only physical input and full native/renderer data-integrity comparison. */
 internal object NativeDomainAcceptance {
+    private fun ownershipState(test: Instrumentation, activity: Activity, web: WebView): JSONObject {
+        val origin=IntArray(2); var density=0f
+        val state=JSONObject().put("elapsedRealtimeMs",SystemClock.elapsedRealtime())
+        var activePackage="";var activeWindow=-1
+        try {
+            val root=test.uiAutomation.rootInActiveWindow
+            if(root!=null)try {activePackage=root.packageName?.toString().orEmpty().take(160);activeWindow=root.windowId}
+                finally {root.recycle()}
+        } catch(failure:Exception) {state.put("activeWindowReadError",failure.javaClass.simpleName)}
+        var nativeReady=false;var targetWindow=-1
+        test.runOnMainSync {
+            web.getLocationOnScreen(origin);density=web.resources.displayMetrics.density
+            val node=web.createAccessibilityNodeInfo()
+            try {targetWindow=node.windowId} finally {node.recycle()}
+            nativeReady=!activity.isFinishing && !activity.isDestroyed && activity.hasWindowFocus() &&
+                web.isAttachedToWindow && web.isShown && web.hasWindowFocus()
+            state.put("activityFinishing",activity.isFinishing).put("activityDestroyed",activity.isDestroyed)
+                .put("activityWindowFocused",activity.hasWindowFocus()).put("webAttached",web.isAttachedToWindow)
+                .put("webShown",web.isShown).put("webWindowFocused",web.hasWindowFocus())
+                .put("targetWindowId",targetWindow).put("origin",JSONArray(origin.toList()))
+                .put("viewSize",JSONArray(listOf(web.width,web.height))).put("density",density)
+        }
+        val owned=nativeReady && targetWindow>=0 && activeWindow==targetWindow && activePackage==activity.packageName
+        return state.put("activePackage",activePackage).put("activeWindowId",activeWindow).put("owned",owned)
+    }
+    fun requireOwnership(test: Instrumentation, activity: Activity, web: WebView, phase: String,
+                         report: (JSONObject) -> Unit): JSONObject {
+        val receipt=JSONObject().put("schema",1).put("source","native-window-ownership").put("phase",phase)
+        val state=ownershipState(test,activity,web); receipt.put("state",state)
+        if(!state.getBoolean("owned")) receipt.put("classification","environment-input-blocked")
+        report(receipt)
+        check(state.getBoolean("owned")) {"ENVIRONMENT_INPUT_BLOCKED: app-owned drawing window lacks native input ownership ($phase)"}
+        return receipt
+    }
     // Only this app-owned drawing gesture requires the app's native window.
     // SAF/permission/system-dialog interactions deliberately do not use this guard.
     fun stroke(test: Instrumentation, activity: Activity, web: WebView, target: JSONObject,
@@ -21,31 +55,13 @@ internal object NativeDomainAcceptance {
                 .put("x1",target.getDouble("x1")).put("x2",target.getDouble("x2")).put("y",target.getDouble("y")))
         var density=0f
         fun ownership(phase: String) {
-            val state=JSONObject().put("elapsedRealtimeMs",SystemClock.elapsedRealtime())
-            var activePackage="";var activeWindow=-1
-            try {
-                val root=test.uiAutomation.rootInActiveWindow
-                if(root!=null)try {activePackage=root.packageName?.toString().orEmpty().take(160);activeWindow=root.windowId}
-                    finally {root.recycle()}
-            } catch(failure:Exception) {state.put("activeWindowReadError",failure.javaClass.simpleName)}
-            var nativeReady=false;var targetWindow=-1
-            test.runOnMainSync {
-                web.getLocationOnScreen(origin);density=web.resources.displayMetrics.density
-                val node=web.createAccessibilityNodeInfo()
-                try {targetWindow=node.windowId} finally {node.recycle()}
-                nativeReady=!activity.isFinishing && !activity.isDestroyed && activity.hasWindowFocus() &&
-                    web.isAttachedToWindow && web.isShown && web.hasWindowFocus()
-                state.put("activityFinishing",activity.isFinishing).put("activityDestroyed",activity.isDestroyed)
-                    .put("activityWindowFocused",activity.hasWindowFocus()).put("webAttached",web.isAttachedToWindow)
-                    .put("webShown",web.isShown).put("webWindowFocused",web.hasWindowFocus())
-                    .put("targetWindowId",targetWindow).put("origin",JSONArray(origin.toList()))
-                    .put("viewSize",JSONArray(listOf(web.width,web.height))).put("density",density)
-            }
+            val state=ownershipState(test,activity,web)
+            val publishedOrigin=state.getJSONArray("origin"); origin[0]=publishedOrigin.getInt(0);origin[1]=publishedOrigin.getInt(1)
+            density=state.getDouble("density").toFloat()
             if(phase=="beforeInjection" && density.isFinite() && density>0) receipt.put("nativeTarget",JSONObject()
                 .put("x1",origin[0]+target.getDouble("x1")*density).put("x2",origin[0]+target.getDouble("x2")*density)
                 .put("y",origin[1]+target.getDouble("y")*density))
-            val owned=nativeReady && targetWindow>=0 && activeWindow==targetWindow && activePackage==activity.packageName
-            state.put("activePackage",activePackage).put("activeWindowId",activeWindow).put("owned",owned)
+            val owned=state.getBoolean("owned")
             receipt.put(phase,state)
             if(!owned) receipt.put("classification","environment-input-blocked")
             report(receipt)
