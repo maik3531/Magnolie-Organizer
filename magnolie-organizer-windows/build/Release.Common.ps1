@@ -372,7 +372,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
                 ($parts | Where-Object { $_ -like '.release-staging-*' }) -or
                 $file.Name -like "*~" -or
                 ($file.Name -match $internalNotePattern -and
-                    $relative -cne 'contracts/sms-plan-review-v1.md') -or
+                    $relative -cnotin @('contracts/sms-plan-review-v1.md', 'contracts/media-recovery-preview.md')) -or
                 $file.Name -imatch $generatedReleasePattern -or
                 $file.Name -ieq ".magnolie-windows-release.lock" -or
                 $forbiddenExtensions -contains $extension -or

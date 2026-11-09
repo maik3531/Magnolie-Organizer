@@ -25,7 +25,7 @@ def test_setup_deferred_literals_are_catalogued(tmp_path):
     module.run(["--output", str(output)])
     assert output.read_bytes() == first
     # msgattrib normalizes wrapping for exact key checks without compiling translations.
-    text = subprocess.check_output(["msgattrib", "--no-wrap", str(output)], text=True)
+    text = subprocess.check_output(["msgattrib", "--no-wrap", str(output)], text=True, encoding="utf-8")
     # Native media labels live in the existing gettext marker file, not only
     # direct _ calls. Package regeneration must retain them as well.
     for label in ("A native media operation is still running.", "Photos",

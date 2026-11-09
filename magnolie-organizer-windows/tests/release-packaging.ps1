@@ -52,7 +52,7 @@ try {
         Write-Fixture (Join-Path $root "contracts/$name") '{"synthetic":true}'
     }
     foreach ($name in 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md',
-        'device-status-v4.md', 'native-call-audio.md', 'call-alert-actions-v2.md', 'sms-plan-review-v1.md') {
+        'device-status-v4.md', 'native-call-audio.md', 'call-alert-actions-v2.md', 'sms-plan-review-v1.md', 'media-recovery-preview.md') {
         Write-Fixture (Join-Path $root "contracts/$name") '# Synthetic public contract documentation'
     }
     foreach ($relative in 'local.token', 'local.secret', 'local.pem', '.private-testing/personal.json',
@@ -67,7 +67,7 @@ try {
         'FirstRunSetupPhoneServices.cs', 'FirstRunPhoneStartup.cs', 'TelefonInvitation.cs',
         'WindowsCallNotifications.cs', 'TelefonCallActions.cs',
         'contracts/device-status-v4.md', 'contracts/native-call-audio.md', 'contracts/call-alert-actions-v2.md',
-        'contracts/sms-plan-review-v1.md',
+        'contracts/sms-plan-review-v1.md', 'contracts/media-recovery-preview.md',
         'contracts/baum-1-receipt-v1-vectors.json', 'contracts/phone-setup-daemon-lifecycle.md',
         'shared/magnolie-handbuch/web/i18n/en.js',
         'tests/mcp-notes-historical-source-fixture.js',
@@ -93,20 +93,22 @@ try {
     $archive = Join-Path $output ($prefix + 'Source.zip')
     New-DeterministicZip $tree $archive $top
     Assert-SourceArchive $archive $root $version
-    # The public SMS review protocol is allowed; unrelated internal review notes are not.
-    $internalReview = Join-Path $root 'contracts/internal-review.md'
-    Write-Fixture $internalReview '# Synthetic internal review, not a public protocol'
-    $zip = [IO.Compression.ZipFile]::Open($archive, [IO.Compression.ZipArchiveMode]::Update)
-    try {
-        $entry = $zip.CreateEntry("$top/contracts/internal-review.md")
-        $writer = [IO.StreamWriter]::new($entry.Open())
-        try { $writer.Write([IO.File]::ReadAllText($internalReview)) } finally { $writer.Dispose() }
-    } finally { $zip.Dispose() }
-    Assert-Rejected { Assert-SourceArchive $archive $root $version }
-    $zip = [IO.Compression.ZipFile]::Open($archive, [IO.Compression.ZipArchiveMode]::Update)
-    try { $zip.GetEntry("$top/contracts/internal-review.md").Delete() } finally { $zip.Dispose() }
-    Remove-Item -LiteralPath $internalReview
-    Assert-SourceArchive $archive $root $version
+    # Only the exact public review/preview paths are allowed, never similar or nested names.
+    foreach ($relative in 'contracts/internal-review.md', 'contracts/nested/media-recovery-preview.md', 'contracts/media-recovery-preview-copy.md') {
+        $internalReview = Join-Path $root $relative
+        Write-Fixture $internalReview '# Synthetic internal review, not a public protocol'
+        $zip = [IO.Compression.ZipFile]::Open($archive, [IO.Compression.ZipArchiveMode]::Update)
+        try {
+            $entry = $zip.CreateEntry("$top/$relative")
+            $writer = [IO.StreamWriter]::new($entry.Open())
+            try { $writer.Write([IO.File]::ReadAllText($internalReview)) } finally { $writer.Dispose() }
+        } finally { $zip.Dispose() }
+        Assert-Rejected { Assert-SourceArchive $archive $root $version }
+        $zip = [IO.Compression.ZipFile]::Open($archive, [IO.Compression.ZipArchiveMode]::Update)
+        try { $zip.GetEntry("$top/$relative").Delete() } finally { $zip.Dispose() }
+        Remove-Item -LiteralPath $internalReview
+        Assert-SourceArchive $archive $root $version
+    }
     foreach ($suffix in 'x64.zip', 'Setup-x64.exe', 'Setup-x64.exe.build.json') {
         Write-Fixture (Join-Path $output ($prefix + $suffix))
     }

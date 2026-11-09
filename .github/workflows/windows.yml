@@ -37,6 +37,18 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: "1.2.20"
+      - name: Dokumentierte gettext-Bauwerkzeuge einrichten
+        shell: pwsh
+        run: |
+          choco install gettext --version=0.26.0 -y --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned gettext installation failed.' }
+          $gettextBin = Join-Path $env:ProgramFiles 'gettext-iconv\bin'
+          foreach ($tool in 'msgfmt.exe', 'xgettext.exe') {
+            if (-not (Test-Path -LiteralPath (Join-Path $gettextBin $tool) -PathType Leaf)) {
+              throw "Required gettext tool missing: $tool"
+            }
+          }
+          $gettextBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Python-Pakettests isoliert einrichten
         shell: pwsh
         run: |
@@ -46,6 +58,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Pinned pytest installation failed.' }
           "$env:RUNNER_TEMP\magnolie-python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "MAGNOLIE_PYTHON=$env:RUNNER_TEMP\magnolie-python\Scripts\python.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Gemeinsame Handbuchkataloge vor der Quellarchivprüfung erzeugen
+        shell: pwsh
+        run: |
+          & $env:MAGNOLIE_PYTHON ../magnolie-handbuch/werkzeuge/kataloge_bauen.py
+          if ($LASTEXITCODE -ne 0) { throw 'Canonical handbook catalog preparation failed.' }
       - name: Standalone-Quellarchiv bauen und aus dem Archiv testen
         shell: pwsh
         run: ./build/BuildSource.ps1
