@@ -8,6 +8,11 @@ on:
         type: choice
         default: all
         options: [all, macos, tablet, tablet-aosp, tablet-components, tablet-api26-components, tablet-timezone-interop]
+      component:
+        description: Only filters tablet-components and tablet-api26-components; never full UI acceptance
+        type: choice
+        default: all
+        options: [all, services, files, domains]
   push:
     branches: [codex/ports-2.0.30]
     paths:
@@ -153,7 +158,8 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        suite: ${{ fromJSON((inputs.target == 'tablet-components' || inputs.target == 'tablet-api26-components') && '["services","files","domains"]' || inputs.target == 'tablet-timezone-interop' && '["timezone"]' || '["ui"]') }}
+        # Refs #461: optional manual component selection; every other target keeps its original suite.
+        suite: ${{ fromJSON((inputs.target == 'tablet-components' || inputs.target == 'tablet-api26-components') && (inputs.component == 'services' && '["services"]' || inputs.component == 'files' && '["files"]' || inputs.component == 'domains' && '["domains"]' || '["services","files","domains"]') || inputs.target == 'tablet-timezone-interop' && '["timezone"]' || '["ui"]') }}
     if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
