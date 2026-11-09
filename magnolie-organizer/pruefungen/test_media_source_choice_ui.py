@@ -16,7 +16,7 @@ import magnolie_hintergrund as background
 import magnolie_telefon as phone
 
 
-@pytest.mark.parametrize('scenario',['choose','read','decline','lock','book','proxy','path_injection','flag','stale','fingerprint','substitution','rpc','busy_sending'])
+@pytest.mark.parametrize('scenario',['choose','read','decline','lock','book','proxy','path_injection','flag','stale','fingerprint','substitution','rpc','busy_sending','disabled_build'])
 def test_native_source_folder_handler_and_private_ipc_bind_the_original_gui_context_and_real_selection(pc,native,tmp_path,monkeypatch,scenario):
     service=native[0];monkeypatch.setattr(service,'_resume_automatic_photos',lambda *args:None)
     with composition(pc,service) as h:
@@ -67,6 +67,7 @@ def test_native_source_folder_handler_and_private_ipc_bind_the_original_gui_cont
             if scenario=='path_injection':payload['path']=str(folder)
             if scenario=='stale':payload['version']='f'*64
             if scenario=='fingerprint':payload['fingerprint']='unrelated-fingerprint'
+            if scenario=='disabled_build':monkeypatch.setattr(service,'_native_photo_built',False)
             worker=namespace['_telefon_sammlungsordner'](window,payload)
             if worker is not None:
                 worker.join(20);assert not worker.is_alive()
@@ -75,6 +76,7 @@ def test_native_source_folder_handler_and_private_ipc_bind_the_original_gui_cont
             assert answers and answers[-1][0]=='App.telefonFotoErgebnis'
             assert answers[-1][1]['ok'] is (scenario in ('choose','read','decline'))
             assert not {'selection','path','witness'}&answers[-1][1].keys()
+            if scenario=='disabled_build':monkeypatch.setattr(service,'_native_photo_built',True)
             with closing(h.preferences.open_collection_roots()) as catalog:after=catalog.read()
             assert len(after.roots)==len(before.roots)+(scenario=='choose')
             if scenario!='choose':assert after==before
@@ -82,6 +84,6 @@ def test_native_source_folder_handler_and_private_ipc_bind_the_original_gui_cont
             assert not h.connection._local().grants.receive_files and not h.connection._controls._remote.grants.send_files
             assert not h.connection._media_pc_source._prepared and h.pc_file.read_bytes()==h.raw
             assert h.connection._media_collection_choice is None and not getattr(window,'_telefon_sammlungsordner_pending',False)
-            assert len(dialogs)==(0 if scenario in ('read','flag','path_injection','stale','fingerprint','rpc','busy_sending') else 1)
+            assert len(dialogs)==(0 if scenario in ('read','flag','path_injection','stale','fingerprint','rpc','busy_sending','disabled_build') else 1)
             assert all(root._fd is None for root in held)
         finally:server.close()

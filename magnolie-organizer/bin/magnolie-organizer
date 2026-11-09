@@ -25073,7 +25073,8 @@ class Fenster(_FENSTER_BASIS):
                         cancel();retire_root();answer(ok=operation=="cancel",**({"canceled":True} if operation=="cancel" else {}));return
                     current()
                     if operation=="commit":
-                        from magnolie_media_source_choice import native_folder_witness
+                        import importlib
+                        native_folder_witness=importlib.import_module("magnolie_media_source_choice").native_folder_witness
                         root[0]._require()
                         source.photo_sync_collection_choice(kennung,nachricht["fingerprint"],"commit",nachricht["media_type"],
                             selection=selection[0],path=root[0]._directory.path,witness=native_folder_witness(root[0]))
@@ -25090,7 +25091,8 @@ class Fenster(_FENSTER_BASIS):
                                 standard=GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES if fotos else GLib.UserDirectory.DIRECTORY_VIDEOS) or "")
                             current()
                             if not path:start("cancel");return False
-                            from magnolie_media_source_collection import NativeCollectionRoot
+                            import importlib
+                            NativeCollectionRoot=importlib.import_module("magnolie_media_source_collection").NativeCollectionRoot
                             root[0]=NativeCollectionRoot(path,current) # Real UI-held FD survives private RPC scheduling.
                             start("commit")
                         except Exception:start("reject")
