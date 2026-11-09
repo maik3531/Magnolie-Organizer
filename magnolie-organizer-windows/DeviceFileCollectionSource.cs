@@ -153,11 +153,12 @@ internal sealed partial class TelefonStore
                 throw DeviceFileControl.Error("media_source_photo_metadata_required");
             var provenance = new JsonObject { ["collection_root"] = rootId, ["collection_version"] = rootVersion,
                 ["book_version"] = book.Version, ["media_type"] = mediaType, ["settings"] = intent.DeepClone(), ["sending_binding"] = sending.Snapshot() };
-            var origin = new JsonObject { ["format"] = 1, ["root_id"] = rootId, ["root_version"] = rootVersion,
+            var origin = new JsonObject { ["format"] = 2, ["root_id"] = rootId, ["root_version"] = rootVersion,
                 ["root_identity"] = NativeMediaReceiveJob.NativeIdentity(selection.Identity),
                 ["root_creation_filetime"] = selection.CreationFileTime.Value.ToString("x16", System.Globalization.CultureInfo.InvariantCulture),
                 ["file_identity"] = NativeMediaReceiveJob.NativeIdentity(member.Identity),
-                ["file_creation_filetime"] = member.CreationFileTime.ToString("x16", System.Globalization.CultureInfo.InvariantCulture) };
+                ["file_creation_filetime"] = member.CreationFileTime.ToString("x16", System.Globalization.CultureInfo.InvariantCulture),
+                ["relative_path"] = string.Join('/', member.Parents.Select(parent => parent.Name).Append(member.Name)) };
             ValidateLocalCollectionOrigin(origin, provenance); Current();
             return new(this, peerId, connectionOwner, root, file, member.Name, sending, provenance, origin);
         }

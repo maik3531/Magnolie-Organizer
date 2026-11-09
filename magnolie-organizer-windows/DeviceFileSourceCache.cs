@@ -77,6 +77,9 @@ internal sealed partial class TelefonStore
                 TelefonMessagingContract.String(body, "phase") is not ("planned" or "ready") ||
                 body["phase"]!.GetValue<string>() == "ready" && chunks.Count != (manifest.TotalBytes + DeviceFileManifest.ChunkBytes - 1) / DeviceFileManifest.ChunkBytes)
                 throw DeviceFileControl.Error("media_source_cache_record_invalid");
+            if (local && body["local_origin"]!["relative_path"] is JsonValue relative &&
+                !string.Equals(relative.GetValue<string>().Split('/').Last(), manifest.Files[0].Path, StringComparison.Ordinal))
+                throw DeviceFileControl.Error("media_collection_source_origin_invalid");
             return body;
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
@@ -92,16 +95,26 @@ internal sealed partial class TelefonStore
 
     private static void ValidateLocalCollectionOrigin(JsonNode raw, JsonObject provenance)
     {
-        var origin = TelefonProtocolContract.ExactObject(raw, "format", "root_id", "root_version", "root_identity", "root_creation_filetime", "file_identity", "file_creation_filetime");
+        var value = raw as JsonObject ?? throw DeviceFileControl.Error("media_collection_source_origin_invalid");
+        var format = TelefonProtocolContract.Integer(value["format"]);
+        var fields = new[] { "format", "root_id", "root_version", "root_identity", "root_creation_filetime", "file_identity", "file_creation_filetime" };
+        var origin = TelefonProtocolContract.ExactObject(value, format == 2 ? fields.Append("relative_path").ToArray() : fields);
         var root = NativeMediaReceiveJob.NativeAlbumIdentity(TelefonProtocolContract.ExactObject(origin["root_identity"]!, "volume", "low", "high"));
         var file = NativeMediaReceiveJob.NativeAlbumIdentity(TelefonProtocolContract.ExactObject(origin["file_identity"]!, "volume", "low", "high"));
         static bool Generation(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) &&
             text.Length == 16 && text.All(char.IsAsciiHexDigitLower) && text.Any(c => c != '0');
-        if (TelefonProtocolContract.Integer(origin["format"]) != 1 || !SourceId(TelefonMessagingContract.String(origin, "root_id")) ||
+        if (format is not (1 or 2) || !SourceId(TelefonMessagingContract.String(origin, "root_id")) ||
             !DeviceFileControl.Hash(TelefonMessagingContract.String(origin, "root_version")) || root.VolumeSerial != file.VolumeSerial ||
             !Generation(origin["root_creation_filetime"]) || !Generation(origin["file_creation_filetime"]) ||
             !JsonNode.DeepEquals(origin["root_id"], provenance["collection_root"]) || !JsonNode.DeepEquals(origin["root_version"], provenance["collection_version"]))
             throw DeviceFileControl.Error("media_collection_source_origin_invalid");
+        if (format == 2)
+        {
+            var path = TelefonMessagingContract.String(origin, "relative_path"); var parts = path.Split('/');
+            if (path.Length > 4096 || parts.Length > 17 || parts.Any(part => part is "" or "." or ".."))
+                throw DeviceFileControl.Error("media_collection_source_origin_invalid");
+            foreach (var part in parts) _ = DeviceFileNativeDirectory.ReceiveLeaf(part);
+        }
     }
 
     private static JsonObject SourceCorrelation(JsonObject body) => body["local_origin"] is JsonObject local
@@ -114,12 +127,21 @@ internal sealed partial class TelefonStore
     {
         if (next["local_origin"] is not JsonObject origin) return;
         foreach (var item in records)
+        {
             // A selected-root change cannot mint a second source for a known
             // native file. Reassociation needs its own explicit owner, not a
             // root-local history lookup or a name/content heuristic.
-            if (item.Body["local_origin"] is JsonObject old &&
-                JsonNode.DeepEquals(old["file_identity"], origin["file_identity"]) && !JsonNode.DeepEquals(old, origin))
+            if (item.Body["local_origin"] is not JsonObject old) continue;
+            var sameRoot = JsonNode.DeepEquals(old["root_id"], origin["root_id"]);
+            // Legacy origin 1 never recorded a full native relative path. Do
+            // not infer one from today's tree or the wire's leaf-only name.
+            if (sameRoot && (old["relative_path"] is null || origin["relative_path"] is null))
+                throw DeviceFileControl.Error("media_collection_original_path_required");
+            var samePath = sameRoot && string.Equals(TelefonMessagingContract.String(old, "relative_path"),
+                TelefonMessagingContract.String(origin, "relative_path"), StringComparison.OrdinalIgnoreCase);
+            if ((JsonNode.DeepEquals(old["file_identity"], origin["file_identity"]) || samePath) && !JsonNode.DeepEquals(old, origin))
                 throw DeviceFileControl.Error("media_collection_original_generation_required");
+        }
     }
 
     internal IReadOnlyList<(string JobId, string Version, string Phase)> NativeMediaSourceHistory(string peerId)

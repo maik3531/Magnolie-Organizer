@@ -164,6 +164,77 @@ internal static class DeviceFileCollectionSourceTests
         TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(history) &&
             File.ReadAllBytes(Path.Combine(secondPath, "new-pc.png")).SequenceEqual(data),
             "Cross-root HOLD changed retained source history or original bytes.");
+        File.Move(Path.Combine(secondPath, "new-pc.png"), Path.Combine(selection.NativePath, "retained-original.png"));
+        var replacementPath = Path.Combine(selection.NativePath, "new-pc.png"); File.WriteAllBytes(replacementPath, data);
+        DeviceFileNativeDirectory.CollectionMember replacement;
+        using (var selected = selection.OpenNative())
+            replacement = selected.InventoryCollection(() => { }, CancellationToken.None).Members.Single(item => item.Name == "new-pc.png");
+        TestAssert.That(replacement.Identity != original.Identity,
+            "Known-path reassociation fixture did not create a genuinely different native file ID.");
+        using (var replacedPath = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, replacement, new string('f', 64), book))
+            TestAssert.Throws<InvalidDataException>(() => replacedPath.FreezeCompletedSuccessor(),
+                "A new native file ID at a known PC source path minted a second initial origin.");
+        TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(history) &&
+            File.ReadAllBytes(replacementPath).SequenceEqual(data) && File.ReadAllBytes(Path.Combine(selection.NativePath, "retained-original.png")).SequenceEqual(data),
+            "Known-path HOLD changed retained history or either native file.");
+    }
+
+    internal static async Task WindowsPathHistoryAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);
+        foreach (var folder in new[] { "Album A", "Album B" })
+        {
+            var path = Path.Combine(selection.NativePath, folder); Directory.CreateDirectory(path);
+            File.WriteAllBytes(Path.Combine(path, "same.png"), data);
+        }
+        DeviceFileNativeDirectory.CollectionMember Pick(string folder)
+        {
+            using var root = selection.OpenNative();
+            return root.InventoryCollection(() => { }, CancellationToken.None).Members.Single(item => item.Name == "same.png" && item.Parents.Single().Name == folder);
+        }
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved); var first = Pick("Album A"); var second = Pick("Album B");
+        TestAssert.That(first.Identity != second.Identity, "Distinct native subfolder fixture shared a file identity.");
+        string firstJob;
+        using (var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, first, new string('f', 64), book))
+        using (var cache = source.Freeze())
+        {
+            firstJob = cache.JobId;
+            TestAssert.That(Record(f, cache.JobId)["local_origin"]!["relative_path"]!.GetValue<string>() == "Album A/same.png",
+                "Protected origin did not retain the full actual native relative path.");
+        }
+        using (var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, second, new string('f', 64), book))
+        using (var cache = source.Freeze())
+            TestAssert.That(Record(f, cache.JobId)["local_origin"]!["relative_path"]!.GetValue<string>() == "Album B/same.png",
+                "Distinct subfolders with identical leaf names were collapsed by basename.");
+        var before = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+        TestAssert.That(before.Length == 2, "Distinct native paths did not retain both independent source records.");
+        using var db = f.Native.Store.OpenDatabase(); db.Open(); using var query = db.CreateCommand();
+        query.CommandText = "SELECT value FROM native_media_source_jobs WHERE job_id=$job"; query.Parameters.AddWithValue("$job", firstJob);
+        var originalCipher = (byte[])query.ExecuteScalar()!; var legacy = Record(f, firstJob);
+        legacy["local_origin"]!["format"] = 1; legacy["local_origin"]!.AsObject().Remove("relative_path");
+        var clear = TelefonCrypto.Canonical(legacy); byte[] cipher;
+        try { cipher = f.Native.Store.Seal("native_media_source_job", f.Native.Peer.Id + "/" + firstJob, clear); }
+        finally { CryptographicOperations.ZeroMemory(clear); }
+        using var write = db.CreateCommand(); write.CommandText = "UPDATE native_media_source_jobs SET value=$value WHERE job_id=$job";
+        write.Parameters.AddWithValue("$job", firstJob); var value = write.Parameters.Add("$value", Microsoft.Data.Sqlite.SqliteType.Blob);
+        value.Value = cipher; write.ExecuteNonQuery();
+        try
+        {
+            var historical = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+            TestAssert.That(historical.Length == 2 && Record(f, firstJob)["local_origin"]!["format"]!.GetValue<int>() == 1,
+                "Legacy origin without path was discarded, upgraded or made unreadable.");
+            using (var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, first, new string('f', 64), book))
+                TestAssert.Throws<InvalidDataException>(() => source.FreezeCompletedSuccessor(), "Legacy full-path association was inferred from today's file tree.");
+            DeviceFileNativeDirectory.CollectionMember unknown;
+            using (var root = selection.OpenNative()) unknown = root.InventoryCollection(() => { }, CancellationToken.None).Members.Single(item => item.Name == "new-pc.png");
+            using (var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, unknown, new string('f', 64), book))
+                TestAssert.Throws<InvalidDataException>(() => source.Freeze(), "Unknown path was adopted beside legacy origins with unavailable path witnesses.");
+            TestAssert.That(((byte[])query.ExecuteScalar()!).SequenceEqual(cipher) && f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(historical),
+                "Legacy path HOLD altered original ciphertext or retained history.");
+        }
+        finally { value.Value = originalCipher; write.ExecuteNonQuery(); }
+        TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(before), "Exact legacy fixture restoration changed either retained source history.");
     }
 
     internal static async Task WindowsOwnerGuardsAsync()
@@ -249,6 +320,12 @@ internal static class DeviceFileCollectionSourceTests
             body => body["local_origin"]!.AsObject().Remove("file_creation_filetime"),
             body => body["local_origin"]!["file_creation_filetime"] = "0000000000000000",
             body => body["local_origin"]!["root_id"] = new string('f', 32),
+            body => body["local_origin"]!["format"] = 1,
+            body => body["local_origin"]!.AsObject().Remove("relative_path"),
+            body => body["local_origin"]!["relative_path"] = "../same.png",
+            body => body["local_origin"]!["relative_path"] = "/same.png",
+            body => body["local_origin"]!["relative_path"] = "Album\\same.png",
+            body => body["local_origin"]!["relative_path"] = "Album/other-name.png",
             body => body["local_origin"]!["root_identity"] = new JsonObject(),
             body => body["local_origin"]!["file_identity"] = "not a native identity",
             body => body["originals"] = new JsonObject { ["fake"] = reference.DeepClone() } })

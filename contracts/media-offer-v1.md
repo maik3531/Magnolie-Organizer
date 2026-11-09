@@ -822,6 +822,15 @@ Eine bekannte native Dateiidentität mit geänderter Quellwurzel oder Generation
 bleibt ebenfalls HOLD. Auch das tatsächliche Verschieben derselben Datei in
 eine zweite ausgewählte Wurzel darf keine neue unabhängige Herkunft erzeugen;
 eine ausdrückliche sichere Neuzuordnung ist damit nicht implementiert.
+Windows speichert den vollständigen nativen relativen Pfad im getrennten lokalen
+Ursprungsformat 2. Eine tatsächliche neue Datei-ID am bereits bekannten Pfad
+bleibt ebenfalls HOLD, ohne Übernahme nach Name oder Bytes. Gleichnamige Dateien
+in verschiedenen Unterverzeichnissen bleiben unterscheidbar. Das ältere lokale
+Ursprungsformat 1 bleibt unverändert lesbar; ohne vollständigen Pfadzeugen darf
+es keine neue Zuordnung innerhalb derselben Quellwurzel erlauben. Weder der
+heutige Dateibaum noch der bloße Wire-Dateiname darf diesen fehlenden Zeugen
+nachträglich ergänzen. Cacheformate 3/4 und das opake Wire-Format bleiben davon
+getrennt; native Pfade und IDs werden weiterhin nicht übertragen.
 
 Media-Offer-Format 2 ergänzt `pc_origins`: pro zugehöriger Datei ausschließlich
 `format: 1`, `origin_sha256` und `previous_publication_sha256` (anfangs `null`).

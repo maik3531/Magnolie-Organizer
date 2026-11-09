@@ -303,6 +303,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Collection source / Windows independent PC-only origin cache versions and actual wire END", DeviceFileCollectionSourceTests.WindowsActualSourceAsync);
     runner.Add("Collection source / Windows original consent book and entire-scope guards", DeviceFileCollectionSourceTests.WindowsOwnerGuardsAsync);
     runner.Add("Collection source / Windows mixed mapped history and strict authenticated origin schema", DeviceFileCollectionSourceTests.WindowsMixedHistoryAndSchemaAsync);
+    runner.Add("Collection source paths / Windows full native relative paths and legacy origin HOLD", DeviceFileCollectionSourceTests.WindowsPathHistoryAsync);
     runner.Add("Media independent choices / Windows import display does not expand authority", DeviceFileSharedPreferencesTests.IndependentDirectionViewAsync);
     runner.Add("Media shared storage / Windows readonly persistence independent fields and merge", DeviceFileSharedPreferencesTests.PersistenceAsync);
     runner.Add("Media shared storage / Windows seven-field projection preserves original ciphertext and clocks", DeviceFileSharedPreferencesTests.SevenFieldProjectionAsync);
