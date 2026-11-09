@@ -21,10 +21,159 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class, shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class])
+@Config(sdk = [35], application = Application::class, shadows = [GalleryIncomingRowsTest.WriteTargetLinux::class,
+    GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class NativeGalleryIncomingRuntimeTest {
     @Before fun mountedVolume() { GalleryIncomingRowsTest().mountedPrimaryVolume() }
+
+    @Test fun pcRuntimeOwnsOriginalArchiveOsRequestWorkerSavedAndExactPublishedReadbackWithoutPhoneReadOrPcReceive() {
+        Harness().use { h ->
+            h.completePcUpload(); val predecessor = h.published(); h.pcSendOnly(); h.f.documents.setzePapierkorb(true, 30)
+            h.provider.allowWriteRequest = true; h.provider.allowRwTarget = true; h.provider.postWriteRevisionDelay = 0
+            val connection = h.nativeConnection(); val offer = h.successorOffer()
+            val preparation = h.f.io { connection.preparePcReplacement(offer, h.f.book(),
+                NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }) }
+            assertTrue(preparation.awaitIoEnded(10000)); assertNull(preparation.nativeFailure())
+            val request = preparation.actualPcWriteRequest()!!
+            val controller = org.robolectric.Robolectric.buildActivity(GalleryIncomingRowsTest.PcWriteActivity::class.java).setup()
+            val activity = controller.get().apply { writeAllowed = true }; val host = NativeGalleryPcWriteConsentHost(activity)
+            var run: NativeGalleryPcReplacementRun? = null
+            try {
+                var grant: NativeGalleryPcWriteGrant? = null
+                host.request(request) { grant = it.getOrThrow() }
+                activity.activityResultRegistry.dispatchResult(Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode,
+                    android.app.Activity.RESULT_OK, android.content.Intent())
+                Shadows.shadowOf(Looper.getMainLooper()).idle()
+                run = h.f.io { connection.beginPcReplacement(preparation, grant!!) }
+                assertTrue(run.awaitIoEnded(15000)); run.nativeFailure()?.let { throw AssertionError("PC runtime worker failed", it) }
+                val saved = run.actualSavedOutput()!!; val publication = run.actualPublishedOutput()!!
+                assertEquals(predecessor.fingerprint, publication.pcOrigin!!.previousPublication)
+                assertEquals(predecessor.body, h.f.index.incomingPublication(predecessor.id)!!.body)
+                assertEquals(publication.fingerprint, saved.getValue("body").jsonObject.getValue("receipts").jsonArray.single().jsonObject.string("receipt_sha256"))
+                assertFalse(h.provider.lastRwDescriptor!!.valid()); assertFalse(h.provider.lastReadDescriptor!!.valid())
+                assertArrayEquals(h.servingRaw, h.file.readBytes()); assertEquals(2, h.f.index.incomingPublications().size)
+                assertEquals(listOf(publication.body), h.f.index.pcPublishedHeads().map { it.body })
+                val proof = h.f.io { connection.beginCompletedPcReadback(run) }.also { h.inspection = it }
+                assertTrue(proof.awaitIoEnded(10000)); proof.nativeFailure()?.let { throw AssertionError("PC readback failed", it) }
+                assertNotNull(proof.actualReadbackOutput()); h.assertReceiveOnly()
+                assertThrows(PhotoFolderScopeError::class.java) { h.f.io { connection.beginCompletedPcReadback(run) } }
+            } finally { run?.cancel(); run?.let { assertTrue(it.awaitIoEnded(10000)) }; host.close(); controller.pause().stop().destroy(); preparation.cancel() }
+        }
+    }
+
+    @Test fun pcRuntimePendingPreparationBlocksCompetingRunsAndCancellationCannotRefreshTheOriginalAdmission() {
+        Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30); h.provider.allowWriteRequest = true
+            val connection = h.nativeConnection(); val offer = h.successorOffer(); val retained = h.file.readBytes()
+            val preparation = h.f.io { connection.preparePcReplacement(offer, h.f.book(),
+                NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }) }
+            assertTrue(preparation.awaitIoEnded(10000)); assertNull(preparation.nativeFailure())
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { h.runtime.beginReceiveConfiguration() } }
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { connection.preparePcReplacement(offer, h.f.book(),
+                NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }) } }
+            val request = preparation.actualPcWriteRequest()!!
+            connection.cancelPcReplacement(preparation)
+            assertThrows(PhotoFolderScopeError::class.java) { request.requireCurrent() }
+            assertArrayEquals(retained, h.file.readBytes()); assertEquals(0, h.provider.rwOpens)
+            assertEquals(1, h.f.index.incomingPublications().size)
+        }
+    }
+
+    @Test fun pcNativeUiKeepsItsOwnOsDialogPauseButWaitsForActualResumeBeforeWritingAndCompletesOriginalReadback() {
+        Harness().use { h ->
+            h.completePcUpload(); h.pcSendOnly(); h.f.documents.setzePapierkorb(true, 30)
+            h.provider.allowWriteRequest = true; h.provider.allowRwTarget = true; h.provider.postWriteRevisionDelay = 0
+            val offer = h.successorOffer(); val connection = h.nativeConnection()
+            val controller = org.robolectric.Robolectric.buildActivity(GalleryIncomingRowsTest.PcWriteActivity::class.java).setup()
+            val activity = controller.get().apply { writeAllowed = true }; val host = NativeGalleryPcWriteConsentHost(activity)
+            val outcome = java.util.concurrent.atomic.AtomicReference<Result<Unit>?>()
+            val job = java.util.concurrent.atomic.AtomicReference<kotlinx.coroutines.Job?>()
+            NativeGalleryPcReplacementForeground.register(activity, host)
+            h.pcOfferUi = { original, message ->
+                job.set(NativeGalleryPcReplacementForeground.request(original) { current, consent ->
+                    outcome.set(runCatching { NativeGalleryPcReplacementUiAction.request(current, consent, original, message,
+                        h.f.book(), NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }) })
+                })
+            }
+            assertNull(connection.receiveIncomingMedia(h.link.channel, offer) { error("PC successor must not enter ordinary new-row admission") })
+            try {
+                awaitUi { host.requestPending || job.get()?.isCompleted == true }
+                outcome.get()?.getOrThrow(); assertTrue(host.requestPending)
+                val code = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+                controller.pause()
+                assertTrue(host.requestPending); assertEquals(0, h.provider.rwOpens)
+                assertTrue(activity.activityResultRegistry.dispatchResult(code, android.app.Activity.RESULT_OK, android.content.Intent()))
+                awaitUi { !host.requestPending }
+                assertFalse(job.get()!!.isCompleted); assertEquals(0, h.provider.rwOpens)
+                controller.resume()
+                awaitUi(15) { job.get()!!.isCompleted }; outcome.get()!!.getOrThrow()
+                assertEquals(1, h.provider.rwOpens); assertEquals(2, h.f.index.incomingPublications().size)
+                assertEquals(2, h.link.frames.count { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+                assertArrayEquals(h.servingRaw, h.file.readBytes()); h.assertReceiveOnly()
+            } finally { job.get()?.cancel(); awaitUi { job.get()?.isCompleted != false }; host.close(); controller.pause().stop().destroy() }
+        }
+    }
+
+    @Test fun pcNativeUiCanceledOsDialogRetainsItsSlotAndLatePositiveResultCannotWriteOrStartANewRun() {
+        Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30); h.provider.allowWriteRequest = true; h.provider.allowRwTarget = true
+            val old = h.file.readBytes(); val offer = h.successorOffer(); val connection = h.nativeConnection()
+            val controller = org.robolectric.Robolectric.buildActivity(GalleryIncomingRowsTest.PcWriteActivity::class.java).setup()
+            val activity = controller.get().apply { writeAllowed = true }; val host = NativeGalleryPcWriteConsentHost(activity)
+            val parent = SupervisorJob()
+            val job = CoroutineScope(parent + Dispatchers.Main.immediate).launch {
+                runCatching { NativeGalleryPcReplacementUiAction.request(activity, host, connection, offer,
+                    h.f.book(), NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }) }
+            }
+            try {
+                awaitUi { host.requestPending || job.isCompleted }; assertTrue(host.requestPending)
+                val code = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+                job.cancel(); awaitUi { job.isCompleted }; assertTrue(host.requestPending)
+                assertTrue(activity.activityResultRegistry.dispatchResult(code, android.app.Activity.RESULT_OK, android.content.Intent()))
+                awaitUi { !host.requestPending }
+                assertEquals(0, h.provider.rwOpens); assertEquals(1, h.f.index.incomingPublications().size)
+                assertArrayEquals(old, h.file.readBytes())
+                val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+            } finally { parent.cancel(); awaitUi { job.isCompleted }; host.close(); controller.pause().stop().destroy() }
+        }
+    }
+
+    @Test fun pcRuntimeAndCanceledUiKeepTheBorrowedLaneUntilActualBlockedSavedOutputAndArchiveOwnerDrain() {
+        Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            h.provider.allowWriteRequest = true; h.provider.allowRwTarget = true; h.provider.postWriteRevisionDelay = 0
+            val offer = h.successorOffer(); val connection = h.nativeConnection()
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val previousHandler = h.link.onMessage
+            h.link.onMessage = { message ->
+                previousHandler(message)
+                if (message["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND)) {
+                    entered.countDown(); assertTrue(release.await(15, TimeUnit.SECONDS))
+                }
+            }
+            val controller = org.robolectric.Robolectric.buildActivity(GalleryIncomingRowsTest.PcWriteActivity::class.java).setup()
+            val activity = controller.get().apply { writeAllowed = true }; val host = NativeGalleryPcWriteConsentHost(activity)
+            val parent = SupervisorJob()
+            val job = CoroutineScope(parent + Dispatchers.Main.immediate).launch {
+                runCatching { NativeGalleryPcReplacementUiAction.request(activity, host, connection, offer,
+                    h.f.book(), NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }) }
+            }
+            try {
+                awaitUi { host.requestPending || job.isCompleted }; assertTrue(host.requestPending)
+                activity.activityResultRegistry.dispatchResult(Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode,
+                    android.app.Activity.RESULT_OK, android.content.Intent())
+                awaitUi(15) { entered.count == 0L }
+                job.cancel(); Shadows.shadowOf(Looper.getMainLooper()).idle()
+                assertFalse(job.isCompleted); assertFalse(h.provider.lastReadDescriptor!!.valid()); assertFalse(h.provider.lastRwDescriptor!!.valid())
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+                assertEquals(2, h.f.index.incomingPublications().size)
+                assertFalse(h.runtime.closeWhenQuiescent { })
+            } finally { release.countDown(); parent.cancel(); awaitUi(15) { job.isCompleted }; host.close(); controller.pause().stop().destroy() }
+            val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+            assertArrayEquals(h.servingRaw, h.file.readBytes())
+            assertEquals(1, h.link.frames.count { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+        }
+    }
 
     @Test fun actualRuntimeRejectsUnknownDefaultInventoryBeforeAcceptanceChunksOrProviderMutation() {
         Harness(collectionMode = "phone_inventory").use { h ->
@@ -300,8 +449,8 @@ class NativeGalleryIncomingRuntimeTest {
         }
     }
 
-    private fun awaitUi(condition: () -> Boolean) {
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+    private fun awaitUi(seconds: Long = 5, condition: () -> Boolean) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds)
         while (!condition() && System.nanoTime() < deadline) {
             Shadows.shadowOf(Looper.getMainLooper()).idle()
             Thread.sleep(5)
@@ -369,6 +518,7 @@ class NativeGalleryIncomingRuntimeTest {
         val link = NativeGalleryIncomingTransferTest.Link()
         val f = GalleryReceiveConsentTest.Fixture(link.channel)
         val raw = helper.png()
+        var servingRaw = raw
         val manifest = helper.manifest(f.pc.deviceId, raw)
         val token = helper.intent(collectionMode)
         val file = File(f.root, "runtime-native.png")
@@ -384,6 +534,7 @@ class NativeGalleryIncomingRuntimeTest {
         var run: NativeGalleryIncomingRun? = null
         var inspection: NativeGalleryPublishedReadRun? = null
         var incomingAgreement = true
+        var pcOfferUi: ((NativeGalleryFileConnection, JsonObject) -> Unit)? = null
         @Volatile var incomingHook: () -> Unit = {}
         @Volatile var incomingToken: Any? = token
         private var connection: NativeGalleryFileConnection? = null
@@ -462,7 +613,7 @@ class NativeGalleryIncomingRuntimeTest {
         }
         fun answer(message: JsonObject) {
             val request = DeviceFileChunkEnvelope.parseRequest(message); val offset = request.chunkIndex * 65536
-            val response = DeviceFileChunkEnvelope.response(request, raw.copyOfRange(offset, minOf(raw.size, offset + 65536)))
+            val response = DeviceFileChunkEnvelope.response(request, servingRaw.copyOfRange(offset, minOf(servingRaw.size, offset + 65536)))
             val current = connection
             if (current == null) assertTrue(runtime.observeIncomingChunk(link.channel, link.receive(response)))
             else assertNull(current.receiveIncomingMedia(link.channel, link.receive(response)) { error("Chunk dispatcher must not capture a new book") })
@@ -492,9 +643,25 @@ class NativeGalleryIncomingRuntimeTest {
             return DeviceFileManifest.parse(JsonObject(raw + mapOf("source_id" to JsonPrimitive(java.util.UUID.randomUUID().toString().replace("-", "")),
                 "transfer_id" to JsonPrimitive(java.util.UUID.randomUUID().toString().replace("-", "")))))
         }
+        fun successorOffer(): JsonObject {
+            val previous = published()
+            val bitmap = android.graphics.Bitmap.createBitmap(8, 8, android.graphics.Bitmap.Config.ARGB_8888).apply { eraseColor(0xff57a836.toInt()) }
+            servingRaw = try { java.io.ByteArrayOutputStream().use { output ->
+                check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)); output.toByteArray()
+            } } finally { bitmap.recycle() }
+            val old = DeviceFileOfferEnvelope.create(manifest).getValue("body").jsonObject.getValue("manifest").jsonObject
+            val file = old.getValue("files").jsonArray.single().jsonObject
+            val successor = DeviceFileManifest.parse(JsonObject(old + mapOf("transfer_id" to JsonPrimitive("9".repeat(32)),
+                "source_id" to JsonPrimitive("8".repeat(32)), "total_bytes" to JsonPrimitive(servingRaw.size),
+                "files" to JsonArray(listOf(JsonObject(file + mapOf("size" to JsonPrimitive(servingRaw.size),
+                    "sha256" to JsonPrimitive(NativeHex.lower(java.security.MessageDigest.getInstance("SHA-256").digest(servingRaw))))))))))
+            return link.receive(pcOffer(successor, previous = previous.fingerprint))
+        }
         fun nativeConnection(): NativeGalleryFileConnection = connection ?: NativeGalleryFileConnection(link.channel, requireIncomingAgreement = {
             check(Looper.myLooper() != Looper.getMainLooper())
             if (!incomingAgreement) DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        }, requestPcReplacement = { connection, message ->
+            (pcOfferUi ?: error("No PC replacement UI attached"))(connection, message)
         }) { }.also {
             it.bind(runtime); connection = it
         }

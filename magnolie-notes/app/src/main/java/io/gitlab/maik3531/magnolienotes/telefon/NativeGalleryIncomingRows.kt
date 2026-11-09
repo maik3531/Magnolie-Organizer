@@ -331,6 +331,18 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         } catch (error: Throwable) { target.writeRequest?.close(); admission.close(); throw error }
     }
 
+    internal fun preparePublishedPcWriteToApplication(owner: NativeGalleryPublishedInspection, admission: NativeGalleryPcWriteAdmission,
+        protection: DeviceTransferProtection, cancellation: CancellationSignal): NativeGalleryPcWriteRequest {
+        val target = ArchiveTarget(admission.archiveBook, protection = protection, writeAdmission = admission)
+        try {
+            admission.requireOwner(owner, admission.archiveBook); admission.bindCancellation(cancellation)
+            // The application's recovery storage opens only inside the actual
+            // original-validation completion, never while merely scheduling.
+            archivePublishedPc(owner, target, cancellation)
+            return target.writeRequest ?: fail("gallery_pc_write_os_owner_required")
+        } catch (error: Throwable) { target.writeRequest?.close(); admission.close(); throw error }
+    }
+
     private fun archivePublishedPc(owner: NativeGalleryPublishedInspection, target: ArchiveTarget,
         cancellation: CancellationSignal): NativeGalleryArchiveEntry {
         try {

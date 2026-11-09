@@ -691,14 +691,23 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         if (all.size >= GalleryIncomingPublication.MAX_RECORDS) fail("gallery_incoming_publication_capacity")
         val related = all.filter { it.samePcSource(original) }
         if (related.size >= GalleryIncomingPublication.MAX_PC_SOURCE_HISTORY) fail("gallery_pc_source_history_capacity")
-        if (related.isEmpty() || related.any { it.state != "published" } || related.none { it.body == original.body })
+        if (pcHistoryHead(related).body != original.body) fail("gallery_pc_history_head_changed")
+    }
+    private fun pcHistoryHead(related: List<GalleryIncomingPublication>): GalleryIncomingPublication {
+        if (related.isEmpty() || related.size > GalleryIncomingPublication.MAX_PC_SOURCE_HISTORY || related.any { it.state != "published" })
             fail("gallery_pc_history_original_changed")
         val fingerprints = related.map { it.fingerprint }.toSet()
         if (related.any { it.pcOrigin!!.previousPublication?.let { previous -> previous !in fingerprints } == true })
             fail("gallery_pc_history_predecessor_missing")
         val used = related.mapNotNull { it.pcOrigin!!.previousPublication }
-        if (used.size != used.distinct().size || related.count { it.fingerprint !in used } != 1 || original.fingerprint in used)
-            fail("gallery_pc_history_head_changed")
+        if (used.size != used.distinct().size) fail("gallery_pc_history_head_changed")
+        return related.singleOrNull { it.fingerprint !in used } ?: fail("gallery_pc_history_head_changed")
+    }
+    internal fun pcPublishedHeads(): List<GalleryIncomingPublication> = gated {
+        incomingPublications().filter { it.pcOrigin != null }.groupBy { publication ->
+            val binding = publication.body.getValue("origin").jsonObject.getValue("binding").jsonObject
+            listOf(publication.pcOrigin!!.origin) + listOf("sender_id", "receiver_id", "sender_identity_sha256", "receiver_identity_sha256").map { binding.string(it) }
+        }.values.filter { related -> related.any { it.state == "published" } }.map(::pcHistoryHead)
     }
 
     internal fun pcReplacementPlans(): List<GalleryPcReplacementPlan> = gated {

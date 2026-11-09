@@ -17,6 +17,8 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
     private val result = AtomicReference<NativeIncomingMediaObservation?>()
     private val output = AtomicReference<JsonObject?>()
     private val archive = AtomicReference<NativeGalleryArchiveEntry?>()
+    private val pcAdmission = AtomicReference<NativeGalleryPcWriteAdmission?>()
+    private val pcRequest = AtomicReference<NativeGalleryPcWriteRequest?>()
     private val failure = AtomicReference<Throwable?>()
     private val drained = CountDownLatch(1)
     private val completionGate = Any()
@@ -26,7 +28,12 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
     val cancelRequested: Boolean get() = canceled.get()
     fun cancel() {
         canceled.set(true)
-        try { readback.get()?.close(); owner.get()?.close() } finally { cancellation.cancel() }
+        try { pcRequest.get()?.close(); pcAdmission.get()?.close(); readback.get()?.close(); owner.get()?.close() }
+        finally { cancellation.cancel() }
+    }
+    internal fun installPcAdmission(value: NativeGalleryPcWriteAdmission) {
+        if (!pcAdmission.compareAndSet(null, value)) DeviceFileControl.fail("gallery_pc_write_original_admission_required")
+        if (canceled.get()) value.close()
     }
     internal fun install(value: NativeGalleryPublishedInspection, recovery: NativeGalleryPublishedReadback? = null) {
         if (!owner.compareAndSet(null, value)) DeviceFileControl.fail("gallery_published_worker_foreign_owner")
@@ -40,8 +47,10 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
     }
     internal fun belongsTo(value: Any) = value === workerOwner
     internal fun finish(value: NativeIncomingMediaObservation?, error: Throwable?, message: JsonObject? = null,
-        archived: NativeGalleryArchiveEntry? = null) {
+        archived: NativeGalleryArchiveEntry? = null, writeRequest: NativeGalleryPcWriteRequest? = null) {
         result.set(value); output.set(message); archive.set(archived); failure.set(error)
+        pcRequest.set(writeRequest)
+        if (canceled.get() || error != null) { writeRequest?.close(); pcAdmission.get()?.close() }
     }
     internal fun markIoEnded() { ended.set(true) }
     internal fun ioDrained() {
@@ -77,6 +86,10 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
         if (!ended.get()) DeviceFileControl.fail("gallery_published_worker_io_pending")
         return archive.get().takeIf { !canceled.get() && failure.get() == null }
     }
+    internal fun actualPcWriteRequest(): NativeGalleryPcWriteRequest? {
+        if (!ended.get() || drained.count != 0L) DeviceFileControl.fail("gallery_published_worker_io_pending")
+        return pcRequest.get().takeIf { !canceled.get() && failure.get() == null }
+    }
 }
 
 /** One bounded native inspection thread. Provider lane acquisition and actual
@@ -94,10 +107,13 @@ internal class NativeGalleryPublishedReadWorker(private val rows: NativeGalleryI
         startNative { _ -> prepare() to null }
     internal fun startReadback(prepare: () -> NativeGalleryPublishedReadback): NativeGalleryPublishedReadRun =
         startNative { _ -> prepare().let { it.owner to it } }
-    private class ArchiveCopy(val protection: DeviceTransferProtection, val book: NativeGalleryTrashBookPermit)
+    private class ArchiveCopy(val protection: DeviceTransferProtection, val book: NativeGalleryTrashBookPermit,
+        val pcWrite: NativeGalleryPcWriteAdmission? = null)
     internal fun startArchive(protection: DeviceTransferProtection, book: NativeGalleryTrashBookPermit,
         prepare: (CancellationSignal) -> NativeGalleryPublishedInspection): NativeGalleryPublishedReadRun =
         startNative(ArchiveCopy(protection, book)) { cancellation -> prepare(cancellation) to null }
+    internal fun startPcWrite(protection: DeviceTransferProtection, admission: NativeGalleryPcWriteAdmission): NativeGalleryPublishedReadRun =
+        startNative(ArchiveCopy(protection, admission.archiveBook, admission)) { _ -> admission.inspection() to null }
 
     private fun startNative(archive: ArchiveCopy? = null,
         prepare: (CancellationSignal) -> Pair<NativeGalleryPublishedInspection, NativeGalleryPublishedReadback?>): NativeGalleryPublishedReadRun {
@@ -106,8 +122,10 @@ internal class NativeGalleryPublishedReadWorker(private val rows: NativeGalleryI
             if (active != null) DeviceFileControl.fail("gallery_published_worker_busy")
             NativeGalleryPublishedReadRun(this).also { active = it }
         }
-        fun finish(value: NativeIncomingMediaObservation?, error: Throwable?, message: JsonObject? = null, archived: NativeGalleryArchiveEntry? = null) {
-            run.finish(value, error, message, archived)
+        archive?.pcWrite?.let(run::installPcAdmission)
+        fun finish(value: NativeIncomingMediaObservation?, error: Throwable?, message: JsonObject? = null,
+            archived: NativeGalleryArchiveEntry? = null, writeRequest: NativeGalleryPcWriteRequest? = null) {
+            run.finish(value, error, message, archived, writeRequest)
             synchronized(gate) { if (active === run) active = null }
             run.markIoEnded()
             try { onEnded() } finally { run.ioDrained() }
@@ -118,15 +136,18 @@ internal class NativeGalleryPublishedReadWorker(private val rows: NativeGalleryI
             var observation: NativeIncomingMediaObservation? = null
             var message: JsonObject? = null
             var archived: NativeGalleryArchiveEntry? = null
+            var writeRequest: NativeGalleryPcWriteRequest? = null
             var failure: Throwable? = null
             try {
                 run.cancellation.throwIfCanceled()
                 val prepared = prepare(run.cancellation); owner = prepared.first; recovery = prepared.second; run.install(owner, recovery)
-                if (archive != null) archived = rows.archivePublishedPcToApplication(owner, archive.protection, archive.book, run.cancellation)
+                if (archive?.pcWrite != null) writeRequest = rows.preparePublishedPcWriteToApplication(owner, archive.pcWrite,
+                    archive.protection, run.cancellation)
+                else if (archive != null) archived = rows.archivePublishedPcToApplication(owner, archive.protection, archive.book, run.cancellation)
                 else if (recovery == null) observation = rows.inspectPublished(owner, run.cancellation)
                 else message = recovery.perform(rows, run.cancellation)
             } catch (error: Throwable) { failure = error }
-            finally { recovery?.close(); owner?.close(); finish(observation, failure, message, archived) }
+            finally { recovery?.close(); owner?.close(); finish(observation, failure, message, archived, writeRequest) }
         }, "magnolie-media-published-read").apply { isDaemon = true }
         try { thread.start() } catch (error: Throwable) { finish(null, error); throw error }
         return run

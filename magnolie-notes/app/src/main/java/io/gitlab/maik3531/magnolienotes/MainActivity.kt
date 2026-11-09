@@ -124,6 +124,7 @@ class MainActivity : ComponentActivity() {
     private var galleryPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
     private var galleryVideoPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
     private var galleryWriteConsentHost: io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryWriteConsentHost? = null
+    private var galleryPcWriteConsentHost: io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryPcWriteConsentHost? = null
     private var pendingGalleryPermissionAction: String? = null
 
     private val gewuenschteAufgabe = mutableStateOf<String?>(null)
@@ -139,14 +140,20 @@ class MainActivity : ComponentActivity() {
         // Register before STARTED without constructing a phone store/service.
         // Explicit native file activation can attach later, preserving drafts.
         galleryWriteConsentHost = io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryWriteConsentHost(this) {
-            galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true
+            galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
+                galleryPcWriteConsentHost?.requestPending == true
         }
+        galleryPcWriteConsentHost = io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryPcWriteConsentHost(this) {
+            galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
+                galleryWriteConsentHost?.requestPending == true
+        }.also { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryPcReplacementForeground.register(this, it) }
         galleryPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this,
-            writeConsent = galleryWriteConsentHost).also {
+            writeConsent = galleryWriteConsentHost, otherPermissionPending = { galleryPcWriteConsentHost?.requestPending == true }).also {
             io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
         }
         galleryVideoPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this,
-            io.gitlab.maik3531.magnolienotes.telefon.GalleryMediaType.VIDEO, galleryWriteConsentHost).also {
+            io.gitlab.maik3531.magnolienotes.telefon.GalleryMediaType.VIDEO, galleryWriteConsentHost,
+            otherPermissionPending = { galleryPcWriteConsentHost?.requestPending == true }).also {
             io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
         }
         acceptGalleryPermissionIntent(intent)

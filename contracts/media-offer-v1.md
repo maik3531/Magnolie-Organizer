@@ -1466,6 +1466,70 @@ Die tatsächliche Android-Geräteabnahme bleibt pausiert; bestehende Feature-
 und Auslieferungsgates bleiben bestehen. Kein aktueller R8-/Installations-
 oder Veröffentlichungsnachweis für diesen neuen Ausgabecode wird behauptet.
 
+### Notes: ursprünglicher PC-Ersetzungsablauf im nativen Dispatcher und OS-UI
+
+Authentifizierte PC-Nachfolgerangebote werden jetzt getrennt von der gewöhnlichen
+Neuaufnahme klassifiziert. Nur der bestehende Connectionowner darf den vorhandenen
+resumierten Activityhost erreichen. Kein Paket erzeugt daraus einen neuen Intent,
+Buchpermit, Kanal oder Grant. Die normale Nachfolgersperre der Neuaufnahme bleibt
+bestehen. Ein weiteres solches UI-Angebot kann den bereits gehaltenen Auftrag
+nicht überschreiben; Chunks gehen ohne die Operation-Gate-Sperre direkt an den
+exakten aktiven Worker, der auf diese authentifizierten Bytes wartet.
+
+Vor dem Einreihen der Archivprüfung wird die ursprüngliche native Aufnahme mit
+ihrem ursprünglichen Aktionsclock, vollständigen Intent, aktuellen Controlowner,
+gespeicherten entsperrten Buch und eingeschaltetem Recovery-Schutz festgehalten.
+Die kurze Vorbereitungs-Lane wird vor Start der tatsächlichen nativen Lese-IO
+freigegeben; der Pendingowner schließt konkurrierende Aufnahmen weiterhin aus.
+Recovery-Speicher öffnet erst im tatsächlichen Original-Prüfabschluss. Erst die
+dort erzeugte ursprüngliche OS-Anfrage darf der echte ActivityResult-Host starten.
+PC-Schreibdialog und bisherige Foto-/Video-Lese-/Schreibdialoge schließen sich
+gegenseitig aus; ein alter ausstehender Callback behält seinen Slot.
+
+Die Pause durch diesen eigenen OS-Dialog ist beabsichtigt und widerruft nicht
+seine noch unvollständige Anfrage. Eine positive Antwort allein genügt weiterhin
+nicht: Bis zur echten Activity-Resume darf kein Schreib-FD geöffnet werden.
+Jeder andere Vordergrundverlust, Abbruch, fremde oder späte Ownerwechsel bleibt
+widerrufbar. Ein abgebrochener Dialog kann durch seine spätere positive Antwort
+keine Aufnahme oder Mutation nachliefern.
+
+Der typisierte PC-Worker hält die gemeinsame native Lane schon vor Vorschlag
+und Staging. Sein Transfer leiht exakt diesen Owner, nicht eine zwischenzeitlich
+freigegebene oder neu erworbene Lane. Staging, native Kopie, kanonischer Readback,
+Historien-CAS und tatsächliche Saved-Ausgabe folgen unter den unveränderten
+Originalzeugen. Auch bei Cancellation bleibt die Lane bis zum tatsächlichen
+Ende sämtlicher Receiver-, Observer-, Ausgabe-IO und des wieder geöffneten
+Recovery-Archivs gehalten. Runtime-Close und Policyentzug berücksichtigen diesen
+Worker und die Pendingvorbereitung; Abbruch ist kein Quell-END.
+
+Nur der ursprüngliche erfolgreich ausgegebene Run darf anschließend genau einmal
+den tatsächlichen Published-Readback an derselben Connection, demselben vollen
+Intent, Controlowner, Buch und ursprünglichen Angebot beginnen. Der neue Receipt
+muss exakt zur geschützten neuen Publikation passen. Historische PC-Versionen
+bleiben erhalten; aktuelle Archiv-/Ersetzungsauswahl verwendet ausschließlich
+den geschützten eindeutigen Head einer vollständigen nicht verzweigten Herkunft.
+
+211 betroffene Hostfälle bestehen: Rows91, Runtime53, Transfer9, Index51 und
+PermissionHost7. Mit fünf unveränderten Descriptor-Medienfällen sind dies 216
+unterschiedliche Fälle. Der vollständige UI-Fall wurde zusätzlich zum normalen
+authentifizierten Dispatcher und passiven Foregroundhost erweitert und danach
+einzeln erneut bestanden; unveränderte Fälle wurden dafür nicht wiederholt.
+Nachgewiesen sind der tatsächliche Runtime-/Connection-/ActivityResult-/Worker-
+Saved-/Readback-Pfad, PC SEND ohne PC RECEIVE oder Telefon READ, kein Schreiben
+zwischen positiver OS-Antwort und echter Resume, Pending-/Abbruch-/Late-Callback-
+HOLD, mutualer Berechtigungsslot und blockierte echte verschlüsselte Ausgabe bis
+zum Runtime- und Coroutine-Drain. Der dabei entdeckte Plattformverzeichnisfehler
+wurde in #485 separat behoben und geprüft: Plattformrechte bleiben unverändert,
+alle selbst verwalteten Stagingverzeichnisse bleiben privat und inodegebunden.
+
+Die Oberfläche ist damit nativ angeschlossen, aber nur für ein Bild je
+ursprünglichem Angebot hostgeprüft. Mehrdatei- und Videoersetzungsangebote werden
+nicht still geteilt oder freigeschaltet. Ganze Sammlung, automatische
+Angebotskomposition, native PC-Auswahl und verbleibende Lösch-/Recovery-/Retention-
+Abnahmen sind kein Ergebnis dieser Tests. Android-Gerätepause, Capability- und
+Auslieferungsgates bestehen weiterhin; daraus folgt keine Installation oder
+vollständige Foto-/Video-Abnahme und keine fertige OBS-/Spiegelungsfunktion.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

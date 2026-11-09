@@ -815,6 +815,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val current = synchronized(this) { mediaSessions[channel]?.takeIf { activeChannel === channel } }
                     ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
                 if (!current.matched()) DeviceFileControl.fail("gallery_incoming_current_intent_required")
+            }, requestPcReplacement = { original, offer ->
+                NativeGalleryPcReplacementForeground.request(original) { activity, host ->
+                    val documents = Ablage.hole(context)
+                    fun unlocked() = Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+                    val book = NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }, ::unlocked)
+                    val archiveBook = NativeGalleryTrashBookPermit.capture(documents, ::unlocked)
+                    NativeGalleryPcReplacementUiAction.request(activity, host, original, offer, book, archiveBook)
+                }
             }) { released ->
                 synchronized(this) { if (galleryFileConnection === released) galleryFileConnection = null }
             }

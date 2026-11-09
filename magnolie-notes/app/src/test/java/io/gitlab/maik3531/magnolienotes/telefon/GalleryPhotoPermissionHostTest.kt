@@ -24,7 +24,8 @@ class GalleryPhotoPermissionHostTest {
     private class Fixture(video: Boolean = false) : AutoCloseable {
         val activityController = Robolectric.buildActivity(ComponentActivity::class.java).create()
         val activity = activityController.get()
-        val host = GalleryPhotoPermissionHost(activity) // Genuine early registration.
+        var otherPermissionPending = false
+        val host = GalleryPhotoPermissionHost(activity, otherPermissionPending = { otherPermissionPending }) // Genuine early registration.
         val videoHost = if (video) GalleryPhotoPermissionHost(activity, GalleryMediaType.VIDEO) else null
         val roots = mutableListOf<File>()
         val workflows = mutableListOf<NativeGalleryPhotoWorkflow>()
@@ -56,6 +57,20 @@ class GalleryPhotoPermissionHostTest {
             workflows.forEach { it.close() }
             activityController.pause().stop().destroy()
             roots.forEach { it.deleteRecursively() }
+        }
+    }
+
+    @Test fun pcWritePermissionSlotBlocksReadPromptAndReattachmentWithoutConsumingItsOwnPendingCallback() {
+        Fixture().use { f ->
+            val first = f.workflow(); val replacement = f.workflow(); f.activate(first)
+            first.attachPermissionHost(f.host) { }
+            f.otherPermissionPending = true
+            assertThrows(PhotoFolderScopeError::class.java) { first.requestReadPermission() }
+            assertThrows(PhotoFolderScopeError::class.java) { replacement.attachPermissionHost(f.host) { } }
+            assertNull(Shadows.shadowOf(f.activity).lastRequestedPermission); assertFalse(f.host.requestPending)
+            assertTrue(f.otherPermissionPending)
+            f.otherPermissionPending = false; first.requestReadPermission()
+            assertTrue(f.host.requestPending); assertNotNull(Shadows.shadowOf(f.activity).lastRequestedPermission)
         }
     }
 

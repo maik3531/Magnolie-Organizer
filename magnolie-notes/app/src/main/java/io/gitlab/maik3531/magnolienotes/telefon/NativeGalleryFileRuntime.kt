@@ -98,6 +98,16 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     private val incomingRows = NativeGalleryIncomingRows(context, index)
     private val publishedReadWorker = NativeGalleryPublishedReadWorker(incomingRows) { sourceIoEnded() }
     private val nativeChannel = channel
+    private class PendingPc(val admission: NativeGalleryPcWriteAdmission, val offer: JsonObject, val readbackOffer: JsonObject,
+        val intent: Any, val book: NativeGalleryReceiveBookPermit, val control: NativeFileOperationBinding) {
+        val preparation = AtomicReference<NativeGalleryPublishedReadRun?>()
+        val started = AtomicBoolean(false)
+        val run = AtomicReference<NativeGalleryPcReplacementRun?>()
+        fun cancel() { admission.close(); preparation.get()?.cancel(); run.get()?.cancel() }
+    }
+    private val pendingPc = AtomicReference<PendingPc?>()
+    private val completedPc = AtomicReference<Pair<PendingPc, NativeGalleryPcReplacementRun>?>()
+    private val pcWorker = NativeGalleryPcReplacementWorker(app, index, incomingRows, localRecoveryProtection, nativeChannel, ::pcIoEnded)
     private val controls: NativeFileControlChannel
     private val receivePolicy: GalleryReceivePolicyController
     private val workflow: NativeGalleryPhotoWorkflow
@@ -124,10 +134,10 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     }
 
     fun sendControls(now: Long = System.currentTimeMillis()): Boolean = withOperation(allowIncoming = true) {
-        controls.sendIfNeeded(now).also { incomingWorker.current?.retireIfChanged(); publishedReadWorker.current?.retireIfChanged() }
+        controls.sendIfNeeded(now).also { incomingWorker.current?.retireIfChanged(); publishedReadWorker.current?.retireIfChanged(); pcWorker.current?.retireIfChanged() }
     }
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation(allowIncoming = true) {
-        controls.observe(message, now).also { incomingWorker.current?.retireIfChanged(); publishedReadWorker.current?.retireIfChanged() }
+        controls.observe(message, now).also { incomingWorker.current?.retireIfChanged(); publishedReadWorker.current?.retireIfChanged(); pcWorker.current?.retireIfChanged() }
     }
     internal fun beginIncomingMediaOffer(message: JsonObject, book: NativeGalleryReceiveBookPermit,
         automaticReadback: Boolean = false, requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun {
@@ -224,13 +234,108 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
      * gate behind a worker waiting for this very chunk. */
     internal fun observeIncomingChunk(channel: TelefonSecureChannel, message: JsonObject): Boolean {
         if (closed.get() || revoked.get() || channel !== nativeChannel) return false
+        if (pcWorker.current?.observe(channel, message) == true) return true
         return incomingWorker.current?.observe(channel, message) ?: false
     }
     internal fun cancelIncoming(run: NativeGalleryIncomingRun) {
         if (!incomingWorker.owns(run)) DeviceFileControl.fail("gallery_incoming_worker_foreign_run")
         run.cancel()
     }
-    internal fun incomingContextWithdrawn() { incomingWorker.current?.cancel(); publishedReadWorker.current?.cancel() }
+    internal fun incomingContextWithdrawn() {
+        pendingPc.getAndSet(null)?.cancel(); completedPc.set(null); pcWorker.current?.cancel()
+        incomingWorker.current?.cancel(); publishedReadWorker.current?.cancel()
+    }
+
+    /** Authenticated metadata classification only, never an admission or grant. */
+    internal fun isPcReplacementOffer(message: JsonObject): Boolean = withOperation {
+        val peer = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+        val media = MediaOfferEnvelope.validate(message, peer.peerId, localIdentity.deviceId)
+        media.pcOrigins.values.any { it.previousPublication != null }
+    }
+    /** Capture the original mutation admission BEFORE scheduling archive work.
+     * The ordinary incoming/new-row factory and its successor fence stay closed. */
+    internal fun preparePcReplacementOffer(message: JsonObject, book: NativeGalleryReceiveBookPermit,
+        archiveBook: NativeGalleryTrashBookPermit): NativeGalleryPublishedReadRun = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
+        val held = withReceiveIdleLane {
+            val peer = nativePeer() ?: DeviceFileControl.fail("gallery_pc_write_original_admission_required")
+            val media = MediaOfferEnvelope.validate(message, peer.peerId, localIdentity.deviceId)
+            val token = currentIncomingIntent?.invoke(media.kind) as? MediaSyncTransport.IntentToken
+                ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+            if (media.kind != GalleryMediaType.IMAGES || media.manifest.files.size != 1 || media.originals.isNotEmpty() || media.settings != token.body)
+                DeviceFileControl.fail("gallery_pc_replacement_single_image_required")
+            val pc = media.pcOrigins.values.singleOrNull() ?: DeviceFileControl.fail("gallery_pc_replacement_original_operation_required")
+            val previous = pc.previousPublication ?: DeviceFileControl.fail("gallery_pc_replacement_original_operation_required")
+            val selected = index.pcPublishedHeads().singleOrNull { publication ->
+                val binding = publication.body.getValue("origin").jsonObject.getValue("binding").jsonObject
+                publication.fingerprint == previous && publication.pcOrigin?.origin == pc.origin &&
+                    binding.string("sender_id") == peer.peerId && binding.string("sender_identity_sha256") == peer.identitySha256 &&
+                    binding.string("receiver_id") == localIdentity.deviceId && binding.string("receiver_identity_sha256") == localIdentity.identitySha256
+            } ?: DeviceFileControl.fail("gallery_pc_history_head_changed")
+            val file = media.manifest.files.single()
+            if (file.sha256 == selected.body.string("sha256") || file.path.substringAfterLast('/') != selected.body.string("name") ||
+                media.mimeTypes[file.id] != selected.body.string("mime_type")) DeviceFileControl.fail("gallery_pc_replacement_original_operation_required")
+            index.requirePcHistoryCapacity(selected)
+            val admission = NativeGalleryPcWriteAdmission.capture(controls.session, index, book, archiveBook, nativePeer,
+                { currentIncomingIntent?.invoke(media.kind)?.takeIf { it === token } }, selected)
+            try {
+                val original = controls.session.operationBinding(media.manifest.fingerprint)
+                    ?: DeviceFileControl.fail("gallery_pc_write_original_admission_required")
+                val held = PendingPc(admission, message, media.offer, token, book, original)
+                if (!pendingPc.compareAndSet(null, held)) DeviceFileControl.fail("gallery_pc_worker_busy")
+                held
+            } catch (failed: Throwable) { admission.close(); throw failed }
+        }
+        // Release the inspection lease before its worker acquires the actual
+        // native read lane. Pending ownership still excludes competing work.
+        try { publishedReadWorker.startPcWrite(localRecoveryProtection, held.admission).also { held.preparation.set(it) } }
+        catch (failed: Throwable) { pendingPc.compareAndSet(held, null); held.cancel(); throw failed }
+    }
+    internal fun beginPcReplacement(preparation: NativeGalleryPublishedReadRun, grant: NativeGalleryPcWriteGrant): NativeGalleryPcReplacementRun =
+        withOperation(allowIncoming = true) {
+            val held = pendingPc.get() ?: DeviceFileControl.fail("gallery_pc_worker_original_request_required")
+            if (!incomingAvailable() || held.preparation.get() !== preparation || preparation.actualPcWriteRequest() !== grant.request ||
+                grant.request.admission !== held.admission || currentIncomingIntent?.invoke(GalleryMediaType.IMAGES) !== held.intent ||
+                !sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent ||
+                syncRun != null || resumeRun != null || albumBatchOwner != null || !held.started.compareAndSet(false, true))
+                DeviceFileControl.fail("gallery_pc_worker_original_request_required")
+            grant.requireUnused(); held.book.requireCurrent()
+            try { pcWorker.start(held.offer, grant).also { held.run.set(it) } }
+            catch (failed: Throwable) { pendingPc.compareAndSet(held, null); held.cancel(); throw failed }
+        }
+    internal fun cancelPcReplacement(preparation: NativeGalleryPublishedReadRun) {
+        val held = pendingPc.get()?.takeIf { it.preparation.get() === preparation } ?: return
+        if (pendingPc.compareAndSet(held, null)) held.cancel()
+    }
+    private fun pcIoEnded(run: NativeGalleryPcReplacementRun) {
+        val held = pendingPc.get()?.takeIf { it.admission === run.grant.request.admission }
+        if (held != null) {
+            if (run.actualSavedOutput() != null) completedPc.set(held to run)
+            pendingPc.compareAndSet(held, null)
+        }
+        sourceIoEnded()
+    }
+    internal fun beginCompletedPcReadback(run: NativeGalleryPcReplacementRun): NativeGalleryPublishedReadRun = withOperation {
+        val completed = completedPc.get()?.takeIf { it.second === run && pcWorker.owns(run) }
+            ?: DeviceFileControl.fail("gallery_pc_worker_original_completion_required")
+        val held = completed.first
+        if (!incomingAvailable() || currentIncomingIntent?.invoke(GalleryMediaType.IMAGES) !== held.intent ||
+            controls.session.operationBinding(held.control.binding.destinationToken) != held.control)
+            DeviceFileControl.fail("gallery_pc_worker_original_completion_required")
+        val publication = run.actualPublishedOutput() ?: DeviceFileControl.fail("gallery_pc_worker_original_completion_required")
+        val saved = run.actualSavedOutput() ?: DeviceFileControl.fail("gallery_pc_worker_original_completion_required")
+        val receipt = saved.getValue("body").jsonObject.getValue("receipts").jsonArray.singleOrNull()?.jsonObject
+        if (receipt?.get("receipt_sha256") != JsonPrimitive(publication.fingerprint) || index.incomingPublication(publication.id)?.body != publication.body)
+            DeviceFileControl.fail("gallery_pc_worker_original_completion_required")
+        if (!completedPc.compareAndSet(completed, null)) DeviceFileControl.fail("gallery_pc_worker_original_completion_required")
+        publishedReadWorker.startReadback {
+            val owner = NativeGalleryPublishedInspection.capture(controls.session, index, held.book, nativePeer,
+                { currentIncomingIntent?.invoke(GalleryMediaType.IMAGES)?.takeIf { it === held.intent } }, publication, expectedControl = held.control)
+            try { NativeGalleryPublishedReadback.capture(owner, held.readbackOffer, nativeChannel) }
+            catch (failed: Throwable) { owner.close(); throw failed }
+        }
+    }
 
     /** Explicit native selection of one exact historical publication, not a wire
      * command/automatic receipt. All journal/provider work runs off the UI thread. */
@@ -272,7 +377,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                     (kind != GalleryMediaType.VIDEO || videoAvailable()) })
             try {
                 val peer = nativePeer() ?: DeviceFileControl.fail("gallery_archive_original_selection_required")
-                val choices = index.incomingPublications().filter { publication ->
+                val choices = index.pcPublishedHeads().filter { publication ->
                     val binding = publication.body.getValue("origin").jsonObject.getValue("binding").jsonObject
                     publication.state == "published" && publication.pcOrigin != null && publication.body.string("media_type") == kind.uriSegment &&
                         binding.string("sender_id") == peer.peerId && binding.string("sender_identity_sha256") == peer.identitySha256 &&
@@ -349,7 +454,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
 
     private inline fun <T> withReceiveIdleLane(action: () -> T): T {
         if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
-        if (!sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
+        if (!sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent || !pcWorker.isQuiescent ||
+            pendingPc.get() != null || syncRun != null || resumeRun != null || albumBatchOwner != null)
             DeviceFileControl.fail("gallery_sync_run_busy")
         val lease = Any()
         if (!NativeGalleryMediaIoLane.acquire(lease)) DeviceFileControl.fail("gallery_incoming_worker_busy")
@@ -420,6 +526,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         book.requireCurrent()
         if (index.galleryPolicy() != expected) DeviceFileControl.fail("gallery_policy_cas_conflict")
         if (expected.policy?.receiving?.enabled(kind) == true) {
+            pendingPc.getAndSet(null)?.cancel(); completedPc.set(null); pcWorker.current?.cancel()
             incomingWorker.current?.cancel()
             publishedReadWorker.current?.cancel()
             sourceWorker.current?.let { sourceWorker.cancel(it) }
@@ -1492,6 +1599,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     }
 
     fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot = withOperation(allowIncoming = true) {
+        pendingPc.getAndSet(null)?.cancel(); completedPc.set(null); pcWorker.current?.cancel()
         incomingWorker.current?.cancel()
         publishedReadWorker.current?.cancel()
         workflow.disableLocally(expected)
@@ -1515,6 +1623,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
      */
     fun revokeControl() {
         revoked.set(true)
+        pendingPc.getAndSet(null)?.cancel(); completedPc.set(null); pcWorker.close()
         controls.close()
         incomingWorker.close()
         publishedReadWorker.close()
@@ -1531,7 +1640,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
         synchronized(this) {
             if (closed.get()) return true
-            if (operationActive || !sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent) {
+            if (operationActive || !sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent || !pcWorker.isQuiescent) {
                 closeCompletion = completed
                 return false // Source index and native owner remain held until actual I/O end.
             }
@@ -1555,7 +1664,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         // Serialize with the quiescence check/registration to avoid losing a
         // completion between that check and installing the native close callback.
         val completion = synchronized(this) {
-            if (operationActive || !sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent) null
+            if (operationActive || !sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent || !pcWorker.isQuiescent) null
             else closeCompletion.also { closeCompletion = null }
         }
         completion?.let { android.os.Handler(Looper.getMainLooper()).post { it() } }
@@ -1571,6 +1680,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 if (operationActive) DeviceFileControl.fail("file_control_configuration_busy")
                 if (!allowIncoming && !incomingWorker.isQuiescent) DeviceFileControl.fail("gallery_incoming_worker_busy")
                 if (!allowIncoming && !publishedReadWorker.isQuiescent) DeviceFileControl.fail("gallery_published_worker_busy")
+                if (!allowIncoming && (pendingPc.get() != null || !pcWorker.isQuiescent)) DeviceFileControl.fail("gallery_pc_worker_busy")
                 operationActive = true; owned = true
             }
             // No provider, transport write, native cancellation or policy CAS

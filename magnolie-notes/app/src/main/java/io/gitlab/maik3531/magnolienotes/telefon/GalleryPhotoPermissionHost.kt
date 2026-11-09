@@ -13,7 +13,8 @@ import java.util.concurrent.atomic.AtomicReference
  */
 internal class GalleryPhotoPermissionHost(private val activity: ComponentActivity,
     internal val mediaType: GalleryMediaType = GalleryMediaType.IMAGES,
-    private val writeConsent: NativeGalleryWriteConsentHost? = null) : DefaultLifecycleObserver, AutoCloseable {
+    private val writeConsent: NativeGalleryWriteConsentHost? = null,
+    private val otherPermissionPending: () -> Boolean = { false }) : DefaultLifecycleObserver, AutoCloseable {
     private class Attachment(val workflow: NativeGalleryPhotoWorkflow, val onResult: (Result<GalleryReadCoverage>) -> Unit)
     private val attachment = AtomicReference<Attachment?>()
     private val pendingResult = AtomicReference<Attachment?>()
@@ -32,7 +33,7 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
         uiThread()
         if (closed) fail("gallery_permission_host_closed")
         if (attachment.get()?.workflow === workflow) return launcher
-        if (launcher.requestPending || writeConsent?.requestPending == true) fail("gallery_permission_request_pending")
+        if (launcher.requestPending || writeConsent?.requestPending == true || otherPermissionPending()) fail("gallery_permission_request_pending")
         val next = Attachment(workflow, onResult)
         val previous = attachment.getAndSet(next)
         previous?.workflow?.detachPermissionHost(this)
@@ -45,7 +46,7 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
         uiThread()
         if (closed) fail("gallery_permission_host_closed")
         val original = attachment.get()?.takeIf { it.workflow === workflow } ?: fail("gallery_permission_host_owner_changed")
-        if (launcher.requestPending || writeConsent?.requestPending == true || !pendingResult.compareAndSet(null, original)) fail("gallery_permission_request_pending")
+        if (launcher.requestPending || writeConsent?.requestPending == true || otherPermissionPending() || !pendingResult.compareAndSet(null, original)) fail("gallery_permission_request_pending")
         try { launcher.request() }
         catch (error: Exception) { pendingResult.compareAndSet(original, null); throw error }
     }
@@ -65,7 +66,7 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
         result: (Result<Unit>) -> Unit) {
         uiThread()
         val original = attachment.get()?.takeIf { it.workflow === workflow } ?: fail("gallery_permission_host_owner_changed")
-        if (closed || launcher.requestPending) fail("gallery_write_foreground_required")
+        if (closed || launcher.requestPending || otherPermissionPending()) fail("gallery_write_foreground_required")
         val writer = writeConsent ?: fail("gallery_write_foreground_required")
         writer.requestOriginal(request) { outcome ->
             if (attachment.get() === original && !closed) result(outcome) else request.revoke()
@@ -76,7 +77,7 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
         result: (Result<NativeGalleryWriteGrant>) -> Unit) {
         uiThread()
         val original = attachment.get()?.takeIf { it.workflow === workflow } ?: fail("gallery_permission_host_owner_changed")
-        if (closed || launcher.requestPending || mediaType != request.mediaType) fail("gallery_write_foreground_required")
+        if (closed || launcher.requestPending || otherPermissionPending() || mediaType != request.mediaType) fail("gallery_write_foreground_required")
         val writer = writeConsent ?: fail("gallery_write_foreground_required")
         writer.request(request) { outcome ->
             if (attachment.get() === original && !closed) result(outcome) else request.revoke()

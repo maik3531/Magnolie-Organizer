@@ -10,10 +10,15 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 internal class NativeGalleryFileConnection internal constructor(internal val channel: TelefonSecureChannel,
     private val requireIncomingAgreement: () -> Unit = {},
+    private val requestPcReplacement: (NativeGalleryFileConnection, JsonObject) -> Unit = { _, _ ->
+        DeviceFileControl.fail("gallery_pc_write_foreground_required")
+    },
     private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
     private val ended = AtomicBoolean(false)
     private val permissionQueued = AtomicBoolean(false)
     private val cleanupReported = AtomicBoolean(false)
+    private val pcUiQueued = AtomicBoolean(false)
+    private val pcUiJob = java.util.concurrent.atomic.AtomicReference<kotlinx.coroutines.Job?>()
     private val permissionIoEnd = java.util.concurrent.atomic.AtomicReference(java.util.concurrent.CountDownLatch(0))
     @Volatile private var bound: NativeGalleryFileRuntime? = null
     val runtime: NativeGalleryFileRuntime get() = bound?.takeUnless { ended.get() }
@@ -34,14 +39,48 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         book: () -> NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun? {
         if (authenticatedChannel !== channel || ended.get()) DeviceFileControl.fail("gallery_incoming_foreign_connection")
         return when (message.string("kind")) {
-            MediaOfferEnvelope.KIND -> runtime.beginIncomingMediaOffer(message, book(), automaticReadback = true,
-                requireReadbackAgreement = requireIncomingAgreement)
+            MediaOfferEnvelope.KIND -> {
+                val selected = runtime
+                if (selected.isPcReplacementOffer(message)) {
+                    if (!pcUiQueued.compareAndSet(false, true)) DeviceFileControl.fail("gallery_pc_worker_busy")
+                    if (!Handler(Looper.getMainLooper()).post {
+                        try {
+                            if (ended.get() || bound !== selected) DeviceFileControl.fail("gallery_incoming_foreign_connection")
+                            requestPcReplacement(this, message)
+                        } catch (_: Exception) { pcUiQueued.set(false) }
+                    }) { pcUiQueued.set(false); DeviceFileControl.fail("gallery_pc_write_foreground_required") }
+                    null
+                } else selected.beginIncomingMediaOffer(message, book(), automaticReadback = true,
+                    requireReadbackAgreement = requireIncomingAgreement)
+            }
             DeviceFileChunkEnvelope.RESULT -> {
                 if (!runtime.observeIncomingChunk(authenticatedChannel, message)) DeviceFileControl.fail("gallery_incoming_unsolicited_chunk")
                 null
             }
             else -> DeviceFileControl.fail("gallery_incoming_unexpected_message")
         }
+    }
+
+    internal fun installPcUiJob(job: kotlinx.coroutines.Job) {
+        check(Looper.myLooper() == Looper.getMainLooper())
+        if (ended.get() || !pcUiQueued.get() || !pcUiJob.compareAndSet(null, job)) {
+            job.cancel(); DeviceFileControl.fail("gallery_pc_worker_busy")
+        }
+        job.invokeOnCompletion { pcUiJob.compareAndSet(job, null); pcUiQueued.set(false) }
+    }
+    internal fun preparePcReplacement(message: JsonObject, book: NativeGalleryReceiveBookPermit,
+        archiveBook: NativeGalleryTrashBookPermit): NativeGalleryPublishedReadRun {
+        requireIncomingAgreement()
+        return runtime.preparePcReplacementOffer(message, book, archiveBook)
+    }
+    internal fun beginPcReplacement(preparation: NativeGalleryPublishedReadRun, grant: NativeGalleryPcWriteGrant): NativeGalleryPcReplacementRun {
+        requireIncomingAgreement()
+        return runtime.beginPcReplacement(preparation, grant)
+    }
+    internal fun cancelPcReplacement(preparation: NativeGalleryPublishedReadRun) { bound?.cancelPcReplacement(preparation) }
+    internal fun beginCompletedPcReadback(run: NativeGalleryPcReplacementRun): NativeGalleryPublishedReadRun {
+        requireIncomingAgreement()
+        return runtime.beginCompletedPcReadback(run)
     }
 
     /** Explicit native selection only; the frame dispatcher above cannot create
@@ -103,6 +142,7 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
 
     override fun close() {
         ended.set(true)
+        pcUiJob.get()?.cancel()
         bound?.revokeControl()
         if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
         if (permissionQueued.get()) return // Includes actual background response/control I/O.

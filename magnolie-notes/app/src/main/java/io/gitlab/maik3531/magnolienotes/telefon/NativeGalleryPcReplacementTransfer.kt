@@ -33,7 +33,7 @@ internal class NativeGalleryPcReplacementDeadline(private val issued: Long, priv
  * No insert, Saved output, resume-by-metadata or discovery hook. */
 internal class NativeGalleryPcReplacementTransfer private constructor(private val owner: NativeGalleryIncomingOwner,
     private val channel: TelefonSecureChannel, private val stage: NativeGalleryPcStage, private val grant: NativeGalleryPcWriteGrant,
-    private val lane: Any, private val issued: Long, private val ttl: Long) : AutoCloseable {
+    private val lane: Any, private val issued: Long, private val ttl: Long, private val ownsLane: Boolean) : AutoCloseable {
     private class Pending(val request: DeviceFileChunkRequest) {
         val ready = CountDownLatch(1)
         val sent = AtomicBoolean(false)
@@ -71,7 +71,9 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
     private fun finishDrain() {
         if (ended.get() && retired && inFlight == 0 && !drainPublished) {
             writeTarget?.close(); writeTarget = null
-            drainPublished = true; NativeGalleryMediaIoLane.release(lane); drained.countDown()
+            drainPublished = true
+            if (ownsLane) NativeGalleryMediaIoLane.release(lane)
+            drained.countDown()
         }
     }
     private fun endIo() { synchronized(lifecycle) { inFlight--; finishDrain() } }
@@ -221,6 +223,10 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
     }
     /** Historical actual output only, not remote ACK, source END or cleanup. */
     internal fun actualSavedOutput(): JsonObject? = savedOutput.get()
+    internal fun actualPublishedOutput(): GalleryIncomingPublication? = completed.get()?.publication.takeIf { savedOutput.get() != null }
+    internal fun belongsTo(run: NativeGalleryPcReplacementRun, actualGrant: NativeGalleryPcWriteGrant): Boolean =
+        lane === run && !ownsLane && grant === actualGrant
+    internal fun requireControlCurrent() { clock(); grant.requireCurrent(); owner.requireChannel(channel); clock() }
     internal fun sendSaved(): JsonObject = io {
         current()
         if (!savedAttempted.compareAndSet(false, true)) fail("gallery_pc_saved_output_already_attempted")
@@ -250,7 +256,14 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
     }
     companion object {
         internal fun prepare(context: Context, index: PhotoSourceJobIndex, plan: GalleryPcReplacementPlan,
-            grant: NativeGalleryPcWriteGrant, channel: TelefonSecureChannel, boundary: (String) -> Unit = {}): NativeGalleryPcReplacementTransfer {
+            grant: NativeGalleryPcWriteGrant, channel: TelefonSecureChannel, boundary: (String) -> Unit = {}): NativeGalleryPcReplacementTransfer =
+            prepareNative(context, index, plan, grant, channel, null, boundary)
+        internal fun prepareOwned(context: Context, index: PhotoSourceJobIndex, plan: GalleryPcReplacementPlan,
+            grant: NativeGalleryPcWriteGrant, channel: TelefonSecureChannel, run: NativeGalleryPcReplacementRun): NativeGalleryPcReplacementTransfer =
+            prepareNative(context, index, plan, grant, channel, run, {})
+        private fun prepareNative(context: Context, index: PhotoSourceJobIndex, plan: GalleryPcReplacementPlan,
+            grant: NativeGalleryPcWriteGrant, channel: TelefonSecureChannel, borrowed: NativeGalleryPcReplacementRun?,
+            boundary: (String) -> Unit): NativeGalleryPcReplacementTransfer {
             if (Looper.myLooper() == Looper.getMainLooper()) fail("gallery_incoming_worker_io_required")
             val issued = DeviceFileControl.monotonicMs(); val now = System.currentTimeMillis()
             index.requirePcStageAdmission(grant, channel, plan)
@@ -258,8 +271,10 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
                 plan.body.getValue("binding").jsonObject.string("sender_id"), plan.body.getValue("binding").jsonObject.string("receiver_id"), now)
             if (media.kind != GalleryMediaType.IMAGES) fail("gallery_pc_stage_video_owner_required")
             val ttl = minOf(DeviceFileControl.MAX_TTL_MS, media.offer.long("expires_ms") - now)
-            val lane = Any()
-            if (!NativeGalleryMediaIoLane.acquire(lane)) fail("gallery_incoming_worker_busy")
+            val lane = borrowed ?: Any()
+            if (borrowed == null) {
+                if (!NativeGalleryMediaIoLane.acquire(lane)) fail("gallery_incoming_worker_busy")
+            } else if (!NativeGalleryMediaIoLane.isOwnedBy(borrowed) || borrowed.grant !== grant) fail("gallery_pc_worker_foreign_transfer")
             var owner: NativeGalleryIncomingOwner? = null; var stage: NativeGalleryPcStage? = null
             try {
                 owner = grant.request.admission.incomingOwner(media)
@@ -267,8 +282,12 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
                 val acceptance = GalleryIncomingAcceptance.parse(JsonObject(initial.body + ("expires_ms" to JsonPrimitive(
                     minOf(initial.expires, System.currentTimeMillis() + grant.request.admission.remainingMs())))))
                 stage = NativeGalleryPcStage.allocate(context, index, plan, acceptance, owner, grant, channel, lane, boundary)
-                return NativeGalleryPcReplacementTransfer(owner, channel, stage, grant, lane, issued, ttl).also { it.current() }
-            } catch (error: Throwable) { stage?.close(); owner?.close(); grant.request.close(); NativeGalleryMediaIoLane.release(lane); throw error }
+                return NativeGalleryPcReplacementTransfer(owner, channel, stage, grant, lane, issued, ttl, borrowed == null).also { it.current() }
+            } catch (error: Throwable) {
+                stage?.close(); owner?.close(); grant.request.close()
+                if (borrowed == null) NativeGalleryMediaIoLane.release(lane)
+                throw error
+            }
         }
         private fun fail(code: String): Nothing = DeviceFileControl.fail(code)
     }
