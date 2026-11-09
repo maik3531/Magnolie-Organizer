@@ -244,7 +244,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     sektion: "kalender",
     kalender: { jahr: jetztTeile.jahr, monat: jetztTeile.monat - 1, tag: isoHeute(jetzt),
       bearbeiteId: null, ansicht: "week" },
-    aufgaben: { bearbeiteId: null, neueElternUid: "",
+    aufgaben: { bearbeiteId: null, neueElternUid: "", sortierung: "manual", erledigteAnzeigen: true,
       filter: { person: "", von: "", bis: "" } },
     adressen: { buchstabe: "A", auswahlId: null, suche: "", gruppenFilter: "all", modus: "ansehen" },
     notizen: { auswahlId: null, gruppeId: NOTIZ_STANDARD_GRUPPE,
@@ -18359,6 +18359,61 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return vergleicheStandardText(a.titel, b.titel);
   }
 
+  function sortiereAufgabenAnsicht(a, b) {
+    const wahl = zustand.aufgaben.sortierung || "manual";
+    if (wahl === "manual") return a.reihenfolge - b.reihenfolge || sortiereAufgaben(a, b) || vergleicheTechnischeKennung(a.uid, b.uid);
+    const [art, richtung] = wahl.split("_"), faktor = richtung === "desc" ? -1 : 1;
+    const wert = aufgabe => art === "due" ? aufgabe.faellig || null : art === "priority" ? aufgabe.prio :
+      Number.isFinite(aufgabe.angelegt) && aufgabe.angelegt > 0 ? aufgabe.angelegt : null;
+    const av = wert(a), bv = wert(b);
+    if (av == null || bv == null) {
+      if (av !== bv) return av == null ? 1 : -1;
+    } else if (av !== bv) return (av < bv ? -1 : 1) * faktor;
+    if (art === "due" && av != null) {
+      const at = a.faelligZeit || "99:99", bt = b.faelligZeit || "99:99";
+      if (at !== bt) return (at < bt ? -1 : 1) * faktor;
+    }
+    return vergleicheStandardText(a.titel, b.titel) || vergleicheTechnischeKennung(a.uid, b.uid);
+  }
+
+  function aufgabenAnsichtsMenue(event, aufgabe = null) {
+    if (event.target?.closest?.("input, textarea, select, [contenteditable]") || markierterText(event.target).text.trim()) return;
+    event.preventDefault(); event.stopPropagation(); schliesseVorschlaege();
+    const z = zustand.aufgaben, menu = el("div", "vorschlags-menue bearbeiten-menue");
+    menu.id = "vorschlags-menue"; menu.setAttribute("role", "menu");
+    if (aufgabe) personalAdmissionMenuItem(menu, "task", aufgabe);
+    if (menu.children.length) menu.append(el("div", "vm-trenner"));
+    const option = (label, selected, action, key, checkbox = false) => {
+      const button = knopf((selected ? "✓ " : "") + label, "vm-eintrag", () => navigiereMitGuard(() => {
+        action(); menu.remove(); zeichneAlles(); $("#aufgaben-uebersicht")?.focus();
+      }));
+      button.dataset.aufgabenAnsicht = key;
+      button.setAttribute("role", checkbox ? "menuitemcheckbox" : "menuitemradio");
+      button.setAttribute("aria-checked", String(selected)); menu.append(button);
+    };
+    option(_("Default view"), z.sortierung === "manual", () => { z.sortierung = "manual"; }, "manual");
+    for (const [art, label] of [["due", _("Due on")], ["priority", _("Priority")], ["created", _("Created")]])
+      for (const [richtung, pfeil] of [["asc", "↑"], ["desc", "↓"]]) {
+        const key = art + "_" + richtung;
+        option(label + " " + pfeil, z.sortierung === key, () => { z.sortierung = key; }, key);
+      }
+    menu.append(el("div", "vm-trenner"));
+    option(_("Completed task"), z.erledigteAnzeigen !== false,
+      () => { z.erledigteAnzeigen = z.erledigteAnzeigen === false; }, "completed", true);
+    document.body.append(menu);
+    const rect = event.target?.getBoundingClientRect?.() || { left: 6, top: 6 };
+    menu.style.left = Math.max(6, Math.min(event.clientX || rect.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
+    menu.style.top = Math.max(6, Math.min(event.clientY || rect.top, window.innerHeight - menu.offsetHeight - 8)) + "px";
+    menu.addEventListener("keydown", e => {
+      const buttons = [...menu.querySelectorAll("button")], current = buttons.indexOf(document.activeElement);
+      if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+        e.preventDefault(); buttons[e.key === "Home" ? 0 : e.key === "End" ? buttons.length - 1 :
+          (current + (e.key === "ArrowUp" ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+      } else if (e.key === "Escape") { e.preventDefault(); menu.remove(); event.target?.focus?.(); }
+    });
+    menu.querySelector("button")?.focus();
+  }
+
   function aufgabenNachHierarchie(filterAktiv) {
     normalisiereAufgabenGraph(DATEN.aufgaben);
     const nachEltern = new Map(), nachUid = new Map(DATEN.aufgaben.map((a) => [a.uid, a]));
@@ -18366,8 +18421,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!nachEltern.has(a.elternUid)) nachEltern.set(a.elternUid, []);
       nachEltern.get(a.elternUid).push(a);
     }
-    for (const kinder of nachEltern.values()) kinder.sort((a, b) =>
-      a.reihenfolge - b.reihenfolge || sortiereAufgaben(a, b) || vergleicheTechnischeKennung(a.uid, b.uid));
+    for (const kinder of nachEltern.values()) kinder.sort(sortiereAufgabenAnsicht);
     let sichtbar = null;
     if (filterAktiv) {
       sichtbar = new Set(DATEN.aufgaben.filter(aufgabePasst).map((a) => a.uid));
@@ -19248,7 +19302,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         (eingeschraenkt ? _(" (filtered)") : ""),
       [neuKnopf, personenKnopf]);
 
-    const inhaltL = $("#inhalt-links");
+    const inhaltL = el("div", "aufgaben-uebersicht"); inhaltL.id = "aufgaben-uebersicht"; inhaltL.tabIndex = 0;
+    $("#inhalt-links").append(inhaltL);
+    inhaltL.addEventListener("contextmenu", event => aufgabenAnsichtsMenue(event));
+    inhaltL.addEventListener("keydown", event => {
+      if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") aufgabenAnsichtsMenue(event);
+    });
 
     /* ---- Auswahl nach Person und Zeitraum ---- */
     if (DATEN.personen.length || eingeschraenkt) {
@@ -19297,7 +19356,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         (x) => aufgabenZeile(x.a, false, heute, x.tiefe));
     }
 
-    if (erledigte.length) {
+    if (erledigte.length && z.erledigteAnzeigen !== false) {
       const zt = el("div", "zwischentitel");
       zt.append(el("span", null, uebersetzt("Completed (%(count)s)",
         { count: erledigte.length })));
@@ -19665,17 +19724,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const occurrence = !istErledigt ? icsQuelle(source) ? icsRuntime("next", source, [heute]) : a : null;
     const zeile = el("li", "zeile" + (istErledigt ? " erledigt" : "") +
       (a.id === z.bearbeiteId ? " aktiv" : ""));
-    const admissionMenu = event => {
-      if (!personalAdmissionPeer() || !personalAdmissionEligible("task", a)) return;
-      event.preventDefault(); event.stopPropagation(); schliesseVorschlaege();
-      const menu = el("div", "vorschlags-menue bearbeiten-menue"); menu.id = "vorschlags-menue"; menu.setAttribute("role", "menu");
-      personalAdmissionMenuItem(menu, "task", a); document.body.append(menu);
-      const rect = zeile.getBoundingClientRect();
-      menu.style.left = Math.max(6, Math.min(event.clientX || rect.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
-      menu.style.top = Math.max(6, Math.min(event.clientY || rect.top, window.innerHeight - menu.offsetHeight - 8)) + "px";
-      menu.addEventListener("keydown", e => { if (e.key === "Escape") { menu.remove(); zeile.querySelector("button")?.focus(); } });
-      menu.querySelector("button")?.focus();
-    };
+    const admissionMenu = event => aufgabenAnsichtsMenue(event, a);
     zeile.addEventListener("contextmenu", admissionMenu);
     zeile.addEventListener("keydown", event => { if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") admissionMenu(event); });
     zeile.style.paddingInlineStart = Math.min(12, Math.max(0, tiefe - 1)) * 18 + "px";
