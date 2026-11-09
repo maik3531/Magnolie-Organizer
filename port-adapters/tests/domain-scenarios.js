@@ -214,21 +214,25 @@ window.NativeDomains = (() => {
     const bookBefore=JSON.stringify(T.daten()),immutable=JSON.stringify(source),owned=[],controllers=[];
     const started=performance.now(),result={input:'synthetic immutable editor-API replay; not native gesture',comparisons:{}};
     const width=source.width,height=source.height,stroke=source.strokes[0];
+    const readbackLimitPixels=4000000;let readbackPixels=5*width*height,readbackReads=5; // Native before/Undo2/Redo2 already read.
+    const release=value=>{value.remove();value.width=value.height=1;};
     const hash=bytes=>{let value=2166136261;for(const byte of bytes)value=Math.imul(value^byte,16777619);return (value>>>0).toString(16).padStart(8,'0');};
     const canvas=()=>{const value=document.createElement('canvas');owned.push(value);return value;};
     const read=value=>{
       assert(value.width===width&&value.height===height,'Synthetic replay changed bitmap size');
-      return new Uint8ClampedArray(value.getContext('2d').getImageData(0,0,width,height).data);
+      assert(readbackPixels+width*height<=readbackLimitPixels,'Synthetic replay readback pixel budget exceeded');
+      readbackPixels+=width*height;readbackReads++;
+      return value.getContext('2d').getImageData(0,0,width,height).data;
     };
     const compare=(name,a,b)=>{result.comparisons[name]={...drawingReplayDiff(a,b,width),beforeFNV1a32:hash(a),afterFNV1a32:hash(b)};};
     try {
-      assert(width<=540&&height<=236&&width>0&&height>0&&source.strokes.length===1&&stroke.tool==='pen'&&stroke.points.length<=25,
+      assert(((width<=540&&height<=236&&width>0&&height>0)||(width===794&&height===236))&&source.strokes.length===1&&stroke.tool==='pen'&&stroke.points.length<=25,
         'Synthetic replay matrix input exceeds approved pen fixture bounds');
       const direct=canvas(),second=canvas(),copy=canvas();
       MagnolieZeichnen.render(direct,clone(source));const directPixels=read(direct);
-      MagnolieZeichnen.render(second,clone(source));compare('directTwice',directPixels,read(second));
+      MagnolieZeichnen.render(second,clone(source));compare('directTwice',directPixels,read(second));release(second);
       copy.width=width;copy.height=height;copy.getContext('2d').drawImage(direct,0,0);
-      compare('directVsCopy',directPixels,read(copy));
+      compare('directVsCopy',directPixels,read(copy));release(copy);release(direct);
       compare('nativeLiveVsDirect',actualBefore,directPixels);compare('nativeRedoVsDirect',actualRedo,directPixels);
       for(const attached of [false,true]) {
         const target=canvas(),sheet={...clone(source),strokes:[]};
@@ -246,11 +250,41 @@ window.NativeDomains = (() => {
         assert(JSON.stringify(sheet)===immutable,'Synthetic Undo/Redo changed immutable fixture semantics');
         compare(prefix+'LiveVsRedo',live,redo);compare(prefix+'LiveVsDirect',live,directPixels);
         compare(prefix+'RedoVsDirect',redo,directPixels);
+        controller.destroy();controllers.pop();release(target);
+      }
+      result.readbackSequences={scope:'detached synthetic controls; canvas backend is unknown, not claimed equal to native or attached canvas'};
+      for(const withPixels of [false,true]) {
+        const target=canvas(),sheet={...clone(source),strokes:[]};
+        const controller=MagnolieZeichnen.attach(target,sheet,()=>{},error=>{throw Error(String(error));});controllers.push(controller);
+        const sample=()=>{
+          const pixels=withPixels?read(target):null,png=target.toDataURL('image/png');
+          return {pixels,png,summary:{pngLength:png.length,pngFNV1a32:hash(new TextEncoder().encode(png)),...(pixels?{pixelFNV1a32:hash(pixels)}:{})}};
+        };
+        const blank=sample();blank.pixels=null;
+        controller.setTool(stroke.tool);controller.setWidth(stroke.width);controller.setColor(stroke.color);
+        controller.begin(...stroke.points[0]);for(const point of stroke.points.slice(1))controller.move(...point);controller.finish();
+        assert(JSON.stringify(sheet)===immutable,'Readback control changed immutable fixture semantics');
+        const live=sample();controller.undo();assert(sheet.strokes.length===0,'Readback control Undo did not clear stroke');
+        const undo=sample();undo.pixels=null;const freshUndo=sample();freshUndo.pixels=null;
+        controller.redo();assert(JSON.stringify(sheet)===immutable,'Readback control Redo changed immutable fixture semantics');
+        const redo=sample(),freshRedo=sample();freshRedo.pixels=null;
+        const key=withPixels?'getImageDataBeforeEachPNG':'pngOnly';
+        result.readbackSequences[key]={sequence:['blank','live','undo','freshUndo','redo','freshRedo'],pngReads:6,rgbaReads:withPixels?6:0,
+          samples:[blank,live,undo,freshUndo,redo,freshRedo].map(value=>value.summary),
+          liveRedoPNGEqual:live.png===redo.png,undoDuplicatePNGEqual:undo.png===freshUndo.png,redoDuplicatePNGEqual:redo.png===freshRedo.png,
+          modelUnchanged:true};
+        if(withPixels) {
+          compare(key+'LiveVsRedo',live.pixels,redo.pixels);compare(key+'LiveVsDirect',live.pixels,directPixels);
+          compare(key+'RedoVsDirect',redo.pixels,directPixels);
+        }
+        live.pixels=redo.pixels=null;
+        controller.destroy();controllers.pop();release(target);
       }
     } catch(error) {result.error=String(error.message||error).slice(0,240);}
     finally {
       for(const controller of controllers)try{controller.destroy();}catch(_){result.cleanupError=true;}
-      for(const node of owned)node.remove();
+      for(const node of owned)release(node);
+      result.readback={unit:'pixels',limit:readbackLimitPixels,used:readbackPixels,reads:readbackReads,nativeReadsReserved:5};
       result.bookUnchanged=JSON.stringify(T.daten())===bookBefore;
       result.fixtureUnchanged=JSON.stringify(source)===immutable;
       result.elapsedMilliseconds=Math.round(performance.now()-started);
