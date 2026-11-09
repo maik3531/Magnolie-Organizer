@@ -95,11 +95,20 @@ def owns_adb_socket(expected):
     if not expected or identity(expected['pid']) != expected or zombie(expected['pid']):
         return False
     try:
-        sockets = {os.readlink(fd) for fd in (Path('/proc') / str(expected['pid']) / 'fd').iterdir()}
+        sockets = set()
+        for fd in (Path('/proc') / str(expected['pid']) / 'fd').iterdir():
+            try:
+                sockets.add(os.readlink(fd))
+            except FileNotFoundError:
+                # ADB can close unrelated descriptors while /proc is enumerated.
+                # A missing entry says nothing about the still-open listener.
+                continue
         for line in Path('/proc/net/tcp').read_text().splitlines()[1:]:
             fields = line.split()
             if fields[1] == '0100007F:13AF' and fields[3] == '0A' and f'socket:[{fields[9]}]' in sockets:
-                return True  # 127.0.0.1:5039, LISTEN, owned fd inode
+                # 127.0.0.1:5039, LISTEN, owned fd inode; do not admit a
+                # process that exited or changed identity during the scan.
+                return identity(expected['pid']) == expected and not zombie(expected['pid'])
     except (FileNotFoundError, ProcessLookupError):
         pass
     return False

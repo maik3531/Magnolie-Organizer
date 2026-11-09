@@ -17,6 +17,42 @@ session = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(session)
 
 
+class AdbSocketOwnershipTests(unittest.TestCase):
+    expected = dict(pid=42, start='owned-start', uid=1000, boot='owned-boot')
+    tcp = 'header\n0: 0100007F:13AF 00000000:0000 0A 0:0 00:0 0 1000 0 123 1\n'
+
+    def scan(self, links, tcp=None, identities=None, zombies=None):
+        with patch.object(session, 'identity', side_effect=identities or [self.expected, self.expected]), \
+             patch.object(session, 'zombie', side_effect=zombies or [False, False]), \
+             patch.object(Path, 'iterdir', return_value=iter([Path('/proc/42/fd/7'), Path('/proc/42/fd/8')])), \
+             patch.object(session.os, 'readlink', side_effect=links), \
+             patch.object(Path, 'read_text', return_value=self.tcp if tcp is None else tcp):
+            return session.owns_adb_socket(self.expected)
+
+    def test_closed_unrelated_fd_does_not_hide_owned_listener(self):
+        self.assertTrue(self.scan([FileNotFoundError(), 'socket:[123]']))
+
+    def test_closed_listener_and_foreign_inode_are_not_admitted(self):
+        self.assertFalse(self.scan(['pipe:[999]', FileNotFoundError()]))
+        self.assertFalse(self.scan(['socket:[456]', 'pipe:[999]']))
+
+    def test_exact_address_port_and_listen_state_remain_required(self):
+        for tcp in [self.tcp.replace('13AF', '13AE'), self.tcp.replace('0100007F', '00000000'),
+                    self.tcp.replace(' 0A ', ' 01 '), 'header\n']:
+            with self.subTest(tcp=tcp):
+                self.assertFalse(self.scan(['socket:[123]', 'pipe:[999]'], tcp=tcp))
+
+    def test_identity_or_liveness_change_during_scan_is_rejected(self):
+        self.assertFalse(self.scan(['socket:[123]', 'pipe:[999]'], identities=[self.expected, None]))
+        changed = dict(self.expected, start='reused-pid')
+        self.assertFalse(self.scan(['socket:[123]', 'pipe:[999]'], identities=[self.expected, changed]))
+        self.assertFalse(self.scan(['socket:[123]', 'pipe:[999]'], zombies=[False, True]))
+
+    def test_unknown_access_failure_does_not_grant_ownership(self):
+        with self.assertRaises(PermissionError):
+            self.scan([PermissionError('owned synthetic failure')])
+
+
 class EmulatorBootDiagnosticTests(unittest.TestCase):
     def test_boot_failure_categories_are_fixed_and_do_not_emit_host_or_record_values(self):
         output = session.emulator_boot_failure_signature(
