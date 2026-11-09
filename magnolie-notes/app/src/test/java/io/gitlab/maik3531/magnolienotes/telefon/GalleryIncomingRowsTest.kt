@@ -728,6 +728,115 @@ class GalleryIncomingRowsTest {
             assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
         }
 
+    @Test fun proposedPcReplacementIsDurableDenyOnlyMetadataAndNeverRenewsAcceptanceOrOldPublication() {
+        for (retireAfterCommit in listOf(false, true)) NativeGalleryIncomingTransferTest.Link().use { link ->
+            withPublishedInspection(link.channel, pcSource = true) { f, rows, provider, published, raw, payload, token ->
+                f.documents.setzePapierkorb(true, 30); provider.allowWriteRequest = true
+                val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+                val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-plan-").toFile(); val before = f.rows()
+                val request = f.io {
+                    NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                        rows.preparePublishedPcWrite(NativeGalleryPcWriteAdmission.capture(f.session, f.index, f.book(), permit,
+                            { f.peer }, { token }, published), archive)
+                    }
+                }
+                val controller = org.robolectric.Robolectric.buildActivity(PcWriteActivity::class.java).setup()
+                val activity = controller.get().apply { writeAllowed = true }; val host = NativeGalleryPcWriteConsentHost(activity)
+                try {
+                    var granted: NativeGalleryPcWriteGrant? = null
+                    host.request(request) { granted = it.getOrThrow() }
+                    activity.activityResultRegistry.dispatchResult(Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode,
+                        android.app.Activity.RESULT_OK, Intent())
+                    Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    val grant = granted!!
+                    val oldManifest = DeviceFileOfferEnvelope.create(manifest(f.pc.deviceId, raw = raw)).getValue("body").jsonObject.getValue("manifest").jsonObject
+                    val file = oldManifest.getValue("files").jsonArray.single().jsonObject
+                    val changed = raw + byteArrayOf(17)
+                    val newHash = java.security.MessageDigest.getInstance("SHA-256").digest(changed).joinToString("") { "%02x".format(it) }
+                    val successor = DeviceFileManifest.parse(JsonObject(oldManifest + mapOf(
+                        "source_id" to JsonPrimitive("8".repeat(32)), "transfer_id" to JsonPrimitive("9".repeat(32)),
+                        "total_bytes" to JsonPrimitive(changed.size), "files" to JsonArray(listOf(JsonObject(file + mapOf(
+                            "size" to JsonPrimitive(changed.size), "sha256" to JsonPrimitive(newHash))))))))
+                    val ordinary = DeviceFileOfferEnvelope.create(successor)
+                    val offer = link.receive(JsonObject(ordinary + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
+                        put("format", 2); put("offer", ordinary.getValue("body")); put("settings", token.body); put("media_type", "images")
+                        put("mime_types", buildJsonObject { put(fileId, "image/png") }); put("originals", buildJsonObject {})
+                        put("pc_origins", buildJsonObject { put(fileId, buildJsonObject {
+                            put("format", 1); put("origin_sha256", published.pcOrigin!!.origin); put("previous_publication_sha256", published.fingerprint)
+                        }) })
+                    })))
+                    val frames = link.frames.toList()
+                    if (retireAfterCommit) f.hook = { if (it == "gallery-pc-replacement-proposed") request.close() }
+                    val plan = f.io {
+                        if (retireAfterCommit) {
+                            assertThrows(PhotoFolderScopeError::class.java) { f.index.proposePcReplacement(grant, link.channel, offer) }
+                            f.index.pcReplacementPlans().single()
+                        } else f.index.proposePcReplacement(grant, link.channel, offer)
+                    }
+                    assertFalse(plan.grantsWriteAuthority); assertFalse(plan.grantsChunkAuthority)
+                    assertEquals(published.body, plan.predecessor.body); assertEquals(request.entry.version, plan.body.getValue("archive").jsonObject.string("version"))
+                    assertEquals(listOf(plan.body), f.index.pcReplacementPlans().map { it.body })
+                    assertEquals(frames, link.frames); assertArrayEquals(raw, payload.readBytes())
+                    assertEquals(before.filterKeys { it != PhotoSourceMembership.NAME },
+                        f.rows().filterKeys { !it.startsWith(GalleryPcReplacementPlan.PREFIX) && it != PhotoSourceMembership.NAME })
+                    if (!retireAfterCommit) {
+                        assertThrows(PhotoFolderScopeError::class.java) { f.io { f.index.proposePcReplacement(grant, link.channel, offer) } }
+                        val variants = listOf(
+                            JsonObject(plan.body + ("state" to JsonPrimitive("writing"))),
+                            JsonObject(plan.body + ("book_version" to JsonPrimitive("bad"))),
+                            JsonObject(plan.body + ("archive" to JsonObject(plan.body.getValue("archive").jsonObject + ("sha256" to JsonPrimitive(newHash))))),
+                            JsonObject(plan.body + ("predecessor" to JsonObject(published.body - "pc_origin"))),
+                            JsonObject(plan.body + ("grant" to JsonPrimitive(true)))
+                        )
+                        for (invalid in variants) assertThrows(PhotoFolderScopeError::class.java) { GalleryPcReplacementPlan.parse(invalid) }
+                        val media = MediaOfferEnvelope.validate(offer, successor.senderId, successor.receiverId)
+                        f.io {
+                            NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, successor, GalleryMediaType.IMAGES,
+                                pcOrigins = media.pcOrigins).use { oldPath ->
+                                assertThrows(PhotoFolderScopeError::class.java) { rows.prepare(oldPath, fileId, "image/png") }
+                            }
+                        } // A proposed plan does not relax the normal PC successor fence.
+                        // Populate ONLY this synthetic fixture's proposed metadata through its
+                        // actual protected transaction/membership writer, never real history.
+                        f.io {
+                            val transaction = PhotoSourceJobIndex::class.java.getDeclaredMethod("transaction", java.lang.Boolean.TYPE, kotlin.jvm.functions.Function0::class.java)
+                                .apply { isAccessible = true }
+                            val put = PhotoSourceJobIndex::class.java.getDeclaredMethod("putMeta", String::class.java, ByteArray::class.java)
+                                .apply { isAccessible = true }
+                            fun insert(id: String) {
+                                val value = JsonObject(plan.body + ("id" to JsonPrimitive(id)))
+                                val bytes = java.io.ByteArrayOutputStream().use { output ->
+                                    TelefonRahmen.schreiben(output, value, DeviceTransferProtection.MAX_CLEAR_BYTES - 4); output.toByteArray()
+                                }
+                                val name = GalleryPcReplacementPlan.PREFIX + id
+                                val cipher = try { f.protection.seal(bytes, "photo-source-jobs-v1/" + name) } finally { bytes.fill(0) }
+                                put.invoke(f.index, name, cipher)
+                            }
+                            transaction.invoke(f.index, false, {
+                                repeat(GalleryPcReplacementPlan.MAX_RECORDS - 1) { number -> insert((number + 1).toString(16).padStart(32, '0')) }
+                            })
+                            assertEquals(GalleryPcReplacementPlan.MAX_RECORDS, f.index.pcReplacementPlans().size)
+                            val retained = f.rows()
+                            assertThrows(PhotoFolderScopeError::class.java) { f.index.proposePcReplacement(grant, link.channel, offer) }
+                            val failure = assertThrows(java.lang.reflect.InvocationTargetException::class.java) {
+                                transaction.invoke(f.index, false, { insert("f".repeat(32)) })
+                            }
+                            val cause = (failure.cause as? java.lang.reflect.InvocationTargetException)?.cause ?: failure.cause
+                            assertEquals("gallery_pc_replacement_plan_capacity", cause?.message)
+                            assertEquals(retained, f.rows())
+                        }
+                    }
+                    assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+                    f.hook = {}; request.close(); f.session.close(); f.index.close()
+                    PhotoSourceJobIndex.openExisting(f.indexRoot, f.protection).use { offline ->
+                        val read = offline.pcReplacementPlans().single { it.id == plan.id }
+                        assertEquals(plan.body, read.body); assertFalse(read.grantsWriteAuthority); assertFalse(read.grantsChunkAuthority)
+                    }
+                } finally { f.hook = {}; host.close(); controller.pause().stop().destroy(); request.close() }
+            }
+        }
+    }
+
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {
         NativeGalleryIncomingTransferTest.Link().use { link ->
             withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->

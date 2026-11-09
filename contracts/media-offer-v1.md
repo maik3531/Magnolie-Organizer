@@ -1056,6 +1056,40 @@ Writer braucht zusätzlich ein dauerhaftes Vor-Schreib-Journal sowie neue genaue
 Ziel-/Archiv-/Rohbyteprüfungen vor und nach Mutation. Der PC-Nachfolger-HOLD und
 alle Geräte-/Feature-/Auslieferungsgates bleiben unverändert.
 
+Vor einem künftigen Ersetzungs-Staging kann der native Index jetzt eine
+geschützte Ersetzungsabsicht festhalten. Sie verlangt den tatsächlichen aktuellen
+PC-OS-Grant, denselben authentifizierten Kanal und Index, ursprünglichen Vorgänger,
+Archivversion und Buchzeugen sowie ein aktuell gültiges neues PC-Angebot unter
+dem unveränderten vollen Intent. Die opake PC-Herkunft und der genaue vorherige
+Publikationsfingerprint müssen passen; unveränderte Inhalte, anderer Medientyp,
+MIME-Typ, sichtbarer Dateiname oder wiederverwendeter Transfer bleiben HOLD.
+Ein kompletter portabler Manifestpfad bleibt gespeichert; für den sichtbaren
+Zielnamen wird nur sein bereits verwendeter Blattname verglichen. Pfade erteilen
+keine Übernahme- oder Ersatzberechtigung.
+
+Das neue ausschließlich vorgeschlagene Journalformat ist getrennte geschützte
+Metadatenmitgliedschaft, kein Source-Cache oder Archiv-Deletionsevent. Genau
+128 solche Absichten haben ihr eigenes Budget; bestehende Source-Job-, Incoming-
+und Historygrenzen werden nicht angehoben. Die Membership-Allowlist erkennt nur
+den genauen neuen Präfix mit gültiger ID, keine beliebigen fremden Metadaten.
+Bestehende Aufzeichnungen werden weder ersetzt noch entfernt. Eine zweite
+Absicht derselben PC-Herkunft wird nicht als Wiederaufnahme angenommen.
+Originale Control-/Grantprüfungen erfolgen außerhalb der Indexsperre; dort
+werden nur lokale Buchzeugen geprüft. Ein während des Commit entzogener Owner
+kann deshalb höchstens eine weiterhin gehaltene Absicht hinterlassen, aber keine
+Datei ändern. Der gespeicherte Datensatz verleiht nach Neustart keine alten Rechte.
+
+159 passende Rows-/Runtime-/Transfer-/Index-Hostfälle bestehen einschließlich
+echtem archivierten Vorgänger, synthetischem OS-Grant, geschütztem Readback,
+Entzug unmittelbar nach Commit, unveränderten Original-/Indexaufzeichnungen,
+128er-Grenze samt tatsächlichem Membership-Rollback bei zusätzlichem Eintrag und
+passiver Lesbarkeit nach Schließen von Sitzung und Index. Die normale
+PC-Nachfolgeraufnahme bleibt nachweislich weiterhin gesperrt. Es gibt dadurch
+noch keine Acceptance, Chunkleser, verschlüsselte Nachfolger-Stagingkopie oder
+Vor-/Nach-Schreib-Transition. Gerade ein Netzwerkstrom direkt in die bisherige
+veröffentlichte Datei ist nicht freigegeben; der zerstörungsfreie vollständige
+Nachfolger-Zwischenspeicher und eigentliche Writer bleiben offen.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

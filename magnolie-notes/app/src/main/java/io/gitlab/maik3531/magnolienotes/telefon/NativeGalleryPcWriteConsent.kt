@@ -47,6 +47,22 @@ internal class NativeGalleryPcWriteAdmission private constructor(private val ses
         }, publication, expectedControl = action.expectedControl(destination))
     }
     internal fun bindCancellation(cancellation: CancellationSignal) { action.bindCancellation(cancellation) }
+    internal fun requireIndex(actual: PhotoSourceJobIndex) {
+        requireCurrent()
+        if (actual !== index) { close(); fail() }
+    }
+    internal fun proposeSuccessor(grant: NativeGalleryPcWriteGrant, source: TelefonSecureChannel,
+        offer: JsonObject): GalleryPcReplacementPlan {
+        requireCurrent(); grant.requireCurrent()
+        if (grant.request.admission !== this || originalPeer.owner !== source) fail()
+        val media = MediaOfferEnvelope.validate(offer, originalPeer.peerId, publication.body.getValue("origin").jsonObject
+            .getValue("binding").jsonObject.string("receiver_id"))
+        val token = action.currentIntent() as MediaSyncTransport.IntentToken
+        if (media.settings != token.body) fail()
+        val plan = GalleryPcReplacementPlan.create(publication, grant.request.entry, archiveBook.version,
+            action.expectedControl(media.manifest.fingerprint).binding, offer)
+        requireCurrent(); grant.requireCurrent(); return plan
+    }
     internal fun requireOwner(owner: NativeGalleryPublishedInspection, permit: NativeGalleryTrashBookPermit) {
         requireCurrent()
         if (permit !== archiveBook || owner.selected.body != publication.body) { close(); fail() }

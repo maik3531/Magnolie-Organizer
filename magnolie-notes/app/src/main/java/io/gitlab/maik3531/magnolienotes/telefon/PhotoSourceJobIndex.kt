@@ -686,6 +686,49 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         ids.map { incomingPublication(it) ?: fail("gallery_incoming_original_changed") }
     }
 
+    internal fun pcReplacementPlans(): List<GalleryPcReplacementPlan> = gated {
+        val ids = mutableListOf<String>()
+        db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryPcReplacementPlan.PREFIX + "%"),
+            null, null, "name", (GalleryPcReplacementPlan.MAX_RECORDS + 1).toString()).use { cursor ->
+            while (cursor.moveToNext()) ids += cursor.getString(0).removePrefix(GalleryPcReplacementPlan.PREFIX)
+        }
+        if (ids.size > GalleryPcReplacementPlan.MAX_RECORDS) fail("gallery_pc_replacement_plan_capacity")
+        ids.map { id ->
+            val name = GalleryPcReplacementPlan.PREFIX + id
+            val cipher = meta(name) ?: fail("gallery_pc_replacement_plan_missing")
+            GalleryPcReplacementPlan.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name))).also {
+                if (it.id != id) fail("gallery_pc_replacement_plan_changed")
+            }
+        }
+    }
+
+    /** Proposals confer NO new chunk or row rights. Transport/grant checks stay
+     * OUTSIDE the protected index lock. A raced revocation retains a held plan,
+     * never a partially written original or resumable grant. */
+    internal fun proposePcReplacement(grant: NativeGalleryPcWriteGrant, source: TelefonSecureChannel,
+        offer: JsonObject): GalleryPcReplacementPlan {
+        val admission = grant.request.admission
+        admission.requireIndex(this)
+        val plan = admission.proposeSuccessor(grant, source, offer)
+        gated {
+            writableMembership(); admission.archiveBook.requireCurrent()
+            if (incomingPublication(plan.predecessor.id)?.body != plan.predecessor.body) fail("gallery_pc_replacement_original_changed")
+            val previous = pcReplacementPlans()
+            if (previous.size >= GalleryPcReplacementPlan.MAX_RECORDS) fail("gallery_pc_replacement_plan_capacity")
+            if (previous.any { it.predecessor.samePcSource(plan.predecessor) }) fail("gallery_pc_replacement_original_operation_required")
+            val name = GalleryPcReplacementPlan.PREFIX + plan.id
+            val cipher = protection.seal(frame(plan.body), "photo-source-jobs-v1/" + name)
+            transaction {
+                if (meta(name) != null) fail("gallery_pc_replacement_plan_changed")
+                admission.archiveBook.requireCurrent(); putMeta(name, cipher); admission.archiveBook.requireCurrent()
+            }
+            boundary("gallery-pc-replacement-proposed")
+            if (pcReplacementPlans().none { it.body == plan.body }) fail("gallery_pc_replacement_plan_changed")
+        }
+        admission.requireCurrent(); grant.requireCurrent()
+        return plan
+    }
+
     internal fun incomingAcceptance(id: String): GalleryIncomingAcceptance? = gated {
         if (!DeviceFileControl.hash(id)) fail("gallery_incoming_acceptance_invalid")
         val name = GalleryIncomingAcceptance.PREFIX + id
