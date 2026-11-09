@@ -82,6 +82,24 @@ navigation records DOMContentLoaded at about 29 seconds. Fixed technical
 script timings are extended in test-only diagnostics to locate the slow phase.
 There is no demonstrated startup correction or completed full tablet gate.
 
+Subsequent run42565577222 at `b9e9e4fb` reaches none of those later UI
+assertions: services loses the ADB ownership check before APK installation;
+files/domains fail downloading the unchanged Gradle8.13 distribution
+(timeout/HTTP504). An independently reproduced FD-enumeration race is fixed
+in `5da957de` (#473):58 lifecycle tests pass and a continuously owned listener
+under unrelated FD churn changes from188/250 false negatives to0/250. This
+establishes the tool correction, not the cause of every previous CI failure.
+The native follow-up is
+[run42566781256](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42566781256).
+
+The test-only saved-book expectation in `20354edf` (#472) permits just two
+empty-string UI epoch placeholders to correspond to absent native slots.
+UUIDs, other values, settings, containers and unknown fields remain strict;
+actual saved cancellation snapshots still compare without this adjustment.
+All31 combined JVM cases pass with both AOSP14 and Gradle JSON, and the actual
+projected App/production Vault pair passes the bounded comparison with both.
+This changes neither the production epoch policy nor UI/device acceptance.
+
 ### Later component checkpoints (2026-11-08; Refs #121)
 
 The table below remains the source inventory at its stated snapshot. Later
