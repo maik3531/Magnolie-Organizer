@@ -22,15 +22,17 @@ Current host checks used in this work: Mac host 18 tests including 82UI/81recove
 These results supersede the corresponding pending historical entries below;
 the inventory table remains tied to its original source snapshot.
 
-- Mac [42547724299](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42547724299)
-  at `798771ed` passes both complete existing macOS 15 architecture jobs,
+- Mac [42562106430](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42562106430)
+  at `cbdc0876` passes both complete existing macOS 15 architecture jobs,
   including actual bundle start/save/quit/reopen and candidate packaging.
   Actual handbook load/search/isolation, note-file import, printing/PDF,
   strict drawing replay and calendar reference checks have native evidence.
   The new native restore core (nine tests), ordinary epoch policy (two tests)
   and actual WK restore/model/admission handoff pass in all four suite calls
-  per architecture. Each invocation runs 315 tests with zero failures and
-  explicitly records its skips. This does not exercise a real restore-file
+  per architecture. Three native legacy-alias evidence tests also pass, and
+  the drawing pointer-release projection includes the shared correction in #468.
+  Each invocation runs 318 tests with zero failures; the four invocations
+  explicitly record 3/4/4/5 environment-dependent skips on each architecture. This does not exercise a real restore-file
   panel click, every feature or older macOS runtime compatibility.
 - Android API34 [42537601160](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42537601160)
   at `7278298b` passes the isolated services and file-picker jobs. The latter
@@ -49,23 +51,36 @@ the inventory table remains tied to its original source snapshot.
   Redo. Its cause is under investigation; the earlier foreign Launcher dialog
   and readiness failures must not be assumed to explain it. The original
   complete 40-touch tablet gate remains open.
-- Tablet restore/epoch integration (#454), old Android recurrence aliases and
+- Tablet native restore acceptance (#454), old Android recurrence aliases and
   duplicate repair (#465, following #462),
   full Nextcloud/system-account synchronization and other incomplete native
   adapters remain separate open work. None of the above certifies release
   readiness. The user has authorized publication once required checks pass.
 
-The pure Kotlin restore/ordinary-save policy in `1196f3d2` passes 18 tests with
-each of actual AOSP Android JSON and the Gradle JSON dependency. Its fixtures
-are byte-identical to the Mac fixtures; typed copies avoid JSON stringify
-coercion. It is not yet connected to Vault/Main and therefore does not establish
-native Tablet restore acceptance. An independent existing Vault serialization
+Tablet `Vault.replace` and ordinary saves now use the restore/epoch policy
+in `38ce0e85` (#454). The integrated storage/restore tests pass 27 cases with
+each of actual AOSP Android JSON and the Gradle JSON dependency, plus the 17
+existing Vault tests with their intended Gradle JSON dependency. Shared restore
+fixtures remain byte-identical to Mac fixtures. Native Android Keystore/OS
+services [run42564834374](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42564834374)
+passes epoch rotation, agreement of persisted epoch copies, fresh Vault reopen,
+old-page revocation and stale-epoch save rejection. Five additional native
+restore durability boundary cases are prepared in `b9e9e4fb`; execution and
+full restore-file/UI acceptance remain pending. An independent existing Vault serialization
 defect was corrected in `c00b0ff8` (#466). Its native Android services job
 [128977490166](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42561105295/job/128977490166)
 passes numeric wire save/replacement/reopen, exact generated recovery bytes and
 wrong-filename AAD rejection with actual OS storage/Keystore. Exact manufactured
 legacy plaintext recovery also passes on the JVM. Native full UI acceptance,
 arbitrary-precision parsing and complete synchronization remain separate work.
+
+The later API34 component run42561105295 does not pass files or domains.
+The files process is explicitly killed by Android after the Google fonts
+provider's process suffers an ANR (#471); this is distinct from an Organizer
+crash. Domains fails the unchanged 25-second initialization limit; browser
+navigation records DOMContentLoaded at about 29 seconds. Fixed technical
+script timings are extended in test-only diagnostics to locate the slow phase.
+There is no demonstrated startup correction or completed full tablet gate.
 
 ### Later component checkpoints (2026-11-08; Refs #121)
 
