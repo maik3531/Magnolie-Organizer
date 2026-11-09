@@ -9894,3 +9894,53 @@ msgstr "वीडियो"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "ऐप की मीडिया स्थिति की प्रतीक्षा"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "केवल दृश्य परीक्षण; कनेक्शन और अनुमतियाँ नहीं बदली जाती हैं।"
+
+msgid "Tray preview"
+msgstr "सिस्टम ट्रे आइकन का पूर्वावलोकन"
+
+msgid "Seasonal background"
+msgstr "मौसमी पृष्ठभूमि"
+
+msgid "Holiday watermark"
+msgstr "त्योहार का वॉटरमार्क"
+
+msgid "Both connected"
+msgstr "दोनों जुड़े हैं"
+
+msgid "Camera"
+msgstr "कैमरा"
+
+msgid "Snowflakes"
+msgstr "हिमकण"
+
+msgid "Stars"
+msgstr "तारे"
+
+msgid "Boots"
+msgstr "जूते"
+
+msgid "Santa Claus"
+msgstr "सांता क्लॉज़"
+
+msgid "Rocket"
+msgstr "रॉकेट"
+
+msgid "Champagne glass"
+msgstr "शैम्पेन का गिलास"
+
+msgid "Easter eggs"
+msgstr "ईस्टर के अंडे"
+
+msgid "Reset preview"
+msgstr "पूर्वावलोकन रीसेट करें"
+
+msgid "OS tray icon (60 s)"
+msgstr "सिस्टम ट्रे आइकन (60 सेकंड)"
+
+msgid "Saved developer mode is required."
+msgstr "डेवलपर मोड सहेजा हुआ होना चाहिए।"

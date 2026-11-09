@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Looper
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -74,6 +76,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         }
     }
     private val app = context.applicationContext
+    private val localRecoveryProtection = protection
     private val localIdentity = identity
     private val localPermissionCommands = NativeGalleryPermissionCommands()
     private val localRunCommands = NativeGalleryRunCommands()
@@ -126,21 +129,95 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation(allowIncoming = true) {
         controls.observe(message, now).also { incomingWorker.current?.retireIfChanged(); publishedReadWorker.current?.retireIfChanged() }
     }
+    internal fun beginIncomingMediaOffer(message: JsonObject, book: NativeGalleryReceiveBookPermit,
+        automaticReadback: Boolean = false, requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun {
+        val peer = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+        val media = MediaOfferEnvelope.validate(message, peer.peerId, localIdentity.deviceId)
+        val intent = currentIncomingIntent?.invoke(media.kind) as? MediaSyncTransport.IntentToken
+            ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        if (intent.body != media.settings) DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
+        return beginIncomingOwned(media.offer, media.kind, media.mimeTypes, book, media.originals, intent, automaticReadback, requireReadbackAgreement, media.pcOrigins)
+    }
+
     internal fun beginIncoming(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
-        book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference> = emptyMap()): NativeGalleryIncomingRun = withOperation {
+        book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference> = emptyMap(),
+         expectedIntent: MediaSyncTransport.IntentToken? = null, automaticReadback: Boolean = false,
+          requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun =
+        beginIncomingOwned(offer, kind, mimeTypes, book, references, expectedIntent, automaticReadback, requireReadbackAgreement, emptyMap())
+
+    private fun beginIncomingOwned(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
+        book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference>,
+        expectedIntent: MediaSyncTransport.IntentToken?, automaticReadback: Boolean,
+        requireReadbackAgreement: () -> Unit, pcOrigins: Map<String, GalleryPcMediaOrigin>): NativeGalleryIncomingRun = withOperation {
         if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
         if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
             DeviceFileControl.fail("gallery_sync_run_busy")
         val current = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+        if (expectedIntent != null && currentIncomingIntent?.invoke(kind) !== expectedIntent)
+            DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
         val manifest = DeviceFileOfferEnvelope.validate(offer, current.peerId, localIdentity.deviceId)
         val types = mimeTypes.toMap()
         val originalReferences = references.toMap()
-        incomingWorker.start {
+        val originalPcOrigins = pcOrigins.toMap()
+        val originalIntent = currentIncomingIntent?.invoke(kind)
+            ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        val originalControl = controls.session.operationBinding(manifest.fingerprint)
+        incomingWorker.start(completedReadback = { completed ->
+            if (!automaticReadback) beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent,
+                originalControl ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required"))
+            else {
+                val remaining = minOf(1000L, offer.long("expires_ms") - System.currentTimeMillis())
+                if (remaining <= 0 || !operationGate.tryLock(remaining, java.util.concurrent.TimeUnit.MILLISECONDS))
+                    DeviceFileControl.fail("file_control_configuration_busy")
+                try {
+                    // The original start operation may still be returning on the
+                    // receiver. Wait only on this native thread, bounded, with no
+                    // index guard held. All owners are checked again below.
+                    requireReadbackAgreement()
+                    beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent,
+                        originalControl ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required"))
+                } finally { operationGate.unlock() }
+            }
+        }, automaticReadback = automaticReadback) {
             val owner = NativeGalleryIncomingOwner.capture(controls.session, index, book, nativePeer,
-                { currentIncomingIntent?.invoke(kind) }, manifest, kind, originalReferences)
+                { currentIncomingIntent?.invoke(kind)?.takeIf { it === originalIntent && (expectedIntent == null || it === expectedIntent) } },
+                manifest, kind, originalReferences, originalPcOrigins,
+                expectedControl = originalControl ?: DeviceFileControl.fail("gallery_incoming_current_owner_required"))
             try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
             catch (error: Throwable) { owner.close(); throw error }
+        }
+    }
+    private fun beginCompletedIncomingReadback(completed: NativeGalleryIncomingRun, offer: JsonObject,
+        book: NativeGalleryReceiveBookPermit, kind: GalleryMediaType, originalIntent: Any,
+        originalControl: NativeFileOperationBinding): NativeGalleryPublishedReadRun = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        if (!incomingWorker.owns(completed) || !incomingAvailable() || currentIncomingIntent?.invoke(kind) !== originalIntent)
+            DeviceFileControl.fail("gallery_incoming_completed_owner_required")
+        book.requireCurrent()
+        if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
+        if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
+            DeviceFileControl.fail("gallery_sync_run_busy")
+        val selected = completed.actualPublishedOutput()
+        val origin = selected.body.getValue("origin").jsonObject
+        val originalEpoch = origin.getValue("binding").jsonObject.string("permission_epoch")
+        if (controls.session.operationBinding(origin.string("manifest_sha256")) != originalControl ||
+            originalControl.binding.permissionEpoch != originalEpoch)
+            DeviceFileControl.fail("gallery_incoming_completed_owner_required")
+        val saved = completed.actualSavedOutput() ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required")
+        val receipt = saved.getValue("body").jsonObject.getValue("receipts").jsonArray.singleOrNull()?.jsonObject
+            ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required")
+        if (receipt["receipt_sha256"] != JsonPrimitive(selected.fingerprint) ||
+            index.incomingPublication(selected.id)?.body != selected.body)
+            DeviceFileControl.fail("gallery_incoming_original_changed")
+        publishedReadWorker.startReadback {
+            val owner = NativeGalleryPublishedInspection.capture(controls.session, index, book, nativePeer,
+                { currentIncomingIntent?.invoke(kind)?.takeIf { it === originalIntent } }, selected, expectedControl = originalControl)
+            try {
+                if (owner.bindingForReadback(origin.string("manifest_sha256")).permissionEpoch != originalEpoch)
+                    DeviceFileControl.fail("gallery_incoming_completed_owner_required")
+                NativeGalleryPublishedReadback.capture(owner, offer, nativeChannel)
+            } catch (error: Throwable) { owner.close(); throw error }
         }
     }
     /** Exact native authenticated dispatcher input; never take the operation
@@ -172,6 +249,70 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 { currentIncomingIntent?.invoke(kind) }, selected)
         }
     }
+    /** Explicit native background action, not a frame/browser path or a future
+     * PC replacement grant. The same worker owns store close and actual drain. */
+    internal fun beginPublishedPcArchive(kind: GalleryMediaType, id: String, fingerprint: String,
+        book: NativeGalleryReceiveBookPermit, archiveBook: NativeGalleryTrashBookPermit): NativeGalleryPublishedReadRun = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
+        if (!DeviceFileControl.hash(id) || !DeviceFileControl.hash(fingerprint)) DeviceFileControl.fail("gallery_incoming_publication_invalid")
+        if (!sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent ||
+            syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        val action = NativeGalleryPcArchiveAction.capture(controls.session, kind, book, archiveBook,
+            { currentIncomingIntent?.invoke(kind) }, { incomingAvailable() && (kind != GalleryMediaType.VIDEO || videoAvailable()) })
+        startPcArchive(action, id, fingerprint, book, archiveBook)
+    }
+
+    internal fun preparePcArchiveSelection(kind: GalleryMediaType, book: NativeGalleryReceiveBookPermit,
+        archiveBook: NativeGalleryTrashBookPermit, connectionCurrent: () -> Boolean): NativeGalleryPcArchiveSelection = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        withReceiveIdleLane {
+            val action = NativeGalleryPcArchiveAction.capture(controls.session, kind, book, archiveBook,
+                { currentIncomingIntent?.invoke(kind) }, { connectionCurrent() && incomingAvailable() &&
+                    (kind != GalleryMediaType.VIDEO || videoAvailable()) })
+            try {
+                val peer = nativePeer() ?: DeviceFileControl.fail("gallery_archive_original_selection_required")
+                val choices = index.incomingPublications().filter { publication ->
+                    val binding = publication.body.getValue("origin").jsonObject.getValue("binding").jsonObject
+                    publication.state == "published" && publication.pcOrigin != null && publication.body.string("media_type") == kind.uriSegment &&
+                        binding.string("sender_id") == peer.peerId && binding.string("sender_identity_sha256") == peer.identitySha256 &&
+                        binding.string("receiver_id") == localIdentity.deviceId && binding.string("receiver_identity_sha256") == localIdentity.identitySha256
+                }.map { publication ->
+                    NativeGalleryPcArchiveChoice(publication.id, publication.fingerprint,
+                        publication.row!!.string("name"), publication.body.long("size"))
+                }
+                action.requireCurrent()
+                NativeGalleryPcArchiveSelection(this, action, book, archiveBook, choices)
+            } catch (error: Throwable) { action.close(); throw error }
+        }
+    }
+
+    internal fun beginSelectedPcArchive(selection: NativeGalleryPcArchiveSelection,
+        selected: NativeGalleryPcArchiveChoice): NativeGalleryPublishedReadRun = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        selection.requireRuntime(this, selected)
+        if (!sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent ||
+            syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        startPcArchive(selection.action, selected.id, selected.fingerprint, selection.book, selection.archiveBook)
+    }
+
+    private fun startPcArchive(action: NativeGalleryPcArchiveAction, id: String, fingerprint: String,
+        book: NativeGalleryReceiveBookPermit, archiveBook: NativeGalleryTrashBookPermit): NativeGalleryPublishedReadRun {
+        val kind = action.kind
+        try {
+            return publishedReadWorker.startArchive(localRecoveryProtection, archiveBook) { cancellation ->
+                try {
+                    action.bindCancellation(cancellation)
+                    val selected = index.incomingPublication(id)?.takeIf { it.fingerprint == fingerprint && it.pcOrigin != null &&
+                        it.body.string("media_type") == kind.uriSegment } ?: DeviceFileControl.fail("gallery_archive_published_pc_owner_required")
+                    val destination = selected.body.getValue("origin").jsonObject.string("manifest_sha256")
+                    NativeGalleryPublishedInspection.capture(controls.session, index, book, nativePeer, action::currentIntent, selected,
+                        expectedControl = action.expectedControl(destination), archiveAction = action)
+                } catch (error: Throwable) { action.close(); throw error }
+            }
+        } catch (error: Throwable) { action.close(); throw error }
+    }
+
     internal fun cancelPublishedInspection(run: NativeGalleryPublishedReadRun) {
         if (!publishedReadWorker.owns(run)) DeviceFileControl.fail("gallery_published_worker_foreign_run")
         run.cancel()
@@ -217,6 +358,13 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
 
     /** Native IO-lane preparation only. The UI must still present the real
      * foreground positive dialog with its current saved-book witness. */
+    internal fun receiveConsentIntent(kind: GalleryMediaType): MediaSyncTransport.IntentToken = withOperation {
+        if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
+        if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
+        currentIncomingIntent?.invoke(kind) as? MediaSyncTransport.IntentToken
+            ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+    }
+
     internal fun beginReceiveConfiguration(): NativeFileReceiveConfigurer = withOperation {
         if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_receive_policy_io_thread_required")
         withReceiveIdleLane {

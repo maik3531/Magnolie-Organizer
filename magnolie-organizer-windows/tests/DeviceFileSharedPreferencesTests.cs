@@ -97,6 +97,37 @@ internal static class DeviceFileSharedPreferencesTests
         return Task.CompletedTask;
     }
 
+    internal static Task IndependentDirectionViewAsync()
+    {
+        using var f = new DeviceFileConnectionMetadataTests.Fixture(); Identity(f);
+        var grants = f.Store.LocalGrants().DeepClone(); var native = f.Store.ReadNativeMediaPreferences(f.Peer.Id);
+        JsonObject Change(string field, JsonNode value) => f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey,
+            field, value, f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, field));
+        _ = Change("enabled", JsonValue.Create(true)!);
+        _ = Change("direction", JsonValue.Create("pc_to_phone")!);
+        _ = Change("auto_mode", JsonValue.Create("wifi")!);
+        var stored = Change("collection_mode", JsonValue.Create("import_only")!); var ciphertext = Blob(f.Store)!;
+        var version = f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "direction");
+        var view = f.Store.NativeMediaSharedSettingsView(f.Peer.Id, f.Peer.PublicKey);
+        TestAssert.That(view["values"]!["direction"]!.GetValue<string>() == "pc_to_phone" &&
+            view["values"]!["auto_mode"]!.GetValue<string>() == "wifi" &&
+            view["versions"]!["direction"]!.GetValue<string>() == version,
+            "Import-only UI replaced the independently stored direction or mode with its effective transfer policy.");
+        TestAssert.That(!MediaSyncSettings.TransferRequestedFor(stored, "images", true) &&
+            MediaSyncSettings.TransferRequestedFor(stored, "images", false) && ciphertext.SequenceEqual(Blob(f.Store)!) &&
+            JsonNode.DeepEquals(grants, f.Store.LocalGrants()) && native == f.Store.ReadNativeMediaPreferences(f.Peer.Id),
+            "A configured display granted export, changed native rights or rewrote stored settings.");
+        var changed = Change("direction", JsonValue.Create("two_way")!);
+        TestAssert.That(!MediaSyncSettings.TransferRequestedFor(changed, "images", true) &&
+            f.Store.NativeMediaSharedSettingsView(f.Peer.Id, f.Peer.PublicKey)["values"]!["direction"]!.GetValue<string>() == "two_way",
+            "An independent direction edit bypassed import-only or did not remain visible.");
+        var restored = Change("collection_mode", JsonValue.Create("phone_inventory")!);
+        TestAssert.That(MediaSyncSettings.TransferRequestedFor(restored, "images", true) &&
+            JsonNode.DeepEquals(changed["settings"]!["direction"], restored["settings"]!["direction"]),
+            "Returning to inventory reset the independently edited direction history.");
+        return Task.CompletedTask;
+    }
+
     internal static Task LegacyAsync()
     {
         using var f = new DeviceFileConnectionMetadataTests.Fixture(); Identity(f);

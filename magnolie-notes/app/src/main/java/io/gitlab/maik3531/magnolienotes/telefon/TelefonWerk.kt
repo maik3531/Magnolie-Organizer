@@ -686,6 +686,41 @@ class TelefonWerk private constructor(private val context: Context, private val 
         transport.startManual(channel::send)
     }
 
+    internal suspend fun allowMediaReceiving(activity: androidx.activity.ComponentActivity,
+        kind: GalleryMediaType): GalleryPhotoPolicySnapshot {
+        val (connection, label, media) = synchronized(this) {
+            val peer = safePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+            val current = galleryFileConnection?.takeUnless { it.isEnded }
+                ?: DeviceFileControl.fail("file_control_native_handler_unavailable")
+            if (activeChannel !== current.channel) DeviceFileControl.fail("gallery_incoming_foreign_connection")
+            Triple(current, peer.display_name, mediaSessions[current.channel]
+                ?: DeviceFileControl.fail("gallery_incoming_current_intent_required"))
+        }
+        val documents = Ablage.hole(context)
+        val book = NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }) {
+            Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+        }
+        return NativeGalleryReceiveAction.request(activity, connection, label, kind, book) {
+            if (!media.matched() || media.incomingIntentFor(kind) == null)
+                DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        }
+    }
+
+    internal suspend fun archivePublishedPcMedia(activity: androidx.activity.ComponentActivity,
+        kind: GalleryMediaType): NativeGalleryArchiveEntry {
+        val connection = synchronized(this) {
+            val current = galleryFileConnection?.takeUnless { it.isEnded }
+                ?: DeviceFileControl.fail("file_control_native_handler_unavailable")
+            if (activeChannel !== current.channel) DeviceFileControl.fail("gallery_incoming_foreign_connection")
+            current
+        }
+        val documents = Ablage.hole(context)
+        fun unlocked() = Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+        val book = NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }, ::unlocked)
+        val archiveBook = NativeGalleryTrashBookPermit.capture(documents, ::unlocked)
+        return NativeGalleryPcArchiveUiAction.request(activity, connection, kind, book, archiveBook)
+    }
+
     private fun usesScopedContent(peer: TelefonPeer): Boolean =
         commonValues(peer)?.get("content_mode") == JsonPrimitive("phone_scope")
 
@@ -776,7 +811,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 ?: DeviceFileControl.fail("file_control_native_identity_unavailable")
             peer = currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady())
                 ?: DeviceFileControl.fail("file_control_native_channel_changed")
-            connection = NativeGalleryFileConnection(channel) { released ->
+            connection = NativeGalleryFileConnection(channel, requireIncomingAgreement = {
+                val current = synchronized(this) { mediaSessions[channel]?.takeIf { activeChannel === channel } }
+                    ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+                if (!current.matched()) DeviceFileControl.fail("gallery_incoming_current_intent_required")
+            }) { released ->
                 synchronized(this) { if (galleryFileConnection === released) galleryFileConnection = null }
             }
             galleryFileConnection = connection
@@ -808,9 +847,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions
             } || queue.hasMediaSettings(peerId)
             val media = if (sharedMedia) mediaTransport(channel) else null
-            val runtime = NativeGalleryFileRuntime.withSharedMediaIntent(context, directory, identity, protection, channel,
-                { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) },
-                handlersReady, { nativeGalleryVideoHandlersReady }, if (sharedMedia) ({ type -> media?.intentFor(type) }) else null)
+            val currentPeer = { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) }
+            val runtime = if (sharedMedia && media != null) NativeGalleryFileRuntime.withIncomingMedia(context, directory, identity, protection, channel,
+                currentPeer, handlersReady, { nativeGalleryVideoHandlersReady }, { type -> media.intentFor(type) },
+                { type -> media.incomingIntentFor(type) }, {
+                    android.os.Build.VERSION.SDK_INT >= 30 && handlersReady() &&
+                        GalleryMediaType.entries.any { media.incomingIntentFor(it) != null }
+                })
+            else NativeGalleryFileRuntime.withSharedMediaIntent(context, directory, identity, protection, channel,
+                currentPeer, handlersReady, { nativeGalleryVideoHandlersReady }, null)
             connection.bind(runtime)
             if (currentNativeFileIdentity(peerId, publicKey, channel, generation) != identity ||
                 currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) != peer)
@@ -2653,7 +2698,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
             return // Phone requests are never a desktop-to-phone legacy command.
         }
-        if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND),
+        if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(MediaOfferEnvelope.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND),
                 JsonPrimitive(DeviceFileChunkEnvelope.REQUEST), JsonPrimitive(DeviceFileChunkEnvelope.RESULT),
                 JsonPrimitive(DeviceFileSavedEnvelope.KIND), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
                 JsonPrimitive(DeviceFileSourceCommand.RESULT), JsonPrimitive(DeviceFileSourceCommand.CATALOG),
@@ -2671,7 +2716,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 })
                 return
             }
-            if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
+            if (message["kind"] in setOf(JsonPrimitive(MediaOfferEnvelope.KIND), JsonPrimitive(DeviceFileChunkEnvelope.RESULT))) {
+                connection.receiveIncomingMedia(channel, message) {
+                    val documents = Ablage.hole(context)
+                    NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }) {
+                        Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+                    }
+                }
+            }
+            else if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
             else if (message["kind"] in setOf(JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND), JsonPrimitive(DeviceFileChunkEnvelope.REQUEST),
                 JsonPrimitive(DeviceFileSavedEnvelope.KIND))) runtime.receiveTransferMessage(message, channel::send)
             else if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST))

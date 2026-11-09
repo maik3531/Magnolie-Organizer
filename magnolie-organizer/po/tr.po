@@ -10092,3 +10092,53 @@ msgstr "Videolar"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Uygulamanın medya durumu bekleniyor"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Yalnızca görsel testtir; bağlantılar ve izinler değiştirilmez."
+
+msgid "Tray preview"
+msgstr "Sistem tepsisi simgesi önizlemesi"
+
+msgid "Seasonal background"
+msgstr "Mevsimsel arka plan"
+
+msgid "Holiday watermark"
+msgstr "Bayram filigranı"
+
+msgid "Both connected"
+msgstr "İkisi de bağlı"
+
+msgid "Camera"
+msgstr "Kamera"
+
+msgid "Snowflakes"
+msgstr "Kar taneleri"
+
+msgid "Stars"
+msgstr "Yıldızlar"
+
+msgid "Boots"
+msgstr "Çizmeler"
+
+msgid "Santa Claus"
+msgstr "Noel Baba"
+
+msgid "Rocket"
+msgstr "Roket"
+
+msgid "Champagne glass"
+msgstr "Şampanya kadehi"
+
+msgid "Easter eggs"
+msgstr "Paskalya yumurtaları"
+
+msgid "Reset preview"
+msgstr "Önizlemeyi sıfırla"
+
+msgid "OS tray icon (60 s)"
+msgstr "Sistem tepsisi simgesi (60 sn)"
+
+msgid "Saved developer mode is required."
+msgstr "Geliştirici modu kaydedilmiş olmalıdır."

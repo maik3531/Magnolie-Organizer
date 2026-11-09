@@ -430,4 +430,6 @@
     <string name="medien_sync_modus">Synkronisering</string>
     <string name="medien_sync_scope_import">Importer bare fra telefon til PC</string>
     <string name="medien_sync_direction_export">PC → telefon</string>
+    <string name="medien_empfang_erlauben">Tillat mottak i galleriet…</string>
+    <string name="medien_sync_nur_fotos">Bare fotografier</string>
 </resources>

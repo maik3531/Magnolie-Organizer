@@ -38,6 +38,8 @@ def test_actual_desktop_stage_contains_exact_selected_modules_and_resolves_all_r
     assert {path.name for path in bindir.iterdir()} == {'magnolie-organizer'}
     assert (runtime / 'magnolie_file_desktop_connection.py').exists() is photo
     assert (runtime / 'magnolie_photo_schedule.py').exists() is photo
+    assert (runtime / 'magnolie_media_preview.py').exists() is photo
+    assert (runtime / 'magnolie_media_offer.py').exists() is photo
     assert json.loads((data / 'build-config.json').read_text())['phoneFeatures'] == selected
     result = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'werkzeuge/runtime_pruefen.py'), str(bindir)],
         cwd=tmp_path, capture_output=True, text=True, timeout=30)

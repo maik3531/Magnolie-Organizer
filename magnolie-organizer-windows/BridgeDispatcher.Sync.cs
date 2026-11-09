@@ -551,6 +551,7 @@ internal sealed partial class BridgeDispatcher
             MutationGate.Global.Release(); locked = false;
             var source = message.TryGetProperty("wahl", out var choice) ? PropertyText(choice, "adressbuchUid") : "";
             lock (serviceGate) { activeSync = operation; graphSync = source == "microsoft-graph"; }
+            form.QueueTrayAppearanceRefresh();
             var calendarIds = choice.ValueKind == JsonValueKind.Object ? SelectedCalendarIds(choice) : [];
             if (!NextcloudDavSelection.IsSupported(source, calendarIds))
                 throw new InvalidOperationException(T("Address book"));
@@ -828,6 +829,7 @@ internal sealed partial class BridgeDispatcher
         finally
         {
             lock (serviceGate) if (ReferenceEquals(activeSync, operation)) { activeSync = null; graphSync = false; }
+            form.QueueTrayAppearanceRefresh();
             try { davClient?.Dispose(); foreach (var client in thunderbirdClients) client.Dispose(); }
             finally { if (locked) MutationGate.Global.Release(); }
         }
@@ -902,6 +904,7 @@ internal sealed partial class BridgeDispatcher
     private void HandleKdeStatusChanged(KdeConnectStatus status)
     {
         _ = status;
+        form.QueueTrayAppearanceRefresh();
         _ = SafeBackgroundAsync(telefon.ReportStatusAsync);
     }
 

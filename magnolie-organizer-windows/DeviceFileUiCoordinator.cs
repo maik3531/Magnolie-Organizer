@@ -25,27 +25,37 @@ internal sealed partial class TelefonConnection
         // fresh metadata receipts. Do not transplant the old channel's proofs.
         Dispose();
     }
-    private sealed class NativeMediaUiAuthority(TelefonStore store, string peerId, Func<NativeBookSaveState?> savedBook)
+    private sealed class NativeMediaUiAuthority(TelefonStore store, TelefonPeer peer, Func<NativeBookSaveState?> savedBook, Func<bool> sharedMatched)
     {
         private readonly object gate = new();
         private readonly object owner = new();
         private DeviceFileGrantState? grants;
         private NativeMediaPreferences? preferences;
+        private NativeMediaSendConsent? sending;
+        private NativeMediaReceiveConsent? receiving;
         private string? bookSource;
         private bool revoked;
 
-        internal void Choose()
+        internal void Choose(bool forSending = false)
         {
             store.RequireNativeMediaStorageKey();
-            if (!store.ReadNativeMediaReceiveConsent(peerId).Granted) throw DeviceFileControl.Error("file_media_local_receive_consent_required");
+            var receive = store.ReadNativeMediaReceiveConsent(peer.Id);
+            var send = store.ReadNativeMediaSendConsent(peer.Id);
             var saved = savedBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required");
-            var choice = store.ReadNativeMediaPreferences(peerId);
+            var choice = store.ReadNativeMediaPreferences(peer.Id);
             if (!choice.PhotosEnabled && !choice.VideosEnabled) throw DeviceFileControl.Error("file_media_native_choice_required");
+            var intent = sharedMatched() ? store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey) : null;
+            var canSend = intent is not null && send.Explicit &&
+                (choice.PhotosEnabled && send.Photos && MediaSyncSettings.TransferRequestedFor(intent, "images", toPhone: true) ||
+                 choice.VideosEnabled && send.Videos && MediaSyncSettings.TransferRequestedFor(intent, "video", toPhone: true));
+            if (forSending ? !canSend : !receive.Granted)
+                throw DeviceFileControl.Error(forSending ? "media_source_local_sending_consent_required" : "file_media_local_receive_consent_required");
             lock (gate)
             {
-                if (grants is not null && !revoked && preferences == choice && bookSource == saved.BookSource) return;
-                grants = new((grants?.Revision ?? 0) + 1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), receiveFiles: true);
-                preferences = choice; bookSource = saved.BookSource; revoked = false;
+                if (grants is not null && !revoked && preferences == choice && sending == send && receiving == receive &&
+                    grants.SendFiles == canSend && grants.ReceiveFiles == receive.Granted && bookSource == saved.BookSource) return;
+                grants = new((grants?.Revision ?? 0) + 1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), sendFiles: canSend, receiveFiles: receive.Granted);
+                preferences = choice; sending = send; receiving = receive; bookSource = saved.BookSource; revoked = false;
             }
         }
 
@@ -61,7 +71,7 @@ internal sealed partial class TelefonConnection
             {
                 if (grants is null) return null;
                 if (saved?.BookSource != bookSource) revoked = true;
-                if (revoked && grants.ReceiveFiles)
+                if (revoked && (grants.SendFiles || grants.ReceiveFiles))
                     grants = new(grants.Revision + 1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
                 return new(grants, owner, handlersReady: true);
             }
@@ -70,6 +80,10 @@ internal sealed partial class TelefonConnection
         internal void Revoke() { lock (gate) revoked = true; }
     }
     private NativeMediaUiAuthority? nativeMediaUiAuthority;
+    private readonly string nativeMediaUiStartEpoch = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+    internal string NativeMediaSharedUiVersion(JsonObject intent)
+        => Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(new JsonObject {
+            ["channel"] = nativeMediaUiStartEpoch, ["settings"] = intent.DeepClone() }))).ToLowerInvariant();
     internal void RevokeNativeMediaUiConsent() => nativeMediaUiAuthority?.Revoke();
 
     internal async Task PrepareNativeMediaUiAsync(Func<NativeBookSaveState?> savedBook, string mediaType, CancellationToken token)
@@ -82,7 +96,7 @@ internal sealed partial class TelefonConnection
         lock (fileRouteGate)
         {
             if (fileControls is not null && nativeMediaUiAuthority is null) throw DeviceFileControl.Error("file_media_native_owner_busy");
-            authority = nativeMediaUiAuthority ??= new(store, peer.Id, savedBook);
+            authority = nativeMediaUiAuthority ??= new(store, peer, savedBook, () => MediaSharedSettingsReady);
         }
         authority.Choose();
         bool open; lock (fileRouteGate) open = fileControls is null;
@@ -113,6 +127,51 @@ internal sealed partial class TelefonConnection
             }
             finally { fileControlIo.Release(); }
             if (ready) break;
+            await Task.Delay(100, deadline.Token);
+        }
+    }
+
+    internal async Task PrepareNativeMediaSendUiAsync(Func<NativeBookSaveState?> savedBook, string mediaType, CancellationToken token)
+    {
+        var saved = savedBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required");
+        var consent = store.ReadNativeMediaSendConsent(peer.Id);
+        if (!consent.Explicit || !(mediaType == "images" ? consent.Photos : mediaType == "video" && consent.Videos))
+            throw DeviceFileControl.Error("media_source_local_sending_consent_required");
+        var intent = store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey);
+        void Current()
+        {
+            token.ThrowIfCancellationRequested();
+            if (savedBook() != saved || store.ReadNativeMediaSendConsent(peer.Id) != consent || !MediaSharedSettingsReady ||
+                intent is null || !JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey), intent) ||
+                !MediaSyncSettings.TransferRequestedFor(intent, mediaType, toPhone: true) || !NativeMediaUiMetadataAvailable(videos: mediaType == "video"))
+                throw DeviceFileControl.Error("media_source_current_sending_owner_required");
+        }
+        Current();
+        NativeMediaUiAuthority? authority;
+        lock (fileRouteGate)
+        {
+            // Explicit native non-UI compositions retain their existing owner.
+            // They still need the exact positive actual bilateral SEND below.
+            authority = fileControls is not null && nativeMediaUiAuthority is null ? null
+                : nativeMediaUiAuthority ??= new(store, peer, savedBook, () => MediaSharedSettingsReady);
+        }
+        if (authority is not null)
+        {
+            authority.Choose(forSending: true);
+            bool open; lock (fileRouteGate) open = fileControls is null;
+            if (open) _ = OpenNativeFileControls(authority.Current);
+            await SendNativeFileControlsAsync();
+        }
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, cancellation);
+        deadline.CancelAfter(TimeSpan.FromSeconds(60));
+        while (true)
+        {
+            deadline.Token.ThrowIfCancellationRequested(); Current();
+            await fileControlIo.WaitAsync(deadline.Token);
+            bool ready;
+            try { ready = RequireNativeFileControls().Binding(new string('0', 64), senderIsLocal: true) is not null; }
+            finally { fileControlIo.Release(); }
+            if (ready) { Current(); return; }
             await Task.Delay(100, deadline.Token);
         }
     }
@@ -240,10 +299,59 @@ internal sealed partial class TelefonCoordinator
             var currentPeer = store.LoadPeers().Single(value => value.Id == peerId);
             result["shared_settings"] = store.NativeMediaSharedSettingsView(peerId, currentPeer.PublicKey);
             result["shared_matched"] = connection.MediaSharedSettingsReady;
+            // Availability/version hints only, never native file authority.
+            result["shared_runtime_ready"] = connection.MediaSharedControlsReady;
+            var intent = store.ReadNativeMediaSharedSettings(peerId, currentPeer.PublicKey);
+            if (intent is not null && connection.MediaSharedSettingsReady && NativeMediaSharedUiChoiceAvailable(peerId, intent))
+                result["shared_start_version"] = connection.NativeMediaSharedUiVersion(intent);
             var receive = store.ReadNativeMediaReceiveConsent(peerId);
             result["receive_consent"] = new JsonObject { ["granted"] = receive.Granted, ["version"] = receive.Version };
+            var send = store.ReadNativeMediaSendConsent(peerId);
+            result["send_consent"] = new JsonObject { ["photos"] = send.Photos, ["videos"] = send.Videos, ["version"] = send.Version };
         }
         return result;
+    }
+
+    private bool NativeMediaSharedUiChoiceAvailable(string peerId, JsonObject intent)
+    {
+        var receive = store.ReadNativeMediaReceiveConsent(peerId);
+        var send = store.ReadNativeMediaSendConsent(peerId);
+        return new[] { "images", "video" }.Any(kind =>
+            receive.Granted && MediaSyncSettings.TransferRequestedFor(intent, kind, toPhone: false) ||
+            send.Explicit && (kind == "images" ? send.Photos : send.Videos) && MediaSyncSettings.TransferRequestedFor(intent, kind, toPhone: true));
+    }
+
+    internal async Task<string> DispatchNativeMediaUiSharedAsync(NativeMediaUiRequest request, Func<object, Task> reply, CancellationToken token)
+    {
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var pass = RunNativeMediaUiSharedAsync(request, lifetime.Token);
+        try { await reply(new { requestId = request.RequestId, device_id = request.PeerId, ok = true, state = "running" }); }
+        catch
+        {
+            lifetime.Cancel();
+            try { await pass; } catch { /* Retain the original reply failure, after actual worker exit. */ }
+            throw;
+        }
+        var phase = await pass;
+        await reply(new { requestId = request.RequestId, device_id = request.PeerId, ok = true, state = phase });
+        return phase;
+    }
+
+    internal Task<string> RunNativeMediaUiSharedAsync(NativeMediaUiRequest request, CancellationToken token)
+    {
+        if (request.Action != "sync_shared" || !DeviceFileControl.Hash(request.Version ?? ""))
+            throw DeviceFileControl.Error("file_media_ui_request_invalid");
+        token.ThrowIfCancellationRequested();
+        var connection = NativeMediaOnlineConnection(request.PeerId);
+        var peer = store.LoadPeers().Single(value => value.Id == request.PeerId);
+        var intent = store.ReadNativeMediaSharedSettings(request.PeerId, peer.PublicKey);
+        if (intent is null || !connection.MediaSharedSettingsReady || connection.NativeMediaSharedUiVersion(intent) != request.Version)
+            throw DeviceFileControl.Error("file_media_manual_intent_changed");
+        if (!NativeMediaSharedUiChoiceAvailable(request.PeerId, intent))
+            throw DeviceFileControl.Error("file_media_manual_choice_required");
+        // Capture only native state; browser input carries neither intent nor grants.
+        NativeMediaLocalBookPermit().Require();
+        return RunNativeMediaInventoryOnceAsync(request.PeerId, intent.DeepClone().AsObject(), token, connection);
     }
 
     internal async Task<JsonObject> ChangeNativeMediaUiSharedSettingAsync(string peerId, string field, JsonNode value, string version)
@@ -269,6 +377,39 @@ internal sealed partial class TelefonCoordinator
         connection.RevokeNativeMediaUiConsent();
         if (!granted) StopNativeMediaAutomatic(peerId);
         ApplyMatchedNativeMediaPreferences(peerId, connection);
+        permit.Require(); return NativeMediaUiStatus(peerId);
+    }
+
+    internal JsonObject ConfirmNativeMediaUiSendConsent(string peerId, string version, bool photos, bool videos, Func<bool> confirmNative)
+    {
+        ArgumentNullException.ThrowIfNull(confirmNative);
+        var connection = NativeMediaOnlineConnection(peerId);
+        var permit = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
+        var before = store.ReadNativeMediaSendConsent(peerId);
+        if (before.Version != version) throw DeviceFileControl.Error("media_send_consent_stale_choice");
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        void Current()
+        {
+            permit.Require();
+            if (!ReferenceEquals(connection, NativeMediaOnlineConnection(peerId)) || !connection.MediaSharedControlsReady ||
+                !connection.NativeMediaUiMetadataAvailable() || timer.Elapsed > TimeSpan.FromSeconds(60))
+                throw DeviceFileControl.Error("media_send_consent_native_context_changed");
+            if (store.ReadNativeMediaSendConsent(peerId) != before) throw DeviceFileControl.Error("media_send_consent_stale_choice");
+        }
+        Current();
+        var increasing = photos && !before.Photos || videos && !before.Videos;
+        if (increasing && Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
+        // Only the native bridge supplies this modal-dialog callback. There is
+        // no browser-confirmed bit, and dismissal never persists a choice.
+        if (increasing && !confirmNative())
+        {
+            var canceled = NativeMediaUiStatus(peerId); canceled["canceled"] = true; return canceled;
+        }
+        Current();
+        if (increasing && Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
+        store.ChangeNativeMediaSendConsent(peerId, version, photos, videos);
+        connection.RevokeNativeMediaUiConsent();
+        if (before.Photos && !photos || before.Videos && !videos) StopNativeMediaAutomatic(peerId);
         permit.Require(); return NativeMediaUiStatus(peerId);
     }
 

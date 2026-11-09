@@ -1302,6 +1302,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
     }
 
     partial void StartNativeMediaAutomatic(CancellationToken token);
+    partial void ConfigureNativeMediaConnection(TelefonPeer peer, TelefonConnection connection);
 
     private async Task BluetoothReconnectLoopAsync(CancellationToken cancellation)
     {
@@ -1642,8 +1643,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
-                    MediaPreferencesChanged = () => NativeMediaSharedPreferencesChangedAsync(peer.Id, connection!),
-                    MediaManualRequested = (settings, requestId, deadline, token) => StartNativeMediaManualRequest(peer.Id, connection!, settings, requestId, deadline, token),
+                    TraySyncActivity = TraySyncActivity,
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     PersonalSuccessConfirmed = (source, report) => RecordConfirmedPersonalSuccess(source, peer, report),
@@ -1654,7 +1654,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
                         ReceivePrivateCallActorResult(source, receivedPeer, kind, body);
                         PrivateCallResultObserver?.Invoke(source, receivedPeer, kind, body);
                     },
-                    ActorPump = PumpPersonalActorAsync };
+                     ActorPump = PumpPersonalActorAsync };
+            ConfigureNativeMediaConnection(peer, connection);
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
             lock (gate)
@@ -1740,7 +1741,11 @@ internal sealed partial class TelefonCoordinator : IDisposable
                     await SendPersonalSyncAsync(peer.Id, kind, TelefonStore.NewCustomSettings(false, 1));
                 await ReportStatusAsync();
             }
-            else await emit("App.personalCustomRequest", new { device_id = peer.Id, trigger = body["trigger"]!.GetValue<string>() });
+            else
+            {
+                using var syncActivity = TraySyncActivity.Enter();
+                await emit("App.personalCustomRequest", new { device_id = peer.Id, trigger = body["trigger"]!.GetValue<string>() });
+            }
             return null;
         }
         if (kind == "selected_notifications_readonly.event")
@@ -1844,6 +1849,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         var settings = store.PersonalSettings(peer.Id); if (!settings.OwnDevice || !settings.RemoteOwnDevice) return new TelefonAck(id, "rejected", "not_granted");
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) return new TelefonAck(id, "rejected", "invalid_schema");
         if (body["format"]?.GetValue<int>() is 3 or 14 && grants.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>()))) return new TelefonAck(id, "rejected", "invalid_schema");
+        using var syncActivity = TraySyncActivity.Enter();
         if (kind == "personal_sync.request") { personalSync.RememberRun(peer.Id, body, now, message["expires_ms"]!.GetValue<long>()); await EmitPersonalSyncAsync(new { device_id = peer.Id, transport, kind, body }); return null; }
         if (kind == "personal_sync.batch")
         {
@@ -2234,14 +2240,11 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
-        if (plain["kind"]?.GetValue<string>() == MediaSyncSettings.StartKind)
+        if (plain["kind"]?.GetValue<string>() is MediaSyncSettings.StartKind or MediaSyncSettings.Kind)
         {
-            await HandleMediaManualRequestAsync(plain);
-            return;
-        }
-        if (plain["kind"]?.GetValue<string>() == MediaSyncSettings.Kind)
-        {
-            await HandleMediaSharedSettingsAsync(plain);
+            Task? mediaHandling = null;
+            ReceiveNativeMediaSettings(plain, ref mediaHandling);
+            if (mediaHandling is not null) await mediaHandling;
             return;
         }
         if (plain["kind"]?.GetValue<string>()?.StartsWith("file_transfer.", StringComparison.Ordinal) == true)
@@ -2278,9 +2281,9 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             TelefonProtocolContract.ValidateAck(plain); var id = plain["message_id"]!.GetValue<string>(); var status = plain["status"]!.GetValue<string>(); var error = plain["error"]!.GetValue<string>();
             var queued = store.OutboxMessage(peer.Id, id!);
-            ObserveMediaSharedAck(id, status, error, queued);
-            if (queued?["kind"]?.GetValue<string>() == MediaSyncSettings.Kind && MediaPreferencesChanged is not null)
-                await MediaPreferencesChanged();
+            Task? mediaAckHandling = null;
+            ObserveNativeMediaAck(id, status, error, queued, ref mediaAckHandling);
+            if (mediaAckHandling is not null) await mediaAckHandling;
             if (queued is not null && PersonalSyncActorContract.IsReservedMessage(queued)) return;
             if (status == "rejected" && rejectContactRead?.Invoke(this, peer, new TelefonAck(id!, status, error!)) == true) return;
             if (status is "accepted" or "duplicate" && queued?["kind"]?.GetValue<string>() == "personal_sync.custom_batch" &&
@@ -2473,7 +2476,11 @@ internal sealed partial class TelefonConnection : IDisposable
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
         CompleteFileMetadataReceipt(plain, ack, fileMetadataAttempt);
         if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "grants.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")
-            await SendMediaSharedSettingsAsync();
+        {
+            Task? mediaSettingsHandling = null;
+            SendNativeMediaSettings(ref mediaSettingsHandling);
+            if (mediaSettingsHandling is not null) await mediaSettingsHandling;
+        }
         if (!wasNoteReady && NotePolicyReady && noteReady is not null) await noteReady();
     }
     // Optional implementation is omitted entirely in builds without media.
@@ -2482,6 +2489,10 @@ internal sealed partial class TelefonConnection : IDisposable
     partial void CloseNativeFileRoute();
     partial void ObserveFileMetadataWithdrawal(JsonObject message, TelefonAck ack, object? attempt);
     partial void CompleteFileMetadataReceipt(JsonObject message, TelefonAck ack, object? attempt);
+    partial void ReceiveNativeMediaSettings(JsonObject message, ref Task? handling);
+    partial void ObserveNativeMediaAck(string id, string status, string error, JsonObject? queued, ref Task? handling);
+    partial void SendNativeMediaSettings(ref Task? handling);
+    partial void SendNativeMediaQueuedSettings(TelefonQueuedMessage item, JsonObject body, long now, ref Task? handling);
     private string? AuthorizePersonal(string kind, JsonObject body)
     {
         if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal)) return
@@ -2559,7 +2570,10 @@ internal sealed partial class TelefonConnection : IDisposable
             }
             if (kind == MediaSyncSettings.Kind)
             {
-                await SendQueuedMediaSettingsAsync(item, body, now); continue;
+                Task? mediaQueuedHandling = null;
+                SendNativeMediaQueuedSettings(item, body, now, ref mediaQueuedHandling);
+                if (mediaQueuedHandling is not null) await mediaQueuedHandling;
+                continue;
             }
             if (TimeSyncContract.IsKind(kind))
             {
@@ -2635,7 +2649,12 @@ internal sealed partial class TelefonConnection : IDisposable
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(TimeSpan.FromSeconds(15));
         await writer.WaitAsync(deadline.Token);
-        try { var envelope = Seal(value); await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token); lastSentMs = Now(); }
+        try
+        {
+            var envelope = Seal(value);
+            using var syncActivity = TraySyncFrames.IsData(value) ? TraySyncActivity?.Enter() : null;
+            await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token); lastSentMs = Now();
+        }
         catch { stream.Dispose(); throw; }
         finally { writer.Release(); }
     }

@@ -17,7 +17,7 @@ from magnolie_file_transfer import CHUNK_BYTES,MAX_FILE_BYTES,TransferError
 from magnolie_media_retention import NativeMediaRetention
 from magnolie_media_transport import NativeMediaSettingsTransport
 from magnolie_photo_destination import NativePhotoDestinationAction,require_media_directory
-from magnolie_photo_mappings import ProtectedPhotoMappings
+from magnolie_photo_mappings import ProtectedPhotoMappings,PhotoMappingsSnapshot
 from magnolie_photo_preferences import ProtectedPhotoPreferences,PhotoPreferencesSnapshot
 
 
@@ -114,8 +114,19 @@ class NativeMappedMediaSource:
     def inspect(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=False)
 
+    def plan(self,action,expected,association,record_sha256,*,kind='images',native_current=None,mapping_snapshot=None):
+        return self._read(action,expected,association,record_sha256,kind=kind,freeze=False,planning=True,
+            native_current=native_current,mapping_snapshot=mapping_snapshot)
+
     def freeze(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=True)
+
+    def freeze_observed(self,action,expected,association,record_sha256,observation,*,kind='images',catalog_version=None,native_current=None,mapping_snapshot=None):
+        from magnolie_file_control import _hex
+        if type(observation) is not NativeMediaSourceObservation or catalog_version is not None and not _hex(catalog_version):
+            raise TransferError('media_source_original_observation_required')
+        return self._read(action,expected,association,record_sha256,kind=kind,freeze=True,
+            expected_observation=observation,expected_catalog=catalog_version,native_current=native_current,mapping_snapshot=mapping_snapshot)
 
     def reprepare(self,action,expected,association,record_sha256,job_id,job_version,*,kind='images'):
         from magnolie_media_source_reprepare import _NativeSourceRepreparation
@@ -187,9 +198,18 @@ class NativeMappedMediaSource:
             return True
         return permission,token
 
-    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None,reprepare=None):
+    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None,reprepare=None,planning=False,expected_observation=None,expected_catalog=None,native_current=None,mapping_snapshot=None):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
             raise TransferError('media_source_native_selection_required')
+        if type(planning) is not bool or planning and (freeze or restoration is not None or reprepare is not None):
+            raise TransferError('media_source_planning_selection_invalid')
+        if expected_observation is not None and (type(expected_observation) is not NativeMediaSourceObservation
+                or not freeze or planning or restoration is not None or reprepare is not None):
+            raise TransferError('media_source_original_observation_required')
+        if native_current is not None and not callable(native_current):
+            raise TransferError('media_source_native_operation_required')
+        if mapping_snapshot is not None and (type(mapping_snapshot) is not PhotoMappingsSnapshot or restoration is not None or reprepare is not None):
+            raise TransferError('media_source_native_mapping_selection_required')
         action.consume(self._preferences)
         if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
         try:
@@ -199,18 +219,39 @@ class NativeMappedMediaSource:
                         or freeze or restoration is not None or self._prepared):
                     raise TransferError('media_source_reprepare_fresh_owner_required')
             permission,token=self._source_permission(action,expected,kind)
+            if native_current is not None:
+                original_permission=permission;ended=threading.Event()
+                def permission():
+                    if ended.is_set():raise TransferError('media_source_native_operation_ended')
+                    try:current=native_current()
+                    except BaseException:
+                        ended.set();raise
+                    if current is not True:
+                        ended.set();raise TransferError('media_source_native_operation_ended')
+                    return original_permission()
             permission()
             with NativeMediaRetention(self._authority.binding.native_directory) as retention:
                 with retention.activity(permission,exclusive=True) as activity:
                     if activity is None:raise TransferError('media_source_media_io_busy')
                     with retention._active_copy_permit(activity) as book:
                         if book is None:raise TransferError('media_source_saved_book_required')
-                        records=(self._mappings.saved_record_lease(association,record_sha256) if restoration is None else
+                        selection={} if mapping_snapshot is None else dict(expected=mapping_snapshot,latest=True)
+                        records=(self._mappings.saved_record_lease(association,record_sha256,**selection) if restoration is None else
                             restoration[0].restored_source_lease(restoration[1],record_sha256))
                         with records as (mapping,mapping_current):
                             if mapping.association.media_type!=kind:raise TransferError('media_source_media_kind_changed')
                             def current():book.require_current();mapping_current();return True
                             with self._file(mapping,current) as (fd,size,signature,unchanged):
+                                if expected_observation is not None and (
+                                        expected_observation.size!=size or expected_observation.signature!=signature
+                                        or expected_observation.file_key!=mapping.file_key
+                                        or expected_observation.original_reference!=mapping.phone_original_reference()):
+                                    raise TransferError('media_source_observed_content_changed')
+                                if expected_observation is not None:
+                                    from magnolie_media_source_jobs import _NativeSourceJobs
+                                    catalog=_NativeSourceJobs(self._authority)._catalog.lookup()
+                                    if (None if catalog is None else catalog.version)!=expected_catalog:
+                                        raise TransferError('media_source_observed_history_changed')
                                 from magnolie_media_sync import effective
                                 if kind == 'images' and effective(token.body)['photos_only']:
                                     from magnolie_photo_metadata import MAX_METADATA_BYTES,camera_photo_matches
@@ -240,8 +281,13 @@ class NativeMappedMediaSource:
                                     unchanged()
                                     if os.pread(fd,1,size):raise TransferError('media_source_content_changed')
                                     unchanged()
+                                    if expected_observation is not None and digest.hexdigest()!=expected_observation.sha256:
+                                        raise TransferError('media_source_observed_content_changed')
                                     result=cache.finish(digest.hexdigest()) if cache is not None else NativeMediaSourceObservation(
                                         size,digest.hexdigest(),mapping.file_key,signature,tuple(sorted(mapping.phone_original_reference().items())))
+                                    if planning:
+                                        from magnolie_media_source_planning import compare_current_source
+                                        result=compare_current_source(self,mapping,result,unchanged)
                                     if reprepare is not None:
                                         self._cache_scope.repreparing=(reprepare,result,threading.get_ident())
                                         try:result=reprepare.complete(mapping,result,book.book_version,unchanged)

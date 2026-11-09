@@ -15,6 +15,10 @@ import sqlite3
 import stat
 import threading
 import time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from magnolie_media_source_roots import NativeMediaCollectionRootsWitness
 
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import FileGrantState, NativeLocalFileGrant, MAX_REVISION, _hex
@@ -82,6 +86,7 @@ class PhotoPreferences:
     job_catalog: JobCatalogWitness | None = None
     permission_revision: int | None = None
     sending: MediaSendingConsent | None = None
+    collection_roots: 'NativeMediaCollectionRootsWitness | None' = None
 
     def wire(self):
         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
@@ -95,13 +100,14 @@ class PhotoPreferences:
         if self.job_catalog is not None:value['job_catalog']=self.job_catalog.wire()
         if self.permission_revision is not None:value['permission_revision']=self.permission_revision
         if self.sending is not None:value['sending']=self.sending.wire()
+        if self.collection_roots is not None:value['collection_roots']=self.collection_roots.wire()
         return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
-        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending'}
+        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending','collection_roots'}
                 or 'separate_animations' in value and type(value['separate_animations']) is not bool
                 or 'separate_own_recordings' in value and type(value['separate_own_recordings']) is not bool
                 or 'direction' in value and (type(value['direction']) is not str or value['direction'] not in ('phone_to_desktop','bidirectional'))
@@ -122,12 +128,16 @@ class PhotoPreferences:
         videos=VideoPreferences.parse(value['videos']) if 'videos' in value else None
         if videos is not None and videos.destination_token is not None and videos.destination_token==value['destination_token']:
             raise TransferError('video_preferences_distinct_destination_token_required')
+        roots=None
+        if 'collection_roots' in value:
+            from magnolie_media_source_roots import NativeMediaCollectionRootsWitness
+            roots=NativeMediaCollectionRootsWitness.parse(value['collection_roots'])
         return cls(value['revision'],value['permission_epoch'],value['pairing_epoch'],value['enabled'],value['mode'],
             value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos,
             value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'),
             PhotoMappingStoreWitness.parse(value['mapping_store']) if 'mapping_store' in value else None,
             JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None,value.get('permission_revision'),
-            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None)
+            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None,roots)
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -437,7 +447,8 @@ class ProtectedPhotoPreferences:
                 if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
                 policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,
                     destination,token,videos,animations,recordings,selected_direction,mapping_store,job_catalog,
-                    sending=current.policy.sending if current.policy is not None else None)
+                    sending=current.policy.sending if current.policy is not None else None,
+                    collection_roots=current.policy.collection_roots if current.policy is not None else None)
                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 action.validate(self);self._peer();mutated=False
                 try:
@@ -465,8 +476,9 @@ class ProtectedPhotoPreferences:
 
         Receiving choices/destinations and their pairing binding stay exact.
         Shared two-way settings, stored histories or a receive action never set
-        these bits. Actual source handlers/ownership/intent are still absent;
-        native_local_state deliberately continues to advertise SEND false.
+        these bits. The default native_local_state projection stays SEND=false;
+        only the actual connection's stable composed source-handler projection
+        may expose these rights. Every source still needs its own book/intent IO.
         """
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
@@ -508,6 +520,59 @@ class ProtectedPhotoPreferences:
                     if self._db.in_transaction:self._db.rollback()
                     if mutated:self._uncertain=True
                     raise
+
+    def bind_collection_roots(self,action,expected,catalog):
+        """Pin existing source storage only; preserve all consent/grant fields.
+
+        No implicit policy bootstrap, replacement, root selection or SEND grant.
+        Old policies without the optional field keep their exact wire shape.
+        """
+        from magnolie_media_source_roots import ProtectedMediaCollectionRoots
+        if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
+        action.consume(self)
+        if (type(expected) is not PhotoPreferencesSnapshot or type(catalog) is not ProtectedMediaCollectionRoots
+                or catalog._authority is not self._authority):
+            raise TransferError('media_collection_roots_foreign_catalog')
+        witness=catalog.witness()
+        def validate():
+            action.validate(self);self._peer()
+            if catalog.witness()!=witness:raise TransferError('media_collection_roots_original_witness_required')
+        with self._operation():
+            if not self._open():raise TransferError('media_collection_roots_existing_preferences_required')
+            with self._locked():
+                self._schema();current=self._snapshot()
+                if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
+                old=current.policy
+                if old is None:raise TransferError('media_collection_roots_existing_preferences_required')
+                if old.collection_roots is not None:
+                    if old.collection_roots!=witness:raise TransferError('media_collection_roots_original_witness_required')
+                    validate();return current
+                if old.revision>=MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
+                policy=replace(old,revision=old.revision+1,collection_roots=witness,
+                    permission_revision=old.permission_revision if old.permission_revision is not None else old.revision)
+                blob=self._protect(policy.wire(),'policy')
+                head=self._protect(dict(revision=policy.revision,policy_sha256=sha256(blob).hexdigest()),'owner');mutated=False
+                try:
+                    validate();self._db.execute('BEGIN IMMEDIATE')
+                    self._db.execute('UPDATE policy SET payload=? WHERE id=1',(blob,));mutated=True
+                    self._db.execute('UPDATE owner SET payload=? WHERE id=1',(head,))
+                    self._fresh();validate();self._db.commit();self._sync()
+                    result=self._snapshot();validate()
+                    if result.policy!=policy or result.version!=sha256(blob).hexdigest():raise TransferError('photo_preferences_readback_failed')
+                    return result
+                except BaseException:
+                    if self._db.in_transaction:self._db.rollback()
+                    if mutated:self._uncertain=True
+                    raise
+
+    def open_collection_roots(self):
+        from magnolie_media_source_roots import ProtectedMediaCollectionRoots
+        selected=self.read()
+        if selected.policy is None or selected.policy.collection_roots is None:
+            raise TransferError('media_collection_roots_original_witness_required')
+        catalog=ProtectedMediaCollectionRoots(self._authority,original=selected.policy.collection_roots)
+        try:catalog.read();return catalog
+        except BaseException:catalog.close();raise
 
     def set_mode(self,action,expected,mode):
         """UI scheduling only: retain exact grants, destinations and baselines."""
@@ -628,17 +693,19 @@ class ProtectedPhotoPreferences:
     def local_grant(self,handlers_ready):
         return self.native_local_state(handlers_ready)[0]
 
-    def native_local_state(self,handlers_ready):
+    def native_local_state(self,handlers_ready,*,source_handlers_ready=False):
         """One protected read for the grant and its exact native policy input."""
-        if type(handlers_ready) is not bool:raise TransferError('photo_preferences_native_handlers_required')
+        if type(handlers_ready) is not bool or type(source_handlers_ready) is not bool:raise TransferError('photo_preferences_native_handlers_required')
         snapshot=self.read();peer=self._peer();policy=snapshot.policy
         # A requested bidirectional mode is not a half-ready one-way grant.
-        # Reverse source/target handlers are not released in this implementation.
+        # Without a composed source factory, bidirectional is not half-ready.
         enabled=(handlers_ready and policy is not None and policy.enabled and snapshot.associated and snapshot.destination_available
-            and snapshot.direction=='phone_to_desktop')
+            and (snapshot.direction=='phone_to_desktop' or source_handlers_ready))
+        sending=(source_handlers_ready and policy is not None and snapshot.associated and policy.sending is not None
+            and policy.sending.pairing_epoch==peer.pairing_epoch and (policy.sending.photos or policy.sending.videos))
         revision=(policy.permission_revision if policy.permission_revision is not None else policy.revision) if policy is not None else 1
         epoch=policy.permission_epoch if snapshot.associated and policy is not None else sha256(canonical(dict(scope=self._scope,pairing=peer.pairing_epoch,closed=snapshot.version))).hexdigest()
-        return NativeLocalFileGrant(FileGrantState(revision,epoch,False,enabled),self,handlers_ready),snapshot
+        return NativeLocalFileGrant(FileGrantState(revision,epoch,sending,enabled),self,handlers_ready),snapshot
 
     def _close_handles(self):
         if not self._gate.acquire(blocking=False):return False

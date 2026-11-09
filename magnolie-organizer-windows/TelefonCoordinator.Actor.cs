@@ -1338,6 +1338,7 @@ internal sealed partial class TelefonCoordinator
                     admitted.Connection != connection || admitted.PeerId != peer.Id ||
                     admitted.PublicKey != Convert.ToBase64String(peer.PublicKey) || online.GetValueOrDefault(peer.Id) != connection) return;
             }
+            using var syncActivity = TraySyncActivity.Enter();
             await WithPersonalActorStoreAsync(registry => {
                 if (message["body"] is not JsonObject body || body["run_id"] is not JsonValue id || !id.TryGetValue<string>(out var run) ||
                     !actorAdmissions.TryGetValue(run, out var admission) || admission.PeerId != peer.Id ||

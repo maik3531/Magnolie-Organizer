@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import replace
+import json
 
 import pytest
 
@@ -197,6 +198,140 @@ def test_explicit_automatic_session_runs_photo_then_video_serially_with_fresh_vi
         assert discoveries==['video','images','video']
         assert sum(body['operation']=='configure_videos' and body['enabled'] for body in commands)==2
         action(receiving,'mode_manual');assert session.join(20)
+
+
+@pytest.mark.parametrize('selected',['both','images','video'])
+def test_explicit_selected_manual_run_serializes_domains_without_enabling_automation(receiving,tmp_path,monkeypatch,selected,request):
+    target,batches=prepared_video(receiving,tmp_path,monkeypatch);batches=batches[:1];connection=receiving[3]
+    images=[replace(batches[0],source_id='f'*32,transfer_id='f'*32,
+        files=(replace(batches[0].files[0],id='e'*32,path='Camera/0.jpg'),))]
+    session=connection.desktop_session();events=[];observer=connection._activity_changed
+    def activity(owner,active):
+        if hasattr(owner,'_media_type'):
+            if active:assert all(previous.io_ended for previous,started in events if started)
+            else:assert owner.io_ended
+            events.append((owner,active))
+        if observer is not None:observer(owner,active)
+    monkeypatch.setattr(connection,'_activity_changed',activity)
+    with session_phone(receiving,target,batches,monkeypatch,image_batches=images) as (_, (chunks,saved,_,_,errors)):
+        action(receiving,'videos_enable');assert session.join(20),session.snapshot()
+        session._discover('images')
+        before=connection._preferences.read()
+        choices=dict(action='sync_selected',album_id=ALBUM if selected!='video' else None,video_album_id=ALBUM if selected!='images' else None)
+        if selected=='both':
+            from test_photo_desktop_workflow import native_ui
+            native_ui(receiving[0],receiving[1],request)(choices)
+        else:action(receiving,'sync_selected',album_id=choices['album_id'],video_album_id=choices['video_album_id'])
+        assert session.join(60),session.snapshot()
+        assert session.snapshot()['state']=='complete' and not errors,session.snapshot().get('error')
+        expected=['images','video'] if selected=='both' else [selected]
+        assert [owner._media_type for owner,started in events if started]==expected
+        assert [active for _,active in events]==[value for _ in expected for value in (True,False)]
+        assert len(chunks)==len(saved)==len(expected) and session._schedule.active is None
+        assert session.snapshot()['mode']=='manual' and connection._preferences.read()==before and session._timer is None
+        assert (receiving[4]/'Camera/0.jpg').exists()==('images' in expected)
+        assert (target/'Camera/0.mp4').exists()==('video' in expected)
+
+
+@pytest.mark.parametrize('boundary',['between_domains','worker_admission'])
+def test_selected_manual_keeps_original_book_across_domains_and_worker_admission(receiving,tmp_path,monkeypatch,boundary):
+    from magnolie_media_retention import NativeMediaRetention
+    target,batches=prepared_video(receiving,tmp_path,monkeypatch);batches=batches[:1];connection=receiving[3]
+    images=[replace(batches[0],source_id='f'*32,transfer_id='f'*32,
+        files=(replace(batches[0].files[0],id='e'*32,path='Camera/0.jpg'),))]
+    session=connection.desktop_session();changes=[];workers=[]
+    def change_book():
+        saved={'einstellungen':{'papierkorb':{'an':True,'tage':30}}}
+        with NativeMediaRetention(connection._authority.binding.native_directory) as policy:
+            token=policy.pause()
+            book=tmp_path/'daten.json';book.write_text(json.dumps(saved));book.chmod(0o600)
+            policy.publish_saved(token,saved)
+        changes.append(True)
+    observer=connection._activity_changed
+    def activity(owner,active):
+        if hasattr(owner,'_media_type'):
+            workers.append((owner,active))
+            if boundary=='between_domains' and owner._media_type=='images' and not active:change_book()
+        if observer is not None:observer(owner,active)
+    monkeypatch.setattr(connection,'_activity_changed',activity)
+    start=connection.start_album_worker
+    def start_worker(*args,**kwargs):
+        if boundary=='worker_admission' and kwargs.get('media_type')=='video':change_book()
+        return start(*args,**kwargs)
+    monkeypatch.setattr(connection,'start_album_worker',start_worker)
+    from magnolie_file_desktop_connection import NativePhotoAlbumWorker
+    batch_starts=[];command=NativePhotoAlbumWorker._command
+    def worker_command(owner,operation,**options):
+        if operation=='batch_run':batch_starts.append(owner._media_type)
+        return command(owner,operation,**options)
+    monkeypatch.setattr(NativePhotoAlbumWorker,'_command',worker_command)
+    with session_phone(receiving,target,batches,monkeypatch,image_batches=images) as (commands,(_,saved,_,_,errors)):
+        action(receiving,'videos_enable');assert session.join(20)
+        session._discover('images');before=connection._preferences.read()
+        action(receiving,'sync_selected',album_id=ALBUM,video_album_id=ALBUM)
+        assert session.join(60),session.snapshot()
+        assert changes==[True] and not errors
+        assert session.snapshot()['state']=='held' and 'media_retention_' in session.snapshot()['error'],session.snapshot()
+        assert all(owner.io_ended for owner,_ in workers)
+        assert len(saved)==1 and (receiving[4]/'Camera/0.jpg').exists() and not (target/'Camera/0.mp4').exists()
+        assert batch_starts==['images']
+        assert session._schedule.active is None and session.snapshot()['mode']=='manual'
+        assert connection._preferences.read()==before
+
+
+def test_selected_manual_book_retirement_drains_inflight_chunk_without_publication(receiving,tmp_path,monkeypatch):
+    from magnolie_media_retention import NativeMediaRetention
+    target,batches=prepared_video(receiving,tmp_path,monkeypatch);batches=batches[:1];connection=receiving[3]
+    images=[replace(batches[0],source_id='f'*32,transfer_id='f'*32,
+        files=(replace(batches[0].files[0],id='e'*32,path='Camera/0.jpg'),))]
+    session=connection.desktop_session()
+    with session_phone(receiving,target,batches,monkeypatch,image_batches=images,block_chunk=True) as (_,(_,saved,entered,release,errors)):
+        action(receiving,'videos_enable');assert session.join(20)
+        session._discover('images')
+        action(receiving,'sync_selected',album_id=ALBUM,video_album_id=ALBUM)
+        try:
+            assert entered.wait(15),session.snapshot()
+            worker=session._worker
+            with NativeMediaRetention(connection._authority.binding.native_directory) as policy:policy.pause()
+        finally:release.set();assert session.join(60),session.snapshot()
+        assert worker.io_ended and session.snapshot()['state']=='held',session.snapshot()
+        assert 'media_' in session.snapshot()['error'] and not saved and not errors
+        assert not (receiving[4]/'Camera/0.jpg').exists() and not (target/'Camera/0.mp4').exists()
+        assert session._schedule.active is None
+
+
+def test_selected_manual_stop_drains_current_domain_without_starting_the_next(receiving,tmp_path,monkeypatch):
+    target,batches=prepared_video(receiving,tmp_path,monkeypatch);batches=batches[:1];connection=receiving[3]
+    images=[replace(batches[0],source_id='f'*32,transfer_id='f'*32,
+        files=(replace(batches[0].files[0],id='e'*32,path='Camera/0.jpg'),))]
+    session=connection.desktop_session()
+    with session_phone(receiving,target,batches,monkeypatch,image_batches=images,block_chunk=True) as (commands,(_,saved,entered,release,errors)):
+        action(receiving,'videos_enable');assert session.join(20)
+        session._discover('images')
+        action(receiving,'sync_selected',album_id=ALBUM,video_album_id=ALBUM)
+        try:
+            assert entered.wait(15),session.snapshot()
+            worker=session._worker
+            with pytest.raises(TransferError,match='busy'):action(receiving,'sync_selected',album_id=ALBUM,video_album_id=ALBUM)
+            action(receiving,'stop')
+            assert session.snapshot()['busy'] and not worker.io_ended
+        finally:release.set();assert session.join(60),session.snapshot()
+        assert worker.io_ended and session.snapshot()['state']=='canceled',session.snapshot()
+        assert not saved and not errors and session._schedule.active is None
+        assert not (receiving[4]/'Camera/0.jpg').exists() and not (target/'Camera/0.mp4').exists()
+        assert [body.get('media_type','images') for body in commands if body['operation']=='discover']==['video','images']
+
+
+def test_selected_manual_rejects_missing_stale_or_injected_choices_before_any_io(receiving,tmp_path,monkeypatch):
+    target,batches=prepared_video(receiving,tmp_path,monkeypatch);session=receiving[3].desktop_session()
+    with session_phone(receiving,target,batches,monkeypatch):
+        action(receiving,'videos_enable');assert session.join(20)
+        session._discover('images');before=receiving[2].send.call_count
+        for fields in (dict(album_id=None,video_album_id=None),dict(album_id=ALBUM),dict(video_album_id=ALBUM),dict(album_id=ALBUM,video_album_id='not-current'),
+                dict(album_id=ALBUM,video_album_id=True),dict(album_id=ALBUM,video_album_id=ALBUM,path=str(tmp_path))):
+            with pytest.raises((ValueError,TransferError)):action(receiving,'sync_selected',**fields)
+        with pytest.raises(ValueError):action(receiving,'sync',album_id=ALBUM,video_album_id=None)
+        assert receiving[2].send.call_count==before and not session.snapshot()['busy']
 
 
 def test_metadata_only_control_agreement_cannot_send_positive_video_configuration_without_source_data_grant(receiving,tmp_path,monkeypatch):

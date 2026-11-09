@@ -349,7 +349,18 @@
       for (const sample of events.length ? events : [event]) { const position = fromEvent(sample); if (position) move(...position); }
       event.preventDefault();
     };
-    const up = event => { if (event.pointerId === pointer) { motion(event); finish(); } };
+    const up = event => {
+      if (event.pointerId !== pointer) return;
+      // A normal release has buttons=0: motion's cancellation path must not
+      // discard its terminal position. Keep samples bound to the actual owner.
+      const owner = pointer, release = sample => {
+        if (sample.pointerId !== owner || pointer !== owner) return;
+        const position = fromEvent(sample); if (position) move(...position);
+      };
+      for (const sample of event.getCoalescedEvents?.() || []) release(sample);
+      release(event); // The current release may not be in the coalesced list.
+      event.preventDefault(); finish();
+    };
     const cancel = event => { if (event.pointerId === pointer) finish(); };
     const handlers = { pointerdown: down, pointermove: motion, pointerup: up, pointercancel: cancel, lostpointercapture: cancel };
     for (const [name, handler] of Object.entries(handlers)) canvas.addEventListener(name, handler);

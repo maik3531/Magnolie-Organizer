@@ -48,6 +48,9 @@ internal static class MediaSyncSettingsTests
             choices = MediaSyncSettings.Change(choices, Pc, Phone, "collection_mode", JsonValue.Create(scope)!);
             choices = MediaSyncSettings.Change(choices, Pc, Phone, "direction", JsonValue.Create(direction)!);
             var before = choices.ToJsonString(); var activeDirection = scope == "import_only" ? "phone_to_pc" : direction;
+            TestAssert.That(MediaSyncSettings.Configured(choices)["direction"]!.GetValue<string>() == direction &&
+                MediaSyncSettings.Configured(choices)["collection_mode"]!.GetValue<string>() == scope,
+                "Configured choices were overwritten by transfer-only policy: " + scope + "/" + direction);
             TestAssert.That(MediaSyncSettings.Effective(choices)["direction"]!.GetValue<string>() == activeDirection &&
                 MediaSyncSettings.TransferRequestedFor(choices, "images", false) == (activeDirection is "phone_to_pc" or "two_way") &&
                 MediaSyncSettings.TransferRequestedFor(choices, "images", true) == (activeDirection is "pc_to_phone" or "two_way"),

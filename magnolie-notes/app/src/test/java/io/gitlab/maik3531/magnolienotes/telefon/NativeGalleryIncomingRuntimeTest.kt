@@ -15,6 +15,10 @@ import org.robolectric.shadows.ShadowContentResolver
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class])
@@ -31,6 +35,334 @@ class NativeGalleryIncomingRuntimeTest {
                 it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
         }
     }
+    @Test fun queuedIncomingRunCannotAdoptALaterPositivelyAcknowledgedRemoteSessionBeforeOwnerCapture() {
+        Harness().use { h ->
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val original = h.operationBinding(); val before = h.f.rows()
+            h.incomingHook = {
+                if (Thread.currentThread().name == "magnolie-media-incoming") {
+                    entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val run = h.start()
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); h.rotatePcSession()
+                assertEquals(original.binding, h.operationBinding().binding); assertNotEquals(original.session, h.operationBinding().session)
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualSavedOutput()); assertNotNull(run.nativeFailure())
+            assertEquals(before, h.f.rows()); assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens); assertEquals(0, h.provider.publishes)
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) })
+            h.incomingHook = {}
+            val fresh = h.start(); assertTrue(fresh.awaitIoEnded(5000)); assertNull(fresh.nativeFailure()); assertNotNull(fresh.actualSavedOutput())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun completedIncomingReadbackCannotCaptureALaterRemoteSessionAsReplacementForItsOriginalOperation() {
+        Harness().use { h ->
+            val run = h.start(); assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure()); assertNotNull(run.actualSavedOutput())
+            val original = h.operationBinding(); val reads = h.provider.readOpens; val before = h.f.rows()
+            h.rotatePcSession(); assertEquals(original.binding, h.operationBinding().binding)
+            val attempt = h.f.io { runCatching { run.beginPublishedReadback().also { h.inspection = it } } }
+            attempt.getOrNull()?.let { assertTrue(it.awaitIoEnded(5000)) }
+            assertTrue("A late remote ACK replaced the admitted receive operation's control session.", attempt.exceptionOrNull() is PhotoFolderScopeError)
+            assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+        }
+    }
+
+    @Test fun queuedOrdinaryIncomingRunCannotAdoptALaterFullIncomingIntentBeforeOwnerCapture() {
+        Harness().use { h ->
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val before = h.f.rows()
+            h.incomingHook = {
+                if (Thread.currentThread().name == "magnolie-media-incoming") {
+                    entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val run = h.start()
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS))
+                h.incomingToken = MediaSyncTransport.IntentToken(MediaSyncSettings.change(h.token.body,
+                    "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "auto_mode", JsonPrimitive("wifi")))
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualSavedOutput()); assertNotNull(run.nativeFailure())
+            assertEquals(before, h.f.rows()); assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens)
+            h.incomingHook = {}
+            val fresh = h.start(); assertTrue(fresh.awaitIoEnded(5000)); assertNull(fresh.nativeFailure()); assertNotNull(fresh.actualSavedOutput())
+        }
+    }
+
+    @Test fun completedReadbackWorkerCannotRecaptureAnotherSessionAfterItsOriginalAdmissionCheck() {
+        Harness().use { h ->
+            val incoming = h.start(); assertTrue(incoming.awaitIoEnded(5000)); assertNull(incoming.nativeFailure())
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val reads = h.provider.readOpens; val before = h.f.rows()
+            h.incomingHook = {
+                if (Thread.currentThread().name == "magnolie-media-published-read") {
+                    entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val read = h.f.io { incoming.beginPublishedReadback().also { h.inspection = it } }
+            try { assertTrue(entered.await(5, TimeUnit.SECONDS)); h.rotatePcSession() }
+            finally { release.countDown() }
+            assertTrue(read.awaitIoEnded(5000)); assertNotNull(read.nativeFailure()); assertNull(read.actualReadbackOutput())
+            assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+            h.incomingHook = {}
+            val fresh = h.inspect(); assertTrue(fresh.awaitIoEnded(5000)); assertNull(fresh.nativeFailure()); assertNotNull(fresh.observation())
+            assertEquals(before, h.f.rows())
+        }
+    }
+
+    @Test fun normalNativeConnectionArchivesPcRowsWithoutPhoneReadOrPcReceiveAndKeepsRecoveryIndependent() {
+        Harness().use { h ->
+            h.pcSendOnly(); h.completePcUpload(); h.assertReceiveOnly()
+            assertFalse(h.archiveRoot.exists())
+            assertThrows(PhotoFolderScopeError::class.java) { h.archive() } // Local trash OFF, no implicit archive bootstrap.
+            assertFalse(h.archiveRoot.exists())
+            h.f.documents.setzePapierkorb(true, 30)
+            val selected = h.published(); val local = NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                h.nativeConnection().archivePublishedPc(GalleryMediaType.IMAGES, selected.id, selected.fingerprint, h.f.book(), local)
+            } // Protected admission must run off the UI thread.
+            val controls = h.operationBinding(); val before = h.f.rows(); val frames = h.link.frames.toList()
+            val run = h.archive(); assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure())
+            val saved = run.actualArchiveOutput()!!
+            assertFalse(saved.grantsMutationAuthority); assertFalse(saved.isRemoteDeletionReceipt)
+            assertNull(run.actualReadbackOutput()); assertNull(run.observation())
+            assertEquals(controls, h.operationBinding()); assertEquals(frames, h.link.frames); assertEquals(before, h.f.rows()); h.assertReceiveOnly()
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+            NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive ->
+                assertEquals(listOf(saved), archive.entries(local)) // Store/OS lock already closed at actual run END.
+            }
+            h.nativeConnection().close(); h.f.index.close(); h.link.channel.close()
+            assertTrue(h.file.renameTo(File(h.f.root, "retained-native-pc-source.png")))
+            val offline = NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }
+            NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive ->
+                val restored = java.io.ByteArrayOutputStream(); archive.readContent(saved, offline) { restored.write(it) }
+                assertArrayEquals(h.raw, restored.toByteArray())
+            }
+        }
+    }
+
+    @Test fun normalPcArchiveNeverAdoptsLaterControlIntentBookOrCancellationBeforeBackgroundCapture() {
+        for (reason in listOf("control", "intent", "book", "cancel")) Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val before = h.f.rows(); val reads = h.provider.readOpens; val entered = CountDownLatch(1); val release = CountDownLatch(1)
+            h.incomingHook = {
+                if (Thread.currentThread().name == "magnolie-media-published-read") {
+                    entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val run = h.archive()
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); assertFalse(h.archiveRoot.exists())
+                when (reason) {
+                    "control" -> h.rotatePcSession()
+                    "intent" -> h.incomingToken = MediaSyncTransport.IntentToken(MediaSyncSettings.change(h.token.body,
+                        "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "auto_mode", JsonPrimitive("wifi")))
+                    "book" -> h.f.unlocked = false
+                    "cancel" -> run.cancel()
+                }
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualArchiveOutput()); assertNotNull(run.nativeFailure())
+            assertFalse(h.archiveRoot.exists()); assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun normalPcArchiveChecksExactSourceAndCurrentAgreementBeforeCreatingRecoveryStorage() {
+        for (reason in listOf("agreement", "fingerprint", "bytes")) Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30); val before = h.f.rows()
+            if (reason == "agreement") {
+                h.incomingAgreement = false
+                assertThrows(PhotoFolderScopeError::class.java) { h.archive() }
+            } else {
+                if (reason == "bytes") h.file.writeBytes(h.raw.copyOf().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() })
+                val run = h.archive(fingerprint = if (reason == "fingerprint") "0".repeat(64) else h.published().fingerprint)
+                assertTrue(run.awaitIoEnded(5000)); assertNotNull(run.nativeFailure()); assertNull(run.actualArchiveOutput())
+            }
+            assertFalse(h.archiveRoot.exists()); assertEquals(before, h.f.rows())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun normalPcArchiveRetainsRuntimeAndMediaLaneUntilActualStoreAndProviderIoClose() {
+        Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30); val before = h.f.rows()
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); var queries = 0
+            h.provider.beforeQuery = {
+                if (++queries == 4) { entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS)) }
+            }
+            val run = h.archive(); var cleaned = false
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); assertFalse(h.runtime.closeWhenQuiescent { cleaned = true; h.runtime.close() })
+                assertFalse(run.ioEnded); val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe)); assertFalse(cleaned)
+            } finally { release.countDown(); h.provider.beforeQuery = {} }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualArchiveOutput()); assertNotNull(run.nativeFailure())
+            Shadows.shadowOf(Looper.getMainLooper()).idle(); assertTrue(cleaned)
+            val permit = NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }
+            NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive -> assertTrue(archive.entries(permit).isEmpty()) }
+            assertEquals(before, h.f.rows()); assertArrayEquals(h.raw, h.file.readBytes())
+        }
+    }
+
+    @Test fun nativePcArchiveListAndRealPositiveDialogKeepTheOriginalAdmissionWithoutReadingMediaBeforeConfirmation() {
+        Harness().use { h ->
+            h.pcSendOnly(); h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val reads = h.provider.readOpens; val before = h.f.rows(); val frames = h.link.frames.toList()
+            val selection = h.archiveSelection()
+            selection.use {
+                assertEquals(listOf(NativeGalleryPcArchiveChoice(h.published().id, h.published().fingerprint, "original.png", h.raw.size.toLong())), selection.choices)
+                assertThrows(UnsupportedOperationException::class.java) {
+                    (selection.choices as MutableList<NativeGalleryPcArchiveChoice>).clear()
+                }
+                assertEquals(reads, h.provider.readOpens); assertFalse(h.archiveRoot.exists()); assertEquals(before, h.f.rows())
+                val result = java.util.concurrent.atomic.AtomicReference<Result<Int>?>()
+                NativeGalleryPcArchivePrompt.request(h.f.activity, selection) { result.set(it) }.use {
+                    val dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                    val positive = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                    assertFalse(positive.isEnabled); assertNull(result.get())
+                    dialog.listView.performItemClick(null, 0, 0)
+                    assertTrue(positive.isEnabled); assertNull(result.get()); assertEquals(reads, h.provider.readOpens)
+                    positive.performClick(); Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    val run = h.f.io { selection.confirm(result.get()!!.getOrThrow()) }.also { h.inspection = it }
+                    assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure()); assertNotNull(run.actualArchiveOutput())
+                    assertThrows(PhotoFolderScopeError::class.java) { h.f.io { selection.confirm(0) } }
+                }
+                assertEquals(before, h.f.rows()); assertEquals(frames, h.link.frames); h.assertReceiveOnly()
+            }
+        }
+    }
+
+    @Test fun nativePcArchiveDialogCancellationOrActivityPauseNeverCreatesRecoveryData() {
+        for (reason in listOf("cancel", "pause")) Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val before = h.f.rows(); val reads = h.provider.readOpens
+            h.archiveSelection().use { selection ->
+                val result = java.util.concurrent.atomic.AtomicReference<Result<Int>?>()
+                NativeGalleryPcArchivePrompt.request(h.f.activity, selection) { result.set(it) }.use {
+                    val dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                    dialog.listView.performItemClick(null, 0, 0)
+                    if (reason == "cancel") dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick()
+                    else h.f.activityController.pause()
+                    Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    assertNotNull(result.get()!!.exceptionOrNull())
+                    assertThrows(PhotoFolderScopeError::class.java) { h.f.io { selection.confirm(0) } }
+                }
+            }
+            assertFalse(h.archiveRoot.exists()); assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+        }
+    }
+
+    @Test fun nativePcArchiveConfirmationCannotRefreshItsListedControlIntentOrBookAdmission() {
+        for (reason in listOf("control", "intent", "book")) Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val before = h.f.rows(); val reads = h.provider.readOpens
+            h.archiveSelection().use { selection ->
+                when (reason) {
+                    "control" -> h.rotatePcSession()
+                    "intent" -> h.incomingToken = MediaSyncTransport.IntentToken(MediaSyncSettings.change(h.token.body,
+                        "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "auto_mode", JsonPrimitive("wifi")))
+                    "book" -> h.f.unlocked = false
+                }
+                assertThrows(PhotoFolderScopeError::class.java) { h.f.io { selection.confirm(0) } }
+            }
+            assertFalse(h.archiveRoot.exists()); assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+        }
+    }
+
+    @Test fun nativePcArchiveMetadataListDoesNotRelabelLegacyRowsOrBootstrapAnEmptyArchive() {
+        Harness().use { h ->
+            val incoming = h.start(); assertTrue(incoming.awaitIoEnded(5000)); assertNull(incoming.nativeFailure())
+            h.f.documents.setzePapierkorb(true, 30)
+            val before = h.f.rows(); val reads = h.provider.readOpens
+            h.archiveSelection().use { selection ->
+                assertTrue(selection.choices.isEmpty())
+                val result = java.util.concurrent.atomic.AtomicReference<Result<Int>?>()
+                NativeGalleryPcArchivePrompt.request(h.f.activity, selection) { result.set(it) }.close()
+                assertEquals("gallery_archive_no_published_pc_rows", result.get()!!.exceptionOrNull()!!.message)
+                assertThrows(PhotoFolderScopeError::class.java) { h.f.io { selection.confirm(0) } }
+            }
+            assertFalse(h.archiveRoot.exists()); assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+        }
+    }
+
+    @Test fun nativeArchiveCompletionWaiterRunsExactlyOnceOnlyAfterRealDrainIncludingLateRegistration() {
+        for (late in listOf(false, true)) {
+            val run = NativeGalleryPublishedReadRun(Any()); var completions = 0
+            if (!late) run.notifyWhenIoDrained { completions++ }
+            run.finish(null, null); run.markIoEnded()
+            assertEquals(0, completions); assertFalse(run.awaitIoEnded(0))
+            run.ioDrained()
+            if (late) run.notifyWhenIoDrained { completions++ }
+            assertEquals(1, completions); assertTrue(run.awaitIoEnded(0))
+            assertThrows(PhotoFolderScopeError::class.java) { run.notifyWhenIoDrained { completions++ } }
+            assertEquals(1, completions)
+        }
+    }
+
+    private fun awaitUi(condition: () -> Boolean) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (!condition() && System.nanoTime() < deadline) {
+            Shadows.shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(5)
+        }
+        assertTrue(condition())
+    }
+
+    @Test fun actualNativeArchiveCoroutineUsesThePositiveDialogAndReturnsOnlyVerifiedLocalCopy() {
+        Harness().use { h ->
+            h.pcSendOnly(); h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val result = java.util.concurrent.atomic.AtomicReference<Result<NativeGalleryArchiveEntry>?>()
+            val oldDialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+            val parent = SupervisorJob()
+            val job = CoroutineScope(parent + Dispatchers.Main.immediate).launch {
+                result.set(runCatching { NativeGalleryPcArchiveUiAction.request(h.f.activity, h.nativeConnection(), GalleryMediaType.IMAGES,
+                    h.f.book(), NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }) })
+            }
+            try {
+                awaitUi { org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog().let { it !== oldDialog && it.isShowing } }
+                val prompt = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                assertFalse(h.archiveRoot.exists()); assertNull(result.get())
+                prompt.listView.performItemClick(null, 0, 0); prompt.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                awaitUi { job.isCompleted }
+                val entry = result.get()!!.getOrThrow()
+                NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive ->
+                    assertEquals(listOf(entry), archive.entries(NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }))
+                }
+                assertFalse(entry.grantsMutationAuthority); h.assertReceiveOnly()
+                assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+            } finally { parent.cancel(); awaitUi { job.isCompleted } }
+        }
+    }
+
+    @Test fun canceledNativeArchiveCoroutineWaitsForActualProviderDrainInsteadOfAbandoningItsStore() {
+        Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); var queries = 0
+            h.provider.beforeQuery = { if (++queries == 4) { entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS)) } }
+            val oldDialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+            val parent = SupervisorJob()
+            val job = CoroutineScope(parent + Dispatchers.Main.immediate).launch {
+                NativeGalleryPcArchiveUiAction.request(h.f.activity, h.nativeConnection(), GalleryMediaType.IMAGES,
+                    h.f.book(), NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked })
+            }
+            try {
+                awaitUi { org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog().let { it !== oldDialog && it.isShowing } }
+                val prompt = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                prompt.listView.performItemClick(null, 0, 0); prompt.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                awaitUi { entered.count == 0L }
+                job.cancel()
+                assertFalse(job.isCompleted)
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown(); h.provider.beforeQuery = {}; parent.cancel(); awaitUi { job.isCompleted } }
+            val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+            NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive ->
+                assertTrue(archive.entries(NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }).isEmpty())
+            }
+            assertArrayEquals(h.raw, h.file.readBytes())
+        }
+    }
+
     private class Harness(joined: Boolean = true, localConsent: Boolean = joined,
         collectionMode: String = "entire_collection") : AutoCloseable {
         val helper = NativeGalleryIncomingTransferTest()
@@ -51,11 +383,15 @@ class NativeGalleryIncomingRuntimeTest {
         var held: JsonObject? = null
         var run: NativeGalleryIncomingRun? = null
         var inspection: NativeGalleryPublishedReadRun? = null
+        var incomingAgreement = true
+        @Volatile var incomingHook: () -> Unit = {}
+        @Volatile var incomingToken: Any? = token
+        private var connection: NativeGalleryFileConnection? = null
         init {
             if (joined && localConsent) helper.grant(f)
             ShadowContentResolver.registerProviderInternal("media", provider)
             runtime = if (joined) NativeGalleryFileRuntime.withIncomingMedia(f.app, f.indexRoot, identity, f.protection, link.channel,
-                { f.peer }, { true }, { true }, { token }, { token }, { true })
+                { f.peer }, { true }, { true }, { token }, { incomingHook(); incomingToken }, { true })
             else NativeGalleryFileRuntime.withSharedMediaIntent(f.app, f.indexRoot, identity, f.protection, link.channel,
                 { f.peer }, { true }, { true }, { token })
             link.onMessage = { message ->
@@ -88,13 +424,81 @@ class NativeGalleryIncomingRuntimeTest {
             pcLocal = NativeLocalFileGrant(DeviceFileGrantState(4, "c".repeat(64), false, true), pcLocal.owner, true)
             sendPc()
         }
+        fun pcSendOnly() {
+            pcLocal = NativeLocalFileGrant(DeviceFileGrantState(4, "e".repeat(64), true, false), pcLocal.owner, true); handshake()
+        }
+        fun assertReceiveOnly() {
+            val channel = NativeGalleryFileRuntime::class.java.getDeclaredField("controls").apply { isAccessible = true }.get(runtime) as NativeFileControlChannel
+            val local = NativeFileControlSession::class.java.getDeclaredField("local").apply { isAccessible = true }.get(channel.session) as NativeLocalFileGrant
+            assertFalse(local.grants.sendFiles); assertTrue(local.grants.receiveFiles)
+            assertTrue(pcLocal.grants.sendFiles); assertFalse(pcLocal.grants.receiveFiles)
+        }
+        fun completePcUpload() {
+            val incoming = startDispatched(pcOffer()); check(incoming.awaitIoEnded(5000)); check(incoming.nativeFailure() == null)
+            check(incoming.actualSavedOutput() != null); check(incoming.awaitAutomaticReadbackStart(5000))
+            val read = incoming.automaticReadbackRun()!!; check(read.awaitIoEnded(5000)); check(read.nativeFailure() == null); check(read.actualReadbackOutput() != null)
+        }
+        val archiveRoot: File get() = File(f.app.noBackupFilesDir, "native-media-recovery")
+        fun archiveSelection(): NativeGalleryPcArchiveSelection {
+            val original = nativeConnection() // Same native UI-thread binding as the normal connection owner.
+            return f.io {
+                original.preparePcArchiveSelection(GalleryMediaType.IMAGES, f.book(),
+                    NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked })
+            }
+        }
+        fun archive(fingerprint: String = published().fingerprint): NativeGalleryPublishedReadRun {
+            val selected = published(); val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            return f.io { nativeConnection().archivePublishedPc(GalleryMediaType.IMAGES, selected.id, fingerprint, f.book(), permit) }.also { inspection = it }
+        }
+        fun operationBinding(): NativeFileOperationBinding {
+            val channel = NativeGalleryFileRuntime::class.java.getDeclaredField("controls").apply { isAccessible = true }.get(runtime) as NativeFileControlChannel
+            return channel.session.operationBinding(manifest.fingerprint)!!
+        }
+        fun rotatePcSession() {
+            val own = DeviceFileControlEnvelope.validate(link.frames.last { it["kind"] == JsonPrimitive(DeviceFileControl.KIND) })
+            val packet = pc.packet().copy(sessionEpoch = "a".repeat(64), sequence = 1, echo = own.challenge)
+            assertTrue(runtime.observeControls(link.receive(DeviceFileControlEnvelope.create(packet))))
+            runtime.sendControls()
+        }
         fun answer(message: JsonObject) {
             val request = DeviceFileChunkEnvelope.parseRequest(message); val offset = request.chunkIndex * 65536
             val response = DeviceFileChunkEnvelope.response(request, raw.copyOfRange(offset, minOf(raw.size, offset + 65536)))
-            assertTrue(runtime.observeIncomingChunk(link.channel, link.receive(response)))
+            val current = connection
+            if (current == null) assertTrue(runtime.observeIncomingChunk(link.channel, link.receive(response)))
+            else assertNull(current.receiveIncomingMedia(link.channel, link.receive(response)) { error("Chunk dispatcher must not capture a new book") })
         }
         fun start(): NativeGalleryIncomingRun = runtime.beginIncoming(DeviceFileOfferEnvelope.create(manifest), GalleryMediaType.IMAGES,
             mapOf("1".repeat(32) to "image/png"), f.book()).also { run = it }
+        fun mediaOffer(settings: JsonObject = token.body): JsonObject {
+            val offer = DeviceFileOfferEnvelope.create(manifest)
+            return JsonObject(offer + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
+                put("format", 1); put("offer", offer.getValue("body")); put("settings", settings); put("media_type", "images")
+                put("mime_types", buildJsonObject { put("1".repeat(32), "image/png") }); put("originals", buildJsonObject {})
+            }))
+        }
+        fun startMedia(offer: JsonObject = mediaOffer()) = runtime.beginIncomingMediaOffer(link.receive(offer), f.book()).also { run = it }
+        fun pcOffer(selected: DeviceFileManifest = manifest, origin: String = "a".repeat(64), previous: String? = null): JsonObject {
+            val offer = DeviceFileOfferEnvelope.create(selected)
+            return JsonObject(offer + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
+                put("format", 2); put("offer", offer.getValue("body")); put("settings", token.body); put("media_type", "images")
+                put("mime_types", buildJsonObject { put("1".repeat(32), "image/png") }); put("originals", buildJsonObject {})
+                put("pc_origins", buildJsonObject { put("1".repeat(32), buildJsonObject {
+                    put("format", 1); put("origin_sha256", origin); put("previous_publication_sha256", previous?.let(::JsonPrimitive) ?: JsonNull)
+                }) })
+            }))
+        }
+        fun forkManifest(): DeviceFileManifest {
+            val raw = DeviceFileOfferEnvelope.create(manifest).getValue("body").jsonObject.getValue("manifest").jsonObject
+            return DeviceFileManifest.parse(JsonObject(raw + mapOf("source_id" to JsonPrimitive(java.util.UUID.randomUUID().toString().replace("-", "")),
+                "transfer_id" to JsonPrimitive(java.util.UUID.randomUUID().toString().replace("-", "")))))
+        }
+        fun nativeConnection(): NativeGalleryFileConnection = connection ?: NativeGalleryFileConnection(link.channel, requireIncomingAgreement = {
+            check(Looper.myLooper() != Looper.getMainLooper())
+            if (!incomingAgreement) DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        }) { }.also {
+            it.bind(runtime); connection = it
+        }
+        fun startDispatched(offer: JsonObject = mediaOffer()) = checkNotNull(nativeConnection().receiveIncomingMedia(link.channel, link.receive(offer), f::book)).also { run = it }
         fun published(): GalleryIncomingPublication {
             val id = f.rows().keys.single { it.startsWith(GalleryIncomingPublication.PREFIX) }.removePrefix(GalleryIncomingPublication.PREFIX)
             return f.index.incomingPublication(id)!!
@@ -108,9 +512,190 @@ class NativeGalleryIncomingRuntimeTest {
         override fun close() {
             runtime.revokeControl()
             run?.let { check(it.awaitIoEnded(10000)) }
+            run?.takeIf { it.automaticReadbackRequested }?.let {
+                check(it.awaitAutomaticReadbackStart(5000))
+                runCatching { it.automaticReadbackRun() }.getOrNull()?.let { read -> check(read.awaitIoEnded(10000)) }
+            }
             inspection?.let { check(it.awaitIoEnded(10000)) }
-            runtime.close(); pc.close(); f.close(); link.close()
+            connection?.close(); runtime.close(); pc.close(); f.close(); link.close()
             Shadows.shadowOf(Looper.getMainLooper()).idle()
+        }
+    }
+
+    @Test fun mediaOfferWrapperUsesActualEncryptedNativeIncomingAndPreservesOfferIdThroughSaved() {
+        Harness().use { h ->
+            val offer = h.mediaOffer(); val run = h.startMedia(offer)
+            assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure()); assertNotNull(run.actualSavedOutput())
+            val acceptance = h.link.frames.single { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) }
+            assertEquals(offer["message_id"], acceptance.getValue("body").jsonObject["offer_id"])
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+            assertTrue(h.link.frames.any { it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
+            assertEquals(JsonPrimitive(DeviceFileSavedEnvelope.KIND), run.actualSavedOutput()!!["kind"])
+        }
+    }
+
+    @Test fun opaquePcOriginPublishesOnceAndForkedOrPredecessorVersionsCannotCreateAnotherGalleryRow() {
+        Harness().use { h ->
+            val first = h.startMedia(h.pcOffer())
+            assertTrue(first.awaitIoEnded(10000)); assertNull(first.nativeFailure()); assertNotNull(first.actualSavedOutput())
+            val selected = h.published()
+            assertEquals(JsonPrimitive(3), selected.body["format"]); assertEquals("a".repeat(64), selected.pcOrigin!!.origin)
+            assertNull(selected.pcOrigin!!.previousPublication); assertNull(selected.knownOriginalId)
+            assertEquals(selected.fingerprint, first.actualSavedOutput()!!.getValue("body").jsonObject.getValue("receipts").jsonArray.single().jsonObject.string("receipt_sha256"))
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes); assertArrayEquals(h.raw, h.file.readBytes())
+            val rows = h.f.rows(); val reads = h.provider.readOpens; val frames = h.link.frames.size
+            for (previous in listOf(null, "b".repeat(64), selected.fingerprint)) {
+                val next = h.startMedia(h.pcOffer(h.forkManifest(), previous = previous))
+                assertTrue(next.awaitIoEnded(10000)); assertNotNull(next.nativeFailure()); assertNull(next.actualSavedOutput())
+                assertEquals(rows, h.f.rows()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+                assertEquals(reads, h.provider.readOpens); assertArrayEquals(h.raw, h.file.readBytes())
+            }
+            val wrongOrigin = h.startMedia(h.pcOffer(h.forkManifest(), "c".repeat(64), selected.fingerprint))
+            assertTrue(wrongOrigin.awaitIoEnded(10000)); assertNotNull(wrongOrigin.nativeFailure())
+            assertEquals(rows, h.f.rows()); assertEquals(1, h.provider.inserts)
+            assertTrue(h.link.frames.drop(frames).none { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) ||
+                it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) || it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND) })
+        }
+    }
+
+    @Test fun pendingPcOriginIsRetainedAndNewTransferIdsCannotBypassItsJournalReservation() {
+        Harness().use { h ->
+            h.respond = false
+            val first = h.startMedia(h.pcOffer()); assertTrue(h.requested.await(5, TimeUnit.SECONDS))
+            first.cancel(); assertTrue(first.awaitIoEnded(10000)); assertNull(first.actualSavedOutput())
+            val rows = h.f.rows(); val pending = h.published()
+            assertNotEquals("published", pending.state); assertEquals("a".repeat(64), pending.pcOrigin!!.origin)
+            val inserts = h.provider.inserts; val opens = h.provider.writeOpens
+            val next = h.startMedia(h.pcOffer(h.forkManifest()))
+            assertTrue(next.awaitIoEnded(10000)); assertNotNull(next.nativeFailure()); assertNull(next.actualSavedOutput())
+            assertEquals(rows, h.f.rows()); assertEquals(inserts, h.provider.inserts); assertEquals(opens, h.provider.writeOpens)
+            assertEquals(0, h.provider.publishes)
+        }
+    }
+
+    @Test fun nativeConnectionDispatcherRoutesMediaOfferAndEncryptedChunksToExactNativeWorker() {
+        Harness().use { h ->
+            val offer = h.mediaOffer(); val run = h.startDispatched(offer)
+            assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure()); assertNotNull(run.actualSavedOutput())
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+            val acceptance = h.link.frames.single { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) }
+            assertEquals(offer["message_id"], acceptance.getValue("body").jsonObject["offer_id"])
+            assertTrue(run.awaitAutomaticReadbackStart(5000))
+            val read = run.automaticReadbackRun()!!; assertTrue(read.awaitIoEnded(10000)); assertNull(read.nativeFailure())
+            assertEquals(offer["message_id"], read.actualReadbackOutput()!!.getValue("body").jsonObject["offer_id"])
+        }
+    }
+
+    @Test fun completedIncomingOwnerReadbackKeepsOriginalOfferPublicationAndChannelWithoutCallerMetadata() {
+        Harness().use { h ->
+            val offer = h.mediaOffer(); val run = h.startMedia(offer)
+            assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure())
+            val read = h.f.io { run.beginPublishedReadback() }.also { h.inspection = it }
+            assertTrue(read.awaitIoEnded(10000)); assertNull(read.nativeFailure())
+            val output = read.actualReadbackOutput()!!; val body = output.getValue("body").jsonObject
+            assertEquals(offer["message_id"], body["offer_id"])
+            assertEquals(JsonPrimitive(h.published().fingerprint), body["publication_sha256"])
+            val binding = h.readbackBinding(body.string("destination_token"))
+            val ordinaryOffer = MediaOfferEnvelope.validate(offer, h.f.pc.deviceId, h.identity.deviceId).offer
+            val parsed = DevicePublishedReadbackEnvelope.parse(output, ordinaryOffer, binding, GalleryMediaType.IMAGES)
+            assertFalse(parsed.grantsWriteAuthority); assertFalse(parsed.isSavedReceipt); assertFalse(parsed.allowsChunkOutput)
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
+        }
+    }
+
+    @Test fun pendingCanceledOrMetadataOnlyIncomingCannotStartCompletedReadback() {
+        Harness().use { h ->
+            h.respond = false
+            val run = h.startDispatched(); assertTrue(h.requested.await(5, TimeUnit.SECONDS))
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
+            run.cancel(); assertTrue(run.awaitIoEnded(10000))
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+        }
+        val metadataOnly = NativeGalleryIncomingRun(Any())
+        metadataOnly.finish(buildJsonObject { put("kind", DeviceFileSavedEnvelope.KIND) }, null)
+        metadataOnly.markIoEnded(); metadataOnly.ioDrained()
+        assertThrows(PhotoFolderScopeError::class.java) { metadataOnly.beginPublishedReadback() }
+    }
+
+    @Test fun completedIncomingReadbackCannotReplaceOriginalBookOrRevokedControlOwner() {
+        for (withdrawBook in listOf(false, true)) Harness().use { h ->
+            val run = h.startMedia(); assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure())
+            if (withdrawBook) h.f.currentDocuments = null else h.withdrawPcSend()
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { run.beginPublishedReadback() } }
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun automaticReadbackRechecksNativeAgreementAfterSavedWithoutChangingThePublishedFile() {
+        Harness().use { h ->
+            val observe = h.link.onMessage
+            h.link.onMessage = { message ->
+                observe(message)
+                if (message.string("kind") == DeviceFileSavedEnvelope.KIND) h.incomingAgreement = false
+            }
+            val run = h.startDispatched(); assertTrue(run.awaitIoEnded(10000)); assertNotNull(run.actualSavedOutput())
+            assertTrue(run.awaitAutomaticReadbackStart(5000))
+            assertThrows(PhotoFolderScopeError::class.java) { run.automaticReadbackRun() }
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun automaticReadbackCancellationRetainsTheActualBlockedOutputOwnerUntilDrain() {
+        Harness().use { h ->
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val observe = h.link.onMessage
+            h.link.onMessage = { message ->
+                observe(message)
+                if (message.string("kind") == DevicePublishedReadbackEnvelope.KIND) { entered.countDown(); check(release.await(8, TimeUnit.SECONDS)) }
+            }
+            val run = h.startDispatched()
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); assertTrue(run.awaitAutomaticReadbackStart(5000))
+                val read = run.automaticReadbackRun()!!
+                run.cancel(); assertTrue(read.cancelRequested); assertFalse(read.ioEnded)
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown() }
+            val read = run.automaticReadbackRun()!!; assertTrue(read.awaitIoEnded(5000)); assertNull(read.actualReadbackOutput())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes); assertArrayEquals(h.raw, h.file.readBytes())
+        }
+    }
+
+    @Test fun nativeIncomingDispatcherCannotCreateRightsFromForeignConnectionOrdinaryOfferOrSourceOnlyFactory() {
+        Harness().use { h ->
+            NativeGalleryIncomingTransferTest.Link().use { foreign ->
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    h.nativeConnection().receiveIncomingMedia(foreign.channel, h.mediaOffer()) { error("Foreign channel reached native book capture") }
+                }
+            }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                h.nativeConnection().receiveIncomingMedia(h.link.channel, DeviceFileOfferEnvelope.create(h.manifest)) { error("Ordinary offer reached media receiving") }
+            }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens)
+        }
+        Harness(joined = false).use { h ->
+            assertThrows(PhotoFolderScopeError::class.java) { h.startDispatched() }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.publishes)
+        }
+    }
+
+    @Test fun mediaOfferWrapperCannotSubstituteCurrentIntentInventoryProofOrNativeReceivingConsent() {
+        Harness().use { h ->
+            val changed = MediaSyncSettings.change(h.token.body, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222",
+                "photos_only", JsonPrimitive(true))
+            assertThrows(PhotoFolderScopeError::class.java) { h.startMedia(h.mediaOffer(changed)) }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens)
+        }
+        Harness(collectionMode = "phone_inventory").use { h ->
+            assertThrows(PhotoFolderScopeError::class.java) { h.startMedia() }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens)
+        }
+        Harness(localConsent = false).use { h ->
+            val run = h.startMedia(); assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualSavedOutput())
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.publishes)
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) })
         }
     }
 

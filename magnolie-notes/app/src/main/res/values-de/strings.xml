@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_pc_archiv_titel">Empfangene PC-Datei für eine Wiederherstellungskopie auswählen</string>
+    <string name="medien_pc_archiv_kopie">Wiederherstellungskopie anlegen</string>
+    <string name="medien_pc_archiv_hinweis">Kopiert eine ausgewählte empfangene PC-Datei in den lokalen verschlüsselten Wiederherstellungsspeicher. Originale bleiben unverändert. Benötigt ein gespeichertes, entsperrtes Buch und eingeschalteten Papierkorbschutz. Medien werden weder ersetzt noch gelöscht.</string>
+    <string name="medien_pc_archiv_fertig">Wiederherstellungskopie geprüft. Das Original ist unverändert.</string>
+    <string name="medien_pc_archiv_leer">Für dieses verbundene Gerät und diesen Medientyp sind keine veröffentlichten PC-Dateien vorhanden.</string>
     <string name="telefon_erweitert_titel">Erweiterte Funktionen</string>
     <string name="media_recovery_title">Foto- und Videowiederherstellung</string>
     <string name="media_recovery_hint">Lokale verschlüsselte Wiederherstellungskopien, auch ohne die frühere Verbindung verfügbar. Beim Wiederherstellen bleiben die Sicherungskopie und vorhandene Medien erhalten.</string>
@@ -493,4 +498,6 @@
     <string name="medien_sync_modus">Synchronisation</string>
     <string name="medien_sync_scope_import">Nur vom Telefon auf den PC importieren</string>
     <string name="medien_sync_direction_export">PC → Telefon</string>
+    <string name="medien_empfang_erlauben">Galerie-Empfang erlauben…</string>
+    <string name="medien_sync_nur_fotos">Nur Fotos</string>
 </resources>

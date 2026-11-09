@@ -15,6 +15,7 @@ import java.security.Security
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import kotlinx.serialization.json.*
+import kotlinx.coroutines.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
@@ -400,6 +401,194 @@ class NativeFilePairingBootstrapTest {
 
     private fun activationControl(receive: Boolean = true) = DeviceFileControlEnvelope.create(
         DeviceFileControlPacket(DeviceFileGrantState(1, "c".repeat(64), false, receive), "e".repeat(64), 1, null))
+
+    @Test @Config(sdk = [35], shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class])
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun actualSharedWerkFactoryRequiresNativeConsentThenDispatchesIncomingPngToPublishedSaved() {
+        GalleryIncomingRowsTest().mountedPrimaryVolume()
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            val bookField = field(io.gitlab.maik3531.magnolienotes.daten.Ablage::class.java, "einzig")
+            val oldBook = bookField.get(null); bookField.set(null, f.documents)
+            try {
+                val previous = storage.fileAuthorityPeers().peer!!
+                storage.savePeer(previous.copy(device_id = "22222222-2222-4222-8222-222222222222", remote_device_status_versions = listOf(1,21,22,23)))
+                withNativeTransport { work, channel, generation ->
+                    val legacy = storage.fileAuthorityPeers().peer!!
+                    val peer = work.prepareNativeFileRelationshipForExplicitActivation(legacy.device_id, legacy.static_public, channel, generation) { true }
+                    val (phone, secret) = storage.identity("Synthetic"); secret.fill(0)
+                    val identity = NativeFilePairingAuthority.fromAuthenticatedIdentity(phone)
+                    @Suppress("UNCHECKED_CAST")
+                    val identities = field(TelefonWerk::class.java, "fileChannelIdentities").get(work) as MutableMap<TelefonSecureChannel, NativeFileControlIdentity>
+                    identities[channel] = identity
+                    @Suppress("UNCHECKED_CAST")
+                    val sessions = field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>
+                    sessions[channel] = PersonalNoteSession().apply { capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true }
+                    val normalCapabilities = work.sharedLocalCapabilities
+                    // Fixture-only complete agreement. Product capability23 is unchanged.
+                    work.sharedLocalCapabilities = { normalCapabilities().toMutableMap().apply {
+                        this["device_status"] = getValue("device_status").let { it.copy(versions = it.versions + 23) }
+                    } }
+                    work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.settings", buildJsonObject { put("format", 1); put("own_device", true) }, 60000), channel, generation)
+                    work.receiveMessage(peer, TelefonNachrichten.message(MediaSyncSettings.KIND, MediaSyncSettings.create(peer.device_id), 60000), channel, generation)
+                    for ((name, value) in mapOf("enabled" to JsonPrimitive(true), "photos_enabled" to JsonPrimitive(true),
+                        "collection_mode" to JsonPrimitive("entire_collection"), "direction" to JsonPrimitive("pc_to_phone")))
+                        work.changeMediaPreference(name, value, work.state.value.mediaPreferencesVersions.getValue(name))
+                    val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
+                    @Suppress("UNCHECKED_CAST")
+                    val transports = field(TelefonWerk::class.java, "mediaSessions").get(work) as MutableMap<TelefonSecureChannel, MediaSyncTransport>
+                    val media = transports.getValue(channel)
+                    val outbound = queue.due(peer.device_id, TelefonTransportArt.WIFI).single { it.payload["kind"] == JsonPrimitive(MediaSyncSettings.KIND) }.payload
+                    media.send(outbound, channel::send)
+                    work.receiveMessage(peer, TelefonNachrichten.message(MediaSyncSettings.KIND, outbound.getValue("body").jsonObject, 60000), channel, generation)
+                    media.acknowledge(TelefonNachrichten.ack(outbound.string("message_id"), "accepted", "none"))
+                    assertTrue(work.state.value.mediaPreferencesReady)
+                    assertNotNull(media.incomingIntentFor(GalleryMediaType.IMAGES)); assertNull(media.intentFor(GalleryMediaType.IMAGES))
+                    val native = work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true)!!
+                    val desktopPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, native.pairingEpoch)
+                    val desktopState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), true, true), Any(), true)
+                    NativeFileControlSession(NativeFileControlIdentity(peer.device_id, native.identitySha256), { desktopPeer }, { desktopState }).use { desktop ->
+                        val output = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
+                        var offset = 0
+                        fun frames(): List<JsonObject> {
+                            val bytes = output.toByteArray(); val result = mutableListOf<JsonObject>()
+                            while (bytes.size - offset >= 4) {
+                                val length = java.nio.ByteBuffer.wrap(bytes, offset, 4).int
+                                if (length < 1 || bytes.size - offset - 4 < length) break
+                                val frame = TelefonRahmen.lesen(ByteArrayInputStream(bytes.copyOfRange(offset, offset + 4 + length)))
+                                offset += 4 + length
+                                val header = JsonObject(frame - "ciphertext")
+                                val clear = TelefonKrypto.entschluesseln(ByteArray(32), TelefonKrypto.nonce(ByteArray(4), header.long("seq")),
+                                    java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
+                                result += Json.parseToJsonElement(clear.decodeToString()).jsonObject
+                            }
+                            return result
+                        }
+                        fun controls() {
+                            val packet = desktop.packet(); desktop.markSent(packet)
+                            work.receiveMessage(peer, DeviceFileControlEnvelope.create(packet), channel, generation)
+                            frames().filter { it["kind"] == JsonPrimitive(DeviceFileControl.KIND) }.forEach { desktop.observeRemote(DeviceFileControlEnvelope.validate(it), desktopPeer) }
+                        }
+                        repeat(3) { controls() }
+                        val connection = field(TelefonWerk::class.java, "galleryFileConnection").get(work) as NativeGalleryFileConnection
+                        try {
+                            assertNull(connection.runtime.savedPolicy().policy)
+                            val raw = NativeGalleryIncomingTransferTest().png()
+                            val wire = NativeGalleryIncomingTransferTest().manifest(peer.device_id, raw).wire()
+                            val manifest = DeviceFileManifest.parse(JsonObject(wire + ("receiver_id" to JsonPrimitive(identity.deviceId))))
+                            val file = java.io.File(f.root, "werk-native.png")
+                            val provider = GalleryIncomingRowsTest.Provider(f.app, payload = file).apply { allowPublish = true }
+                            org.robolectric.shadows.ShadowContentResolver.registerProviderInternal("media", provider)
+                            val uiScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+                            fun awaitUi(done: () -> Boolean) {
+                                val end = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10)
+                                while (!done()) {
+                                    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                                    check(System.nanoTime() < end) { "native receiving UI deadline" }
+                                    Thread.sleep(5)
+                                }
+                                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                            }
+                            fun requestReceiving(): Triple<Job, java.util.concurrent.atomic.AtomicReference<Result<GalleryPhotoPolicySnapshot>?>, android.app.AlertDialog> {
+                                val previousDialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                                val outcome = java.util.concurrent.atomic.AtomicReference<Result<GalleryPhotoPolicySnapshot>?>()
+                                val job = uiScope.launch {
+                                    try { outcome.set(Result.success(work.allowMediaReceiving(f.activity, GalleryMediaType.IMAGES))) }
+                                    catch (error: Exception) { outcome.set(Result.failure(error)) }
+                                }
+                                awaitUi { outcome.get() != null || org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog() !== previousDialog }
+                                outcome.get()?.getOrThrow()
+                                assertNull(outcome.get())
+                                return Triple(job, outcome, org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog())
+                            }
+                            try {
+                                // Both cancellation paths must finish the real native configuration
+                                // ticket. A new positive action afterwards is not a forged permission.
+                                for (cancelJob in listOf(false, true)) {
+                                    val (job, outcome, dialog) = requestReceiving()
+                                    assertEquals(0, provider.inserts); assertNull(connection.runtime.savedPolicy().policy)
+                                    if (cancelJob) job.cancel() else dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick()
+                                    awaitUi { job.isCompleted }
+                                    assertTrue(outcome.get()!!.isFailure); assertFalse(dialog.isShowing)
+                                    assertNull(connection.runtime.savedPolicy().policy); assertEquals(0, provider.inserts)
+                                    // A delayed callback from the closed old dialog must not
+                                    // approve this or any later action.
+                                    dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                                    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                                    assertNull(connection.runtime.savedPolicy().policy); assertEquals(0, provider.inserts)
+                                }
+                                val incomingCapabilities = work.sharedLocalCapabilities
+                                val (withdrawnJob, withdrawnOutcome, withdrawnDialog) = requestReceiving()
+                                work.sharedLocalCapabilities = normalCapabilities // Remove fixture-only capability23 while waiting for the user.
+                                withdrawnDialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                                awaitUi { withdrawnJob.isCompleted }
+                                assertTrue(withdrawnOutcome.get()!!.isFailure)
+                                assertNull(connection.runtime.savedPolicy().policy); assertEquals(0, provider.inserts)
+                                work.sharedLocalCapabilities = incomingCapabilities
+                                repeat(3) { controls() }
+                                val (job, outcome, dialog) = requestReceiving()
+                                assertEquals(0, provider.inserts); assertNull(connection.runtime.savedPolicy().policy)
+                                dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                                awaitUi { job.isCompleted }
+                                assertTrue(outcome.get()!!.isSuccess)
+                            } finally { uiScope.cancel() }
+                            frames().filter { it["kind"] == JsonPrimitive(DeviceFileControl.KIND) }.forEach { desktop.observeRemote(DeviceFileControlEnvelope.validate(it), desktopPeer) }
+                            repeat(3) { controls() }
+                            val policy = connection.runtime.savedPolicy().policy!!
+                            assertFalse(policy.enabled); assertTrue(policy.receiving!!.photos); assertFalse(policy.receiving.videos)
+                            val ordinary = DeviceFileOfferEnvelope.create(manifest)
+                            val offer = JsonObject(ordinary + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
+                                put("format", 1); put("offer", ordinary.getValue("body")); put("settings", outbound.getValue("body")); put("media_type", "images")
+                                put("mime_types", buildJsonObject { put("1".repeat(32), "image/png") }); put("originals", buildJsonObject {})
+                            }))
+                            work.receiveMessage(peer, offer, channel, generation)
+                            val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(15)
+                            var saved = false; var accepted = false; var readback = false
+                            var savedBody: JsonObject? = null
+                            while (!readback && System.nanoTime() < deadline) {
+                                for (message in frames()) when (message.string("kind")) {
+                                    DeviceFileControl.KIND -> desktop.observeRemote(DeviceFileControlEnvelope.validate(message), desktopPeer)
+                                    DeviceFileAcceptanceEnvelope.KIND -> { assertEquals(offer["message_id"], message.getValue("body").jsonObject["offer_id"]); accepted = true }
+                                    DeviceFileChunkEnvelope.REQUEST -> {
+                                        val request = DeviceFileChunkEnvelope.parseRequest(message); val start = request.chunkIndex * 65536
+                                        work.receiveMessage(peer, DeviceFileChunkEnvelope.response(request, raw.copyOfRange(start, minOf(raw.size, start + 65536))), channel, generation)
+                                    }
+                                    DeviceFileSavedEnvelope.KIND -> { saved = true; savedBody = message.getValue("body").jsonObject }
+                                    DevicePublishedReadbackEnvelope.KIND -> {
+                                        assertTrue(saved)
+                                        val body = message.getValue("body").jsonObject
+                                        val binding = desktop.binding(body.string("destination_token"), senderIsLocal = true)!!
+                                        val parsed = DevicePublishedReadbackEnvelope.parse(message, ordinary, binding, GalleryMediaType.IMAGES)
+                                        assertFalse(parsed.isSavedReceipt); assertFalse(parsed.grantsWriteAuthority)
+                                        assertEquals(savedBody!!.getValue("receipts").jsonArray.single().jsonObject["receipt_sha256"], body["publication_sha256"])
+                                        readback = true
+                                    }
+                                }
+                                if (!readback) Thread.yield()
+                            }
+                            assertTrue("Normal Werk dispatcher did not produce native acceptance, Saved and automatic readback", accepted && saved && readback)
+                            assertArrayEquals(raw, file.readBytes()); assertEquals(1, provider.inserts); assertEquals(1, provider.publishes)
+                        } finally { connection.close() }
+                    }
+                }
+            } finally { bookField.set(null, oldBook) }
+        }
+    }
+
+    @Test fun actualWerkReservesMediaOffersAndChunkResultsWithoutBootstrappingFromTheirMetadata() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val output = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
+            for (kind in listOf(MediaOfferEnvelope.KIND, DeviceFileChunkEnvelope.RESULT)) {
+                val message = TelefonNachrichten.message(kind, buildJsonObject { put("format", 1) }, 60_000)
+                val failure = assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(legacy, message, channel, generation) }
+                assertEquals("file_control_native_handler_unavailable", failure.message)
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+                assertEquals(legacy, storage.fileAuthorityPeers().peer)
+                assertEquals(0, output.size()) // No ordinary-message ACK/staging or data output.
+            }
+        }
+    }
 
     @Test fun actualFirstReceiverControlBootstrapsOnlyClosedGalleryRuntimeWithoutNotesOrReadGrants() {
         withNativeTransport { work, channel, generation ->

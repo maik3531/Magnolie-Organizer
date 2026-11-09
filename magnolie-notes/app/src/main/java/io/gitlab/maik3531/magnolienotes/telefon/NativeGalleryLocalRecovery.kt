@@ -21,6 +21,7 @@ internal class NativeGalleryLocalRecovery(context: Context,
     private val app = context.applicationContext
     private val closed = AtomicBoolean(false)
     private val completion = AtomicReference<((NativeGallerySourceRun) -> Unit)?>()
+    private val previewCleanup = AtomicReference<(() -> Unit)?>()
     private val worker = NativeGallerySourceWorker({ _, _ -> throw PhotoFolderScopeError("gallery_recovery_source_read_not_supported") }) { run ->
         completion.getAndSet(null)?.let { callback -> Handler(Looper.getMainLooper()).post { if (!closed.get()) callback(run) } }
     }
@@ -66,11 +67,41 @@ internal class NativeGalleryLocalRecovery(context: Context,
         }
     }
 
+    fun preview(row: NativeGalleryRecoveryRow, permit: NativeGalleryTrashBookPermit, side: Int,
+        result: (Result<android.graphics.Bitmap>) -> Unit) {
+        uiThread(); permit.requireCurrent()
+        val bitmap = AtomicReference<android.graphics.Bitmap?>()
+        try {
+            begin({ run ->
+                val value = bitmap.getAndSet(null)
+                val answer = runCatching {
+                    run.nativeFailure()?.let { throw it }
+                    if (closed.get() || run.cancelRequested) throw PhotoFolderScopeError("gallery_recovery_canceled")
+                    permit.requireCurrent(); checkNotNull(value)
+                }
+                if (answer.isFailure) value?.recycle()
+                result(answer)
+            }) {
+                previewCleanup.set { bitmap.getAndSet(null)?.recycle() }
+                worker.startLocalInspection { cancellation ->
+                    if (!present) throw PhotoFolderScopeError("gallery_archive_original_storage_required")
+                    NativeGalleryTrashArchive.openExistingForApplication(app, protection()).use { archive ->
+                        val value = NativeGalleryRecoveryPreview.read(archive, row.entry, permit, side, cancellation) {
+                            if (closed.get()) throw PhotoFolderScopeError("gallery_recovery_canceled")
+                        }
+                        bitmap.set(value)
+                        if (closed.get()) bitmap.getAndSet(null)?.recycle()
+                    }
+                }
+            }
+        } catch (error: Throwable) { bitmap.getAndSet(null)?.recycle(); throw error }
+    }
+
     private fun begin(callback: (NativeGallerySourceRun) -> Unit, start: () -> NativeGallerySourceRun) {
         if (closed.get() || !completion.compareAndSet(null, callback)) throw PhotoFolderScopeError("gallery_source_worker_busy")
         try { start() } catch (error: Throwable) { completion.compareAndSet(callback, null); throw error }
     }
-    override fun close() { uiThread(); closed.set(true); worker.close() }
+    override fun close() { uiThread(); closed.set(true); previewCleanup.getAndSet(null)?.invoke(); worker.close() }
     private fun uiThread() {
         if (Looper.myLooper() != Looper.getMainLooper()) throw PhotoFolderScopeError("gallery_permission_ui_thread_required")
     }

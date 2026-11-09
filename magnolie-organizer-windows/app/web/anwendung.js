@@ -244,7 +244,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     sektion: "kalender",
     kalender: { jahr: jetztTeile.jahr, monat: jetztTeile.monat - 1, tag: isoHeute(jetzt),
       bearbeiteId: null, ansicht: "week" },
-    aufgaben: { bearbeiteId: null, neueElternUid: "",
+    aufgaben: { bearbeiteId: null, neueElternUid: "", sortierung: "manual", erledigteAnzeigen: true,
       filter: { person: "", von: "", bis: "" } },
     adressen: { buchstabe: "A", auswahlId: null, suche: "", gruppenFilter: "all", modus: "ansehen" },
     notizen: { auswahlId: null, gruppeId: NOTIZ_STANDARD_GRUPPE,
@@ -6828,6 +6828,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (terminIdentitaet(links) !== terminIdentitaet(rechts)) return false;
     const quelle = (t) => String(t.icsQuelleId || t.syncKalenderUid || (t.kalenderQuelle || {}).id || "");
     if (quelle(links) !== quelle(rechts)) return false;
+    const rid = t => (Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip : [])
+      .filter(x => typeof x === "string" && /^RECURRENCE-ID[;:]/i.test(x));
+    // Same title/date/series does not identify two distinct detached instances.
+    if (JSON.stringify(rid(links)) !== JSON.stringify(rid(rechts))) return false;
     const rechtsIds = terminStarkeKennungen(rechts);
     return Array.from(terminStarkeKennungen(links)).some((id) => rechtsIds.has(id));
   }
@@ -7162,6 +7166,88 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return terminText(text, 500).replace(/[\r\n";:]/g, " ").trim();
   }
 
+  // #444: bind old UI IDs through their previous semantics, never a new raw hash.
+  function erhalteDisplayAlarme(termin, vorher, alt) {
+    const konflikt = () => {
+      const error = new Error(_("Conflict") + ": " + _("Unsupported alarm"));
+      error.code = "ambiguous-alarm"; throw error;
+    };
+    const semantik = alarm => JSON.stringify([alarm.offsetMinuten, alarm.aktion, alarm.related]);
+    const ansicht = record => saubereAlarme(record.alarme === undefined ? icsProjektion(alt).alarme : record.alarme)
+      .filter(alarm => alarm.bearbeitbar);
+    let bisher = ansicht(vorher || termin);
+    const gewuenscht = ansicht(termin), bloecke = [];
+    if (new Set(bisher.map(alarm => alarm.id)).size !== bisher.length ||
+        new Set(gewuenscht.map(alarm => alarm.id)).size !== gewuenscht.length) konflikt();
+    let block = null;
+    for (const zeile of alt) {
+      const eig = icsEigenschaft(zeile);
+      if (eig?.name === "BEGIN" && eig.wert.toUpperCase() === "VALARM") {
+        if (block) konflikt();
+        block = [zeile];
+      } else if (block) {
+        block.push(zeile);
+        if (eig?.name === "END" && eig.wert.toUpperCase() === "VALARM") {
+          const alarm = icsProjektion(block).alarme[0];
+          if (!alarm) konflikt();
+          if (alarm.bearbeitbar) bloecke.push({ zeilen: block, alarm });
+          block = null;
+        }
+      }
+    }
+    if (block) konflikt();
+    if (!vorher) bisher = bisher.filter(alarm => bloecke.some(item => semantik(item.alarm) === semantik(alarm)));
+    const bindung = new Map(), benutzt = new Set();
+    for (const alarm of bisher) {
+      const treffer = bloecke.filter(item => semantik(item.alarm) === semantik(alarm));
+      if (!alarm.aktiviert && !treffer.length) continue;
+      if (!alarm.aktiviert || treffer.length !== 1 || benutzt.has(treffer[0])) konflikt();
+      bindung.set(alarm.id, treffer[0]); benutzt.add(treffer[0]);
+    }
+    if (benutzt.size !== bloecke.length) konflikt();
+    const aus = [];
+    for (const alarm of gewuenscht) {
+      if (alarm.aktion !== "display") konflikt();
+      if (!alarm.aktiviert) continue;
+      const original = bindung.get(alarm.id);
+      if (!original) {
+        if (bisher.some(item => item.id === alarm.id && item.aktiviert)) konflikt();
+        aus.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":-PT" + alarm.offsetMinuten + "M",
+          "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
+        continue;
+      }
+      let trigger = 0, aktionen = 0;
+      const zeilen = original.zeilen.map(zeile => {
+        const eig = icsEigenschaft(zeile);
+        if (eig?.name === "ACTION") aktionen++;
+        if (eig?.name !== "TRIGGER") return zeile;
+        trigger++;
+        // Split only outside quotes; retain unrelated parameters lexically.
+        const teile = []; let zitat = false, start = 0, wert = null;
+        for (let i = 0; i < zeile.length; i++) {
+          if (zeile[i] === '"') zitat = !zitat;
+          if (!zitat && (zeile[i] === ";" || zeile[i] === ":")) {
+            teile.push(zeile.slice(start, i)); start = i + 1;
+            if (zeile[i] === ":") { wert = zeile.slice(start); break; }
+          }
+        }
+        if (wert === null) konflikt();
+        if (alarm.related !== original.alarm.related) {
+          const stellen = teile.map((teil, i) => /^RELATED=/i.test(teil) ? i : -1).filter(i => i >= 0);
+          if (stellen.length > 1) konflikt();
+          if (stellen.length) {
+            const i = stellen[0]; teile[i] = teile[i].slice(0, teile[i].indexOf("=") + 1) + alarm.related;
+          } else teile.push("RELATED=" + alarm.related);
+        }
+        if (alarm.offsetMinuten !== original.alarm.offsetMinuten) wert = "-PT" + alarm.offsetMinuten + "M";
+        return teile.join(";") + ":" + wert;
+      });
+      if (trigger !== 1 || aktionen !== 1) konflikt();
+      aus.push(...zeilen);
+    }
+    return aus;
+  }
+
   function spiegeleTerminInIcs(termin, vorher = null) {
     const alt = (Array.isArray(termin.icsRoundtrip) ? termin.icsRoundtrip : [])
       .map(S);
@@ -7234,11 +7320,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         (anhang.name ? ";FILENAME=" + icsParameter(anhang.name) : "") +
         (anhang.groesse ? ";SIZE=" + anhang.groesse : "") + ":" + anhang.uri);
     }
-    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {
-      const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";
-      neu.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":" + trigger,
-        "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
-    }
+    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));
     let stelle = aus.findIndex((zeile) => /^END:VEVENT\s*$/i.test(zeile));
     if (stelle < 0) stelle = aus.length;
     aus.splice(stelle, 0, ...neu);
@@ -15124,6 +15206,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function zeichneAlles() {
     sichereNotizSnapshot();
     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
+    window.MagnolieAppearance?.update({ today: isoHeute(), developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
     stabilisiereAktiveOrtszeiten();
     beendeZeicheneingabe(true);
     beendeGesundheitReserve();
@@ -17534,6 +17617,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (teile[1]) wiederholung.intervall = Number(teile[1]);
         }
       }
+      // Do not let normalization silently turn two edited source rows into one.
+      const alarmSchluessel = alarmWerte.filter(alarm => alarm.bearbeitbar)
+        .map(alarm => JSON.stringify([alarm.offsetMinuten, alarm.related, alarm.aktion]));
+      if (new Set(alarmSchluessel).size !== alarmSchluessel.length) {
+        zettel(_("Conflict") + ": " + _("Unsupported alarm")); return;
+      }
       const werte = {
         datum: datumVon,
         endDatum: datumBis > datumVon ? datumBis : "",
@@ -18164,6 +18253,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function wochenTag(d, schmal, farbAufgaben) {
     const iso = isoVon(d);
     const kasten = el("div", "wo-tag" + (schmal ? " schmal" : ""));
+    window.MagnolieAppearance?.day(kasten, iso);
     kasten.setAttribute("role", "gridcell");
     kasten.setAttribute("aria-label", fmtLang(iso));
     kasten.tabIndex = iso === zustand.kalender.tag ? 0 : -1;
@@ -18269,6 +18359,61 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return vergleicheStandardText(a.titel, b.titel);
   }
 
+  function sortiereAufgabenAnsicht(a, b) {
+    const wahl = zustand.aufgaben.sortierung || "manual";
+    if (wahl === "manual") return a.reihenfolge - b.reihenfolge || sortiereAufgaben(a, b) || vergleicheTechnischeKennung(a.uid, b.uid);
+    const [art, richtung] = wahl.split("_"), faktor = richtung === "desc" ? -1 : 1;
+    const wert = aufgabe => art === "due" ? aufgabe.faellig || null : art === "priority" ? aufgabe.prio :
+      Number.isFinite(aufgabe.angelegt) && aufgabe.angelegt > 0 ? aufgabe.angelegt : null;
+    const av = wert(a), bv = wert(b);
+    if (av == null || bv == null) {
+      if (av !== bv) return av == null ? 1 : -1;
+    } else if (av !== bv) return (av < bv ? -1 : 1) * faktor;
+    if (art === "due" && av != null) {
+      const at = a.faelligZeit || "99:99", bt = b.faelligZeit || "99:99";
+      if (at !== bt) return (at < bt ? -1 : 1) * faktor;
+    }
+    return vergleicheStandardText(a.titel, b.titel) || vergleicheTechnischeKennung(a.uid, b.uid);
+  }
+
+  function aufgabenAnsichtsMenue(event, aufgabe = null) {
+    if (event.target?.closest?.("input, textarea, select, [contenteditable]") || markierterText(event.target).text.trim()) return;
+    event.preventDefault(); event.stopPropagation(); schliesseVorschlaege();
+    const z = zustand.aufgaben, menu = el("div", "vorschlags-menue bearbeiten-menue");
+    menu.id = "vorschlags-menue"; menu.setAttribute("role", "menu");
+    if (aufgabe) personalAdmissionMenuItem(menu, "task", aufgabe);
+    if (menu.children.length) menu.append(el("div", "vm-trenner"));
+    const option = (label, selected, action, key, checkbox = false) => {
+      const button = knopf((selected ? "✓ " : "") + label, "vm-eintrag", () => navigiereMitGuard(() => {
+        action(); menu.remove(); zeichneAlles(); $("#aufgaben-uebersicht")?.focus();
+      }));
+      button.dataset.aufgabenAnsicht = key;
+      button.setAttribute("role", checkbox ? "menuitemcheckbox" : "menuitemradio");
+      button.setAttribute("aria-checked", String(selected)); menu.append(button);
+    };
+    option(_("Default view"), z.sortierung === "manual", () => { z.sortierung = "manual"; }, "manual");
+    for (const [art, label] of [["due", _("Due on")], ["priority", _("Priority")], ["created", _("Created")]])
+      for (const [richtung, pfeil] of [["asc", "↑"], ["desc", "↓"]]) {
+        const key = art + "_" + richtung;
+        option(label + " " + pfeil, z.sortierung === key, () => { z.sortierung = key; }, key);
+      }
+    menu.append(el("div", "vm-trenner"));
+    option(_("Completed task"), z.erledigteAnzeigen !== false,
+      () => { z.erledigteAnzeigen = z.erledigteAnzeigen === false; }, "completed", true);
+    document.body.append(menu);
+    const rect = event.target?.getBoundingClientRect?.() || { left: 6, top: 6 };
+    menu.style.left = Math.max(6, Math.min(event.clientX || rect.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
+    menu.style.top = Math.max(6, Math.min(event.clientY || rect.top, window.innerHeight - menu.offsetHeight - 8)) + "px";
+    menu.addEventListener("keydown", e => {
+      const buttons = [...menu.querySelectorAll("button")], current = buttons.indexOf(document.activeElement);
+      if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+        e.preventDefault(); buttons[e.key === "Home" ? 0 : e.key === "End" ? buttons.length - 1 :
+          (current + (e.key === "ArrowUp" ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+      } else if (e.key === "Escape") { e.preventDefault(); menu.remove(); event.target?.focus?.(); }
+    });
+    menu.querySelector("button")?.focus();
+  }
+
   function aufgabenNachHierarchie(filterAktiv) {
     normalisiereAufgabenGraph(DATEN.aufgaben);
     const nachEltern = new Map(), nachUid = new Map(DATEN.aufgaben.map((a) => [a.uid, a]));
@@ -18276,8 +18421,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!nachEltern.has(a.elternUid)) nachEltern.set(a.elternUid, []);
       nachEltern.get(a.elternUid).push(a);
     }
-    for (const kinder of nachEltern.values()) kinder.sort((a, b) =>
-      a.reihenfolge - b.reihenfolge || sortiereAufgaben(a, b) || vergleicheTechnischeKennung(a.uid, b.uid));
+    for (const kinder of nachEltern.values()) kinder.sort(sortiereAufgabenAnsicht);
     let sichtbar = null;
     if (filterAktiv) {
       sichtbar = new Set(DATEN.aufgaben.filter(aufgabePasst).map((a) => a.uid));
@@ -19158,7 +19302,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         (eingeschraenkt ? _(" (filtered)") : ""),
       [neuKnopf, personenKnopf]);
 
-    const inhaltL = $("#inhalt-links");
+    const inhaltL = el("div", "aufgaben-uebersicht"); inhaltL.id = "aufgaben-uebersicht"; inhaltL.tabIndex = 0;
+    $("#inhalt-links").append(inhaltL);
+    inhaltL.addEventListener("contextmenu", event => aufgabenAnsichtsMenue(event));
+    inhaltL.addEventListener("keydown", event => {
+      if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") aufgabenAnsichtsMenue(event);
+    });
 
     /* ---- Auswahl nach Person und Zeitraum ---- */
     if (DATEN.personen.length || eingeschraenkt) {
@@ -19207,7 +19356,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         (x) => aufgabenZeile(x.a, false, heute, x.tiefe));
     }
 
-    if (erledigte.length) {
+    if (erledigte.length && z.erledigteAnzeigen !== false) {
       const zt = el("div", "zwischentitel");
       zt.append(el("span", null, uebersetzt("Completed (%(count)s)",
         { count: erledigte.length })));
@@ -19575,17 +19724,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const occurrence = !istErledigt ? icsQuelle(source) ? icsRuntime("next", source, [heute]) : a : null;
     const zeile = el("li", "zeile" + (istErledigt ? " erledigt" : "") +
       (a.id === z.bearbeiteId ? " aktiv" : ""));
-    const admissionMenu = event => {
-      if (!personalAdmissionPeer() || !personalAdmissionEligible("task", a)) return;
-      event.preventDefault(); event.stopPropagation(); schliesseVorschlaege();
-      const menu = el("div", "vorschlags-menue bearbeiten-menue"); menu.id = "vorschlags-menue"; menu.setAttribute("role", "menu");
-      personalAdmissionMenuItem(menu, "task", a); document.body.append(menu);
-      const rect = zeile.getBoundingClientRect();
-      menu.style.left = Math.max(6, Math.min(event.clientX || rect.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
-      menu.style.top = Math.max(6, Math.min(event.clientY || rect.top, window.innerHeight - menu.offsetHeight - 8)) + "px";
-      menu.addEventListener("keydown", e => { if (e.key === "Escape") { menu.remove(); zeile.querySelector("button")?.focus(); } });
-      menu.querySelector("button")?.focus();
-    };
+    const admissionMenu = event => aufgabenAnsichtsMenue(event, a);
     zeile.addEventListener("contextmenu", admissionMenu);
     zeile.addEventListener("keydown", event => { if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") admissionMenu(event); });
     zeile.style.paddingInlineStart = Math.min(12, Math.max(0, tiefe - 1)) * 18 + "px";
@@ -25730,6 +25869,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function baueSeiteEntwickler(wurzel) {
     if (DATEN.einstellungen.allgemein.entwicklermodus !== true) return;
     const ab = abschnitt(_("Developer options"));
+    window.MagnolieAppearance?.update({ today: isoHeute(), developer: true, locked: gesperrt });
+    window.MagnolieAppearance?.mountDeveloper(ab, _, Bruecke.vorhanden ? state =>
+      Bruecke.sende(state ? { cmd: "tray_darstellung_test", ...state } : { cmd: "tray_darstellung_test_ende" }) : null);
     const log = document.createElement("input"); log.type = "checkbox"; log.id = "erinnerung-protokoll-an";
     log.checked = DATEN.einstellungen.erinnerung.protokoll === true;
     const row = el("label", "hak"); row.append(log, document.createTextNode(" " + _("Keep a troubleshooting log")));
@@ -25749,6 +25891,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ab.append(row, show, knopf(_("Disable developer mode"), "", () => {
       entwicklerDiagnoseAnfrage = null; output.textContent = "";
       DATEN.einstellungen.allgemein.entwicklermodus = false;
+      window.MagnolieAppearance?.update({ today: isoHeute(), developer: false, locked: gesperrt });
       DATEN.einstellungen.erinnerung.protokoll = false; entwicklerVersionsKlicks = 0;
       planeSpeichern(); speichereJetzt(); einstSeite = "ueber"; baueEinstellungen();
     })); wurzel.append(ab);
@@ -32250,7 +32393,78 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return kandidaten.size === 1 ? Array.from(kandidaten)[0] : null;
   }
 
-  function mergeTermine(liste, normalisiert = false) {
+  // #462: old Android JSONObject quoting escaped every slash in the RID hash.
+  // These plans are ephemeral import state, never a renamed UID or stored alias.
+  const alteAndroidTerminPlaene = new WeakMap();
+  function alterAndroidTerminKonflikt() {
+    const error = new Error(_("Conflict")); error.code = "ics_alias_conflict"; return error;
+  }
+  function alteAndroidTerminIdentitaet(t) {
+    if (!t || typeof t.icsQuelleId !== "string" || !t.icsQuelleId ||
+        typeof t.icsSerienUid !== "string" || !t.icsSerienUid || /[\x00-\x1f]/.test(t.icsQuelleId + t.icsSerienUid)) return null;
+    const zeilen = (Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip : []).filter(x => typeof x === "string" && /^RECURRENCE-ID[;:]/i.test(x));
+    if (zeilen.length !== 1 || zeilen[0].length > 8192 || /[\x00-\x1f]/.test(zeilen[0])) return null;
+    const raw = zeilen[0], teile = []; let zitat = false, start = 0, ende = -1;
+    for (let i = 0; i < raw.length; i++) {
+      if (raw[i] === '"') zitat = !zitat;
+      if (!zitat && (raw[i] === ";" || raw[i] === ":")) {
+        teile.push(raw.slice(start, i)); start = i + 1;
+        if (raw[i] === ":") { ende = i; break; }
+      }
+    }
+    if (zitat || ende < 0 || teile[0].toUpperCase() !== "RECURRENCE-ID") return null;
+    const params = Object.create(null);
+    for (const teil of teile.slice(1)) {
+      const gleich = teil.indexOf("="), key = teil.slice(0, gleich).toUpperCase();
+      if (gleich < 1 || !/^[A-Z0-9-]+$/.test(key) || Object.prototype.hasOwnProperty.call(params, key)) return null;
+      let wert = teil.slice(gleich + 1);
+      if (wert.startsWith('"') && wert.endsWith('"')) wert = wert.slice(1, -1);
+      else if (wert.includes('"')) return null;
+      params[key] = wert;
+    }
+    const wert = raw.slice(ende + 1);
+    if (!/^\d{8}(?:T\d{6}Z?)?$/.test(wert)) return null;
+    return { key: JSON.stringify([t.icsQuelleId, t.icsSerienUid, raw]), serie: t.icsSerienUid, params, wert };
+  }
+  function alteAndroidTerminKandidaten(nutzlast) {
+    const eingang = new Map();
+    for (const t of nutzlast.termine || []) {
+      const id = alteAndroidTerminIdentitaet(t); if (!id) continue;
+      if (!eingang.has(id.key)) eingang.set(id.key, new Set()); eingang.get(id.key).add(t.uid);
+    }
+    return DATEN.termine.filter(t => {
+      const id = alteAndroidTerminIdentitaet(t);
+      const uids = id && eingang.get(id.key);
+      return uids && (uids.size > 1 || !uids.has(t.uid)) && t.uid?.startsWith(id.serie + "-magnolie-instanz-") && /-magnolie-instanz-[0-9a-f]{16}$/.test(t.uid);
+    });
+  }
+  async function bereiteAlteAndroidTerminAliase(nutzlast) {
+    const bestand = DATEN, vorher = JSON.stringify(DATEN.termine), kandidaten = alteAndroidTerminKandidaten(nutzlast);
+    const aliase = new Map(), gesehen = new Set(), vorhandene = new Map(), alte = new Map();
+    for (const t of DATEN.termine) {
+      const id = alteAndroidTerminIdentitaet(t); if (!id) continue;
+      if (!vorhandene.has(id.key)) vorhandene.set(id.key, []); vorhandene.get(id.key).push(t);
+    }
+    for (const k of kandidaten) {
+      const key = alteAndroidTerminIdentitaet(k).key;
+      if (!alte.has(key)) alte.set(key, []); alte.get(key).push(k);
+    }
+    for (const t of nutzlast.termine || []) {
+      const id = alteAndroidTerminIdentitaet(t);
+      if (!id || !alte.get(id.key)?.some(k => k.uid !== t.uid)) continue;
+      if (gesehen.has(id.key)) throw alterAndroidTerminKonflikt(); gesehen.add(id.key);
+      const text = personalSyncKanonisch([id.params, id.wert]).replace(/\//g, "\\/");
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN.termine) !== vorher) throw alterAndroidTerminKonflikt();
+      const alt = id.serie + "-magnolie-instanz-" + Array.from(new Uint8Array(digest), x => x.toString(16).padStart(2, "0")).join("").slice(0, 16);
+      const treffer = vorhandene.get(id.key);
+      if (treffer.length !== 1 || treffer[0].uid !== alt) throw alterAndroidTerminKonflikt();
+      aliase.set(JSON.stringify([id.key, t.uid]), { id: treffer[0].id, uid: alt });
+    }
+    alteAndroidTerminPlaene.set(nutzlast, { vorher, aliase });
+  }
+
+  function mergeTermine(liste, normalisiert = false, aliasPlan = null) {
     const z = { neu: 0, doppelt: 0 };
     const importKennung = (eintrag, wert) => {
       const quelle = String(eintrag.icsQuelleId || "");
@@ -32261,10 +32475,25 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const t of normalisiert ? liste : normalisiereTermine(liste, false)) {
       const endDatum = gueltigesISO(t.endDatum) && t.endDatum > t.datum
         ? t.endDatum : "";
-      const uidTreffer = t.uid ? uids.get(importKennung(t, t.uid)) : null;
+      const identitaet = alteAndroidTerminIdentitaet(t);
+      const alias = identitaet && aliasPlan?.aliase.get(JSON.stringify([identitaet.key, t.uid]));
+      const uidTreffer = alias ? uids.get(importKennung(t, alias.uid)) : t.uid ? uids.get(importKennung(t, t.uid)) : null;
+      if (alias && (!uidTreffer || uidTreffer.id !== alias.id || alteAndroidTerminIdentitaet(uidTreffer)?.key !== identitaet.key)) throw alterAndroidTerminKonflikt();
       if (uidTreffer) {
         if ((Number(t.geaendert) || 0) > (Number(uidTreffer.geaendert) || 0)) {
           const id = uidTreffer.id;
+          if (alias) {
+            // Preserve the old primary identity, references, all unknowns and
+            // local/provider lists. Normalized incoming defaults are not edits.
+            for (const feld of ["datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kategorien", "ort", "akzentFarbe",
+              "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "wiederholung", "icsKomplex", "icsSerienUid", "icsAusnahmen",
+              "icsZusatzDaten", "icsZusatzTermine", "icsRoundtrip", "icsRangeOverrides", "icsAusnahmeTermine", "icsTimezones",
+              "icsAnzeigeZeitzone", "icsSequence", "icsAenderungszeitFehlt", "icsEndeFehlt", "icsNullDauer", "geaendert"])
+              if (Object.prototype.hasOwnProperty.call(t, feld)) uidTreffer[feld] = kopie(t[feld]);
+            uidTreffer.icsReadOnly = !!(uidTreffer.icsReadOnly || t.icsReadOnly);
+            if (!uidTreffer.icsReadOnlyGrund && t.icsReadOnlyGrund) uidTreffer.icsReadOnlyGrund = String(t.icsReadOnlyGrund);
+            uidTreffer.sync = false; z.neu++; continue;
+          }
           Object.assign(uidTreffer, t, { id: id, uid: t.uid,
             endDatum: endDatum, wiederholung: leseWiederholung(t.wiederholung),
             icsKomplex: !!t.icsKomplex, icsSerienUid: String(t.icsSerienUid || ""),
@@ -32477,15 +32706,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mergeNotizen(liste, leise = false, notizbuchId = null) {
     const z = { neu: 0, doppelt: 0, uebersprungen: 0 };
     const zielbuch = notizbuchId === null ? zustand.notizen.notizbuchId : notizbuchId;
-    const schluessel = new Set(DATEN.notizen.map(
-      (n) => kanonischerText(n.titel) + "|" + kanonischerText(n.text)));
+    const schluessel = new Map();
+    const merke = (s, anhaenge) => {
+      if (!schluessel.has(s)) schluessel.set(s, []);
+      schluessel.get(s).push(anhaenge);
+    };
+    const gleicheAnhaenge = (a, b) => a.length === b.length && a.every((anhang, index) =>
+      anhang.name === b[index].name && anhang.art === b[index].art && anhang.daten === b[index].daten);
+    for (const n of DATEN.notizen) merke(kanonischerText(n.titel) + "|" + kanonischerText(n.text), saubereNotizAnhaenge(n.anhaenge));
     for (const n of liste || []) {
       if (!n) { z.uebersprungen++; continue; }
       const titel = String(n.titel || "").trim();
       const text = String(n.text || "").trim();
       if (!titel && !text) { z.uebersprungen++; continue; }
       const s = kanonischerText(titel) + "|" + kanonischerText(text);
-      if (schluessel.has(s)) { z.doppelt++; continue; }
+      const anhaenge = saubereNotizAnhaenge(n.anhaenge);
+      // Never convert a partially rejected attachment list into a duplicate or
+      // silently import only the surviving part of this note.
+      if (n.anhaenge != null && (!Array.isArray(n.anhaenge) || anhaenge.length !== n.anhaenge.length)) {
+        z.uebersprungen++; continue;
+      }
+      if ((schluessel.get(s) || []).some(bisher => gleicheAnhaenge(bisher, anhaenge))) { z.doppelt++; continue; }
       const htmlStand = {};
       const sicheresHtml = saeubereHtml(String(n.html || ""), htmlStand);
       if (htmlStand.gekuerzt) {
@@ -32495,11 +32736,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       DATEN.notizen.push({ id: uid(), titel: titel || ersteZeile(text),
         text: text, html: sicheresHtml || textZuHtml(text),
-        anhaenge: saubereNotizAnhaenge(n.anhaenge),
+        anhaenge: anhaenge,
         notizbuchId: DATEN.notizbuecher.some((b) => b.id === zielbuch)
           ? zielbuch : DATEN.notizbuecher[0].id,
         geaendert: String(n.geaendert || isoHeute()) });
-      schluessel.add(s);
+      merke(s, anhaenge);
       z.neu++;
     }
     return z;
@@ -32659,6 +32900,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {
+    const aliasPlan = alteAndroidTerminPlaene.get(nutzlast);
+    if (aliasPlan ? JSON.stringify(DATEN.termine) !== aliasPlan.vorher : alteAndroidTerminKandidaten(nutzlast).length)
+      throw alterAndroidTerminKonflikt();
     if (kontaktPruefung) {
       DATEN.kontakte = kontaktPruefung.daten.kontakte;
       DATEN.jahrestage = kontaktPruefung.daten.jahrestage;
@@ -32678,7 +32922,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           kanonischesJahresdatum(k[art === "birthday" ? "geburtstag" : "jubilaeum"], art === "birthday" && k.geburtstagJahrUnbekannt);
     });
     if (Array.isArray(nutzlast.termine) && nutzlast.termine.length) {
-      const z = mergeTermine(nutzlast.termine, termineNormalisiert); doppelt += z.doppelt; counts.appointments = z.neu;
+      const z = mergeTermine(nutzlast.termine, termineNormalisiert, aliasPlan); doppelt += z.doppelt; counts.appointments = z.neu;
       if (z.neu) teile.push(uebersetztMehrzahl("%(count)s appointment", "%(count)s appointments", z.neu));
     }
     if (Array.isArray(nutzlast.jahrestage) && nutzlast.jahrestage.length) {
@@ -33689,7 +33933,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(uebersetzt("File saved: %(name)s", { name: nutzlast?.name || _("Unknown file") }));
     },
     backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
+    trayDarstellungTestStand(value) { window.MagnolieAppearance?.nativeResult(value); },
     init(nutzlast) {
+      window.MagnolieAppearance?.update({ today: "", developer: false, locked: true });
       verwerfeKdeEmpfangDialoge();
       kontaktFotoDialogSchliessen?.();
       syncKontaktDialogSchliessen?.();
@@ -33763,7 +34009,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       raeumeTombstonesAuf();
       const papierkorbBereinigt = raeumePapierkorbAuf();
       if (nutzlast.neu && !DATEN.notizen.length) {
-        DATEN.notizen.push(willkommensNotiz());
+        DATEN.notizen.push(normalisiere({ notizen: [willkommensNotiz()] }).notizen[0]);
       }
       initialisiert = true;
       setTimeout(starteSetupFerienAbruf, 0);
@@ -35249,6 +35495,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           App.importErgebnis({ ...nutzlast, termine: termine }, true);
         })().catch(fehler => App.importErgebnis({ fehler: String(fehler.message || fehler) }));
       }
+      if (!alteAndroidTerminPlaene.has(nutzlast) && alteAndroidTerminKandidaten(nutzlast).length) {
+        const bestand = DATEN, vorher = JSON.stringify(DATEN);
+        const eingang = { ...nutzlast, termine: termineNormalisiert ? nutzlast.termine : normalisiereTermine(nutzlast.termine, false) };
+        return bereiteAlteAndroidTerminAliase(eingang).then(() => {
+          if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN) !== vorher) throw alterAndroidTerminKonflikt();
+          return App.importErgebnis(eingang, true, kontaktPruefung);
+        }).catch(error => App.importErgebnis({ fehler: String(error.message || error) }));
+      }
       if (!kontaktPruefung && Array.isArray(nutzlast.kontakte) && nutzlast.kontakte.length) {
         const eingang = kopie(nutzlast);
         return pruefeKontaktDateiImport(eingang.kontakte, String(eingang.kontaktQuelle || "")).then(pruefung => {
@@ -35259,7 +35513,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           }, () => { setupImportBeenden(); resolve(); }));
         });
       }
-      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);
+      const { teile, doppelt, counts, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);
       if (changed) {
         planeSpeichern();
         zeichneAlles();
@@ -35269,9 +35523,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         : _("Nothing new was found.");
       if (doppelt) text += " " + uebersetztMehrzahl(
         "%(count)s existing entry skipped.", "%(count)s existing entries skipped.", doppelt);
-      if (nutzlast.uebersprungen) text += " " + uebersetztMehrzahl(
+      const ausgelassen = Number(nutzlast.uebersprungen || 0) + (counts.notes_skipped || 0);
+      if (ausgelassen) text += " " + uebersetztMehrzahl(
         "%(count)s unreadable row omitted.", "%(count)s unreadable rows omitted.",
-        nutzlast.uebersprungen);
+        ausgelassen);
       // Native codecs already count unresolved rules, not all complex rules.
       const einmalig = Math.max(0, Number(nutzlast.wiederholend || 0));
       if (einmalig) {
@@ -39628,6 +39883,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           try {
             await mcpLeseImportQuelle({ ...review.sourceArgs, expected_revision: review.payload.revision }, signal);
             mcpLeseImportPruefung(args.token, owner);
+            if (alteAndroidTerminKandidaten(review.payload).length) {
+              try { await bereiteAlteAndroidTerminAliase(review.payload); }
+              catch (error) {
+                if (error.code === "ics_alias_conflict") throw new MagnolieMcp.ToolError("conflict", "Ambiguous or changed calendar instance alias");
+                throw error;
+              }
+              mcpLeseImportPruefung(args.token, owner);
+            }
             const contacts = review.preparation ? await erstelleKontaktDateiEntwurf(review.preparation) : null;
             mcpLeseImportPruefung(args.token, owner);
             if (contacts) await new Promise((resolve, reject) => mitMutationsSnapshot("pre-contact-import", resolve, () => reject(new MagnolieMcp.ToolError("snapshot_failed", "Native pre-import checkpoint failed"))));
@@ -41800,6 +42063,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       aktualisiereKontaktOrtszeiten();
       const heute = isoHeute();
       if (heute !== letzterTag) {
+        window.MagnolieAppearance?.update({ today: heute, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
         if (editorIstGeaendert()) return;
         letzterTag = heute;
         if (initialisiert) {

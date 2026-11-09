@@ -782,7 +782,7 @@ def _request_shape(operation, arguments):
     if not isinstance(arguments, dict):
         raise IPCError("operation arguments must be an object")
     allowed = {
-        "ping": set(), "status": {"timeout"}, "discover": {"timeout"},
+        "ping": set(), "status": {"timeout"}, "tray_connection_state": set(), "discover": {"timeout"},
         "get_settings": set(), "set_settings": {"settings"},
         "event_cursor": set(), "poll_events": {"after", "timeout", "subscriber"},
         "gui_subscribe": {"subscriber"}, "gui_unsubscribe": {"subscriber"},
@@ -805,11 +805,12 @@ def _request_shape(operation, arguments):
         "configure_receive": {"clipboard_enabled", "file_enabled", "device_id",
             "clipboard_mode", "file_mode", "download_directory"},
         "accept_receive": {"receive_id", "directory"}, "reject_receive": {"receive_id"},
-        "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
+        "phone_report": set(), "phone_tray_sync_activity": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
         "phone_photo_sync_action": {"peer_id", "fingerprint", "request"},
         "phone_photo_sync_video_destination": {"peer_id", "fingerprint", "path"},
         "phone_photo_sync_photo_destination": {"peer_id", "fingerprint", "path"},
         "phone_photo_sync_backup_locations": {"peer_id", "fingerprint", "media_type", "backup_action", "version", "book_version", "path"},
+        "phone_photo_sync_sending_consent": {"peer_id", "fingerprint", "consent_action", "photos", "videos", "selection", "version"},
         "phone_actor_source": {"peer_id", "fingerprint", "subscriber", "book_source"},
         "phone_actor_scope": {"peer_id", "fingerprint", "subscriber", "book_source", "expected_source", "offset", "limit"},
         "phone_actor_producer": {"subscriber", "book_source", "request"},
@@ -1903,10 +1904,13 @@ class IPCServer:
                     if operation == "configure_receive":
                         arguments = dict(arguments, file_mode="confirm")
                     if self.backend is None:
-                        if operation != "status":
+                        if operation == 'tray_connection_state':
+                            result = {'connected': False, 'count': 0}
+                        elif operation != "status":
                             raise IPCError(_("KDE Connect is unavailable; other background services remain active."))
-                        result = {"available": False, "listening": False,
-                                  "reason": "transport_unavailable"}
+                        else:
+                            result = {"available": False, "listening": False,
+                                      "reason": "transport_unavailable"}
                     elif operation in ("begin_pairing", "complete_pairing", "confirm_pairing", "mcp_action"):
                         with self._mutation_lock:
                             if self.setup_sessions.connecting_transport == "kdeconnect":
@@ -1950,6 +1954,8 @@ class IPCServer:
                 raise IPCError("phone event is unavailable")
             return self.phone_event_getter(arguments["ticket"])
         phone = self.phone_backend
+        if operation == 'phone_tray_sync_activity':
+            return phone.tray_sync_activity() if phone is not None else {'synchronizing': False}
         if phone is None:
             raise IPCError("phone service is not owned by the background service")
         if operation == "phone_actor_source":
@@ -2036,6 +2042,7 @@ class IPCServer:
             "phone_photo_sync_video_destination": ("photo_sync_video_destination", ("peer_id", "fingerprint", "path")),
             "phone_photo_sync_photo_destination": ("photo_sync_photo_destination", ("peer_id", "fingerprint", "path")),
             "phone_photo_sync_backup_locations": ("photo_sync_backup_locations", ("peer_id", "fingerprint", "media_type", "backup_action", "version", "book_version", "path")),
+            "phone_photo_sync_sending_consent": ("photo_sync_sending_consent", ("peer_id", "fingerprint", "consent_action", "photos", "videos", "selection", "version")),
             "phone_contact_groups": ("contact_groups", ("peer_id", "fingerprint", "request")),
             "phone_contact_values": ("contact_values", ("peer_id", "fingerprint", "request")),
             "phone_contact_group_title": ("contact_group_title", ("peer_id", "fingerprint", "request")),
@@ -2276,6 +2283,9 @@ class KDEConnectProxy:
 
     def status(self, timeout=0.25):
         return self._call("status", timeout=timeout)
+
+    def tray_connection_state(self):
+        return ipc_request('tray_connection_state', {}, self.path, timeout=1)
 
     def discover(self, timeout=0.7):
         return self._call("discover", timeout=timeout)
@@ -2800,6 +2810,7 @@ class PhoneServiceProxy:
         return bool(self.report().get("enabled"))
 
     def report(self): return self._call("report")
+    def tray_sync_activity(self): return self._call('tray_sync_activity')
 
     def photo_sync_action(self, peer_id, fingerprint, request):
         return self._call("photo_sync_action", peer_id=peer_id, fingerprint=fingerprint, request=request)
@@ -2808,6 +2819,10 @@ class PhoneServiceProxy:
 
     def photo_sync_photo_destination(self, peer_id, fingerprint, path):
         return self._call("photo_sync_photo_destination", peer_id=peer_id, fingerprint=fingerprint, path=path)
+
+    def photo_sync_sending_consent(self,peer_id,fingerprint,operation,photos=None,videos=None,selection=None,version=None):
+        return self._call("photo_sync_sending_consent",peer_id=peer_id,fingerprint=fingerprint,consent_action=operation,
+            photos=photos,videos=videos,selection=selection,version=version)
 
     def photo_sync_backup_locations(self,peer_id,fingerprint,media_type,operation,version=None,book_version=None,path=None):
         return self._call("photo_sync_backup_locations",peer_id=peer_id,fingerprint=fingerprint,media_type=media_type,

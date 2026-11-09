@@ -64,6 +64,7 @@ internal sealed partial class TelefonConnection
             mediaSharedAttempts.Clear(); mediaSharedSent = null;
             mediaSharedAcknowledged = null; mediaSharedReceived = null;
         }
+        CheckNativeMediaSendControl();
     }
 
     internal bool MediaSharedSettingsReady

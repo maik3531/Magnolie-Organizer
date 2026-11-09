@@ -8630,3 +8630,53 @@ msgstr "Hele samlingen"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone → PC"
 msgstr "Telefon → PC"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Kun en visuel test; forbindelser og tilladelser ændres ikke."
+
+msgid "Tray preview"
+msgstr "Forhåndsvisning af statusikon"
+
+msgid "Seasonal background"
+msgstr "Sæsonbaggrund"
+
+msgid "Holiday watermark"
+msgstr "Helligdagsvandmærke"
+
+msgid "Both connected"
+msgstr "Begge forbundet"
+
+msgid "Camera"
+msgstr "Kamera"
+
+msgid "Snowflakes"
+msgstr "Snefnug"
+
+msgid "Stars"
+msgstr "Stjerner"
+
+msgid "Boots"
+msgstr "Støvler"
+
+msgid "Santa Claus"
+msgstr "Julemand"
+
+msgid "Rocket"
+msgstr "Raket"
+
+msgid "Champagne glass"
+msgstr "Champagneglas"
+
+msgid "Easter eggs"
+msgstr "Påskeæg"
+
+msgid "Reset preview"
+msgstr "Nulstil forhåndsvisning"
+
+msgid "OS tray icon (60 s)"
+msgstr "Systemets statusikon (60 s)"
+
+msgid "Saved developer mode is required."
+msgstr "Udviklertilstand skal være gemt."

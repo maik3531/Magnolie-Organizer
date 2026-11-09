@@ -191,6 +191,13 @@ def test_native_enable_permission_catalog_sync_and_repeat_preserve_pairing_and_p
         assert session.snapshot()['albums'][0]['album_id']==ALBUM
         target=Path(session.snapshot()['destination'])
         fixture=(service,peer,channel,connection,target)
+        # Match the real saved-book prerequisite used by the receiving fixture.
+        # A second pass can create a version backup; control/data ACKs alone
+        # must not authorize that without the actual saved local book.
+        from magnolie_media_retention import NativeMediaRetention
+        book=tmp_path/'daten.json'
+        book.write_text('{"einstellungen":{"papierkorb":{"an":true,"tage":0}}}',encoding='utf-8');book.chmod(0o600)
+        with NativeMediaRetention(service.store.root) as retention:assert retention.adopt_existing_saved()
         full=manifest(fixture)
     try:
         for cycle in range(2):

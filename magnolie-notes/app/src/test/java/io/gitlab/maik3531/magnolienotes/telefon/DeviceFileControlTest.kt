@@ -31,6 +31,36 @@ class DeviceFileControlTest {
     }
     private fun vector() = Json.parseToJsonElement(File("../contracts/file-transfer-control-v1-vectors.json").readText()).jsonObject
 
+    @Test fun ephemeralOperationWitnessDoesNotChangePersistentWireBindingOrRenewAcrossRemoteSessions() {
+        val (pc, phone) = pair(); val destination = "c".repeat(64)
+        try {
+            assertNull(phone.session.operationBinding(destination))
+            handshake(pc, phone)
+            val original = phone.session.operationBinding(destination)!!
+            assertEquals(phone.session.binding(destination), original.binding)
+            assertEquals(pc.session.binding(destination, true), original.binding)
+            handshake(pc, phone)
+            assertEquals(original, phone.session.operationBinding(destination))
+            pc.session.close(); pc.session = pc.newSession(); handshake(pc, phone)
+            val renewed = phone.session.operationBinding(destination)!!
+            assertEquals(original.binding, renewed.binding); assertNotEquals(original.session, renewed.session)
+            assertEquals(original.binding, phone.session.binding(destination))
+        } finally { pc.session.close(); phone.session.close() }
+    }
+
+    @Test fun exhaustedEphemeralSessionTransitionsHoldRatherThanWrapOrRenewAnOperation() {
+        val (pc, phone) = pair()
+        try {
+            handshake(pc, phone)
+            NativeFileControlSession::class.java.getDeclaredField("operationRevision").apply { isAccessible = true }
+                .setLong(phone.session, DeviceFileControl.MAX_REVISION)
+            val packet = pc.session.packet().copy(sessionEpoch = "a".repeat(64), sequence = 1)
+            assertThrows(PhotoFolderScopeError::class.java) { phone.session.observeRemote(packet, phone.peer) }
+            assertNull(phone.session.operationBinding("c".repeat(64)))
+            assertNull(phone.session.binding("c".repeat(64)))
+        } finally { pc.session.close(); phone.session.close() }
+    }
+
     private fun incomingPair(ready: () -> Boolean = { true }, clock: () -> Long = { DeviceFileControl.monotonicMs() },
         pairingEpoch: String? = "f".repeat(64)): Pair<Side, Side> {
         val (pc, phone) = pair()

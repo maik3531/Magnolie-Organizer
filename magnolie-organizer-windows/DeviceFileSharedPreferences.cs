@@ -121,7 +121,7 @@ internal sealed partial class TelefonStore
             foreach (var (field, _) in body["settings"]!.AsObject())
                 versions[field] = MediaSharedFieldVersion(key, body, field);
             if (MediaSharedBinding(peerId, expectedPublic).Key != key) throw DeviceFileControl.Error("media_shared_peer_changed");
-            return new JsonObject { ["values"] = MediaSyncSettings.Effective(body), ["versions"] = versions };
+            return new JsonObject { ["values"] = MediaSyncSettings.Configured(body), ["versions"] = versions };
         }
     }
 

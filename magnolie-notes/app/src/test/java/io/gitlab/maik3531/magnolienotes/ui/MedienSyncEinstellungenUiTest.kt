@@ -38,6 +38,8 @@ class MedienSyncEinstellungenUiTest {
     private val changes = mutableListOf<Triple<String, JsonElement, String>>()
     private var permissions = 0
     private var runs = 0
+    private val receiving = mutableListOf<GalleryMediaType>()
+    private val archiving = mutableListOf<GalleryMediaType>()
     private val clock = BroadcastFrameClock()
     private val scope = CoroutineScope(Dispatchers.Main + clock + Job())
     private val recomposer = Recomposer(scope.coroutineContext)
@@ -52,7 +54,7 @@ class MedienSyncEinstellungenUiTest {
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
         view.setContent { MagnolieThema { MedienSyncEinstellungen(state.value, { field, value, version ->
             changes += Triple(field, value, version)
-        }, { permissions++ }, { runs++ }) } }
+        }, { permissions++ }, { runs++ }, { receiving += it }, { archiving += it }) } }
         controller!!.start().resume().visible().windowFocusChanged(true); frames()
     }
     private fun frames() {
@@ -90,6 +92,8 @@ class MedienSyncEinstellungenUiTest {
         val master = checkbox(R.string.medien_sync_aktivieren)
         assertEquals(ToggleableState.Off, master.config[SemanticsProperties.ToggleableState])
         assertEquals(ToggleableState.Off, checkbox(R.string.personal_sync_skip_deletions).config[SemanticsProperties.ToggleableState])
+        assertEquals(ToggleableState.Off, checkbox(R.string.medien_sync_nur_fotos).config[SemanticsProperties.ToggleableState])
+        assertNotNull(checkbox(R.string.medien_sync_nur_fotos).config.getOrNull(SemanticsProperties.Disabled))
         assertNotNull(checkbox(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
         assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
         click(master)
@@ -110,21 +114,36 @@ class MedienSyncEinstellungenUiTest {
         assertNotNull(nodes().single { text(it) == syncLabel }.config.getOrNull(SemanticsProperties.Disabled))
     }
 
-    @Test fun importScopeLocksDirectionAndReturningRestoresTheNativePcToPhoneChoice() {
+    @Test fun importScopeKeepsIndependentDirectionEditableWithoutEnablingGalleryReceive() {
         val pc = "11111111-1111-4111-8111-111111111111"
         val phone = "22222222-2222-4222-8222-222222222222"
         var body = MediaSyncSettings.change(MediaSyncSettings.create(pc), pc, phone, "enabled", JsonPrimitive(true))
         body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive("pc_to_phone"))
         body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("import_only"))
-        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.effective(body))
+        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.configured(body), mediaPreferencesReady = true)
         launch(); open()
         assertTrue(nodes().any { text(it) == label(R.string.medien_sync_scope_import) })
-        assertNotNull(nodes().single { text(it) == label(R.string.medien_sync_direction_import) }.config.getOrNull(SemanticsProperties.Disabled))
+        val direction = nodes().single { text(it) == label(R.string.medien_sync_direction_export) }
+        assertNull(direction.config.getOrNull(SemanticsProperties.Disabled))
         assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        click(direction)
+        val choice = android.view.inspector.WindowInspector.getGlobalWindowViews().flatMap { nodes(it) }
+            .single { text(it) == label(R.string.personal_note_two_way) }
+        click(choice)
+        assertEquals(Triple("direction", JsonPrimitive("two_way"), versions.getValue("direction")), changes.single())
+        body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive("two_way"))
+        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.configured(body)); frames()
+        assertFalse(MediaSyncSettings.transferRequestedFor(body, "images", true))
+        for (kind in listOf(R.string.medien_sync_fotos, R.string.medien_sync_videos)) {
+            assertNotNull(nodes().single { text(it) == label(kind) + " · " + label(R.string.medien_empfang_erlauben) }
+                .config.getOrNull(SemanticsProperties.Disabled))
+        }
+        val directionRegister = body["settings"]!!.jsonObject["direction"]
         body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("phone_inventory"))
-        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.effective(body)); frames()
-        assertNull(nodes().single { text(it) == label(R.string.medien_sync_direction_export) }.config.getOrNull(SemanticsProperties.Disabled))
-        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.configured(body)); frames()
+        assertNull(nodes().single { text(it) == label(R.string.personal_note_two_way) }.config.getOrNull(SemanticsProperties.Disabled))
+        assertEquals(directionRegister, body["settings"]!!.jsonObject["direction"])
+        assertEquals(1, changes.size); assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
     }
 
     @Test fun unsupportedOrMissingNativeValuesNeverExposeMediaControls() {
@@ -133,6 +152,69 @@ class MedienSyncEinstellungenUiTest {
         state.value = state.value.copy(mediaPreferencesSupported = true, mediaPreferencesValues = null); frames()
         assertFalse(nodes().any { text(it).contains(label(R.string.medien_sync_titel)) })
         assertTrue(changes.isEmpty()); assertEquals(0, permissions)
+    }
+
+    @Test fun photosOnlyForwardsItsIndependentVersionWithoutPermissionOrTransferAndWaitsForNativeState() {
+        state.value = state.value.copy(mediaPreferencesValues = JsonObject(values + ("enabled" to JsonPrimitive(true))), mediaPreferencesReady = true)
+        launch(); open()
+        fun filter() = nodes().singleOrNull { text(it) == "Nur Fotos" && it.config.getOrNull(SemanticsProperties.ToggleableState) != null }
+        assertNotNull("The native camera-photo metadata filter has no Compose control", filter())
+        val input = filter()!!
+        assertEquals(ToggleableState.Off, input.config[SemanticsProperties.ToggleableState])
+        assertNull(input.config.getOrNull(SemanticsProperties.Disabled))
+        val labels = nodes().filter { it.config.getOrNull(SemanticsProperties.ToggleableState) != null }.map(::text)
+        assertTrue(labels.indexOf(label(R.string.medien_sync_videos)) < labels.indexOf("Nur Fotos"))
+        assertTrue(labels.indexOf("Nur Fotos") < labels.indexOf(label(R.string.personal_sync_skip_deletions)))
+        click(input)
+        assertEquals(Triple("photos_only", JsonPrimitive(true), versions.getValue("photos_only")), changes.single())
+        assertEquals(ToggleableState.Off, filter()!!.config[SemanticsProperties.ToggleableState])
+        assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        state.value = state.value.copy(mediaPreferencesValues = JsonObject(state.value.mediaPreferencesValues!! + ("photos_only" to JsonPrimitive(true)))); frames()
+        assertEquals(ToggleableState.On, filter()!!.config[SemanticsProperties.ToggleableState])
+        state.value = state.value.copy(mediaPreferencesVersions = versions - "photos_only"); frames()
+        assertNotNull(filter()!!.config.getOrNull(SemanticsProperties.Disabled))
+        assertEquals(1, changes.size); assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+    }
+
+    @Test fun pcRecoveryCopyForwardsOnlyExplicitTypedSelectionWithoutChangingSettingsOrRunningSync() {
+        val active = JsonObject(values + mapOf("enabled" to JsonPrimitive(true), "photos_enabled" to JsonPrimitive(true),
+            "videos_enabled" to JsonPrimitive(true), "direction" to JsonPrimitive("two_way")))
+        state.value = state.value.copy(mediaPreferencesValues = active)
+        launch(); open()
+        fun button(kind: Int) = nodes().single { text(it) == label(kind) + " · " + label(R.string.medien_pc_archiv_kopie) }
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        assertTrue(archiving.isEmpty())
+        state.value = state.value.copy(mediaPreferencesReady = true); frames()
+        click(button(R.string.medien_sync_fotos)); click(button(R.string.medien_sync_videos))
+        assertEquals(listOf(GalleryMediaType.IMAGES, GalleryMediaType.VIDEO), archiving)
+        assertTrue(receiving.isEmpty()); assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        state.value = state.value.copy(mediaManualBusy = true); frames()
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        state.value = state.value.copy(mediaManualBusy = false,
+            mediaPreferencesValues = JsonObject(active + ("collection_mode" to JsonPrimitive("import_only")))); frames()
+        assertNotNull(button(R.string.medien_sync_videos).config.getOrNull(SemanticsProperties.Disabled))
+        assertEquals(2, archiving.size)
+    }
+
+    @Test fun galleryReceptionIsExplicitTypedAndCannotBypassClosedReadyOrImportOnly() {
+        val active = JsonObject(values + mapOf("enabled" to JsonPrimitive(true), "photos_enabled" to JsonPrimitive(true),
+            "videos_enabled" to JsonPrimitive(true), "direction" to JsonPrimitive("two_way")))
+        state.value = state.value.copy(mediaPreferencesValues = active)
+        launch(); open()
+        fun button(kind: Int) = nodes().single { text(it) == label(kind) + " · " + label(R.string.medien_empfang_erlauben) }
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        assertTrue(receiving.isEmpty())
+        state.value = state.value.copy(mediaPreferencesReady = true); frames()
+        click(button(R.string.medien_sync_fotos)); click(button(R.string.medien_sync_videos))
+        assertEquals(listOf(GalleryMediaType.IMAGES, GalleryMediaType.VIDEO), receiving)
+        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        state.value = state.value.copy(mediaPreferencesValues = JsonObject(active + ("collection_mode" to JsonPrimitive("import_only")))); frames()
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        assertNotNull(button(R.string.medien_sync_videos).config.getOrNull(SemanticsProperties.Disabled))
+        state.value = state.value.copy(mediaPreferencesValues = JsonObject(active + ("direction" to JsonPrimitive("phone_to_pc")))); frames()
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        state.value = state.value.copy(mediaPreferencesValues = active, mediaManualBusy = true); frames()
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
     }
 
     @After fun close() { controller?.pause()?.stop()?.destroy(); recomposer.cancel(); scope.cancel() }

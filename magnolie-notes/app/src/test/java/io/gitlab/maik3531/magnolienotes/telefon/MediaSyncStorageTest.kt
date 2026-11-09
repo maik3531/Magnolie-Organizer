@@ -137,6 +137,28 @@ class MediaSyncStorageTest {
         assertTrue(queue.due(expected.peerActor, TelefonTransportArt.WIFI).isEmpty())
     }
 
+    @Test fun configuredViewPreservesIndependentDirectionAndModeWithoutGrantingImportOnlyExport() {
+        val storage = store()
+        fun edit(field: String, value: JsonElement) = storage.change(expected, field, value, storage.fieldVersion(expected, field))
+        edit("enabled", JsonPrimitive(true)); edit("direction", JsonPrimitive("pc_to_phone"))
+        edit("auto_mode", JsonPrimitive("wifi")); val body = edit("collection_mode", JsonPrimitive("import_only"))
+        val before = blob(); val directionVersion = storage.fieldVersion(expected, "direction")
+        val view = storage.view(expected)
+        assertEquals(JsonPrimitive("pc_to_phone"), view.first["direction"])
+        assertEquals(JsonPrimitive("wifi"), view.first["auto_mode"])
+        assertEquals(directionVersion, view.second["direction"]); assertEquals(body, view.third)
+        assertArrayEquals(before, blob())
+        assertFalse(MediaSyncSettings.transferRequestedFor(body, "images", true))
+        assertTrue(MediaSyncSettings.transferRequestedFor(body, "images", false))
+        val changed = edit("direction", JsonPrimitive("two_way"))
+        assertEquals(JsonPrimitive("two_way"), storage.view(expected).first["direction"])
+        assertFalse(MediaSyncSettings.transferRequestedFor(changed, "images", true))
+        val restored = edit("collection_mode", JsonPrimitive("phone_inventory"))
+        assertEquals(changed["settings"]!!.jsonObject["direction"], restored["settings"]!!.jsonObject["direction"])
+        assertTrue(MediaSyncSettings.transferRequestedFor(restored, "images", true))
+        assertTrue(queues.isEmpty())
+    }
+
     @Test fun incomingIntentRequiresExactMatchedTwoWayMasterAndIndependentMediaChoiceWithoutCreatingPermissions() {
         val queue = TelefonQueue(context, codec).also { queues += it }; val storage = store()
         fun tables(): Set<String> = helper.readableDatabase.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null).use { cursor ->

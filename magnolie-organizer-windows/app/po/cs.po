@@ -8638,3 +8638,53 @@ msgstr "Celá sbírka"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone → PC"
 msgstr "Telefon → PC"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Pouze vizuální test; připojení ani oprávnění se nemění."
+
+msgid "Tray preview"
+msgstr "Náhled ikony v oznamovací oblasti"
+
+msgid "Seasonal background"
+msgstr "Sezónní pozadí"
+
+msgid "Holiday watermark"
+msgstr "Sváteční vodoznak"
+
+msgid "Both connected"
+msgstr "Obě připojení aktivní"
+
+msgid "Camera"
+msgstr "Fotoaparát"
+
+msgid "Snowflakes"
+msgstr "Sněhové vločky"
+
+msgid "Stars"
+msgstr "Hvězdy"
+
+msgid "Boots"
+msgstr "Boty"
+
+msgid "Santa Claus"
+msgstr "Santa Claus"
+
+msgid "Rocket"
+msgstr "Raketa"
+
+msgid "Champagne glass"
+msgstr "Sklenka šampaňského"
+
+msgid "Easter eggs"
+msgstr "Velikonoční vejce"
+
+msgid "Reset preview"
+msgstr "Obnovit náhled"
+
+msgid "OS tray icon (60 s)"
+msgstr "Ikona v oznamovací oblasti systému (60 s)"
+
+msgid "Saved developer mode is required."
+msgstr "Režim pro vývojáře musí být uložen."

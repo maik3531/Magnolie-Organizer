@@ -7,6 +7,7 @@ internal sealed class KdeConnectSms : IDisposable
 {
     private readonly Lazy<KdeConnectDirectBackend> backend;
     private KdeConnectDirectBackend native => backend.Value;
+    internal bool HasLiveConnection => backend.IsValueCreated && backend.Value.HasLiveConnection;
     private readonly SmsSubmissionJournal submissions;
 
     internal KdeConnectSms(WindowsPaths paths)

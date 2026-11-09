@@ -81,6 +81,7 @@ internal sealed partial class TelefonCoordinator
                 timeCommits[token] = (peer.Id, id, completion);
             }
         }
+        using var syncActivity = TraySyncActivity.Enter();
         if (kind == TimeSyncContract.Request)
         {
             await emit("App.personalTimeRequest", new { device_id = peer.Id, trigger = body["trigger"]!.GetValue<string>() });

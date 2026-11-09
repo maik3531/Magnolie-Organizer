@@ -8686,3 +8686,53 @@ msgstr "Уся колекція"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone → PC"
 msgstr "Телефон → ПК"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Лише перевірка оформлення; підключення та дозволи не змінюються."
+
+msgid "Tray preview"
+msgstr "Попередній перегляд значка в треї"
+
+msgid "Seasonal background"
+msgstr "Сезонне тло"
+
+msgid "Holiday watermark"
+msgstr "Святковий водяний знак"
+
+msgid "Both connected"
+msgstr "Обидва підключені"
+
+msgid "Camera"
+msgstr "Камера"
+
+msgid "Snowflakes"
+msgstr "Сніжинки"
+
+msgid "Stars"
+msgstr "Зорі"
+
+msgid "Boots"
+msgstr "Чоботи"
+
+msgid "Santa Claus"
+msgstr "Санта-Клаус"
+
+msgid "Rocket"
+msgstr "Ракета"
+
+msgid "Champagne glass"
+msgstr "Келих шампанського"
+
+msgid "Easter eggs"
+msgstr "Великодні яйця"
+
+msgid "Reset preview"
+msgstr "Скинути попередній перегляд"
+
+msgid "OS tray icon (60 s)"
+msgstr "Значок у системному треї (60 с)"
+
+msgid "Saved developer mode is required."
+msgstr "Режим розробника має бути збережено."

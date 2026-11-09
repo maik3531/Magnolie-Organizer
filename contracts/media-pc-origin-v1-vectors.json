@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "base_vector": "media-offer-v1-vectors.json",
+  "collection_mode": "entire_collection",
+  "pc_origins": {
+    "11111111111111111111111111111111": {
+      "format": 1,
+      "origin_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "previous_publication_sha256": null
+    }
+  },
+  "canonical_bytes": 1717,
+  "canonical_sha256": "6ca0b2dc7334e5518f1287eec1a72fbe9fb6b24106ad91b2fd99fe6c3b32b8bc"
+}

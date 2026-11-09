@@ -8950,3 +8950,53 @@ msgstr[1] ""
 
 msgid "＋ Add appointment"
 msgstr ""
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr ""
+
+msgid "Tray preview"
+msgstr ""
+
+msgid "Seasonal background"
+msgstr ""
+
+msgid "Holiday watermark"
+msgstr ""
+
+msgid "Both connected"
+msgstr ""
+
+msgid "Camera"
+msgstr ""
+
+msgid "Snowflakes"
+msgstr ""
+
+msgid "Stars"
+msgstr ""
+
+msgid "Boots"
+msgstr ""
+
+msgid "Santa Claus"
+msgstr ""
+
+msgid "Rocket"
+msgstr ""
+
+msgid "Champagne glass"
+msgstr ""
+
+msgid "Easter eggs"
+msgstr ""
+
+msgid "Reset preview"
+msgstr ""
+
+msgid "OS tray icon (60 s)"
+msgstr ""
+
+msgid "Saved developer mode is required."
+msgstr ""

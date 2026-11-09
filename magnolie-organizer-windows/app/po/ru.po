@@ -8711,3 +8711,53 @@ msgstr "Вся коллекция"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone → PC"
 msgstr "Телефон → ПК"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Только проверка оформления; подключения и разрешения не изменяются."
+
+msgid "Tray preview"
+msgstr "Предпросмотр значка в трее"
+
+msgid "Seasonal background"
+msgstr "Сезонный фон"
+
+msgid "Holiday watermark"
+msgstr "Праздничный водяной знак"
+
+msgid "Both connected"
+msgstr "Оба подключены"
+
+msgid "Camera"
+msgstr "Камера"
+
+msgid "Snowflakes"
+msgstr "Снежинки"
+
+msgid "Stars"
+msgstr "Звёзды"
+
+msgid "Boots"
+msgstr "Сапоги"
+
+msgid "Santa Claus"
+msgstr "Санта-Клаус"
+
+msgid "Rocket"
+msgstr "Ракета"
+
+msgid "Champagne glass"
+msgstr "Бокал шампанского"
+
+msgid "Easter eggs"
+msgstr "Пасхальные яйца"
+
+msgid "Reset preview"
+msgstr "Сбросить предпросмотр"
+
+msgid "OS tray icon (60 s)"
+msgstr "Значок в системном трее (60 с)"
+
+msgid "Saved developer mode is required."
+msgstr "Режим разработчика должен быть сохранён."

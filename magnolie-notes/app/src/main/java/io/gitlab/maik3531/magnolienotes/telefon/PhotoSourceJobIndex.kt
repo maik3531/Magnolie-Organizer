@@ -676,6 +676,180 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         }
     }
 
+    internal fun incomingPublications(): List<GalleryIncomingPublication> = gated {
+        val ids = mutableListOf<String>()
+        db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryIncomingPublication.PREFIX + "%"),
+            null, null, "name", (GalleryIncomingPublication.MAX_RECORDS + 1).toString()).use { cursor ->
+            while (cursor.moveToNext()) ids += cursor.getString(0).removePrefix(GalleryIncomingPublication.PREFIX)
+        }
+        if (ids.size > GalleryIncomingPublication.MAX_RECORDS) fail("gallery_incoming_publication_capacity")
+        ids.map { incomingPublication(it) ?: fail("gallery_incoming_original_changed") }
+    }
+
+    internal fun pcReplacementPlans(): List<GalleryPcReplacementPlan> = gated {
+        val ids = mutableListOf<String>()
+        db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryPcReplacementPlan.PREFIX + "%"),
+            null, null, "name", (GalleryPcReplacementPlan.MAX_RECORDS + 1).toString()).use { cursor ->
+            while (cursor.moveToNext()) ids += cursor.getString(0).removePrefix(GalleryPcReplacementPlan.PREFIX)
+        }
+        if (ids.size > GalleryPcReplacementPlan.MAX_RECORDS) fail("gallery_pc_replacement_plan_capacity")
+        ids.map { id ->
+            val name = GalleryPcReplacementPlan.PREFIX + id
+            val cipher = meta(name) ?: fail("gallery_pc_replacement_plan_missing")
+            GalleryPcReplacementPlan.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name))).also {
+                if (it.id != id) fail("gallery_pc_replacement_plan_changed")
+            }
+        }
+    }
+
+    /** Proposals confer NO new chunk or row rights. Transport/grant checks stay
+     * OUTSIDE the protected index lock. A raced revocation retains a held plan,
+     * never a partially written original or resumable grant. */
+    internal fun proposePcReplacement(grant: NativeGalleryPcWriteGrant, source: TelefonSecureChannel,
+        offer: JsonObject): GalleryPcReplacementPlan {
+        val admission = grant.request.admission
+        admission.requireIndex(this)
+        val plan = admission.proposeSuccessor(grant, source, offer)
+        gated {
+            writableMembership(); admission.archiveBook.requireCurrent()
+            if (incomingPublication(plan.predecessor.id)?.body != plan.predecessor.body) fail("gallery_pc_replacement_original_changed")
+            val previous = pcReplacementPlans()
+            if (previous.size >= GalleryPcReplacementPlan.MAX_RECORDS) fail("gallery_pc_replacement_plan_capacity")
+            if (previous.any { it.predecessor.samePcSource(plan.predecessor) }) fail("gallery_pc_replacement_original_operation_required")
+            val name = GalleryPcReplacementPlan.PREFIX + plan.id
+            val cipher = protection.seal(frame(plan.body), "photo-source-jobs-v1/" + name)
+            transaction {
+                if (meta(name) != null) fail("gallery_pc_replacement_plan_changed")
+                admission.archiveBook.requireCurrent(); putMeta(name, cipher); admission.archiveBook.requireCurrent()
+            }
+            boundary("gallery-pc-replacement-proposed")
+            if (pcReplacementPlans().none { it.body == plan.body }) fail("gallery_pc_replacement_plan_changed")
+        }
+        admission.requireCurrent(); grant.requireCurrent()
+        return plan
+    }
+
+    internal fun pcBeforeWrite(id: String): GalleryPcPreWriteRecord? = gated {
+        if (!Regex("[0-9a-f]{32}").matches(id)) fail("gallery_pc_before_write_changed")
+        val name = GalleryPcPreWriteRecord.PREFIX + id
+        meta(name)?.let { cipher ->
+            GalleryPcPreWriteRecord.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name))).also { record ->
+                if (record.id != id || pcStage(id)?.body != record.stage.body) fail("gallery_pc_before_write_changed")
+            }
+        }
+    }
+    internal fun recordPcBeforeWrite(rows: NativeGalleryIncomingRows, stage: NativeGalleryPcStage,
+        grant: NativeGalleryPcWriteGrant, record: GalleryPcPreWriteRecord) {
+        grant.requireUnused(); grant.request.admission.requireIndex(this); stage.requireCurrent()
+        rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+        gated {
+            writableMembership(); rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+            if (record.stage.body != stage.record.body || pcStage(record.id)?.body != record.stage.body || pcBeforeWrite(record.id) != null)
+                fail("gallery_pc_before_write_original_operation_required")
+            val count = db.rawQuery("SELECT COUNT(*) FROM source_meta WHERE name LIKE ?", arrayOf(GalleryPcPreWriteRecord.PREFIX + "%"))
+                .use { it.moveToFirst(); it.getLong(0) }
+            if (count >= GalleryPcPreWriteRecord.MAX_RECORDS) fail("gallery_pc_before_write_capacity")
+            val name = GalleryPcPreWriteRecord.PREFIX + record.id
+            val cipher = protection.seal(frame(record.body), "photo-source-jobs-v1/" + name)
+            transaction {
+                rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+                if (meta(name) != null) fail("gallery_pc_before_write_original_operation_required")
+                putMeta(name, cipher); rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+            }
+            boundary("gallery-pc-before-write-recorded")
+            if (pcBeforeWrite(record.id)?.body != record.body) fail("gallery_pc_before_write_readback_failed")
+        }
+        grant.requireUnused(); stage.requireCurrent(); rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+    }
+    internal fun startPcWrite(target: NativeGalleryPcWriteTarget, expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord) {
+        target.requireStartOwner(this, expected, next)
+        gated {
+            writableMembership(); target.requireLocalStartOwner(this, expected, next)
+            if (expected.state != "before_write" || next.state != "write_started" ||
+                expected.body.filterKeys { it != "state" } != next.body.filterKeys { it != "state" } ||
+                pcBeforeWrite(expected.id)?.body != expected.body) fail("gallery_pc_write_start_conflict")
+            val name = GalleryPcPreWriteRecord.PREFIX + expected.id
+            val cipher = protection.seal(frame(next.body), "photo-source-jobs-v1/" + name)
+            transaction {
+                target.requireLocalStartOwner(this, expected, next)
+                if (pcBeforeWrite(expected.id)?.body != expected.body) fail("gallery_pc_write_start_conflict")
+                putMeta(name, cipher); target.requireLocalStartOwner(this, expected, next)
+            }
+            boundary("gallery-pc-write-started")
+            if (pcBeforeWrite(expected.id)?.body != next.body) fail("gallery_pc_write_start_readback_failed")
+        }
+        target.requireStartOwner(this, expected, next)
+    }
+
+    internal fun pcStages(): List<GalleryPcStageRecord> = gated {
+        val names = mutableListOf<String>()
+        db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryPcStageRecord.PREFIX + "%"), null, null, "name",
+            (GalleryPcStageRecord.MAX_RECORDS + 1).toString()).use { cursor -> while (cursor.moveToNext()) names += cursor.getString(0) }
+        if (names.size > GalleryPcStageRecord.MAX_RECORDS) fail("gallery_pc_stage_capacity")
+        names.map { name -> pcStage(name.removePrefix(GalleryPcStageRecord.PREFIX)) ?: fail("gallery_pc_stage_missing") }
+            .also { values -> if (values.sumOf { it.bytes } > DeviceFileManifest.MAX_TOTAL_BYTES) fail("gallery_pc_stage_capacity") }
+    }
+    internal fun pcStage(id: String): GalleryPcStageRecord? = gated {
+        if (!Regex("[0-9a-f]{32}").matches(id)) fail("gallery_pc_stage_changed")
+        val name = GalleryPcStageRecord.PREFIX + id
+        meta(name)?.let { cipher ->
+            val value = GalleryPcStageRecord.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name)))
+            val planName = GalleryPcReplacementPlan.PREFIX + id
+            val planCipher = meta(planName) ?: fail("gallery_pc_stage_changed")
+            val plan = GalleryPcReplacementPlan.parse(parse(protection.open(planCipher, "photo-source-jobs-v1/" + planName)))
+            if (value.id != id || value.plan.body != plan.body) fail("gallery_pc_stage_changed")
+            value
+        }
+    }
+    internal fun requirePcStageCapacity(plan: GalleryPcReplacementPlan) = gated {
+        val existing = pcStages()
+        if (existing.any { it.id == plan.id }) fail("gallery_pc_stage_original_operation_required")
+        if (existing.size >= GalleryPcStageRecord.MAX_RECORDS || existing.sumOf { it.bytes } >
+            DeviceFileManifest.MAX_TOTAL_BYTES - GalleryPcStageRecord.media(plan).manifest.totalBytes) fail("gallery_pc_stage_capacity")
+    }
+    internal fun requirePcStageAdmission(grant: NativeGalleryPcWriteGrant, source: TelefonSecureChannel, plan: GalleryPcReplacementPlan) {
+        grant.requireUnused(); val admission = grant.request.admission; admission.requireIndex(this)
+        val live = admission.proposeSuccessor(grant, source, plan.body.getValue("offer").jsonObject)
+        if (live.body.filterKeys { it != "id" } != plan.body.filterKeys { it != "id" } || pcReplacementPlans().none { it.body == plan.body })
+            fail("gallery_pc_stage_original_operation_required")
+        grant.requireUnused()
+    }
+    internal fun pcStageProtection(grant: NativeGalleryPcWriteGrant): DeviceTransferProtection {
+        grant.requireCurrent(); grant.request.admission.requireIndex(this); return protection
+    }
+    internal fun reservePcStage(record: GalleryPcStageRecord, owner: NativeGalleryIncomingOwner,
+        grant: NativeGalleryPcWriteGrant, source: TelefonSecureChannel) {
+        requirePcStageAdmission(grant, source, record.plan); owner.requireChannel(source)
+        gated {
+            writableMembership(); owner.requireLocal(); grant.request.admission.archiveBook.requireCurrent()
+            requirePcStageCapacity(record.plan)
+            if (record.sealed || record.acceptance.body["binding"] != owner.binding.snapshot() ||
+                record.acceptance.body.string("scope_sha256") != owner.scope.fingerprint(owner.manifest)) fail("gallery_pc_stage_changed")
+            val name = GalleryPcStageRecord.PREFIX + record.id
+            val cipher = protection.seal(frame(record.body), "photo-source-jobs-v1/" + name)
+            transaction {
+                if (meta(name) != null) fail("gallery_pc_stage_original_operation_required")
+                owner.requireLocal(); putMeta(name, cipher); owner.requireLocal()
+            }
+            boundary("gallery-pc-stage-reserved")
+        }
+        grant.requireCurrent(); owner.requireChannel(source)
+    }
+    internal fun sealPcStage(expected: GalleryPcStageRecord, next: GalleryPcStageRecord, owner: NativeGalleryIncomingOwner,
+        grant: NativeGalleryPcWriteGrant, source: TelefonSecureChannel) {
+        requirePcStageAdmission(grant, source, expected.plan); owner.requireChannel(source)
+        gated {
+            writableMembership(); owner.requireLocal()
+            if (expected.sealed || !next.sealed || expected.body.filterKeys { it !in setOf("state", "seal", "observation") } !=
+                next.body.filterKeys { it !in setOf("state", "seal", "observation") } || pcStages().none { it.body == expected.body }) fail("gallery_pc_stage_changed")
+            val name = GalleryPcStageRecord.PREFIX + expected.id
+            val cipher = protection.seal(frame(next.body), "photo-source-jobs-v1/" + name)
+            transaction { owner.requireLocal(); putMeta(name, cipher); owner.requireLocal() }
+            boundary("gallery-pc-stage-sealed")
+        }
+        grant.requireCurrent(); owner.requireChannel(source)
+    }
+
     internal fun incomingAcceptance(id: String): GalleryIncomingAcceptance? = gated {
         if (!DeviceFileControl.hash(id)) fail("gallery_incoming_acceptance_invalid")
         val name = GalleryIncomingAcceptance.PREFIX + id
@@ -796,8 +970,18 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
                 if (name != GalleryIncomingPublication.PREFIX + historical.id) fail("gallery_incoming_publication_changed")
                 if (historical.id != selected.id && historical.sameOriginalTransferFile(selected))
                     fail("gallery_incoming_original_transfer_held")
+                // New sender-selected transfer IDs cannot fork an already
+                // reserved/published opaque PC source into another gallery row.
+                // A predecessor fingerprint is correlation only, never write,
+                // replacement or deletion consent. Until the native replacement
+                // owner exists, even the exact published predecessor stays HOLD.
+                if (historical.id != selected.id && historical.samePcSource(selected))
+                    fail(if (historical.state == "published" && selected.pcOrigin?.previousPublication == historical.fingerprint)
+                        "gallery_incoming_pc_version_replacement_required" else "gallery_incoming_pc_origin_held")
             }
         }
+        if (selected.pcOrigin?.previousPublication != null)
+            fail("gallery_incoming_pc_predecessor_unavailable")
         current()
     }
 

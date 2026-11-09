@@ -26,15 +26,22 @@ class NativeSourceExchangeObservation:
 
 
 def _validate_exchange_body(body,key,scope,job,nonce,ready_version,*,allow_readback=False):
+    media=type(body) is dict and body.get('format')==4
     readback=allow_readback and type(body) is dict and body.get('format')==2
     verification=allow_readback and type(body) is dict and body.get('format')==3
-    extra={'purpose','peer_readback'} if verification else {'peer_readback'} if readback else set()
+    extra={'purpose','peer_readback'} if verification else {'peer_readback'} if readback or media else set()
     if (type(body) is not dict or set(body)!={'format','database_key','scope','job_id','nonce','ready_version',
             'phase','offer','permission_epoch','acceptance','sent_bits','pending_chunk','peer_saved'} | extra
-            or type(body['format']) is not int or body['format']!=(3 if verification else 2 if readback else 1) or body['database_key']!=list(key)
+            or type(body['format']) is not int or body['format']!=(4 if media else 3 if verification else 2 if readback else 1) or body['database_key']!=list(key)
             or body['scope']!=scope or body['job_id']!=job or body['nonce']!=nonce or body['ready_version']!=ready_version
-            or (body['phase'] not in ('offer_planned','offer_sent','peer_readback') if verification else
+            or (body['phase'] not in _NativeSourceExchange.PHASES|{'peer_readback'} if media else
+                body['phase'] not in ('offer_planned','offer_sent','peer_readback') if verification else
                 body['phase']!='peer_readback' if readback else body['phase'] not in _NativeSourceExchange.PHASES)):
+        raise TransferError('media_source_exchange_invalid_record')
+    if media and (type(body['offer']) is not dict or body['offer'].get('kind')!='file_transfer.media_offer' or
+            (type(body['peer_readback']) is not dict or type(body['peer_saved']) is not dict or type(body['acceptance']) is not dict or
+             body['pending_chunk'] is not None or type(body['sent_bits']) is not int or body['sent_bits']<1
+             if body['phase']=='peer_readback' else body['peer_readback'] is not None)):
         raise TransferError('media_source_exchange_invalid_record')
     if (readback or verification) and (body['acceptance'] is not None or type(body['sent_bits']) is not int or body['sent_bits']!=0
             or body['pending_chunk'] is not None or body['peer_saved'] is not None
@@ -100,10 +107,12 @@ class _NativeSourceExchange:
             if expected is None:
                 body.update(format=1,database_key=list(key),scope=self._jobs._scope,job_id=self._sender._job,
                     nonce=self._sender._cache._job_nonce,ready_version=self._sender._cache._job_version)
+                if body['offer'].get('kind')=='file_transfer.media_offer':body.update(format=4,peer_readback=None)
             else:
                 for name in ('format','database_key','scope','job_id','nonce','ready_version','offer','permission_epoch'):
                     if body.get(name)!=before.body[name]:raise TransferError('media_source_exchange_original_attempt_required')
                 allowed={'offer_planned':{'offer_sent'},'offer_sent':{'accepted'},'accepted':{'accepted','peer_saved'},'peer_saved':set()}
+                if before.body['format']==4:allowed['peer_saved']={'peer_readback'};allowed['peer_readback']=set()
                 if body.get('phase') not in allowed[before.body['phase']]:raise TransferError('media_source_exchange_invalid_transition')
                 if before.body['acceptance'] is not None and body.get('acceptance')!=before.body['acceptance']:
                     raise TransferError('media_source_exchange_original_attempt_required')

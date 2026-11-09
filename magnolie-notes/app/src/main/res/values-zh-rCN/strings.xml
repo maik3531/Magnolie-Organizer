@@ -410,4 +410,6 @@
     <string name="medien_sync_modus">同步</string>
     <string name="medien_sync_scope_import">仅从手机导入到电脑</string>
     <string name="medien_sync_direction_export">电脑 → 手机</string>
+    <string name="medien_empfang_erlauben">允许接收到图库…</string>
+    <string name="medien_sync_nur_fotos">仅照片</string>
 </resources>

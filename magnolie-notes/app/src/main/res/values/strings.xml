@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="medien_pc_archiv_titel">Choose a received PC file for a recovery copy</string>
+    <string name="medien_pc_archiv_kopie">Create recovery copy</string>
+    <string name="medien_pc_archiv_hinweis">Copies a selected received PC file into local encrypted recovery storage. Originals stay unchanged. Requires a saved, unlocked book and enabled trash protection. This does not replace or delete media.</string>
+    <string name="medien_pc_archiv_fertig">Recovery copy verified. The original is unchanged.</string>
+    <string name="medien_pc_archiv_leer">No published PC files are available for this connected device and media type.</string>
     <string name="telefon_erweitert_titel">Advanced features</string>
     <string name="media_recovery_title">Photo and video recovery</string>
     <string name="media_recovery_hint">Local encrypted recovery copies, also available without the former connection. The recovery copy and existing media are kept when restoring.</string>
@@ -525,4 +530,6 @@
     <string name="medien_sync_modus">Synchronization</string>
     <string name="medien_sync_scope_import">Import phone → PC only</string>
     <string name="medien_sync_direction_export">PC → phone</string>
+    <string name="medien_empfang_erlauben">Allow gallery reception…</string>
+    <string name="medien_sync_nur_fotos">Photos only</string>
 </resources>

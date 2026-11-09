@@ -141,12 +141,33 @@ internal static class DeviceFileUiTests
         TestAssert.That(NativeMediaUiRequest.Parse(consent).ReceiveConsent, "Explicit local consent was not parsed independently.");
         consent["granted"] = "true";
         TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(consent), "Local permission accepted a truthy string.");
+        var send = request.DeepClone().AsObject(); send["action"] = "send_consent";
+        send["photos"] = true; send["videos"] = false; send["version"] = new string('c', 64);
+        TestAssert.That(NativeMediaUiRequest.Parse(send) is { Photos: true, Videos: false }, "Independent send choices were not parsed.");
+        foreach (var field in new[] { "confirmed", "send_files", "path" })
+        {
+            var forged = send.DeepClone().AsObject(); forged[field] = true;
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(forged), "Browser manufactured native send approval: " + field);
+        }
+        send["photos"] = "true";
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(send), "Send consent accepted a truthy string.");
+        send["photos"] = true; send["version"] = null;
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(send), "Send consent accepted an unversioned choice.");
         var unknownField = request.DeepClone().AsObject(); unknownField["action"] = "shared_setting";
         unknownField["field"] = "receive_files"; unknownField["value"] = true; unknownField["version"] = new string('a', 64);
         TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(unknownField), "A shared edit attempted to manufacture native receiving rights.");
         var remove = request.DeepClone().AsObject(); remove["action"] = "trash_purge";
         remove["operation_id"] = new string('a', 32); remove["version"] = new string('b', 64);
         _ = NativeMediaUiRequest.Parse(remove);
+        foreach (var action in new[] { "trash_thumbnail", "trash_preview" })
+        {
+            var preview = remove.DeepClone().AsObject(); preview["action"] = action;
+            TestAssert.That(NativeMediaUiRequest.Parse(preview).TrashOperation == new string('a', 32), "Preview lost its opaque operation.");
+            preview["path"] = @"C:\untrusted";
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(preview), "Preview accepted a filesystem path.");
+            preview.Remove("path"); preview["version"] = null;
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(preview), "Preview accepted an unversioned selection.");
+        }
         remove["confirmed"] = true;
         TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(remove), "Browser confirmation bypassed the native removal dialog.");
         var backup = request.DeepClone().AsObject(); backup["action"] = "backup_restore"; backup["media_type"] = "images";

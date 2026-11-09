@@ -37,7 +37,7 @@ internal static class CalendarRecurrence
         private readonly TimeSpan[] offsets;
         private readonly TimeSpan initial;
         private readonly object gate = new();
-        private (DateTime At, TimeSpan Before, TimeSpan After)[] transitions = [];
+        private (long At, TimeSpan Before, TimeSpan After)[] transitions = [];
         private int through;
         internal EmbeddedZone(string[] lines)
         {
@@ -56,14 +56,21 @@ internal static class CalendarRecurrence
                 var start = ParseStamp(Get("DTSTART")).Wall;
                 var before = Offset(Get("TZOFFSETFROM").Value); var after = Offset(Get("TZOFFSETTO").Value);
                 var rules = props.Where(value => value.Name == "RRULE").Select(value => new Rule(
-                    Regex.Replace(value.Value.ToUpperInvariant(), @"UNTIL=(\d{8}T\d{6}Z)", m => "UNTIL=" + ParseStamp(new Property("UNTIL", m.Groups[1].Value, [])).Wall.Add(before).ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture)),
+                    Regex.Replace(value.Value.ToUpperInvariant(), @"UNTIL=(\d{8}T\d{6}Z)", m => "UNTIL=" + ShiftWall(ParseStamp(new Property("UNTIL", m.Groups[1].Value, [])).Wall, before).ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture)),
                     new Stamp(start, false, null))).ToArray();
                 var dates = props.Where(value => value.Name == "RDATE").SelectMany(value => value.Value.Split(',').Select(text => ParseStamp(value with { Value = text }).Wall)).Append(start).Distinct().ToArray();
                 observances.Add((start, before, after, rules, dates));
             }
             if (observances.Count == 0) throw new InvalidDataException("Missing timezone observance.");
             offsets = observances.SelectMany(value => new[] { value.Before, value.After }).Distinct().OrderDescending().ToArray();
-            initial = observances.MinBy(value => value.Start - value.Before).Before;
+            // Signed ticks also represent transitions just outside DateTime's
+            // domain. Preserve genuine instants; never clamp/move observances.
+            initial = observances.MinBy(value => value.Start.Ticks - value.Before.Ticks).Before;
+        }
+        private static DateTime ShiftWall(DateTime value, TimeSpan offset)
+        {
+            try { return value.Add(offset); }
+            catch (ArgumentOutOfRangeException error) { throw new InvalidDataException("Calendar instant is outside the supported date range.", error); }
         }
         private void Ensure(int year)
         {
@@ -71,11 +78,11 @@ internal static class CalendarRecurrence
             {
                 if (year <= through) return;
                 var endYear = Math.Min(9999, year + 4); var end = new DateTime(endYear, 12, 31, 23, 59, 59);
-                var values = new SortedDictionary<DateTime, (TimeSpan Before, TimeSpan After)>();
+                var values = new SortedDictionary<long, (TimeSpan Before, TimeSpan After)>();
                 foreach (var o in observances)
                     foreach (var wall in o.Dates.Concat(o.Rules.SelectMany(rule => rule.Between(o.Start, end))).Distinct())
                     {
-                        var at = wall - o.Before;
+                        var at = wall.Ticks - o.Before.Ticks;
                         if (values.TryGetValue(at, out var existing) && existing != (o.Before, o.After)) throw new InvalidDataException("Conflicting timezone transitions.");
                         values[at] = (o.Before, o.After);
                         if (values.Count > MaximumOccurrences) throw new InvalidDataException("Timezone transition limit exceeded.");
@@ -83,25 +90,25 @@ internal static class CalendarRecurrence
                 transitions = values.Select(value => (value.Key, value.Value.Before, value.Value.After)).ToArray(); through = endYear;
             }
         }
-        private TimeSpan OffsetAt(DateTime utc)
+        private TimeSpan OffsetAt(long utc, int year)
         {
-            Ensure(utc.Year);
+            Ensure(year);
             var low = 0; var high = transitions.Length;
             while (low < high) { var mid = (low + high) / 2; if (transitions[mid].At <= utc) low = mid + 1; else high = mid; }
             return low == 0 ? initial : transitions[low - 1].After;
         }
-        internal DateTime FromUtc(DateTime utc) => DateTime.SpecifyKind(utc.Add(OffsetAt(utc)), DateTimeKind.Unspecified);
+        internal DateTime FromUtc(DateTime utc) => DateTime.SpecifyKind(ShiftWall(utc, OffsetAt(utc.Ticks, utc.Year)), DateTimeKind.Unspecified);
         internal TimeSpan FoldSpan(DateTime wall)
         {
-            var valid = offsets.Where(offset => OffsetAt(wall - offset) == offset).ToArray();
+            var valid = offsets.Where(offset => OffsetAt(wall.Ticks - offset.Ticks, wall.Year) == offset).ToArray();
             return valid.Length > 1 ? valid.Max() - valid.Min() : TimeSpan.Zero;
         }
         internal DateTime ToUtc(DateTime wall)
         {
             foreach (var offset in offsets)
-                if (OffsetAt(wall - offset) == offset) return DateTime.SpecifyKind(wall - offset, DateTimeKind.Utc);
+                if (OffsetAt(wall.Ticks - offset.Ticks, wall.Year) == offset) return DateTime.SpecifyKind(ShiftWall(wall, -offset), DateTimeKind.Utc);
             foreach (var t in transitions)
-                if (t.After > t.Before && wall >= t.At + t.Before && wall < t.At + t.After) return DateTime.SpecifyKind(wall - t.Before, DateTimeKind.Utc);
+                if (t.After > t.Before && wall.Ticks >= t.At + t.Before.Ticks && wall.Ticks < t.At + t.After.Ticks) return DateTime.SpecifyKind(ShiftWall(wall, -t.Before), DateTimeKind.Utc);
             throw new InvalidDataException("Unresolved timezone wall time.");
         }
     }
@@ -150,7 +157,9 @@ internal static class CalendarRecurrence
                 }
                 aliases[id] = alias;
                 if (!defined.TryAdd(alias, signature)) continue;
-                foreach (var line in block) yield return ParseProperty(line) is { Name: "TZID" } ? "TZID:" + alias : line;
+                // Keep original property spelling unless collision handling
+                // actually requires a new opaque TZID value (Refs #459).
+                foreach (var line in block) yield return alias != id && ParseProperty(line) is { Name: "TZID" } ? "TZID:" + alias : line;
             }
             foreach (var line in record.Component)
             {

@@ -378,7 +378,13 @@ internal static class PersonalActorTargetObserverRuntimeTests
     {
         await coordinator.StartPersonalActorAsync(handle);
         var request = new JsonObject { ["format"] = wireFormat, ["run_id"] = handle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
-        await coordinator.ReceivePersonalActorAsync(connection, peer, PersonalSyncActorContract.WireMessage(Message("personal_sync.request", request), handle.ActorId));
+        var activity = new List<bool>();
+        void ObserveActivity() => activity.Add(coordinator.TraySyncActivity.Active);
+        coordinator.TraySyncActivity.Changed += ObserveActivity;
+        try { await coordinator.ReceivePersonalActorAsync(connection, peer, PersonalSyncActorContract.WireMessage(Message("personal_sync.request", request), handle.ActorId)); }
+        finally { coordinator.TraySyncActivity.Changed -= ObserveActivity; }
+        TestAssert.That(activity.SequenceEqual(new[] { true, false }) && !coordinator.TraySyncActivity.Active,
+            "Actual admitted actor receiver did not project and release its processing owner.");
         var proposal = target.DeepClone().AsObject(); proposal["deleted_ms"] = 1; proposal["label"] = "Synthetic target";
         var body = new JsonObject { ["format"] = 1, ["run_id"] = handle.ActorId, ["proposal_batch_id"] = Guid.NewGuid().ToString("D"),
             ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(proposal) };

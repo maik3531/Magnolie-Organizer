@@ -107,4 +107,97 @@ internal static class DeviceFileNativeReceiveTests
         TestAssert.Throws<InvalidDataException>(() => file.Publish(f.Destination, "again.jpg", 5, Sha(bytes), () => { }), "Uncertain publication could be replayed.");
         return Task.CompletedTask;
     }
+
+    internal static Task WindowsManagedSourceAsync()
+    {
+        using var f = new Fixture();
+        var path = Path.Combine(f.Root, "managed.jpg");
+        var bytes = new byte[DeviceFileManifest.ChunkBytes + 37]; RandomNumberGenerator.Fill(bytes);
+        File.WriteAllBytes(path, bytes); File.WriteAllText(Path.Combine(f.Root, "other.jpg"), "not the mapped file");
+        var original = f.Destination.FileIdentityAt("managed.jpg");
+        var other = f.Destination.FileIdentityAt("other.jpg");
+        TestAssert.Throws<InvalidDataException>(() => f.Destination.OpenManagedSource("managed.jpg", other, () => { }),
+            "A different mapping identity opened the local source.");
+        // An intentional edit of the mapped inode BEFORE native source capture
+        // is allowed. Historical incoming bytes are not the outgoing PC version.
+        bytes[0] ^= 0xff; File.WriteAllBytes(path, bytes);
+        var allowed = true;
+        using (var source = f.Destination.OpenManagedSource("managed.jpg", original, () =>
+        {
+            if (!allowed) throw new InvalidOperationException("original native source owner retired");
+        }))
+        {
+            TestAssert.That(source.Size == bytes.Length && source.FileIdentity == original, "Source did not hold the mapped inode.");
+            var first = source.ReadExact(0, DeviceFileManifest.ChunkBytes);
+            var last = source.ReadExact(DeviceFileManifest.ChunkBytes, 37);
+            TestAssert.That(first.Concat(last).SequenceEqual(bytes), "Native source changed the current PC bytes.");
+            TestAssert.Throws<IOException>(() => File.WriteAllBytes(path, "replace"u8.ToArray()), "An unrelated writer edited the held source.");
+            TestAssert.Throws<IOException>(() => File.Move(path, Path.Combine(f.Root, "renamed.jpg")), "The held original source was renamed.");
+            foreach (var (offset, count) in new (long, int)[] { (-1, 1), (0, 0), (0, DeviceFileManifest.ChunkBytes + 1), (bytes.Length, 1), (long.MaxValue, 2) })
+                TestAssert.Throws<InvalidDataException>(() => source.ReadExact(offset, count), "Unbounded native source read.");
+            allowed = false;
+            TestAssert.Throws<InvalidOperationException>(() => source.ReadExact(0, 1), "Withdrawn native owner returned source bytes.");
+            allowed = true;
+            TestAssert.Throws<InvalidDataException>(() => source.ReadExact(0, 1), "Retired source revived after owner replacement.");
+        }
+        var alias = Path.Combine(f.Root, "alias-source.jpg"); File.CreateSymbolicLink(alias, path);
+        TestAssert.Throws<InvalidDataException>(() => f.Destination.OpenManagedSource("alias-source.jpg", original, () => { }),
+            "Native source followed a reparse entry.");
+        TestAssert.That(File.ReadAllBytes(path).SequenceEqual(bytes), "Source inspection changed the original file.");
+        return Task.CompletedTask;
+    }
+
+    internal static async Task WindowsManagedSourceDrainAsync()
+    {
+        using var f = new Fixture(); File.WriteAllText(Path.Combine(f.Root, "mapped.jpg"), "source");
+        using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
+        var block = false; var canceled = false;
+        using var source = f.Destination.OpenManagedSource("mapped.jpg", f.Destination.FileIdentityAt("mapped.jpg"), () =>
+        {
+            if (Volatile.Read(ref block))
+            {
+                entered.Set(); if (!release.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException("source read fixture deadline");
+                if (Volatile.Read(ref canceled)) throw new OperationCanceledException("source owner stopped");
+            }
+        });
+        Volatile.Write(ref block, true);
+        var read = Task.Run(() => TestAssert.Throws<OperationCanceledException>(() => source.ReadExact(0, 1), "Canceled read returned source bytes."));
+        Task? drain = null;
+        try
+        {
+            TestAssert.That(entered.Wait(TimeSpan.FromSeconds(5)), "Native source read did not enter.");
+            Volatile.Write(ref canceled, true);
+            drain = Task.Run(source.Dispose);
+            await Task.Delay(50);
+            TestAssert.That(!read.IsCompleted && !drain.IsCompleted, "UI stop/disposal claimed an undrained source read.");
+        }
+        finally { release.Set(); await read; if (drain is not null) await drain; }
+        TestAssert.Throws<InvalidDataException>(() => source.ReadExact(0, 1), "Disposed source was reused.");
+    }
+
+    internal static Task WindowsManagedSourceMetadataAsync()
+    {
+        using var f = new Fixture();
+        var capture = new byte[PhotoCaptureMetadata.MaximumBytes + 100];
+        PhotoCaptureMetadataTests.Jpeg().CopyTo(capture, 0);
+        File.WriteAllBytes(Path.Combine(f.Root, "renamed.bin"), capture);
+        File.WriteAllBytes(Path.Combine(f.Root, "IMG_camera.jpg"), new byte[] { 255, 216, 255, 217 });
+        using (var source = f.Destination.OpenManagedSource("renamed.bin", f.Destination.FileIdentityAt("renamed.bin"), () => { }))
+            TestAssert.That(source.MatchesPhotoMetadata(), "Real capture metadata in a renamed mapped PC source was excluded.");
+        using (var unknown = f.Destination.OpenManagedSource("IMG_camera.jpg", f.Destination.FileIdentityAt("IMG_camera.jpg"), () => { }))
+            TestAssert.That(!unknown.MatchesPhotoMetadata(), "A camera filename without actual EXIF was admitted.");
+        var active = false; var checks = 0;
+        using (var source = f.Destination.OpenManagedSource("renamed.bin", f.Destination.FileIdentityAt("renamed.bin"), () =>
+        {
+            if (active && ++checks == 8) throw new InvalidOperationException("native owner retired during metadata read");
+        }))
+        {
+            active = true;
+            TestAssert.Throws<InvalidOperationException>(() => source.MatchesPhotoMetadata(), "Metadata selection ignored source-owner retirement.");
+            active = false;
+            TestAssert.Throws<InvalidDataException>(() => source.ReadExact(0, 1), "Failed metadata source became a new read grant.");
+        }
+        TestAssert.That(File.ReadAllBytes(Path.Combine(f.Root, "renamed.bin")).SequenceEqual(capture), "Metadata filter changed the mapped original.");
+        return Task.CompletedTask;
+    }
 }

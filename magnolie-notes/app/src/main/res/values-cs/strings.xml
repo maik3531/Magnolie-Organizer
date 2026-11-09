@@ -452,4 +452,6 @@
     <string name="medien_sync_modus">Synchronizace</string>
     <string name="medien_sync_scope_import">Pouze importovat z telefonu do PC</string>
     <string name="medien_sync_direction_export">PC → telefon</string>
+    <string name="medien_empfang_erlauben">Povolit příjem do galerie…</string>
+    <string name="medien_sync_nur_fotos">Pouze fotografie</string>
 </resources>

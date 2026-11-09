@@ -263,6 +263,68 @@ closed. Outbound-version backup/pinning, retirement/restart, original-reference
 and MIME dispatcher joins, platform parity and physical acceptance remain
 required before production composition.
 
+Windows now has a native mapped-PC source reader and owner (Refs #429), not
+yet an outbound transfer. The connection requires the actual current positive
+local SEND/remote RECEIVE control agreement, exact matched eight-field media
+intent and the original saved-book permit. An exact protected receive-head
+version with local Saved and source END identifies the original file; unfinished,
+ambiguous, superseded, foreign and stale mappings hold. Original target/root,
+album and file identities remain pinned. Each bounded read rechecks this owner
+and history through the held read-only handle; other writes/renames are denied,
+withdrawal is sticky and disposal drains actual reading. A deliberate edit of
+the same mapped file before capture is the current PC content, while its cloned
+eight-field phone-original reference retains the historical phone baseline.
+Import-only never exports these files; phone-inventory admits mapped members
+only. The real capture-metadata filter reads at most the existing bounded prefix
+from the same handle and excludes unknown metadata without proving deletion.
+The owner can now hash the same held bytes into one immutable outgoing manifest
+and correlate its new file ID with the preserved phone-original reference.
+Repeated preparation retains that manifest, but still rechecks the live owner;
+a retired book/intent cannot revive it from metadata. This in-process result is
+not a durable outgoing job, restart capability or output receipt.
+Three native Windows reader groups and three completed-mapping/policy groups
+pass, including actual preceding receive/Saved/END, secure control/settings
+matching, book/direction withdrawal and foreign-file rejection. Outgoing
+durable preparation/send/offer/chunk/Saved/readback/END and dispatcher composition
+remain required; this API does not enable production SEND or capability 23.
+
+Windows mapped-PC preparation now also has a bounded protected outgoing cache
+(Refs #429) in the existing native phone database. A random preparation nonce,
+original saved-book version, exact shared intent and sending binding, completed
+mapping and new outgoing manifest/reference bind its durable reservation before
+any source copy. Each bounded chunk is sealed with the existing native key and
+its original job/nonce/index context; an atomic protected header records its
+cipher hash. No SQLite writer lease spans the source read or network I/O. The
+cache becomes ready only after complete decrypted readback matches the actual
+outgoing manifest. Active reads require the exact live preparation, unchanged
+protected ready record, original book/connection/rights and each sealed chunk.
+Cancellation retires permission before draining actual I/O, without erasing the
+ready/partial records or the mapped originals. Missing/corrupt state cannot be
+silently adopted, repaired or recreated by a fresh owner. Four native Windows
+groups cover current multi-chunk content, encrypted persistence, duplicate
+preparation, corrupt/missing state, actual saved-book change after the first
+committed chunk and cancellation during a blocked native read. This ready cache
+is not offer output, peer Saved, local Saved, END, restart or retirement authority.
+
+The explicit Windows connection owner can now send that exact live cache through
+the existing encrypted file transport (Refs #429). A separate sealed exchange
+records offer intent before output and confirms output only after the actual
+secure write drains. Only the correlated current acceptance permits bounded
+requested chunks; each request is journaled before output and marked sent only
+after its encrypted response and native guards return. Early replies serialize
+behind that real write. Peer Saved requires actual output of every manifest
+chunk, exact acceptance/binding and current ownership. Its result remains a
+remote assertion, never local Saved, source END or cache-retirement authority.
+Missing/corrupt exchange state and repeated attempts cannot fabricate a new
+sender or bypass reserved-frame isolation; partial/ready cache and original
+receive history remain intact. Four native Windows groups cover multi-chunk
+encrypted output, early Saved, missing attempt/replay, cancellation during actual
+offer payload output and an acceptance arriving before output drains. Five
+existing transport groups and three native shared-control groups also pass.
+This is not physical Android acceptance: original-reference/MIME dispatcher
+composition, actual native publication readback/END, failure recovery and the
+complete common runtime still remain before readiness can be advertised.
+
 Prepared Linux PC versions now also have a native local backup path (#401),
 separate from phone Saved mappings and partner Saved assertions. The exact
 in-process preparation retains its authenticated original mapping only as

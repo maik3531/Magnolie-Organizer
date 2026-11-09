@@ -38,7 +38,7 @@ class NativeIncomingMediaInspectionTest {
      * fixture. Supply actual host fixture attributes ONLY for registered FDs;
      * this is not physical Android syscall acceptance or a product bypass. */
     @Implements(className = "libcore.io.Linux", isInAndroidSdk = false)
-    class FixtureLinux : ShadowLinux() {
+    open class FixtureLinux : ShadowLinux() {
         @Implementation override fun fstat(fd: FileDescriptor): StructStat {
             val file = files[fd] ?: return super.fstat(fd)
             val a = Files.readAttributes(file.toPath(), "unix:dev,ino,mode,size,nlink,uid,gid,rdev,lastAccessTime,lastModifiedTime,ctime")

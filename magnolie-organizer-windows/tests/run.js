@@ -17,12 +17,13 @@ process.env.MAGNOLIE_PYTHON = python;
 
 let failed = false;
 const results = [];
-for (const test of ["time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
+for (const test of ["welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
   "oversized-note-safety.js", "desktop-state-regressions.js", "../../magnolie-organizer/pruefungen/phone-personal-status-ui.cjs", "../../magnolie-organizer/pruefungen/appointment-occurrence-delete.cjs", "mcp-ui.js", "mcp-import-review.js", "mcp-planner-export.js", "mcp-print.js", "mcp-waste-import.js", "mcp-sync-settings.js", "mcp-sync-run.js", "mcp-provider-conflicts.js", "mcp-dav-account.js", "mcp-microsoft-signin.js", "mcp-internet-accounts.js", "mcp-tree-actions.js", "save-custom-regressions.js", "custom-time-regressions.js", "regional-time-input.js", "planned-sms-save-regressions.js", "asr-sms-regressions.js", "desktop-data-regressions.js", "frontend-integrity.js", "recurrence-worker.js", "recurrence-golden.js",
-   "phone-contact-preview-batches.js", "kde-receive-ui.js", "realm-data-assert-test.js",
+    "phone-contact-preview-batches.js", "kde-receive-ui.js", "realm-data-assert-test.js", "legacy-android-instance-ui.js", "drawing-pointerup.js",
    "../../magnolie-organizer/pruefungen/waste-holiday-authority.cjs",
    "../../magnolie-organizer/pruefungen/appointment-replacement.cjs",
-   "../../magnolie-organizer/pruefungen/media-trash-ui.cjs",
+    "../../magnolie-organizer/pruefungen/media-trash-ui.cjs",
+    "../../magnolie-organizer/pruefungen/task-context-sort-ui.cjs",
    "contact-group-write.js",
    "contact-value-write.js",
    "contact-group-title-write.js",

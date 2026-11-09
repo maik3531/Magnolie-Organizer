@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonUiZustand
+import io.gitlab.maik3531.magnolienotes.telefon.GalleryMediaType
 import kotlinx.serialization.json.*
 
 @Composable
@@ -32,7 +33,8 @@ private fun MedienCheckbox(label: String, checked: Boolean, enabled: Boolean = t
 
 @Composable
 internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
-    beiAenderung: (String, JsonElement, String) -> Unit, beiBerechtigungen: () -> Unit, beiSynchronisieren: () -> Unit) {
+    beiAenderung: (String, JsonElement, String) -> Unit, beiBerechtigungen: () -> Unit, beiSynchronisieren: () -> Unit,
+    beiEmpfang: (GalleryMediaType) -> Unit = {}, beiArchiv: (GalleryMediaType) -> Unit = {}) {
     if (!telefon.mediaPreferencesSupported) return
     val values = telefon.mediaPreferencesValues ?: return
     var offen by remember(telefon.peer?.device_id, telefon.peer?.static_public) { mutableStateOf(false) }
@@ -78,9 +80,21 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
             "manual" to stringResource(R.string.shared_sync_manual), "wifi" to stringResource(R.string.personal_sync_auto_wlan)))
         choice("direction", stringResource(R.string.medien_sync_richtung), listOf(
             "phone_to_pc" to stringResource(R.string.medien_sync_direction_import), "two_way" to stringResource(R.string.personal_note_two_way),
-            "pc_to_phone" to stringResource(R.string.medien_sync_direction_export)), available = values["collection_mode"] != JsonPrimitive("import_only"))
+            "pc_to_phone" to stringResource(R.string.medien_sync_direction_export)))
         checkbox("photos_enabled", stringResource(R.string.medien_sync_fotos))
         checkbox("videos_enabled", stringResource(R.string.medien_sync_videos))
+        checkbox("photos_only", stringResource(R.string.medien_sync_nur_fotos))
+        val receiving = enabled && telefon.mediaPreferencesReady && !telefon.mediaManualBusy && android.os.Build.VERSION.SDK_INT >= 30 &&
+            values["collection_mode"] != JsonPrimitive("import_only") &&
+            values["direction"] in setOf(JsonPrimitive("two_way"), JsonPrimitive("pc_to_phone"))
+        for ((kind, key, label) in listOf(Triple(GalleryMediaType.IMAGES, "photos_enabled", R.string.medien_sync_fotos),
+            Triple(GalleryMediaType.VIDEO, "videos_enabled", R.string.medien_sync_videos))) {
+            Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_empfang_erlauben), Modifier.fillMaxWidth(),
+                aktiv = receiving && flag(key)) { beiEmpfang(kind) }
+            Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_pc_archiv_kopie), Modifier.fillMaxWidth(),
+                aktiv = receiving && flag(key)) { beiArchiv(kind) }
+        }
+        Text(stringResource(R.string.medien_pc_archiv_hinweis), color = Magnolie.braunHell)
         checkbox("skip_deletions", stringResource(R.string.personal_sync_skip_deletions))
         if (!telefon.mediaPreferencesReady) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)
         if (telefon.mediaManualBusy) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)

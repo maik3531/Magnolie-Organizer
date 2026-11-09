@@ -425,6 +425,45 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
     def trash(self,action,expected,operation,native_gate):
         return self._execute(action,expected,operation,native_gate,restore=False)
 
+    def preview(self,action,expected,operation,native_gate,*,mode='thumbnail'):
+        """Read ONLY the exact retained trash payload; no move or event append."""
+        from magnolie_media_preview import preview_held_file,SIZES
+        from magnolie_media_retention import NativeMediaRetention
+        self._action(action,expected);action.consume(self)
+        if mode not in SIZES or not callable(native_gate):raise TransferError('media_preview_native_source_required')
+        with self._operation():
+            if not self._open():raise TransferError('media_trash_original_operation_required')
+            with self._locked():
+                current=self._require(action,expected);entries,_,_=self._entries();entry=entries.get(operation)
+                if entry is None or entry.state not in ('prepared','trashed','restore_prepared','purge_prepared'):
+                    raise TransferError('media_trash_preview_not_current')
+                def fresh():
+                    action.validate(self);self._fresh()
+                    if native_gate() is not True:raise TransferError('media_trash_native_gate_revoked')
+                    return True
+                with NativeMediaRetention(self._authority.protection.native_directory) as retention:
+                    with retention.activity(fresh) as activity:
+                        if activity is None:raise TransferError('media_retention_maintenance_busy')
+                        with self._target_context(entry,fresh) as (parent,_,directories,opened):
+                            from contextlib import ExitStack
+                            with ExitStack() as held:
+                                source_parent,name=parent,entry.payload_name
+                                if entry.state=='purge_prepared':
+                                    capsule,check=held.enter_context(self._purge_context(entry,parent,directories))
+                                    archived,staged=self._exists(parent,name),self._exists(capsule,'payload')
+                                    if archived==staged:raise TransferError('media_trash_preview_payload_unproven')
+                                    if staged:source_parent,name=capsule,'payload'
+                                else:check=directories
+                                fd,signature=held.enter_context(opened(name,parent=source_parent,links=(1,)))
+                                def unchanged():
+                                    fresh();activity();check()
+                                    value=os.fstat(fd);named=os.stat(name,dir_fd=source_parent,follow_symlinks=False)
+                                    def key(item):return (item.st_dev,item.st_ino,item.st_size,item.st_mode,item.st_uid,item.st_gid,item.st_nlink,item.st_mtime_ns,item.st_ctime_ns)
+                                    if key(value)!=signature or key(named)!=signature:raise TransferError('media_trash_original_content_changed')
+                                    return True
+                                unchanged();result=preview_held_file(fd,entry.mapping.saved_size,entry.mapping.association.media_type,mode,unchanged)
+                                unchanged();self._require(action,current);return result
+
     def restore(self,action,expected,operation,native_gate):
         return self._execute(action,expected,operation,native_gate,restore=True)
 

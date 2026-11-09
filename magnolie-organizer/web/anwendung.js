@@ -246,7 +246,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     sektion: "kalender",
     kalender: { jahr: jetztTeile.jahr, monat: jetztTeile.monat - 1, tag: isoHeute(jetzt),
       bearbeiteId: null, ansicht: "week" },
-    aufgaben: { bearbeiteId: null, neueElternUid: "",
+    aufgaben: { bearbeiteId: null, neueElternUid: "", sortierung: "manual", erledigteAnzeigen: true,
       filter: { person: "", von: "", bis: "" } },
     adressen: { buchstabe: "A", auswahlId: null, suche: "", gruppenFilter: "all", modus: "ansehen" },
     notizen: { auswahlId: null, gruppeId: NOTIZ_STANDARD_GRUPPE,
@@ -7023,6 +7023,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (terminIdentitaet(links) !== terminIdentitaet(rechts)) return false;
     const quelle = (t) => String(t.icsQuelleId || t.syncKalenderUid || (t.kalenderQuelle || {}).id || "");
     if (quelle(links) !== quelle(rechts)) return false;
+    const rid = t => (Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip : [])
+      .filter(x => typeof x === "string" && /^RECURRENCE-ID[;:]/i.test(x));
+    // Same title/date/series does not identify two distinct detached instances.
+    if (JSON.stringify(rid(links)) !== JSON.stringify(rid(rechts))) return false;
     const rechtsIds = terminStarkeKennungen(rechts);
     return Array.from(terminStarkeKennungen(links)).some((id) => rechtsIds.has(id));
   }
@@ -7354,6 +7358,88 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return terminText(text, 500).replace(/[\r\n";:]/g, " ").trim();
   }
 
+  // #444: bind old UI IDs through their previous semantics, never a new raw hash.
+  function erhalteDisplayAlarme(termin, vorher, alt) {
+    const konflikt = () => {
+      const error = new Error(_("Conflict") + ": " + _("Unsupported alarm"));
+      error.code = "ambiguous-alarm"; throw error;
+    };
+    const semantik = alarm => JSON.stringify([alarm.offsetMinuten, alarm.aktion, alarm.related]);
+    const ansicht = record => saubereAlarme(record.alarme === undefined ? icsProjektion(alt).alarme : record.alarme)
+      .filter(alarm => alarm.bearbeitbar);
+    let bisher = ansicht(vorher || termin);
+    const gewuenscht = ansicht(termin), bloecke = [];
+    if (new Set(bisher.map(alarm => alarm.id)).size !== bisher.length ||
+        new Set(gewuenscht.map(alarm => alarm.id)).size !== gewuenscht.length) konflikt();
+    let block = null;
+    for (const zeile of alt) {
+      const eig = icsEigenschaft(zeile);
+      if (eig?.name === "BEGIN" && eig.wert.toUpperCase() === "VALARM") {
+        if (block) konflikt();
+        block = [zeile];
+      } else if (block) {
+        block.push(zeile);
+        if (eig?.name === "END" && eig.wert.toUpperCase() === "VALARM") {
+          const alarm = icsProjektion(block).alarme[0];
+          if (!alarm) konflikt();
+          if (alarm.bearbeitbar) bloecke.push({ zeilen: block, alarm });
+          block = null;
+        }
+      }
+    }
+    if (block) konflikt();
+    if (!vorher) bisher = bisher.filter(alarm => bloecke.some(item => semantik(item.alarm) === semantik(alarm)));
+    const bindung = new Map(), benutzt = new Set();
+    for (const alarm of bisher) {
+      const treffer = bloecke.filter(item => semantik(item.alarm) === semantik(alarm));
+      if (!alarm.aktiviert && !treffer.length) continue;
+      if (!alarm.aktiviert || treffer.length !== 1 || benutzt.has(treffer[0])) konflikt();
+      bindung.set(alarm.id, treffer[0]); benutzt.add(treffer[0]);
+    }
+    if (benutzt.size !== bloecke.length) konflikt();
+    const aus = [];
+    for (const alarm of gewuenscht) {
+      if (alarm.aktion !== "display") konflikt();
+      if (!alarm.aktiviert) continue;
+      const original = bindung.get(alarm.id);
+      if (!original) {
+        if (bisher.some(item => item.id === alarm.id && item.aktiviert)) konflikt();
+        aus.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":-PT" + alarm.offsetMinuten + "M",
+          "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
+        continue;
+      }
+      let trigger = 0, aktionen = 0;
+      const zeilen = original.zeilen.map(zeile => {
+        const eig = icsEigenschaft(zeile);
+        if (eig?.name === "ACTION") aktionen++;
+        if (eig?.name !== "TRIGGER") return zeile;
+        trigger++;
+        // Split only outside quotes; retain unrelated parameters lexically.
+        const teile = []; let zitat = false, start = 0, wert = null;
+        for (let i = 0; i < zeile.length; i++) {
+          if (zeile[i] === '"') zitat = !zitat;
+          if (!zitat && (zeile[i] === ";" || zeile[i] === ":")) {
+            teile.push(zeile.slice(start, i)); start = i + 1;
+            if (zeile[i] === ":") { wert = zeile.slice(start); break; }
+          }
+        }
+        if (wert === null) konflikt();
+        if (alarm.related !== original.alarm.related) {
+          const stellen = teile.map((teil, i) => /^RELATED=/i.test(teil) ? i : -1).filter(i => i >= 0);
+          if (stellen.length > 1) konflikt();
+          if (stellen.length) {
+            const i = stellen[0]; teile[i] = teile[i].slice(0, teile[i].indexOf("=") + 1) + alarm.related;
+          } else teile.push("RELATED=" + alarm.related);
+        }
+        if (alarm.offsetMinuten !== original.alarm.offsetMinuten) wert = "-PT" + alarm.offsetMinuten + "M";
+        return teile.join(";") + ":" + wert;
+      });
+      if (trigger !== 1 || aktionen !== 1) konflikt();
+      aus.push(...zeilen);
+    }
+    return aus;
+  }
+
   function spiegeleTerminInIcs(termin, vorher = null) {
     const alt = (Array.isArray(termin.icsRoundtrip) ? termin.icsRoundtrip : [])
       .map(S);
@@ -7426,11 +7512,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         (anhang.name ? ";FILENAME=" + icsParameter(anhang.name) : "") +
         (anhang.groesse ? ";SIZE=" + anhang.groesse : "") + ":" + anhang.uri);
     }
-    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {
-      const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";
-      neu.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":" + trigger,
-        "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
-    }
+    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));
     let stelle = aus.findIndex((zeile) => /^END:VEVENT\s*$/i.test(zeile));
     if (stelle < 0) stelle = aus.length;
     aus.splice(stelle, 0, ...neu);
@@ -15363,6 +15445,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function zeichneAlles() {
     sichereNotizSnapshot();
     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
+    window.MagnolieAppearance?.update({ today: isoHeute(), developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
     stabilisiereAktiveOrtszeiten();
     beendeZeicheneingabe(true);
     beendeGesundheitReserve();
@@ -17780,6 +17863,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (teile[1]) wiederholung.intervall = Number(teile[1]);
         }
       }
+      // Do not let normalization silently turn two edited source rows into one.
+      const alarmSchluessel = alarmWerte.filter(alarm => alarm.bearbeitbar)
+        .map(alarm => JSON.stringify([alarm.offsetMinuten, alarm.related, alarm.aktion]));
+      if (new Set(alarmSchluessel).size !== alarmSchluessel.length) {
+        zettel(_("Conflict") + ": " + _("Unsupported alarm")); return;
+      }
       const werte = {
         datum: datumVon,
         endDatum: datumBis > datumVon ? datumBis : "",
@@ -18410,6 +18499,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function wochenTag(d, schmal, farbAufgaben) {
     const iso = isoVon(d);
     const kasten = el("div", "wo-tag" + (schmal ? " schmal" : ""));
+    window.MagnolieAppearance?.day(kasten, iso);
     kasten.setAttribute("role", "gridcell");
     kasten.setAttribute("aria-label", fmtLang(iso));
     kasten.tabIndex = iso === zustand.kalender.tag ? 0 : -1;
@@ -18515,6 +18605,61 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return vergleicheStandardText(a.titel, b.titel);
   }
 
+  function sortiereAufgabenAnsicht(a, b) {
+    const wahl = zustand.aufgaben.sortierung || "manual";
+    if (wahl === "manual") return a.reihenfolge - b.reihenfolge || sortiereAufgaben(a, b) || vergleicheTechnischeKennung(a.uid, b.uid);
+    const [art, richtung] = wahl.split("_"), faktor = richtung === "desc" ? -1 : 1;
+    const wert = aufgabe => art === "due" ? aufgabe.faellig || null : art === "priority" ? aufgabe.prio :
+      Number.isFinite(aufgabe.angelegt) && aufgabe.angelegt > 0 ? aufgabe.angelegt : null;
+    const av = wert(a), bv = wert(b);
+    if (av == null || bv == null) {
+      if (av !== bv) return av == null ? 1 : -1;
+    } else if (av !== bv) return (av < bv ? -1 : 1) * faktor;
+    if (art === "due" && av != null) {
+      const at = a.faelligZeit || "99:99", bt = b.faelligZeit || "99:99";
+      if (at !== bt) return (at < bt ? -1 : 1) * faktor;
+    }
+    return vergleicheStandardText(a.titel, b.titel) || vergleicheTechnischeKennung(a.uid, b.uid);
+  }
+
+  function aufgabenAnsichtsMenue(event, aufgabe = null) {
+    if (event.target?.closest?.("input, textarea, select, [contenteditable]") || markierterText(event.target).text.trim()) return;
+    event.preventDefault(); event.stopPropagation(); schliesseVorschlaege();
+    const z = zustand.aufgaben, menu = el("div", "vorschlags-menue bearbeiten-menue");
+    menu.id = "vorschlags-menue"; menu.setAttribute("role", "menu");
+    if (aufgabe) personalAdmissionMenuItem(menu, "task", aufgabe);
+    if (menu.children.length) menu.append(el("div", "vm-trenner"));
+    const option = (label, selected, action, key, checkbox = false) => {
+      const button = knopf((selected ? "✓ " : "") + label, "vm-eintrag", () => navigiereMitGuard(() => {
+        action(); menu.remove(); zeichneAlles(); $("#aufgaben-uebersicht")?.focus();
+      }));
+      button.dataset.aufgabenAnsicht = key;
+      button.setAttribute("role", checkbox ? "menuitemcheckbox" : "menuitemradio");
+      button.setAttribute("aria-checked", String(selected)); menu.append(button);
+    };
+    option(_("Default view"), z.sortierung === "manual", () => { z.sortierung = "manual"; }, "manual");
+    for (const [art, label] of [["due", _("Due on")], ["priority", _("Priority")], ["created", _("Created")]])
+      for (const [richtung, pfeil] of [["asc", "↑"], ["desc", "↓"]]) {
+        const key = art + "_" + richtung;
+        option(label + " " + pfeil, z.sortierung === key, () => { z.sortierung = key; }, key);
+      }
+    menu.append(el("div", "vm-trenner"));
+    option(_("Completed task"), z.erledigteAnzeigen !== false,
+      () => { z.erledigteAnzeigen = z.erledigteAnzeigen === false; }, "completed", true);
+    document.body.append(menu);
+    const rect = event.target?.getBoundingClientRect?.() || { left: 6, top: 6 };
+    menu.style.left = Math.max(6, Math.min(event.clientX || rect.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
+    menu.style.top = Math.max(6, Math.min(event.clientY || rect.top, window.innerHeight - menu.offsetHeight - 8)) + "px";
+    menu.addEventListener("keydown", e => {
+      const buttons = [...menu.querySelectorAll("button")], current = buttons.indexOf(document.activeElement);
+      if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+        e.preventDefault(); buttons[e.key === "Home" ? 0 : e.key === "End" ? buttons.length - 1 :
+          (current + (e.key === "ArrowUp" ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+      } else if (e.key === "Escape") { e.preventDefault(); menu.remove(); event.target?.focus?.(); }
+    });
+    menu.querySelector("button")?.focus();
+  }
+
   function aufgabenNachHierarchie(filterAktiv) {
     normalisiereAufgabenGraph(DATEN.aufgaben);
     const nachEltern = new Map(), nachUid = new Map(DATEN.aufgaben.map((a) => [a.uid, a]));
@@ -18522,8 +18667,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!nachEltern.has(a.elternUid)) nachEltern.set(a.elternUid, []);
       nachEltern.get(a.elternUid).push(a);
     }
-    for (const kinder of nachEltern.values()) kinder.sort((a, b) =>
-      a.reihenfolge - b.reihenfolge || sortiereAufgaben(a, b) || vergleicheTechnischeKennung(a.uid, b.uid));
+    for (const kinder of nachEltern.values()) kinder.sort(sortiereAufgabenAnsicht);
     let sichtbar = null;
     if (filterAktiv) {
       sichtbar = new Set(DATEN.aufgaben.filter(aufgabePasst).map((a) => a.uid));
@@ -19404,7 +19548,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         (eingeschraenkt ? _(" (filtered)") : ""),
       [neuKnopf, personenKnopf]);
 
-    const inhaltL = $("#inhalt-links");
+    const inhaltL = el("div", "aufgaben-uebersicht"); inhaltL.id = "aufgaben-uebersicht"; inhaltL.tabIndex = 0;
+    $("#inhalt-links").append(inhaltL);
+    inhaltL.addEventListener("contextmenu", event => aufgabenAnsichtsMenue(event));
+    inhaltL.addEventListener("keydown", event => {
+      if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") aufgabenAnsichtsMenue(event);
+    });
 
     /* ---- Auswahl nach Person und Zeitraum ---- */
     if (DATEN.personen.length || eingeschraenkt) {
@@ -19453,7 +19602,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         (x) => aufgabenZeile(x.a, false, heute, x.tiefe));
     }
 
-    if (erledigte.length) {
+    if (erledigte.length && z.erledigteAnzeigen !== false) {
       const zt = el("div", "zwischentitel");
       zt.append(el("span", null, uebersetzt("Completed (%(count)s)",
         { count: erledigte.length })));
@@ -19830,17 +19979,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const occurrence = !istErledigt ? icsQuelle(source) ? icsRuntime("next", source, [heute]) : a : null;
     const zeile = el("li", "zeile" + (istErledigt ? " erledigt" : "") +
       (a.id === z.bearbeiteId ? " aktiv" : ""));
-    const admissionMenu = event => {
-      if (!personalAdmissionPeer() || !personalAdmissionEligible("task", a)) return;
-      event.preventDefault(); event.stopPropagation(); schliesseVorschlaege();
-      const menu = el("div", "vorschlags-menue bearbeiten-menue"); menu.id = "vorschlags-menue"; menu.setAttribute("role", "menu");
-      personalAdmissionMenuItem(menu, "task", a); document.body.append(menu);
-      const rect = zeile.getBoundingClientRect();
-      menu.style.left = Math.max(6, Math.min(event.clientX || rect.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
-      menu.style.top = Math.max(6, Math.min(event.clientY || rect.top, window.innerHeight - menu.offsetHeight - 8)) + "px";
-      menu.addEventListener("keydown", e => { if (e.key === "Escape") { menu.remove(); zeile.querySelector("button")?.focus(); } });
-      menu.querySelector("button")?.focus();
-    };
+    const admissionMenu = event => aufgabenAnsichtsMenue(event, a);
     zeile.addEventListener("contextmenu", admissionMenu);
     zeile.addEventListener("keydown", event => { if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") admissionMenu(event); });
     zeile.style.paddingInlineStart = Math.min(12, Math.max(0, tiefe - 1)) * 18 + "px";
@@ -26009,6 +26148,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function baueSeiteEntwickler(wurzel) {
     if (DATEN.einstellungen.allgemein.entwicklermodus !== true) return;
     const ab = abschnitt(_("Developer options"));
+    window.MagnolieAppearance?.update({ today: isoHeute(), developer: true, locked: gesperrt });
+    window.MagnolieAppearance?.mountDeveloper(ab, _, Bruecke.vorhanden ? state =>
+      Bruecke.sende(state ? { cmd: "tray_darstellung_test", ...state } : { cmd: "tray_darstellung_test_ende" }) : null);
     const log = document.createElement("input"); log.type = "checkbox"; log.id = "erinnerung-protokoll-an";
     log.checked = DATEN.einstellungen.erinnerung.protokoll === true;
     const row = el("label", "hak"); row.append(log, document.createTextNode(" " + _("Keep a troubleshooting log")));
@@ -26028,6 +26170,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ab.append(row, show, knopf(_("Disable developer mode"), "", () => {
       entwicklerDiagnoseAnfrage = null; output.textContent = "";
       DATEN.einstellungen.allgemein.entwicklermodus = false;
+      window.MagnolieAppearance?.update({ today: isoHeute(), developer: false, locked: gesperrt });
       DATEN.einstellungen.erinnerung.protokoll = false; entwicklerVersionsKlicks = 0;
       planeSpeichern(); speichereJetzt(); einstSeite = "ueber"; baueEinstellungen();
     })); wurzel.append(ab);
@@ -28873,6 +29016,60 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   const telefonFotoFehler = new Map();
+  const telefonSendeZustimmungen = new Map();
+  const telefonMedienEinstellungen = new Map();
+
+  function telefonMedienEinstellung(peer, stand, field, value) {
+    if (telefonMedienEinstellungen.has(peer.device_id) || !stand.shared_media) return;
+    const pending = { requestId: crypto.randomUUID(), book: DATEN, fingerprint: peer.fingerprint, version: stand.shared_media.version };
+    const failed = () => {
+      if (telefonMedienEinstellungen.get(peer.device_id) !== pending) return;
+      clearTimeout(pending.timer); telefonMedienEinstellungen.delete(peer.device_id);
+      if (DATEN === pending.book && telefonStand?.peers?.some(entry => entry.device_id === peer.device_id && entry.fingerprint === pending.fingerprint))
+        telefonFotoFehler.set(peer.device_id, _("Photo synchronization could not be started."));
+      zeichneTelefonFotos();
+    };
+    pending.timer = setTimeout(failed, 25000);
+    telefonMedienEinstellungen.set(peer.device_id, pending);
+    nachDauerhaftemSpeichern(() => {
+      const current = telefonStand?.peers?.find(entry => entry.device_id === peer.device_id);
+      if (telefonMedienEinstellungen.get(peer.device_id) !== pending || DATEN !== pending.book ||
+          current?.fingerprint !== pending.fingerprint || current.photo_sync?.shared_media?.version !== pending.version) { failed(); return; }
+      telefonFotoFehler.delete(peer.device_id);
+      if (!Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint,
+        requestId: pending.requestId, request: { action: "shared_setting", field, value, version: pending.version } })) failed();
+    }, failed);
+    zeichneTelefonFotos();
+  }
+
+  function telefonSendeZustimmung(peer, stand, field, wanted) {
+    if (telefonSendeZustimmungen.has(peer.device_id)) return;
+    const consent = stand.sending_consent || (stand.sending_setup ? { photos: false, videos: false, ...stand.sending_setup } : null);
+    if (!consent) return;
+    const requestId = crypto.randomUUID(), book = DATEN;
+    const pending = { requestId, book, fingerprint: peer.fingerprint };
+    const clear = () => {
+      if (telefonSendeZustimmungen.get(peer.device_id) !== pending) return false;
+      clearTimeout(pending.timer); telefonSendeZustimmungen.delete(peer.device_id); return true;
+    };
+    const failed = () => {
+      if (!clear()) return;
+      if (DATEN === book) telefonFotoFehler.set(peer.device_id, _("Photo synchronization could not be started."));
+      zeichneTelefonFotos();
+    };
+    pending.timer = setTimeout(failed, 65000);
+    telefonSendeZustimmungen.set(peer.device_id, pending);
+    const choices = { photos: consent.photos === true, videos: consent.videos === true };
+    choices[field] = wanted;
+    nachDauerhaftemSpeichern(() => {
+      const current = telefonStand?.peers?.find(value => value.device_id === peer.device_id);
+      if (telefonSendeZustimmungen.get(peer.device_id) !== pending || DATEN !== book || current?.fingerprint !== peer.fingerprint ||
+          (current.photo_sync?.sending_consent || current.photo_sync?.sending_setup)?.version !== consent.version) { failed(); return; }
+      if (!Bruecke.sende({ cmd: "telefon_medien_senden", kennung: peer.device_id, fingerprint: peer.fingerprint,
+        version: consent.version, requestId, ...choices })) failed();
+    }, failed);
+    zeichneTelefonFotos();
+  }
   const telefonFotoAnsichten = new Map();
   const telefonBackupAnsichten = new Map();
 
@@ -28962,6 +29159,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const peer = peers[0], stand = peer.photo_sync;
       // Native readiness only, never ContributorKey, Notes-content grants or KDE.
       if (stand?.available !== true || !peer.own_device || !peer.remote_own_device || !peer.transport) continue;
+      const oldConsent = telefonSendeZustimmungen.get(peer.device_id);
+      if (oldConsent && (oldConsent.book !== DATEN || oldConsent.fingerprint !== peer.fingerprint)) {
+        clearTimeout(oldConsent.timer); telefonSendeZustimmungen.delete(peer.device_id);
+      }
+      const oldSetting = telefonMedienEinstellungen.get(peer.device_id);
+      if (oldSetting && (oldSetting.book !== DATEN || oldSetting.fingerprint !== peer.fingerprint)) {
+        clearTimeout(oldSetting.timer); telefonMedienEinstellungen.delete(peer.device_id);
+      }
       wurzel.dataset.photoPeer = peer.device_id;
       const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
       const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
@@ -28977,16 +29182,85 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       };
       const an = document.createElement("input"); an.type = "checkbox";
       an.checked = stand.enabled === true; an.disabled = stand.busy === true && !an.checked;
-      an.setAttribute("aria-label", _("Synchronize photos"));
+      an.setAttribute("aria-label", _("Receive") + " · " + _("Photos"));
       an.addEventListener("change", () => sende(an.checked ? "enable" : "disable"));
-      const label = el("label", "telefon-medien-aktivierung"); label.title = _("Synchronize photos"); label.append(an);
+      const label = el("label", "telefon-medien-aktivierung"); label.title = _("Receive") + " · " + _("Photos"); label.append(an);
       label.addEventListener("click", event => event.stopPropagation());
       label.addEventListener("keydown", event => event.stopPropagation()); titel.append(label);
-      if (stand.enabled) {
-        const richtung = document.createElement("select");
-        const nurHandy = document.createElement("option"); nurHandy.value = "phone_to_desktop";
-        nurHandy.textContent = _("Synchronize only the phone's collection"); richtung.append(nurHandy);
-        gruppe.append(formZeile(_("Direction"), richtung));
+      const sendeStand = stand.sending_consent || (stand.sending_setup ? { photos: false, videos: false, ...stand.sending_setup } : null);
+      if (sendeStand) {
+        const rights = el("section", "notes-medien-rechte"); rights.append(el("h4", null, _("Send")));
+        for (const [field, title] of [["photos", _("Photos")], ["videos", _("Videos")]]) {
+          if (field === "videos" && stand.video_supported !== true) continue;
+          const input = document.createElement("input"); input.type = "checkbox"; input.dataset.mediaSend = field;
+          input.checked = sendeStand[field] === true;
+          input.disabled = telefonSendeZustimmungen.has(peer.device_id) || (stand.busy === true && !input.checked);
+          input.addEventListener("change", () => {
+            const wanted = input.checked; input.checked = sendeStand[field] === true;
+            telefonSendeZustimmung(peer, stand, field, wanted);
+          });
+          const row = el("label", "hak"); row.append(input, document.createTextNode(" Organizer → " + _("Send") + " · " + title)); rights.append(row);
+        }
+        gruppe.append(rights);
+      }
+      let fotoAlbumWahl = null, videoAlbumWahl = null;
+      if (stand.shared_media) {
+        const shared = stand.shared_media, settings = el("section", "notes-medien-einstellungen");
+        settings.append(el("h4", null, _("Shared settings")));
+        if (shared.configured === false) settings.append(el("p", "einst-hinweis", _("Shared settings are not configured yet.")));
+        const waiting = telefonMedienEinstellungen.has(peer.device_id);
+        const check = (field, title, unsupported = false) => {
+          const input = document.createElement("input"); input.type = "checkbox"; input.dataset.mediaSetting = field;
+          input.checked = shared.values[field] === true; input.disabled = waiting || stand.busy === true || unsupported;
+          input.addEventListener("change", () => {
+            const wanted = input.checked; input.checked = shared.values[field] === true;
+            telefonMedienEinstellung(peer, stand, field, wanted);
+          });
+          const row = el("label", "hak"); row.append(input, document.createTextNode(" " + title)); settings.append(row);
+        };
+        const select = (field, title, options) => {
+          const input = document.createElement("select"); input.className = "feld"; input.dataset.mediaSetting = field;
+          input.setAttribute("aria-label", title);
+          for (const [value, label, unsupported] of options) {
+            const option = document.createElement("option"); option.value = value; option.textContent = label;
+            option.disabled = unsupported === true; input.append(option);
+          }
+          input.value = shared.values[field]; input.disabled = waiting || stand.busy === true;
+          input.addEventListener("change", () => {
+            const wanted = input.value; input.value = shared.values[field];
+            telefonMedienEinstellung(peer, stand, field, wanted);
+          });
+          settings.append(formZeile(title, input));
+        };
+        check("enabled", _("Enable photo and video synchronization"));
+        select("collection_mode", _("Scope"), [["phone_inventory", _("Only the phone inventory")],
+          ["entire_collection", _("Entire collection"), true], ["import_only", _("Import phone → PC only")]]);
+        select("auto_mode", _("Mode"), [["manual", pgettext("photo synchronization", "Manual")],
+          ["wifi", _("Automatically synchronize over Wi-Fi")]]);
+        select("direction", _("Direction"), [["phone_to_pc", _("Phone → PC")],
+          ["two_way", _("Two-way synchronization")], ["pc_to_phone", _("PC → phone")]]);
+        check("photos_enabled", _("Synchronize photos"));
+        if (stand.video_supported === true) check("videos_enabled", _("Synchronize videos"));
+        check("photos_only", _("Photos only"));
+        // Deletion propagation and unmapped entire-PC collection are not joined.
+        // Preserve their stored choices, but never advertise usable controls.
+        check("skip_deletions", _("Skip deletions"), true);
+        settings.append(el("p", "einst-hinweis", _("Deletions are not synchronized yet.")));
+        if (shared.values.collection_mode === "entire_collection")
+          settings.append(el("p", "einst-warnung", _("Changes need review. No conflicting version was overwritten.")));
+        if (!shared.agreed) settings.append(el("p", "einst-hinweis", _("Waiting for the phone…")));
+        gruppe.append(settings);
+      }
+      if ((stand.enabled || stand.mapped_outgoing === true) && (!stand.shared_media || stand.shared_media.configured === false)) {
+        if (stand.mapped_outgoing === true) {
+          gruppe.append(formZeile(_("Direction"), el("span", null, stand.mapped_direction === "two_way"
+            ? _("Two-way synchronization") : "Organizer → Notes")));
+        } else {
+          const richtung = document.createElement("select");
+          const nurHandy = document.createElement("option"); nurHandy.value = "phone_to_desktop";
+          nurHandy.textContent = _("Synchronize only the phone's collection"); richtung.append(nurHandy);
+          gruppe.append(formZeile(_("Direction"), richtung));
+        }
         // Unsupported controls are absent instead of silently doing other work.
         if (stand.automatic_supported === true) {
           const modus = document.createElement("select"); modus.dataset.photoMode = "true";
@@ -28997,6 +29271,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           modus.addEventListener("change", () => sende("mode_" + modus.value));
           gruppe.append(formZeile(_("Mode"), modus));
         } else gruppe.append(formZeile(_("Mode"), el("span", null, pgettext("photo synchronization", "Manual"))));
+      }
+      if (!stand.enabled && stand.mapped_outgoing === true) {
+        const ausgangStatus = { syncing: _("Photo synchronization active"), stopping: _("Stopping photo synchronization…"),
+          complete: _("Done"), canceled: _("Canceled"),
+          held: _("Changes need review. No conflicting version was overwritten.") };
+        if (ausgangStatus[stand.state]) {
+          const statusFeld = el("p", stand.state === "held" ? "einst-warnung" : "einst-hinweis", ausgangStatus[stand.state]);
+          statusFeld.dataset.mappedOutgoingStatus = "true"; gruppe.append(statusFeld);
+        }
+      }
+      if (stand.enabled) {
         if (stand.animation_grouping_supported === true) {
           const animationen = document.createElement("input"); animationen.type = "checkbox";
           animationen.dataset.photoAnimations = "true";
@@ -29038,6 +29323,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const alben = knopf(_("Refresh albums"), "", () => sende("discover"));
         lesen.disabled = alben.disabled = stand.busy === true; reihe.append(lesen, alben); gruppe.append(reihe);
         const auswahl = document.createElement("select"); auswahl.dataset.photoAlbum = "true";
+        fotoAlbumWahl = auswahl;
         auswahl.setAttribute("aria-label", _("Phone album"));
         for (const album of stand.albums || []) {
           const option = document.createElement("option"); option.value = album.album_id;
@@ -29045,9 +29331,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
         if ([...auswahl.options].some(option => option.value === ansicht.album)) auswahl.value = ansicht.album;
         if (auswahl.options.length) gruppe.append(formZeile(_("Phone album"), auswahl));
-        const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => sende("sync", auswahl.value));
-        jetzt.disabled = stand.busy === true || !auswahl.options.length; gruppe.append(jetzt);
-        if (stand.busy) gruppe.append(knopf(_("Stop"), "", () => sende("stop")));
         if (stand.recovery_supported === true) {
           const pruefen = knopf(_("Review interrupted transfers"), "", () => sende("inspect_recovery"));
           pruefen.dataset.photoRecovery = "inspect";
@@ -29081,12 +29364,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           videoAn.addEventListener("change", () => sende(videoAn.checked ? "videos_enable" : "videos_disable"));
           const videoLabel = el("label", "hak"); videoLabel.append(videoAn, document.createTextNode(" " + _("Also synchronize videos")));
           videos.append(videoLabel);
-          const videoOrdner = el("div", "kde-empfangsordner"), videoPfad = document.createElement("input");
-          videoPfad.type = "text"; videoPfad.readOnly = true; videoPfad.className = "feld";
-          videoPfad.setAttribute("aria-label", _("Destination folder")); videoPfad.dataset.videoDestinationPath = "true";
-          videoPfad.value = stand.video_destination || ""; videoPfad.title = videoPfad.value; videoOrdner.append(videoPfad);
-          const videoZiel = knopf(_("Choose folder …"), "", () => Bruecke.sende({ cmd: "telefon_videoziel_waehlen",
+          const videoOrdner = el("div", "kde-empfangsordner");
+          const videoZiel = knopf(_("Videos") + " · " + _("Destination folder"), "", () => Bruecke.sende({ cmd: "telefon_videoziel_waehlen",
             kennung: peer.device_id, fingerprint: peer.fingerprint }));
+          videoZiel.title = stand.video_destination || "";
           videoZiel.dataset.videoDestination = "true"; videoZiel.disabled = stand.busy === true || stand.video_enabled === true;
           const videoStandard = knopf(_("Use default"), "", () => sende("videos_default_destination"));
           videoStandard.dataset.videoDestinationDefault = "true"; videoStandard.disabled = videoZiel.disabled;
@@ -29100,6 +29381,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             videoLesen.disabled = videoAlben.disabled = stand.busy === true;
             videoReihe.append(videoLesen, videoAlben); videos.append(videoReihe);
             const videoAuswahl = document.createElement("select"); videoAuswahl.dataset.videoAlbum = "true";
+            videoAlbumWahl = videoAuswahl;
             videoAuswahl.setAttribute("aria-label", _("Phone album"));
             for (const album of stand.video_albums || []) {
               const option = document.createElement("option"); option.value = album.album_id;
@@ -29107,26 +29389,38 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             }
             if ([...videoAuswahl.options].some(option => option.value === ansicht.videoAlbum)) videoAuswahl.value = ansicht.videoAlbum;
             if (videoAuswahl.options.length) videos.append(formZeile(_("Phone album"), videoAuswahl));
-            const videoJetzt = knopf(_("Synchronize now"), "hauptknopf", () => sende("videos_sync", videoAuswahl.value));
-            videoJetzt.dataset.videoAction = "sync"; videoJetzt.disabled = stand.busy === true || !videoAuswahl.options.length;
-            videos.append(videoJetzt);
           }
           gruppe.append(videos);
         }
       }
       if (stand.destination) {
-        const fotoOrdner = el("div", "kde-empfangsordner"), fotoPfad = document.createElement("input");
-        fotoPfad.type = "text"; fotoPfad.readOnly = true; fotoPfad.className = "feld";
-        fotoPfad.dataset.photoDestinationPath = "true"; fotoPfad.setAttribute("aria-label", _("Destination folder"));
-        fotoPfad.value = stand.destination; fotoPfad.title = fotoPfad.value;
-        const fotoZiel = knopf(_("Choose folder …"), "", () => Bruecke.sende({ cmd: "telefon_fotoziel_waehlen",
+        const fotoOrdner = el("div", "kde-empfangsordner");
+        const fotoZiel = knopf(_("Photos") + " · " + _("Destination folder"), "", () => Bruecke.sende({ cmd: "telefon_fotoziel_waehlen",
           kennung: peer.device_id, fingerprint: peer.fingerprint })); fotoZiel.dataset.photoDestination = "true";
+        fotoZiel.title = stand.destination;
         const fotoStandard = knopf(_("Use default"), "", () => sende("photos_default_destination")); fotoStandard.dataset.photoDestinationDefault = "true";
         fotoZiel.disabled = fotoStandard.disabled = stand.busy === true || stand.enabled === true;
-        fotoOrdner.append(fotoPfad, fotoZiel, fotoStandard); gruppe.append(fotoOrdner,
+        fotoOrdner.append(fotoZiel, fotoStandard); gruppe.append(fotoOrdner,
           el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
+      if (stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
+        const manuell = el("div", "knopfreihe notes-medien-manuell");
+        const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
+          telefonFotoFehler.delete(peer.device_id);
+          Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint,
+            request: stand.mapped_outgoing === true && !(fotoAlbumWahl?.value || videoAlbumWahl?.value) ? { action: "sync_shared" } :
+              { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
+        });
+        jetzt.dataset.photoManualSync = "true";
+        jetzt.disabled = stand.busy === true || !(stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
+          !!(stand.shared_media && stand.shared_media.configured !== false && (!stand.shared_media.values.enabled || !stand.shared_media.agreed));
+        manuell.append(jetzt);
+        if (stand.busy) {
+          const stop = knopf(_("Stop"), "", () => sende("stop")); stop.dataset.photoStop = "true"; manuell.append(stop);
+        }
+        gruppe.append(manuell);
+      }
       erweitert.append(gruppe); wurzel.append(erweitert);
     }
   }
@@ -30818,11 +31112,59 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   const medienPapierkorb = { supported: null, entries: [], total: 0, next: null, pending: null, error: false };
+  const medienVorschaubilder = new Map();
+  let medienVorschauWartend = [], medienVorschauBeobachter = null, medienVorschauSchliessen = null, medienThumbnailsAn = false;
+  const medienVorschauSchluessel = entry => entry.scope + "." + entry.operation + "." + entry.version;
+
+  function starteMedienVorschaubilder() {
+    const root = $("#medien-papierkorb"), oben = modalStapel.at(-1);
+    if (!medienThumbnailsAn || gesperrt || medienPapierkorb.pending || !root?.isConnected || (oben && !oben.dialog.contains(root))) return;
+    while (medienVorschauWartend.length) {
+      const entry = medienVorschauWartend.shift(), key = medienVorschauSchluessel(entry);
+      if (!medienPapierkorb.entries.includes(entry) || medienVorschaubilder.get(key)?.status !== "queued") continue;
+      medienPapierkorbAnfordern("thumbnail", entry); break;
+    }
+  }
+
+  function zeigeMedienPapierkorbVorschau(entry, preview) {
+    if (gesperrt || !medienPapierkorb.entries.includes(entry)) return;
+    medienVorschauSchliessen?.(false);
+    const schleier = el("div", "eingabe-schleier medien-vorschau-schleier"); schleier.id = "medien-vorschau-schleier";
+    const dialog = el("div", "eingabe-dialog medien-vorschau-dialog");
+    const titel = el("h3", null, entry.name + " · " + _("Preview")); titel.id = "medien-vorschau-titel";
+    dialog.setAttribute("aria-labelledby", titel.id);
+    const bild = document.createElement("img"); bild.className = "medien-vorschau-bild"; bild.alt = entry.name;
+    bild.src = preview.src; bild.width = preview.width; bild.height = preview.height;
+    const schliessen = (weiter = true) => {
+      bild.removeAttribute("src"); beendeModal(schleier); schleier.remove(); medienVorschauSchliessen = null;
+      if (weiter) starteMedienVorschaubilder();
+    };
+    const knoepfe = el("div", "dialog-knoepfe");
+    const restore = knopf(_("Restore"), "", () => {
+      if (gesperrt || medienPapierkorb.pending || !medienPapierkorb.entries.includes(entry)) return;
+      schliessen(false); medienPapierkorbAnfordern("restore", entry);
+    }); restore.dataset.mediaPreviewRestore = entry.operation; knoepfe.append(restore);
+    if (["trashed", "purge_prepared"].includes(entry.state)) {
+      const purge = knopf(_("Delete permanently"), "", () => { schliessen(false); medienPapierkorbEndgueltig(entry); });
+      purge.dataset.mediaPreviewPurge = entry.operation; knoepfe.append(purge);
+    }
+    const close = knopf(_("Close"), "", () => schliessen()); knoepfe.append(close);
+    dialog.append(titel, bild, knoepfe); schleier.append(dialog); document.body.append(schleier);
+    medienVorschauSchliessen = schliessen;
+    schleier.addEventListener("click", event => { if (event.target === schleier) schliessen(); });
+    registriereModal(schleier, dialog, { anfang: close, schliessen: () => schliessen() });
+  }
 
   function verwerfeMedienPapierkorb() {
     if (medienPapierkorb.pending) clearTimeout(medienPapierkorb.pending.timer);
+    medienVorschauSchliessen?.(false); medienVorschauBeobachter?.disconnect(); medienVorschauBeobachter = null;
+    medienVorschauWartend = []; medienVorschaubilder.clear();
+    medienThumbnailsAn = false;
     Object.assign(medienPapierkorb, { supported: null, entries: [], total: 0, next: null, pending: null, error: false });
-    const root = $("#medien-papierkorb"); if (root) { root.replaceChildren(); root.hidden = true; }
+    const root = $("#medien-papierkorb"); if (root) {
+      root.querySelectorAll("img").forEach(bild => bild.removeAttribute("src"));
+      root.replaceChildren(); root.hidden = true;
+    }
   }
 
   function medienPapierkorbAnfordern(action = "list", entry = null, cursor = 0) {
@@ -30831,11 +31173,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (action === "list") request.cursor = cursor;
     else Object.assign(request, { scope: entry.scope, operation: entry.operation, version: entry.version });
     if (action === "purge") request.confirmed = true;
-    const pending = { request_id, action, entry, cursor, timer: null };
-    medienPapierkorb.pending = pending; medienPapierkorb.error = false;
+    const vorschau = ["thumbnail", "preview"].includes(action);
+    if (vorschau && !medienPapierkorb.entries.includes(entry)) return;
+    const pending = { request_id, action, entry, cursor, timer: null, root: $("#medien-papierkorb") };
+    medienPapierkorb.pending = pending; if (!vorschau) medienPapierkorb.error = false;
+    if (action === "thumbnail") medienVorschaubilder.set(medienVorschauSchluessel(entry), { status: "pending" });
     pending.timer = setTimeout(() => {
       if (medienPapierkorb.pending !== pending) return;
-      medienPapierkorb.pending = null; medienPapierkorb.error = true; zeichneMedienPapierkorb();
+      medienPapierkorb.pending = null;
+      if (action === "thumbnail") medienVorschaubilder.set(medienVorschauSchluessel(entry), { status: "failed" });
+      else if (action === "preview") zettel(_("Preview") + " · " + _("Failed"));
+      else medienPapierkorb.error = true;
+      zeichneMedienPapierkorb(); starteMedienVorschaubilder();
     }, 65000);
     Bruecke.sende(request); zeichneMedienPapierkorb();
   }
@@ -30846,13 +31195,23 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const yes = await frage(entry.name + "\n\n" + uebersetztMehrzahl(
       "Permanently delete the one item? This cannot be undone.",
       "Permanently delete all %(count)s items? This cannot be undone.", 1), _("Delete permanently"));
-    if (!yes || gesperrt || medienPapierkorb.pending || medienPapierkorb.entries !== rows || !rows.includes(entry)) return;
+    if (!yes || gesperrt || medienPapierkorb.pending || medienPapierkorb.entries !== rows || !rows.includes(entry)) { starteMedienVorschaubilder(); return; }
     medienPapierkorbAnfordern("purge", entry);
   }
 
   function zeichneMedienPapierkorb() {
     const root = $("#medien-papierkorb");
     if (!root) return;
+    medienVorschauBeobachter?.disconnect(); medienVorschauBeobachter = null;
+    if (medienThumbnailsAn && typeof IntersectionObserver === "function") medienVorschauBeobachter = new IntersectionObserver(items => {
+      for (const item of items) {
+        if (!item.isIntersecting) continue;
+        const entry = medienPapierkorb.entries.find(row => medienVorschauSchluessel(row) === item.target.dataset.mediaThumbnailKey);
+        if (!entry || medienVorschaubilder.has(medienVorschauSchluessel(entry))) continue;
+        medienVorschaubilder.set(medienVorschauSchluessel(entry), { status: "queued" }); medienVorschauWartend.push(entry);
+      }
+      starteMedienVorschaubilder();
+    });
     root.replaceChildren(); root.hidden = medienPapierkorb.supported !== true;
     const stand = $("#papierkorb-stand");
     if (stand) stand.hidden = !DATEN.papierkorb.length && medienPapierkorb.supported === true && (medienPapierkorb.total > 0 || medienPapierkorb.error);
@@ -30860,6 +31219,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     root.append(el("h3", null, _("Photos and videos") + (medienPapierkorb.error && !medienPapierkorb.entries.length
       ? "" : " (" + zahlText(medienPapierkorb.total) + ")")));
     root.append(el("p", "einst-hinweis", _("Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file.")));
+    const vorschauOption = el("label", "hak"), vorschauHak = document.createElement("input");
+    vorschauHak.type = "checkbox"; vorschauHak.checked = medienThumbnailsAn; vorschauHak.id = "medien-thumbnails-an";
+    vorschauHak.addEventListener("change", () => {
+      medienThumbnailsAn = vorschauHak.checked;
+      if (!medienThumbnailsAn) { medienVorschauWartend = []; medienVorschaubilder.clear(); }
+      zeichneMedienPapierkorb();
+    });
+    vorschauOption.append(vorschauHak, document.createTextNode(" " + _("Preview"))); root.append(vorschauOption);
     // A reply can be lost after native byte release. Never promise that files
     // were kept merely because a final completion could not be verified.
     if (medienPapierkorb.error) root.append(el("p", "einst-warnung", _("Failed") + " · " + _("Refresh")));
@@ -30868,6 +31235,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const list = el("div", "papierkorb-liste");
     for (const entry of medienPapierkorb.entries) {
       const row = el("div", "pk-zeile"); row.dataset.mediaOperation = entry.operation; row.dataset.mediaType = entry.media_type;
+      const thumbnail = medienThumbnailsAn ? medienVorschaubilder.get(medienVorschauSchluessel(entry)) : null;
+      const ansehen = knopf(_("Preview"), medienThumbnailsAn ? "medien-papierkorb-vorschau" : "klein", () => medienPapierkorbAnfordern("preview", entry));
+      ansehen.dataset.mediaPreview = entry.operation; ansehen.dataset.mediaThumbnailKey = medienVorschauSchluessel(entry);
+      ansehen.disabled = !!medienPapierkorb.pending; ansehen.title = entry.name + " · " + _("Preview");
+      if (thumbnail?.status === "ready") {
+        ansehen.replaceChildren(); const bild = document.createElement("img"); bild.src = thumbnail.src; bild.alt = entry.name; ansehen.append(bild);
+      } else if (thumbnail?.status === "failed") ansehen.title += " · " + _("Failed");
+      row.append(ansehen); medienVorschauBeobachter?.observe(ansehen);
       row.append(el("span", "pk-name", entry.name));
       if (entry.state !== "trashed") row.append(el("span", "pk-wann", _("Pending recovery")));
       const restore = knopf(_("Restore"), "klein", () => medienPapierkorbAnfordern("restore", entry));
@@ -30894,11 +31269,31 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (gesperrt) { verwerfeMedienPapierkorb(); return; }
     if (!pending || value?.request_id !== pending.request_id) return;
     clearTimeout(pending.timer); medienPapierkorb.pending = null;
-    if (value.supported === false) {
+    if (value.supported === false && !["thumbnail", "preview"].includes(pending.action)) {
+      medienVorschauSchliessen?.(false); medienVorschaubilder.clear(); medienVorschauWartend = [];
       Object.assign(medienPapierkorb, { supported: false, entries: [], total: 0, next: null, error: false });
       zeichneMedienPapierkorb(); return;
     }
     medienPapierkorb.supported = value.supported === true || medienPapierkorb.supported;
+    if (["thumbnail", "preview"].includes(pending.action)) {
+      const entry = pending.entry, preview = value.preview, maximum = pending.action === "thumbnail" ? 192 : 1024;
+      const valid = value.ok === true && value.supported === true && value.action === pending.action && value.scope === entry.scope && value.operation === entry.operation && value.version === entry.version &&
+        medienPapierkorb.entries.includes(entry) && preview && ["image/png", "image/jpeg"].includes(preview.mime_type) &&
+        Number.isSafeInteger(preview.width) && Number.isSafeInteger(preview.height) && preview.width > 0 && preview.height > 0 && Math.max(preview.width, preview.height) <= maximum &&
+        typeof preview.data_base64 === "string" && preview.data_base64.length > 0 && preview.data_base64.length <= 699052 && preview.data_base64.length % 4 === 0 &&
+        /^[A-Za-z0-9+/]+={0,2}$/.test(preview.data_base64) && (preview.mime_type === "image/png" ? preview.data_base64.startsWith("iVBORw0KGgo") : preview.data_base64.startsWith("/9j/"));
+      const result = valid ? { status: "ready", src: "data:" + preview.mime_type + ";base64," + preview.data_base64, width: preview.width, height: preview.height } : { status: "failed" };
+      if (pending.action === "thumbnail" && medienThumbnailsAn) {
+        medienVorschaubilder.set(medienVorschauSchluessel(entry), result);
+        const ready = [...medienVorschaubilder].filter(([, value]) => value.status === "ready");
+        for (const [key] of ready.slice(0, Math.max(0, ready.length - 48))) medienVorschaubilder.set(key, { status: "evicted" });
+      }
+      zeichneMedienPapierkorb();
+      if (pending.action === "preview" && pending.root?.isConnected && pending.root === $("#medien-papierkorb")) {
+        if (valid) zeigeMedienPapierkorbVorschau(entry, result); else zettel(_("Preview") + " · " + _("Failed"));
+      }
+      starteMedienVorschaubilder(); return;
+    }
     const fail = () => { medienPapierkorb.error = true; zeichneMedienPapierkorb(); };
     if (value.ok !== true || value.action !== pending.action) { fail(); return; }
     if (pending.action !== "list") {
@@ -30926,6 +31321,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       fail(); return;
     }
     const rows = pending.cursor ? medienPapierkorb.entries.slice() : [];
+    if (!pending.cursor) {
+      medienVorschauSchliessen?.(false); medienVorschaubilder.clear(); medienVorschauWartend = [];
+    }
     for (const entry of value.entries) {
       const index = rows.findIndex(old => old.scope === entry.scope && old.operation === entry.operation);
       if (index >= 0) rows[index] = entry; else rows.push(entry);
@@ -32835,7 +33233,78 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return kandidaten.size === 1 ? Array.from(kandidaten)[0] : null;
   }
 
-  function mergeTermine(liste, normalisiert = false) {
+  // #462: old Android JSONObject quoting escaped every slash in the RID hash.
+  // These plans are ephemeral import state, never a renamed UID or stored alias.
+  const alteAndroidTerminPlaene = new WeakMap();
+  function alterAndroidTerminKonflikt() {
+    const error = new Error(_("Conflict")); error.code = "ics_alias_conflict"; return error;
+  }
+  function alteAndroidTerminIdentitaet(t) {
+    if (!t || typeof t.icsQuelleId !== "string" || !t.icsQuelleId ||
+        typeof t.icsSerienUid !== "string" || !t.icsSerienUid || /[\x00-\x1f]/.test(t.icsQuelleId + t.icsSerienUid)) return null;
+    const zeilen = (Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip : []).filter(x => typeof x === "string" && /^RECURRENCE-ID[;:]/i.test(x));
+    if (zeilen.length !== 1 || zeilen[0].length > 8192 || /[\x00-\x1f]/.test(zeilen[0])) return null;
+    const raw = zeilen[0], teile = []; let zitat = false, start = 0, ende = -1;
+    for (let i = 0; i < raw.length; i++) {
+      if (raw[i] === '"') zitat = !zitat;
+      if (!zitat && (raw[i] === ";" || raw[i] === ":")) {
+        teile.push(raw.slice(start, i)); start = i + 1;
+        if (raw[i] === ":") { ende = i; break; }
+      }
+    }
+    if (zitat || ende < 0 || teile[0].toUpperCase() !== "RECURRENCE-ID") return null;
+    const params = Object.create(null);
+    for (const teil of teile.slice(1)) {
+      const gleich = teil.indexOf("="), key = teil.slice(0, gleich).toUpperCase();
+      if (gleich < 1 || !/^[A-Z0-9-]+$/.test(key) || Object.prototype.hasOwnProperty.call(params, key)) return null;
+      let wert = teil.slice(gleich + 1);
+      if (wert.startsWith('"') && wert.endsWith('"')) wert = wert.slice(1, -1);
+      else if (wert.includes('"')) return null;
+      params[key] = wert;
+    }
+    const wert = raw.slice(ende + 1);
+    if (!/^\d{8}(?:T\d{6}Z?)?$/.test(wert)) return null;
+    return { key: JSON.stringify([t.icsQuelleId, t.icsSerienUid, raw]), serie: t.icsSerienUid, params, wert };
+  }
+  function alteAndroidTerminKandidaten(nutzlast) {
+    const eingang = new Map();
+    for (const t of nutzlast.termine || []) {
+      const id = alteAndroidTerminIdentitaet(t); if (!id) continue;
+      if (!eingang.has(id.key)) eingang.set(id.key, new Set()); eingang.get(id.key).add(t.uid);
+    }
+    return DATEN.termine.filter(t => {
+      const id = alteAndroidTerminIdentitaet(t);
+      const uids = id && eingang.get(id.key);
+      return uids && (uids.size > 1 || !uids.has(t.uid)) && t.uid?.startsWith(id.serie + "-magnolie-instanz-") && /-magnolie-instanz-[0-9a-f]{16}$/.test(t.uid);
+    });
+  }
+  async function bereiteAlteAndroidTerminAliase(nutzlast) {
+    const bestand = DATEN, vorher = JSON.stringify(DATEN.termine), kandidaten = alteAndroidTerminKandidaten(nutzlast);
+    const aliase = new Map(), gesehen = new Set(), vorhandene = new Map(), alte = new Map();
+    for (const t of DATEN.termine) {
+      const id = alteAndroidTerminIdentitaet(t); if (!id) continue;
+      if (!vorhandene.has(id.key)) vorhandene.set(id.key, []); vorhandene.get(id.key).push(t);
+    }
+    for (const k of kandidaten) {
+      const key = alteAndroidTerminIdentitaet(k).key;
+      if (!alte.has(key)) alte.set(key, []); alte.get(key).push(k);
+    }
+    for (const t of nutzlast.termine || []) {
+      const id = alteAndroidTerminIdentitaet(t);
+      if (!id || !alte.get(id.key)?.some(k => k.uid !== t.uid)) continue;
+      if (gesehen.has(id.key)) throw alterAndroidTerminKonflikt(); gesehen.add(id.key);
+      const text = personalSyncKanonisch([id.params, id.wert]).replace(/\//g, "\\/");
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN.termine) !== vorher) throw alterAndroidTerminKonflikt();
+      const alt = id.serie + "-magnolie-instanz-" + Array.from(new Uint8Array(digest), x => x.toString(16).padStart(2, "0")).join("").slice(0, 16);
+      const treffer = vorhandene.get(id.key);
+      if (treffer.length !== 1 || treffer[0].uid !== alt) throw alterAndroidTerminKonflikt();
+      aliase.set(JSON.stringify([id.key, t.uid]), { id: treffer[0].id, uid: alt });
+    }
+    alteAndroidTerminPlaene.set(nutzlast, { vorher, aliase });
+  }
+
+  function mergeTermine(liste, normalisiert = false, aliasPlan = null) {
     const z = { neu: 0, doppelt: 0 };
     const importKennung = (eintrag, wert) => {
       const quelle = String(eintrag.icsQuelleId || "");
@@ -32846,10 +33315,25 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const t of normalisiert ? liste : normalisiereTermine(liste, false)) {
       const endDatum = gueltigesISO(t.endDatum) && t.endDatum > t.datum
         ? t.endDatum : "";
-      const uidTreffer = t.uid ? uids.get(importKennung(t, t.uid)) : null;
+      const identitaet = alteAndroidTerminIdentitaet(t);
+      const alias = identitaet && aliasPlan?.aliase.get(JSON.stringify([identitaet.key, t.uid]));
+      const uidTreffer = alias ? uids.get(importKennung(t, alias.uid)) : t.uid ? uids.get(importKennung(t, t.uid)) : null;
+      if (alias && (!uidTreffer || uidTreffer.id !== alias.id || alteAndroidTerminIdentitaet(uidTreffer)?.key !== identitaet.key)) throw alterAndroidTerminKonflikt();
       if (uidTreffer) {
         if ((Number(t.geaendert) || 0) > (Number(uidTreffer.geaendert) || 0)) {
           const id = uidTreffer.id;
+          if (alias) {
+            // Preserve the old primary identity, references, all unknowns and
+            // local/provider lists. Normalized incoming defaults are not edits.
+            for (const feld of ["datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kategorien", "ort", "akzentFarbe",
+              "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "wiederholung", "icsKomplex", "icsSerienUid", "icsAusnahmen",
+              "icsZusatzDaten", "icsZusatzTermine", "icsRoundtrip", "icsRangeOverrides", "icsAusnahmeTermine", "icsTimezones",
+              "icsAnzeigeZeitzone", "icsSequence", "icsAenderungszeitFehlt", "icsEndeFehlt", "icsNullDauer", "geaendert"])
+              if (Object.prototype.hasOwnProperty.call(t, feld)) uidTreffer[feld] = kopie(t[feld]);
+            uidTreffer.icsReadOnly = !!(uidTreffer.icsReadOnly || t.icsReadOnly);
+            if (!uidTreffer.icsReadOnlyGrund && t.icsReadOnlyGrund) uidTreffer.icsReadOnlyGrund = String(t.icsReadOnlyGrund);
+            uidTreffer.sync = false; z.neu++; continue;
+          }
           Object.assign(uidTreffer, t, { id: id, uid: t.uid,
             endDatum: endDatum, wiederholung: leseWiederholung(t.wiederholung),
             icsKomplex: !!t.icsKomplex, icsSerienUid: String(t.icsSerienUid || ""),
@@ -33062,15 +33546,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mergeNotizen(liste, leise = false, notizbuchId = null) {
     const z = { neu: 0, doppelt: 0, uebersprungen: 0 };
     const zielbuch = notizbuchId === null ? zustand.notizen.notizbuchId : notizbuchId;
-    const schluessel = new Set(DATEN.notizen.map(
-      (n) => kanonischerText(n.titel) + "|" + kanonischerText(n.text)));
+    const schluessel = new Map();
+    const merke = (s, anhaenge) => {
+      if (!schluessel.has(s)) schluessel.set(s, []);
+      schluessel.get(s).push(anhaenge);
+    };
+    const gleicheAnhaenge = (a, b) => a.length === b.length && a.every((anhang, index) =>
+      anhang.name === b[index].name && anhang.art === b[index].art && anhang.daten === b[index].daten);
+    for (const n of DATEN.notizen) merke(kanonischerText(n.titel) + "|" + kanonischerText(n.text), saubereNotizAnhaenge(n.anhaenge));
     for (const n of liste || []) {
       if (!n) { z.uebersprungen++; continue; }
       const titel = String(n.titel || "").trim();
       const text = String(n.text || "").trim();
       if (!titel && !text) { z.uebersprungen++; continue; }
       const s = kanonischerText(titel) + "|" + kanonischerText(text);
-      if (schluessel.has(s)) { z.doppelt++; continue; }
+      const anhaenge = saubereNotizAnhaenge(n.anhaenge);
+      // Never convert a partially rejected attachment list into a duplicate or
+      // silently import only the surviving part of this note.
+      if (n.anhaenge != null && (!Array.isArray(n.anhaenge) || anhaenge.length !== n.anhaenge.length)) {
+        z.uebersprungen++; continue;
+      }
+      if ((schluessel.get(s) || []).some(bisher => gleicheAnhaenge(bisher, anhaenge))) { z.doppelt++; continue; }
       const htmlStand = {};
       const sicheresHtml = saeubereHtml(String(n.html || ""), htmlStand);
       if (htmlStand.gekuerzt) {
@@ -33080,11 +33576,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       DATEN.notizen.push({ id: uid(), titel: titel || ersteZeile(text),
         text: text, html: sicheresHtml || textZuHtml(text),
-        anhaenge: saubereNotizAnhaenge(n.anhaenge),
+        anhaenge: anhaenge,
         notizbuchId: DATEN.notizbuecher.some((b) => b.id === zielbuch)
           ? zielbuch : DATEN.notizbuecher[0].id,
         geaendert: String(n.geaendert || isoHeute()) });
-      schluessel.add(s);
+      merke(s, anhaenge);
       z.neu++;
     }
     return z;
@@ -33293,6 +33789,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {
+    const aliasPlan = alteAndroidTerminPlaene.get(nutzlast);
+    if (aliasPlan ? JSON.stringify(DATEN.termine) !== aliasPlan.vorher : alteAndroidTerminKandidaten(nutzlast).length)
+      throw alterAndroidTerminKonflikt();
     if (kontaktPruefung) {
       DATEN.kontakte = kontaktPruefung.daten.kontakte;
       DATEN.jahrestage = kontaktPruefung.daten.jahrestage;
@@ -33312,7 +33811,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           kanonischesJahresdatum(k[art === "birthday" ? "geburtstag" : "jubilaeum"], art === "birthday" && k.geburtstagJahrUnbekannt);
     });
     if (Array.isArray(nutzlast.termine) && nutzlast.termine.length) {
-      const z = mergeTermine(nutzlast.termine, termineNormalisiert); doppelt += z.doppelt; counts.appointments = z.neu;
+      const z = mergeTermine(nutzlast.termine, termineNormalisiert, aliasPlan); doppelt += z.doppelt; counts.appointments = z.neu;
       if (z.neu) teile.push(uebersetztMehrzahl("%(count)s appointment", "%(count)s appointments", z.neu));
     }
     if (Array.isArray(nutzlast.jahrestage) && nutzlast.jahrestage.length) {
@@ -34272,7 +34771,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         baueEinstellungen();
       }
     },
+    trayDarstellungTestStand(value) { window.MagnolieAppearance?.nativeResult(value); },
     init(nutzlast) {
+      window.MagnolieAppearance?.update({ today: "", developer: false, locked: true });
       verwerfeMedienPapierkorb();
       verwerfeMedienBackupWiederherstellung();
       kontaktFotoDialogSchliessen?.();
@@ -34361,7 +34862,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const papierkorbBereinigt = raeumePapierkorbAuf();
       const nachAufraeumen = performance.now();
       if (nutzlast.neu && !DATEN.notizen.length) {
-        DATEN.notizen.push(willkommensNotiz());
+        DATEN.notizen.push(normalisiere({ notizen: [willkommensNotiz()] }).notizen[0]);
       }
       initialisiert = true;
       setTimeout(starteSetupFerienAbruf, 0);
@@ -34649,6 +35150,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     telefonBackupErgebnis,
     telefonFotoErgebnis(value) {
       if (typeof value?.device_id !== "string") return;
+      if (typeof value.requestId === "string") {
+        const settings = telefonMedienEinstellungen.get(value.device_id);
+        const choices = settings?.requestId === value.requestId ? telefonMedienEinstellungen : telefonSendeZustimmungen;
+        const pending = choices.get(value.device_id);
+        if (!pending || pending.requestId !== value.requestId) return;
+        clearTimeout(pending.timer); choices.delete(value.device_id);
+        if (pending.book !== DATEN || !telefonStand?.peers?.some(peer => peer.device_id === value.device_id && peer.fingerprint === pending.fingerprint)) return;
+      }
       if (value.ok) telefonFotoFehler.delete(value.device_id);
       else telefonFotoFehler.set(value.device_id, value.error || _("Photo synchronization could not be started."));
       zeichneTelefonFotos();
@@ -35888,6 +36397,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           App.importErgebnis({ ...nutzlast, termine: termine }, true);
         })().catch(fehler => App.importErgebnis({ fehler: String(fehler.message || fehler) }));
       }
+      if (!alteAndroidTerminPlaene.has(nutzlast) && alteAndroidTerminKandidaten(nutzlast).length) {
+        const bestand = DATEN, vorher = JSON.stringify(DATEN);
+        const eingang = { ...nutzlast, termine: termineNormalisiert ? nutzlast.termine : normalisiereTermine(nutzlast.termine, false) };
+        return bereiteAlteAndroidTerminAliase(eingang).then(() => {
+          if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN) !== vorher) throw alterAndroidTerminKonflikt();
+          return App.importErgebnis(eingang, true, kontaktPruefung);
+        }).catch(error => App.importErgebnis({ fehler: String(error.message || error) }));
+      }
       if (!kontaktPruefung && Array.isArray(nutzlast.kontakte) && nutzlast.kontakte.length) {
         const eingang = kopie(nutzlast);
         return pruefeKontaktDateiImport(eingang.kontakte, String(eingang.kontaktQuelle || "")).then(pruefung => {
@@ -35898,7 +36415,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           }, () => { setupImportBeenden(); resolve(); }));
         });
       }
-      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);
+      const { teile, doppelt, counts, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);
       if (changed) {
         planeSpeichern();
         zeichneAlles();
@@ -35908,9 +36425,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         : _("Nothing new was found.");
       if (doppelt) text += " " + uebersetztMehrzahl(
         "%(count)s existing entry skipped.", "%(count)s existing entries skipped.", doppelt);
-      if (nutzlast.uebersprungen) text += " " + uebersetztMehrzahl(
+      const ausgelassen = Number(nutzlast.uebersprungen || 0) + (counts.notes_skipped || 0);
+      if (ausgelassen) text += " " + uebersetztMehrzahl(
         "%(count)s unreadable row omitted.", "%(count)s unreadable rows omitted.",
-        nutzlast.uebersprungen);
+        ausgelassen);
       // Native codecs already count unresolved rules, not all complex rules.
       const einmalig = Math.max(0, Number(nutzlast.wiederholend || 0));
       if (einmalig) {
@@ -40226,6 +40744,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           try {
             await mcpLeseImportQuelle({ ...review.sourceArgs, expected_revision: review.payload.revision }, signal);
             mcpLeseImportPruefung(args.token, owner);
+            if (alteAndroidTerminKandidaten(review.payload).length) {
+              try { await bereiteAlteAndroidTerminAliase(review.payload); }
+              catch (error) {
+                if (error.code === "ics_alias_conflict") throw new MagnolieMcp.ToolError("conflict", "Ambiguous or changed calendar instance alias");
+                throw error;
+              }
+              mcpLeseImportPruefung(args.token, owner);
+            }
             const contacts = review.preparation ? await erstelleKontaktDateiEntwurf(review.preparation) : null;
             mcpLeseImportPruefung(args.token, owner);
             if (contacts) await new Promise((resolve, reject) => mitMutationsSnapshot("pre-contact-import", resolve, () => reject(new MagnolieMcp.ToolError("snapshot_failed", "Native pre-import checkpoint failed"))));
@@ -42397,6 +42923,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       aktualisiereKontaktOrtszeiten();
       const heute = isoHeute();
       if (heute !== letzterTag) {
+        window.MagnolieAppearance?.update({ today: heute, developer: DATEN.einstellungen.allgemein.entwicklermodus === true, locked: gesperrt });
         if (editorIstGeaendert()) return;
         letzterTag = heute;
         if (initialisiert) {

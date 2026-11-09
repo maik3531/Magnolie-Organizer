@@ -224,6 +224,18 @@ class NativeMediaRetention:
         require()
         yield NativeMediaBackupCopyPermit(sha256(canonical(value)).hexdigest(),require)
 
+    def saved_book_version(self):
+        """Immutable witness, revalidated using each I/O thread's own DB owner.
+
+        This is not an activity lease or write/deletion permission.
+        """
+        value=self._read()
+        if value is None or value['days'] is None:
+            raise TransferError('media_backup_current_saved_book_required')
+        if self._book_file()!=value['book_file']:
+            raise TransferError('media_retention_book_changed')
+        return sha256(canonical(value)).hexdigest()
+
     @contextmanager
     def permit(self,current=lambda:True):
         with self.activity(current,exclusive=True) as activity:

@@ -86,7 +86,7 @@ class NativeMediaTrashUi:
             cursor=request.get('cursor',0)
             if type(cursor) is not int or not 0<=cursor<=NativeMediaTrashUi.MAX_SCOPES*ProtectedMediaTrash.MAX_OPERATIONS:
                 raise TransferError('media_trash_invalid_request')
-        elif action in ('restore','cancel','purge'):
+        elif action in ('restore','cancel','purge','thumbnail','preview'):
             wanted=fields|{'scope','operation','version'}|({'confirmed'} if action=='purge' else set())
             if (set(request)!=wanted or action=='purge' and request.get('confirmed') is not True or any(type(request.get(key)) is not str
                     or re.fullmatch(pattern,request[key]) is None for key,pattern in (
@@ -104,6 +104,11 @@ class NativeMediaTrashUi:
                 if snapshot.version!=request['version']:raise TransferError('media_trash_stale_choice')
                 entry=next((value for value in entries if value.operation==request['operation']),None)
                 if entry is None:raise TransferError('media_trash_original_operation_required')
+                if action in ('thumbnail','preview'):
+                    preview=owner.preview(owner.issue_action(),snapshot,entry.operation,self._current,mode=action)
+                    self._current()
+                    return dict(ok=True,supported=True,request_id=request['request_id'],action=action,scope=request['scope'],
+                        operation=request['operation'],version=request['version'],preview=preview)
                 method={'restore':owner.restore,'cancel':owner.cancel_prepared,'purge':owner.purge_manual}[action]
                 _,completed=method(owner.issue_action(),snapshot,entry.operation,self._current)
                 if action=='restore':restored_name=entry.mapping.relative_path.split('/')[-1]

@@ -20,14 +20,15 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert.equal(messages.length, mixedCount); assert(skipChoice.indeterminate); assert(!firstPhoto.checked);
   skipChoice.indeterminate = false; skipChoice.checked = true; skipChoice.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().action, "settings"); reply(state);
-   buttons("Choose folder …")[0].click(); await tick(); assert.equal(last().action, "pick_destination");
+   panel.querySelector('[data-destination="images"]').click(); await tick(); assert.equal(last().action, "pick_destination");
   assert.equal(last().media_type, "images"); assert.equal(last().version, null); assert(!("pfad" in last()));
   const withRoot = { ...state, pictures: { version: "d".repeat(64), display_path: "C:\\Pictures\\<img onerror=evil>" } };
    reply(withRoot); assert.equal(panel.querySelector("img"), null);
    const folderInput = panel.querySelector('[data-destination="images"]');
-   assert(folderInput.readOnly && folderInput.value === withRoot.pictures.display_path && folderInput.title === folderInput.value);
+   assert(folderInput.tagName === "BUTTON" && folderInput.title === withRoot.pictures.display_path);
+   assert(!panel.querySelector('input[data-destination]') && !panel.textContent.includes(withRoot.pictures.display_path));
    const folderButtons = [...folderInput.parentElement.querySelectorAll("button")];
-   assert.deepEqual(folderButtons.map(button => button.textContent), ["Choose folder …", "Use default"]);
+   assert.deepEqual(folderButtons.map(button => button.textContent), ["Photos · Destination folder", "Use default"]);
    folderButtons[1].click(); await tick(); assert.equal(last().action, "default_destination");
    assert.equal(last().media_type, "images"); assert.equal(last().version, withRoot.pictures.version);
    assert(!("path" in last()) && !("directory" in last()), "Browser supplied a default filesystem path");
@@ -87,6 +88,36 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   const retained = { operation_id: "a".repeat(32), version: "b".repeat(64), state: "trashed", display_name: "<img>my-file.jpg", media_type: "images" };
   reply({ after: 0, next_cursor: 128, trash: [retained] }); assert.equal(panel.querySelector("img"), null);
   assert(panel.textContent.includes("Permanent removal requires native confirmation"));
+  const previewSaves = saves;
+  assert.equal(panel.querySelector("[data-media-thumbnails]").checked, false, "Thumbnails must remain optional and off by default");
+  const raster = { mime_type: "image/png", width: 1, height: 1,
+    data_base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aX0AAAAASUVORK5CYII=" };
+  const previewReply = (extra = {}) => reply({ operation_id: retained.operation_id, version: retained.version, preview: raster, ...extra });
+  saveAllowed = false;
+  buttons("Preview")[0].click(); await tick(); assert.equal(last().action, "trash_preview"); assert.equal(saves, previewSaves);
+  previewReply({ operation_id: "c".repeat(32) }); assert.equal(panel.querySelector("dialog"), null);
+  assert(panel.textContent.includes("Preview · Failed"), "Unavailable preview needs its own truthful status without implying a mutation");
+  buttons("Preview")[0].click(); await tick(); previewReply({ preview: { ...raster, mime_type: "image/svg+xml" } });
+  assert.equal(panel.querySelector("dialog"), null, "Active or foreign content must never open in a recovery preview");
+  buttons("Preview")[0].click(); await tick(); previewReply();
+  const viewer = panel.querySelector("dialog"), privateImage = viewer.querySelector("img");
+  assert.equal(privateImage.alt, retained.display_name); assert(privateImage.src.startsWith("data:image/png;base64,"));
+  assert(viewer.textContent.includes(retained.display_name));
+  const viewedCalls = messages.length; viewer.querySelectorAll("button")[2].click();
+  assert.equal(messages.length, viewedCalls); assert.equal(panel.querySelector("dialog"), null); assert(!privateImage.hasAttribute("src"));
+  let observer;
+  w.IntersectionObserver = class {
+    constructor(callback) { this.callback = callback; this.elements = []; observer = this; }
+    observe(element) { this.elements.push(element); }
+    disconnect() { this.elements = []; }
+  };
+  const thumbnailOption = panel.querySelector("[data-media-thumbnails]");
+  thumbnailOption.closest("details").open = true;
+  thumbnailOption.click(); observer.callback(observer.elements.map(target => ({ target, isIntersecting: true })));
+  assert.equal(last().action, "trash_thumbnail"); previewReply();
+  assert(panel.querySelector(".media-trash-thumbnail")); assert.equal(saves, previewSaves);
+  thumbnailOption.click(); assert.equal(panel.querySelector(".media-trash-thumbnail"), null);
+  saveAllowed = true;
   saveAllowed = false; const beforePurge = messages.length;
   buttons("Delete permanently")[0].click(); await tick(); assert.equal(messages.length, beforePurge);
   saveAllowed = true; buttons("Delete permanently")[0].click(); await tick();
@@ -108,6 +139,7 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert(german.textContent.includes("Automatisch im WLAN synchronisieren")); assert(german.textContent.includes("Automatischer Abgleich pausiert"));
   assert(german.textContent.includes("Lokale Bearbeitungen bleiben erhalten"));
   assert(german.textContent.includes("Medienpapierkorb")); assert(german.textContent.includes("ausschließlich manuelles Leeren"));
+  assert(german.textContent.includes("Nur Fotos"));
   assert(!german.textContent.includes("Synchronize photos")); assert(!german.textContent.includes("Photos"));
   const html = fs.readFileSync(path.join(__dirname, "../app/web/index.html"), "utf8");
   assert(html.indexOf('src="phone-media.js"') >= 0 && html.indexOf('src="phone-media.js"') < html.indexOf('src="anwendung.js"'));
@@ -190,11 +222,12 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert([...legacyPanel.querySelectorAll(".telefon-medien-gruppe")].every(group => group.hidden));
   const sharedPanel = api.createPanel(peer, x => x, value => { messages.push(JSON.parse(JSON.stringify(value))); return true; }, async () => { saves++; if (!saveAllowed) throw Error("save failed"); });
   w.document.body.append(sharedPanel);
-  const values = { enabled: false, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory", auto_mode: "manual", skip_deletions: false, direction: "phone_to_pc" };
+  const values = { enabled: false, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory", auto_mode: "manual", skip_deletions: false, direction: "phone_to_pc", photos_only: false };
   const versions = Object.fromEntries(Object.keys(values).map((field, index) => [field, String(index + 1).repeat(64)]));
-  let granted = false;
+  let granted = false, sendPhotos = false, sendVideos = false;
   const sharedReply = (extra = {}) => reply({ ...state, shared_settings: { values: { ...values }, versions: { ...versions } },
-    receive_consent: { granted, version: "e".repeat(64) }, shared_matched: false, shared_runtime_ready: false, ...extra });
+    receive_consent: { granted, version: "e".repeat(64) }, send_consent: { photos: sendPhotos, videos: sendVideos, version: "f".repeat(64) },
+    shared_matched: false, shared_runtime_ready: false, ...extra });
   sharedReply();
   const sharedInput = key => sharedPanel.querySelector(`[data-media="${key}"]`);
   const master = sharedInput("enabled"), receiving = sharedInput("receive_consent");
@@ -209,6 +242,9 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   mediaSummary.click(); await tick(); assert(!mediaDetails.open);
   assert(!master.checked && !master.parentElement.hidden);
   assert(sharedInput("photos").checked && !sharedInput("videos").checked && !sharedInput("skip_deletions").checked);
+  const photosOnly = sharedInput("photos_only");
+  assert(photosOnly && !photosOnly.checked && photosOnly.disabled && !photosOnly.parentElement.hidden,
+    "Native metadata-only camera-photo filter is missing from shared media choices");
   assert.equal(sharedInput("automatic").value, "manual");
   assert.equal(sharedInput("collection_mode").value, "phone_inventory");
   assert.equal(sharedInput("direction").value, "phone_to_pc");
@@ -229,12 +265,39 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   receiving.checked = true; receiving.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().action, "receive_consent"); assert.equal(last().granted, true); assert.equal(last().version, "e".repeat(64));
   granted = true; sharedReply();
+  const sendingPhotos = sharedInput("send_photos"), sendingVideos = sharedInput("send_videos");
+  assert(!sendingPhotos.checked && !sendingVideos.checked && !sendingPhotos.parentElement.hidden);
+  sendingPhotos.checked = true; sendingPhotos.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(last().action, "send_consent"); assert.equal(last().photos, true); assert.equal(last().videos, false);
+  assert.equal(last().version, "f".repeat(64)); assert(!("confirmed" in last()) && !("send_files" in last()));
+  sharedReply({ canceled: true }); assert(!sendingPhotos.checked && !sendingVideos.checked && receiving.checked);
+  saveAllowed = false; const sendBeforeFailedSave = messages.length;
+  sendingVideos.checked = true; sendingVideos.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, sendBeforeFailedSave); assert(!sendingVideos.checked); saveAllowed = true;
+  sendingPhotos.checked = true; sendingPhotos.dispatchEvent(new w.Event("change")); await tick();
+  sendPhotos = true; sharedReply(); assert(sendingPhotos.checked && !sendingVideos.checked);
+  [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh").click(); await tick();
+  sharedReply({ busy: true, metadata_ready: { images: true, video: false } });
+  assert(!sendingPhotos.disabled && sendingVideos.disabled && sendingVideos.parentElement.hidden);
+  sendingPhotos.checked = false; sendingPhotos.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(last().action, "send_consent"); assert.equal(last().photos, false);
+  sendPhotos = false; sharedReply();
   const collection = sharedInput("collection_mode"); collection.value = "entire_collection"; collection.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().field, "collection_mode"); assert.equal(last().value, "entire_collection"); assert.equal(last().version, versions.collection_mode);
   values.collection_mode = "entire_collection"; sharedReply();
   values.collection_mode = "import_only";
+  values.direction = "pc_to_phone";
   [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh").click(); await tick(); sharedReply();
-  assert(sharedInput("direction").disabled && sharedInput("direction").value === "phone_to_pc");
+  assert(!sharedInput("direction").disabled && sharedInput("direction").value === "pc_to_phone",
+    "Import-only must retain an independently editable configured direction, not pretend to export");
+  const importEditBefore = messages.length;
+  sharedInput("direction").value = "two_way"; sharedInput("direction").dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, importEditBefore + 1);
+  assert.equal(last().field, "direction"); assert.equal(last().value, "two_way"); assert.equal(last().version, versions.direction);
+  values.direction = "two_way"; sharedReply();
+  assert.equal(sharedInput("collection_mode").value, "import_only");
+  assert.equal(sharedInput("direction").value, "two_way"); assert.equal(sharedInput("automatic").value, "manual");
+  values.direction = "phone_to_pc";
   values.collection_mode = "entire_collection";
   [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh").click(); await tick(); sharedReply();
   assert(!sharedInput("direction").disabled);
@@ -243,7 +306,31 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert(settingsKeys.indexOf("automatic") < settingsKeys.indexOf("direction"));
   assert(settingsKeys.indexOf("direction") < settingsKeys.indexOf("photos"));
   assert(settingsKeys.indexOf("photos") < settingsKeys.indexOf("videos"));
-  assert(settingsKeys.indexOf("videos") < settingsKeys.indexOf("skip_deletions"));
+  assert(settingsKeys.indexOf("videos") < settingsKeys.indexOf("photos_only"));
+  assert(settingsKeys.indexOf("photos_only") < settingsKeys.indexOf("skip_deletions"));
+  const beforePhotoFilter = messages.length;
+  photosOnly.checked = true; photosOnly.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, beforePhotoFilter + 1);
+  assert.deepEqual(last(), { cmd: "telefon_medien", requestId: last().requestId, device_id: peer,
+    action: "shared_setting", field: "photos_only", value: true, version: versions.photos_only });
+  assert(photosOnly.disabled && sharedInput("automatic").disabled && sharedInput("direction").disabled);
+  assert(!receiving.disabled, "Pending filter edits must not prevent withdrawal of existing native RECEIVE");
+  reply({ ok: false }); assert(!photosOnly.checked); assert.equal(last().action, "status"); sharedReply();
+  saveAllowed = false; const beforeFilterSaveFailure = messages.length;
+  photosOnly.checked = true; photosOnly.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, beforeFilterSaveFailure); assert(!photosOnly.checked); saveAllowed = true;
+  photosOnly.checked = true; photosOnly.dispatchEvent(new w.Event("change")); await tick();
+  values.photos_only = true; sharedReply(); assert(photosOnly.checked && !photosOnly.disabled);
+  const filterRefresh = [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh");
+  filterRefresh.click(); await tick();
+  const olderVersions = { ...versions }; delete olderVersions.photos_only;
+  sharedReply({ shared_settings: { values: { ...values }, versions: olderVersions } });
+  assert(photosOnly.parentElement.hidden && photosOnly.disabled, "Missing native field version must not advertise an editable filter");
+  const beforeUnsupportedFilter = messages.length;
+  photosOnly.checked = false; photosOnly.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, beforeUnsupportedFilter); assert(photosOnly.checked);
+  filterRefresh.click(); await tick(); sharedReply();
+  assert(!photosOnly.parentElement.hidden && photosOnly.checked);
   saveAllowed = false; master.checked = false; const beforeFailedSave = messages.length;
   master.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(messages.length, beforeFailedSave); assert(master.checked); saveAllowed = true;
@@ -262,12 +349,43 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   api.changed({ device_id: peer }); await tick();
   assert(messages.length > beforeChanged && messages.slice(beforeChanged).every(message => message.action === "status"));
   assert.equal(saves, savesBeforeChanged); sharedReply();
+  buttons("Preview")[0].click(); await tick(); previewReply();
+  const detachedPreviewImage = panel.querySelector("dialog img"); assert(detachedPreviewImage);
   for (const old of [panel, legacyPanel, backupPanel, unsupported]) old.remove();
+  await tick();
+  assert(!detachedPreviewImage.hasAttribute("src"), "Lock/panel disposal must remove private raster sources from detached dialog nodes");
   master.checked = false; master.dispatchEvent(new w.Event("change")); await tick();
   const beforeBusyChanged = messages.length;
   api.changed({ device_id: peer }); assert.equal(messages.length, beforeBusyChanged);
   values.enabled = false; sharedReply(); await tick();
   assert.equal(last().action, "status", "A native change during an edit must be refreshed once that edit finishes");
   sharedReply(); assert(!master.checked);
+  values.enabled = true; values.direction = "pc_to_phone"; granted = false; sendPhotos = true;
+  const startVersion = "9".repeat(64);
+  const sharedStart = [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Synchronize now");
+  for (const unavailable of [
+    { shared_matched: false, shared_runtime_ready: true, shared_start_version: startVersion },
+    { shared_matched: true, shared_runtime_ready: false, shared_start_version: startVersion },
+    { shared_matched: true, shared_runtime_ready: true },
+    { shared_matched: true, shared_runtime_ready: true, shared_start_version: "bad" }
+  ]) {
+    sharedRefresh.click(); await tick(); sharedReply(unavailable);
+    assert(sharedStart.disabled); const before = messages.length;
+    sharedStart.dispatchEvent(new w.Event("click")); await tick(); assert.equal(messages.length, before);
+  }
+  sharedRefresh.click(); await tick(); sharedReply({ shared_matched: true, shared_runtime_ready: true, shared_start_version: startVersion });
+  assert(!sharedStart.disabled, "Shared PC-only start must not require a phone catalog/album or RECEIVE");
+  saveAllowed = false; const beforeStartSaveFailure = messages.length;
+  sharedStart.click(); await tick(); assert.equal(messages.length, beforeStartSaveFailure); saveAllowed = true;
+  const startBefore = messages.length;
+  sharedStart.click(); await tick();
+  assert.equal(messages.length, startBefore + 1);
+  assert.deepEqual(last(), { cmd: "telefon_medien", requestId: last().requestId, device_id: peer,
+    action: "sync_shared", version: startVersion });
+  reply({ state: "running" }); assert(sharedStart.disabled);
+  assert(![...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Stop").disabled);
+  reply({ state: "content_pass" });
+  assert(!sharedStart.disabled);
+  assert(sharedPanel.textContent.includes("Content comparison finished."));
   console.log("Native media UI: legacy guards, native path-only choice, manual/video OFF, album/stop/recovery, shared master OFF, independent field edits/local rights, requested order, no activation-start and failed-choice rollback PASS");
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => dom.window.close());

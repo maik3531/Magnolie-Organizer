@@ -209,13 +209,18 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
         val value = try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject } finally { clear.fill(0) }
         val size = value["size"]?.jsonPrimitive?.longOrNull ?: fail("gallery_archive_record_invalid")
         val at = value["archived_ms"]?.jsonPrimitive?.longOrNull ?: fail("gallery_archive_record_invalid")
-        val original = value["format"] == JsonPrimitive(2)
+        val pc = value["format"] == JsonPrimitive(3)
+        val original = pc || value["format"] == JsonPrimitive(2)
         if (value.keys != setOf("format", "id", "size", "sha256", "name", "archived_ms", "origin") +
                 (if (original) setOf("original_bytes", "baseline_sha256") else emptySet()) ||
             !original && value["format"] != JsonPrimitive(1) || original && (value["original_bytes"] != JsonPrimitive(true) || !DeviceFileControl.hash(value.string("baseline_sha256"))) ||
             value.string("id") != id || size !in 0..DeviceFileManifest.MAX_FILE_BYTES || at <= 0 || !DeviceFileControl.hash(value.string("sha256")) ||
             !DeviceFileManifest.portablePath(value.string("name")) || '/' in value.string("name")) fail("gallery_archive_record_invalid")
         val origin = value["origin"] as? JsonObject ?: fail("gallery_archive_record_invalid")
+        if (pc) {
+            validatePcRecord(value, origin)
+            return NativeGalleryArchiveEntry(id, digest(bytes), size, value.string("sha256"), value.string("name"), at, true) to value
+        }
         if (origin.keys != setOf("uri", "member", "revision", "namespace", "source", "media_type", "peer", "peer_identity", "volume", "album_path", "mime_type"))
             fail("gallery_archive_record_invalid")
         val kind = GalleryMediaType.entries.singleOrNull { it.uriSegment == origin.string("media_type") } ?: fail("gallery_archive_record_invalid")
@@ -229,6 +234,20 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
             origin.string("namespace").length !in 1..1024 || origin.string("namespace").any { it.code < 32 || it.code == 127 } ||
             origin.string("album_path").length !in 1..4096) fail("gallery_archive_record_invalid")
         return NativeGalleryArchiveEntry(id, digest(bytes), size, value.string("sha256"), value.string("name"), at, original) to value
+    }
+
+    private fun validatePcRecord(value: JsonObject, origin: JsonObject) {
+        if (origin.keys != setOf("uri", "member", "revision", "namespace", "media_type", "peer", "peer_identity", "volume", "album_path", "mime_type", "publication", "book_version") ||
+            !DeviceFileControl.hash(origin.string("book_version"))) fail("gallery_archive_pc_record_invalid")
+        val publication = GalleryIncomingPublication.parse(origin["publication"] as? JsonObject ?: fail("gallery_archive_pc_record_invalid"))
+        val row = publication.row ?: fail("gallery_archive_pc_record_invalid")
+        val binding = publication.body.getValue("origin").jsonObject.getValue("binding").jsonObject
+        if (publication.state != "published" || publication.pcOrigin == null || value["size"] != publication.body["size"] ||
+            value["sha256"] != publication.body["sha256"] || value["baseline_sha256"] != publication.body["sha256"] || value["name"] != row["name"] ||
+            listOf("uri", "member", "revision", "namespace", "volume").any { origin[it] != row[it] } || origin["album_path"] != row["path"] ||
+            origin["media_type"] != publication.body["media_type"] || origin["mime_type"] != publication.body["mime_type"] ||
+            origin["peer"] != binding["sender_id"] || origin["peer_identity"] != binding["sender_identity_sha256"])
+            fail("gallery_archive_pc_record_invalid")
     }
 
     @Synchronized fun entries(permit: NativeGalleryTrashBookPermit): List<NativeGalleryArchiveEntry> {
@@ -245,6 +264,7 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
 
     @Synchronized internal fun verifiedOriginalOrigin(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit): JsonObject {
         val origin = verifiedOrigin(entry, permit)
+        if (readRecord(entry.id).second["format"] == JsonPrimitive(3)) fail("gallery_archive_pc_mutation_owner_required")
         if (!readRecord(entry.id).first.originalBytesVerified) fail("gallery_archive_original_bytes_not_verified")
         return origin
     }
@@ -491,6 +511,60 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
             synchronisiereOrdner(directory); current(); verify()
             val result = readRecord(id).first; verifyContent(result, permit); current()
             return result
+        } catch (error: Exception) { failed = true; throw error }
+    }
+
+    /** Separate PC provenance, never a synthetic outgoing Gallery source or an
+     * OS write/delete grant. Only the rows owner's actual verified IO permit
+     * can reach the closed exact-input reader below. */
+    @Synchronized internal fun archivePublishedPc(rows: NativeGalleryIncomingRows, owner: NativeGalleryPublishedInspection,
+        permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal): NativeGalleryArchiveEntry {
+        fun current() { cancellation.throwIfCanceled(); rows.requireVerifiedArchive(this, owner, permit) }
+        current(); val publication = owner.selected
+        if (publication.pcOrigin == null || publication.state != "published") fail("gallery_archive_published_pc_owner_required")
+        val row = publication.row ?: fail("gallery_archive_published_pc_owner_required")
+        val revision = verify(); val previous = entries(permit)
+        for (entry in previous) {
+            current(); val record = readRecord(entry.id).second
+            if (record["format"] == JsonPrimitive(3) && record["origin"]!!.jsonObject["publication"] == publication.body) {
+                verifyContent(entry, permit); current(); return entry // No copy-time/retention renewal.
+            }
+        }
+        val expectedSize = publication.body.long("size")
+        if (previous.size >= MAX_ENTRIES || previous.sumOf { it.bytes } > MAX_BYTES - expectedSize) fail("gallery_archive_capacity_held")
+        val id = UUID.randomUUID().toString(); val hash = MessageDigest.getInstance("SHA-256")
+        db.beginTransaction()
+        try {
+            var size = 0L; var number = 0
+            rows.readVerifiedPcArchiveChunks(this, owner, permit, cancellation) { bytes ->
+                current()
+                if (bytes.isEmpty() || size + bytes.size > expectedSize) fail("gallery_archive_source_changed")
+                hash.update(bytes); val cipher = protection.seal(bytes, domain("$id/chunk/$number")); current()
+                db.insertOrThrow("recovery_chunks", null, ContentValues().apply { put("id", id); put("number", number); put("sealed", cipher) })
+                size += bytes.size; number++
+            }
+            current(); val actualHash = digestHash(hash)
+            if (size != expectedSize || actualHash != publication.body.string("sha256")) fail("gallery_archive_source_changed")
+            val binding = publication.body.getValue("origin").jsonObject.getValue("binding").jsonObject
+            val record = buildJsonObject {
+                put("format", 3); put("id", id); put("size", size); put("sha256", actualHash); put("name", row.string("name")); put("archived_ms", System.currentTimeMillis())
+                put("original_bytes", true); put("baseline_sha256", actualHash)
+                put("origin", buildJsonObject {
+                    for (key in listOf("uri", "member", "revision", "namespace", "volume")) put(key, row.getValue(key))
+                    put("album_path", row.getValue("path")); put("media_type", publication.body.getValue("media_type")); put("mime_type", publication.body.getValue("mime_type"))
+                    put("peer", binding.getValue("sender_id")); put("peer_identity", binding.getValue("sender_identity_sha256"))
+                    put("publication", publication.body); put("book_version", permit.version)
+                })
+            }
+            val clear = TelefonKanonisch.bytes(record)
+            val cipher = try { protection.seal(clear, domain("$id/metadata")) } finally { clear.fill(0) }
+            current(); db.insertOrThrow("recovery_entries", null, ContentValues().apply { put("id", id); put("sealed", cipher) })
+            writeMembership(revision + 1); current(); db.setTransactionSuccessful()
+        } catch (error: Exception) { failed = true; throw error }
+        finally { db.endTransaction() }
+        try {
+            synchronisiereOrdner(directory); current(); verify()
+            val result = readRecord(id).first; verifyContent(result, permit); current(); return result
         } catch (error: Exception) { failed = true; throw error }
     }
 

@@ -10,6 +10,54 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class NextcloudDavTests
 {
+    internal static async Task WildcardVersionBindingAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-dav-wildcard-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "config.json"), Path.Combine(root, "credential.dat"), new Protector());
+            settings.SaveConfiguration(new NextcloudMailboxSettings(true, false, "https://cloud.example/nc", "fixture"), "synthetic-only", false);
+            var calls = new List<(string Method, string? Match, string? NoneMatch)>(); var mutationCallbacks = 0;
+            using var http = new HttpClient(new Handler(request =>
+            {
+                string? Raw(string name) => request.Headers.NonValidated.TryGetValues(name, out var values) ? values.Single() : null;
+                calls.Add((request.Method.Method, Raw("If-Match"), Raw("If-None-Match")));
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent) { Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"fixture-v2\"") } });
+            }));
+            using var client = new NextcloudDavClient(settings, http);
+            client.BeforeMutation = () => { mutationCallbacks++; return Task.CompletedTask; };
+            var href = new Uri("https://cloud.example/nc/cal/item.ics");
+            const string text = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n";
+            var rejected = 0;
+            var stars = new[] { "*", " * ", "* ", " *", "\t*\t", "   *   ", " \t * \t ", "\u00a0*\u00a0" };
+            foreach (var etag in stars)
+                foreach (var method in new[] { "PUT", "DELETE" })
+                {
+                    try
+                    {
+                        if (method == "PUT") await client.UpdateAsync(href, etag, "text/calendar", text, default);
+                        else await client.DeleteAsync(href, etag, default);
+                    }
+                    catch (InvalidOperationException) { rejected++; }
+                }
+            TestAssert.That(rejected == stars.Length * 2 && calls.Count == 0 && mutationCallbacks == 0,
+                "#443 reproduced: an observed wildcard ETag reached the actual mutation handler instead of binding a version (no HTTP).");
+            foreach (var etag in new[] { "\"fixture-v1\"", "\"*\"", " \"*\" ", "W/\"fixture-v1\"", "legacy-unquoted", " \t\"fixture-v1\"\t " })
+            {
+                await client.UpdateAsync(href, etag, "text/calendar", text, default);
+                TestAssert.That(calls[^1] == ("PUT", etag, null), "Update changed an existing non-wildcard ETag header.");
+                await client.DeleteAsync(href, etag, default);
+                TestAssert.That(calls[^1] == ("DELETE", etag, null), "Delete changed an existing non-wildcard ETag header.");
+            }
+            var source = new NextcloudDavSource("nextcloud-calendar:" + new string('d', 64), "Fixture", "calendar", new Uri("https://cloud.example/nc/cal/"));
+            await client.CreateAsync(source, "synthetic-create", ".ics", "text/calendar", text, default);
+            TestAssert.That(calls[^1] == ("PUT", null, "*"), "Explicit CREATE lost If-None-Match: *.");
+            TestAssert.That(calls.Count == 13 && mutationCallbacks == 13, "Valid version-bound mutations or explicit CREATE were suppressed or repeated.");
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     private static async Task TestBirthdayRepair(NextcloudMailboxSettingsStore settings)
     {
         var calendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +

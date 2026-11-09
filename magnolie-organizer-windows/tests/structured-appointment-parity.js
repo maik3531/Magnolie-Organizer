@@ -154,7 +154,8 @@ for (const [name, app] of apps) {
     "EXDATE:20260908T100000", "EXRULE:FREQ=MONTHLY",
     "RECURRENCE-ID:20260915T100000"];
   const komplexeSerie = Object.assign({}, termin, { icsKomplex: true,
-    wiederholung: { art: "none", bis: "" }, icsRoundtrip: serienZeilen });
+    // This recurrence-only fixture has no source alarm components to edit.
+    alarme: [], wiederholung: { art: "none", bis: "" }, icsRoundtrip: serienZeilen });
   assert.deepStrictEqual(Array.from(T.spiegeleTerminInIcs(komplexeSerie)).filter(line =>
     serienZeilen.includes(line)), serienZeilen,
   `${name}: Speichern zerstört die Struktur einer komplexen importierten Serie`);

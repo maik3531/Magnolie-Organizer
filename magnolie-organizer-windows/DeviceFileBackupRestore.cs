@@ -36,18 +36,22 @@ internal sealed partial class TelefonStore
             {
                 var record = TelefonProtocolContract.ExactObject(JsonNode.Parse(plain)!, "format", "scope", "operation", "sequence", "version", "record");
                 var version = TelefonMessagingContract.String(record, "version");
-                if (TelefonProtocolContract.Integer(record["format"]) != 1 || TelefonMessagingContract.String(record, "scope") != scope ||
+                var independent = TelefonProtocolContract.Integer(record["format"]) == 2;
+                if (TelefonProtocolContract.Integer(record["format"]) is not (1 or 2) || TelefonMessagingContract.String(record, "scope") != scope ||
                     TelefonMessagingContract.String(record, "operation") != operation || TelefonProtocolContract.Integer(record["sequence"]) != sequence || !DeviceFileControl.Hash(version))
                     throw DeviceFileControl.Error("media_backup_restore_history_invalid");
-                var body = TelefonProtocolContract.ExactObject(record["record"]!, "reference", "reference_sha256", "name", "stage", "identity", "size", "sha256", "state", "previous_version");
+                var fields = new[] { "reference", "reference_sha256", "name", "stage", "identity", "size", "sha256", "state", "previous_version" };
+                var body = TelefonProtocolContract.ExactObject(record["record"]!, independent ? fields.Append("book_version").ToArray() : fields);
                 string Text(string key) => TelefonMessagingContract.String(body, key);
                 if (!DeviceFileControl.Hash(Text("reference")) || !DeviceFileControl.Hash(Text("reference_sha256")) || !DeviceFileControl.Hash(Text("sha256")) ||
                     TelefonProtocolContract.Integer(body["size"]) is < 0 or > DeviceFileManifest.MaxFileBytes || Text("stage") != ".magnolie-restore-" + operation + ".part" ||
-                    Text("state") != (sequence == 1 ? "prepared" : "restored")) throw DeviceFileControl.Error("media_backup_restore_history_invalid");
+                    Text("state") != (sequence == 1 ? "prepared" : "restored") || independent && !DeviceFileControl.Hash(Text("book_version")))
+                    throw DeviceFileControl.Error("media_backup_restore_history_invalid");
                 _ = DeviceFileNativeDirectory.ReceiveLeaf(Text("name")); _ = NativeMediaReceiveJob.NativeAlbumIdentity(body["identity"]!.AsObject());
                 heads.TryGetValue(operation, out var previous);
                 if (sequence == 1 ? previous is not null || body["previous_version"] is not null : previous is null || previous.Sequence != 1 ||
-                    Text("previous_version") != previous.Version || new[] { "reference", "reference_sha256", "name", "stage", "identity", "size", "sha256" }
+                    Text("previous_version") != previous.Version || (independent != previous.Body.ContainsKey("book_version")) ||
+                    new[] { "reference", "reference_sha256", "name", "stage", "identity", "size", "sha256", "book_version" }
                         .Any(key => !JsonNode.DeepEquals(body[key], previous.Body[key]))) throw DeviceFileControl.Error("media_backup_restore_history_changed");
                 heads[operation] = new(operation, sequence, version, body);
             }
@@ -63,7 +67,7 @@ internal sealed partial class TelefonStore
         if (before?.Version != expectedVersion || before?.Sequence == 2 || before is null && heads.Count >= 4096)
             throw DeviceFileControl.Error("media_backup_restore_history_conflict");
         var sequence = before is null ? 1 : 2; var version = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-        var record = new JsonObject { ["format"] = 1, ["scope"] = scope, ["operation"] = operation, ["sequence"] = sequence,
+        var record = new JsonObject { ["format"] = body.ContainsKey("book_version") ? 2 : 1, ["scope"] = scope, ["operation"] = operation, ["sequence"] = sequence,
             ["version"] = version, ["record"] = body.DeepClone() };
         var plain = TelefonCrypto.Canonical(record); byte[] cipher;
         try { cipher = Seal("native_media_backup_restore", scope + "/" + operation + "/" + sequence, plain); }
@@ -80,6 +84,16 @@ internal sealed partial class TelefonStore
 
     internal NativeMediaBackupRestoration RestoreNativeMediaBackupToDestination(NativeMediaDestination destination, NativeMediaBackupVersion selected, Func<bool> nativePermit,
         NativeMediaBackupParent? storageParent = null)
+        => RestoreNativeBackupToNewFile(NativeMediaBackupParent.FromDestination(destination), storageParent ?? NativeMediaBackupParent.FromDestination(destination),
+            selected, nativePermit, independentPc: false);
+
+    internal NativeMediaBackupRestoration RestoreNativeIndependentPcBackupToNewFile(NativeMediaBackupParent output, NativeMediaBackupParent source,
+        NativeMediaBackupVersion selected, NativeMediaBookPermit permit, string operation)
+        => RestoreNativeBackupToNewFile(output, source, selected, () => { permit.Require(); return true; }, independentPc: true,
+            bookVersion: permit.Version, recoveryOperation: operation);
+
+    private NativeMediaBackupRestoration RestoreNativeBackupToNewFile(NativeMediaBackupParent output, NativeMediaBackupParent storageParent,
+        NativeMediaBackupVersion selected, Func<bool> nativePermit, bool independentPc, string? bookVersion = null, string? recoveryOperation = null)
     {
         lock (gate)
         {
@@ -93,19 +107,29 @@ internal sealed partial class TelefonStore
                 }
                 catch { revoked = true; throw; }
             }
-            Current(); using var root = destination.OpenNative();
+            Current(); using var root = output.OpenNative();
+            if (independentPc && (!SourceId(recoveryOperation ?? "") || !DeviceFileControl.Hash(bookVersion ?? "")))
+                throw DeviceFileControl.Error("media_backup_restore_original_operation_required");
             NativeMediaBackupExclusions.RequireMediaDirectory(root);
-            using var catalog = new MediaBackupCatalog(this, destination, Current, false, storageParent);
+            using var catalog = new MediaBackupCatalog(this, storageParent, Current, false);
+            if (independentPc)
+            {
+                if (!catalog.IsPreparedPcVersion(selected)) throw DeviceFileControl.Error("media_backup_pc_source_required");
+            }
+            else catalog.RequireIncomingRestoreOwner(selected);
             var source = catalog.VerifySelected(selected);
-            var scope = DeviceFileControl.Digest("magnolie-native-media-backup-restore-root-v1\0", new JsonObject
-                { ["identity"] = NativeMediaReceiveJob.NativeIdentity(root.OriginalIdentity), ["volume_path"] = root.VolumePath });
+            var rootScope = new JsonObject { ["identity"] = NativeMediaReceiveJob.NativeIdentity(root.OriginalIdentity), ["volume_path"] = root.VolumePath };
+            if (independentPc) rootScope["source_parent"] = storageParent.Id;
+            var scope = DeviceFileControl.Digest(independentPc ? "magnolie-native-independent-pc-backup-restore-root-v1\0" :
+                "magnolie-native-media-backup-restore-root-v1\0", rootScope);
             using var db = OpenNativeMediaDatabase(); db.Open();
-            var pending = BackupRestoreHeads(db, null, scope).Where(item => item.Sequence == 1 && TelefonMessagingContract.String(item.Body, "reference") == selected.Id).ToArray();
+            var pending = BackupRestoreHeads(db, null, scope).Where(item => independentPc ? item.Operation == recoveryOperation :
+                item.Sequence == 1 && TelefonMessagingContract.String(item.Body, "reference") == selected.Id).ToArray();
             if (pending.Length > 1) throw DeviceFileControl.Error("media_backup_restore_history_conflict");
             var original = pending.SingleOrDefault();
             if (original is null)
             {
-                var operation = Guid.NewGuid().ToString("N"); var stage = ".magnolie-restore-" + operation + ".part";
+                var operation = recoveryOperation ?? Guid.NewGuid().ToString("N"); var stage = ".magnolie-restore-" + operation + ".part";
                 var leaf = selected.Name.Split('/').Last(); _ = DeviceFileNativeDirectory.ReceiveLeaf(leaf);
                 var stem = Path.GetFileNameWithoutExtension(leaf); var extension = Path.GetExtension(leaf);
                 // Keep the original extension without splitting a surrogate or
@@ -117,10 +141,12 @@ internal sealed partial class TelefonStore
                 var body = new JsonObject { ["reference"] = selected.Id, ["reference_sha256"] = selected.RecordSha256,
                     ["name"] = name, ["stage"] = stage, ["identity"] = NativeMediaReceiveJob.NativeIdentity(created.Observe().Identity),
                     ["size"] = source.Size, ["sha256"] = source.Sha256, ["state"] = "prepared", ["previous_version"] = null };
+                if (independentPc) body["book_version"] = bookVersion;
                 original = AppendBackupRestore(scope, operation, null, body, Current); // Before first payload write.
             }
             string Text(string key) => TelefonMessagingContract.String(original.Body, key);
-            if (Text("reference_sha256") != selected.RecordSha256 || TelefonProtocolContract.Integer(original.Body["size"]) != source.Size || Text("sha256") != source.Sha256)
+            if (Text("reference") != selected.Id || Text("reference_sha256") != selected.RecordSha256 || TelefonProtocolContract.Integer(original.Body["size"]) != source.Size || Text("sha256") != source.Sha256 ||
+                independentPc && Text("book_version") != bookVersion)
                 throw DeviceFileControl.Error("media_backup_restore_original_selection_required");
             var identity = NativeMediaReceiveJob.NativeAlbumIdentity(original.Body["identity"]!.AsObject());
             var stageIdentity = root.ExistingFileIdentity(Text("stage"));
@@ -132,6 +158,12 @@ internal sealed partial class TelefonStore
             if (observed.Identity != identity || observed.Size > source.Size || published && (observed.Size != source.Size || observed.Sha256 != source.Sha256))
                 throw DeviceFileControl.Error("media_backup_restore_original_candidate_changed");
             using var held = root.OpenOriginalStagedFile(path, identity, observed.Size, observed.Sha256);
+            if (original.Sequence == 2)
+            {
+                if (!independentPc || !published) throw DeviceFileControl.Error("media_backup_restore_original_candidate_required");
+                _ = NativeMediaBackupBytes.Verify(held, source.Size, source.Sha256, Current); Current();
+                return new(original.Operation, "restored", Text("name"));
+            }
             var restored = catalog.RestoreOwnedCandidate(selected, held); Current();
             if (!published) held.Publish(root, Text("name"), restored.Size, restored.Sha256, Current);
             var completed = original.Body.DeepClone().AsObject(); completed["state"] = "restored"; completed["previous_version"] = original.Version;

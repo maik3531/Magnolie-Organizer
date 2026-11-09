@@ -7523,14 +7523,118 @@ function knopfMit(text, wurzel) {
     bluetooth: { available: false, devices: [] }, kdeconnect: { available: false }, ...extras });
   fotoStand(undefined);
   assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Verbindung allein ist keine native Fotobereitschaft");
+  const setupBefore = baumNachrichten.length;
+  fotoStand({ available: true, enabled: false, state: "off", albums: [], sending_setup: { version: "c".repeat(64) } });
+  assert.strictEqual(baumNachrichten.length, setupBefore, "Passive Einrichtung erzeugt keine Verbindung oder Rechte");
+  const setupPhotos = bd.querySelector('[data-media-send="photos"]');
+  assert.ok(setupPhotos && !setupPhotos.checked && !setupPhotos.disabled);
+  setupPhotos.click(); await tick(); await tick();
+  const firstSetup = baumNachrichten.filter(value => value.cmd === "telefon_medien_senden").at(-1);
+  assert.ok(firstSetup && firstSetup.version === "c".repeat(64) && firstSetup.photos && !firstSetup.videos);
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && bd.querySelector('[data-media-send="photos"]').disabled);
+  assert.ok(!baumNachrichten.slice(setupBefore).some(value => value.cmd === "telefon_foto_aktion"), "Erstmaliges Senden aktiviert keinen Empfang oder Abgleich");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: firstSetup.requestId, ok: true, canceled: true });
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && !bd.querySelector('[data-media-send="photos"]').disabled);
+  const sharedChoices = { enabled: false, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory",
+    direction: "pc_to_phone", auto_mode: "manual", skip_deletions: true, photos_only: false };
+  fotoStand({ available: true, enabled: false, state: "off", albums: [],
+    shared_media: { version: "d".repeat(64), values: sharedChoices, agreed: false } });
+  assert.ok(bd.querySelector('[data-media-setting="collection_mode"]') && bd.querySelector('[data-media-setting="direction"]') &&
+    bd.querySelector('[data-media-setting="auto_mode"]'), "Gemeinsamer Bereich, Richtung und Modus fehlen bei ausgeschaltetem Empfang");
+  assert.deepStrictEqual(Array.from(bd.querySelectorAll('[data-media-setting]'), input => input.dataset.mediaSetting)
+    .filter(field => ["collection_mode", "auto_mode", "direction"].includes(field)), ["collection_mode", "auto_mode", "direction"],
+    "Gemeinsame Reihenfolge bleibt Umfang, Automatik, unabhängige Richtung");
+  assert.ok(bd.querySelector('[data-media-setting="photos_only"]').closest("label").textContent.includes("Nur Fotos"));
+  const sharedBefore = baumNachrichten.length;
+  const scopeChoice = bd.querySelector('[data-media-setting="collection_mode"]');
+  assert.ok(scopeChoice.querySelector('option[value="entire_collection"]').disabled &&
+    bd.querySelector('[data-media-setting="skip_deletions"]').disabled, "Nicht angebundene Sammlung/Löschweitergabe wird nicht als nutzbar angeboten");
+  assert.strictEqual(bd.querySelector('[data-media-setting="direction"]').value, "pc_to_phone");
+  assert.ok(!bd.querySelector('[data-media-setting="enabled"]').checked && !bd.querySelector('[data-media-setting="videos_enabled"]'));
+  scopeChoice.value = "import_only"; scopeChoice.dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.strictEqual(bd.querySelector('[data-media-setting="collection_mode"]').value, "phone_inventory", "Keine optimistische gemeinsame Zustimmung");
+  await tick(); await tick();
+  const sharedRequest = baumNachrichten.filter(value => value.cmd === "telefon_foto_aktion" && value.request.action === "shared_setting").at(-1);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(sharedRequest.request)),
+    { action: "shared_setting", field: "collection_mode", value: "import_only", version: "d".repeat(64) });
+  assert.deepStrictEqual(Object.keys(sharedRequest).sort(), ["cmd", "kennung", "fingerprint", "requestId", "request"].sort());
+  assert.ok(bd.querySelector('[data-media-setting="auto_mode"]').disabled && bd.querySelector('[data-media-setting="direction"]').disabled);
+  assert.ok(!baumNachrichten.slice(sharedBefore).some(value => value.cmd === "telefon_medien_senden" ||
+    value.cmd === "telefon_foto_aktion" && value.request.action !== "shared_setting"), "Bereichswahl erfindet keine SEND-/RECEIVE- oder Abgleichaktion");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: "unrelated-old-config", ok: false, error: "stale shared error" });
+  assert.ok(bd.querySelector('[data-media-setting="auto_mode"]').disabled);
+  fotoStand({ available: true, enabled: false, state: "off", albums: [],
+    shared_media: { version: "e".repeat(64), values: { ...sharedChoices, collection_mode: "import_only" }, agreed: true } });
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: sharedRequest.requestId, ok: true });
+  assert.strictEqual(bd.querySelector('[data-media-setting="collection_mode"]').value, "import_only");
+  assert.strictEqual(bd.querySelector('[data-media-setting="direction"]').value, "pc_to_phone", "Import-only überschreibt nicht die gespeicherte Richtung");
+  assert.strictEqual(bd.querySelector('[data-media-setting="auto_mode"]').value, "manual");
+  assert.ok(!bd.querySelector('[data-media-setting="auto_mode"]').disabled);
+  const wifiChoice = bd.querySelector('[data-media-setting="auto_mode"]'); wifiChoice.value = "wifi";
+  wifiChoice.dispatchEvent(new bw.Event("change", { bubbles: true })); await tick(); await tick();
+  const wifiRequest = baumNachrichten.filter(value => value.cmd === "telefon_foto_aktion" && value.request.action === "shared_setting").at(-1);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(wifiRequest.request)),
+    { action: "shared_setting", field: "auto_mode", value: "wifi", version: "e".repeat(64) });
+  fotoStand({ available: true, enabled: false, state: "off", albums: [],
+    shared_media: { version: "f".repeat(64), values: sharedChoices, agreed: false } },
+    { peers: [{ ...fotoPeer, fingerprint: "new-shared-pair", photo_sync: { available: true, shared_media:
+      { version: "f".repeat(64), values: sharedChoices, agreed: false } } }] });
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: wifiRequest.requestId, ok: false, error: "stale shared error" });
+  assert.ok(!bd.querySelector('[data-media-setting="auto_mode"]').disabled &&
+    !bd.querySelector(".notes-erweiterte-funktionen").textContent.includes("stale shared error"));
+  fotoStand({ available: true, enabled: true, state: "albums", albums: [{ album_id: "shared-album", display_name: "Camera", needs_choice: false }],
+    shared_media: { configured: true, version: "e".repeat(64), values: sharedChoices, agreed: true } });
+  assert.ok(bd.querySelector('[data-photo-manual-sync]').disabled && !bd.querySelector('[data-photo-mode]'),
+    "Nativer Empfang ist kein Umweg um gemeinsame OFF-Einstellung und kein zweiter Modusregler");
+  fotoStand({ available: true, enabled: false, state: "syncing", busy: true, albums: [],
+    shared_media: { configured: true, version: "f".repeat(64), values: sharedChoices, agreed: false } });
+  assert.ok(bd.querySelector('[data-media-setting="direction"]').disabled && bd.querySelector('[data-photo-manual-sync]').disabled);
+  const sharedStop = bd.querySelector('[data-photo-stop]');
+  assert.ok(sharedStop && !sharedStop.disabled, "Stop bleibt bei beschäftigtem Arbeiter nach Verlust des Ausgangshinweises erreichbar");
+  sharedStop.click(); assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "stop" });
+  const sendRights = { available: true, enabled: false, state: "off", albums: [],
+    sending_consent: { version: "a".repeat(64), photos: false, videos: false } };
+  fotoStand(sendRights);
+  assert.ok(bd.querySelector('[data-media-send="photos"]') && !bd.querySelector('[data-media-send="videos"]'),
+    "Sendezustimmung ist unabhängig vom Empfang, nicht unterstützte Videos bleiben verborgen");
+  const sendBefore = baumNachrichten.length;
+  bd.querySelector('[data-media-send="photos"]').click(); await tick(); await tick();
+  const sendChoice = baumNachrichten.filter(value => value.cmd === "telefon_medien_senden").at(-1);
+  assert.ok(sendChoice && sendChoice.photos === true && sendChoice.videos === false && sendChoice.version === "a".repeat(64),
+    "Native Sendeauswahl wartet auf den tatsächlichen Speicher-ACK: " + JSON.stringify(baumNachrichten.slice(sendBefore).map(value => value.cmd)));
+  assert.deepStrictEqual(Object.keys(sendChoice).sort(), ["cmd", "kennung", "fingerprint", "photos", "videos", "requestId", "version"].sort(),
+    "Browser darf weder native Bestätigung noch Verbindungsticket oder Dateipfad senden");
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && bd.querySelector('[data-media-send="photos"]').disabled,
+    "Ausstehende native Zustimmung darf kein vorweggenommenes Recht anzeigen");
+  assert.ok(!baumNachrichten.slice(sendBefore).some(value => value.cmd === "telefon_foto_aktion"), "Sendezustimmung startet keinen Abgleich");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: sendChoice.requestId, ok: true, canceled: true });
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && !bd.querySelector('[data-media-send="photos"]').disabled);
+  bd.querySelector('[data-media-send="photos"]').click(); await tick(); await tick();
+  const nextSendChoice = baumNachrichten.filter(value => value.cmd === "telefon_medien_senden").at(-1);
+  assert.notStrictEqual(nextSendChoice.requestId, sendChoice.requestId);
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: sendChoice.requestId, ok: true });
+  assert.ok(bd.querySelector('[data-media-send="photos"]').disabled, "Verspätete alte Antwort ersetzt keinen neueren nativen Auftrag");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: nextSendChoice.requestId, ok: true });
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked, "Eine Antwort allein ist keine aktuelle native Zustandsprojektion");
+  fotoStand({ ...sendRights, video_supported: true, sending_consent: { version: "b".repeat(64), photos: true, videos: false } });
+  assert.ok(bd.querySelector('[data-media-send="photos"]').checked && !bd.querySelector('[data-media-send="videos"]').checked);
+  bd.querySelector('[data-media-send="videos"]').click(); await tick(); await tick();
+  const staleSendChoice = baumNachrichten.filter(value => value.cmd === "telefon_medien_senden").at(-1);
+  fotoStand(sendRights, { peers: [{ ...fotoPeer, fingerprint: "replacement-native-fingerprint", photo_sync: sendRights }] });
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').disabled, "Alte Zustimmung blockiert keine neue Kopplung");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: staleSendChoice.requestId, ok: false, error: "stale forbidden error" });
+  assert.ok(!bd.querySelector(".notes-erweiterte-funktionen").textContent.includes("stale forbidden error"), "Alte Antwort verändert keinen neuen Kopplungskontext");
+  fotoStand(undefined);
   fotoStand({ available: true, enabled: false, state: "off", albums: [], destination: "/native/Pictures/Notes-Fotos" });
   let fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
   assert.ok(fotoGruppe && bd.querySelector(".telefon-karte").contains(fotoGruppe) &&
     !bd.querySelector(".telefon-kde-karte").contains(fotoGruppe), "Fotoeinstellungen gehören ausschließlich zu Notes");
    const fotoAn = fotoGruppe.querySelector('input[type="checkbox"]');
-   const fotoPfad = fotoGruppe.querySelector("[data-photo-destination-path]");
-   assert.ok(fotoPfad.readOnly && fotoPfad.value === "/native/Pictures/Notes-Fotos" && fotoPfad.title === fotoPfad.value &&
-     fotoPfad.parentElement.classList.contains("kde-empfangsordner"));
+    const fotoPfad = fotoGruppe.querySelector("[data-photo-destination]");
+    assert.ok(fotoPfad.tagName === "BUTTON" && fotoPfad.title === "/native/Pictures/Notes-Fotos" &&
+      fotoPfad.parentElement.classList.contains("kde-empfangsordner"));
+    assert.ok(!fotoGruppe.querySelector('[data-photo-destination-path]') && !fotoGruppe.textContent.includes("/native/Pictures/Notes-Fotos"),
+      "Medienpfade stehen nur im Tooltip der Ordneraktion, nicht in sichtbaren Textfeldern");
    assert.strictEqual(fotoPfad.parentElement.querySelectorAll("button").length, 2);
    fotoGruppe.querySelector("[data-photo-destination]").click();
    assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1))), {
@@ -7577,8 +7681,11 @@ function knopfMit(text, wurzel) {
    assert.ok(fotoGruppe.querySelector("details.notes-foto-sync").open, "Native Statusänderungen bewahren auch die innere Mediengruppe");
   fotoGruppe.querySelector("select[data-photo-album]").value = "album-native-2";
   Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Jetzt synchronisieren").click();
-  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "sync" &&
-    value.request.album_id === "album-native-2"), "Nur die aktuelle explizite Albumauswahl wird gesendet, kein Zielpfad");
+  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "sync_selected" &&
+    value.request.album_id === "album-native-2" && value.request.video_album_id === null), "Nur die aktuelle explizite Albumauswahl wird gesendet, kein Zielpfad");
+  assert.strictEqual(fotoGruppe.querySelectorAll("[data-photo-manual-sync]").length, 1);
+  assert.ok(fotoGruppe.querySelector(".notes-foto-sync").lastElementChild.classList.contains("notes-medien-manuell"),
+    "Der gemeinsame Handlauf steht nach Einstellungen, Ordnern und Wiederherstellungsaktionen");
   fotoStand({ available: true, enabled: true, state: "syncing", busy: true, albums: [] });
   fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
   assert.ok(Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Jetzt synchronisieren").disabled);
@@ -7599,9 +7706,10 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1))), {
     cmd: "telefon_videoziel_waehlen", kennung: fotoPeer.device_id, fingerprint: fotoPeer.fingerprint
    }, "Der native Ordnerdialog erhält keinen Webpfad und keine historische Zielautorität");
-   const videoPfadLeer = videoGruppe.querySelector("[data-video-destination-path]");
-   assert.ok(videoPfadLeer.readOnly && videoPfadLeer.parentElement.classList.contains("kde-empfangsordner") &&
-     videoPfadLeer.parentElement.querySelectorAll("button").length === 2, "Videoziel folgt der gemeinsamen schreibgeschützten Ordnerzeile");
+    const videoPfadLeer = videoGruppe.querySelector("[data-video-destination]");
+    assert.ok(videoPfadLeer.tagName === "BUTTON" && videoPfadLeer.parentElement.classList.contains("kde-empfangsordner") &&
+      videoPfadLeer.parentElement.querySelectorAll("button").length === 2 && !videoGruppe.querySelector('[data-video-destination-path]'),
+      "Videoziel ist eine Ordneraktion ohne sichtbares Pfadfeld");
    videoGruppe.querySelector("[data-video-destination-default]").click();
    assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_default_destination" },
      "Der Standardordner wird nativ ermittelt, nicht als Webpfad gesendet");
@@ -7613,17 +7721,46 @@ function knopfMit(text, wurzel) {
     video_enabled: true, video_destination: "/native/Videos/Notes-Videos", albums: [],
     video_albums: [{ album_id: "video-native-1", display_name: "Camera videos", visible_images: 1 }] };
   fotoStand(videoStand); videoGruppe = bd.querySelector(".notes-video-sync");
-   const videoPfad = videoGruppe.querySelector("[data-video-destination-path]");
-   assert.strictEqual(videoPfad.value, videoStand.video_destination); assert.strictEqual(videoPfad.title, videoPfad.value);
+    const videoPfad = videoGruppe.querySelector("[data-video-destination]");
+    assert.strictEqual(videoPfad.title, videoStand.video_destination);
+    assert.ok(!videoGruppe.textContent.includes(videoStand.video_destination));
    assert.ok(videoGruppe.querySelector("[data-video-destination]").disabled && videoGruppe.querySelector("[data-video-destination-default]").disabled,
      "Die nur bei ausgeschalteten Videos nutzbare Ordnerwahl wird nicht als aktive Funktion angeboten");
   videoGruppe.querySelector("[data-video-action='read']").click();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_request_read" });
-  videoGruppe.querySelector("[data-video-action='sync']").click();
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_sync", album_id: "video-native-1" });
+  bd.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_selected", album_id: null, video_album_id: "video-native-1" });
+  fotoStand({ ...videoStand, albums: [{ album_id: "photo-both", display_name: "Camera", visible_images: 1 }] });
+  assert.strictEqual(bd.querySelectorAll(".notes-foto-sync [data-photo-manual-sync]").length, 1, "Keine getrennten Foto-/Video-Startknöpfe");
+  bd.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_selected", album_id: "photo-both", video_album_id: "video-native-1" });
+  fotoStand({ ...videoStand, video_supported: false, albums: [{ album_id: "photo-only", display_name: "Camera", visible_images: 1 }] });
+  assert.ok(!bd.querySelector(".notes-video-sync")); bd.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_selected", album_id: "photo-only", video_album_id: null });
+  const pcNurVorher = baumNachrichten.length;
+  fotoStand({ available: true, enabled: false, mapped_outgoing: true, mapped_direction: "pc_to_phone",
+    state: "off", mode: "manual", automatic_supported: true, albums: [] });
+  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
+  assert.strictEqual(baumNachrichten.length, pcNurVorher, "PC-only-Status öffnet weder Medien noch Telefon-READ");
+  assert.ok(fotoGruppe.textContent.includes("Organizer → Notes") && !fotoGruppe.textContent.includes("Alben aktualisieren"));
+  assert.ok(!Array.from(fotoGruppe.querySelectorAll("button")).some(button => button.textContent === "Fotozugriff auf dem Handy erlauben"));
+  assert.ok(!fotoGruppe.querySelector("[data-photo-manual-sync]").disabled && fotoGruppe.querySelector("[data-photo-mode]"));
+  fotoGruppe.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_shared" },
+    "PC-only-Handlauf erfindet keine Telefonalbum-IDs oder Empfangsfreigabe");
+  const pcModus = fotoGruppe.querySelector("[data-photo-mode]"); pcModus.value = "automatic";
+  pcModus.dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "mode_automatic" });
+  fotoStand({ available: true, enabled: false, mapped_outgoing: true, state: "syncing", busy: true, albums: [] });
+  assert.ok(bd.querySelector("[data-photo-manual-sync]").disabled);
+  assert.ok(bd.querySelector("[data-mapped-outgoing-status]").textContent);
+  fotoStand({ available: true, enabled: false, mapped_outgoing: true, state: "complete", albums: [] });
+  assert.ok(bd.querySelector("[data-mapped-outgoing-status]").textContent && !bd.querySelector("[data-photo-manual-sync]").disabled);
+  fotoStand({ available: true, enabled: false, mapped_outgoing: false, state: "off", albums: [] });
+  assert.ok(!bd.querySelector("[data-photo-manual-sync]") && !bd.querySelector("[data-photo-mode]"));
   fotoStand({ ...videoStand, state: "syncing", busy: true, active_media: "video" });
   videoGruppe = bd.querySelector(".notes-video-sync");
-  assert.ok(videoGruppe.querySelector("[data-video-action='sync']").disabled &&
+  assert.ok(bd.querySelector("[data-photo-manual-sync]").disabled &&
     !videoGruppe.querySelector("[data-video-enabled]").disabled && !bd.querySelector(".notes-foto-sync").textContent.includes("Fotoabgleich aktiv"));
   videoGruppe.querySelector("[data-video-enabled]").checked = false;
   videoGruppe.querySelector("[data-video-enabled]").dispatchEvent(new bw.Event("change", { bubbles: true }));

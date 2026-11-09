@@ -8225,3 +8225,53 @@ msgstr "整个集合"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone → PC"
 msgstr "手机 → 电脑"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "仅测试外观；不会更改连接或权限。"
+
+msgid "Tray preview"
+msgstr "托盘图标预览"
+
+msgid "Seasonal background"
+msgstr "季节背景"
+
+msgid "Holiday watermark"
+msgstr "节日水印"
+
+msgid "Both connected"
+msgstr "两者均已连接"
+
+msgid "Camera"
+msgstr "相机"
+
+msgid "Snowflakes"
+msgstr "雪花"
+
+msgid "Stars"
+msgstr "星星"
+
+msgid "Boots"
+msgstr "靴子"
+
+msgid "Santa Claus"
+msgstr "圣诞老人"
+
+msgid "Rocket"
+msgstr "火箭"
+
+msgid "Champagne glass"
+msgstr "香槟杯"
+
+msgid "Easter eggs"
+msgstr "复活节彩蛋"
+
+msgid "Reset preview"
+msgstr "重置预览"
+
+msgid "OS tray icon (60 s)"
+msgstr "系统托盘图标（60秒）"
+
+msgid "Saved developer mode is required."
+msgstr "必须先保存开发者模式。"

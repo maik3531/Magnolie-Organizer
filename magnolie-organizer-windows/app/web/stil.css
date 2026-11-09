@@ -441,6 +441,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
    -------------------------------------------------------------------------- */
 
 #schreibtisch {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -451,6 +452,18 @@ body[data-hilfsrahmen="an"] :focus-visible {
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/></svg>"),
     radial-gradient(120% 90% at 50% 32%, #3b4a41 0%, #2e3a34 55%, #1e2723 100%);
 }
+
+#magnolie-saison { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: #e5ddc8; opacity: .12; z-index: 0; }
+#magnolie-saison svg { position: absolute; height: auto; max-width: 1cm; max-height: 1cm; }
+#schreibtisch > :not(#magnolie-saison) { z-index: 1; }
+.wo-tag[data-appearance-date] { position: relative; }
+.magnolie-feiertags-schatten { position: absolute; pointer-events: none; width: min(40%, 4cm); height: 75%; right: 8px; bottom: 5px; color: #826846; opacity: .055; }
+.magnolie-darstellungstest { margin-block: 14px; }
+.magnolie-testmuster { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.magnolie-testmuster > div { width: 128px; height: 128px; }
+.magnolie-testmuster svg { width: 100%; height: 100%; }
+#magnolie-test-hinweis { position: fixed; bottom: 5px; left: 8px; padding: 2px 7px; border-radius: 4px; background: #e7ddbd; color: #55291c; font: 11px var(--sans); z-index: 9999; pointer-events: none; }
+@media print { #magnolie-saison, .magnolie-feiertags-schatten, #magnolie-test-hinweis { display: none !important; } }
 
 /* --------------------------------------------------------------------------
    Buch
@@ -562,6 +575,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
   position: relative;
   width: 40px;
   height: 40px;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -660,6 +674,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
   background: transparent;
   padding: 0;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
   transition: transform 0.15s ease;
 }
@@ -704,6 +719,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
   color: #3d3018;
   border: 1px solid rgba(58, 38, 16, 0.5);
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
   z-index: 1;
   background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.12));
@@ -985,6 +1001,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 7px 14px;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(60, 40, 10, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -1385,6 +1402,7 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -2307,6 +2325,7 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: inherit;
+  -webkit-user-select: text;
   user-select: text;
 }
 .eingabe-dialog h3 {
@@ -2781,6 +2800,7 @@ textarea::-webkit-scrollbar-track,
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--braun);
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -4140,6 +4160,7 @@ body[data-pruefung="an"] #notiz-titel {
   height: 31px;
   border: 2px solid var(--markenfarbe);
   border-radius: 50%;
+  background: var(--papier);
   background: color-mix(in srgb, var(--markenfarbe) 18%, var(--papier));
   color: var(--markenfarbe);
   font: 700 16px var(--sans);
@@ -4174,6 +4195,7 @@ body[data-pruefung="an"] #notiz-titel {
   gap: 4px;
   min-width: 0;
   border-left: 4px solid var(--markenfarbe);
+  background: var(--papier);
   background: color-mix(in srgb, var(--markenfarbe) 22%, var(--papier));
   border-radius: 2px;
   padding: 2px 5px;
@@ -4210,6 +4232,7 @@ body[data-pruefung="an"] #notiz-titel {
   min-width: 0;
   border-left: 4px solid var(--markenfarbe);
   border-radius: 2px;
+  background: var(--papier);
   background: color-mix(in srgb, var(--markenfarbe) 18%, var(--papier));
   padding: 2px 5px;
   color: var(--markenfarbe);
@@ -4345,6 +4368,7 @@ body[data-pruefung="an"] #notiz-titel {
   padding: 1px 3px;
   border-left: 4px solid var(--eintragfarbe);
   border-radius: 2px;
+  background: white;
   background: color-mix(in srgb, var(--eintragfarbe) 20%, white);
   overflow: hidden;
   white-space: nowrap;
@@ -4606,6 +4630,10 @@ textarea,
 /* The containing .baum-zeile already contributes a 10px row gap. */
 .telefon-karte .telefon-erweitert { flex: 1 1 100%; width: 100%; min-width: 0; box-sizing: border-box; margin: calc(5mm - 10px) 0 0; }
 .telefon-medien { min-width: 0; }
+.media-trash-thumbnail { width: 88px; height: 64px; object-fit: contain; vertical-align: middle; margin-inline-end: 8px; }
+.media-trash-preview { max-width: min(94vw, 1100px); max-height: 94vh; overflow: auto; background: var(--papier); color: var(--tinte); }
+.media-trash-preview::backdrop { background: #0008; }
+.media-trash-preview img { display: block; max-width: 100%; max-height: 72vh; object-fit: contain; margin: 12px auto; }
 .telefon-medien-aktivierung { display: inline-flex; align-items: center; margin-inline-start: 16px; vertical-align: middle; }
 .telefon-medien-aktivierung[hidden] { display: none; }
 .telefon-medien-aktivierung input { margin: 0; }
@@ -5753,6 +5781,7 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
   font: 600 15px var(--serif);
   letter-spacing: 0.02em;
   color: var(--braun);
+  -webkit-user-select: text;
   user-select: text;
 }
 
@@ -6155,7 +6184,7 @@ body[data-linien="aus"] #tb-notiz {
 .kde-medien p { overflow-wrap: anywhere; }
 .kde-medien > .formzeile { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .kde-medien > .formzeile > select { min-width: 160px; }
-.kde-touchpad { min-height: 120px; padding: 12px; border: 1px solid var(--linie); border-radius: 6px; touch-action: none; user-select: none; }
+.kde-touchpad { min-height: 120px; padding: 12px; border: 1px solid var(--linie); border-radius: 6px; touch-action: none; -webkit-user-select: none; user-select: none; }
 .kde-touchpad[aria-disabled="true"] { opacity: .5; }
 .telefon-kdeconnect > p { margin: 0; }
 .telefon-freigaben { display: grid; gap: 7px; margin: 12px 0; }

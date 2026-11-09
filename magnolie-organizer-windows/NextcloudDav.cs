@@ -185,7 +185,7 @@ internal sealed class NextcloudDavClient : IDisposable
     internal async Task DeleteAsync(Uri href, string etag, CancellationToken cancellationToken)
     {
         if (ReadOnly) throw new InvalidOperationException("The selected calendar is read-only.");
-        if (string.IsNullOrWhiteSpace(etag)) throw new InvalidOperationException("Der DAV-ETag fehlt; das Objekt wird nicht ungeschützt gelöscht.");
+        if (string.IsNullOrWhiteSpace(etag) || etag.Trim() == "*") throw new InvalidOperationException("Der DAV-ETag fehlt; das Objekt wird nicht ungeschützt gelöscht.");
         var context = Context();
         EnsureAllowed(context, href);
         using var request = Request(HttpMethod.Delete, href, context);
@@ -313,7 +313,7 @@ internal sealed class NextcloudDavClient : IDisposable
         CancellationToken cancellationToken)
     {
         if (ReadOnly) throw new InvalidOperationException("The selected calendar is read-only.");
-        if (etag is not null && string.IsNullOrWhiteSpace(etag))
+        if (etag is not null && (string.IsNullOrWhiteSpace(etag) || etag.Trim() == "*"))
             throw new InvalidOperationException("Der DAV-ETag fehlt; das Objekt wird nicht ungeschützt überschrieben.");
         if (Encoding.UTF8.GetByteCount(text) > MaximumObjectBytes) throw new InvalidDataException("Ein DAV-Objekt ist zu groß.");
         if (mediaType.Equals("text/calendar", StringComparison.OrdinalIgnoreCase))

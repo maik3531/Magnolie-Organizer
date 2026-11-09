@@ -9,6 +9,7 @@ internal class GalleryIncomingPublication private constructor(internal val body:
     internal val state: String get() = body.string("state")
     internal val row: JsonObject? get() = body["row"] as? JsonObject
     internal val knownOriginalId: String? get() = (body["known_original_id"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+    internal val pcOrigin: GalleryPcMediaOrigin? get() = (body["pc_origin"] as? JsonObject)?.let(GalleryPcMediaOrigin::parse)
     internal val grantsWriteAuthority: Boolean get() = false
     internal val isSavedReceipt: Boolean get() = false
     internal val fingerprint: String get() = DeviceFileControl.digest("magnolie-gallery-incoming-publication-v1\u0000", body)
@@ -24,6 +25,14 @@ internal class GalleryIncomingPublication private constructor(internal val body:
         return listOf("source_id", "transfer_id", "file_id").all { first[it] == second[it] } &&
             listOf("sender_id", "receiver_id", "sender_identity_sha256", "receiver_identity_sha256")
                 .all { firstBinding[it] == secondBinding[it] }
+    }
+
+    internal fun samePcSource(other: GalleryIncomingPublication): Boolean {
+        val first = pcOrigin ?: return false
+        val second = other.pcOrigin ?: return false
+        val a = body.getValue("origin").jsonObject.getValue("binding").jsonObject
+        val b = other.body.getValue("origin").jsonObject.getValue("binding").jsonObject
+        return first.origin == second.origin && listOf("sender_id", "receiver_id", "sender_identity_sha256", "receiver_identity_sha256").all { a[it] == b[it] }
     }
 
     internal fun withInsertedRow(witness: JsonObject): GalleryIncomingPublication {
@@ -74,7 +83,9 @@ internal class GalleryIncomingPublication private constructor(internal val body:
                 put("pairing_epoch", pairingEpoch)
             }
             return parse(buildJsonObject {
-                put("format", if (scope == null) 1 else 2); put("id", DeviceFileControl.digest("magnolie-gallery-incoming-id-v1\u0000", identity))
+                val pc = scope?.pcOrigins?.get(fileId)
+                put("format", if (pc != null) 3 else if (scope == null) 1 else 2); put("id", DeviceFileControl.digest("magnolie-gallery-incoming-id-v1\u0000", identity))
+                if (pc != null) put("pc_origin", pc.body)
                 if (scope != null) {
                     put("collection_mode", scope.collectionMode)
                     put("known_original_id", scope.associations[fileId]?.let { JsonPrimitive(it.id) } ?: JsonNull)
@@ -87,9 +98,10 @@ internal class GalleryIncomingPublication private constructor(internal val body:
         }
 
         internal fun parse(value: JsonObject): GalleryIncomingPublication {
-            val scoped = value["format"] == JsonPrimitive(2)
+            val pc = value["format"] == JsonPrimitive(3)
+            val scoped = pc || value["format"] == JsonPrimitive(2)
             if (value.keys != setOf("format", "id", "origin", "state", "row", "size", "sha256", "name", "media_type", "mime_type") +
-                (if (scoped) setOf("collection_mode", "known_original_id", "scope_sha256") else emptySet()) ||
+                (if (scoped) setOf("collection_mode", "known_original_id", "scope_sha256") else emptySet()) + (if (pc) setOf("pc_origin") else emptySet()) ||
                 !scoped && value["format"] != JsonPrimitive(1)) fail()
             if (scoped) {
                 val mode = text(value, "collection_mode")
@@ -97,6 +109,10 @@ internal class GalleryIncomingPublication private constructor(internal val body:
                 val original = value["known_original_id"]
                 if (original == JsonNull) { if (mode == "phone_inventory") fail() }
                 else if (!DeviceFileControl.hash(text(value, "known_original_id"))) fail()
+                if (pc) {
+                    if (mode != "entire_collection" || original != JsonNull) fail()
+                    GalleryPcMediaOrigin.parse(value["pc_origin"] as? JsonObject ?: fail())
+                }
             }
             val origin = value["origin"] as? JsonObject ?: fail()
             if (origin.keys != setOf("binding", "manifest_sha256", "transfer_id", "source_id", "file_id", "pairing_epoch")) fail()

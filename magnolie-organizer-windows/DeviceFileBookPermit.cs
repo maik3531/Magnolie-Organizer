@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -10,6 +11,14 @@ internal sealed class NativeMediaBookPermit
     internal bool TrashEnabled { get; }
     internal int RetentionDays { get; }
     internal NativeMediaReplacementConsent? ReplacementConsent { get; }
+    internal string Version
+    {
+        get
+        {
+            Require();
+            return DeviceFileControl.Digest("magnolie-media-source-book-v1\0", new JsonArray(expected.BookSource, expected.Sequence, expected.Sha256));
+        }
+    }
 
     private NativeMediaBookPermit(NativeActorBookSnapshot snapshot, Func<NativeBookSaveState?> currentSaved)
     {

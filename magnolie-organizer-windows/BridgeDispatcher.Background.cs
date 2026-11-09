@@ -23,6 +23,17 @@ internal sealed partial class BridgeDispatcher
     private MagnolienbaumCoordinator? baumInstance;
     private TelefonCoordinator? telefonInstance;
     private KdeConnectSms? kdeInstance;
+    internal TrayAppearanceState ReadTrayAppearance()
+    {
+        TelefonCoordinator? phone; KdeConnectSms? kde; bool syncing;
+        lock (serviceGate)
+        {
+            if (disposed) return default;
+            phone = telefonInstance; kde = kdeInstance; syncing = activeSync is not null;
+        }
+        return TrayAppearanceState.FromOwners(phone?.HasOnlinePhone == true,
+            kde?.HasLiveConnection == true, syncing || phone?.TraySyncActivity.Active == true);
+    }
     private readonly CloudBackupWorker cloudWorker;
     private MagnolienbaumCoordinator baum
     {
@@ -59,7 +70,7 @@ internal sealed partial class BridgeDispatcher
                     created.FileSaved += HandleKdeFileSaved;
                     created.ClipboardProposed += HandleKdeClipboardProposed;
                     created.ConfigureInput(permitted: () => !disposed && !form.IsDisposed && !form.Disposing && currentPlainTextAvailable);
-                    kdeInstance = created; return created;
+                    kdeInstance = created; form.QueueTrayAppearanceRefresh(); return created;
                 }
                 catch { created.Dispose(); throw; }
             }

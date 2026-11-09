@@ -42,7 +42,7 @@ def test_service_retains_other_real_owner_and_rejects_foreign_or_late_owner_even
 
 
 @pytest.mark.parametrize('sync,camera', [(False, False), (True, False), (False, True), (True, True)])
-def test_real_book_svg_keeps_both_independent_cover_marks_and_renders(tmp_path, sync, camera):
+def test_real_book_svg_replaces_flower_with_camera_keeps_sync_independent_and_renders(tmp_path, sync, camera):
     import gi
     gi.require_version('GdkPixbuf', '2.0')
     from gi.repository import GdkPixbuf
@@ -50,7 +50,12 @@ def test_real_book_svg_keeps_both_independent_cover_marks_and_renders(tmp_path, 
     data = product.tray_medien_svg(logo, sync, camera)
     tree = ET.fromstring(data); ns = {'s': 'http://www.w3.org/2000/svg'}
     image = tree.find('s:image', ns)
-    assert base64.b64decode(image.attrib['href'].split(',', 1)[1]) == logo.read_bytes()
+    embedded = base64.b64decode(image.attrib['href'].split(',', 1)[1])
+    if not camera:assert embedded == logo.read_bytes()
+    else:
+        cover = ET.fromstring(embedded)
+        assert not [node for node in cover if node.get('transform', '').startswith('translate(121,')]
+        assert cover.find('s:rect[@x="42"]', ns) is not None, 'Replacing the flower must preserve the actual book frame'
     assert (tree.find('s:g[@id="sync"]', ns) is not None) is sync
     assert (tree.find('s:g[@id="camera"]', ns) is not None) is camera
     target = tmp_path / 'book.svg'; target.write_bytes(data)
@@ -78,7 +83,7 @@ def test_actual_frontend_reads_current_owner_status_and_preserves_notification_b
     methods = ui_methods(*names)
     methods['_'] = lambda text: text
     methods['ngettext'] = lambda single, plural, count: single if count == 1 else plural
-    methods['magnolie_logo_pfad'] = lambda: str(ROOT / 'symbole/magnolie-organizer.svg')
+    methods['magnolie_logo_pfad'] = lambda **_: str(ROOT / 'symbole/magnolie-organizer.svg')
     calls = []
     indicator = SimpleNamespace(**{name: lambda *args, name=name: calls.append((name, args))
         for name in ('set_icon_full', 'set_icon_name', 'set_from_file', 'set_from_icon_name', 'set_label', 'set_tooltip_text')})
@@ -89,8 +94,8 @@ def test_actual_frontend_reads_current_owner_status_and_preserves_notification_b
     try:
         assert window._tray_medien_aktualisieren() is False
         assert window._tray_medien == (True, True)
-        assert any('book-1-1.svg' in str(args) for _, args in calls)
-        assert any('Photo synchronization active' in str(args) and 'Phone camera active' in str(args) and '7 notifications' in str(args)
+        assert any('book-1-1-0-0-0.svg' in str(args) for _, args in calls)
+        assert any('Synchronizing …' in str(args) and 'Phone camera active' in str(args) and '7 notifications' in str(args)
                    for name, args in calls if name == 'set_tooltip_text')
         if kind != 'statusicon': assert any(name == 'set_label' and args[0] == '7' for name, args in calls)
         state.update(synchronizing=False) # Stale END refresh still retains live camera.

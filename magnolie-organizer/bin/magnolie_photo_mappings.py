@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import PurePosixPath
 import threading
+from cryptography.exceptions import InvalidTag
 
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import MAX_REVISION, _hex
@@ -326,25 +327,148 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
             raise TransferError('photo_mappings_native_receipts_required')
         return self.lookup(associations,saved_receipts=receipts)
 
+    def candidate_page(self,kind,*,after=None,expected=None,limit=128):
+        """Bounded latest protected mappings, never a filesystem/source scan.
+
+        Authenticate complete immutable version chains, including the other
+        media domain, before projecting candidates. Pagination pins the exact
+        owner snapshot. No absence, deletion, source rights or restart proof is
+        implied by an empty page or any returned historical record.
+        """
+        if (kind not in ('images','video') or type(limit) is not int or not 1<=limit<=128
+                or after is not None and (not _hex(after) or type(expected) is not PhotoMappingsSnapshot)
+                or expected is not None and type(expected) is not PhotoMappingsSnapshot):
+            raise TransferError('photo_mappings_candidate_request_invalid')
+        try:
+            with self._operation():
+                if not self._open():
+                    snapshot=PhotoMappingsSnapshot(self._absent,0,0,False)
+                    if expected is not None and snapshot!=expected:raise TransferError('photo_mappings_candidate_snapshot_changed')
+                    if after is not None:raise TransferError('photo_mappings_candidate_cursor_changed')
+                    return snapshot,(),None
+                with self._locked():
+                    self._schema();before=self._snapshot()
+                    if expected is not None and before!=expected:raise TransferError('photo_mappings_candidate_snapshot_changed')
+                    if not before.associated:
+                        if after is not None:raise TransferError('photo_mappings_candidate_cursor_changed')
+                        return before,(),None
+                    rows=self._db.execute('SELECT association,payload FROM mappings ORDER BY association').fetchall()
+                    roots={};families={}
+                    for key,blob in rows:
+                        # Existing stores use one table with three AEAD domains.
+                        # Only authentication failure tries the next known family;
+                        # malformed authenticated data is never skipped/repaired.
+                        for family in ('mapping','head','version'):
+                            try:body=self._unprotect(blob,family+'/'+key)
+                            except InvalidTag:continue
+                            break
+                        else:raise TransferError('photo_mappings_candidate_invalid_member')
+                        families[key]=family
+                        if family=='mapping':
+                            raw=body.get('association') if type(body) is dict else None
+                            if type(raw) is not dict or set(raw)!={'source_epoch','photo_id','media_type'}:
+                                raise TransferError('photo_mapping_invalid_association')
+                            association=PhotoMappingAssociation(**raw)
+                            if association.key!=key:raise TransferError('photo_mapping_invalid_association')
+                            roots[key]=association
+                        self._fresh()
+                    seen=set();candidates=[]
+                    for key,association in sorted(roots.items()):
+                        records=self._mapping_records(association)
+                        if not records:raise TransferError('photo_mapping_original_record_required')
+                        for record_key,_ in records:
+                            if record_key in seen or families.get(record_key)!=('mapping' if record_key==key else 'version'):
+                                raise TransferError('photo_mappings_candidate_invalid_member')
+                            seen.add(record_key)
+                        head=self._head_key(association)
+                        if head in families:
+                            if families[head]!='head':raise TransferError('photo_mappings_candidate_invalid_member')
+                            seen.add(head)
+                        if association.media_type==kind:candidates.append(records[0][1])
+                    if seen!=set(families):raise TransferError('photo_mappings_candidate_orphan_member')
+                    keys=[record.association.key for record in candidates]
+                    if after is not None and after not in keys:raise TransferError('photo_mappings_candidate_cursor_changed')
+                    start=keys.index(after)+1 if after is not None else 0
+                    page=tuple(candidates[start:start+limit])
+                    next_cursor=page[-1].association.key if start+len(page)<len(candidates) else None
+                    if self._snapshot()!=before:raise TransferError('photo_mappings_candidate_snapshot_changed')
+                    self._sync();return before,page,next_cursor
+        except Exception as error:
+            transient=('photo_preferences_busy','photo_preferences_closed_or_pending','photo_preferences_authority_changed',
+                'photo_mappings_candidate_snapshot_changed','photo_mappings_candidate_cursor_changed')
+            if not isinstance(error,TransferError) or str(error) not in transient:self._uncertain=True
+            raise
+
+    def require_independent_native_file(self,file_key):
+        """Deny-only lookup of ALL authenticated mapping generations/epochs.
+
+        A formerly mapped inode cannot become a fresh independent PC origin.
+        Neither absence nor this inspection grants a source lease.
+        """
+        if type(file_key) is not tuple or len(file_key)!=2 or any(type(n) is not int or n<0 for n in file_key):
+            raise TransferError('photo_mappings_native_identity_required')
+        with self._operation():
+            if not self._open():return PhotoMappingsSnapshot(self._absent,0,0,False)
+            with self._locked():
+                self._schema();before=self._snapshot();families={};roots={}
+                rows=self._db.execute('SELECT association,payload FROM mappings ORDER BY association').fetchall()
+                for key,blob in rows:
+                    for family in ('mapping','head','version'):
+                        try:body=self._unprotect(blob,family+'/'+key)
+                        except InvalidTag:continue
+                        break
+                    else:raise TransferError('photo_mappings_candidate_invalid_member')
+                    families[key]=family
+                    if family=='mapping':
+                        raw=body.get('association') if type(body) is dict else None
+                        if type(raw) is not dict or set(raw)!={'source_epoch','photo_id','media_type'}:
+                            raise TransferError('photo_mapping_invalid_association')
+                        association=PhotoMappingAssociation(**raw)
+                        if association.key!=key:raise TransferError('photo_mapping_invalid_association')
+                        roots[key]=association
+                    self._fresh()
+                seen=set();known=False
+                for key,association in roots.items():
+                    for record_key,record in self._mapping_records(association):
+                        if record_key in seen or families.get(record_key)!=('mapping' if record_key==key else 'version'):
+                            raise TransferError('photo_mappings_candidate_invalid_member')
+                        seen.add(record_key);known=known or record.file_key==file_key
+                    head=self._head_key(association)
+                    if head in families:
+                        if families[head]!='head':raise TransferError('photo_mappings_candidate_invalid_member')
+                        seen.add(head)
+                if seen!=set(families):raise TransferError('photo_mappings_candidate_orphan_member')
+                if self._snapshot()!=before:raise TransferError('photo_mappings_candidate_snapshot_changed')
+                if known:raise TransferError('media_collection_existing_mapping_required')
+                return before
+
     @contextmanager
-    def saved_record_lease(self, association, expected_record_sha256):
-        """Native backup read only: one exact protected version for held file IO.
+    def saved_record_lease(self, association, expected_record_sha256, *, expected=None, latest=False):
+        """Native read only: one exact protected version for held file IO.
 
         Keep the existing store/OS lock, rather than re-running a durable lookup
         and fsync for every 64 KiB. No write/network authority is constructed.
         Native revocation remains checked on each chunk; membership/head is
         reverified before releasing the lease or reporting successful copying.
+        Optional snapshot/latest constraints narrow automatic source selection;
+        explicit historical backup leases keep their original default behavior.
         """
-        if type(association) is not PhotoMappingAssociation or not _hex(expected_record_sha256):
+        if (type(association) is not PhotoMappingAssociation or not _hex(expected_record_sha256)
+                or expected is not None and type(expected) is not PhotoMappingsSnapshot or type(latest) is not bool):
             raise TransferError('photo_mappings_native_associations_required')
         with self._operation():
             if not self._open():raise TransferError('photo_mapping_original_record_required')
             with self._locked():
                 self._schema(); before=self._snapshot()
-                record=next((value for _,value in self._mapping_records(association)
+                if expected is not None and before!=expected:
+                    raise TransferError('photo_mappings_lease_snapshot_changed')
+                records=self._mapping_records(association)
+                record=next((value for _,value in records
                     if value.protected_record_sha256==expected_record_sha256),None)
                 if not before.associated or record is None or record.protected_record_sha256!=expected_record_sha256:
                     raise TransferError('photo_mapping_original_record_required')
+                if latest and records[0][1]!=record:
+                    raise TransferError('photo_mappings_lease_latest_required')
                 yield record,self._fresh
                 self._fresh()
                 if self._snapshot()!=before or record not in tuple(value for _,value in self._mapping_records(association)):

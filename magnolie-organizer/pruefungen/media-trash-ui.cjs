@@ -62,10 +62,70 @@ const plain = value => JSON.parse(JSON.stringify(value));
       cases++;
 
       const tick = () => new Promise(resolve => setImmediate(resolve));
+      const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aX0AAAAASUVORK5CYII=";
+      const preview = { mime_type: "image/png", width: 1, height: 1, data_base64: png };
+      const previewAnswer = (extra = {}) => {
+        const selected = calls().at(-1);
+        answer({ scope: selected.scope, operation: selected.operation, version: selected.version, preview, ...extra }, selected);
+      };
+      let observer;
+      b.w.IntersectionObserver = class {
+        constructor(callback) { this.callback = callback; this.elements = []; observer = this; }
+        observe(element) { this.elements.push(element); }
+        disconnect() { this.elements = []; }
+      };
+      d.querySelector("#medien-papierkorb-aktualisieren").click(); answer({ entries: [row()], total: 1, next_cursor: null });
+      let called = calls().length;
+      assert.equal(observer, undefined, "Automatic thumbnails are opt-in; text notes need no thumbnails");
+      assert.equal(d.querySelector("#medien-thumbnails-an").checked, false);
+      assert.equal(root().querySelector("[data-media-preview]").classList.contains("medien-papierkorb-vorschau"), false,
+        "Opt-out leaves a compact action, not an empty thumbnail-sized placeholder");
+      d.querySelector("#medien-thumbnails-an").click();
+      observer.callback(observer.elements.map(target => ({ target, isIntersecting: true })));
+      assert.equal(calls().at(-1).action, "thumbnail");
+      assert.equal(calls().length, called + 1, "Only visible native media requests a thumbnail; no restore/purge action");
+      previewAnswer();
+      const thumb = root().querySelector("[data-media-preview] img");
+      assert.ok(thumb && thumb.src.startsWith("data:image/png;base64,"));
+      assert.equal(thumb.alt, row().name); assert.equal(d.querySelector('img[src="x"]'), null, "Thumbnail filenames cannot inject HTML");
+      d.querySelector("#medien-thumbnails-an").click();
+      assert.equal(root().querySelector("[data-media-preview] img"), null, "Turning thumbnails off removes the small images, not the preview action");
+      root().querySelector("[data-media-preview]").click(); assert.equal(calls().at(-1).action, "preview");
+      previewAnswer({ version: "f".repeat(64) });
+      assert.equal(d.querySelector("#medien-vorschau-schleier"), null, "A foreign preview cannot be shown for the selected item");
+      root().querySelector("[data-media-preview]").click(); previewAnswer();
+      let viewer = d.querySelector("#medien-vorschau-schleier");
+      assert.ok(viewer && viewer.querySelector("img").src === thumb.src);
+      assert.ok(viewer.textContent.includes(row().name));
+      called = calls().length;
+      viewer.querySelector("[data-media-preview-purge]").click();
+      assert.equal(calls().length, called, "Viewing or opening a delete confirmation cannot release bytes");
+      d.querySelector("#dialog-nein").click(); await tick(); assert.equal(calls().length, called);
+      root().querySelector("[data-media-preview]").click(); previewAnswer();
+      viewer = d.querySelector("#medien-vorschau-schleier");
+      viewer.querySelector("[data-media-preview-restore]").click();
+      assert.equal(calls().at(-1).action, "restore"); assert.equal(calls().at(-1).operation, row().operation);
+      assert.equal(d.querySelector("#medien-vorschau-schleier"), null);
+      answer({ completed: { scope: row().scope, operation: row().operation, state: "restored" } }); answer({ entries: [], total: 0, next_cursor: null });
+      assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves); cases++;
+
+      d.querySelector("#medien-papierkorb-aktualisieren").click(); answer({ entries: [row()], total: 1, next_cursor: null });
+      root().querySelector("[data-media-preview]").click(); previewAnswer({ preview: { ...preview, mime_type: "image/svg+xml" } });
+      assert.equal(d.querySelector("#medien-vorschau-schleier"), null, "Only bounded native raster data may enter preview images");
+      root().querySelector("[data-media-preview]").click(); previewAnswer();
+      const privateImage = d.querySelector("#medien-vorschau-schleier img"); assert.ok(privateImage);
+      const unlockedBook = plain(b.t.daten());
+      b.w.App.init({ gesperrt: true });
+      assert.equal(d.querySelector("#medien-vorschau-schleier"), null); assert.equal(privateImage.hasAttribute("src"), false,
+        "Lock removes the larger private preview source, not just its controls");
+      b.w.App.init({ daten: unlockedBook, neu: false, regional: plain(unlockedBook.einstellungen.regional) });
+      b.w.MagnolieI18n.setLocale(locale);
+      b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-sicherheit").click();
+      answer({ entries: [], total: 0, next_cursor: null }); cases++;
       d.querySelector("#medien-papierkorb-aktualisieren").click(); answer({ entries: [row()], total: 1, next_cursor: null });
       assert.ok(root().textContent.includes(locale === "de" ? "Aufbewahrungsfrist" : "retention period"));
       const purge = () => root().querySelector("[data-media-purge]");
-      let called = calls().length;
+      called = calls().length;
       purge().click(); assert.equal(calls().length, called, "Showing confirmation cannot release bytes");
       assert.ok(d.querySelector("#dialog-text").textContent.includes(row().name));
       d.querySelector("#dialog-nein").click(); await tick(); assert.equal(calls().length, called);
@@ -77,6 +137,10 @@ const plain = value => JSON.parse(JSON.stringify(value));
       purge().click(); d.querySelector("#dialog-ja").click(); await tick(); answer({ ok: false });
       assert.ok(purge(), "Failed permanent deletion must retain the media row");
       assert.ok(!root().textContent.includes(messages[locale][2]), "An uncertain reply after byte release must not promise that files were kept");
+      const uncertain = root().querySelector(".einst-warnung").textContent;
+      root().querySelector("[data-media-preview]").click(); previewAnswer({ ok: false, supported: false });
+      assert.ok(purge() && root().querySelector(".einst-warnung").textContent === uncertain,
+        "Unavailable preview must retain rows and prior mutation uncertainty");
       purge().click(); d.querySelector("#dialog-ja").click(); await tick();
       answer({ completed: { scope: row().scope, operation: row().operation, state: "purged" } });
       assert.equal(purge(), null); answer({ entries: [], total: 0, next_cursor: null });

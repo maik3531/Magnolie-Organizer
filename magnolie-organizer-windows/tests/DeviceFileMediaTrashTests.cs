@@ -5,6 +5,108 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileMediaTrashTests
 {
+    internal static NativeMediaPreviewRaster RenderActualProduct(byte[] bytes, string kind, int side, Action current)
+    {
+        var folder = Path.Combine(AppContext.BaseDirectory, "preview-product");
+        var context = System.Runtime.Loader.AssemblyLoadContext.Default;
+        System.Reflection.Assembly? Resolve(System.Runtime.Loader.AssemblyLoadContext _, System.Reflection.AssemblyName name)
+        {
+            var path = Path.Combine(folder, name.Name + ".dll");
+            return File.Exists(path) ? context.LoadFromAssemblyPath(path) : null;
+        }
+        context.Resolving += Resolve;
+        try
+        {
+            var actual = context.LoadFromAssemblyPath(Path.Combine(folder, "Magnolie Organizer.dll"));
+            var render = actual.GetType("MagnolieOrganizer.Windows.NativeMediaPreviewDrawing", true)!
+                .GetMethod("Render", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            object result;
+            try { result = render.Invoke(null, new object[] { bytes, kind, side, current })!; }
+            catch (System.Reflection.TargetInvocationException error) when (error.InnerException is not null)
+            { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
+            object Value(string name) => result.GetType().GetProperty(name)!.GetValue(result)!;
+            return new((string)Value("MimeType"), (int)Value("Width"), (int)Value("Height"), (string)Value("DataBase64"));
+        }
+        finally { context.Resolving -= Resolve; }
+    }
+
+    internal static Task WindowsActualProductDrawingPreviewAsync()
+    {
+        var folder = Path.Combine(AppContext.BaseDirectory, "preview-product");
+        var context = System.Runtime.Loader.AssemblyLoadContext.Default;
+        System.Reflection.Assembly? Resolve(System.Runtime.Loader.AssemblyLoadContext _, System.Reflection.AssemblyName name)
+        {
+            var path = Path.Combine(folder, name.Name + ".dll");
+            return File.Exists(path) ? context.LoadFromAssemblyPath(path) : null;
+        }
+        context.Resolving += Resolve;
+        try
+        {
+            var actual = context.LoadFromAssemblyPath(Path.Combine(folder, "Magnolie Organizer.dll"));
+            var render = actual.GetType("MagnolieOrganizer.Windows.NativeMediaPreviewDrawing", true)!
+                .GetMethod("Render", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNg+M8AAAICAQB7CYF4AAAAAElFTkSuQmCC");
+            var before = png.ToArray();
+            foreach (var side in new[] { 192, 1024 })
+            {
+                var result = render.Invoke(null, new object[] { png, "images", side, (Action)(() => { }) })!;
+                object Value(string name) => result.GetType().GetProperty(name)!.GetValue(result)!;
+                var jpeg = Convert.FromBase64String((string)Value("DataBase64"));
+                TestAssert.That((int)Value("Width") == 1 && (int)Value("Height") == 1 && (string)Value("MimeType") == "image/jpeg" &&
+                    jpeg[0] == 255 && jpeg[1] == 216 && png.SequenceEqual(before), "Actual product native decoder did not return an unchanged-input bounded JPEG raster.");
+            }
+            foreach (var bytes in new[] { "<svg href='file:///private'/>"u8.ToArray(), Array.Empty<byte>() })
+                TestAssert.Throws<System.Reflection.TargetInvocationException>(() => render.Invoke(null, new object[] { bytes, "images", 192, (Action)(() => { }) }),
+                    "Product decoder accepted an active/unknown image format.");
+            var checks = 0;
+            TestAssert.Throws<System.Reflection.TargetInvocationException>(() => render.Invoke(null, new object[] { png, "images", 192,
+                (Action)(() => { if (++checks == 2) throw new InvalidDataException("native_preview_retired"); }) }), "Product decoder ignored current-owner withdrawal.");
+            TestAssert.That(checks == 2, "Product decoder did not recheck native ownership after decoding.");
+        }
+        finally { context.Resolving -= Resolve; }
+        return Task.CompletedTask;
+    }
+
+    // Actual native retained-file IO/ownership; rendering is a separate platform boundary.
+    internal static async Task WindowsReadonlyTrashPreviewAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
+        var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aX0AAAAASUVORK5CYII=");
+        var data = new[] { png, png }; var manifest = f.Manifest(("renamed.bin", png), ("other.png", png));
+        var epoch = new string('e', 64); var run = await DeviceFileAlbumTests.Preview(f, manifest, epoch, "Kamera");
+        await DeviceFileAlbumTests.Copy(f, run, data);
+        var job = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
+        var entry = f.Native.Store.TrashNativeMediaSavedFile(f.Native.Peer.Id, job.JobId, job.Version, manifest.Files[0].Id, () => true);
+        var folder = Path.Combine(f.Root, new NativeMediaAlbumContext(epoch, "Kamera").Folder);
+        var trash = Path.Combine(folder, ".magnolie-trash-" + entry.Operation);
+        var names = Directory.GetFiles(folder).Order().ToArray(); var history = f.Native.Store.NativeMediaTrashHistory(f.Native.Peer.Id).ToArray();
+        byte[]? clear = null; var allowed = true; var renders = 0;
+        NativeMediaPreviewRaster Render(byte[] bytes, string kind, int side, Action current)
+        {
+            current(); renders++; clear = bytes;
+            TestAssert.That(bytes.SequenceEqual(png) && kind == "images" && side is 192 or 1024, "Preview did not read authenticated original media bytes.");
+            return new("image/png", 1, 1, Convert.ToBase64String(png));
+        }
+        foreach (var side in new[] { 192, 1024 })
+        {
+            var result = f.Native.Store.PreviewNativeMediaTrash(f.Native.Peer.Id, entry, () => allowed, side, Render);
+            TestAssert.That(result.Width == 1 && result.MimeType == "image/png" && clear!.All(value => value == 0), "Readonly preview failed or left original input plaintext live.");
+        }
+        TestAssert.That(renders == 2 && Directory.GetFiles(folder).Order().SequenceEqual(names) && File.ReadAllBytes(trash).SequenceEqual(png) &&
+            !File.Exists(Path.Combine(folder, "renamed.bin")) && f.Native.Store.NativeMediaTrashHistory(f.Native.Peer.Id).SequenceEqual(history) &&
+            f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == job, "Viewing moved, copied, deleted or rewrote retained original/history.");
+        TestAssert.Throws<InvalidDataException>(() => f.Native.Store.PreviewNativeMediaTrash(f.Native.Peer.Id, entry with { Version = new string('0', 64) },
+            () => true, 192, Render), "A stale selection reached rendering.");
+        TestAssert.That(renders == 2, "Stale selection invoked renderer.");
+        TestAssert.Throws<InvalidDataException>(() => f.Native.Store.PreviewNativeMediaTrash(f.Native.Peer.Id, entry, () => allowed, 192,
+            (bytes, kind, side, current) => { var result = Render(bytes, kind, side, current); allowed = false; return result; }), "Revoked native permit leaked a rendered result.");
+        TestAssert.That(clear!.All(value => value == 0) && File.ReadAllBytes(trash).SequenceEqual(png), "Withdrawal lost original bytes or left plaintext buffers.");
+        File.Move(trash, trash + ".kept"); File.WriteAllBytes(trash, png);
+        TestAssert.Throws<InvalidDataException>(() => f.Native.Store.PreviewNativeMediaTrash(f.Native.Peer.Id, entry, () => true, 192, Render),
+            "A foreign same-content inode was accepted for preview.");
+        TestAssert.That(File.ReadAllBytes(trash + ".kept").SequenceEqual(png) && File.ReadAllBytes(trash).SequenceEqual(png), "Preview repaired/replaced a foreign file.");
+    }
+
     internal static async Task WindowsOriginalTrashRestoreAsync()
     {
         using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); await DeviceFileReconcileTests.Establish(f);

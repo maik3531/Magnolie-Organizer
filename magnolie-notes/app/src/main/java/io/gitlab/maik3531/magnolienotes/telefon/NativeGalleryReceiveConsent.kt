@@ -27,6 +27,9 @@ internal class NativeGalleryReceiveBookPermit private constructor(private val cu
                 documents.personalActorSavedBookState() != saved) fail()
         } catch (error: Exception) { revoked = true; throw error }
     }
+    internal fun requireArchiveBook(permit: NativeGalleryTrashBookPermit) {
+        requireCurrent(); permit.requireOriginalBook(documents, saved); requireCurrent()
+    }
     companion object {
         internal fun capture(currentDocuments: () -> Ablage?, unlocked: () -> Boolean) = NativeGalleryReceiveBookPermit(currentDocuments, unlocked)
         private fun fail(): Nothing = DeviceFileControl.fail("gallery_receive_current_saved_book_required")
@@ -85,7 +88,7 @@ internal class NativeGalleryReceiveConsent private constructor(private val activ
     companion object {
         internal fun request(activity: ComponentActivity, nativePeerLabel: String, mediaType: GalleryMediaType,
             configurer: NativeFileReceiveConfigurer, book: NativeGalleryReceiveBookPermit,
-            result: (Result<NativeGalleryReceiveConsent>) -> Unit) {
+            result: (Result<NativeGalleryReceiveConsent>) -> Unit): AutoCloseable {
             if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
             if (Build.VERSION.SDK_INT < 30) DeviceFileControl.fail("gallery_receive_android30_required")
             if (nativePeerLabel.isBlank() || nativePeerLabel.length > 160 || nativePeerLabel.any { it.code < 32 || it.code == 127 })
@@ -98,19 +101,26 @@ internal class NativeGalleryReceiveConsent private constructor(private val activ
                 try { result(outcome) } catch (_: Exception) { selection.close() }
             }
             fun canceled() = finish(Result.failure(PhotoFolderScopeError("gallery_receive_local_consent_canceled")))
+            var dialog: AlertDialog? = null
             try {
                 val title = activity.getString(if (mediaType == GalleryMediaType.IMAGES) R.string.medien_sync_fotos else R.string.medien_sync_videos)
-                val dialog = AlertDialog.Builder(activity).setTitle(title + "\n" + nativePeerLabel)
+                val prompt = AlertDialog.Builder(activity).setTitle(title + "\n" + nativePeerLabel)
                     .setMessage(R.string.medien_empfang_bestaetigen)
                     .setPositiveButton(android.R.string.ok) { _, _ ->
                         try { selection.approve(); finish(Result.success(selection)) }
                         catch (error: Exception) { finish(Result.failure(error)) }
                     }
                     .setNegativeButton(android.R.string.cancel) { _, _ -> canceled() }.create()
-                dialog.setOnCancelListener { canceled() }
-                dialog.setOnDismissListener { if (!delivered.get()) canceled() }
-                dialog.show()
+                dialog = prompt
+                prompt.setOnCancelListener { canceled() }
+                prompt.setOnDismissListener { if (!delivered.get()) canceled() }
+                prompt.show()
             } catch (error: Exception) { finish(Result.failure(error)) }
+            return AutoCloseable {
+                fun cancel() { selection.close(); canceled(); dialog?.dismiss() }
+                if (Looper.myLooper() == Looper.getMainLooper()) cancel()
+                else Handler(Looper.getMainLooper()).post { cancel() }
+            }
         }
     }
 }

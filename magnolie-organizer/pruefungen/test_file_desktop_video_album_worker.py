@@ -137,6 +137,7 @@ def test_video_worker_mixed_known_and_new_members_uses_typed_selection_and_only_
 
 
 def test_image_worker_remains_independent_when_video_preference_is_enabled_but_video_data_gate_is_off(receiving,tmp_path,monkeypatch):
+    monkeypatch.setattr(receiving[3],'_video_data_handlers_ready',False)
     batches=prepared_images(receiving)[:1]
     target=prepare_video_preferences(receiving,tmp_path,monkeypatch)
     connection=receiving[3]

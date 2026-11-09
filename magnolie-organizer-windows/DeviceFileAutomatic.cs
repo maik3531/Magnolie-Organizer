@@ -88,6 +88,7 @@ internal sealed partial class TelefonCoordinator
         TelefonConnection? expectedConnection = null)
     {
         var manual = manualIntent is not null;
+        JsonObject? runIntent = manualIntent;
         token.ThrowIfCancellationRequested();
         var connection = NativeMediaOnlineConnection(peerId);
         if (expectedConnection is not null && !ReferenceEquals(expectedConnection, connection))
@@ -99,18 +100,23 @@ internal sealed partial class TelefonCoordinator
         }
         void Intent()
         {
-            if (manual && (!ReferenceEquals(NativeMediaOnlineConnection(peerId), connection) || !connection.MediaSharedSettingsReady ||
-                !JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey), manualIntent)))
-                throw DeviceFileControl.Error("file_media_manual_intent_changed");
+            if (runIntent is not null && (!ReferenceEquals(NativeMediaOnlineConnection(peerId), connection) || !connection.MediaSharedSettingsReady ||
+                !JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey), runIntent)))
+                throw DeviceFileControl.Error(manual ? "file_media_manual_intent_changed" : "file_media_original_shared_intent_changed");
         }
         Intent();
         if (connection.MediaSharedControlsReady || store.HasNativeMediaSharedSettings(peerId))
         {
+            // Pin the full original registers for automatic roots too. Equal
+            // projected local preferences do not make a later shared ACK the
+            // original operation's intent.
+            runIntent ??= store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey)?.DeepClone().AsObject();
             if (!connection.MediaSharedSettingsReady || !ApplyMatchedNativeMediaPreferences(peerId, connection))
             {
                 if (manual) throw DeviceFileControl.Error("file_media_manual_intent_changed");
                 return "held";
             }
+            Intent();
         }
         var preferences = store.ReadNativeMediaPreferences(peerId);
         if ((!manual && !preferences.AutomaticWifi) || !preferences.PhotosEnabled && !preferences.VideosEnabled)
@@ -137,6 +143,7 @@ internal sealed partial class TelefonCoordinator
         }
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
         lifetime.CancelAfter(TimeSpan.FromHours(2));
+        IDisposable? activity = null;
         try
         {
             lock (state)
@@ -145,6 +152,7 @@ internal sealed partial class TelefonCoordinator
                 else if (state.Paused) return "held";
                 state.Active = lifetime; state.Phase = "running";
             }
+            activity = TraySyncActivity.Enter();
             var permit = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
             void Require()
             {
@@ -159,10 +167,31 @@ internal sealed partial class TelefonCoordinator
                 if (!(kind == "images" ? preferences.PhotosEnabled : preferences.VideosEnabled)) continue;
                 Require();
                 if (kind == "video" && !connection.NativeMediaUiMetadataAvailable(videos: true)) { review = true; continue; }
+                var sharedIntent = runIntent;
+                if (sharedIntent is not null && MediaSyncSettings.TransferRequestedFor(sharedIntent, kind, toPhone: true))
+                {
+                    await connection.PrepareNativeMediaSendUiAsync(NativeSavedBook, kind, lifetime.Token); Require();
+                    var outgoing = await connection.SynchronizeNativeMappedMediaChangesAsync(kind, permit, Require, lifetime.Token);
+                    Require(); review |= outgoing.NeedsReview;
+                }
+                // Scope, mode and direction remain independent. PC-only direction
+                // must not fall through to phone-source discovery/READ/import.
+                if (sharedIntent is not null && !MediaSyncSettings.TransferRequestedFor(sharedIntent, kind, toPhone: false)) continue;
                 EnsureConfiguredNativeMediaDefault(peerId, kind); Require();
                 await connection.PrepareNativeMediaUiAsync(NativeSavedBook, kind, lifetime.Token); Require();
-                var status = await connection.ReadNativeFileSourceStatusAsync(lifetime.Token); Require();
-                var configured = await connection.PrepareNativeMediaSourceAsync(status, kind, lifetime.Token); Require();
+                var status = sharedIntent is not null
+                    ? await connection.ReadNativeSharedMediaSourceStatusAsync(kind, lifetime.Token)
+                    : await connection.ReadNativeFileSourceStatusAsync(lifetime.Token);
+                Require();
+                // A matched shared synchronization choice adopts current native
+                // phone SEND state; it must not invoke the explicit legacy
+                // setup/configure path or silently enable video access.
+                if (sharedIntent is not null && (!status.Enabled || !status.Associated || status.RepairPending ||
+                    kind == "video" && status.Videos?.Enabled != true))
+                { review = true; continue; }
+                var configured = sharedIntent is not null ? status
+                    : await connection.PrepareNativeMediaSourceAsync(status, kind, lifetime.Token);
+                Require();
                 await connection.AwaitNativeMediaDataAgreementAsync(kind, lifetime.Token); Require();
                 var page = await connection.DiscoverNativeMediaAlbumsAsync(configured.Version, kind, token: lifetime.Token); Require();
                 var albums = page.Albums.ToList();
@@ -202,6 +231,7 @@ internal sealed partial class TelefonCoordinator
         {
             lock (state) if (ReferenceEquals(state.Active, lifetime)) state.Active = null;
             Interlocked.Exchange(ref nativeMediaWorker, 0);
+            activity?.Dispose();
         }
     }
 }

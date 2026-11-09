@@ -10239,3 +10239,53 @@ msgstr "Video’s"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Wachten op native mediastatus"
+
+
+#. Appearance preview; visual-only controls. Refs #432.
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Alleen een visuele test; verbindingen en machtigingen worden niet gewijzigd."
+
+msgid "Tray preview"
+msgstr "Voorbeeld van het systeemvakpictogram"
+
+msgid "Seasonal background"
+msgstr "Seizoensachtergrond"
+
+msgid "Holiday watermark"
+msgstr "Feestdagwatermerk"
+
+msgid "Both connected"
+msgstr "Beide verbonden"
+
+msgid "Camera"
+msgstr "Camera"
+
+msgid "Snowflakes"
+msgstr "Sneeuwvlokken"
+
+msgid "Stars"
+msgstr "Sterren"
+
+msgid "Boots"
+msgstr "Laarzen"
+
+msgid "Santa Claus"
+msgstr "Kerstman"
+
+msgid "Rocket"
+msgstr "Raket"
+
+msgid "Champagne glass"
+msgstr "Champagneglas"
+
+msgid "Easter eggs"
+msgstr "Paaseieren"
+
+msgid "Reset preview"
+msgstr "Voorbeeld herstellen"
+
+msgid "OS tray icon (60 s)"
+msgstr "Systeemvakpictogram (60 s)"
+
+msgid "Saved developer mode is required."
+msgstr "De ontwikkelaarsmodus moet opgeslagen zijn."

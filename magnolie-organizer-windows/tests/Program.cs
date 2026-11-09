@@ -1,4 +1,10 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--tray-drawing") { await TrayAppearanceTests.DrawingAsync(); Console.WriteLine("Tray drawing PASS"); return 0; }
+if (args.Length == 1 && args[0] == "--tray-visual-test") { await TrayAppearanceTests.VisualLeaseAsync(); Console.WriteLine("Tray visual lease PASS"); return 0; }
+if (args.Length == 1 && args[0] == "--tray-sync-io") { await TraySyncActivityTests.WriterAsync(); Console.WriteLine("Tray sync IO PASS"); return 0; }
+// Refs #432: individually bounded native projection and activity checks.
+if (args.Length == 1 && args[0] == "--tray-owners") { await TrayAppearanceTests.OwnersAsync(); Console.WriteLine("Tray owners PASS"); return 0; }
+if (args.Length == 1 && args[0] == "--tray-kde") { await KdeConnectTests.TrayProjectionAsync(); Console.WriteLine("Tray KDE TLS PASS"); return 0; }
 if (args.Length == 2 && args[0] == "--mcp-stdio-fixture")
     return await MagnolieOrganizer.Windows.McpLocalServer.RunStdioAsync(args[1], Console.OpenStandardInput(), Console.OpenStandardOutput(), CancellationToken.None);
 
@@ -103,8 +109,13 @@ if (args.FirstOrDefault() == "--published-release-audit")
 }
 
 var runner = new TestRunner();
+runner.Add("Tray appearance / passive owners and independent activity", TrayAppearanceTests.OwnersAsync);
+runner.Add("Tray appearance / actual encrypted personal time actor IO", TraySyncActivityTests.WriterAsync);
+runner.Add("Tray appearance / native visual lease and saved developer gate", TrayAppearanceTests.VisualLeaseAsync);
+runner.Add("Tray appearance / actual KDE TLS without SMS", KdeConnectTests.TrayProjectionAsync);
 runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
 runner.Add("Media shared preferences / independent registers safe defaults replay and actor guards", MediaSyncSettingsTests.RunAsync);
+runner.Add("Video preview container / bounded memory input refuses external references", DeviceFileVideoPreviewTests.ContainerAsync);
 runner.Add("Media photo metadata / bounded actual TIFF JPEG PNG tags / unknown exclusion", PhotoCaptureMetadataTests.RunAsync);
 runner.Add("Media backup exclusions / recursive independent native component classifier", DeviceFileBackupExclusionTests.ClassifierAsync);
 runner.Add("Personal synchronization confirmed-success actual ACK / stale channel / failure", PersonalSyncSuccessTests.AcknowledgmentsAsync);
@@ -175,6 +186,7 @@ runner.Add("Document export / actual ODS / readback / target guards", VerifiedDo
 runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
 runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);
 runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.ExchangeAsync);
+runner.Add("Calendar source case / Windows mixed component and property names roundtrip", CalendarSourceTimezoneCaseTests.RunAsync);
 runner.Add("Thunderbird local.sqlite Schema 23", ThunderbirdSchema23Tests.RunAsync);
 runner.Add("ODS Paket / XML / Styles / Geometrie / Chart", ContractGroupTests.OdsAsync);
 runner.Add("Time sync / v7 consent and strict records", TimeSyncContractTests.RunAsync);
@@ -194,6 +206,11 @@ runner.Add("Tray-Persistenz / Autostart", ContractGroupTests.TrayAsync);
 runner.Add("Wetterstandort / LibreOffice / Datenschutz", WeatherLocationTests.RunAsync);
 runner.Add("Magnolienbaum Crypto / Pairing / FS1 / Replay / Queues / Netzwerk", ContractGroupTests.TreeAsync);
 runner.Add("Magnolienbaum Nextcloud / WebDAV / Authentisierung", NextcloudMailboxTests.RunAsync);
+runner.Add("DAV credential identity / checked account changes cannot reuse a retained secret", NextcloudMailboxTests.CredentialIdentityGuardAsync);
+runner.Add("Embedded timezone boundary anchors / historical UTC range", RecurrenceIntegrationTests.BoundaryAnchorsAsync);
+runner.Add("ICS unfolding / actual codec / semantic compatibility", CalendarUnfoldingTests.SemanticsAsync);
+runner.Add("ICS unfolding / bounded allocations / valid folded descriptions", CalendarUnfoldingTests.AllocationsAsync);
+runner.Add("DAV wildcard ETag / exact version preconditions / no transport", NextcloudDavTests.WildcardVersionBindingAsync);
 runner.Add("Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit", NextcloudDavTests.RunAsync);
 runner.Add("Calendar birthday cleanup", CalendarBirthdayCleanupTests.RunAsync);
 runner.Add("Shared preference controller", SharedSyncControllerTests.RunAsync);
@@ -235,6 +252,9 @@ runner.Add("Media backup maintenance / policy age Never savings and content keys
 runner.Add("Media backup maintenance / native resource sampling and sticky busy state", DeviceFileBackupMaintenanceTests.ProbeAsync);
 runner.Add("Media backup maintenance / saved book stop and memory ownership", DeviceFileBackupMaintenanceTests.NativeOwnerAsync);
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
+runner.Add("Media offer envelope / strict context and shared canonical vector", MediaOfferEnvelopeTests.RunAsync);
+runner.Add("Published readback / shared vector and metadata-only authority", DevicePublishedReadbackTests.RunAsync);
+runner.Add("Media source MIME / bounded actual bytes and unknown formats", DeviceFileMediaMimeTests.ByteDerivedMimeAsync);
 runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
 runner.Add("Device file native transport / actual secure echo / read-only identity", DeviceFileConnectionTransportTests.HandshakeAsync);
 runner.Add("Device file native transport / uncertain write / scope withdrawal", DeviceFileConnectionTransportTests.FailureAsync);
@@ -273,6 +293,26 @@ runner.Add("Device file native destination / absent read does not bootstrap", De
 runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
 if (OperatingSystem.IsWindows())
 {
+    runner.Add("Calendar legacy Android alias / Windows actual source wire and RID fixture", CalendarLegacyAndroidImportTests.RunAsync);
+    runner.Add("Collection inventory / Windows read-only native identities exclusions and cancellation", DeviceFileCollectionInventoryTests.WindowsInventoryAsync);
+    runner.Add("Collection inventory / Windows actual reparse hardlink and paged enumeration", DeviceFileCollectionInventoryTests.WindowsHazardsAsync);
+    runner.Add("Collection roots / Windows independent read-only selection protected persistence and replacement HOLD", DeviceFileCollectionRootsTests.WindowsPersistenceAsync);
+    runner.Add("Collection roots / Windows pairing ciphertext and missing-key HOLD preserve source records", DeviceFileCollectionRootsTests.WindowsTamperAsync);
+    runner.Add("Collection generation / Windows actual file and ancestor creation witness no owner revival", DeviceFileCollectionInventoryTests.WindowsGenerationAsync);
+    runner.Add("Collection generation / Windows versioned root witness legacy and malformed HOLD", DeviceFileCollectionRootsTests.WindowsGenerationAsync);
+    runner.Add("Collection source / Windows independent PC-only origin cache versions and actual wire END", DeviceFileCollectionSourceTests.WindowsActualSourceAsync);
+    runner.Add("Collection source / Windows original consent book and entire-scope guards", DeviceFileCollectionSourceTests.WindowsOwnerGuardsAsync);
+    runner.Add("Collection source / Windows mixed mapped history and strict authenticated origin schema", DeviceFileCollectionSourceTests.WindowsMixedHistoryAndSchemaAsync);
+    runner.Add("Collection source paths / Windows full native relative paths and legacy origin HOLD", DeviceFileCollectionSourceTests.WindowsPathHistoryAsync);
+    runner.Add("Collection source backup / Windows explicit output dedup and independent offline raw restore", DeviceFileCollectionSourceTests.WindowsPreparedBackupAsync);
+    runner.Add("Collection source backup / Windows interrupted exact candidate unaligned resume", DeviceFileCollectionSourceTests.WindowsPreparedBackupInterruptedAsync);
+    runner.Add("Collection source backup / Windows corrupt prefix HOLD without truncation", DeviceFileCollectionSourceTests.WindowsPreparedBackupCorruptAsync);
+    runner.Add("Collection source backup / Windows original source withdrawal cannot be renewed by output consent", DeviceFileCollectionSourceTests.WindowsPreparedBackupWithdrawalAsync);
+    runner.Add("Collection source backup / Windows complete interrupted bytes independently recover offline", DeviceFileCollectionSourceTests.WindowsPreparedBackupPendingOfflineAsync);
+    runner.Add("Collection source backup / Windows actual local copy drains before source disposal END", DeviceFileCollectionSourceTests.WindowsPreparedBackupDrainAsync);
+    runner.Add("Independent PC recovery / Windows offline native choice saved book lane and exact retry", DeviceFileCollectionSourceTests.WindowsIndependentRecoveryChoiceAsync);
+    runner.Add("Independent PC recovery / Windows collision exact FID resume and restored source HOLD", DeviceFileCollectionSourceTests.WindowsIndependentRecoveryResumeAsync);
+    runner.Add("Media independent choices / Windows import display does not expand authority", DeviceFileSharedPreferencesTests.IndependentDirectionViewAsync);
     runner.Add("Media shared storage / Windows readonly persistence independent fields and merge", DeviceFileSharedPreferencesTests.PersistenceAsync);
     runner.Add("Media shared storage / Windows seven-field projection preserves original ciphertext and clocks", DeviceFileSharedPreferencesTests.SevenFieldProjectionAsync);
     runner.Add("Media shared storage / Windows preserve legacy choices and ambiguous deletions", DeviceFileSharedPreferencesTests.LegacyAsync);
@@ -280,11 +320,19 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared transport / Windows actual bilateral ACK exact snapshot and no grants", DeviceFileSharedTransportTests.MatchedAsync);
     runner.Add("Media shared transport / Windows old capability and failed secure ACK HOLD", DeviceFileSharedTransportTests.GuardsAsync);
     runner.Add("Media local receiving consent / Windows remote intent cannot grant and protected persistence", DeviceFileReceiveConsentTests.DefaultsAndPersistenceAsync);
+    runner.Add("Media local sending consent / Windows independent defaults persistence and pairing", DeviceFileSendConsentTests.DefaultsAndPersistenceAsync);
+    runner.Add("Media local sending consent / Windows corrupted ciphertext stays held", DeviceFileSendConsentTests.CorruptionStaysHeldAsync);
+    runner.Add("Media local sending consent / Windows actual mapped source and cache withdrawal", DeviceFileMappedSourceTests.WindowsSendingConsentWithdrawalAsync);
+    runner.Add("Media native sending dialog / Windows exact native answer and stale context", DeviceFileSendConsentTests.NativeDialogContextAsync);
     runner.Add("Media local receiving consent / Windows actual receiver withdrawal is sticky", DeviceFileReceiveConsentTests.ActualWithdrawalAsync);
     runner.Add("Media shared projection / Windows local rights master and unchanged idempotence", DeviceFileSharedProjectionTests.RightsAndMasterAsync);
     runner.Add("Media shared projection / Windows stale snapshot and native write rollback", DeviceFileSharedProjectionTests.AtomicFenceAsync);
     runner.Add("Media shared projection / Windows VIDEO-only base bootstrap and actual data ACK", DeviceFileConnectionCommandsTests.WindowsSharedVideoOnlyBootstrapAsync);
     runner.Add("Media shared projection / Windows explicit manual inventory actual receive Saved END", DeviceFileAutomaticTests.WindowsSharedManualReceiveSavedAsync);
+    runner.Add("Media shared incoming / Windows video inventory adopts fresh enabled status without configure", DeviceFileAutomaticTests.WindowsSharedManualVideoInventoryAsync);
+    runner.Add("Media shared incoming automatic / Windows actual fresh status chunks Saved END without configure", DeviceFileAutomaticTests.WindowsSharedAutomaticReceiveSavedAsync);
+    runner.Add("Media automatic original intent / Windows later matched snapshot cannot replace admitted root", DeviceFileAutomaticTests.WindowsSharedAutomaticOriginalIntentAsync);
+    runner.Add("Media shared incoming / Windows phone source OFF repair and association stay review", DeviceFileAutomaticTests.WindowsSharedSourceOffReviewAsync);
     runner.Add("Media shared transport / Windows manual duplicate deadline stale intent and failed ACK guards", DeviceFileSharedTransportTests.ManualGuardsAsync);
     runner.Add("Media backup exclusions / Windows former backup destination rejection without catalog", DeviceFileBackupExclusionTests.WindowsDestinationAsync);
     runner.Add("Media backup locations / Windows retained parents default and idempotence", DeviceFileBackupLocationTests.WindowsChoicesAsync);
@@ -312,6 +360,45 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native directory / Windows actual handle and identity", DeviceFileNativeDirectoryTests.WindowsHandleAsync);
     runner.Add("Device file native directory / Windows actual reparse rejection", DeviceFileNativeDirectoryTests.WindowsReparseAsync);
     runner.Add("Device file native receive / Windows actual no-replace publication", DeviceFileNativeReceiveTests.WindowsPublicationAsync);
+    runner.Add("Device file native source / Windows original mapped file bounded read", DeviceFileNativeReceiveTests.WindowsManagedSourceAsync);
+    runner.Add("Device file native source / Windows cancellation drains original read", DeviceFileNativeReceiveTests.WindowsManagedSourceDrainAsync);
+    runner.Add("Device file native source / Windows metadata selection on held original", DeviceFileNativeReceiveTests.WindowsManagedSourceMetadataAsync);
+    runner.Add("Device file mapped source / Windows actual completed mapping and matched send intent", DeviceFileMappedSourceTests.WindowsCompletedMappingAsync);
+    runner.Add("Device file mapped source / Windows original saved book and file identity", DeviceFileMappedSourceTests.WindowsOriginalBookAndFileAsync);
+    runner.Add("Device file mapped source / Windows import scope and actual metadata filter", DeviceFileMappedSourceTests.WindowsScopeAndMetadataAsync);
+    runner.Add("Device file source cache / Windows actual sealed preparation and original history", DeviceFileSourceCacheTests.WindowsActualFreezeAsync);
+    runner.Add("Device file source cache / Windows corruption and missing original record", DeviceFileSourceCacheTests.WindowsCorruptionAndMissingHeadAsync);
+    runner.Add("Device file source cache / Windows original book change during committed copy", DeviceFileSourceCacheTests.WindowsSaveDuringCopyAsync);
+    runner.Add("Device file source cache / Windows cancellation drains actual cache read", DeviceFileSourceCacheTests.WindowsCancellationDrainsReadAsync);
+    runner.Add("Device file source send / Windows actual secure requested chunks and peer Saved", DeviceFileSourceSendTests.WindowsActualSecureSendAsync);
+    foreach (var scenario in new[] { "none", "publication", "mime", "early", "cancel" })
+        runner.Add("Published readback / Windows actual sender " + scenario, () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync(scenario));
+    foreach (var scenario in new[] { "end-none", "end-publication", "end-early", "end-cancel" })
+        runner.Add("Source END / Windows actual sender " + scenario, () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync(scenario));
+    foreach (var scenario in new[] { "successor-new", "successor-unchanged", "successor-incomplete", "successor-corrupt" })
+        runner.Add("Source successor / Windows actual sender " + scenario, () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync(scenario));
+    runner.Add("Source successor / Windows actual sender successor-chain", () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync("successor-chain"));
+    runner.Add("Source successor / Windows unattempted preparation stays held", DeviceFileSourceSendTests.WindowsSuccessorBeforeOfferAsync);
+    runner.Add("Source successor / Windows actual sender successor-during-copy", () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync("successor-during-copy"));
+    runner.Add("Mapped export / Windows actual manual pass versions and unchanged dedup", DeviceFileSourceSendTests.WindowsMappedOutgoingPassAsync);
+    runner.Add("Mapped export / Windows actual WiFi automatic pass and unchanged dedup", DeviceFileSourceSendTests.WindowsMappedAutomaticOutgoingPassAsync);
+    runner.Add("Mapped native UI export / Windows own SEND dialog control ACK and source END without RECEIVE", DeviceFileSourceSendTests.WindowsNativeUiOutgoingPassAsync);
+    runner.Add("Shared UI request export / Windows strict request native status and source END without RECEIVE", DeviceFileSourceSendTests.WindowsSharedUiRequestPassAsync);
+    runner.Add("Shared UI request export / Windows cancel before control ACK preserves source", DeviceFileSourceSendTests.WindowsSharedUiRequestCancelAsync);
+    runner.Add("Shared UI reply failure / Windows cancels and drains before releasing UI dispatch", DeviceFileSourceSendTests.WindowsSharedUiReplyFailureAsync);
+    runner.Add("Video preview native / Windows actual memory-only H264 frame orientation and withdrawal", DeviceFileVideoPreviewTests.WindowsFrameAsync);
+    if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "preview-product")))
+        runner.Add("Video preview rotation / Windows actual product JPEG honors native display matrix", DeviceFileVideoPreviewTests.WindowsProductRotationAsync);
+    if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "preview-product")))
+        runner.Add("Video preview retained product / Windows actual wire Saved END original trash and native JPEG", DeviceFileConnectionReceiveTests.WindowsVideoWireRetainedProductPreviewAsync);
+    runner.Add("Mapped native UI export / Windows SEND-only withdrawal while awaiting actual peer ACK", DeviceFileSourceSendTests.WindowsNativeUiSendWithdrawalAsync);
+    runner.Add("Mapped native UI export / Windows close while awaiting actual peer ACK", DeviceFileSourceSendTests.WindowsNativeUiSendCloseAsync);
+    runner.Add("Mapped export / Windows import-only and unknown content before output", DeviceFileSourceSendTests.WindowsMappedOutgoingRejectsScopeAndUnknownBytesAsync);
+    runner.Add("Mapped export / Windows actual photos-only filter before preparation", DeviceFileSourceSendTests.WindowsMappedPhotoFilterBeforePreparationAsync);
+    runner.Add("Device file source send / Windows early Saved and missing exchange hold", DeviceFileSourceSendTests.WindowsRejectsEarlySavedAndLostAttemptAsync);
+    runner.Add("Device file source send / Windows actual offer output cancellation drains", DeviceFileSourceSendTests.WindowsOfferDrainAndCancellationAsync);
+    runner.Add("Device file source send / Windows early acceptance waits for actual output", DeviceFileSourceSendTests.WindowsEarlyAcceptanceWaitsForOutputAsync);
+    runner.Add("Device file source send / Windows unknown MIME holds before output", DeviceFileSourceSendTests.WindowsUnknownMimeBeforeOutputAsync);
     runner.Add("Device file native receive / Windows actual content verification", DeviceFileNativeReceiveTests.WindowsVerificationAsync);
     runner.Add("Device file native receive / Windows uncertain publication and reparse", DeviceFileNativeReceiveTests.WindowsUncertainAndReparseAsync);
     runner.Add("Device file native destination / Windows independent protected roots", DeviceFileStoreDestinationsTests.WindowsPersistenceAsync);
@@ -357,6 +444,13 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native reconcile / Windows mixed preview selects only new content", DeviceFileReconcileTests.WindowsMixedPreviewSelectsOnlyNewAsync);
     runner.Add("Device file native reconcile / Windows corrupt subset and reused owner HOLD", DeviceFileReconcileTests.WindowsSelectionRejectsChangedSubsetAsync);
     runner.Add("Device file native media trash / Windows original bytes restore and stale replay HOLD", DeviceFileMediaTrashTests.WindowsOriginalTrashRestoreAsync);
+    runner.Add("Device file native media trash / Windows readonly preview exact retained file and withdrawal HOLD", DeviceFileMediaTrashTests.WindowsReadonlyTrashPreviewAsync);
+    // Optional actual-product fixture, staged only by the bounded native probe.
+    if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "preview-product")))
+    {
+        runner.Add("Device file native media trash / Windows actual product drawing preview", DeviceFileMediaTrashTests.WindowsActualProductDrawingPreviewAsync);
+        runner.Add("Tray appearance / Windows actual product drawing", TrayAppearanceTests.DrawingAsync);
+    }
     runner.Add("Device file native media trash / Windows occupied restore and original retry", DeviceFileMediaTrashTests.WindowsRestoreOccupiedTargetAsync);
     runner.Add("Device file native media trash / Windows changed identity content and permit HOLD", DeviceFileMediaTrashTests.WindowsTrashChangedSourceAndPermitHoldAsync);
     runner.Add("Device file native media trash / Windows interrupted move and original recovery", DeviceFileMediaTrashTests.WindowsInterruptedMoveRecoveryAsync);

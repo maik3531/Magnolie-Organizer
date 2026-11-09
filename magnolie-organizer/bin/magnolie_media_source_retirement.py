@@ -5,6 +5,7 @@ plus independently verified local source backup can hand off drained READ to a
 no-replace archive move while the original book/OS lane remains owned.
 """
 from dataclasses import dataclass
+from contextlib import nullcontext
 from hashlib import sha256
 import copy
 import os
@@ -124,8 +125,16 @@ def verify_retirement_exchange(jobs,db,key,ready,body):
     if original is None or original.version!=body['exchange_version']:
         raise TransferError('media_source_retirement_original_exchange_required')
     if body['format']==1:
-        if original.body['phase']!='peer_saved' or db.execute('SELECT 1 FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone():
+        if db.execute('SELECT 1 FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone():
             raise TransferError('media_source_retirement_original_exchange_required')
+        if original.body['format']==4:
+            peer=jobs._authority.current_peer();local=jobs._authority.identity
+            manifest=FileManifest.parse(ready.body['manifest'])
+            if peer is None or manifest.sender_id!=local.receiver_id or manifest.receiver_id!=peer.peer_id:
+                raise TransferError('media_source_retirement_readback_pair_required')
+            verify_completed_media_exchange(original.body,manifest,local.receiver_identity_sha256,
+                peer.identity_sha256,ready.body['original_references'],pc_origin=ready.body.get('local_origin'))
+        elif original.body['phase']!='peer_saved':raise TransferError('media_source_retirement_original_exchange_required')
         return
     from magnolie_media_source_retry import _read_retry_history
     history=_read_retry_history(jobs,db,key,job,ready,body['exchange_version'])
@@ -171,6 +180,40 @@ def verify_completed_saved_exchange(record,manifest):
             or any(getattr(accepted,field)!=getattr(saved,field) for field in
                 ('transfer_id','manifest_sha256','acceptance_sha256','permission_epoch','destination_token'))):
         raise TransferError('media_source_retirement_completed_retry_required')
+
+
+def verify_completed_media_exchange(record,manifest,local_key,peer_key,originals,*,pc_origin=None):
+    """Pinned historical DATA only; native reader, backup and drain stay separate."""
+    from magnolie_media_offer import validate_media_offer
+    from magnolie_file_accept_message import parse_acceptance
+    from magnolie_file_saved_message import parse_saved
+    from magnolie_file_published_readback import parse_readback
+    from magnolie_file_transfer import NativeTransferBinding
+    if (record['format']!=4 or record['phase']!='peer_readback' or record['pending_chunk'] is not None
+            or type(record['sent_bits']) is not int or record['sent_bits']!=(1<<manifest.files[0].chunks)-1
+            or any(type(record.get(field)) is not dict for field in ('offer','acceptance','peer_saved','peer_readback'))):
+        raise TransferError('media_source_retirement_completed_media_required')
+    offer=record['offer'];accepted_message=record['acceptance'];saved_message=record['peer_saved'];readback_message=record['peer_readback']
+    media=validate_media_offer(offer,manifest.sender_id,manifest.receiver_id,now=offer.get('created_ms'))
+    if media.manifest!=manifest or media.originals!=originals:raise TransferError('media_source_retirement_completed_media_required')
+    if pc_origin is not None:
+        expected={manifest.files[0].id:dict(format=1,origin_sha256=sha256(b'magnolie-pc-media-origin-v1\0'+canonical(pc_origin)).hexdigest(),
+            previous_publication_sha256=None)}
+        if media.pc_origins!=expected:raise TransferError('media_collection_retirement_original_origin_required')
+    elif media.pc_origins:raise TransferError('media_collection_retirement_original_origin_required')
+    accepted=parse_acceptance(accepted_message,now=accepted_message.get('created_ms'))
+    saved=parse_saved(saved_message,manifest,now=saved_message.get('created_ms'))
+    raw=readback_message.get('body')
+    if type(raw) is not dict:raise TransferError('media_source_retirement_completed_media_required')
+    binding=NativeTransferBinding(manifest.sender_id,manifest.receiver_id,local_key,peer_key,record['permission_epoch'],raw.get('destination_token'))
+    parsed=parse_readback(readback_message,media.offer,binding,media.media_type,now=readback_message.get('created_ms'))
+    file=manifest.files[0]
+    if (accepted.offer_id!=offer['message_id'] or accepted.manifest_sha256!=manifest.fingerprint or accepted.transfer_id!=manifest.transfer_id
+            or accepted.permission_epoch!=record['permission_epoch'] or any(getattr(accepted,field)!=getattr(saved,field) for field in
+                ('transfer_id','manifest_sha256','acceptance_sha256','permission_epoch','destination_token'))
+            or saved_message['created_ms']<offer['created_ms'] or saved_message['expires_ms']>offer['expires_ms']
+            or parsed.body['publication_sha256']!=saved.receipts[0].receipt_sha256 or parsed.body['mime_type']!=media.mime_types[file.id]):
+        raise TransferError('media_source_retirement_completed_media_required')
 
 
 def verify_archived_cache(jobs,parent,body,current):
@@ -235,6 +278,21 @@ class _NativeSourceRetirement:
 
     def close(self):self._closed.set() # Never release another thread's actual IO.
 
+    def _permits_pc_source_checkpoint(self,source,job):
+        active=getattr(self._sender._active,'retirement',None)
+        # The outer saved-book lease performs one final checkpoint after the
+        # sender's active pointer is cleared, but before the original exact IO
+        # permit/thread is released. Only this already-archived record qualifies;
+        # neither a new reader nor Saved/readback can enter this cleanup branch.
+        completed=(active is None and self._record is not None and self._planned is not None
+            and self._record.body==dict(self._planned,format=2 if self._sender._retry_spec is not None else 1,
+                scope=self._jobs._scope,database_key=list(self._jobs._database_key),job_id=self._job,state='archived'))
+        return (not self._closed.is_set() and self._thread==threading.get_ident() and self._planned is not None
+            and self._sender._source is source and self._job==job and self._reader is not None
+            and getattr(self._reader,'_retirement_handoff',None) is self
+            and (active is self or completed)
+            and getattr(source._cache_scope,'permit',None) is self._permit and self._permit[3]==threading.get_ident())
+
     def _permits_retry_record(self,record):
         if (self._closed.is_set() or self._thread!=threading.get_ident() or self._planned is None or record is None
                 or self._reader is None or getattr(self._sender._active,'reader',None) is not self._reader
@@ -251,8 +309,15 @@ class _NativeSourceRetirement:
         if getattr(sender._source._cache_scope,'permit',None) is not self._permit:
             raise TransferError('media_source_retirement_live_lease_required')
         self._permit[2]()
-        if sender._record is None or not (sender._record.body['phase']=='peer_saved' or
-                sender._retry_spec is not None and sender._record.body['phase']=='peer_readback'):
+        if sender._record is None:
+            raise TransferError('media_source_retirement_actual_completed_sender_required')
+        record=sender._record.body
+        if record['format']==4:
+            peer=sender._authority.current_peer()
+            if peer is None:raise TransferError('media_source_retirement_readback_pair_required')
+            verify_completed_media_exchange(record,sender._cache.manifest,sender._authority.identity.receiver_identity_sha256,
+                peer.identity_sha256,sender._cache.original_references,pc_origin=sender._cache.pc_origin)
+        elif not (record['phase']=='peer_saved' or sender._retry_spec is not None and record['phase']=='peer_readback'):
             raise TransferError('media_source_retirement_actual_completed_sender_required')
         sender._journal.require(sender._record)
         if sender._controls.binding(sender._binding.destination_token,sender_is_local=True)!=sender._binding:
@@ -270,6 +335,14 @@ class _NativeSourceRetirement:
             raise TransferError('media_source_retirement_original_intent_required')
 
     def run(self):
+        connection=self._sender._connection
+        with connection._operation() if connection is not None else nullcontext():
+            result=self._run()
+            if connection is not None and connection._media_sender is self._sender:
+                self._sender.close();connection._media_sender=None
+            return result
+
+    def _run(self):
         sender=self._sender
         if not sender._gate.acquire(blocking=False):raise TransferError('media_source_sender_busy')
         parent=None;handed=False
@@ -291,6 +364,8 @@ class _NativeSourceRetirement:
                     self._planned=copy.deepcopy(body)
                     self._record=self._journal.write(self,None,body);self._boundary('source_retirement_planned');self._require_planned()
                     reader._handoff_retirement(self);handed=True
+                    from magnolie_media_source_pc import NativeCollectionMediaSource
+                    if type(sender._source) is NativeCollectionMediaSource:sender._source._handoff_original(self)
                     self._current();_move_no_replace(parent,body['stage'],archive);os.fsync(parent)
                     self._boundary('source_retirement_moved');self._current();verify_archived_cache(self._jobs,parent,body,self._current)
                     self._backup_proof();self._require_planned()

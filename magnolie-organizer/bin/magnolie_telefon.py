@@ -2,6 +2,7 @@
 """Unabhaengige Magnolie-Telefonverbindung (Protokollfassung 1)."""
 
 import base64
+import contextlib
 import copy
 import hashlib
 import hmac
@@ -2324,6 +2325,51 @@ class PhoneStore:
             lambda body, local: shared_sync_contract.merge_current_choices(body, incoming, local, peer_id), initial)
 
 
+TRAY_SYNC_DATA_KINDS = frozenset((
+    'personal_sync.request', 'personal_sync.batch', 'personal_sync.report',
+    'personal_sync.attachment_request', 'personal_sync.attachment_chunk', 'personal_sync.attachment_result',
+    'personal_sync.deletion_proposals', 'personal_sync.deletion_decision', 'personal_sync.scoped_data',
+    'personal_sync.custom_request', 'personal_sync.custom_batch',
+    'personal_sync.time_request', 'personal_sync.time_batch',
+    'personal_sync.actor_start', 'personal_sync.actor_data', 'personal_sync.actor_ack', 'personal_sync.actor_cancel'))
+
+
+def tray_sync_data_frame(message):
+    return (isinstance(message, dict) and message.get('type') == 'message' and
+            isinstance(message.get('kind'), str) and message['kind'] in TRAY_SYNC_DATA_KINDS)
+
+
+class NativeSyncActivity:
+    """Only admitted in-process IO leases; observer failures never change IO."""
+    def __init__(self, changed):
+        self.lock = threading.Lock()
+        self.owners = set()
+        self.changed = changed
+
+    @property
+    def active(self):
+        with self.lock:return bool(self.owners)
+
+    def _notify(self):
+        try:self.changed()
+        except Exception:pass
+
+    def enter(self):
+        activity = self
+        class Lease:
+            def __enter__(self):return self
+            def __exit__(self, *_error):self.dispose()
+            def dispose(self):
+                with activity.lock:
+                    if self not in activity.owners:return
+                    activity.owners.remove(self)
+                activity._notify()
+        lease = Lease()
+        with self.lock:self.owners.add(lease)
+        self._notify()
+        return lease
+
+
 class SecureChannel:
     def __init__(self, sock, sid, send_key, send_prefix, receive_key, receive_prefix):
         self.sock, self.sid = sock, sid
@@ -2332,6 +2378,7 @@ class SecureChannel:
         self.send_seq = self.receive_seq = 0
         self.lock = threading.Lock()
         self.last_send = time.monotonic()
+        self.sync_activity = None
 
     def send(self, payload):
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -2345,8 +2392,12 @@ class SecureChannel:
                 self.send_prefix + self.send_seq.to_bytes(8, "big"), raw,
                 canonical(aad_object))
             self.send_seq += 1
-            send_frame(self.sock, dict(aad_object, ciphertext=b64(encrypted)))
-            self.last_send = time.monotonic()
+            activity = self.sync_activity.enter() if self.sync_activity is not None and tray_sync_data_frame(payload) else None
+            try:
+                send_frame(self.sock, dict(aad_object, ciphertext=b64(encrypted)))
+                self.last_send = time.monotonic()
+            finally:
+                if activity is not None:activity.dispose()
 
     def receive(self):
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -2773,9 +2824,11 @@ class PhoneService:
         self.connections = {}
         self._file_channel_bindings = weakref.WeakKeyDictionary()
         self._native_file_connections = weakref.WeakKeyDictionary()
+        self._native_sending_setups = weakref.WeakKeyDictionary()
         self._native_file_controls = weakref.WeakKeyDictionary()
         self._native_file_control_receipts = weakref.WeakKeyDictionary()
         self._native_photo_activity = {}
+        self._native_sync_activity = NativeSyncActivity(lambda:self.callback('personal_sync_activity', {}))
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
         self.shared_sessions = weakref.WeakKeyDictionary()
@@ -2901,7 +2954,10 @@ class PhoneService:
                         self._native_file_connections.pop(channel, None)
             connection = NativeDesktopFileConnection(authority, channel, released=released,
                 activity_changed=lambda owner, active: self._native_photo_activity_changed(connection, owner, active),
-                status_changed=lambda: self.callback('photo_sync', {}))
+                status_changed=lambda: self.callback('photo_sync', {}),
+                native_metadata_current=lambda:self._current_native_source_metadata(peer_id,static_public,channel,generation),
+                native_wifi_current=lambda:(self._current_native_source_metadata(peer_id,static_public,channel,generation)
+                    and self.connection_transports.get(peer_id)=='wifi'))
         except BaseException:
             authority.close()
             raise
@@ -2918,6 +2974,7 @@ class PhoneService:
 
     def _end_native_file_connection(self, channel):
         with self.lock:
+            self._native_sending_setups.pop(channel,None)
             bindings = getattr(self, '_file_channel_bindings', None)
             owners = getattr(self, '_native_file_connections', None)
             if bindings is not None:
@@ -2954,7 +3011,13 @@ class PhoneService:
             connection=self._native_file_connections.get(channel)
             video_available=(connection_type._video_data_handlers_ready
                 and self._current_native_video_metadata(peer_id,binding.static_public,channel,binding.generation))
-        if connection is None:return dict(available=True,state='off',enabled=False,mode='manual',albums=[])
+        if connection is None:
+            state=dict(available=True,state='off',enabled=False,mode='manual',albums=[])
+            setup=self._native_sending_setup_hint(peer_id,binding,channel)
+            if setup is not None:
+                state['sending_setup']=setup
+                if video_available:state['video_supported']=True
+            return state
         state=connection.desktop_snapshot()
         if video_available:
             state['video_supported']=True
@@ -3002,18 +3065,173 @@ class PhoneService:
         if connection is None:raise ValueError('photo_sync_not_enabled')
         return connection.native_backup_locations(media_type,operation=operation,version=version,book_version=book_version,native_path=path)
 
+    def _native_sending_setup_hint(self,peer_id,binding,channel):
+        # Display/CAS metadata only. No store read, key initialization or native
+        # connection is allowed from a passive report (which may own self.lock).
+        if (type(channel) is not SecureChannel or not self._current_native_source_metadata(
+                peer_id,binding.static_public,channel,binding.generation)):return None
+        return dict(version=hashlib.sha256(canonical(dict(domain='native-sending-setup-v1',
+            channel=id(channel),generation=binding.generation,pairing=binding.pairing_epoch,
+            identity=binding.local_identity.receiver_identity_sha256,peer=self.store.peers[0]))).hexdigest())
+
+    def _native_sending_setup_preferences(self,binding,channel):
+        if binding.pairing_epoch is None:
+            subject=dict(local_id=binding.local_identity.receiver_id,local_identity=binding.local_identity.receiver_identity_sha256,
+                peer_id=binding.peer_id,peer_identity=hashlib.sha256(unb64(binding.static_public,32)).hexdigest())
+            name='photo-preferences-v1-'+hashlib.sha256(canonical(subject)).hexdigest()
+            if os.path.lexists(os.path.join(binding.native_directory,name)):
+                raise ValueError('media_sending_existing_pairing_review_required')
+            return None
+        authority=self.open_native_file_authority(binding.peer_id,binding.static_public,channel,binding.generation)
+        try:
+            preferences=importlib.import_module('magnolie_photo_preferences').ProtectedPhotoPreferences(authority)
+            try:snapshot=preferences.read()
+            finally:preferences.close()
+            if snapshot.policy is not None and not snapshot.associated:
+                raise ValueError('media_sending_existing_pairing_review_required')
+            return snapshot
+        finally:authority.close()
+
+    def _initialize_explicit_file_pairing(self,peer_id,binding,channel,*,native_current=lambda:True,native_published=lambda binding:None):
+        # Same narrow, durable native activation used for explicit RECEIVE and
+        # confirmed first SEND. Pairing alone or a UI status cannot call it.
+        from dataclasses import replace
+        from copy import deepcopy
+        protection_type=self._native_file_module('magnolie_file_native_authority').ExistingFileTransferProtection
+        with self.lock:
+            original=binding;expected=deepcopy(self.store.peers[0]);adopted=[None]
+            def permitted():
+                current=self._current_native_file_binding(peer_id,original.static_public,channel,original.generation)
+                wanted=expected if adopted[0] is None else dict(expected,file_pairing_epoch=adopted[0].pairing_epoch)
+                return (native_current() is True and current is (original if adopted[0] is None else adopted[0])
+                    and len(self.store.peers)==1 and self.store.peers[0]==wanted
+                    and self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection._data_handlers_ready)
+            def published(peer):
+                self.store.peers[0]['file_pairing_epoch']=peer['file_pairing_epoch']
+                adopted[0]=replace(original,pairing_epoch=peer['file_pairing_epoch'])
+                self._file_channel_bindings[channel]=adopted[0]
+                native_published(adopted[0])
+            with protection_type(original.native_directory) as protection:
+                saved=protection.initialize_native_file_pairing(expected,permitted,published)
+            if adopted[0] is None:published(saved)
+            return adopted[0]
+
+    def _native_first_sending_consent(self,peer_id,binding,channel,operation,photos,videos,selection,version):
+        from copy import deepcopy
+        _hex=importlib.import_module('magnolie_file_control')._hex
+        NativeMediaRetention=importlib.import_module('magnolie_media_retention').NativeMediaRetention
+        if (operation not in ('prepare','commit','cancel') or
+                (type(photos) is not bool or type(videos) is not bool or selection is not None or not _hex(version)
+                 if operation=='prepare' else not _hex(selection) or photos is not None or videos is not None or version is not None)):
+            raise ValueError('media_sending_native_choice_invalid')
+        with self.lock:
+            if operation=='prepare':
+                hint=self._native_sending_setup_hint(peer_id,binding,channel)
+                if hint is None or hint['version']!=version:raise ValueError('media_sending_native_choice_changed')
+                expected_peer=deepcopy(self.store.peers[0]);choice=None
+            else:
+                choice=self._native_sending_setups.get(channel)
+                if choice is None or choice[0]!=selection:raise ValueError('media_sending_native_choice_changed')
+                self._native_sending_setups.pop(channel)
+                if operation=='cancel':return dict(canceled=True)
+                expected_peer=choice[3]
+        original_binding=binding;live_binding=[binding];owned_connection=[None]
+        def current():
+            with self.lock:
+                if (self._current_native_file_binding(peer_id,binding.static_public,channel,binding.generation) is not live_binding[0]
+                        or self._native_file_connections.get(channel) is not owned_connection[0]
+                        or len(self.store.peers)!=1 or self.store.peers[0]!=expected_peer
+                        or not self._current_native_source_metadata(peer_id,binding.static_public,channel,binding.generation)
+                        or choice is not None and (choice[2] is not original_binding or time.monotonic()>=choice[1])):
+                    raise ValueError('media_sending_native_choice_changed')
+            return True
+        current()
+        with NativeMediaRetention(binding.native_directory) as retention:
+            with retention.permit(current) as permit:
+                if permit is None:raise ValueError('media_sending_saved_book_required')
+                book=retention.saved_book_version()
+                expected=self._native_sending_setup_preferences(binding,channel);current()
+                if operation=='prepare':
+                    consent=expected.policy.sending if expected is not None and expected.policy is not None else None
+                    token=secrets.token_hex(32)
+                    with self.lock:
+                        current();self._native_sending_setups[channel]=(token,time.monotonic()+60,binding,expected_peer,book,expected,photos,videos)
+                    return dict(selection=token,version=version,photos=photos,videos=videos,
+                        current_photos=bool(consent and consent.photos),current_videos=bool(consent and consent.videos),
+                        display_name=expected_peer.get('display_name',''))
+                if book!=choice[4] or expected!=choice[5]:raise ValueError('media_sending_native_choice_changed')
+                if not choice[6] and not choice[7]:return dict(photos=False,videos=False)
+                permit.require_current();current()
+                def activation_current():permit.require_current();return True
+                def activated(adopted):
+                    live_binding[0]=adopted;expected_peer['file_pairing_epoch']=adopted.pairing_epoch
+                binding=self._initialize_explicit_file_pairing(peer_id,binding,channel,
+                    native_current=activation_current,native_published=activated)
+                connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation)
+                owned_connection[0]=connection
+                try:
+                    with connection._operation():
+                        permit.require_current();snapshot=connection._preferences.read()
+                        if expected is not None and snapshot!=expected:raise ValueError('media_sending_native_choice_changed')
+                        if expected is None and snapshot.policy is not None:raise ValueError('media_sending_native_choice_changed')
+                        result=connection._preferences.configure_sending(connection._preferences.issue_action(),snapshot,photos=choice[6],videos=choice[7])
+                        permit.require_current();connection._send_controls(now_ms)
+                        connection._media_transport.send_settings()
+                    return dict(version=result.version,photos=choice[6],videos=choice[7])
+                except BaseException:
+                    connection.close();raise
+
+    def photo_sync_sending_consent(self,peer_id,expected_fingerprint,operation,photos,videos,selection,version):
+        """Private native GTK decision path, never a public photo action/flag."""
+        with self.lock:
+            original_channel=self.connections.get(peer_id)
+            pending=self._native_sending_setups.get(original_channel) if original_channel is not None else None
+        try:
+            if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
+            with self.lock:
+                channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
+                if (binding is None or type(expected_fingerprint) is not str
+                        or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
+                    raise ValueError('phone_control_conflict')
+                connection=self._native_file_connections.get(channel)
+                setup=channel in self._native_sending_setups
+            if connection is None or operation!='prepare' and setup:
+                return self._native_first_sending_consent(peer_id,binding,channel,operation,photos,videos,selection,version)
+            return connection.native_sending_consent(operation,photos=photos,videos=videos,selection=selection,version=version)
+        except BaseException:
+            # A denied commit is one-use even if a later metadata ACK repairs
+            # readiness. A stale/mismatched ticket must not discard a newer one.
+            if operation=='commit' and pending is not None and pending[0]==selection:
+                with self.lock:
+                    if self._native_sending_setups.get(original_channel) is pending:
+                        self._native_sending_setups.pop(original_channel)
+            raise
+
     def photo_sync_action(self, peer_id, expected_fingerprint, request):
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
-        if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','job_owner','historical_choice'}
+        if type(request) is dict and request.get('action')=='shared_setting':
+            if set(request)!={'action','field','value','version'}:raise ValueError('photo_sync_invalid_action')
+            if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
+            with self.lock:
+                channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
+                if (binding is None or type(expected_fingerprint) is not str
+                        or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
+                    raise ValueError('phone_control_conflict')
+                connection=self._native_file_connections.get(channel)
+            if connection is None:raise ValueError('photo_sync_not_enabled')
+            return connection.native_shared_media_setting(request['field'],request['value'],request['version'])
+        if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','video_album_id','job_owner','historical_choice'}
                  or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
                     'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
-                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination')
-                or ('album_id' in request) != (request['action'] in ('sync','videos_sync'))
+                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination','sync_selected','sync_shared')
+                or ('album_id' in request) != (request['action'] in ('sync','videos_sync','sync_selected'))
+                or ('video_album_id' in request) != (request['action']=='sync_selected')
                 or ('job_owner' in request) != (request['action'] in ('recover_saved','repair_receipt'))
                 or ('historical_choice' in request) != (request['action'] in ('animations_separate','animations_together','captures_separate','captures_together'))
                 or 'historical_choice' in request and (type(request['historical_choice']) is not str or request['historical_choice']!='keep_existing')
                 or 'job_owner' in request and (type(request['job_owner']) is not str or re.fullmatch('[0-9a-f]{32}',request['job_owner']) is None)
-                or request.get('album_id') is not None and type(request['album_id']) is not str):
+                or request.get('album_id') is not None and type(request['album_id']) is not str
+                or request.get('video_album_id') is not None and type(request['video_album_id']) is not str):
             raise ValueError('photo_sync_invalid_action')
         if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
         with self.lock:
@@ -3026,28 +3244,12 @@ class PhoneService:
             if connection is None:
                 # Explicit bootstrap uses the existing native peer-write monitor,
                 # not a new lock with reversed ordering or a migrating loader.
-                from dataclasses import replace
-                from copy import deepcopy
-                ExistingFileTransferProtection=self._native_file_module('magnolie_file_native_authority').ExistingFileTransferProtection
-                original=binding; expected=deepcopy(self.store.peers[0]); adopted=[None]
-                def permitted():
-                    current=self._current_native_file_binding(peer_id,original.static_public,channel,original.generation)
-                    wanted=expected if adopted[0] is None else dict(expected,file_pairing_epoch=adopted[0].pairing_epoch)
-                    return (current is (original if adopted[0] is None else adopted[0]) and len(self.store.peers)==1
-                        and self.store.peers[0]==wanted
-                        and self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection._data_handlers_ready)
-                def published(peer):
-                    self.store.peers[0]['file_pairing_epoch']=peer['file_pairing_epoch']
-                    adopted[0]=replace(original,pairing_epoch=peer['file_pairing_epoch'])
-                    self._file_channel_bindings[channel]=adopted[0]
-                with ExistingFileTransferProtection(original.native_directory) as protection:
-                    saved=protection.initialize_native_file_pairing(expected,permitted,published)
-                if adopted[0] is None:published(saved)
-                binding=adopted[0]
+                binding=self._initialize_explicit_file_pairing(peer_id,binding,channel)
         if connection is None:
             connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation)
-        return connection.desktop_session().start(request['action'],request.get('album_id'),job_owner=request.get('job_owner'),
-            historical_choice=request.get('historical_choice'))
+        options=dict(job_owner=request.get('job_owner'),historical_choice=request.get('historical_choice'))
+        if request['action']=='sync_selected':options['video_album_id']=request['video_album_id']
+        return connection.desktop_session().start(request['action'],request.get('album_id'),**options)
 
     def _observe_native_file_control(self, peer, channel, kind, message, *, duplicate=False, acknowledged=True):
         # Positive connection metadata requires actual secure ACK completion.
@@ -3093,14 +3295,55 @@ class PhoneService:
                 preferences=import_module('magnolie_photo_preferences').ProtectedPhotoPreferences(authority)
                 try:stored=preferences.read()
                 finally:preferences.close()
-                if (stored.policy is None or not stored.associated or not stored.policy.enabled or stored.mode!='automatic'
-                        or not stored.destination_available or stored.policy.mapping_store is None or stored.policy.job_catalog is None):return
+                policy=stored.policy
+                if policy is None or not stored.associated:return
+                receiver_auto=(policy.enabled and stored.mode=='automatic' and stored.destination_available
+                    and policy.mapping_store is not None and policy.job_catalog is not None)
+                media=import_module('magnolie_media_sync')
+                shared_saved=media.NativeMediaSettingsStore.has_stored_settings(authority)
+                receiver_shared=(shared_saved and policy.enabled and stored.destination_available
+                    and policy.mapping_store is not None and policy.job_catalog is not None
+                    and self._current_native_source_metadata(peer['device_id'],peer['static_public'],channel,binding.generation))
+                consent=policy.sending
+                sender=(consent is not None and consent.pairing_epoch==binding.pairing_epoch
+                    and (consent.photos or consent.videos)
+                    and self._current_native_source_metadata(peer['device_id'],peer['static_public'],channel,binding.generation))
+                if not (receiver_auto and not shared_saved) and not receiver_shared and not sender:return
             finally:authority.close()
             connection=self.open_native_file_connection(peer['device_id'],peer['static_public'],channel,binding.generation)
-            connection.desktop_session().start('resume_automatic')
+            shared_waiting=shared_saved
+            if sender or receiver_shared:
+                # Composition/control only. No discovery, RECEIVE, media scan,
+                # default directory, or cached shared-intent adoption on reconnect.
+                connection.send_controls()
+                connection._media_transport.send_settings()
+            # A saved shared direction must not be replaced by the older
+            # receiver-only bootstrap before this channel's fresh agreement.
+            if receiver_auto and not shared_waiting:connection.desktop_session().start('resume_automatic')
         except (ValueError,OSError):
             if connection is not None:connection.close()
             # Uncertain metadata is HOLD; no default record or automatic repair.
+
+    def _current_native_source_metadata(self,peer_id,static_public,channel,generation):
+        """Lock-free deny-only witness for source/socket worker callbacks.
+
+        File/book/mapping authority is checked independently by the live source.
+        Never take the service monitor or read native files from this callback.
+        """
+        binding=self._file_channel_bindings.get(channel)
+        peers=self.store.peers;controls=self._native_file_controls.get(channel,{})
+        if (not self.enabled or self.stop_event.is_set() or binding is None or generation!=self._generation
+                or binding.generation!=generation or binding.peer_id!=peer_id or binding.static_public!=static_public
+                or binding.store_owner is not self.store
+                or self.connections.get(peer_id) is not channel or len(peers)!=1):return False
+        peer=peers[0];personal=peer.get('personal_sync',{});status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
+        return bool(peer.get('device_id')==peer_id and peer.get('static_public')==static_public and peer.get('state')=='paired'
+            and personal.get('own_device') is True and personal.get('remote_own_device') is True
+            and status.get('available') is True and 21 in status.get('versions',[]) and 23 in status.get('versions',[])
+            and 'capabilities.update' in controls and 'grants.update' in controls
+            and controls.get('capabilities.update')==peer.get('capabilities')
+            and controls.get('grants.update')==peer.get('grants')
+            and controls.get('personal_sync.settings')=={'format':1,'own_device':True})
 
     def _native_photo_activity_changed(self, connection, owner, active):
         # These are in-process native owners, never serialized client claims.
@@ -3121,6 +3364,16 @@ class PhoneService:
     def _native_media_activity(self):
         with self.lock:
             return {'synchronizing': bool(self._native_photo_activity), 'camera': False}
+
+    def tray_sync_activity(self):
+        # Independent of the service monitor, which a blocked legacy sender can
+        # own. This passive UI projection must never wait behind its network IO.
+        activity = getattr(self, '_native_sync_activity', None)
+        return {'synchronizing': activity is not None and activity.active}
+
+    def _tray_sync_work(self):
+        activity = getattr(self, '_native_sync_activity', None)
+        return activity.enter() if activity is not None else contextlib.nullcontext()
 
     def _receive_native_file_message(self, peer, channel, payload):
         with self.lock:
@@ -6190,6 +6443,19 @@ class PhoneService:
             return result
 
     def _receive_personal_actor(self, peer, channel, payload):
+        with self.lock:
+            body = payload.get('body')
+            run = body.get('run_id') if isinstance(body, dict) else None
+            admission = self.personal_actor_admissions.get(run) if isinstance(run, str) else None
+            if (admission is None or admission['peer'] != peer['device_id'] or admission['key'] != peer['static_public'] or
+                    admission['channel'] is not channel or self.connections.get(peer['device_id']) is not channel):
+                return
+        # The original handler rechecks admission under its own monitor. This
+        # lease records only actual processing, never a stored live actor flag.
+        with self._tray_sync_work():
+            return self._receive_personal_actor_active(peer, channel, payload)
+
+    def _receive_personal_actor_active(self, peer, channel, payload):
         reply = None
         with self.lock:
             body = payload.get("body")
@@ -6899,11 +7165,12 @@ class PhoneService:
             channel = self.connections.get(peer_id)
             if success is not True or channel is None:
                 return False
-            committed = self.store.commit_time_batch(peer_id, message_id, token,
-                lambda message: self._time_allowed(peer_id, message["body"], channel=channel))
-            if committed:
-                channel.send({"type": "ack", "message_id": message_id, "status": "accepted", "error": "none"})
-            return committed
+            with self._tray_sync_work():
+                committed = self.store.commit_time_batch(peer_id, message_id, token,
+                    lambda message: self._time_allowed(peer_id, message["body"], channel=channel))
+                if committed:
+                    channel.send({"type": "ack", "message_id": message_id, "status": "accepted", "error": "none"})
+                return committed
 
     def _desktop_features_supported(self, peer):
         remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
@@ -8390,6 +8657,7 @@ class PhoneService:
                         b"magnolie-phone-fs1/session-keys\0" + transcript, 72)
         channel = SecureChannel(sock, sid, material[36:68], material[68:72],
                                 material[0:32], material[32:36])
+        channel.sync_activity = self._native_sync_activity
         capability_revision = self.store.next_revision("capabilities.update")
         grant_revision = self.store.next_revision("grants.update")
         ready = channel.receive()
@@ -8601,6 +8869,12 @@ class PhoneService:
         if payload.get("type") == "ack" and set(payload) == {
                 "type", "message_id", "status", "error"}:
             phone_ack_contract.validate(payload)
+            with self.lock:
+                connection=getattr(self,'_native_file_connections',{}).get(channel)
+                binding=getattr(self,'_file_channel_bindings',{}).get(channel)
+                native_media_ack=(connection is not None and binding is not None and
+                    self._current_native_file_binding(peer.get('device_id'),peer.get('static_public'),channel,binding.generation) is binding)
+            if native_media_ack and connection.receive_media_ack(payload):return
             if personal_actor_contract.is_reserved_message(self.store.outbox_message(peer["device_id"], payload["message_id"])):
                 return
             if payload["status"] == "rejected":
@@ -8817,11 +9091,13 @@ class PhoneService:
                     elif previous:
                         status, error = previous
                     elif kind == time_sync_contract.BATCH:
-                        staged = self.store.stage_time_batch(peer["device_id"], payload)
-                        self.callback("personal_time_batch", staged)
+                        with self._tray_sync_work():
+                            staged = self.store.stage_time_batch(peer["device_id"], payload)
+                            self.callback("personal_time_batch", staged)
                         return  # Only commit_time_sync may accept this batch.
                     elif kind == time_sync_contract.REQUEST:
-                        self.callback("personal_time_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
+                        with self._tray_sync_work():
+                            self.callback("personal_time_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
                     self.store.remember_message(peer["device_id"], payload, status, error)
             except PermissionError:
                 status, error = "rejected", "not_granted"
@@ -8886,7 +9162,8 @@ class PhoneService:
                     elif kind == "personal_sync.custom_request" and self._custom_allowed(peer["device_id"], kind, value):
                         if value["trigger"] == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
                             raise PermissionError
-                        self.callback("personal_custom_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
+                        with self._tray_sync_work():
+                            self.callback("personal_custom_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
                     else:
                         raise PermissionError
                     self.store.remember_message(peer["device_id"], payload, status, error)
@@ -9187,6 +9464,7 @@ class PhoneService:
             except ValueError:
                 status, error = "rejected", "invalid_schema"
         elif kind in {"personal_sync.settings"} | PERSONAL_DATA_KINDS:
+            sync_activity = None
             try:
                 value = validate_personal_sync_body(kind, payload["body"])
                 personal = peer.get("personal_sync", {})
@@ -9213,6 +9491,7 @@ class PhoneService:
                         not local.get(name) or not remote.get(name) for name in needed))):
                     status, error = "rejected", "not_granted"
                     raise PermissionError
+                if kind != 'personal_sync.settings':sync_activity = self._tray_sync_work()
                 if kind == "personal_sync.attachment_request":
                     run = self.store.personal_run(peer["device_id"], value["run_id"])
                     if run.get("trigger") == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
@@ -9409,6 +9688,8 @@ class PhoneService:
                 pass
             except ValueError:
                 status, error = "rejected", "invalid_schema"
+            finally:
+                if sync_activity is not None:sync_activity.__exit__(None, None, None)
         else:
             status, error = "rejected", "unsupported"
         self.store.remember_message(peer["device_id"], payload, status, error)

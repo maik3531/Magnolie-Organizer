@@ -41,7 +41,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AtomicStore.cs" Link="AtomicStore.cs" />
+    <Compile Include="..\TrayAppearanceState.cs" Link="TrayAppearanceState.cs" />
+    <Compile Include="..\TraySyncFrames.cs" Link="TraySyncFrames.cs" />
+    <Compile Include="..\TrayVisualTest.cs" Link="TrayVisualTest.cs" />
+    <Compile Include="..\NativeSyncActivity.cs" Link="NativeSyncActivity.cs" />
+    <Compile Include="..\TelefonTrayActivity.cs" Link="TelefonTrayActivity.cs" />
     <Compile Include="..\DeviceFileOfferEnvelope.cs" Link="DeviceFileOfferEnvelope.cs" />
+    <Compile Include="..\DeviceFilePublishedReadback.cs" Link="DeviceFilePublishedReadback.cs" />
+    <Compile Include="..\DeviceFileMediaPreview.cs" Link="DeviceFileMediaPreview.cs" />
+    <Compile Include="..\DeviceFileMediaPreview.Video.cs" Link="DeviceFileMediaPreview.Video.cs" />
+    <Compile Include="..\DeviceFileMediaMime.cs" Link="DeviceFileMediaMime.cs" />
     <Compile Include="..\PhotoSyncSchedule.cs" Link="PhotoSyncSchedule.cs" />
     <Compile Include="..\PhotoSyncPlan.cs" Link="PhotoSyncPlan.cs" />
     <Compile Include="..\DeviceFileControl.cs" Link="DeviceFileControl.cs" />
@@ -56,6 +65,17 @@
     <Compile Include="..\DeviceFileStoreDestinations.cs" Link="DeviceFileStoreDestinations.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.cs" Link="DeviceFileNativeDirectory.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.Receive.cs" Link="DeviceFileNativeDirectory.Receive.cs" />
+    <Compile Include="..\DeviceFileNativeDirectory.Source.cs" Link="DeviceFileNativeDirectory.Source.cs" />
+    <Compile Include="..\DeviceFileNativeDirectory.Collection.cs" Link="DeviceFileNativeDirectory.Collection.cs" />
+    <Compile Include="..\DeviceFileCollectionRoots.cs" Link="DeviceFileCollectionRoots.cs" />
+    <Compile Include="..\DeviceFileCollectionSource.cs" Link="DeviceFileCollectionSource.cs" />
+    <Compile Include="..\DeviceFileMappedSource.cs" Link="DeviceFileMappedSource.cs" />
+    <Compile Include="..\DeviceFileSourceCache.cs" Link="DeviceFileSourceCache.cs" />
+    <Compile Include="..\DeviceFileSourceBackup.cs" Link="DeviceFileSourceBackup.cs" />
+    <Compile Include="..\DeviceFileSourceRecovery.cs" Link="DeviceFileSourceRecovery.cs" />
+    <Compile Include="..\DeviceFileSourceExchange.cs" Link="DeviceFileSourceExchange.cs" />
+    <Compile Include="..\MediaOfferEnvelope.cs" Link="MediaOfferEnvelope.cs" />
+    <Compile Include="..\DeviceFileConnectionSend.cs" Link="DeviceFileConnectionSend.cs" />
     <Compile Include="..\DeviceFileReceiveJob.cs" Link="DeviceFileReceiveJob.cs" />
     <Compile Include="..\DeviceFileReceiveReceipts.cs" Link="DeviceFileReceiveReceipts.cs" />
     <Compile Include="..\DeviceFileReconcile.cs" Link="DeviceFileReconcile.cs" />
@@ -65,6 +85,7 @@
     <Compile Include="..\DeviceFileReplacement.cs" Link="DeviceFileReplacement.cs" />
     <Compile Include="..\DeviceFileBookPermit.cs" Link="DeviceFileBookPermit.cs" />
     <Compile Include="..\DeviceFileCoordinator.cs" Link="DeviceFileCoordinator.cs" />
+    <Compile Include="..\DeviceFileComposition.cs" Link="DeviceFileComposition.cs" />
     <Compile Include="..\DeviceFileAutomatic.cs" Link="DeviceFileAutomatic.cs" />
     <Compile Include="..\DeviceFileUiCoordinator.cs" Link="DeviceFileUiCoordinator.cs" />
     <Compile Include="..\DeviceFileUiRequest.cs" Link="DeviceFileUiRequest.cs" />
@@ -201,6 +222,7 @@
     <Compile Include="..\DeviceFileSharedPreferences.cs" Link="DeviceFileSharedPreferences.cs" />
     <Compile Include="..\DeviceFileConnectionSharedSettings.cs" Link="DeviceFileConnectionSharedSettings.cs" />
     <Compile Include="..\DeviceFileReceiveConsent.cs" Link="DeviceFileReceiveConsent.cs" />
+    <Compile Include="..\DeviceFileSendConsent.cs" Link="DeviceFileSendConsent.cs" />
     <Compile Include="..\DeviceFileSharedProjection.cs" Link="DeviceFileSharedProjection.cs" />
     <Compile Include="..\DeviceFileBackupExclusions.cs" Link="DeviceFileBackupExclusions.cs" />
     <Compile Include="..\DeviceFileBackupLocations.cs" Link="DeviceFileBackupLocations.cs" />

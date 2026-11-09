@@ -452,4 +452,6 @@
     <string name="medien_sync_modus">Synchronizacja</string>
     <string name="medien_sync_scope_import">Tylko importuj z telefonu na PC</string>
     <string name="medien_sync_direction_export">PC → telefon</string>
+    <string name="medien_empfang_erlauben">Zezwól na odbiór w galerii…</string>
+    <string name="medien_sync_nur_fotos">Tylko fotografie</string>
 </resources>

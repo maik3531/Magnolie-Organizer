@@ -203,6 +203,33 @@ const watchdog = setTimeout(() => { console.error("MCP import review timed out")
       const bulkApplied = success(await tool("organizer_import_review_apply", applyArgs(bulkReview)));
       assert.equal(bulkApplied.counts.appointments, 1501); assert.equal(snapshots.length, checkpointsBeforeBulk);
       assert.equal(b.t.daten().zeiterfassung, clockRuntime);
+      // #462: the staged MCP commit uses a cloned draft, but must bind the
+      // same exact old Android alias without replacing local identity/lists.
+      const legacy = { id: "legacy-mcp-local", uid: "caldav-series-1-magnolie-instanz-7f5e24178d89f683", datum: "2026-11-02", zeit: "12:30",
+        titel: "Legacy MCP", geaendert: 1, icsQuelleId: "ics:legacy-462", icsSerienUid: "caldav-series-1",
+        icsRoundtrip: ["RECURRENCE-ID;TZID=Europe/Berlin:20261102T100000"], futureMetadata: { keep: true },
+        alarme: [{ id: "local-alarm", offsetMinuten: 5, aktion: "display", aktiviert: true, related: "START", bearbeitbar: true }] };
+      b.t.daten().termine.push(legacy);
+      b.t.daten().aufgaben.push({ id: "legacy-mcp-task", uid: "legacy-mcp-task", titel: "Keep reference", terminId: legacy.id });
+      payload.termine = [{ uid: "caldav-series-1-magnolie-instanz-1201680171431eb3", datum: legacy.datum, zeit: legacy.zeit,
+        titel: "Incoming via MCP", geaendert: 2, icsQuelleId: legacy.icsQuelleId, icsSerienUid: legacy.icsSerienUid, icsRoundtrip: legacy.icsRoundtrip.slice() }];
+      b.t.speichereJetzt(); await tick();
+      const legacyCount = b.t.daten().termine.length;
+      const beginLegacy = async () => success(await tool("organizer_import_review_begin", { format: "ics", path: "/owned-fixture/legacy.ics",
+        expected_revision: sourceRevision, expected_book_revision: await revision() }));
+      const legacyReview = await beginLegacy();
+      const legacyApplied = success(await tool("organizer_import_review_apply", applyArgs(legacyReview)));
+      assert(legacyApplied.persisted); assert.equal(b.t.daten().termine.length, legacyCount);
+      const kept = b.t.daten().termine.find(event => event.id === legacy.id);
+      assert.equal(kept.uid, legacy.uid); assert.equal(kept.titel, "Incoming via MCP"); assert.equal(kept.futureMetadata.keep, true);
+      assert.equal(kept.alarme[0].id, "local-alarm");
+      assert.equal(b.t.daten().aufgaben.find(task => task.id === "legacy-mcp-task").terminId, legacy.id);
+      b.t.daten().termine.push({ ...JSON.parse(JSON.stringify(kept)), id: "second-legacy-mcp" });
+      b.t.speichereJetzt(); await tick();
+      const ambiguous = await beginLegacy(), beforeAliasConflict = JSON.stringify(b.t.daten()), savesBeforeAliasConflict = b.saves().length;
+      error(await tool("organizer_import_review_apply", applyArgs(ambiguous)), "conflict");
+      assert.equal(JSON.stringify(b.t.daten()), beforeAliasConflict); assert.equal(b.saves().length, savesBeforeAliasConflict);
+      success(await tool("organizer_import_review_cancel", { token: ambiguous.token }));
       console.log("MCP IMPORT REVIEW PASS: staged choices/content/owner/CAS/snapshot/save/expiry/cancel/one-use " + web);
     } finally { b.close(); }
   }

@@ -59,6 +59,15 @@ def test_actual_native_binding_cache_never_reloads_identity_and_factory_uses_onl
         assert not identity.exists()
     finally:held.rename(identity)
 
+def test_normal_legacy_factory_reads_native_peer_metadata_without_normalizing_personal_peer(native,monkeypatch):
+    service,peer,_=native;channel,binding=bind(service,peer)
+    monkeypatch.setattr(service.store,'peer',lambda *args:pytest.fail('Native factory normalized a personal peer'))
+    connection=service.open_native_file_connection(peer['device_id'],peer['static_public'],channel,binding.generation)
+    try:
+        assert connection._media_source is None and not connection._local().grants.send_files
+    finally:service._end_native_file_connection(channel)
+
+
 def test_missing_native_key_cannot_be_recreated_even_with_an_authenticated_cached_identity(native):
     service,peer,_=native;channel,binding=bind(service,peer)
     key=Path(service.store.storage_path);held=key.with_name('held-storage-key');key.rename(held)

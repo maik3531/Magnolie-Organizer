@@ -103,7 +103,7 @@ internal object MediaSyncSettings {
         return normalized
     }
 
-    fun effective(body: JsonObject): JsonObject {
+    fun configured(body: JsonObject): JsonObject {
         validate(body)
         val values = body.getValue("settings").jsonObject.mapValues { (field, raw) ->
             settingValue(field, SharedSyncSettings.effective(registers(field, raw)).getValue(fields.getValue(field)), false)
@@ -114,6 +114,11 @@ internal object MediaSyncSettings {
                 edit.jsonObject.getValue("counter").jsonPrimitive.long == newest &&
                     edit.jsonObject.getValue("value") == JsonPrimitive("manual") }) "manual" else "wifi")
         }
+        return JsonObject(values)
+    }
+
+    fun effective(body: JsonObject): JsonObject {
+        val values = configured(body).toMutableMap()
         // Import never exports; retain the independently stored direction so
         // switching scope does not rewrite the user's choice or edit history.
         if (values["collection_mode"] == JsonPrimitive("import_only") && "direction" in values) values["direction"] = JsonPrimitive("phone_to_pc")
