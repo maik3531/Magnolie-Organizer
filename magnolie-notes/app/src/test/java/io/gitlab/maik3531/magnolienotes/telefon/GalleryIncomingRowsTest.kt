@@ -33,9 +33,20 @@ import org.robolectric.shadows.StorageVolumeBuilder
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class, shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class])
+@Config(sdk = [35], application = Application::class, shadows = [GalleryIncomingRowsTest.WriteTargetLinux::class])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GalleryIncomingRowsTest {
+    @org.robolectric.annotation.Implements(className = "libcore.io.Linux", isInAndroidSdk = false)
+    class WriteTargetLinux : NativeIncomingMediaInspectionTest.FixtureLinux() {
+        @org.robolectric.annotation.Implementation fun fcntlInt(fd: java.io.FileDescriptor, command: Int, argument: Int): Int {
+            check(command == android.system.OsConstants.F_GETFL && argument == 0)
+            return access[fd] ?: android.system.OsConstants.O_RDONLY
+        }
+        companion object {
+            val access = java.util.IdentityHashMap<java.io.FileDescriptor, Int>()
+            @JvmStatic @org.robolectric.annotation.Resetter fun resetTarget() { access.clear(); NativeIncomingMediaInspectionTest.FixtureLinux.reset() }
+        }
+    }
     @Before fun mountedPrimaryVolume() {
         val app = RuntimeEnvironment.getApplication()
         val storage = Shadows.shadowOf(app.getSystemService(StorageManager::class.java))
@@ -85,6 +96,12 @@ class GalleryIncomingRowsTest {
         var beforeQuery: () -> Unit = {}
         var allowWriteRequest = false
         var writeRequests = 0
+        var allowRwTarget = false
+        var rwReadOnly = false
+        var rwFileOverride: File? = null
+        var rwOpens = 0
+        var lastRwDescriptor: java.io.FileDescriptor? = null
+        var afterRwOpen: () -> Unit = {}
         private var lastSize = 0L
         private var values: ContentValues? = null
         init { attachInfo(app, ProviderInfo().apply { authority = "media"; exported = true }) }
@@ -121,6 +138,18 @@ class GalleryIncomingRowsTest {
         override fun getType(uri: Uri): String = "image/jpeg"
         private var generationModified = 10L
         override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
+            if (mode == "rw") {
+                check(allowRwTarget); check(MediaStore.getRequireOriginal(uri))
+                check(uri.buildUpon().clearQuery().build().toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+                check(pending == 0L); rwOpens++
+                val file = rwFileOverride ?: payload!!
+                return ParcelFileDescriptor.open(file, if (rwReadOnly) ParcelFileDescriptor.MODE_READ_ONLY else ParcelFileDescriptor.MODE_READ_WRITE).also {
+                    NativeIncomingMediaInspectionTest.FixtureLinux.files[it.fileDescriptor] = file
+                    WriteTargetLinux.access[it.fileDescriptor] = if (rwReadOnly) android.system.OsConstants.O_RDONLY else android.system.OsConstants.O_RDWR
+                    lastRwDescriptor = it.fileDescriptor
+                    try { afterRwOpen() } catch (error: Throwable) { it.close(); throw error }
+                }
+            }
             check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
             val file = payload ?: error("Unexpected byte IO")
             if (mode == "w") {
@@ -1341,6 +1370,88 @@ class GalleryIncomingRowsTest {
         assertTrue(failure.get() is PhotoFolderScopeError); assertTrue(transfer.awaitIoEnded(0))
         assertNull(h.f.index.pcBeforeWrite(h.plan.id)); h.assertOriginal()
         val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+    }
+
+    @Test fun pcWritableTargetIsNontruncatingExactAndHeldUntilParentRetirementWithoutExportingAMutationApi() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            transfer.prepareBeforeWrite(h.rows, archive)
+        } }
+        val retained = h.f.rows(); h.provider.allowRwTarget = true
+        h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            transfer.prepareWriteTarget(h.rows, archive)
+        } }
+        assertEquals(1, h.provider.rwOpens); assertTrue(h.provider.lastRwDescriptor!!.valid()); h.assertOriginal()
+        assertEquals(retained, h.f.rows()); h.grant.requireUnused()
+        val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+        transfer.close(); assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0))
+        assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+    }
+
+    @Test fun pcWritableTargetRejectsReadOnlyFdDifferentNativeFileAndChangesAfterItsActualOpenWithoutMutatingAnything() {
+        for (reason in listOf("read_only", "other_inode", "revoked", "canceled", "missing_preflight")) withPcStage { h ->
+            val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+            if (reason != "missing_preflight") h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                transfer.prepareBeforeWrite(h.rows, archive)
+            } }
+            h.provider.allowRwTarget = true
+            val cancel = CancellationSignal()
+            when (reason) {
+                "read_only" -> h.provider.rwReadOnly = true
+                "other_inode" -> h.provider.rwFileOverride = File(h.f.root, "equal-but-different-native-target.png").apply { writeBytes(h.oldBytes) }
+                "revoked" -> h.provider.afterRwOpen = { h.grant.request.close() }
+                "canceled" -> h.provider.afterRwOpen = { cancel.cancel() }
+            }
+            val retained = h.f.rows()
+            h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                if (reason == "canceled") assertThrows(android.os.OperationCanceledException::class.java) { transfer.prepareWriteTarget(h.rows, archive, cancel) }
+                else assertThrows(PhotoFolderScopeError::class.java) { transfer.prepareWriteTarget(h.rows, archive) }
+            } }
+            assertEquals(if (reason == "missing_preflight") 0 else 1, h.provider.rwOpens)
+            h.provider.lastRwDescriptor?.let { assertFalse(it.valid()) }
+            assertEquals(retained, h.f.rows()); h.assertOriginal(); assertTrue(transfer.awaitIoEnded(0))
+        }
+    }
+
+    @Test fun pcWritableTargetParentCloseWhileActualRwOpenIsBlockedDoesNotPublishDrainOrLeakThatFd() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive -> transfer.prepareBeforeWrite(h.rows, archive) } }
+        h.provider.allowRwTarget = true
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        h.provider.afterRwOpen = { entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+        val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val worker = Thread { try { h.f.io {
+            NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive -> transfer.prepareWriteTarget(h.rows, archive) }
+        } } catch (error: Throwable) { failure.set(error) } }.also { it.start() }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); transfer.close()
+            assertTrue(h.provider.lastRwDescriptor!!.valid()); assertFalse(transfer.awaitIoEnded(0)); assertTrue(worker.isAlive)
+            val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+        } finally { release.countDown(); worker.join(7000); h.provider.afterRwOpen = {} }
+        assertFalse(worker.isAlive); assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(failure.get() is PhotoFolderScopeError)
+        assertTrue(transfer.awaitIoEnded(0)); h.assertOriginal()
+    }
+
+    @Test fun pcWritableTargetRetirementClosesItsRetainedFdOnlyAfterAllOtherActualStageIoHasDrained() = withPcStage { h ->
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        val transfer = h.prepare { if (it == "pc-stage-cipher-read-open" && Thread.currentThread().name == "fixture-retained-rw-reader") {
+            entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        } }
+        h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        h.provider.allowRwTarget = true
+        h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            transfer.prepareBeforeWrite(h.rows, archive); transfer.prepareWriteTarget(h.rows, archive)
+        } }
+        val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val reader = Thread({ try { transfer.readStagedAt(0, ByteArray(7), 0, 7) } catch (error: Throwable) { failure.set(error) } },
+            "fixture-retained-rw-reader").also { it.start() }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); transfer.close()
+            assertTrue(h.provider.lastRwDescriptor!!.valid()); assertFalse(transfer.awaitIoEnded(0))
+            val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+        } finally { release.countDown(); reader.join(7000) }
+        assertFalse(reader.isAlive); assertTrue(failure.get() is PhotoFolderScopeError)
+        assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0)); h.assertOriginal()
     }
 
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {

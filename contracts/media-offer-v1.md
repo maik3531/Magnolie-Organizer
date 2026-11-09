@@ -1183,10 +1183,47 @@ Publikation und Historie bleiben unverändert; keine Schreiböffnung, neue Zeile
 Saved-Ausgabe oder Grant-Verbrauch erfolgt. Mit fünf unveränderten früheren
 Descriptor-Medienfällen sind es 181 unterschiedliche Hostfälle. Dies ist weiterhin
 kein tatsächlicher Android-OS-/Provider-Abnahmenachweis oder R8-Nachweis.
-Ein künftiger Writer muss insbesondere seinen eigenen frisch geöffneten
-schreibenden FD gegen den genauen Vorprüfzeugen abgleichen und Schreibbeginn,
-vollständigen Postwrite-Readback sowie History-CAS dauerhaft absichern. Das ist
-hier noch nicht implementiert; der normale PC-Nachfolger-HOLD bleibt bestehen.
+Die folgende zusätzliche FD-Aufnahme deckt den frisch geöffneten schreibenden
+FD ab; Schreibbeginn, vollständiger Postwrite-Readback sowie History-CAS sind
+weiterhin nicht implementiert. Der normale PC-Nachfolger-HOLD bleibt bestehen.
+
+### Notes: exklusiver nicht kürzender PC-Schreibziel-FD ohne Mutations-API
+
+Nur derselbe lebende fertig gestagte Transfer mit exaktem Vorprüfeintrag kann
+einen zusätzlichen geschlossenen nativen Schreibzielowner halten. Vor der
+Öffnung werden Originalzeile, unabhängiges Recovery-Archiv, ursprünglicher
+OS-Grant und Staging-Rohbytes erneut geprüft. Das Original wird ausschließlich
+mit `rw` geöffnet, ausdrücklich nicht mit kürzendem `w` oder `rwt`. Die
+tatsächlichen FD-Zugriffsflags müssen über F_GETFL/O_ACCMODE genau O_RDWR sein;
+ein vom Provider trotz Modusanfrage nur lesend gelieferter FD genügt nicht.
+Der vollständige native FD-Zeuge muss exakt mit der Vorprüfung übereinstimmen.
+Rohhash, native Bildprüfung und anschließende Zeilen-/Archiv-/FD-Kontrolle
+erfolgen erneut; gleiche Bytes einer anderen nativen Datei werden nicht als
+Zielersatz akzeptiert.
+
+Der Owner exportiert weder FD noch Stream oder write/truncate-Methode und wird
+nicht an den Aufrufer herausgegeben. Er wird nur einmal im ursprünglichen
+Transfer gehalten, verbraucht den Grant noch nicht und schreibt keine Bytes.
+Parent-Cancellation beendet die Autorität sofort, schließt den gehaltenen
+Schreibziel-FD aber erst nach dem wirklichen Ende aller noch aktiven
+Receiver-/Observer-/Metadaten-IO. Erst danach wird der Drain veröffentlicht und
+die IO-Bahn freigegeben. Ein bei der Öffnung noch blockierter Provider bleibt
+ebenfalls bis zur tatsächlichen Rückkehr und dem FD-Schließen gezählt.
+
+134 betroffene Rows-/Runtime-/Transfer-/Descriptor-Hostfälle bestehen; mit den
+unveränderten 51 Indexfällen sind es 185 unterschiedliche Fälle. Vier neue
+Fälle prüfen einen echten nicht kürzenden gehaltenen rw-FD und dessen Schließen,
+abgewiesenen Read-only-FD, andere tatsächliche Inode trotz gleicher Rohbytes,
+Entzug/Cancellation unmittelbar nach Öffnung, fehlende Vorprüfung sowie
+tatsächlichen Drain bei blockierter rw-Öffnung und bei einem bereits gehaltenen
+rw-FD mit gleichzeitig noch aktiver Staging-Lese-IO. Die FD-Flagabfragen werden
+im Hostfixture explizit modelliert; fstat/lseek verwenden weiterhin die
+vorhandenen tatsächlichen Host-Fixtureattribute. Das ist keine Android-OS-
+Zugriffsflag-/Providerabnahme. Originalbytes, Publikation und Historie bleiben
+unverändert; keine neuen Medienzeilen, Saved-Ausgaben oder Mutationen erfolgen.
+Die dauerhafte Vor-erster-Mutation-Transition und der eigentliche Writer mit
+Postwrite-/History-CAS sowie Runtime/UI-Anschluss bleiben offen. Kein aktueller
+R8-, Geräte-, Installations- oder Veröffentlichungsnachweis wird behauptet.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

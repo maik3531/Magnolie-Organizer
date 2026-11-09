@@ -352,6 +352,38 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
     private class VerifiedPcBeforeWrite(val stage: NativeGalleryPcStage, val grant: NativeGalleryPcWriteGrant,
         val record: GalleryPcPreWriteRecord, val lane: Any, val cancellation: CancellationSignal)
     private val verifiedPcBeforeWrite = ThreadLocal<VerifiedPcBeforeWrite?>()
+    internal fun preparePcWriteTarget(stage: NativeGalleryPcStage, grant: NativeGalleryPcWriteGrant,
+        archive: NativeGalleryTrashArchive, lane: Any, cancellation: CancellationSignal): NativeGalleryPcWriteTarget {
+        if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30 || !NativeGalleryMediaIoLane.isOwnedBy(lane))
+            fail("gallery_pc_before_write_native_proof_required")
+        val admission = grant.request.admission
+        fun current() { cancellation.throwIfCanceled(); admission.requireIndex(index); grant.requireUnused(); stage.requireCurrent() }
+        current()
+        val record = index.pcBeforeWrite(stage.record.id) ?: fail("gallery_pc_before_write_native_proof_required")
+        if (record.stage.body != stage.record.body || record.stage.plan.predecessor.body != admission.publication.body)
+            fail("gallery_pc_before_write_original_operation_required")
+        val publication = admission.publication; val row = publication.row!!; val uri = grant.request.uri
+        fun checkRow() {
+            if (uri.toString() != row.string("uri") || observeRow(stage.kind, ::current, uri, stage.mimeType,
+                    publication.body.long("size")..publication.body.long("size"), 0).witness != row) fail("gallery_incoming_original_row_changed")
+        }
+        fun checkArchive() {
+            current()
+            val origin = archive.verifiedOrigin(grant.request.entry, admission.archiveBook)
+            if (origin["publication"] != publication.body || origin["book_version"] != record.stage.plan.body["book_version"])
+                fail("gallery_pc_before_write_archive_changed")
+            current()
+        }
+        checkRow(); checkArchive(); stage.verifyRaw(); current()
+        // rw is deliberately NONTRUNCATING. Never w or rwt on the old original.
+        val descriptor = resolver.openFileDescriptor(MediaStore.setRequireOriginal(uri), "rw", cancellation)
+            ?: fail("gallery_pc_write_target_missing")
+        var target: NativeGalleryPcWriteTarget? = null
+        try {
+            target = NativeGalleryPcWriteTarget(descriptor, stage, grant, index, record, lane, cancellation)
+            checkRow(); checkArchive(); target.requireCurrent(); return target
+        } catch (error: Throwable) { if (target == null) descriptor.close() else target.close(); throw error }
+    }
     /** Only the actual original-FD verification below can publish this proof.
      * Local-only checks are safe inside the protected index transaction. */
     internal fun requireVerifiedPcBeforeWrite(stage: NativeGalleryPcStage, grant: NativeGalleryPcWriteGrant,

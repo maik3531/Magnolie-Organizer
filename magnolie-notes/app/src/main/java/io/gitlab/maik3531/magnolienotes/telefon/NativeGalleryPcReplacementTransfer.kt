@@ -25,11 +25,13 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
     private val accepted = AtomicBoolean(false)
     private val receiving = AtomicBoolean(false)
     private val finished = AtomicBoolean(false)
+    private val writeTargetAttempted = AtomicBoolean(false)
     private val pending = AtomicReference<Pending?>()
     private val lifecycle = Any()
     private var inFlight = 0
     private var retired = false
     private var drainPublished = false
+    private var writeTarget: NativeGalleryPcWriteTarget? = null
     private val drained = CountDownLatch(1)
     private var last = issued
     private val acceptance = stage.record.acceptance
@@ -51,6 +53,7 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
     }
     private fun finishDrain() {
         if (ended.get() && retired && inFlight == 0 && !drainPublished) {
+            writeTarget?.close(); writeTarget = null
             drainPublished = true; NativeGalleryMediaIoLane.release(lane); drained.countDown()
         }
     }
@@ -159,6 +162,21 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
         if (!finished.get()) fail("gallery_pc_stage_not_complete")
         grant.requireUnused(); stage.verifyRaw()
         rows.preparePcBeforeWrite(stage, grant, archive, lane, cancellation).also { current() }
+    }
+    /** Holds the actual rw FD until parent retirement AND all current IO drains.
+     * It is deliberately not returned to callers and exposes no mutation API. */
+    internal fun prepareWriteTarget(rows: NativeGalleryIncomingRows, archive: NativeGalleryTrashArchive,
+        cancellation: android.os.CancellationSignal = android.os.CancellationSignal()): Unit = io {
+        current()
+        if (!finished.get() || !writeTargetAttempted.compareAndSet(false, true)) fail("gallery_pc_write_target_original_operation_required")
+        val target = rows.preparePcWriteTarget(stage, grant, archive, lane, cancellation)
+        try {
+            current(); target.requireCurrent()
+            synchronized(lifecycle) {
+                if (ended.get() || writeTarget != null) fail("gallery_pc_write_target_original_operation_required")
+                writeTarget = target
+            }
+        } catch (error: Throwable) { target.close(); throw error }
     }
     override fun close() {
         synchronized(lifecycle) { if (!ended.compareAndSet(false, true)) return }
