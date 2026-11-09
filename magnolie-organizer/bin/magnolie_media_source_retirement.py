@@ -118,7 +118,7 @@ def _private(value,*,directory=False):
             or not directory and value.st_nlink!=1):raise TransferError('media_source_retirement_unsafe_entry')
 
 
-def verify_retirement_exchange(jobs,db,key,ready,body):
+def verify_retirement_exchange(jobs,db,key,ready,body,*,pc_trail=()):
     """Exact pinned historical evidence, never current wire or raw READ rights."""
     from magnolie_media_source_exchange import _read_source_exchange
     job=body['job_id'];original=_read_source_exchange(jobs,db,key,job,ready)
@@ -132,8 +132,10 @@ def verify_retirement_exchange(jobs,db,key,ready,body):
             manifest=FileManifest.parse(ready.body['manifest'])
             if peer is None or manifest.sender_id!=local.receiver_id or manifest.receiver_id!=peer.peer_id:
                 raise TransferError('media_source_retirement_readback_pair_required')
+            from magnolie_media_source_pc_history import previous_publication
+            previous=previous_publication(jobs,db,key,ready,pc_trail)
             verify_completed_media_exchange(original.body,manifest,local.receiver_identity_sha256,
-                peer.identity_sha256,ready.body['original_references'],pc_origin=ready.body.get('local_origin'))
+                peer.identity_sha256,ready.body['original_references'],pc_origin=ready.body.get('local_origin'),pc_previous=previous)
         elif original.body['phase']!='peer_saved':raise TransferError('media_source_retirement_original_exchange_required')
         return
     from magnolie_media_source_retry import _read_retry_history
@@ -182,7 +184,7 @@ def verify_completed_saved_exchange(record,manifest):
         raise TransferError('media_source_retirement_completed_retry_required')
 
 
-def verify_completed_media_exchange(record,manifest,local_key,peer_key,originals,*,pc_origin=None):
+def verify_completed_media_exchange(record,manifest,local_key,peer_key,originals,*,pc_origin=None,pc_previous=None):
     """Pinned historical DATA only; native reader, backup and drain stay separate."""
     from magnolie_media_offer import validate_media_offer
     from magnolie_file_accept_message import parse_acceptance
@@ -198,7 +200,7 @@ def verify_completed_media_exchange(record,manifest,local_key,peer_key,originals
     if media.manifest!=manifest or media.originals!=originals:raise TransferError('media_source_retirement_completed_media_required')
     if pc_origin is not None:
         expected={manifest.files[0].id:dict(format=1,origin_sha256=sha256(b'magnolie-pc-media-origin-v1\0'+canonical(pc_origin)).hexdigest(),
-            previous_publication_sha256=None)}
+            previous_publication_sha256=pc_previous)}
         if media.pc_origins!=expected:raise TransferError('media_collection_retirement_original_origin_required')
     elif media.pc_origins:raise TransferError('media_collection_retirement_original_origin_required')
     accepted=parse_acceptance(accepted_message,now=accepted_message.get('created_ms'))
@@ -316,7 +318,8 @@ class _NativeSourceRetirement:
             peer=sender._authority.current_peer()
             if peer is None:raise TransferError('media_source_retirement_readback_pair_required')
             verify_completed_media_exchange(record,sender._cache.manifest,sender._authority.identity.receiver_identity_sha256,
-                peer.identity_sha256,sender._cache.original_references,pc_origin=sender._cache.pc_origin)
+                peer.identity_sha256,sender._cache.original_references,pc_origin=sender._cache.pc_origin,
+                pc_previous=self._jobs.pc_previous_publication(sender._cache.manifest.source_id,sender._cache._job_version))
         elif not (record['phase']=='peer_saved' or sender._retry_spec is not None and record['phase']=='peer_readback'):
             raise TransferError('media_source_retirement_actual_completed_sender_required')
         sender._journal.require(sender._record)

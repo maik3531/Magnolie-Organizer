@@ -210,10 +210,9 @@ class _NativeMediaSourceSender:
                 if self._local_collection:
                     origin=self._cache.pc_origin
                     if origin is None:raise TransferError('media_collection_sender_pc_origin_required')
-                    # Initial publication only. Known source IDs already HOLD
-                    # in protected planning; no fabricated successor readback.
+                    previous=self._jobs.pc_previous_publication(self._cache.manifest.source_id,self._cache._job_version)
                     pc={file.id:dict(format=1,origin_sha256=sha256(b'magnolie-pc-media-origin-v1\0'+canonical(origin)).hexdigest(),
-                        previous_publication_sha256=None)}
+                        previous_publication_sha256=previous)}
                 offer=create_media_offer(manifest,token.body,kind,{file.id:mime},self._cache.original_references,pc_origins=pc)
             else:offer=create_offer(self._cache.manifest)
             self._record=self._journal.write(None,dict(phase='offer_planned',offer=offer,permission_epoch=binding.permission_epoch,

@@ -25,6 +25,135 @@ def prepare(h):
     return h.connection.prepare_collection_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.selected,h.member)
 
 
+def completed_pc_send(h,service,cached,publication='a'*64,*,complete=True):
+    from magnolie_media_backups import NativeMediaBackups
+    from magnolie_media_source_backup import backup_prepared_source
+    from magnolie_media_source_retirement import _NativeSourceRetirement
+    sender=h.connection.open_prepared_media_sender(cached.manifest.source_id)
+    offer=sender.send_media_offer();assert h.wire.receive()==offer
+    if not complete:return offer # An actual offer is not Saved/readback/END.
+    accepted=acceptance(sender,cached,offer);dispatch(h,service,accepted)
+    for index in range(cached.manifest.files[0].chunks):
+        dispatch(h,service,request(accepted,cached,index));assert base64.b64decode(h.wire.receive()['body']['data_base64'])==h.raw[index*65536:(index+1)*65536]
+    packet=saved(accepted,cached);packet['body']['receipts'][0]['receipt_sha256']=publication
+    dispatch(h,service,packet);dispatch(h,service,readback(sender,cached,offer,publication=publication))
+    assert sender.observation().body['phase']=='peer_readback'
+    with NativeMediaBackups(h.selected.directory,h.authority.protection,lambda:True,
+            create=not (Path(h.selected.directory.path)/'Backup').exists()) as backups:
+        version=backup_prepared_source(backups,sender._source,cached.manifest.source_id)
+        ended=_NativeSourceRetirement(sender,backups,version).run()
+        assert ended.body['state']=='archived'
+    return offer
+
+
+def test_fresh_completed_pc_successors_use_exact_protected_previous_publications_and_unchanged_native_bytes_create_nothing(pc,native):
+    from test_media_source_media_offer import png
+    with composition(pc,native[0]) as h:
+        small_source(h);controls=agree(h,native[0]);first=prepare(h)
+        old_origin=first.pc_origin;initial=completed_pc_send(h,native[0],first)
+        assert initial['body']['pc_origins'][first.manifest.files[0].id]['previous_publication_sha256'] is None
+        jobs=_NativeSourceJobs(h.authority);before=jobs.lookup(first.manifest.source_id)
+        with pytest.raises(TransferError,match='existing_source_held'):prepare(h)
+        parent=Path(h.authority.binding.native_directory);files=set(parent.iterdir())
+        with pytest.raises(TransferError,match='latest_payload_already_sent'):
+            h.connection.prepare_changed_collection_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.selected,h.member)
+        assert set(parent.iterdir())==files and jobs.lookup(first.manifest.source_id)==before
+        previous='a'*64;job=first.manifest.source_id
+        for salt,publication in ((1,'c'*64),(2,'d'*64)):
+            h.raw=png(salt);h.pc_file.write_bytes(h.raw)
+            with NativeCollectionRoot(h.pc_file.parent,lambda:True) as root:
+                h.member=next(member for member in root.inventory().members if member.name==h.pc_file.name)
+            cached=h.connection.prepare_changed_collection_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.selected,h.member)
+            assert cached.pc_origin==old_origin and not cached.original_references
+            assert cached.manifest.source_id!=job and cached.manifest.transfer_id!=first.manifest.transfer_id
+            offer=completed_pc_send(h,native[0],cached,publication,complete=salt==1)
+            origin=offer['body']['pc_origins'][cached.manifest.files[0].id]
+            assert origin['previous_publication_sha256']==previous
+            assert origin['origin_sha256']==initial['body']['pc_origins'][first.manifest.files[0].id]['origin_sha256']
+            assert str(h.pc_file) not in str(offer) and 'file_key' not in str(offer)
+            assert jobs.lookup(first.manifest.source_id)==before
+            assert h.connection._controls.packet().session_epoch==controls.session_epoch
+            assert not h.connection._local().grants.receive_files and not h.connection._controls._remote.grants.send_files
+            previous=publication;job=cached.manifest.source_id
+        from magnolie_media_source_lineage import _NativeSourceLineage
+        from magnolie_media_backups import NativeMediaBackups
+        history=_NativeSourceLineage(jobs).lookup()
+        assert len(history.records)==3 and history.records[0].body['job_id']==first.manifest.source_id
+        assert not history.grants_read_authority
+        with NativeMediaBackups(h.selected.directory,h.authority.protection,lambda:True) as backups:
+            assert len(backups.versions())==2 # Third offer is still pending, never a third completion.
+
+
+def test_completed_pc_entry_cannot_manufacture_missing_or_pending_completion_or_allocate_another_cache(pc,native):
+    with composition(pc,native[0]) as h:
+        small_source(h);agree(h,native[0]);parent=Path(h.authority.binding.native_directory)
+        before=set(parent.iterdir())
+        with pytest.raises(TransferError,match='completed_source_required'):
+            h.connection.prepare_changed_collection_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.selected,h.member)
+        assert set(parent.iterdir())==before
+        cached=prepare(h);original=_NativeSourceJobs(h.authority).lookup(cached.manifest.source_id)
+        before=set(parent.iterdir())
+        with pytest.raises(TransferError,match='album_worker_busy'):
+            h.connection.prepare_changed_collection_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.selected,h.member)
+        assert set(parent.iterdir())==before and cached.directory.exists()
+        assert _NativeSourceJobs(h.authority).lookup(cached.manifest.source_id)==original
+
+
+@pytest.mark.parametrize('reason',['replacement','missing_archive','late_catalog'])
+def test_completed_pc_entry_holds_reassociation_or_missing_actual_archives_before_new_cache(pc,native,reason,monkeypatch):
+    from magnolie_media_source_retirement import _NativeSourceRetirementJournal
+    with composition(pc,native[0]) as h:
+        small_source(h);agree(h,native[0]);first=prepare(h);completed_pc_send(h,native[0],first)
+        jobs=_NativeSourceJobs(h.authority);original=jobs.lookup(first.manifest.source_id)
+        if reason=='replacement':
+            h.pc_file.rename(h.pc_file.with_name('retained-original.png'));h.pc_file.write_bytes(h.raw)
+            with NativeCollectionRoot(h.pc_file.parent,lambda:True) as root:
+                h.member=next(member for member in root.inventory().members if member.name==h.pc_file.name)
+        elif reason=='missing_archive':
+            retired=_NativeSourceRetirementJournal(jobs).lookup(first.manifest.source_id)
+            old=Path(h.authority.binding.native_directory)/retired.body['archive']
+            old.rename(old.with_name(old.name+'-retained'))
+        else:
+            original_read=_NativeSourceJobs.completed_pc_origin
+            def changed_after_admission(owner,origin):
+                previous=original_read(owner,origin)
+                with owner._database() as (db,key):
+                    db.execute('BEGIN IMMEDIATE');catalog=owner._catalog.verify(db,key)
+                    owner._catalog.advance(db,key,catalog)
+                return previous
+            monkeypatch.setattr(_NativeSourceJobs,'completed_pc_origin',changed_after_admission)
+        parent=Path(h.authority.binding.native_directory);before=set(parent.iterdir());raw=h.pc_file.read_bytes()
+        with pytest.raises((TransferError,FileNotFoundError)) as denied:
+            h.connection.prepare_changed_collection_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.selected,h.member)
+        if reason=='late_catalog':assert str(denied.value)=='media_collection_original_predecessor_changed'
+        assert set(parent.iterdir())==before and jobs.lookup(first.manifest.source_id)==original
+        assert h.pc_file.read_bytes()==raw and not list(parent.glob('.magnolie-source-*.part'))
+
+
+def test_completed_pc_entry_checks_revocation_during_real_fresh_hash_before_any_cache_or_new_job(pc,native,monkeypatch):
+    from magnolie_media_source_collection import _CollectionReadLease
+    from test_media_source_media_offer import png
+    with composition(pc,native[0]) as h:
+        small_source(h);agree(h,native[0]);first=prepare(h);completed_pc_send(h,native[0],first)
+        h.raw=png(3);h.pc_file.write_bytes(h.raw)
+        with NativeCollectionRoot(h.pc_file.parent,lambda:True) as root:
+            h.member=next(member for member in root.inventory().members if member.name==h.pc_file.name)
+        parent=Path(h.authority.binding.native_directory);before=set(parent.iterdir())
+        original=_NativeSourceJobs(h.authority).lookup(first.manifest.source_id);revoked=[];reads=[]
+        read=_CollectionReadLease.read_exact
+        def actual_read(owner,offset,count):
+            data=read(owner,offset,count)
+            reads.append((offset,count))
+            if len(reads)>=3 and offset==0 and count==65536:revoked.append(True)
+            return data
+        monkeypatch.setattr(_CollectionReadLease,'read_exact',actual_read)
+        with pytest.raises(TransferError):
+            h.connection.prepare_changed_collection_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.selected,h.member,
+                native_current=lambda:not revoked)
+        assert revoked and set(parent.iterdir())==before and h.pc_file.read_bytes()==h.raw
+        assert _NativeSourceJobs(h.authority).lookup(first.manifest.source_id)==original
+
+
 def test_normal_pc_factory_dispatcher_uses_original_session_without_pc_receive_phone_read_or_grant_changes(pc,native):
     from magnolie_media_backups import NativeMediaBackups
     from magnolie_media_source_backup import backup_prepared_source
@@ -58,6 +187,8 @@ def test_normal_pc_factory_dispatcher_uses_original_session_without_pc_receive_p
         assert h.connection._media_pc_source is not old_source and old_source._closed.is_set()
         record=_NativeSourceJobs(h.authority).lookup(next_cache.manifest.source_id)
         assert record.body['lineage']['previous_job']==cached.manifest.source_id
+        with pytest.raises(TransferError,match='lineage_pending_job'):
+            _NativeSourceJobs(h.authority).completed_pc_origin(cached.pc_origin)
         current=h.connection._controls.packet()
         assert current.session_epoch==controls.session_epoch and current.grants==controls.grants
 

@@ -412,6 +412,12 @@ class NativeDesktopFileConnection:
         return self._media_pc_source is not None and bool(self._media_pc_source._prepared)
 
     def prepare_collection_media_source(self,action,expected,selected,member,*,kind='images',native_current=lambda:True):
+        return self._prepare_collection_media_source(action,expected,selected,member,kind,native_current,False)
+
+    def prepare_changed_collection_media_source(self,action,expected,selected,member,*,kind='images',native_current=lambda:True):
+        return self._prepare_collection_media_source(action,expected,selected,member,kind,native_current,True)
+
+    def _prepare_collection_media_source(self,action,expected,selected,member,kind,native_current,completed_successor):
         """Explicit native PC selection; never a browser path or auto scan.
 
         Pin the existing positive send binding and original action before the
@@ -448,7 +454,8 @@ class NativeDesktopFileConnection:
                         raise TransferError('media_collection_original_send_binding_required')
                 return True
             current()
-            return source.freeze(self._preferences.issue_action(),expected,selected,member,kind=kind,native_current=current)
+            freeze=source.freeze_completed_successor if completed_successor else source.freeze
+            return freeze(self._preferences.issue_action(),expected,selected,member,kind=kind,native_current=current)
 
     def plan_media_source(self,action,expected,association,record_sha256,*,kind='images'):
         self._take_action(action)

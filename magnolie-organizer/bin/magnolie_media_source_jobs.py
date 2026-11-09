@@ -145,6 +145,40 @@ class _NativeSourceJobs:
             self._require_new_pc_origin(db,key,catalog,origin)
         self._catalog.observe(catalog)
 
+    def completed_pc_origin(self,origin):
+        from magnolie_media_source_pc import validate_pc_origin
+        from magnolie_media_source_pc_history import admitted_predecessor
+        validate_pc_origin(origin)
+        with self._database() as (db,key):
+            db.execute('BEGIN');catalog=self._catalog.verify(db,key)
+            if catalog is not None and sum(name.startswith(self._prefix) for name,_ in catalog.body['members'])>=self.MAX_RECORDS:
+                raise TransferError('media_source_jobs_capacity')
+            result=admitted_predecessor(self,db,key,catalog,origin)
+        self._catalog.observe(catalog);return result
+
+    def _require_pc_selection(self,db,key,catalog,selection):
+        if selection.previous is None:self._require_new_pc_origin(db,key,catalog,selection.origin)
+        else:
+            from magnolie_media_source_pc_history import admitted_predecessor,NativePcSourcePredecessor
+            if (type(selection.previous) is not NativePcSourcePredecessor or
+                    admitted_predecessor(self,db,key,catalog,selection.origin)!=selection.previous):
+                raise TransferError('media_collection_original_predecessor_changed')
+
+    def require_pc_selection(self,selection):
+        with self._database() as (db,key):
+            db.execute('BEGIN');catalog=self._catalog.verify(db,key)
+            self._require_pc_selection(db,key,catalog,selection)
+        self._catalog.observe(catalog)
+
+    def pc_previous_publication(self,job,version):
+        from magnolie_media_source_pc_history import previous_publication
+        with self._database() as (db,key):
+            db.execute('BEGIN');catalog=self._catalog.verify(db,key);ready=self._read(db,key,job)
+            if ready is None or ready.version!=version or ready.state!='cache_ready':
+                raise TransferError('media_source_jobs_original_plan_required')
+            result=previous_publication(self,db,key,ready)
+        self._catalog.observe(catalog);return result
+
     def plan(self,writer,intent):
         self._writer(writer);job=writer._job
         if (sha256(canonical(intent)).hexdigest()!=writer._intent_sha256 or intent['job_id']!=job
@@ -152,7 +186,7 @@ class _NativeSourceJobs:
         with self._database() as (db,key):
             db.execute('BEGIN IMMEDIATE')
             catalog=self._catalog.verify(db,key)
-            if writer._local:self._require_new_pc_origin(db,key,catalog,intent['local_origin'])
+            if writer._local:self._require_pc_selection(db,key,catalog,writer._pc_selection)
             if catalog is None:catalog=self._catalog.initialize(writer,db,key)
             if self._read(db,key,job) is not None:raise TransferError('media_source_jobs_original_plan_required')
             count=db.execute('SELECT COUNT(*) FROM meta WHERE key LIKE ?',(self._prefix+'%',)).fetchone()[0]

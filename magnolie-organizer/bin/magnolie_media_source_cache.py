@@ -86,7 +86,7 @@ class _NativeSourceCacheWriter:
             else:raise TransferError('media_source_cache_existing_hold')
             from magnolie_media_source_jobs import _NativeSourceJobs
             self._jobs=_NativeSourceJobs(self._authority)
-            if self._local:self._jobs.require_new_pc_origin(self._pc_selection.origin)
+            if self._local:self._jobs.require_pc_selection(self._pc_selection)
             self._jobs._catalog.require_free_slot(self._parent,current)
             try:os.mkdir(self._name,mode=0o700,dir_fd=self._parent)
             except FileExistsError:raise TransferError('media_source_cache_existing_hold')

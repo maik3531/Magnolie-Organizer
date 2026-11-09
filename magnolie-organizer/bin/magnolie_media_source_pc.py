@@ -6,6 +6,7 @@ mapped-source class. No synthetic phone mapping/reference is constructed.
 from contextlib import contextmanager
 from dataclasses import dataclass
 from hashlib import sha256
+import os
 import threading
 
 from magnolie_file_transfer import CHUNK_BYTES,TransferError
@@ -51,6 +52,7 @@ class _NativePcSelection:
     origin_bytes: bytes
     catalog_bytes: bytes
     path: str
+    previous: object = None # Historical correlation only; never native READ authority.
     @property
     def origin(self):
         from magnolie_telefon import strict_json
@@ -108,6 +110,12 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
             if job_id not in self._prepared or self._closed.is_set() or any(p.failed.is_set() for p in self._prepared.values()):self.close()
 
     def freeze(self,action,expected,selected,member,*,kind='images',native_current=lambda:True):
+        return self._freeze(action,expected,selected,member,kind,native_current,False)
+
+    def freeze_completed_successor(self,action,expected,selected,member,*,kind='images',native_current=lambda:True):
+        return self._freeze(action,expected,selected,member,kind,native_current,True)
+
+    def _freeze(self,action,expected,selected,member,kind,native_current,completed_successor):
         from magnolie_photo_destination import NativePhotoDestinationAction
         from magnolie_photo_preferences import PhotoPreferencesSnapshot
         if (type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot
@@ -143,7 +151,7 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
                 root_birthtime=list(selected.birthtime),mount_id=selected.mount_id,file_key=list(member.key),file_birthtime=list(member.birthtime),
                 file_path='/'.join([p.name for p in member.parents]+[member.name]))
             validate_pc_origin(origin)
-            selection=_NativePcSelection(canonical(origin),canonical(catalog.witness().wire()),member.name)
+            catalog_bytes=canonical(catalog.witness().wire())
             with catalog.selected_root_lease(selected),NativeMediaRetention(self._authority.binding.native_directory) as retention:
                 with retention.activity(permission,exclusive=True) as activity:
                     if activity is None:raise TransferError('media_source_media_io_busy')
@@ -171,6 +179,30 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
                                 if not camera_photo_matches(prefix):raise TransferError('media_source_photo_metadata_required')
                             finally:prefix[:]=b'\0'*len(prefix)
                         from magnolie_media_source_cache import _NativeSourceCacheWriter
+                        previous=None
+                        if completed_successor:
+                            from magnolie_media_source_jobs import _NativeSourceJobs
+                            jobs=_NativeSourceJobs(self._authority);previous=jobs.completed_pc_origin(origin)
+                            parent=os.open(self._authority.binding.native_directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+                            try:
+                                _NativeSourceCacheWriter._private(os.fstat(parent),directory=True)
+                                jobs._catalog.require_free_slot(parent,current)
+                            finally:os.close(parent)
+                            # A matching size/old digest is not a fresh native
+                            # observation. Hash the entire current held original
+                            # before deciding no new cache/job/offer is needed.
+                            digest=sha256();offset=0
+                            while offset<member.size:
+                                current();data=lease.read_exact(offset,min(CHUNK_BYTES,member.size-offset))
+                                try:digest.update(data);offset+=len(data)
+                                finally:data[:]=b'\0'*len(data)
+                            current()
+                            observed=jobs._catalog.lookup()
+                            if observed is None or observed.version!=previous.catalog_version:
+                                raise TransferError('media_collection_original_predecessor_changed')
+                            if member.size==previous.size and digest.hexdigest()==previous.sha256:
+                                raise TransferError('media_collection_latest_payload_already_sent')
+                        selection=_NativePcSelection(canonical(origin),catalog_bytes,member.name,previous)
                         with _NativeSourceCacheWriter(self,None,member.size,lease._signature,token,expected,kind,book.book_version,current,
                                 pc_selection=selection) as cache:
                             digest=sha256();offset=0;index=0

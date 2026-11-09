@@ -1537,6 +1537,63 @@ DEX-Deskriptoren und R8-Mapping nachgewiesen. Das ist kein zusätzlicher Hostfal
 kein gepacktes APK und keine Geräte-/Installationsabnahme. Der präzise offene
 Gesamtrest aus #429 wird in #486 fortgesetzt; bestehende Gates bleiben bestehen.
 
+### Linux: frische PC-Nachfolger aus tatsächlich abgeschlossener Sourcehistorie
+
+Der explizite native Connectionpfad aus #487 kann jetzt die gleiche tatsächliche
+PC-Datei nach einem abgeschlossenen Lauf frisch erneut aufnehmen. Die gewöhnliche
+erstmalige Aufnahme hält bekannte Herkunft weiterhin. Der neue Pfad verlangt
+erneut eigenen nativen Action-, Root-/Member-, Buch-, Intent- und positiven
+SEND-Controlbesitz; frühere Jobs, Saved oder Historienflags erteilen keine neuen
+Lese- oder Schreibrechte. Android prüft seine ursprünglichen OS-Rechte unabhängig.
+
+Die genaue bestehende geschützte Sourcechronologie bestimmt den Vorgänger,
+niemals UUID-, SQLite- oder Katalogreihenfolge. Root-/Dateigeneration und Pfad der
+Herkunft müssen exakt erhalten bleiben. Neue Inode am alten Pfad oder dieselbe
+Datei unter anderer Herkunft bleiben HOLD. Aus der vollständig abgeglichenen
+Saved-/Published-Readback-/Retirementkette wird genau der vorherige
+Receiver-Publikationsfingerprint korreliert. Ein begrenzter expliziter
+Rückwärtslauf bindet frühere Job-, Ready- und Retirementhashes; rekursive
+Vorgängerprüfung trägt denselben begrenzten Zykluszeugen, statt die gesamte
+Chronologie aus ihrem eigenen Exchangevalidator erneut aufzurufen.
+
+Vor neuem Cache/Job werden aktuelle vollständig gelesene Native-Rohbytes geprüft.
+Gleiche Größe oder ein alter Rohhash allein sind kein Unverändertnachweis. Die
+vorherigen tatsächlichen verschlüsselten Sourcearchive und ihr vollständiger
+Slotbestand werden ebenfalls unabhängig geprüft. Nur nach vollem frischen
+Rohhash darf unveränderter Inhalt ohne neuen Cache, Job oder Angebot halten.
+Der ursprüngliche geschützte Katalogstand wird nach dieser IO erneut geprüft;
+eine nachträglich fortgeschriebene Historie darf auch keinen alten
+Unverändertentscheid nachliefern.
+
+Geänderte Rohbytes erhalten einen neuen tatsächlichen Cache, ein neues Manifest,
+Transfer- und Source-ID sowie die unveränderte opake PC-Herkunft mit genauem
+vorherigem Publikationsfingerprint. Der ursprüngliche Vorgänger/Katalogstand wird
+vor Cacheanlage und erneut innerhalb der Job-Plantransaktion gebunden. Wire-
+Erzeugung und Retirementvalidator leiten ihre frühere Publikation aus genau
+dieser geschützten Jobchronologie ab, nicht aus einem caller- oder wiregelieferten
+Flag. Es entstehen kein neues Recordformat, Quotenlimit oder ersetzter alter
+Datensatz; die vorhandene 128er-Sourcegrenze und alle alten Jobs, Exchanges,
+Retirements und unabhängigen Backupversionen bleiben bestehen.
+
+56 unterschiedliche betroffene Linux-Hostfälle bestehen in begrenzten seriellen
+Gruppen: PC-Connection12, PC-Source14, Chronologie10 und Buildkomposition20.
+Der neue tatsächliche AEAD-Connectionfall umfasst erstes SEND/Saved/Readback/
+Backup/Quell-END, einen frisch geänderten vollständig abgeschlossenen Nachfolger
+und ein drittes echtes Angebot mit genau dem zweiten Publikationsfingerprint.
+Dieses dritte Angebot ist ausdrücklich noch kein dritter Abschluss. Native
+Dateien und alle früheren Fakten bleiben erhalten, native Pfade/IDs fehlen im
+Wire, Telefonreferenzen werden nicht erfunden und PC RECEIVE/Telefon READ sind
+keine zusätzlichen SEND-Voraussetzungen. Neue negative prüfen fehlenden oder
+ausstehenden Abschluss, neue Inode am alten Pfad, fehlendes tatsächliches
+Archiv, Entzug während des frischen vollständigen Native-Hashens sowie
+Katalogfortschreibung nach Admission ohne neue Cache-/Jobaufnahme.
+
+Diese Fälle verwenden authentifizierte modellierte Peerantworten, keine neue
+Android-Geräteabnahme. Der Windows-Nachfolgerpfad besteht separat; daraus folgt
+keine übertragene native Windows-Prüfung. Auswahloberfläche, ganze Sammlung und
+automatische Komposition sowie Video-/Mehrdateiersetzung werden unter #486
+weiterbearbeitet. Keine Capability- oder Lieferfreigabe wird daraus abgeleitet.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines
