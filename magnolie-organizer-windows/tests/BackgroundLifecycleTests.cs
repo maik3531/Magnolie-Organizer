@@ -174,7 +174,8 @@ internal static class BackgroundLifecycleTests
             try
             {
                 using var socket = await server.AcceptTcpClientAsync(stop.Token);
-                var stream = socket.GetStream(); await stream.ReadAsync(new byte[8192], stop.Token);
+                var stream = socket.GetStream();
+                if (await stream.ReadAsync(new byte[8192], stop.Token) == 0) return;
                 await stream.WriteAsync("HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\n{"u8.ToArray(), stop.Token);
                 await Task.Delay(Timeout.Infinite, stop.Token);
             }
