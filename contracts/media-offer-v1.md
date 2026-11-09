@@ -1530,6 +1530,13 @@ Abnahmen sind kein Ergebnis dieser Tests. Android-Gerätepause, Capability- und
 Auslieferungsgates bestehen weiterhin; daraus folgt keine Installation oder
 vollständige Foto-/Video-Abnahme und keine fertige OBS-/Spiegelungsfunktion.
 
+Der angeschlossene Produktstand `26872c6c` besteht außerdem den tatsächlichen
+Release-R8-Lauf; 20 erforderliche Klassen einschließlich Dispatcher, Worker,
+Activityhost-Anbindung, nativer Kopie und Historienzeugen sind über tatsächliche
+DEX-Deskriptoren und R8-Mapping nachgewiesen. Das ist kein zusätzlicher Hostfall,
+kein gepacktes APK und keine Geräte-/Installationsabnahme. Der präzise offene
+Gesamtrest aus #429 wird in #486 fortgesetzt; bestehende Gates bleiben bestehen.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines
