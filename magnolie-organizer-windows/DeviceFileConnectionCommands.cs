@@ -141,6 +141,38 @@ internal sealed partial class TelefonConnection
         return await ConfigureNativeMediaSourceAsync(status.Version, mediaType, true, token);
     }
 
+    internal async Task<DeviceFileSourceStatus> ReadNativeSharedMediaSourceStatusAsync(string mediaType, CancellationToken token)
+    {
+        // The actual correlated status response, not a caller-supplied status or
+        // shared preference, may confirm an ALREADY enabled phone source.
+        object? attempt = null;
+        if (mediaType == "video") lock (fileRouteGate)
+        { attempt = new object(); nativeVideoConfigurationAttempt = attempt; nativeVideoSourceActivation = null; }
+        var choice = CaptureNativeSourceChoice(mediaType, positive: true, dataReady: false);
+        void Require()
+        {
+            RequireNativeSourceChoice(choice);
+            if (mediaType == "video") lock (fileRouteGate)
+                if (!ReferenceEquals(nativeVideoConfigurationAttempt, attempt)) throw DeviceFileControl.Error("file_sources_native_video_configuration_superseded");
+        }
+        if (choice.SharedIntent is null || !MediaSharedSettingsReady)
+            throw DeviceFileControl.Error("file_sources_shared_media_intent_changed");
+        var status = await ReadNativeFileSourceStatusAsync(token); Require();
+        if (mediaType == "video" && status.Enabled && status.Associated && !status.RepairPending && status.Videos?.Enabled == true)
+        {
+            await AwaitNativeMediaDataAgreementAsync(mediaType, token, Require); Require();
+            var dataChoice = CaptureNativeSourceChoice(mediaType, positive: true, dataReady: true);
+            Require();
+            var witness = dataChoice.Owner.RemoteControlWitness() ?? throw DeviceFileControl.Error("file_sources_native_control_changed");
+            lock (fileRouteGate)
+            {
+                if (!ReferenceEquals(nativeVideoConfigurationAttempt, attempt)) throw DeviceFileControl.Error("file_sources_native_video_configuration_superseded");
+                nativeVideoSourceActivation = new(dataChoice, status.Version, witness.SessionEpoch);
+            }
+        }
+        return status;
+    }
+
     internal async Task<DeviceFileSourceStatus> ConfigureNativeVideoBaseTransportAsync(string expectedVersion, CancellationToken token = default)
     {
         var choice = CaptureNativeSourceChoice("video", positive: true, dataReady: false);

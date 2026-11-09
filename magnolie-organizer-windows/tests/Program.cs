@@ -309,6 +309,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared projection / Windows stale snapshot and native write rollback", DeviceFileSharedProjectionTests.AtomicFenceAsync);
     runner.Add("Media shared projection / Windows VIDEO-only base bootstrap and actual data ACK", DeviceFileConnectionCommandsTests.WindowsSharedVideoOnlyBootstrapAsync);
     runner.Add("Media shared projection / Windows explicit manual inventory actual receive Saved END", DeviceFileAutomaticTests.WindowsSharedManualReceiveSavedAsync);
+    runner.Add("Media shared incoming / Windows video inventory adopts fresh enabled status without configure", DeviceFileAutomaticTests.WindowsSharedManualVideoInventoryAsync);
+    runner.Add("Media shared incoming automatic / Windows actual fresh status chunks Saved END without configure", DeviceFileAutomaticTests.WindowsSharedAutomaticReceiveSavedAsync);
+    runner.Add("Media shared incoming / Windows phone source OFF repair and association stay review", DeviceFileAutomaticTests.WindowsSharedSourceOffReviewAsync);
     runner.Add("Media shared transport / Windows manual duplicate deadline stale intent and failed ACK guards", DeviceFileSharedTransportTests.ManualGuardsAsync);
     runner.Add("Media backup exclusions / Windows former backup destination rejection without catalog", DeviceFileBackupExclusionTests.WindowsDestinationAsync);
     runner.Add("Media backup locations / Windows retained parents default and idempotence", DeviceFileBackupLocationTests.WindowsChoicesAsync);

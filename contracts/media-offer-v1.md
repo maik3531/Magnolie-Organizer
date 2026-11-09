@@ -737,6 +737,16 @@ geprüft. Ein Anzeigehinweis erteilt keine Datei- oder Android-Leserechte.
 Stop bleibt während des Laufs erreichbar; bei fehlgeschlagener Startantwort
 wird der native Lauf abgebrochen und sein tatsächliches Ende abgewartet.
 
+Auch der gemeinsame Windows-Eingang verwendet beim manuellen und WLAN-Lauf
+keine Telefon-Aktivierung: Erst eine tatsächlich korrelierte frische
+Statusantwort bestätigt einen bereits eingeschalteten, zugeordneten Quellstand
+ohne Reparaturbedarf. Telefon-SEND oder Video-OFF bleibt Review, ohne
+`configure`, `configure_videos` oder `request_read`. Video übernimmt seine
+Quellversion nur innerhalb desselben aktuellen nativen Auswahl-/Kontrollkontexts
+nach unabhängiger tatsächlicher Datenbestätigung; ein neuer Versuch entfernt
+vorherige Videoaktivierung. Der ausdrücklich gewählte Legacy-Einrichtungsweg
+bleibt davon getrennt und unverändert.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

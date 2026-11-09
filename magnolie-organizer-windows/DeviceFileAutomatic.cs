@@ -174,8 +174,19 @@ internal sealed partial class TelefonCoordinator
                 if (sharedIntent is not null && !MediaSyncSettings.TransferRequestedFor(sharedIntent, kind, toPhone: false)) continue;
                 EnsureConfiguredNativeMediaDefault(peerId, kind); Require();
                 await connection.PrepareNativeMediaUiAsync(NativeSavedBook, kind, lifetime.Token); Require();
-                var status = await connection.ReadNativeFileSourceStatusAsync(lifetime.Token); Require();
-                var configured = await connection.PrepareNativeMediaSourceAsync(status, kind, lifetime.Token); Require();
+                var status = sharedIntent is not null
+                    ? await connection.ReadNativeSharedMediaSourceStatusAsync(kind, lifetime.Token)
+                    : await connection.ReadNativeFileSourceStatusAsync(lifetime.Token);
+                Require();
+                // A matched shared synchronization choice adopts current native
+                // phone SEND state; it must not invoke the explicit legacy
+                // setup/configure path or silently enable video access.
+                if (sharedIntent is not null && (!status.Enabled || !status.Associated || status.RepairPending ||
+                    kind == "video" && status.Videos?.Enabled != true))
+                { review = true; continue; }
+                var configured = sharedIntent is not null ? status
+                    : await connection.PrepareNativeMediaSourceAsync(status, kind, lifetime.Token);
+                Require();
                 await connection.AwaitNativeMediaDataAgreementAsync(kind, lifetime.Token); Require();
                 var page = await connection.DiscoverNativeMediaAlbumsAsync(configured.Version, kind, token: lifetime.Token); Require();
                 var albums = page.Albums.ToList();
