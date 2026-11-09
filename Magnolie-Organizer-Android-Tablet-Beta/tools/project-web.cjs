@@ -173,6 +173,13 @@ regionalSource=regionalSource.replace(calendarExportAnchor,calendarExportAnchor+
   '/*TABLET_ICS_EXPORT_BEGIN*/\n    if (["ics-termine","ics-aufgaben","ics-jahrestage"].includes(art)) return window.Tablet.exportCalendar(art);/*TABLET_ICS_EXPORT_END*/');
 const anchor = '  window.App = App;';
 if (appSource.split(anchor).length !== 2) throw Error('Desktop adapter anchor changed');
+// Deferred classic scripts preserve dependency order, but readyState is already
+// interactive. Keep the canonical start after the adapter's DOMContentLoaded
+// handler, with translations and the tablet controls installed first.
+const startupBefore = '  if (document.readyState === "loading") {';
+const startupAfter = '  if (document.readyState === "loading" || document.currentScript?.defer && document.readyState === "interactive") {';
+if (regionalSource.split(startupBefore).length !== 2) throw Error('Canonical document startup anchor changed');
+regionalSource = regionalSource.replace(startupBefore,startupAfter);
 generated.set('assets/web/anwendung.js', Buffer.from(regionalSource.replace(anchor,
   '  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n'+anchor)));
 let html = buffers.get(path.join(desktop,'index.html')).toString();
@@ -194,7 +201,11 @@ for (const [p,b] of buffers) if (p.startsWith(desktop+'/i18n/')) {
   vm.runInNewContext(b.toString(),{window:{MagnolieI18n:{registerCatalog:(code,c)=>{catalogs[code.replace('_','-').toLowerCase()]=c.messages;}}}});
 }
 generated.set('assets/web/i18n-active.js',Buffer.from(active));
-generated.set('assets/web/index.html',Buffer.from(html.replace('<script src="tablet.js">', '<script src="beta-i18n.js"></script>\n<script src="tablet.js">')));
+html = html.replace('<script src="tablet.js">', '<script src="beta-i18n.js"></script>\n<script src="tablet.js">');
+const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)];
+if (scripts.length !== 12) throw Error('Tablet ordered startup script set changed');
+html = html.replace(/<script src="([^"]+)"><\/script>/g, '<script src="$1" defer></script>');
+generated.set('assets/web/index.html',Buffer.from(html));
 const labels = {cancel:'Cancel', close:'Close', import_label:'Import', export_label:'Export',
   restore:'Restore', password:'Backup password', saved:'Saved.', failed:'Failed',
   save_failed:'Warning: The data could not be saved.', import_failed:'Import failed.',

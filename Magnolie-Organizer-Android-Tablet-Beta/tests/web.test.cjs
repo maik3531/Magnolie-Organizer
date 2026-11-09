@@ -14,6 +14,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
 (async()=>{
   const beta=JSON.parse(fs.readFileSync(path.join(root,'web/beta-i18n.json')));
   passed+=require('./webview-startup.test.cjs')({root});
+  passed+=await require('./deferred-startup.test.cjs')({web});
   ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===4 && x.every(Boolean)), '20 manual beta locales');
   const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
   const withoutTimezone=require(path.join(root,'../port-adapters/timezones/projection-patches.cjs'))(read('anwendung.js'),name=>fs.readFileSync(path.join(root,'../port-adapters/timezones',name)),true,canonical);
@@ -27,8 +28,9 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   const withoutAlarmAdapter=projected.replace(/\/\*PORT_DISPLAY_ALARM_HELPER_BEGIN\*\/[\s\S]*?\/\*PORT_DISPLAY_ALARM_HELPER_END\*\/\n/g,'')
     .replace('    neu.push(...portDisplayAlarmLines(termin, vorher, alt));',canonical.slice(alarmStart,alarmEnd));
   const reviewed=withoutAlarmAdapter.replace(/\/\*TABLET_ICS_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_ICS_\1_END\*\//g,'').replace(/\/\*TABLET_DAV_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_DAV_\1_END\*\//g,'');
-  ok(reviewed.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
-    'generated core differs only by reviewed guard, regional entry, DAV prefixes and native detection suppression');
+  const orderedStartup=reviewed.replace('  if (document.readyState === "loading" || document.currentScript?.defer && document.readyState === "interactive") {', '  if (document.readyState === "loading") {');
+  ok(orderedStartup.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
+    'generated core differs only by reviewed guards, deferred startup ordering, regional entry, DAV prefixes and native detection suppression');
   const fontCss=read('desktop-fonts.css');
   assert.match(read('index.html'),/href="desktop-fonts\.css"/);
   for (const family of ['Noto Serif','DejaVu Sans','Noto Sans','DejaVu Sans Mono','Magnolie Handschrift'])
