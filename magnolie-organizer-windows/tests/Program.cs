@@ -302,6 +302,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);
     runner.Add("Collection producer / Windows late edits and additions after genuine individual END hold whole pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerLateInventoryAsync);
+    runner.Add("Collection overlap / Windows actual fully read mapped members inside explicit root are not offered twice", DeviceFileCollectionSourceTests.WindowsCollectionMappedOverlapAsync);
+    runner.Add("Collection overlap / Windows actual changed mapped member reaches END before overlap skip", DeviceFileCollectionSourceTests.WindowsCollectionChangedMappedOverlapAsync);
+    runner.Add("Collection overlap guards / Windows late edits filtered unprepared and foreign witnesses HOLD", DeviceFileCollectionSourceTests.WindowsCollectionOverlapGuardsAsync);
     runner.Add("Collection folder choice / Windows original book connection intent control catalog guards", DeviceFileCollectionSourceTests.WindowsNativeFolderChoiceGuardsAsync);
     runner.Add("Collection roots / Windows pairing ciphertext and missing-key HOLD preserve source records", DeviceFileCollectionRootsTests.WindowsTamperAsync);
     runner.Add("Collection generation / Windows actual file and ancestor creation witness no owner revival", DeviceFileCollectionInventoryTests.WindowsGenerationAsync);

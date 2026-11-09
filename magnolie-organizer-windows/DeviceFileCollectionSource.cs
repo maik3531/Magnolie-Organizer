@@ -183,12 +183,16 @@ internal sealed partial class TelefonConnection
         private readonly CancellationToken token;
         private readonly IReadOnlyList<NativeMediaCollectionRoot> catalog;
         private readonly List<Frame> frames = [];
+        private readonly Dictionary<DeviceFileNativeDirectory.Identity, DeviceFileNativeDirectory.CollectionSignature> checkedMappings = [];
+        private readonly HashSet<TelefonStore.NativeMappedMediaSource> admittedMappings = [];
         private readonly Action localCurrent;
+        private readonly object connectionOwner;
         private bool closed;
 
-        internal NativeCollectionMediaPass(TelefonStore store, string peerId, string mediaType, Action current, CancellationToken token)
+        internal NativeCollectionMediaPass(TelefonStore store, string peerId, string mediaType, Action current, CancellationToken token, object connectionOwner)
         {
             this.store = store; this.peerId = peerId; this.current = current; this.token = token;
+            this.connectionOwner = connectionOwner;
             var preferences = store.ReadNativeMediaPreferences(peerId);
             var consent = store.ReadNativeMediaSendConsent(peerId);
             localCurrent = () =>
@@ -251,7 +255,32 @@ internal sealed partial class TelefonConnection
         {
             foreach (var frame in frames)
                 foreach (var member in frame.Inventory.Members)
-                { Check(frame, member); yield return (frame.Selection, member); }
+                {
+                    Check(frame, member);
+                    if (checkedMappings.TryGetValue(member.Identity, out var observation))
+                    {
+                        if (frame.Signatures[Key(member)] != observation)
+                            throw DeviceFileControl.Error("media_collection_original_inventory_changed");
+                        continue; // Already actually read, never relabelled or counted twice.
+                    }
+                    yield return (frame.Selection, member);
+                }
+        }
+        internal void AdmitMapping(TelefonStore.NativeMappedMediaSource source)
+        {
+            Require();
+            if (!ReferenceEquals(source.Store, store) || !ReferenceEquals(source.ConnectionOwner, connectionOwner) || source.PeerId != peerId)
+                throw DeviceFileControl.Error("media_collection_original_mapping_observation_required");
+            source.Require();
+            if (!admittedMappings.Add(source)) throw DeviceFileControl.Error("media_collection_original_mapping_observation_required");
+        }
+        internal void NoteCheckedMapping(TelefonStore.NativeMappedMediaSource source)
+        {
+            Require();
+            if (!admittedMappings.Remove(source)) throw DeviceFileControl.Error("media_collection_original_mapping_observation_required");
+            var observation = source.ComparedCollectionObservation;
+            if (!checkedMappings.TryAdd(observation.Identity, observation))
+                throw DeviceFileControl.Error("media_collection_ambiguous_mapped_identity");
         }
         internal void CheckOpened(NativeMediaCollectionRoot selection, DeviceFileNativeDirectory.CollectionMember member,
             DeviceFileNativeDirectory.CollectionSignature signature)

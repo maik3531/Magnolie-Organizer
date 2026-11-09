@@ -68,6 +68,7 @@ internal sealed partial class TelefonStore
         private readonly JsonObject original;
         private readonly string senderId, receiverId, path;
         private DeviceFileManifest? prepared;
+        private DeviceFileNativeDirectory.CollectionSignature? comparedCollection;
         internal override TelefonStore Store { get; }
         internal override string PeerId { get; }
         internal override object ConnectionOwner { get; }
@@ -84,6 +85,12 @@ internal sealed partial class TelefonStore
             ConnectionOwner = connectionOwner;
         }
         internal long Size => file.Size;
+        // Historical observation from THIS source's actual complete raw read.
+        // Remains metadata after END, never live READ/SEND or publication rights.
+        internal DeviceFileNativeDirectory.CollectionSignature ComparedCollectionObservation
+        {
+            get { lock (sourceGate) return comparedCollection ?? throw DeviceFileControl.Error("media_collection_actual_mapping_comparison_required"); }
+        }
         internal JsonObject OriginalReference => original.DeepClone().AsObject(); // Correlation, never a phone grant.
         internal override byte[] ReadExact(long offset, int count) => file.ReadExact(offset, count);
         internal override void Require() => file.Require();
@@ -116,6 +123,7 @@ internal sealed partial class TelefonStore
             {
                 file.Require();
                 if (prepared is not null) return prepared;
+                var collectionObservation = file.ObserveCollection();
                 using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                 for (long offset = 0; offset < file.Size;)
                 {
@@ -127,7 +135,9 @@ internal sealed partial class TelefonStore
                 var hash = Convert.ToHexString(digest.GetHashAndReset()).ToLowerInvariant();
                 var manifest = new DeviceFileManifest(Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"), senderId, receiverId,
                     [new DeviceManifestFile(Guid.NewGuid().ToString("N"), path, file.Size, hash)], file.Size);
-                file.Require(); prepared = manifest; return manifest;
+                file.Require();
+                if (file.ObserveCollection() != collectionObservation) throw DeviceFileControl.Error("media_collection_original_content_changed");
+                comparedCollection = collectionObservation; prepared = manifest; return manifest;
             }
         }
         internal override JsonObject PreparedOriginalReferences()
@@ -264,7 +274,7 @@ internal sealed partial class TelefonConnection
             collectionBinding = collectionControls.Binding(new string('0', 64), true)
                 ?? throw DeviceFileControl.Error("media_source_positive_sending_grant_required");
         }
-        using var collection = entire ? new NativeCollectionMediaPass(store, peer.Id, mediaType, Current, token) : null;
+        using var collection = entire ? new NativeCollectionMediaPass(store, peer.Id, mediaType, Current, token, this) : null;
         var plan = store.NativeMappedMediaCandidates(peer.Id, mediaType); var sent = 0;
         var review = plan.NeedsReview;
         foreach (var candidate in plan.Candidates)
@@ -278,9 +288,11 @@ internal sealed partial class TelefonConnection
             catch (InvalidDataException error) when (error.Message == "media_source_photo_metadata_required")
             { Current(); continue; } // Explicit photos-only filter, not a missing-file/deletion assumption.
             using var heldSource = source;
+            collection?.AdmitMapping(source);
             var manifest = source.PrepareManifest(); var file = manifest.Files.Single(); var original = source.OriginalReference;
             if (file.Sha256 == original["original_sha256"]!.GetValue<string>() && file.Size == TelefonProtocolContract.Integer(original["original_size"]) &&
-                !store.HasNativeMediaSourceReference(peer.Id, original)) { Current(); continue; }
+                !store.HasNativeMediaSourceReference(peer.Id, original))
+            { Current(); collection?.NoteCheckedMapping(source); continue; }
             // Reject unsupported actual bytes before reserving a cache. The real
             // sender independently checks its authenticated frozen bytes again.
             var prefix = new byte[(int)Math.Min(file.Size, NativeMediaContentMime.PrefixBytes)];
@@ -298,8 +310,9 @@ internal sealed partial class TelefonConnection
             TelefonStore.NativePreparedMediaSource cache;
             try { cache = source.FreezeCompletedSuccessor(); }
             catch (InvalidDataException error) when (error.Message == "media_source_cache_latest_payload_already_sent")
-            { Current(); continue; }
+            { Current(); collection?.NoteCheckedMapping(source); continue; }
             using (cache) { await SendNativeMappedMediaSourceToSourceEndAsync(cache, token); }
+            collection?.NoteCheckedMapping(source);
             Current(); sent++;
         }
         if (collection is not null)

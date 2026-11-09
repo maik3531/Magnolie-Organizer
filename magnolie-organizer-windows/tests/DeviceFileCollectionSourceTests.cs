@@ -139,7 +139,7 @@ internal static class DeviceFileCollectionSourceTests
     }
 
     private static async Task SendToEnd(DeviceFileReceiveJobTests.Fixture f, TelefonStore.NativePreparedMediaSource cache, byte[] expected, string? expectedPrevious = null,
-        Task? production = null, int offerIndex = 0)
+        Task? production = null, int offerIndex = 0, bool mapped = false)
     {
         if (production is null) DeviceFileConnectionRunsTests.Clear(f);
         using var stop = new CancellationTokenSource();
@@ -148,13 +148,18 @@ internal static class DeviceFileCollectionSourceTests
         {
             var offer = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind, offerIndex);
             var media = MediaOfferEnvelope.Validate(offer, cache.Manifest.SenderId, cache.Manifest.ReceiverId, Now());
-            TestAssert.That(media.Originals.Count == 0 && media.MimeTypes[cache.Manifest.Files[0].Id]!.GetValue<string>() == "image/png",
+            TestAssert.That(media.Originals.Count == (mapped ? 1 : 0) && media.MimeTypes[cache.Manifest.Files[0].Id]!.GetValue<string>() == "image/png",
                 "Independent PC source invented a phone reference or lost actual byte-derived MIME.");
-            var origin = media.PcOrigins[cache.Manifest.Files[0].Id]!.AsObject();
+            if (mapped) TestAssert.That(media.PcOrigins.Count == 0 && Record(f, cache.JobId)["local_origin"] is null,
+                "Mapped source was silently relabelled as an independent PC origin.");
+            else
+            {
+                var origin = media.PcOrigins[cache.Manifest.Files[0].Id]!.AsObject();
             TestAssert.That(offer["body"]!["format"]!.GetValue<int>() == 2 && media.PcOrigins.Count == 1 &&
                 origin["origin_sha256"]!.GetValue<string>() == DeviceFileControl.Digest("magnolie-pc-media-origin-v1\0", Record(f, cache.JobId)["local_origin"]!) &&
                 origin["previous_publication_sha256"]?.GetValue<string>() == expectedPrevious,
                 "Actual wire did not bind opaque PC origin and exact previously completed publication without leaking native identity/path.");
+            }
             var acceptance = DeviceFileSourceSendTests.Accept(f, cache, offer); await f.Native.Connection.HandlePlainAsync(acceptance);
             var accepted = DeviceFileAcceptanceEnvelope.Parse(acceptance, Now()); var chunks = (expected.Length + DeviceFileManifest.ChunkBytes - 1) / DeviceFileManifest.ChunkBytes;
             for (var index = 0; index < chunks; index++)
@@ -363,6 +368,113 @@ internal static class DeviceFileCollectionSourceTests
                     "Whole-pass HOLD erased a genuine completed individual source.");
             }
             finally { stop.Cancel(); try { await production; } catch { } }
+        }
+    }
+
+    internal static async Task WindowsCollectionMappedOverlapAsync()
+        => await CollectionMappedOverlap(changed: false);
+
+    internal static async Task WindowsCollectionChangedMappedOverlapAsync()
+        => await CollectionMappedOverlap(changed: true);
+
+    private static async Task CollectionMappedOverlap(bool changed)
+    {
+        using var f = await DeviceFileMappedSourceTests.Established();
+        foreach (var (field, value) in new[] { ("direction", "pc_to_phone"), ("collection_mode", "entire_collection") })
+            f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, field,
+                JsonValue.Create(value)!, f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, field));
+        await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+        await DeviceFileMappedSourceTests.AllowSending(f, pcReceive: false, phoneRead: false);
+        using (var root = DeviceFileNativeDirectory.OpenExisting(f.Root))
+            f.Native.Store.AddNativeMediaCollectionRoot(f.Native.Peer.Id, "images", root, () => { });
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "mapped-overlap-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray();
+        if (changed) File.WriteAllBytes(Path.Combine(f.Root, "first.jpg"), DeviceFileSourceSendTests.PaddedPng(length: 256));
+        var first = File.ReadAllBytes(Path.Combine(f.Root, "first.jpg")); var second = File.ReadAllBytes(Path.Combine(f.Root, "second.jpg"));
+        DeviceFileConnectionRunsTests.Clear(f);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+        var production = f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, () => { }, deadline.Token, automatic: false);
+        try
+        {
+            if (changed)
+            {
+                await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
+                var run = (TelefonConnection.NativeMediaSendRun)typeof(TelefonConnection).GetField("nativeMediaSend",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Native.Connection)!;
+                await SendToEnd(f, run.Cache, first, production: production, mapped: true);
+            }
+            var result = await production;
+            TestAssert.That(result.Sent == (changed ? 1 : 0) && !result.NeedsReview && (changed || f.Native.Stream.Length == 0) &&
+                f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == (changed ? 1 : 0) && history.SequenceEqual(f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id)) &&
+                File.ReadAllBytes(Path.Combine(f.Root, "first.jpg")).SequenceEqual(first) && File.ReadAllBytes(Path.Combine(f.Root, "second.jpg")).SequenceEqual(second),
+                "Actual fully compared mapped originals inside selected root were duplicated, relabelled or mutated.");
+            if (changed) TestAssert.That(DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Count(frame => frame["kind"]!.GetValue<string>() == MediaOfferEnvelope.Kind) == 1,
+                "A completed mapped original was offered a second time as a PC source.");
+        }
+        finally { deadline.Cancel(); try { await production; } catch { } }
+    }
+
+    internal static async Task WindowsCollectionOverlapGuardsAsync()
+    {
+        foreach (var scenario in new[] { "late_edit", "filtered_no_witness", "unprepared", "foreign_owner", "historical_source" })
+        {
+            using var f = await DeviceFileMappedSourceTests.Established();
+            f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "collection_mode",
+                JsonValue.Create("entire_collection")!, f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "collection_mode"));
+            if (scenario == "filtered_no_witness") f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "photos_only",
+                JsonValue.Create(true)!, f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "photos_only"));
+            await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+            await DeviceFileMappedSourceTests.AllowSending(f, pcReceive: false, phoneRead: false);
+            using (var root = DeviceFileNativeDirectory.OpenExisting(f.Root))
+                f.Native.Store.AddNativeMediaCollectionRoot(f.Native.Peer.Id, "images", root, () => { });
+            var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "overlap-guards-book"), Book);
+            var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+            if (scenario is "unprepared" or "foreign_owner" or "historical_source")
+            {
+                var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
+                using var source = f.Native.Connection.OpenNativeMappedMediaSource("images", history.JobId, history.Version, 1.ToString("x32"), new string('f', 64), book);
+                if (scenario != "unprepared") source.PrepareManifest();
+                if (scenario == "historical_source") source.Dispose();
+                var passType = typeof(TelefonConnection).GetNestedType("NativeCollectionMediaPass", System.Reflection.BindingFlags.NonPublic)!;
+                using var pass = (IDisposable)Activator.CreateInstance(passType, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    null, [f.Native.Store, f.Native.Peer.Id, "images", (Action)(() => { }), CancellationToken.None,
+                        scenario == "foreign_owner" ? new object() : f.Native.Connection], null)!;
+                try
+                {
+                    if (scenario == "unprepared") passType.GetMethod("AdmitMapping", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(pass, [source]);
+                    passType.GetMethod("NoteCheckedMapping", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(pass, [source]);
+                    throw new Exception("Foreign/unprepared native source became an original mapping comparison witness.");
+                }
+                catch (System.Reflection.TargetInvocationException error)
+                {
+                    TestAssert.That(error.InnerException is InvalidDataException rejected && rejected.Message ==
+                        (scenario == "unprepared" ? "media_collection_actual_mapping_comparison_required" : "media_collection_original_mapping_observation_required"),
+                        "Mapping witness rejected for an unrelated reason.");
+                }
+                continue;
+            }
+            var edited = false;
+            void Current()
+            {
+                if (scenario != "late_edit" || edited || !new System.Diagnostics.StackTrace().GetFrames().Any(frame =>
+                    frame.GetMethod()?.DeclaringType?.Name == "NativeCollectionMediaPass" && frame.GetMethod()?.Name == "Check")) return;
+                var path = Path.Combine(f.Root, "first.jpg"); var bytes = File.ReadAllBytes(path); bytes[^1] ^= 1;
+                File.WriteAllBytes(path, bytes); edited = true;
+            }
+            DeviceFileConnectionRunsTests.Clear(f);
+            try
+            {
+                await f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, Current, CancellationToken.None, automatic: false);
+                throw new Exception("Late or absent mapped comparison became complete collection: " + scenario);
+            }
+            catch (InvalidDataException error)
+            {
+                TestAssert.That(error.Message == (scenario == "late_edit" ? "media_collection_original_inventory_changed" : "media_collection_existing_mapping_required"),
+                    "Overlap witness held for an unrelated reason: " + error.Message);
+            }
+            TestAssert.That((scenario != "late_edit" || edited) && f.Native.Stream.Length == 0 && f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0,
+                "Invalid overlap proof manufactured an offer/history entry.");
         }
     }
 

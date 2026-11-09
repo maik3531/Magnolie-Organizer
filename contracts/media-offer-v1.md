@@ -1821,6 +1821,40 @@ als neue PC-Quelle umetikettiert: diese Überlappung und gemischte Typen bleiben
 konservativ HOLD und benötigen weitere Arbeit. #491/#486 sowie Androidpause,
 automatischer Export, Capability23 und Video-/Mehrdatei-/Liefergates bleiben offen.
 
+### Windows: tatsächliche Mappingbeobachtung in ausgewählten Roots (#492)
+
+Der zuvor nativ reproduzierte HOLD `media_collection_existing_mapping_required`
+bei bereits im selben Pass vollständig gelesenen gemappten Dateien ist für genau
+diesen belegten Fall behoben. Die tatsächliche Mappingquelle hält nach vollständigem
+Rohhash einen unveränderlichen nativen Inhaltspositionszeugen. Anfang und Ende
+dieser Lesung müssen dieselbe Identität, Größe und native Inhaltsposition besitzen.
+Nur der private ursprüngliche Passowner, derselbe Store/Peer/Connectionowner und
+die in genau diesem Pass tatsächlich lebend aufgenommene, anschließend vollständig
+vorbereitete Source dürfen den Beobachter genau einmal korrelieren. Ein alter
+vorbereiteter Sourceowner aus einem vorherigen Pass genügt nicht.
+
+Notiert wird er erst nach echtem Unverändertvergleich, vollständigem aktuellem
+Nachfolgerhash oder – bei tatsächlich übertragenen Änderungen – nach dem echten
+Backup-/Quell-END. Beim späteren Rootmitglied müssen aktuelle Native-Position und
+ursprünglich eingefrorener Inventurzeuge exakt übereinstimmen. Die Beobachtung
+erteilt kein READ, SEND, keine Publikation und keine neue PC-Herkunft; sie verhindert
+ausschließlich ein zweites Angebot/doppeltes Zählen. Nach END verbleibende
+Beobachter sind ausdrücklich historische Metadaten, keine wiederbelebbaren Quellen.
+
+Sechs unterschiedliche native Windows-Testgruppen bestehen: unveränderte gemappte
+Dateien im Root ohne Angebote/neue Sourcehistorie; tatsächlich geänderte Mappingdatei
+bis zu genau einem Angebot, echtem Backup/END und anschließendem Overlapskip;
+fünf negative Beobachterfälle (später Edit, Nur-Fotos ohne tatsächlichen Zeugen,
+unvorbereitete Source, fremder Connectionowner, alte beendete Source); drei betroffene bestehende
+Mappinggruppen. Aktuelle Core- und echte WinForms-Produktquelle bauen ohne
+Warnungen/Fehler. Linux besitzt seinen getrennt gesicherten entsprechenden
+Workerzeugen; diese Windows-Prüfung ist kein neuer Linux-/Androidnachweis.
+
+Historische/mehrdeutige oder nur gefilterte Mappings ohne aktuelle Vollbeobachtung
+bleiben HOLD. Gemischte Dateitypen und sonstige konservative Inventur-HOLDs sind
+damit nicht pauschal gelöst. Keine Installation, Veröffentlichung oder Öffnung
+der bestehenden Geräte-/Automatik-/Video-/Mehrdatei-/Liefergates.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines
