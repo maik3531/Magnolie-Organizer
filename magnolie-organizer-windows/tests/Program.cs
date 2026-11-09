@@ -303,6 +303,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Destination folder choice / Windows original book connection full settings consent control and stale guards", DeviceFileDestinationChoiceTests.WindowsContextAsync);
     runner.Add("Destination folder choice / Windows original deadline and sticky worker retirement", DeviceFileDestinationChoiceTests.WindowsLifetimeAsync);
     runner.Add("Destination folder choice / Windows late original context denies and rolls back initial SQL record", DeviceFileDestinationChoiceTests.WindowsStoreRollbackAsync);
+    runner.Add("Destination selection design / Windows retained backup snapshot is not an antirollback current head", DeviceFileDestinationSelectionTests.WindowsBackupAnchorIsNotCurrentSelectionAsync);
     runner.Add("Collection producer / Windows two original offers actual END and fresh unchanged pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerAsync);
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);
