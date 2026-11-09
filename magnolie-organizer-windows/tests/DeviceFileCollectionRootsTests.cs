@@ -1,11 +1,60 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 using MagnolieOrganizer.Windows;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileCollectionRootsTests
 {
+    internal static Task WindowsGenerationAsync()
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        using var f = new DeviceFileConnectionMetadataTests.Fixture();
+        var identity = f.Store.LoadOrCreateIdentity(); CryptographicOperations.ZeroMemory(identity.PrivateKey);
+        File.WriteAllText(f.Paths.TelefonStorageKey, Convert.ToBase64String(ProtectedData.Protect(
+            Enumerable.Repeat((byte)29, 32).ToArray(), Encoding.UTF8.GetBytes("magnolie-phone-storage-v1"), DataProtectionScope.CurrentUser)));
+        var path = Path.Combine(f.Paths.Root, "source"); Directory.CreateDirectory(path);
+        using var selected = DeviceFileNativeDirectory.OpenExisting(path);
+        var saved = f.Store.AddNativeMediaCollectionRoot(f.Peer.Id, "images", selected, () => { });
+        TestAssert.That(saved.CreationFileTime == selected.CurrentCollectionCreationFileTime(), "Source-root record did not retain the actual native generation witness.");
+        using var db = f.Store.OpenDatabase(); db.Open(); using var query = db.CreateCommand();
+        query.CommandText = "SELECT value FROM native_media_collection_roots WHERE root_id=$root"; query.Parameters.AddWithValue("$root", saved.Id);
+        var cipher = (byte[])query.ExecuteScalar()!;
+        var clear = f.Store.Open("native_media_collection_root", f.Peer.Id + "/" + saved.Id, cipher);
+        JsonObject original;
+        try { original = JsonNode.Parse(clear)!.AsObject(); }
+        finally { CryptographicOperations.ZeroMemory(clear); }
+        TestAssert.That(original["format"]!.GetValue<int>() == 2, "Generation-bearing root used the legacy root schema.");
+        Directory.SetCreationTimeUtc(path, DateTime.FromFileTimeUtc((long)saved.CreationFileTime!.Value).AddSeconds(-5));
+        TestAssert.That(selected.CurrentIdentity() == saved.Identity, "Generation fixture replaced the native root instead of changing only its witness.");
+        TestAssert.Throws<InvalidDataException>(() => saved.OpenNative(), "Same native root ID with changed generation reopened as the saved root.");
+        TestAssert.Throws<InvalidDataException>(() => f.Store.AddNativeMediaCollectionRoot(f.Peer.Id, "images", selected, () => { }), "Root reselection silently rebound a changed generation.");
+        TestAssert.That(((byte[])query.ExecuteScalar()!).SequenceEqual(cipher), "Generation HOLD overwrote saved root evidence.");
+        Directory.SetCreationTimeUtc(path, DateTime.FromFileTimeUtc((long)saved.CreationFileTime.Value));
+        void Store(JsonObject value)
+        {
+            var bytes = TelefonCrypto.Canonical(value); byte[] encrypted;
+            try { encrypted = f.Store.Seal("native_media_collection_root", f.Peer.Id + "/" + saved.Id, bytes); }
+            finally { CryptographicOperations.ZeroMemory(bytes); }
+            using var write = db.CreateCommand(); write.CommandText = "UPDATE native_media_collection_roots SET value=$value WHERE root_id=$root";
+            write.Parameters.AddWithValue("$value", encrypted); write.Parameters.AddWithValue("$root", saved.Id); write.ExecuteNonQuery();
+        }
+        var legacy = original.DeepClone().AsObject(); legacy["format"] = 1; legacy.Remove("creation_filetime"); Store(legacy);
+        var historical = f.Store.NativeMediaCollectionRoots(f.Peer.Id).Single(); var legacyCipher = (byte[])query.ExecuteScalar()!;
+        TestAssert.That(historical.Id == saved.Id && historical.Version == saved.Version && historical.CreationFileTime is null,
+            "Legacy root record was discarded, rewritten or assigned an inferred generation.");
+        TestAssert.Throws<InvalidDataException>(() => historical.OpenNative(), "Legacy root without generation inferred new source rights.");
+        TestAssert.Throws<InvalidDataException>(() => f.Store.AddNativeMediaCollectionRoot(f.Peer.Id, "images", selected, () => { }), "Legacy root was silently upgraded against current filesystem state.");
+        TestAssert.That(((byte[])query.ExecuteScalar()!).SequenceEqual(legacyCipher), "Legacy HOLD altered original protected history.");
+        foreach (var malformed in new[] { "0000000000000000", "bad", "FFFFFFFFFFFFFFFF" })
+        {
+            var value = original.DeepClone().AsObject(); value["creation_filetime"] = malformed; Store(value);
+            TestAssert.Throws<InvalidDataException>(() => f.Store.NativeMediaCollectionRoots(f.Peer.Id), "Malformed authenticated generation accepted: " + malformed);
+        }
+        return Task.CompletedTask;
+    }
+
     internal static Task WindowsTamperAsync()
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();

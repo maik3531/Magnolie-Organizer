@@ -4,6 +4,41 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileCollectionInventoryTests
 {
+    internal static Task WindowsGenerationAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-collection-generation-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var nested = Path.Combine(root, "Album"); Directory.CreateDirectory(nested);
+            var file = Path.Combine(nested, "one.jpg"); File.WriteAllBytes(file, [1, 2, 3]);
+            using var owner = DeviceFileNativeDirectory.OpenExisting(root);
+            var original = owner.InventoryCollection(() => { }, CancellationToken.None).Members.Single();
+            TestAssert.That(original.CreationFileTime != 0 && original.Parents[0].CreationFileTime != 0, "Native inventory omitted generation witnesses.");
+            File.SetCreationTimeUtc(file, DateTime.FromFileTimeUtc((long)original.CreationFileTime).AddSeconds(-5));
+            using (var actual = DeviceFileNativeDirectory.OpenExisting(nested))
+            using (var held = actual.OpenManagedSource("one.jpg", original.Identity, () => { }))
+                TestAssert.That(held.ReadExact(0, 3).SequenceEqual(new byte[] { 1, 2, 3 }), "Generation fixture changed native identity or original bytes, not only the creation witness.");
+            TestAssert.Throws<InvalidDataException>(() => owner.OpenCollectionMember(original, () => { }), "Same native ID/name/size with changed creation witness inherited old collection identity.");
+            var current = owner.InventoryCollection(() => { }, CancellationToken.None).Members.Single();
+            TestAssert.That(current.Identity == original.Identity && current.CreationFileTime != original.CreationFileTime,
+                "Actual native enumeration did not observe the file generation change.");
+            using (var held = owner.OpenCollectionMember(current, () => { }))
+            {
+                File.SetCreationTimeUtc(file, DateTime.FromFileTimeUtc((long)current.CreationFileTime).AddSeconds(-5));
+                TestAssert.Throws<InvalidDataException>(() => held.ReadExact(0, 1), "Held collection read ignored a changed actual creation witness.");
+                File.SetCreationTimeUtc(file, DateTime.FromFileTimeUtc((long)current.CreationFileTime));
+                TestAssert.Throws<InvalidDataException>(() => held.ReadExact(0, 1), "Restoring generation metadata revived a retired source owner.");
+            }
+            var beforeParentChange = owner.InventoryCollection(() => { }, CancellationToken.None).Members.Single();
+            Directory.SetCreationTimeUtc(nested, DateTime.FromFileTimeUtc((long)beforeParentChange.Parents[0].CreationFileTime).AddSeconds(-5));
+            TestAssert.Throws<InvalidDataException>(() => owner.OpenCollectionMember(beforeParentChange, () => { }), "Changed ancestor generation inherited an old file association.");
+            TestAssert.That(File.ReadAllBytes(file).SequenceEqual(new byte[] { 1, 2, 3 }), "Generation validation changed original content.");
+        }
+        finally { Directory.Delete(root, true); }
+        return Task.CompletedTask;
+    }
+
     internal static Task WindowsHazardsAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-collection-hazards-" + Guid.NewGuid().ToString("N"));

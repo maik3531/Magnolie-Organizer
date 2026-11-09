@@ -7,10 +7,27 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class DeviceFileNativeDirectory
 {
-    internal sealed record CollectionDirectory(string Name, Identity Identity);
-    internal sealed record CollectionMember(IReadOnlyList<CollectionDirectory> Parents, string Name, Identity Identity, long Size);
+    internal sealed record CollectionDirectory(string Name, Identity Identity, ulong CreationFileTime);
+    internal sealed record CollectionMember(IReadOnlyList<CollectionDirectory> Parents, string Name, Identity Identity, long Size, ulong CreationFileTime);
     internal sealed record CollectionInventory(IReadOnlyList<CollectionMember> Members, bool NeedsReview);
-    private sealed record CollectionChild(string Name, Identity Identity, long Size, uint Attributes);
+    private sealed record CollectionChild(string Name, Identity Identity, long Size, uint Attributes, ulong CreationFileTime);
+
+    // An additional generation witness, not a globally unique ID or deletion
+    // proof. A changed/missing witness must never silently inherit history.
+    private static ulong ReadCollectionCreation(SafeFileHandle file)
+    {
+        if (!GetFileInformationByHandle(file, out var info))
+            throw new IOException("media_collection_generation_unavailable", new Win32Exception(Marshal.GetLastWin32Error()));
+        var result = ((ulong)(uint)info.Creation.dwHighDateTime << 32) | (uint)info.Creation.dwLowDateTime;
+        if (result == 0) throw DeviceFileControl.Error("media_collection_generation_required");
+        return result;
+    }
+
+    internal ulong CurrentCollectionCreationFileTime()
+    {
+        _ = CurrentCollectionSourceIdentity();
+        return WithHandle(ReadCollectionCreation);
+    }
 
     internal Identity CurrentCollectionSourceIdentity()
     {
@@ -30,8 +47,9 @@ internal sealed partial class DeviceFileNativeDirectory
     {
         private readonly ManagedSource source;
         private readonly IReadOnlyList<DeviceFileNativeDirectory> parents;
-        internal CollectionSource(ManagedSource source, IReadOnlyList<DeviceFileNativeDirectory> parents)
-        { this.source = source; this.parents = parents; }
+        internal ulong CreationFileTime { get; }
+        internal CollectionSource(ManagedSource source, IReadOnlyList<DeviceFileNativeDirectory> parents, ulong creation)
+        { this.source = source; this.parents = parents; CreationFileTime = creation; }
         internal long Size => source.Size;
         internal Identity FileIdentity => source.FileIdentity;
         internal void Require() => source.Require();
@@ -49,21 +67,29 @@ internal sealed partial class DeviceFileNativeDirectory
         if (member.Parents.Count > 16) throw DeviceFileControl.Error("media_collection_inventory_bound");
         _ = CurrentCollectionSourceIdentity(); NativeMediaBackupExclusions.RequireMediaDirectory(this);
         var held = new List<DeviceFileNativeDirectory>(); ManagedSource? source = null;
-        void Require() { current(); _ = CurrentIdentity(); }
+        var rootCreation = CurrentCollectionCreationFileTime();
+        void Require()
+        {
+            current(); _ = CurrentIdentity();
+            if (CurrentCollectionCreationFileTime() != rootCreation) throw DeviceFileControl.Error("media_collection_root_generation_changed");
+            for (var index = 0; index < held.Count; index++)
+                if (held[index].CurrentCollectionCreationFileTime() != member.Parents[index].CreationFileTime)
+                    throw DeviceFileControl.Error("media_collection_directory_generation_changed");
+        }
         try
         {
             Require(); var parent = this;
             foreach (var item in member.Parents)
             {
-                parent = parent.OpenCollectionDirectory(item.Name, item.Identity, Require); held.Add(parent);
+                parent = parent.OpenCollectionDirectory(item.Name, item.Identity, item.CreationFileTime, Require); held.Add(parent);
                 NativeMediaBackupExclusions.RequireMediaDirectory(parent);
             }
             if (member.Name.StartsWith(".magnolie-", StringComparison.OrdinalIgnoreCase) ||
                 member.Parents.Any(item => item.Name.StartsWith(".magnolie-", StringComparison.OrdinalIgnoreCase)))
                 throw DeviceFileControl.Error("media_collection_private_storage_excluded");
-            source = parent.OpenManagedSource(member.Name, member.Identity, Require);
+            source = parent.OpenManagedSource(member.Name, member.Identity, Require, member.CreationFileTime);
             if (source.Size != member.Size) throw DeviceFileControl.Error("media_collection_member_changed");
-            Require(); return new(source, held.AsReadOnly());
+            Require(); return new(source, held.AsReadOnly(), member.CreationFileTime);
         }
         catch
         {
@@ -84,13 +110,23 @@ internal sealed partial class DeviceFileNativeDirectory
         _ = CurrentCollectionSourceIdentity(); NativeMediaBackupExclusions.RequireMediaDirectory(this);
         var members = new List<CollectionMember>(); var count = 0; var review = false;
         var identities = new HashSet<Identity>();
-        void Require() { cancellation.ThrowIfCancellationRequested(); current(); _ = CurrentIdentity(); }
-        void Walk(DeviceFileNativeDirectory directory, CollectionDirectory[] parents)
+        var rootCreation = CurrentCollectionCreationFileTime();
+        void Require()
         {
-            Require();
-            foreach (var child in directory.CollectionChildren(Require))
+            cancellation.ThrowIfCancellationRequested(); current(); _ = CurrentIdentity();
+            if (CurrentCollectionCreationFileTime() != rootCreation) throw DeviceFileControl.Error("media_collection_root_generation_changed");
+        }
+        void Walk(DeviceFileNativeDirectory directory, CollectionDirectory[] parents, ulong creation)
+        {
+            void DirectoryCurrent()
             {
                 Require();
+                if (directory.CurrentCollectionCreationFileTime() != creation) throw DeviceFileControl.Error("media_collection_directory_generation_changed");
+            }
+            DirectoryCurrent();
+            foreach (var child in directory.CollectionChildren(DirectoryCurrent))
+            {
+                DirectoryCurrent();
                 if (++count > maximumEntries) throw DeviceFileControl.Error("media_collection_inventory_bound");
                 // Private backup/trash/staging names are never source material.
                 // These deny-only exclusions do not prove ownership or deletion.
@@ -101,27 +137,27 @@ internal sealed partial class DeviceFileNativeDirectory
                 if ((child.Attributes & 0x10) != 0)
                 {
                     if (parents.Length >= maximumDepth) throw DeviceFileControl.Error("media_collection_inventory_bound");
-                    using var nested = directory.OpenCollectionDirectory(child.Name, child.Identity, Require);
+                    using var nested = directory.OpenCollectionDirectory(child.Name, child.Identity, child.CreationFileTime, DirectoryCurrent);
                     NativeMediaBackupExclusions.RequireMediaDirectory(nested);
-                    Walk(nested, parents.Append(new CollectionDirectory(child.Name, child.Identity)).ToArray());
+                    Walk(nested, parents.Append(new CollectionDirectory(child.Name, child.Identity, child.CreationFileTime)).ToArray(), child.CreationFileTime);
                 }
                 else
                 {
                     if (child.Size is < 1 or > DeviceFileManifest.MaxFileBytes) { review = true; continue; }
                     // Verify a plain, single-link, unchanged actual handle now;
                     // a later sender must independently reopen the same identity.
-                    using var source = directory.OpenManagedSource(child.Name, child.Identity, Require);
+                    using var source = directory.OpenManagedSource(child.Name, child.Identity, DirectoryCurrent, child.CreationFileTime);
                     if (source.Size != child.Size) throw DeviceFileControl.Error("media_collection_member_changed");
-                    members.Add(new(Array.AsReadOnly(parents.ToArray()), child.Name, child.Identity, child.Size));
+                    members.Add(new(Array.AsReadOnly(parents.ToArray()), child.Name, child.Identity, child.Size, child.CreationFileTime));
                 }
             }
-            Require();
+            DirectoryCurrent();
         }
-        Require(); identities.Add(CurrentIdentity()); Walk(this, []); Require();
+        Require(); identities.Add(CurrentIdentity()); Walk(this, [], rootCreation); Require();
         return new(members.AsReadOnly(), review);
     }
 
-    private DeviceFileNativeDirectory OpenCollectionDirectory(string name, Identity expected, Action current)
+    private DeviceFileNativeDirectory OpenCollectionDirectory(string name, Identity expected, ulong creation, Action current)
         => WithHandle(parent =>
         {
             current();
@@ -129,7 +165,8 @@ internal sealed partial class DeviceFileNativeDirectory
                 ShareDirectory, OpenOnly, DirectorySynchronousNoReparse));
             try
             {
-                if (child.CurrentIdentity() != expected) throw DeviceFileControl.Error("media_collection_original_directory_required");
+                if (child.CurrentIdentity() != expected || child.CurrentCollectionCreationFileTime() != creation)
+                    throw DeviceFileControl.Error("media_collection_original_directory_required");
                 current(); return child;
             }
             catch { child.Dispose(); throw; }
@@ -171,7 +208,7 @@ internal sealed partial class DeviceFileNativeDirectory
                             if (!names.Add(name) || result.Count >= 4096) throw DeviceFileControl.Error("media_collection_inventory_bound");
                             var id = new Identity(OriginalIdentity.VolumeSerial, BitConverter.ToUInt64(bytes, offset + 72), BitConverter.ToUInt64(bytes, offset + 80));
                             if (id.FileIdLow == 0 && id.FileIdHigh == 0) throw DeviceFileControl.Error("media_collection_identity_required");
-                            result.Add(new(name, id, BitConverter.ToInt64(bytes, offset + 40), BitConverter.ToUInt32(bytes, offset + 56)));
+                            result.Add(new(name, id, BitConverter.ToInt64(bytes, offset + 40), BitConverter.ToUInt32(bytes, offset + 56), BitConverter.ToUInt64(bytes, offset + 8)));
                         }
                         if (next == 0) break;
                         offset += (int)next;

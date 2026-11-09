@@ -8,14 +8,14 @@ internal sealed partial class DeviceFileNativeDirectory
     // Explicit original mapping identity only. This does not select arbitrary
     // collection members or confer a phone SEND grant. The composition owner
     // supplies its live saved-book/intent/local-consent guard on every read.
-    internal ManagedSource OpenManagedSource(string nativeName, Identity expected, Action requireNative)
+    internal ManagedSource OpenManagedSource(string nativeName, Identity expected, Action requireNative, ulong? expectedCreation = null)
     {
         var name = ReceiveLeaf(nativeName);
         return WithHandle(parent =>
         {
             requireNative();
             var source = new ManagedSource(this,
-                OpenRelative(parent, name, 0x80100080, ShareRead, OpenOnly, FileSynchronousNoReparse), expected, requireNative);
+                OpenRelative(parent, name, 0x80100080, ShareRead, OpenOnly, FileSynchronousNoReparse), expected, requireNative, expectedCreation);
             try { source.Require(); return source; }
             catch { source.Dispose(); throw; }
         });
@@ -29,11 +29,12 @@ internal sealed partial class DeviceFileNativeDirectory
         private readonly Identity parentIdentity;
         private readonly DeviceFileNativeStagedFile.Observation original;
         private readonly Action requireNative;
+        private readonly ulong? expectedCreation;
         private bool retired;
 
-        internal ManagedSource(DeviceFileNativeDirectory parent, SafeFileHandle file, Identity expected, Action requireNative)
+        internal ManagedSource(DeviceFileNativeDirectory parent, SafeFileHandle file, Identity expected, Action requireNative, ulong? expectedCreation = null)
         {
-            this.parent = parent; this.file = file; this.requireNative = requireNative;
+            this.parent = parent; this.file = file; this.requireNative = requireNative; this.expectedCreation = expectedCreation;
             try
             {
                 parentIdentity = parent.CurrentIdentity();
@@ -58,6 +59,8 @@ internal sealed partial class DeviceFileNativeDirectory
                     requireNative();
                     if (parent.CurrentIdentity() != parentIdentity || DeviceFileNativeStagedFile.ReadFile(file) != original)
                         throw DeviceFileControl.Error("media_source_original_file_changed");
+                    if (expectedCreation is ulong creation && ReadCollectionCreation(file) != creation)
+                        throw DeviceFileControl.Error("media_collection_file_generation_changed");
                     requireNative();
                 }
                 catch { retired = true; throw; }

@@ -791,6 +791,16 @@ HOLD unter Erhalt der gespeicherten Daten. Die native Benutzerauswahl und der
 gesamte Sende-/Versionsweg für diesen bislang nicht zugeordneten PC-Bestand
 sind damit noch **nicht** angeschlossen oder als benutzbar abgenommen.
 
+Quellinventar und Wiederöffnung binden zusätzlich die tatsächlich nativ gelesene
+Erstellungszeit der Datei und ihrer Verzeichnisvorfahren. Dieser zusätzliche
+Generationszeuge ist keine eigenständige globale Identität oder Berechtigung.
+Änderungen führen zu HOLD; verworfene Leseowner werden durch Zurücksetzen des
+Zeugen nicht wieder verwendbar. Neue Quellroot-Aufzeichnungen verwenden dafür
+Format 2. Alte Format-1-Aufzeichnungen ohne Zeugen bleiben unverändert lesbar,
+erlauben aber weder Wiederöffnung noch automatische Aufwertung anhand des
+heutigen Dateisystems. Bestehende Telefonmapping-/Quellcacheformate bleiben
+unverändert.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
