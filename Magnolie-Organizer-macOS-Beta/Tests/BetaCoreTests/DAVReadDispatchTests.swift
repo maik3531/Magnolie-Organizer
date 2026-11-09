@@ -153,9 +153,10 @@ final class DAVReadDispatchTests: XCTestCase {
         let journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: root), keys: DispatchKeys())
         let configuration = DispatchConfig(), secrets = DispatchSecrets(), network = FencedDispatchScript(replies()), clock = DAVReadClock.testing(100)
         let service = DAVAccountService(configuration: configuration, credentials: secrets, transport: network, readClock: clock)
+        try await fixtureAdmitBook(service, namespace: configuration.revisionNamespace)
         let revision = await service.status().revision!, sources = try await service.discover(expectedRevision: revision)
         let uid = sources.status.calendars[0].uid, signer = try await journal.accountBindingSigner()
-        let lease = try await service.pinForSync(expectedRevision: revision, orderedCalendarUIDs: [uid], signer: signer)
+        let lease = try await service.pinForSync(expectedRevision: revision, orderedCalendarUIDs: [uid], signer: signer, bookSession: try service.captureBookSession())
         return (journal, service, lease, uid, configuration, secrets, network, clock)
     }
     func testAuthorizationIsExactAndOneShotAndOnlyReadMethodsAreEligible() throws {
@@ -305,15 +306,17 @@ final class DAVReadDispatchTests: XCTestCase {
         let signer = try await journal.accountBindingSigner()
         let plain = UnfencedDispatchScript(replies())
         let unfenced = DAVAccountService(configuration: configuration, credentials: secrets, transport: plain)
+        try await fixtureAdmitBook(unfenced, namespace: configuration.revisionNamespace)
         let revision = await unfenced.status().revision!, discovery = try await unfenced.discover(expectedRevision: revision), uid = discovery.status.calendars[0].uid
-        let lease = try await unfenced.pinForSync(expectedRevision: revision, orderedCalendarUIDs: [uid], signer: signer)
+        let lease = try await unfenced.pinForSync(expectedRevision: revision, orderedCalendarUIDs: [uid], signer: signer, bookSession: try unfenced.captureBookSession())
         do { _ = try await unfenced.readReport(lease, sourceUID: uid); XCTFail("Unfenced transport accepted") }
         catch { XCTAssertEqual(error as? DAVAccountLeaseError, .unsupportedTransport) }
         let count = await plain.count; XCTAssertEqual(count, 4)
         let scripted = FencedDispatchScript(replies())
         let custom = DAVAccountService(configuration: configuration, credentials: secrets, transport: scripted, monotonicTime: { 100 })
+        try await fixtureAdmitBook(custom, namespace: configuration.revisionNamespace)
         let customRevision = await custom.status().revision!, customSources = try await custom.discover(expectedRevision: customRevision), customUID = customSources.status.calendars[0].uid
-        let customLease = try await custom.pinForSync(expectedRevision: customRevision, orderedCalendarUIDs: [customUID], signer: signer)
+        let customLease = try await custom.pinForSync(expectedRevision: customRevision, orderedCalendarUIDs: [customUID], signer: signer, bookSession: try custom.captureBookSession())
         try await custom.revalidate(customLease) // Existing metadata-only custom-clock behavior remains.
         do { _ = try await custom.readReport(customLease, sourceUID: customUID); XCTFail("Arbitrary clock called under start gates") }
         catch { XCTAssertEqual(error as? DAVAccountLeaseError, .unsupportedClock) }
@@ -324,7 +327,7 @@ final class DAVReadDispatchTests: XCTestCase {
         defer { withExtendedLifetime(journal) {} }
         let revision = await service.status().revision!, signer = try await journal.accountBindingSigner()
         var leases = [first]
-        for _ in 0..<4 { leases.append(try await service.pinForSync(expectedRevision: revision, orderedCalendarUIDs: [uid], signer: signer)) }
+        for _ in 0..<4 { leases.append(try await service.pinForSync(expectedRevision: revision, orderedCalendarUIDs: [uid], signer: signer, bookSession: try service.captureBookSession())) }
         let barrier = DispatchBarrier(); await network.set(Array(repeating: .init(status: 404), count: 4), after: barrier)
         let works = leases.prefix(4).map { lease in Task { try await service.readResource(lease, sourceUID: uid, href: URL(string: "https://cloud.example/cal/selected/item.ics")!) } }
         defer { for work in works { work.cancel() } }
@@ -416,6 +419,41 @@ final class DAVReadDispatchTests: XCTestCase {
         await network.set([.init(status: 404)])
         _ = try await service.readResource(lease, sourceUID: uid, href: URL(string: "https://cloud.example/cal/selected/item.ics")!)
         let after = await network.resumes; XCTAssertEqual(after, 1)
+    }
+
+    func testBookSuspensionBeforeActualURLSessionResumeDeniesOldStartAfterHandoff() async throws {
+        let admission = DAVBookAdmission(), transition = try admission.suspend()
+        try admission.reopen(transition, confirmation: fixtureBookHandoff(transition, namespace: "dispatch-fixture"))
+        let ticket = try admission.capture(), clock = DAVReadClock.testing(100), (signer, _) = try gate(clock: clock)
+        let boundGate = DAVReadLeaseGate(signer: signer, expires: 400, clock: clock, admission: admission, bookSession: ticket)
+        try signer.registerReadGate(boundGate); try admission.register(boundGate, ticket: ticket)
+        let req = request(), probe = DAVHTTPStartProbe(holdBeforeStart: true)
+        DispatchURLProtocol.add(req.url.path, hanging: false)
+        let auth = try DAVReadDispatchAuthorization(gate: boundGate, deadline: 300, request: req)
+        let transport = URLSessionBoundedTransport(startProbe: probe, protocolClasses: [DispatchURLProtocol.self])
+        let work = Task { try await transport.send(req, authorization: auth) }
+        defer { work.cancel(); probe.allowStart() }
+        let suspended = await Task.detached { probe.waitUntilSuspended() }.value; XCTAssertTrue(suspended)
+        let restore = try admission.suspend()
+        try admission.reopen(restore, confirmation: fixtureBookHandoff(restore, namespace: "dispatch-fixture"))
+        probe.allowStart()
+        do { _ = try await work.value; XCTFail("Old book task resumed after handoff") } catch {}
+        XCTAssertEqual(probe.resumes, 0)
+    }
+    func testBookSuspensionRejectsInFlightResponseAndOldLeaseAfterReopen() async throws {
+        let (journal, service, lease, uid, configuration, _, network, _) = try await asyncFixture()
+        defer { withExtendedLifetime(journal) {} }
+        let barrier = DispatchBarrier()
+        await network.set([.init(status: 404)], after: barrier)
+        let work = Task { try await service.readResource(lease, sourceUID: uid, href: URL(string: "https://cloud.example/cal/selected/item.ics")!) }
+        defer { work.cancel() }
+        try await barrier.started()
+        let transition = try service.suspendBookAdmission()
+        try await service.awaitBookSuspension(transition)
+        try await service.completeBookTransition(transition, confirmation: fixtureBookHandoff(transition, namespace: configuration.revisionNamespace))
+        await barrier.open()
+        do { _ = try await work.value; XCTFail("Old response returned") } catch {}
+        do { try await service.revalidate(lease); XCTFail("Old lease survived") } catch {}
     }
 
 }

@@ -27,16 +27,26 @@ private final class WeakDAVReadOperation {
     init(_ value: any DAVReadOperationCancellation) { self.value = value }
 }
 
-/// Nested order: signer -> lease -> operation. Revocation invokes cancellations AFTER unlock.
+/// Nested order: admission -> signer -> lease -> operation. Revocation invokes cancellations AFTER unlock.
 internal final class DAVReadLeaseGate {
     let signer: DAVAccountBindingSigner
     let expires: TimeInterval
     let clock: DAVReadClock
     private let lock = NSLock()
+    private let admission: DAVBookAdmission?
+    private let bookSession: DAVBookSessionTicket?
     private var active = true
     private var operations: [UUID: WeakDAVReadOperation] = [:]
-    init(signer: DAVAccountBindingSigner, expires: TimeInterval, clock: DAVReadClock) {
+    init(signer: DAVAccountBindingSigner, expires: TimeInterval, clock: DAVReadClock,
+         admission: DAVBookAdmission? = nil, bookSession: DAVBookSessionTicket? = nil) {
         self.signer = signer; self.expires = expires; self.clock = clock
+        self.admission = admission; self.bookSession = bookSession
+    }
+    private func validateAdmission() throws {
+        if let admission {
+            guard let bookSession else { throw DAVAccountLeaseError.bookAdmissionClosed }
+            try admission.validate(bookSession)
+        }
     }
     func revoke() {
         lock.lock(); active = false
@@ -44,6 +54,7 @@ internal final class DAVReadLeaseGate {
         for operation in pending { operation.cancel() }
     }
     func register(_ operation: any DAVReadOperationCancellation) throws -> UUID {
+        try validateAdmission() // Before lease lock; never acquire admission while holding it.
         lock.lock(); defer { lock.unlock() }
         guard active else { throw DAVAccountLeaseError.invalidLease }
         operations = operations.filter { $0.value.value != nil }
@@ -52,7 +63,7 @@ internal final class DAVReadLeaseGate {
     }
     func unregister(_ id: UUID) { lock.lock(); operations.removeValue(forKey: id); lock.unlock() }
     func withStart(_ authorization: DAVReadDispatchAuthorization, request: BoundedHTTPRequest, start: () throws -> Void) throws {
-        do {
+        func signedStart() throws {
             try signer.withReadStartGate {
                 lock.lock(); defer { lock.unlock() }
                 guard active else { throw DAVAccountLeaseError.invalidLease }
@@ -63,7 +74,11 @@ internal final class DAVReadLeaseGate {
                     throw error
                 }
             }
-        } catch { throw error } // Caller finishes the sole registered operation after unlock.
+        }
+        if let admission {
+            guard let bookSession else { throw DAVAccountLeaseError.bookAdmissionClosed }
+            try admission.withCurrent(bookSession, start: signedStart)
+        } else { try signedStart() } // Unbound gate exists only in internal primitive fixtures.
     }
     func discard(_ authorization: DAVReadDispatchAuthorization) { lock.lock(); authorization.discardLocked(); lock.unlock() }
     func confirmStarted(_ authorization: DAVReadDispatchAuthorization) throws {
@@ -71,6 +86,7 @@ internal final class DAVReadLeaseGate {
         guard authorization.startedLocked else { throw DAVAccountLeaseError.invalidLease }
     }
     func checkState() throws {
+        try validateAdmission() // Check admission before acquiring lease lock.
         lock.lock(); defer { lock.unlock() }
         guard active else { throw DAVAccountLeaseError.invalidLease }
         let now = clock.now()

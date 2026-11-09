@@ -182,6 +182,7 @@ public actor DAVAccountService {
     private var poisoned = false
     private var cachedDiscovery: DAVAccountDiscovery?
     private let leaseOwner = UUID()
+    nonisolated private let bookAdmission = DAVBookAdmission()
     private let leaseClock: () -> TimeInterval
     private let readClock: DAVReadClock?
     private var activeReads: [UUID: UUID] = [:]
@@ -191,6 +192,7 @@ public actor DAVAccountService {
         let binding: DAVSyncAccountLeaseBinding, signer: DAVAccountBindingSigner
         let generation: UInt64, discoveryGeneration: UInt64, expires: TimeInterval
         let gate: DAVReadLeaseGate?
+        let bookSession: DAVBookSessionTicket
     }
     private var leases: [UUID: ActiveLease] = [:]
     private struct Snapshot {
@@ -390,8 +392,29 @@ public actor DAVAccountService {
         guard let secret = snapshot.secret, !secret.isEmpty, secret.utf8.count <= 16_384 else { throw DAVAccountError.missingPassword }
         return (configuration, secret)
     }
-    /// Metadata/session pinning only. No callable network operation or dispatch authorization.
-    public func pinForSync(expectedRevision: String, orderedCalendarUIDs: [String], signer: DAVAccountBindingSigner) async throws -> DAVSyncAccountLease {
+    /// Must be called synchronously BEFORE native work is enqueued. Initially closed; account
+    /// setup/status/discovery remain available without granting any integrated book admission.
+    public nonisolated func captureBookSession() throws -> DAVBookSessionTicket { try bookAdmission.capture() }
+    /// Closes synchronously and revokes starts before any actor await. Caller then awaits the
+    /// registry barrier before restore preparation/publication under its existing storage owner.
+    public nonisolated func suspendBookAdmission() throws -> DAVBookTransitionTicket { try bookAdmission.suspend() }
+    public func awaitBookSuspension(_ transition: DAVBookTransitionTicket) throws {
+        try bookAdmission.validateSuspended(transition); revokeLeases()
+    }
+    /// No public proof constructor/issuer. A future reviewed native helper must first verify
+    /// actual saved bytes/epoch AND successful native UI handoff; a renderer Bool is insufficient.
+    public func completeBookTransition(_ transition: DAVBookTransitionTicket, confirmation: DAVBookHandoffConfirmation) throws {
+        try bookAdmission.validateSuspended(transition)
+        guard OpaqueUTF8Identity(confirmation.accountStoreNamespace) == OpaqueUTF8Identity(configurationStore.revisionNamespace) else { throw DAVAccountLeaseError.bindingChanged }
+        revokeLeases()
+        try bookAdmission.reopen(transition, confirmation: confirmation)
+    }
+    /// Uncertain publication/UI outcome never reopens this instance, even with an old proof.
+    public nonisolated func blockBookAdmission(_ transition: DAVBookTransitionTicket) throws { try bookAdmission.block(transition) }
+
+    /// Native metadata/session pin. Captured book ticket is mandatory; no implicit recapture.
+    public func pinForSync(expectedRevision: String, orderedCalendarUIDs: [String], signer: DAVAccountBindingSigner, bookSession: DAVBookSessionTicket) async throws -> DAVSyncAccountLease {
+        try bookAdmission.validate(bookSession)
         // Reject stale/invalid UI input before an await can alter any lease registry state.
         let before = try stableLeaseSnapshot()
         guard before.revision == expectedRevision else { throw DAVAccountError.conflict }
@@ -399,6 +422,7 @@ public actor DAVAccountService {
         _ = try selectedLeaseSources(orderedCalendarUIDs, snapshot: before)
         let generation = leaseGeneration, discovery = discoveryGeneration
         try await signer.ensureCurrent()
+        try bookAdmission.validate(bookSession)
         guard generation == leaseGeneration, discovery == discoveryGeneration else { throw DAVAccountLeaseError.bindingChanged }
         let current = try stableLeaseSnapshot()
         guard current.revision == expectedRevision else { throw DAVAccountError.conflict }
@@ -413,15 +437,19 @@ public actor DAVAccountService {
         let binding = DAVSyncAccountLeaseBinding(calendars: sources, accountIdentity: try configuration.identity.storageKey,
             persistentAccountBinding: stable, sessionRevision: current.revision, discoveryFingerprint: fingerprint(sources))
         let handle = DAVSyncAccountLease(owner: leaseOwner, id: UUID())
-        let gate = readClock.map { DAVReadLeaseGate(signer: signer, expires: now + 300, clock: $0) }
-        if let gate { try signer.registerReadGate(gate) }
-        leases[handle.id] = ActiveLease(binding: binding, signer: signer, generation: generation, discoveryGeneration: discovery, expires: now + 300, gate: gate)
+        let gate = readClock.map { DAVReadLeaseGate(signer: signer, expires: now + 300, clock: $0, admission: bookAdmission, bookSession: bookSession) }
+        if let gate { try signer.registerReadGate(gate); try bookAdmission.register(gate, ticket: bookSession) }
+        try bookAdmission.withCurrent(bookSession) {
+            leases[handle.id] = ActiveLease(binding: binding, signer: signer, generation: generation, discoveryGeneration: discovery, expires: now + 300, gate: gate, bookSession: bookSession)
+        }
         return handle
     }
     public func revalidate(_ handle: DAVSyncAccountLease) async throws {
         guard handle.owner == leaseOwner, let active = leases[handle.id] else { throw DAVAccountLeaseError.invalidLease }
         do {
+            try bookAdmission.validate(active.bookSession)
             try await active.signer.ensureCurrent()
+            try bookAdmission.validate(active.bookSession)
             guard let present = leases[handle.id], present.generation == active.generation,
                   present.discoveryGeneration == active.discoveryGeneration, leaseGeneration == active.generation,
                   discoveryGeneration == active.discoveryGeneration else { throw DAVAccountLeaseError.invalidLease }
@@ -435,6 +463,7 @@ public actor DAVAccountService {
                   try active.signer.bind(configuration: configuration, secret: secret, storeNamespace: configurationStore.revisionNamespace) == active.binding.persistentAccountBinding else {
                 throw DAVAccountLeaseError.bindingChanged
             }
+            try bookAdmission.validate(active.bookSession)
         } catch { leases[handle.id]?.gate?.revoke(); leases.removeValue(forKey: handle.id); throw error }
     }
     public func binding(_ handle: DAVSyncAccountLease) async throws -> DAVSyncAccountLeaseBinding {

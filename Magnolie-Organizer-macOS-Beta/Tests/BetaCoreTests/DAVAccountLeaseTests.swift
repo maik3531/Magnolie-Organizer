@@ -94,8 +94,10 @@ final class DAVAccountLeaseTests: XCTestCase {
                 xml(row("/cal/person/a/", "<d:resourcetype><c:calendar/></d:resourcetype><d:displayname>A</d:displayname>" + components) + row("/cal/person/b/", "<d:resourcetype><c:calendar/></d:resourcetype><d:displayname>B</d:displayname>" + components)),
                 xml(row("/.well-known/carddav", "<a:addressbook-home-set><d:href>/contacts/person/</d:href></a:addressbook-home-set>")), xml("")]
     }
-    private func service(_ store: LeaseConfiguration, secrets: LeaseCredentials, transport: LeaseTransport, clock: LeaseClock = LeaseClock()) -> DAVAccountService {
-        DAVAccountService(configuration: store, credentials: secrets, transport: transport, monotonicTime: { clock.value })
+    private func service(_ store: LeaseConfiguration, secrets: LeaseCredentials, transport: LeaseTransport, clock: LeaseClock = LeaseClock()) async throws -> DAVAccountService {
+        let service = DAVAccountService(configuration: store, credentials: secrets, transport: transport, monotonicTime: { clock.value })
+        try await fixtureAdmitBook(service, namespace: store.revisionNamespace)
+        return service
     }
     private func prepared(_ service: DAVAccountService) async throws -> (String, [String]) {
         let revision = await service.status().revision!
@@ -109,10 +111,10 @@ final class DAVAccountLeaseTests: XCTestCase {
     func testPinFreezesOrderedSourcesAndMetadataWithoutAdditionalNetworkingOrPublicDigest() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(), network = LeaseTransport(replies())
         secrets.items[try store.value!.identity.storageKey] = "fixture-app-secret"
-        let account = service(store, secrets: secrets, transport: network), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: network), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, sources) = try await prepared(account)
         let before = await network.requests
-        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: Array(sources.reversed()), signer: signer)
+        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: Array(sources.reversed()), signer: signer, bookSession: try account.captureBookSession())
         let binding = try await account.binding(lease)
         XCTAssertEqual(binding.calendars.map(\.uid), Array(sources.reversed())); XCTAssertTrue(binding.calendars.allSatisfy(\.supportsVtodo))
         XCTAssertEqual(binding.sessionRevision, revision); XCTAssertEqual(binding.persistentAccountBinding.count, 64)
@@ -124,19 +126,19 @@ final class DAVAccountLeaseTests: XCTestCase {
     func testFreshServiceChangesSessionCASButPreservesJournalDerivedAccountBinding() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(); secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
         let journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys()), signer = try await journal.accountBindingSigner()
-        let first = service(store, secrets: secrets, transport: LeaseTransport(replies())), second = service(store, secrets: secrets, transport: LeaseTransport(replies()))
+        let first = try await service(store, secrets: secrets, transport: LeaseTransport(replies())), second = try await service(store, secrets: secrets, transport: LeaseTransport(replies()))
         let (one, ids) = try await prepared(first), (two, ids2) = try await prepared(second)
-        let leaseA = try await first.pinForSync(expectedRevision: one, orderedCalendarUIDs: ids, signer: signer)
-        let leaseB = try await second.pinForSync(expectedRevision: two, orderedCalendarUIDs: ids2, signer: signer)
+        let leaseA = try await first.pinForSync(expectedRevision: one, orderedCalendarUIDs: ids, signer: signer, bookSession: try first.captureBookSession())
+        let leaseB = try await second.pinForSync(expectedRevision: two, orderedCalendarUIDs: ids2, signer: signer, bookSession: try second.captureBookSession())
         let a = try await first.binding(leaseA), b = try await second.binding(leaseB)
         XCTAssertNotEqual(one, two); XCTAssertEqual(a.persistentAccountBinding, b.persistentAccountBinding)
         XCTAssertEqual(a.discoveryFingerprint, b.discoveryFingerprint)
     }
     func testStaleAndInvalidSaveRequestsDoNotRevokeValidLease() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(); secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-        let account = service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
-        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         do { _ = try await account.save(expectedRevision: "stale", configuration: store.value!); XCTFail("Stale save accepted") } catch { XCTAssertEqual(error as? DAVAccountError, .conflict) }
         try await account.revalidate(lease)
         do { _ = try await account.save(expectedRevision: revision, configuration: store.value!, clearPassword: true); XCTFail("Invalid clear accepted") } catch { XCTAssertEqual(error as? DAVAccountError, .invalidConfiguration) }
@@ -144,9 +146,9 @@ final class DAVAccountLeaseTests: XCTestCase {
     }
     func testFirstActualMutationRevokesEvenWhenRollbackRestoresPublicCAS() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(); secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-        let account = service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
-        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         store.failNextReplace = true
         do { _ = try await account.save(expectedRevision: revision, configuration: store.value!); XCTFail("Injected replace must fail") } catch { }
         let after = await account.status(); XCTAssertEqual(after.revision, revision)
@@ -155,34 +157,35 @@ final class DAVAccountLeaseTests: XCTestCase {
     func testExternalSecretChangeAndTornDoubleCollectCannotPinOrRevalidate() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(), identity = try store.value!.identity
         secrets.items[identity.storageKey] = "first-secret"
-        let account = service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
-        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         secrets.items[identity.storageKey] = "second-secret"
         await expect(.bindingChanged) { try await account.revalidate(lease) }
         secrets.items[identity.storageKey] = "first-secret"
         secrets.afterRead = { secrets.afterRead = nil; secrets.items[identity.storageKey] = "torn-secret" }
-        await expect(.bindingChanged) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer) }
+        await expect(.bindingChanged) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession()) }
     }
     func testDiscoveryRefreshRevokesBeforeAwaitAndFailedRefreshCannotResurrectOldSources() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(), transport = LeaseTransport(replies())
         secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-        let account = service(store, secrets: secrets, transport: transport), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: transport), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
-        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         let gate = LeaseBarrier(); await transport.append([.init(status: 401)], gate: gate)
         let refresh = Task { try await account.discover(expectedRevision: revision) }
         await gate.started()
         await expect(.invalidLease) { try await account.revalidate(lease) }
-        await expect(.discoveryRequired) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer) }
+        await expect(.discoveryRequired) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession()) }
         await gate.open(); _ = try await refresh.value
-        await expect(.discoveryRequired) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer) }
+        await expect(.discoveryRequired) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession()) }
     }
     func testOlderDiscoveryCompletingLastCannotOverwriteNewerCapabilities() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(), barrier = LeaseBarrier()
         secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
         let transport = OverlappingLeaseDiscovery(seed: replies(), older: replies(taskSupport: true), newer: replies(taskSupport: false), barrier: barrier)
         let account = DAVAccountService(configuration: store, credentials: secrets, transport: transport)
+        try await fixtureAdmitBook(account, namespace: store.revisionNamespace)
         let journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
         let oldRefresh = Task { try await account.discover(expectedRevision: revision) }
@@ -194,56 +197,56 @@ final class DAVAccountLeaseTests: XCTestCase {
         catch { XCTAssertEqual(error as? DAVAccountError, .conflict) }
         let current = await account.status()
         XCTAssertFalse(current.calendars[0].supportsVtodo); XCTAssertEqual(current.errorCode, "none")
-        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         let binding = try await account.binding(lease); XCTAssertFalse(binding.calendars[0].supportsVtodo)
     }
     func testCapabilityChangeIsFrozenAndOrderedSelectionChangesFingerprint() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(), network = LeaseTransport(replies())
         secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-        let account = service(store, secrets: secrets, transport: network), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: network), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
-        let firstLease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        let firstLease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         let first = try await account.binding(firstLease)
-        let reverseLease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: Array(ids.reversed()), signer: signer)
+        let reverseLease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: Array(ids.reversed()), signer: signer, bookSession: try account.captureBookSession())
         let reverse = try await account.binding(reverseLease); XCTAssertNotEqual(first.discoveryFingerprint, reverse.discoveryFingerprint)
         await network.append(replies(taskSupport: false)); _ = try await account.discover(expectedRevision: revision)
         await expect(.invalidLease) { try await account.revalidate(firstLease) }
-        let updatedLease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        let updatedLease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         let updated = try await account.binding(updatedLease)
         XCTAssertFalse(updated.calendars[0].supportsVtodo); XCTAssertNotEqual(first.discoveryFingerprint, updated.discoveryFingerprint)
         XCTAssertEqual(first.persistentAccountBinding, updated.persistentAccountBinding)
     }
     func testUnknownDuplicateAbsentDiscoveryInactiveAndMissingPasswordCannotPin() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(); secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-        let account = service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), before = await account.status()
-        await expect(.discoveryRequired) { _ = try await account.pinForSync(expectedRevision: before.revision!, orderedCalendarUIDs: ["unknown"], signer: signer) }
+        await expect(.discoveryRequired) { _ = try await account.pinForSync(expectedRevision: before.revision!, orderedCalendarUIDs: ["unknown"], signer: signer, bookSession: try account.captureBookSession()) }
         let (revision, ids) = try await prepared(account)
         for selected in [[], ["unknown"], [ids[0], ids[0]]] {
-            await expect(.invalidSelection) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: selected, signer: signer) }
+            await expect(.invalidSelection) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: selected, signer: signer, bookSession: try account.captureBookSession()) }
         }
         secrets.items.removeAll()
         let missing = await account.status()
-        do { _ = try await account.pinForSync(expectedRevision: missing.revision!, orderedCalendarUIDs: ids, signer: signer); XCTFail("Missing secret accepted") } catch { XCTAssertEqual(error as? DAVAccountError, .missingPassword) }
+        do { _ = try await account.pinForSync(expectedRevision: missing.revision!, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession()); XCTFail("Missing secret accepted") } catch { XCTAssertEqual(error as? DAVAccountError, .missingPassword) }
         store.value = try config(active: false)
         let inactive = await account.status()
-        do { _ = try await account.pinForSync(expectedRevision: inactive.revision!, orderedCalendarUIDs: ids, signer: signer); XCTFail("Inactive accepted") } catch { XCTAssertEqual(error as? DAVAccountError, .notActive) }
+        do { _ = try await account.pinForSync(expectedRevision: inactive.revision!, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession()); XCTFail("Inactive accepted") } catch { XCTAssertEqual(error as? DAVAccountError, .notActive) }
     }
     func testRegistryCountExpirationReleaseAndForeignHandleNeverResurrect() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(), clock = LeaseClock()
         secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-        let account = service(store, secrets: secrets, transport: LeaseTransport(replies()), clock: clock), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: LeaseTransport(replies()), clock: clock), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
         var leases: [DAVSyncAccountLease] = []
-        for _ in 0..<16 { leases.append(try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)) }
-        await expect(.capacity) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer) }
+        for _ in 0..<16 { leases.append(try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())) }
+        await expect(.capacity) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession()) }
         await account.release(leases[0]); await expect(.invalidLease) { try await account.revalidate(leases[0]) }
-        _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         clock.value += 300
         await expect(.expired) { try await account.revalidate(leases[1]) }
         clock.value = 100
         await expect(.invalidLease) { try await account.revalidate(leases[1]) }
-        let other = service(store, secrets: secrets, transport: LeaseTransport([]))
+        let other = try await service(store, secrets: secrets, transport: LeaseTransport([]))
         await expect(.invalidLease) { try await other.revalidate(leases[2]) }
     }
     func testJournalMissingChangedKeyOrPoisonedStateRevokesSignerWithoutReset() async throws {
@@ -271,16 +274,16 @@ final class DAVAccountLeaseTests: XCTestCase {
         secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
         var files: DAVSyncJournalFiles? = try DAVSyncJournalFiles(profileDirectory: root)
         var journal: DAVSyncJournalStore? = try DAVSyncJournalStore(files: files!, keys: keys)
-        let oldSigner = try await journal!.accountBindingSigner(), first = service(store, secrets: secrets, transport: LeaseTransport(replies()))
+        let oldSigner = try await journal!.accountBindingSigner(), first = try await service(store, secrets: secrets, transport: LeaseTransport(replies()))
         let (revision, ids) = try await prepared(first)
-        let oldLease = try await first.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: oldSigner)
+        let oldLease = try await first.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: oldSigner, bookSession: try first.captureBookSession())
         let oldBinding = try await first.binding(oldLease)
         journal = nil; files = nil
         await expect(.signerUnavailable) { try await oldSigner.ensureCurrent() }
         let reopened = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: root), keys: keys)
-        let signer = try await reopened.accountBindingSigner(), second = service(store, secrets: secrets, transport: LeaseTransport(replies()))
+        let signer = try await reopened.accountBindingSigner(), second = try await service(store, secrets: secrets, transport: LeaseTransport(replies()))
         let (freshRevision, freshSources) = try await prepared(second)
-        let freshLease = try await second.pinForSync(expectedRevision: freshRevision, orderedCalendarUIDs: freshSources, signer: signer)
+        let freshLease = try await second.pinForSync(expectedRevision: freshRevision, orderedCalendarUIDs: freshSources, signer: signer, bookSession: try second.captureBookSession())
         let freshBinding = try await second.binding(freshLease)
         XCTAssertEqual(oldBinding.persistentAccountBinding, freshBinding.persistentAccountBinding)
         XCTAssertNotEqual(oldBinding.sessionRevision, freshBinding.sessionRevision)
@@ -317,14 +320,14 @@ final class DAVAccountLeaseTests: XCTestCase {
             responses[1] = .init(status: 207, body: Data(collectionBody.utf8))
             let store = LeaseConfiguration(try config()), secrets = LeaseCredentials()
             secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-            let account = service(store, secrets: secrets, transport: LeaseTransport(responses)), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+            let account = try await service(store, secrets: secrets, transport: LeaseTransport(responses)), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
             let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
-            await expect(.invalidSelection) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: [ids[0]], signer: signer) }
+            await expect(.invalidSelection) { _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: [ids[0]], signer: signer, bookSession: try account.captureBookSession()) }
         }
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(); secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-        let account = service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
+        let account = try await service(store, secrets: secrets, transport: LeaseTransport(replies())), journal = try DAVSyncJournalStore(files: DAVSyncJournalFiles(profileDirectory: directory()), keys: LeaseKeys())
         let signer = try await journal.accountBindingSigner(), (revision, ids) = try await prepared(account)
-        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer)
+        let lease = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: try account.captureBookSession())
         secrets.locked = true
         do { try await account.revalidate(lease); XCTFail("Locked Keychain accepted") } catch { XCTAssertEqual(error as? DAVAccountError, .credentialUnavailable) }
         secrets.locked = false
@@ -332,12 +335,57 @@ final class DAVAccountLeaseTests: XCTestCase {
     }
     func testMutationWhileSignerValidationSuspendsCannotCompleteOldPin() async throws {
         let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(); secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
-        let account = service(store, secrets: secrets, transport: LeaseTransport(replies()))
+        let account = try await service(store, secrets: secrets, transport: LeaseTransport(replies()))
         let (revision, ids) = try await prepared(account), barrier = LeaseBarrier()
         let signer = DAVAccountBindingSigner(namespace: "test-only", key: SymmetricKey(data: Data(repeating: 1, count: 32)), validateJournal: { await barrier.wait() })
-        let pin = Task { try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer) }
+        let bookSession = try account.captureBookSession() // Capture BEFORE enqueueing this task.
+        let pin = Task { try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: bookSession) }
         await barrier.started(); _ = try await account.save(expectedRevision: revision, configuration: store.value!)
         await barrier.open()
         await expect(.bindingChanged) { _ = try await pin.value }
     }
+    func testInitialClosedAccountStillSupportsSetupStatusAndDiscovery() async throws {
+        let store = LeaseConfiguration(try config()), secrets = LeaseCredentials(), network = LeaseTransport(replies())
+        secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
+        let account = DAVAccountService(configuration: store, credentials: secrets, transport: network)
+        XCTAssertThrowsError(try account.captureBookSession())
+        let (revision, ids) = try await prepared(account)
+        XCTAssertFalse(revision.isEmpty); XCTAssertFalse(ids.isEmpty)
+        _ = try await account.save(expectedRevision: revision, configuration: store.value!)
+        XCTAssertThrowsError(try account.captureBookSession())
+    }
+    func testQueuedPinTicketCannotBeRecapturedAfterReopen() async throws {
+        let store = LeaseConfiguration(try config()), secrets = LeaseCredentials()
+        secrets.items[try store.value!.identity.storageKey] = "fixture-secret"
+        let account = try await service(store, secrets: secrets, transport: LeaseTransport(replies()))
+        let (revision, ids) = try await prepared(account), barrier = AdmissionTestBarrier()
+        let signer = DAVAccountBindingSigner(namespace: "test-only", key: SymmetricKey(data: Data(repeating: 1, count: 32)), validateJournal: { try await barrier.wait() })
+        let capturedBeforeTask = try account.captureBookSession()
+        let pending = Task { try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: capturedBeforeTask) }
+        defer { pending.cancel() }
+        try await barrier.started()
+        let transition = try account.suspendBookAdmission()
+        XCTAssertThrowsError(try account.captureBookSession())
+        try await account.awaitBookSuspension(transition)
+        try await account.completeBookTransition(transition, confirmation: fixtureBookHandoff(transition, namespace: store.revisionNamespace))
+        await barrier.open()
+        await expect(.bookAdmissionClosed) { _ = try await pending.value }
+        let fresh = try account.captureBookSession()
+        XCTAssertNotEqual(capturedBeforeTask, fresh)
+        _ = try await account.pinForSync(expectedRevision: revision, orderedCalendarUIDs: ids, signer: signer, bookSession: fresh)
+    }
+    func testWrongNamespaceProofCannotReopenAndUncertainOutcomeStaysClosed() async throws {
+        let store = LeaseConfiguration(try config()), secrets = LeaseCredentials()
+        let account = DAVAccountService(configuration: store, credentials: secrets, transport: LeaseTransport([]))
+        let transition = try account.suspendBookAdmission()
+        try await account.awaitBookSuspension(transition)
+        let wrong = try fixtureBookHandoff(transition, namespace: "other-account")
+        await expect(.bindingChanged) { try await account.completeBookTransition(transition, confirmation: wrong) }
+        XCTAssertThrowsError(try account.captureBookSession())
+        let correct = try fixtureBookHandoff(transition, namespace: store.revisionNamespace)
+        try account.blockBookAdmission(transition)
+        await expect(.bookAdmissionClosed) { try await account.completeBookTransition(transition, confirmation: correct) }
+        XCTAssertThrowsError(try account.suspendBookAdmission())
+    }
+
 }

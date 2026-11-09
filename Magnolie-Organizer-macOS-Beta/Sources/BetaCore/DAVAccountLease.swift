@@ -3,7 +3,7 @@ import CryptoKit
 
 public enum DAVAccountLeaseError: Error, Equatable {
     case invalidLease, expired, capacity, discoveryRequired, invalidSelection, signerUnavailable, bindingChanged
-    case unsupportedTransport, unsupportedClock
+    case unsupportedTransport, unsupportedClock, bookAdmissionClosed
 }
 
 /// Opaque native handle. Not serializable and never a transport/auth credential.
