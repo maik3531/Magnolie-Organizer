@@ -1,0 +1,182 @@
+{
+  "en": {
+    "webview_title": "WebView cannot open the organizer",
+    "webview_body": "The active WebView component lacks a required app feature. Check for updates to Android System WebView or Chrome. After an update, close and reopen the organizer. No book has been opened and no saved data has been changed during this start.",
+    "webview_update": "Check for updates",
+    "webview_settings": "App settings",
+    "webview_retry": "Check again",
+    "webview_no_update": "The update page is unavailable. Use your device settings to check the WebView component.",
+    "webview_unknown_provider": "WebView provider information is unavailable."
+  },
+  "de": {
+    "webview_title": "WebView kann den Organizer nicht öffnen",
+    "webview_body": "Die aktive WebView-Komponente unterstützt eine benötigte App-Funktion nicht. Prüfe Updates für Android System WebView oder Chrome. Schließe den Organizer nach einem Update und öffne ihn erneut. Bei diesem Start wurde kein Buch geöffnet und keine gespeicherten Daten verändert.",
+    "webview_update": "Update suchen",
+    "webview_settings": "App-Einstellungen",
+    "webview_retry": "Erneut prüfen",
+    "webview_no_update": "Die Update-Seite ist nicht verfügbar. Prüfe die WebView-Komponente in den Geräteeinstellungen.",
+    "webview_unknown_provider": "Informationen zum WebView-Anbieter sind nicht verfügbar."
+  },
+  "ar": {
+    "webview_title": "يتعذر على WebView فتح المنظم",
+    "webview_body": "يفتقر مكوّن WebView النشط إلى ميزة مطلوبة للتطبيق. تحقق من تحديثات Android System WebView أو Chrome. بعد التحديث، أغلق المنظم وافتحه مجددًا. لم يُفتح أي دفتر ولم تتغير البيانات المحفوظة أثناء هذا التشغيل.",
+    "webview_update": "البحث عن تحديثات",
+    "webview_settings": "إعدادات التطبيق",
+    "webview_retry": "التحقق مجددًا",
+    "webview_no_update": "صفحة التحديث غير متاحة. تحقق من مكوّن WebView في إعدادات الجهاز.",
+    "webview_unknown_provider": "معلومات موفّر WebView غير متاحة."
+  },
+  "be": {
+    "webview_title": "WebView не можа адкрыць арганайзер",
+    "webview_body": "Актыўны кампанент WebView не падтрымлівае патрэбную функцыю праграмы. Праверце абнаўленні Android System WebView або Chrome. Пасля абнаўлення закрыйце і зноў адкрыйце арганайзер. Пры гэтым запуску кніга не адкрывалася і захаваныя даныя не змяняліся.",
+    "webview_update": "Праверыць абнаўленні",
+    "webview_settings": "Налады праграмы",
+    "webview_retry": "Праверыць яшчэ раз",
+    "webview_no_update": "Старонка абнаўлення недаступная. Праверце кампанент WebView у наладах прылады.",
+    "webview_unknown_provider": "Інфармацыя пра пастаўшчыка WebView недаступная."
+  },
+  "cs": {
+    "webview_title": "WebView nemůže otevřít organizér",
+    "webview_body": "Aktivní komponentě WebView chybí požadovaná funkce aplikace. Zkontrolujte aktualizace Android System WebView nebo Chrome. Po aktualizaci organizér zavřete a znovu otevřete. Při tomto spuštění nebyla otevřena žádná kniha ani změněna uložená data.",
+    "webview_update": "Vyhledat aktualizace",
+    "webview_settings": "Nastavení aplikace",
+    "webview_retry": "Zkontrolovat znovu",
+    "webview_no_update": "Stránka aktualizací není dostupná. Zkontrolujte komponentu WebView v nastavení zařízení.",
+    "webview_unknown_provider": "Informace o poskytovateli WebView nejsou dostupné."
+  },
+  "da": {
+    "webview_title": "WebView kan ikke åbne kalenderbogen",
+    "webview_body": "Den aktive WebView-komponent mangler en nødvendig appfunktion. Søg efter opdateringer til Android System WebView eller Chrome. Luk og åbn appen igen efter en opdatering. Ingen bog er åbnet, og ingen gemte data er ændret under denne start.",
+    "webview_update": "Søg efter opdateringer",
+    "webview_settings": "Appindstillinger",
+    "webview_retry": "Kontrollér igen",
+    "webview_no_update": "Opdateringssiden er ikke tilgængelig. Kontrollér WebView-komponenten i enhedens indstillinger.",
+    "webview_unknown_provider": "Oplysninger om WebView-udbyderen er ikke tilgængelige."
+  },
+  "es": {
+    "webview_title": "WebView no puede abrir el organizador",
+    "webview_body": "El componente WebView activo carece de una función necesaria de la aplicación. Busca actualizaciones de Android System WebView o Chrome. Después de actualizar, cierra y vuelve a abrir el organizador. En este inicio no se ha abierto ningún libro ni modificado datos guardados.",
+    "webview_update": "Buscar actualizaciones",
+    "webview_settings": "Ajustes de la aplicación",
+    "webview_retry": "Comprobar de nuevo",
+    "webview_no_update": "La página de actualización no está disponible. Revisa el componente WebView en los ajustes del dispositivo.",
+    "webview_unknown_provider": "La información del proveedor de WebView no está disponible."
+  },
+  "fr": {
+    "webview_title": "WebView ne peut pas ouvrir l’organiseur",
+    "webview_body": "Le composant WebView actif ne prend pas en charge une fonction nécessaire à l’application. Recherchez des mises à jour d’Android System WebView ou de Chrome. Après une mise à jour, fermez puis rouvrez l’organiseur. Aucun livre n’a été ouvert et aucune donnée enregistrée n’a été modifiée lors de ce démarrage.",
+    "webview_update": "Rechercher des mises à jour",
+    "webview_settings": "Paramètres de l’application",
+    "webview_retry": "Vérifier à nouveau",
+    "webview_no_update": "La page de mise à jour est indisponible. Vérifiez le composant WebView dans les paramètres de l’appareil.",
+    "webview_unknown_provider": "Les informations sur le fournisseur WebView sont indisponibles."
+  },
+  "hi": {
+    "webview_title": "WebView आयोजक नहीं खोल सकता",
+    "webview_body": "सक्रिय WebView घटक में ऐप की एक आवश्यक सुविधा उपलब्ध नहीं है। Android System WebView या Chrome के अपडेट जाँचें। अपडेट के बाद आयोजक को बंद करके फिर खोलें। इस बार शुरू होने पर कोई पुस्तक नहीं खोली गई और सहेजा गया डेटा नहीं बदला गया।",
+    "webview_update": "अपडेट जाँचें",
+    "webview_settings": "ऐप सेटिंग",
+    "webview_retry": "फिर जाँचें",
+    "webview_no_update": "अपडेट पृष्ठ उपलब्ध नहीं है। डिवाइस की सेटिंग में WebView घटक जाँचें।",
+    "webview_unknown_provider": "WebView प्रदाता की जानकारी उपलब्ध नहीं है।"
+  },
+  "hsb": {
+    "webview_title": "WebView njemóže organizator wočinić",
+    "webview_body": "Aktiwnemu komponentej WebView trěbna funkcija aplikacije faluje. Přepruwujće aktualizacije za Android System WebView abo Chrome. Po aktualizaciji organizator začinće a znowa wočińće. Při tutym startowanju so žana kniha njewočni a składowane daty so njezměnichu.",
+    "webview_update": "Aktualizacije pytać",
+    "webview_settings": "Nastajenja aplikacije",
+    "webview_retry": "Znowa přepruwować",
+    "webview_no_update": "Strona aktualizacije k dispoziciji njeje. Přepruwujće komponentu WebView w nastajenjach grata.",
+    "webview_unknown_provider": "Informacije wo poskićowarju WebView k dispoziciji njejsu."
+  },
+  "it": {
+    "webview_title": "WebView non può aprire l’organizzatore",
+    "webview_body": "Il componente WebView attivo non supporta una funzione necessaria dell’app. Cerca aggiornamenti di Android System WebView o Chrome. Dopo un aggiornamento, chiudi e riapri l’organizzatore. Durante questo avvio non è stato aperto alcun libro né modificato alcun dato salvato.",
+    "webview_update": "Cerca aggiornamenti",
+    "webview_settings": "Impostazioni app",
+    "webview_retry": "Verifica di nuovo",
+    "webview_no_update": "La pagina di aggiornamento non è disponibile. Controlla il componente WebView nelle impostazioni del dispositivo.",
+    "webview_unknown_provider": "Le informazioni sul fornitore WebView non sono disponibili."
+  },
+  "ja": {
+    "webview_title": "WebView でオーガナイザーを開けません",
+    "webview_body": "使用中の WebView コンポーネントは、アプリに必要な機能に対応していません。Android System WebView または Chrome の更新を確認してください。更新後はオーガナイザーを閉じて開き直してください。今回の起動ではブックを開いておらず、保存済みデータも変更していません。",
+    "webview_update": "更新を確認",
+    "webview_settings": "アプリの設定",
+    "webview_retry": "再確認",
+    "webview_no_update": "更新ページを開けません。端末の設定で WebView コンポーネントを確認してください。",
+    "webview_unknown_provider": "WebView 提供元の情報を取得できません。"
+  },
+  "nb": {
+    "webview_title": "WebView kan ikke åpne planleggeren",
+    "webview_body": "Den aktive WebView-komponenten mangler en nødvendig appfunksjon. Se etter oppdateringer til Android System WebView eller Chrome. Lukk og åpne planleggeren igjen etter en oppdatering. Ingen bok er åpnet og ingen lagrede data er endret under denne oppstarten.",
+    "webview_update": "Se etter oppdateringer",
+    "webview_settings": "Appinnstillinger",
+    "webview_retry": "Kontroller igjen",
+    "webview_no_update": "Oppdateringssiden er ikke tilgjengelig. Kontroller WebView-komponenten i enhetens innstillinger.",
+    "webview_unknown_provider": "Informasjon om WebView-leverandøren er ikke tilgjengelig."
+  },
+  "nl": {
+    "webview_title": "WebView kan de organizer niet openen",
+    "webview_body": "De actieve WebView-component mist een vereiste appfunctie. Zoek naar updates voor Android System WebView of Chrome. Sluit en heropen de organizer na een update. Tijdens deze start is geen boek geopend en zijn geen opgeslagen gegevens gewijzigd.",
+    "webview_update": "Naar updates zoeken",
+    "webview_settings": "App-instellingen",
+    "webview_retry": "Opnieuw controleren",
+    "webview_no_update": "De updatepagina is niet beschikbaar. Controleer de WebView-component in de apparaatinstellingen.",
+    "webview_unknown_provider": "Informatie over de WebView-provider is niet beschikbaar."
+  },
+  "pl": {
+    "webview_title": "WebView nie może otworzyć organizera",
+    "webview_body": "Aktywny komponent WebView nie obsługuje wymaganej funkcji aplikacji. Sprawdź aktualizacje Android System WebView lub Chrome. Po aktualizacji zamknij i ponownie otwórz organizer. Podczas tego uruchomienia nie otwarto książki ani nie zmieniono zapisanych danych.",
+    "webview_update": "Sprawdź aktualizacje",
+    "webview_settings": "Ustawienia aplikacji",
+    "webview_retry": "Sprawdź ponownie",
+    "webview_no_update": "Strona aktualizacji jest niedostępna. Sprawdź komponent WebView w ustawieniach urządzenia.",
+    "webview_unknown_provider": "Informacje o dostawcy WebView są niedostępne."
+  },
+  "pt": {
+    "webview_title": "O WebView não consegue abrir o organizador",
+    "webview_body": "O componente WebView ativo não suporta uma função necessária da aplicação. Procure atualizações do Android System WebView ou Chrome. Após uma atualização, feche e reabra o organizador. Neste arranque não foi aberto nenhum livro nem alterados dados guardados.",
+    "webview_update": "Procurar atualizações",
+    "webview_settings": "Definições da aplicação",
+    "webview_retry": "Verificar novamente",
+    "webview_no_update": "A página de atualização não está disponível. Verifique o componente WebView nas definições do dispositivo.",
+    "webview_unknown_provider": "A informação do fornecedor WebView não está disponível."
+  },
+  "ru": {
+    "webview_title": "WebView не может открыть органайзер",
+    "webview_body": "Активный компонент WebView не поддерживает необходимую функцию приложения. Проверьте обновления Android System WebView или Chrome. После обновления закройте и снова откройте органайзер. При этом запуске книга не открывалась и сохранённые данные не изменялись.",
+    "webview_update": "Проверить обновления",
+    "webview_settings": "Настройки приложения",
+    "webview_retry": "Проверить снова",
+    "webview_no_update": "Страница обновления недоступна. Проверьте компонент WebView в настройках устройства.",
+    "webview_unknown_provider": "Сведения о поставщике WebView недоступны."
+  },
+  "tr": {
+    "webview_title": "WebView düzenleyiciyi açamıyor",
+    "webview_body": "Etkin WebView bileşeni gerekli bir uygulama özelliğini desteklemiyor. Android System WebView veya Chrome güncellemelerini denetleyin. Güncellemeden sonra düzenleyiciyi kapatıp yeniden açın. Bu başlangıçta hiçbir kitap açılmadı ve kayıtlı veriler değiştirilmedi.",
+    "webview_update": "Güncellemeleri denetle",
+    "webview_settings": "Uygulama ayarları",
+    "webview_retry": "Yeniden denetle",
+    "webview_no_update": "Güncelleme sayfası kullanılamıyor. Cihaz ayarlarında WebView bileşenini denetleyin.",
+    "webview_unknown_provider": "WebView sağlayıcısı bilgileri kullanılamıyor."
+  },
+  "uk": {
+    "webview_title": "WebView не може відкрити органайзер",
+    "webview_body": "Активний компонент WebView не підтримує потрібну функцію застосунку. Перевірте оновлення Android System WebView або Chrome. Після оновлення закрийте й знову відкрийте органайзер. Під час цього запуску книгу не відкривали й збережені дані не змінювали.",
+    "webview_update": "Перевірити оновлення",
+    "webview_settings": "Налаштування застосунку",
+    "webview_retry": "Перевірити ще раз",
+    "webview_no_update": "Сторінка оновлення недоступна. Перевірте компонент WebView у налаштуваннях пристрою.",
+    "webview_unknown_provider": "Відомості про постачальника WebView недоступні."
+  },
+  "zh_CN": {
+    "webview_title": "WebView 无法打开日程管理器",
+    "webview_body": "当前 WebView 组件不支持应用所需的功能。请检查 Android System WebView 或 Chrome 的更新。更新后请关闭并重新打开日程管理器。本次启动未打开任何手册，也未更改已保存的数据。",
+    "webview_update": "检查更新",
+    "webview_settings": "应用设置",
+    "webview_retry": "重新检查",
+    "webview_no_update": "无法打开更新页面。请在设备设置中检查 WebView 组件。",
+    "webview_unknown_provider": "无法获取 WebView 提供方的信息。"
+  }
+}

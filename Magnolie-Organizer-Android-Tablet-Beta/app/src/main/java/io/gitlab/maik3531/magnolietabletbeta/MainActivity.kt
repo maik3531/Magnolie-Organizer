@@ -40,6 +40,7 @@ class MainActivity : Activity() {
     private var importToken: String? = null
     private var documentBusy = false
     private var documentRequests = DocumentRequests()
+    @Volatile private var startupUnsupportedWebView: String? = null
     @Volatile private var ready = false
     @Volatile private var startupReadyAtElapsed = 0L
     private val startupOriginMs = android.os.SystemClock.elapsedRealtime()
@@ -186,7 +187,9 @@ class MainActivity : Activity() {
                 return true
             }
         }
-        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) { fatal(); return }
+        if (WebViewStartup.terminalReason(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) != null) {
+            unsupportedWebView(); return
+        }
         WebViewCompat.addWebMessageListener(web, "TabletNative", setOf(ORIGIN)) { _, message, origin, mainFrame, reply ->
             if (!mainFrame || !allowedOrigin(origin) || web.url != START) return@addWebMessageListener
             proxy = reply
@@ -225,6 +228,17 @@ class MainActivity : Activity() {
                 if (target != null && callback == "ready") startupMark(StartupPhase.READY_REPLY, epoch)
             }
         }
+    }
+    private fun unsupportedWebView() {
+        // This branch precedes LOAD_URL/bootstrap: no vault read or save occurred.
+        val provider=try {WebViewCompat.getCurrentWebViewPackage(this)} catch (_: Exception) {null}
+        val name=WebViewStartup.providerPackage(provider?.packageName)
+        val version=WebViewStartup.providerVersion(provider?.versionName)
+        val label=try {provider?.applicationInfo?.loadLabel(packageManager)?.toString()?.take(128)} catch (_: Exception) {null}
+        UnsupportedWebViewScreen.show(this,appName,name,label,version) {recreate()}
+        startupUnsupportedWebView=JSONObject().put("reason",WebViewStartup.TERMINAL_REASON)
+            .put("requiredFeature",WebViewStartup.REQUIRED_FEATURE).put("supported",false)
+            .put("providerPackage",name ?: JSONObject.NULL).put("providerVersion",version ?: JSONObject.NULL).toString()
     }
     private fun fatal() {
         setContentView(TextView(this).apply {

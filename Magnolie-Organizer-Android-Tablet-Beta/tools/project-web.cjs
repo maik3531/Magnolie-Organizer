@@ -195,6 +195,13 @@ const labels = {cancel:'Cancel', close:'Close', import_label:'Import', export_la
   notifications:'Notifications', custom:'Custom', about:'About',
   replacement:'The current data will be backed up first and then completely replaced with this file:\n%(path)s'};
 const beta = JSON.parse(buffers.get(path.join(root,'web/beta-i18n.json')));
+const nativeStartup = JSON.parse(buffers.get(path.join(root,'web/native-startup-i18n.json')));
+const nativeStartupKeys = ['webview_title','webview_body','webview_update','webview_settings','webview_retry','webview_no_update','webview_unknown_provider'];
+if (Object.keys(nativeStartup).sort().join() !== Object.keys(beta).sort().join()) throw Error('All 20 native startup locales are required');
+for (const [locale,strings] of Object.entries(nativeStartup)) {
+  if (Object.keys(strings).sort().join() !== [...nativeStartupKeys].sort().join() || nativeStartupKeys.some(key=>typeof strings[key]!=='string' || !strings[key].trim()))
+    throw Error('Incomplete native startup translation: '+locale);
+}
 if (Object.keys(beta).length !== 20) throw Error('All 20 beta locales are required');
 const xml = s => '"'+s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','\\"').replaceAll("'","\\'").replaceAll('\n','\\n')+'"';
 for (const [locale,strings] of Object.entries(beta)) {
@@ -202,7 +209,7 @@ for (const [locale,strings] of Object.entries(beta)) {
   const values = {...Object.fromEntries(Object.entries(labels).map(([k,id])=> {
     if (locale !== 'en' && !catalog[id]) throw Error('Missing reused translation: '+locale+' / '+id);
     return [k,catalog[id] || id];
-  })), unavailable:strings[0], limits:strings[1]};
+  })), unavailable:strings[0], limits:strings[1], ...nativeStartup[locale]};
   const qualifier = locale==='en' ? 'values' : locale==='zh_CN' ? 'values-zh-rCN' : 'values-'+locale;
   generated.set('res/'+qualifier+'/strings.xml',Buffer.from('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'+
     Object.entries(values).map(([k,v])=>'  <string name="'+k+'" formatted="false">'+xml(v)+'</string>').join('\n')+'\n</resources>\n'));

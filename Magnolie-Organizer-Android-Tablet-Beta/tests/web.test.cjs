@@ -13,6 +13,7 @@ let passed=0;
 const ok = (condition,label) => {assert.ok(condition,label); passed++; console.log('PASS '+label);};
 (async()=>{
   const beta=JSON.parse(fs.readFileSync(path.join(root,'web/beta-i18n.json')));
+  passed+=require('./webview-startup.test.cjs')({root});
   ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===4 && x.every(Boolean)), '20 manual beta locales');
   const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
   const projected=require(path.join(root,'../port-adapters/timezones/projection-patches.cjs'))(read('anwendung.js'),name=>fs.readFileSync(path.join(root,'../port-adapters/timezones',name)),true,canonical);

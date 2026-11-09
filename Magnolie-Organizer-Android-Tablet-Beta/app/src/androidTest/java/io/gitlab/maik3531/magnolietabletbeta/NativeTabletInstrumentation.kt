@@ -167,6 +167,8 @@ class NativeTabletInstrumentation : Instrumentation() {
         val field=MainActivity::class.java.getDeclaredField("ready").apply {isAccessible=true}
         check(java.lang.reflect.Modifier.isVolatile(field.modifiers)) {"Readiness flag must be published as volatile"}
         val published=MainActivity::class.java.getDeclaredField("startupReadyAtElapsed").apply {isAccessible=true}
+        val unsupported=MainActivity::class.java.getDeclaredField("startupUnsupportedWebView").apply {isAccessible=true}
+        check(java.lang.reflect.Modifier.isVolatile(unsupported.modifiers)) {"Unsupported startup state must be published as volatile"}
         val started=SystemClock.elapsedRealtime()
         val gate=ReadinessObservation(started,25000)
         val mainThreadStacks=JSONArray()
@@ -177,6 +179,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 val entered=SystemClock.elapsedRealtime()
                 maximumSchedulingDelay=maxOf(maximumSchedulingDelay,maxOf(0,entered-nextDueAt))
                 if(observedMainDestroyed) {observationError="ActivityDestroyed";break}
+                if(unsupported.get(activity)!=null) {observationError=WebViewStartup.TERMINAL_REASON;break}
                 // The same production ready flag is volatile because native account workers
                 // also read it. No main-queue RPC or alternate success predicate is needed.
                 val ready=field.getBoolean(activity)
@@ -208,6 +211,7 @@ class NativeTabletInstrumentation : Instrumentation() {
             android.util.Log.i("TabletNativeTest",line)
             sendStatus(1,Bundle().apply {putString("stream",line+"\n")})
         }
+        check(observationError!=WebViewStartup.TERMINAL_REASON) {"Unsupported WebView: required WEB_MESSAGE_LISTENER capability is unavailable; native update path selected"}
         check(gate.accepted && observationError==null) {"Timeout: native initialization acknowledged within 25 seconds"}
     }
     private fun startupDiagnostics():JSONObject {
@@ -220,7 +224,9 @@ class NativeTabletInstrumentation : Instrumentation() {
         activity.runOnUiThread {
             try {
                 fun field(name:String)=MainActivity::class.java.getDeclaredField(name).apply {isAccessible=true}.get(activity)
+                val unsupported=field("startupUnsupportedWebView") as String?
                 native.set(JSONObject().put("ready",field("ready"))
+                    .put("webViewCapability",unsupported?.let {JSONObject(it)} ?: JSONObject.NULL)
                     .put("generation",field("generation")).put("bootstrapStarted",field("bootstrapStarted"))
                     .put("restoreFenced",field("restoreFenced")).put("pageSessionPresent",field("documentSession")!=null)
                     .put("entryUrlMatches",web.url==MainActivity.START)
@@ -228,7 +234,8 @@ class NativeTabletInstrumentation : Instrumentation() {
                     .put("interactive",activity.getSystemService(android.os.PowerManager::class.java).isInteractive)
                     .put("keyguardLocked",activity.getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked)
                     .put("deviceLocked",activity.getSystemService(android.app.KeyguardManager::class.java).isDeviceLocked).toString())
-                web.evaluateJavascript(script) {result -> renderer.set(result); done.countDown()}
+                if(unsupported!=null) done.countDown()
+                else web.evaluateJavascript(script) {result -> renderer.set(result); done.countDown()}
             } catch (failure: Exception) { problem.set(failure.javaClass.simpleName); done.countDown() }
         }
         val completed=done.await(2500,TimeUnit.MILLISECONDS)
