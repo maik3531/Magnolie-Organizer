@@ -323,6 +323,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Destination native admission / Windows actual original deadline never restarts after native picker", DeviceFileDestinationAdmissionTests.WindowsAdmissionOriginalDeadlineAsync);
     runner.Add("Destination native admission / Windows actual generation SQL failure rolls back head without adopting intent", DeviceFileDestinationAdmissionTests.WindowsAdmissionSqlAtomicityAsync);
     runner.Add("Destination admitted original job / Windows actual backup trash preview restore independent of lost current and legacy records", DeviceFileDestinationAdmissionTests.WindowsOriginalJobUsesIndependentAdmissionAsync);
+    runner.Add("Destination generation backups / Windows immutable legacy and admitted generation parent choices stay separate", DeviceFileDestinationAdmissionTests.WindowsGenerationBackupParentsAsync);
+    runner.Add("Destination admitted source / Windows original mapping independent of current selection PC receive and phone read", DeviceFileDestinationAdmissionTests.WindowsAdmittedMappedSourceIndependentAsync);
     runner.Add("Collection producer / Windows two original offers actual END and fresh unchanged pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerAsync);
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);

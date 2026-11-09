@@ -45,23 +45,47 @@ internal sealed partial class TelefonStore
     private static string BackupLocationsScope(NativeMediaPreferenceScope scope, string kind) => DeviceFileControl.Digest(
         "magnolie-native-backup-locations-scope-v1\0", new JsonArray(scope.PeerId, scope.PeerKey, scope.PairingEpoch, scope.LocalId, scope.LocalKey, kind));
 
-    private NativeMediaBackupLocations ReadBackupLocations(SqliteConnection db, SqliteTransaction? transaction,
-        NativeMediaPreferenceScope scope, string kind, NativeMediaBackupParent defaultParent)
+    private sealed record BackupLocationAddress(string Table, string Purpose, string Key, string Scope, string? DestinationVersion);
+    private static BackupLocationAddress LegacyBackupLocationAddress(NativeMediaPreferenceScope scope, string kind)
+        => new("native_media_backup_locations", "native_media_backup_locations", scope.PeerId + "/" + kind, BackupLocationsScope(scope, kind), null);
+
+    private BackupLocationAddress BackupAddressForDestination(NativeMediaPreferenceScope scope, string kind, NativeMediaDestination destination)
     {
+        using var db = OpenNativeMediaDatabase(); db.Open();
+        var legacy = ReadLegacyNativeMediaDestination(db, null, scope, kind);
+        if (legacy == destination) return LegacyBackupLocationAddress(scope, kind);
+        var admission = ReadNativeMediaDestinationAdmission(scope.PeerId, kind, destination.Version)
+            ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+        if (admission.Destination != destination) throw DeviceFileControl.Error("media_backup_original_destination_required");
+        if (admission.OriginalLegacy == true || legacy is null && admission.OriginalLegacy is null)
+            return LegacyBackupLocationAddress(scope, kind); // V1 compatibility remains strict about the signed default.
+        var digest = DeviceFileControl.Digest("magnolie-native-backup-generation-scope-v1\0", NativeMediaDestinationValue(scope, destination));
+        return new("native_media_backup_locations_by_destination", "native_media_backup_locations_by_destination",
+            scope.PeerId + "/" + kind + "/" + destination.Version, digest, destination.Version);
+    }
+
+    private NativeMediaBackupLocations ReadBackupLocations(SqliteConnection db, SqliteTransaction? transaction,
+        NativeMediaPreferenceScope scope, string kind, NativeMediaBackupParent defaultParent, BackupLocationAddress? address = null)
+    {
+        address ??= LegacyBackupLocationAddress(scope, kind);
         using var read = db.CreateCommand(); read.Transaction = transaction;
-        read.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='native_media_backup_locations'";
+        read.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$table";
+        read.Parameters.AddWithValue("$table", address.Table);
         if (read.ExecuteScalar() is null) return new(null, defaultParent, null, new[] { defaultParent });
-        read.CommandText = "SELECT value FROM native_media_backup_locations WHERE peer_id=$peer AND media_type=$kind";
+        read.Parameters.Clear();
+        read.CommandText = "SELECT value FROM " + address.Table + " WHERE peer_id=$peer AND media_type=$kind" +
+            (address.DestinationVersion is null ? "" : " AND destination_version=$destination");
         read.Parameters.AddWithValue("$peer", scope.PeerId); read.Parameters.AddWithValue("$kind", kind);
+        if (address.DestinationVersion is not null) read.Parameters.AddWithValue("$destination", address.DestinationVersion);
         if (read.ExecuteScalar() is not byte[] encrypted) return new(null, defaultParent, null, new[] { defaultParent });
         RequireNativeMediaStorageKey();
         if (encrypted.Length > 2 * 1024 * 1024) throw DeviceFileControl.Error("media_backup_locations_invalid");
-        var plain = Open("native_media_backup_locations", scope.PeerId + "/" + kind, encrypted);
+        var plain = Open(address.Purpose, address.Key, encrypted);
         try
         {
             var body = TelefonProtocolContract.ExactObject(JsonNode.Parse(plain)!, "format", "scope", "version", "default", "selected", "parents");
             var version = TelefonMessagingContract.String(body, "version");
-            if (TelefonProtocolContract.Integer(body["format"]) != 1 || body["scope"]?.GetValue<string>() != BackupLocationsScope(scope, kind) ||
+            if (TelefonProtocolContract.Integer(body["format"]) != 1 || body["scope"]?.GetValue<string>() != address.Scope ||
                 !DeviceFileControl.Hash(version) || body["default"]?.GetValue<string>() != defaultParent.Id ||
                 body["parents"] is not JsonArray parents || parents.Count is < 1 or > 64)
                 throw DeviceFileControl.Error("media_backup_locations_scope_changed");
@@ -94,7 +118,7 @@ internal sealed partial class TelefonStore
     {
         var scope = MediaPreferenceScope(peerId);
         using var db = OpenNativeMediaDatabase(); db.Open();
-        var result = ReadBackupLocations(db, null, scope, kind, NativeMediaBackupParent.FromDestination(destination));
+        var result = ReadBackupLocations(db, null, scope, kind, NativeMediaBackupParent.FromDestination(destination), BackupAddressForDestination(scope, kind, destination));
         if (scope != MediaPreferenceScope(peerId)) throw DeviceFileControl.Error("media_backup_locations_scope_changed");
         return result;
     }
@@ -103,12 +127,38 @@ internal sealed partial class TelefonStore
     // directory, copies/moves no bytes and never removes retained parent entries.
     internal NativeMediaBackupLocations ChangeNativeMediaBackupParent(string peerId, string kind, string? expectedVersion,
         DeviceFileNativeDirectory? selectedOwner, Action native)
+        => ChangeOriginalNativeMediaBackupParent(peerId, kind, null, expectedVersion, selectedOwner, native);
+
+    internal NativeMediaBackupLocations ReadNativeMediaBackupLocationsForAdmission(string peerId, string kind, string destinationVersion)
+    {
+        var admission = ReadNativeMediaDestinationAdmission(peerId, kind, destinationVersion)
+            ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+        lock (gate) return ReadOriginalNativeMediaBackupLocations(peerId, kind, admission.Destination);
+    }
+
+    internal NativeMediaBackupLocations ChangeNativeMediaBackupParentForAdmission(string peerId, string kind, string destinationVersion,
+        string? expectedVersion, DeviceFileNativeDirectory? selectedOwner, Action native)
+    {
+        var admission = ReadNativeMediaDestinationAdmission(peerId, kind, destinationVersion)
+            ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+        void Bound()
+        {
+            native();
+            if (ReadNativeMediaDestinationAdmission(peerId, kind, destinationVersion) != admission)
+                throw DeviceFileControl.Error("media_backup_original_destination_required");
+        }
+        return ChangeOriginalNativeMediaBackupParent(peerId, kind, admission.Destination, expectedVersion, selectedOwner, Bound);
+    }
+
+    private NativeMediaBackupLocations ChangeOriginalNativeMediaBackupParent(string peerId, string kind, NativeMediaDestination? admitted,
+        string? expectedVersion, DeviceFileNativeDirectory? selectedOwner, Action native)
     {
         MediaDestinationKind(kind);
         lock (gate)
         {
             native(); RequireNativeMediaStorageKey(); var scope = MediaPreferenceScope(peerId);
-            var destination = ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+            var destination = admitted ?? ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+            var address = BackupAddressForDestination(scope, kind, destination);
             using var original = destination.OpenNative();
             var selected = selectedOwner is null ? null : NativeMediaBackupParent.Capture(selectedOwner);
             if (selected is not null) NativeMediaBackupExclusions.RequireMediaDirectory(selectedOwner!);
@@ -124,7 +174,7 @@ internal sealed partial class TelefonStore
                 using (var catalog = new MediaBackupCatalog(this, destination, native, false, chosen)) _ = catalog.Versions();
             }
             using var db = OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction();
-            var before = ReadBackupLocations(db, transaction, scope, kind, defaultParent);
+            var before = ReadBackupLocations(db, transaction, scope, kind, defaultParent, address);
             if (before.Version != expectedVersion) throw DeviceFileControl.Error("media_backup_locations_stale_choice");
             void Current()
             {
@@ -138,21 +188,23 @@ internal sealed partial class TelefonStore
             if (selected is not null && !parents.Contains(selected)) parents.Add(selected);
             if (parents.Count > 64) throw DeviceFileControl.Error("media_backup_locations_capacity");
             var version = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-            var body = new JsonObject { ["format"] = 1, ["scope"] = BackupLocationsScope(scope, kind), ["version"] = version,
+            var body = new JsonObject { ["format"] = 1, ["scope"] = address.Scope, ["version"] = version,
                 ["default"] = defaultParent.Id, ["selected"] = selectedId, ["parents"] = new JsonArray(parents.Select(value => (JsonNode)value.Wire()).ToArray()) };
             var plain = TelefonCrypto.Canonical(body); byte[] encrypted;
             try
             {
                 if (plain.Length > 2 * 1024 * 1024 - 28) throw DeviceFileControl.Error("media_backup_locations_capacity");
-                encrypted = Seal("native_media_backup_locations", scope.PeerId + "/" + kind, plain);
+                encrypted = Seal(address.Purpose, address.Key, plain);
             }
             finally { CryptographicOperations.ZeroMemory(plain); }
             using var write = db.CreateCommand(); write.Transaction = transaction;
-            write.CommandText = "CREATE TABLE IF NOT EXISTS native_media_backup_locations(peer_id TEXT NOT NULL,media_type TEXT NOT NULL,value BLOB NOT NULL,PRIMARY KEY(peer_id,media_type)); " +
-                "INSERT OR REPLACE INTO native_media_backup_locations(peer_id,media_type,value) VALUES($peer,$kind,$value)";
+            write.CommandText = address.DestinationVersion is null
+                ? "CREATE TABLE IF NOT EXISTS native_media_backup_locations(peer_id TEXT NOT NULL,media_type TEXT NOT NULL,value BLOB NOT NULL,PRIMARY KEY(peer_id,media_type)); INSERT OR REPLACE INTO native_media_backup_locations(peer_id,media_type,value) VALUES($peer,$kind,$value)"
+                : "CREATE TABLE IF NOT EXISTS native_media_backup_locations_by_destination(peer_id TEXT NOT NULL,media_type TEXT NOT NULL,destination_version TEXT NOT NULL,value BLOB NOT NULL,PRIMARY KEY(peer_id,media_type,destination_version)); INSERT INTO native_media_backup_locations_by_destination(peer_id,media_type,destination_version,value) VALUES($peer,$kind,$destination,$value) ON CONFLICT(peer_id,media_type,destination_version) DO UPDATE SET value=excluded.value";
             write.Parameters.AddWithValue("$peer", peerId); write.Parameters.AddWithValue("$kind", kind); write.Parameters.AddWithValue("$value", encrypted);
+            if (address.DestinationVersion is not null) write.Parameters.AddWithValue("$destination", address.DestinationVersion);
             write.ExecuteNonQuery(); Current(); transaction.Commit();
-            var saved = ReadBackupLocations(db, null, scope, kind, defaultParent);
+            var saved = ReadBackupLocations(db, null, scope, kind, defaultParent, address);
             if (saved.Version != version || saved.SelectedId != selectedId || !saved.Parents.SequenceEqual(parents))
                 throw DeviceFileControl.Error("media_backup_locations_not_proven");
             return saved;

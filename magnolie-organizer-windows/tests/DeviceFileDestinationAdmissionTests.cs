@@ -318,6 +318,75 @@ internal static class DeviceFileDestinationAdmissionTests
             f.Store.ReadNativeMediaDestinationAdmission(f.Peer, "images", f.F.Destination.Version) == admission &&
             f.Store.NativeMediaBackupVersions(f.F.Destination, Current).Contains(backup),
             "Actual original-job IO required a current/legacy record, repaired metadata or lost history/raw bytes.");
+        var page = f.C.ReadNativeMediaBackupUiPageForAdmission(f.Peer, "images", admission.Destination.Version);
+        TestAssert.That(page.Versions.Contains(backup), "Native local recovery preparation still required the current target.");
+        var choice = f.C.PrepareNativeMediaBackupRestoreForAdmission(f.Peer, "images", admission.Destination.Version, backup.Id, backup.RecordSha256);
+        var publication = f.C.RestoreConfirmedNativeMediaBackup(choice);
+        TestAssert.That(publication.State == "restored" && !publication.IsRemoteSavedReceipt &&
+            File.ReadAllBytes(Path.Combine(f.F.Root, publication.Name)).SequenceEqual(png), "Original native recovery choice lost its independent destination after confirmation.");
         TestAssert.Throws<InvalidDataException>(() => f.Store.ReadNativeMediaSelectionWitness(f.Peer, "images"), "Independent job IO repaired a missing current head.");
+    }
+
+    internal static async Task WindowsGenerationBackupParentsAsync()
+    {
+        using var f = await Fixture.Create();
+        var oldParentPath = f.Root("original-external-backup"); var newParentPath = f.Root("root1-external-backup"); var target = f.Root("backup-target-root-one");
+        using var oldParent = DeviceFileNativeDirectory.OpenExistingForReceive(oldParentPath);
+        using var newParent = DeviceFileNativeDirectory.OpenExistingForReceive(newParentPath);
+        var old = f.Store.ChangeNativeMediaBackupParent(f.Peer, "images", null, oldParent, () => { });
+        byte[] LegacyRow()
+        {
+            using var db = f.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+            read.CommandText = "SELECT value FROM native_media_backup_locations WHERE peer_id=$peer AND media_type='images'";
+            read.Parameters.AddWithValue("$peer", f.Peer); return (byte[])read.ExecuteScalar()!;
+        }
+        var original = LegacyRow();
+        var zero = f.Admit(f.F.Root).Admission; var one = f.Admit(target).Admission;
+        TestAssert.That(zero.OriginalLegacy == true && one.OriginalLegacy == false, "Native generation did not bind the immutable legacy namespace.");
+        var first = f.Store.ReadNativeMediaBackupLocationsForAdmission(f.Peer, "images", one.Destination.Version);
+        TestAssert.That(first.Version is null && first.SelectedId is null && first.Current.NativePath == one.Destination.NativePath && first.Parents.Count == 1,
+            "New generation inherited an old external backup choice or old default.");
+        var chosen = f.Store.ChangeNativeMediaBackupParentForAdmission(f.Peer, "images", one.Destination.Version, first.Version, newParent, () => { });
+        TestAssert.That(chosen.Current.NativePath == newParent.NativePath && LegacyRow().SequenceEqual(original) &&
+            f.Store.ReadNativeMediaBackupLocations(f.Peer, "images").Current == old.Current, "Generation-qualified backup choice migrated the immutable old registry.");
+        var reset = f.Store.ChangeNativeMediaBackupParentForAdmission(f.Peer, "images", one.Destination.Version, chosen.Version, null, () => { });
+        TestAssert.That(reset.Current.NativePath == one.Destination.NativePath && reset.Parents.Count == 2 && reset.Parents.Any(parent => parent.NativePath == newParent.NativePath),
+            "Reset evicted an original backup parent or returned to the wrong generation.");
+        using (var db = f.Store.OpenDatabase())
+        {
+            db.Open(); using var fault = db.CreateCommand(); fault.CommandText = "DELETE FROM native_media_destinations WHERE peer_id=$peer AND media_type='images'";
+            fault.Parameters.AddWithValue("$peer", f.Peer); fault.ExecuteNonQuery();
+        }
+        var reopened = new TelefonStore(f.F.Native.Paths);
+        TestAssert.That(reopened.ReadNativeMediaBackupLocationsForAdmission(f.Peer, "images", zero.Destination.Version).Current == old.Current &&
+            reopened.ReadNativeMediaBackupLocationsForAdmission(f.Peer, "images", one.Destination.Version).Current.NativePath == one.Destination.NativePath &&
+            LegacyRow().SequenceEqual(original) && !Directory.EnumerateFileSystemEntries(oldParentPath).Any() && !Directory.EnumerateFileSystemEntries(newParentPath).Any() &&
+            !Directory.EnumerateFileSystemEntries(target).Any(), "Historical generation/legacy loss changed parent choices, bytes or metadata.");
+    }
+
+    internal static async Task WindowsAdmittedMappedSourceIndependentAsync()
+    {
+        using var f = new Fixture(await DeviceFileMappedSourceTests.Established());
+        var history = f.Store.NativeMediaReceiveHistory(f.Peer).Single(); var admitted = f.Admit(f.F.Root).Admission;
+        await DeviceFileMappedSourceTests.AllowSending(f.F, pcReceive: false, phoneRead: false);
+        DeleteHead(f);
+        using (var db = f.Store.OpenDatabase())
+        {
+            db.Open(); using var fault = db.CreateCommand(); fault.CommandText = "DELETE FROM native_media_destinations WHERE peer_id=$peer AND media_type='images'";
+            fault.Parameters.AddWithValue("$peer", f.Peer); fault.ExecuteNonQuery();
+        }
+        var plan = f.Store.NativeMappedMediaCandidates(f.Peer, "images");
+        TestAssert.That(plan.Candidates.Count == 2 && !plan.NeedsReview, "Original admitted mappings disappeared with current/legacy selection metadata.");
+        var book = NativeMediaBookPermit.Capture(f.Host.Snapshot()!, f.Host.Saved);
+        using var source = f.F.Native.Connection.OpenNativeMappedMediaSource("images", history.JobId, history.Version, 1.ToString("x32"), new string('f', 64), book);
+        var bytes = source.ReadExact(0, checked((int)source.Size)); var manifest = source.PrepareManifest();
+        TestAssert.That(bytes.SequenceEqual("original first"u8.ToArray()) && manifest.Files.Single().Sha256 == Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() &&
+            source.LocalOrigin is null && source.OriginalReference["file_id"]!.GetValue<string>() == 1.ToString("x32") &&
+            !f.F.Local.Grants.ReceiveFiles && !f.F.RemoteLocal.Grants.SendFiles &&
+            f.Store.ReadNativeMediaDestination(f.Peer, "images") is null && f.Store.ReadNativeMediaDestinationAdmission(f.Peer, "images", f.F.Destination.Version) == admitted &&
+            f.Store.NativeMediaReceiveHistory(f.Peer).Single() == history,
+            "Independent mapped source used current PC receiving/phone reading, forged provenance or changed original history.");
+        var consent = f.Store.ReadNativeMediaSendConsent(f.Peer); f.Store.ChangeNativeMediaSendConsent(f.Peer, consent.Version, false, false);
+        TestAssert.Throws<InvalidDataException>(() => source.ReadExact(0, 1), "Historical generation proof replaced fresh actual local SEND authority.");
     }
 }

@@ -6,7 +6,8 @@ namespace MagnolieOrganizer.Windows;
 
 // Historical native destination metadata, never a data permission or current
 // selection. The original admission event is independent of the current head.
-internal sealed record NativeMediaDestinationAdmission(NativeMediaDestination Destination, ulong CreationFileTime, string AdmissionStamp, string RecordSha256)
+internal sealed record NativeMediaDestinationAdmission(NativeMediaDestination Destination, ulong CreationFileTime, string AdmissionStamp, string RecordSha256,
+    bool? OriginalLegacy = null)
 {
     internal bool GrantsReadAuthority => false;
     internal bool GrantsReceiveAuthority => false;
@@ -15,6 +16,15 @@ internal sealed record NativeMediaDestinationAdmission(NativeMediaDestination De
 
 internal sealed partial class TelefonStore
 {
+    private static JsonObject ParseDestinationAdmissionBody(JsonNode node)
+    {
+        var format = TelefonProtocolContract.Integer(node["format"]);
+        if (format == 1) return TelefonProtocolContract.ExactObject(node, "format", "scope", "media_type", "version", "destination", "creation", "directory", "event", "previous");
+        if (format != 2) throw DeviceFileControl.Error("file_destination_admission_invalid");
+        var body = TelefonProtocolContract.ExactObject(node, "format", "scope", "media_type", "version", "destination", "creation", "directory", "event", "previous", "original_legacy");
+        if (body["original_legacy"] is not JsonValue value || !value.TryGetValue<bool>(out _)) throw DeviceFileControl.Error("file_destination_admission_invalid");
+        return body;
+    }
     private static bool HasDestinationAdmissionEvidence(SqliteConnection db, SqliteTransaction? transaction, NativeMediaPreferenceScope scope, string kind)
     {
         using var exists = db.CreateCommand(); exists.Transaction = transaction;
@@ -44,9 +54,9 @@ internal sealed partial class TelefonStore
             var plain = Open("native_media_destination_admission", scope.PeerId + "/" + kind + "/" + version, cipher);
             try
             {
-                var body = TelefonProtocolContract.ExactObject(JsonNode.Parse(plain)!, "format", "scope", "media_type", "version", "destination", "creation", "directory", "event", "previous");
+                var body = ParseDestinationAdmissionBody(JsonNode.Parse(plain)!);
                 var destination = ParseNativeMediaDestination(body["destination"]!.AsObject(), scope, kind);
-                if (TelefonProtocolContract.Integer(body["format"]) != 1 || body["scope"]?.GetValue<string>() != SelectionScope(scope) ||
+                if (body["scope"]?.GetValue<string>() != SelectionScope(scope) ||
                     body["media_type"]?.GetValue<string>() != kind || body["version"]?.GetValue<string>() != version || destination.Version != version)
                     throw DeviceFileControl.Error("file_destination_admission_invalid");
                 if (picked.CurrentReceiveIdentity() == destination.RootIdentity || picked.VolumePath.Equals(destination.VolumePath, StringComparison.OrdinalIgnoreCase) ||
@@ -86,8 +96,9 @@ internal sealed partial class TelefonStore
                 throw DeviceFileControl.Error("file_destination_admission_changed");
             return; // Immutable original admission, no rotation on re-selection.
         }
-        var value = new JsonObject { ["format"] = 1, ["scope"] = SelectionScope(scope), ["media_type"] = kind,
+        var value = new JsonObject { ["format"] = 2, ["scope"] = SelectionScope(scope), ["media_type"] = kind,
             ["version"] = selected.Destination.Version, ["destination"] = NativeMediaDestinationValue(scope, selected.Destination),
+            ["original_legacy"] = JsonNode.DeepEquals(selection["original"], NativeMediaDestinationValue(scope, selected.Destination)),
             ["creation"] = SelectionHex(selected.CreationFileTime), ["directory"] = selection["directory"]!.DeepClone(),
             ["event"] = selection["events"]!.AsArray().Last()!.DeepClone(), ["previous"] = previous };
         var plain = TelefonCrypto.Canonical(value); byte[] cipher;
@@ -140,9 +151,9 @@ internal sealed partial class TelefonStore
         if (stored is not byte[] cipher || cipher.Length > MediaDestinationRecordLimit + 28) throw DeviceFileControl.Error("file_destination_admission_invalid");
         var plain = Open("native_media_destination_admission", scope.PeerId + "/" + kind + "/" + version, cipher);
         JsonObject value;
-        try { value = TelefonProtocolContract.ExactObject(JsonNode.Parse(plain)!, "format", "scope", "media_type", "version", "destination", "creation", "directory", "event", "previous"); }
+        try { value = ParseDestinationAdmissionBody(JsonNode.Parse(plain)!); }
         finally { CryptographicOperations.ZeroMemory(plain); }
-        if (TelefonProtocolContract.Integer(value["format"]) != 1 || value["scope"]?.GetValue<string>() != SelectionScope(scope) ||
+        if (value["scope"]?.GetValue<string>() != SelectionScope(scope) ||
             value["media_type"]?.GetValue<string>() != kind || value["version"]?.GetValue<string>() != version)
             throw DeviceFileControl.Error("file_destination_admission_invalid");
         var destination = ParseNativeMediaDestination(value["destination"]!.AsObject(), scope, kind);
@@ -190,6 +201,6 @@ internal sealed partial class TelefonStore
             finally { CryptographicOperations.ZeroMemory(plain); }
         }
         finally { CryptographicOperations.ZeroMemory(bytes); }
-        Bound(); return new(destination, creation, stamp, DeviceFileControl.Digest("magnolie-native-destination-admission-v1\0", value));
+        Bound(); return new(destination, creation, stamp, DeviceFileControl.Digest("magnolie-native-destination-admission-v1\0", value), value["original_legacy"]?.GetValue<bool>());
     }
 }

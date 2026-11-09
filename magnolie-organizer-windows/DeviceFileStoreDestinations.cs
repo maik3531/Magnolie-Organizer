@@ -55,6 +55,9 @@ internal sealed partial class TelefonStore
         }
     }
 
+    internal NativeMediaDestination? ReadLegacyDestinationForRecovery(string peerId, string mediaType)
+        => ReadOriginalLegacyDestination(peerId, mediaType); // Metadata only; never the current receive selection.
+
     // Immutable original record, deliberately NOT the future current-selection
     // resolver and never an inert staged choice.
     private NativeMediaDestination? ReadLegacyNativeMediaDestination(SqliteConnection connection, SqliteTransaction? transaction,

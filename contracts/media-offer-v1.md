@@ -2251,6 +2251,43 @@ PC SEND und ursprüngliche Recovery dürfen dafür nicht an positive PC RECEIVE 
 Telefon READ gekoppelt werden. Androidpause und Liefergates bleiben bestehen;
 keine Installation oder Veröffentlichung.
 
+### Fortsetzung #500: generationstreue Backup-Standorte und ursprüngliche Quellen
+
+Backup-Standortentscheidungen eines separat zugelassenen Nicht-Legacy-Ziels sind
+jetzt nach dessen vollständigem authentifiziertem Zielrecord und Zielversion
+adressiert. Der unveränderliche alte Registry-Scope bleibt erhalten. Eine neue
+Generation beginnt mit ihrem eigenen Defaultroot und übernimmt weder eine externe
+Auswahl noch unbekannte Eltern aus dem alten Register. Wiederwahl, Reset und
+Neuladen erhalten die ursprünglichen Eltern; es gibt keine Migration oder Eviction.
+Zulassungsrecord-Format 2 bindet dazu die ursprüngliche Legacy-Zuordnung ausdrücklich;
+Format 1 bleibt streng lesbar, ohne seine Bytes zu normalisieren oder umzuschreiben.
+
+Die Mappingprojektion prüft originale tatsächlich zugelassene Zielgenerationen
+statt ausschließlich den Legacyroot. Pro Zielversion wird der Metadatenbeleg nur
+einmal je begrenztem Inventarscan gelesen. Fehlende Originaldestinationen führen zu
+Review statt stiller Umdeutung als neue PC-Herkunft. Der eigentliche Sourceowner
+pinnt den ursprünglichen Generationsrecord und den exakten Job mit Revision und
+vollständigem Bodyfingerprint; dieselbe bestehende Mappingprüfung reauthentifiziert
+ihn bei IO, ohne einen zusätzlichen quadratischen Jobownerscan. Aktuelles PC-
+Empfangsziel, positive PC-RECEIVE- und Telefon-READ-Freigabe sind dafür nicht nötig.
+Frische tatsächliche SEND-Vereinbarung, ursprüngliches Buch und volle Native-IO-
+Prüfungen bleiben erforderlich.
+
+Native lokale Recovery-Vorbereitung kann eine ausdrücklich ausgewählte zugelassene
+Generation lesen und an der Bestätigung festhalten, ohne den aktuellen Empfangs-
+getter als Recoveryowner zu verwenden. Eine alte nur am Legacyrecord gebundene
+Auswahl übernimmt dabei nicht nachträglich einen neuen Generationsbeleg. Die neue
+Probe umfasst echte Rohwiederherstellung nach verlorenen aktuellen Metadaten;
+keine Root1-Savedhistorie wird durch SQL-Manipulation erfunden. Aktive Runtime-
+Zielumwahl und die dazu notwendige Liveowner-Invalidierung bleiben getrennte,
+noch offene Integrationsarbeit unter #500. Keine Geräteabnahme oder Lieferung.
+
+Gezielte native Windows-Prüfung: 35 unterschiedliche Gruppen bestanden
+(generationstreue Standorte, ursprüngliche Mappingquelle und Recovery sowie
+betroffene Zulassungs-, Standort-, Backup- und Überschneidungsregressionen).
+Core- und tatsächliche WinForms-Quelle bauen ohne Warnungen und Fehler.
+Dies belegt keine aktive Root1-Datenübertragung oder installierte GUI-Abnahme.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

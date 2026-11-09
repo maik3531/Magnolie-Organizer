@@ -10,7 +10,7 @@ internal sealed record NativeMediaBackupRestoration(string Operation, string Sta
 }
 
 internal sealed record NativeMediaBackupRestoreChoice(string PeerId, NativeMediaDestination Destination, NativeMediaBackupVersion Selected, NativeMediaBookPermit Permit,
-    NativeMediaBackupParent? StorageParent = null);
+    NativeMediaBackupParent? StorageParent = null, NativeMediaDestinationAdmission? Admission = null);
 internal sealed record NativeMediaBackupUiPage(NativeMediaBackupLocations? Locations, NativeMediaBackupParent? Source,
     IReadOnlyList<NativeMediaBackupVersion> Versions);
 
@@ -179,17 +179,27 @@ internal sealed partial class TelefonCoordinator
         => ReadNativeMediaBackupUiPage(peerId, kind, null).Versions;
 
     internal NativeMediaBackupUiPage ReadNativeMediaBackupUiPage(string peerId, string kind, string? locationId)
+        => ReadOriginalNativeMediaBackupUiPage(peerId, kind, locationId, null);
+
+    internal NativeMediaBackupUiPage ReadNativeMediaBackupUiPageForAdmission(string peerId, string kind, string destinationVersion, string? locationId = null)
+        => ReadOriginalNativeMediaBackupUiPage(peerId, kind, locationId, destinationVersion);
+
+    private NativeMediaBackupUiPage ReadOriginalNativeMediaBackupUiPage(string peerId, string kind, string? locationId, string? destinationVersion)
     {
         var permit = NativeMediaLocalBookPermit();
-        var destination = store.ReadNativeMediaDestination(peerId, kind);
+        var admission = destinationVersion is null ? null : store.ReadNativeMediaDestinationAdmission(peerId, kind, destinationVersion)
+            ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+        var destination = admission?.Destination ?? store.ReadNativeMediaDestination(peerId, kind);
         if (destination is null) return new(null, null, []);
-        var locations = store.ReadNativeMediaBackupLocations(peerId, kind);
+        admission ??= store.ReadNativeMediaDestinationAdmission(peerId, kind, destination.Version);
+        NativeMediaBackupLocations Locations() => admission is null ? store.ReadNativeMediaBackupLocations(peerId, kind) :
+            store.ReadNativeMediaBackupLocationsForAdmission(peerId, kind, destination.Version);
+        var locations = Locations();
         var source = locationId is null ? locations.Current : locations.Parents.SingleOrDefault(value => value.Id == locationId)
             ?? throw DeviceFileControl.Error("media_backup_original_parent_required");
         bool Current()
         {
-            permit.Require(); return store.ReadNativeMediaDestination(peerId, kind) == destination &&
-                store.ReadNativeMediaBackupLocations(peerId, kind).Version == locations.Version;
+            permit.Require(); return OriginalBackupDestinationUnchanged(peerId, destination, admission) && Locations().Version == locations.Version;
         }
         try { return new(locations, source, store.NativeMediaBackupRecoverableVersions(destination, Current, source)); }
         catch (InvalidDataException error) when (error.Message == "media_backup_original_catalog_required")
@@ -199,20 +209,33 @@ internal sealed partial class TelefonCoordinator
         }
     }
     internal NativeMediaBackupRestoreChoice PrepareNativeMediaBackupRestore(string peerId, string kind, string id, string revision, string? locationId = null)
+        => PrepareOriginalNativeMediaBackupRestore(peerId, kind, id, revision, locationId, null);
+
+    internal NativeMediaBackupRestoreChoice PrepareNativeMediaBackupRestoreForAdmission(string peerId, string kind, string destinationVersion, string id, string revision, string? locationId = null)
+        => PrepareOriginalNativeMediaBackupRestore(peerId, kind, id, revision, locationId, destinationVersion);
+
+    private NativeMediaBackupRestoreChoice PrepareOriginalNativeMediaBackupRestore(string peerId, string kind, string id, string revision, string? locationId, string? destinationVersion)
     {
         var permit = NativeMediaLocalBookPermit();
-        var destination = store.ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
-        var locations = store.ReadNativeMediaBackupLocations(peerId, kind);
+        var admission = destinationVersion is null ? null : store.ReadNativeMediaDestinationAdmission(peerId, kind, destinationVersion)
+            ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+        var destination = admission?.Destination ?? store.ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+        admission ??= store.ReadNativeMediaDestinationAdmission(peerId, kind, destination.Version);
+        var locations = admission is null ? store.ReadNativeMediaBackupLocations(peerId, kind) : store.ReadNativeMediaBackupLocationsForAdmission(peerId, kind, destination.Version);
         var source = locationId is null ? locations.Current : locations.Parents.SingleOrDefault(value => value.Id == locationId)
             ?? throw DeviceFileControl.Error("media_backup_original_parent_required");
-        bool Current() { permit.Require(); return store.ReadNativeMediaDestination(peerId, kind) == destination; }
+        bool Current() { permit.Require(); return OriginalBackupDestinationUnchanged(peerId, destination, admission); }
         var selected = store.NativeMediaBackupRecoverableVersions(destination, Current, source).SingleOrDefault(item => item.Id == id && item.RecordSha256 == revision)
             ?? throw DeviceFileControl.Error("media_backup_stale_selection");
-        permit.Require(); return new(peerId, destination, selected, permit, source);
+        permit.Require(); return new(peerId, destination, selected, permit, source, admission);
     }
     internal NativeMediaBackupRestoration RestoreConfirmedNativeMediaBackup(NativeMediaBackupRestoreChoice choice)
         => NativeMediaLocalOperation(() => store.RestoreNativeMediaBackupToDestination(choice.Destination, choice.Selected,
-            () => { choice.Permit.Require(); return store.ReadNativeMediaDestination(choice.PeerId, choice.Destination.MediaType) == choice.Destination; }, choice.StorageParent));
+            () => { choice.Permit.Require(); return OriginalBackupDestinationUnchanged(choice.PeerId, choice.Destination, choice.Admission); }, choice.StorageParent));
+
+    private bool OriginalBackupDestinationUnchanged(string peerId, NativeMediaDestination destination, NativeMediaDestinationAdmission? admission)
+        => admission is null ? store.ReadLegacyDestinationForRecovery(peerId, destination.MediaType) == destination :
+            store.ReadNativeMediaDestinationAdmission(peerId, destination.MediaType, destination.Version) == admission;
 
     internal NativeMediaBackupLocations NativeMediaBackupUiLocations(string peerId, string kind)
     {
