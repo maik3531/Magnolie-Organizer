@@ -385,6 +385,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
             fun current() {
                 cancellation.throwIfCanceled()
                 if (archive == null) owner.requireCurrent() else owner.requireArchiveBook(archive.permit)
+                recovery?.requireCurrent() // Original offer expiry also fences provider reads, not only proof output.
             }
             current()
             val selected = owner.selected; val body = selected.body; val row = selected.row!!

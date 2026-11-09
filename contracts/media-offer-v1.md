@@ -205,6 +205,19 @@ Hostfälle bestehen, ohne Wire-/Resume-/Journal- oder Friständerung. Die weiter
 expliziten Auswahl-/Archivaktionswege und OS-Mutationsowner sind damit nicht
 pauschal abgeschlossen; Geräteabnahme und Feature-/Auslieferungsgates bleiben.
 
+Während einer konkreten Readback-Originalprüfung läuft zusätzlich bei jedem
+tatsächlichen Provider-/Datei-IO-Schritt der ursprüngliche Angebotsguard mit.
+Nur die spätere Netzwerkausgabe nach Fristende abzulehnen wäre nicht ausreichend:
+die alte Aktion darf dann keine neuen Originaldateileser mehr eröffnen.
+Eine Host-Gegenprobe hielt eine tatsächliche Providerquery bis nach dem echten
+Ablauf eines gültigen kurzlebigen Angebots an; vor der Korrektur öffneten sich
+danach noch drei zusätzliche Dateileser. Jetzt bleibt der alte Run vor diesen
+Lesern HOLD und gibt keinen Readback aus. Eine unabhängig neu aufgenommene lokale
+Inspektion funktioniert weiter; lokale PC-Archivaktionen erben keine fremde alte
+Angebotsfrist. 91 passende Notes-Hostfälle bestehen, keine Uhr oder Produktfrist
+wurde ersetzt oder verlängert. Buch, ursprünglicher Control-/Intentowner,
+Originalbyte-/MIME-/Zeilenprüfung und tatsächliche IO-Drain-Bahn bleiben erhalten.
+
 38 Notes-Empfangs-/Transferfälle bestehen, darunter der neue Originalangebot-
 Readback, einmalige Nutzung, laufender/abgebrochener/metadatenbasierter Empfang,
 entzogenes Originalbuch und widerrufene Kontrollen. Die fünf bestehenden nativen

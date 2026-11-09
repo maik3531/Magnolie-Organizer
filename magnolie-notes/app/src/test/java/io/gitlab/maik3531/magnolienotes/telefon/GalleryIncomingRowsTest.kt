@@ -507,6 +507,43 @@ class GalleryIncomingRowsTest {
             assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
         }
 
+    @Test fun originalReadbackOfferExpiryStopsBeforeNewProviderReadersWithoutExpiringIndependentLocalInspection() {
+        NativeGalleryIncomingTransferTest.Link().use { link ->
+            withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->
+                val before = f.rows(); val reads = provider.readOpens; var delayed = false
+                try {
+                    f.io {
+                        val base = DeviceFileOfferEnvelope.create(manifest(f.pc.deviceId, raw = raw))
+                        val deadline = System.currentTimeMillis() + 1000
+                        val offer = JsonObject(base + ("expires_ms" to JsonPrimitive(deadline)))
+                        val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                        NativeGalleryPublishedReadback.capture(owner, offer, link.channel).use { proof ->
+                            assertTrue(System.currentTimeMillis() < deadline) // Actual admitted offer, no fake clocks.
+                            provider.beforeQuery = {
+                                if (!delayed) {
+                                    delayed = true
+                                    val remaining = maxOf(0L, deadline - System.currentTimeMillis())
+                                    java.util.concurrent.CountDownLatch(1).await(remaining + 20, java.util.concurrent.TimeUnit.MILLISECONDS)
+                                    assertTrue(System.currentTimeMillis() >= deadline)
+                                }
+                            }
+                            assertThrows(PhotoFolderScopeError::class.java) { proof.perform(rows) }
+                            assertNull(proof.actualOutput())
+                        }
+                    }
+                } finally { provider.beforeQuery = {} }
+                assertTrue(delayed); assertEquals(reads, provider.readOpens)
+                assertTrue(link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+                f.io {
+                    val fresh = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                    assertEquals("image/png", rows.inspectPublished(fresh).mimeType)
+                }
+                assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+        }
+    }
+
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {
         NativeGalleryIncomingTransferTest.Link().use { link ->
             withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->
