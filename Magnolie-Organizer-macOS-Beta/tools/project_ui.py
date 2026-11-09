@@ -96,6 +96,17 @@ def apply_timezone_patches(source, snapshot):
     return source
 
 
+
+def apply_occurrence_identity(source, snapshot):
+    patch = json.loads(snapshot["port-adapters/occurrence-identity-patch.json"])
+    marker = "/*PORT_OCCURRENCE_HELPER*/"
+    if (patch.get("schema") != 1 or digest(patch["before"].encode()) != patch["sha256"] or
+            patch["after"].count(marker) != 1):
+        raise ValueError("Occurrence identity patch manifest changed")
+    after = patch["after"].replace(marker, snapshot["port-adapters/occurrence-identity.js"].decode())
+    return replace_once(source, patch["before"], after)
+
+
 def replace_once(text, old, new):
     if text.count(old) != 1:
         raise ValueError("Canonical UI anchor changed; review the projection: " + old[:100])
@@ -145,6 +156,7 @@ def project(snapshot, target):
     app = target / "web/anwendung.js"
     text = app.read_text()
     text = apply_timezone_patches(text, snapshot)
+    text = apply_occurrence_identity(text, snapshot)
     alarm_helper = snapshot["port-adapters/display-alarm-roundtrip.js"].decode()
     alarm_anchor = "  function spiegeleTerminInIcs(termin, vorher = null) {"
     text = replace_once(text, alarm_anchor,

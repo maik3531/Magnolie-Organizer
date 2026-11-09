@@ -240,6 +240,46 @@ class ProjectionTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     projection.project(changed, Path(temp) / "UI")
 
+    def test_occurrence_identity_current_and_published_inputs_preserve_distinct_instances(self):
+        runtime = self.javascript()
+        args = [runtime]
+        if Path(runtime).name == "deno":
+            args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys", "--allow-run=python3,git"]
+        fixture = json.loads(self.snapshot["port-adapters/tests/fixtures/distinct-rid-same-slot.json"])
+        reference = subprocess.check_output(["git", "show", fixture["canonicalCommit"] + ":magnolie-organizer/bin/magnolie-organizer"], cwd=projection.REPO)
+        self.assertEqual(projection.digest(reference), fixture["canonicalCodecSHA256"])
+        codec = check_calendar.canonical()
+        display_zone = fixture["cases"][0]["document"]["termine"][0]["icsAnzeigeZeitzone"]
+        with patch.object(codec, "_zeitzonenname", return_value=display_zone), patch.object(codec, "_organizer_zeitzone", return_value=codec.timezone.utc):
+            for case in fixture["cases"]:
+                self.assertEqual(codec.ics_lesen(case["source"]), case["document"], case["name"])
+        app_key = "magnolie-organizer/web/anwendung.js"
+        published = subprocess.check_output(["git", "show", "067c38934b539943d8e1720abafd8a80b401d797:" + app_key], cwd=projection.REPO)
+        for label, source in [("current", self.snapshot[app_key]), ("published067c", published)]:
+            snapshot = dict(self.snapshot); snapshot[app_key] = source
+            for name in ["occurrence-identity.js", "occurrence-identity-patch.json", "occurrence-identity-projection.cjs"]:
+                key = "port-adapters/" + name
+                self.assertEqual(projection.inventory(snapshot)[key], projection.digest(snapshot[key]))
+            with self.subTest(input=label), tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-") as temp:
+                target = Path(temp) / "UI"
+                projection.project(snapshot, target)
+                result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/occurrence-identity.cjs"), "macos", str(target / "web")],
+                                        cwd=BETA, capture_output=True, text=True, timeout=120)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                print(label + ": " + result.stdout.strip())
+        changed = dict(self.snapshot)
+        changed[app_key] = changed[app_key].replace(b"function termineStarkIdentisch(links, rechts)", b"function changedTerminIdentity(links, rechts)")
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-drift-") as temp:
+            with self.assertRaisesRegex(ValueError, "anchor changed"):
+                projection.project(changed, Path(temp) / "UI")
+        changed = dict(self.snapshot)
+        patch_key = "port-adapters/occurrence-identity-patch.json"
+        manifest = json.loads(changed[patch_key]); manifest["sha256"] = "0" * 64
+        changed[patch_key] = json.dumps(manifest).encode()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-manifest-") as temp:
+            with self.assertRaisesRegex(ValueError, "patch manifest changed"):
+                projection.project(changed, Path(temp) / "UI")
+
     def test_regional_form_drift_refuses_instead_of_guessing_native_contract(self):
         changed = dict(self.snapshot)
         key = projection.LINUX.relative_to(projection.REPO).as_posix() + "/web/anwendung.js"

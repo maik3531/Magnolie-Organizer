@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "sha256": "24ff7e542af508c51eff27619e7668daac884b90f06c92992d8497aa0093e0fe",
+  "before": "  function termineStarkIdentisch(links, rechts) {\n    if (terminIdentitaet(links) !== terminIdentitaet(rechts)) return false;\n    const quelle = (t) => String(t.icsQuelleId || t.syncKalenderUid || (t.kalenderQuelle || {}).id || \"\");\n    if (quelle(links) !== quelle(rechts)) return false;\n    const rechtsIds = terminStarkeKennungen(rechts);\n    return Array.from(terminStarkeKennungen(links)).some((id) => rechtsIds.has(id));\n  }\n",
+  "after": "/*PORT_OCCURRENCE_IDENTITY_BEGIN*/\n/*PORT_OCCURRENCE_HELPER*/\n/*PORT_OCCURRENCE_IDENTITY_END*/\n  function termineStarkIdentisch(links, rechts) {\n    if (!portTerminOccurrenceCompatible(links, rechts)) return false;\n    if (terminIdentitaet(links) !== terminIdentitaet(rechts)) return false;\n    const quelle = (t) => String(t.icsQuelleId || t.syncKalenderUid || (t.kalenderQuelle || {}).id || \"\");\n    if (quelle(links) !== quelle(rechts)) return false;\n    const rechtsIds = terminStarkeKennungen(rechts);\n    return Array.from(terminStarkeKennungen(links)).some((id) => rechtsIds.has(id));\n  }\n"
+}

@@ -16,7 +16,9 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   passed+=require('./webview-startup.test.cjs')({root});
   ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===4 && x.every(Boolean)), '20 manual beta locales');
   const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
-  const projected=require(path.join(root,'../port-adapters/timezones/projection-patches.cjs'))(read('anwendung.js'),name=>fs.readFileSync(path.join(root,'../port-adapters/timezones',name)),true,canonical);
+  const withoutTimezone=require(path.join(root,'../port-adapters/timezones/projection-patches.cjs'))(read('anwendung.js'),name=>fs.readFileSync(path.join(root,'../port-adapters/timezones',name)),true,canonical);
+  const projected=require('../../port-adapters/occurrence-identity-projection.cjs')(withoutTimezone,
+    name=>fs.readFileSync(path.join(root,'../port-adapters',name)),true);
   const alarmAnchor='    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {';
   const alarmStart=canonical.indexOf(alarmAnchor);assert.ok(alarmStart>=0);
   const alarmEnd=canonical.indexOf('\n    }',alarmStart)+6;
@@ -594,6 +596,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   passed+=await require('../../port-adapters/tests/display-alarm-roundtrip.cjs')({web,platform:'tablet'});
   passed+=require('../../port-adapters/tests/legacy-display.cjs')({web,platform:'tablet'});
   passed+=require('../../port-adapters/tests/drawing-finish.cjs')({web});
+  passed+=await require('../../port-adapters/tests/occurrence-identity.cjs')({web,platform:'tablet'});
   passed+=await require('../../port-adapters/tests/domains-host.cjs')({web});
   const manifest=JSON.parse(fs.readFileSync(path.join(web,'../projection.json')));
   fs.mkdirSync(path.join(root,'artifacts'),{recursive:true});

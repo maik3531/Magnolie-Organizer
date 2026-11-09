@@ -92,7 +92,11 @@ for (const match of fontFaces.join('\n').matchAll(/url\(["']?([^"')]+)["']?\)/g)
 generated.set('assets/web/desktop-fonts.css',Buffer.from(fontFaces.join('\n\n')+'\n'));
 const timezonePatcher={module:{exports:{}},require:timezoneBuilder.require};
 vm.runInNewContext(timezoneInput('projection-patches.cjs').toString(),timezonePatcher,{filename:'shared-timezone-patches.cjs'});
-const appSource = timezonePatcher.module.exports(buffers.get(path.join(desktop,'anwendung.js')).toString(),timezoneInput);
+const occurrencePatcher={module:{exports:{}},require:timezoneBuilder.require};
+vm.runInNewContext(buffers.get(path.join(parent,'port-adapters/occurrence-identity-projection.cjs')).toString(),occurrencePatcher,{filename:'shared-occurrence-identity-projection.cjs'});
+const appSource = occurrencePatcher.module.exports(
+  timezonePatcher.module.exports(buffers.get(path.join(desktop,'anwendung.js')).toString(),timezoneInput),
+  name=>buffers.get(path.join(parent,'port-adapters',name)));
 const regionalAnchor = '    { id: "ort", name: msgid("Country & holidays") },';
 if (appSource.split(regionalAnchor).length !== 2) throw Error('Desktop regional settings anchor changed');
 let regionalSource = appSource.replace(regionalAnchor,
