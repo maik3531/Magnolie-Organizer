@@ -21,12 +21,18 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   const projected=require('../../port-adapters/occurrence-identity-projection.cjs')(withoutTimezone,
     name=>fs.readFileSync(path.join(root,'../port-adapters',name)),true);
   const alarmAnchor='    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {';
-  const alarmStart=canonical.indexOf(alarmAnchor);assert.ok(alarmStart>=0);
-  const alarmEnd=canonical.indexOf('\n    }',alarmStart)+6;
-  assert.equal((projected.match(/PORT_DISPLAY_ALARM_HELPER_BEGIN/g)||[]).length,1);
-  assert.equal(projected.split('    neu.push(...portDisplayAlarmLines(termin, vorher, alt));').length,2);
-  const withoutAlarmAdapter=projected.replace(/\/\*PORT_DISPLAY_ALARM_HELPER_BEGIN\*\/[\s\S]*?\/\*PORT_DISPLAY_ALARM_HELPER_END\*\/\n/g,'')
-    .replace('    neu.push(...portDisplayAlarmLines(termin, vorher, alt));',canonical.slice(alarmStart,alarmEnd));
+  const alarmStart=canonical.indexOf(alarmAnchor);
+  let withoutAlarmAdapter=projected;
+  if(alarmStart>=0) {
+    const alarmEnd=canonical.indexOf('\n    }',alarmStart)+6;
+    assert.equal((projected.match(/PORT_DISPLAY_ALARM_HELPER_BEGIN/g)||[]).length,1);
+    assert.equal(projected.split('    neu.push(...portDisplayAlarmLines(termin, vorher, alt));').length,2);
+    withoutAlarmAdapter=projected.replace(/\/\*PORT_DISPLAY_ALARM_HELPER_BEGIN\*\/[\s\S]*?\/\*PORT_DISPLAY_ALARM_HELPER_END\*\/\n/g,'')
+      .replace('    neu.push(...portDisplayAlarmLines(termin, vorher, alt));',canonical.slice(alarmStart,alarmEnd));
+  } else {
+    assert(!projected.includes('PORT_DISPLAY_ALARM_HELPER_BEGIN'));
+    assert(projected.includes('    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));'));
+  }
   const reviewed=withoutAlarmAdapter.replace(/\/\*TABLET_ICS_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_ICS_\1_END\*\//g,'').replace(/\/\*TABLET_DAV_([A-Z_]+)_BEGIN\*\/[\s\S]*?\/\*TABLET_DAV_\1_END\*\//g,'');
   const orderedStartup=reviewed.replace('  if (document.readyState === "loading" || document.currentScript?.defer && document.readyState === "interactive") {', '  if (document.readyState === "loading") {');
   ok(orderedStartup.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
@@ -110,7 +116,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
         }
       },0);
     }};
-    for(const f of ['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','mcp-protocol.js','anwendung.js']) w.eval(read(f));
+    for(const f of ['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','mcp-protocol.js',...(fs.existsSync(path.join(web,'appearance.js'))?['appearance.js']:[]),'anwendung.js']) w.eval(read(f));
     await wait(); await wait();
     return dom;
   }
@@ -403,7 +409,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   assert.ok(startup.tabletPresent && startup.organizerPresent);
   assert.deepEqual(Object.keys(startup).sort(),['readyState','origin','tabletPresent','organizerPresent','storageBlocked','statusCode','browserTiming'].sort());
   assert.deepEqual(Object.keys(startup.browserTiming).sort(),['sampledEpochMs','timeOriginMs','sampledNowMs','navigation','scripts'].sort());
-  assert.deepEqual(Array.from(startup.browserTiming.scripts,x=>x.name),['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','zeichenblatt.js','mcp-protocol.js','contact-group-aliases.js','qr-decoder.js','qr-dialog.js','anwendung.js']);
+  assert.deepEqual(Array.from(startup.browserTiming.scripts,x=>x.name),['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','zeichenblatt.js','mcp-protocol.js','contact-group-aliases.js','qr-decoder.js','qr-dialog.js','appearance.js','anwendung.js']);
   assert.ok(!JSON.stringify(startup).includes('Synthetic'));
   w.document.getElementById('tablet-status').textContent=priorStatus;
   ok(true,'startup diagnostics expose fixed technical fields without document or status message content');
@@ -596,7 +602,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     vectors.revoked.epoch,vectors.local.epoch,vectors.revoked.revision,vectors.local.revision),
     'projected core passes shared custom identity/revocation vectors');
   execFileSync(process.execPath,[path.join(root,'tests/calendar-export-ui.cjs')],{stdio:'inherit',env:process.env});
-  ok(true,'standard web gate verifies actual imported/saved alarm golden and byte-identical release normalizers');
+  ok(true,'standard web gate verifies actual imported/saved alarm golden, current canonical normalizers and the unchanged published reference');
   passed+=await require('../../port-adapters/tests/display-alarm-roundtrip.cjs')({web,platform:'tablet'});
   passed+=require('../../port-adapters/tests/legacy-display.cjs')({web,platform:'tablet'});
   passed+=require('../../port-adapters/tests/drawing-finish.cjs')({web});

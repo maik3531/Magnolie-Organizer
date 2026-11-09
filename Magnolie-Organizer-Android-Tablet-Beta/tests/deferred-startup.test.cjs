@@ -5,7 +5,8 @@ const {JSDOM,VirtualConsole,ResourceLoader}=require('jsdom');
 module.exports=async function({web}) {
   const html=fs.readFileSync(path.join(web,'index.html'),'utf8');
   const names=[...html.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map(x=>x[1]);
-  assert.equal(names.length,12);assert.equal((html.match(/<script\b/g)||[]).length,12);
+  const count=fs.existsSync(path.join(web,'appearance.js'))?13:12;
+  assert.equal(names.length,count);assert.equal((html.match(/<script\b/g)||[]).length,count);
   const errors=[],requested=[],pending=[],messages=[];
   let releaseReady,dom,timeout;
   const session=webcrypto.randomUUID(),revision=webcrypto.randomUUID();
@@ -60,7 +61,7 @@ module.exports=async function({web}) {
     assert(!messages.includes('speichern'),'No save before the withheld native ready callback');
     assert.equal(dom.window.document.querySelectorAll('#tablet-bar').length,1);
     assert.equal(errors.length,0,errors.map(x=>String(x)).join('\n'));
-    globalThis.console.log('PASS deferred startup: actual 12-script HTML, all requests before first response, reverse response order, DCL/adapter/native bootstrap ordering');
+    globalThis.console.log('PASS deferred startup: actual complete script HTML, all requests before first response, reverse response order, DCL/adapter/native bootstrap ordering');
     return 1;
   } finally {
     clearTimeout(timeout);

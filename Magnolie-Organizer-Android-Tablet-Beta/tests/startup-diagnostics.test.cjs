@@ -14,7 +14,7 @@ module.exports=function run({root=path.resolve(__dirname,'..')}={}) {
     ...Array.from({length:100},()=>({name:'https://elsewhere.invalid/tablet.js?private',duration:8}))]};
   const result=execute(perf);assert.equal(result.browserTiming.navigation.domContentLoadedEventEnd,25000);
   assert.equal(result.browserTiming.sampledEpochMs-result.browserTiming.timeOriginMs,result.browserTiming.sampledNowMs);
-  assert.equal(result.browserTiming.scripts.length,12);
+  assert.equal(result.browserTiming.scripts.length,13);
   assert.equal(result.browserTiming.scripts.find(x=>x.name==='anwendung.js').timing.responseEnd,70);
   assert(new TextEncoder().encode(JSON.stringify(result)).length<16384);
   assert(!JSON.stringify(result).includes('private'));assert(!JSON.stringify(result).includes('elsewhere'));let count=1;

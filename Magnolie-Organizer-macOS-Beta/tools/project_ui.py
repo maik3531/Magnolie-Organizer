@@ -101,9 +101,12 @@ def apply_occurrence_identity(source, snapshot):
     patch = json.loads(snapshot["port-adapters/occurrence-identity-patch.json"])
     marker = "/*PORT_OCCURRENCE_HELPER*/"
     if (patch.get("schema") != 1 or digest(patch["before"].encode()) != patch["sha256"] or
+            digest(patch["mainBefore"].encode()) != patch["mainSHA256"] or
             patch["after"].count(marker) != 1):
         raise ValueError("Occurrence identity patch manifest changed")
     after = patch["after"].replace(marker, snapshot["port-adapters/occurrence-identity.js"].decode())
+    if patch["mainBefore"] in source:
+        return replace_once(source, patch["mainBefore"], after + "/*PORT_OCCURRENCE_MAIN_SOURCE*/\n")
     return replace_once(source, patch["before"], after)
 
 
@@ -150,9 +153,10 @@ def project(snapshot, target):
     drawing = target / "web/zeichenblatt.js"
     drawing_source = drawing.read_text()
     drawing_patch = json.loads(snapshot["port-adapters/drawing-finish-patch.json"])
-    if drawing_patch.get("schema") != 1 or digest(drawing_source.encode()) != drawing_patch["canonicalSHA256"]:
+    drawing_base = drawing_source.replace(drawing_patch["releaseAfter"], drawing_patch["releaseBefore"])
+    if drawing_patch.get("schema") != 1 or digest(drawing_base.encode()) != drawing_patch["canonicalSHA256"]:
         raise ValueError("Canonical drawing source changed; review the finish projection")
-    drawing_projected = replace_once(drawing_source, drawing_patch["before"], drawing_patch["after"])
+    drawing_projected = replace_once(drawing_base, drawing_patch["before"], drawing_patch["after"])
     drawing.write_text(replace_once(drawing_projected, drawing_patch["releaseBefore"], drawing_patch["releaseAfter"]))
     app = target / "web/anwendung.js"
     text = app.read_text()
@@ -160,14 +164,24 @@ def project(snapshot, target):
     text = apply_occurrence_identity(text, snapshot)
     alarm_helper = snapshot["port-adapters/display-alarm-roundtrip.js"].decode()
     alarm_anchor = "  function spiegeleTerminInIcs(termin, vorher = null) {"
-    text = replace_once(text, alarm_anchor,
-                        "/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n" + alarm_helper +
-                        "/*PORT_DISPLAY_ALARM_HELPER_END*/\n" + alarm_anchor)
-    text = replace_once(text, '''    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {
+    alarm_before = '''    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {
       const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";
       neu.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":" + trigger,
         "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
-    }''', "    neu.push(...portDisplayAlarmLines(termin, vorher, alt));")
+    }'''
+    if alarm_before in text:
+        text = replace_once(text, alarm_anchor,
+                            "/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n" + alarm_helper +
+                            "/*PORT_DISPLAY_ALARM_HELPER_END*/\n" + alarm_anchor)
+        text = replace_once(text, alarm_before, "    neu.push(...portDisplayAlarmLines(termin, vorher, alt));")
+    else:
+        accepted = json.loads(snapshot["port-adapters/display-alarm-source.json"])
+        begin = text.find("  function erhalteDisplayAlarme(termin, vorher, alt) {")
+        end = text.find(alarm_anchor, begin)
+        if (accepted.get("schema") != 1 or begin < 0 or end < begin or
+                digest(text[begin:end].encode()) != accepted["mainHelperSHA256"] or
+                text.count("    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));") != 1):
+            raise ValueError("Canonical DISPLAY alarm anchor changed")
     identity = json.loads(snapshot[str((BETA / "Resources/BetaIdentity.json").relative_to(REPO))])
     text, count = re.subn(r'^const FASSUNG = "[^"]+";', 'const FASSUNG = ' + json.dumps(identity["version"]) + ';', text, flags=re.M)
     if count != 1:
@@ -342,14 +356,24 @@ def project(snapshot, target):
     # The desktop creates its first welcome note after normalizing the book.
     # Normalize that newly generated record before its first native save so a
     # reopen adds no delayed metadata defaults to an otherwise untouched profile.
-    text = replace_once(text, "        DATEN.notizen.push(willkommensNotiz());",
-                        "        DATEN.notizen.push(normalisiere({ notizen: [willkommensNotiz()] }).notizen[0]);")
+    welcome_before = "        DATEN.notizen.push(willkommensNotiz());"
+    welcome_after = "        DATEN.notizen.push(normalisiere({ notizen: [willkommensNotiz()] }).notizen[0]);"
+    if welcome_before in text:
+        text = replace_once(text, welcome_before, welcome_after)
+    elif text.count(welcome_after) != 1:
+        raise ValueError("Canonical welcome normalization anchor changed")
     # No automatic deletion of tombstones/trash in a port without a recovery journal.
     text = replace_once(text, "      raeumeTombstonesAuf();\n      const papierkorbBereinigt = raeumePapierkorbAuf();",
                         "      const papierkorbBereinigt = false;")
-    text = replace_once(text, '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n      if (changed) {',
-                        '      const calendarMetadata = window.MacBeta.calendarMetadata(DATEN, nutzlast, false);\n'
-                        '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n'
+    merge_calls = [
+        '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);',
+        '      const { teile, doppelt, counts, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);']
+    merge_call = next((call for call in merge_calls if call + '\n      if (changed) {' in text), None)
+    if merge_call is None:
+        raise ValueError("Canonical calendar merge anchor changed")
+    text = replace_once(text, merge_call + '\n      if (changed) {',
+                        '      const calendarMetadata = window.MacBeta.calendarMetadata(DATEN, nutzlast, false);\n' +
+                        merge_call + '\n' +
                         '      if (calendarMetadata) window.MacBeta.calendarMetadata(DATEN, nutzlast, true);\n'
                         '      if (changed || calendarMetadata) {')
     # Reuse canonical offline phone metadata; never guess native country prefixes.

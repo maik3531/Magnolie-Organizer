@@ -7,18 +7,22 @@ module.exports=function run({web}) {
   const canonical=fs.readFileSync(path.join(repo,'magnolie-organizer/web/zeichenblatt.js'),'utf8');
   const patch=JSON.parse(fs.readFileSync(path.join(repo,'port-adapters/drawing-finish-patch.json')));
   const source=fs.readFileSync(path.join(web,'zeichenblatt.js'),'utf8');
-  assert.equal(createHash('sha256').update(canonical).digest('hex'),patch.canonicalSHA256);
+  const canonicalBase=canonical.replace(patch.releaseAfter,patch.releaseBefore);
+  assert.equal(createHash('sha256').update(canonicalBase).digest('hex'),patch.canonicalSHA256);
   assert.equal(source,canonical.replace(patch.before,patch.after).replace(patch.releaseBefore,patch.releaseAfter),'only reviewed finish/release blocks change');
   // Execute the actual Android projector validation block with read-only,
   // disposable input maps; invalid inputs must fail before generated output.
   const projector=fs.readFileSync(path.join(repo,'Magnolie-Organizer-Android-Tablet-Beta/tools/project-web.cjs'),'utf8');
   const start=projector.indexOf('const drawingPatch = '),end=projector.indexOf('// Android does not provide',start);
   assert.ok(start>=0&&end>start);
-  const validate=next=>vm.runInNewContext(projector.slice(start,end),{
+  const validate=(next,input=canonical)=>vm.runInNewContext(projector.slice(start,end),{
     buffers:new Map([[path.join(repo,'port-adapters/drawing-finish-patch.json'),Buffer.from(JSON.stringify(next))]]),
-    parent:repo,path,Buffer,generated:new Map([['assets/web/zeichenblatt.js',Buffer.from(canonical)]]),
+    parent:repo,path,Buffer,generated:new Map([['assets/web/zeichenblatt.js',Buffer.from(input)]]),
     sha:value=>createHash('sha256').update(value).digest('hex')
   });
+  validate(patch,canonicalBase);
+  validate(patch,canonicalBase.replace(patch.releaseBefore,patch.releaseAfter));
+  assert.throws(()=>validate(patch,canonical+'\n// unreviewed source change'),/Canonical drawing finish anchor changed/);
   for(const invalid of [{...patch,schema:2},{...patch,canonicalSHA256:'0'.repeat(64)},{...patch,before:patch.before+' changed'},{...patch,releaseBefore:patch.releaseBefore+' changed'}])
     assert.throws(()=>validate(invalid),/Canonical drawing finish anchor changed/);
   const manifestPath=path.join(web,'../projection.json');

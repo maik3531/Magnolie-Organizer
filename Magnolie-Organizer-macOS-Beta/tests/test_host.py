@@ -155,9 +155,12 @@ class ProjectionTests(unittest.TestCase):
                         before, after = drawing_patch["before"].encode(), drawing_patch["after"].encode()
                         release_before, release_after = drawing_patch["releaseBefore"].encode(), drawing_patch["releaseAfter"].encode()
                         self.assertEqual(data.count(before), 1)
-                        self.assertEqual(data.count(release_before), 1)
+                        self.assertEqual(data.count(release_before) + data.count(release_after), 1)
                         self.assertEqual(actual, data.replace(before, after, 1).replace(release_before, release_after, 1))
-                        self.assertEqual(actual.replace(release_after, release_before, 1).replace(after, before, 1), data)
+                        restored = actual.replace(after, before, 1)
+                        if release_before in data:
+                            restored = restored.replace(release_after, release_before, 1)
+                        self.assertEqual(restored, data)
                     else:
                         self.assertEqual(actual, data)
             html = (a / "web/index.html").read_text()
@@ -202,12 +205,18 @@ class ProjectionTests(unittest.TestCase):
             target = Path(temp) / "UI"
             projection.project(self.snapshot, target)
             app = (target / "web/anwendung.js").read_text()
-            self.assertEqual(app.count("/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n" + helper +
-                                       "/*PORT_DISPLAY_ALARM_HELPER_END*/"), 1)
-            self.assertEqual(app.count("    neu.push(...portDisplayAlarmLines(termin, vorher, alt));"), 1)
+            if b'  function erhalteDisplayAlarme(termin, vorher, alt) {' in self.snapshot["magnolie-organizer/web/anwendung.js"]:
+                self.assertNotIn("PORT_DISPLAY_ALARM_HELPER_BEGIN", app)
+                self.assertEqual(app.count("    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));"), 1)
+            else:
+                self.assertEqual(app.count("/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n" + helper +
+                                           "/*PORT_DISPLAY_ALARM_HELPER_END*/"), 1)
+                self.assertEqual(app.count("    neu.push(...portDisplayAlarmLines(termin, vorher, alt));"), 1)
         changed = dict(self.snapshot)
         key = "magnolie-organizer/web/anwendung.js"
         before = b'const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";'
+        if before not in changed[key]:
+            before = b'  function erhalteDisplayAlarme(termin, vorher, alt) {'
         self.assertEqual(changed[key].count(before), 1)
         changed[key] = changed[key].replace(before, b'const trigger = "different canonical alarm builder";')
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-drift-") as temp:

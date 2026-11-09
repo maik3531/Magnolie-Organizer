@@ -12,7 +12,7 @@
   const resources = entries('resource');
   const scripts = ['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js',
     'i18n-start.js','zeichenblatt.js','mcp-protocol.js','contact-group-aliases.js',
-    'qr-decoder.js','qr-dialog.js','anwendung.js'].map(name => {
+    'qr-decoder.js','qr-dialog.js','appearance.js','anwendung.js'].map(name => {
     const entry = resources.find(value => {
       try { return new URL(value.name).pathname.split('/').pop() === name; } catch (_) { return false; }
     });

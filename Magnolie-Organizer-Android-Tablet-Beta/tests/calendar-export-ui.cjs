@@ -8,12 +8,18 @@ const golden=JSON.parse(fs.readFileSync(fixtureFile));
 const sourceInput=process.argv[2];
 const input=sourceInput ? JSON.parse(fs.readFileSync(sourceInput)) : {source:golden.source,document:golden.importDocument};
 const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
+const released=require('node:child_process').execFileSync('git',['show','067c38934b539943d8e1720abafd8a80b401d797:magnolie-organizer/web/anwendung.js'],{cwd:root,maxBuffer:4*1024*1024}).toString();
+const projected=fs.readFileSync(path.join(web,'anwendung.js'),'utf8');
+const functionHash=(source,name)=>{
+ const start=source.indexOf('  function '+name+'(');assert.ok(start>=0,name);
+ const end=source.indexOf('\n  }',start)+4;assert.ok(end>start,name);
+ return createHash('sha256').update(source.slice(start,end)).digest('hex');
+};
 const normalizerFunctionSHA256={};
 for(const name of Object.keys(golden.normalizerFunctionSHA256)) {
- const start=canonical.indexOf('  function '+name+'(');assert.ok(start>=0,name);
- const end=canonical.indexOf('\n  }',start)+4;assert.ok(end>start,name);
- normalizerFunctionSHA256[name]=createHash('sha256').update(canonical.slice(start,end)).digest('hex');
- assert.equal(normalizerFunctionSHA256[name],golden.normalizerFunctionSHA256[name],name+' changed from byte-identical v2.0.30 baseline');
+ assert.equal(functionHash(released,name),golden.normalizerFunctionSHA256[name],name+' published reference changed');
+ normalizerFunctionSHA256[name]=functionHash(canonical,name);
+ assert.equal(functionHash(projected,name),normalizerFunctionSHA256[name],name+' diverged from current canonical sources');
 }
 const errors=[],virtualConsole=new VirtualConsole();virtualConsole.on('jsdomError',error=>errors.push(error));
 const generated=new JSDOM(fs.readFileSync(path.join(web,'index.html'),'utf8'),{runScripts:'outside-only',pretendToBeVisual:true,
@@ -42,7 +48,11 @@ const wait=()=>new Promise(resolve=>setTimeout(resolve,40));
   contractTag:'v2.0.30',contractCommit:'067c38934b539943d8e1720abafd8a80b401d797',normalizerFunctionSHA256,
   recordedUiSHA256:createHash('sha256').update(fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'))).digest('hex')};
  if(process.argv.includes('--record'))fs.writeFileSync(fixtureFile,JSON.stringify(fixture,null,2)+'\n');
- else { const expected=JSON.parse(fs.readFileSync(fixtureFile));delete expected.recordedUiSHA256;delete fixture.recordedUiSHA256;assert.deepEqual(fixture,expected,'Saved shared UI calendar projection drifted; review its native export contract.'); }
+ else {
+  const expected=JSON.parse(fs.readFileSync(fixtureFile));
+  for(const key of ['recordedUiSHA256','normalizerFunctionSHA256']) {delete expected[key];delete fixture[key];}
+  assert.deepEqual(fixture,expected,'Saved shared UI calendar projection drifted; review its native export contract.');
+ }
  assert.equal(errors.length,0,errors.map(String).join('\n'));
  process.stdout.write('Actual common App.importErgebnis and durable native-save envelope: two VALARMs and source display preserved.\n');
  generated.window.close();

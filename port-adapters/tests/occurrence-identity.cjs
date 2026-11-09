@@ -20,7 +20,7 @@ function inverseChecks() {
     assert.equal(py,apply(source,read),'Mac and Tablet consume identical helper/patch bytes');
   }
   const patch=JSON.parse(read('occurrence-identity-patch.json'));
-  for(const changed of [{...patch,schema:2},{...patch,sha256:'0'.repeat(64)},{...patch,after:patch.after.replace('/*PORT_OCCURRENCE_HELPER*/','changed')}])
+  for(const changed of [{...patch,schema:2},{...patch,sha256:'0'.repeat(64)},{...patch,mainSHA256:'0'.repeat(64)},{...patch,after:patch.after.replace('/*PORT_OCCURRENCE_HELPER*/','changed')}])
     assert.throws(()=>apply(canonical,n=>n==='occurrence-identity-patch.json'?Buffer.from(JSON.stringify(changed)):read(n)),/manifest changed/);
   assert.throws(()=>apply(canonical.replace(patch.before,patch.before+' changed').replace('function termineStarkIdentisch','function driftedTermine'),read),/anchor changed/);
   assert.throws(()=>apply(apply(canonical,read).replace('PORT_OCCURRENCE_IDENTITY_BEGIN','changed'),read,true),/anchor changed/);

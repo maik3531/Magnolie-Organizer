@@ -73,11 +73,15 @@ for (const [p,b] of buffers) if (p.startsWith(desktop + path.sep)) generated.set
 // the canonical Linux/Windows source or the live pointer-motion path.
 const drawingPatch = JSON.parse(buffers.get(path.join(parent,'port-adapters/drawing-finish-patch.json')));
 const drawingSource = generated.get('assets/web/zeichenblatt.js').toString();
-if (drawingPatch.schema !== 1 || sha(drawingSource) !== drawingPatch.canonicalSHA256 ||
-    drawingSource.split(drawingPatch.before).length !== 2 ||
+// main already contains the reviewed Desktop pointer-release correction.
+// Normalize only that exact block before checking the unchanged baseline hash.
+const drawingBase = typeof drawingPatch.releaseBefore === 'string' && typeof drawingPatch.releaseAfter === 'string'
+  ? drawingSource.replace(drawingPatch.releaseAfter,drawingPatch.releaseBefore) : drawingSource;
+if (drawingPatch.schema !== 1 || sha(drawingBase) !== drawingPatch.canonicalSHA256 ||
+    drawingBase.split(drawingPatch.before).length !== 2 ||
     typeof drawingPatch.releaseBefore !== 'string' || typeof drawingPatch.releaseAfter !== 'string' ||
-    drawingSource.split(drawingPatch.releaseBefore).length !== 2) throw Error('Canonical drawing finish anchor changed');
-generated.set('assets/web/zeichenblatt.js',Buffer.from(drawingSource.replace(drawingPatch.before,drawingPatch.after).replace(drawingPatch.releaseBefore,drawingPatch.releaseAfter)));
+    drawingBase.split(drawingPatch.releaseBefore).length !== 2) throw Error('Canonical drawing finish anchor changed');
+generated.set('assets/web/zeichenblatt.js',Buffer.from(drawingBase.replace(drawingPatch.before,drawingPatch.after).replace(drawingPatch.releaseBefore,drawingPatch.releaseAfter)));
 // Android does not provide the desktop's Noto Serif / DejaVu families by name.
 // Reuse live Windows @font-face definitions and bytes, never host font discovery.
 const fontFaces = buffers.get(path.join(windowsWeb,'stil.css')).toString().match(/@font-face\s*\{[^}]+\}/g) || [];
@@ -110,11 +114,19 @@ const alarmRebuildAnchor = `    for (const alarm of saubereAlarme(termin.alarme)
       neu.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":" + trigger,
         "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
     }`;
-for (const anchor of [alarmHelperAnchor,alarmRebuildAnchor])
-  if (regionalSource.split(anchor).length !== 2) throw Error('Canonical DISPLAY alarm anchor changed');
-regionalSource = regionalSource.replace(alarmHelperAnchor,
-  '/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n'+alarmHelper+'/*PORT_DISPLAY_ALARM_HELPER_END*/\n'+alarmHelperAnchor)
-  .replace(alarmRebuildAnchor,'    neu.push(...portDisplayAlarmLines(termin, vorher, alt));');
+if (regionalSource.split(alarmHelperAnchor).length !== 2) throw Error('Canonical DISPLAY alarm anchor changed');
+if (regionalSource.split(alarmRebuildAnchor).length === 2) {
+  regionalSource = regionalSource.replace(alarmHelperAnchor,
+    '/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n'+alarmHelper+'/*PORT_DISPLAY_ALARM_HELPER_END*/\n'+alarmHelperAnchor)
+    .replace(alarmRebuildAnchor,'    neu.push(...portDisplayAlarmLines(termin, vorher, alt));');
+} else {
+  const accepted = JSON.parse(buffers.get(path.join(parent,'port-adapters/display-alarm-source.json')));
+  const begin=regionalSource.indexOf('  function erhalteDisplayAlarme(termin, vorher, alt) {');
+  const end=regionalSource.indexOf(alarmHelperAnchor,begin);
+  if (accepted.schema!==1 || begin<0 || end<begin || sha(regionalSource.slice(begin,end))!==accepted.mainHelperSHA256 ||
+      regionalSource.split('    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));').length!==2)
+    throw Error('Canonical DISPLAY alarm anchor changed');
+}
 const automaticZoneAnchor = '  async function aktualisiereAutomatischeZeitzone() {';
 if (regionalSource.split(automaticZoneAnchor).length !== 2) throw Error('Desktop automatic time-zone anchor changed');
 // Android Beta has no native source-bound detection. Preserve imported settings
@@ -160,11 +172,16 @@ sourceRenderer = sourceRenderer.replace(davSourceAnchor,davSourceAnchor+davPatch
   'nutzlast = window.TabletDav.sourceView(nutzlast, DATEN.einstellungen.sync); try {'));
 regionalSource = regionalSource.slice(0,sourceStart)+sourceRenderer+regionalSource.slice(sourceEnd);
 // Preserve calendar-level source properties in the very same canonical book save as its records.
-const calendarMergeAnchor = '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n      if (changed) {';
+const calendarMergeCall = [
+  '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);',
+  '      const { teile, doppelt, counts, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);'
+].find(call=>regionalSource.includes(call+'\n      if (changed) {'));
+if (!calendarMergeCall) throw Error('Canonical calendar merge anchor changed');
+const calendarMergeAnchor = calendarMergeCall+'\n      if (changed) {';
 if (regionalSource.split(calendarMergeAnchor).length !== 2) throw Error('Canonical calendar merge anchor changed');
 regionalSource = regionalSource.replace(calendarMergeAnchor,
   '/*TABLET_ICS_MERGE_BEGIN*/      const calendarMetadata = window.Tablet.calendarMetadata(DATEN, nutzlast, false);\n/*TABLET_ICS_MERGE_END*/' +
-  '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);\n' +
+  calendarMergeCall+'\n' +
   '      if (changed/*TABLET_ICS_SAVE_BEGIN*/ || calendarMetadata/*TABLET_ICS_SAVE_END*/) {/*TABLET_ICS_COMMIT_BEGIN*/\n' +
   '        if (calendarMetadata) window.Tablet.calendarMetadata(DATEN, nutzlast, true);/*TABLET_ICS_COMMIT_END*/');
 const calendarExportAnchor = '  function starteExport(art) {';
@@ -203,7 +220,8 @@ for (const [p,b] of buffers) if (p.startsWith(desktop+'/i18n/')) {
 generated.set('assets/web/i18n-active.js',Buffer.from(active));
 html = html.replace('<script src="tablet.js">', '<script src="beta-i18n.js"></script>\n<script src="tablet.js">');
 const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)];
-if (scripts.length !== 12) throw Error('Tablet ordered startup script set changed');
+const expectedScripts = ['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','zeichenblatt.js','mcp-protocol.js','contact-group-aliases.js','qr-decoder.js','qr-dialog.js',...(generated.has('assets/web/appearance.js') ? ['appearance.js'] : []),'anwendung.js'];
+if (JSON.stringify(scripts.map(item=>item[1])) !== JSON.stringify(expectedScripts)) throw Error('Tablet ordered startup script set changed');
 html = html.replace(/<script src="([^"]+)"><\/script>/g, '<script src="$1" defer></script>');
 generated.set('assets/web/index.html',Buffer.from(html));
 const labels = {cancel:'Cancel', close:'Close', import_label:'Import', export_label:'Export',
