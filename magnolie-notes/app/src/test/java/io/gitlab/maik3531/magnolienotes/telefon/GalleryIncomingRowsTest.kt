@@ -75,6 +75,8 @@ class GalleryIncomingRowsTest {
         var pending = 1L
         var writeOpens = 0
         var readOpens = 0
+        var afterReadOpen: () -> Unit = {}
+        var lastReadDescriptor: java.io.FileDescriptor? = null
         var failReadback = false
         var corruptReadback: File? = null
         var allowPublish = false
@@ -129,6 +131,8 @@ class GalleryIncomingRowsTest {
             check(mode == "r"); readOpens++
             return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).also {
                 NativeIncomingMediaInspectionTest.FixtureLinux.files[it.fileDescriptor] = file
+                lastReadDescriptor = it.fileDescriptor
+                try { afterReadOpen() } catch (error: Throwable) { it.close(); throw error }
             }
         }
         override fun openTypedAssetFile(uri: Uri, mimeType: String, opts: Bundle?): AssetFileDescriptor {
@@ -841,7 +845,8 @@ class GalleryIncomingRowsTest {
         val original: GalleryIncomingPublication, val oldBytes: ByteArray, val originalFile: File,
         val token: MediaSyncTransport.IntentToken, val incoming: java.util.concurrent.atomic.AtomicReference<Any?>,
         val link: NativeGalleryIncomingTransferTest.Link, val grant: NativeGalleryPcWriteGrant,
-        val plan: GalleryPcReplacementPlan, val bytes: ByteArray, val context: android.content.Context) : AutoCloseable {
+        val plan: GalleryPcReplacementPlan, val bytes: ByteArray, val context: android.content.Context,
+        val rows: NativeGalleryIncomingRows, val archiveRoot: File) : AutoCloseable {
         private val transfers = mutableListOf<NativeGalleryPcReplacementTransfer>()
         fun prepare(boundary: (String) -> Unit = {}) = f.io {
             NativeGalleryPcReplacementTransfer.prepare(context, f.index, plan, grant, link.channel, boundary)
@@ -922,7 +927,7 @@ class GalleryIncomingRowsTest {
                         override fun getApplicationContext(): android.content.Context = this
                         override fun getNoBackupFilesDir(): File = base
                     }
-                    PcStageCase(f, provider, published, raw, payload, activeToken, incoming, link, grant!!, plan, bytes, context).use(action)
+                    PcStageCase(f, provider, published, raw, payload, activeToken, incoming, link, grant!!, plan, bytes, context, rows, archiveRoot).use(action)
                 } finally { host.close(); controller.pause().stop().destroy(); request.close() }
             }
         }
@@ -1233,6 +1238,109 @@ class GalleryIncomingRowsTest {
             assertArrayEquals(retained, foreign.readBytes()); h.assertOriginal()
             assertTrue(h.f.index.pcStages().single().sealed)
         }
+    }
+
+    @Test fun pcBeforeWriteJournalRequiresTheActualSealedStageOriginalFdAndIndependentArchiveWithoutAnyOriginalWrite() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        val before = h.f.rows(); val reads = h.provider.readOpens
+        val record = h.f.io {
+            NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                transfer.prepareBeforeWrite(h.rows, archive)
+            }
+        }
+        assertEquals(reads + 1, h.provider.readOpens)
+        assertFalse(record.grantsWriteAuthority); assertEquals("before_write", record.body.string("state"))
+        assertEquals(h.oldBytes.size.toLong(), record.body.getValue("descriptor").jsonObject.long("size"))
+        assertEquals(record.body, h.f.index.pcBeforeWrite(h.plan.id)!!.body)
+        assertEquals(before.filterKeys { it != PhotoSourceMembership.NAME }, h.f.rows().filterKeys {
+            it != PhotoSourceMembership.NAME && !it.startsWith(GalleryPcPreWriteRecord.PREFIX)
+        }); h.assertOriginal(); h.grant.requireUnused()
+        val stage = NativeGalleryPcReplacementTransfer::class.java.getDeclaredField("stage").apply { isAccessible = true }.get(transfer) as NativeGalleryPcStage
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { h.f.index.recordPcBeforeWrite(h.rows, stage, h.grant, record) } }
+        val invalid = listOf(
+            JsonObject(record.body + ("state" to JsonPrimitive("written"))),
+            JsonObject(record.body + ("saved" to JsonPrimitive(true))),
+            JsonObject(record.body + ("descriptor" to JsonObject(record.body.getValue("descriptor").jsonObject + ("links" to JsonPrimitive(2))))),
+            JsonObject(record.body + ("descriptor" to JsonObject(record.body.getValue("descriptor").jsonObject + ("size" to JsonPrimitive(h.oldBytes.size + 1))))),
+            JsonObject(record.body + ("descriptor" to JsonObject(record.body.getValue("descriptor").jsonObject + ("inode" to JsonPrimitive("1")))))
+        )
+        for (value in invalid) assertThrows(PhotoFolderScopeError::class.java) { GalleryPcPreWriteRecord.parse(value) }
+        val retained = h.f.rows(); val actualReads = h.provider.readOpens
+        h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            assertThrows(PhotoFolderScopeError::class.java) { transfer.prepareBeforeWrite(h.rows, archive) }
+        } }
+        assertEquals(actualReads, h.provider.readOpens); assertEquals(retained, h.f.rows()); h.assertOriginal()
+        transfer.close(); assertTrue(transfer.awaitIoEnded(0)); h.f.session.close(); h.f.index.close()
+        PhotoSourceJobIndex.openExisting(h.f.indexRoot, h.f.protection).use { offline ->
+            assertEquals(record.body, offline.pcBeforeWrite(h.plan.id)!!.body); assertFalse(offline.pcBeforeWrite(h.plan.id)!!.grantsWriteAuthority)
+        }
+    }
+
+    @Test fun pcBeforeWriteRechecksActualOriginalArchiveAndOwnerAndDoesNotTrustTheStageMetadataAlone() {
+        for (reason in listOf("original", "row", "archive", "grant", "cancel", "wrong_index")) withPcStage { h ->
+            val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+            val before = h.f.rows()
+            val cancel = CancellationSignal()
+            when (reason) {
+                "original" -> h.originalFile.writeBytes(h.oldBytes.copyOf().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() })
+                "row" -> h.provider.wrongOwner = true
+                "grant" -> h.grant.request.close()
+                "cancel" -> cancel.cancel()
+            }
+            val root = if (reason == "archive") java.nio.file.Files.createTempDirectory(h.f.root.toPath(), "wrong-pc-archive-").toFile() else h.archiveRoot
+            h.f.io {
+                NativeGalleryTrashArchive(root, h.f.protection, allowCreate = reason == "archive").use { archive ->
+                    if (reason == "cancel") assertThrows(android.os.OperationCanceledException::class.java) { transfer.prepareBeforeWrite(h.rows, archive, cancel) }
+                    else if (reason == "wrong_index") {
+                        val otherRoot = java.nio.file.Files.createTempDirectory(h.f.root.toPath(), "wrong-pc-index-").toFile()
+                        PhotoSourceJobIndex(otherRoot, h.f.protection).use { other ->
+                            val rows = NativeGalleryIncomingRows(h.f.app, other)
+                            assertThrows(PhotoFolderScopeError::class.java) { transfer.prepareBeforeWrite(rows, archive) }
+                        }
+                    } else assertThrows(PhotoFolderScopeError::class.java) { transfer.prepareBeforeWrite(h.rows, archive) }
+                }
+            }
+            assertNull(h.f.index.pcBeforeWrite(h.plan.id)); assertEquals(before, h.f.rows())
+            if (reason == "original") h.originalFile.writeBytes(h.oldBytes)
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun pcBeforeWriteUncertainCommitRetainsTheExactObservationButCannotResumeOrOpenOriginalForWrite() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        h.f.hook = { if (it == "gallery-pc-before-write-recorded") h.grant.request.close() }
+        h.f.io {
+            NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                assertThrows(PhotoFolderScopeError::class.java) { transfer.prepareBeforeWrite(h.rows, archive) }
+                assertThrows(PhotoFolderScopeError::class.java) { transfer.prepareBeforeWrite(h.rows, archive) }
+            }
+        }
+        h.f.hook = {}
+        val held = h.f.index.pcBeforeWrite(h.plan.id)!!; assertFalse(held.grantsWriteAuthority); h.assertOriginal()
+        assertTrue(transfer.awaitIoEnded(0)); val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+    }
+
+    @Test fun pcBeforeWriteCancellationWaitsForTheActualProviderReadDescriptorBeforeReleasingTheLane() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        h.provider.afterReadOpen = { entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+        val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val worker = Thread {
+            try { h.f.io {
+                NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                    transfer.prepareBeforeWrite(h.rows, archive)
+                }
+            } } catch (error: Throwable) { failure.set(error) }
+        }.also { it.start() }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); transfer.close()
+            assertTrue(worker.isAlive); assertTrue(h.provider.lastReadDescriptor!!.valid()); assertFalse(transfer.awaitIoEnded(0))
+            val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+        } finally { release.countDown(); worker.join(7000); h.provider.afterReadOpen = {} }
+        assertFalse(worker.isAlive); assertFalse(h.provider.lastReadDescriptor!!.valid())
+        assertTrue(failure.get() is PhotoFolderScopeError); assertTrue(transfer.awaitIoEnded(0))
+        assertNull(h.f.index.pcBeforeWrite(h.plan.id)); h.assertOriginal()
+        val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
     }
 
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {

@@ -1136,9 +1136,57 @@ Observer-FD-Drain und paralleles Versiegeln. Die Budgetprobe verwendet nur
 synthetische geschützte Reservierungsmetadaten, keine 400-MiB-Nutzdatenkopie.
 Dies sind Hostnachweise mit synthetischem Provider/OS-Grant, keine Android-Geräte-
 oder Einwilligungsabnahme. Für diesen Stagingstand wird kein R8-Nachweis behauptet.
-Der eigentliche Writer mit dauerhaftem Vor-/Nach-Schreib-Journal, erneuter
-Ziel-/FD-/Archivprüfung und History-CAS sowie Runtime/UI-Anschluss fehlen noch.
+Der eigentliche Writer mit Schreibbeginn-/Nach-Schreib-Transitionen und
+History-CAS sowie Runtime/UI-Anschluss fehlen noch. Die folgende zusätzliche
+Vorprüfung ersetzt insbesondere keine Prüfung des künftig schreibenden FDs.
 Gerätepause, Feature- und Auslieferungsgates bleiben bestehen.
+
+### Notes: tatsächliche Vor-Schreib-Prüfung ohne Schreiböffnung
+
+Der lebende fertig gestagte Bild-Nachfolger kann unter derselben ursprünglichen
+OS-Aktion und IO-Bahn einen separaten `before_write`-Beobachtungseintrag erzeugen.
+Dafür werden die genaue weiterhin veröffentlichte PC-Vorgängerzeile und ihre
+Eigentümer-/Namespace-/Revisions-/Größenzeugen erneut abgefragt. Ein tatsächlicher
+Original-Lese-FD wird ohne Transcodierung und ohne Assetoffset geöffnet, vollständig
+gegen den alten Rohhash gelesen und nativ auf Bildtyp geprüft. Regular-File,
+Gerät/Inode, Modus, Linkzahl, UID/GID, Größe und Nanosekunden-mtime/ctime werden
+vor und nach der Prüfung sowie nach dem Commit verglichen. Der Lese-FD bleibt
+während des geschützten Journal-Commit und seines Readback tatsächlich offen.
+
+Das unabhängige bestehende Recovery-Archiv wird erneut inhaltlich geprüft; der
+exakte ursprüngliche Eintrag mit Version, Rohhash/-größe, vollständiger
+Vorgängerpublikation und ursprünglichem Buchzeugen muss übereinstimmen. Ein
+anderer Archivstore oder ein gespeichertes `sealed` allein genügt nicht. Auch
+die Stagingbytes werden erneut vollständig geprüft. Alle Schritte bleiben an
+den ursprünglichen Kanal/Control/Grant, vollen Intent, Buch und Frist gebunden.
+Ein direkter Indexaufruf mit nachgebauten Metadaten ist gesperrt: Nur die Rows-
+Instanz mit tatsächlichem threadlokalem Prüf-FD-Besitz darf genau ihren Eintrag
+unter derselben Stage-/Grant-/IO-Bahn veröffentlichen. Innerhalb der Indexsperre
+werden nur lokale Aktions-/Cancellationzeugen geprüft, keine Transportsperren.
+
+Der genaue neue geschützte Präfix hat ein eigenes 128er-Metadatenlimit; bestehende
+Source-, History-, Staging- und Incominglimits werden nicht angehoben. Der Eintrag
+bewahrt die vollständige versiegelte Stage und den nativen FD-Zeugen. Er besagt
+ausdrücklich weder „Schreiben begonnen“ noch „geschrieben“ oder Saved und besitzt
+keine Schreib-/Neustartautorität. Doppelte Aufnahme öffnet keinen weiteren
+Original-FD. Entzug unmittelbar nach Commit hinterlässt den gehaltenen Eintrag,
+aber keinen fortsetzbaren Writer. Cancellation gibt die IO-Bahn erst nach dem
+wirklichen Ende von Original-FD und Archiv-IO frei.
+
+176 betroffene Rows-/Runtime-/Transfer-/Index-Hostfälle bestehen, einschließlich
+vier neuer Fälle mit tatsächlichem Original-Lese-FD, unabhängigem Archiv,
+geschütztem Readback und passiver Wiederlesbarkeit nach Sitzungsschluss,
+Original-/Zeilen-/Archiv-/Grant-/Index-/Cancellation-Negativen, gesperrter
+Metadatenfabrikation, Duplikat-HOLD, Entzug nach Commit und blockiertem tatsächlich
+offenem Provider-FD bis zu dessen nachgewiesenem Schließen. Originalbytes,
+Publikation und Historie bleiben unverändert; keine Schreiböffnung, neue Zeile,
+Saved-Ausgabe oder Grant-Verbrauch erfolgt. Mit fünf unveränderten früheren
+Descriptor-Medienfällen sind es 181 unterschiedliche Hostfälle. Dies ist weiterhin
+kein tatsächlicher Android-OS-/Provider-Abnahmenachweis oder R8-Nachweis.
+Ein künftiger Writer muss insbesondere seinen eigenen frisch geöffneten
+schreibenden FD gegen den genauen Vorprüfzeugen abgleichen und Schreibbeginn,
+vollständigen Postwrite-Readback sowie History-CAS dauerhaft absichern. Das ist
+hier noch nicht implementiert; der normale PC-Nachfolger-HOLD bleibt bestehen.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

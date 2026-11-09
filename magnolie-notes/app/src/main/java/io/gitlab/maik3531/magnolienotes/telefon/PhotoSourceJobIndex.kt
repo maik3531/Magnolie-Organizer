@@ -729,6 +729,39 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         return plan
     }
 
+    internal fun pcBeforeWrite(id: String): GalleryPcPreWriteRecord? = gated {
+        if (!Regex("[0-9a-f]{32}").matches(id)) fail("gallery_pc_before_write_changed")
+        val name = GalleryPcPreWriteRecord.PREFIX + id
+        meta(name)?.let { cipher ->
+            GalleryPcPreWriteRecord.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name))).also { record ->
+                if (record.id != id || pcStage(id)?.body != record.stage.body) fail("gallery_pc_before_write_changed")
+            }
+        }
+    }
+    internal fun recordPcBeforeWrite(rows: NativeGalleryIncomingRows, stage: NativeGalleryPcStage,
+        grant: NativeGalleryPcWriteGrant, record: GalleryPcPreWriteRecord) {
+        grant.requireUnused(); grant.request.admission.requireIndex(this); stage.requireCurrent()
+        rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+        gated {
+            writableMembership(); rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+            if (record.stage.body != stage.record.body || pcStage(record.id)?.body != record.stage.body || pcBeforeWrite(record.id) != null)
+                fail("gallery_pc_before_write_original_operation_required")
+            val count = db.rawQuery("SELECT COUNT(*) FROM source_meta WHERE name LIKE ?", arrayOf(GalleryPcPreWriteRecord.PREFIX + "%"))
+                .use { it.moveToFirst(); it.getLong(0) }
+            if (count >= GalleryPcPreWriteRecord.MAX_RECORDS) fail("gallery_pc_before_write_capacity")
+            val name = GalleryPcPreWriteRecord.PREFIX + record.id
+            val cipher = protection.seal(frame(record.body), "photo-source-jobs-v1/" + name)
+            transaction {
+                rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+                if (meta(name) != null) fail("gallery_pc_before_write_original_operation_required")
+                putMeta(name, cipher); rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+            }
+            boundary("gallery-pc-before-write-recorded")
+            if (pcBeforeWrite(record.id)?.body != record.body) fail("gallery_pc_before_write_readback_failed")
+        }
+        grant.requireUnused(); stage.requireCurrent(); rows.requireVerifiedPcBeforeWrite(stage, grant, record)
+    }
+
     internal fun pcStages(): List<GalleryPcStageRecord> = gated {
         val names = mutableListOf<String>()
         db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryPcStageRecord.PREFIX + "%"), null, null, "name",

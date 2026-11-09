@@ -151,6 +151,15 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
         if (!finished.get()) fail("gallery_pc_stage_not_complete")
         stage.readAt(position, target, offset, length).also { current() }
     }
+    /** Still no writer: recheck the real original and independent recovery
+     * archive under this exact live lane, then durably record the observation. */
+    internal fun prepareBeforeWrite(rows: NativeGalleryIncomingRows, archive: NativeGalleryTrashArchive,
+        cancellation: android.os.CancellationSignal = android.os.CancellationSignal()): GalleryPcPreWriteRecord = io {
+        current()
+        if (!finished.get()) fail("gallery_pc_stage_not_complete")
+        grant.requireUnused(); stage.verifyRaw()
+        rows.preparePcBeforeWrite(stage, grant, archive, lane, cancellation).also { current() }
+    }
     override fun close() {
         synchronized(lifecycle) { if (!ended.compareAndSet(false, true)) return }
         try { stage.close(); owner.close(); grant.request.close() }

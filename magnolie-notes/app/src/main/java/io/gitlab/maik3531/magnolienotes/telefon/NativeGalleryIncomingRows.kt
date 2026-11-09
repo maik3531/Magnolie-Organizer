@@ -349,6 +349,104 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         owner.requireArchiveBook(permit)
     }
 
+    private class VerifiedPcBeforeWrite(val stage: NativeGalleryPcStage, val grant: NativeGalleryPcWriteGrant,
+        val record: GalleryPcPreWriteRecord, val lane: Any, val cancellation: CancellationSignal)
+    private val verifiedPcBeforeWrite = ThreadLocal<VerifiedPcBeforeWrite?>()
+    /** Only the actual original-FD verification below can publish this proof.
+     * Local-only checks are safe inside the protected index transaction. */
+    internal fun requireVerifiedPcBeforeWrite(stage: NativeGalleryPcStage, grant: NativeGalleryPcWriteGrant,
+        record: GalleryPcPreWriteRecord) {
+        val actual = verifiedPcBeforeWrite.get()
+        if (actual == null || actual.stage !== stage || actual.grant !== grant || actual.record !== record ||
+            !NativeGalleryMediaIoLane.isOwnedBy(actual.lane)) fail("gallery_pc_before_write_native_proof_required")
+        actual.cancellation.throwIfCanceled(); grant.request.admission.requireLocal()
+    }
+
+    /** Read-only preflight. A future writable FD must itself be freshly checked
+     * against this descriptor witness; this record cannot authorize that open. */
+    internal fun preparePcBeforeWrite(stage: NativeGalleryPcStage, grant: NativeGalleryPcWriteGrant,
+        archive: NativeGalleryTrashArchive, lane: Any, cancellation: CancellationSignal): GalleryPcPreWriteRecord {
+        if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30 || !NativeGalleryMediaIoLane.isOwnedBy(lane))
+            fail("gallery_pc_before_write_native_proof_required")
+        val admission = grant.request.admission
+        fun current() {
+            cancellation.throwIfCanceled(); admission.requireIndex(index); grant.requireUnused(); stage.requireCurrent()
+        }
+        current()
+        val staged = stage.record
+        if (!staged.sealed || staged.plan.predecessor.body != admission.publication.body ||
+            index.pcBeforeWrite(staged.id) != null) fail("gallery_pc_before_write_original_operation_required")
+        val publication = admission.publication; val row = publication.row!!
+        val uri = Uri.parse(row.string("uri")); val size = publication.body.long("size"); val mime = publication.body.string("mime_type")
+        val kind = GalleryMediaType.entries.single { it.uriSegment == publication.body.string("media_type") }
+        fun checkRow() {
+            if (observeRow(kind, ::current, uri, mime, size..size, 0).witness != row) fail("gallery_incoming_original_row_changed")
+        }
+        fun checkArchive() {
+            current()
+            val origin = archive.verifiedOrigin(grant.request.entry, admission.archiveBook)
+            if (origin["publication"] != publication.body || origin["book_version"] != staged.plan.body["book_version"] ||
+                staged.plan.body.getValue("archive").jsonObject != buildJsonObject {
+                    put("id", grant.request.entry.id); put("version", grant.request.entry.version)
+                    put("size", grant.request.entry.bytes); put("sha256", grant.request.entry.sha256)
+                }) fail("gallery_pc_before_write_archive_changed")
+            current()
+        }
+        fun descriptorWitness(descriptor: java.io.FileDescriptor): JsonObject {
+            current(); val stat = android.system.Os.fstat(descriptor)
+            if (!android.system.OsConstants.S_ISREG(stat.st_mode) || stat.st_size != size || stat.st_nlink != 1L)
+                fail("gallery_pc_before_write_descriptor_changed")
+            return buildJsonObject {
+                put("device", stat.st_dev); put("inode", stat.st_ino); put("mode", stat.st_mode); put("links", stat.st_nlink)
+                put("uid", stat.st_uid); put("gid", stat.st_gid); put("size", stat.st_size)
+                put("mtime_s", stat.st_mtim.tv_sec); put("mtime_ns", stat.st_mtim.tv_nsec)
+                put("ctime_s", stat.st_ctim.tv_sec); put("ctime_ns", stat.st_ctim.tv_nsec)
+            }
+        }
+        fun verify(descriptor: ParcelFileDescriptor): GalleryPcPreWriteRecord {
+            val before = descriptorWitness(descriptor.fileDescriptor)
+            android.system.Os.lseek(descriptor.fileDescriptor, 0, android.system.OsConstants.SEEK_SET)
+            val hash = MessageDigest.getInstance("SHA-256"); var bytes = 0L
+            ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor.fileDescriptor)).use { input ->
+                val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES)
+                try {
+                    while (bytes < size) {
+                        current(); val count = input.read(buffer, 0, minOf(buffer.size.toLong(), size - bytes).toInt()); current()
+                        if (count <= 0) fail("gallery_pc_before_write_content_changed")
+                        hash.update(buffer, 0, count); bytes += count
+                    }
+                    current()
+                    if (input.read() != -1 || NativeHex.lower(hash.digest()) != publication.body.string("sha256"))
+                        fail("gallery_pc_before_write_content_changed")
+                } finally { buffer.fill(0) }
+            }
+            NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, size, kind, mime, ensureNative = ::current)
+            checkArchive(); stage.verifyRaw(); checkRow()
+            if (descriptorWitness(descriptor.fileDescriptor) != before) fail("gallery_pc_before_write_descriptor_changed")
+            val record = GalleryPcPreWriteRecord.create(staged, before)
+            if (verifiedPcBeforeWrite.get() != null) fail("gallery_pc_before_write_native_proof_required")
+            verifiedPcBeforeWrite.set(VerifiedPcBeforeWrite(stage, grant, record, lane, cancellation))
+            try {
+                index.recordPcBeforeWrite(this, stage, grant, record)
+                checkRow(); current()
+                if (descriptorWitness(descriptor.fileDescriptor) != before) fail("gallery_pc_before_write_descriptor_changed")
+                return record
+            } finally { verifiedPcBeforeWrite.remove() }
+        }
+        checkRow(); checkArchive(); current()
+        val original = MediaStore.setRequireOriginal(uri)
+        if (Build.VERSION.SDK_INT >= 31) {
+            val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
+                putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)
+            }, cancellation) ?: fail("gallery_incoming_readback_missing")
+            return asset.use {
+                if (it.startOffset != 0L) fail("gallery_incoming_original_offset_changed")
+                verify(it.parcelFileDescriptor)
+            }
+        }
+        return (resolver.openFileDescriptor(original, "r", cancellation) ?: fail("gallery_incoming_readback_missing")).use(::verify)
+    }
+
     internal fun readVerifiedPcArchiveChunks(archive: NativeGalleryTrashArchive, owner: NativeGalleryPublishedInspection,
         permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal, consume: (ByteArray) -> Unit) {
         fun current() { cancellation.throwIfCanceled(); requireVerifiedArchive(archive, owner, permit) }
