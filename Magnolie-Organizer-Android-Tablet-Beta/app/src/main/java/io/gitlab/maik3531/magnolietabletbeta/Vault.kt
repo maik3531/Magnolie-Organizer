@@ -162,7 +162,10 @@ internal class Vault(directory: File, key: () -> SecretKey,
 
     @Synchronized fun save(session: DocumentSession, text: String, alarms: JSONArray): JSONObject {
         requireSession(session)
-        val data = parseObject(text)
+        val current=read()
+        check(current?.getString("revision")?.let {it==session.revision} ?: newDocument) {"Stale document revision"}
+        val loaded=current?.getJSONObject("data")?.let {VaultJson.encode(it,16 * 1024 * 1024)}
+        val data = parseObject(OrdinarySaveEpochPolicy(loaded).prepare(text))
         validateData(data)
         require(alarms.length() <= 100000)
         for (i in 0 until alarms.length()) {
@@ -172,7 +175,7 @@ internal class Vault(directory: File, key: () -> SecretKey,
             require(a.getString("title").length <= 300)
             a.getBoolean("custom")
         }
-        val value = read() ?: JSONObject().put("format", 1).put("enabled", false)
+        val value = current ?: JSONObject().put("format", 1).put("enabled", false)
             .put("customEnabled", false).put("delivered", JSONObject())
         value.put("data", data).put("alarms", alarms).put("revision", UUID.randomUUID().toString())
         // Keep delivery receipts only for live alarms; edits/deletions invalidate old schedules.
@@ -210,23 +213,28 @@ internal class Vault(directory: File, key: () -> SecretKey,
         check(candidate.session == session && candidate.token == token) { "Stale import authorization" }
         pendingImport = null; currentSession = null; activated = false
         try {
-            val data = parseObject(candidate.text)
-            validateData(data)
-            val replacement = JSONObject().put("format", 1).put("data", data).put("alarms", JSONArray())
-                .put("enabled", false).put("customEnabled", false).put("delivered", JSONObject())
-                .put("revision", UUID.randomUUID().toString())
-            VaultJson.encode(replacement,MAX_BYTES) // Reject the full output before changing any recovery file.
+            val incoming = parseObject(candidate.text)
+            validateData(incoming)
             val before = readSnapshot() ?: error("Initial state not saved")
-            val backup = File(directory, "before-import.enc")
-            val pending = File(directory, "before-import.pending")
-            val bytes = try {crypto.verschluesseln(before.plaintext,"before-import.enc")}
-                finally {before.plaintext.fill(0)}
-            fileOps.writeAndSync(pending, bytes, MAX_BYTES + 1024)
-            fileOps.atomicReplace(pending, backup)
-            syncDirectory(directory)
-            checkpoint("backup-sync")
-            commit(replacement)
-            return replacement
+            try {
+                // The epoch and quarantine are native, once per authenticated selected import.
+                val data=BookRestore.transform(incoming,before.value.getJSONObject("data"),UUID.randomUUID(),System.currentTimeMillis())
+                validateData(data)
+                check(OrdinarySaveEpochPolicy(VaultJson.encode(data,16 * 1024 * 1024)).classification==OrdinarySaveEpochPolicy.Classification.PROTECTED)
+                val replacement = JSONObject().put("format", 1).put("data", data).put("alarms", JSONArray())
+                    .put("enabled", false).put("customEnabled", false).put("delivered", JSONObject())
+                    .put("revision", UUID.randomUUID().toString())
+                VaultJson.encode(replacement,MAX_BYTES) // Reject the full output before changing any recovery file.
+                val backup = File(directory, "before-import.enc")
+                val pending = File(directory, "before-import.pending")
+                val bytes = crypto.verschluesseln(before.plaintext,"before-import.enc")
+                fileOps.writeAndSync(pending, bytes, MAX_BYTES + 1024)
+                fileOps.atomicReplace(pending, backup)
+                syncDirectory(directory)
+                checkpoint("backup-sync")
+                commit(replacement)
+                return replacement
+            } finally {before.plaintext.fill(0)}
         } catch (error: CommitFailure) { throw error }
         catch (error: Exception) { throw CommitFailure("before-commit", error) }
     }

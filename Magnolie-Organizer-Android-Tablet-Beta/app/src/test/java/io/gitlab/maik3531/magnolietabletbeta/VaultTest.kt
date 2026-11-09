@@ -19,6 +19,19 @@ class VaultTest {
     private fun alarm(custom: Boolean = false) = JSONObject().put("id","a").put("at",100000L)
         .put("title","Private task").put("section","aufgaben").put("custom",custom)
     private fun reject(block: () -> Unit) { try { block(); fail("Must reject") } catch (_: Exception) {} }
+    private fun restoredPayload(expected:JSONObject,actual:JSONObject) {
+        for(key in expected.keys().asSequence()) {
+            if(key=="einstellungen") {
+                val source=expected.getJSONObject(key);val target=actual.getJSONObject(key)
+                for(setting in source.keys().asSequence()) assertTrue(JSONObject().put("v",source.get(setting)).similar(JSONObject().put("v",target.get(setting))))
+            } else assertTrue(key,JSONObject().put("v",expected.get(key)).similar(JSONObject().put("v",actual.get(key))))
+        }
+        assertEquals(expected.keys().asSequence().toSet()+setOf("syncEpoch","syncMetadaten","geloescht","tombstones","baumKontaktGeloescht","syncNachRestore","personalSync"),actual.keys().asSequence().toSet())
+        val epoch=actual.getString("syncEpoch");java.util.UUID.fromString(epoch)
+        assertEquals(epoch,actual.getJSONObject("syncMetadaten").getString("syncEpoch"))
+        assertEquals(epoch,actual.getJSONObject("einstellungen").getJSONObject("sync").getString("syncEpoch"))
+        assertTrue(actual.getJSONObject("syncNachRestore").getBoolean("additiv"))
+    }
     private fun Vault.session(): DocumentSession = openSession().session.also { activate(it) }
     // Unrelated primitive tests explicitly start a new loaded/acknowledged page per operation.
     private fun Vault.save(text: String, alarms: JSONArray): JSONObject = save(session(),text,alarms)
@@ -213,8 +226,8 @@ class VaultTest {
             val current=vault.session(); val currentToken=vault.prepareImport(current,imported.toString())
             reject {vault.replace(DocumentSession("another-activity",current.revision),currentToken)}
             val result=vault.replace(current,currentToken)
-            assertTrue(imported.similar(result.getJSONObject("data")))
-            assertTrue(imported.similar(vault.read()!!.getJSONObject("data")))
+            restoredPayload(imported,result.getJSONObject("data"))
+            restoredPayload(imported,vault.read()!!.getJSONObject("data"))
             assertNotEquals(current.revision,result.getString("revision"))
             reject {vault.save(current,data("A").toString(),JSONArray())}
             reject {vault.replace(current,currentToken)}
@@ -222,7 +235,7 @@ class VaultTest {
             assertNotEquals(current.id,loaded.session.id)
             reject {recreated.activate(current)}
             recreated.activate(loaded.session)
-            assertTrue(imported.similar(loaded.value!!.getJSONObject("data")))
+            restoredPayload(imported,loaded.value!!.getJSONObject("data"))
             assertFalse(loaded.value.getBoolean("enabled")); assertFalse(loaded.value.getBoolean("customEnabled"))
         } finally {dir.deleteRecursively()}
     }

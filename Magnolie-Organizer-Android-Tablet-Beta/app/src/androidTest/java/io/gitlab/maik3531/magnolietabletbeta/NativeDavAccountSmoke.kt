@@ -242,17 +242,33 @@ internal object NativeDavAccountSmoke {
             val saved=actual();exact(saved)
             val next=Vault(directory,{key},fileOps=ops);val loaded=next.openSession();next.activate(loaded.session)
             check(loaded.value!!.getJSONObject("data").getDouble("futureNumber")==9223372036854775808.0)
-            next.replace(loaded.session,next.prepareImport(loaded.session,literal))
+            val archivedEpoch="11111111-1111-4111-8111-111111111111"
+            val archive=literal.dropLast(1)+",\"syncEpoch\":\"$archivedEpoch\",\"syncMetadaten\":{\"syncEpoch\":\"$archivedEpoch\"}}"
+            val restored=next.replace(loaded.session,next.prepareImport(loaded.session,archive)).getJSONObject("data")
+            val epoch=restored.getString("syncEpoch");UUID.fromString(epoch);check(epoch!=archivedEpoch)
+            check(restored.getJSONObject("syncMetadaten").getString("syncEpoch")==epoch)
+            check(restored.getJSONObject("einstellungen").getJSONObject("sync").getString("syncEpoch")==epoch)
+            check(restored.getJSONObject("syncNachRestore").getBoolean("additiv"))
+            check(!next.isWritable(loaded.session))
             actual().also {exact(it);it.fill(0)}
             val backup=requireNotNull(ops.read(File(directory,"before-import.enc"),MAX_BYTES+1024))
             crypto.entschluesseln(backup,"before-import.enc").also {check(it.contentEquals(saved));it.fill(0)}
             saved.fill(0)
             var wrongAAD=false
             try {crypto.entschluesseln(backup,"tablet-vault.enc")} catch(_:Exception) {wrongAAD=true}
-            check(wrongAAD);check(Vault(directory,{key},fileOps=ops).openSession().value!=null)
+            check(wrongAAD)
+            val verified=Vault(directory,{key},fileOps=ops);val fresh=verified.openSession();verified.activate(fresh.session)
+            check(fresh.value!!.getJSONObject("data").getString("syncEpoch")==epoch)
+            val beforeStale=requireNotNull(ops.read(File(directory,"tablet-vault.enc"),MAX_BYTES+1024))
+            var staleRejected=false
+            try {verified.save(fresh.session,archive,org.json.JSONArray())}
+            catch(error:BookRestoreException) {check(error.code=="epoch_changed");staleRejected=true}
+            check(staleRejected && beforeStale.contentEquals(ops.read(File(directory,"tablet-vault.enc"),MAX_BYTES+1024)))
             return JSONObject().put("literalBoundary",true).put("encryptedSaveWireExact",true)
                 .put("replacementWireExact",true).put("newVaultReopen",true)
                 .put("authenticatedBackupBytesExact",true).put("wrongFilenameAADRejected",true)
+                .put("nativeRestoreEpochRotated",true).put("savedEpochCopiesAgree",true)
+                .put("oldPageRevoked",true).put("staleEpochSaveRejected",true)
         } catch(failure:Throwable) {originalFailure=failure;throw failure}
         finally {cleanupPreservingFailure(originalFailure) {
             val children=ops.children(directory)
