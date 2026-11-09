@@ -7,6 +7,21 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonStore
 {
+    // Both source kinds still require their actual live native owners. The
+    // cache abstraction does not turn provenance, old Saved or bytes into rights.
+    internal abstract class NativeMediaSourceOwner : IDisposable
+    {
+        internal abstract TelefonStore Store { get; }
+        internal abstract string PeerId { get; }
+        internal abstract object ConnectionOwner { get; }
+        internal abstract JsonObject Provenance { get; }
+        internal abstract JsonObject? LocalOrigin { get; }
+        internal abstract void Require();
+        internal abstract byte[] ReadExact(long offset, int count);
+        internal abstract DeviceFileManifest PrepareManifest();
+        internal abstract JsonObject PreparedOriginalReferences();
+        public abstract void Dispose();
+    }
     private const int NativeSourceHistoryLimit = 128, NativeSourceRecordLimit = 131072;
     private const long NativeSourceCacheLimit = DeviceFileManifest.MaxTotalBytes;
     private static string SourceDigest(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
@@ -20,9 +35,12 @@ internal sealed partial class TelefonStore
         try
         {
             var raw = JsonNode.Parse(plain)!.AsObject();
-            var successor = TelefonProtocolContract.Integer(raw["format"]) == 2;
+            var format = TelefonProtocolContract.Integer(raw["format"]);
+            var local = format is 3 or 4;
+            var successor = format is 2 or 4;
             var fields = new[] { "format", "scope", "nonce", "provenance", "manifest", "manifest_sha256", "originals", "phase", "chunks" };
-            var body = TelefonProtocolContract.ExactObject(raw, successor ? fields.Concat(new[] { "previous" }).ToArray() : fields);
+            var body = TelefonProtocolContract.ExactObject(raw, fields.Concat(successor ? new[] { "previous" } : [])
+                .Concat(local ? new[] { "local_origin" } : []).ToArray());
             if (successor)
             {
                 var previous = TelefonProtocolContract.ExactObject(body["previous"]!, "job_id", "job_version", "exchange_version");
@@ -35,21 +53,25 @@ internal sealed partial class TelefonStore
                 ["local_id"] = scope.LocalId, ["local_key"] = scope.LocalKey };
             using var document = JsonDocument.Parse(body["manifest"]!.ToJsonString());
             var manifest = DeviceFileManifest.Parse(document.RootElement);
-            var provenance = TelefonProtocolContract.ExactObject(body["provenance"]!, "mapping_job", "mapping_version", "mapping_file", "book_version", "media_type", "settings", "sending_binding");
+            var provenance = TelefonProtocolContract.ExactObject(body["provenance"]!, local
+                ? ["collection_root", "collection_version", "book_version", "media_type", "settings", "sending_binding"]
+                : ["mapping_job", "mapping_version", "mapping_file", "book_version", "media_type", "settings", "sending_binding"]);
             var binding = TelefonProtocolContract.ExactObject(provenance["sending_binding"]!, "sender_id", "receiver_id", "sender_identity_sha256", "receiver_identity_sha256", "permission_epoch", "destination_token");
             var kind = TelefonMessagingContract.String(provenance, "media_type");
             MediaSyncSettings.ValidateStart(new JsonObject { ["format"] = 1, ["settings"] = provenance["settings"]!.DeepClone() });
-            if (TelefonProtocolContract.Integer(body["format"]) != (successor ? 2 : 1) || !JsonNode.DeepEquals(body["scope"], expectedScope) ||
+            if (local) ValidateLocalCollectionOrigin(body["local_origin"]!, provenance);
+            if (format is not (1 or 2 or 3 or 4) || !JsonNode.DeepEquals(body["scope"], expectedScope) ||
                 !DeviceFileControl.Hash(TelefonMessagingContract.String(body, "nonce")) || manifest.SourceId != jobId || manifest.Files.Count != 1 ||
                 manifest.SenderId != scope.LocalId || manifest.ReceiverId != peerId || TelefonMessagingContract.String(body, "manifest_sha256") != manifest.Fingerprint ||
                 TelefonMessagingContract.String(binding, "sender_id") != scope.LocalId || TelefonMessagingContract.String(binding, "receiver_id") != scope.PeerId ||
                 TelefonMessagingContract.String(binding, "sender_identity_sha256") != scope.LocalKey || TelefonMessagingContract.String(binding, "receiver_identity_sha256") != scope.PeerKey ||
                 !DeviceFileControl.Hash(TelefonMessagingContract.String(binding, "permission_epoch")) || !DeviceFileControl.Hash(TelefonMessagingContract.String(binding, "destination_token")) ||
-                !SourceId(TelefonMessagingContract.String(provenance, "mapping_job")) || !SourceId(TelefonMessagingContract.String(provenance, "mapping_file")) ||
-                !DeviceFileControl.Hash(TelefonMessagingContract.String(provenance, "mapping_version")) || !DeviceFileControl.Hash(TelefonMessagingContract.String(provenance, "book_version")) ||
+                !local && (!SourceId(TelefonMessagingContract.String(provenance, "mapping_job")) || !SourceId(TelefonMessagingContract.String(provenance, "mapping_file")) ||
+                    !DeviceFileControl.Hash(TelefonMessagingContract.String(provenance, "mapping_version"))) || !DeviceFileControl.Hash(TelefonMessagingContract.String(provenance, "book_version")) ||
                 !MediaSyncSettings.TransferRequestedFor(provenance["settings"]!.AsObject(), kind, toPhone: true) ||
-                body["originals"] is not JsonObject originals || originals.Count != 1 || originals[manifest.Files[0].Id] is not JsonObject original ||
-                !ValidSourceOriginal(original, kind) ||
+                body["originals"] is not JsonObject originals || (local
+                    ? originals.Count != 0 || MediaSyncSettings.Effective(provenance["settings"]!.AsObject())["collection_mode"]!.GetValue<string>() != "entire_collection"
+                    : originals.Count != 1 || originals[manifest.Files[0].Id] is not JsonObject original || !ValidSourceOriginal(original, kind)) ||
                 body["chunks"] is not JsonArray chunks || chunks.Count > (manifest.TotalBytes + DeviceFileManifest.ChunkBytes - 1) / DeviceFileManifest.ChunkBytes ||
                 chunks.Any(value => value is not JsonValue hash || !hash.TryGetValue<string>(out var text) || !DeviceFileControl.Hash(text)) ||
                 TelefonMessagingContract.String(body, "phase") is not ("planned" or "ready") ||
@@ -66,6 +88,33 @@ internal sealed partial class TelefonStore
         return original["media_type"]?.GetValue<string>() == kind && SourceId(TelefonMessagingContract.String(original, "file_id")) &&
             TelefonProtocolContract.Integer(original["original_size"]) is >= 1 and <= DeviceFileManifest.MaxFileBytes &&
             new[] { "source_epoch", "photo_id", "manifest_sha256", "original_sha256", "receipt_sha256" }.All(key => DeviceFileControl.Hash(TelefonMessagingContract.String(original, key)));
+    }
+
+    private static void ValidateLocalCollectionOrigin(JsonNode raw, JsonObject provenance)
+    {
+        var origin = TelefonProtocolContract.ExactObject(raw, "format", "root_id", "root_version", "root_identity", "root_creation_filetime", "file_identity", "file_creation_filetime");
+        var root = NativeMediaReceiveJob.NativeAlbumIdentity(TelefonProtocolContract.ExactObject(origin["root_identity"]!, "volume", "low", "high"));
+        var file = NativeMediaReceiveJob.NativeAlbumIdentity(TelefonProtocolContract.ExactObject(origin["file_identity"]!, "volume", "low", "high"));
+        static bool Generation(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) &&
+            text.Length == 16 && text.All(char.IsAsciiHexDigitLower) && text.Any(c => c != '0');
+        if (TelefonProtocolContract.Integer(origin["format"]) != 1 || !SourceId(TelefonMessagingContract.String(origin, "root_id")) ||
+            !DeviceFileControl.Hash(TelefonMessagingContract.String(origin, "root_version")) || root.VolumeSerial != file.VolumeSerial ||
+            !Generation(origin["root_creation_filetime"]) || !Generation(origin["file_creation_filetime"]) ||
+            !JsonNode.DeepEquals(origin["root_id"], provenance["collection_root"]) || !JsonNode.DeepEquals(origin["root_version"], provenance["collection_version"]))
+            throw DeviceFileControl.Error("media_collection_source_origin_invalid");
+    }
+
+    private static JsonObject SourceCorrelation(JsonObject body) => body["local_origin"] is JsonObject local
+        ? new JsonObject { ["kind"] = "local_collection", ["origin"] = local.DeepClone() }
+        : new JsonObject { ["kind"] = "phone_mapping", ["origin"] = body["originals"]!.AsObject().Single().Value!.DeepClone() };
+
+    private static void RequireLocalSourceGenerationHistory(IEnumerable<(string JobId, byte[] Cipher, JsonObject Body)> records, JsonObject next)
+    {
+        if (next["local_origin"] is not JsonObject origin) return;
+        foreach (var item in records)
+            if (item.Body["local_origin"] is JsonObject old && JsonNode.DeepEquals(old["root_id"], origin["root_id"]) &&
+                JsonNode.DeepEquals(old["file_identity"], origin["file_identity"]) && !JsonNode.DeepEquals(old, origin))
+                throw DeviceFileControl.Error("media_collection_original_generation_required");
     }
 
     internal IReadOnlyList<(string JobId, string Version, string Phase)> NativeMediaSourceHistory(string peerId)
@@ -120,11 +169,13 @@ internal sealed partial class TelefonStore
     // Scheduling/preparation lineage only. Historical END never substitutes for
     // the new source's own original-book/current-control/held-file authority.
     private JsonObject? CompletedSourcePredecessor(SqliteConnection db, SqliteTransaction transaction, NativeMediaPreferenceScope scope,
-        List<(string JobId, byte[] Cipher, JsonObject Body)> records, JsonObject originals, DeviceFileManifest nextManifest)
+        List<(string JobId, byte[] Cipher, JsonObject Body)> records, JsonObject nextRecord, DeviceFileManifest nextManifest)
     {
         static string Text(JsonObject value, string name) => TelefonMessagingContract.String(value, name);
         static InvalidDataException Error() => DeviceFileControl.Error("media_source_cache_completed_previous_required");
-        var matching = records.Where(item => JsonNode.DeepEquals(item.Body["originals"]!.AsObject().Single().Value, originals.Single().Value)).ToArray();
+        RequireLocalSourceGenerationHistory(records, nextRecord);
+        var correlation = SourceCorrelation(nextRecord);
+        var matching = records.Where(item => JsonNode.DeepEquals(SourceCorrelation(item.Body), correlation)).ToArray();
         if (matching.Length == 0) return null;
         using (var schema = db.CreateCommand())
         {
@@ -214,7 +265,7 @@ internal sealed partial class TelefonStore
         private readonly object endGate = new();
         private volatile bool sourceIoEnded;
         private readonly TelefonStore store;
-        private readonly NativeMappedMediaSource source;
+        private readonly NativeMediaSourceOwner source;
         private readonly NativeMediaPreferenceScope scope;
         private JsonObject record;
         private string version = "";
@@ -263,7 +314,7 @@ internal sealed partial class TelefonStore
             }
         }
 
-        private NativePreparedMediaSource(TelefonStore store, NativeMappedMediaSource source, NativeMediaPreferenceScope scope, JsonObject record)
+        private NativePreparedMediaSource(TelefonStore store, NativeMediaSourceOwner source, NativeMediaPreferenceScope scope, JsonObject record)
         { this.store = store; this.source = source; this.scope = scope; this.record = record; Manifest = source.PrepareManifest(); }
 
         private void Current()
@@ -353,23 +404,24 @@ internal sealed partial class TelefonStore
                     if (next["phase"]?.GetValue<string>() == "ready" && record["previous"] is JsonObject previousEnd)
                     {
                         var retained = store.SourceRecords(db, transaction, scope).Where(item => item.JobId != JobId).ToList();
-                        if (!JsonNode.DeepEquals(previousEnd, store.CompletedSourcePredecessor(db, transaction, scope, retained, record["originals"]!.AsObject(), Manifest)))
+                        if (!JsonNode.DeepEquals(previousEnd, store.CompletedSourcePredecessor(db, transaction, scope, retained, record, Manifest)))
                             throw DeviceFileControl.Error("media_source_cache_previous_changed");
                     }
                 }
                 else
                 {
                     var previous = store.SourceRecords(db, transaction, scope);
+                    RequireLocalSourceGenerationHistory(previous, record);
                     if (previous.Count >= NativeSourceHistoryLimit || previous.Sum(item => TelefonProtocolContract.Integer(item.Body["manifest"]!["total_bytes"])) + Manifest.TotalBytes > NativeSourceCacheLimit ||
                         previous.Any(item => item.JobId == JobId))
                         throw DeviceFileControl.Error("media_source_cache_original_preparation_required");
                     var selected = record["previous"];
                     if (selected is null)
                     {
-                        if (previous.Any(item => JsonNode.DeepEquals(item.Body["originals"]!.AsObject().Single().Value, record["originals"]!.AsObject().Single().Value)))
+                        if (previous.Any(item => JsonNode.DeepEquals(SourceCorrelation(item.Body), SourceCorrelation(record))))
                             throw DeviceFileControl.Error("media_source_cache_original_preparation_required");
                     }
-                    else if (!JsonNode.DeepEquals(selected, store.CompletedSourcePredecessor(db, transaction, scope, previous, record["originals"]!.AsObject(), Manifest)))
+                    else if (!JsonNode.DeepEquals(selected, store.CompletedSourcePredecessor(db, transaction, scope, previous, record, Manifest)))
                         throw DeviceFileControl.Error("media_source_cache_previous_changed");
                 }
                 using var write = db.CreateCommand(); write.Transaction = transaction;
@@ -428,22 +480,24 @@ internal sealed partial class TelefonStore
             }
         }
 
-        internal static NativePreparedMediaSource Create(TelefonStore store, NativeMappedMediaSource source, bool completedSuccessor = false)
+        internal static NativePreparedMediaSource Create(TelefonStore store, NativeMediaSourceOwner source, bool completedSuccessor = false)
         {
             if (!ReferenceEquals(source.Store, store)) throw DeviceFileControl.Error("media_source_cache_native_owner_required");
             source.Require(); var scope = store.MediaPreferenceScope(source.PeerId); var manifest = source.PrepareManifest();
             var wire = DeviceFileOfferEnvelope.Create(manifest, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())["body"]!["manifest"]!.DeepClone();
-            var body = new JsonObject { ["format"] = 1, ["scope"] = new JsonObject { ["peer_id"] = scope.PeerId, ["peer_key"] = scope.PeerKey,
+            var local = source.LocalOrigin;
+            var body = new JsonObject { ["format"] = local is null ? 1 : 3, ["scope"] = new JsonObject { ["peer_id"] = scope.PeerId, ["peer_key"] = scope.PeerKey,
                 ["pairing_epoch"] = scope.PairingEpoch, ["local_id"] = scope.LocalId, ["local_key"] = scope.LocalKey },
                 ["nonce"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), ["provenance"] = source.Provenance,
                 ["manifest"] = wire, ["manifest_sha256"] = manifest.Fingerprint, ["originals"] = source.PreparedOriginalReferences(), ["phase"] = "planned", ["chunks"] = new JsonArray() };
+            if (local is not null) body["local_origin"] = local;
             if (completedSuccessor)
             {
                 lock (store.gate)
                 {
                     source.Require(); using var db = store.OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction(deferred: true);
-                    var previous = store.CompletedSourcePredecessor(db, transaction, scope, store.SourceRecords(db, transaction, scope), body["originals"]!.AsObject(), manifest);
-                    if (previous is not null) { body["format"] = 2; body["previous"] = previous; }
+                    var previous = store.CompletedSourcePredecessor(db, transaction, scope, store.SourceRecords(db, transaction, scope), body, manifest);
+                    if (previous is not null) { body["format"] = local is null ? 2 : 4; body["previous"] = previous; }
                     source.Require(); transaction.Commit();
                 }
             }

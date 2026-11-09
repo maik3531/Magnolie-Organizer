@@ -787,9 +787,9 @@ Backup- und private `.magnolie-`-Unterbäume sind ausgeschlossen; Reparse-Ziele
 werden nicht verfolgt, mehrfach verknüpfte Dateien abgewiesen und Grenzen nicht
 als vollständiger Bestand ausgegeben. Fehlende ursprüngliche Schlüssel,
 geänderte Paarung, beschädigte Quellaufzeichnung und ersetzte Wurzeln bleiben
-HOLD unter Erhalt der gespeicherten Daten. Die native Benutzerauswahl und der
-gesamte Sende-/Versionsweg für diesen bislang nicht zugeordneten PC-Bestand
-sind damit noch **nicht** angeschlossen oder als benutzbar abgenommen.
+HOLD unter Erhalt der gespeicherten Daten. Native Benutzerauswahl, automatische
+Einbindung und durchgängige Gegenstellen-Versionszuordnung für diesen bislang
+nicht zugeordneten PC-Bestand sind damit noch **nicht** als benutzbar abgenommen.
 
 Quellinventar und Wiederöffnung binden zusätzlich die tatsächlich nativ gelesene
 Erstellungszeit der Datei und ihrer Verzeichnisvorfahren. Dieser zusätzliche
@@ -800,6 +800,33 @@ Format 2. Alte Format-1-Aufzeichnungen ohne Zeugen bleiben unverändert lesbar,
 erlauben aber weder Wiederöffnung noch automatische Aufwertung anhand des
 heutigen Dateisystems. Bestehende Telefonmapping-/Quellcacheformate bleiben
 unverändert.
+
+Der interne Windows-PC-Quellowner kann unabhängig von PC-RECEIVE und
+Telefon-READ denselben authentifizierten Sender mit verifiziertem Cache,
+angeforderten Chunks, Peer-Saved, korreliertem Readback, tatsächlichem
+Writer-Drain und eigenem Source-END benutzen. Sein Originalbuch, voller
+gemeinsamer Intent, lokale medientypspezifische SEND-Einwilligung,
+Verbindung/Paarung und tatsächliche native Quelle bleiben auf jedem Zugriff
+gebunden. Nachweislich bereits gemappte native Dateien dürfen nicht als neue
+unabhängige PC-Herkunft umetikettiert werden.
+
+Lokale Quellcacheformate 3/4 tragen getrennte PC-Herkunft einschließlich
+Quellroot-/Dateiidentität und zusätzlicher Generationszeugen. Sie erlauben
+leere Telefonreferenzen ausschließlich für `entire_collection`; die strengen
+alten Cacheformate 1/2 verlangen weiterhin ihre echte Telefonreferenz.
+Versionen hängen an der jüngsten tatsächlich abgeschlossenen Quellversion;
+unveränderte Inhalte, unvollständige Vorgänger oder unsichere Generationen
+erteilen keine neue Sendeberechtigung. Alle alten Aufzeichnungen bleiben
+erhalten, einschließlich bei gemischter Telefon-/PC-Quellhistorie.
+
+Diese PC-Herkunft ist bislang nur lokal geschützt gespeichert. Ihr stabiler
+Versionsbezug zur tatsächlichen Notes-Galeriepublikation ist noch nicht im
+Wire-/Empfängerweg angeschlossen. Ein nativer Sendernachweis mit synthetischen
+Peerantworten beweist keine Android-Publikation oder korrekt zugeordnete
+Folgeversion. Deshalb werden neue unabhängige PC-Quellen noch nicht automatisch
+aus dem gesamten Bestand exportiert und nicht als vollständig benutzbarer
+Synchronisationsweg angeboten. Capability 23 und vollständige Abnahme bleiben
+davon getrennt gesperrt.
 
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.

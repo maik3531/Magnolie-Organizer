@@ -26,12 +26,12 @@ internal static class DeviceFileMappedSourceTests
         catch { f.Dispose(); throw; }
     }
 
-    internal static async Task AllowSending(DeviceFileReceiveJobTests.Fixture f)
+    internal static async Task AllowSending(DeviceFileReceiveJobTests.Fixture f, bool pcReceive = true, bool phoneRead = true)
     {
         var consent = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
         f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, consent.Version, true, false);
-        f.Local = new(new(8, new string('c', 64), true, true), f.Local.Owner, true);
-        f.RemoteLocal = new(new(4, new string('d', 64), true, true), f.RemoteLocal.Owner, true);
+        f.Local = new(new(8, new string('c', 64), true, pcReceive), f.Local.Owner, true);
+        f.RemoteLocal = new(new(4, new string('d', 64), phoneRead, true), f.RemoteLocal.Owner, true);
         DeviceFileConnectionRunsTests.Clear(f);
         TestAssert.That(await f.Native.Connection.SendNativeFileControlsAsync(), "Updated local SEND had no actual secure output.");
         var first = DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Last(frame => frame["kind"]!.GetValue<string>() == DeviceFileControl.Kind);

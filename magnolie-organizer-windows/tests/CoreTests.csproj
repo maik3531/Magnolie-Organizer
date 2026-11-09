@@ -68,6 +68,7 @@
     <Compile Include="..\DeviceFileNativeDirectory.Source.cs" Link="DeviceFileNativeDirectory.Source.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.Collection.cs" Link="DeviceFileNativeDirectory.Collection.cs" />
     <Compile Include="..\DeviceFileCollectionRoots.cs" Link="DeviceFileCollectionRoots.cs" />
+    <Compile Include="..\DeviceFileCollectionSource.cs" Link="DeviceFileCollectionSource.cs" />
     <Compile Include="..\DeviceFileMappedSource.cs" Link="DeviceFileMappedSource.cs" />
     <Compile Include="..\DeviceFileSourceCache.cs" Link="DeviceFileSourceCache.cs" />
     <Compile Include="..\DeviceFileSourceExchange.cs" Link="DeviceFileSourceExchange.cs" />

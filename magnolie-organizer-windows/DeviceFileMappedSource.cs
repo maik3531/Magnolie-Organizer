@@ -53,12 +53,13 @@ internal sealed partial class TelefonStore
         {
             RequireNativeMediaStorageKey(); var scope = MediaPreferenceScope(peerId);
             using var db = OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction(deferred: true);
-            var exists = SourceRecords(db, transaction, scope).Any(item => JsonNode.DeepEquals(item.Body["originals"]!.AsObject().Single().Value, original));
+            var exists = SourceRecords(db, transaction, scope).Any(item => item.Body["local_origin"] is null &&
+                JsonNode.DeepEquals(item.Body["originals"]!.AsObject().Single().Value, original));
             transaction.Commit(); return exists; // Scheduling fact only, never live source rights.
         }
     }
 
-    internal sealed class NativeMappedMediaSource : IDisposable
+    internal sealed class NativeMappedMediaSource : NativeMediaSourceOwner
     {
         private readonly object sourceGate = new();
         private readonly DeviceFileNativeDirectory root;
@@ -67,9 +68,9 @@ internal sealed partial class TelefonStore
         private readonly JsonObject original;
         private readonly string senderId, receiverId, path;
         private DeviceFileManifest? prepared;
-        internal readonly TelefonStore Store;
-        internal readonly string PeerId;
-        internal readonly object ConnectionOwner;
+        internal override TelefonStore Store { get; }
+        internal override string PeerId { get; }
+        internal override object ConnectionOwner { get; }
         private readonly JsonObject provenance;
         private NativePreparedMediaSource? frozen;
         private bool freezeAttempted;
@@ -84,9 +85,10 @@ internal sealed partial class TelefonStore
         }
         internal long Size => file.Size;
         internal JsonObject OriginalReference => original.DeepClone().AsObject(); // Correlation, never a phone grant.
-        internal byte[] ReadExact(long offset, int count) => file.ReadExact(offset, count);
-        internal void Require() => file.Require();
-        internal JsonObject Provenance => provenance.DeepClone().AsObject();
+        internal override byte[] ReadExact(long offset, int count) => file.ReadExact(offset, count);
+        internal override void Require() => file.Require();
+        internal override JsonObject Provenance => provenance.DeepClone().AsObject();
+        internal override JsonObject? LocalOrigin => null;
         internal NativePreparedMediaSource Freeze() => FreezeCore(completedSuccessor: false);
         internal NativePreparedMediaSource FreezeCompletedSuccessor() => FreezeCore(completedSuccessor: true);
         private NativePreparedMediaSource FreezeCore(bool completedSuccessor)
@@ -108,7 +110,7 @@ internal sealed partial class TelefonStore
         // Hash the SAME immutable held bytes that an eventual sender will read.
         // No wire output, cache adoption, Saved receipt or persistent send job
         // is created by preparation. The source handle must remain owned.
-        internal DeviceFileManifest PrepareManifest()
+        internal override DeviceFileManifest PrepareManifest()
         {
             lock (sourceGate)
             {
@@ -128,7 +130,7 @@ internal sealed partial class TelefonStore
                 file.Require(); prepared = manifest; return manifest;
             }
         }
-        internal JsonObject PreparedOriginalReferences()
+        internal override JsonObject PreparedOriginalReferences()
         {
             lock (sourceGate)
             {
@@ -137,7 +139,7 @@ internal sealed partial class TelefonStore
                 return new JsonObject { [prepared.Files[0].Id] = original.DeepClone() };
             }
         }
-        public void Dispose()
+        public override void Dispose()
         {
             lock (sourceGate)
                 try { file.Dispose(); } finally { try { album?.Dispose(); } finally { root.Dispose(); } }

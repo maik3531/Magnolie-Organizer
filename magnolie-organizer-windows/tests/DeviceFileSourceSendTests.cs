@@ -9,11 +9,11 @@ internal static class DeviceFileSourceSendTests
 {
     private const string Book = "{\"syncEpoch\":\"source-send-test\",\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":30}}}";
     private static readonly byte[] MediaBytes = PaddedPng();
-    private static byte[] PaddedPng(int salt = 0)
+    internal static byte[] PaddedPng(int salt = 0, int length = 70013)
     {
         var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNg+M8AAAICAQB7CYF4AAAAAElFTkSuQmCC");
         // Valid private ancillary chunk before IEND: real PNG, still two chunks.
-        var result = new byte[70013]; var offset = png.Length - 12; png.AsSpan(0, offset).CopyTo(result);
+        var result = new byte[length]; var offset = png.Length - 12; png.AsSpan(0, offset).CopyTo(result);
         var size = result.Length - png.Length - 12;
         System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(result.AsSpan(offset), size);
         "npAD"u8.CopyTo(result.AsSpan(offset + 4));
@@ -28,28 +28,28 @@ internal static class DeviceFileSourceSendTests
         png.AsSpan(png.Length - 12).CopyTo(result.AsSpan(result.Length - 12)); return result;
     }
     private static long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    private static JsonObject Message(string kind, JsonObject body, JsonObject offer) => new()
+    internal static JsonObject Message(string kind, JsonObject body, JsonObject offer) => new()
     {
         ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind,
         ["created_ms"] = Now(), ["expires_ms"] = offer["expires_ms"]!.DeepClone(), ["body"] = body
     };
-    private static JsonObject Accept(DeviceFileReceiveJobTests.Fixture f, TelefonStore.NativePreparedMediaSource cache, JsonObject offer) => Message(DeviceFileAcceptanceEnvelope.Kind,
+    internal static JsonObject Accept(DeviceFileReceiveJobTests.Fixture f, TelefonStore.NativePreparedMediaSource cache, JsonObject offer) => Message(DeviceFileAcceptanceEnvelope.Kind,
         new JsonObject { ["format"] = 1, ["offer_id"] = offer["message_id"]!.DeepClone(), ["transfer_id"] = cache.Manifest.TransferId,
             ["manifest_sha256"] = cache.Manifest.Fingerprint, ["permission_epoch"] = f.Owner.Binding(new string('f', 64), true)!.PermissionEpoch,
             ["destination_token"] = new string('f', 64), ["acceptance_sha256"] = new string('a', 64) }, offer);
-    private static JsonObject Chunk(TelefonStore.NativePreparedMediaSource cache, JsonObject acceptance, JsonObject offer, int index)
+    internal static JsonObject Chunk(TelefonStore.NativePreparedMediaSource cache, JsonObject acceptance, JsonObject offer, int index)
     {
         var body = acceptance["body"]!.DeepClone().AsObject(); body.Remove("offer_id"); body["file_id"] = cache.Manifest.Files[0].Id; body["chunk_index"] = index;
         return Message(DeviceFileChunkEnvelope.RequestKind, body, offer);
     }
-    private static JsonObject Saved(TelefonStore.NativePreparedMediaSource cache, JsonObject acceptance, JsonObject offer)
+    internal static JsonObject Saved(TelefonStore.NativePreparedMediaSource cache, JsonObject acceptance, JsonObject offer)
     {
         var body = acceptance["body"]!.DeepClone().AsObject(); body.Remove("offer_id");
         var file = cache.Manifest.Files[0];
         body["receipts"] = new JsonArray(new JsonObject { ["file_id"] = file.Id, ["size"] = file.Size, ["sha256"] = file.Sha256, ["receipt_sha256"] = new string('b', 64) });
         return Message(DeviceFileSavedEnvelope.Kind, body, offer);
     }
-    private static JsonObject Exchange(DeviceFileReceiveJobTests.Fixture f, string jobId)
+    internal static JsonObject Exchange(DeviceFileReceiveJobTests.Fixture f, string jobId)
     {
         using var db = f.Native.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
         read.CommandText = "SELECT value FROM native_media_source_exchanges WHERE job_id=$job"; read.Parameters.AddWithValue("$job", jobId);
