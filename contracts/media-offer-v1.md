@@ -2101,6 +2101,67 @@ Aktivierung bleibt gesperrt; ursprüngliche Job-/Rohbackup-Recovery bleibt getre
 Gesamtabnahme, Androidpause und Lieferung werden durch diesen Dialogschutz nicht
 freigegeben; keine Installation oder Veröffentlichung.
 
+### Windows: unabhängiger Metadatenzeuge vor einem aktuellen Zielkopf (#500)
+
+Der neue native Auswahlzeuge ist noch **kein aktives Ziel und keine zugelassene
+historische Generation**. Kein Zielgetter, Dialog oder Datenpfad konsumiert ihn.
+Er erprobt das notwendige unabhängige Metadatenprotokoll, während ein tatsächlicher
+anderer Root im bestehenden Setter weiter gesperrt bleibt.
+
+Ein authentifizierter SQL-Kopf bindet den vollständigen unveränderten Legacyrecord,
+Scope, eine ursprüngliche private native Verzeichnisidentität samt Creation-Zeuge
+und die exakten Dateien einer verketteten Auswahlabsicht. Jede Datei wird nativ
+CREATE_ONLY mit privater ACL angelegt, verschlüsselt, geflusht und am ursprünglichen
+Handle vollständig gelesen/gehasht. Identität, Creation, Größe und Hash stammen von
+diesem ursprünglichen Handle, nicht von einem später wiedergefundenen Pfad.
+Der Kopf wird erst nach nativem Schreiben in einer SQL-Transaktion geändert;
+vor Commit und danach wird der gesamte referenzierte Bestand erneut geprüft.
+Der Originalkontextcallback darf dabei nur ablehnen, keine Datenvereinbarung bilden.
+
+Native Inventarisierung ist hier flach und dient nur als Widerspruchszeuge. Der
+explizit authentifizierte Kopf muss zur vollständigen erwarteten Datei-/Kette passen.
+Weder der höchste Dateiname noch die letzte aufgefundene Datei werden als fehlender
+Kopf übernommen. Zurückgelegter alter SQL-Kopf, verlorene Kopfzeile, Orphan-Dateien,
+unvollständige Schreibstände, Fremdeinträge, andere Native-IDs oder abweichende
+Bytes führen zu HOLD ohne Reparatur, Wiederholung, Löschen oder Ersatzauswahl.
+Ein verlorener Legacyrecord kann auch bei erhaltener Zeile oder verwaistem
+unabhängigem Verzeichnis nicht als neue Erstwahl rekonstruiert werden.
+
+Ein Metadatenzyklus Root0→Root1→Root0 erhält den ursprünglichen Root0Record mit
+identischer Version und identischem Token und erzeugt drei unterschiedliche
+Absichtsstempel. Er aktiviert dennoch keinen dieser Zustände und ändert weder
+Dateien in den ausgewählten Medienroots noch lokale Zustimmungen oder Transfer-
+historien. Bekannte Gegenroots aus Legacyrecord, anderem Auswahlzeugen, inaktiven
+Vormerkungen und tatsächlicher Receivehistorie bleiben vor Überlappung geschützt.
+
+Das neue private Zeugenfenster ist auf 32 Absichten je Scope/Medientyp begrenzt;
+die 33. hält ohne Verdrängung oder Dateianlage. Bestehende 128er-Source-/Receive-
+und 32er-Stagegrenzen bleiben unverändert. Zeugenfiles sind höchstens 256 KiB,
+der verschlüsselte Kopf höchstens 128 KiB Klartext plus AEAD-Overhead. Reads legen
+weder Verzeichnis noch Tabelle oder Schlüsseldatei an; unbekannte Felder werden
+nicht normalisiert oder überschrieben.
+
+18 unterschiedliche betroffene native Windows-Gruppen bestehen: acht neue
+Zeugengruppen mit tatsächlichem vollen 32er-Verlauf, Kopf-/Originalverlust,
+Rückrollen, Teilstand, Native-ID-/Byte-/Key-/Fremddatei- und strikten Metadatenfällen
+sowie zehn betroffene ursprüngliche Ziel-/Verlust-/Stagegruppen. Ein weiterer
+nativer Fehlerfall entzieht den Originalkontext erst bei tatsächlich sichtbarem
+uncommittetem SQLite-Schreiben: neue Kopfzeile und Tabelle werden zurückgerollt,
+die zuvor geflushte unabhängige Absicht bleibt unverändert und ungewiss erhalten.
+Diese isolierte Fehlerfixture verwendet beobachtbares DELETE-Journalling, keine
+geratene Callbackanzahl und keinen behaupteten Stromausfallnachweis. Die frühere echte
+Backup-Anker-Gegenprobe bleibt separat erhalten. Core und tatsächliche WinForms-
+Produktquelle bauen ohne Warnungen/Fehler; keine installierte GUI-/Androidabnahme.
+
+Die bewiesene Rückrollgrenze ist ein isoliert zurückgelegter SQL-Kopf bei unabhängig
+erhaltenen Nativezeugen. Vollständiges gemeinsames Zurückrollen von Datenträger,
+Kopf und sämtlichen Zeugen wird ohne unabhängige monotone Vertrauensbasis nicht
+als erkennbar behauptet. Keine TPM-/Registry-/zusätzliche OS-Freigabe eingeführt.
+Echte Zulassung, aktueller Runtime-Zielgetter, dauerhaft verworfene alte Liveowner
+bei ABA und unabhängige historische Root1-Jobowner müssen noch zusammengeführt und
+geprüft werden. Bis dahin bleiben Aktivierung und Lieferung gesperrt; kein APK,
+Installer, keine Installation oder Veröffentlichung.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

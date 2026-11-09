@@ -250,6 +250,11 @@ internal sealed partial class DeviceFileNativeDirectory
             lock (fileGate) { Current(); return ReadFile(file); }
         }
 
+        internal ulong CurrentCreationFileTime()
+        {
+            lock (fileGate) { Current(); return ReadCollectionCreation(file); }
+        }
+
         internal (long Size, string Sha256) DurableCheckpoint()
         {
             lock (fileGate)

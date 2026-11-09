@@ -304,6 +304,14 @@ if (OperatingSystem.IsWindows())
     runner.Add("Destination folder choice / Windows original deadline and sticky worker retirement", DeviceFileDestinationChoiceTests.WindowsLifetimeAsync);
     runner.Add("Destination folder choice / Windows late original context denies and rolls back initial SQL record", DeviceFileDestinationChoiceTests.WindowsStoreRollbackAsync);
     runner.Add("Destination selection design / Windows retained backup snapshot is not an antirollback current head", DeviceFileDestinationSelectionTests.WindowsBackupAnchorIsNotCurrentSelectionAsync);
+    runner.Add("Destination independent witness / Windows explicit metadata cycle preserves original tokens without activation", DeviceFileDestinationSelectionTests.WindowsWitnessChoiceCycleAsync);
+    runner.Add("Destination independent witness / Windows old and missing SQL head cannot adopt native inventory", DeviceFileDestinationSelectionTests.WindowsWitnessHeadRollbackAsync);
+    runner.Add("Destination independent witness / Windows partial native intent stays uncertain without cleanup or replay", DeviceFileDestinationSelectionTests.WindowsWitnessPartialCommitAsync);
+    runner.Add("Destination independent witness / Windows native bytes identities unknown files and missing key HOLD", DeviceFileDestinationSelectionTests.WindowsWitnessNativeGuardsAsync);
+    runner.Add("Destination independent witness / Windows bounded append-only capacity without eviction", DeviceFileDestinationSelectionTests.WindowsWitnessCapacityAsync);
+    runner.Add("Destination independent witness / Windows strict metadata and lost original never repair from independent intent", DeviceFileDestinationSelectionTests.WindowsWitnessMetadataGuardsAsync);
+    runner.Add("Destination independent witness / Windows opposite legacy witness stage and received roots never overlap", DeviceFileDestinationSelectionTests.WindowsWitnessOtherKindAsync);
+    runner.Add("Destination independent witness / Windows actual post-SQL withdrawal rolls back head and retains independent intent", DeviceFileDestinationSelectionTests.WindowsWitnessSqlRollbackAsync);
     runner.Add("Collection producer / Windows two original offers actual END and fresh unchanged pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerAsync);
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);

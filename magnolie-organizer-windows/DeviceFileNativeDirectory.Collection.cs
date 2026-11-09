@@ -197,7 +197,27 @@ internal sealed partial class DeviceFileNativeDirectory
             catch { child.Dispose(); throw; }
         });
 
-    private IReadOnlyList<CollectionChild> CollectionChildren(Action current)
+    internal sealed record MetadataMember(string Name, Identity Identity, long Size, ulong CreationFileTime);
+
+    // Shallow private-metadata inventory only. It is a contradiction witness,
+    // never a source inventory, current-selection fallback or deletion grant.
+    internal IReadOnlyList<MetadataMember> NativeMetadataFiles(Action current, int maximumEntries)
+    {
+        if (maximumEntries is < 1 or > 128) throw DeviceFileControl.Error("file_selection_witness_capacity");
+        var creation = CurrentReceiveCreationFileTime();
+        void Require()
+        {
+            current();
+            if (CurrentReceiveCreationFileTime() != creation) throw DeviceFileControl.Error("file_selection_witness_changed");
+        }
+        var children = CollectionChildren(Require, maximumEntries);
+        if (children.Any(child => (child.Attributes & (0x10 | 0x400)) != 0 || child.Size < 0 || child.CreationFileTime == 0))
+            throw DeviceFileControl.Error("file_selection_witness_invalid");
+        Require();
+        return children.Select(child => new MetadataMember(child.Name, child.Identity, child.Size, child.CreationFileTime)).ToArray();
+    }
+
+    private IReadOnlyList<CollectionChild> CollectionChildren(Action current, int maximumEntries = 4096)
         => WithHandle(parent =>
         {
             const int capacity = 65536;
@@ -230,7 +250,7 @@ internal sealed partial class DeviceFileNativeDirectory
                         if (name is not ("." or ".."))
                         {
                             _ = ReceiveLeaf(name);
-                            if (!names.Add(name) || result.Count >= 4096) throw DeviceFileControl.Error("media_collection_inventory_bound");
+                            if (!names.Add(name) || result.Count >= maximumEntries) throw DeviceFileControl.Error("media_collection_inventory_bound");
                             var id = new Identity(OriginalIdentity.VolumeSerial, BitConverter.ToUInt64(bytes, offset + 72), BitConverter.ToUInt64(bytes, offset + 80));
                             if (id.FileIdLow == 0 && id.FileIdHigh == 0) throw DeviceFileControl.Error("media_collection_identity_required");
                             result.Add(new(name, id, BitConverter.ToInt64(bytes, offset + 40), BitConverter.ToUInt32(bytes, offset + 56), BitConverter.ToUInt64(bytes, offset + 8)));

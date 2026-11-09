@@ -267,6 +267,10 @@ internal sealed partial class TelefonStore
             // Absence is not proof of a first choice. Authenticate existing
             // evidence only to DENY reconstruction; never infer an old root,
             // token, generation or data permission from history/staging.
+            if (ReadSelectionWitnessBody(connection, transaction, scope, mediaType) is not null)
+                throw DeviceFileControl.Error("file_destination_original_record_required");
+            using (var witnessDirectory = OpenSelectionDirectory(SelectionDirectory(scope, mediaType)))
+                if (witnessDirectory is not null) throw DeviceFileControl.Error("file_destination_original_record_required");
             var histories = ReceiveHeads(connection, transaction, scope);
             if (histories.Any(head => TelefonMessagingContract.String(head.Body, "media_type") == mediaType) ||
                 ReadNativeMediaDestinationChoices(connection, transaction, scope, mediaType).Count != 0)
