@@ -353,7 +353,8 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         val record: GalleryPcPreWriteRecord, val lane: Any, val cancellation: CancellationSignal)
     private val verifiedPcBeforeWrite = ThreadLocal<VerifiedPcBeforeWrite?>()
     internal fun preparePcWriteTarget(stage: NativeGalleryPcStage, grant: NativeGalleryPcWriteGrant,
-        archive: NativeGalleryTrashArchive, lane: Any, cancellation: CancellationSignal): NativeGalleryPcWriteTarget {
+        archive: NativeGalleryTrashArchive, lane: Any, cancellation: CancellationSignal,
+        deadline: NativeGalleryPcReplacementDeadline): NativeGalleryPcWriteTarget {
         if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30 || !NativeGalleryMediaIoLane.isOwnedBy(lane))
             fail("gallery_pc_before_write_native_proof_required")
         val admission = grant.request.admission
@@ -380,7 +381,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
             ?: fail("gallery_pc_write_target_missing")
         var target: NativeGalleryPcWriteTarget? = null
         try {
-            target = NativeGalleryPcWriteTarget(descriptor, stage, grant, index, record, lane, cancellation)
+            target = NativeGalleryPcWriteTarget(descriptor, stage, grant, index, record, lane, cancellation, deadline)
             checkRow(); checkArchive(); target.requireCurrent(); return target
         } catch (error: Throwable) { if (target == null) descriptor.close() else target.close(); throw error }
     }
@@ -595,7 +596,95 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         }
     }
 
-    private data class NativeRow(val witness: JsonObject, val pending: Long)
+    /** Actual provider readback only, not durable history completion or Saved. */
+    internal data class NativeGalleryPcProviderObservation(val row: JsonObject, val descriptor: JsonObject,
+        val media: NativeIncomingMediaObservation, val journal: GalleryPcPreWriteRecord) {
+        val isSavedReceipt: Boolean get() = false
+        val grantsWriteAuthority: Boolean get() = false
+    }
+    private class VerifiedPcPostWrite(val target: NativeGalleryPcWriteTarget, val written: NativeGalleryPcWrittenBytesObservation,
+        val expected: GalleryPcPreWriteRecord, val next: GalleryPcPreWriteRecord, val descriptor: ParcelFileDescriptor)
+    private val verifiedPcPostWrite = ThreadLocal<VerifiedPcPostWrite?>()
+    internal fun requireVerifiedPcPostWrite(target: NativeGalleryPcWriteTarget, written: NativeGalleryPcWrittenBytesObservation,
+        expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord) {
+        val actual = verifiedPcPostWrite.get()
+        if (actual == null || actual.target !== target || actual.written !== written || actual.expected !== expected ||
+            actual.next !== next || !actual.descriptor.fileDescriptor.valid()) fail("gallery_pc_postwrite_native_proof_required")
+        target.requireLocalWrittenOwner(index, written)
+    }
+
+    internal fun inspectPcWritten(target: NativeGalleryPcWriteTarget, written: NativeGalleryPcWrittenBytesObservation,
+        lane: Any): NativeGalleryPcProviderObservation {
+        if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30 || !NativeGalleryMediaIoLane.isOwnedBy(lane))
+            fail("gallery_pc_postwrite_native_owner_required")
+        val record = target.requireWrittenOwner(index, written); val original = record.stage.plan.predecessor
+        if (record.state != "write_started") fail("gallery_pc_postwrite_original_operation_required")
+        val oldRow = original.row!!; val uri = Uri.parse(oldRow.string("uri")); val mime = original.body.string("mime_type")
+        val kind = written.media.mediaType
+        fun current() { target.requireWrittenOwner(index, written) }
+        fun observeNewRow(): NativeRow {
+            val row = observeRow(kind, ::current, uri, mime,
+                minOf(original.body.long("size"), written.bytes)..maxOf(original.body.long("size"), written.bytes), 0)
+            if (row.witness.filterKeys { it != "revision" } != oldRow.filterKeys { it != "revision" } ||
+                row.witness.string("revision").toLong() < oldRow.string("revision").toLong()) fail("gallery_pc_postwrite_row_changed")
+            return row
+        }
+        val wait = java.util.concurrent.CountDownLatch(1)
+        var row = observeNewRow(); var attempts = 0
+        while (row.bytes != written.bytes || row.witness.string("revision").toLong() <= oldRow.string("revision").toLong()) {
+            current()
+            if (++attempts > 32) fail("gallery_pc_postwrite_provider_pending")
+            val remaining = target.remainingWrittenMs()
+            if (remaining <= 0) fail("gallery_pc_postwrite_provider_pending")
+            wait.await(minOf(100L, remaining), java.util.concurrent.TimeUnit.MILLISECONDS)
+            current(); row = observeNewRow()
+        }
+        val expectedRow = row.witness
+        fun verify(descriptor: ParcelFileDescriptor): NativeGalleryPcProviderObservation {
+            current(); val before = NativeGalleryPcWriteTarget.witness(descriptor)
+            if (before != written.descriptor) fail("gallery_pc_postwrite_descriptor_changed")
+            android.system.Os.lseek(descriptor.fileDescriptor, 0, android.system.OsConstants.SEEK_SET)
+            val hash = MessageDigest.getInstance("SHA-256"); var bytes = 0L
+            ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.dup(descriptor.fileDescriptor)).use { input ->
+                val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES)
+                try {
+                    while (bytes < written.bytes) {
+                        current(); val count = input.read(buffer, 0, minOf(buffer.size.toLong(), written.bytes - bytes).toInt()); current()
+                        if (count <= 0) fail("gallery_pc_postwrite_content_changed")
+                        hash.update(buffer, 0, count); bytes += count
+                    }
+                    if (input.read() != -1 || NativeHex.lower(hash.digest()) != written.sha256) fail("gallery_pc_postwrite_content_changed")
+                } finally { buffer.fill(0) }
+            }
+            val media = NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, written.bytes, kind, mime, ensureNative = ::current)
+            current()
+            if (NativeGalleryPcWriteTarget.witness(descriptor) != before || observeNewRow().let { it.witness != expectedRow || it.bytes != written.bytes })
+                fail("gallery_pc_postwrite_readback_changed")
+            val next = record.verifyProvider(expectedRow, before)
+            if (verifiedPcPostWrite.get() != null) fail("gallery_pc_postwrite_native_proof_required")
+            verifiedPcPostWrite.set(VerifiedPcPostWrite(target, written, record, next, descriptor))
+            try {
+                target.recordProviderVerified(this, written, record, next)
+                current()
+                if (NativeGalleryPcWriteTarget.witness(descriptor) != before || observeNewRow().let { it.witness != expectedRow || it.bytes != written.bytes })
+                    fail("gallery_pc_postwrite_readback_changed")
+                return NativeGalleryPcProviderObservation(expectedRow, before, media, next)
+            } finally { verifiedPcPostWrite.remove() }
+        }
+        val originalUri = MediaStore.setRequireOriginal(uri)
+        if (Build.VERSION.SDK_INT >= 31) {
+            val asset = resolver.openTypedAssetFileDescriptor(originalUri, "*/*", Bundle().apply {
+                putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)
+            }, null) ?: fail("gallery_incoming_readback_missing")
+            return asset.use {
+                if (it.startOffset != 0L) fail("gallery_incoming_original_offset_changed")
+                verify(it.parcelFileDescriptor)
+            }
+        }
+        return (resolver.openFileDescriptor(originalUri, "r") ?: fail("gallery_incoming_readback_missing")).use(::verify)
+    }
+
+    private data class NativeRow(val witness: JsonObject, val pending: Long, val bytes: Long?)
     private fun observe(owner: NativeGalleryIncomingOwner, uri: Uri, mimeType: String, bytes: LongRange = 0L..0L): JsonObject =
         observeRow(owner, uri, mimeType, bytes, 1).witness
 
@@ -638,7 +727,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 put("uri", uri.toString()); put("namespace", namespace); put("volume", volume)
                 put("member", "$id:$added:$generation"); put("revision", revision.toString()); put("path", path(kind))
                 put("name", text("_display_name")); put("mime_type", mimeType); put("owner", app.packageName)
-            }, actualPending).also { if (cursor.moveToNext()) fail("gallery_incoming_row_changed") }
+            }, actualPending, if (cursor.isNull(size)) null else number("_size")).also { if (cursor.moveToNext()) fail("gallery_incoming_row_changed") }
         } ?: fail("gallery_incoming_row_missing")
         current()
         if (MediaStore.getVersion(app, volume) != namespace) fail("gallery_incoming_namespace_changed")

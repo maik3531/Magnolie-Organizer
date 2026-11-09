@@ -21,12 +21,14 @@ internal data class NativeGalleryPcWrittenBytesObservation(val bytes: Long, val 
 internal class NativeGalleryPcWriteTarget internal constructor(private val descriptor: ParcelFileDescriptor,
     private val stage: NativeGalleryPcStage, private val grant: NativeGalleryPcWriteGrant,
     private val index: PhotoSourceJobIndex, private val record: GalleryPcPreWriteRecord,
-    private val lane: Any, private val cancellation: CancellationSignal) : AutoCloseable {
+    private val lane: Any, private val cancellation: CancellationSignal,
+    private val deadline: NativeGalleryPcReplacementDeadline) : AutoCloseable {
     private val closed = AtomicBoolean(false)
     private val startAttempted = AtomicBoolean(false)
     private val copyAttempted = AtomicBoolean(false)
     @Volatile private var ownMutation = false
     @Volatile private var copyFailed = false
+    @Volatile private var verifiedBytes: NativeGalleryPcWrittenBytesObservation? = null
     @Volatile private var consumedHere = false
     private data class Records(val current: GalleryPcPreWriteRecord, val committing: GalleryPcPreWriteRecord? = null)
     @Volatile private var records = Records(record)
@@ -53,6 +55,7 @@ internal class NativeGalleryPcWriteTarget internal constructor(private val descr
         requireCurrent()
     }
     internal fun requireCurrent() {
+        deadline.requireCurrent()
         if (closed.get() || !NativeGalleryMediaIoLane.isOwnedBy(lane)) fail()
         cancellation.throwIfCanceled()
         if (consumedHere) grant.requireCurrent() else grant.requireUnused()
@@ -154,7 +157,7 @@ internal class NativeGalleryPcWriteTarget internal constructor(private val descr
             val result = NativeGalleryPcWrittenBytesObservation(expected.size, expected.sha256, witness(descriptor), media)
             // Provider row metadata may update only asynchronously on this real
             // close. Return no publication/history/Saved proof from it.
-            close(); return result
+            close(); verifiedBytes = result; return result
         } catch (error: Throwable) { copyFailed = true; throw error }
     }
     override fun close() {
@@ -164,6 +167,35 @@ internal class NativeGalleryPcWriteTarget internal constructor(private val descr
             } finally { descriptor.close() }
         }
     }
+    internal fun requireWrittenOwner(actual: PhotoSourceJobIndex, observation: NativeGalleryPcWrittenBytesObservation): GalleryPcPreWriteRecord {
+        requireLocalWrittenOwner(actual, observation)
+        grant.requireCurrent(); grant.request.admission.requireIndex(index); stage.requireCurrent()
+        val before = records; val saved = index.pcBeforeWrite(record.id)?.body; val after = records
+        if (listOfNotNull(before.current, before.committing, after.current, after.committing).none { it.body == saved } ||
+            records.current.state !in setOf("write_started", "provider_verified")) fail()
+        deadline.requireCurrent(); return records.current
+    }
+    internal fun requireLocalWrittenOwner(actual: PhotoSourceJobIndex, observation: NativeGalleryPcWrittenBytesObservation) {
+        deadline.requireCurrent(); cancellation.throwIfCanceled()
+        if (!closed.get() || copyFailed || verifiedBytes !== observation || !ownMutation || !consumedHere ||
+            actual !== index || !NativeGalleryMediaIoLane.isOwnedBy(lane)) fail()
+        grant.request.admission.requireLocal()
+    }
+    internal fun recordProviderVerified(rows: NativeGalleryIncomingRows, written: NativeGalleryPcWrittenBytesObservation,
+        expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord) {
+        requireWrittenOwner(index, written)
+        rows.requireVerifiedPcPostWrite(this, written, expected, next)
+        if (records.current !== expected || expected.state != "write_started" || records.committing != null) fail()
+        records = Records(expected, next)
+        index.recordPcPostWrite(rows, this, written, expected, next)
+        records = Records(next); requireWrittenOwner(index, written)
+    }
+    internal fun requireProviderCommit(actual: PhotoSourceJobIndex, written: NativeGalleryPcWrittenBytesObservation,
+        expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord) {
+        requireLocalWrittenOwner(actual, written)
+        if (records.current !== expected || records.committing !== next) fail()
+    }
+    internal fun remainingWrittenMs(): Long = minOf(deadline.remainingMs(), grant.request.admission.remainingMs())
     companion object {
         internal fun witness(descriptor: ParcelFileDescriptor): JsonObject {
             val stat = Os.fstat(descriptor.fileDescriptor)

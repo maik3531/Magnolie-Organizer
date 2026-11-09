@@ -781,6 +781,29 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         target.requireStartOwner(this, expected, next)
     }
 
+    internal fun recordPcPostWrite(rows: NativeGalleryIncomingRows, target: NativeGalleryPcWriteTarget,
+        written: NativeGalleryPcWrittenBytesObservation, expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord) {
+        target.requireWrittenOwner(this, written); target.requireProviderCommit(this, written, expected, next)
+        rows.requireVerifiedPcPostWrite(target, written, expected, next)
+        gated {
+            writableMembership(); target.requireProviderCommit(this, written, expected, next)
+            rows.requireVerifiedPcPostWrite(target, written, expected, next)
+            if (expected.state != "write_started" || next.state != "provider_verified" ||
+                expected.body.filterKeys { it != "state" } != next.body.filterKeys { it !in setOf("state", "postwrite") } ||
+                pcBeforeWrite(expected.id)?.body != expected.body) fail("gallery_pc_postwrite_conflict")
+            val name = GalleryPcPreWriteRecord.PREFIX + expected.id
+            val cipher = protection.seal(frame(next.body), "photo-source-jobs-v1/" + name)
+            transaction {
+                target.requireProviderCommit(this, written, expected, next); rows.requireVerifiedPcPostWrite(target, written, expected, next)
+                if (pcBeforeWrite(expected.id)?.body != expected.body) fail("gallery_pc_postwrite_conflict")
+                putMeta(name, cipher); target.requireProviderCommit(this, written, expected, next)
+            }
+            boundary("gallery-pc-provider-verified")
+            if (pcBeforeWrite(expected.id)?.body != next.body) fail("gallery_pc_postwrite_readback_failed")
+        }
+        target.requireWrittenOwner(this, written); rows.requireVerifiedPcPostWrite(target, written, expected, next)
+    }
+
     internal fun pcStages(): List<GalleryPcStageRecord> = gated {
         val names = mutableListOf<String>()
         db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryPcStageRecord.PREFIX + "%"), null, null, "name",
