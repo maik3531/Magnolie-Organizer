@@ -8,16 +8,67 @@ public enum ICalendarImport {
     public static let maximumBytes = 32 * 1024 * 1024
     public static let maximumRecords = 50_000
     public static let maximumProjectedBytes = 96 * 1024 * 1024
+    public struct LegacyAndroidAlias: Sendable {
+        public let appointmentIndex: Int
+        public let canonicalUID: String, legacyUID: String, sourceID: String, wireUID: String, recurrenceLine: String
+        public var payload: [String: Any] {
+            ["appointmentIndex": appointmentIndex, "canonicalUID": canonicalUID, "legacyUID": legacyUID,
+             "sourceID": sourceID, "wireUID": wireUID, "recurrenceLine": recurrenceLine]
+        }
+    }
+    /// Transient evidence only. Never part of document or icsImportMetadata.
+    public struct LegacyAndroidAliases: Sendable {
+        public let sourceSHA256: String
+        public let appointmentCount: Int
+        public let entries: [LegacyAndroidAlias]
+        public var payload: [String: Any] {
+            ["version": 1, "algorithm": "android-jsonobject-quote-v1", "sourceSHA256": sourceSHA256,
+             "appointmentCount": appointmentCount, "entries": entries.map { $0.payload }]
+        }
+    }
     public struct Result {
         public let appointments: [[String: Any]]
         public let tasks: [[String: Any]]
         public let anniversaries: [[String: Any]]
         public let calendarProperties: [String]
         public let sourceSHA256: String
+        public let legacyAndroidAliases: LegacyAndroidAliases?
         public var document: [String: Any] {
             ["termine": appointments, "aufgaben": tasks, "jahrestage": anniversaries,
              "icsImportMetadata": ["version": 1, "calendarProperties": calendarProperties, "sourceSHA256": sourceSHA256]]
         }
+    }
+    static func validateProjection(_ document: [String: Any], aliases: LegacyAndroidAliases?, maximum: Int = maximumProjectedBytes) throws {
+        let documentSize = try JSONSerialization.data(withJSONObject: document).count
+        let aliasSize = try aliases.map { try JSONSerialization.data(withJSONObject: $0.payload).count } ?? 0
+        let envelopeBytes = aliases == nil ? 0 : 64
+        guard maximum >= envelopeBytes, aliasSize <= maximum - envelopeBytes,
+              documentSize <= maximum - envelopeBytes - aliasSize else { throw BetaError("Calendar projection exceeds the bounded import size.") }
+    }
+    // Explicit old AOSP JSONObject.quote, independent of Foundation JSON defaults.
+    // The current canonical UID serializer/algorithm is deliberately untouched.
+    static func legacyAndroidQuote(_ value: String) -> String {
+        var output = "\""
+        for scalar in value.unicodeScalars {
+            switch scalar.value {
+            case 34: output += "\\\""
+            case 92: output += "\\\\"
+            case 47: output += "\\/"
+            case 8: output += "\\b"
+            case 12: output += "\\f"
+            case 10: output += "\\n"
+            case 13: output += "\\r"
+            case 9: output += "\\t"
+            case 0...31: output += String(format: "\\u%04x", scalar.value)
+            default: output.unicodeScalars.append(scalar)
+            }
+        }
+        return output + "\""
+    }
+    static func legacyAndroidRecurrenceKey(_ parameters: [String: String], _ value: String) throws -> String {
+        guard parameters.keys.allSatisfy({ matches($0, "^[A-Za-z0-9-]+$") }) else { throw BetaError("Invalid recurrence identity parameter.") }
+        let fields = parameters.keys.sorted().map { legacyAndroidQuote($0) + ":" + legacyAndroidQuote(parameters[$0]!) }.joined(separator: ",")
+        return "[{" + fields + "}," + legacyAndroidQuote(value) + "]"
     }
     private struct Property {
         let line: String, name: String, value: String, header: String
@@ -670,6 +721,7 @@ public enum ICalendarImport {
         let source = "ics:" + ICalendarImport.hash(Data((stableSource + "\n" + calendarName).utf8))
         var collections: [String: [[String: Any]]] = ["termine": [], "aufgaben": [], "jahrestage": []]
         var identities: Set<OpaqueUTF8Identity> = [], projectedBytes = 0
+        var legacyAliases: [LegacyAndroidAlias] = []
         let zoneBytes = zoneBlocks.reduce(0) { $0 + $1.reduce(0) { $0 + $1.utf8.count + 2 } }
         for component in items {
             // Account for repeated source-zone payloads and worst-case JSON
@@ -685,6 +737,22 @@ public enum ICalendarImport {
                 record["icsElternQuelleId"] = record["icsQuelleId"] as? String ?? ""
             }
             if !zoneBlocks.isEmpty { record["icsTimezones"] = zoneBlocks }
+            if collection == "termine", component.name == "VEVENT", let recurrence = component.property("RECURRENCE-ID"),
+               let sourceID = record["icsQuelleId"] as? String, !sourceID.isEmpty {
+                let wireUID = component.value("UID")
+                let canonicalJSON = try JSONSerialization.data(withJSONObject: [recurrence.parameters, recurrence.value], options: [.sortedKeys, .withoutEscapingSlashes])
+                let canonicalUID = wireUID + "-magnolie-instanz-" + ICalendarImport.hash(canonicalJSON).prefix(16)
+                guard OpaqueUTF8Identity(uid) == OpaqueUTF8Identity(canonicalUID) else { throw BetaError("Canonical recurrence evidence does not match its appointment.") }
+                let legacyJSON = try legacyAndroidRecurrenceKey(recurrence.parameters, recurrence.value)
+                let legacyUID = wireUID + "-magnolie-instanz-" + ICalendarImport.hash(Data(legacyJSON.utf8)).prefix(16)
+                if OpaqueUTF8Identity(legacyUID) != OpaqueUTF8Identity(canonicalUID) {
+                    // Charge worst-case JSON escaping before retaining evidence entries.
+                    projectedBytes += (canonicalUID.utf8.count + legacyUID.utf8.count + sourceID.utf8.count + wireUID.utf8.count + recurrence.line.utf8.count) * 6 + 512 + (legacyAliases.isEmpty ? 512 : 0)
+                    guard projectedBytes <= maximumProjectedBytes else { throw BetaError("Projected calendar evidence exceeds the bounded import size; nothing was imported.") }
+                    legacyAliases.append(LegacyAndroidAlias(appointmentIndex: collections[collection, default: []].count,
+                        canonicalUID: canonicalUID, legacyUID: legacyUID, sourceID: sourceID, wireUID: wireUID, recurrenceLine: recurrence.line))
+                }
+            }
             collections[collection, default: []].append(record)
         }
         // Preserve both masters and separate recurrence exceptions, including
@@ -716,12 +784,12 @@ public enum ICalendarImport {
                 return record
             }
         }
+        let sourceHash = ICalendarImport.hash(bytes)
+        let aliases = legacyAliases.isEmpty ? nil : LegacyAndroidAliases(sourceSHA256: sourceHash, appointmentCount: collections["termine"]!.count, entries: legacyAliases)
         let result = Result(appointments: collections["termine"]!, tasks: collections["aufgaben"]!, anniversaries: collections["jahrestage"]!,
-                            calendarProperties: wrapper?.properties.map { $0.line } ?? [], sourceSHA256: ICalendarImport.hash(bytes))
-        // This final bounded validation is still pure: callers receive either a
-        // complete, JSON-representable transaction or an error, never a prefix.
-        let encoded = try JSONSerialization.data(withJSONObject: result.document)
-        guard encoded.count <= maximumProjectedBytes else { throw BetaError("Calendar projection exceeds the bounded import size.") }
+                            calendarProperties: wrapper?.properties.map { $0.line } ?? [], sourceSHA256: sourceHash, legacyAndroidAliases: aliases)
+        // Both values are bounded together, before any caller can transmit them.
+        try validateProjection(result.document, aliases: result.legacyAndroidAliases)
         return result
     }
 }

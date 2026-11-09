@@ -29,6 +29,14 @@ internal object CalendarIdentity {
         }
         append('"')
     }
+    // Evidence only: Android JSONObject.quote historically escapes every slash.
+    // The current canonical quote/recurrenceKey algorithms remain unchanged.
+    fun legacyAndroidQuote(value: String): String = quote(value).replace("/", "\\/")
+    fun legacyAndroidRecurrenceKey(parameters: Map<String,String>,value: String): String {
+        require(parameters.keys.all {it.matches(Regex("[A-Za-z0-9-]+"))})
+        val fields=parameters.keys.sorted().joinToString(",","{","}") {legacyAndroidQuote(it)+":"+legacyAndroidQuote(parameters.getValue(it))}
+        return "["+fields+","+legacyAndroidQuote(value)+"]"
+    }
     fun recurrenceKey(parameters: Map<String,String>,value: String): String {
         // RFC property parameter names are ASCII tokens, normalized by the parser.
         require(parameters.keys.all {it.matches(Regex("[A-Za-z0-9-]+"))})

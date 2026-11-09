@@ -1,0 +1,134 @@
+{
+  "notice": "Public synthetic identity evidence only. Old quote/preimages executed against actual AOSP14 JSONObject; current bytes are unchanged published-Python reference vectors. Not a native Android/macOS execution receipt.",
+  "aospJSONStringerSHA256": "8772ac80610cd62e906330152b09864c471a0921f199f4b9d670d98050e3d86c",
+  "quotes": [
+    {
+      "value": "Europe/Berlin",
+      "canonical": "\"Europe/Berlin\"",
+      "legacyAndroid": "\"Europe\\/Berlin\""
+    },
+    {
+      "value": "quote\"slash/back\\slash",
+      "canonical": "\"quote\\\"slash/back\\\\slash\"",
+      "legacyAndroid": "\"quote\\\"slash\\/back\\\\slash\""
+    },
+    {
+      "value": "\b\f\n\r\t\u0000\u0001\u001f",
+      "canonical": "\"\\b\\f\\n\\r\\t\\u0000\\u0001\\u001f\"",
+      "legacyAndroid": "\"\\b\\f\\n\\r\\t\\u0000\\u0001\\u001f\""
+    },
+    {
+      "value": "Café",
+      "canonical": "\"Café\"",
+      "legacyAndroid": "\"Café\""
+    },
+    {
+      "value": "Café",
+      "canonical": "\"Café\"",
+      "legacyAndroid": "\"Café\""
+    },
+    {
+      "value": "東京 😀",
+      "canonical": "\"東京 😀\"",
+      "legacyAndroid": "\"東京 😀\""
+    },
+    {
+      "value": "  ",
+      "canonical": "\"  \"",
+      "legacyAndroid": "\"  \""
+    }
+  ],
+  "recurrences": [
+    {
+      "parameters": {
+        "TZID": "Europe/Berlin",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "canonical": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Europe/Berlin\"},\"20261102T100000\"]",
+      "canonicalSHA256": "d81818bf15d5fd90c4ce2c5f6274da5c8f5b04e65e4838086c3017a39874b6a6",
+      "legacyAndroid": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Europe\\/Berlin\"},\"20261102T100000\"]",
+      "legacySHA256": "c545af944f8c365626b8beeba8224a0e7937ae16dfaef84699836f762d9b6b21",
+      "canonicalUID": "public-wire-magnolie-instanz-d81818bf15d5fd90",
+      "legacyUID": "public-wire-magnolie-instanz-c545af944f8c3656"
+    },
+    {
+      "parameters": {
+        "TZID": "quote\"slash/back\\slash",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "canonical": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"quote\\\"slash/back\\\\slash\"},\"20261102T100000\"]",
+      "canonicalSHA256": "9b007e0930328dbd4f606335587c91d206cac3b542bda2957a2641ff032b1a4c",
+      "legacyAndroid": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"quote\\\"slash\\/back\\\\slash\"},\"20261102T100000\"]",
+      "legacySHA256": "9e6190910ab31da940542b96e50ac3945c35e215df47d8d90c7d01bd8b1fd658",
+      "canonicalUID": "public-wire-magnolie-instanz-9b007e0930328dbd",
+      "legacyUID": "public-wire-magnolie-instanz-9e6190910ab31da9"
+    },
+    {
+      "parameters": {
+        "TZID": "\b\f\n\r\t\u0000\u0001\u001f",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "canonical": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"\\b\\f\\n\\r\\t\\u0000\\u0001\\u001f\"},\"20261102T100000\"]",
+      "canonicalSHA256": "7a642ba57588f3d52556af08b860fc47559ab93861115fdd81e8a6eaefad9306",
+      "legacyAndroid": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"\\b\\f\\n\\r\\t\\u0000\\u0001\\u001f\"},\"20261102T100000\"]",
+      "legacySHA256": "7a642ba57588f3d52556af08b860fc47559ab93861115fdd81e8a6eaefad9306",
+      "canonicalUID": "public-wire-magnolie-instanz-7a642ba57588f3d5",
+      "legacyUID": "public-wire-magnolie-instanz-7a642ba57588f3d5"
+    },
+    {
+      "parameters": {
+        "TZID": "Café",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "canonical": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Café\"},\"20261102T100000\"]",
+      "canonicalSHA256": "519975a7b8070d8b692815887e043c6775923bd62b4222e7ce3f8b5743c8ae6b",
+      "legacyAndroid": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Café\"},\"20261102T100000\"]",
+      "legacySHA256": "519975a7b8070d8b692815887e043c6775923bd62b4222e7ce3f8b5743c8ae6b",
+      "canonicalUID": "public-wire-magnolie-instanz-519975a7b8070d8b",
+      "legacyUID": "public-wire-magnolie-instanz-519975a7b8070d8b"
+    },
+    {
+      "parameters": {
+        "TZID": "Café",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "canonical": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Café\"},\"20261102T100000\"]",
+      "canonicalSHA256": "53618686d27834d2151eeb479829837d0ac6f59df1c61095d62ef4b6eb0c413f",
+      "legacyAndroid": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Café\"},\"20261102T100000\"]",
+      "legacySHA256": "53618686d27834d2151eeb479829837d0ac6f59df1c61095d62ef4b6eb0c413f",
+      "canonicalUID": "public-wire-magnolie-instanz-53618686d27834d2",
+      "legacyUID": "public-wire-magnolie-instanz-53618686d27834d2"
+    },
+    {
+      "parameters": {
+        "TZID": "東京 😀",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "canonical": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"東京 😀\"},\"20261102T100000\"]",
+      "canonicalSHA256": "73661b16395a40977e12b5c183a5d150649bab4f443f8367a92d92770881b523",
+      "legacyAndroid": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"東京 😀\"},\"20261102T100000\"]",
+      "legacySHA256": "73661b16395a40977e12b5c183a5d150649bab4f443f8367a92d92770881b523",
+      "canonicalUID": "public-wire-magnolie-instanz-73661b16395a4097",
+      "legacyUID": "public-wire-magnolie-instanz-73661b16395a4097"
+    },
+    {
+      "parameters": {
+        "TZID": "  ",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "canonical": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"  \"},\"20261102T100000\"]",
+      "canonicalSHA256": "491bdd9e2265b00bfb644ce972dd6abb5a899d7bece76aba0eb8bf7674fe6146",
+      "legacyAndroid": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"  \"},\"20261102T100000\"]",
+      "legacySHA256": "491bdd9e2265b00bfb644ce972dd6abb5a899d7bece76aba0eb8bf7674fe6146",
+      "canonicalUID": "public-wire-magnolie-instanz-491bdd9e2265b00b",
+      "legacyUID": "public-wire-magnolie-instanz-491bdd9e2265b00b"
+    }
+  ]
+}

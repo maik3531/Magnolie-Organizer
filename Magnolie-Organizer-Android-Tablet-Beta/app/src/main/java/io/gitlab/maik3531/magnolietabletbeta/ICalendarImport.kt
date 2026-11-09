@@ -20,14 +20,31 @@ object ICalendarImport {
     const val maximumRecords = 50_000
     const val maximumProjectedBytes = 96 * 1024 * 1024
     class ImportException(message: String) : IllegalArgumentException(message)
+    data class LegacyAndroidAlias(val appointmentIndex: Int, val canonicalUID: String, val legacyUID: String,
+        val sourceID: String, val wireUID: String, val recurrenceLine: String) {
+        val payload: JSONObject get() = JSONObject().put("appointmentIndex",appointmentIndex).put("canonicalUID",canonicalUID)
+            .put("legacyUID",legacyUID).put("sourceID",sourceID).put("wireUID",wireUID).put("recurrenceLine",recurrenceLine)
+    }
+    /** Transient import evidence, deliberately excluded from document/icsImportMetadata. */
+    data class LegacyAndroidAliases(val sourceSHA256: String, val appointmentCount: Int, val entries: List<LegacyAndroidAlias>) {
+        val payload: JSONObject get() = JSONObject().put("version",1).put("algorithm","android-jsonobject-quote-v1")
+            .put("sourceSHA256",sourceSHA256).put("appointmentCount",appointmentCount).put("entries",JSONArray(entries.map {it.payload}))
+    }
     data class Result(
         val appointments: List<JSONObject>, val tasks: List<JSONObject>, val anniversaries: List<JSONObject>,
-        val calendarProperties: List<String>, val sourceSHA256: String
+        val calendarProperties: List<String>, val sourceSHA256: String, val legacyAndroidAliases: LegacyAndroidAliases? = null
     ) {
         val document: JSONObject get() = JSONObject().put("termine", JSONArray(appointments))
             .put("aufgaben", JSONArray(tasks)).put("jahrestage", JSONArray(anniversaries))
             .put("icsImportMetadata", JSONObject().put("version", 1)
                 .put("calendarProperties", JSONArray(calendarProperties)).put("sourceSHA256", sourceSHA256))
+    }
+    internal fun validateProjection(document: JSONObject, aliases: LegacyAndroidAliases?, maximum: Int = maximumProjectedBytes) {
+        val documentSize=document.toString().toByteArray(Charsets.UTF_8).size
+        val aliasSize=aliases?.payload?.toString()?.toByteArray(Charsets.UTF_8)?.size ?: 0
+        val envelopeBytes=if(aliases==null) 0 else 64
+        requireImport(maximum>=envelopeBytes && aliasSize<=maximum-envelopeBytes && documentSize<=maximum-envelopeBytes-aliasSize,
+            "Calendar projection exceeds the bounded import size.")
     }
     private fun requireImport(condition: Boolean, message: String) { if (!condition) throw ImportException(message) }
     private fun matches(text: String, pattern: String) = Regex(pattern).matches(text)
@@ -598,6 +615,7 @@ object ICalendarImport {
         val source = "ics:" + hash(stableSource + "\n" + calendarName)
         val collections = linkedMapOf("termine" to mutableListOf<MutableMap<String, Any>>(), "aufgaben" to mutableListOf(), "jahrestage" to mutableListOf())
         val identities = mutableSetOf<String>(); var projected = 0L
+        val legacyAliases=mutableListOf<LegacyAndroidAlias>()
         val zoneBytes = zoneBlocks.sumOf { block -> block.sumOf { it.toByteArray(Charsets.UTF_8).size.toLong() + 2 } }
         for (component in items) {
             checkCancelled()
@@ -612,6 +630,23 @@ object ICalendarImport {
             if (qualified) { record["icsQuelleName"] = label; if (!record.containsKey("icsQuelleId")) record["icsQuelleId"] = source }
             if (collection == "aufgaben" && record["icsElternQuelleId"] == "" && component.property("X-MAGNOLIE-TASK-IDENTITY") == null) record["icsElternQuelleId"] = record["icsQuelleId"] ?: ""
             if (zoneBlocks.isNotEmpty()) record["icsTimezones"] = zoneBlocks
+            if(collection=="termine" && component.name=="VEVENT") component.property("RECURRENCE-ID")?.let { recurrence ->
+                val sourceID=record["icsQuelleId"] as? String ?: ""
+                if(sourceID.isNotEmpty()) {
+                    val wireUID=component.value("UID")
+                    val canonicalUID=wireUID+"-magnolie-instanz-"+hash(CalendarIdentity.recurrenceKey(recurrence.parameters,recurrence.value)).take(16)
+                    requireImport(record["uid"]==canonicalUID,"Canonical recurrence evidence does not match its appointment.")
+                    val legacyUID=wireUID+"-magnolie-instanz-"+hash(CalendarIdentity.legacyAndroidRecurrenceKey(recurrence.parameters,recurrence.value)).take(16)
+                    if(legacyUID!=canonicalUID) {
+                        // Worst-case JSON escaping is charged before retaining evidence entries.
+                        projected += (canonicalUID.toByteArray(Charsets.UTF_8).size.toLong()+legacyUID.toByteArray(Charsets.UTF_8).size+
+                            sourceID.toByteArray(Charsets.UTF_8).size+wireUID.toByteArray(Charsets.UTF_8).size+recurrence.line.toByteArray(Charsets.UTF_8).size)*6+512+
+                            (if(legacyAliases.isEmpty()) 512 else 0)
+                        requireImport(projected<=maximumProjectedBytes,"Projected calendar evidence exceeds the bounded import size; nothing was imported.")
+                        legacyAliases.add(LegacyAndroidAlias(collections.getValue(collection).size,canonicalUID,legacyUID,sourceID,wireUID,recurrence.line))
+                    }
+                }
+            }
             collections.getValue(collection).add(record)
         }
         for (collection in listOf("termine", "aufgaben")) {
@@ -639,8 +674,10 @@ object ICalendarImport {
             }
         }
         checkCancelled()
-        val result = Result(collections.getValue("termine").map(::JSONObject), collections.getValue("aufgaben").map(::JSONObject), collections.getValue("jahrestage").map(::JSONObject), wrapper?.properties?.map { it.line } ?: emptyList(), hash(bytes))
-        requireImport(result.document.toString().toByteArray(Charsets.UTF_8).size <= maximumProjectedBytes, "Calendar projection exceeds the bounded import size.")
+        val sourceHash=hash(bytes)
+        val aliases=legacyAliases.takeIf {it.isNotEmpty()}?.let {LegacyAndroidAliases(sourceHash,collections.getValue("termine").size,it.toList())}
+        val result = Result(collections.getValue("termine").map(::JSONObject), collections.getValue("aufgaben").map(::JSONObject), collections.getValue("jahrestage").map(::JSONObject), wrapper?.properties?.map { it.line } ?: emptyList(), sourceHash,aliases)
+        validateProjection(result.document,result.legacyAndroidAliases)
         checkCancelled()
         return result
     }
