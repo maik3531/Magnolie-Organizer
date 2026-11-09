@@ -818,6 +818,10 @@ Versionen hängen an der jüngsten tatsächlich abgeschlossenen Quellversion;
 unveränderte Inhalte, unvollständige Vorgänger oder unsichere Generationen
 erteilen keine neue Sendeberechtigung. Alle alten Aufzeichnungen bleiben
 erhalten, einschließlich bei gemischter Telefon-/PC-Quellhistorie.
+Eine bekannte native Dateiidentität mit geänderter Quellwurzel oder Generation
+bleibt ebenfalls HOLD. Auch das tatsächliche Verschieben derselben Datei in
+eine zweite ausgewählte Wurzel darf keine neue unabhängige Herkunft erzeugen;
+eine ausdrückliche sichere Neuzuordnung ist damit nicht implementiert.
 
 Media-Offer-Format 2 ergänzt `pc_origins`: pro zugehöriger Datei ausschließlich
 `format: 1`, `origin_sha256` und `previous_publication_sha256` (anfangs `null`).

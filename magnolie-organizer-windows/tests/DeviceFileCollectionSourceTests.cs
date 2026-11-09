@@ -149,6 +149,21 @@ internal static class DeviceFileCollectionSourceTests
             f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == 0 &&
             File.ReadAllBytes(Path.Combine(selection.NativePath, "new-pc.png")).SequenceEqual(data),
             "Independent source versions altered incoming history, original bytes or existing source records.");
+        File.SetCreationTimeUtc(Path.Combine(selection.NativePath, "new-pc.png"), DateTime.FromFileTimeUtc((long)original.CreationFileTime));
+        var secondPath = Path.Combine(f.Native.Paths.Root, "second-pc-source"); Directory.CreateDirectory(secondPath);
+        NativeMediaCollectionRoot second;
+        using (var selected = DeviceFileNativeDirectory.OpenExisting(secondPath))
+            second = f.Native.Store.AddNativeMediaCollectionRoot(f.Native.Peer.Id, "images", selected, () => { });
+        File.Move(Path.Combine(selection.NativePath, "new-pc.png"), Path.Combine(secondPath, "new-pc.png"));
+        var moved = Member(second);
+        TestAssert.That(moved.Identity == original.Identity && moved.CreationFileTime == original.CreationFileTime,
+            "Cross-root relocation fixture did not retain actual native file identity and generation.");
+        using (var relocated = f.Native.Connection.OpenNativeCollectionMediaSource("images", second.Id, second.Version, moved, new string('f', 64), book))
+            TestAssert.Throws<InvalidDataException>(() => relocated.FreezeCompletedSuccessor(),
+                "Moving the same known native file to another selected root minted an independent PC origin.");
+        TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(history) &&
+            File.ReadAllBytes(Path.Combine(secondPath, "new-pc.png")).SequenceEqual(data),
+            "Cross-root HOLD changed retained source history or original bytes.");
     }
 
     internal static async Task WindowsOwnerGuardsAsync()

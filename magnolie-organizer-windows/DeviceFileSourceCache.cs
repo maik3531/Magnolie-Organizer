@@ -114,7 +114,10 @@ internal sealed partial class TelefonStore
     {
         if (next["local_origin"] is not JsonObject origin) return;
         foreach (var item in records)
-            if (item.Body["local_origin"] is JsonObject old && JsonNode.DeepEquals(old["root_id"], origin["root_id"]) &&
+            // A selected-root change cannot mint a second source for a known
+            // native file. Reassociation needs its own explicit owner, not a
+            // root-local history lookup or a name/content heuristic.
+            if (item.Body["local_origin"] is JsonObject old &&
                 JsonNode.DeepEquals(old["file_identity"], origin["file_identity"]) && !JsonNode.DeepEquals(old, origin))
                 throw DeviceFileControl.Error("media_collection_original_generation_required");
     }
