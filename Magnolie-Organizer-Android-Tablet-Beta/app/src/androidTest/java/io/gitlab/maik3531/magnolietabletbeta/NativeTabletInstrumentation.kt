@@ -566,8 +566,8 @@ class NativeTabletInstrumentation : Instrumentation() {
         domainMark("drawing.saved")
         domainMark("vault.before-reopen.begin")
         val persisted=JSONObject(vault().read()!!.getJSONObject("data").toString())
-        NativeDomainAcceptance.requireEqual(drawing.getJSONObject("beforeSave"),persisted,"Native save changed or dropped original book values or fields")
-        NativeDomainAcceptance.requireEqual(persisted,drawing.getJSONObject("afterSave"),"Native saved book differs from the actual UI domain data")
+        NativeDomainAcceptance.requireSavedEqual(drawing.getJSONObject("beforeSave"),persisted,"Native save changed or dropped original book values or fields beyond the declared empty epoch placeholders")
+        NativeDomainAcceptance.requireSavedEqual(drawing.getJSONObject("afterSave"),persisted,"Native saved book differs from the actual UI domain data beyond the declared empty epoch placeholders")
         domainMark("vault.before-reopen.verified")
         domainMark("reopen.begin")
         reloadVerified()
@@ -880,12 +880,14 @@ class NativeTabletInstrumentation : Instrumentation() {
         val started=SystemClock.elapsedRealtime()
         launch(); saved()
         val beforeCancel=data()
+        val beforeCancelSaved=vault().read()!!.getJSONObject("data")
+        check(calendarComparable(beforeCancelSaved)==calendarComparable(SavedBookEpochExpectation.nativeBook(beforeCancel,beforeCancelSaved))) {"Initial calendar book differs from the saved book beyond empty epoch placeholders"}
         openCalendarPicker()
         sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         waitFor("calendar picker cancellation ACK") {value("document.querySelector('#tablet-status').textContent.includes('Cancel')")=="true"}
         saved()
         check(calendarComparable(data())==calendarComparable(beforeCancel)) {"Cancelled calendar picker changed the book"}
-        check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeCancel)) {"Cancelled calendar picker changed native saved data"}
+        check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeCancelSaved)) {"Cancelled calendar picker changed native saved data"}
         pass("calendar SAF cancellation leaves the entire canonical and saved book unchanged")
 
         val fixture=NativeCalendarFileFixture(java.util.UUID.randomUUID().toString().take(8))
@@ -908,7 +910,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         } finally {File(out,"calendar-merge-observation.json").writeText(mergeObservation.toString(2))}
         saved()
         val merged=data(); val native=vault().read()!!.getJSONObject("data")
-        check(calendarComparable(native)==calendarComparable(merged)) {"Calendar records and source metadata did not reach the same native saved book"}
+        check(calendarComparable(native)==calendarComparable(SavedBookEpochExpectation.nativeBook(merged,native))) {"Calendar records and source metadata did not reach the same native saved book beyond empty epoch placeholders"}
         for(group in listOf("termine","aufgaben","jahrestage")) check(merged.getJSONArray(group).length()==beforeImport.getJSONArray(group).length()+1) {"Canonical calendar merge did not add exactly one item per collection"}
         for(group in listOf("notizen","kontakte")) check(calendarComparable(merged.getJSONArray(group))==calendarComparable(beforeImport.getJSONArray(group))) {"Calendar merge changed an unrelated collection"}
         val importedTask=(0 until native.getJSONArray("aufgaben").length()).map {native.getJSONArray("aufgaben").getJSONObject(it)}.single {it.optString("icsImportUid")==taskUid}

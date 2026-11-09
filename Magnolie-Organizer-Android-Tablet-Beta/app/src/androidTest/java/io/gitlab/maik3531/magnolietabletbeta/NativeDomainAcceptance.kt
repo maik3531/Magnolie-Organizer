@@ -94,6 +94,9 @@ internal object NativeDomainAcceptance {
     fun requireEqual(expected: JSONObject, actual: JSONObject, message: String) {
         check(semantic(expected)==semantic(actual)) { message }
     }
+    fun requireSavedEqual(renderer: JSONObject, persisted: JSONObject, message: String) {
+        requireEqual(SavedBookEpochExpectation.nativeBook(renderer,persisted),persisted,message)
+    }
     fun hash(value: JSONObject): String = MessageDigest.getInstance("SHA-256")
         .digest(semantic(value).toString().toByteArray()).joinToString("") { "%02x".format(it.toInt() and 255) }
 }
