@@ -12,6 +12,23 @@ internal sealed partial class DeviceFileNativeDirectory
     internal sealed record CollectionInventory(IReadOnlyList<CollectionMember> Members, bool NeedsReview);
     private sealed record CollectionChild(string Name, Identity Identity, long Size, uint Attributes, ulong CreationFileTime);
 
+    // Read-only native content position, not a publication or transfer grant.
+    // Access time is deliberately excluded: our own reads may update it.
+    internal sealed record CollectionSignature(Identity Identity, long Size, long Creation, long LastWrite, long Change, uint Attributes);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CollectionBasicInformation
+    {
+        internal long Creation, LastAccess, LastWrite, Change;
+        internal uint Attributes;
+    }
+    private static CollectionSignature ReadCollectionSignature(SafeFileHandle file)
+    {
+        var observed = DeviceFileNativeStagedFile.ReadFile(file);
+        if (!GetCollectionBasicInformation(file, 0, out var basic, (uint)Marshal.SizeOf<CollectionBasicInformation>()))
+            throw new IOException("media_collection_signature_unavailable", new Win32Exception(Marshal.GetLastWin32Error()));
+        return new(observed.Identity, observed.Size, basic.Creation, basic.LastWrite, basic.Change, basic.Attributes);
+    }
+
     // An additional generation witness, not a globally unique ID or deletion
     // proof. A changed/missing witness must never silently inherit history.
     private static ulong ReadCollectionCreation(SafeFileHandle file)
@@ -52,6 +69,7 @@ internal sealed partial class DeviceFileNativeDirectory
         { this.source = source; this.parents = parents; CreationFileTime = creation; }
         internal long Size => source.Size;
         internal Identity FileIdentity => source.FileIdentity;
+        internal CollectionSignature Observe() => source.ObserveCollection();
         internal void Require() => source.Require();
         internal byte[] ReadExact(long offset, int count) => source.ReadExact(offset, count);
         internal bool MatchesPhotoMetadata() => source.MatchesPhotoMetadata();
@@ -222,4 +240,8 @@ internal sealed partial class DeviceFileNativeDirectory
     [DllImport("kernel32.dll", EntryPoint = "GetFileInformationByHandleEx", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCollectionInformation(SafeFileHandle file, int infoClass, IntPtr information, int length);
+
+    [DllImport("kernel32.dll", EntryPoint = "GetFileInformationByHandleEx", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCollectionBasicInformation(SafeFileHandle file, int infoClass, out CollectionBasicInformation information, uint length);
 }

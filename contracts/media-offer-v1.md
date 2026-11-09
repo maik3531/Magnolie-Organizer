@@ -1764,16 +1764,62 @@ PC RECEIVE und Telefon READ bleiben aus. Die Peerantworten sind authentifizierte
 Hostmodelle, keine neue Android-Abnahme.
 
 Das ist ein begrenzter Inhaltspass der expliziten Quellen, kein Lösch-, Retention-
-oder globaler Bestandsvollständigkeitsnachweis. Windows hält im gemappten Worker
-weiterhin den gesamten-Sammlungsrest zur Prüfung; seine echte Auswahloberfläche
-ist kein Ersatz für den fehlenden Windows-Produzentenanschluss. #488 bleibt
-offen, ebenso Androidpause, Video-/Mehrdatei- und Liefergates unter #486.
+oder globaler Bestandsvollständigkeitsnachweis. Zum Zeitpunkt dieses Linux-
+Teilstands hielt Windows den gesamten-Sammlungsrest noch zur Prüfung; der
+anschließende Produzentenstand folgt unten. Der offene Rest aus #488 wird gemäß
+Teilabschlussregel in #491 weitergeführt; Androidpause, Video-/Mehrdatei- und
+Liefergates unter #486 bleiben bestehen.
 
 Automatischer gesamter PC-Export bleibt ausdrücklich vor Inventur und Aufnahme
 gesperrt, bis die dafür offene native Abnahme vorliegt. Weder der manuelle
 Hostlauf noch aktivierte gemeinsame Wifi-Einstellungen öffnen dieses Gate.
 Die zusätzliche optionale Buildkomposition besteht in allen 20 Variantenfällen;
 die dabei bestätigten GUI-Imports ohne Fotomodul wurden separat in #490 behoben.
+
+### Windows: begrenzter manueller Sammlungsproduzent (#491, Fortsetzung #488)
+
+Die native Windows-Ordnerauswahl ist jetzt an den gemeinsamen Produzenten
+angeschlossen. Der Coordinator übergibt ausdrücklich manuell/automatisch;
+automatischer gesamte-Sammlung-Export hält vor jeder Inventur. Ein Aufruf ohne
+expliziten manuellen Parameter öffnet dieses Gate nicht. Originales Buch, voller
+Intent, Connection/Control-Binding und lokale Sendezustimmung bleiben für den
+gesamten manuellen Lauf gebunden. Weder PC RECEIVE noch Telefon READ werden
+daraus erzeugt oder vorausgesetzt.
+
+Vor dem gemappten Teil hält ein privater Passowner ausdrücklich ausgewählte
+Root-FDs, originale Member/Elternketten und echte Dateisignaturen. Native Identität,
+Größe, Creation-, LastWrite-, Change-Zeit und Attribute werden an tatsächlichen
+Dateihandles verglichen; Zugriffszeit ist wegen eigener Reads kein Inhaltszeuge.
+Fehlender Root, zweifelhafte Inventur, mehrdeutige Identität oder Überschreiten
+bestehender Grenzen hält. Keine neue Schema-, Quoten- oder Historienfreigabe.
+
+Jede unabhängige Quelldatei verwendet den tatsächlichen Sourceowner und den
+vorhandenen vollständigen Freeze-/Nachfolgerpfad. Erst echter Saved/Readback,
+unabhängiges Rohbackup und tatsächliches Source-END erlauben das nächste Angebot.
+Der ursprüngliche Katalog wird an Dateiübergängen und abschließend frisch
+verglichen; die Source prüft ihren ausgewählten Root und ihre eigenen nativen
+Dateizeugen unabhängig bei IO. Ein angehängter Root während einer Datei erteilt
+dieser Datei keine neue Autorität und macht den Gesamtpass nicht vollständig.
+Zum Schluss werden ganze Inventur, Elterngenerationen und alle Inhaltspositionen
+erneut geprüft. Späte gleiche-Größe-Edits und neue Dateien nach echtem Einzel-END
+halten den Gesamtpass, ohne die tatsächliche Einzelhistorie zu verwerfen.
+
+Elf unterschiedliche native Windows-Testgruppen bestehen: vier neue
+Produzentengruppen (zwei Originale mit echtem END vor nächstem Angebot und frischem
+Unverändertlauf; echte geänderte Nachfolge mit genauer Vorpublikation; sieben
+Automatik-/Root-/Katalog-/Inhalts-/Buch-/Consent-/Controlguards; zwei späte
+Inventuränderungen nach echtem END) sowie sieben betroffene Inventur-, Mapping-
+und bestehende Collection-Sourcegruppen. Aktuelle Core- und tatsächliche
+WinForms-Produktquelle bauen ohne Warnungen/Fehler. Nur die äußere Verwaltung
+der mehrteiligen Testgruppe wurde an ihre Gesamtdauer angepasst; jeder tatsächliche
+Sender behält unverändert seine ursprüngliche 60-Sekunden-Frist.
+
+Der Produzentenaufruf ist echt, die authentifizierten Telefonantworten sind
+Hostmodelle. Kein neuer interaktiver Installations- oder Android-Abnahmenachweis.
+Unklare bzw. bereits gemappte Member unter expliziten Roots werden noch nicht
+als neue PC-Quelle umetikettiert: diese Überlappung und gemischte Typen bleiben
+konservativ HOLD und benötigen weitere Arbeit. #491/#486 sowie Androidpause,
+automatischer Export, Capability23 und Video-/Mehrdatei-/Liefergates bleiben offen.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

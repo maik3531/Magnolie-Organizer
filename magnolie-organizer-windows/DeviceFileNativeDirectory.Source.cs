@@ -30,6 +30,7 @@ internal sealed partial class DeviceFileNativeDirectory
         private readonly DeviceFileNativeStagedFile.Observation original;
         private readonly Action requireNative;
         private readonly ulong? expectedCreation;
+        private readonly CollectionSignature? collectionSignature;
         private bool retired;
 
         internal ManagedSource(DeviceFileNativeDirectory parent, SafeFileHandle file, Identity expected, Action requireNative, ulong? expectedCreation = null)
@@ -39,6 +40,7 @@ internal sealed partial class DeviceFileNativeDirectory
             {
                 parentIdentity = parent.CurrentIdentity();
                 original = DeviceFileNativeStagedFile.ReadFile(file);
+                if (expectedCreation is not null) collectionSignature = ReadCollectionSignature(file);
                 if (original.Identity != expected || original.Size is < 1 or > DeviceFileManifest.MaxFileBytes)
                     throw DeviceFileControl.Error("media_source_original_file_required");
                 Require();
@@ -48,6 +50,10 @@ internal sealed partial class DeviceFileNativeDirectory
 
         internal long Size => original.Size;
         internal Identity FileIdentity => original.Identity;
+        internal CollectionSignature ObserveCollection()
+        {
+            lock (sourceGate) { Require(); return ReadCollectionSignature(file); }
+        }
 
         internal void Require()
         {
@@ -61,6 +67,8 @@ internal sealed partial class DeviceFileNativeDirectory
                         throw DeviceFileControl.Error("media_source_original_file_changed");
                     if (expectedCreation is ulong creation && ReadCollectionCreation(file) != creation)
                         throw DeviceFileControl.Error("media_collection_file_generation_changed");
+                    if (collectionSignature is not null && ReadCollectionSignature(file) != collectionSignature)
+                        throw DeviceFileControl.Error("media_collection_original_content_changed");
                     requireNative();
                 }
                 catch { retired = true; throw; }

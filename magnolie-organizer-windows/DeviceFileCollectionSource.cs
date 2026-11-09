@@ -32,6 +32,7 @@ internal sealed partial class TelefonStore
 
         internal override void Require() => file.Require();
         internal override byte[] ReadExact(long offset, int count) => file.ReadExact(offset, count);
+        internal DeviceFileNativeDirectory.CollectionSignature ObserveCollection() => file.Observe();
         internal NativePreparedMediaSource Freeze() => FreezeCore(false);
         internal NativePreparedMediaSource FreezeCompletedSuccessor() => FreezeCore(true);
         private NativePreparedMediaSource FreezeCore(bool completedSuccessor)
@@ -169,8 +170,128 @@ internal sealed partial class TelefonStore
 
 internal sealed partial class TelefonConnection
 {
+    // Original explicit membership only. This owner does not grant SEND and
+    // never substitutes an inventory or Saved receipt for per-file source END.
+    private sealed class NativeCollectionMediaPass : IDisposable
+    {
+        private sealed record Frame(NativeMediaCollectionRoot Selection, DeviceFileNativeDirectory Root,
+            DeviceFileNativeDirectory.CollectionInventory Inventory,
+            IReadOnlyDictionary<string, DeviceFileNativeDirectory.CollectionSignature> Signatures);
+        private readonly TelefonStore store;
+        private readonly string peerId;
+        private readonly Action current;
+        private readonly CancellationToken token;
+        private readonly IReadOnlyList<NativeMediaCollectionRoot> catalog;
+        private readonly List<Frame> frames = [];
+        private readonly Action localCurrent;
+        private bool closed;
+
+        internal NativeCollectionMediaPass(TelefonStore store, string peerId, string mediaType, Action current, CancellationToken token)
+        {
+            this.store = store; this.peerId = peerId; this.current = current; this.token = token;
+            var preferences = store.ReadNativeMediaPreferences(peerId);
+            var consent = store.ReadNativeMediaSendConsent(peerId);
+            localCurrent = () =>
+            {
+                if (store.ReadNativeMediaPreferences(peerId) != preferences || store.ReadNativeMediaSendConsent(peerId) != consent ||
+                    !consent.Explicit || !(mediaType == "video" ? consent.Videos : consent.Photos))
+                    throw DeviceFileControl.Error("media_source_local_consent_required");
+            };
+            catalog = store.NativeMediaCollectionRoots(peerId);
+            try
+            {
+                Require(); var selected = catalog.Where(root => root.MediaType == mediaType).ToArray();
+                if (selected.Length == 0) throw DeviceFileControl.Error("media_collection_explicit_source_roots_required");
+                var identities = new HashSet<DeviceFileNativeDirectory.Identity>();
+                foreach (var selection in selected)
+                {
+                    var root = selection.OpenNative();
+                    try
+                    {
+                        var inventory = root.InventoryCollection(Require, token);
+                        if (inventory.NeedsReview) throw DeviceFileControl.Error("media_collection_incomplete_native_inventory");
+                        var signatures = new Dictionary<string, DeviceFileNativeDirectory.CollectionSignature>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var member in inventory.Members)
+                        {
+                            if (!identities.Add(member.Identity)) throw DeviceFileControl.Error("media_collection_ambiguous_identity");
+                            if (identities.Count > 4096) throw DeviceFileControl.Error("media_collection_inventory_bound");
+                            using var file = root.OpenCollectionMember(member, Require);
+                            signatures.Add(Key(member), file.Observe());
+                        }
+                        frames.Add(new(selection, root, inventory, signatures));
+                    }
+                    catch { root.Dispose(); throw; }
+                }
+                Require();
+            }
+            catch { Dispose(); throw; }
+        }
+
+        private static string Key(DeviceFileNativeDirectory.CollectionMember member) => string.Join('\\', member.Parents.Select(parent => parent.Name).Append(member.Name));
+        internal void Require()
+        {
+            token.ThrowIfCancellationRequested();
+            if (closed) throw DeviceFileControl.Error("media_collection_original_pass_required");
+            current(); localCurrent();
+        }
+        private void CatalogCurrent()
+        {
+            Require();
+            if (!store.NativeMediaCollectionRoots(peerId).SequenceEqual(catalog))
+                throw DeviceFileControl.Error("media_collection_original_catalog_changed");
+        }
+        private void Check(Frame frame, DeviceFileNativeDirectory.CollectionMember member)
+        {
+            CatalogCurrent();
+            using var file = frame.Root.OpenCollectionMember(member, Require);
+            if (!frame.Signatures.TryGetValue(Key(member), out var signature) || file.Observe() != signature)
+                throw DeviceFileControl.Error("media_collection_original_inventory_changed");
+        }
+        internal IEnumerable<(NativeMediaCollectionRoot Selection, DeviceFileNativeDirectory.CollectionMember Member)> Members()
+        {
+            foreach (var frame in frames)
+                foreach (var member in frame.Inventory.Members)
+                { Check(frame, member); yield return (frame.Selection, member); }
+        }
+        internal void CheckOpened(NativeMediaCollectionRoot selection, DeviceFileNativeDirectory.CollectionMember member,
+            DeviceFileNativeDirectory.CollectionSignature signature)
+        {
+            CatalogCurrent();
+            var frame = frames.Single(value => ReferenceEquals(value.Selection, selection));
+            if (!frame.Inventory.Members.Any(value => ReferenceEquals(value, member)) || frame.Signatures[Key(member)] != signature)
+                throw DeviceFileControl.Error("media_collection_original_inventory_changed");
+        }
+        internal void Finish()
+        {
+            CatalogCurrent();
+            foreach (var frame in frames)
+            {
+                var inventory = frame.Root.InventoryCollection(Require, token);
+                if (inventory.NeedsReview || inventory.Members.Count != frame.Inventory.Members.Count)
+                    throw DeviceFileControl.Error("media_collection_original_inventory_changed");
+                foreach (var member in inventory.Members)
+                {
+                    var original = frame.Inventory.Members.SingleOrDefault(value => Key(value).Equals(Key(member), StringComparison.OrdinalIgnoreCase));
+                    if (original is null || original.Identity != member.Identity || original.Size != member.Size ||
+                        original.CreationFileTime != member.CreationFileTime || !original.Parents.SequenceEqual(member.Parents))
+                        throw DeviceFileControl.Error("media_collection_original_inventory_changed");
+                    Check(frame, member);
+                }
+            }
+            CatalogCurrent();
+        }
+        public void Dispose()
+        {
+            closed = true;
+            Exception? failure = null;
+            foreach (var frame in frames)
+                try { frame.Root.Dispose(); } catch (Exception error) { failure ??= error; }
+            if (failure is not null) throw failure;
+        }
+    }
+
     internal TelefonStore.NativeCollectionMediaSource OpenNativeCollectionMediaSource(string mediaType, string rootId, string rootVersion,
-        DeviceFileNativeDirectory.CollectionMember member, string phoneDestinationToken, NativeMediaBookPermit book)
+        DeviceFileNativeDirectory.CollectionMember member, string phoneDestinationToken, NativeMediaBookPermit book, Action? requireCurrent = null)
     {
         if (!DeviceFileControl.Hash(phoneDestinationToken)) throw DeviceFileControl.Error("media_source_phone_destination_required");
         var controls = RequireNativeFileControls();
@@ -178,7 +299,7 @@ internal sealed partial class TelefonConnection
         var intent = store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey) ?? throw DeviceFileControl.Error("media_source_current_intent_required");
         void Current()
         {
-            cancellation.ThrowIfCancellationRequested(); book.Require();
+            cancellation.ThrowIfCancellationRequested(); book.Require(); requireCurrent?.Invoke();
             if (!MediaSharedSettingsReady || !JsonNode.DeepEquals(intent, store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey)) ||
                 RequireNativeFileControls(controls).Binding(phoneDestinationToken, senderIsLocal: true) != sending)
                 throw DeviceFileControl.Error("media_source_current_sending_owner_required");

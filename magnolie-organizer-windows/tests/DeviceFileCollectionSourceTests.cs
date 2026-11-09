@@ -138,13 +138,15 @@ internal static class DeviceFileCollectionSourceTests
         try { return JsonNode.Parse(clear)!.AsObject(); } finally { CryptographicOperations.ZeroMemory(clear); }
     }
 
-    private static async Task SendToEnd(DeviceFileReceiveJobTests.Fixture f, TelefonStore.NativePreparedMediaSource cache, byte[] expected, string? expectedPrevious = null)
+    private static async Task SendToEnd(DeviceFileReceiveJobTests.Fixture f, TelefonStore.NativePreparedMediaSource cache, byte[] expected, string? expectedPrevious = null,
+        Task? production = null, int offerIndex = 0)
     {
-        DeviceFileConnectionRunsTests.Clear(f); using var stop = new CancellationTokenSource();
-        var send = f.Native.Connection.SendNativeMappedMediaSourceToSourceEndAsync(cache, stop.Token);
+        if (production is null) DeviceFileConnectionRunsTests.Clear(f);
+        using var stop = new CancellationTokenSource();
+        var send = production ?? f.Native.Connection.SendNativeMappedMediaSourceToSourceEndAsync(cache, stop.Token);
         try
         {
-            var offer = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
+            var offer = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind, offerIndex);
             var media = MediaOfferEnvelope.Validate(offer, cache.Manifest.SenderId, cache.Manifest.ReceiverId, Now());
             TestAssert.That(media.Originals.Count == 0 && media.MimeTypes[cache.Manifest.Files[0].Id]!.GetValue<string>() == "image/png",
                 "Independent PC source invented a phone reference or lost actual byte-derived MIME.");
@@ -158,7 +160,7 @@ internal static class DeviceFileCollectionSourceTests
             for (var index = 0; index < chunks; index++)
             {
                 var request = DeviceFileSourceSendTests.Chunk(cache, acceptance, offer, index); await f.Native.Connection.HandlePlainAsync(request);
-                var response = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileChunkEnvelope.ResultKind, index);
+                var response = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileChunkEnvelope.ResultKind, offerIndex * chunks + index);
                 var bytes = DeviceFileChunkEnvelope.ParseResponse(response, request, cache.Manifest, accepted, Now());
                 try { TestAssert.That(bytes.SequenceEqual(expected.Skip(index * DeviceFileManifest.ChunkBytes).Take(DeviceFileManifest.ChunkBytes)), "Actual encrypted output lost independent original PC bytes."); }
                 finally { CryptographicOperations.ZeroMemory(bytes); }
@@ -175,12 +177,193 @@ internal static class DeviceFileCollectionSourceTests
                 ["permission_epoch"] = acceptance["body"]!["permission_epoch"]!.DeepClone(), ["readback_nonce"] = new string('e', 64) };
             var binding = f.Owner.Binding(DevicePublishedReadbackEnvelope.DestinationToken(context), true)!;
             var readback = DeviceFileSourceSendTests.Message(DevicePublishedReadbackEnvelope.Kind, DevicePublishedReadbackEnvelope.EncodeBody(context, binding), offer);
-            await f.Native.Connection.HandlePlainAsync(readback); await send; cache.RequireIoEnded();
+            await f.Native.Connection.HandlePlainAsync(readback);
+            if (production is null) await send;
+            else
+            {
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                while (true)
+                {
+                    try { cache.RequireIoEnded(); break; }
+                    catch (InvalidDataException) when (!production.IsCompleted) { await Task.Delay(10, deadline.Token); }
+                }
+            }
+            cache.RequireIoEnded();
             TestAssert.That(DeviceFileSourceSendTests.Exchange(f, cache.JobId)["phase"]!.GetValue<string>() == "source_ended" &&
                 DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).All(frame => frame["kind"]!.GetValue<string>() != DeviceFileSources.RequestKind),
                 "Independent source did not reach actual native END or requested phone source READ/discovery.");
         }
-        finally { stop.Cancel(); try { await send; } catch { } }
+        finally { stop.Cancel(); if (production is null) try { await send; } catch { } }
+    }
+
+    internal static async Task WindowsCollectionProducerAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);
+        File.WriteAllBytes(Path.Combine(selection.NativePath, "second.png"), data);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "collection-producer-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var controls = f.Owner.Binding(new string('0', 64), true); var receiving = f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id);
+        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(180)); // Test management only; each actual sender retains its own original60s.
+        DeviceFileConnectionRunsTests.Clear(f);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var production = f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, () => { }, stop.Token, automatic: false);
+        var ended = new List<string>();
+        try
+        {
+            for (var index = 0; index < 2; index++)
+            {
+                for (var attempt = 0; ; attempt++)
+                {
+                    try { await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind, index); break; }
+                    catch (TimeoutException) when (!production.IsCompleted && attempt < 3) { }
+                    catch (TimeoutException) { if (production.IsCompleted) await production; throw; }
+                }
+                Console.WriteLine("Collection producer actual offer " + index + " at " + clock.ElapsedMilliseconds + "ms");
+                foreach (var previous in ended)
+                    TestAssert.That(DeviceFileSourceSendTests.Exchange(f, previous)["phase"]!.GetValue<string>() == "source_ended",
+                        "A following original was offered before actual independent backup/source END.");
+                var run = (TelefonConnection.NativeMediaSendRun)typeof(TelefonConnection).GetField("nativeMediaSend",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Native.Connection)!;
+                await SendToEnd(f, run.Cache, data, production: production, offerIndex: index);
+                Console.WriteLine("Collection producer actual END " + index + " at " + clock.ElapsedMilliseconds + "ms");
+                ended.Add(run.Cache.JobId);
+            }
+            var result = await production;
+            TestAssert.That(result.Sent == 2 && !result.NeedsReview && ended.Distinct().Count() == 2,
+                "Selected native roots were not composed into complete independent originals.");
+            var before = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+            DeviceFileConnectionRunsTests.Clear(f);
+            result = await f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, () => { }, stop.Token, automatic: false);
+            TestAssert.That(result.Sent == 0 && !result.NeedsReview && f.Native.Stream.Length == 0 &&
+                before.SequenceEqual(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id)), "Fresh unchanged collection resent payload or changed old history.");
+            TestAssert.That(f.Current() is null && f.Owner.Binding(new string('0', 64), true) == controls &&
+                f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id) == receiving, "Collection producer acquired PC RECEIVE/phone READ or changed consent.");
+        }
+        finally { stop.Cancel(); try { await production; } catch { } }
+    }
+
+    internal static async Task WindowsCollectionProducerGuardsAsync()
+    {
+        foreach (var scenario in new[] { "automatic", "no_roots", "catalog", "same_size", "book", "local_send", "control" })
+        {
+            using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256);
+            var selection = scenario == "no_roots" ? null : Select(f, data);
+            var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "collection-guard-book"), Book);
+            var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved); var changed = false;
+            void Current()
+            {
+                if (changed || selection is null || scenario is "automatic" or "no_roots") return;
+                // First source admission occurs only after the pass froze its
+                // inventory; change from its subsequent native source callback.
+                if (!new System.Diagnostics.StackTrace().GetFrames().Any(frame => frame.GetMethod()?.Name == "OpenNativeCollectionMediaSource")) return;
+                changed = true;
+                if (scenario == "book") typeof(PersonalActorNativeSaveHost).GetProperty("currentPlainTextAvailable",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(host, false);
+                else if (scenario == "local_send")
+                {
+                    var consent = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+                    f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, consent.Version, false, false);
+                }
+                else if (scenario == "control")
+                    f.Local = new(new(99, new string('e', 64), false, false), f.Local.Owner, true);
+                else if (scenario == "same_size")
+                { var raw = data.ToArray(); raw[^1] ^= 1; File.WriteAllBytes(Path.Combine(selection.NativePath, "new-pc.png"), raw); }
+                else
+                {
+                    var path = Path.Combine(f.Native.Paths.Root, "other-source"); Directory.CreateDirectory(path);
+                    using var root = DeviceFileNativeDirectory.OpenExisting(path);
+                    f.Native.Store.AddNativeMediaCollectionRoot(f.Native.Peer.Id, "images", root, () => { });
+                }
+            }
+            try
+            {
+                await f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, Current, CancellationToken.None, automatic: scenario == "automatic");
+                throw new Exception("Changed/unsupported collection scope completed: " + scenario);
+            }
+            catch (InvalidDataException error)
+            {
+                TestAssert.That(scenario switch {
+                    "automatic" => error.Message == "media_source_entire_collection_automatic_acceptance_required",
+                    "no_roots" => error.Message == "media_collection_explicit_source_roots_required",
+                    "catalog" => error.Message == "media_collection_original_catalog_changed",
+                    "book" => error.Message == "file_media_current_saved_book_required",
+                    "local_send" => error.Message == "media_source_local_consent_required" || error.Message == "media_collection_current_owner_required",
+                    "control" => error.Message == "media_collection_original_send_binding_required" || error.Message == "media_source_current_sending_owner_required",
+                    _ => error.Message == "media_collection_original_inventory_changed" || error.Message == "media_collection_original_content_changed"
+                }, "Collection guard held for unexpected reason: " + error.Message);
+            }
+            TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0,
+                "Unaccepted/changed inventory created a source job.");
+        }
+    }
+
+    internal static async Task WindowsCollectionProducerSuccessorAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "collection-successor-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var original = Member(selection);
+        var before = Array.Empty<(string JobId, string Version, string Phase)>();
+        for (var pass = 0; pass < 2; pass++)
+        {
+            if (pass == 1)
+            {
+                before = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+                data = DeviceFileSourceSendTests.PaddedPng(1, 256); File.WriteAllBytes(Path.Combine(selection.NativePath, "new-pc.png"), data);
+                var changed = Member(selection);
+                TestAssert.That(changed.Identity == original.Identity && changed.CreationFileTime == original.CreationFileTime,
+                    "Changed collection test replaced the original generation.");
+            }
+            DeviceFileConnectionRunsTests.Clear(f); using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(100));
+            var production = f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, () => { }, stop.Token, automatic: false);
+            try
+            {
+                await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
+                var run = (TelefonConnection.NativeMediaSendRun)typeof(TelefonConnection).GetField("nativeMediaSend",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Native.Connection)!;
+                await SendToEnd(f, run.Cache, data, expectedPrevious: pass == 0 ? null : new string('b', 64), production: production);
+                var result = await production;
+                TestAssert.That(result.Sent == 1 && !result.NeedsReview, "Changed collection original did not complete through real successor END.");
+                if (pass == 1) TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 2 &&
+                    before.All(previous => f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Contains(previous)), "Collection successor changed or evicted its actual predecessor.");
+            }
+            finally { stop.Cancel(); try { await production; } catch { } }
+        }
+    }
+
+    internal static async Task WindowsCollectionProducerLateInventoryAsync()
+    {
+        foreach (var fault in new[] { "same_size_after_end", "added_after_end" })
+        {
+            using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);
+            var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "collection-late-book"), Book);
+            var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved); var changed = false;
+            string? completed = null;
+            void Current()
+            {
+                if (changed || completed is null || DeviceFileSourceSendTests.Exchange(f, completed)["phase"]!.GetValue<string>() != "source_ended") return;
+                changed = true;
+                var raw = data.ToArray(); raw[^1] ^= 1;
+                File.WriteAllBytes(Path.Combine(selection.NativePath, fault == "same_size_after_end" ? "new-pc.png" : "later.png"), raw);
+            }
+            DeviceFileConnectionRunsTests.Clear(f); using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(100));
+            var production = f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, Current, stop.Token, automatic: false);
+            try
+            {
+                await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
+                var run = (TelefonConnection.NativeMediaSendRun)typeof(TelefonConnection).GetField("nativeMediaSend",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Native.Connection)!;
+                completed = run.Cache.JobId;
+                await SendToEnd(f, run.Cache, data, production: production);
+                try { await production; throw new Exception("Late native inventory change became whole-collection completion."); }
+                catch (InvalidDataException error)
+                { TestAssert.That(error.Message == "media_collection_original_inventory_changed", "Late change held for the wrong cause: " + error.Message); }
+                TestAssert.That(changed && f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 1 &&
+                    DeviceFileSourceSendTests.Exchange(f, completed)["phase"]!.GetValue<string>() == "source_ended",
+                    "Whole-pass HOLD erased a genuine completed individual source.");
+            }
+            finally { stop.Cancel(); try { await production; } catch { } }
+        }
     }
 
     internal static async Task WindowsActualSourceAsync()

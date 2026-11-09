@@ -171,7 +171,7 @@ internal sealed partial class TelefonCoordinator
                 if (sharedIntent is not null && MediaSyncSettings.TransferRequestedFor(sharedIntent, kind, toPhone: true))
                 {
                     await connection.PrepareNativeMediaSendUiAsync(NativeSavedBook, kind, lifetime.Token); Require();
-                    var outgoing = await connection.SynchronizeNativeMappedMediaChangesAsync(kind, permit, Require, lifetime.Token);
+                    var outgoing = await connection.SynchronizeNativeMappedMediaChangesAsync(kind, permit, Require, lifetime.Token, automatic: !manual);
                     Require(); review |= outgoing.NeedsReview;
                 }
                 // Scope, mode and direction remain independent. PC-only direction

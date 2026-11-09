@@ -241,25 +241,40 @@ internal sealed partial class TelefonStore
 internal sealed partial class TelefonConnection
 {
     internal async Task<(int Sent, bool NeedsReview)> SynchronizeNativeMappedMediaChangesAsync(string mediaType, NativeMediaBookPermit book,
-        Action requireCurrent, CancellationToken token)
+        Action requireCurrent, CancellationToken token, bool automatic = true)
     {
         var intent = store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey) ?? throw DeviceFileControl.Error("media_source_current_intent_required");
+        NativeFileControlSession? collectionControls = null;
+        DeviceTransferBinding? collectionBinding = null;
         void Current()
         {
             token.ThrowIfCancellationRequested(); book.Require(); requireCurrent();
+            if (collectionControls is not null && RequireNativeFileControls(collectionControls).Binding(new string('0', 64), true) != collectionBinding)
+                throw DeviceFileControl.Error("media_collection_original_send_binding_required");
             if (!MediaSharedSettingsReady || !JsonNode.DeepEquals(intent, store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey)) ||
                 !MediaSyncSettings.TransferRequestedFor(intent, mediaType, toPhone: true))
                 throw DeviceFileControl.Error("media_source_current_sending_owner_required");
         }
-        Current(); var plan = store.NativeMappedMediaCandidates(peer.Id, mediaType); var sent = 0;
-        var review = plan.NeedsReview || MediaSyncSettings.Effective(intent)["collection_mode"]!.GetValue<string>() == "entire_collection";
+        Current();
+        var entire = MediaSyncSettings.Effective(intent)["collection_mode"]!.GetValue<string>() == "entire_collection";
+        if (entire && automatic) throw DeviceFileControl.Error("media_source_entire_collection_automatic_acceptance_required");
+        if (entire)
+        {
+            collectionControls = RequireNativeFileControls();
+            collectionBinding = collectionControls.Binding(new string('0', 64), true)
+                ?? throw DeviceFileControl.Error("media_source_positive_sending_grant_required");
+        }
+        using var collection = entire ? new NativeCollectionMediaPass(store, peer.Id, mediaType, Current, token) : null;
+        var plan = store.NativeMappedMediaCandidates(peer.Id, mediaType); var sent = 0;
+        var review = plan.NeedsReview;
         foreach (var candidate in plan.Candidates)
         {
             Current();
             var destination = DeviceFileControl.Digest("magnolie-media-source-candidate-v1\0", new JsonObject {
                 ["job_id"] = candidate.JobId, ["job_version"] = candidate.JobVersion, ["file_id"] = candidate.FileId });
             TelefonStore.NativeMappedMediaSource source;
-            try { source = OpenNativeMappedMediaSource(mediaType, candidate.JobId, candidate.JobVersion, candidate.FileId, destination, book); }
+            try { source = OpenNativeMappedMediaSource(mediaType, candidate.JobId, candidate.JobVersion, candidate.FileId, destination, book,
+                collection is null ? null : collection.Require); }
             catch (InvalidDataException error) when (error.Message == "media_source_photo_metadata_required")
             { Current(); continue; } // Explicit photos-only filter, not a missing-file/deletion assumption.
             using var heldSource = source;
@@ -287,11 +302,33 @@ internal sealed partial class TelefonConnection
             using (cache) { await SendNativeMappedMediaSourceToSourceEndAsync(cache, token); }
             Current(); sent++;
         }
+        if (collection is not null)
+        {
+            foreach (var (selection, member) in collection.Members())
+            {
+                Current();
+                var destination = DeviceFileControl.Digest("magnolie-media-collection-member-v1\0", new JsonObject {
+                    ["root_id"] = selection.Id, ["root_version"] = selection.Version });
+                TelefonStore.NativeCollectionMediaSource source;
+                try { source = OpenNativeCollectionMediaSource(mediaType, selection.Id, selection.Version, member, destination, book, collection.Require); }
+                catch (InvalidDataException error) when (error.Message == "media_source_photo_metadata_required")
+                { Current(); continue; }
+                using var heldSource = source;
+                collection.CheckOpened(selection, member, source.ObserveCollection());
+                TelefonStore.NativePreparedMediaSource cache;
+                try { cache = source.FreezeCompletedSuccessor(); }
+                catch (InvalidDataException error) when (error.Message == "media_source_cache_latest_payload_already_sent")
+                { Current(); continue; }
+                using (cache) { await SendNativeMappedMediaSourceToSourceEndAsync(cache, token); }
+                Current(); sent++;
+            }
+            collection.Finish();
+        }
         Current(); return (sent, review);
     }
 
     internal TelefonStore.NativeMappedMediaSource OpenNativeMappedMediaSource(string mediaType, string jobId, string jobVersion,
-        string fileId, string phoneDestinationToken, NativeMediaBookPermit book)
+        string fileId, string phoneDestinationToken, NativeMediaBookPermit book, Action? requireCurrent = null)
     {
         if (!DeviceFileControl.Hash(phoneDestinationToken)) throw DeviceFileControl.Error("media_source_phone_destination_required");
         var controls = RequireNativeFileControls();
@@ -299,7 +336,7 @@ internal sealed partial class TelefonConnection
         var intent = store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey) ?? throw DeviceFileControl.Error("media_source_current_intent_required");
         void Current()
         {
-            cancellation.ThrowIfCancellationRequested(); book.Require();
+            cancellation.ThrowIfCancellationRequested(); book.Require(); requireCurrent?.Invoke();
             if (!MediaSharedSettingsReady || !JsonNode.DeepEquals(intent, store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey)) ||
                 RequireNativeFileControls(controls).Binding(phoneDestinationToken, senderIsLocal: true) != sending)
                 throw DeviceFileControl.Error("media_source_current_sending_owner_required");
