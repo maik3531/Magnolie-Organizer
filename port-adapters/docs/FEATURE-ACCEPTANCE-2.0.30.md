@@ -49,10 +49,19 @@ the inventory table remains tied to its original source snapshot.
   Redo. Its cause is under investigation; the earlier foreign Launcher dialog
   and readiness failures must not be assumed to explain it. The original
   complete 40-touch tablet gate remains open.
-- Restore/epoch protection (#454), old Android recurrence aliases (#462),
+- Tablet restore/epoch integration (#454), old Android recurrence aliases and
+  duplicate repair (#465, following #462),
   full Nextcloud/system-account synchronization and other incomplete native
   adapters remain separate open work. None of the above certifies release
   readiness. The user has authorized publication once required checks pass.
+
+The pure Kotlin restore/ordinary-save policy in `1196f3d2` passes 18 tests with
+each of actual AOSP Android JSON and the Gradle JSON dependency. Its fixtures
+are byte-identical to the Mac fixtures; typed copies avoid JSON stringify
+coercion. It is not yet connected to Vault/Main and therefore does not establish
+native Tablet restore acceptance. An independent existing Vault serialization
+defect is tracked separately in #466 with a literal-input storage/reopen
+reproduction and a correction approach; no storage fix is claimed here.
 
 ### Later component checkpoints (2026-11-08; Refs #121)
 
