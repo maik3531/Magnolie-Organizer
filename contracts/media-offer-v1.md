@@ -2162,6 +2162,24 @@ bei ABA und unabhängige historische Root1-Jobowner müssen noch zusammengeführ
 geprüft werden. Bis dahin bleiben Aktivierung und Lieferung gesperrt; kein APK,
 Installer, keine Installation oder Veröffentlichung.
 
+Ein zusätzlicher ursprünglicher Metadaten-Kontextowner bindet Scope, vollständigen
+Legacyrecord und den exakten validierten Zeugenstand. Seine weitere native Probe
+prüft Root0→Root1→Root0 ohne Abfrage des Zwischenzustands: Der alte Owner hält
+trotz identischem abschließendem Root0Token. Auch ein vor dem ersten Zeugenstand
+erfasster Owner darf diesen nicht nachträglich übernehmen. Nach beobachtetem
+Schlüsselverlust bleibt der Owner verworfen, obwohl identische Schlüsselbytes
+zurückgelegt werden; nur ein neu erfasster Metadatenowner ist wieder prüfbar.
+Damit sind insgesamt 19 unterschiedliche betroffene native Gruppen gesichert.
+
+Dieser Owner erteilt ausdrücklich weder READ noch SEND oder RECEIVE und hält
+keine dauerhafte IO-Freigabe. Seine Prüfung liest geschützte Store-/Nativmetadaten;
+sie darf nicht aus einem callbackführenden Control-Scope aufgerufen werden.
+Ebenso darf ein Writer nicht seinen eigenen noch uncommitteten Journalstand über
+diese externe Kontextprüfung als aktuellen Kopf lesen: Er muss den ursprünglichen
+Kopf und das ursprüngliche Readset gesondert per CAS und Originalhandles prüfen.
+Tatsächliche laufende Datenowner sind weiterhin nicht angebunden; der Metadaten-
+ABA-Test ist keine Behauptung eines bereits fertigen Live-Daten-ABA-Schutzes.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

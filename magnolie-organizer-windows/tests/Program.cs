@@ -312,6 +312,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Destination independent witness / Windows strict metadata and lost original never repair from independent intent", DeviceFileDestinationSelectionTests.WindowsWitnessMetadataGuardsAsync);
     runner.Add("Destination independent witness / Windows opposite legacy witness stage and received roots never overlap", DeviceFileDestinationSelectionTests.WindowsWitnessOtherKindAsync);
     runner.Add("Destination independent witness / Windows actual post-SQL withdrawal rolls back head and retains independent intent", DeviceFileDestinationSelectionTests.WindowsWitnessSqlRollbackAsync);
+    runner.Add("Destination metadata context / Windows unobserved ABA and observed failure never revive original owner", DeviceFileDestinationSelectionTests.WindowsWitnessOriginalContextAsync);
     runner.Add("Collection producer / Windows two original offers actual END and fresh unchanged pass", DeviceFileCollectionSourceTests.WindowsCollectionProducerAsync);
     runner.Add("Collection producer / Windows automatic gate original catalog and content guards", DeviceFileCollectionSourceTests.WindowsCollectionProducerGuardsAsync);
     runner.Add("Collection producer / Windows actual changed successor exact previous publication and END", DeviceFileCollectionSourceTests.WindowsCollectionProducerSuccessorAsync);

@@ -115,6 +115,32 @@ internal static class DeviceFileDestinationSelectionTests
             "SQL rollback HOLD cleaned witness bytes or replaced original metadata.");
     }
 
+    internal static async Task WindowsWitnessOriginalContextAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sourceSend: false); using var original = f.Destination.OpenNative();
+        var initial = new TelefonStore.NativeMediaSelectionContextOwner(f.Native.Store, f.Native.Peer.Id, "images"); initial.Require();
+        var first = f.Native.Store.RecordNativeMediaSelectionWitness(f.Native.Peer.Id, "images", null, original, () => { });
+        TestAssert.Throws<InvalidDataException>(initial.Require, "A pre-journal context adopted the first new selection stamp.");
+        var old = new TelefonStore.NativeMediaSelectionContextOwner(f.Native.Store, f.Native.Peer.Id, "images");
+        var path = Path.Combine(f.Native.Paths.Root, "context-cycle-root"); Directory.CreateDirectory(path);
+        using var picked = DeviceFileNativeDirectory.OpenExistingForReceive(path);
+        var second = f.Native.Store.RecordNativeMediaSelectionWitness(f.Native.Peer.Id, "images", first.Stamp, picked, () => { });
+        var third = f.Native.Store.RecordNativeMediaSelectionWitness(f.Native.Peer.Id, "images", second.Stamp, original, () => { });
+        // No old.Require call observes the intermediate root. The fresh final
+        // stamp must reject ABA even with the exact original root/token restored.
+        TestAssert.That(third.Destination == first.Destination && third.Stamp != first.Stamp, "Metadata fixture did not make an exact root-token ABA cycle.");
+        TestAssert.Throws<InvalidDataException>(old.Require, "Unobserved intermediate root revived an original metadata context.");
+        var current = new TelefonStore.NativeMediaSelectionContextOwner(f.Native.Store, f.Native.Peer.Id, "images"); current.Require();
+        var key = File.ReadAllBytes(f.Native.Paths.TelefonStorageKey); File.Delete(f.Native.Paths.TelefonStorageKey);
+        TestAssert.Throws<InvalidDataException>(current.Require, "Missing key did not retire the original metadata context.");
+        File.WriteAllBytes(f.Native.Paths.TelefonStorageKey, key);
+        TestAssert.Throws<InvalidDataException>(current.Require, "Restored exact key bytes revived an observed retired context.");
+        var fresh = new TelefonStore.NativeMediaSelectionContextOwner(f.Native.Store, f.Native.Peer.Id, "images"); fresh.Require();
+        TestAssert.That(fresh.Snapshot == third && !fresh.GrantsReadAuthority && !fresh.GrantsSendAuthority && !fresh.GrantsReceiveAuthority &&
+            f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "images") == f.Destination && !Directory.EnumerateFileSystemEntries(path).Any(),
+            "A fresh metadata context granted data IO or activated a target.");
+    }
+
     internal static async Task WindowsWitnessNativeGuardsAsync()
     {
         foreach (var scenario in new[] { "bytes", "file-id", "directory-id", "unknown-file", "missing-key" })

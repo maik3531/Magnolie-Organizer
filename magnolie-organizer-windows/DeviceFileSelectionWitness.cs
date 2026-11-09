@@ -157,6 +157,51 @@ internal sealed partial class TelefonStore
         }
     }
 
+    // A deny-only metadata epoch fence, not a live file/IO/control authority.
+    // Require performs protected store/native IO: NEVER call it from a control
+    // Scope callback. A writer must separately CAS its original head/readset;
+    // recursively observing its own pending journal would correctly HOLD.
+    internal sealed class NativeMediaSelectionContextOwner
+    {
+        private readonly TelefonStore store;
+        private readonly string peerId, kind;
+        private readonly NativeMediaPreferenceScope scope;
+        private readonly NativeMediaDestination? original;
+        private bool revoked;
+        internal NativeMediaSelectionWitness? Snapshot { get; }
+        internal bool GrantsReadAuthority => false;
+        internal bool GrantsReceiveAuthority => false;
+        internal bool GrantsSendAuthority => false;
+
+        internal NativeMediaSelectionContextOwner(TelefonStore store, string peerId, string kind)
+        {
+            this.store = store; this.peerId = peerId; this.kind = kind; MediaDestinationKind(kind);
+            lock (store.gate)
+            {
+                store.RequireNativeMediaStorageKey(); scope = store.MediaPreferenceScope(peerId);
+                original = store.ReadOriginalLegacyDestination(peerId, kind);
+                Snapshot = store.ReadNativeMediaSelectionWitness(peerId, kind);
+                Require();
+            }
+        }
+
+        internal void Require()
+        {
+            lock (store.gate)
+            {
+                try
+                {
+                    if (revoked) throw DeviceFileControl.Error("file_selection_original_context_retired");
+                    store.RequireNativeMediaStorageKey();
+                    if (store.MediaPreferenceScope(peerId) != scope || store.ReadOriginalLegacyDestination(peerId, kind) != original ||
+                        store.ReadNativeMediaSelectionWitness(peerId, kind) != Snapshot)
+                        throw DeviceFileControl.Error("file_selection_original_context_retired");
+                }
+                catch { revoked = true; throw; }
+            }
+        }
+    }
+
     // Only a native caller can supply this exact picked directory and original
     // deny-only callback. This records a witnessed intent, NOT an active target
     // or an admitted historical generation. Current runtime readers are unchanged.
