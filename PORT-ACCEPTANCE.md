@@ -4,8 +4,8 @@ Arbeitsauftrag und Querverfolgung: [Issue #121](https://github.com/maik3531/Magn
 Referenz ist die veröffentlichte Version `v2.0.30`, Commit
 `067c38934b539943d8e1720abafd8a80b401d797`. Die Paketkennung allein bedeutet
 keine Funktionsgleichheit. Mac-Testpakete aus
-[Run 42543079100](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42543079100)
-am Quellstand `5f6621f2` bestehen die vorhandenen nativen Prüfungen und den
+[Run 42547724299](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42547724299)
+am Quellstand `798771ed` bestehen die vorhandenen nativen Prüfungen und den
 App-Start-/Speicher-/Wiederöffnen-Ablauf auf macOS 15 für Intel und Apple Silicon.
 Das ist eine Komponentenabnahme; die unten offenen Funktionen bleiben offen.
 

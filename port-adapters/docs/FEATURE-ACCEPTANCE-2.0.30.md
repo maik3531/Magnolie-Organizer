@@ -22,12 +22,16 @@ Current host checks used in this work: Mac host 18 tests including 82UI/81recove
 These results supersede the corresponding pending historical entries below;
 the inventory table remains tied to its original source snapshot.
 
-- Mac [42543079100](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42543079100)
-  at `5f6621f2` passes both complete existing macOS 15 architecture jobs,
+- Mac [42547724299](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42547724299)
+  at `798771ed` passes both complete existing macOS 15 architecture jobs,
   including actual bundle start/save/quit/reopen and candidate packaging.
   Actual handbook load/search/isolation, note-file import, printing/PDF,
   strict drawing replay and calendar reference checks have native evidence.
-  This does not establish every feature or older macOS runtime compatibility.
+  The new native restore core (nine tests), ordinary epoch policy (two tests)
+  and actual WK restore/model/admission handoff pass in all four suite calls
+  per architecture. Each invocation runs 315 tests with zero failures and
+  explicitly records its skips. This does not exercise a real restore-file
+  panel click, every feature or older macOS runtime compatibility.
 - Android API34 [42537601160](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42537601160)
   at `7278298b` passes the isolated services and file-picker jobs. The latter
   includes durable three-collection ICS import, unchanged cancellation, atomic
