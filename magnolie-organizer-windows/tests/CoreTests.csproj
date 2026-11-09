@@ -72,6 +72,7 @@
     <Compile Include="..\DeviceFileMappedSource.cs" Link="DeviceFileMappedSource.cs" />
     <Compile Include="..\DeviceFileSourceCache.cs" Link="DeviceFileSourceCache.cs" />
     <Compile Include="..\DeviceFileSourceBackup.cs" Link="DeviceFileSourceBackup.cs" />
+    <Compile Include="..\DeviceFileSourceRecovery.cs" Link="DeviceFileSourceRecovery.cs" />
     <Compile Include="..\DeviceFileSourceExchange.cs" Link="DeviceFileSourceExchange.cs" />
     <Compile Include="..\MediaOfferEnvelope.cs" Link="MediaOfferEnvelope.cs" />
     <Compile Include="..\DeviceFileConnectionSend.cs" Link="DeviceFileConnectionSend.cs" />

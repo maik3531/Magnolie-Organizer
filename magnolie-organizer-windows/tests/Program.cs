@@ -310,6 +310,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Collection source backup / Windows original source withdrawal cannot be renewed by output consent", DeviceFileCollectionSourceTests.WindowsPreparedBackupWithdrawalAsync);
     runner.Add("Collection source backup / Windows complete interrupted bytes independently recover offline", DeviceFileCollectionSourceTests.WindowsPreparedBackupPendingOfflineAsync);
     runner.Add("Collection source backup / Windows actual local copy drains before source disposal END", DeviceFileCollectionSourceTests.WindowsPreparedBackupDrainAsync);
+    runner.Add("Independent PC recovery / Windows offline native choice saved book lane and exact retry", DeviceFileCollectionSourceTests.WindowsIndependentRecoveryChoiceAsync);
+    runner.Add("Independent PC recovery / Windows collision exact FID resume and restored source HOLD", DeviceFileCollectionSourceTests.WindowsIndependentRecoveryResumeAsync);
     runner.Add("Media independent choices / Windows import display does not expand authority", DeviceFileSharedPreferencesTests.IndependentDirectionViewAsync);
     runner.Add("Media shared storage / Windows readonly persistence independent fields and merge", DeviceFileSharedPreferencesTests.PersistenceAsync);
     runner.Add("Media shared storage / Windows seven-field projection preserves original ciphertext and clocks", DeviceFileSharedPreferencesTests.SevenFieldProjectionAsync);

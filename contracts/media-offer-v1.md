@@ -909,6 +909,38 @@ nativer Picker, keine automatische Sicherungssteuerung oder benutzbare gesamte
 PC-Recovery-Oberfläche. Notes-Folgeversionen und Geräteabnahme bleiben gesperrt;
 diese lokalen Nachweise erlauben keine Auslieferung oder Featurefreigabe.
 
+Der native Coordinator kann diese unabhängigen PC-Sicherungen jetzt unter einem
+tatsächlich gespeicherten, entsperrten lokalen Buch auflisten und eine ausdrückliche
+lokale Recovery-Auswahl vorbereiten. Die Auswahl bindet exakte Backupversion,
+ursprünglichen Backupordner, gesondert nativ beschreibbar gewählten Ausgabeordner,
+ursprünglichen Buchpermit und eine eigene Operations-ID. Vorbereitung schreibt
+noch keine Zieldatei. Bestätigung läuft in der vorhandenen exklusiven nativen
+Medienarbeitsbahn, nicht unter Empfangsfreigaben oder einem Browser-Dateipfad.
+
+Für diese lokale neue Datei führt ein getrenntes Restore-Scope mit Journalformat 2
+zusätzlich den ursprünglichen Buchzeugen. Das exakte alte eingehende
+Journalformat 1 bleibt lesbar und unverändert. Kandidaten-FID und Referenz werden
+vor Nutzdaten festgehalten, vorhandene Bytes unabhängig geprüft und die Datei
+ohne Ersetzen eines fremden Namens veröffentlicht. Dieselbe bestätigte Operation
+liest nach Abschluss ihren tatsächlichen ursprünglichen Ziel-FID/Inhalt zurück,
+statt eine zweite Datei anzulegen. Ein fremder besetzter Name bleibt erhalten;
+nach ausdrücklichem Freimachen durch den Benutzer kann derselbe Kandidat mit
+derselben Operations-ID weiterlaufen. Eine andere Datei am gewählten Ausgabeort
+oder ein geändertes gespeichertes Buch erneuern die alte Auswahl nicht.
+
+Das ist ausschließlich lokale neue Datei-Recovery, keine synchronisierte
+Wiederanbindung oder Notes-Veröffentlichung. Vor Aufnahme unabhängiger PC-Quellen
+werden deshalb auch sämtliche authentifizierten lokalen Recovery-Journale
+deny-only geprüft: bekannte wiederhergestellte FIDs dürfen nicht als neue
+Erstherkunft umetikettiert werden. Auch ein noch unklarer eigener Kandidat bleibt
+HOLD. Die zusätzliche Scope-Prüfung ist begrenzt und verwirft keine Aufzeichnungen.
+Zwei gezielte tatsächliche Windows-Gruppen prüfen Offline-Auswahl, Buch-/Worker-
+Bindung, idempotente Wiederholung, Ersatz-Ausgabeordner, Namenskollision,
+unveränderten Kandidaten-FID und die neue Quellsperre. Vier passende bestehende
+Gruppen sichern alte native Restore-/UI-/Source-END-Wege. Native Dialoge und
+Weboberfläche sind damit noch nicht angeschlossen; Reboot-Adoption alter
+Bestätigungen oder eine automatische Recovery-Publikation werden nicht behauptet.
+
 Die unabhängige Linux-Quellgrundlage arbeitet ebenfalls ausschließlich lesend
 über gehaltene Deskriptoren. Sie verlangt echte fd-relative `statx`-Geburtszeit
 und Mount-ID ohne `ctime`-Ersatz. Begrenzte Inventuren verwenden jeweils einen

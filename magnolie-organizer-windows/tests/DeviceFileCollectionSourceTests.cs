@@ -416,6 +416,122 @@ internal static class DeviceFileCollectionSourceTests
             File.ReadAllBytes(Path.Combine(selection.NativePath, "new-pc.png")).SequenceEqual(data), "Drain manufactured a complete version or modified source bytes.");
     }
 
+    internal static async Task WindowsIndependentRecoveryChoiceAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "recovery-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var storagePath = Path.Combine(f.Native.Paths.Root, "pc-backups"); Directory.CreateDirectory(storagePath);
+        NativeMediaBackupParent storage; NativeMediaBackupVersion saved;
+        using (var output = DeviceFileNativeDirectory.OpenExistingForReceive(storagePath))
+        using (var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, Member(selection), new string('f', 64), book))
+        using (var cache = source.Freeze())
+        { storage = NativeMediaBackupParent.Capture(output); saved = f.Native.Store.SaveNativePreparedPcBackup(cache, output, () => true, true); }
+        f.Native.Connection.Dispose();
+        File.Move(Path.Combine(selection.NativePath, "new-pc.png"), Path.Combine(selection.NativePath, "retained-source.png"));
+        using (var db = f.Native.Store.OpenDatabase())
+        {
+            db.Open(); using var command = db.CreateCommand(); command.CommandText = "ALTER TABLE native_media_source_chunks RENAME TO retained_recovery_source_chunks"; command.ExecuteNonQuery();
+        }
+        using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+        TestAssert.Throws<InvalidDataException>(() => coordinator.ReadNativeIndependentPcBackupChoices(storage), "Independent recovery bypassed an unlocked saved book.");
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        TestAssert.That(coordinator.ReadNativeIndependentPcBackupChoices(storage).Single() == saved, "Native independent recovery required a peer, source cache or receive destination.");
+        var targetPath = Path.Combine(f.Native.Paths.Root, "explicit-local-recovery"); Directory.CreateDirectory(targetPath);
+        NativeIndependentPcBackupRestoreChoice choice;
+        using (var output = DeviceFileNativeDirectory.OpenExistingForReceive(targetPath))
+        {
+            TestAssert.Throws<InvalidDataException>(() => coordinator.PrepareNativeIndependentPcBackupRestore(storage, saved.Id, new string('a', 64), output), "Stale backup selection became a native confirmation.");
+            choice = coordinator.PrepareNativeIndependentPcBackupRestore(storage, saved.Id, saved.RecordSha256, output);
+        }
+        using (var readOnly = DeviceFileNativeDirectory.OpenExisting(targetPath))
+            TestAssert.Throws<InvalidDataException>(() => coordinator.PrepareNativeIndependentPcBackupRestore(storage, saved.Id, saved.RecordSha256, readOnly), "A read-only native folder granted recovery WRITE.");
+        TestAssert.That(Directory.GetFiles(targetPath).Length == 0, "Preparing a recovery choice created output before confirmation.");
+        var lane = typeof(TelefonCoordinator).GetField("nativeMediaWorker", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        lane.SetValue(coordinator, 1);
+        try { TestAssert.Throws<InvalidDataException>(() => coordinator.RestoreConfirmedNativeIndependentPcBackup(choice), "Independent recovery overlapped the native media worker."); }
+        finally { lane.SetValue(coordinator, 0); }
+        var result = coordinator.RestoreConfirmedNativeIndependentPcBackup(choice);
+        TestAssert.That(result.Operation == choice.Operation && !result.IsRemoteSavedReceipt && File.ReadAllBytes(Path.Combine(targetPath, result.Name)).SequenceEqual(data), "Independent native choice lost bytes or became remote Saved.");
+        var files = Directory.GetFiles(targetPath).Order().ToArray();
+        TestAssert.That(coordinator.RestoreConfirmedNativeIndependentPcBackup(choice) == result && Directory.GetFiles(targetPath).Order().SequenceEqual(files), "Retrying the same confirmed recovery minted a second file/operation.");
+        var retainedPath = targetPath + "-retained"; Directory.Move(targetPath, retainedPath); Directory.CreateDirectory(targetPath);
+        TestAssert.Throws<InvalidDataException>(() => coordinator.RestoreConfirmedNativeIndependentPcBackup(choice), "A replacement output root inherited an earlier native recovery confirmation.");
+        TestAssert.That(Directory.GetFiles(targetPath).Length == 0 && File.ReadAllBytes(Path.Combine(retainedPath, result.Name)).SequenceEqual(data), "Output-root HOLD wrote a substitute or modified retained recovery bytes.");
+        Directory.Move(targetPath, targetPath + "-foreign-preserved"); Directory.Move(retainedPath, targetPath);
+        host.FailAfterPrimary = true;
+        var originalSaved = host.Saved(); var changedBook = JsonNode.Parse(Book)!.AsObject(); changedBook["changed"] = true;
+        using (var message = System.Text.Json.JsonDocument.Parse(new JsonObject { ["id"] = 1, ["text"] = changedBook.ToJsonString() }.ToJsonString()))
+            await host.SaveAsync(message.RootElement);
+        TestAssert.That(host.Saved() != originalSaved, "Saved-book withdrawal fixture was rejected before the original book witness changed.");
+        TestAssert.Throws<InvalidDataException>(() => coordinator.RestoreConfirmedNativeIndependentPcBackup(choice), "A later book save renewed the old independent recovery confirmation.");
+        TestAssert.That(Directory.GetFiles(targetPath).Order().SequenceEqual(files), "Revoked book confirmation changed local recovery output.");
+    }
+
+    internal static async Task WindowsIndependentRecoveryResumeAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "recovery-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var storagePath = Path.Combine(f.Native.Paths.Root, "pc-backups"); Directory.CreateDirectory(storagePath);
+        NativeMediaBackupParent storage; NativeMediaBackupVersion saved;
+        using (var output = DeviceFileNativeDirectory.OpenExistingForReceive(storagePath))
+        using (var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, Member(selection), new string('f', 64), book))
+        using (var cache = source.Freeze())
+        { storage = NativeMediaBackupParent.Capture(output); saved = f.Native.Store.SaveNativePreparedPcBackup(cache, output, () => true, true); }
+        var history = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+        using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        var targetPath = Path.Combine(f.Native.Paths.Root, "local-recovery"); Directory.CreateDirectory(targetPath);
+        NativeIndependentPcBackupRestoreChoice choice;
+        using (var output = DeviceFileNativeDirectory.OpenExistingForReceive(targetPath))
+            choice = coordinator.PrepareNativeIndependentPcBackupRestore(storage, saved.Id, saved.RecordSha256, output);
+        var collision = Path.Combine(targetPath, "new-pc - restored " + choice.Operation + ".png"); File.WriteAllText(collision, "foreign occupied output survives");
+        TestAssert.Throws<IOException>(() => coordinator.RestoreConfirmedNativeIndependentPcBackup(choice), "Recovery overwrote an occupied publication name.");
+        var stage = Directory.GetFiles(targetPath, ".magnolie-restore-*.part").Single(); DeviceFileNativeDirectory.Identity identity;
+        using (var output = DeviceFileNativeDirectory.OpenExistingForReceive(targetPath)) identity = output.FileIdentityAt(Path.GetFileName(stage));
+        TestAssert.That(File.ReadAllText(collision) == "foreign occupied output survives" && File.ReadAllBytes(stage).SequenceEqual(data), "Collision HOLD modified the foreign file or lost the owned candidate.");
+        File.Move(collision, Path.Combine(targetPath, "retained-foreign.txt"));
+        var restored = coordinator.RestoreConfirmedNativeIndependentPcBackup(choice);
+        using (var output = DeviceFileNativeDirectory.OpenExistingForReceive(targetPath))
+            TestAssert.That(output.FileIdentityAt(restored.Name) == identity, "Retry changed the original journaled candidate FID.");
+        using (var root = DeviceFileNativeDirectory.OpenExisting(targetPath))
+        {
+            var record = f.Native.Store.AddNativeMediaCollectionRoot(f.Native.Peer.Id, "images", root, () => { });
+            var member = root.InventoryCollection(() => { }, CancellationToken.None).Members.Single(item => item.Name == restored.Name);
+            try
+            {
+                using var unexpected = f.Native.Connection.OpenNativeCollectionMediaSource("images", record.Id, record.Version, member, new string('f', 64), book);
+                throw new InvalidOperationException("A locally restored FID was relabelled as a fresh independent PC source.");
+            }
+            catch (InvalidDataException error) when (error.Message == "media_collection_existing_recovery_required") { }
+        }
+        TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(history) && File.ReadAllText(Path.Combine(targetPath, "retained-foreign.txt")) == "foreign occupied output survives",
+            "Local recovery rewrote original source lineage or foreign data.");
+        // Synthetic private-fixture rows exercise the deny-only admission
+        // budget before any attempt to decode/adopt an overlarge history.
+        using (var db = f.Native.Store.OpenDatabase())
+        {
+            db.Open(); using var command = db.CreateCommand(); var syntheticScope = new string('f', 64);
+            command.CommandText = "WITH RECURSIVE n(i) AS (VALUES(1) UNION ALL SELECT i+1 FROM n WHERE i<8193) " +
+                "INSERT INTO native_media_backup_restore_events(scope,operation,sequence,value) SELECT $scope,printf('%032x',i),1,X'00' FROM n";
+            command.Parameters.AddWithValue("$scope", syntheticScope); command.ExecuteNonQuery();
+            try
+            {
+                try
+                {
+                    using var unexpected = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, Member(selection), new string('f', 64), book);
+                    throw new InvalidOperationException("An over-budget recovery history admitted a new source read.");
+                }
+                catch (InvalidDataException error) when (error.Message == "media_collection_recovery_history_held") { }
+            }
+            finally
+            {
+                command.CommandText = "DELETE FROM native_media_backup_restore_events WHERE scope=$scope AND value=X'00'"; command.ExecuteNonQuery();
+            }
+        }
+    }
+
     internal static async Task WindowsPathHistoryAsync()
     {
         using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);

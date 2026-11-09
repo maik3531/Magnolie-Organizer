@@ -104,6 +104,7 @@ internal sealed partial class TelefonStore
         {
             var scope = MediaPreferenceScope(peerId);
             using var db = OpenNativeMediaDatabase(); db.Open();
+            RequireIndependentRecoveryMember(db, identity);
             var expected = NativeMediaReceiveJob.NativeIdentity(identity);
             if (ReceiveHeads(db, null, scope).Any(head => head.Body["files"]!.AsArray().OfType<JsonObject>()
                 .Any(member => JsonNode.DeepEquals(member["identity"], expected))))

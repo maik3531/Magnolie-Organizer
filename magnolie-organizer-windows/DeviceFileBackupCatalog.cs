@@ -323,11 +323,15 @@ internal sealed partial class TelefonStore
             var obj = SelectedObject(selected);
             using var held = OpenObject(obj); return NativeMediaBackupBytes.Verify(held, Number(obj, "size"), Text(obj, "sha256"), Current);
         }
-        internal void RequireIncomingRestoreOwner(NativeMediaBackupVersion selected)
+        internal bool IsPreparedPcVersion(NativeMediaBackupVersion selected)
         {
             _ = SelectedObject(selected);
             var version = state["versions"]!.AsArray().Concat(Pending(state)).OfType<JsonObject>().Single(item => Text(item, "id") == selected.Id);
-            if (version["provenance"]!["kind"]?.GetValue<string>() == "prepared_pc_source")
+            return version["provenance"]!["kind"]?.GetValue<string>() == "prepared_pc_source";
+        }
+        internal void RequireIncomingRestoreOwner(NativeMediaBackupVersion selected)
+        {
+            if (IsPreparedPcVersion(selected))
                 throw DeviceFileControl.Error("media_backup_pc_restore_publication_owner_required");
         }
         internal NativeMediaBackupBytes.VerifiedRaw RestoreOwnedCandidate(NativeMediaBackupVersion selected, DeviceFileNativeDirectory.DeviceFileNativeStagedFile target)
