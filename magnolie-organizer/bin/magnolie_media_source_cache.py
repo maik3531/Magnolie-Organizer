@@ -1,6 +1,6 @@
 """One bounded native PC source-cache builder (#338), never upload authority.
 
-Only NativeMappedMediaSource invokes this while its actual source descriptor,
+Only the exact mapped or independent collection owner invokes this while its actual source descriptor,
 consent/action/intent and saved-book IO lease remain held. Existing stages always
 HOLD, including completed ones: restart adoption, retirement and sender READ
 require a separate native source-job lifecycle, not a guessed filename.
@@ -26,9 +26,13 @@ class FrozenNativeMediaSource:
     _book_version: str
     _job_nonce: str
     _job_version: str
+    _pc_selection: object = None
+    _media_type: str | None = None
 
     @property
     def original_references(self):return {file_id:dict(fields) for file_id,fields in self._references}
+    @property
+    def pc_origin(self):return None if self._pc_selection is None else self._pc_selection.origin
     @property
     def grants_read_authority(self):return False
     @property
@@ -40,10 +44,19 @@ class FrozenNativeMediaSource:
 class _NativeSourceCacheWriter:
     MAX_METADATA=65536
 
-    def __init__(self,owner,mapping,size,signature,token,expected,kind,book_version,current):
-        from magnolie_media_source import NativeMappedMediaSource
-        if type(owner) is not NativeMappedMediaSource or not owner._gate.locked() or not callable(current):
+    def __init__(self,owner,mapping,size,signature,token,expected,kind,book_version,current,*,pc_selection=None):
+        from magnolie_media_source_pc import native_source_kind,_NativePcSelection,validate_pc_origin
+        self._local=native_source_kind(owner)=='collection'
+        if not owner._gate.locked() or not callable(current):
             raise TransferError('media_source_cache_live_owner_required')
+        if self._local:
+            if type(pc_selection) is not _NativePcSelection or mapping is not None:
+                raise TransferError('media_collection_cache_original_selection_required')
+            validate_pc_origin(pc_selection.origin)
+            if pc_selection.path!=pc_selection.origin['file_path'].rsplit('/',1)[-1]:
+                raise TransferError('media_collection_cache_original_selection_required')
+        elif pc_selection is not None:raise TransferError('media_source_cache_original_mapping_required')
+        self._pc_selection=pc_selection;self._format=3 if self._local else 2;self._kind=kind
         self._owner=owner;self._authority=owner._authority;self._current=current;self._parent=self._root=None
         self._size=size;self._count=(size+CHUNK_BYTES-1)//CHUNK_BYTES;self._next=0;self._members=sha256();self._metadata={}
         from magnolie_file_control import _hex
@@ -56,9 +69,9 @@ class _NativeSourceCacheWriter:
             local_key=self._authority.identity.receiver_identity_sha256,peer_id=peer.peer_id,peer_key=peer.identity_sha256))).hexdigest()
         self._name='.magnolie-source-'+self._scope[:32]+'.part'
         self._directory=Path(self._authority.binding.native_directory)
-        self._job=secrets.token_hex(16);self._file=secrets.token_hex(16);self._reference=mapping.phone_original_reference()
+        self._job=secrets.token_hex(16);self._file=secrets.token_hex(16);self._reference=None if self._local else mapping.phone_original_reference()
         self._job_nonce=secrets.token_hex(32)
-        self._path=mapping.relative_path.rsplit('/',1)[-1]
+        self._path=pc_selection.path if self._local else mapping.relative_path.rsplit('/',1)[-1]
         try:
             current()
             self._parent=os.open(self._directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
@@ -73,16 +86,18 @@ class _NativeSourceCacheWriter:
             else:raise TransferError('media_source_cache_existing_hold')
             from magnolie_media_source_jobs import _NativeSourceJobs
             self._jobs=_NativeSourceJobs(self._authority)
+            if self._local:self._jobs.require_new_pc_origin(self._pc_selection.origin)
             self._jobs._catalog.require_free_slot(self._parent,current)
             try:os.mkdir(self._name,mode=0o700,dir_fd=self._parent)
             except FileExistsError:raise TransferError('media_source_cache_existing_hold')
             self._root=os.open(self._name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=self._parent)
             self._root_key=self._key(os.fstat(self._root));self._guard();os.fsync(self._parent)
-            intent=dict(format=2,state='planned',job_id=self._job,job_nonce=self._job_nonce,file_id=self._file,scope=self._scope,book_version=book_version,
+            intent=dict(format=self._format,state='planned',job_id=self._job,job_nonce=self._job_nonce,file_id=self._file,scope=self._scope,book_version=book_version,
                 parent_key=list(self._parent_key),root_key=list(self._root_key),size=size,chunks=self._count,media_type=kind,
-                source_signature=list(signature),original_mapping_sha256=mapping.protected_record_sha256,
-                original_reference=self._reference,source_policy_sha256=expected.version,pairing_epoch=peer.pairing_epoch,
-                media_intent_sha256=sha256(canonical(token.body)).hexdigest(),source_path=mapping.relative_path)
+                source_signature=list(signature),source_policy_sha256=expected.version,pairing_epoch=peer.pairing_epoch,
+                media_intent_sha256=sha256(canonical(token.body)).hexdigest(),source_path=self._path if self._local else mapping.relative_path)
+            if self._local:intent.update(local_origin=pc_selection.origin,root_catalog=pc_selection.catalog)
+            else:intent.update(original_mapping_sha256=mapping.protected_record_sha256,original_reference=self._reference)
             from magnolie_media_backups import NativeRestoredMediaCandidate
             if type(mapping) is NativeRestoredMediaCandidate:intent['restored_source']=mapping.wire()
             self._intent_sha256=sha256(canonical(intent)).hexdigest()
@@ -90,7 +105,7 @@ class _NativeSourceCacheWriter:
             self._owner._boundary('source_cache_intent_durable');self._guard()
             self._planned_job=self._jobs.plan(self,intent)
             self._owner._boundary('source_cache_job_planned');self._guard()
-            self._metadata['copying.enc']=self._write('copying.enc',canonical(dict(format=2,state='copying',intent_sha256=self._intent_sha256)))
+            self._metadata['copying.enc']=self._write('copying.enc',canonical(dict(format=self._format,state='copying',intent_sha256=self._intent_sha256)))
             self._guard()
         except BaseException:
             self.close();raise
@@ -191,16 +206,18 @@ class _NativeSourceCacheWriter:
         if set(os.listdir(self._root))!=expected_names:raise TransferError('media_source_cache_unknown_entry')
         manifest=FileManifest(secrets.token_hex(16),self._job,self._authority.identity.receiver_id,self._authority.binding.peer_id,
             (ManifestFile(self._file,self._path,self._size,digest),),self._size)
-        proof=dict(format=2,state='sealed',intent_sha256=self._intent_sha256,job_nonce=self._job_nonce,book_version=self._book_version,manifest=manifest.wire(),
+        proof=dict(format=self._format,state='sealed',intent_sha256=self._intent_sha256,job_nonce=self._job_nonce,book_version=self._book_version,manifest=manifest.wire(),
             chunks_sha256=members.hexdigest(),chunk_count=self._count,metadata=self._metadata,
-            original_references={self._file:self._reference})
+            original_references={} if self._local else {self._file:self._reference})
+        if self._local:proof.update(local_origin=self._pc_selection.origin,root_catalog=self._pc_selection.catalog,media_type=self._kind)
         witness=self._write('manifest.enc',canonical(proof));self._guard()
         if set(os.listdir(self._root))!=expected_names|{'manifest.enc'}:raise TransferError('media_source_cache_unknown_entry')
         self._owner._boundary('source_cache_sealed_durable');self._guard()
         ready=self._jobs.ready(self,self._planned_job,manifest,witness['sha256'])
         self._owner._boundary('source_cache_job_ready');self._guard()
         return FrozenNativeMediaSource(self._directory/self._name,manifest,self._root_key,witness['sha256'],
-            ((self._file,tuple(sorted(self._reference.items()))),),self._book_version,self._job_nonce,ready.version)
+            () if self._local else ((self._file,tuple(sorted(self._reference.items()))),),self._book_version,self._job_nonce,ready.version,
+            self._pc_selection,self._kind if self._local else None)
 
     def close(self):
         for name in ('_root','_parent'):

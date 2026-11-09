@@ -43,6 +43,8 @@ class _NativeSourceJobs:
         if peer is None:raise TransferError('media_source_jobs_native_owner_required')
         self._scope=sha256(canonical(dict(local_id=authority.identity.receiver_id,local_key=authority.identity.receiver_identity_sha256,
             peer_id=peer.peer_id,peer_key=peer.identity_sha256))).hexdigest()
+        self._root_scope=sha256(canonical(dict(local_id=authority.identity.receiver_id,local_identity=authority.identity.receiver_identity_sha256,
+            peer_id=peer.peer_id,peer_identity=peer.identity_sha256))).hexdigest()
         self._prefix='native_media_source_jobs_v1/'+self._scope+'/'
         self._database_key=self._fresh()
         from magnolie_media_source_catalog import _NativeSourceCatalog
@@ -74,14 +76,21 @@ class _NativeSourceJobs:
     def _decode(self,job,cipher,db_key):
         if type(cipher) is not bytes or not 29<=len(cipher)<=self.MAX_BYTES+28:raise TransferError('media_source_jobs_record_invalid')
         plain=self._authority.protection.unseal(cipher,self._key(job));body=strict_json(plain)
-        ordered=type(body) is dict and type(body.get('format')) is int and body['format']==2
+        ordered=type(body) is dict and type(body.get('format')) is int and body['format'] in (2,3)
+        local=ordered and body['format']==3
         if (type(body) is not dict or set(body)!={'format','scope','database_key','job_id','nonce','state','intent_sha256','root_key',
-                'parent_key','book_version','source_policy_sha256','pairing_epoch','manifest','proof_sha256','original_references'} | ({'lineage'} if ordered else set())
-                or type(body['format']) is not int or body['format'] not in (1,2) or body['scope']!=self._scope or body['job_id']!=job
+                'parent_key','book_version','source_policy_sha256','pairing_epoch','manifest','proof_sha256','original_references'} | ({'lineage'} if ordered else set()) | ({'local_origin','root_catalog','media_type'} if local else set())
+                or type(body['format']) is not int or body['format'] not in (1,2,3) or body['scope']!=self._scope or body['job_id']!=job
                 or body['database_key']!=list(db_key) or canonical(body)!=plain):raise TransferError('media_source_jobs_record_invalid')
         if ordered:
             from magnolie_media_source_lineage import validate_lineage
             validate_lineage(body['lineage'])
+        if local:
+            from magnolie_media_source_pc import validate_pc_origin
+            from magnolie_media_source_roots import NativeMediaCollectionRootsWitness
+            validate_pc_origin(body['local_origin']);witness=NativeMediaCollectionRootsWitness.parse(body['root_catalog'])
+            if witness.scope!=self._root_scope or body['media_type'] not in ('images','video'):
+                raise TransferError('media_source_jobs_record_invalid')
         for name in ('nonce','intent_sha256','book_version','source_policy_sha256','pairing_epoch'):
             if not _hex(body[name]):raise TransferError('media_source_jobs_record_invalid')
         for name in ('root_key','parent_key'):
@@ -94,6 +103,9 @@ class _NativeSourceJobs:
         elif body['state']=='cache_ready':
             manifest=FileManifest.parse(body['manifest'])
             if manifest.source_id!=job or len(manifest.files)!=1 or not _hex(body['proof_sha256']) or type(body['original_references']) is not dict:
+                raise TransferError('media_source_jobs_record_invalid')
+            if local and body['original_references']!={}:raise TransferError('media_source_jobs_record_invalid')
+            if local and manifest.files[0].path!=body['local_origin']['file_path'].rsplit('/',1)[-1]:
                 raise TransferError('media_source_jobs_record_invalid')
         else:raise TransferError('media_source_jobs_record_invalid')
         return NativeSourceJobRecord(sha256(cipher).hexdigest(),body)
@@ -113,6 +125,26 @@ class _NativeSourceJobs:
             raise TransferError('media_source_jobs_live_writer_required')
         writer._guard()
 
+    def _require_new_pc_origin(self,db,key,catalog,origin):
+        from magnolie_media_source_pc import validate_pc_origin
+        validate_pc_origin(origin)
+        for name,_ in ([] if catalog is None else catalog.body['members']):
+            if not name.startswith(self._prefix):continue
+            record=self._read(db,key,name[len(self._prefix):])
+            old=record.body.get('local_origin')
+            if old is not None and (old['file_key']==origin['file_key'] or
+                    old['root_id']==origin['root_id'] and old['file_path']==origin['file_path']):
+                # No independent PC successor/reassociation owner exists yet.
+                # Even exact old origins HOLD; neither changed roots nor a new
+                # inode at a previously known path may mint a fresh origin.
+                raise TransferError('media_collection_existing_source_held')
+
+    def require_new_pc_origin(self,origin):
+        with self._database() as (db,key):
+            db.execute('BEGIN');catalog=self._catalog.verify(db,key)
+            self._require_new_pc_origin(db,key,catalog,origin)
+        self._catalog.observe(catalog)
+
     def plan(self,writer,intent):
         self._writer(writer);job=writer._job
         if (sha256(canonical(intent)).hexdigest()!=writer._intent_sha256 or intent['job_id']!=job
@@ -120,16 +152,18 @@ class _NativeSourceJobs:
         with self._database() as (db,key):
             db.execute('BEGIN IMMEDIATE')
             catalog=self._catalog.verify(db,key)
+            if writer._local:self._require_new_pc_origin(db,key,catalog,intent['local_origin'])
             if catalog is None:catalog=self._catalog.initialize(writer,db,key)
             if self._read(db,key,job) is not None:raise TransferError('media_source_jobs_original_plan_required')
             count=db.execute('SELECT COUNT(*) FROM meta WHERE key LIKE ?',(self._prefix+'%',)).fetchone()[0]
             if count>=self.MAX_RECORDS:raise TransferError('media_source_jobs_capacity')
             from magnolie_media_source_lineage import _NativeSourceLineage
             lineage=_NativeSourceLineage(self).predecessor(db,key,catalog)
-            body=dict(format=2,scope=self._scope,database_key=list(key),job_id=job,nonce=intent['job_nonce'],state='cache_planned',lineage=lineage,
+            body=dict(format=3 if writer._local else 2,scope=self._scope,database_key=list(key),job_id=job,nonce=intent['job_nonce'],state='cache_planned',lineage=lineage,
                 intent_sha256=writer._intent_sha256,root_key=list(writer._root_key),parent_key=list(writer._parent_key),
                 book_version=intent['book_version'],source_policy_sha256=intent['source_policy_sha256'],pairing_epoch=intent['pairing_epoch'],
                 manifest=None,proof_sha256=None,original_references=None)
+            if writer._local:body.update(local_origin=intent['local_origin'],root_catalog=intent['root_catalog'],media_type=intent['media_type'])
             plain=canonical(body)
             if len(plain)>self.MAX_BYTES:raise TransferError('media_source_jobs_record_size')
             cipher=self._authority.protection.seal(plain,self._key(job));self._decode(job,cipher,key);self._writer(writer)
@@ -144,7 +178,7 @@ class _NativeSourceJobs:
         self._writer(writer);job=writer._job
         if getattr(writer,'_planned_job',None) is not planned:raise TransferError('media_source_jobs_original_plan_required')
         body=planned.body;body.update(state='cache_ready',manifest=manifest.wire(),proof_sha256=proof_sha256,
-            original_references={writer._file:writer._reference})
+            original_references={} if writer._local else {writer._file:writer._reference})
         plain=canonical(body)
         if len(plain)>self.MAX_BYTES:raise TransferError('media_source_jobs_record_size')
         with self._database() as (db,key):

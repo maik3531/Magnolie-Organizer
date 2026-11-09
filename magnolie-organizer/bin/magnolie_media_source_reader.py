@@ -16,12 +16,16 @@ from magnolie_telefon import canonical,strict_json
 
 class _NativeSourceCacheReader:
     def __init__(self,owner,job_id):
-        from magnolie_media_source import NativeMappedMediaSource
-        if type(owner) is not NativeMappedMediaSource:raise TransferError('media_source_cache_live_lease_required')
+        from magnolie_media_source_pc import native_source_kind,_NativePcSelection
+        self._local=native_source_kind(owner)=='collection';self._format=3 if self._local else 2
         self._owner=owner;self._permit=getattr(owner._cache_scope,'permit',None)
         if self._permit is None or self._permit[0]!=job_id or owner._prepared.get(job_id) is not self._permit[1]:
             raise TransferError('media_source_cache_live_lease_required')
         self._prepared=self._permit[1];self._cache=self._prepared.cache;self._authority=owner._authority
+        if self._local:
+            if type(self._cache._pc_selection) is not _NativePcSelection or self._cache.original_references!={}:
+                raise TransferError('media_collection_cache_original_selection_required')
+        elif self._cache._pc_selection is not None:raise TransferError('media_source_cache_original_mapping_required')
         from magnolie_media_source_jobs import _NativeSourceJobs
         self._jobs=_NativeSourceJobs(self._authority)
         self._parent=self._root=None;self._closed=threading.Event();self._chunks=[]
@@ -38,13 +42,16 @@ class _NativeSourceCacheReader:
             self._guard()
             proof,proof_witness=self._metadata('manifest.enc')
             if proof_witness['sha256']!=self._cache.proof_sha256:raise TransferError('media_source_cache_original_proof_required')
-            if (set(proof)!={'format','state','intent_sha256','job_nonce','book_version','manifest','chunks_sha256','chunk_count','metadata','original_references'}
-                    or type(proof['format']) is not int or proof['format']!=2 or proof['state']!='sealed'
+            if (set(proof)!={'format','state','intent_sha256','job_nonce','book_version','manifest','chunks_sha256','chunk_count','metadata','original_references'} | ({'local_origin','root_catalog','media_type'} if self._local else set())
+                    or type(proof['format']) is not int or proof['format']!=self._format or proof['state']!='sealed'
                     or proof['book_version']!=self._prepared.book_version or proof['book_version']!=self._cache._book_version
                     or proof['job_nonce']!=self._cache._job_nonce
                     or FileManifest.parse(proof['manifest'])!=self._cache.manifest
                     or proof['original_references']!=self._cache.original_references):
                 raise TransferError('media_source_cache_original_proof_required')
+            if self._local and (proof['local_origin']!=self._cache.pc_origin or proof['root_catalog']!=self._cache._pc_selection.catalog
+                    or proof['media_type']!=self._cache._media_type):
+                raise TransferError('media_collection_cache_original_selection_required')
             self._manifest=self._cache.manifest
             if len(self._manifest.files)!=1:raise TransferError('media_source_cache_manifest_scope_required')
             self._count=self._manifest.files[0].chunks
@@ -54,15 +61,20 @@ class _NativeSourceCacheReader:
             if type(metadata) is not dict or set(metadata)!={'intent.enc','copying.enc'}:
                 raise TransferError('media_source_cache_original_proof_required')
             intent,_=self._metadata('intent.enc',metadata['intent.enc']);copying,_=self._metadata('copying.enc',metadata['copying.enc'])
-            if (intent.get('format')!=2 or intent.get('state')!='planned' or intent.get('scope')!=self._scope
+            if (type(intent.get('format')) is not int or intent['format']!=self._format or intent.get('state')!='planned' or intent.get('scope')!=self._scope
                     or intent.get('job_id')!=job_id or intent.get('file_id')!=self._manifest.files[0].id
                     or intent.get('job_nonce')!=self._cache._job_nonce
                     or intent.get('size')!=self._manifest.total_bytes or intent.get('chunks')!=self._count
                     or intent.get('book_version')!=self._prepared.book_version
                     or intent.get('parent_key')!=list(self._parent_key) or intent.get('root_key')!=list(self._cache.root_key)
                     or sha256(canonical(intent)).hexdigest()!=proof['intent_sha256']
-                    or copying!=dict(format=2,state='copying',intent_sha256=proof['intent_sha256'])):
+                    or copying!=dict(format=self._format,state='copying',intent_sha256=proof['intent_sha256'])):
                 raise TransferError('media_source_cache_original_intent_required')
+            if self._local and (set(intent)!={'format','state','job_id','job_nonce','file_id','scope','book_version','parent_key','root_key',
+                    'size','chunks','media_type','source_signature','source_policy_sha256','pairing_epoch','media_intent_sha256','source_path','local_origin','root_catalog'}
+                    or intent['local_origin']!=self._cache.pc_origin or intent['root_catalog']!=self._cache._pc_selection.catalog
+                    or intent['media_type']!=self._cache._media_type or intent['source_path']!=self._cache._pc_selection.path):
+                raise TransferError('media_collection_cache_original_selection_required')
             record=self._jobs.require_version(job_id,self._cache._job_version).body
             if (record['intent_sha256']!=proof['intent_sha256'] or record['parent_key']!=list(self._parent_key)):
                 raise TransferError('media_source_jobs_ready_record_required')
@@ -98,6 +110,9 @@ class _NativeSourceCacheReader:
                 or record['root_key']!=list(self._cache.root_key) or record['manifest']!=self._cache.manifest.wire()
                 or record['proof_sha256']!=self._cache.proof_sha256 or record['original_references']!=self._cache.original_references):
             raise TransferError('media_source_jobs_ready_record_required')
+        if self._local and (record['format']!=3 or record['local_origin']!=self._cache.pc_origin
+                or record['root_catalog']!=self._cache._pc_selection.catalog or record['media_type']!=self._cache._media_type):
+            raise TransferError('media_collection_cache_original_selection_required')
         self._permit[2]()
 
     def _guard(self):

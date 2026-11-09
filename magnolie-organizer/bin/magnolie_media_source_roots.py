@@ -5,9 +5,11 @@ namespace. A current native action and held read-only root are required for
 selection. No picker, automatic scan, receiving grant or file source is created.
 """
 from dataclasses import dataclass
+from contextlib import contextmanager
 from hashlib import sha256
 import os
 import secrets
+import threading
 
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import _hex, MAX_REVISION
@@ -110,6 +112,7 @@ class ProtectedMediaCollectionRoots(ProtectedPhotoPreferences):
                 NativeMediaCollectionRootsWitness.parse(original.wire())!=original or original.scope!=self._scope):
             raise TransferError('media_collection_roots_original_witness_required')
         self._original=original
+        self._selection_io=threading.local()
 
     def _witness(self):
         if self._anchor_identity is None:raise TransferError('media_collection_roots_original_witness_required')
@@ -253,14 +256,44 @@ class ProtectedMediaCollectionRoots(ProtectedPhotoPreferences):
                         if self._db.in_transaction:self._db.rollback()
                         self._uncertain=True;raise
 
+    @contextmanager
+    def selected_root_lease(self,selected):
+        """Pin authenticated membership while bounded source IO actually runs.
+
+        The native lock excludes catalog writers; raw DB signature checks still
+        detect writes bypassing that lock. No cached permission crosses leases.
+        """
+        if type(selected) is not NativeMediaCollectionRootRecord:
+            raise TransferError('media_collection_roots_original_selection_required')
+        with self._operation():
+            if not self._open():raise TransferError('media_collection_roots_original_selection_required')
+            with self._locked():
+                self._schema();snapshot=self._snapshot()
+                if selected not in snapshot.roots or self._peer().pairing_epoch!=selected.pairing_epoch:
+                    raise TransferError('media_collection_roots_original_selection_required')
+                signature=_signature(os.fstat(self._db_fd));thread=threading.get_ident()
+                def current():
+                    if getattr(self._selection_io,'permit',None) is not permit or threading.get_ident()!=thread:
+                        raise TransferError('media_collection_roots_live_selection_lease_required')
+                    self._fresh()
+                    if _signature(os.fstat(self._db_fd))!=signature:
+                        raise TransferError('media_collection_roots_original_membership_changed')
+                    return True
+                permit=(selected,current);self._selection_io.permit=permit
+                try:current();yield current;current()
+                finally:self._selection_io.permit=None
+
     def open_root(self, selected, native_current):
         if type(selected) is not NativeMediaCollectionRootRecord or not callable(native_current):
             raise TransferError('media_collection_roots_original_selection_required')
         def current():
             if native_current() is False:raise TransferError('media_collection_roots_native_owner_revoked')
-            snapshot=self.read()
-            if selected not in snapshot.roots or self._peer().pairing_epoch!=selected.pairing_epoch:
-                raise TransferError('media_collection_roots_original_selection_required')
+            permit=getattr(self._selection_io,'permit',None)
+            if permit is not None and permit[0]==selected:permit[1]()
+            else:
+                snapshot=self.read()
+                if selected not in snapshot.roots or self._peer().pairing_epoch!=selected.pairing_epoch:
+                    raise TransferError('media_collection_roots_original_selection_required')
         current();root=NativeCollectionRoot(selected.directory.path,current)
         try:
             if (root._directory,root.key,root.birthtime,root.mount_id)!=(selected.directory,selected.key,selected.birthtime,selected.mount_id):

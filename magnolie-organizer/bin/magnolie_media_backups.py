@@ -1377,6 +1377,7 @@ class NativeMediaBackups:
                 mapping=NativeSavedPhotoMapping.parse(value['mapping'],PhotoMappingAssociation(**value['mapping']['association']),selected.id)
                 return mapping,mapping.saved_size,mapping.saved_sha256,None
             source=value['source']
+            if source['format']!=1:raise TransferError('media_backup_pc_restore_publication_owner_required')
             mapping=NativeSavedPhotoMapping.parse(source['original_mapping'],PhotoMappingAssociation(**source['original_mapping']['association']),
                 source['original_mapping_sha256'])
             from magnolie_file_transfer import FileManifest

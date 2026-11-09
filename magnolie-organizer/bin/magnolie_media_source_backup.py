@@ -26,6 +26,23 @@ def _validate_source_version(value,key):
             or not 0<value['saved_ms']<=253402300799999 or type(value['source']) is not dict):
         raise TransferError('media_backup_source_version_invalid')
     source=value['source']
+    if type(source.get('format')) is int and source['format']==2:
+        from magnolie_media_source_pc import validate_pc_origin
+        from magnolie_media_source_roots import NativeMediaCollectionRootsWitness
+        if (set(source)!={'format','job_id','job_nonce','job_version','proof_sha256','book_version','manifest','local_origin','root_catalog','media_type','source_path'}
+                or any(not _hex(source[name]) for name in ('job_nonce','job_version','proof_sha256','book_version'))
+                or source['media_type'] not in ('images','video') or type(source['source_path']) is not str
+                or not source['source_path'] or '/' in source['source_path'] or '\\' in source['source_path']
+                or source['source_path'] in ('.','..')):
+            raise TransferError('media_backup_source_version_invalid')
+        validate_pc_origin(source['local_origin']);NativeMediaCollectionRootsWitness.parse(source['root_catalog'])
+        manifest=FileManifest.parse(source['manifest'])
+        if (len(manifest.files)!=1 or manifest.source_id!=source['job_id'] or _source_version_id(source)!=key
+                or value['object_key']!=content_key(manifest.files[0].size,manifest.files[0].sha256)
+                or value['name']!=source['source_path'] or manifest.files[0].path!=source['source_path']
+                or source['local_origin']['file_path'].rsplit('/',1)[-1]!=source['source_path']):
+            raise TransferError('media_backup_source_version_invalid')
+        return value
     fields={'format','job_id','job_nonce','job_version','proof_sha256','book_version','manifest','original_mapping_sha256','original_mapping'}
     if (set(source) not in (fields,fields|{'restored_source'}) or type(source['format']) is not int or source['format']!=1
             or any(not _hex(source[name]) for name in ('job_nonce','job_version','proof_sha256','book_version','original_mapping_sha256'))
@@ -69,23 +86,30 @@ def source_provenance(backups,selected):
 
 def backup_prepared_source(backups,source,job_id,*,boundary=lambda _:None):
     from magnolie_media_backups import NativeMediaBackups
-    from magnolie_media_source import NativeMappedMediaSource
-    if (type(backups) is not NativeMediaBackups or type(source) is not NativeMappedMediaSource or not callable(boundary)
+    from magnolie_media_source_pc import native_source_kind
+    local=native_source_kind(source)=='collection'
+    if (type(backups) is not NativeMediaBackups or not callable(boundary)
             or type(job_id) is not str or job_id not in source._prepared):
         raise TransferError('media_backup_actual_source_preparation_required')
     prepared=source._prepared[job_id];cached=prepared.cache;mapping=prepared.original_mapping
     restored=prepared.restored_source
-    destination=mapping.destination if restored is None else restored.destination
-    if (type(mapping) is not NativeSavedPhotoMapping or destination!=backups.destination
+    if local:
+        held=source._held.get(job_id)
+        if held is None or mapping is not None or restored is not None or cached.pc_origin is None or cached.original_references!={}:
+            raise TransferError('media_backup_original_source_owner_required')
+        destination=held[0]._directory
+    else:destination=mapping.destination if restored is None else restored.destination
+    if ((not local and type(mapping) is not NativeSavedPhotoMapping) or destination!=backups.destination
             or backups.protection.native_directory_identity!=source._authority.protection.native_directory_identity
-            or cached.original_references!={cached.manifest.files[0].id:mapping.phone_original_reference()}):
+            or not local and cached.original_references!={cached.manifest.files[0].id:mapping.phone_original_reference()}):
         raise TransferError('media_backup_original_source_owner_required')
     with source.prepared_cache(job_id) as reader,backups._operation():
         def current():reader._permission();backups._current();return True
         current();backups._ensure_native_owner();file=cached.manifest.files[0]
-        provenance=dict(format=1,job_id=job_id,job_nonce=cached._job_nonce,job_version=cached._job_version,
-            proof_sha256=cached.proof_sha256,book_version=prepared.book_version,manifest=cached.manifest.wire(),
-            original_mapping_sha256=mapping.protected_record_sha256,original_mapping=mapping.wire())
+        provenance=dict(format=2 if local else 1,job_id=job_id,job_nonce=cached._job_nonce,job_version=cached._job_version,
+            proof_sha256=cached.proof_sha256,book_version=prepared.book_version,manifest=cached.manifest.wire())
+        if local:provenance.update(local_origin=cached.pc_origin,root_catalog=cached._pc_selection.catalog,media_type=cached._media_type,source_path=file.path)
+        else:provenance.update(original_mapping_sha256=mapping.protected_record_sha256,original_mapping=mapping.wire())
         if restored is not None:provenance['restored_source']=restored.wire()
         version_id=_source_version_id(provenance);key=content_key(file.size,file.sha256)
         before=backups._record('versions',version_id);obj=backups._record('objects',key)
@@ -96,7 +120,7 @@ def backup_prepared_source(backups,source,job_id,*,boundary=lambda _:None):
         if version is None:
             if len(backups._members('versions'))+len(backups._pending_members())>=backups.MAX_VERSIONS:
                 raise TransferError('media_backup_catalog_capacity')
-            name=mapping.relative_path if restored is None else restored.relative_path
+            name=file.path if local else mapping.relative_path if restored is None else restored.relative_path
             version=dict(id=version_id,object_key=key,saved_ms=backups._clock(),name=name,source=provenance)
             _validate_source_version(version,version_id);current();backups._commit(pending=version)
         elif version['source']!=provenance:raise TransferError('media_backup_original_source_owner_required')

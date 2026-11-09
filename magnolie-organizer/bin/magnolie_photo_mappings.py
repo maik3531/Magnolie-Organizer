@@ -399,6 +399,49 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
             if not isinstance(error,TransferError) or str(error) not in transient:self._uncertain=True
             raise
 
+    def require_independent_native_file(self,file_key):
+        """Deny-only lookup of ALL authenticated mapping generations/epochs.
+
+        A formerly mapped inode cannot become a fresh independent PC origin.
+        Neither absence nor this inspection grants a source lease.
+        """
+        if type(file_key) is not tuple or len(file_key)!=2 or any(type(n) is not int or n<0 for n in file_key):
+            raise TransferError('photo_mappings_native_identity_required')
+        with self._operation():
+            if not self._open():return PhotoMappingsSnapshot(self._absent,0,0,False)
+            with self._locked():
+                self._schema();before=self._snapshot();families={};roots={}
+                rows=self._db.execute('SELECT association,payload FROM mappings ORDER BY association').fetchall()
+                for key,blob in rows:
+                    for family in ('mapping','head','version'):
+                        try:body=self._unprotect(blob,family+'/'+key)
+                        except InvalidTag:continue
+                        break
+                    else:raise TransferError('photo_mappings_candidate_invalid_member')
+                    families[key]=family
+                    if family=='mapping':
+                        raw=body.get('association') if type(body) is dict else None
+                        if type(raw) is not dict or set(raw)!={'source_epoch','photo_id','media_type'}:
+                            raise TransferError('photo_mapping_invalid_association')
+                        association=PhotoMappingAssociation(**raw)
+                        if association.key!=key:raise TransferError('photo_mapping_invalid_association')
+                        roots[key]=association
+                    self._fresh()
+                seen=set();known=False
+                for key,association in roots.items():
+                    for record_key,record in self._mapping_records(association):
+                        if record_key in seen or families.get(record_key)!=('mapping' if record_key==key else 'version'):
+                            raise TransferError('photo_mappings_candidate_invalid_member')
+                        seen.add(record_key);known=known or record.file_key==file_key
+                    head=self._head_key(association)
+                    if head in families:
+                        if families[head]!='head':raise TransferError('photo_mappings_candidate_invalid_member')
+                        seen.add(head)
+                if seen!=set(families):raise TransferError('photo_mappings_candidate_orphan_member')
+                if self._snapshot()!=before:raise TransferError('photo_mappings_candidate_snapshot_changed')
+                if known:raise TransferError('media_collection_existing_mapping_required')
+                return before
+
     @contextmanager
     def saved_record_lease(self, association, expected_record_sha256, *, expected=None, latest=False):
         """Native read only: one exact protected version for held file IO.

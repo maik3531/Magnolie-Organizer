@@ -267,3 +267,28 @@ def test_supplied_wrong_original_witness_never_adopts_existing_catalog(roots):
     with pytest.raises(TransferError):ProtectedMediaCollectionRoots(authority,original=replace(witness,scope='f'*64))
     for value in [dict(witness.wire(),format=True),dict(witness.wire(),anchor_key=[0,0]),dict(witness.wire(),unknown=True)]:
         with pytest.raises(TransferError):NativeMediaCollectionRootsWitness.parse(value)
+
+
+def test_actual_selected_io_lease_pins_membership_excludes_writers_and_cannot_be_reused(roots):
+    _,authority,store,selected,_=roots;saved=add(roots);record=saved.roots[0]
+    other=ProtectedMediaCollectionRoots(authority,original=store.witness())
+    try:
+        with store.selected_root_lease(record) as current:
+            assert current()
+            with store.open_root(record,lambda:True) as root:
+                with root.open_member(root.inventory().members[0]) as reader:assert reader.read_exact(0,3)==b'act'
+            with pytest.raises(TransferError,match='busy'):other.add(other.issue_action(),saved,selected,'videos')
+        with pytest.raises(TransferError,match='live_selection_lease_required'):current()
+        assert store.read()==saved
+    finally:other.close()
+
+
+def test_selected_io_lease_detects_actual_db_write_even_when_bypassing_native_lock(roots):
+    import sqlite3
+    service,_,store,_,_=roots;saved=add(roots)
+    # This is an adversarial synthetic private-DB write, not a repair API.
+    with pytest.raises(TransferError,match='original_membership_changed'):
+        with store.selected_root_lease(saved.roots[0]) as current:
+            path=Path(service.store.root)/store._name/'prefs.sqlite'
+            with sqlite3.connect(path) as db:db.execute('PRAGMA user_version=2')
+            current()

@@ -31,9 +31,13 @@ from magnolie_telefon import SecureChannel,canonical,now_ms
 
 class _NativeMediaSourceSender:
     def __init__(self,source,job_id,*,boundary=lambda _:None,_retry=None,_verification=False,_connection=None):
-        if (type(source) is not NativeMappedMediaSource or type(job_id) is not str
+        from magnolie_media_source_pc import native_source_kind
+        self._local_collection=native_source_kind(source)=='collection'
+        if (type(job_id) is not str
                 or job_id not in source._prepared or not callable(boundary)):
             raise TransferError('media_source_sender_actual_preparation_required')
+        if self._local_collection and (_retry is not None or _verification or _connection is not None):
+            raise TransferError('media_collection_sender_composition_required')
         self._source=source;self._job=job_id;self._prepared=source._prepared[job_id];self._cache=self._prepared.cache
         self._authority=source._authority;self._channel=self._authority.native_channel
         self._connection=_connection
@@ -178,13 +182,15 @@ class _NativeMediaSourceSender:
         return self._send_offer(media=True)
 
     def _send_offer(self,*,media):
+        if self._local_collection and not media:raise TransferError('media_collection_sender_pc_origin_required')
         with self._operation() as reader:
             if self._record is not None:raise TransferError('media_source_sender_offer_already_attempted')
             binding=self._controls.binding('0'*64,sender_is_local=True)
             if binding is None:raise TransferError('media_source_sender_control_agreement_required')
             self._binding=binding
             if media:
-                manifest=self._cache.manifest;file=manifest.files[0];kind=self._cache.original_references[file.id]['media_type']
+                manifest=self._cache.manifest;file=manifest.files[0]
+                kind=self._cache._media_type if self._local_collection else self._cache.original_references[file.id]['media_type']
                 token=self._source._transport.intent_for(kind,to_phone=True)
                 if token is None or sha256(canonical(token.body)).hexdigest()!=reader.media_intent_sha256:
                     raise TransferError('media_source_sender_original_intent_required')
@@ -197,7 +203,15 @@ class _NativeMediaSourceSender:
                         finally:data[:]=b'\0'*len(data)
                     mime=identify(prefix,file.size,kind)
                 finally:prefix[:]=b'\0'*len(prefix)
-                offer=create_media_offer(manifest,token.body,kind,{file.id:mime},self._cache.original_references)
+                pc=None
+                if self._local_collection:
+                    origin=self._cache.pc_origin
+                    if origin is None:raise TransferError('media_collection_sender_pc_origin_required')
+                    # Initial publication only. Known source IDs already HOLD
+                    # in protected planning; no fabricated successor readback.
+                    pc={file.id:dict(format=1,origin_sha256=sha256(b'magnolie-pc-media-origin-v1\0'+canonical(origin)).hexdigest(),
+                        previous_publication_sha256=None)}
+                offer=create_media_offer(manifest,token.body,kind,{file.id:mime},self._cache.original_references,pc_origins=pc)
             else:offer=create_offer(self._cache.manifest)
             self._record=self._journal.write(None,dict(phase='offer_planned',offer=offer,permission_epoch=binding.permission_epoch,
                 acceptance=None,sent_bits=0,pending_chunk=None,peer_saved=None))

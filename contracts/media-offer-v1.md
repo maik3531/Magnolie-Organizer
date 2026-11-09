@@ -878,9 +878,8 @@ für eine automatische Reparatur.
 Wiederöffnung verlangt erneut die tatsächliche native Quelle und einen
 aktuellen Guard; die Auswahl selbst verleiht kein SEND. Die private
 Speicherwurzel des Katalogowners und ihre Vorfahren sind keine zulässigen
-Medienquellen. Das ist noch keine vollständige unabhängige Linux-PC-Quelle:
-Der Picker und der geschützte PC-Sende-/Cacheowner sowie dessen globale
-Dateihistorie sind nicht angeschlossen. Ein separater unveränderlicher
+Medienquellen. Das ist noch keine vollständige Linux-Synchronisationsfunktion.
+Ein separater unveränderlicher
 Ursprungszeuge bindet Scope, Katalogwurzel, Datenbank, Lock und Anchoridentität.
 Die vorhandenen geschützten nativen Einstellungen können ihn durch eine
 ausdrückliche native Aktion im optionalen Feld `collection_roots` festhalten.
@@ -894,14 +893,73 @@ Die interne Einstellungsfactory öffnet den Katalog ausschließlich mit diesem
 gespeicherten Zeugen. Auch nach erneutem Öffnen der Einstellungen bleiben ein
 gemeinsam fehlender Katalog samt Anchor oder ein separat neu angelegter
 Ersatzkatalog HOLD, ohne Bootstrap oder Neuzuordnung. Die Produkt-UI verwendet
-diese APIs noch nicht; Picker und PC-Cache/Sender fehlen weiterhin. Das ist
+diese Auswahl-APIs noch nicht. Das ist
 kein Nachweis gegen einen gemeinsamen Reset aller unabhängigen Zeugen samt
 Einstellungen oder einen vollständigen historischen Datenbank-Rollback auf
 unveränderten Inodes. Keine automatische Wiederherstellung oder Neuauswahl wird
 daraus freigegeben.
 
+### Linux: unabhängiger PC-Quellowner am privaten Cache-/Sendeweg
+
+Der ausdrückliche native Collection-Owner liest tatsächlich ausgewählte Dateien
+unter der vorhandenen gespeicherten Buch-/Intent-/Einwilligungs-IO-Lease. Er
+benötigt weder PC-RECEIVE noch Telefon-READ. Ein echtes Telefonmapping wird nicht
+nachgebaut: Vor Aufnahme werden sämtliche authentifizierten Mappinggenerationen
+auf die native Dateiidentität geprüft; danach bleibt ihr vollständiger
+geschützter Änderungszeuge gebunden. Jede spätere Mappingänderung hält den Lauf
+an. Originalquelle, Quellwurzelkatalog, Policy, Paarung und voller Intent werden
+weiter geprüft. Ein tatsächlicher Medien-MIME-Nachweis erfolgt vor Cacheanlage;
+unzulässige Wire-Dateinamen werden abgewiesen, nicht normalisiert.
+
+Der gemeinsame Cache-/Job-/Readerweg akzeptiert nur die zwei ausdrücklich
+benannten exakten lebenden Klassen, keine beliebigen Unterklassen oder
+Duck-Typen. Alte Mappingcache- und Jobformate bleiben unverändert. Separates
+PC-Format 3 trägt lokale Herkunft, Katalogzeugen und Medienart bei leeren
+Telefonreferenzen. Der begrenzte geschützte Jobkatalog hält die Herkunft über
+alle ausgewählten Wurzeln hinweg fest. Bekannte native Dateiidentitäten und
+ein neuer Inode am bereits bekannten vollständigen relativen Quellpfad bleiben
+HOLD. Der Pfad ist nur eine Sperrgrenze für unsichere Neuzuordnung, keine
+Identitäts- oder Übernahmeberechtigung nach Namen. Auch ein exakt bekannter
+PC-Ursprung wird vorerst nicht als neue Folgeversion vorbereitet.
+
+Eine echte katalogeigene Auswahl-IO-Lease hält authentifizierte Mitgliedschaft
+während begrenzter IO fest. Die native Sperre schließt andere Katalogschreiber
+aus; tatsächliche Datenbank-Signaturänderungen durch Umgehen dieser Sperre werden
+trotzdem abgewiesen. Der Zeuge darf nicht nach Lease-Ende oder in einem anderen
+Thread weiterverwendet werden. Dies vermeidet wiederholtes Entschlüsseln
+unveränderter Mitgliedschaft, ohne Aktions-/Wirefristen zu verlängern.
+
+Der private Sender bietet die anfängliche opake PC-Herkunft im Media-Offer-
+Format 2 an und verwendet tatsächlichen verschlüsselten Offer-/Chunk-Verkehr.
+Eine gewöhnliche Offer ohne PC-Herkunft sowie Retry-/Reprepare-Abkürzungen sind
+für diesen Owner gesperrt. Peer-Saved und korrelierter Publikations-Readback
+sind weiterhin keine lokalen END-/Löschberechtigungen.
+
+Separates lokales Quellbackupformat 2 bewahrt PC-Herkunft ohne Telefonmapping.
+Nach unabhängig geprüftem Backup und korreliertem Publikations-Readback kann
+der tatsächliche native Abschluss zuerst Cache- sowie Quell-/Vorfahrenhandles
+synchron schließen und danach den bisherigen no-replace Cache-Archivabschluss
+schreiben. Nur der exakte schon drainende Besitzer darf auf derselben IO-Lease
+noch den terminalen Status und den abschließenden Buchcheckpoint prüfen; keine
+neuen Chunks oder Dateileser werden dadurch erlaubt. Abbruch hält reale IO und
+Buchplatz bis zum tatsächlichen Ende ausstehender Ausgabe und bewahrt unklare
+Ausgabe als Pending, nicht als Abschluss.
+
+Die lokale Sicherung lässt sich ohne Quelldatei, verfügbaren Transfercache,
+aktiven Kanal oder lebenden Peer-Owner in eine ausdrücklich neue Zieldatei
+wiederherstellen. Eine daraus abgeleitete native PC-Wiederpublikation oder
+Notes-Folgeversion hat noch keinen eigenen Besitzer und bleibt HOLD.
+
+Diese Nachweise betreffen den tatsächlichen Linux-Host-/AEAD-/SQLite-/Socketweg
+mit simulierten Peerantworten. Der unabhängige PC-Owner ist noch nicht in die
+normale gemeinsame Verbindung, den nativen Picker oder die automatische
+Gesamtbestandssteuerung integriert. Notes-Versionsaustausch und Geräteabnahme
+bleiben offen. Daraus folgen weder Capability-23-Aktivierung noch benutzbare
+Gesamtsynchronisation, Großbestands-/Video-Leistungsabnahme oder Auslieferung.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
-authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
+authentifizierten Medienpeer ihre Einstellungsabstimmung und die Quell-Factory
+für bereits telefonzugeordnete Dateien.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
 Sendezustimmung bleibt SEND aus. Die Handlerzusammensetzung bleibt über die ganze
 Verbindung stabil; aktive beziehungsweise beendete Arbeiter schalten keine
