@@ -848,6 +848,18 @@ Peerantworten beweist keinen durchgängigen Android-Versionsaustausch. Deshalb
 bleiben automatische neue PC-Gesamtbestands-Exporte, vollständige Benutzerauswahl,
 Capability 23 und gemeinsame Geräteabnahme weiterhin gesperrt.
 
+Die unabhängige Linux-Quellgrundlage arbeitet ebenfalls ausschließlich lesend
+über gehaltene Deskriptoren. Sie verlangt echte fd-relative `statx`-Geburtszeit
+und Mount-ID ohne `ctime`-Ersatz. Begrenzte Inventuren verwenden jeweils einen
+frischen Verzeichniscursor; Mitgliedsmetadaten sind an die ursprüngliche Wurzel
+gebunden. Links, private Backup-/Stagingpfade und Mount-Abstiege werden nicht
+als Medienquelle übernommen. Geänderte oder verworfene Leser leben nicht wieder
+auf; Schließen eines Mitglieds wartet auf laufende Lesezugriffe und verwirft
+deren unveröffentlichten Puffer. Das Schließen allein der Wurzel ist kein
+Source-END. Diese Primitive besitzt noch keinen geschützten Quellkatalog,
+nativen Picker oder angeschlossenen PC-Sende-/Cacheowner und ist keine
+vollständige Linux-Synchronisationsfunktion.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
