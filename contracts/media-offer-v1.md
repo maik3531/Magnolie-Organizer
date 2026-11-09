@@ -1422,10 +1422,49 @@ Historienmetadaten, keine 128 tatsächlichen nativen Ersetzungen.
 
 `history_committed` bleibt historische Evidenz, kein Neustartrecht, tatsächlicher
 Quell-END oder automatisch ausgegebener Saved-Beleg. Dessen tatsächliche
-ursprünglich gebundene Ausgabe sowie der Runtime/UI-Ersetzungsablauf fehlen
-weiterhin. Android-Gerätepause und alle Feature-/Auslieferungsgates bleiben
+ursprünglich gebundene Ausgabe wird im folgenden Abschnitt ergänzt; der
+Runtime/UI-Ersetzungsablauf fehlt weiterhin. Android-Gerätepause und alle Feature-/Auslieferungsgates bleiben
 unverändert; kein aktueller R8- oder physischer Providerabnahmenachweis für
 diesen neuen Code wird behauptet.
+
+### Notes: tatsächliche Saved-Ausgabe nach geschlossenem kanonischem FD
+
+Der ursprüngliche Transfer übernimmt seine Abschlussinstanz ausschließlich
+privat nach tatsächlicher Rückkehr der nativen Rows-Prüfung. Zu diesem Zeitpunkt
+ist deren kanonischer Lese-FD wirklich geschlossen; beide Publikationen und
+der atomare Historienzeuge müssen exakt geschützt zurücklesbar sein. Ein vom
+Aufrufer geliefertes Ergebnis-JSON, rohe Kopie oder `history_committed` allein
+genügen nicht zur Ausgabe.
+
+Genau ein Ausgabeversuch erzeugt das vorhandene Saved-Wireformat aus dem
+ursprünglichen Manifest, Acceptance, Permission-Epoche und Destination-Token;
+der Receipt bindet den tatsächlich neuen Publikationsfingerprint. Ursprüngliche
+Frist, authentifizierter Kanal, Control-Sitzung, voller Intent und Buch bleiben
+vor und nach tatsächlichem `channel.send` sowie Historien-Readback erforderlich.
+Erst danach wird das tatsächliche Ausgabeereignis intern festgehalten.
+Native URIs/Pfade werden nicht übertragen. Dieses historische Ausgabeereignis
+ist kein Peer-ACK, Quell-END, Cleanup-, Wiederaufnahme- oder weiterer Schreibgrant.
+
+Fehlgeschlagene Ausgabe oder nachträglich entzogener Owner behalten neue Bytes,
+alte und neue Publikation, Archiv, Stage und Journal. Selbst wenn ein
+Ausgabecallback bereits verschlüsselte Bytes beobachtet hat, darf sein später
+entzogener Owner keinen internen Abschluss oder neue Autorität daraus gewinnen.
+Eine blockierte verschlüsselte Ausgabe hält die IO-Bahn trotz schon geschlossener
+Datei-FDs bis zu ihrem tatsächlichen Rücklauf. Cancellation allein ist kein Drain.
+
+147 betroffene Rows-/Runtime-/Transfer-Hostfälle bestehen; mit unveränderten
+51 Index- und fünf Descriptor-Medienfällen sind es 203 unterschiedliche Fälle.
+Vier neue Fälle verbinden tatsächliche rohe Bildersetzung, native kanonische
+Prüfung, beide Historienfakten, echte FD-Closes und anschließend echte AEAD-
+Saved-Ausgabe mit dem exakt neuen Receipt. Weitere Nachweise prüfen fehlenden
+eigenen Abschluss, Failed Send, Grant-/Buch-/Control-Entzug und Entzug während
+eines schon beobachtbaren Ausgabeereignisses, Duplikatverhinderung sowie
+blockierten SecureChannel-Send bis zum tatsächlichen IO-Ende. Alle dauerhaften
+Fakten bleiben erhalten. Dies ist weiterhin ein intern geprüfter Einzelbildpfad,
+kein fertig angebundener Runtime/UI- oder vollständiger Foto-/Videoablauf.
+Die tatsächliche Android-Geräteabnahme bleibt pausiert; bestehende Feature-
+und Auslieferungsgates bleiben bestehen. Kein aktueller R8-/Installations-
+oder Veröffentlichungsnachweis für diesen neuen Ausgabecode wird behauptet.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

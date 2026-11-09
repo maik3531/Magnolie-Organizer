@@ -1833,6 +1833,87 @@ class GalleryIncomingRowsTest {
         assertEquals("write_started", h.f.index.pcBeforeWrite(h.plan.id)!!.state); assertTrue(transfer.awaitIoEnded(0)); h.assertLineage()
     }
 
+    private fun PcStageCase.prepareCompletedCopy(): Pair<NativeGalleryPcReplacementTransfer, NativeGalleryIncomingRows.NativeGalleryPcProviderObservation> {
+        val transfer = prepareStartedCopy()
+        val written = f.io { NativeGalleryTrashArchive(archiveRoot, f.protection, allowCreate = false).use { archive -> transfer.copyReplacementBytes(archive) } }
+        val completed = f.io { transfer.inspectWrittenReplacement(rows, written) }
+        assertFalse(provider.lastRwDescriptor!!.valid()); assertFalse(provider.lastReadDescriptor!!.valid())
+        return transfer to completed
+    }
+
+    @Test fun pcReplacementSavedIsActualEncryptedOutputOnlyAfterBothHistoryFactsAndRealCanonicalFdClose() = withPcStage { h ->
+        val (transfer, completed) = h.prepareCompletedCopy(); val retained = h.f.rows(); val reads = h.provider.readOpens
+        assertNull(transfer.actualSavedOutput())
+        val output = h.f.io { transfer.sendSaved() }
+        val manifest = GalleryPcStageRecord.media(h.plan).manifest
+        val saved = DeviceFileSavedEnvelope.parse(output, manifest)
+        assertEquals(h.f.index.pcStages().single().acceptance.id, saved.acceptanceSha256)
+        assertEquals(completed.publication.fingerprint, saved.members.single().receiptSha256)
+        assertNotEquals(h.original.fingerprint, saved.members.single().receiptSha256)
+        assertEquals(h.plan.body.getValue("binding").jsonObject.string("permission_epoch"), saved.permissionEpoch)
+        assertEquals(manifest.fingerprint, saved.destinationToken); assertEquals(h.bytes.size.toLong(), saved.members.single().size)
+        assertEquals(1, h.link.frames.count { it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND) }); assertSame(output, transfer.actualSavedOutput())
+        assertFalse(TelefonKanonisch.bytes(output).decodeToString().contains("content://"))
+        assertEquals(reads, h.provider.readOpens); assertEquals(retained, h.f.rows()); assertArrayEquals(h.bytes, h.originalFile.readBytes())
+        assertEquals(h.original.body, h.f.index.incomingPublication(h.original.id)!!.body); h.assertOldArchive()
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.sendSaved() } }
+        assertSame(output, transfer.actualSavedOutput()); assertEquals(1, h.link.frames.count { it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND) })
+        assertEquals(retained, h.f.rows()); assertTrue(transfer.awaitIoEnded(0))
+    }
+
+    @Test fun pcReplacementSavedCannotBeManufacturedFromOnlyStagingOrRawBytesWithoutItsOwnActualHistoryCompletion() {
+        for (raw in listOf(false, true)) withPcStage { h ->
+            val transfer = if (raw) h.prepareStartedCopy() else h.prepare().also { h.serve(it); h.f.io { it.sendAcceptance(); it.receiveAndStage() } }
+            if (raw) h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive -> transfer.copyReplacementBytes(archive) } }
+            val retained = h.f.rows()
+            val error = assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.sendSaved() } }
+            assertEquals("gallery_pc_history_original_completion_required", error.message)
+            assertNull(transfer.actualSavedOutput()); assertEquals(retained, h.f.rows()); assertTrue(transfer.awaitIoEnded(0))
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND) })
+            assertEquals(1, h.f.index.incomingPublications().size)
+        }
+    }
+
+    @Test fun pcReplacementSavedFailureRevocationAndLateOutputNeverReplaceTheOriginalOwnerOrDiscardEitherPublication() {
+        for (reason in listOf("output", "grant", "book", "control", "late")) withPcStage { h ->
+            val (transfer, completed) = h.prepareCompletedCopy(); val retained = h.f.rows()
+            when (reason) {
+                "output" -> h.link.failKind = DeviceFileSavedEnvelope.KIND
+                "grant" -> h.grant.request.close()
+                "book" -> h.f.unlocked = false
+                "control" -> h.f.session.close()
+                "late" -> h.link.onMessage = { if (it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND)) h.grant.request.close() }
+            }
+            h.f.io {
+                if (reason == "output") assertThrows(java.io.IOException::class.java) { transfer.sendSaved() }
+                else assertThrows(PhotoFolderScopeError::class.java) { transfer.sendSaved() }
+            }
+            assertNull(transfer.actualSavedOutput()); assertTrue(transfer.awaitIoEnded(0)); assertEquals(retained, h.f.rows())
+            assertEquals(h.original.body, h.f.index.incomingPublication(h.original.id)!!.body)
+            assertEquals(completed.publication.body, h.f.index.incomingPublication(completed.publication.id)!!.body)
+            assertArrayEquals(h.bytes, h.originalFile.readBytes())
+            if (reason == "late") assertEquals(1, h.link.frames.count { it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND) })
+        }
+    }
+
+    @Test fun pcReplacementSavedOutputCancellationKeepsTheLaneUntilActualEncryptedSendReturns() = withPcStage { h ->
+        val (transfer, _) = h.prepareCompletedCopy()
+        val retained = h.f.rows(); val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        h.link.onMessage = { if (it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND)) {
+            entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        } }
+        val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val worker = Thread { try { h.f.io { transfer.sendSaved() } } catch (error: Throwable) { failure.set(error) } }.also { it.start() }
+        try {
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); transfer.close()
+            assertFalse(h.provider.lastReadDescriptor!!.valid()); assertFalse(h.provider.lastRwDescriptor!!.valid())
+            assertTrue(worker.isAlive); assertFalse(transfer.awaitIoEnded(0)); assertNull(transfer.actualSavedOutput())
+            val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+        } finally { release.countDown(); worker.join(7000) }
+        assertFalse(worker.isAlive); assertTrue(failure.get() is PhotoFolderScopeError); assertTrue(transfer.awaitIoEnded(0))
+        assertNull(transfer.actualSavedOutput()); assertEquals(retained, h.f.rows()); assertArrayEquals(h.bytes, h.originalFile.readBytes())
+    }
+
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {
         NativeGalleryIncomingTransferTest.Link().use { link ->
             withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->

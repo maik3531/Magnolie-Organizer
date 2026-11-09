@@ -41,6 +41,16 @@ internal class NativeGalleryPcStage private constructor(private val base: File, 
         return GalleryIncomingPublication.plan(owner.binding, manifest, manifest.files.single().id, owner.pairingEpoch,
             kind, mimeType, owner.scope).also { requireCurrent() }
     }
+    internal fun requireHistoryCompletion(completed: NativeGalleryIncomingRows.NativeGalleryPcProviderObservation) {
+        requireCurrent()
+        val journal = completed.journal; val publication = completed.publication
+        if (journal.id != record.id || journal.state != "history_committed" || journal.stage.body != record.body ||
+            publication.state != "published" || index.pcBeforeWrite(record.id)?.body != journal.body ||
+            index.incomingPublication(publication.id)?.body != publication.body ||
+            index.incomingPublication(record.plan.predecessor.id)?.body != record.plan.predecessor.body)
+            fail("gallery_pc_history_completion_changed")
+        requireCurrent()
+    }
     private val expected = manifest.files.single()
     private val domain = "magnolie-incoming-pc-stage-v1/${record.id}/${record.acceptance.id}/"
     private val digest = MessageDigest.getInstance("SHA-256")

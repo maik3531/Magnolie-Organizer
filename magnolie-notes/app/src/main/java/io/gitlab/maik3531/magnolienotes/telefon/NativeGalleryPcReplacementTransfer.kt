@@ -45,6 +45,9 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
     private val receiving = AtomicBoolean(false)
     private val finished = AtomicBoolean(false)
     private val writeTargetAttempted = AtomicBoolean(false)
+    private val savedAttempted = AtomicBoolean(false)
+    private val completed = AtomicReference<NativeGalleryIncomingRows.NativeGalleryPcProviderObservation?>()
+    private val savedOutput = AtomicReference<JsonObject?>()
     private val pending = AtomicReference<Pending?>()
     private val lifecycle = Any()
     private var inFlight = 0
@@ -210,7 +213,32 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
         observation: NativeGalleryPcWrittenBytesObservation): NativeGalleryIncomingRows.NativeGalleryPcProviderObservation = io {
         current()
         val target = synchronized(lifecycle) { writeTarget } ?: fail("gallery_pc_before_write_native_proof_required")
-        rows.inspectPcWritten(target, observation, lane).also { current() }
+        rows.inspectPcWritten(target, observation, lane).also {
+            // rows returns only after its canonical READ asset/PFD has closed.
+            current(); stage.requireHistoryCompletion(it)
+            if (!completed.compareAndSet(null, it)) fail("gallery_pc_history_original_completion_required")
+        }
+    }
+    /** Historical actual output only, not remote ACK, source END or cleanup. */
+    internal fun actualSavedOutput(): JsonObject? = savedOutput.get()
+    internal fun sendSaved(): JsonObject = io {
+        current()
+        if (!savedAttempted.compareAndSet(false, true)) fail("gallery_pc_saved_output_already_attempted")
+        val history = completed.get() ?: fail("gallery_pc_history_original_completion_required")
+        stage.requireHistoryCompletion(history); current()
+        val now = System.currentTimeMillis()
+        val message = TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+            put("format", 1); put("transfer_id", owner.manifest.transferId); put("manifest_sha256", owner.manifest.fingerprint)
+            put("acceptance_sha256", acceptance.id); put("permission_epoch", owner.binding.permissionEpoch)
+            put("destination_token", owner.binding.destinationToken)
+            put("receipts", JsonArray(owner.manifest.files.map { file -> buildJsonObject {
+                put("file_id", file.id); put("size", file.size); put("sha256", file.sha256)
+                put("receipt_sha256", history.publication.fingerprint)
+            } }))
+        }, acceptance.expires - now, now)
+        DeviceFileSavedEnvelope.parse(message, owner.manifest, now)
+        current(); stage.requireHistoryCompletion(history); channel.send(message); current()
+        stage.requireHistoryCompletion(history); savedOutput.set(message); message
     }
     override fun close() {
         synchronized(lifecycle) { if (!ended.compareAndSet(false, true)) return }
