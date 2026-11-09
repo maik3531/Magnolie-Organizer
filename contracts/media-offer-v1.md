@@ -1221,9 +1221,50 @@ im Hostfixture explizit modelliert; fstat/lseek verwenden weiterhin die
 vorhandenen tatsächlichen Host-Fixtureattribute. Das ist keine Android-OS-
 Zugriffsflag-/Providerabnahme. Originalbytes, Publikation und Historie bleiben
 unverändert; keine neuen Medienzeilen, Saved-Ausgaben oder Mutationen erfolgen.
-Die dauerhafte Vor-erster-Mutation-Transition und der eigentliche Writer mit
-Postwrite-/History-CAS sowie Runtime/UI-Anschluss bleiben offen. Kein aktueller
+Die folgende dauerhafte Vor-erster-Mutation-Transition ergänzt diesen Owner;
+der eigentliche Writer mit Postwrite-/History-CAS sowie Runtime/UI-Anschluss
+bleibt offen. Kein aktueller
 R8-, Geräte-, Installations- oder Veröffentlichungsnachweis wird behauptet.
+
+### Notes: dauerhafter Schreibbeginn-Fence vor jeder Byte-Mutation
+
+Nur der bereits tatsächlich gehaltene ursprüngliche Schreibzielowner kann
+einmalig den ursprünglichen OS-Grant verbrauchen und seinen exakten geschützten
+Eintrag von `before_write` nach `write_started` überführen. Die gesamte
+versiegelte Stage und der vollständige native Vorprüfzeuge bleiben dabei
+unverändert erhalten. Die native Zielprüfung und volle ursprüngliche
+Aktions-/Grant-/Control-/Intent-/Buch-/Fristprüfung erfolgen vor und nach der
+genauen geschützten CAS samt Readback. Innerhalb der Indextransaktion werden
+nur die exakten lokalen Owner-, Lane- und Cancellationzeugen geprüft, keine
+Transportsperren. Unveränderliche lokal vorbereitete Vor-/Commit-/Nach-Snapshots
+erlauben ausschließlich diese eine geplante Transition.
+
+Ein direkter Indexaufruf ohne tatsächliche private Startaufnahme dieses
+FD-Owners kann den Zustand nicht herstellen. Ein fremd verbrauchter oder
+entzogener Grant und eine zweite Aufnahme bleiben HOLD. Ein sofort nach dem
+dauerhaften Commit entzogener Owner hinterlässt `write_started`, aber keinen
+fortsetzbaren Writer; der echte FD wird erst nach IO-Drain geschlossen. Neue
+Zielaufnahme aus einem gespeicherten `write_started` ist ausdrücklich gesperrt.
+Der persistierte Zustand ist eine irreversible Unsicherheitssperre vor der
+ersten Byte-Mutation, weder Beleg für geschriebene Bytes noch Saved oder
+Schreib-/Wiederaufnahmerechte. Es gibt weiterhin keine write/truncate-API.
+Die bestehende geschützte Zeile wird per exakter CAS weitergeführt; kein
+zusätzlicher Metadatentyp oder erhöhtes Source-/History-/Stagingbudget entsteht.
+
+183 betroffene Rows-/Runtime-/Transfer-/Index-Hostfälle bestehen, mit den fünf
+unveränderten Descriptor-Medienfällen insgesamt 188 unterschiedliche Fälle.
+Drei neue Fälle prüfen den tatsächlichen gehaltenen rw-FD, exakt einmaligen
+Grant-Verbrauch, vollständigen Zeugenerhalt und geschützten Start-Readback,
+gesperrte direkte Journalfabrikation, Duplikate, fehlendes Ziel und
+verbrauchte/entzogene Grants sowie sofortigen Entzug nach dauerhaftem Commit.
+Offline lässt sich die erhaltene Beobachtung passiv wiederlesen, ohne daraus
+Rechte zu gewinnen. Originalbytes, Publikation und Historie bleiben unverändert,
+kein Saved oder sonstiger Abschluss wird erzeugt. Vor der künftig ersten
+Byte-Mutation sind weiterhin Recovery-Archiv, Staging-Rohbytes und Ziel erneut
+unter dem tatsächlichen Owner zu prüfen; die eigentliche bounded Kopie,
+Force/Truncate/Postwrite-Prüfung und History-CAS sind noch nicht implementiert.
+Normaler PC-Nachfolger-HOLD, Runtime/UI-Gate, Android-Gerätepause sowie fehlende
+aktuelle R8-/Geräte-/Auslieferungsabnahme bleiben unverändert.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

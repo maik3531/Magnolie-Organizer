@@ -178,6 +178,12 @@ internal class NativeGalleryPcReplacementTransfer private constructor(private va
             }
         } catch (error: Throwable) { target.close(); throw error }
     }
+    /** Durable fence only, still no first byte mutation or completion receipt. */
+    internal fun markWriteStarted(): GalleryPcPreWriteRecord = io {
+        current()
+        val target = synchronized(lifecycle) { writeTarget } ?: fail("gallery_pc_before_write_native_proof_required")
+        target.startWrite().also { current() }
+    }
     override fun close() {
         synchronized(lifecycle) { if (!ended.compareAndSet(false, true)) return }
         try { stage.close(); owner.close(); grant.request.close() }

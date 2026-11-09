@@ -1454,6 +1454,62 @@ class GalleryIncomingRowsTest {
         assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0)); h.assertOriginal()
     }
 
+    @Test fun pcWriteStartRequiresTheActualHeldTargetConsumesTheOriginalGrantOnceAndPreservesItsCompleteWitness() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        h.provider.allowRwTarget = true
+        val before = h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            transfer.prepareBeforeWrite(h.rows, archive).also { transfer.prepareWriteTarget(h.rows, archive) }
+        } }
+        val target = NativeGalleryPcReplacementTransfer::class.java.getDeclaredField("writeTarget").apply { isAccessible = true }
+            .get(transfer) as NativeGalleryPcWriteTarget
+        val heldRows = h.f.rows()
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { h.f.index.startPcWrite(target, before, before.startWrite()) } }
+        assertEquals(heldRows, h.f.rows())
+        val started = h.f.io { transfer.markWriteStarted() }
+        assertEquals("write_started", started.state); assertFalse(started.grantsWriteAuthority)
+        assertEquals(before.body.filterKeys { it != "state" }, started.body.filterKeys { it != "state" })
+        assertEquals(started.body, h.f.index.pcBeforeWrite(h.plan.id)!!.body)
+        assertThrows(PhotoFolderScopeError::class.java) { h.grant.requireUnused() }; h.grant.requireCurrent()
+        assertTrue(h.provider.lastRwDescriptor!!.valid()); h.assertOriginal()
+        val retained = h.f.rows()
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.markWriteStarted() } }
+        assertEquals(retained, h.f.rows()); assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0))
+        h.assertOriginal(); h.f.session.close(); h.f.index.close()
+        PhotoSourceJobIndex.openExisting(h.f.indexRoot, h.f.protection).use { offline ->
+            assertEquals(started.body, offline.pcBeforeWrite(h.plan.id)!!.body); assertFalse(offline.pcBeforeWrite(h.plan.id)!!.grantsWriteAuthority)
+        }
+    }
+
+    @Test fun pcWriteStartCannotBeManufacturedFromPreflightWithoutALiveUnusedOriginalGrantAndActualWritableTarget() {
+        for (reason in listOf("no_target", "used", "revoked")) withPcStage { h ->
+            val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+            h.provider.allowRwTarget = true
+            val before = h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                transfer.prepareBeforeWrite(h.rows, archive).also { if (reason != "no_target") transfer.prepareWriteTarget(h.rows, archive) }
+            } }
+            when (reason) { "used" -> h.grant.consume(); "revoked" -> h.grant.request.close() }
+            val retained = h.f.rows()
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.markWriteStarted() } }
+            assertEquals(retained, h.f.rows()); assertEquals(before.body, h.f.index.pcBeforeWrite(h.plan.id)!!.body)
+            h.provider.lastRwDescriptor?.let { assertFalse(it.valid()) }; assertTrue(transfer.awaitIoEnded(0)); h.assertOriginal()
+        }
+    }
+
+    @Test fun pcWriteStartRevokedImmediatelyAfterDurableCasHoldsTheStartFenceWithoutResumingOrMutatingTheOriginal() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        h.provider.allowRwTarget = true
+        h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+            transfer.prepareBeforeWrite(h.rows, archive); transfer.prepareWriteTarget(h.rows, archive)
+        } }
+        h.f.hook = { if (it == "gallery-pc-write-started") h.grant.request.close() }
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.markWriteStarted() } }
+        h.f.hook = {}
+        val started = h.f.index.pcBeforeWrite(h.plan.id)!!; assertEquals("write_started", started.state); assertFalse(started.grantsWriteAuthority)
+        assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0)); h.assertOriginal()
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.markWriteStarted() } }
+        assertEquals(started.body, h.f.index.pcBeforeWrite(h.plan.id)!!.body)
+    }
+
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {
         NativeGalleryIncomingTransferTest.Link().use { link ->
             withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->

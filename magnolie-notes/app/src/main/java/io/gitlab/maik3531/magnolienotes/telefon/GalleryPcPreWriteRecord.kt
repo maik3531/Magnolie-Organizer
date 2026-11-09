@@ -8,6 +8,11 @@ internal class GalleryPcPreWriteRecord private constructor(internal val body: Js
     val id: String get() = stage.id
     val stage: GalleryPcStageRecord get() = GalleryPcStageRecord.parse(body.getValue("stage").jsonObject)
     val grantsWriteAuthority: Boolean get() = false
+    val state: String get() = body.string("state")
+    internal fun startWrite(): GalleryPcPreWriteRecord {
+        if (state != "before_write") DeviceFileControl.fail("gallery_pc_write_start_original_operation_required")
+        return parse(JsonObject(body + ("state" to JsonPrimitive("write_started"))))
+    }
     companion object {
         const val PREFIX = "gallery-pc-before-write-v1/"
         const val MAX_RECORDS = 128
@@ -16,7 +21,7 @@ internal class GalleryPcPreWriteRecord private constructor(internal val body: Js
         })
         internal fun parse(value: JsonObject): GalleryPcPreWriteRecord = try {
             if (value.keys != setOf("format", "state", "stage", "descriptor") || value["format"] != JsonPrimitive(1) ||
-                value["state"] != JsonPrimitive("before_write")) fail()
+                value["state"] !in setOf(JsonPrimitive("before_write"), JsonPrimitive("write_started"))) fail()
             val stage = GalleryPcStageRecord.parse(value.getValue("stage").jsonObject)
             if (!stage.sealed) fail()
             val fd = value.getValue("descriptor").jsonObject

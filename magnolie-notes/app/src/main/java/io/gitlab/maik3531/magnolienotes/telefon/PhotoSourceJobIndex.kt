@@ -761,6 +761,25 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         }
         grant.requireUnused(); stage.requireCurrent(); rows.requireVerifiedPcBeforeWrite(stage, grant, record)
     }
+    internal fun startPcWrite(target: NativeGalleryPcWriteTarget, expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord) {
+        target.requireStartOwner(this, expected, next)
+        gated {
+            writableMembership(); target.requireLocalStartOwner(this, expected, next)
+            if (expected.state != "before_write" || next.state != "write_started" ||
+                expected.body.filterKeys { it != "state" } != next.body.filterKeys { it != "state" } ||
+                pcBeforeWrite(expected.id)?.body != expected.body) fail("gallery_pc_write_start_conflict")
+            val name = GalleryPcPreWriteRecord.PREFIX + expected.id
+            val cipher = protection.seal(frame(next.body), "photo-source-jobs-v1/" + name)
+            transaction {
+                target.requireLocalStartOwner(this, expected, next)
+                if (pcBeforeWrite(expected.id)?.body != expected.body) fail("gallery_pc_write_start_conflict")
+                putMeta(name, cipher); target.requireLocalStartOwner(this, expected, next)
+            }
+            boundary("gallery-pc-write-started")
+            if (pcBeforeWrite(expected.id)?.body != next.body) fail("gallery_pc_write_start_readback_failed")
+        }
+        target.requireStartOwner(this, expected, next)
+    }
 
     internal fun pcStages(): List<GalleryPcStageRecord> = gated {
         val names = mutableListOf<String>()

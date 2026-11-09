@@ -360,7 +360,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         fun current() { cancellation.throwIfCanceled(); admission.requireIndex(index); grant.requireUnused(); stage.requireCurrent() }
         current()
         val record = index.pcBeforeWrite(stage.record.id) ?: fail("gallery_pc_before_write_native_proof_required")
-        if (record.stage.body != stage.record.body || record.stage.plan.predecessor.body != admission.publication.body)
+        if (record.state != "before_write" || record.stage.body != stage.record.body || record.stage.plan.predecessor.body != admission.publication.body)
             fail("gallery_pc_before_write_original_operation_required")
         val publication = admission.publication; val row = publication.row!!; val uri = grant.request.uri
         fun checkRow() {
