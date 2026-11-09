@@ -69,6 +69,58 @@ import XCTest
         if let error = transportError { throw error }
         let beforeValue = try await javascript("return JSON.stringify(window.OrganizerTest.daten());")
         let before = try XCTUnwrap(beforeValue as? String)
+        // Feed real canonical normalizer results into the production native policy,
+        // then commit/reopen actual private files. No strict DAV snapshot is involved.
+        var vectors = OrdinarySaveEpochPolicyTests.vectors().map { Optional($0) }
+        vectors.append(nil) // Truly absent profile, distinct from a loaded legacy book.
+        for original in vectors {
+            let originalText = try original.map(Document.encode)
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: directory) }
+            var store: AtomicStore? = try AtomicStore(directory: directory)
+            XCTAssertNil(try store!.load())
+            if let originalText { try store!.commit(originalText) }
+            store = nil
+            store = try AtomicStore(directory: directory)
+            let actuallyLoaded = try store!.load()
+            XCTAssertEqual(actuallyLoaded, originalText)
+            let policy = try OrdinarySaveEpochPolicy(loadedPlain: actuallyLoaded)
+            let normalizedValue = try await javascript("const book=window.OrganizerTest.normalisiere(JSON.parse(text)); book.futureRoot={keep:7,edited:true}; return JSON.stringify(book);", arguments: ["text": originalText ?? "{}"])
+            let normalized = try XCTUnwrap(normalizedValue as? String)
+            let actual = try policy.prepare(candidate: normalized)
+            try store!.commit(actual)
+            store = nil
+            var reopened: AtomicStore? = try AtomicStore(directory: directory)
+            XCTAssertEqual(try reopened!.load(), actual)
+            reopened = nil
+            let saved = try Document.plain(actual)
+            XCTAssertEqual(try OrdinarySaveEpochPolicyTests.slotBytes(saved), try OrdinarySaveEpochPolicyTests.slotBytes(original ?? [:]))
+            XCTAssertEqual((saved["futureRoot"] as? [String: Any])?["edited"] as? Bool, true)
+            XCTAssertEqual(try policy.prepare(candidate: actual), actual)
+            if case .protectedEpoch(let epoch) = policy.classification { XCTAssertEqual(try DAVBookRestore.persistedEpoch(saved), epoch) }
+            else { XCTAssertThrowsError(try DAVBookRestore.persistedEpoch(saved)) }
+        }
+        // V1 unlock returns a V2 encryption session. Saving must not attempt to
+        // decrypt the old on-disk V1 bytes through that new session.
+        let fixtureURL = try XCTUnwrap(Bundle.module.url(forResource: "desktop-envelopes", withExtension: "json", subdirectory: "Fixtures"))
+        let fixture = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: fixtureURL)) as? [String: Any])
+        let v1 = try XCTUnwrap(fixture["v1"] as? String)
+        let password = try XCTUnwrap(fixture["password"] as? String)
+        let encryptedDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: encryptedDirectory) }
+        var encryptedStore: AtomicStore? = try AtomicStore(directory: encryptedDirectory)
+        XCTAssertNil(try encryptedStore!.load()); try encryptedStore!.commit(v1); encryptedStore = nil
+        encryptedStore = try AtomicStore(directory: encryptedDirectory)
+        let actualV1 = try XCTUnwrap(encryptedStore!.load())
+        let (decoded, encryption) = try Encryption.unlock(actualV1, password: password)
+        let unlockedPolicy = try OrdinarySaveEpochPolicy(loadedPlain: decoded)
+        let normalizedUnlockedValue = try await javascript("return JSON.stringify(window.OrganizerTest.normalisiere(JSON.parse(text)));", arguments: ["text": decoded])
+        let normalizedUnlocked = try XCTUnwrap(normalizedUnlockedValue as? String)
+        let savedUnlocked = try unlockedPolicy.prepare(candidate: normalizedUnlocked)
+        try encryptedStore!.commit(encryption.encrypt(savedUnlocked)); encryptedStore = nil
+        var reopenedEncrypted: AtomicStore? = try AtomicStore(directory: encryptedDirectory)
+        let reopenedEnvelope = try XCTUnwrap(reopenedEncrypted!.load()); reopenedEncrypted = nil
+        XCTAssertEqual(try Encryption.unlock(reopenedEnvelope, password: password).0, savedUnlocked)
         let candidateValue = try await javascript("const candidate=JSON.parse(JSON.stringify(window.OrganizerTest.daten())); candidate.futureRoot.keep='candidate'; return JSON.stringify(candidate);")
         let candidate = try XCTUnwrap(candidateValue as? String)
         let accepted = try await javascript(body, arguments: ["text": candidate])

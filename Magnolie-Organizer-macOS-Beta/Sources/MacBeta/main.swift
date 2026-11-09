@@ -17,6 +17,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var store: AtomicStore!
     private var entry: URL!
     private var plain: String?
+    private var ordinarySaveEpochPolicy: OrdinarySaveEpochPolicy?
     private var envelope: String?
     private var encryption: Encryption?
     private var initialized = false
@@ -160,7 +161,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         decisionHandler(allowed ? .allow : .cancel)
     }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        plain = nil; encryption = nil; documentGeneration = UUID()
+        plain = nil; ordinarySaveEpochPolicy = nil; encryption = nil; documentGeneration = UUID()
         alert("WebKit stopped. Unsaved changes may be lost. Disk data was not replaced with an empty document. Restart the Beta.")
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -194,7 +195,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         web.callAsyncJavaScript("window.MacBeta.receive(method, payload)",
                                 arguments: ["method": method, "payload": payload], in: nil, in: .page) { result in
             if case .failure = result {
-                self.plain = nil; self.encryption = nil; self.documentGeneration = UUID()
+                self.plain = nil; self.ordinarySaveEpochPolicy = nil; self.encryption = nil; self.documentGeneration = UUID()
                 self.alert("UI response failed. Further saves are blocked; restart and inspect the retained file.")
             }
         }
@@ -287,20 +288,25 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 if root["magnolie"] as? String == "magnolie-verschluesselt" {
                     envelope = text; try initialize(nil, locked: true)
                 } else {
-                    _ = try Document.plain(text); plain = text; try initialize(text)
+                    ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: text)
+                    plain = text; try initialize(text)
                 }
             } else {
                 // Only ENOENT from the private store can create a new profile.
+                ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: nil)
                 plain = "{}"; try initialize(nil, new: true)
             }
         case .entsperren:
             guard Date() >= unlockAfter, plain == nil, let envelope else { throw BetaError("Unlock is not available yet.") }
             let (text, session) = try Encryption.unlock(envelope, password: request.text("kennwort"))
+            ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: text)
             plain = text; encryption = session; failureCount = 0
             try initialize(text)
         case .speichern:
             guard let plain else { throw BetaError("No successfully loaded, unlocked document. Save refused.") }
-            let text = request.text("text"), next = try Document.plain(text)
+            guard let ordinarySaveEpochPolicy else { throw BetaError("Native save policy is unavailable.") }
+            let text = try ordinarySaveEpochPolicy.prepare(candidate: request.text("text"))
+            let next = try Document.plain(text)
             let needsRecovery = (try? Document.assertNoLoss(Document.object(plain), next)) == nil
             let output = try encryption?.encrypt(text) ?? text
             try store.commit(output, preservingCurrent: needsRecovery)
@@ -384,7 +390,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 let unlocked = try Encryption.unlock(source, password: request.text("kennwort"))
                 incoming = unlocked.0; importedEncryption = unlocked.1
             } else { incoming = source; importedEncryption = nil }
-            _ = try Document.plain(incoming)
+            let incomingSavePolicy = try OrdinarySaveEpochPolicy(loadedPlain: incoming)
             // Keep the current profile's password; an encrypted import never becomes
             // plaintext merely because the current profile had no password yet.
             let targetEncryption = encryption ?? importedEncryption
@@ -398,6 +404,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                     }
                     _ = try selection.confirmed(path: request.text("pfad"))
                     try self.store.commit(output, preservingCurrent: true)
+                    self.ordinarySaveEpochPolicy = incomingSavePolicy
                     self.plain = incoming; self.encryption = targetEncryption
                     self.envelope = targetEncryption == nil ? nil : output; self.selection = nil
                     self.localize(self.regional(incoming))
