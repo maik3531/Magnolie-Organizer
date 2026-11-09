@@ -311,6 +311,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared projection / Windows explicit manual inventory actual receive Saved END", DeviceFileAutomaticTests.WindowsSharedManualReceiveSavedAsync);
     runner.Add("Media shared incoming / Windows video inventory adopts fresh enabled status without configure", DeviceFileAutomaticTests.WindowsSharedManualVideoInventoryAsync);
     runner.Add("Media shared incoming automatic / Windows actual fresh status chunks Saved END without configure", DeviceFileAutomaticTests.WindowsSharedAutomaticReceiveSavedAsync);
+    runner.Add("Media automatic original intent / Windows later matched snapshot cannot replace admitted root", DeviceFileAutomaticTests.WindowsSharedAutomaticOriginalIntentAsync);
     runner.Add("Media shared incoming / Windows phone source OFF repair and association stay review", DeviceFileAutomaticTests.WindowsSharedSourceOffReviewAsync);
     runner.Add("Media shared transport / Windows manual duplicate deadline stale intent and failed ACK guards", DeviceFileSharedTransportTests.ManualGuardsAsync);
     runner.Add("Media backup exclusions / Windows former backup destination rejection without catalog", DeviceFileBackupExclusionTests.WindowsDestinationAsync);

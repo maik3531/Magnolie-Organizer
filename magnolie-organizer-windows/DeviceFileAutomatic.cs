@@ -88,6 +88,7 @@ internal sealed partial class TelefonCoordinator
         TelefonConnection? expectedConnection = null)
     {
         var manual = manualIntent is not null;
+        JsonObject? runIntent = manualIntent;
         token.ThrowIfCancellationRequested();
         var connection = NativeMediaOnlineConnection(peerId);
         if (expectedConnection is not null && !ReferenceEquals(expectedConnection, connection))
@@ -99,18 +100,23 @@ internal sealed partial class TelefonCoordinator
         }
         void Intent()
         {
-            if (manual && (!ReferenceEquals(NativeMediaOnlineConnection(peerId), connection) || !connection.MediaSharedSettingsReady ||
-                !JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey), manualIntent)))
-                throw DeviceFileControl.Error("file_media_manual_intent_changed");
+            if (runIntent is not null && (!ReferenceEquals(NativeMediaOnlineConnection(peerId), connection) || !connection.MediaSharedSettingsReady ||
+                !JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey), runIntent)))
+                throw DeviceFileControl.Error(manual ? "file_media_manual_intent_changed" : "file_media_original_shared_intent_changed");
         }
         Intent();
         if (connection.MediaSharedControlsReady || store.HasNativeMediaSharedSettings(peerId))
         {
+            // Pin the full original registers for automatic roots too. Equal
+            // projected local preferences do not make a later shared ACK the
+            // original operation's intent.
+            runIntent ??= store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey)?.DeepClone().AsObject();
             if (!connection.MediaSharedSettingsReady || !ApplyMatchedNativeMediaPreferences(peerId, connection))
             {
                 if (manual) throw DeviceFileControl.Error("file_media_manual_intent_changed");
                 return "held";
             }
+            Intent();
         }
         var preferences = store.ReadNativeMediaPreferences(peerId);
         if ((!manual && !preferences.AutomaticWifi) || !preferences.PhotosEnabled && !preferences.VideosEnabled)
@@ -161,8 +167,7 @@ internal sealed partial class TelefonCoordinator
                 if (!(kind == "images" ? preferences.PhotosEnabled : preferences.VideosEnabled)) continue;
                 Require();
                 if (kind == "video" && !connection.NativeMediaUiMetadataAvailable(videos: true)) { review = true; continue; }
-                var sharedIntent = connection.MediaSharedSettingsReady
-                    ? store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey) : null;
+                var sharedIntent = runIntent;
                 if (sharedIntent is not null && MediaSyncSettings.TransferRequestedFor(sharedIntent, kind, toPhone: true))
                 {
                     await connection.PrepareNativeMediaSendUiAsync(NativeSavedBook, kind, lifetime.Token); Require();

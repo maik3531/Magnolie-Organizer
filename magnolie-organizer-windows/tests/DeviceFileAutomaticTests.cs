@@ -12,6 +12,7 @@ internal static class DeviceFileAutomaticTests
     internal static Task WindowsSharedManualReceiveSavedAsync() => RunAsync(false, transfer: true, manual: true);
     internal static Task WindowsSharedManualVideoInventoryAsync() => RunAsync(false, video: true, manual: true);
     internal static Task WindowsSharedAutomaticReceiveSavedAsync() => RunAsync(false, transfer: true, manual: true, sharedAutomatic: true);
+    internal static Task WindowsSharedAutomaticOriginalIntentAsync() => RunAsync(false, manual: true, sharedAutomatic: true, replaceIntentAtCapture: true);
     internal static async Task WindowsSharedSourceOffReviewAsync()
     {
         foreach (var reason in new[] { "disabled", "unassociated", "repair", "video_off" })
@@ -36,7 +37,8 @@ internal static class DeviceFileAutomaticTests
         TestAssert.That(!coordinator.IsRunning && workers.IsEmpty, "Native service shutdown left an automatic worker or listener task running.");
     }
 
-    private static async Task RunAsync(bool stop, bool video = false, bool transfer = false, bool manual = false, string? sharedReview = null, bool sharedAutomatic = false)
+    private static async Task RunAsync(bool stop, bool video = false, bool transfer = false, bool manual = false, string? sharedReview = null, bool sharedAutomatic = false,
+        bool replaceIntentAtCapture = false)
     {
         var book = new NativeBookOwnerScope(); book.SetReady(true); book.RecordSaved("auto-book", true, new string('a', 64));
         using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(uiSavedBook: () => book.SaveState("auto-book", true), sharedMedia: manual);
@@ -91,6 +93,52 @@ internal static class DeviceFileAutomaticTests
         const string text = "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}";
         var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "automatic-book"), text);
         coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        if (replaceIntentAtCapture)
+        {
+            var captures = 0;
+            NativeMediaPreferences? originalPreferences = null;
+            coordinator.NativeProducerBook = () =>
+            {
+                if (++captures == 2)
+                {
+                    originalPreferences = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id);
+                    f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "photos_only", JsonValue.Create(true)!,
+                        f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "photos_only"));
+                    DeviceFileSharedTransportTests.MatchAsync(f.Native).GetAwaiter().GetResult();
+                }
+                return host.Snapshot();
+            };
+            var replacing = Run();
+            try
+            {
+                try
+                {
+                    await replacing.WaitAsync(TimeSpan.FromSeconds(3));
+                    throw new Exception("The shared automatic root adopted a different matched intent after original admission.");
+                }
+                catch (InvalidDataException error)
+                { TestAssert.That(error.Message == "file_media_original_shared_intent_changed", "Original shared root failed for an unrelated reason: " + error.Message); }
+                TestAssert.That(captures == 2 && f.Native.Connection.MediaSharedSettingsReady &&
+                    !JsonNode.DeepEquals(manualIntent, f.Native.Store.ReadNativeMediaSharedSettings(f.Native.Peer.Id, f.Native.Peer.PublicKey)) &&
+                    f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id) == originalPreferences &&
+                    !DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(frame =>
+                        frame["kind"]?.GetValue<string>() is DeviceFileSources.RequestKind or DeviceFileControl.Kind) &&
+                    f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == 0 && f.Native.Connection.CurrentNativeMediaSourceRun is null,
+                    "Rejecting replaced original intent changed rights/history or started control/source work.");
+            }
+            catch (TimeoutException)
+            {
+                var actualControls = DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Count(frame =>
+                    frame["kind"]?.GetValue<string>() == DeviceFileControl.Kind);
+                throw new InvalidOperationException($"Automatic root did not reject replaced intent: captures={captures}, newMatched={f.Native.Connection.MediaSharedSettingsReady}, actualControls={actualControls}, unchangedPreferences={f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id) == originalPreferences}.");
+            }
+            finally
+            {
+                coordinator.StopNativeMediaAutomatic(f.Native.Peer.Id);
+                try { await replacing.WaitAsync(TimeSpan.FromSeconds(5)); } catch { }
+            }
+            return;
+        }
         var manualCleanup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         async Task RunWire()
         {

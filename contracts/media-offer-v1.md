@@ -747,6 +747,14 @@ nach unabhängiger tatsächlicher Datenbestätigung; ein neuer Versuch entfernt
 vorherige Videoaktivierung. Der ausdrücklich gewählte Legacy-Einrichtungsweg
 bleibt davon getrennt und unverändert.
 
+Der automatische gemeinsame Windows-Gesamtlauf bindet sich wie der manuelle
+Lauf an die ursprünglichen vollständigen Einstellungsregister und dieselbe
+native Verbindung. Auch eine später tatsächlich bestätigte neue Übereinstimmung
+ersetzt diesen Kontext nicht, wenn die daraus projizierten lokalen Präferenzen
+zufällig gleich bleiben. Alle Teilrichtungen/Medienarten benutzen den gepinnten
+Stand; ein neuer Stand verlangt einen neuen Lauf statt zusätzlicher Rechte für
+den bereits zugelassenen Vorgang.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
