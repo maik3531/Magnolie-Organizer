@@ -26,5 +26,6 @@ module.exports=function run({root}) {
  assert(instrumentation.includes('if(unsupported.get(activity)!=null) {observationError=WebViewStartup.TERMINAL_REASON;break}'));
  assert(instrumentation.includes('check(gate.accepted && observationError==null)'));
  assert(instrumentation.includes('if(unsupported!=null) done.countDown()'));count++;
+ count+=require('./startup-diagnostics.test.cjs')({root});
  return count;
 };

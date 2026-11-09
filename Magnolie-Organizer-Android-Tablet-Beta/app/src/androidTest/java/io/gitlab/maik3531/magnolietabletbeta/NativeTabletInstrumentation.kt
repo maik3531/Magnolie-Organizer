@@ -319,6 +319,14 @@ class NativeTabletInstrumentation : Instrumentation() {
             finally {bitmap.recycle()}
         }
         finally {runOnMainSync {activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}}
+        if(name.startsWith("failure-") && startupTiming?.optBoolean("acceptedBeforeDeadline")==false) {
+            // Retry only the technical observation after the original gate failed; never retry readiness.
+            val timing=try {
+                val script=context.assets.open("startup-diagnostics.js").bufferedReader().use {it.readText()}
+                value("($script)").also {check(it.toByteArray(Charsets.UTF_8).size<=16384)}
+            } catch(_:Exception) {"{\"unavailable\":true,\"reason\":\"startup-renderer-observation\"}"}
+            try {File(out,"$name-startup-renderer.json").writeText(timing)} catch(_:Exception) {}
+        }
         if(options.getString("stage")=="domains") {
             val snapshot=JSONObject(value("({diagnostics:window.__nativeDiagnosticSnapshot?.() || {},dom:({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,section:OrganizerTest.zustand().sektion,status:document.querySelector('#tablet-status').textContent,body:document.body.innerText.slice(0,20000)}),input_events:window.__nativeInputTrace || [],fonts:({title:document.title,betaLabel:document.querySelector('#tablet-bar strong').textContent,selected:OrganizerTest.daten().einstellungen.schrift,faces:[...document.fonts].map(f=>({family:f.family,status:f.status})),fields:[...document.querySelectorAll('input:not([type=password]),textarea,[contenteditable]')].slice(0,80).map(e=>({id:e.id,tag:e.tagName,readOnly:e.readOnly===true,disabled:e.disabled===true,contentEditable:e.contentEditable,fontFamily:getComputedStyle(e).fontFamily,fontStyle:getComputedStyle(e).fontStyle,fontSize:getComputedStyle(e).fontSize}))})})"))
             File(out,"$name-diagnostics.json").writeText(snapshot.get("diagnostics").toString())
