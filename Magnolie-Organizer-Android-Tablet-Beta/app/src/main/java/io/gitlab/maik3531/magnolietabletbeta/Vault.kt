@@ -46,7 +46,7 @@ internal fun decodeUtf8(bytes: ByteArray): String = Charsets.UTF_8.newDecoder()
     .decode(ByteBuffer.wrap(bytes)).toString()
 
 internal fun validateData(data: JSONObject) {
-    require(data.toString().toByteArray(Charsets.UTF_8).size <= 16 * 1024 * 1024)
+    VaultJson.encode(data,16 * 1024 * 1024)
     require(data.getInt("version") == 6)
     for (key in listOf("termine", "aufgaben", "kontakte", "notizen")) {
         val array = data.getJSONArray(key)
@@ -105,17 +105,25 @@ internal class Vault(directory: File, key: () -> SecretKey,
         check(read()?.getString("revision")?.let { it == session.revision } ?: newDocument) { "Stale document revision" }
     }
 
+    private data class Snapshot(val value: JSONObject, val plaintext: ByteArray)
     @Synchronized fun read(): JSONObject? {
+        val snapshot=readSnapshot() ?: return null
+        return snapshot.value.also {snapshot.plaintext.fill(0)}
+    }
+    private fun readSnapshot(): Snapshot? {
         val encrypted = fileOps.read(file, MAX_BYTES + 1024)
         if (encrypted == null) {
             check(fileOps.stat(File(directory, "tablet-vault.enc.pending")) == null &&
                 fileOps.stat(File(directory, "before-import.enc")) == null) { "Incomplete vault; recovery required" }
             return null
         }
-        val value = parseObject(decodeUtf8(crypto.entschluesseln(encrypted, file.name)))
-        require(value.getInt("format") == 1)
-        validateData(value.getJSONObject("data"))
-        return value
+        val plaintext=crypto.entschluesseln(encrypted,file.name)
+        try {
+            val value=parseObject(decodeUtf8(plaintext))
+            require(value.getInt("format")==1)
+            validateData(value.getJSONObject("data"))
+            return Snapshot(value,plaintext)
+        } catch(error:Exception) {plaintext.fill(0);throw error}
     }
 
     @Synchronized fun write(value: JSONObject) {
@@ -128,7 +136,7 @@ internal class Vault(directory: File, key: () -> SecretKey,
     private fun commit(value: JSONObject) {
         require(value.getInt("format") == 1)
         validateData(value.getJSONObject("data"))
-        val text = value.toString().toByteArray(Charsets.UTF_8)
+        val text = VaultJson.encode(value,MAX_BYTES).toByteArray(Charsets.UTF_8)
         require(text.size <= MAX_BYTES)
         val encrypted = crypto.verschluesseln(text, file.name)
         val pending = File(directory, file.name + ".pending")
@@ -204,17 +212,19 @@ internal class Vault(directory: File, key: () -> SecretKey,
         try {
             val data = parseObject(candidate.text)
             validateData(data)
-            val before = read() ?: error("Initial state not saved")
+            val replacement = JSONObject().put("format", 1).put("data", data).put("alarms", JSONArray())
+                .put("enabled", false).put("customEnabled", false).put("delivered", JSONObject())
+                .put("revision", UUID.randomUUID().toString())
+            VaultJson.encode(replacement,MAX_BYTES) // Reject the full output before changing any recovery file.
+            val before = readSnapshot() ?: error("Initial state not saved")
             val backup = File(directory, "before-import.enc")
             val pending = File(directory, "before-import.pending")
-            val bytes = crypto.verschluesseln(before.toString().toByteArray(), "before-import.enc")
+            val bytes = try {crypto.verschluesseln(before.plaintext,"before-import.enc")}
+                finally {before.plaintext.fill(0)}
             fileOps.writeAndSync(pending, bytes, MAX_BYTES + 1024)
             fileOps.atomicReplace(pending, backup)
             syncDirectory(directory)
             checkpoint("backup-sync")
-            val replacement = JSONObject().put("format", 1).put("data", data).put("alarms", JSONArray())
-                .put("enabled", false).put("customEnabled", false).put("delivered", JSONObject())
-                .put("revision", UUID.randomUUID().toString())
             commit(replacement)
             return replacement
         } catch (error: CommitFailure) { throw error }

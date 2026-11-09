@@ -212,6 +212,7 @@ internal object NativeDavAccountSmoke {
                 .put("realDirectoryFsync",true).put("atomicInodeMoved",true).put("readonlyDirectoryRenameRejected",renameDenied)
                 .put("nofollowSymlinkRejected",symlinkRejected).put("hardlinkEvidence",hardlinkProof)
                 .put("boundedReadRejected",boundedReadRejected).put("vaultDurabilityCheckpoints",checkpoints)
+                .put("numericVault",numericVaultChecks(directory,key))
                 .put("frameworkOwnedParent0771Preserved",true)
                 .put("fixtureParentUid",Os.lstat(parent.parentFile!!.path).st_uid)
                 .put("fixtureParentMode",Os.lstat(parent.parentFile!!.path).st_mode and 0x1ff)
@@ -222,6 +223,43 @@ internal object NativeDavAccountSmoke {
             check(remaining.isEmpty()) { "Unexpected file in storage fixture; remainingCount=${remaining.size}" }
             Os.remove(directory.path);ops.syncDirectory(parent)
         } }
+    }
+
+    private fun numericVaultChecks(parent:File,key:SecretKey):JSONObject {
+        val directory=File(parent,"numeric-vault")
+        check(ops.stat(directory)==null);ops.ensurePrivateDirectory(directory,true)
+        var originalFailure:Throwable?=null
+        try {
+            val literal="""{"version":6,"termine":[],"aufgaben":[],"kontakte":[],"notizen":[],"einstellungen":{"fixture":true},"futureNumber":9223372036854775808}"""
+            val crypto=io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({key})
+            fun actual():ByteArray=crypto.entschluesseln(requireNotNull(ops.read(File(directory,"tablet-vault.enc"),MAX_BYTES+1024)),"tablet-vault.enc")
+            fun exact(bytes:ByteArray) {
+                val token=Regex("\"futureNumber\"\\s*:\\s*([^,}\\s]+)").find(decodeUtf8(bytes))!!.groupValues[1]
+                check(java.math.BigDecimal(token).compareTo(java.math.BigDecimal("9223372036854775808"))==0)
+            }
+            val first=Vault(directory,{key},fileOps=ops);val page=first.openSession().session;first.activate(page)
+            first.save(page,literal,org.json.JSONArray())
+            val saved=actual();exact(saved)
+            val next=Vault(directory,{key},fileOps=ops);val loaded=next.openSession();next.activate(loaded.session)
+            check(loaded.value!!.getJSONObject("data").getDouble("futureNumber")==9223372036854775808.0)
+            next.replace(loaded.session,next.prepareImport(loaded.session,literal))
+            actual().also {exact(it);it.fill(0)}
+            val backup=requireNotNull(ops.read(File(directory,"before-import.enc"),MAX_BYTES+1024))
+            crypto.entschluesseln(backup,"before-import.enc").also {check(it.contentEquals(saved));it.fill(0)}
+            saved.fill(0)
+            var wrongAAD=false
+            try {crypto.entschluesseln(backup,"tablet-vault.enc")} catch(_:Exception) {wrongAAD=true}
+            check(wrongAAD);check(Vault(directory,{key},fileOps=ops).openSession().value!=null)
+            return JSONObject().put("literalBoundary",true).put("encryptedSaveWireExact",true)
+                .put("replacementWireExact",true).put("newVaultReopen",true)
+                .put("authenticatedBackupBytesExact",true).put("wrongFilenameAADRejected",true)
+        } catch(failure:Throwable) {originalFailure=failure;throw failure}
+        finally {cleanupPreservingFailure(originalFailure) {
+            val children=ops.children(directory)
+            check(children.all {it.name in setOf("tablet-vault.enc","before-import.enc")})
+            for(file in children) check(ops.delete(file))
+            Os.remove(directory.path);ops.syncDirectory(parent)
+        }}
     }
 
     private fun accountChecks(context: Context): JSONObject {
