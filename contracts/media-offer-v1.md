@@ -1895,6 +1895,33 @@ native Bestands-/Provider-/Geräteabnahme bleiben offen. Keine Installation oder
 Veröffentlichung, keine Öffnung von Capability23, automatischem gesamtem Export
 oder den Video-/Mehrdatei-/Liefergates.
 
+### Zielwechsel-Gegenprobe: Linux-Quelle und Windows-Sicherheitsgrenze (#494)
+
+Die Vermutung, ein tatsächlich gewechseltes Windows-Empfangsziel verliere erst
+beim späteren ausgewählten alten Quellroot seinen Mappingowner, ist durch die
+native Gegenprobe nicht bestätigt: Der reguläre Windows-Speicherpfad erlaubt
+derzeit nach erster Zielregistrierung nur denselben ursprünglichen Root. Eine
+neue Auswahl hält schon mit `file_destination_existing_history_required`, bevor
+ein neuer Zielrecord oder ein späterer historischer Sourcefall entsteht. Dieser
+Guard wird nicht entfernt, und Testdaten werden nicht daran vorbei manipuliert.
+Der fehlende ursprüngliche verlustlose Windows-Wechsel-/Migrationspfad wird in
+#495 getrennt bearbeitet.
+
+Linux verarbeitet dagegen den tatsächlichen nativen Empfangszielwechsel im
+neuen Hostfall bereits korrekt: ursprünglicher Root zusätzlich ausdrücklich
+als Quelle gewählt, echte alte aktuelle Mappingdatei frisch gelesen, kein
+neues PC-Angebot/Relabel, Originalbytes erhalten, neues Empfangsziel unbeschrieben.
+Der entsprechende native Windows-Fall bestätigt die andere Vertragsgrenze:
+abgelehnter Wechsel lässt alten Zieltoken, Record, Mappings und Historie exakt
+unverändert; der alte echte Mappingquelllauf funktioniert danach weiterhin.
+
+Diese zwei neuen gezielten Fälle bestehen. Kein Produktguard wurde gelockert
+und kein Windows-Sourcefix aus dem Linux-Erfolg abgeleitet. Die Corequelle mit
+den Schutztests baut fehlerfrei; unveränderte aktuelle Produktbuildnachweise
+bleiben erhalten. Es gibt keinen neuen nativen Zielwechsel-, Android-, Recovery-
+oder Lieferabnahmenachweis. Historische/unklare Quellen ohne ursprünglichen
+aktuellen Owner bleiben HOLD; #495/#486 und die Geräte-/Liefergates bleiben offen.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

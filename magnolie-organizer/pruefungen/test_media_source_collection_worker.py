@@ -248,6 +248,30 @@ def test_collection_kind_exclusion_never_swallows_unknown_bytes_or_turns_filtere
         assert result['saved_files']==0 and not h.connection._media_pc_source._prepared and h.connection._media_sender is None
 
 
+def test_explicitly_selected_original_mapped_root_after_receive_destination_change_keeps_exact_native_source_and_no_pc_relabel(pc,native):
+    from magnolie_media_source_collection import NativeCollectionRoot
+    from magnolie_photo_destination import NativePhotoDestinationController
+    with composition(pc,native[0]) as h:
+        h.pc_file.rename(h.pc_file.with_name('.magnolie-retained-independent-original'))
+        old=h.preferences.read();original=h.target.read_bytes()
+        catalog=h.preferences.open_collection_roots()
+        try:
+            with NativeCollectionRoot(h.target.parent,lambda:True) as root:catalog.add(catalog.issue_action(),catalog.read(),root,'images')
+        finally:catalog.close()
+        new=h.target.parent.parent/'new-receive-destination';new.mkdir(mode=0o700)
+        chooser=NativePhotoDestinationController(h.authority)
+        try:
+            choice=chooser.choose_custom(chooser.issue_action(),str(new))
+            h.preferences.configure(h.preferences.issue_action(),h.preferences.read(),enabled=False,mode='manual',destination_choice=choice)
+        finally:chooser.close()
+        assert h.preferences.read().policy.destination!=old.policy.destination
+        agree(h,native[0]);worker=start(h);assert worker.join(30),worker.progress()
+        result=worker.progress()
+        assert result['state']=='complete' and result['known_files']==1 and result['saved_files']==0,result
+        assert h.target.read_bytes()==original and not list(new.iterdir())
+        assert not h.connection._media_pc_source._prepared and h.connection._media_sender is None
+
+
 @pytest.mark.parametrize('fault',['symlink','root_catalog','same_size_edit'])
 def test_collection_inventory_or_original_catalog_changes_hold_without_claiming_mapped_subset_complete(pc,native,monkeypatch,fault):
     from magnolie_media_source_collection_pass import NativeCollectionPass

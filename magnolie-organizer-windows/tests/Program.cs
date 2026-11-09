@@ -308,6 +308,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Collection overlap guards / Windows late edits filtered unprepared and foreign witnesses HOLD", DeviceFileCollectionSourceTests.WindowsCollectionOverlapGuardsAsync);
     runner.Add("Collection media kinds / Windows known opposite container excluded without video SEND", DeviceFileCollectionSourceTests.WindowsCollectionKnownOppositeTypeAsync);
     runner.Add("Collection media kinds / Windows unknown broken and photos-only mixed roots preserve gates", DeviceFileCollectionSourceTests.WindowsCollectionKindGuardsAsync);
+    runner.Add("Collection previous destination / Windows migration HOLD preserves original mapping source and history", DeviceFileCollectionSourceTests.WindowsCollectionPreviousDestinationAsync);
     runner.Add("Collection folder choice / Windows original book connection intent control catalog guards", DeviceFileCollectionSourceTests.WindowsNativeFolderChoiceGuardsAsync);
     runner.Add("Collection roots / Windows pairing ciphertext and missing-key HOLD preserve source records", DeviceFileCollectionRootsTests.WindowsTamperAsync);
     runner.Add("Collection generation / Windows actual file and ancestor creation witness no owner revival", DeviceFileCollectionInventoryTests.WindowsGenerationAsync);

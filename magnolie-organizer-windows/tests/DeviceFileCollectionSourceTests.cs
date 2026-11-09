@@ -377,7 +377,10 @@ internal static class DeviceFileCollectionSourceTests
     internal static async Task WindowsCollectionChangedMappedOverlapAsync()
         => await CollectionMappedOverlap(changed: true);
 
-    private static async Task CollectionMappedOverlap(bool changed)
+    internal static async Task WindowsCollectionPreviousDestinationAsync()
+        => await CollectionMappedOverlap(changed: false, previousDestination: true);
+
+    private static async Task CollectionMappedOverlap(bool changed, bool previousDestination = false)
     {
         using var f = await DeviceFileMappedSourceTests.Established();
         foreach (var (field, value) in new[] { ("direction", "pc_to_phone"), ("collection_mode", "entire_collection") })
@@ -387,6 +390,23 @@ internal static class DeviceFileCollectionSourceTests
         await DeviceFileMappedSourceTests.AllowSending(f, pcReceive: false, phoneRead: false);
         using (var root = DeviceFileNativeDirectory.OpenExisting(f.Root))
             f.Native.Store.AddNativeMediaCollectionRoot(f.Native.Peer.Id, "images", root, () => { });
+        if (previousDestination)
+        {
+            var path = Path.Combine(f.Native.Paths.Root, "new-receive-destination"); Directory.CreateDirectory(path);
+            using var root = DeviceFileNativeDirectory.OpenExistingForReceive(path);
+            var destination = f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "images");
+            var receiveHistory = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray();
+            try
+            {
+                f.Native.Store.SetNativeMediaDestination(f.Native.Peer.Id, "images", f.Destination.Version, root);
+                throw new Exception("Unimplemented destination migration silently replaced the original mapping root.");
+            }
+            catch (InvalidDataException error)
+            { TestAssert.That(error.Message == "file_destination_existing_history_required", "Destination change held for unrelated reason."); }
+            TestAssert.That(f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "images") == destination &&
+                receiveHistory.SequenceEqual(f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id)) && !Directory.EnumerateFileSystemEntries(path).Any(),
+                "Refused destination migration changed old tokens/history or wrote to unselected root.");
+        }
         var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "mapped-overlap-book"), Book);
         var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
         var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray();
