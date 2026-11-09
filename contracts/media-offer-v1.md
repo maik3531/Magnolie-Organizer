@@ -861,6 +861,54 @@ Peerantworten beweist keinen durchgängigen Android-Versionsaustausch. Deshalb
 bleiben automatische neue PC-Gesamtbestands-Exporte, vollständige Benutzerauswahl,
 Capability 23 und gemeinsame Geräteabnahme weiterhin gesperrt.
 
+### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
+
+Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines
+lebenden vorbereiteten PC-Quellowners in einen separat gewählten beschreibbaren
+Sicherungsordner kopieren. Ein nur lesend ausgewählter Collection-Root ist kein
+solcher Schreibowner. Weder Empfangsziel noch Telefon-READ oder PC-RECEIVE werden
+daraus abgeleitet; es wird kein eingehender Saved-/Source-END-Job nachgebaut.
+
+Der bestehende geschützte Backupkatalog hat dafür einen eigenständigen
+Ausgabeparent-Eintritt. Seine Snapshot-/Anchorprüfung, Grenzen und alten
+Empfangsformate bleiben erhalten. Eine geschlossene Auswahl tatsächlicher
+nativer Eingabeowner erlaubt entweder die bisherige Staged-Datei oder den
+exakten lebenden vorbereiteten Quellcache, keine beliebigen Leser-Callbacks.
+Letzterer bleibt an Store, Quelljobversion, Nonce, Manifest und ursprüngliche
+Quell-/Buch-/Intent-/Einwilligungsprüfungen gebunden. Die bestehende
+Cache-vor-Store-Sperrreihenfolge und der Cache-IO-Besitzer bleiben während der
+gesamten lokalen Kopie gehalten; Dispose kann den tatsächlichen Quellabschluss
+erst nach dem Drain veröffentlichen. Entzogene Quellen werden nicht durch
+weiter erlaubtes Schreiben am Sicherungsziel erneuert.
+
+Separates Backup-Provenienzformat 1 mit `kind: prepared_pc_source` bewahrt
+Quellversion, Nonce, vollständiges Manifest, lokalen Ursprung, Scope,
+ursprüngliche Buch-/Intent-/Sendezeugen und gegebenenfalls den genauen Vorgänger.
+Diese Metadaten sind keine Empfangsquittung. Inhaltliche Deduplizierung erhält
+unterschiedliche Quellversionen; Wiederholen derselben Sicherung erneuert weder
+Versions-ID noch Aufbewahrungsursprung. Kandidaten-FID und unveränderliche
+Versionsabsicht werden weiter vor Nutzdaten geschrieben. Wiederaufnahme prüft
+jedes vorhandene Präfixbyte und die tatsächlichen Zielbytes; sie funktioniert
+auch ab einem nicht chunkbündigen Offset. Fremde oder beschädigte Präfixe
+bleiben unverändert HOLD, ohne Trunkierung. Zwischenpuffer werden auch bei
+fehlgeschlagenem Präfixlesen gelöscht.
+
+Die unabhängigen rohen Recovery-Eintritte benötigen nur den ursprünglichen
+lokalen Speicherschlüssel, die exakte Backupordner-/Anchoridentität und einen
+aktuellen nativen lokalen Ausgabeowner. Sie lesen weder lebenden Peer noch
+Quellcache, Mappingstore oder Empfangsziel. Auch vollständig geschriebene,
+noch nicht terminal bestätigte Sicherungen können nach unabhängiger Prüfung
+ohne Katalogumschreiben gerettet werden. Das Ziel muss eine ausdrücklich neue
+native Datei sein. Die bisherige synchronisierte Empfangs-Wiederpublikation
+weist PC-Sicherungen mangels eigenem Publikationsowner ausdrücklich ab.
+
+Sechs gezielte tatsächliche Windows-Gruppen prüfen diese PC-Pfade; elf passende
+bestehende Gruppen sichern Staged-Bytes, alte Saved-/Backupkataloge, alternativen
+Sicherungsort und eingehende native Recovery. Das ist noch kein angeschlossener
+nativer Picker, keine automatische Sicherungssteuerung oder benutzbare gesamte
+PC-Recovery-Oberfläche. Notes-Folgeversionen und Geräteabnahme bleiben gesperrt;
+diese lokalen Nachweise erlauben keine Auslieferung oder Featurefreigabe.
+
 Die unabhängige Linux-Quellgrundlage arbeitet ebenfalls ausschließlich lesend
 über gehaltene Deskriptoren. Sie verlangt echte fd-relative `statx`-Geburtszeit
 und Mount-ID ohne `ctime`-Ersatz. Begrenzte Inventuren verwenden jeweils einen

@@ -30,10 +30,13 @@ internal sealed partial class TelefonStore
 
         internal MediaBackupCatalog(TelefonStore store, NativeMediaDestination destination, Action native, bool create,
             NativeMediaBackupParent? storageParent = null)
+            : this(store, storageParent ?? NativeMediaBackupParent.FromDestination(destination), native, create) { }
+
+        internal MediaBackupCatalog(TelefonStore store, NativeMediaBackupParent storageParent, Action native, bool create)
         {
             this.store = store; this.native = native;
             native(); store.RequireNativeMediaStorageKey();
-            root = storageParent?.OpenNative() ?? destination.OpenNative();
+            root = storageParent.OpenNative();
             scope = DeviceFileControl.Digest("magnolie-native-media-backup-root-v1\0", new JsonObject
             { ["volume_path"] = root.VolumePath, ["identity"] = Identity(root.OriginalIdentity) });
             try
@@ -161,6 +164,7 @@ internal sealed partial class TelefonStore
                     Text(version, "id") != DeviceFileControl.Digest("magnolie-native-media-backup-version-v1\0", provenance))
                     throw DeviceFileControl.Error("media_backup_version_invalid");
                 var obj = objects.OfType<JsonObject>().SingleOrDefault(obj => Text(obj, "id") == Text(version, "object_key"));
+                if (provenance.ContainsKey("kind")) ValidatePreparedPcBackup(version, provenance);
                 if (completed&&(obj is null || obj["complete"]!.GetValue<bool>() != true)) throw DeviceFileControl.Error("media_backup_version_object_required");
                 var parts=Text(version,"object_key").Split('-');
                 if(parts.Length!=2||!DeviceFileControl.Hash(parts[0])||!long.TryParse(parts[1],System.Globalization.NumberStyles.None,
@@ -252,8 +256,12 @@ internal sealed partial class TelefonStore
 
         internal NativeMediaBackupVersion Save(DeviceFileNativeDirectory.DeviceFileNativeStagedFile source,
             long size, string hash, string name, JsonObject provenance)
+            => Save(NativeMediaBackupBytes.Input.FromStaged(source), size, hash, name, provenance);
+
+        internal NativeMediaBackupVersion Save(NativeMediaBackupBytes.Input source,
+            long size, string hash, string name, JsonObject provenance)
         {
-            Current(); _ = NativeMediaBackupBytes.Verify(source, size, hash, Current);
+            Current(); source.Verify(size, hash, Current);
             var id = DeviceFileControl.Digest("magnolie-native-media-backup-version-v1\0", provenance);
             var key = NativeMediaBackupPolicy.ContentKey(size, hash);
             var original = state["versions"]!.AsArray().OfType<JsonObject>().SingleOrDefault(item => Text(item, "id") == id);
@@ -314,6 +322,13 @@ internal sealed partial class TelefonStore
         {
             var obj = SelectedObject(selected);
             using var held = OpenObject(obj); return NativeMediaBackupBytes.Verify(held, Number(obj, "size"), Text(obj, "sha256"), Current);
+        }
+        internal void RequireIncomingRestoreOwner(NativeMediaBackupVersion selected)
+        {
+            _ = SelectedObject(selected);
+            var version = state["versions"]!.AsArray().Concat(Pending(state)).OfType<JsonObject>().Single(item => Text(item, "id") == selected.Id);
+            if (version["provenance"]!["kind"]?.GetValue<string>() == "prepared_pc_source")
+                throw DeviceFileControl.Error("media_backup_pc_restore_publication_owner_required");
         }
         internal NativeMediaBackupBytes.VerifiedRaw RestoreOwnedCandidate(NativeMediaBackupVersion selected, DeviceFileNativeDirectory.DeviceFileNativeStagedFile target)
         {

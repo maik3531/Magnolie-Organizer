@@ -298,7 +298,7 @@ internal sealed partial class TelefonStore
         return new JsonObject { ["job_id"] = leaf.JobId, ["job_version"] = SourceDigest(leaf.Cipher), ["exchange_version"] = endVersions[leaf.JobId] };
     }
 
-    internal sealed class NativePreparedMediaSource : IDisposable
+    internal sealed partial class NativePreparedMediaSource : IDisposable
     {
         private readonly object cacheGate = new();
         private readonly object endGate = new();
@@ -327,6 +327,16 @@ internal sealed partial class TelefonStore
         }
         internal string Version { get { lock (cacheGate) { Require(); return version; } } }
         internal JsonObject Originals { get { lock (cacheGate) { Require(); return record["originals"]!.DeepClone().AsObject(); } } }
+
+        internal void RequireBackupIdentity(string expectedVersion, string expectedNonce)
+        {
+            lock (cacheGate)
+            {
+                Require();
+                if (version != expectedVersion || record["nonce"]!.GetValue<string>() != expectedNonce)
+                    throw DeviceFileControl.Error("media_backup_original_source_owner_required");
+            }
+        }
 
         internal JsonObject CreateMediaOffer(long now)
         {

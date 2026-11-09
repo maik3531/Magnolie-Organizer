@@ -96,6 +96,7 @@ internal sealed partial class TelefonStore
             Current(); using var root = destination.OpenNative();
             NativeMediaBackupExclusions.RequireMediaDirectory(root);
             using var catalog = new MediaBackupCatalog(this, destination, Current, false, storageParent);
+            catalog.RequireIncomingRestoreOwner(selected);
             var source = catalog.VerifySelected(selected);
             var scope = DeviceFileControl.Digest("magnolie-native-media-backup-restore-root-v1\0", new JsonObject
                 { ["identity"] = NativeMediaReceiveJob.NativeIdentity(root.OriginalIdentity), ["volume_path"] = root.VolumePath });

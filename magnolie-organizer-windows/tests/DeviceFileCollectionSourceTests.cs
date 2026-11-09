@@ -179,6 +179,243 @@ internal static class DeviceFileCollectionSourceTests
             "Known-path HOLD changed retained history or either native file.");
     }
 
+    internal static async Task WindowsPreparedBackupAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: DeviceFileManifest.ChunkBytes * 2 + 7);
+        var selection = Select(f, data); var member = Member(selection);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "backup-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var outputPath = Path.Combine(f.Native.Paths.Root, "explicit-pc-backup-output"); Directory.CreateDirectory(outputPath);
+        NativeMediaBackupVersion saved; NativeMediaBackupParent outputChoice;
+        using (var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, member, new string('f', 64), book))
+        using (var cache = source.Freeze())
+        using (var output = DeviceFileNativeDirectory.OpenExistingForReceive(outputPath))
+        {
+            var history = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+            using (var readOnly = selection.OpenNative())
+                TestAssert.Throws<InvalidDataException>(() => f.Native.Store.SaveNativePreparedPcBackup(cache, readOnly, () => true, true),
+                    "A read-only source selection granted implicit backup writes.");
+            TestAssert.That(!Directory.Exists(Path.Combine(selection.NativePath, "Backup")), "Rejected read-only source output created a Backup folder.");
+            outputChoice = NativeMediaBackupParent.Capture(output);
+            saved = f.Native.Store.SaveNativePreparedPcBackup(cache, output, () => true, true);
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Store.RestoreNativeMediaBackupToDestination(f.Destination, saved, () => true, outputChoice),
+                "A prepared PC backup acquired synchronized publication through the incoming restore owner.");
+            var files = Directory.GetFiles(Path.Combine(outputPath, "Backup")).Order().ToArray();
+            TestAssert.That(f.Native.Store.SaveNativePreparedPcBackup(cache, output, () => true) == saved &&
+                Directory.GetFiles(Path.Combine(outputPath, "Backup")).Order().SequenceEqual(files), "Identical prepared backup renewed its version or copied again.");
+            TestAssert.That(f.Current() is null && f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(history) &&
+                f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == 0 && File.ReadAllBytes(Path.Combine(selection.NativePath, "new-pc.png")).SequenceEqual(data),
+                "PC backup required RECEIVE, forged incoming history or modified the read-only source.");
+            File.WriteAllBytes(Path.Combine(selection.NativePath, "another-pc.png"), data);
+            DeviceFileNativeDirectory.CollectionMember another;
+            using (var root = selection.OpenNative()) another = root.InventoryCollection(() => { }, CancellationToken.None).Members.Single(item => item.Name == "another-pc.png");
+            using var second = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, another, new string('f', 64), book);
+            using var secondCache = second.Freeze();
+            var other = f.Native.Store.SaveNativePreparedPcBackup(secondCache, output, () => true);
+            TestAssert.That(other.Id != saved.Id && other.ObjectKey == saved.ObjectKey && Directory.GetFiles(Path.Combine(outputPath, "Backup"), "object-*.raw").Length == 1,
+                "Independent source versions lost distinct provenance or failed content deduplication.");
+        }
+        f.Native.Connection.Dispose();
+        File.Move(Path.Combine(selection.NativePath, "new-pc.png"), Path.Combine(selection.NativePath, "retained-original.png"));
+        // Make the encrypted transfer cache genuinely unavailable without
+        // deleting it or modifying backup bytes/anchors. Recovery must not read it.
+        using (var db = f.Native.Store.OpenDatabase())
+        {
+            db.Open(); using var query = db.CreateCommand(); query.CommandText = "ALTER TABLE native_media_source_chunks RENAME TO retained_offline_source_chunks"; query.ExecuteNonQuery();
+        }
+        var snapshots = Directory.GetFiles(Path.Combine(outputPath, "Backup")).ToDictionary(path => path, File.ReadAllBytes);
+        TestAssert.That(f.Native.Store.NativeIndependentBackupVersions(outputChoice, () => true).Count == 2, "Offline source recovery still needed a live peer/cache/source file.");
+        using (var output = outputChoice.OpenNative())
+        using (var target = output.CreateStagedFile("restored-offline.png"))
+        {
+            _ = f.Native.Store.RestoreNativeIndependentBackup(outputChoice, saved, target, () => true);
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Store.RestoreNativeIndependentBackup(outputChoice, saved, target, () => true), "Offline restore overwrote a nonempty candidate.");
+        }
+        TestAssert.That(File.ReadAllBytes(Path.Combine(outputPath, "restored-offline.png")).SequenceEqual(data) &&
+            snapshots.All(item => File.ReadAllBytes(item.Key).SequenceEqual(item.Value)), "Offline recovery altered backup bytes/snapshots or lost original content.");
+    }
+
+    internal static Task WindowsPreparedBackupInterruptedAsync() => PreparedBackupInterrupted(false);
+    internal static Task WindowsPreparedBackupCorruptAsync() => PreparedBackupInterrupted(true);
+    private static async Task PreparedBackupInterrupted(bool corrupt)
+    {
+        {
+            using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: DeviceFileManifest.ChunkBytes * 2 + 7);
+            var selection = Select(f, data); var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "backup-book"), Book);
+            var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+            using var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, Member(selection), new string('f', 64), book);
+            using var cache = source.Freeze(); var history = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+            var outputPath = Path.Combine(f.Native.Paths.Root, "explicit-output"); Directory.CreateDirectory(outputPath);
+            using var output = DeviceFileNativeDirectory.OpenExistingForReceive(outputPath); var parent = NativeMediaBackupParent.Capture(output);
+            var key = NativeMediaBackupPolicy.ContentKey(data.Length, Convert.ToHexString(SHA256.HashData(data)).ToLowerInvariant());
+            var payload = Path.Combine(outputPath, "Backup", "object-" + key + ".raw");
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Store.SaveNativePreparedPcBackup(cache, output,
+                () => !File.Exists(payload) || new FileInfo(payload).Length == 0, true), "Withdrawn local output owner falsely completed a prepared source backup.");
+            TestAssert.That(new FileInfo(payload).Length is > 0 && new FileInfo(payload).Length < data.Length &&
+                f.Native.Store.NativeIndependentBackupVersions(parent, () => true).Count == 0, "Partial source backup was lost or falsely recoverable as complete.");
+            DeviceFileNativeDirectory.Identity identity;
+            using (var folder = DeviceFileNativeDirectory.OpenExistingForReceive(Path.Combine(outputPath, "Backup"))) identity = folder.FileIdentityAt(Path.GetFileName(payload));
+            if (corrupt)
+            {
+                using (var stream = new FileStream(payload, FileMode.Open, FileAccess.Write)) { stream.WriteByte(42); stream.Flush(true); }
+                var before = File.ReadAllBytes(payload);
+                TestAssert.Throws<InvalidDataException>(() => f.Native.Store.SaveNativePreparedPcBackup(cache, output, () => true), "A corrupted prepared-source backup prefix was silently replaced/truncated.");
+                TestAssert.That(File.ReadAllBytes(payload).SequenceEqual(before), "Prefix HOLD changed retained candidate bytes.");
+            }
+            else
+            {
+                // Model an interrupted partial filesystem write. Only this
+                // private fixture shortens its own candidate, never product IO.
+                using (var stream = new FileStream(payload, FileMode.Open, FileAccess.Write)) { stream.SetLength(17); stream.Flush(true); }
+                var saved = f.Native.Store.SaveNativePreparedPcBackup(cache, output, () => true);
+                using var folder = DeviceFileNativeDirectory.OpenExistingForReceive(Path.Combine(outputPath, "Backup"));
+                TestAssert.That(folder.FileIdentityAt(Path.GetFileName(payload)) == identity && File.ReadAllBytes(payload).SequenceEqual(data) &&
+                    f.Native.Store.NativeIndependentBackupVersions(parent, () => true).Single() == saved, "Prepared-source resume changed candidate FID or original content/provenance.");
+            }
+            TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(history), "Backup resume/HOLD altered original source history.");
+        }
+    }
+
+    internal static async Task WindowsPreparedBackupWithdrawalAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: DeviceFileManifest.ChunkBytes + 7);
+        var selection = Select(f, data); var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "backup-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        using var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, Member(selection), new string('f', 64), book);
+        using var cache = source.Freeze(); var history = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
+        var outputPath = Path.Combine(f.Native.Paths.Root, "explicit-output"); Directory.CreateDirectory(outputPath);
+        using var output = DeviceFileNativeDirectory.OpenExistingForReceive(outputPath); var parent = NativeMediaBackupParent.Capture(output);
+        TestAssert.Throws<InvalidDataException>(() => f.Native.Store.SaveNativePreparedPcBackup(cache, output, () => false, true), "Missing output consent created a catalog.");
+        TestAssert.That(!Directory.Exists(Path.Combine(outputPath, "Backup")), "Output opt-out was ignored before catalog creation.");
+        var withdrawn = false;
+        bool Permit()
+        {
+            var payload = Directory.Exists(Path.Combine(outputPath, "Backup")) ? Directory.GetFiles(Path.Combine(outputPath, "Backup"), "object-*.raw").SingleOrDefault() : null;
+            if (!withdrawn && payload is not null && new FileInfo(payload).Length > 0)
+            {
+                var consent = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+                f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, consent.Version, false, false); withdrawn = true;
+            }
+            return true; // Local output consent alone cannot renew source READ.
+        }
+        TestAssert.Throws<InvalidDataException>(() => f.Native.Store.SaveNativePreparedPcBackup(cache, output, Permit, true), "Output WRITE consent renewed withdrawn original source READ.");
+        var bytes = Directory.GetFiles(Path.Combine(outputPath, "Backup"), "object-*.raw").Single(); var retained = File.ReadAllBytes(bytes);
+        TestAssert.That(withdrawn && retained.Length is > 0 && retained.Length < data.Length, "Actual source withdrawal was not exercised during payload IO.");
+        var off = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+        f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, off.Version, true, false);
+        TestAssert.Throws<InvalidDataException>(() => f.Native.Store.SaveNativePreparedPcBackup(cache, output, () => true), "Later source opt-in revived the old prepared source owner.");
+        TestAssert.That(f.Native.Store.NativeIndependentBackupVersions(parent, () => true).Count == 0 && File.ReadAllBytes(bytes).SequenceEqual(retained) &&
+            f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).SequenceEqual(history), "Source withdrawal altered history, resumed bytes or falsely completed a backup.");
+    }
+
+    internal static async Task WindowsPreparedBackupPendingOfflineAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "backup-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var outputPath = Path.Combine(f.Native.Paths.Root, "explicit-output"); Directory.CreateDirectory(outputPath); NativeMediaBackupParent parent;
+        using (var output = DeviceFileNativeDirectory.OpenExistingForReceive(outputPath))
+        using (var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, Member(selection), new string('f', 64), book))
+        using (var cache = source.Freeze())
+        {
+            parent = NativeMediaBackupParent.Capture(output);
+            bool Permit()
+            {
+                var payload = Directory.Exists(Path.Combine(outputPath, "Backup")) ? Directory.GetFiles(Path.Combine(outputPath, "Backup"), "object-*.raw").SingleOrDefault() : null;
+                return payload is null || new FileInfo(payload).Length < data.Length;
+            }
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Store.SaveNativePreparedPcBackup(cache, output, Permit, true), "Complete bytes were published as a completed backup after withdrawal.");
+        }
+        f.Native.Connection.Dispose(); File.Move(Path.Combine(selection.NativePath, "new-pc.png"), Path.Combine(selection.NativePath, "retained-source.png"));
+        using (var db = f.Native.Store.OpenDatabase())
+        {
+            db.Open(); using var command = db.CreateCommand(); command.CommandText = "ALTER TABLE native_media_source_chunks RENAME TO retained_pending_source_chunks"; command.ExecuteNonQuery();
+        }
+        var before = Directory.GetFiles(Path.Combine(outputPath, "Backup")).ToDictionary(path => path, File.ReadAllBytes);
+        var selected = f.Native.Store.NativeIndependentBackupVersions(parent, () => true).Single();
+        var scope = DeviceFileControl.Digest("magnolie-native-media-backup-root-v1\0", new JsonObject
+            { ["volume_path"] = parent.VolumePath, ["identity"] = TelefonStore.NativeMediaReceiveJob.NativeIdentity(parent.Identity) });
+        JsonObject? retainedVersion = null;
+        foreach (var path in before.Keys.Where(path => path.EndsWith(".seal", StringComparison.Ordinal)))
+        {
+            var plain = f.Native.Store.Open("native_media_backup_catalog", scope, before[path]);
+            try
+            {
+                var body = JsonNode.Parse(plain)!.AsObject();
+                retainedVersion ??= body["pending"]?.AsArray().OfType<JsonObject>().SingleOrDefault(value => value["id"]!.GetValue<string>() == selected.Id)?.DeepClone().AsObject();
+            }
+            finally { CryptographicOperations.ZeroMemory(plain); }
+        }
+        TestAssert.That(retainedVersion is not null, "Complete interrupted backup lost its distinct retained source provenance.");
+        var validate = (Action<JsonObject, JsonObject>)typeof(TelefonStore).GetMethod("ValidatePreparedPcBackup",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.CreateDelegate(typeof(Action<JsonObject, JsonObject>));
+        validate(retainedVersion!, retainedVersion!["provenance"]!.AsObject());
+        foreach (Action<JsonObject> mutate in new Action<JsonObject>[]
+        {
+            value => value["provenance"]!["nonce"] = "bad",
+            value => value["provenance"]!["local_origin"]!["relative_path"] = "Album/other.png",
+            value => value["provenance"]!["scope"]!["peer_key"] = new string('a', 64),
+            value => value["provenance"]!["source_provenance"]!.AsObject().Remove("book_version"),
+            value => value["provenance"]!["kind"] = "incoming",
+            value => value["provenance"]!["receipt"] = new JsonObject(),
+            value => value["provenance"]!["manifest"]!["files"]![0]!["sha256"] = new string('a', 64),
+            value => value["name"] = "other.png"
+        })
+        {
+            var changed = retainedVersion.DeepClone().AsObject(); mutate(changed);
+            TestAssert.Throws<InvalidDataException>(() => validate(changed, changed["provenance"]!.AsObject()), "Malformed PC backup provenance passed the actual strict decoder.");
+        }
+        using (var output = parent.OpenNative())
+        using (var target = output.CreateStagedFile("restored-pending.png"))
+            _ = f.Native.Store.RestoreNativeIndependentBackup(parent, selected, target, () => true);
+        TestAssert.That(File.ReadAllBytes(Path.Combine(outputPath, "restored-pending.png")).SequenceEqual(data) &&
+            before.All(item => File.ReadAllBytes(item.Key).SequenceEqual(item.Value)) && Directory.GetFiles(Path.Combine(outputPath, "Backup")).Length == before.Count,
+            "Offline pending recovery rewrote a catalog, needed source/cache or lost original bytes.");
+    }
+
+    internal static async Task WindowsPreparedBackupDrainAsync()
+    {
+        using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: DeviceFileManifest.ChunkBytes + 7);
+        var selection = Select(f, data); var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "backup-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        using var source = f.Native.Connection.OpenNativeCollectionMediaSource("images", selection.Id, selection.Version, Member(selection), new string('f', 64), book);
+        using var cache = source.Freeze(); var outputPath = Path.Combine(f.Native.Paths.Root, "explicit-output"); Directory.CreateDirectory(outputPath);
+        using var output = DeviceFileNativeDirectory.OpenExistingForReceive(outputPath); var parent = NativeMediaBackupParent.Capture(output);
+        using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim(); using var closing = new ManualResetEventSlim(); var blocked = false;
+        bool Permit()
+        {
+            var payload = Directory.Exists(Path.Combine(outputPath, "Backup")) ? Directory.GetFiles(Path.Combine(outputPath, "Backup"), "object-*.raw").SingleOrDefault() : null;
+            if (!blocked && payload is not null && new FileInfo(payload).Length > 0)
+            {
+                blocked = true; entered.Set();
+                if (!release.Wait(TimeSpan.FromSeconds(10))) throw new InvalidDataException("Bounded backup drain fixture release missing.");
+            }
+            return true;
+        }
+        var copying = Task.Run(() =>
+        {
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Store.SaveNativePreparedPcBackup(cache, output, Permit, true), "Retired prepared owner completed a pending local copy.");
+        });
+        Task? disposal = null;
+        try
+        {
+            TestAssert.That(entered.Wait(TimeSpan.FromSeconds(40)), "Actual payload IO did not reach the bounded drain checkpoint.");
+            disposal = Task.Run(() => { closing.Set(); cache.Dispose(); });
+            var retired = typeof(TelefonStore.NativePreparedMediaSource).GetField("retired", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            TestAssert.That(closing.Wait(TimeSpan.FromSeconds(2)) && SpinWait.SpinUntil(() => (bool)retired.GetValue(cache)!, TimeSpan.FromSeconds(2)) &&
+                !disposal.IsCompleted, "Source disposal released its owner while backup IO was outstanding.");
+            TestAssert.Throws<InvalidDataException>(cache.RequireIoEnded, "Outstanding local-copy IO was mistaken for source END.");
+        }
+        finally
+        {
+            release.Set(); await copying.WaitAsync(TimeSpan.FromSeconds(15));
+            if (disposal is not null) await disposal.WaitAsync(TimeSpan.FromSeconds(15));
+        }
+        cache.RequireIoEnded();
+        TestAssert.That(f.Native.Store.NativeIndependentBackupVersions(parent, () => true).Count == 0 &&
+            File.ReadAllBytes(Path.Combine(selection.NativePath, "new-pc.png")).SequenceEqual(data), "Drain manufactured a complete version or modified source bytes.");
+    }
+
     internal static async Task WindowsPathHistoryAsync()
     {
         using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);
