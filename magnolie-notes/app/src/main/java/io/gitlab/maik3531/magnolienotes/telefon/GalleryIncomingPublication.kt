@@ -69,8 +69,20 @@ internal class GalleryIncomingPublication private constructor(internal val body:
         return parse(JsonObject(body + mapOf("state" to JsonPrimitive("published"), "row" to witness)))
     }
 
+    /** Metadata construction only. Only the exact native postwrite/history
+     * transaction can persist this; it is not permission to insert or write. */
+    internal fun withReplacedRow(previous: GalleryIncomingPublication, witness: JsonObject): GalleryIncomingPublication {
+        if (state != "planned" || previous.state != "published" || !samePcSource(previous) ||
+            pcOrigin?.previousPublication != previous.fingerprint || id == previous.id || body["sha256"] == previous.body["sha256"] ||
+            body["mime_type"] != previous.body["mime_type"] || body["media_type"] != previous.body["media_type"] ||
+            body["name"] != previous.body["name"] || previous.row!!.filterKeys { it != "revision" } != witness.filterKeys { it != "revision" } ||
+            witness.string("revision").toLong() <= previous.row!!.string("revision").toLong()) fail()
+        return parse(JsonObject(body + mapOf("state" to JsonPrimitive("published"), "row" to witness)))
+    }
+
     companion object {
         internal const val MAX_RECORDS = 4096
+        internal const val MAX_PC_SOURCE_HISTORY = 128
         internal const val PREFIX = "gallery-incoming-v1/"
         internal fun plan(binding: DeviceTransferBinding, manifest: DeviceFileManifest, fileId: String,
             pairingEpoch: String, kind: GalleryMediaType, mimeType: String,

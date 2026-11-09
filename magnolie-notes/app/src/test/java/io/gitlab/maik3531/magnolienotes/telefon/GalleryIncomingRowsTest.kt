@@ -1664,10 +1664,17 @@ class GalleryIncomingRowsTest {
             assertEquals(written.descriptor, observed.descriptor); assertEquals("image/png", observed.media.mimeType)
             assertTrue(observed.row.string("revision").toLong() > h.original.row!!.string("revision").toLong())
             assertFalse(observed.isSavedReceipt); assertFalse(observed.grantsWriteAuthority)
-            assertEquals("provider_verified", h.f.index.pcBeforeWrite(h.plan.id)!!.state)
+            assertEquals("history_committed", h.f.index.pcBeforeWrite(h.plan.id)!!.state)
             assertEquals(observed.journal.body, h.f.index.pcBeforeWrite(h.plan.id)!!.body)
-            assertEquals(started.body.filterKeys { it != "state" }, observed.journal.body.filterKeys { it !in setOf("state", "postwrite") })
-            val changed = setOf(PhotoSourceMembership.NAME, GalleryPcPreWriteRecord.PREFIX + h.plan.id)
+            assertEquals(started.body.filterKeys { it != "state" }, observed.journal.body.filterKeys { it !in setOf("state", "postwrite", "history") })
+            assertEquals(observed.publication.body, h.f.index.incomingPublication(observed.publication.id)!!.body)
+            assertEquals(h.original.fingerprint, observed.publication.pcOrigin!!.previousPublication)
+            assertEquals("published", observed.publication.state); assertFalse(observed.publication.isSavedReceipt)
+            assertEquals(2, h.f.index.incomingPublications().size)
+            h.f.index.requirePcHistoryCapacity(observed.publication)
+            assertThrows(PhotoFolderScopeError::class.java) { h.f.index.requirePcHistoryCapacity(h.original) }
+            val changed = setOf(PhotoSourceMembership.NAME, GalleryPcPreWriteRecord.PREFIX + h.plan.id,
+                GalleryIncomingPublication.PREFIX + observed.publication.id)
             assertEquals(retained.filterKeys { it !in changed }, h.f.rows().filterKeys { it !in changed })
             h.assertLineage(); h.assertOldArchive(); assertArrayEquals(h.bytes, h.originalFile.readBytes())
             val target = NativeGalleryPcReplacementTransfer::class.java.getDeclaredField("writeTarget").apply { isAccessible = true }
@@ -1703,6 +1710,55 @@ class GalleryIncomingRowsTest {
         assertEquals("provider_verified", h.f.index.pcBeforeWrite(h.plan.id)!!.state)
         assertFalse(h.provider.lastReadDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0)); h.assertLineage()
         assertArrayEquals(h.bytes, h.originalFile.readBytes())
+    }
+
+    @Test fun pcHistoryRevokedAfterAtomicCommitRetainsBothPublicationsAndCompletionWitnessWithoutSavedOrRestartAuthority() = withPcStage { h ->
+        val transfer = h.prepareStartedCopy()
+        val written = h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive -> transfer.copyReplacementBytes(archive) } }
+        h.f.hook = { if (it == "gallery-pc-history-committed") {
+            assertTrue(h.provider.lastReadDescriptor!!.valid()); h.grant.request.close()
+        } }
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.inspectWrittenReplacement(h.rows, written) } }
+        h.f.hook = {}
+        val journal = h.f.index.pcBeforeWrite(h.plan.id)!!; assertEquals("history_committed", journal.state)
+        val successor = h.f.index.incomingPublication(journal.body.getValue("history").jsonObject.string("publication_id"))!!
+        assertEquals(successor.fingerprint, journal.body.getValue("history").jsonObject.string("publication_sha256"))
+        assertEquals(h.original.fingerprint, successor.pcOrigin!!.previousPublication); assertEquals(2, h.f.index.incomingPublications().size)
+        assertFalse(h.provider.lastReadDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0)); h.assertLineage()
+        assertArrayEquals(h.bytes, h.originalFile.readBytes()); assertFalse(journal.grantsWriteAuthority)
+    }
+
+    @Test fun pcFullSourceHistoryHoldsBeforeGrantConsumptionOrFirstByteAndDoesNotEvictAnyOfIts128PublishedFacts() = withPcStage { h ->
+        val transfer = h.prepare(); h.serve(transfer); h.provider.allowRwTarget = true
+        h.f.io {
+            transfer.sendAcceptance(); transfer.receiveAndStage()
+            NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
+                transfer.prepareBeforeWrite(h.rows, archive); transfer.prepareWriteTarget(h.rows, archive)
+            }
+            val transaction = PhotoSourceJobIndex::class.java.getDeclaredMethod("transaction", java.lang.Boolean.TYPE, kotlin.jvm.functions.Function0::class.java)
+                .apply { isAccessible = true }
+            val put = PhotoSourceJobIndex::class.java.getDeclaredMethod("putMeta", String::class.java, ByteArray::class.java).apply { isAccessible = true }
+            val prepared = mutableListOf<Pair<String, ByteArray>>(); var previous = h.original
+            // Synthetic protected historical metadata ONLY; no additional raw
+            // writes, provider rows or native verification are claimed here.
+            repeat(127) { number ->
+                val origin = JsonObject(h.original.body.getValue("origin").jsonObject + ("transfer_id" to JsonPrimitive((number + 10).toString(16).padStart(32, '0'))))
+                val id = DeviceFileControl.digest("magnolie-gallery-incoming-id-v1\u0000", origin)
+                val pc = JsonObject(h.original.body.getValue("pc_origin").jsonObject + ("previous_publication_sha256" to JsonPrimitive(previous.fingerprint)))
+                val value = GalleryIncomingPublication.parse(JsonObject(h.original.body + mapOf("origin" to origin, "id" to JsonPrimitive(id), "pc_origin" to pc)))
+                val name = GalleryIncomingPublication.PREFIX + id
+                val plain = java.io.ByteArrayOutputStream().use { output -> TelefonRahmen.schreiben(output, value.body, DeviceTransferProtection.MAX_CLEAR_BYTES - 4); output.toByteArray() }
+                prepared += name to try { h.f.protection.seal(plain, "photo-source-jobs-v1/" + name) } finally { plain.fill(0) }
+                previous = value
+            }
+            transaction.invoke(h.f.index, false, { prepared.forEach { (name, cipher) -> put.invoke(h.f.index, name, cipher) } })
+        }
+        val retained = h.f.rows(); assertEquals(128, h.f.index.incomingPublications().size)
+        val failure = assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.markWriteStarted() } }
+        assertEquals("gallery_pc_source_history_capacity", failure.message)
+        assertEquals(retained, h.f.rows()); assertEquals(128, h.f.index.incomingPublications().size)
+        val used = NativeGalleryPcWriteGrant::class.java.getDeclaredField("used").apply { isAccessible = true }.get(h.grant) as java.util.concurrent.atomic.AtomicBoolean
+        assertFalse(used.get()); assertTrue(transfer.awaitIoEnded(0)); assertFalse(h.provider.lastRwDescriptor!!.valid()); h.assertOriginal()
     }
 
     @Test fun pcPostCloseReadbackCannotAdoptCopiedResultsWrongIndexForeignRowsOrSubstitutedAndChangedNativeBytes() {
@@ -1749,7 +1805,17 @@ class GalleryIncomingRowsTest {
     }
 
     @Test fun pcByteCopyStopsAtTheOriginalShortOfferDeadlineBeforeOrWithinCopyWithoutFinishingLaterChunks() = withPcStage(shortOffer = true) { h ->
-        val transfer = h.prepareStartedCopy(); val expires = h.plan.body.getValue("offer").jsonObject.long("expires_ms")
+        val transfer = try { h.prepareStartedCopy() } catch (expired: PhotoFolderScopeError) {
+            // Real native preflight may exhaust the original two seconds even
+            // before write-start admission. This is an equally valid zero-byte
+            // denial, not a reason to lengthen the fixture or product deadline.
+            assertEquals("gallery_pc_stage_offer_expired", expired.message)
+            h.assertOriginal(); h.provider.lastRwDescriptor?.let { assertFalse(it.valid()) }
+            assertEquals(1, h.f.index.incomingPublications().size)
+            val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+            return@withPcStage
+        }
+        val expires = h.plan.body.getValue("offer").jsonObject.long("expires_ms")
         val chunks = java.util.concurrent.atomic.AtomicInteger()
         h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
             val error = assertThrows(PhotoFolderScopeError::class.java) { transfer.copyReplacementBytes(archive) { if (it == "pc-replacement-bytes-written") {

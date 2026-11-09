@@ -686,6 +686,21 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         ids.map { incomingPublication(it) ?: fail("gallery_incoming_original_changed") }
     }
 
+    internal fun requirePcHistoryCapacity(original: GalleryIncomingPublication) = gated {
+        val all = incomingPublications()
+        if (all.size >= GalleryIncomingPublication.MAX_RECORDS) fail("gallery_incoming_publication_capacity")
+        val related = all.filter { it.samePcSource(original) }
+        if (related.size >= GalleryIncomingPublication.MAX_PC_SOURCE_HISTORY) fail("gallery_pc_source_history_capacity")
+        if (related.isEmpty() || related.any { it.state != "published" } || related.none { it.body == original.body })
+            fail("gallery_pc_history_original_changed")
+        val fingerprints = related.map { it.fingerprint }.toSet()
+        if (related.any { it.pcOrigin!!.previousPublication?.let { previous -> previous !in fingerprints } == true })
+            fail("gallery_pc_history_predecessor_missing")
+        val used = related.mapNotNull { it.pcOrigin!!.previousPublication }
+        if (used.size != used.distinct().size || related.count { it.fingerprint !in used } != 1 || original.fingerprint in used)
+            fail("gallery_pc_history_head_changed")
+    }
+
     internal fun pcReplacementPlans(): List<GalleryPcReplacementPlan> = gated {
         val ids = mutableListOf<String>()
         db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryPcReplacementPlan.PREFIX + "%"),
@@ -713,9 +728,11 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         gated {
             writableMembership(); admission.archiveBook.requireCurrent()
             if (incomingPublication(plan.predecessor.id)?.body != plan.predecessor.body) fail("gallery_pc_replacement_original_changed")
+            requirePcHistoryCapacity(plan.predecessor)
             val previous = pcReplacementPlans()
             if (previous.size >= GalleryPcReplacementPlan.MAX_RECORDS) fail("gallery_pc_replacement_plan_capacity")
-            if (previous.any { it.predecessor.samePcSource(plan.predecessor) }) fail("gallery_pc_replacement_original_operation_required")
+            if (previous.any { it.predecessor.samePcSource(plan.predecessor) && pcBeforeWrite(it.id)?.state != "history_committed" })
+                fail("gallery_pc_replacement_original_operation_required")
             val name = GalleryPcReplacementPlan.PREFIX + plan.id
             val cipher = protection.seal(frame(plan.body), "photo-source-jobs-v1/" + name)
             transaction {
@@ -735,6 +752,12 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         meta(name)?.let { cipher ->
             GalleryPcPreWriteRecord.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name))).also { record ->
                 if (record.id != id || pcStage(id)?.body != record.stage.body) fail("gallery_pc_before_write_changed")
+                if (record.state == "history_committed") {
+                    val history = record.body.getValue("history").jsonObject
+                    val publication = incomingPublication(history.string("publication_id")) ?: fail("gallery_pc_history_publication_missing")
+                    if (publication.fingerprint != history.string("publication_sha256")) fail("gallery_pc_history_publication_changed")
+                    validatePcHistoryPublication(record, publication)
+                }
             }
         }
     }
@@ -800,6 +823,51 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
             }
             boundary("gallery-pc-provider-verified")
             if (pcBeforeWrite(expected.id)?.body != next.body) fail("gallery_pc_postwrite_readback_failed")
+        }
+        target.requireWrittenOwner(this, written); rows.requireVerifiedPcPostWrite(target, written, expected, next)
+    }
+
+    private fun validatePcHistoryPublication(record: GalleryPcPreWriteRecord, publication: GalleryIncomingPublication) {
+        val original = record.stage.plan.predecessor; val media = GalleryPcStageRecord.media(record.stage.plan)
+        val file = media.manifest.files.single(); val origin = publication.body.getValue("origin").jsonObject
+        if (publication.state != "published" || !publication.samePcSource(original) || publication.pcOrigin?.previousPublication != original.fingerprint ||
+            publication.row != record.body.getValue("postwrite").jsonObject.getValue("row") || publication.body["size"] != JsonPrimitive(file.size) ||
+            publication.body["sha256"] != JsonPrimitive(file.sha256) || publication.body["name"] != original.body["name"] ||
+            publication.body["mime_type"] != original.body["mime_type"] || publication.body["media_type"] != original.body["media_type"] ||
+            publication.body["scope_sha256"] != record.stage.acceptance.body["scope_sha256"] || origin["binding"] != record.stage.plan.body["binding"] ||
+            origin["manifest_sha256"] != JsonPrimitive(media.manifest.fingerprint) || origin["transfer_id"] != JsonPrimitive(media.manifest.transferId) ||
+            origin["source_id"] != JsonPrimitive(media.manifest.sourceId) || origin["file_id"] != JsonPrimitive(file.id)) fail("gallery_pc_history_publication_changed")
+    }
+
+    internal fun recordPcHistory(rows: NativeGalleryIncomingRows, target: NativeGalleryPcWriteTarget,
+        written: NativeGalleryPcWrittenBytesObservation, expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord,
+        publication: GalleryIncomingPublication) {
+        target.requireWrittenOwner(this, written); target.requireProviderCommit(this, written, expected, next)
+        rows.requireVerifiedPcPostWrite(target, written, expected, next)
+        gated {
+            writableMembership(); target.requireProviderCommit(this, written, expected, next)
+            rows.requireVerifiedPcPostWrite(target, written, expected, next)
+            if (expected.state != "provider_verified" || next.state != "history_committed" ||
+                expected.body.filterKeys { it != "state" } != next.body.filterKeys { it !in setOf("state", "history") } ||
+                pcBeforeWrite(expected.id)?.body != expected.body) fail("gallery_pc_history_conflict")
+            requirePcHistoryCapacity(expected.stage.plan.predecessor); validatePcHistoryPublication(next, publication)
+            val history = next.body.getValue("history").jsonObject
+            if (history["publication_id"] != JsonPrimitive(publication.id) || history["publication_sha256"] != JsonPrimitive(publication.fingerprint))
+                fail("gallery_pc_history_publication_changed")
+            val publicationName = GalleryIncomingPublication.PREFIX + publication.id
+            val journalName = GalleryPcPreWriteRecord.PREFIX + expected.id
+            if (meta(publicationName) != null) fail("gallery_pc_history_publication_held")
+            val publicationCipher = protection.seal(frame(publication.body), "photo-source-jobs-v1/" + publicationName)
+            val journalCipher = protection.seal(frame(next.body), "photo-source-jobs-v1/" + journalName)
+            transaction {
+                target.requireProviderCommit(this, written, expected, next); rows.requireVerifiedPcPostWrite(target, written, expected, next)
+                if (pcBeforeWrite(expected.id)?.body != expected.body || meta(publicationName) != null) fail("gallery_pc_history_conflict")
+                putMeta(publicationName, publicationCipher); putMeta(journalName, journalCipher)
+                target.requireProviderCommit(this, written, expected, next)
+            }
+            boundary("gallery-pc-history-committed")
+            if (incomingPublication(publication.id)?.body != publication.body || pcBeforeWrite(expected.id)?.body != next.body)
+                fail("gallery_pc_history_readback_failed")
         }
         target.requireWrittenOwner(this, written); rows.requireVerifiedPcPostWrite(target, written, expected, next)
     }

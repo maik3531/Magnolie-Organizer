@@ -20,6 +20,15 @@ internal class GalleryPcPreWriteRecord private constructor(internal val body: Js
             put("row", row); put("descriptor", descriptor); put("size", file.size); put("sha256", file.sha256)
         })))
     }
+    internal fun commitHistory(publication: GalleryIncomingPublication): GalleryPcPreWriteRecord {
+        if (state != "provider_verified" || publication.state != "published" || !publication.samePcSource(stage.plan.predecessor) ||
+            publication.pcOrigin?.previousPublication != stage.plan.predecessor.fingerprint ||
+            publication.row != body.getValue("postwrite").jsonObject.getValue("row"))
+            DeviceFileControl.fail("gallery_pc_history_original_operation_required")
+        return parse(JsonObject(body + mapOf("state" to JsonPrimitive("history_committed"), "history" to buildJsonObject {
+            put("publication_id", publication.id); put("publication_sha256", publication.fingerprint)
+        })))
+    }
     companion object {
         const val PREFIX = "gallery-pc-before-write-v1/"
         const val MAX_RECORDS = 128
@@ -27,9 +36,11 @@ internal class GalleryPcPreWriteRecord private constructor(internal val body: Js
             put("format", 1); put("state", "before_write"); put("stage", stage.body); put("descriptor", descriptor)
         })
         internal fun parse(value: JsonObject): GalleryPcPreWriteRecord = try {
-            val verified = value["state"] == JsonPrimitive("provider_verified")
-            if (value.keys != setOf("format", "state", "stage", "descriptor") + (if (verified) setOf("postwrite") else emptySet()) ||
-                value["format"] != JsonPrimitive(1) || value["state"] !in setOf(JsonPrimitive("before_write"), JsonPrimitive("write_started"), JsonPrimitive("provider_verified"))) fail()
+            val committed = value["state"] == JsonPrimitive("history_committed")
+            val verified = committed || value["state"] == JsonPrimitive("provider_verified")
+            if (value.keys != setOf("format", "state", "stage", "descriptor") + (if (verified) setOf("postwrite") else emptySet()) +
+                    (if (committed) setOf("history") else emptySet()) || value["format"] != JsonPrimitive(1) ||
+                value["state"] !in setOf(JsonPrimitive("before_write"), JsonPrimitive("write_started"), JsonPrimitive("provider_verified"), JsonPrimitive("history_committed"))) fail()
             val stage = GalleryPcStageRecord.parse(value.getValue("stage").jsonObject)
             if (!stage.sealed) fail()
             val fd = value.getValue("descriptor").jsonObject
@@ -42,6 +53,12 @@ internal class GalleryPcPreWriteRecord private constructor(internal val body: Js
                     !Regex("[1-9][0-9]*").matches(row.string("revision")) || row.string("revision").toLong() <= oldRow.string("revision").toLong()) fail()
                 val newFd = post.getValue("descriptor").jsonObject; validateDescriptor(newFd, file.size)
                 if (listOf("device", "inode", "mode", "links", "uid", "gid").any { fd[it] != newFd[it] }) fail()
+            }
+            if (committed) {
+                val history = value.getValue("history").jsonObject
+                if (history.keys != setOf("publication_id", "publication_sha256") ||
+                    !DeviceFileControl.hash(history.string("publication_id")) || !DeviceFileControl.hash(history.string("publication_sha256")) ||
+                    history["publication_id"] == stage.plan.predecessor.body["id"] || history.string("publication_sha256") == stage.plan.predecessor.fingerprint) fail()
             }
             GalleryPcPreWriteRecord(value)
         } catch (_: Exception) { fail() }

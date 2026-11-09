@@ -36,6 +36,11 @@ internal class NativeGalleryPcStage private constructor(private val base: File, 
     internal val manifest: DeviceFileManifest get() = media.manifest
     internal val kind: GalleryMediaType get() = media.kind
     internal val mimeType: String get() = media.mimeTypes.values.single()
+    internal fun replacementPublication(): GalleryIncomingPublication {
+        requireCurrent()
+        return GalleryIncomingPublication.plan(owner.binding, manifest, manifest.files.single().id, owner.pairingEpoch,
+            kind, mimeType, owner.scope).also { requireCurrent() }
+    }
     private val expected = manifest.files.single()
     private val domain = "magnolie-incoming-pc-stage-v1/${record.id}/${record.acceptance.id}/"
     private val digest = MessageDigest.getInstance("SHA-256")

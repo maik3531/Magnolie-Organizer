@@ -598,7 +598,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
 
     /** Actual provider readback only, not durable history completion or Saved. */
     internal data class NativeGalleryPcProviderObservation(val row: JsonObject, val descriptor: JsonObject,
-        val media: NativeIncomingMediaObservation, val journal: GalleryPcPreWriteRecord) {
+        val media: NativeIncomingMediaObservation, val journal: GalleryPcPreWriteRecord, val publication: GalleryIncomingPublication) {
         val isSavedReceipt: Boolean get() = false
         val grantsWriteAuthority: Boolean get() = false
     }
@@ -668,7 +668,20 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 current()
                 if (NativeGalleryPcWriteTarget.witness(descriptor) != before || observeNewRow().let { it.witness != expectedRow || it.bytes != written.bytes })
                     fail("gallery_pc_postwrite_readback_changed")
-                return NativeGalleryPcProviderObservation(expectedRow, before, media, next)
+            } finally { verifiedPcPostWrite.remove() }
+            // Keep the same real canonical descriptor through the atomic
+            // successor publication + history-journal CAS; old rows stay intact.
+            val publication = target.historyPublication(written, next)
+            val committed = next.commitHistory(publication)
+            current()
+            if (NativeGalleryPcWriteTarget.witness(descriptor) != before) fail("gallery_pc_postwrite_readback_changed")
+            verifiedPcPostWrite.set(VerifiedPcPostWrite(target, written, next, committed, descriptor))
+            try {
+                target.recordHistory(this, written, next, committed, publication)
+                current()
+                if (NativeGalleryPcWriteTarget.witness(descriptor) != before || observeNewRow().let { it.witness != expectedRow || it.bytes != written.bytes })
+                    fail("gallery_pc_postwrite_readback_changed")
+                return NativeGalleryPcProviderObservation(expectedRow, before, media, committed, publication)
             } finally { verifiedPcPostWrite.remove() }
         }
         val originalUri = MediaStore.setRequireOriginal(uri)

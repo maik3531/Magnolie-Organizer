@@ -81,10 +81,25 @@ internal class NativeGalleryPcWriteTarget internal constructor(private val descr
     internal fun startWrite(): GalleryPcPreWriteRecord {
         requireCurrent()
         if (!startAttempted.compareAndSet(false, true) || records.current.state != "before_write") fail()
+        index.requirePcHistoryCapacity(record.stage.plan.predecessor)
+        requireHistoryRecordBudget()
         grant.consume(); consumedHere = true
         val next = record.startWrite(); records = Records(record, next)
         index.startPcWrite(this, record, next)
         records = Records(next); requireCurrent(); return next
+    }
+    private fun requireHistoryRecordBudget() {
+        val file = stage.manifest.files.single()
+        // Byte-budget upper bound ONLY, never parsed/persisted as a witness.
+        // Actual postwrite fields must still come from the real canonical FD.
+        val fd = JsonObject(record.body.getValue("descriptor").jsonObject + mapOf(
+            "size" to JsonPrimitive(file.size), "mtime_s" to JsonPrimitive(Long.MIN_VALUE), "ctime_s" to JsonPrimitive(Long.MIN_VALUE),
+            "mtime_ns" to JsonPrimitive(999_999_999), "ctime_ns" to JsonPrimitive(999_999_999)))
+        val row = JsonObject(record.stage.plan.predecessor.row!! + ("revision" to JsonPrimitive(Long.MAX_VALUE.toString())))
+        val upper = JsonObject(record.body + mapOf("state" to JsonPrimitive("history_committed"), "postwrite" to buildJsonObject {
+            put("row", row); put("descriptor", fd); put("size", file.size); put("sha256", file.sha256)
+        }, "history" to buildJsonObject { put("publication_id", "0".repeat(64)); put("publication_sha256", "0".repeat(64)) }))
+        if (TelefonKanonisch.bytes(upper).size + 4 + 28 > 8192) DeviceFileControl.fail("gallery_pc_history_metadata_capacity")
     }
     internal fun requireLocalStartOwner(actual: PhotoSourceJobIndex, expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord) {
         val snapshot = records
@@ -172,7 +187,7 @@ internal class NativeGalleryPcWriteTarget internal constructor(private val descr
         grant.requireCurrent(); grant.request.admission.requireIndex(index); stage.requireCurrent()
         val before = records; val saved = index.pcBeforeWrite(record.id)?.body; val after = records
         if (listOfNotNull(before.current, before.committing, after.current, after.committing).none { it.body == saved } ||
-            records.current.state !in setOf("write_started", "provider_verified")) fail()
+            records.current.state !in setOf("write_started", "provider_verified", "history_committed")) fail()
         deadline.requireCurrent(); return records.current
     }
     internal fun requireLocalWrittenOwner(actual: PhotoSourceJobIndex, observation: NativeGalleryPcWrittenBytesObservation) {
@@ -194,6 +209,20 @@ internal class NativeGalleryPcWriteTarget internal constructor(private val descr
         expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord) {
         requireLocalWrittenOwner(actual, written)
         if (records.current !== expected || records.committing !== next) fail()
+    }
+    internal fun historyPublication(written: NativeGalleryPcWrittenBytesObservation, expected: GalleryPcPreWriteRecord): GalleryIncomingPublication {
+        requireWrittenOwner(index, written)
+        if (records.current !== expected || expected.state != "provider_verified" || records.committing != null) fail()
+        return stage.replacementPublication().withReplacedRow(expected.stage.plan.predecessor,
+            expected.body.getValue("postwrite").jsonObject.getValue("row").jsonObject)
+    }
+    internal fun recordHistory(rows: NativeGalleryIncomingRows, written: NativeGalleryPcWrittenBytesObservation,
+        expected: GalleryPcPreWriteRecord, next: GalleryPcPreWriteRecord, publication: GalleryIncomingPublication) {
+        if (historyPublication(written, expected).body != publication.body) fail()
+        rows.requireVerifiedPcPostWrite(this, written, expected, next)
+        records = Records(expected, next)
+        index.recordPcHistory(rows, this, written, expected, next, publication)
+        records = Records(next); requireWrittenOwner(index, written)
     }
     internal fun remainingWrittenMs(): Long = minOf(deadline.remainingMs(), grant.request.admission.remainingMs())
     companion object {

@@ -1366,10 +1366,66 @@ Prüfbesitz, Entzug nach dauerhaftem Commit, Duplikat-HOLD und passives Offline-
 Wiederlesen. Die kurze Originalfrist darf bereits während der Vorprüfung
 ablehnen oder nach dem ersten Chunk stoppen, niemals spätere Chunks nach
 Fristende fertigstellen. Das ist keine Android-Provider-/Sharedoffset-/OS-
-Einwilligungsabnahme. History-CAS, endgültiger Saved-Abschluss und Runtime/UI-
-Ersetzungsanbindung fehlen weiterhin; normale Nachfolgersperre, Gerätepause und
+Einwilligungsabnahme. Die folgende History-CAS ergänzt den Postwrite-Zeugen;
+endgültiger Saved-Abschluss und Runtime/UI-Ersetzungsanbindung fehlen weiterhin.
+Normale Nachfolgersperre, Gerätepause und
 Auslieferungsgates bleiben bestehen. Kein aktueller R8-Nachweis für diesen
 neuen Postwrite-Code wird behauptet.
+
+### Notes: atomare PC-Publikationshistorie unter demselben kanonischen FD
+
+Nach der Postwrite-CAS bleibt derselbe tatsächliche kanonische Lese-FD bis zum
+Historienabschluss offen. Ausschließlich der ursprüngliche lebende Stageowner
+liefert Binding, Pairing-Epoche, Scope und Manifest der neuen Publikation; sie
+bindet den tatsächlichen neuen Providerzeugen und den exakten alten
+Publikationsfingerprint. Die alte Publikation wird niemals umgeschrieben oder
+entfernt. Neue Publikation und der genaue `history_committed`-Journalzeuge werden
+atomar im selben geschützten SQL-Commit und mit anschließendem Readback
+gesichert. Vorhandene neue Publikationen werden auch bei gleichen Daten nicht
+als fortsetzbare Aufnahme adoptiert. Direkte Metadatenaufrufe ohne den realen
+threadlokalen Rows-/Target-/Raw-Ergebnis-/Lese-FD-Prüfbesitz genügen nicht.
+
+Der Journalzeuge bewahrt vollständige Stage, alten nativen Vorprüfzeugen und
+Postwrite-Abschnitt; seine neuen begrenzten Historyreferenzen müssen beim Lesen
+exakt zu der separat erhaltenen neuen Publikation passen. Der native
+Herkunfts-/Manifest-/Scope-/Rohhash-/Providerzeugen-Zusammenhang wird ebenfalls
+geschützt nachgeprüft. Nach beiden Commitpunkten wird vor Rückgabe nochmals der
+tatsächliche FD samt Providerzeile geprüft. Ein danach entzogener Owner erhält
+alle dauerhaft gesicherten alten und neuen Fakten, aber keine frühere
+Abschlussautorität zurück.
+
+Schon vor Grant-Verbrauch und erster Byte-Mutation wird Platz für die neue
+Publikation verlangt: unveränderte Gesamt-Incominggrenze und höchstens 128
+Publikationsfakten je opaker PC-Quelle, vollständige Vorgängerbezüge, keine
+Forks und genau der ausgewählte aktuelle Head. Volle Historie bedeutet HOLD,
+niemals Verdrängen oder Anheben der Grenze. Ein reines Bytebudget mit maximalen
+zukünftigen Zahlenbreiten prüft außerdem vor Mutation die unveränderte
+8192-Byte-Metadatengrenze einschließlich Framing und Verschlüsselung. Diese
+Größenberechnung ist ausdrücklich kein erzeugter oder gespeicherter nativer
+Dateizeuge. Abgeschlossene Absichten bleiben als Fakten erhalten; nur noch
+offene oder unklare Absichten derselben Herkunft verhindern eine neue Absicht.
+Die normale neue Aufnahme bleibt weiterhin gesperrt.
+
+194 unterschiedliche betroffene Rows-/Runtime-/Transfer-/Index-Hostfälle sind
+nachgewiesen, mit fünf unveränderten Descriptor-Medienfällen 199 Fälle. Der
+breite Lauf bestand 193 Fälle; eine zu enge Annahme des Zweisekunden-Fixtures,
+dass die native Vorprüfung stets vor Angebotsende fertig sei, wurde korrigiert
+und der einzelne geänderte Fall danach bestanden. Kein Produkt-/Angebots-TTL
+wurde verlängert: sichere Nullbyte-Ablehnung während der Vorprüfung und Stop
+nach einem Chunk sind erlaubt, spätere Chunks nach Fristende nicht. Unveränderte
+bestandene Fälle wurden dafür nicht wiederholt. Neue Historiennachweise prüfen
+beide tatsächlichen Publikationen, unveränderten alten Inhalt im unabhängigen
+Archiv, Headwechsel ohne Fork, passiven Offline-Readback, Entzug nach atomarem
+Commit ohne Saved sowie volle 128er-Quellhistorie mit Nullbyte-HOLD vor
+Grant-Verbrauch. Der Kapazitätsfall verwendet synthetische geschützte
+Historienmetadaten, keine 128 tatsächlichen nativen Ersetzungen.
+
+`history_committed` bleibt historische Evidenz, kein Neustartrecht, tatsächlicher
+Quell-END oder automatisch ausgegebener Saved-Beleg. Dessen tatsächliche
+ursprünglich gebundene Ausgabe sowie der Runtime/UI-Ersetzungsablauf fehlen
+weiterhin. Android-Gerätepause und alle Feature-/Auslieferungsgates bleiben
+unverändert; kein aktueller R8- oder physischer Providerabnahmenachweis für
+diesen neuen Code wird behauptet.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
