@@ -8,6 +8,97 @@ internal static class DeviceFileCollectionSourceTests
 {
     private const string Book = "{\"syncEpoch\":\"collection-source-test\",\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":30}}}";
     private static long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+    internal static async Task WindowsNativeFolderChoiceAsync()
+        => await NativeFolderChoices(["accept", "cancel", "repeat"]);
+
+    internal static async Task WindowsNativeFolderChoiceGuardsAsync()
+        => await NativeFolderChoices(["book", "connection", "intent", "consent", "control", "catalog", "stale", "import-only", "receive-only", "module-off", "photos-off"]);
+
+    private static async Task NativeFolderChoices(string[] scenarios)
+    {
+        foreach (var scenario in scenarios)
+        {
+            using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sourceSend: false, sharedMedia: true);
+            void Set(string field, JsonNode value) => f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey,
+                field, value, f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, field));
+            Set("enabled", JsonValue.Create(true)!); Set("direction", JsonValue.Create("pc_to_phone")!);
+            Set("collection_mode", JsonValue.Create("entire_collection")!);
+            if (scenario == "import-only") Set("collection_mode", JsonValue.Create("import_only")!);
+            if (scenario == "receive-only") Set("direction", JsonValue.Create("phone_to_pc")!);
+            if (scenario == "module-off") Set("enabled", JsonValue.Create(false)!);
+            if (scenario == "photos-off") Set("photos_enabled", JsonValue.Create(false)!);
+            await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+            var send = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+            send = f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, send.Version, true, false);
+            f.Local = new(new(8, new string('c', 64), false, false), f.Local.Owner, true);
+            TestAssert.That(f.Owner.Binding(new string('f', 64), true) is null && f.Current() is null,
+                "Folder metadata fixture accidentally required positive SEND/RECEIVE data authority.");
+            var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "folder-choice-book"), Book);
+            using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+            coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+            var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+            online.Add(f.Native.Peer.Id, f.Native.Connection);
+            var receiving = f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id);
+            var preference = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id);
+            var path = Path.Combine(f.Native.Paths.Root, "explicit-native-source"); Directory.CreateDirectory(path);
+            var bytes = DeviceFileSourceSendTests.PaddedPng(length: 256); var file = Path.Combine(path, "original.png"); File.WriteAllBytes(file, bytes);
+            var intent = f.Native.Store.ReadNativeMediaSharedSettings(f.Native.Peer.Id, f.Native.Peer.PublicKey)!;
+            var version = f.Native.Connection.NativeMediaSharedUiVersion(intent);
+            var initial = coordinator.NativeMediaUiStatus(f.Native.Peer.Id);
+            TestAssert.That(initial["collection_sources"]!.AsArray().Count == 0 &&
+                (scenario == "import-only" ? initial["collection_sources_version"] is null : initial["collection_sources_version"]!.GetValue<string>() == version),
+                "Passive native status invented roots or lost channel/full-intent binding.");
+            DeviceFileConnectionRunsTests.Clear(f); DeviceFileNativeDirectory? held = null; var calls = 0;
+            DeviceFileNativeDirectory? Picker(Action current)
+            {
+                calls++; current();
+                TestAssert.Throws<InvalidDataException>(() => coordinator.ChooseNativeMediaCollectionFolder(f.Native.Peer.Id, "images", version,
+                    _ => throw new Exception("Nested source dialog must never open.")), "Pending native source owner did not retain its slot.");
+                TestAssert.Throws<InvalidDataException>(() => coordinator.ConfirmNativeMediaUiSendConsent(f.Native.Peer.Id, send.Version, true, false,
+                    () => throw new Exception("Competing send dialog must never open.")), "Source selection overlapped native SEND consent.");
+                TestAssert.That(f.Native.Store.NativeMediaCollectionRoots(f.Native.Peer.Id).Count == 0,
+                    "Source folder was registered before the real native selection.");
+                if (scenario == "cancel") return null;
+                if (scenario == "book") typeof(PersonalActorNativeSaveHost).GetProperty("currentPlainTextAvailable",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(host, false);
+                if (scenario == "connection") online.Remove(f.Native.Peer.Id);
+                if (scenario == "intent") Set("auto_mode", JsonValue.Create("wifi")!);
+                if (scenario == "consent") f.Native.Store.ChangeNativeMediaSendConsent(f.Native.Peer.Id, send.Version, false, false);
+                if (scenario == "control")
+                {
+                    var packet = f.Phone.Packet(); f.Phone.MarkSent(packet);
+                    f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(packet, Now())).GetAwaiter().GetResult();
+                }
+                if (scenario == "catalog")
+                {
+                    var other = Path.Combine(f.Native.Paths.Root, "other-explicit-native-source"); Directory.CreateDirectory(other);
+                    using var owner = DeviceFileNativeDirectory.OpenExisting(other);
+                    f.Native.Store.AddNativeMediaCollectionRoot(f.Native.Peer.Id, "images", owner, () => { });
+                }
+                return held = DeviceFileNativeDirectory.OpenExisting(path);
+            }
+            if (scenario is "accept" or "cancel" or "repeat")
+            {
+                var reply = coordinator.ChooseNativeMediaCollectionFolder(f.Native.Peer.Id, "images", version, Picker);
+                TestAssert.That(reply["collection_sources"]!.AsArray().Count == (scenario == "cancel" ? 0 : 1) &&
+                    (reply["canceled"]?.GetValue<bool>() == true) == (scenario == "cancel"), "Native picker result did not control append-only selection.");
+                if (scenario == "repeat") coordinator.ChooseNativeMediaCollectionFolder(f.Native.Peer.Id, "images", version,
+                    current => { current(); return held = DeviceFileNativeDirectory.OpenExisting(path); });
+            }
+            else TestAssert.Throws<InvalidDataException>(() => coordinator.ChooseNativeMediaCollectionFolder(f.Native.Peer.Id, "images",
+                scenario == "stale" ? new string('e', 64) : version, Picker), "Late folder selection adopted a changed original context: " + scenario);
+            TestAssert.That(calls == (scenario is "stale" or "import-only" or "receive-only" or "module-off" or "photos-off" ? 0 : 1), "A stale/disabled request reached the native dialog or a native dialog was replayed.");
+            if (held is not null) TestAssert.Throws<ObjectDisposedException>(() => held.CurrentIdentity(), "Selected native directory survived result/failed commit.");
+            var roots = f.Native.Store.NativeMediaCollectionRoots(f.Native.Peer.Id);
+            TestAssert.That(roots.Count == (scenario is "accept" or "repeat" or "catalog" ? 1 : 0) &&
+                File.ReadAllBytes(file).SequenceEqual(bytes) && f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0 &&
+                f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id) == receiving && f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id) == preference,
+                "Source choice read/sent/mutated originals or changed receiving/preferences/history: " + scenario);
+            if (scenario != "control") TestAssert.That(f.Native.Stream.Length == 0, "Folder configuration sent a packet or started transfer.");
+        }
+    }
     private static async Task<DeviceFileReceiveJobTests.Fixture> Fixture()
     {
         var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sourceSend: false, sharedMedia: true);

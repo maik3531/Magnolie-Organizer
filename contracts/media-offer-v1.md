@@ -1627,11 +1627,58 @@ Hostnachweise dieses Teilstands: neun API-Fälle, 13 native Handler-/private-IPC
 Fälle, zehn gezielte Linux-Frontendfälle sowie 22 bestehende native UI-Fälle
 und der vollständige Linux-UI-Regressionslauf bestanden. Der echte GTK-Dialog
 wird in den Handlerproben modelliert; eine installierte native Dialogabnahme
-wird nicht behauptet. Windows benötigt seine separate native Integration in
-`phone-media.js`/`DeviceFileBridge.cs`; gemeinsame deutsche Texte sind vorbereitet,
-der Windows-Picker ist hier noch nicht implementiert. Der echte Sammlungslauf,
+wird nicht behauptet. Dieser Linux-Teilnachweis umfasst noch nicht die separate
+Windows-Integration in `phone-media.js`/`DeviceFileBridge.cs`; deren anschließender
+Implementierungs- und Prüfstand steht im folgenden Abschnitt. Der echte Sammlungslauf,
 automatische Exportkomposition, Video-/Mehrdateiersetzung und alle übrigen
 Geräte-/Liefergates bleiben offen. #488 und #486 sind nicht abgeschlossen.
+
+### Windows: eigene native PC-Quellordnerauswahl (#488, weiterer Teilstand)
+
+Windows besitzt jetzt seinen eigenen strikten `pick_collection_source`-Pfad in
+`phone-media.js` und der tatsächlichen WinForms-Bridge. Erst der echte native
+FolderBrowserDialog liefert einen gehaltenen read-only Verzeichnisowner; keine
+Rendererpfade, Bestätigungsbits, Native-IDs oder Empfangsziele werden übernommen.
+Source-, Empfangs- und Zustimmungsdialoge teilen einen nativen Dialogslot.
+
+Vor dem Dialog werden ursprüngliche Connection, gespeichertes Buch, voller
+gemeinsamer Intent, lokale Zustimmungen/Preferences, Rootkatalog und ursprüngliche
+Controlposition gebunden. Die Frist läuft vom Eintritt, nicht erst nach einer
+späteren Vorbereitung. Der Katalog-CAS prüft innerhalb seiner bestehenden
+Transaktion nochmals genau den ursprünglichen Rootbestand. Neue Registrierungen
+bleiben append-only; gleiche bestehende Auswahl wird nicht ersetzt. Ausgewählte
+Native-Owner schließen vor der Antwort, auch bei Abbruch oder fehlendem Kontext.
+
+Die Controlpositionsprüfung ist absichtlich nur ein lokaler unveränderter
+Positionsvergleich, weder Scopecallback noch Datenfreigabe. Unter geschütztem
+Store-CAS wird kein Transportmonitor oder callbackfähiger Control-Scope betreten.
+Native Metadaten, Connection, Buch, voller Intent und lokale Rechte werden davon
+unabhängig frisch geprüft. Sowohl PC RECEIVE als auch Telefon READ/RECEIVE dürfen
+für reine Quellkonfiguration geschlossen sein; daraus entsteht kein SEND-Binding.
+
+Der Renderer wartet auf den tatsächlichen Speicherabschluss und prüft danach
+denselben Buchowner, dieselbe angeschlossene Panelinstanz und die ursprüngliche
+Connection-/Vollintentversion. Ein verspäteter Speicherabschluss kann keinen
+anderen Buchstand übernehmen. Import-only, reine Empfangsrichtung, OFF, fehlende
+Metadatenechos, lokale Sendeverweigerung oder fehlende Native-Version halten die
+Auswahl geschlossen. Statuslesen inventarisiert keine Dateien und startet keine
+Übertragung; Pfade erscheinen nur im Tooltip, Vorschaubilder bleiben aus.
+
+Sechs unterschiedliche native Windows-Testgruppen bestehen über den vorhandenen
+Windows-Prüfweg: zwei neue Auswahlgruppen (14 Szenarien), zwei Rootpersistenz- und
+Tampergruppen, strikte Requestgrammatik und bestehender Zustimmungsdialog. Die
+zwei neuen Gruppen wurden nach Erweiterung/ursprünglicher Fristprüfung erneut
+gezielt bestanden; kein doppeltes Zählen. Der reine Control-/Positionsfall besteht
+zusätzlich im Hosttest. 13 gezielte Windows-Frontendfälle, bestehende Medien-UI,
+Telefon-Einstellungen und 53 Windows-State-Regressionen bestehen. Aktuelle Core-
+und echte WinForms-Produktquelle kompilieren ohne Warnungen/Fehler. Native
+Verzeichnis-/DPAPI-/Katalogbesitzer sind tatsächlich unter Windows geprüft; die
+Dialogantwort selbst wird im Test über den nativen Callback modelliert. Keine
+installierte interaktive Dialog- oder Gesamtproduktabnahme wird daraus abgeleitet.
+
+Der eigentliche gesamte-Sammlung-Lauf und automatische Angebotskomposition samt
+Archiv-/Quell-END zwischen Dateien fehlen weiterhin. #488 bleibt dafür offen;
+Video-/Mehrdatei- und Android-/Auslieferungsgates bleiben unverändert.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

@@ -127,6 +127,17 @@ internal static class DeviceFileUiTests
     {
         var request = new JsonObject { ["cmd"] = "telefon_medien", ["requestId"] = "synthetic-request", ["device_id"] = Guid.NewGuid().ToString("D"), ["action"] = "status" };
         _ = NativeMediaUiRequest.Parse(request);
+        foreach (var mediaType in new[] { "images", "video" })
+        {
+            var source = request.DeepClone().AsObject(); source["action"] = "pick_collection_source";
+            source["media_type"] = mediaType; source["version"] = new string('d', 64);
+            TestAssert.That(NativeMediaUiRequest.Parse(source).MediaType == mediaType, "Source-folder action lost its independent media type.");
+            foreach (var field in new[] { "path", "confirmed", "witness", "identity", "receive_files", "source_id", "version" })
+            {
+                var forged = source.DeepClone().AsObject(); forged[field] = field == "version" ? null : JsonValue.Create("untrusted");
+                TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(forged), "Source-folder action accepted browser authority: " + field);
+            }
+        }
         foreach (var (field, value) in MediaSyncSettings.Effective(MediaSyncSettings.Create("11111111-1111-4111-8111-111111111111")))
         {
             var edit = request.DeepClone().AsObject(); edit["action"] = "shared_setting"; edit["field"] = field;

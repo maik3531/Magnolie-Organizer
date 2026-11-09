@@ -92,7 +92,7 @@ internal sealed partial class TelefonStore
     // Native picker owner only. Append, never replace a selected root/history.
     // A separate future explicit deactivation operation must preserve records.
     internal NativeMediaCollectionRoot AddNativeMediaCollectionRoot(string peerId, string mediaType,
-        DeviceFileNativeDirectory selected, Action current)
+        DeviceFileNativeDirectory selected, Action current, IReadOnlyList<NativeMediaCollectionRoot>? expected = null)
     {
         MediaDestinationKind(mediaType);
         lock (gate)
@@ -108,6 +108,8 @@ internal sealed partial class TelefonStore
             }
             using var db = OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction();
             var previous = ReadCollectionRoots(db, transaction, scope);
+            if (expected is not null && !previous.SequenceEqual(expected))
+                throw DeviceFileControl.Error("media_collection_native_catalog_changed");
             static bool Within(string child, string parent) => child.Equals(parent, StringComparison.OrdinalIgnoreCase) ||
                 child.StartsWith(parent.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
             var same = previous.Where(item => item.MediaType == mediaType && item.Identity == identity && item.NativePath == selected.NativePath && item.VolumePath == selected.VolumePath).ToArray();

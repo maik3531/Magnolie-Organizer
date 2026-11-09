@@ -297,6 +297,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Collection inventory / Windows read-only native identities exclusions and cancellation", DeviceFileCollectionInventoryTests.WindowsInventoryAsync);
     runner.Add("Collection inventory / Windows actual reparse hardlink and paged enumeration", DeviceFileCollectionInventoryTests.WindowsHazardsAsync);
     runner.Add("Collection roots / Windows independent read-only selection protected persistence and replacement HOLD", DeviceFileCollectionRootsTests.WindowsPersistenceAsync);
+    runner.Add("Collection folder choice / Windows original native picker metadata only and append-only roots", DeviceFileCollectionSourceTests.WindowsNativeFolderChoiceAsync);
+    runner.Add("Collection folder choice / Windows original book connection intent control catalog guards", DeviceFileCollectionSourceTests.WindowsNativeFolderChoiceGuardsAsync);
     runner.Add("Collection roots / Windows pairing ciphertext and missing-key HOLD preserve source records", DeviceFileCollectionRootsTests.WindowsTamperAsync);
     runner.Add("Collection generation / Windows actual file and ancestor creation witness no owner revival", DeviceFileCollectionInventoryTests.WindowsGenerationAsync);
     runner.Add("Collection generation / Windows versioned root witness legacy and malformed HOLD", DeviceFileCollectionRootsTests.WindowsGenerationAsync);

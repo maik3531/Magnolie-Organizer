@@ -3,7 +3,7 @@
   "use strict";
   const pending = new Map();
   const panels = new Map();
-  function createPanel(peerId, translate, send, saveBefore) {
+  function createPanel(peerId, translate, send, saveBefore, currentContext = () => true) {
     const t = translate, root = document.createElement("details");
     root.className = "telefon-medien einst-gruppe"; root.hidden = true;
     const node = (tag, text) => { const e = document.createElement(tag); if (text) e.textContent = t(text); return e; };
@@ -62,7 +62,9 @@
     const direction = select("direction", "Direction", [["phone_to_pc", "Phone → PC"], ["two_way", "Two-way synchronization"], ["pc_to_phone", "PC → phone"]]);
     settingsArea.append(scope.parentElement, modeRow, direction.parentElement, photos.parentElement, videos.parentElement, photosOnly.parentElement, skip.parentElement);
     const mode = node("p", "Manual synchronization"), destinations = node("div"), controls = node("div"), albumList = node("div"), review = node("ul");
-    settingsArea.append(mode, destinations); manualArea.append(controls, albumList, review);
+    const sourceArea = node("section"), sourceRows = new Map(); sourceArea.hidden = true;
+    sourceArea.append(node("h4", "Selected PC source folders"), node("p", "PC source folders are separate from receive destinations."));
+    settingsArea.append(mode, destinations, sourceArea); manualArea.append(controls, albumList, review);
     const trashArea = node("details"), trashRows = node("ul"); trashArea.append(node("summary", "Media recycle bin"),
       node("p", "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."), trashRows);
     settingsArea.append(trashArea);
@@ -121,7 +123,8 @@
     let native = null, busy = false, transfer = false, catalog = null, kind = "images", selectedAlbum = null;
     let requestSequence = 0, appliedSettingsSequence = 0;
     let deferredStatus = false;
-    const settingsActions = new Set(["status", "mode", "settings", "pick_destination", "default_destination", "shared_setting", "receive_consent", "send_consent"]);
+    let sourceChoiceWaiting = false;
+    const settingsActions = new Set(["status", "mode", "settings", "pick_collection_source", "pick_destination", "default_destination", "shared_setting", "receive_consent", "send_consent"]);
     const defaultDestinations = new Map();
     const allButtons = [], actions = [], rightActions = []; let refresh, manualSync;
     const albumChoice = node("select"); albumChoice.className = "feld"; albumChoice.hidden = true;
@@ -131,6 +134,7 @@
       const b = node("button", text); b.type = "button"; b.className = "knopf klein" + (text === "Delete permanently" ? " rot" : ""); b.addEventListener("click", action); parent.append(b); allButtons.push(b); return b;
     };
     const toggle = () => {
+      busy ||= sourceChoiceWaiting;
       const shared = !!native?.shared_settings, enabled = !shared || master.checked;
       const runtimeReady = !shared || native.shared_runtime_ready === true;
       masterRow.hidden = receiveRow.hidden = scope.parentElement.hidden = direction.parentElement.hidden = !shared;
@@ -139,7 +143,7 @@
       receiveConsent.disabled = !enabled || (busy && !receiveConsent.checked);
       for (const entry of sendChoices.values()) {
         entry.row.hidden = !shared || !native?.send_consent || native.metadata_ready?.[entry.mediaType] !== true;
-        entry.input.disabled = !native?.send_consent || (busy && !entry.input.checked);
+        entry.input.disabled = sourceChoiceWaiting || !native?.send_consent || (busy && !entry.input.checked);
       }
       scope.disabled = direction.disabled = busy || !enabled;
       for (let i = allButtons.length - 1; i >= 0; i--) if (!root.contains(allButtons[i])) allButtons.splice(i, 1);
@@ -162,6 +166,16 @@
       }
       for (const b of destinations.querySelectorAll("button")) b.disabled = busy || !enabled || (shared && !receiveConsent.checked);
       for (const [key, b] of defaultDestinations) b.disabled ||= !native || native[key]?.default === true;
+      const sourceValues = native?.shared_settings?.values;
+      sourceArea.hidden = native?.collection_sources_supported !== true || sourceValues?.collection_mode !== "entire_collection" ||
+        !["pc_to_phone", "two_way"].includes(sourceValues?.direction);
+      for (const [mediaType, entry] of sourceRows) {
+        entry.row.hidden = native?.metadata_ready?.[mediaType] !== true;
+        entry.button.disabled = busy || sourceChoiceWaiting || sourceArea.hidden || !enabled || !runtimeReady || native?.shared_matched !== true ||
+          native?.metadata_ready?.[mediaType] !== true || !/^[a-f0-9]{64}$/.test(native?.collection_sources_version || "") ||
+          sourceValues?.[mediaType === "video" ? "videos_enabled" : "photos_enabled"] !== true ||
+          native?.send_consent?.[mediaType === "video" ? "videos" : "photos"] !== true;
+      }
       if (deferredStatus && !busy) {
         deferredStatus = false;
         queueMicrotask(() => {
@@ -172,19 +186,35 @@
       }
     };
     const request = async (action, data = {}, save = true) => {
+      const sourceChoice = action === "pick_collection_source";
+      if (sourceChoice) {
+        const entry = sourceRows.get(data.media_type);
+        if (!entry || entry.button.disabled || sourceChoiceWaiting || !currentContext()) return;
+        sourceChoiceWaiting = true; busy = true; toggle();
+      }
       if (save) {
-        try { await saveBefore(); } catch { restoreSharedInputs(); toggle(); status.textContent = t("The book could not be saved. Media synchronization was not started."); return; }
+        try { await saveBefore(); } catch {
+          if (sourceChoice) { sourceChoiceWaiting = false; busy = false; }
+          restoreSharedInputs(); toggle(); status.textContent = t("The book could not be saved. Media synchronization was not started."); return;
+        }
+      }
+      if (sourceChoice && (!root.isConnected || !currentContext() || native?.collection_sources_version !== data.version)) {
+        sourceChoiceWaiting = false; busy = false; toggle(); return;
       }
       const now = Date.now();
       for (const [id, item] of pending) if (item.until < now || !item.root.isConnected) pending.delete(id);
-      if (pending.size >= 128) { status.textContent = t("Too many pending requests. Wait for the current operation."); return; }
+      if (pending.size >= 128) {
+        if (sourceChoice) { sourceChoiceWaiting = false; busy = false; toggle(); }
+        status.textContent = t("Too many pending requests. Wait for the current operation."); return;
+      }
       const requestId = crypto.randomUUID(), message = { cmd: "telefon_medien", requestId, device_id: peerId, action, ...data };
       const sequence = ++requestSequence;
       const item = { root, peerId, action, receive: (reply, action) => receive(reply, action, sequence, data), until: now + 60000 };
       pending.set(requestId, item);
-      if (["trash_thumbnail", "trash_preview"].includes(action)) item.timer = setTimeout(() => {
+      if (["trash_thumbnail", "trash_preview", "pick_collection_source"].includes(action)) item.timer = setTimeout(() => {
         if (pending.get(requestId) !== item) return;
         pending.delete(requestId); busy = false;
+        if (sourceChoice) sourceChoiceWaiting = false;
         if (action === "trash_preview") previewStatus.textContent = t("Preview") + " · " + t("Failed");
         toggle(); pumpThumbnails();
       }, 65000);
@@ -192,7 +222,7 @@
       if (action === "sync" || action === "sync_shared") { transfer = true; status.textContent = t("Waiting for native media status"); }
       if (["sync", "sync_shared", "discover"].includes(action)) review.replaceChildren();
       toggle();
-      if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (["sync", "sync_shared"].includes(action)) transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
+      if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (sourceChoice) sourceChoiceWaiting = false; if (["sync", "sync_shared"].includes(action)) transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
     };
     const settings = () => {
       if (skip.indeterminate) {
@@ -228,6 +258,11 @@
     direction.addEventListener("change", () => sharedSetting("direction", direction.value));
     const kinds = [["images", "Photos", "pictures"], ["video", "Videos", "video_destination"]];
     for (const [mediaType, label, key] of kinds) {
+      const sourceRow = node("div"), hints = node("span"); sourceRow.dataset.collectionSourceKind = mediaType; sourceArea.append(sourceRow);
+      const sourceButton = button("Add PC source folder …", () => request("pick_collection_source", {
+        media_type: mediaType, version: native?.collection_sources_version }), sourceRow);
+      sourceButton.dataset.collectionSourceAdd = mediaType; sourceButton.textContent = t(label) + " · " + t("Add PC source folder …");
+      sourceRow.append(hints); sourceRows.set(mediaType, { row: sourceRow, button: sourceButton, hints });
       const row = node("div"), picker = node("div");
       row.dataset.destinationKind = mediaType; picker.className = "kde-empfangsordner";
       row.append(picker); destinations.append(row);
@@ -320,6 +355,7 @@
         busy = true; toggle(); status.textContent = t(reply.state === "stopping" ? "Stopping… Waiting for the native operation to end." : "Comparing media content… The total is not known yet."); return;
       }
       busy = false;
+      if (action === "pick_collection_source") sourceChoiceWaiting = false;
       if (["sync", "sync_shared"].includes(action) || reply.state === "idle") transfer = false;
       if (!reply.ok) {
         restoreSharedInputs();
@@ -380,6 +416,11 @@
         for (const [mediaType, , key] of kinds) {
           const path = destinations.querySelector(`[data-destination="${mediaType}"]`);
           path.title = reply[key]?.display_path || "";
+          const hints = sourceRows.get(mediaType).hints; hints.replaceChildren();
+          for (const [index, source] of (reply.collection_sources || []).filter(item => item.media_type === mediaType).entries()) {
+            const hint = node("span"); hint.textContent = t(mediaType === "video" ? "Videos" : "Photos") + " " + (index + 1);
+            hint.title = String(source.display_path || ""); hints.append(hint);
+          }
         }
         status.textContent = t(busy ? "A native media operation is still running." : reply.metadata_ready?.images !== true
           ? "Media transfer is not available on this connection yet." : "Native settings loaded. No transfer has been started.");

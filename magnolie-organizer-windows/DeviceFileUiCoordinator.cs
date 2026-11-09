@@ -86,6 +86,22 @@ internal sealed partial class TelefonConnection
             ["channel"] = nativeMediaUiStartEpoch, ["settings"] = intent.DeepClone() }))).ToLowerInvariant();
     internal void RevokeNativeMediaUiConsent() => nativeMediaUiAuthority?.Revoke();
 
+    internal Action CaptureNativeCollectionFolderContext(string mediaType)
+    {
+        if (mediaType is not ("images" or "video")) throw DeviceFileControl.Error("media_collection_native_choice_invalid");
+        var controls = Volatile.Read(ref fileControls);
+        var position = controls?.RemoteControlWitness();
+        void Current()
+        {
+            cancellation.ThrowIfCancellationRequested();
+            if (!ReferenceEquals(controls, Volatile.Read(ref fileControls)) ||
+                controls is not null && !controls.NativeMetadataPositionUnchanged(position) ||
+                !NativeMediaUiMetadataAvailable(mediaType == "video") || !MediaSharedSettingsReady)
+                throw DeviceFileControl.Error("media_collection_native_context_changed");
+        }
+        Current(); return Current;
+    }
+
     internal async Task PrepareNativeMediaUiAsync(Func<NativeBookSaveState?> savedBook, string mediaType, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -205,6 +221,57 @@ internal sealed partial class TelefonConnection
 
 internal sealed partial class TelefonCoordinator
 {
+    private int nativeMediaCollectionDialog;
+
+    internal JsonObject ChooseNativeMediaCollectionFolder(string peerId, string mediaType, string version,
+        Func<Action, DeviceFileNativeDirectory?> pickNative)
+    {
+        ArgumentNullException.ThrowIfNull(pickNative);
+        if (Interlocked.CompareExchange(ref nativeMediaCollectionDialog, 1, 0) != 0)
+            throw DeviceFileControl.Error("media_collection_native_choice_pending");
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        var canceled = false;
+        try
+        {
+            var connection = NativeMediaOnlineConnection(peerId);
+            var currentControl = connection.CaptureNativeCollectionFolderContext(mediaType);
+            var permit = NativeMediaLocalBookPermit(); permit.Require();
+            var peer = store.LoadPeers().Single(value => value.Id == peerId);
+            var intent = store.ReadNativeMediaSharedSettings(peerId, peer.PublicKey)
+                ?? throw DeviceFileControl.Error("media_collection_current_intent_required");
+            var preferences = store.ReadNativeMediaPreferences(peerId);
+            var send = store.ReadNativeMediaSendConsent(peerId);
+            var receive = store.ReadNativeMediaReceiveConsent(peerId);
+            var expectedRoots = store.NativeMediaCollectionRoots(peerId);
+            void Current()
+            {
+                permit.Require(); currentControl();
+                if (!ReferenceEquals(connection, NativeMediaOnlineConnection(peerId)) || timer.Elapsed >= TimeSpan.FromSeconds(60) ||
+                    connection.NativeMediaSharedUiVersion(intent) != version ||
+                    !JsonNode.DeepEquals(intent, store.ReadNativeMediaSharedSettings(peerId, peer.PublicKey)) ||
+                    MediaSyncSettings.Effective(intent)["collection_mode"]?.GetValue<string>() != "entire_collection" ||
+                    !MediaSyncSettings.TransferRequestedFor(intent, mediaType, toPhone: true) ||
+                    store.ReadNativeMediaPreferences(peerId) != preferences || store.ReadNativeMediaSendConsent(peerId) != send ||
+                    store.ReadNativeMediaReceiveConsent(peerId) != receive || !send.Explicit || !(mediaType == "video" ? send.Videos : send.Photos))
+                    throw DeviceFileControl.Error("media_collection_native_choice_changed");
+                if (Volatile.Read(ref nativeMediaWorker) != 0)
+                    throw DeviceFileControl.Error("file_media_native_worker_busy");
+            }
+            Current();
+            // Only the native WinForms bridge supplies this callback/owner.
+            // Neither renderer paths nor a receive destination are accepted.
+            using var selected = pickNative(Current);
+            Current();
+            if (selected is null) canceled = true;
+            else store.AddNativeMediaCollectionRoot(peerId, mediaType, selected, Current, expectedRoots);
+            permit.Require();
+        }
+        finally { Volatile.Write(ref nativeMediaCollectionDialog, 0); }
+        var result = NativeMediaUiStatus(peerId);
+        if (canceled) result["canceled"] = true;
+        return result;
+    }
+
     private Task NativeMediaSharedPreferencesChangedAsync(string peerId, TelefonConnection connection)
     {
         try { ApplyMatchedNativeMediaPreferences(peerId, connection); }
@@ -308,6 +375,13 @@ internal sealed partial class TelefonCoordinator
             result["receive_consent"] = new JsonObject { ["granted"] = receive.Granted, ["version"] = receive.Version };
             var send = store.ReadNativeMediaSendConsent(peerId);
             result["send_consent"] = new JsonObject { ["photos"] = send.Photos, ["videos"] = send.Videos, ["version"] = send.Version };
+            result["collection_sources_supported"] = true;
+            if (intent is not null && connection.MediaSharedSettingsReady && MediaSyncSettings.Effective(intent)["collection_mode"]?.GetValue<string>() == "entire_collection")
+                result["collection_sources_version"] = connection.NativeMediaSharedUiVersion(intent);
+            var roots = new JsonArray();
+            foreach (var root in store.NativeMediaCollectionRoots(peerId)) roots.Add(new JsonObject {
+                ["id"] = root.Id, ["version"] = root.Version, ["media_type"] = root.MediaType, ["display_path"] = root.NativePath });
+            result["collection_sources"] = roots;
         }
         return result;
     }
@@ -383,6 +457,7 @@ internal sealed partial class TelefonCoordinator
     internal JsonObject ConfirmNativeMediaUiSendConsent(string peerId, string version, bool photos, bool videos, Func<bool> confirmNative)
     {
         ArgumentNullException.ThrowIfNull(confirmNative);
+        if (Volatile.Read(ref nativeMediaCollectionDialog) != 0) throw DeviceFileControl.Error("media_collection_native_choice_pending");
         var connection = NativeMediaOnlineConnection(peerId);
         var permit = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
         var before = store.ReadNativeMediaSendConsent(peerId);

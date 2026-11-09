@@ -29079,8 +29079,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }));
       if (telefon.device_id) {
         zeile.append(baueTelefonPersonalSync(telefon));
+        const mediaBook = DATEN;
         if (window.MagnolieMedia) zeile.append(window.MagnolieMedia.createPanel(telefon.device_id, _,
-          message => Bruecke.sende(message), () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject))));
+          message => Bruecke.sende(message), () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject)), () => DATEN === mediaBook));
         // Local recovery is independent of live phone/media capability.
         if (window.MagnolieMedia?.createRecoveryPanel) zeile.append(window.MagnolieMedia.createRecoveryPanel(telefon.device_id, _,
           message => Bruecke.sende(message), () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject))));

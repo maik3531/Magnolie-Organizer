@@ -318,6 +318,17 @@ internal sealed class NativeFileControlSession : IDisposable
         lock (gate) return Scope() is not null && remote is not null ? (remote.SessionEpoch, remote.Sequence) : null;
     }
 
+    // Deny-only comparison for a native metadata dialog's original position.
+    // No Scope callback or transport monitor inside a protected-store CAS.
+    // The caller must separately retain/recheck its native peer, book, full
+    // settings and local choices. This is NOT agreement or a data grant.
+    internal bool NativeMetadataPositionUnchanged((string SessionEpoch, long Sequence)? original)
+    {
+        var observed = Volatile.Read(ref remote);
+        return !Volatile.Read(ref faulted) && (observed is null ? original is null :
+            original is { } position && observed.SessionEpoch == position.SessionEpoch && observed.Sequence == position.Sequence);
+    }
+
     internal bool ReceiverCommandCurrent(NativeReceiverCommandTicket? ticket)
     {
         lock (gate)

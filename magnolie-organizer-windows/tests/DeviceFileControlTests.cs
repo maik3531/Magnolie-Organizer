@@ -40,6 +40,28 @@ internal static class DeviceFileControlTests
     internal static Task RunAsync()
     {
         var (epochFirst, epochSecond) = Pair();
+        {
+            var (metadata, other) = Pair();
+            metadata.Local = new(new(4, new string('a', 64), false, false), metadata.Local.Owner, true);
+            other.Local = new(new(8, new string('b', 64), false, false), other.Local.Owner, true);
+            Handshake(metadata, other);
+            var position = metadata.Session.RemoteControlWitness();
+            TestAssert.That(position is not null && metadata.Session.NativeMetadataPositionUnchanged(position) &&
+                metadata.Session.Binding(new string('f', 64), true) is null, "Native metadata position required or manufactured data grants.");
+            // Comparing is local-only and must neither invoke Scope/store
+            // callbacks nor generate/renew a control packet.
+            var session = metadata.Session; var needs = session.NeedsPacket;
+            metadata.Peer = metadata.Peer with { Ready = false };
+            TestAssert.That(session.NativeMetadataPositionUnchanged(position) && session.NativeMetadataPositionUnchanged(position),
+                "Deny-only position comparison unexpectedly invoked native callbacks; it must not be used as standalone readiness.");
+            metadata.Peer = metadata.Peer with { Ready = true };
+            TestAssert.That(session.NeedsPacket == needs, "Metadata comparison mutated transport output state.");
+            Send(other, metadata);
+            TestAssert.That(!session.NativeMetadataPositionUnchanged(position), "A later control position revived an original dialog snapshot.");
+            var fresh = session.RemoteControlWitness(); session.Dispose();
+            TestAssert.That(!session.NativeMetadataPositionUnchanged(fresh), "Disposed control context still matched a metadata dialog.");
+            other.Session.Dispose();
+        }
         epochFirst.Peer = epochFirst.Peer with { PairingEpoch = new string('c', 64) };
         epochFirst.Session.Dispose(); epochFirst.Session = epochFirst.NewSession();
         Handshake(epochFirst, epochSecond);

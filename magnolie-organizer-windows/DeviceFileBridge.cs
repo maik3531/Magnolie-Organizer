@@ -7,6 +7,7 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class BridgeDispatcher
 {
     private readonly ConcurrentDictionary<string, CancellationTokenSource> nativeMediaUiRuns = new(StringComparer.Ordinal);
+    private int nativeMediaDialog;
 
     partial void HandleNativeMediaUi(JsonElement message, ref Task? handling)
         => handling = HandleNativeMediaUiAsync(message);
@@ -15,11 +16,32 @@ internal sealed partial class BridgeDispatcher
     {
         var requestId = Text(message, "requestId"); var peerId = Text(message, "device_id");
         Task Reply(object result) => form.SendAsync("MagnolieMedia.receive", result);
+        var ownsDialog = false;
         try
         {
             var request = NativeMediaUiRequest.Parse(JsonNode.Parse(message.GetRawText())!.AsObject());
+            if (request.Action is "pick_collection_source" or "send_consent" or "pick_destination" or "pick_backup_parent" or "activate" or "backup_restore" or "trash_purge")
+            {
+                if (Interlocked.CompareExchange(ref nativeMediaDialog, 1, 0) != 0)
+                    throw DeviceFileControl.Error("media_collection_native_choice_pending");
+                ownsDialog = true;
+            }
             switch (request.Action)
             {
+                case "pick_collection_source":
+                    var sourceBook = NativeActorSavedBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required");
+                    var sources = telefon.ChooseNativeMediaCollectionFolder(peerId, request.MediaType, request.Version!, current =>
+                    {
+                        current();
+                        using var dialog = new FolderBrowserDialog { Description = T("Add PC source folder …") + " · " + T(request.MediaType == "video" ? "Videos" : "Photos"),
+                            UseDescriptionForTitle = true, ShowNewFolderButton = false };
+                        if (dialog.ShowDialog(form) != DialogResult.OK) return null;
+                        current();
+                        if (NativeActorSavedBook() != sourceBook) throw DeviceFileControl.Error("file_media_current_saved_book_required");
+                        return DeviceFileNativeDirectory.OpenExisting(dialog.SelectedPath);
+                    });
+                    sources["requestId"] = requestId; sources["device_id"] = peerId; sources["ok"] = true;
+                    await Reply(sources); return;
                 case "shared_setting":
                     var shared = await telefon.ChangeNativeMediaUiSharedSettingAsync(peerId, request.SharedField!, request.SharedValue!, request.Version!);
                     shared["requestId"] = requestId; shared["device_id"] = peerId; shared["ok"] = true;
@@ -225,5 +247,6 @@ internal sealed partial class BridgeDispatcher
             await Reply(new { requestId, device_id = peerId, ok = false, supported = Text(message, "action") == "status" ? false : (bool?)null,
                 state = "held", error = error is InvalidDataException ? error.Message : "file_media_native_operation_failed" });
         }
+        finally { if (ownsDialog) Volatile.Write(ref nativeMediaDialog, 0); }
     }
 }
