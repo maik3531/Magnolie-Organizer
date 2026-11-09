@@ -27,7 +27,10 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var unlockAfter = Date.distantPast
     private var notificationConsent = false
     private var selection: BackupSelection?
-    private var restoring = false
+    private enum RestoreState { case idle, activeIO, blockedRestartRequired }
+    private var restoreState = RestoreState.idle
+    private var restoring: Bool { restoreState != .idle }
+    private var authenticatedOrigin: NativeBookRestore.AuthenticatedOrigin?
     private var documentGeneration = UUID()
     private var catalog: [String: String] = [:]
     private let systemAccounts = SystemAccounts()
@@ -160,8 +163,13 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             navigationAction.navigationType == .other && !initialized
         decisionHandler(allowed ? .allow : .cancel)
     }
+    private func invalidateRestoreUI() {
+        davAccounts?.invalidateBookAdmission()
+        if restoreState != .activeIO { restoreState = .blockedRestartRequired }
+    }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        plain = nil; ordinarySaveEpochPolicy = nil; encryption = nil; documentGeneration = UUID()
+        invalidateRestoreUI()
+        plain = nil; ordinarySaveEpochPolicy = nil; encryption = nil; authenticatedOrigin = nil; documentGeneration = UUID()
         alert("WebKit stopped. Unsaved changes may be lost. Disk data was not replaced with an empty document. Restart the Beta.")
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -178,6 +186,10 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             let command = fields["cmd"] as? String ?? "invalid"
             let message = command == "entsperren" ? "Unlock failed: wrong password or damaged/unsupported data." : tr(error.localizedDescription)
             var result: [String: Any] = ["ok": false, "fehler": message, "cmd": command]
+            if command == "sicherung_wiederherstellen" {
+                if restoreState == .blockedRestartRequired { result["restartRequired"] = true }
+                else if restoreState == .activeIO { result["restoreInProgress"] = true }
+            }
             if let id = fields["id"] as? NSNumber { result["id"] = id }
             if let token = fields["token"] as? String { result["token"] = token }
             if let requestID = fields["requestId"] as? String, requestID.utf8.count <= 1024 { result["requestId"] = requestID }
@@ -192,10 +204,13 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         }
     }
     private func send(_ method: String, _ payload: Any = [:]) {
+        let generation = documentGeneration
         web.callAsyncJavaScript("window.MacBeta.receive(method, payload)",
                                 arguments: ["method": method, "payload": payload], in: nil, in: .page) { result in
             if case .failure = result {
-                self.plain = nil; self.ordinarySaveEpochPolicy = nil; self.encryption = nil; self.documentGeneration = UUID()
+                guard self.documentGeneration == generation else { return }
+                self.invalidateRestoreUI()
+                self.plain = nil; self.ordinarySaveEpochPolicy = nil; self.encryption = nil; self.authenticatedOrigin = nil; self.documentGeneration = UUID()
                 self.alert("UI response failed. Further saves are blocked; restart and inspect the retained file.")
             }
         }
@@ -272,6 +287,21 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         try AtomicStore.write(data, to: url)
         return url.path
     }
+    private func validateRestoreCandidate(_ text: String) async throws {
+        let result: Any = try await withCheckedThrowingContinuation { continuation in
+            var finished = false
+            let timeout = DispatchWorkItem {
+                guard !finished else { return }; finished = true
+                continuation.resume(throwing: BetaError("Restore validation exceeded 10 seconds."))
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeout)
+            web.callAsyncJavaScript("return window.MacBeta.validateRestore(text);", arguments: ["text": text], in: nil, in: .page) { (result: Result<Any, Error>) in
+                guard !finished else { return }; finished = true; timeout.cancel(); continuation.resume(with: result)
+            }
+        }
+        guard result as? Bool == true else { throw BetaError("Restore validation did not complete.") }
+    }
+
     private func dispatch(_ request: Request) throws {
         guard !restoring else { throw BetaError("Please wait.") }
         switch request.command {
@@ -298,7 +328,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             }
         case .entsperren:
             guard Date() >= unlockAfter, plain == nil, let envelope else { throw BetaError("Unlock is not available yet.") }
-            let (text, session) = try Encryption.unlock(envelope, password: request.text("kennwort"))
+            let origin = try NativeBookRestore.unlockActual(store: store, password: request.text("kennwort"))
+            let text = origin.plain, session = origin.encryption
+            authenticatedOrigin = origin
             ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: text)
             plain = text; encryption = session; failureCount = 0
             try initialize(text)
@@ -310,7 +342,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             let needsRecovery = (try? Document.assertNoLoss(Document.object(plain), next)) == nil
             let output = try encryption?.encrypt(text) ?? text
             try store.commit(output, preservingCurrent: needsRecovery)
-            self.plain = text; envelope = encryption == nil ? nil : output
+            self.plain = text; authenticatedOrigin = nil; envelope = encryption == nil ? nil : output
             send("gespeichert", ["id": request.fields["id"]!, "ok": true])
         case .kennwort_setzen:
             guard let plain, encryption == nil, envelope == nil,
@@ -327,7 +359,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             guard confirmation.runModal() == .alertFirstButtonReturn else { throw BetaError("Encryption cancelled; original file retained.") }
             let candidate = try Encryption.create(password: request.text("neu"))
             let output = try candidate.encrypt(plain)
-            try store.commit(output); encryption = candidate; envelope = output
+            try store.commit(output); authenticatedOrigin = nil; encryption = candidate; envelope = output
             send("kennwortStand", ["ok": true, "an": true])
         case .beenden: NSApp.terminate(nil)
         case .beenden_bereit:
@@ -382,35 +414,49 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             selection = candidate
             send("sicherungAusgewaehlt", ["ok": true, "pfad": candidate.url.path, "verschluesselt": candidate.encrypted])
         case .sicherung_wiederherstellen:
-            guard let current = plain, let selection else { throw BetaError("This backup cannot be used.") }
-            let source = try selection.confirmed(path: request.text("pfad"))
-            let incoming: String
-            let importedEncryption: Encryption?
-            if selection.encrypted {
-                let unlocked = try Encryption.unlock(source, password: request.text("kennwort"))
-                incoming = unlocked.0; importedEncryption = unlocked.1
-            } else { incoming = source; importedEncryption = nil }
-            let incomingSavePolicy = try OrdinarySaveEpochPolicy(loadedPlain: incoming)
-            // Keep the current profile's password; an encrypted import never becomes
-            // plaintext merely because the current profile had no password yet.
-            let targetEncryption = encryption ?? importedEncryption
-            let output = try targetEncryption?.encrypt(incoming) ?? incoming
-            restoring = true; documentGeneration = UUID()
-            web.callAsyncJavaScript("return window.MacBeta.validateRestore(text);", arguments: ["text": incoming], in: nil, in: .page) { (result: Result<Any, Error>) in
-                defer { self.restoring = false }
+            guard plain != nil, let selection else { throw BetaError("This backup cannot be used.") }
+            // The native latch closes synchronously, before Task enqueue or any await.
+            let transition = try davAccounts.suspendBookAdmission()
+            restoreState = .activeIO; documentGeneration = UUID()
+            let generation = documentGeneration, path = request.text("pfad"), password = request.text("kennwort")
+            Task { @MainActor in
+                var prepared: NativeBookRestore.Prepared?
+                var committed = false
                 do {
-                    guard case .success(let accepted) = result, accepted as? Bool == true, self.plain == current else {
-                        throw BetaError("This backup cannot be used.")
+                    try await self.davAccounts.awaitBookSuspension(transition)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO else { throw BetaError("Restore session changed.") }
+                    let candidate = try NativeBookRestore.prepare(store: self.store, transition: transition, selection: selection, path: path, password: password,
+                                                                 currentEncryption: self.encryption, authenticatedOrigin: self.authenticatedOrigin)
+                    prepared = candidate
+                    try await self.validateRestoreCandidate(candidate.plain)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO else { throw BetaError("Restore session changed.") }
+                    let validation = try await NativeBookRestore.validateUI(candidate, in: self.web)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO else { throw BetaError("Restore session changed.") }
+                    let saved = try NativeBookRestore.commit(candidate, store: self.store)
+                    committed = true
+                    self.plain = candidate.plain; self.encryption = candidate.encryption; self.envelope = saved.envelope
+                    self.authenticatedOrigin = nil
+                    self.ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: candidate.plain)
+                    self.selection = nil
+                    self.localize(self.regional(candidate.plain))
+                    let handoff = try await NativeBookRestore.applyUI(validation, committed: saved, in: self.web)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO else { throw BetaError("Restore session changed.") }
+                    try await self.davAccounts.completeRestoredBookTransition(transition, handoff: handoff)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO, self.plain != nil else {
+                        self.invalidateRestoreUI(); throw BetaError("Restore UI session changed during admission handoff.")
                     }
-                    _ = try selection.confirmed(path: request.text("pfad"))
-                    try self.store.commit(output, preservingCurrent: true)
-                    self.ordinarySaveEpochPolicy = incomingSavePolicy
-                    self.plain = incoming; self.encryption = targetEncryption
-                    self.envelope = targetEncryption == nil ? nil : output; self.selection = nil
-                    self.localize(self.regional(incoming))
-                    self.send("sicherungWiederhergestellt", ["ok": true, "daten": try Document.plain(incoming), "kennwort": targetEncryption != nil])
+                    try await NativeBookRestore.finishUI(validation, committed: saved, in: self.web)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO, self.plain != nil else {
+                        self.invalidateRestoreUI(); throw BetaError("Restore UI session changed during editor release.")
+                    }
+                    self.restoreState = .idle
                 } catch {
-                    self.send("failure", ["cmd": "sicherung_wiederherstellen", "ok": false, "fehler": self.tr(error.localizedDescription)])
+                    self.davAccounts.invalidateBookAdmission()
+                    self.restoreState = .blockedRestartRequired
+                    let outcome = committed ? "Restore was saved, but its UI handoff failed. Restart is required." :
+                        (prepared?.publicationAttempted == true ? "Restore publication has an uncertain outcome. Restart and inspect the retained profile." : "Restore was not written. Restart is required before further editing.")
+                    self.send("failure", ["cmd": "sicherung_wiederherstellen", "ok": false, "restartRequired": true, "fehler": self.tr(outcome)])
+                    self.alert(outcome + "\n" + error.localizedDescription)
                 }
             }
         case .baum_briefkasten_status, .baum_briefkasten_speichern, .baum_briefkasten_pruefen, .baum_dav_pruefen:
@@ -519,7 +565,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             let next = try RegionalSettings.merging(settings, into: plain)
             let output = try encryption?.encrypt(next) ?? next
             try store.commit(output)
-            self.plain = next; envelope = encryption == nil ? nil : output
+            self.plain = next; authenticatedOrigin = nil; envelope = encryption == nil ? nil : output
             send("regionalErgebnis", ["ok": true, "regional": settings])
         case .import:
             guard plain != nil else { throw BetaError("Unlock first.") }
@@ -619,7 +665,8 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if restoring { return .terminateCancel }
+        if restoreState == .activeIO { return .terminateCancel }
+        if restoreState == .blockedRestartRequired { return .terminateNow }
         if closeApproved || web == nil { return .terminateNow }
         if closePending { return .terminateCancel }
         closePending = true; send("vorBeenden")

@@ -55,19 +55,38 @@ public final class AtomicStore {
     }
 
     public func commit(_ text: String, preservingCurrent: Bool = false) throws {
+        try commit(text, preservingCurrent: preservingCurrent, writeCheckpoint: { _ in })
+    }
+    internal func commit(_ text: String, preservingCurrent: Bool, writeCheckpoint: (String) throws -> Void) throws {
         guard loaded, !poisoned else { throw BetaError("Storage is not writable. Restart and inspect the original file.") }
         let data = Data(text.utf8)
         _ = try Document.object(text)
         guard try Self.read(file) == expected else { throw BetaError("Profile changed externally; refusing overwrite.") }
         if preservingCurrent { _ = try checkpoint() }
         do {
-            try Self.write(data, to: file)
+            try Self.write(data, to: file, checkpoint: writeCheckpoint)
             expected = data
         } catch {
             // An error after rename has an uncertain commit outcome. Do not acknowledge or retry in-session.
             poisoned = true
             throw error
         }
+    }
+
+    /// Restore preparation only: prove a loaded absent profile using its existing lease.
+    /// Saved profiles always take the full durability-verification path below.
+    internal func restoreSnapshotBytes() throws -> Data? {
+        guard loaded, !poisoned else { throw BetaError("No usable loaded profile for restore.") }
+        if expected != nil { return try durableSnapshotBytes() }
+        var parent = stat(), path = stat(), descriptor = stat()
+        guard lstat(directory.path, &parent) == 0, parent.st_dev == directoryIdentity.st_dev,
+              parent.st_ino == directoryIdentity.st_ino, parent.st_uid == getuid(), parent.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR), parent.st_mode & 0o077 == 0,
+              lstat(directory.appendingPathComponent("profile.lock").path, &path) == 0,
+              fstat(lease, &descriptor) == 0, path.st_dev == leaseIdentity.st_dev, path.st_ino == leaseIdentity.st_ino,
+              descriptor.st_dev == leaseIdentity.st_dev, descriptor.st_ino == leaseIdentity.st_ino,
+              descriptor.st_uid == getuid(), descriptor.st_nlink == 1, descriptor.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), descriptor.st_mode & 0o077 == 0,
+              try Self.read(file) == nil else { throw BetaError("The absent profile or its storage authority changed.") }
+        return nil
     }
 
     /// Evidence-only actual disk read. Like load/commit, caller must serialize access to this

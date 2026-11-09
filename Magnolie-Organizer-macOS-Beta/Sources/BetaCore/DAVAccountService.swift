@@ -401,14 +401,25 @@ public actor DAVAccountService {
     public func awaitBookSuspension(_ transition: DAVBookTransitionTicket) throws {
         try bookAdmission.validateSuspended(transition); revokeLeases()
     }
-    /// No public proof constructor/issuer. A future reviewed native helper must first verify
-    /// actual saved bytes/epoch AND successful native UI handoff; a renderer Bool is insufficient.
+    /// Closed native restore proof only: the helper binds actual saved evidence and verified
+    /// operation-specific UI handoff to this exact transition. Namespace never leaves the service.
+    public func completeRestoredBookTransition(_ transition: DAVBookTransitionTicket, handoff: NativeBookRestore.Handoff) throws {
+        guard handoff.committed.prepared.transition == transition else { throw DAVAccountLeaseError.bindingChanged }
+        let confirmation = try DAVBookHandoffConfirmation(transition: transition, savedEvidence: handoff.committed.evidence,
+            accountStoreNamespace: configurationStore.revisionNamespace)
+        try completeBookTransition(transition, confirmation: confirmation)
+    }
+    /// No public proof constructor/decoder. NativeBookRestore's closed handoff is the only
+    /// production issuer; actual saved bytes/epoch and successful UI apply are prerequisites.
     public func completeBookTransition(_ transition: DAVBookTransitionTicket, confirmation: DAVBookHandoffConfirmation) throws {
         try bookAdmission.validateSuspended(transition)
         guard OpaqueUTF8Identity(confirmation.accountStoreNamespace) == OpaqueUTF8Identity(configurationStore.revisionNamespace) else { throw DAVAccountLeaseError.bindingChanged }
         revokeLeases()
         try bookAdmission.reopen(transition, confirmation: confirmation)
     }
+    /// Current WK/session loss must close synchronously BEFORE any actor work is queued.
+    /// Terminal in every phase; a previously queued handoff cannot reopen this instance.
+    public nonisolated func invalidateBookAdmission() { bookAdmission.invalidateAnyState() }
     /// Uncertain publication/UI outcome never reopens this instance, even with an old proof.
     public nonisolated func blockBookAdmission(_ transition: DAVBookTransitionTicket) throws { try bookAdmission.block(transition) }
 

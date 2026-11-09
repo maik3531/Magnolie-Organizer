@@ -9,10 +9,10 @@ public struct DAVBookTransitionTicket: Equatable, Sendable {
     internal let owner: UUID, transition: UUID
 }
 
-/// No public initializer/decoder and no production issuer in this slice. A future reviewed
-/// native restore helper may construct this ONLY after actual saved-disk verification AND
-/// successful native UI apply handoff. Starting an asynchronous send is not that handoff.
-/// Tests explicitly model the nonpublic handoff; this is not journal-retirement proof.
+/// No public initializer/decoder. The service constructs this only from NativeBookRestore's
+/// closed, transition-bound handoff after actual saved-disk verification AND successful native
+/// UI apply. Starting an asynchronous send is not that handoff. Tests also explicitly model
+/// the nonpublic handoff; neither route is journal-retirement proof.
 public struct DAVBookHandoffConfirmation {
     internal let transition: DAVBookTransitionTicket, epoch: UUID, rawSHA256: String, accountStoreNamespace: String
     internal init(transition: DAVBookTransitionTicket, savedEvidence: DAVBookDiskSnapshot.Evidence, accountStoreNamespace: String) throws {
@@ -71,6 +71,13 @@ internal final class DAVBookAdmission: @unchecked Sendable {
     func validateSuspended(_ ticket: DAVBookTransitionTicket) throws {
         lock.lock(); defer { lock.unlock() }
         guard ticket.owner == owner, case .suspended(let transition) = state, transition == ticket.transition else { throw DAVAccountLeaseError.bookAdmissionClosed }
+    }
+    /// Current native UI/session loss closes every phase, including a queued or completed
+    /// handoff. Idempotent and terminal; cancellations run only after releasing admission.
+    func invalidateAnyState() {
+        lock.lock(); state = .blocked
+        let pending = gates.compactMap(\.value); gates.removeAll(); lock.unlock()
+        for gate in pending { gate.revoke() }
     }
     func block(_ ticket: DAVBookTransitionTicket) throws {
         lock.lock()

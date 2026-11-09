@@ -262,7 +262,26 @@ def project(snapshot, target):
                         '    { id: "ort", name: msgid("Country & holidays") },')
     note_import = snapshot[str((BETA / "Projection/note-file-import.js").relative_to(REPO))].decode()
     text = replace_once(text, "  const App = {", note_import + "\n  const App = {\n    macOSBetaStartNoteImport, macOSBetaImportNoteFiles,")
-    text = replace_once(text, "  const App = {", '''  const App = {
+    text = replace_once(text, "  const App = {", '''  let macOSBetaPreparedRestore = null;
+  const App = {
+    macOSBetaPrepareNativeRestore(text, operationID) {
+      if (macOSBetaPreparedRestore) throw new Error("A native restore model is already prepared.");
+      if (typeof operationID !== "string" || !/^[a-f0-9-]{36}$/.test(operationID)) throw new Error("Invalid native restore operation.");
+      const model = normalisiere(JSON.parse(text));
+      const snapshot = JSON.stringify(model);
+      if (JSON.stringify(normalisiere(JSON.parse(snapshot))) !== snapshot) throw new Error("Restore normalization is not a fixed point.");
+      macOSBetaPreparedRestore = { operationID, snapshot };
+      return { operationID, snapshot };
+    },
+    macOSBetaApplyNativeRestore(operationID, encrypted) {
+      const prepared = macOSBetaPreparedRestore;
+      if (!prepared || prepared.operationID !== operationID) throw new Error("Stale native restore operation.");
+      macOSBetaPreparedRestore = null;
+      App.sicherungWiederhergestellt({ ok: true, daten: JSON.parse(prepared.snapshot), kennwort: encrypted === true });
+      const snapshot = JSON.stringify(DATEN);
+      if (snapshot !== prepared.snapshot || letzterSpeicherText !== snapshot) throw new Error("Actual restore callback did not retain its validated model.");
+      return { operationID, snapshot };
+    },
     macOSBetaValidateRestore(text) {
       normalisiere(JSON.parse(text));
       return true;

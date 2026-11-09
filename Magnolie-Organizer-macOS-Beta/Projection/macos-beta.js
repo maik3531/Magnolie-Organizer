@@ -12,7 +12,19 @@
   const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; calendar, task and anniversary ICS; " +
     "attachment Save; clipboard; reminders only while open. No sync, background " +
     "wake, auto-update, password change/removal or office export. Printing uses the system print dialog, including Save as PDF. Native feature acceptance remains incomplete.";
-  let ready = false, restorePending = false;
+  let ready = false, restorePending = false, nativeRestoreLocked = false;
+  let nativeRestoreOperation = null, nativeRestoreApplied = null, nativeRestoreRestartRequired = false;
+  function lockNativeRestore() {
+    nativeRestoreLocked = true;
+    document.body.inert = true;
+    document.body.setAttribute("aria-busy", "true");
+  }
+  function unlockNativeRestore() {
+    if (nativeRestoreRestartRequired) return;
+    nativeRestoreLocked = false; restorePending = false;
+    nativeRestoreOperation = null; nativeRestoreApplied = null;
+    document.body.inert = false; document.body.removeAttribute("aria-busy");
+  }
   const tr = text => window.MagnolieI18n.gettext(text);
 
   function show(text) {
@@ -107,6 +119,24 @@
       }
       return true;
     },
+    prepareNativeRestore(text, operationID) {
+      if (!ready || !restorePending) throw new Error("No validated native restore is pending.");
+      const expected = window.App.macOSBetaPrepareNativeRestore(text, operationID);
+      nativeRestoreOperation = operationID; lockNativeRestore();
+      return expected;
+    },
+    applyNativeRestore(operationID, encrypted) {
+      if (!ready || !restorePending) throw new Error("No validated native restore is pending.");
+      if (nativeRestoreOperation !== operationID) throw new Error("Stale native restore operation.");
+      const receipt = window.App.macOSBetaApplyNativeRestore(operationID, encrypted);
+      nativeRestoreApplied = operationID;
+      return receipt;
+    },
+    finishNativeRestore(operationID) {
+      if (nativeRestoreRestartRequired || !nativeRestoreLocked || nativeRestoreOperation !== operationID || nativeRestoreApplied !== operationID) throw new Error("Native restore completion is stale.");
+      unlockNativeRestore();
+      return { operationID, released: true };
+    },
     validateRestore(text) {
       if (!ready || restorePending) throw new Error("Storage is not ready.");
       window.App.macOSBetaValidateRestore(text);
@@ -183,7 +213,8 @@
         queueMicrotask(() => failure(result));
         return true; // Request handled with a negative result, never a successful mutation ACK.
       }
-      if (request.cmd === "speichern" && (!ready || restorePending)) {
+      if (request.cmd === "sicherung_wiederherstellen") lockNativeRestore();
+      if (request.cmd === "speichern" && (!ready || restorePending || nativeRestoreLocked)) {
         queueMicrotask(() => failure({ cmd: "speichern", id: request.id, ok: false, fehler: "Storage initialization has not succeeded." }));
         return true;
       }
@@ -191,7 +222,14 @@
       return true;
     },
     receive(method, payload) {
-      if (method === "sicherungWiederhergestellt" || (method === "failure" && payload.cmd === "sicherung_wiederherstellen")) restorePending = false;
+      if (method === "failure" && payload.cmd === "sicherung_wiederherstellen") {
+        if (payload.restartRequired === true) {
+          nativeRestoreRestartRequired = true;
+          restorePending = true; lockNativeRestore();
+          show(payload.fehler || "Restart is required before further editing.");
+        } else if (payload.restoreInProgress === true) { lockNativeRestore(); }
+        else { unlockNativeRestore(); }
+      } else if (method === "sicherungWiederhergestellt" && !nativeRestoreLocked) restorePending = false;
       if (method === "failure") { failure(payload); return; }
       if (!methods.has(method)) throw new Error("Invalid native callback.");
       if (method === "init") {

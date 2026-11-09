@@ -213,4 +213,38 @@ try {
   await tick();
   assert.equal(b.messages.some(m => m.cmd === "speichern"), false); assertions++;
 } finally { b.close(); }
+// Actual projected callback and private operation-bound model, not a fake return.
+const restore = await boot(root);
+try {
+  const {w,t} = restore;
+  w.MacBeta.receive("init", {daten:{termine:[],aufgaben:[],kontakte:[],notizen:[],futureRoot:{keep:"live"},einstellungen:{allgemein:{handbuchHinweisGezeigt:true}}},neu:false,regional:{language:"en",timeZone:"UTC"}});
+  const before = JSON.stringify(t.daten()), operationID="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", epoch="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const candidate=JSON.parse(before); candidate.futureRoot.keep="restored";
+  candidate.syncEpoch=epoch; candidate.syncMetadaten.syncEpoch=epoch; candidate.einstellungen.sync.syncEpoch=epoch;
+  assert.equal(w.MacBeta.validateRestore(JSON.stringify(candidate)),true); assertions++;
+  const expected=w.MacBeta.prepareNativeRestore(JSON.stringify(candidate),operationID);
+  assert.equal(JSON.stringify(t.daten()),before); assertions++;
+  assert.equal(expected.operationID,operationID); assertions++;
+  assert.equal(JSON.parse(expected.snapshot).syncEpoch,epoch); assertions++;
+  assert.throws(()=>w.MacBeta.prepareNativeRestore(JSON.stringify(candidate),operationID),/already prepared/); assertions++;
+  assert.throws(()=>w.MacBeta.applyNativeRestore("cccccccc-cccc-4ccc-8ccc-cccccccccccc",false),/Stale/); assertions++;
+  assert.equal(JSON.stringify(t.daten()),before); assertions++;
+  const applied=w.MacBeta.applyNativeRestore(operationID,false);
+  assert.equal(applied.snapshot,expected.snapshot); assertions++;
+  assert.equal(JSON.stringify(t.daten()),expected.snapshot); assertions++;
+  assert.equal(t.daten().futureRoot.keep,"restored"); assertions++;
+  assert.equal(w.document.body.inert,true); assertions++;
+  assert.throws(()=>w.MacBeta.finishNativeRestore("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),/stale/); assertions++;
+  assert.equal(w.document.body.inert,true); assertions++;
+  assert.equal(w.MacBeta.finishNativeRestore(operationID).released,true); assertions++;
+  assert.equal(w.document.body.inert,false); assertions++;
+  assert.throws(()=>w.MacBeta.applyNativeRestore(operationID,false),/No validated/); assertions++;
+  w.MacBeta.receive("failure",{cmd:"sicherung_wiederherstellen",ok:false,restartRequired:true,fehler:"Restart required test"});
+  assert.equal(w.document.body.inert,true); assertions++;
+  assert.match(w.document.getElementById("macos-beta-status").textContent,/Restart required/); assertions++;
+  w.MacBeta.receive("failure",{cmd:"sicherung_wiederherstellen",ok:false,fehler:"old reset"});
+  assert.equal(w.document.body.inert,true); assertions++;
+  assert.throws(()=>w.MacBeta.finishNativeRestore(operationID),/stale/); assertions++;
+  await tick();
+} finally { restore.close(); }
 console.log(`macOS Beta host UI: ${assertions} assertions passed. jsdom/V8 only; NOT macOS or WKWebView validation.`);

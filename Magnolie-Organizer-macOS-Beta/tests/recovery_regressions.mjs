@@ -40,7 +40,13 @@ try {
   w.MacBeta.send({ cmd: "speichern", id: 900, text: "{}" }, "hostTest");
   await tick();
   equal(messages.length, count, "save fenced during restore");
-  w.MacBeta.receive("sicherungWiederhergestellt", { ok: true, daten: incoming, kennwort: true });
+  const restoreOperation = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  const expectedRestore = w.MacBeta.prepareNativeRestore(JSON.stringify(incoming), restoreOperation);
+  equal(w.document.body.inert, true, "editors remain inert during native restore");
+  equal(w.MacBeta.applyNativeRestore(restoreOperation, true).snapshot, expectedRestore.snapshot, "actual callback returns exact validated model");
+  equal(w.document.body.inert, true, "model apply alone cannot release editors");
+  equal(w.MacBeta.finishNativeRestore(restoreOperation).released, true, "native final handoff releases current operation");
+  equal(w.document.body.inert, false, "editors released only after final native handoff");
   equal(t.daten().future.keep, "imported", "committed document displayed");
   equal(t.daten().notizen[0].futureAttachment, "AA==", "opaque attachment retained");
   equal(w.document.getElementById("sicherung-schleier").classList.contains("verborgen"), true, "confirmation closes on committed success");

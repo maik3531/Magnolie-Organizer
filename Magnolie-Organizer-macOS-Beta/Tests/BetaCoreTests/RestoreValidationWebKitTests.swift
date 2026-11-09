@@ -166,6 +166,43 @@ import XCTest
         _ = try await javascript("window.MacBeta.receive('failure',{cmd:'sicherung_wiederherstellen',ok:false,fehler:'Synthetic validation cancellation'}); return true;")
         let afterReset = try await javascript("return JSON.stringify(window.OrganizerTest.daten());")
         XCTAssertEqual(afterReset as? String, before)
+        // Full native candidate -> actual validator/fixed point -> durable publication
+        // -> actual App restore callback -> exact model receipt. Synthetic bridge only.
+        let restoreDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: restoreDirectory) }
+        let actualStore = try AtomicStore(directory: restoreDirectory)
+        XCTAssertNil(try actualStore.load()); try actualStore.commit(before)
+        let recovery = try actualStore.checkpoint()
+        let accounts = DAVAccountService(configuration: try DAVAccountFileStore(directory: restoreDirectory))
+        let transition = try accounts.suspendBookAdmission()
+        try await accounts.awaitBookSuspension(transition)
+        let prepared = try NativeBookRestore.prepare(store: actualStore, transition: transition, selection: BackupSelection(url: recovery), path: recovery.path, password: "", currentEncryption: nil, authenticatedOrigin: nil)
+        let validated = try await javascript(body, arguments: ["text": prepared.plain])
+        XCTAssertEqual(validated as? Bool, true)
+        let validation = try await NativeBookRestore.validateUI(prepared, in: web)
+        let expected = validation.snapshot
+        let afterPreparation = try await javascript("return JSON.stringify(window.OrganizerTest.daten());")
+        XCTAssertEqual(afterPreparation as? String, before)
+        let saved = try NativeBookRestore.commit(prepared, store: actualStore)
+        do {
+            _ = try await javascript("return window.MacBeta.applyNativeRestore(operationID, false);", arguments: ["operationID": UUID().uuidString.lowercased()])
+            XCTFail("Stale apply was accepted")
+        } catch { XCTAssertEqual((error as NSError).domain, WKError.errorDomain) }
+        let otherView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        do { _ = try await NativeBookRestore.applyUI(validation, committed: saved, in: otherView); XCTFail("Foreign WK view accepted validation") }
+        catch { XCTAssertTrue(error is BetaError) }
+        let handoff = try await NativeBookRestore.applyUI(validation, committed: saved, in: web)
+        try await accounts.completeRestoredBookTransition(transition, handoff: handoff)
+        _ = try accounts.captureBookSession()
+        let lockedBeforeRelease = try await javascript("return document.body.inert === true;")
+        XCTAssertEqual(lockedBeforeRelease as? Bool, true)
+        try await NativeBookRestore.finishUI(validation, committed: saved, in: web)
+        let unlockedAfterRelease = try await javascript("return document.body.inert === false;")
+        XCTAssertEqual(unlockedAfterRelease as? Bool, true)
+        let actualModel = try await javascript("return JSON.stringify(window.OrganizerTest.daten());")
+        XCTAssertEqual(Data((actualModel as? String ?? "").utf8), Data(expected.utf8))
+        XCTAssertEqual(try String(contentsOf: actualStore.file, encoding: .utf8), prepared.plain)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: recovery.path))
     }
 }
 #endif
