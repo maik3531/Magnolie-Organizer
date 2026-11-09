@@ -74,8 +74,10 @@ for (const [p,b] of buffers) if (p.startsWith(desktop + path.sep)) generated.set
 const drawingPatch = JSON.parse(buffers.get(path.join(parent,'port-adapters/drawing-finish-patch.json')));
 const drawingSource = generated.get('assets/web/zeichenblatt.js').toString();
 if (drawingPatch.schema !== 1 || sha(drawingSource) !== drawingPatch.canonicalSHA256 ||
-    drawingSource.split(drawingPatch.before).length !== 2) throw Error('Canonical drawing finish anchor changed');
-generated.set('assets/web/zeichenblatt.js',Buffer.from(drawingSource.replace(drawingPatch.before,drawingPatch.after)));
+    drawingSource.split(drawingPatch.before).length !== 2 ||
+    typeof drawingPatch.releaseBefore !== 'string' || typeof drawingPatch.releaseAfter !== 'string' ||
+    drawingSource.split(drawingPatch.releaseBefore).length !== 2) throw Error('Canonical drawing finish anchor changed');
+generated.set('assets/web/zeichenblatt.js',Buffer.from(drawingSource.replace(drawingPatch.before,drawingPatch.after).replace(drawingPatch.releaseBefore,drawingPatch.releaseAfter)));
 // Android does not provide the desktop's Noto Serif / DejaVu families by name.
 // Reuse live Windows @font-face definitions and bytes, never host font discovery.
 const fontFaces = buffers.get(path.join(windowsWeb,'stil.css')).toString().match(/@font-face\s*\{[^}]+\}/g) || [];

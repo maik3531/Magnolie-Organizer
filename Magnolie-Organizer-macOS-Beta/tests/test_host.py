@@ -153,9 +153,11 @@ class ProjectionTests(unittest.TestCase):
                     if name == original + "zeichenblatt.js":
                         drawing_patch = json.loads(self.snapshot["port-adapters/drawing-finish-patch.json"])
                         before, after = drawing_patch["before"].encode(), drawing_patch["after"].encode()
+                        release_before, release_after = drawing_patch["releaseBefore"].encode(), drawing_patch["releaseAfter"].encode()
                         self.assertEqual(data.count(before), 1)
-                        self.assertEqual(actual, data.replace(before, after, 1))
-                        self.assertEqual(actual.replace(after, before, 1), data)
+                        self.assertEqual(data.count(release_before), 1)
+                        self.assertEqual(actual, data.replace(before, after, 1).replace(release_before, release_after, 1))
+                        self.assertEqual(actual.replace(release_after, release_before, 1).replace(after, before, 1), data)
                     else:
                         self.assertEqual(actual, data)
             html = (a / "web/index.html").read_text()
