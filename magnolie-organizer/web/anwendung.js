@@ -7023,6 +7023,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (terminIdentitaet(links) !== terminIdentitaet(rechts)) return false;
     const quelle = (t) => String(t.icsQuelleId || t.syncKalenderUid || (t.kalenderQuelle || {}).id || "");
     if (quelle(links) !== quelle(rechts)) return false;
+    const rid = t => (Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip : [])
+      .filter(x => typeof x === "string" && /^RECURRENCE-ID[;:]/i.test(x));
+    // Same title/date/series does not identify two distinct detached instances.
+    if (JSON.stringify(rid(links)) !== JSON.stringify(rid(rechts))) return false;
     const rechtsIds = terminStarkeKennungen(rechts);
     return Array.from(terminStarkeKennungen(links)).some((id) => rechtsIds.has(id));
   }
@@ -33180,7 +33184,78 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return kandidaten.size === 1 ? Array.from(kandidaten)[0] : null;
   }
 
-  function mergeTermine(liste, normalisiert = false) {
+  // #462: old Android JSONObject quoting escaped every slash in the RID hash.
+  // These plans are ephemeral import state, never a renamed UID or stored alias.
+  const alteAndroidTerminPlaene = new WeakMap();
+  function alterAndroidTerminKonflikt() {
+    const error = new Error(_("Conflict")); error.code = "ics_alias_conflict"; return error;
+  }
+  function alteAndroidTerminIdentitaet(t) {
+    if (!t || typeof t.icsQuelleId !== "string" || !t.icsQuelleId ||
+        typeof t.icsSerienUid !== "string" || !t.icsSerienUid || /[\x00-\x1f]/.test(t.icsQuelleId + t.icsSerienUid)) return null;
+    const zeilen = (Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip : []).filter(x => typeof x === "string" && /^RECURRENCE-ID[;:]/i.test(x));
+    if (zeilen.length !== 1 || zeilen[0].length > 8192 || /[\x00-\x1f]/.test(zeilen[0])) return null;
+    const raw = zeilen[0], teile = []; let zitat = false, start = 0, ende = -1;
+    for (let i = 0; i < raw.length; i++) {
+      if (raw[i] === '"') zitat = !zitat;
+      if (!zitat && (raw[i] === ";" || raw[i] === ":")) {
+        teile.push(raw.slice(start, i)); start = i + 1;
+        if (raw[i] === ":") { ende = i; break; }
+      }
+    }
+    if (zitat || ende < 0 || teile[0].toUpperCase() !== "RECURRENCE-ID") return null;
+    const params = Object.create(null);
+    for (const teil of teile.slice(1)) {
+      const gleich = teil.indexOf("="), key = teil.slice(0, gleich).toUpperCase();
+      if (gleich < 1 || !/^[A-Z0-9-]+$/.test(key) || Object.prototype.hasOwnProperty.call(params, key)) return null;
+      let wert = teil.slice(gleich + 1);
+      if (wert.startsWith('"') && wert.endsWith('"')) wert = wert.slice(1, -1);
+      else if (wert.includes('"')) return null;
+      params[key] = wert;
+    }
+    const wert = raw.slice(ende + 1);
+    if (!/^\d{8}(?:T\d{6}Z?)?$/.test(wert)) return null;
+    return { key: JSON.stringify([t.icsQuelleId, t.icsSerienUid, raw]), serie: t.icsSerienUid, params, wert };
+  }
+  function alteAndroidTerminKandidaten(nutzlast) {
+    const eingang = new Map();
+    for (const t of nutzlast.termine || []) {
+      const id = alteAndroidTerminIdentitaet(t); if (!id) continue;
+      if (!eingang.has(id.key)) eingang.set(id.key, new Set()); eingang.get(id.key).add(t.uid);
+    }
+    return DATEN.termine.filter(t => {
+      const id = alteAndroidTerminIdentitaet(t);
+      const uids = id && eingang.get(id.key);
+      return uids && (uids.size > 1 || !uids.has(t.uid)) && t.uid?.startsWith(id.serie + "-magnolie-instanz-") && /-magnolie-instanz-[0-9a-f]{16}$/.test(t.uid);
+    });
+  }
+  async function bereiteAlteAndroidTerminAliase(nutzlast) {
+    const bestand = DATEN, vorher = JSON.stringify(DATEN.termine), kandidaten = alteAndroidTerminKandidaten(nutzlast);
+    const aliase = new Map(), gesehen = new Set(), vorhandene = new Map(), alte = new Map();
+    for (const t of DATEN.termine) {
+      const id = alteAndroidTerminIdentitaet(t); if (!id) continue;
+      if (!vorhandene.has(id.key)) vorhandene.set(id.key, []); vorhandene.get(id.key).push(t);
+    }
+    for (const k of kandidaten) {
+      const key = alteAndroidTerminIdentitaet(k).key;
+      if (!alte.has(key)) alte.set(key, []); alte.get(key).push(k);
+    }
+    for (const t of nutzlast.termine || []) {
+      const id = alteAndroidTerminIdentitaet(t);
+      if (!id || !alte.get(id.key)?.some(k => k.uid !== t.uid)) continue;
+      if (gesehen.has(id.key)) throw alterAndroidTerminKonflikt(); gesehen.add(id.key);
+      const text = personalSyncKanonisch([id.params, id.wert]).replace(/\//g, "\\/");
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN.termine) !== vorher) throw alterAndroidTerminKonflikt();
+      const alt = id.serie + "-magnolie-instanz-" + Array.from(new Uint8Array(digest), x => x.toString(16).padStart(2, "0")).join("").slice(0, 16);
+      const treffer = vorhandene.get(id.key);
+      if (treffer.length !== 1 || treffer[0].uid !== alt) throw alterAndroidTerminKonflikt();
+      aliase.set(JSON.stringify([id.key, t.uid]), { id: treffer[0].id, uid: alt });
+    }
+    alteAndroidTerminPlaene.set(nutzlast, { vorher, aliase });
+  }
+
+  function mergeTermine(liste, normalisiert = false, aliasPlan = null) {
     const z = { neu: 0, doppelt: 0 };
     const importKennung = (eintrag, wert) => {
       const quelle = String(eintrag.icsQuelleId || "");
@@ -33191,10 +33266,25 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const t of normalisiert ? liste : normalisiereTermine(liste, false)) {
       const endDatum = gueltigesISO(t.endDatum) && t.endDatum > t.datum
         ? t.endDatum : "";
-      const uidTreffer = t.uid ? uids.get(importKennung(t, t.uid)) : null;
+      const identitaet = alteAndroidTerminIdentitaet(t);
+      const alias = identitaet && aliasPlan?.aliase.get(JSON.stringify([identitaet.key, t.uid]));
+      const uidTreffer = alias ? uids.get(importKennung(t, alias.uid)) : t.uid ? uids.get(importKennung(t, t.uid)) : null;
+      if (alias && (!uidTreffer || uidTreffer.id !== alias.id || alteAndroidTerminIdentitaet(uidTreffer)?.key !== identitaet.key)) throw alterAndroidTerminKonflikt();
       if (uidTreffer) {
         if ((Number(t.geaendert) || 0) > (Number(uidTreffer.geaendert) || 0)) {
           const id = uidTreffer.id;
+          if (alias) {
+            // Preserve the old primary identity, references, all unknowns and
+            // local/provider lists. Normalized incoming defaults are not edits.
+            for (const feld of ["datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kategorien", "ort", "akzentFarbe",
+              "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "wiederholung", "icsKomplex", "icsSerienUid", "icsAusnahmen",
+              "icsZusatzDaten", "icsZusatzTermine", "icsRoundtrip", "icsRangeOverrides", "icsAusnahmeTermine", "icsTimezones",
+              "icsAnzeigeZeitzone", "icsSequence", "icsAenderungszeitFehlt", "icsEndeFehlt", "icsNullDauer", "geaendert"])
+              if (Object.prototype.hasOwnProperty.call(t, feld)) uidTreffer[feld] = kopie(t[feld]);
+            uidTreffer.icsReadOnly = !!(uidTreffer.icsReadOnly || t.icsReadOnly);
+            if (!uidTreffer.icsReadOnlyGrund && t.icsReadOnlyGrund) uidTreffer.icsReadOnlyGrund = String(t.icsReadOnlyGrund);
+            uidTreffer.sync = false; z.neu++; continue;
+          }
           Object.assign(uidTreffer, t, { id: id, uid: t.uid,
             endDatum: endDatum, wiederholung: leseWiederholung(t.wiederholung),
             icsKomplex: !!t.icsKomplex, icsSerienUid: String(t.icsSerienUid || ""),
@@ -33650,6 +33740,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {
+    const aliasPlan = alteAndroidTerminPlaene.get(nutzlast);
+    if (aliasPlan ? JSON.stringify(DATEN.termine) !== aliasPlan.vorher : alteAndroidTerminKandidaten(nutzlast).length)
+      throw alterAndroidTerminKonflikt();
     if (kontaktPruefung) {
       DATEN.kontakte = kontaktPruefung.daten.kontakte;
       DATEN.jahrestage = kontaktPruefung.daten.jahrestage;
@@ -33669,7 +33762,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           kanonischesJahresdatum(k[art === "birthday" ? "geburtstag" : "jubilaeum"], art === "birthday" && k.geburtstagJahrUnbekannt);
     });
     if (Array.isArray(nutzlast.termine) && nutzlast.termine.length) {
-      const z = mergeTermine(nutzlast.termine, termineNormalisiert); doppelt += z.doppelt; counts.appointments = z.neu;
+      const z = mergeTermine(nutzlast.termine, termineNormalisiert, aliasPlan); doppelt += z.doppelt; counts.appointments = z.neu;
       if (z.neu) teile.push(uebersetztMehrzahl("%(count)s appointment", "%(count)s appointments", z.neu));
     }
     if (Array.isArray(nutzlast.jahrestage) && nutzlast.jahrestage.length) {
@@ -36254,6 +36347,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (DATEN !== bestand || gesperrt) { setupImportBeenden(); return; }
           App.importErgebnis({ ...nutzlast, termine: termine }, true);
         })().catch(fehler => App.importErgebnis({ fehler: String(fehler.message || fehler) }));
+      }
+      if (!alteAndroidTerminPlaene.has(nutzlast) && alteAndroidTerminKandidaten(nutzlast).length) {
+        const bestand = DATEN, vorher = JSON.stringify(DATEN);
+        const eingang = { ...nutzlast, termine: termineNormalisiert ? nutzlast.termine : normalisiereTermine(nutzlast.termine, false) };
+        return bereiteAlteAndroidTerminAliase(eingang).then(() => {
+          if (DATEN !== bestand || gesperrt || JSON.stringify(DATEN) !== vorher) throw alterAndroidTerminKonflikt();
+          return App.importErgebnis(eingang, true, kontaktPruefung);
+        }).catch(error => App.importErgebnis({ fehler: String(error.message || error) }));
       }
       if (!kontaktPruefung && Array.isArray(nutzlast.kontakte) && nutzlast.kontakte.length) {
         const eingang = kopie(nutzlast);
@@ -40594,6 +40695,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           try {
             await mcpLeseImportQuelle({ ...review.sourceArgs, expected_revision: review.payload.revision }, signal);
             mcpLeseImportPruefung(args.token, owner);
+            if (alteAndroidTerminKandidaten(review.payload).length) {
+              try { await bereiteAlteAndroidTerminAliase(review.payload); }
+              catch (error) {
+                if (error.code === "ics_alias_conflict") throw new MagnolieMcp.ToolError("conflict", "Ambiguous or changed calendar instance alias");
+                throw error;
+              }
+              mcpLeseImportPruefung(args.token, owner);
+            }
             const contacts = review.preparation ? await erstelleKontaktDateiEntwurf(review.preparation) : null;
             mcpLeseImportPruefung(args.token, owner);
             if (contacts) await new Promise((resolve, reject) => mitMutationsSnapshot("pre-contact-import", resolve, () => reject(new MagnolieMcp.ToolError("snapshot_failed", "Native pre-import checkpoint failed"))));
