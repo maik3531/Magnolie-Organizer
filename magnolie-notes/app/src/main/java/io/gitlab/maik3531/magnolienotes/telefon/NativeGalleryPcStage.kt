@@ -247,8 +247,17 @@ internal class NativeGalleryPcStage private constructor(private val base: File, 
             if (!NativeGalleryMediaIoLane.isOwnedBy(lane)) fail("gallery_incoming_worker_busy")
             if (GalleryPcStageRecord.media(plan).kind != GalleryMediaType.IMAGES) fail("gallery_pc_stage_video_owner_required")
             index.requirePcStageAdmission(grant, channel, plan); index.requirePcStageCapacity(plan)
-            val base = context.applicationContext.noBackupFilesDir.canonicalFile
-            val parent = File(base, "native-pc-replacement-stages")
+            // Context owns noBackup's permissions. Do not chmod it or demand
+            // that the platform's directory has our own 0700 policy. Every
+            // directory we actually manage remains private and inode-bound.
+            val applicationBase = context.applicationContext.noBackupFilesDir.canonicalFile
+            val base = File(applicationBase, "native-pc-replacement-stages")
+            if (!Files.exists(base.toPath(), NOFOLLOW_LINKS)) Files.createDirectory(base.toPath(), PRIVATE_DIRECTORY)
+            if (!attributes(base).isDirectory || base.canonicalFile != base ||
+                Files.getOwner(base.toPath(), NOFOLLOW_LINKS) != Files.getOwner(applicationBase.toPath(), NOFOLLOW_LINKS) ||
+                Files.getPosixFilePermissions(base.toPath(), NOFOLLOW_LINKS).any { it.name.startsWith("GROUP_") || it.name.startsWith("OTHERS_") })
+                fail("gallery_pc_stage_not_private")
+            val parent = File(base, "entries")
             if (!Files.exists(parent.toPath(), NOFOLLOW_LINKS)) Files.createDirectory(parent.toPath(), PRIVATE_DIRECTORY)
             val baseKey = attributes(base).fileKey()?.toString() ?: fail("gallery_pc_stage_identity_required")
             val parentKey = attributes(parent).fileKey()?.toString() ?: fail("gallery_pc_stage_identity_required")

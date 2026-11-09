@@ -1279,6 +1279,19 @@ class GalleryIncomingRowsTest {
         h.assertOriginal(); transfer.close(); assertTrue(transfer.awaitIoEnded(0))
     }
 
+    @Test fun pcStageKeepsPlatformDirectoryPermissionsUntouchedAndStillRejectsNonprivateOwnedDirectories() = withPcStage { h ->
+        val permissions = java.nio.file.attribute.PosixFilePermissions.fromString("rwxr-xr-x")
+        java.nio.file.Files.setPosixFilePermissions(h.context.noBackupFilesDir.toPath(), permissions)
+        val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
+        assertEquals(permissions, java.nio.file.Files.getPosixFilePermissions(h.context.noBackupFilesDir.toPath()))
+        val root = File(h.f.io { transfer.sealedRecord().body.string("root_path") })
+        for (owned in listOf(root, root.parentFile, root.parentFile.parentFile))
+            assertEquals(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"), java.nio.file.Files.getPosixFilePermissions(owned.toPath()))
+        java.nio.file.Files.setPosixFilePermissions(root.parentFile.parentFile.toPath(), permissions)
+        assertThrows(PhotoFolderScopeError::class.java) { h.f.io { transfer.readStagedAt(0, ByteArray(3), 0, 3) } }
+        h.assertOriginal(); assertTrue(h.f.index.pcStages().single().sealed)
+    }
+
     @Test fun pcStageRejectsForeignFilesSubstituteRootsAndHardlinksWithoutDeletingOrAdoptingThem() {
         for (reason in listOf("extra", "root", "hardlink")) withPcStage { h ->
             val transfer = h.prepare(); h.serve(transfer); h.f.io { transfer.sendAcceptance(); transfer.receiveAndStage() }
