@@ -92,6 +92,11 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
     private class VerifiedRead(val owner: NativeGalleryPublishedInspection, val observation: NativeIncomingMediaObservation,
         val recovery: NativeGalleryPublishedReadback)
     private val verifiedRead = ThreadLocal<VerifiedRead?>()
+    private class ArchiveTarget(val archive: NativeGalleryTrashArchive, val permit: NativeGalleryTrashBookPermit) {
+        var result: NativeGalleryArchiveEntry? = null
+    }
+    private class VerifiedArchive(val owner: NativeGalleryPublishedInspection, val target: ArchiveTarget)
+    private val verifiedArchive = ThreadLocal<VerifiedArchive?>()
 
     internal fun prepare(owner: NativeGalleryIncomingOwner, fileId: String, mimeType: String): GalleryIncomingPublication {
         if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30)
@@ -294,6 +299,71 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         inspectPublishedOwned(recovery.owner, cancellation, recovery)
         return recovery.actualOutput() ?: fail("gallery_published_native_readback_required")
     }
+
+    /** Actual app-owned PC row copy only. It does not publish, replace, trash,
+     * delete or manufacture an outgoing phone GalleryPhotoSourceLease. */
+    internal fun archivePublishedPc(owner: NativeGalleryPublishedInspection, archive: NativeGalleryTrashArchive,
+        permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal = CancellationSignal()): NativeGalleryArchiveEntry {
+        try {
+            owner.requireArchiveBook(permit)
+            if (owner.selected.pcOrigin == null) fail("gallery_archive_published_pc_owner_required")
+            val target = ArchiveTarget(archive, permit)
+            inspectPublishedOwned(owner, cancellation, null, target)
+            return target.result ?: fail("gallery_archive_published_pc_owner_required")
+        } catch (error: Throwable) { owner.close(); throw error }
+    }
+
+    internal fun requireVerifiedArchive(archive: NativeGalleryTrashArchive, owner: NativeGalleryPublishedInspection,
+        permit: NativeGalleryTrashBookPermit) {
+        val actual = verifiedArchive.get()
+        if (actual == null || actual.owner !== owner || actual.target.archive !== archive || actual.target.permit !== permit)
+            fail("gallery_archive_published_pc_owner_required")
+        owner.requireArchiveBook(permit)
+    }
+
+    internal fun readVerifiedPcArchiveChunks(archive: NativeGalleryTrashArchive, owner: NativeGalleryPublishedInspection,
+        permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal, consume: (ByteArray) -> Unit) {
+        fun current() { cancellation.throwIfCanceled(); requireVerifiedArchive(archive, owner, permit) }
+        current(); val publication = owner.selected; val row = publication.row!!; val size = publication.body.long("size")
+        val uri = Uri.parse(row.string("uri")); val mime = publication.body.string("mime_type")
+        fun checkRow() {
+            if (observeRow(owner.kind, ::current, uri, mime, size..size, 0).witness != row)
+                fail("gallery_incoming_original_row_changed")
+        }
+        fun read(input: java.io.InputStream) {
+            val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES); val digest = MessageDigest.getInstance("SHA-256"); var offset = 0L
+            try {
+                while (offset < size) {
+                    val wanted = minOf(buffer.size.toLong(), size - offset).toInt(); var at = 0
+                    while (at < wanted) {
+                        current(); val count = input.read(buffer, at, wanted - at); current()
+                        if (count <= 0) fail("gallery_archive_source_short_read")
+                        at += count
+                    }
+                    val bytes = buffer.copyOf(wanted)
+                    try { current(); digest.update(bytes); consume(bytes); current() }
+                    finally { bytes.fill(0) }
+                    offset += wanted
+                }
+                current()
+                if (input.read() != -1 || digest.digest().joinToString("") { "%02x".format(it) } != publication.body.string("sha256"))
+                    fail("gallery_archive_source_changed")
+                current()
+            } finally { buffer.fill(0) }
+        }
+        checkRow(); val original = MediaStore.setRequireOriginal(uri)
+        if (Build.VERSION.SDK_INT >= 31) {
+            val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
+                putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)
+            }, cancellation) ?: fail("gallery_incoming_readback_missing")
+            asset.use {
+                if (it.startOffset != 0L) fail("gallery_incoming_original_offset_changed")
+                it.createInputStream().use(::read)
+            }
+        } else ParcelFileDescriptor.AutoCloseInputStream(resolver.openFileDescriptor(original, "r", cancellation)
+            ?: fail("gallery_incoming_readback_missing")).use(::read)
+        checkRow(); current()
+    }
     internal fun requireVerifiedRead(recovery: NativeGalleryPublishedReadback, owner: NativeGalleryPublishedInspection,
         observation: NativeIncomingMediaObservation) {
         val actual = verifiedRead.get()
@@ -303,14 +373,17 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
     }
 
     private fun inspectPublishedOwned(owner: NativeGalleryPublishedInspection, cancellation: CancellationSignal,
-        recovery: NativeGalleryPublishedReadback?): NativeIncomingMediaObservation {
+        recovery: NativeGalleryPublishedReadback?, archive: ArchiveTarget? = null): NativeIncomingMediaObservation {
         if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30)
             fail("gallery_incoming_io_android30_required")
         owner.requireIndex(index); owner.consume()
         val lane = Any()
         if (!NativeGalleryMediaIoLane.acquire(lane)) { owner.close(); fail("gallery_incoming_worker_busy") }
         try {
-            fun current() { cancellation.throwIfCanceled(); owner.requireCurrent() }
+            fun current() {
+                cancellation.throwIfCanceled()
+                if (archive == null) owner.requireCurrent() else owner.requireArchiveBook(archive.permit)
+            }
             current()
             val selected = owner.selected; val body = selected.body; val row = selected.row!!
             val uri = Uri.parse(row.string("uri")); val size = body.long("size"); val mime = body.string("mime_type")
@@ -339,6 +412,13 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 verifiedRead.set(VerifiedRead(owner, observation, recovery))
                 try { recovery.sendVerified(this, owner, observation, cancellation, ::checkRow) }
                 finally { verifiedRead.remove() }
+            }
+            if (archive != null) {
+                verifiedArchive.set(VerifiedArchive(owner, archive))
+                try {
+                    archive.result = archive.archive.archivePublishedPc(this, owner, archive.permit, cancellation)
+                    checkRow(); current()
+                } finally { verifiedArchive.remove() }
             }
             return observation
         } finally { owner.close(); NativeGalleryMediaIoLane.release(lane) }

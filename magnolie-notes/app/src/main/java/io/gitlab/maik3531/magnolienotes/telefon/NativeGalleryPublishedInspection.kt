@@ -57,6 +57,9 @@ internal class NativeGalleryPublishedInspection private constructor(private val 
         if (actual !== index) { close(); fail() }
         requireCurrent()
     }
+    internal fun requireArchiveBook(permit: NativeGalleryTrashBookPermit) {
+        requireCurrent(); book.requireArchiveBook(permit); permit.requireTrashEnabled()
+    }
     internal fun requireChannel(channel: TelefonSecureChannel) {
         requireCurrent()
         if (originalPeer.owner !== channel) { close(); fail() }

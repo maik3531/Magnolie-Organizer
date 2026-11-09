@@ -27,6 +27,9 @@ internal class NativeGalleryReceiveBookPermit private constructor(private val cu
                 documents.personalActorSavedBookState() != saved) fail()
         } catch (error: Exception) { revoked = true; throw error }
     }
+    internal fun requireArchiveBook(permit: NativeGalleryTrashBookPermit) {
+        requireCurrent(); permit.requireOriginalBook(documents, saved); requireCurrent()
+    }
     companion object {
         internal fun capture(currentDocuments: () -> Ablage?, unlocked: () -> Boolean) = NativeGalleryReceiveBookPermit(currentDocuments, unlocked)
         private fun fail(): Nothing = DeviceFileControl.fail("gallery_receive_current_saved_book_required")

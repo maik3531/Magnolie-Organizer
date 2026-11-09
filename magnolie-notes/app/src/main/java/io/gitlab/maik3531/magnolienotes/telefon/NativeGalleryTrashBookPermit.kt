@@ -1,6 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
+import kotlinx.serialization.json.JsonObject
 
 /** Local saved/unlocked book evidence, never a packet, cached preference or
  * substitute for Android media consent. New recovery operations capture again;
@@ -29,6 +30,15 @@ internal class NativeGalleryTrashBookPermit private constructor(private val docu
         // OFF forbids new recovery copies/trash actions. It is not permission
         // to purge existing history or to issue an unconfirmed permanent delete.
         if (!trashEnabled) throw PhotoFolderScopeError("gallery_trash_disabled")
+    }
+
+    internal fun requireOriginalBook(actual: Ablage, witness: JsonObject) {
+        requireCurrent()
+        if (documents !== actual || saved != witness) fail()
+    }
+    internal val version: String get() {
+        requireCurrent()
+        return DeviceFileControl.digest("magnolie-native-gallery-recovery-book-v1\u0000", saved)
     }
 
     companion object {

@@ -255,28 +255,205 @@ class GalleryIncomingRowsTest {
         }
     }
 
-    private fun withPublishedInspection(peerOwner: Any = Any(), action: (GalleryReceiveConsentTest.Fixture, NativeGalleryIncomingRows,
+    private fun withPublishedInspection(peerOwner: Any = Any(), pcSource: Boolean = false, paddedBytes: Int = 0, action: (GalleryReceiveConsentTest.Fixture, NativeGalleryIncomingRows,
         Provider, GalleryIncomingPublication, ByteArray, File, MediaSyncTransport.IntentToken) -> Unit) {
         GalleryReceiveConsentTest.Fixture(peerOwner).use { f ->
             ready(f)
             val bitmap = android.graphics.Bitmap.createBitmap(8, 8, android.graphics.Bitmap.Config.ARGB_8888)
-            val raw = try { java.io.ByteArrayOutputStream().use { output ->
+            val encoded = try { java.io.ByteArrayOutputStream().use { output ->
                 check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)); output.toByteArray()
             } } finally { bitmap.recycle() }
+            val raw = if (paddedBytes == 0) encoded else encoded.copyOf(paddedBytes.also { require(it >= encoded.size) })
             val payload = File(f.root, "published-read-only.png")
             val provider = Provider(f.app, payload = payload).apply { allowPublish = true }
             ShadowContentResolver.registerProviderInternal("media", provider)
             val token = intent(); val manifest = manifest(f.pc.deviceId, raw = raw)
+            val pcOrigins = if (pcSource) mapOf(fileId to GalleryPcMediaOrigin.parse(buildJsonObject {
+                put("format", 1); put("origin_sha256", "b".repeat(64)); put("previous_publication_sha256", JsonNull)
+            })) else emptyMap()
             val rows = NativeGalleryIncomingRows(f.app, f.index)
             val published = f.io {
-                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { owner ->
-                    rows.publish(owner, rows.copyAndVerify(owner, rows.prepare(owner, fileId, "image/png"), { raw.copyOf() }))
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES, pcOrigins = pcOrigins).use { owner ->
+                    rows.publish(owner, rows.copyAndVerify(owner, rows.prepare(owner, fileId, "image/png"), { chunk ->
+                        val start = chunk * DeviceFileManifest.CHUNK_BYTES
+                        raw.copyOfRange(start, minOf(raw.size, start + DeviceFileManifest.CHUNK_BYTES))
+                    }))
                 }
             }
             renewReceiving(f)
             action(f, rows, provider, published, raw, payload, token)
         }
     }
+
+    @Test fun actualPublishedPcRowArchivesWithoutPhoneReadLeaseAndRestoresRawOfflineWithoutRenewingCopyTime() =
+        withPublishedInspection(pcSource = true, paddedBytes = DeviceFileManifest.CHUNK_BYTES + 19) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30)
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-archive-").toFile(); val before = f.rows()
+            assertEquals(android.content.pm.PackageManager.PERMISSION_DENIED, f.app.checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES))
+            val saved = f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    fun owner() = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                    val admitted = owner()
+                    assertThrows(PhotoFolderScopeError::class.java) {
+                        archive.archivePublishedPc(rows, admitted, permit, CancellationSignal())
+                    } // No actual rows-owned verification/IO permit, even with genuine metadata.
+                    assertTrue(archive.entries(permit).isEmpty())
+                    val entry = rows.archivePublishedPc(admitted, archive, permit)
+                    val origin = archive.verifiedOrigin(entry, permit)
+                    assertEquals(published.body, origin["publication"]); assertFalse(origin.containsKey("source"))
+                    assertEquals(permit.version, origin.string("book_version"))
+                    assertTrue(entry.originalBytesVerified); assertFalse(entry.grantsMutationAuthority); assertFalse(entry.isRemoteDeletionReceipt)
+                    assertThrows(PhotoFolderScopeError::class.java) { archive.verifiedOriginalOrigin(entry, permit) }
+                    val read = NativeGalleryTrashArchive::class.java.getDeclaredMethod("readRecord", String::class.java).apply { isAccessible = true }
+                    val record = (read.invoke(archive, entry.id) as Pair<*, *>).second as JsonObject
+                    val validate = NativeGalleryTrashArchive::class.java.getDeclaredMethod("validatePcRecord", JsonObject::class.java, JsonObject::class.java).apply { isAccessible = true }
+                    val variants = listOf(
+                        JsonObject(record + ("sha256" to JsonPrimitive("a".repeat(64)))),
+                        JsonObject(record + ("size" to JsonPrimitive(entry.bytes + 1))),
+                        JsonObject(record + ("name" to JsonPrimitive("other.png"))),
+                        JsonObject(record + ("origin" to JsonObject(origin + ("book_version" to JsonPrimitive("bad"))))),
+                        JsonObject(record + ("origin" to JsonObject(origin + ("peer" to JsonPrimitive("other_fixture_01"))))),
+                        JsonObject(record + ("origin" to JsonObject(origin + ("member" to JsonPrimitive("999:1:1"))))),
+                        JsonObject(record + ("origin" to JsonObject(origin + ("source" to JsonPrimitive("gallery-album-v1:" + "f".repeat(64)))))),
+                        JsonObject(record + ("origin" to JsonObject(origin + ("publication" to JsonObject(published.body - "pc_origin"))))),
+                        JsonObject(record + ("origin" to JsonObject(origin + ("publication" to JsonObject(published.body + ("state" to JsonPrimitive("inserted")))))))
+                    )
+                    for (changed in variants) {
+                        val error = assertThrows(java.lang.reflect.InvocationTargetException::class.java) {
+                            validate.invoke(archive, changed, changed.getValue("origin").jsonObject)
+                        }
+                        assertTrue(error.cause is PhotoFolderScopeError)
+                    }
+                    assertEquals(entry, rows.archivePublishedPc(owner(), archive, permit))
+                    assertEquals(listOf(entry), archive.entries(permit)); entry
+                }
+            }
+            assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            f.session.close(); f.index.close(); assertTrue(payload.renameTo(File(payload.parentFile, "retained-pc-source.png")))
+            f.documents.setzePapierkorb(false, 30) // OFF preserves existing independent recovery bytes.
+            val offline = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            NativeGalleryTrashArchive(root, f.protection, allowCreate = false).use { archive ->
+                assertEquals(listOf(saved), archive.entries(offline))
+                val restored = java.io.ByteArrayOutputStream()
+                archive.readContent(saved, offline) { restored.write(it) }
+                assertArrayEquals(raw, restored.toByteArray())
+            }
+        }
+
+    @Test fun pcArchiveDoesNotRelabelAnOlderNonPcPublication() =
+        withPublishedInspection { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30)
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-archive-").toFile(); val before = f.rows(); val reads = provider.readOpens
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.archivePublishedPc(owner, archive, permit) }
+                    assertTrue(archive.entries(permit).isEmpty())
+                }
+            }
+            assertEquals(reads, provider.readOpens); assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+        }
+
+    @Test fun pcArchiveTrashOffAndExistingMediaIoLaneDenyBeforeAnyNewProviderRead() =
+        withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-archive-").toFile(); val before = f.rows(); val reads = provider.readOpens
+            f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    fun owner() = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                    val off = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+                    assertFalse(off.trashEnabled)
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.archivePublishedPc(owner(), archive, off) }
+                    assertTrue(archive.entries(off).isEmpty())
+                    f.documents.setzePapierkorb(true, 30)
+                    val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }; val lane = Any()
+                    assertTrue(NativeGalleryMediaIoLane.acquire(lane))
+                    try { assertThrows(PhotoFolderScopeError::class.java) { rows.archivePublishedPc(owner(), archive, permit) } }
+                    finally { NativeGalleryMediaIoLane.release(lane) }
+                    assertTrue(archive.entries(permit).isEmpty())
+                }
+            }
+            assertEquals(reads, provider.readOpens); assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+        }
+
+    @Test fun publishedPcArchiveCancellationKeepsItsActualProviderIoLaneUntilTheCopyDrains() =
+        withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30)
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-archive-").toFile(); val before = f.rows()
+            val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+            val owner = java.util.concurrent.atomic.AtomicReference<NativeGalleryPublishedInspection?>()
+            val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>(); var queries = 0
+            provider.beforeQuery = {
+                if (++queries == 4) { // Actual archive payload read ended; its final provider query is still outstanding.
+                    entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                }
+            }
+            val worker = Thread {
+                try {
+                    f.io {
+                        NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                            val actual = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                            owner.set(actual); rows.archivePublishedPc(actual, archive, permit)
+                        }
+                    }
+                } catch (error: Throwable) { failure.set(error) }
+            }.also { it.start() }
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); owner.get()!!.close()
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+                assertTrue(worker.isAlive)
+            } finally { release.countDown(); worker.join(7000); provider.beforeQuery = {} }
+            assertFalse(worker.isAlive); assertTrue(failure.get() is PhotoFolderScopeError)
+            val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+            NativeGalleryTrashArchive(root, f.protection, allowCreate = false).use { archive -> assertTrue(archive.entries(permit).isEmpty()) }
+            assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
+
+    @Test fun publishedPcArchiveCannotUseAnotherActualBookOrReviveAnOldUnlockedPermit() =
+        withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30)
+            GalleryReceiveConsentTest.Fixture().use { other ->
+                other.documents.setzePapierkorb(true, 30)
+                val wrongBook = NativeGalleryTrashBookPermit.capture(other.documents) { other.unlocked }
+                val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+                val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-archive-").toFile(); val before = f.rows(); val reads = provider.readOpens
+                f.io {
+                    NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                        fun owner() = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                        assertThrows(PhotoFolderScopeError::class.java) { rows.archivePublishedPc(owner(), archive, wrongBook) }
+                        val revoked = owner(); f.unlocked = false
+                        assertThrows(PhotoFolderScopeError::class.java) { rows.archivePublishedPc(revoked, archive, permit) }
+                        f.unlocked = true
+                        assertThrows(PhotoFolderScopeError::class.java) { rows.archivePublishedPc(revoked, archive, permit) }
+                        assertEquals(reads, provider.readOpens)
+                        assertTrue(archive.entries(NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }).isEmpty())
+                    }
+                }
+                assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+        }
+
+    @Test fun publishedPcArchiveRejectsCurrentByteEditsWithoutTouchingProviderOrRetainedIndex() =
+        withPublishedInspection(pcSource = true) { f, rows, provider, published, raw, payload, token ->
+            f.documents.setzePapierkorb(true, 30)
+            val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            val root = java.nio.file.Files.createTempDirectory(f.root.toPath(), "pc-archive-").toFile(); val before = f.rows()
+            val edited = raw.copyOf().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() }; payload.writeBytes(edited)
+            f.io {
+                NativeGalleryTrashArchive(root, f.protection).use { archive ->
+                    val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.archivePublishedPc(owner, archive, permit) }
+                    assertTrue(archive.entries(permit).isEmpty())
+                }
+            }
+            assertEquals(before, f.rows()); assertArrayEquals(edited, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
 
     @Test fun renewedBindingInspectsPublishedOriginalReadOnlyWithoutJournalMutationOrAnotherInsert() =
         withPublishedInspection { f, rows, provider, published, raw, payload, token ->

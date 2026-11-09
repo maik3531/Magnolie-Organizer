@@ -890,6 +890,47 @@ Peerantworten beweist keinen durchgängigen Android-Versionsaustausch. Deshalb
 bleiben automatische neue PC-Gesamtbestands-Exporte, vollständige Benutzerauswahl,
 Capability 23 und gemeinsame Geräteabnahme weiterhin gesperrt.
 
+Als getrennte Voraussetzung kann ein ausdrücklicher nativer Notes-Eintritt nun
+die tatsächliche bereits veröffentlichte app-eigene PC-Zeile unabhängig
+archivieren. Dazu gehören ein exakter lebender PublishedInspection-/Rows-Owner,
+die ursprüngliche Control-Sitzung, aktueller voller Empfangsintent und Policy
+sowie zwei tatsächliche Permits desselben ursprünglichen gespeicherten lokalen
+Buchs. Ein gleich aussehendes anderes Buch, Telefon-READ oder ein erfundener
+ausgehender Gallery-Source-Lease sind kein Ersatz. Papierkorb OFF verbietet
+neue Archivkopien und löscht bestehende Recovery-Daten nicht.
+
+Die gemeinsame reale Medien-IO-Bahn bleibt während Original-Rücklesen,
+nativer Byte-/MIME-/Zeilenprüfung und verschlüsselter Archivkopie gehalten.
+Nur ein privater threadlokaler Abschlusspermit des tatsächlichen Rows-Owners
+erlaubt dem exakten Archiv den Zugriff auf diese Originalzeile; Metadaten und
+beliebige Leser-Callbacks eröffnen keinen Quellzugriff. Zeilenidentität,
+Namespace, Generation, Größe und vollständiger Rohhash werden vor und nach
+IO geprüft. Abbruch gibt den Platz erst nach tatsächlichem Provider-/Datei-IO-
+Drain frei. Zwischenpuffer werden auch bei Fehlern gelöscht.
+
+Separates lokales Archivformat 3 bewahrt die gesamte ursprüngliche PC-Publikation,
+ihre opake Herkunft, tatsächlichen Zeilenzeugen, lokalen Buchzeugen und
+unveränderte Originalbytes. Es erfindet keine Telefon-Album-/Quellreferenz.
+Eine erneute ausdrücklich aufgenommene Prüfung derselben Originalpublikation
+verifiziert die vorhandene Kopie, statt Zeit, Version oder Aufbewahrungsursprung
+zu erneuern. Alte Archivformate 1/2 und die bestehenden Grenzen bleiben erhalten.
+Die neuen Bytes lassen sich nach Schließen von Source-Index und Steuersitzung
+sowie Weglegen der Quelldatei unter einem aktuellen lokalen Buchpermit lesen,
+auch bei inzwischen ausgeschalteten neuen Archivkopien.
+
+Diese Archivierung verändert keine Galeriezeile, erzeugt keinen Trash-/Saved-
+oder Löschabschluss und erlaubt keinen PC-Folgeversionsaustausch. Der alte
+OS-Mutations-/Telefon-Restore-Eintritt weist das neue PC-Archivformat mangels
+eigenem Mutationsowner ausdrücklich ab. Sechs neue PC-Archivfälle und passende
+bestehende Incoming-/Galeriequellen-/Archiv-/Recovery-Fälle bestehen im Notes-
+Host-Gate, zusammen 246 Fälle. Dazu gehören Mehrchunk-Originale, neun strikte
+Provenienz-Negativfälle, verschiedene echte Bücher, OFF, blockierte Medienbahn,
+Byteänderungen und Abbruch während tatsächlich blockierter Provider-IO.
+Dies sind interne native Primitiven mit Robolectric-Provider, noch keine
+angeschlossene Recovery-Aktion oder Android-Geräte-/OS-Consent-Abnahme.
+Der native PC-Schreib-/Ersetzungs-/Archivaktions-/Löschowner und die ursprüngliche
+Fortsetzungsaufnahme bleiben separat zu komponieren; der bisherige HOLD bleibt.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines
