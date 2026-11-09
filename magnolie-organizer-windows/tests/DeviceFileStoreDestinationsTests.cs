@@ -373,6 +373,76 @@ internal static class DeviceFileStoreDestinationsTests
                 "Invalid metadata owner read/mutated a staged root or lost original job facts.");
         }
     }
+
+    internal static async Task WindowsLostDestinationCannotInitializeAsync()
+    {
+        foreach (var evidence in new[] { "received", "staged" })
+        {
+            using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
+            TelefonStore.NativeMediaDestinationChoice? staged = null;
+            if (evidence == "received") await DeviceFileReconcileTests.Establish(f);
+            var path = Path.Combine(f.Native.Paths.Root, "replacement-candidate"); System.IO.Directory.CreateDirectory(path);
+            using var candidate = DeviceFileNativeDirectory.OpenExistingForReceive(path);
+            if (evidence == "staged") staged = f.Native.Store.StageNativeMediaDestinationChoice(f.Native.Peer.Id, "images", f.Destination.Version,
+                f.Native.Store.ReadNativeMediaDestinationChoices(f.Native.Peer.Id, "images"), candidate, () => { });
+            var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray(); byte[]? stagedCipher = null;
+            using (var db = f.Native.Store.OpenDatabase())
+            {
+                db.Open();
+                if (staged is not null)
+                {
+                    using var read = db.CreateCommand(); read.CommandText = "SELECT value FROM native_media_destination_choices WHERE version=$version";
+                    read.Parameters.AddWithValue("$version", staged.Destination.Version); stagedCipher = (byte[])read.ExecuteScalar()!;
+                }
+                using var fault = db.CreateCommand(); fault.CommandText = "DELETE FROM native_media_destinations WHERE peer_id=$peer AND media_type='images'";
+                fault.Parameters.AddWithValue("$peer", f.Native.Peer.Id); fault.ExecuteNonQuery();
+            }
+            TestAssert.That(f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "images") is null, "Loss fixture retained its destination row.");
+            try
+            {
+                f.Native.Store.SetNativeMediaDestination(f.Native.Peer.Id, "images", null, candidate);
+                throw new Exception("Missing original target was silently treated as a first selection despite " + evidence + " evidence.");
+            }
+            catch (InvalidDataException error)
+            { TestAssert.That(error.Message == "file_destination_original_record_required", "Lost-original guard held for unrelated reason: " + error.Message); }
+            TestAssert.That(f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "images") is null &&
+                f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).SequenceEqual(history) && !System.IO.Directory.EnumerateFileSystemEntries(path).Any(),
+                "Failed first-choice fallback recreated metadata or modified old evidence/files.");
+            if (staged is not null)
+            {
+                using var db = f.Native.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+                read.CommandText = "SELECT value FROM native_media_destination_choices WHERE version=$version"; read.Parameters.AddWithValue("$version", staged.Destination.Version);
+                TestAssert.That(((byte[])read.ExecuteScalar()!).SequenceEqual(stagedCipher!), "Missing-original HOLD rewrote staged evidence.");
+            }
+        }
+    }
+
+    internal static async Task WindowsLostDestinationOtherKindAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); await DeviceFileReconcileTests.Establish(f);
+        var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray();
+        var preferences = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id);
+        var first = File.ReadAllBytes(Path.Combine(f.Root, "first.jpg"));
+        using (var db = f.Native.Store.OpenDatabase())
+        {
+            db.Open(); using var fault = db.CreateCommand(); fault.CommandText = "DELETE FROM native_media_destinations WHERE peer_id=$peer AND media_type='images'";
+            fault.Parameters.AddWithValue("$peer", f.Native.Peer.Id); fault.ExecuteNonQuery();
+        }
+        using (var original = f.Destination.OpenNative())
+        {
+            try { f.Native.Store.SetNativeMediaDestination(f.Native.Peer.Id, "video", null, original); throw new Exception("Historical image root became video root after metadata loss."); }
+            catch (InvalidDataException error) { TestAssert.That(error.Message == "file_destination_media_roots_overlap", "Historical root overlap held for unrelated reason."); }
+        }
+        TestAssert.That(f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "video") is null, "Rejected video alias created a target.");
+        var path = Path.Combine(f.Native.Paths.Root, "first-distinct-video-target"); System.IO.Directory.CreateDirectory(path);
+        using var owner = DeviceFileNativeDirectory.OpenExistingForReceive(path);
+        var video = f.Native.Store.SetNativeMediaDestination(f.Native.Peer.Id, "video", null, owner);
+        TestAssert.That(!video.GrantsReceiveAuthority && f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "video") == video &&
+            f.Native.Store.ReadNativeMediaDestination(f.Native.Peer.Id, "images") is null &&
+            f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id) == preferences &&
+            f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).SequenceEqual(history) && File.ReadAllBytes(Path.Combine(f.Root, "first.jpg")).SequenceEqual(first) &&
+            !System.IO.Directory.EnumerateFileSystemEntries(path).Any(), "A separate first video metadata choice repaired images, changed data/consent or granted receiving.");
+    }
     internal static Task WindowsBindingAndTamperAsync()
     {
         foreach (var change in new[] { "key", "pairing", "local", "unpaired", "cipher" })

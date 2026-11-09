@@ -262,11 +262,26 @@ internal sealed partial class TelefonStore
                     throw DeviceFileControl.Error("file_destination_scope_changed");
                 return before; // No token/version/ciphertext rotation for the same destination.
             }
+            // Absence is not proof of a first choice. Authenticate existing
+            // evidence only to DENY reconstruction; never infer an old root,
+            // token, generation or data permission from history/staging.
+            var histories = ReceiveHeads(connection, transaction, scope);
+            if (histories.Any(head => TelefonMessagingContract.String(head.Body, "media_type") == mediaType) ||
+                ReadNativeMediaDestinationChoices(connection, transaction, scope, mediaType).Count != 0)
+                throw DeviceFileControl.Error("file_destination_original_record_required");
             var other = ReadLegacyNativeMediaDestination(connection, transaction, scope, mediaType == "images" ? "video" : "images");
             static bool Within(string child, string parent) => child.Equals(parent, StringComparison.OrdinalIgnoreCase) ||
                 child.StartsWith(parent.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
             if (other is not null && (other.RootIdentity == root || Within(owner.VolumePath, other.VolumePath) || Within(other.VolumePath, owner.VolumePath)))
                 throw DeviceFileControl.Error("file_destination_media_roots_overlap");
+            foreach (var head in histories)
+            {
+                var destination = head.Body["destination"]!.AsObject();
+                var volumePath = TelefonMessagingContract.String(destination, "volume_path");
+                if (NativeMediaReceiveJob.NativeAlbumIdentity(destination["identity"]!.AsObject()) == root ||
+                    Within(owner.VolumePath, volumePath) || Within(volumePath, owner.VolumePath))
+                    throw DeviceFileControl.Error("file_destination_media_roots_overlap");
+            }
             var result = new NativeMediaDestination(1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), mediaType,
                 owner.NativePath, owner.VolumePath, root, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
             var value = NativeMediaDestinationValue(scope, result);

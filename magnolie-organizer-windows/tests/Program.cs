@@ -421,6 +421,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Completed destination owner / Windows staged choice cannot displace original raw backup trash preview and restore", DeviceFileStoreDestinationsTests.WindowsOriginalJobRecoveryAfterStagingAsync);
     runner.Add("Completed destination owner / Windows exact authenticated job original root key and irreversible metadata retirement", DeviceFileStoreDestinationsTests.WindowsOriginalJobOwnerGuardsAsync);
     runner.Add("Completed destination source / Windows staged metadata cannot replace original mapped source through actual END", DeviceFileCollectionSourceTests.WindowsCollectionChangedMappedAfterStagingAsync);
+    runner.Add("Lost destination original / Windows received and staged evidence forbid first-choice fallback", DeviceFileStoreDestinationsTests.WindowsLostDestinationCannotInitializeAsync);
+    runner.Add("Lost destination original / Windows historical other-kind overlap holds but distinct first choice stays metadata", DeviceFileStoreDestinationsTests.WindowsLostDestinationOtherKindAsync);
     runner.Add("Device file native destination / Windows overlap and original-root reopen", DeviceFileStoreDestinationsTests.WindowsOverlapAndReopenAsync);
     runner.Add("Device file native destination / Windows binding and ciphertext HOLD", DeviceFileStoreDestinationsTests.WindowsBindingAndTamperAsync);
     runner.Add("Device file native destination / Windows missing database never bootstraps", DeviceFileStoreDestinationsTests.WindowsMissingDatabaseAsync);

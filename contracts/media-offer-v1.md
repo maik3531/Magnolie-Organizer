@@ -2014,6 +2014,39 @@ und original gebundener nativer Dialog fehlen noch; Zielwechsel und Lieferung
 bleiben gesperrt. Eine Vormerkung oder ein alter Jobflag darf diese Lücke nicht
 schließen. Linux-/Notes-Nachweise bleiben separat erhalten, #423 bleibt pausiert.
 
+### Windows: fehlender Originalrecord ist bei bekannten Belegen keine Erstwahl (#498)
+
+Ein neuer nativer Verlusttest bestätigte den Initialisierungsbefund: Nach einem
+tatsächlich abgeschlossenen Empfang wurde ausschließlich die Originalzielzeile
+gezielt entfernt. Der reguläre Zielsetter akzeptierte danach einen anderen
+Native-Root mit `version=null` als erste Auswahl und schrieb einen neuen einzigen
+Legacyrecord. Das war keine gültige Migration und ist kein nachgewiesener
+Dateiverlust; eine weitere Originalzuordnung durfte daraus aber nicht entstehen.
+
+Nur der Zweig ohne vorgefundenen Zielrecord prüft jetzt vorhandene authentifizierte
+Receivejobs desselben Medientyps und inaktive Zielentscheidungen. Solche Belege
+führen deny-only zu `file_destination_original_record_required`: kein Ersatzroot,
+kein rekonstruierter Token, kein neuer aktueller Owner und keine Verwendung der
+Historie oder des Stagings als Daten-/Recoveryfreigabe. Die ursprünglichen
+Job-/Stagebytes und Dateien bleiben erhalten; verlorene Metadaten werden nicht
+aus einem bekannten Teil ihrer früheren Felder ergänzt.
+
+Bekannte historische Roots des anderen Medientyps bleiben zusätzlich vor
+Überlappung geschützt, auch wenn dessen aktueller Zielrecord fehlt. Eine echte
+erste Metadatenwahl für den anderen Typ in einem separaten Root bleibt dagegen
+erlaubt, ohne den verlorenen Typ zu reparieren oder eine Datenzustimmung zu setzen.
+Normale erste Wahl ohne frühere Belege und idempotente bestehende Auswahl bleiben
+unverändert. Keine neue Tabelle, Quote, Frist oder Transferberechtigung.
+
+Zehn unterschiedliche native Windows-Testgruppen bestehen: zwei neue Gruppen mit
+Empfangs-/Vormerkungs-Verlustfällen, historischer Fremdtyp-Überlappung und zulässiger
+separater Erstwahl, fünf betroffene ursprüngliche Zielgruppen und drei inaktive
+Registergruppen. Core- und echte WinForms-Produktquelle bauen ohne Warnungen/Fehler.
+Linux speichert Ziel-/Mapping-/Katalogwitnesses anders; gleicher Verlustpfad dort
+nicht reproduziert und kein Linux-Fix behauptet. #497 setzt den ursprünglichen
+Zieldialog und danach die weiter fehlende tatsächliche Aktivierung fort; Geräte-
+und Liefergates bleiben unverändert, keine Installation oder Veröffentlichung.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines
