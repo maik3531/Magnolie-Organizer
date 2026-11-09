@@ -46,6 +46,13 @@ internal sealed partial class DeviceFileNativeDirectory
         return WithHandle(ReadCollectionCreation);
     }
 
+    // Metadata witness for an actual native receive-folder choice, not a grant.
+    internal ulong CurrentReceiveCreationFileTime()
+    {
+        _ = CurrentReceiveIdentity();
+        return WithHandle(ReadCollectionCreation);
+    }
+
     internal Identity CurrentCollectionSourceIdentity()
     {
         if (receiveAccess) throw DeviceFileControl.Error("media_collection_readonly_source_required");

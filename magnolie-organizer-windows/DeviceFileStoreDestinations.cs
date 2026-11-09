@@ -26,6 +26,14 @@ internal sealed record NativeMediaDestination(long Revision, string Version, str
 internal sealed partial class TelefonStore
 {
     private const int MediaDestinationRecordLimit = 128 * 1024;
+    // Inert, append-only native choices. This is NOT an active destination head
+    // and must not be used to resolve a receive/source/restore permission.
+    internal sealed record NativeMediaDestinationChoice(string OriginalVersion, ulong CreationFileTime, NativeMediaDestination Destination)
+    {
+        internal bool GrantsReceiveAuthority => false;
+        internal bool GrantsSendAuthority => false;
+    }
+    private const int MediaDestinationChoiceLimit = 32;
     private static void MediaDestinationKind(string mediaType)
     {
         if (mediaType is not ("images" or "video")) throw DeviceFileControl.Error("file_destination_media_type_invalid");
@@ -59,33 +67,173 @@ internal sealed partial class TelefonStore
         try
         {
             var value = JsonNode.Parse(plain) as JsonObject ?? throw DeviceFileControl.Error("file_destination_record_invalid");
-            TelefonProtocolContract.ExactObject(value, "format", "peer_id", "peer_key", "pairing_epoch", "local_id", "local_key",
-                "media_type", "revision", "version", "native_path", "volume_path", "volume_serial", "file_id_low", "file_id_high", "destination_token");
-            string Text(string key) => value[key] is JsonValue item && item.TryGetValue<string>(out var text) && text is not null
-                ? text : throw DeviceFileControl.Error("file_destination_record_invalid");
-            ulong Hex(string key)
-            {
-                var text = Text(key);
-                if (text.Length != 16 || text.Any(c => !char.IsAsciiHexDigitLower(c))) throw DeviceFileControl.Error("file_destination_record_invalid");
-                return ulong.Parse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            }
-            var revision = TelefonProtocolContract.Integer(value["revision"]); var version = Text("version"); var token = Text("destination_token");
-            if (TelefonProtocolContract.Integer(value["format"]) != 1 || revision is < 1 or > DeviceFileControl.MaximumRevision ||
-                !DeviceFileControl.Hash(version) || !DeviceFileControl.Hash(token) || Text("media_type") != mediaType)
-                throw DeviceFileControl.Error("file_destination_record_invalid");
-            if (Text("peer_id") != scope.PeerId || Text("peer_key") != scope.PeerKey || Text("pairing_epoch") != scope.PairingEpoch ||
-                Text("local_id") != scope.LocalId || Text("local_key") != scope.LocalKey)
-                throw DeviceFileControl.Error("file_destination_reassociation_required");
-            var path = Text("native_path"); _ = DeviceFileNativeDirectory.NtDirectoryName(path);
-            var volumePath = Text("volume_path");
-            if (!volumePath.StartsWith(@"\\?\Volume{", StringComparison.Ordinal) || volumePath.Length > 16048 ||
-                volumePath.Any(c => c < 32 || c == 127)) throw DeviceFileControl.Error("file_destination_record_invalid");
-            NativeMediaBackupExclusions.RequireMediaDirectory(path, volumePath);
-            var identity = new DeviceFileNativeDirectory.Identity(Hex("volume_serial"), Hex("file_id_low"), Hex("file_id_high"));
-            if (identity.FileIdLow == 0 && identity.FileIdHigh == 0) throw DeviceFileControl.Error("file_destination_record_invalid");
-            return new(revision, version, mediaType, path, volumePath, identity, token);
+            return ParseNativeMediaDestination(value, scope, mediaType);
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
+    }
+
+    private static NativeMediaDestination ParseNativeMediaDestination(JsonObject value, NativeMediaPreferenceScope scope, string mediaType)
+    {
+        TelefonProtocolContract.ExactObject(value, "format", "peer_id", "peer_key", "pairing_epoch", "local_id", "local_key",
+            "media_type", "revision", "version", "native_path", "volume_path", "volume_serial", "file_id_low", "file_id_high", "destination_token");
+        string Text(string key) => value[key] is JsonValue item && item.TryGetValue<string>(out var text) && text is not null
+            ? text : throw DeviceFileControl.Error("file_destination_record_invalid");
+        ulong Hex(string key)
+        {
+            var text = Text(key);
+            if (text.Length != 16 || text.Any(c => !char.IsAsciiHexDigitLower(c))) throw DeviceFileControl.Error("file_destination_record_invalid");
+            return ulong.Parse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        }
+        var revision = TelefonProtocolContract.Integer(value["revision"]); var version = Text("version"); var token = Text("destination_token");
+        if (TelefonProtocolContract.Integer(value["format"]) != 1 || revision is < 1 or > DeviceFileControl.MaximumRevision ||
+            !DeviceFileControl.Hash(version) || !DeviceFileControl.Hash(token) || Text("media_type") != mediaType)
+            throw DeviceFileControl.Error("file_destination_record_invalid");
+        if (Text("peer_id") != scope.PeerId || Text("peer_key") != scope.PeerKey || Text("pairing_epoch") != scope.PairingEpoch ||
+            Text("local_id") != scope.LocalId || Text("local_key") != scope.LocalKey)
+            throw DeviceFileControl.Error("file_destination_reassociation_required");
+        var path = Text("native_path"); _ = DeviceFileNativeDirectory.NtDirectoryName(path);
+        var volumePath = Text("volume_path");
+        if (!volumePath.StartsWith(@"\\?\Volume{", StringComparison.Ordinal) || volumePath.Length > 16048 ||
+            volumePath.Any(c => c < 32 || c == 127)) throw DeviceFileControl.Error("file_destination_record_invalid");
+        NativeMediaBackupExclusions.RequireMediaDirectory(path, volumePath);
+        var identity = new DeviceFileNativeDirectory.Identity(Hex("volume_serial"), Hex("file_id_low"), Hex("file_id_high"));
+        if (identity.FileIdLow == 0 && identity.FileIdHigh == 0) throw DeviceFileControl.Error("file_destination_record_invalid");
+        return new(revision, version, mediaType, path, volumePath, identity, token);
+    }
+
+    private static JsonObject NativeMediaDestinationValue(NativeMediaPreferenceScope scope, NativeMediaDestination result) => new()
+    {
+        ["format"] = 1, ["peer_id"] = scope.PeerId, ["peer_key"] = scope.PeerKey, ["pairing_epoch"] = scope.PairingEpoch,
+        ["local_id"] = scope.LocalId, ["local_key"] = scope.LocalKey, ["media_type"] = result.MediaType,
+        ["revision"] = result.Revision, ["version"] = result.Version, ["native_path"] = result.NativePath,
+        ["volume_path"] = result.VolumePath, ["volume_serial"] = result.RootIdentity.VolumeSerial.ToString("x16", CultureInfo.InvariantCulture),
+        ["file_id_low"] = result.RootIdentity.FileIdLow.ToString("x16", CultureInfo.InvariantCulture),
+        ["file_id_high"] = result.RootIdentity.FileIdHigh.ToString("x16", CultureInfo.InvariantCulture), ["destination_token"] = result.DestinationToken
+    };
+
+    internal IReadOnlyList<NativeMediaDestinationChoice> ReadNativeMediaDestinationChoices(string peerId, string mediaType)
+    {
+        MediaDestinationKind(mediaType);
+        lock (gate)
+        {
+            RequireNativeMediaStorageKey();
+            var scope = MediaPreferenceScope(peerId);
+            using var db = OpenNativeMediaDatabase(); db.Open();
+            var original = ReadNativeMediaDestination(db, null, scope, mediaType); // Never create or replace it.
+            var result = ReadNativeMediaDestinationChoices(db, null, scope, mediaType);
+            if (original is null && result.Count != 0) throw DeviceFileControl.Error("file_destination_choice_original_required");
+            RequireNativeMediaStorageKey();
+            if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("file_destination_scope_changed");
+            return result;
+        }
+    }
+
+    private IReadOnlyList<NativeMediaDestinationChoice> ReadNativeMediaDestinationChoices(SqliteConnection db, SqliteTransaction? transaction,
+        NativeMediaPreferenceScope scope, string mediaType)
+    {
+        using var exists = db.CreateCommand(); exists.Transaction = transaction;
+        exists.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='native_media_destination_choices'";
+        if (exists.ExecuteScalar() is null) return [];
+        using var query = db.CreateCommand(); query.Transaction = transaction;
+        query.CommandText = "SELECT version,value FROM native_media_destination_choices WHERE peer_id=$peer AND media_type=$kind ORDER BY version LIMIT 33";
+        query.Parameters.AddWithValue("$peer", scope.PeerId); query.Parameters.AddWithValue("$kind", mediaType);
+        using var rows = query.ExecuteReader(); var result = new List<NativeMediaDestinationChoice>();
+        while (rows.Read())
+        {
+            if (result.Count >= MediaDestinationChoiceLimit) throw DeviceFileControl.Error("file_destination_choice_capacity");
+            var version = rows.GetString(0); var encrypted = (byte[])rows[1];
+            if (!DeviceFileControl.Hash(version) || encrypted.Length > MediaDestinationRecordLimit + 28)
+                throw DeviceFileControl.Error("file_destination_choice_invalid");
+            var plain = Open("native_media_destination_choices", scope.PeerId + "/" + mediaType + "/" + version, encrypted);
+            try
+            {
+                var value = JsonNode.Parse(plain) as JsonObject ?? throw DeviceFileControl.Error("file_destination_choice_invalid");
+                TelefonProtocolContract.ExactObject(value, "format", "original_version", "creation_file_time", "destination");
+                var original = TelefonMessagingContract.String(value, "original_version"); var creation = TelefonMessagingContract.String(value, "creation_file_time");
+                if (TelefonProtocolContract.Integer(value["format"]) != 1 || !DeviceFileControl.Hash(original) || creation.Length != 16 ||
+                    creation.Any(c => !char.IsAsciiHexDigitLower(c)) || !ulong.TryParse(creation, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var generation) || generation == 0 ||
+                    value["destination"] is not JsonObject destination)
+                    throw DeviceFileControl.Error("file_destination_choice_invalid");
+                var record = ParseNativeMediaDestination(destination, scope, mediaType);
+                if (record.Version != version || record.Revision != 1 || record.Version == original)
+                    throw DeviceFileControl.Error("file_destination_choice_invalid");
+                if (result.Any(previous => previous.Destination.RootIdentity == record.RootIdentity ||
+                    previous.Destination.NativePath.Equals(record.NativePath, StringComparison.OrdinalIgnoreCase)))
+                    throw DeviceFileControl.Error("file_destination_choice_ambiguous");
+                result.Add(new(original, generation, record));
+            }
+            finally { CryptographicOperations.ZeroMemory(plain); }
+        }
+        return result.AsReadOnly();
+    }
+
+    // Staging persists metadata ONLY. No current destination selection, old
+    // ciphertext, token, mapping, file or consent is changed. An active switch
+    // stays blocked until the separate historical owners are implemented.
+    internal NativeMediaDestinationChoice StageNativeMediaDestinationChoice(string peerId, string mediaType, string originalVersion,
+        IReadOnlyList<NativeMediaDestinationChoice> expected, DeviceFileNativeDirectory owner, Action requireCurrent)
+    {
+        ArgumentNullException.ThrowIfNull(expected); ArgumentNullException.ThrowIfNull(requireCurrent); MediaDestinationKind(mediaType);
+        lock (gate)
+        {
+            requireCurrent(); RequireNativeMediaStorageKey(); var scope = MediaPreferenceScope(peerId); var identity = owner.CurrentReceiveIdentity();
+            var generation = owner.CurrentReceiveCreationFileTime();
+            NativeMediaBackupExclusions.RequireMediaDirectory(owner.NativePath, owner.VolumePath);
+            using var db = OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction();
+            var original = ReadNativeMediaDestination(db, transaction, scope, mediaType);
+            if (original is null || original.Version != originalVersion) throw DeviceFileControl.Error("file_destination_stale_choice");
+            var before = ReadNativeMediaDestinationChoices(db, transaction, scope, mediaType);
+            if (!before.SequenceEqual(expected)) throw DeviceFileControl.Error("file_destination_choice_catalog_changed");
+            void Current()
+            {
+                requireCurrent(); RequireNativeMediaStorageKey();
+                if (MediaPreferenceScope(peerId) != scope || owner.CurrentReceiveIdentity() != identity || owner.CurrentReceiveCreationFileTime() != generation ||
+                    ReadNativeMediaDestination(db, transaction, scope, mediaType) != original)
+                    throw DeviceFileControl.Error("file_destination_choice_context_changed");
+            }
+            Current();
+            var same = before.SingleOrDefault(choice => choice.Destination.RootIdentity == identity &&
+                choice.Destination.NativePath.Equals(owner.NativePath, StringComparison.OrdinalIgnoreCase) &&
+                choice.Destination.VolumePath.Equals(owner.VolumePath, StringComparison.OrdinalIgnoreCase));
+            if (same is not null)
+            {
+                if (same.OriginalVersion != originalVersion || same.CreationFileTime != generation)
+                    throw DeviceFileControl.Error("file_destination_choice_generation_changed");
+                Current(); transaction.Commit(); return same;
+            }
+            if (before.Count >= MediaDestinationChoiceLimit) throw DeviceFileControl.Error("file_destination_choice_capacity");
+            static bool Within(string child, string parent) => child.Equals(parent, StringComparison.OrdinalIgnoreCase) ||
+                child.StartsWith(parent.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
+            var other = ReadNativeMediaDestination(db, transaction, scope, mediaType == "images" ? "video" : "images");
+            var preserved = before.Select(choice => choice.Destination).Append(original).Concat(other is null ? [] : new[] { other });
+            if (preserved.Any(value => value.RootIdentity == identity || Within(value.VolumePath, owner.VolumePath) || Within(owner.VolumePath, value.VolumePath)))
+                throw DeviceFileControl.Error("file_destination_choice_roots_overlap");
+            var otherChoices = ReadNativeMediaDestinationChoices(db, transaction, scope, mediaType == "images" ? "video" : "images");
+            if (otherChoices.Any(choice => choice.Destination.RootIdentity == identity || Within(choice.Destination.VolumePath, owner.VolumePath) || Within(owner.VolumePath, choice.Destination.VolumePath)))
+                throw DeviceFileControl.Error("file_destination_choice_roots_overlap");
+            var result = new NativeMediaDestinationChoice(originalVersion, generation, new(1,
+                Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), mediaType, owner.NativePath, owner.VolumePath, identity,
+                Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant()));
+            var value = new JsonObject { ["format"] = 1, ["original_version"] = originalVersion,
+                ["creation_file_time"] = generation.ToString("x16", CultureInfo.InvariantCulture), ["destination"] = NativeMediaDestinationValue(scope, result.Destination) };
+            var plain = TelefonCrypto.Canonical(value); byte[] encrypted;
+            try
+            {
+                if (plain.Length > MediaDestinationRecordLimit) throw DeviceFileControl.Error("file_destination_choice_capacity");
+                encrypted = Seal("native_media_destination_choices", scope.PeerId + "/" + mediaType + "/" + result.Destination.Version, plain);
+            }
+            finally { CryptographicOperations.ZeroMemory(plain); }
+            Current();
+            using var write = db.CreateCommand(); write.Transaction = transaction;
+            write.CommandText = "CREATE TABLE IF NOT EXISTS native_media_destination_choices(peer_id TEXT NOT NULL,media_type TEXT NOT NULL,version TEXT NOT NULL,value BLOB NOT NULL,PRIMARY KEY(peer_id,media_type,version)); " +
+                "INSERT INTO native_media_destination_choices(peer_id,media_type,version,value) VALUES($peer,$kind,$version,$value)";
+            write.Parameters.AddWithValue("$peer", scope.PeerId); write.Parameters.AddWithValue("$kind", mediaType);
+            write.Parameters.AddWithValue("$version", result.Destination.Version); write.Parameters.AddWithValue("$value", encrypted); write.ExecuteNonQuery();
+            var after = ReadNativeMediaDestinationChoices(db, transaction, scope, mediaType);
+            if (after.Count != before.Count + 1 || !before.All(after.Contains) || !after.Contains(result))
+                throw DeviceFileControl.Error("file_destination_choice_readback_failed");
+            Current(); transaction.Commit(); return result;
+        }
     }
 
     // The caller supplies the actual picked/default native directory owner, not
@@ -116,12 +264,7 @@ internal sealed partial class TelefonStore
                 throw DeviceFileControl.Error("file_destination_media_roots_overlap");
             var result = new NativeMediaDestination(1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), mediaType,
                 owner.NativePath, owner.VolumePath, root, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
-            var value = new JsonObject { ["format"] = 1, ["peer_id"] = scope.PeerId, ["peer_key"] = scope.PeerKey,
-                ["pairing_epoch"] = scope.PairingEpoch, ["local_id"] = scope.LocalId, ["local_key"] = scope.LocalKey,
-                ["media_type"] = mediaType, ["revision"] = result.Revision, ["version"] = result.Version, ["native_path"] = result.NativePath,
-                ["volume_path"] = result.VolumePath, ["volume_serial"] = root.VolumeSerial.ToString("x16", CultureInfo.InvariantCulture),
-                ["file_id_low"] = root.FileIdLow.ToString("x16", CultureInfo.InvariantCulture), ["file_id_high"] = root.FileIdHigh.ToString("x16", CultureInfo.InvariantCulture),
-                ["destination_token"] = result.DestinationToken };
+            var value = NativeMediaDestinationValue(scope, result);
             var plain = TelefonCrypto.Canonical(value);
             byte[] encrypted;
             try

@@ -1922,6 +1922,51 @@ bleiben erhalten. Es gibt keinen neuen nativen Zielwechsel-, Android-, Recovery-
 oder Lieferabnahmenachweis. Historische/unklare Quellen ohne ursprünglichen
 aktuellen Owner bleiben HOLD; #495/#486 und die Geräte-/Liefergates bleiben offen.
 
+### Windows: getrennte inaktive Zielentscheidungen vor einem Wechsel (#495)
+
+Der erste Baustein des fehlenden Zielwechselowners ist ausdrücklich nur ein
+inaktives Metadatenregister. `native_media_destination_choices` hängt geschützte
+native Auswahlrecords an, statt `native_media_destinations`, dessen Ciphertext,
+Version oder Zieltoken zu überschreiben. Die vorhandene Auswahl bleibt aktiv;
+`SetNativeMediaDestination` hält einen anderen Root weiterhin. Kein GUI-Pfad
+aktiviert diese Records, kein Source-/Receive-/Restorepfad darf sie als aktuellen
+Zielowner oder historischen Datenbeleg verwenden.
+
+Ein Record bindet tatsächliche Native-Verzeichnisidentität und Creation-Zeugen,
+ursprüngliche Zielversion, authentifizierten Peer-/Pairing-/Local-Keyscope und
+eine eigene opake Metadatenversion. Jede Anlage verlangt den originalen nativen
+Kontextvergleich und den exakten vorgefundenen Katalog; Kontext, nativer Owner,
+Generation, Originalrecord und vorhandener tatsächlicher DPAPI-Schlüssel werden
+vor Commit erneut geprüft. Keine Schlüssel-/Datenbankrekonstruktion. Der Vergleich
+unter Store-CAS ist ein deny-only Metadatenfence, kein callbackfähiger Transport-
+Scope oder neuer Datenkonsens. Unbekannte Recordfelder führen zu HOLD unter Erhalt
+der ursprünglichen Bytes, nicht zu Normalisierung oder Reparatur.
+
+Das neue ausschließlich inaktive Register ist separat auf 32 Entscheidungen je
+Peer/Medientyp und die bestehende 128-KiB-Metadatenrecordgröße begrenzt. Dies erhöht
+keine bestehende Source-/Receive-Historienquote; deren 128er-Grenzen bleiben
+unverändert. Volles Register hält ohne Eviction. Identische Auswahl bleibt unter
+derselben ursprünglichen Version/Generation idempotent, überlappende/mehrdeutige
+Roots werden nicht automatisch neu assoziiert. Auflisten ist weder Absenzbeweis
+noch Recovery-, Restart-, Schreib- oder Transferfreigabe.
+
+Acht unterschiedliche Windows-Testgruppen bestehen: drei neue inaktive
+Registergruppen und fünf betroffene ursprüngliche Zielgruppen. Echte Windows-
+Verzeichnisse, Creation-Änderung, DPAPI-Datei, Verschlüsselung und SQL-Transaktion
+sind geprüft; Originalrecord und dessen Ciphertext bleiben unverändert. Die
+Grenzprobe legt 32 inaktive Entscheidungen an und bestätigt HOLD der 33. ohne
+Verlust; fehlender Schlüssel und fehlendes Original erzeugen keine Ersatzowner.
+Ein spätes Kontextende nach Insert, aber vor Commit rollt vollständig zurück.
+Aktuelle Core- und echte WinForms-Produktquelle bauen ohne Warnungen/Fehler.
+
+Dies ist noch kein benutzbarer Empfangszielwechsel: Originaljob-/Backup-/Trash-/
+Preview-/Sourceowner für frühere Generationen, authentifizierte aktive Auswahl
+und ursprünglicher nativer Dialoganschluss fehlen weiterhin. Solange sie nicht
+vollständig verbunden und geprüft sind, bleibt die aktive Umschaltung HOLD.
+Linux-Zielwechselbelege sind kein Windows-Aktivierungsnachweis. Androidpause,
+Capability23, automatischer gesamter Export und Video-/Mehrdatei-/Liefergates
+bleiben unverändert; keine Installation oder Veröffentlichung.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

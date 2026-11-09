@@ -415,6 +415,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native receive / Windows actual content verification", DeviceFileNativeReceiveTests.WindowsVerificationAsync);
     runner.Add("Device file native receive / Windows uncertain publication and reparse", DeviceFileNativeReceiveTests.WindowsUncertainAndReparseAsync);
     runner.Add("Device file native destination / Windows independent protected roots", DeviceFileStoreDestinationsTests.WindowsPersistenceAsync);
+    runner.Add("Destination choice staging / Windows inert append-only native choice preserves active original", DeviceFileStoreDestinationsTests.WindowsInertChoiceStagingAsync);
+    runner.Add("Destination choice staging / Windows original catalog generation context and ciphertext guards", DeviceFileStoreDestinationsTests.WindowsInertChoiceStagingGuardsAsync);
+    runner.Add("Destination choice staging / Windows bounded capacity missing key and original never bootstrap", DeviceFileStoreDestinationsTests.WindowsInertChoiceCapacityAndKeyAsync);
     runner.Add("Device file native destination / Windows overlap and original-root reopen", DeviceFileStoreDestinationsTests.WindowsOverlapAndReopenAsync);
     runner.Add("Device file native destination / Windows binding and ciphertext HOLD", DeviceFileStoreDestinationsTests.WindowsBindingAndTamperAsync);
     runner.Add("Device file native destination / Windows missing database never bootstraps", DeviceFileStoreDestinationsTests.WindowsMissingDatabaseAsync);
