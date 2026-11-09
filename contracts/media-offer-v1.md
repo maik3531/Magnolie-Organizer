@@ -1264,7 +1264,14 @@ Byte-Mutation sind weiterhin Recovery-Archiv, Staging-Rohbytes und Ziel erneut
 unter dem tatsächlichen Owner zu prüfen; die eigentliche bounded Kopie,
 Force/Truncate/Postwrite-Prüfung und History-CAS sind noch nicht implementiert.
 Normaler PC-Nachfolger-HOLD, Runtime/UI-Gate, Android-Gerätepause sowie fehlende
-aktuelle R8-/Geräte-/Auslieferungsabnahme bleiben unverändert.
+Geräte-/Auslieferungsabnahme bleiben unverändert. Ein zusätzlicher tatsächlicher
+Release-R8-Lauf für den Quellstand `3bc3454c` besteht. In seinem tatsächlichen
+DEX sind alle 13 geprüften betroffenen nativen Owner-/Stage-/Journal-/Index-Lane-
+Klassen nachgewiesen; umbenannte Journalmodelle werden über die tatsächliche
+R8-Mappingdatei zugeordnet. Das sind Klassen, keine zusätzlichen Testfälle.
+Es wurden keine neuen Keep-Regeln hinzugefügt und keine APK paketiert,
+signiert oder installiert. Dieser DEX-Nachweis ersetzt keine native Geräte-
+oder OS-Provider-Abnahme.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
