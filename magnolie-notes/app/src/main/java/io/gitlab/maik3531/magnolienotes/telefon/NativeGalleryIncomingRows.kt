@@ -27,7 +27,8 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
     internal val photosOnly: Boolean get() = token.photosOnly
     private val originalPeer = peer()?.takeIf { it.allowed && it.pairingEpoch != null } ?: fail()
     internal val pairingEpoch = originalPeer.pairingEpoch!!
-    internal val binding = session.binding(manifest.fingerprint) ?: fail()
+    private val originalControl = session.operationBinding(manifest.fingerprint) ?: fail()
+    internal val binding = originalControl.binding
     private val policy = index.galleryPolicy()
     private val issued = DeviceFileControl.monotonicMs()
     private var last = issued
@@ -58,7 +59,7 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
             if (!current.allowed || kind == GalleryMediaType.VIDEO && !current.videoSupported ||
                 current.owner !== originalPeer.owner || current.peerId != originalPeer.peerId ||
                 current.identitySha256 != originalPeer.identitySha256 || current.pairingEpoch != pairingEpoch ||
-                session.binding(manifest.fingerprint) != binding || index.galleryPolicy() != policy || policy.repairPending ||
+                session.operationBinding(manifest.fingerprint) != originalControl || index.galleryPolicy() != policy || policy.repairPending ||
                 policy.policy?.let { it.receiverId == current.peerId && it.receiverIdentitySha256 == current.identitySha256 &&
                     it.pairingEpoch == pairingEpoch && it.receiving?.enabled(kind) == true } != true ||
                 binding.senderId != manifest.senderId || binding.receiverId != manifest.receiverId ||

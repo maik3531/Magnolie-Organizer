@@ -225,6 +225,36 @@ class GalleryIncomingRowsTest {
         }
     }
 
+    @Test fun newRemoteControlSessionCannotRenewAnAdmittedIncomingRowWriterAtTheSamePersistentBinding() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f)
+            val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val transfer = manifest(f.pc.deviceId); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            val before = f.rows()
+            f.io {
+                val owner = NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, transfer, GalleryMediaType.IMAGES)
+                val cycleOwner = NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, transfer, GalleryMediaType.IMAGES)
+                val binding = owner.binding
+                val own = f.session.packet(); f.session.markSent(own)
+                val remote = NativeFileControlSession::class.java.getDeclaredField("remote").apply { isAccessible = true }.get(f.session) as DeviceFileControlPacket
+                assertTrue(f.session.observeRemote(remote.copy(sessionEpoch = "a".repeat(64), sequence = 1, echo = own.challenge), f.peer))
+                val echo = f.session.packet(); f.session.markSent(echo)
+                assertEquals(binding, f.session.binding(transfer.fingerprint))
+                assertThrows(PhotoFolderScopeError::class.java) { rows.prepare(owner, fileId, "image/png") }
+                assertEquals(before, f.rows()); assertEquals(0, provider.inserts); assertEquals(0, provider.writeOpens)
+                assertTrue(f.session.observeRemote(remote.copy(sequence = remote.sequence + 1, echo = own.challenge), f.peer))
+                val returned = f.session.packet(); f.session.markSent(returned)
+                assertEquals(binding, f.session.binding(transfer.fingerprint))
+                assertThrows(PhotoFolderScopeError::class.java) { rows.prepare(cycleOwner, fileId, "image/png") }
+                assertEquals(before, f.rows()); assertEquals(0, provider.inserts)
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, transfer, GalleryMediaType.IMAGES).use { fresh ->
+                    assertEquals("inserted", rows.prepare(fresh, fileId, "image/png").state)
+                }
+            }
+            assertEquals(1, provider.inserts); assertEquals(0, provider.writeOpens); assertEquals(0, provider.publishes)
+        }
+    }
+
     private fun withPublishedInspection(peerOwner: Any = Any(), action: (GalleryReceiveConsentTest.Fixture, NativeGalleryIncomingRows,
         Provider, GalleryIncomingPublication, ByteArray, File, MediaSyncTransport.IntentToken) -> Unit) {
         GalleryReceiveConsentTest.Fixture(peerOwner).use { f ->

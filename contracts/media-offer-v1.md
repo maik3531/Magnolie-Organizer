@@ -172,6 +172,18 @@ Sitzungswechsel/-Rückwechsel, unveränderter persistenter Bindung, frischer
 expliziter Wiederaufnahme und Überlauf-HOLD. Das ist Robolectric-Abnahme des
 App-Codes, kein tatsächlicher Android-Geräte-/OS-Consent-Nachweis.
 
+Der getrennte bereits aufgenommene Notes-Empfangsowner bindet denselben
+ursprünglichen Control-Sitzungszeugen vor Aufnahme seiner Galerie-Scope-
+Zuordnung. Ein später positiv bestätigter Remote-Sitzungswechsel bei gleicher
+persistenter Bindung darf daher weder Reservierung noch Insert, Kopieren,
+Publikation oder Saved-Ausgabe des alten Owners erneuern. Der indexinterne
+Local-Guard bleibt transport-/sessionsperrenfrei und behält seine ursprünglichen
+Buch-/Intent-/Fristprüfungen. 80 passende Notes-Hostfälle bestehen einschließlich
+alter und frischer ausdrücklicher Aufnahme, Rückwechsel ohne Zwischenprüfung,
+unverändertem Index/Provider vor Ablehnung und bestehendem normalen Runtime-/
+Transfer-/Readback-Pfad. Diese Grenze schließt für sich weder die historische
+PC-Folgeversionszuordnung noch einen Archiv-/OS-Schreib-/Löschowner ab.
+
 38 Notes-Empfangs-/Transferfälle bestehen, darunter der neue Originalangebot-
 Readback, einmalige Nutzung, laufender/abgebrochener/metadatenbasierter Empfang,
 entzogenes Originalbuch und widerrufene Kontrollen. Die fünf bestehenden nativen
