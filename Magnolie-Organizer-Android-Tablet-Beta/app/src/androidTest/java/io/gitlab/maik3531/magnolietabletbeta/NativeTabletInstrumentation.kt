@@ -494,7 +494,36 @@ class NativeTabletInstrumentation : Instrumentation() {
         domainMark("custom.saved")
         val target=domainStep("NativeDomains.drawing()")
         domainMark("drawing.editor.ready")
-        val gesture=NativeDomainAcceptance.stroke(this,web,target)
+        val inputReceipt=JSONObject()
+        val inputArtifact=File(out,"domains-drawing-input.json")
+        fun writeInputReceipt() {
+            val encoded=inputReceipt.toString(2)
+            check(encoded.length<=16384) {"Drawing input diagnostic exceeded its bound"}
+            inputArtifact.writeText(encoded)
+        }
+        fun drawingSnapshot(phase: String) {
+            inputReceipt.put(phase,JSONObject(value("""
+                (()=>{const c=document.querySelector('.custom-zeichenblatt'),m=OrganizerTest.daten().customOrganizer.modules.find(x=>x.type==='drawing');
+                if(!window.__nativeDomainInputCanvas){window.__nativeDomainInputCanvas=c;window.__nativeDomainInputModule=m;}
+                const r=c?.getBoundingClientRect(),s=m?.drawing?.strokes||[],p=s[0]?.points||[],counts=window.__domainPointers||{};
+                return {canvasConnected:c?.isConnected===true,sameCanvas:c===window.__nativeDomainInputCanvas,sameModule:m===window.__nativeDomainInputModule,
+                  geometry:r?[r.left,r.top,r.width,r.height]:null,bitmap:c?[c.width,c.height]:null,
+                  modelSize:m?.drawing?[m.drawing.width,m.drawing.height]:null,strokeCount:s.length,firstStrokePointCount:p.length,
+                  distinctSampleLimit:64,distinctSamplePoints:new Set(p.slice(0,64).map(x=>JSON.stringify(x))).size,
+                  pointers:Object.fromEntries(['down','move','up','untrusted','pressedMove'].map(k=>[k,Number(counts[k]||0)]))};})()
+            """.trimIndent())))
+            writeInputReceipt()
+        }
+        drawingSnapshot("before")
+        val gesture=try {
+            NativeDomainAcceptance.stroke(this,activity,web,target) { native ->
+                inputReceipt.put("native",native);writeInputReceipt()
+            }
+        } finally {
+            try {drawingSnapshot("after")} catch(failure:Exception) {
+                inputReceipt.put("afterSnapshotError",failure.javaClass.simpleName);writeInputReceipt()
+            }
+        }
         domainMark("drawing.gesture.finished")
         waitFor("trusted native drawing stroke") {
             value("OrganizerTest.daten().customOrganizer.modules.find(module=>module.type==='drawing')?.drawing.strokes.length") == "1"
