@@ -17,6 +17,39 @@ Current host checks used in this work: Mac host 18 tests including 82UI/81recove
 
 ## Functional families (all main product surfaces, not only requested examples)
 
+### Current bounded checkpoint (2026-11-09; Refs #121)
+
+These results supersede the corresponding pending historical entries below;
+the inventory table remains tied to its original source snapshot.
+
+- Mac [42543079100](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42543079100)
+  at `5f6621f2` passes both complete existing macOS 15 architecture jobs,
+  including actual bundle start/save/quit/reopen and candidate packaging.
+  Actual handbook load/search/isolation, note-file import, printing/PDF,
+  strict drawing replay and calendar reference checks have native evidence.
+  This does not establish every feature or older macOS runtime compatibility.
+- Android API34 [42537601160](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42537601160)
+  at `7278298b` passes the isolated services and file-picker jobs. The latter
+  includes durable three-collection ICS import, unchanged cancellation, atomic
+  invalid-component rejection and an actual 526-byte SAF export with verified
+  recurrence and alarm data. Native case-insensitive source VTIMEZONE checks
+  also pass. Full provider synchronization is not exercised by these fixtures.
+- API26 [42539725882](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42539725882)
+  verifies the explicit unsupported-WebView startup diagnostic and visible
+  recovery screen for stock Chrome 69. It is an expected negative result,
+  not application compatibility acceptance. The update/settings/retry buttons
+  and a suitable updated provider on Android 8 remain unverified (#461).
+- The latest API34 drawing-only
+  [42546084292](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42546084292)
+  at `ffd27d00` reaches actual drawing input and fails pixel equality after
+  Redo. Its cause is under investigation; the earlier foreign Launcher dialog
+  and readiness failures must not be assumed to explain it. The original
+  complete 40-touch tablet gate remains open.
+- Restore/epoch protection (#454), old Android recurrence aliases (#462),
+  full Nextcloud/system-account synchronization and other incomplete native
+  adapters remain separate open work. None of the above certifies release
+  readiness. The user has authorized publication once required checks pass.
+
 ### Later component checkpoints (2026-11-08; Refs #121)
 
 The table below remains the source inventory at its stated snapshot. Later

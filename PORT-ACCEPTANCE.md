@@ -3,8 +3,11 @@
 Arbeitsauftrag und Querverfolgung: [Issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121).
 Referenz ist die veröffentlichte Version `v2.0.30`, Commit
 `067c38934b539943d8e1720abafd8a80b401d797`. Die Paketkennung allein bedeutet
-keine Funktionsgleichheit. Fertige Mac-Testpakete aus Run `42478388184` sind ein
-Zwischenstand mit nachgewiesenem lokalem Start-/Speicher-/Wiederöffnen-Ablauf.
+keine Funktionsgleichheit. Mac-Testpakete aus
+[Run 42543079100](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42543079100)
+am Quellstand `5f6621f2` bestehen die vorhandenen nativen Prüfungen und den
+App-Start-/Speicher-/Wiederöffnen-Ablauf auf macOS 15 für Intel und Apple Silicon.
+Das ist eine Komponentenabnahme; die unten offenen Funktionen bleiben offen.
 
 ## Ziel und verbindliche Nachweise
 
@@ -16,10 +19,10 @@ verlustbehaftete Ersatzdarstellungen liefern.
 | Bereich | Erforderlicher Funktionsnachweis | Aktueller Stand / offene Integration |
 | --- | --- | --- |
 | Termine | Anlegen, ändern, löschen, Papierkorb, Mehrtages- und Ganztagstermine; Datenerhalt nach Prozessneustart | Gemeinsame Oberfläche; Mac-Persistenz nativ bestanden, Tablet-Basics und einzelne Neustartläufe bestanden; vollständige Fallmatrix offen |
-| Wiederkehrende Termine | COUNT/UNTIL, Intervalle, Monats-/Wochentagsregeln, RDATE/EXDATE, einzelne geänderte/gelöschte Vorkommen, Sommerzeit und Zeitzonen | Gemeinsamer Rechenkern; 448 Oracle- und 29 Integrationsfälle lokal geprüft. Native Exporterweiterung in Arbeit; echte native Interaktion und vollständiger Import offen |
+| Wiederkehrende Termine | COUNT/UNTIL, Intervalle, Monats-/Wochentagsregeln, RDATE/EXDATE, einzelne geänderte/gelöschte Vorkommen, Sommerzeit und Zeitzonen | Native Mac-Kalendercodecs gegen unabhängige Referenzen auf beiden Architekturen bestanden; Android-Codecs sowie tatsächliche WebView-/Worker-Zeitpfade bestanden. Altbestands-Dubletten #462 und vollständige Interaktionsmatrix bleiben offen |
 | Aufgaben | Erstellen, Fälligkeit, Unteraufgaben, Erledigen, Wiederholungen und Erinnerungen mit unveränderten Zeit-/Quellenbindungen | Tablet-Grundablauf nativ bestanden; vollständige Wiederholungs-/Erinnerungs- und Providerabnahme offen |
 | Jahrestage | Geburtstag/Jahrestag mit und ohne Geburtsjahr, 29. Februar, Anzeige-/Import-/Export-Rundlauf | Gemeinsame Modelle; nativer Kalenderexport wird ergänzt; native Abnahme offen |
-| Import/Export | Alle angebotenen Formate einschließlich ICS, VTODO, vCard/CSV und vollständiger Sicherung; Vorschau, Dubletten, Abbruch, Fehler und erneuter Import | JSON-Sicherung/Restore vorhanden; bisheriger Mac-ICS-Teilumfang wird erweitert. Kein Format allein wegen sichtbarem Menüpunkt freigegeben |
+| Import/Export | Alle angebotenen Formate einschließlich ICS, VTODO, vCard/CSV und vollständiger Sicherung; Vorschau, Dubletten, Abbruch, Fehler und erneuter Import | Mac-Kalendercodecs und ausgewählte Notizdateien nativ geprüft; Android-SAF-ICS-Import/Export einschließlich Abbruch und atomarer Fehlerablehnung bestanden. Vollständige Format- und Restore-Abnahme offen |
 | Nextcloud | CalDAV/CardDAV-Discovery, Auswahl, Lesen/Schreiben, ETags, Konfliktprüfung, Löschungen, Abbruch/Wiederholung und sichere Zugangsdaten | Native Transport-/Protokollmodule werden ergänzt; Konten-UI, sichere Ablage und vollständiger Synchronisierungskoordinator noch offen |
 | Systemkonten auf macOS | EventKit-Kalender/Erinnerungen und Contacts-Adressbücher mit vorhandenen macOS-Quellen; erlaubter/verweigerter/widerrufener Zugriff und bestätigtes Schreiben | Native Quellenmodule werden integriert. Keine Übernahme von Linux EDS/Akonadi; keine Extraktion von Internetkonto-Passwörtern |
 | Feiertage / Schulferien | Land, Region/alle Regionen, ausgewählte Jahre, Datumsgrenzen, lokaler Cache, Offlineanzeige und Fehler ohne Cacheverlust | Gemeinsame Anzeige/Filter; native HTTPS-Abrufe werden ergänzt |
@@ -47,6 +50,8 @@ verlustbehaftete Ersatzdarstellungen liefern.
   UI-Threads. Abbruch und späte Ergebnisse dürfen keine inzwischen ersetzten
   Profile, Konten oder Auswahlen verändern.
 
-Eine Produktionsveröffentlichung erfordert die noch ausstehende native
-Gesamtabnahme und die ausdrückliche Freigabe gemäß Issue #121. Bis dahin sind
-Artefakte nachvollziehbar gebundene Testkandidaten.
+Die abschließende Veröffentlichung ist vom Nutzer autorisiert. Die noch
+ausstehende native Gesamtabnahme und notwendige Installations-/Startprüfungen
+blockieren derzeit die Produktionsveröffentlichung. Bis dahin sind Artefakte
+nachvollziehbar gebundene Testkandidaten. Einzelne bestandene Komponentenläufe
+ersetzen insbesondere nicht die vollständige Tablet-Touchprüfung.
