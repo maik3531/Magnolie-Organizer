@@ -56,4 +56,27 @@ class MediaOfferEnvelopeTest {
         val selected = body(body(message, "settings", settings), "originals", buildJsonObject {})
         assertTrue(MediaOfferEnvelope.validate(selected, a, b, vector.long("now")).originals.isEmpty())
     }
+    @Test fun opaquePcOriginVersionTwoHasSharedBytesWithoutPhoneProofOrNativePaths() {
+        val v = vector(); val base = v.getValue("message").jsonObject
+        val pc = Json.parseToJsonElement(File("../contracts/media-pc-origin-v1-vectors.json").readText()).jsonObject
+        val settings = MediaSyncSettings.change(base.getValue("body").jsonObject.getValue("settings").jsonObject, a, b, "collection_mode", JsonPrimitive("entire_collection"))
+        val selected = body(body(body(body(base, "settings", settings), "originals", buildJsonObject {}), "format", JsonPrimitive(2)), "pc_origins", pc.getValue("pc_origins"))
+        val decoded = MediaOfferEnvelope.validate(selected, a, b, v.long("now")); val bytes = TelefonKanonisch.bytes(selected)
+        assertTrue(decoded.originals.isEmpty()); assertEquals(1, decoded.pcOrigins.size)
+        assertEquals(pc.long("canonical_bytes"), bytes.size.toLong())
+        assertEquals(pc.string("canonical_sha256"), MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) })
+        val token = pc.getValue("pc_origins").jsonObject.getValue(fileId).jsonObject
+        fun tokenChanged(value: JsonObject) = body(selected, "pc_origins", JsonObject(mapOf(fileId to value)))
+        val invalid = mutableListOf(body(selected, "format", JsonPrimitive(1)), body(selected, "pc_origins", buildJsonObject {}),
+            body(selected, "settings", base.getValue("body").jsonObject.getValue("settings")),
+            body(selected, "originals", base.getValue("body").jsonObject.getValue("originals")),
+            body(selected, "pc_origins", JsonObject(pc.getValue("pc_origins").jsonObject + ("f".repeat(32) to token))),
+            tokenChanged(JsonObject(token.filterKeys { it != "previous_publication_sha256" })))
+        for ((key,value) in listOf("format" to JsonPrimitive(true), "origin_sha256" to JsonPrimitive("A".repeat(64)),
+            "previous_publication_sha256" to JsonPrimitive(true), "native_path" to JsonPrimitive("private")))
+            invalid += tokenChanged(JsonObject(token + (key to value)))
+        invalid.forEach { reject { MediaOfferEnvelope.validate(it, a, b, v.long("now")) } }
+        val next = tokenChanged(JsonObject(token + ("previous_publication_sha256" to JsonPrimitive("b".repeat(64)))))
+        assertEquals("b".repeat(64), MediaOfferEnvelope.validate(next, a, b, v.long("now")).pcOrigins.getValue(fileId).previousPublication)
+    }
 }

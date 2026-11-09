@@ -108,6 +108,8 @@ internal sealed partial class TelefonStore
         ? new JsonObject { ["kind"] = "local_collection", ["origin"] = local.DeepClone() }
         : new JsonObject { ["kind"] = "phone_mapping", ["origin"] = body["originals"]!.AsObject().Single().Value!.DeepClone() };
 
+    private static string PcOriginDigest(JsonObject origin) => DeviceFileControl.Digest("magnolie-pc-media-origin-v1\0", origin);
+
     private static void RequireLocalSourceGenerationHistory(IEnumerable<(string JobId, byte[] Cipher, JsonObject Body)> records, JsonObject next)
     {
         if (next["local_origin"] is not JsonObject origin) return;
@@ -184,6 +186,8 @@ internal sealed partial class TelefonStore
             if (Convert.ToInt32(schema.ExecuteScalar()) != 1) throw Error();
         }
         var endVersions = new Dictionary<string, string>(StringComparer.Ordinal);
+        var receipts = new Dictionary<string, string>(StringComparer.Ordinal);
+        var pcPrevious = new Dictionary<string, string?>(StringComparer.Ordinal);
         foreach (var previous in matching)
         {
             if (Text(previous.Body, "phase") != "ready") throw Error();
@@ -217,6 +221,14 @@ internal sealed partial class TelefonStore
                     Text(originalBinding, "permission_epoch") != epoch || !JsonNode.DeepEquals(DevicePublishedReadbackEnvelope.EncodeBody(context, binding), readback))
                     throw Error();
                 var file = media.Manifest.Files.Single();
+                receipts.Add(previous.JobId, Text(receipt, "receipt_sha256"));
+                if (previous.Body["local_origin"] is JsonObject local)
+                {
+                    if (media.PcOrigins.Count != 1 || media.PcOrigins[file.Id] is not JsonObject pc ||
+                        Text(pc, "origin_sha256") != PcOriginDigest(local))
+                        throw DeviceFileControl.Error("media_collection_previous_wire_origin_required");
+                    pcPrevious.Add(previous.JobId, pc["previous_publication_sha256"]?.GetValue<string>());
+                }
                 if (Text(readback, "file_id") != file.Id || Text(readback, "sha256") != file.Sha256 || TelefonProtocolContract.Integer(readback["size"]) != file.Size ||
                     Text(readback, "transfer_id") != media.Manifest.TransferId || Text(readback, "source_id") != media.Manifest.SourceId ||
                     Text(readback, "mime_type") != media.MimeTypes[file.Id]!.GetValue<string>()) throw Error();
@@ -242,7 +254,9 @@ internal sealed partial class TelefonStore
                 var id = Text(link, "job_id");
                 if (!byId.TryGetValue(id, out var parent) || Text(link, "job_version") != SourceDigest(parent.Cipher) ||
                     Text(link, "exchange_version") != endVersions[id] || !referenced.Add(id)) throw Error();
+                if (pcPrevious.TryGetValue(previous.JobId, out var publication) && publication != receipts[id]) throw Error();
             }
+            else if (pcPrevious.TryGetValue(previous.JobId, out var firstPublication) && firstPublication is not null) throw Error();
         var leaves = matching.Where(item => !referenced.Contains(item.JobId)).ToArray();
         if (leaves.Length != 1) throw Error();
         var leaf = leaves[0]; var visited = new HashSet<string>(StringComparer.Ordinal); var cursor = leaf;
@@ -307,11 +321,38 @@ internal sealed partial class TelefonStore
                     var kind = provenance["media_type"]!.GetValue<string>();
                     var mime = NativeMediaContentMime.Identify(prefix, Manifest.TotalBytes, kind);
                     var offer = MediaOfferEnvelope.Create(Manifest, provenance["settings"]!.AsObject(), kind,
-                        new JsonObject { [Manifest.Files[0].Id] = mime }, record["originals"]!.AsObject(), now);
+                        new JsonObject { [Manifest.Files[0].Id] = mime }, record["originals"]!.AsObject(), now, pcOrigins: PcOrigins());
                     Require(); return offer;
                 }
                 finally { CryptographicOperations.ZeroMemory(prefix); }
             }
+        }
+
+        private JsonObject? PcOrigins()
+        {
+            if (record["local_origin"] is not JsonObject origin) return null;
+            string? previousPublication = null;
+            if (record["previous"] is JsonObject previous)
+            {
+                lock (store.gate)
+                {
+                    Require(); using var db = store.OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction(deferred: true);
+                    var history = store.SourceRecords(db, transaction, scope).Where(item => item.JobId != JobId).ToList();
+                    if (!JsonNode.DeepEquals(previous, store.CompletedSourcePredecessor(db, transaction, scope, history, record, Manifest)))
+                        throw DeviceFileControl.Error("media_collection_previous_publication_changed");
+                    using var read = db.CreateCommand(); read.Transaction = transaction;
+                    read.CommandText = "SELECT value FROM native_media_source_exchanges WHERE peer_id=$peer AND job_id=$job AND length(value) BETWEEN 29 AND 32796";
+                    var job = TelefonMessagingContract.String(previous, "job_id"); read.Parameters.AddWithValue("$peer", scope.PeerId); read.Parameters.AddWithValue("$job", job);
+                    if (read.ExecuteScalar() is not byte[] cipher || SourceDigest(cipher) != TelefonMessagingContract.String(previous, "exchange_version"))
+                        throw DeviceFileControl.Error("media_collection_previous_publication_changed");
+                    var clear = store.Open("native_media_source_exchange", scope.PeerId + "/" + job, cipher);
+                    try { previousPublication = JsonNode.Parse(clear)!["peer_saved"]!["receipts"]!.AsArray().Single()!["receipt_sha256"]!.GetValue<string>(); }
+                    finally { CryptographicOperations.ZeroMemory(clear); }
+                    Require(); transaction.Commit();
+                }
+            }
+            return new JsonObject { [Manifest.Files[0].Id] = new JsonObject { ["format"] = 1,
+                ["origin_sha256"] = PcOriginDigest(origin), ["previous_publication_sha256"] = previousPublication } };
         }
 
         private NativePreparedMediaSource(TelefonStore store, NativeMediaSourceOwner source, NativeMediaPreferenceScope scope, JsonObject record)

@@ -819,14 +819,34 @@ unveränderte Inhalte, unvollständige Vorgänger oder unsichere Generationen
 erteilen keine neue Sendeberechtigung. Alle alten Aufzeichnungen bleiben
 erhalten, einschließlich bei gemischter Telefon-/PC-Quellhistorie.
 
-Diese PC-Herkunft ist bislang nur lokal geschützt gespeichert. Ihr stabiler
-Versionsbezug zur tatsächlichen Notes-Galeriepublikation ist noch nicht im
-Wire-/Empfängerweg angeschlossen. Ein nativer Sendernachweis mit synthetischen
-Peerantworten beweist keine Android-Publikation oder korrekt zugeordnete
-Folgeversion. Deshalb werden neue unabhängige PC-Quellen noch nicht automatisch
-aus dem gesamten Bestand exportiert und nicht als vollständig benutzbarer
-Synchronisationsweg angeboten. Capability 23 und vollständige Abnahme bleiben
-davon getrennt gesperrt.
+Media-Offer-Format 2 ergänzt `pc_origins`: pro zugehöriger Datei ausschließlich
+`format: 1`, `origin_sha256` und `previous_publication_sha256` (anfangs `null`).
+Es überträgt keine lokalen Root-/Datei-IDs oder Pfade. PC-Herkunft und echte
+Telefonreferenzen dürfen sich nicht überlappen und müssen gemeinsam exakt die
+angebotenen Dateien abdecken. PC-Herkunft ist nur für `entire_collection`
+zulässig; Format 1 behält sein bisheriges exaktes Schema.
+
+Der Sender bestimmt den Vorgängerfingerabdruck erst nach erneuter Prüfung der
+geschützten abgeschlossenen Quelllinie einschließlich eigenem Source-END.
+Historische lokale Vorläufer ohne PC-Wire-Herkunft bleiben erhalten auf HOLD,
+statt nachträglich eine Notes-Zuordnung zu erfinden. Gemeinsame kanonische
+Vektoren prüfen diese Metadaten in Windows, Linux und Notes.
+
+Notes bindet PC-Herkunft an den geschützten Publikationsdatensatz (Format 3)
+und seinen Scope-Fingerabdruck. Vor Reservierung/Acceptance/Provider-Insert
+verhindert die bestehende bounded Journalprüfung, dass neue Transfer-/Quell-IDs
+denselben bereits reservierten oder publizierten PC-Ursprung in eine zweite
+Galerienzeile aufspalten. Auch der genaue Vorgängerfingerabdruck allein erlaubt
+keinen Austausch und keine Löschung; ein unbekannter Vorgänger bleibt HOLD.
+Die alten Publikationsformate 1/2 bleiben unverändert erhalten.
+
+Erstimport und diese Haltegrenzen sind im tatsächlichen Notes-Runtime-/SQLite-
+Pfad mit Robolectric und simuliertem MediaStore-Provider geprüft, nicht auf
+einem Android-Gerät. Der native Ersatz-/Archivierungs-/Löschowner für eine
+Folgeversion steht noch aus. Ein Windows-Sendernachweis mit synthetischen
+Peerantworten beweist keinen durchgängigen Android-Versionsaustausch. Deshalb
+bleiben automatische neue PC-Gesamtbestands-Exporte, vollständige Benutzerauswahl,
+Capability 23 und gemeinsame Geräteabnahme weiterhin gesperrt.
 
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.

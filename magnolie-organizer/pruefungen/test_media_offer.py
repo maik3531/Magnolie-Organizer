@@ -62,3 +62,36 @@ def test_media_offer_holds_malformed_or_unrequested_metadata_before_native_io(ca
 def test_entire_collection_may_offer_new_members_without_inventing_phone_references():
     v = vector();body = v['message']['body'];body['settings'] = change(body['settings'], A, B, 'collection_mode', 'entire_collection')
     body['originals'].clear();assert not validate_media_offer(v['message'], A, B, now=v['now']).originals
+
+
+def pc_message():
+    v = vector();m = v['message'];b = m['body']
+    p = json.loads((ROOT / 'contracts/media-pc-origin-v1-vectors.json').read_text())
+    b.update(format=2, originals={}, pc_origins=p['pc_origins'], settings=change(b['settings'], A, B, 'collection_mode', 'entire_collection'))
+    return v, p
+
+
+def test_opaque_pc_origin_v2_keeps_shared_bytes_and_does_not_invent_phone_proof():
+    v,p = pc_message();m = v['message'];r = validate_media_offer(m, A, B, now=v['now'])
+    assert not r.originals and len(r.pc_origins) == 1
+    assert len(canonical(m)) == p['canonical_bytes'] and sha256(canonical(m)).hexdigest() == p['canonical_sha256']
+    assert create_media_offer(r.manifest, r.settings, r.media_type, r.mime_types, r.originals, now=v['now'],
+        message_id=m['message_id'], pc_origins=r.pc_origins) == m
+    m['body']['pc_origins'][FILE]['previous_publication_sha256'] = 'b' * 64
+    assert validate_media_offer(m, A, B, now=v['now']).pc_origins[FILE]['previous_publication_sha256'] == 'b' * 64
+
+
+@pytest.mark.parametrize('case', ['legacy','empty','bool_format','uppercase','bool_previous','missing_previous','path','foreign','overlap','inventory'])
+def test_opaque_pc_origin_is_strict_scope_bound_metadata_not_native_authority(case):
+    v,_ = pc_message();b = v['message']['body'];pc = b['pc_origins'][FILE]
+    if case == 'legacy':b['format'] = 1
+    elif case == 'empty':b['pc_origins'] = {}
+    elif case == 'bool_format':pc['format'] = True
+    elif case == 'uppercase':pc['origin_sha256'] = 'A' * 64
+    elif case == 'bool_previous':pc['previous_publication_sha256'] = True
+    elif case == 'missing_previous':del pc['previous_publication_sha256']
+    elif case == 'path':pc['native_path'] = 'private'
+    elif case == 'foreign':b['pc_origins']['f' * 32] = deepcopy(pc)
+    elif case == 'overlap':b['originals'][FILE] = vector()['message']['body']['originals'][FILE]
+    elif case == 'inventory':b['settings'] = vector()['message']['body']['settings']
+    with pytest.raises(TransferError):validate_media_offer(v['message'], A, B, now=v['now'])

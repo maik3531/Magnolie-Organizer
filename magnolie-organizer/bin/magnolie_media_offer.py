@@ -3,7 +3,7 @@
 The ordinary offer remains unchanged. Its ID/manifest survive reconstruction so
 the existing acceptance/chunk/Saved validators keep their original correlation.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import copy
 import re
 
@@ -24,14 +24,16 @@ class NativeMediaOffer:
     media_type: str
     mime_types: dict
     originals: dict
+    pc_origins: dict = field(default_factory=dict)
 
 
-def create_media_offer(manifest, settings, media_type, mime_types, originals, *, now=None, message_id=None):
+def create_media_offer(manifest, settings, media_type, mime_types, originals, *, now=None, message_id=None, pc_origins=None):
     now = now_ms() if now is None else now
     message = create_offer(manifest, now=now, message_id=message_id)
     message['kind'] = KIND
-    message['body'] = dict(format=1, offer=message['body'], settings=copy.deepcopy(settings),
+    message['body'] = dict(format=1 if pc_origins is None else 2, offer=message['body'], settings=copy.deepcopy(settings),
         media_type=media_type, mime_types=copy.deepcopy(mime_types), originals=copy.deepcopy(originals))
+    if pc_origins is not None:message['body']['pc_origins'] = copy.deepcopy(pc_origins)
     validate_media_offer(message, manifest.sender_id, manifest.receiver_id, now=now)
     return message
 
@@ -44,8 +46,10 @@ def validate_media_offer(message, sender_id, receiver_id, *, now=None):
     if (type(message) is not dict or message.get('kind') != KIND or len(encoded) > APPLICATION_MAX
             or type(message.get('expires_ms')) is not int or now >= message['expires_ms']):fail()
     body = message.get('body')
-    if (type(body) is not dict or set(body) != {'format','offer','settings','media_type','mime_types','originals'}
-            or type(body['format']) is not int or body['format'] != 1):fail()
+    if type(body) is not dict:fail()
+    pc_version = type(body.get('format')) is int and body['format'] == 2
+    if (set(body) != {'format','offer','settings','media_type','mime_types','originals'} | ({'pc_origins'} if pc_version else set())
+            or type(body.get('format')) is not int or body['format'] not in (1, 2)):fail()
     offer = copy.deepcopy(message);offer['kind'] = FILE_OFFER;offer['body'] = copy.deepcopy(body['offer'])
     manifest = validate_offer(offer, sender_id, receiver_id, now=now)
     try:validate_start(dict(format=1, settings=body['settings']))
@@ -55,6 +59,18 @@ def validate_media_offer(message, sender_id, receiver_id, *, now=None):
     ids = {file.id for file in manifest.files};mime = body['mime_types'];originals = body['originals']
     if (type(mime) is not dict or set(mime) != ids or type(originals) is not dict or not set(originals) <= ids
             or effective(body['settings'])['collection_mode'] == 'phone_inventory' and set(originals) != ids):fail()
+    pc = body['pc_origins'] if pc_version else {}
+    if (type(pc) is not dict or pc_version and (not pc or effective(body['settings'])['collection_mode'] != 'entire_collection'
+            or set(pc) & set(originals) or set(pc) | set(originals) != ids)):fail()
+    pc_ids = set()
+    for value in pc.values():
+        if (type(value) is not dict or set(value) != {'format','origin_sha256','previous_publication_sha256'}
+                or type(value['format']) is not int or value['format'] != 1
+                or type(value['origin_sha256']) is not str or re.fullmatch('[0-9a-f]{64}', value['origin_sha256']) is None
+                or value['previous_publication_sha256'] is not None and (type(value['previous_publication_sha256']) is not str
+                    or re.fullmatch('[0-9a-f]{64}', value['previous_publication_sha256']) is None)
+                or value['origin_sha256'] in pc_ids):fail()
+        pc_ids.add(value['origin_sha256'])
     prefix = 'image' if kind == 'images' else 'video'
     if any(type(value) is not str or re.fullmatch(prefix + r'/[a-z0-9][a-z0-9.+-]{0,126}', value) is None for value in mime.values()):fail()
     known = set()
@@ -67,4 +83,4 @@ def validate_media_offer(message, sender_id, receiver_id, *, now=None):
         encoded = canonical(reference)
         if encoded in known:fail()
         known.add(encoded)
-    return NativeMediaOffer(offer, manifest, copy.deepcopy(body['settings']), kind, copy.deepcopy(mime), copy.deepcopy(originals))
+    return NativeMediaOffer(offer, manifest, copy.deepcopy(body['settings']), kind, copy.deepcopy(mime), copy.deepcopy(originals), copy.deepcopy(pc))

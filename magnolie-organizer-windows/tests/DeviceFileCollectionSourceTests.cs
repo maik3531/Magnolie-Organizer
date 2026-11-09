@@ -47,7 +47,7 @@ internal static class DeviceFileCollectionSourceTests
         try { return JsonNode.Parse(clear)!.AsObject(); } finally { CryptographicOperations.ZeroMemory(clear); }
     }
 
-    private static async Task SendToEnd(DeviceFileReceiveJobTests.Fixture f, TelefonStore.NativePreparedMediaSource cache, byte[] expected)
+    private static async Task SendToEnd(DeviceFileReceiveJobTests.Fixture f, TelefonStore.NativePreparedMediaSource cache, byte[] expected, string? expectedPrevious = null)
     {
         DeviceFileConnectionRunsTests.Clear(f); using var stop = new CancellationTokenSource();
         var send = f.Native.Connection.SendNativeMappedMediaSourceToSourceEndAsync(cache, stop.Token);
@@ -57,6 +57,11 @@ internal static class DeviceFileCollectionSourceTests
             var media = MediaOfferEnvelope.Validate(offer, cache.Manifest.SenderId, cache.Manifest.ReceiverId, Now());
             TestAssert.That(media.Originals.Count == 0 && media.MimeTypes[cache.Manifest.Files[0].Id]!.GetValue<string>() == "image/png",
                 "Independent PC source invented a phone reference or lost actual byte-derived MIME.");
+            var origin = media.PcOrigins[cache.Manifest.Files[0].Id]!.AsObject();
+            TestAssert.That(offer["body"]!["format"]!.GetValue<int>() == 2 && media.PcOrigins.Count == 1 &&
+                origin["origin_sha256"]!.GetValue<string>() == DeviceFileControl.Digest("magnolie-pc-media-origin-v1\0", Record(f, cache.JobId)["local_origin"]!) &&
+                origin["previous_publication_sha256"]?.GetValue<string>() == expectedPrevious,
+                "Actual wire did not bind opaque PC origin and exact previously completed publication without leaking native identity/path.");
             var acceptance = DeviceFileSourceSendTests.Accept(f, cache, offer); await f.Native.Connection.HandlePlainAsync(acceptance);
             var accepted = DeviceFileAcceptanceEnvelope.Parse(acceptance, Now()); var chunks = (expected.Length + DeviceFileManifest.ChunkBytes - 1) / DeviceFileManifest.ChunkBytes;
             for (var index = 0; index < chunks; index++)
@@ -109,13 +114,32 @@ internal static class DeviceFileCollectionSourceTests
         data = DeviceFileSourceSendTests.PaddedPng(1, 256); File.WriteAllBytes(Path.Combine(selection.NativePath, "new-pc.png"), data);
         var changed = Member(selection);
         TestAssert.That(changed.Identity == original.Identity && changed.CreationFileTime == original.CreationFileTime, "Version fixture accidentally replaced its source generation.");
+        // Older internal local caches could have ended with v1 (no stable wire
+        // association). Preserve them, but never infer a receiver association.
+        using (var db = f.Native.Store.OpenDatabase())
+        {
+            db.Open(); using var query = db.CreateCommand(); query.CommandText = "SELECT value FROM native_media_source_exchanges WHERE job_id=$job";
+            query.Parameters.AddWithValue("$job", before.JobId); var originalExchange = (byte[])query.ExecuteScalar()!;
+            var old = DeviceFileSourceSendTests.Exchange(f, before.JobId); old["offer"]!["body"]!["format"] = 1; old["offer"]!["body"]!.AsObject().Remove("pc_origins");
+            var bytes = TelefonCrypto.Canonical(old); byte[] cipher;
+            try { cipher = f.Native.Store.Seal("native_media_source_exchange", f.Native.Peer.Id + "/" + before.JobId, bytes); }
+            finally { CryptographicOperations.ZeroMemory(bytes); }
+            using var update = db.CreateCommand(); update.CommandText = "UPDATE native_media_source_exchanges SET value=$value WHERE job_id=$job";
+            update.Parameters.AddWithValue("$job", before.JobId); var value = update.Parameters.Add("$value", Microsoft.Data.Sqlite.SqliteType.Blob); value.Value = cipher; update.ExecuteNonQuery();
+            try
+            {
+                using var unbound = Open(); TestAssert.Throws<InvalidDataException>(() => unbound.FreezeCompletedSuccessor(), "Old v1 local predecessor acquired an inferred stable phone publication association.");
+                TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single() == before, "Unbound predecessor HOLD changed local source history.");
+            }
+            finally { value.Value = originalExchange; update.ExecuteNonQuery(); }
+        }
         using (var source = Open())
         using (var cache = source.FreezeCompletedSuccessor())
         {
             var record = Record(f, cache.JobId);
             TestAssert.That(record["format"]!.GetValue<int>() == 4 && record["previous"]!["job_id"]!.GetValue<string>() == before.JobId,
                 "Changed independent PC payload lost its latest completed source lineage.");
-            await SendToEnd(f, cache, data);
+            await SendToEnd(f, cache, data, new string('b', 64));
         }
         var history = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).ToArray();
         File.SetCreationTimeUtc(Path.Combine(selection.NativePath, "new-pc.png"), DateTime.FromFileTimeUtc((long)original.CreationFileTime).AddSeconds(-5));

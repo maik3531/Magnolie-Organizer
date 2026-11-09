@@ -107,6 +107,21 @@ class NativeGalleryIncomingRuntimeTest {
             }))
         }
         fun startMedia(offer: JsonObject = mediaOffer()) = runtime.beginIncomingMediaOffer(link.receive(offer), f.book()).also { run = it }
+        fun pcOffer(selected: DeviceFileManifest = manifest, origin: String = "a".repeat(64), previous: String? = null): JsonObject {
+            val offer = DeviceFileOfferEnvelope.create(selected)
+            return JsonObject(offer + mapOf("kind" to JsonPrimitive(MediaOfferEnvelope.KIND), "body" to buildJsonObject {
+                put("format", 2); put("offer", offer.getValue("body")); put("settings", token.body); put("media_type", "images")
+                put("mime_types", buildJsonObject { put("1".repeat(32), "image/png") }); put("originals", buildJsonObject {})
+                put("pc_origins", buildJsonObject { put("1".repeat(32), buildJsonObject {
+                    put("format", 1); put("origin_sha256", origin); put("previous_publication_sha256", previous?.let(::JsonPrimitive) ?: JsonNull)
+                }) })
+            }))
+        }
+        fun forkManifest(): DeviceFileManifest {
+            val raw = DeviceFileOfferEnvelope.create(manifest).getValue("body").jsonObject.getValue("manifest").jsonObject
+            return DeviceFileManifest.parse(JsonObject(raw + mapOf("source_id" to JsonPrimitive(java.util.UUID.randomUUID().toString().replace("-", "")),
+                "transfer_id" to JsonPrimitive(java.util.UUID.randomUUID().toString().replace("-", "")))))
+        }
         fun nativeConnection(): NativeGalleryFileConnection = connection ?: NativeGalleryFileConnection(link.channel, requireIncomingAgreement = {
             check(Looper.myLooper() != Looper.getMainLooper())
             if (!incomingAgreement) DeviceFileControl.fail("gallery_incoming_current_intent_required")
@@ -146,6 +161,45 @@ class NativeGalleryIncomingRuntimeTest {
             assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
             assertTrue(h.link.frames.any { it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
             assertEquals(JsonPrimitive(DeviceFileSavedEnvelope.KIND), run.actualSavedOutput()!!["kind"])
+        }
+    }
+
+    @Test fun opaquePcOriginPublishesOnceAndForkedOrPredecessorVersionsCannotCreateAnotherGalleryRow() {
+        Harness().use { h ->
+            val first = h.startMedia(h.pcOffer())
+            assertTrue(first.awaitIoEnded(10000)); assertNull(first.nativeFailure()); assertNotNull(first.actualSavedOutput())
+            val selected = h.published()
+            assertEquals(JsonPrimitive(3), selected.body["format"]); assertEquals("a".repeat(64), selected.pcOrigin!!.origin)
+            assertNull(selected.pcOrigin!!.previousPublication); assertNull(selected.knownOriginalId)
+            assertEquals(selected.fingerprint, first.actualSavedOutput()!!.getValue("body").jsonObject.getValue("receipts").jsonArray.single().jsonObject.string("receipt_sha256"))
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes); assertArrayEquals(h.raw, h.file.readBytes())
+            val rows = h.f.rows(); val reads = h.provider.readOpens; val frames = h.link.frames.size
+            for (previous in listOf(null, "b".repeat(64), selected.fingerprint)) {
+                val next = h.startMedia(h.pcOffer(h.forkManifest(), previous = previous))
+                assertTrue(next.awaitIoEnded(10000)); assertNotNull(next.nativeFailure()); assertNull(next.actualSavedOutput())
+                assertEquals(rows, h.f.rows()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+                assertEquals(reads, h.provider.readOpens); assertArrayEquals(h.raw, h.file.readBytes())
+            }
+            val wrongOrigin = h.startMedia(h.pcOffer(h.forkManifest(), "c".repeat(64), selected.fingerprint))
+            assertTrue(wrongOrigin.awaitIoEnded(10000)); assertNotNull(wrongOrigin.nativeFailure())
+            assertEquals(rows, h.f.rows()); assertEquals(1, h.provider.inserts)
+            assertTrue(h.link.frames.drop(frames).none { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) ||
+                it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) || it["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND) })
+        }
+    }
+
+    @Test fun pendingPcOriginIsRetainedAndNewTransferIdsCannotBypassItsJournalReservation() {
+        Harness().use { h ->
+            h.respond = false
+            val first = h.startMedia(h.pcOffer()); assertTrue(h.requested.await(5, TimeUnit.SECONDS))
+            first.cancel(); assertTrue(first.awaitIoEnded(10000)); assertNull(first.actualSavedOutput())
+            val rows = h.f.rows(); val pending = h.published()
+            assertNotEquals("published", pending.state); assertEquals("a".repeat(64), pending.pcOrigin!!.origin)
+            val inserts = h.provider.inserts; val opens = h.provider.writeOpens
+            val next = h.startMedia(h.pcOffer(h.forkManifest()))
+            assertTrue(next.awaitIoEnded(10000)); assertNotNull(next.nativeFailure()); assertNull(next.actualSavedOutput())
+            assertEquals(rows, h.f.rows()); assertEquals(inserts, h.provider.inserts); assertEquals(opens, h.provider.writeOpens)
+            assertEquals(0, h.provider.publishes)
         }
     }
 

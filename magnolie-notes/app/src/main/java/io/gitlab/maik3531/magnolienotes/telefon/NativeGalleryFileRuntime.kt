@@ -135,13 +135,19 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val intent = currentIncomingIntent?.invoke(media.kind) as? MediaSyncTransport.IntentToken
             ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
         if (intent.body != media.settings) DeviceFileControl.fail("gallery_incoming_offer_intent_changed")
-        return beginIncoming(media.offer, media.kind, media.mimeTypes, book, media.originals, intent, automaticReadback, requireReadbackAgreement)
+        return beginIncomingOwned(media.offer, media.kind, media.mimeTypes, book, media.originals, intent, automaticReadback, requireReadbackAgreement, media.pcOrigins)
     }
 
     internal fun beginIncoming(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
         book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference> = emptyMap(),
          expectedIntent: MediaSyncTransport.IntentToken? = null, automaticReadback: Boolean = false,
-         requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun = withOperation {
+          requireReadbackAgreement: () -> Unit = {}): NativeGalleryIncomingRun =
+        beginIncomingOwned(offer, kind, mimeTypes, book, references, expectedIntent, automaticReadback, requireReadbackAgreement, emptyMap())
+
+    private fun beginIncomingOwned(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
+        book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference>,
+        expectedIntent: MediaSyncTransport.IntentToken?, automaticReadback: Boolean,
+        requireReadbackAgreement: () -> Unit, pcOrigins: Map<String, GalleryPcMediaOrigin>): NativeGalleryIncomingRun = withOperation {
         if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
         if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
@@ -152,6 +158,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val manifest = DeviceFileOfferEnvelope.validate(offer, current.peerId, localIdentity.deviceId)
         val types = mimeTypes.toMap()
         val originalReferences = references.toMap()
+        val originalPcOrigins = pcOrigins.toMap()
         val originalIntent = currentIncomingIntent?.invoke(kind)
             ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
         incomingWorker.start(completedReadback = { completed ->
@@ -170,7 +177,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             }
         }, automaticReadback = automaticReadback) {
             val owner = NativeGalleryIncomingOwner.capture(controls.session, index, book, nativePeer,
-                { currentIncomingIntent?.invoke(kind)?.takeIf { expectedIntent == null || it === expectedIntent } }, manifest, kind, originalReferences)
+                { currentIncomingIntent?.invoke(kind)?.takeIf { expectedIntent == null || it === expectedIntent } }, manifest, kind, originalReferences, originalPcOrigins)
             try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
             catch (error: Throwable) { owner.close(); throw error }
         }

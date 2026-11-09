@@ -43,6 +43,31 @@ internal static class MediaOfferEnvelopeTests
         var entire = message.DeepClone().AsObject(); entire["body"]!["settings"] = MediaSyncSettings.Change(decoded.Settings, A, B, "collection_mode", JsonValue.Create("entire_collection")!);
         entire["body"]!["originals"]!.AsObject().Clear();
         TestAssert.That(MediaOfferEnvelope.Validate(entire, A, B, now).Originals.Count == 0, "Entire collection invented a phone association for a new member.");
+        var pcVector = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root("contracts/media-pc-origin-v1-vectors.json"), "contracts/media-pc-origin-v1-vectors.json")))!.AsObject();
+        entire["body"]!["format"] = 2; entire["body"]!["pc_origins"] = pcVector["pc_origins"]!.DeepClone();
+        var pc = MediaOfferEnvelope.Validate(entire, A, B, now); var encoded = TelefonCrypto.Canonical(entire);
+        TestAssert.That(pc.PcOrigins.Count == 1 && pc.Originals.Count == 0 && encoded.Length == pcVector["canonical_bytes"]!.GetValue<int>() &&
+            Convert.ToHexString(SHA256.HashData(encoded)).ToLowerInvariant() == pcVector["canonical_sha256"]!.GetValue<string>() &&
+            JsonNode.DeepEquals(entire, MediaOfferEnvelope.Create(pc.Manifest, pc.Settings, pc.MediaType, pc.MimeTypes, pc.Originals, now,
+                entire["message_id"]!.GetValue<string>(), pc.PcOrigins)), "Versioned opaque PC origin changed shared canonical bytes or ordinary transfer correlation.");
+        foreach (var mutate in new Action<JsonObject>[] {
+            body => body["format"] = 1,
+            body => body["pc_origins"] = new JsonObject(),
+            body => body["pc_origins"]![FileId]!["format"] = true,
+            body => body["pc_origins"]![FileId]!["origin_sha256"] = new string('A', 64),
+            body => body["pc_origins"]![FileId]!["previous_publication_sha256"] = true,
+            body => body["pc_origins"]![FileId]!.AsObject().Remove("previous_publication_sha256"),
+            body => body["pc_origins"]![FileId]!["native_path"] = "private",
+            body => body["pc_origins"]![new string('f', 32)] = pc.PcOrigins[FileId]!.DeepClone(),
+            body => body["originals"]![FileId] = decoded.Originals[FileId]!.DeepClone(),
+            body => body["settings"] = decoded.Settings.DeepClone() })
+        {
+            var bad = entire.DeepClone().AsObject(); mutate(bad["body"]!.AsObject());
+            TestAssert.Throws<InvalidDataException>(() => MediaOfferEnvelope.Validate(bad, A, B, now), "Malformed/overlapping/legacy-scoped opaque PC origin admitted.");
+        }
+        var successor = entire.DeepClone().AsObject(); successor["body"]!["pc_origins"]![FileId]!["previous_publication_sha256"] = new string('b', 64);
+        TestAssert.That(MediaOfferEnvelope.Validate(successor, A, B, now).PcOrigins[FileId]!["previous_publication_sha256"]!.GetValue<string>() == new string('b', 64),
+            "Opaque predecessor correlation was replaced with a phone reference or dropped.");
         return Task.CompletedTask;
     }
 }

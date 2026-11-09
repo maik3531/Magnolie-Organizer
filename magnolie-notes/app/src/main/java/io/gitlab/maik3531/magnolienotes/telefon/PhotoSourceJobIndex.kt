@@ -796,8 +796,18 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
                 if (name != GalleryIncomingPublication.PREFIX + historical.id) fail("gallery_incoming_publication_changed")
                 if (historical.id != selected.id && historical.sameOriginalTransferFile(selected))
                     fail("gallery_incoming_original_transfer_held")
+                // New sender-selected transfer IDs cannot fork an already
+                // reserved/published opaque PC source into another gallery row.
+                // A predecessor fingerprint is correlation only, never write,
+                // replacement or deletion consent. Until the native replacement
+                // owner exists, even the exact published predecessor stays HOLD.
+                if (historical.id != selected.id && historical.samePcSource(selected))
+                    fail(if (historical.state == "published" && selected.pcOrigin?.previousPublication == historical.fingerprint)
+                        "gallery_incoming_pc_version_replacement_required" else "gallery_incoming_pc_origin_held")
             }
         }
+        if (selected.pcOrigin?.previousPublication != null)
+            fail("gallery_incoming_pc_predecessor_unavailable")
         current()
     }
 
