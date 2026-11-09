@@ -22,7 +22,8 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
     private val index: PhotoSourceJobIndex, private val book: NativeGalleryReceiveBookPermit,
     private val peer: () -> NativeFileControlPeer?, private val incomingIntent: () -> Any?,
     internal val manifest: DeviceFileManifest, internal val kind: GalleryMediaType,
-    references: Map<String, GalleryPhoneMediaReference>, pcOrigins: Map<String, GalleryPcMediaOrigin>) : AutoCloseable {
+    references: Map<String, GalleryPhoneMediaReference>, pcOrigins: Map<String, GalleryPcMediaOrigin>,
+    expectedControl: NativeFileOperationBinding?) : AutoCloseable {
     private val token = incomingIntent() as? MediaSyncTransport.IntentToken ?: fail()
     internal val photosOnly: Boolean get() = token.photosOnly
     private val originalPeer = peer()?.takeIf { it.allowed && it.pairingEpoch != null } ?: fail()
@@ -35,6 +36,7 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
     private val ended = AtomicBoolean(false)
     internal val scope: GalleryIncomingScope
     init {
+        if (expectedControl != null && originalControl != expectedControl) fail()
         requireCurrent()
         scope = GalleryIncomingScope.capture(manifest, kind, token.collectionMode, binding.senderIdentitySha256,
             references, pcOrigins, index::knownPhoneMedia)
@@ -75,9 +77,9 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
         internal fun capture(session: NativeFileControlSession, index: PhotoSourceJobIndex, book: NativeGalleryReceiveBookPermit,
             currentPeer: () -> NativeFileControlPeer?, incomingIntent: () -> Any?, manifest: DeviceFileManifest,
             kind: GalleryMediaType, references: Map<String, GalleryPhoneMediaReference> = emptyMap(),
-            pcOrigins: Map<String, GalleryPcMediaOrigin> = emptyMap()): NativeGalleryIncomingOwner {
+            pcOrigins: Map<String, GalleryPcMediaOrigin> = emptyMap(), expectedControl: NativeFileOperationBinding? = null): NativeGalleryIncomingOwner {
             if (Build.VERSION.SDK_INT < 30 || Looper.myLooper() == Looper.getMainLooper()) fail()
-            return NativeGalleryIncomingOwner(session, index, book, currentPeer, incomingIntent, manifest, kind, references.toMap(), pcOrigins.toMap())
+            return NativeGalleryIncomingOwner(session, index, book, currentPeer, incomingIntent, manifest, kind, references.toMap(), pcOrigins.toMap(), expectedControl)
         }
         private fun fail(): Nothing = DeviceFileControl.fail("gallery_incoming_current_owner_required")
     }

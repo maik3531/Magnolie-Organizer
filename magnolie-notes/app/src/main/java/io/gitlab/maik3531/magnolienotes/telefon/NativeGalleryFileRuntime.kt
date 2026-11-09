@@ -161,8 +161,10 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val originalPcOrigins = pcOrigins.toMap()
         val originalIntent = currentIncomingIntent?.invoke(kind)
             ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        val originalControl = controls.session.operationBinding(manifest.fingerprint)
         incomingWorker.start(completedReadback = { completed ->
-            if (!automaticReadback) beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent)
+            if (!automaticReadback) beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent,
+                originalControl ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required"))
             else {
                 val remaining = minOf(1000L, offer.long("expires_ms") - System.currentTimeMillis())
                 if (remaining <= 0 || !operationGate.tryLock(remaining, java.util.concurrent.TimeUnit.MILLISECONDS))
@@ -172,18 +174,22 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                     // receiver. Wait only on this native thread, bounded, with no
                     // index guard held. All owners are checked again below.
                     requireReadbackAgreement()
-                    beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent)
+                    beginCompletedIncomingReadback(completed, offer, book, kind, originalIntent,
+                        originalControl ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required"))
                 } finally { operationGate.unlock() }
             }
         }, automaticReadback = automaticReadback) {
             val owner = NativeGalleryIncomingOwner.capture(controls.session, index, book, nativePeer,
-                { currentIncomingIntent?.invoke(kind)?.takeIf { expectedIntent == null || it === expectedIntent } }, manifest, kind, originalReferences, originalPcOrigins)
+                { currentIncomingIntent?.invoke(kind)?.takeIf { it === originalIntent && (expectedIntent == null || it === expectedIntent) } },
+                manifest, kind, originalReferences, originalPcOrigins,
+                expectedControl = originalControl ?: DeviceFileControl.fail("gallery_incoming_current_owner_required"))
             try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
             catch (error: Throwable) { owner.close(); throw error }
         }
     }
     private fun beginCompletedIncomingReadback(completed: NativeGalleryIncomingRun, offer: JsonObject,
-        book: NativeGalleryReceiveBookPermit, kind: GalleryMediaType, originalIntent: Any): NativeGalleryPublishedReadRun = withOperation {
+        book: NativeGalleryReceiveBookPermit, kind: GalleryMediaType, originalIntent: Any,
+        originalControl: NativeFileOperationBinding): NativeGalleryPublishedReadRun = withOperation {
         if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
         if (!incomingWorker.owns(completed) || !incomingAvailable() || currentIncomingIntent?.invoke(kind) !== originalIntent)
             DeviceFileControl.fail("gallery_incoming_completed_owner_required")
@@ -194,7 +200,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val selected = completed.actualPublishedOutput()
         val origin = selected.body.getValue("origin").jsonObject
         val originalEpoch = origin.getValue("binding").jsonObject.string("permission_epoch")
-        if (controls.session.binding(origin.string("manifest_sha256"))?.permissionEpoch != originalEpoch)
+        if (controls.session.operationBinding(origin.string("manifest_sha256")) != originalControl ||
+            originalControl.binding.permissionEpoch != originalEpoch)
             DeviceFileControl.fail("gallery_incoming_completed_owner_required")
         val saved = completed.actualSavedOutput() ?: DeviceFileControl.fail("gallery_incoming_completed_owner_required")
         val receipt = saved.getValue("body").jsonObject.getValue("receipts").jsonArray.singleOrNull()?.jsonObject
@@ -204,7 +211,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             DeviceFileControl.fail("gallery_incoming_original_changed")
         publishedReadWorker.startReadback {
             val owner = NativeGalleryPublishedInspection.capture(controls.session, index, book, nativePeer,
-                { currentIncomingIntent?.invoke(kind)?.takeIf { it === originalIntent } }, selected)
+                { currentIncomingIntent?.invoke(kind)?.takeIf { it === originalIntent } }, selected, expectedControl = originalControl)
             try {
                 if (owner.bindingForReadback(origin.string("manifest_sha256")).permissionEpoch != originalEpoch)
                     DeviceFileControl.fail("gallery_incoming_completed_owner_required")

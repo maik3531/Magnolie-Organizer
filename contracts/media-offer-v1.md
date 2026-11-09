@@ -184,6 +184,27 @@ unverändertem Index/Provider vor Ablehnung und bestehendem normalen Runtime-/
 Transfer-/Readback-Pfad. Diese Grenze schließt für sich weder die historische
 PC-Folgeversionszuordnung noch einen Archiv-/OS-Schreib-/Löschowner ab.
 
+Die normale Runtime hält den ursprünglichen atomaren Control-Operationszeugen
+bereits vor Start des Empfangsarbeiters fest und reicht ihn bis in die tatsächliche
+Owner-Konstruktion weiter. Ein später positiv bestätigter Sitzungswechsel darf
+damit auch in der Lücke vor dem ersten Hintergrund-Capture keine Ersatzrechte
+erzeugen. Fehlt die ursprüngliche positive Bindung, bleibt der bestehende
+asynchrone Fehler-/Drainweg erhalten; eine nachträgliche Bestätigung darf daraus
+keinen erlaubten Owner machen. Der ursprüngliche volle Incoming-Intent bleibt
+auch beim gewöhnlichen internen Offer-Eintritt fest gebunden, nicht erst bei der
+Media-Offer-Hülle. Automatikmodus und Richtung bleiben trotzdem unabhängig.
+
+Die eigene Saved→Readback-Fortsetzung übernimmt denselben ursprünglichen
+Control- und Intentzeugen. Sie vergleicht ihn vor ihrer Aufnahme und erneut
+innerhalb des tatsächlichen Hintergrund-Owner-Konstruktors; ein Vorabvergleich
+mit anschließend freiem Neu-Capture reicht nicht. Vier neue gezielte Runtimefälle
+prüfen neue Remote-Sitzung vor dem ersten Owner, später ersetzten vollen Intent,
+Sitzungswechsel nach Saved und die Capture-Race der Fortsetzung. Frische neue
+explizite Aufnahme funktioniert weiter. 90 passende Runtime-/Transfer-/Rows-
+Hostfälle bestehen, ohne Wire-/Resume-/Journal- oder Friständerung. Die weiteren
+expliziten Auswahl-/Archivaktionswege und OS-Mutationsowner sind damit nicht
+pauschal abgeschlossen; Geräteabnahme und Feature-/Auslieferungsgates bleiben.
+
 38 Notes-Empfangs-/Transferfälle bestehen, darunter der neue Originalangebot-
 Readback, einmalige Nutzung, laufender/abgebrochener/metadatenbasierter Empfang,
 entzogenes Originalbuch und widerrufene Kontrollen. Die fünf bestehenden nativen
@@ -928,8 +949,8 @@ Provenienz-Negativfälle, verschiedene echte Bücher, OFF, blockierte Medienbahn
 Byteänderungen und Abbruch während tatsächlich blockierter Provider-IO.
 Dies sind interne native Primitiven mit Robolectric-Provider, noch keine
 angeschlossene Recovery-Aktion oder Android-Geräte-/OS-Consent-Abnahme.
-Der native PC-Schreib-/Ersetzungs-/Archivaktions-/Löschowner und die ursprüngliche
-Fortsetzungsaufnahme bleiben separat zu komponieren; der bisherige HOLD bleibt.
+Der native PC-Schreib-/Ersetzungs-/Archivaktions-/Löschowner bleibt separat
+zu komponieren; der bisherige HOLD bleibt.
 
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 

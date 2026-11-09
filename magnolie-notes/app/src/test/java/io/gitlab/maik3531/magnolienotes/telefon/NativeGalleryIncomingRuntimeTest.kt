@@ -31,6 +31,83 @@ class NativeGalleryIncomingRuntimeTest {
                 it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
         }
     }
+    @Test fun queuedIncomingRunCannotAdoptALaterPositivelyAcknowledgedRemoteSessionBeforeOwnerCapture() {
+        Harness().use { h ->
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val original = h.operationBinding(); val before = h.f.rows()
+            h.incomingHook = {
+                if (Thread.currentThread().name == "magnolie-media-incoming") {
+                    entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val run = h.start()
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); h.rotatePcSession()
+                assertEquals(original.binding, h.operationBinding().binding); assertNotEquals(original.session, h.operationBinding().session)
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualSavedOutput()); assertNotNull(run.nativeFailure())
+            assertEquals(before, h.f.rows()); assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens); assertEquals(0, h.provider.publishes)
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) })
+            h.incomingHook = {}
+            val fresh = h.start(); assertTrue(fresh.awaitIoEnded(5000)); assertNull(fresh.nativeFailure()); assertNotNull(fresh.actualSavedOutput())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun completedIncomingReadbackCannotCaptureALaterRemoteSessionAsReplacementForItsOriginalOperation() {
+        Harness().use { h ->
+            val run = h.start(); assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure()); assertNotNull(run.actualSavedOutput())
+            val original = h.operationBinding(); val reads = h.provider.readOpens; val before = h.f.rows()
+            h.rotatePcSession(); assertEquals(original.binding, h.operationBinding().binding)
+            val attempt = h.f.io { runCatching { run.beginPublishedReadback().also { h.inspection = it } } }
+            attempt.getOrNull()?.let { assertTrue(it.awaitIoEnded(5000)) }
+            assertTrue("A late remote ACK replaced the admitted receive operation's control session.", attempt.exceptionOrNull() is PhotoFolderScopeError)
+            assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+        }
+    }
+
+    @Test fun queuedOrdinaryIncomingRunCannotAdoptALaterFullIncomingIntentBeforeOwnerCapture() {
+        Harness().use { h ->
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val before = h.f.rows()
+            h.incomingHook = {
+                if (Thread.currentThread().name == "magnolie-media-incoming") {
+                    entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val run = h.start()
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS))
+                h.incomingToken = MediaSyncTransport.IntentToken(MediaSyncSettings.change(h.token.body,
+                    "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "auto_mode", JsonPrimitive("wifi")))
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualSavedOutput()); assertNotNull(run.nativeFailure())
+            assertEquals(before, h.f.rows()); assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens)
+            h.incomingHook = {}
+            val fresh = h.start(); assertTrue(fresh.awaitIoEnded(5000)); assertNull(fresh.nativeFailure()); assertNotNull(fresh.actualSavedOutput())
+        }
+    }
+
+    @Test fun completedReadbackWorkerCannotRecaptureAnotherSessionAfterItsOriginalAdmissionCheck() {
+        Harness().use { h ->
+            val incoming = h.start(); assertTrue(incoming.awaitIoEnded(5000)); assertNull(incoming.nativeFailure())
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val reads = h.provider.readOpens; val before = h.f.rows()
+            h.incomingHook = {
+                if (Thread.currentThread().name == "magnolie-media-published-read") {
+                    entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val read = h.f.io { incoming.beginPublishedReadback().also { h.inspection = it } }
+            try { assertTrue(entered.await(5, TimeUnit.SECONDS)); h.rotatePcSession() }
+            finally { release.countDown() }
+            assertTrue(read.awaitIoEnded(5000)); assertNotNull(read.nativeFailure()); assertNull(read.actualReadbackOutput())
+            assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DevicePublishedReadbackEnvelope.KIND) })
+            h.incomingHook = {}
+            val fresh = h.inspect(); assertTrue(fresh.awaitIoEnded(5000)); assertNull(fresh.nativeFailure()); assertNotNull(fresh.observation())
+            assertEquals(before, h.f.rows())
+        }
+    }
+
     private class Harness(joined: Boolean = true, localConsent: Boolean = joined,
         collectionMode: String = "entire_collection") : AutoCloseable {
         val helper = NativeGalleryIncomingTransferTest()
@@ -52,12 +129,14 @@ class NativeGalleryIncomingRuntimeTest {
         var run: NativeGalleryIncomingRun? = null
         var inspection: NativeGalleryPublishedReadRun? = null
         var incomingAgreement = true
+        @Volatile var incomingHook: () -> Unit = {}
+        @Volatile var incomingToken: Any? = token
         private var connection: NativeGalleryFileConnection? = null
         init {
             if (joined && localConsent) helper.grant(f)
             ShadowContentResolver.registerProviderInternal("media", provider)
             runtime = if (joined) NativeGalleryFileRuntime.withIncomingMedia(f.app, f.indexRoot, identity, f.protection, link.channel,
-                { f.peer }, { true }, { true }, { token }, { token }, { true })
+                { f.peer }, { true }, { true }, { token }, { incomingHook(); incomingToken }, { true })
             else NativeGalleryFileRuntime.withSharedMediaIntent(f.app, f.indexRoot, identity, f.protection, link.channel,
                 { f.peer }, { true }, { true }, { token })
             link.onMessage = { message ->
@@ -89,6 +168,16 @@ class NativeGalleryIncomingRuntimeTest {
         fun withdrawPcSend() {
             pcLocal = NativeLocalFileGrant(DeviceFileGrantState(4, "c".repeat(64), false, true), pcLocal.owner, true)
             sendPc()
+        }
+        fun operationBinding(): NativeFileOperationBinding {
+            val channel = NativeGalleryFileRuntime::class.java.getDeclaredField("controls").apply { isAccessible = true }.get(runtime) as NativeFileControlChannel
+            return channel.session.operationBinding(manifest.fingerprint)!!
+        }
+        fun rotatePcSession() {
+            val own = DeviceFileControlEnvelope.validate(link.frames.last { it["kind"] == JsonPrimitive(DeviceFileControl.KIND) })
+            val packet = pc.packet().copy(sessionEpoch = "a".repeat(64), sequence = 1, echo = own.challenge)
+            assertTrue(runtime.observeControls(link.receive(DeviceFileControlEnvelope.create(packet))))
+            runtime.sendControls()
         }
         fun answer(message: JsonObject) {
             val request = DeviceFileChunkEnvelope.parseRequest(message); val offset = request.chunkIndex * 65536
