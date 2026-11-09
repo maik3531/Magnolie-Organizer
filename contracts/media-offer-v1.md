@@ -899,7 +899,7 @@ Einstellungen oder einen vollständigen historischen Datenbank-Rollback auf
 unveränderten Inodes. Keine automatische Wiederherstellung oder Neuauswahl wird
 daraus freigegeben.
 
-### Linux: unabhängiger PC-Quellowner am privaten Cache-/Sendeweg
+### Linux: unabhängiger PC-Quellowner am Cache-/Sendeweg
 
 Der ausdrückliche native Collection-Owner liest tatsächlich ausgewählte Dateien
 unter der vorhandenen gespeicherten Buch-/Intent-/Einwilligungs-IO-Lease. Er
@@ -950,11 +950,31 @@ aktiven Kanal oder lebenden Peer-Owner in eine ausdrücklich neue Zieldatei
 wiederherstellen. Eine daraus abgeleitete native PC-Wiederpublikation oder
 Notes-Folgeversion hat noch keinen eigenen Besitzer und bleibt HOLD.
 
+Die normale native Verbindung besitzt zusätzlich einen exakten PC-Quellowner
+und einen ausdrücklichen internen Vorbereitungseintritt. Vor dem Kopieren bindet
+er die bereits positiv bestätigte SEND-Richtung, ursprüngliche eigene und
+entfernte Steuersitzung, native Aktion samt Frist und Verbindung. Eine spätere
+entfernte Sitzung darf die vorbereitete Quelle auch bei gleicher persistenter
+Berechtigungsepoche nicht erneuern. Der normale Nachrichtenverteiler und Sender
+benutzen dieselbe bestehende Steuersitzung; es gibt keine zweite Sitzung und
+keinen Wechsel von Grant-Bits abhängig von aktiven Arbeiten.
+
+Nur genau ein vorbereiteter Mapping- oder PC-Owner darf zum Sender gehören.
+Eine ausstehende PC-Vorbereitung sperrt andere Mapping-Kopier-/Planungs-/Worker-
+Eintritte vor Quell-IO. Nach tatsächlich abgeschlossenem PC-END darf eine andere
+Datei mit frischem Quellowner unter derselben Steuersitzung vorbereitet werden;
+der alte Besitzer wird nicht wiederbelebt. Schließen der normalen Verbindung
+signalisiert Abbruch sofort, gibt Quellhandles und Authority aber erst nach
+dem tatsächlichen Ende ausstehender verschlüsselter Ausgabe frei. Unklare
+bereits ausgegebene Bytes bleiben Pending, nicht END.
+
 Diese Nachweise betreffen den tatsächlichen Linux-Host-/AEAD-/SQLite-/Socketweg
-mit simulierten Peerantworten. Der unabhängige PC-Owner ist noch nicht in die
-normale gemeinsame Verbindung, den nativen Picker oder die automatische
-Gesamtbestandssteuerung integriert. Notes-Versionsaustausch und Geräteabnahme
-bleiben offen. Daraus folgen weder Capability-23-Aktivierung noch benutzbare
+und normalen Factory-/Verteiler-Code mit privater Test-Funktionsfreigabe und
+simulierten Peerantworten. Auch ein frischer Ausgangszustand ohne vorherige
+Empfangseinstellung, Empfangsziel oder Mappingstore besteht mit PC-RECEIVE und
+Telefon-READ aus. Der native Picker und die automatische Gesamtbestandssteuerung
+sind noch nicht angeschlossen. Notes-Versionsaustausch und Geräteabnahme bleiben
+offen. Daraus folgen weder Capability-23-Aktivierung noch benutzbare
 Gesamtsynchronisation, Großbestands-/Video-Leistungsabnahme oder Auslieferung.
 
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits

@@ -36,7 +36,7 @@ class _NativeMediaSourceSender:
         if (type(job_id) is not str
                 or job_id not in source._prepared or not callable(boundary)):
             raise TransferError('media_source_sender_actual_preparation_required')
-        if self._local_collection and (_retry is not None or _verification or _connection is not None):
+        if self._local_collection and (_retry is not None or _verification):
             raise TransferError('media_collection_sender_composition_required')
         self._source=source;self._job=job_id;self._prepared=source._prepared[job_id];self._cache=self._prepared.cache
         self._authority=source._authority;self._channel=self._authority.native_channel
@@ -44,7 +44,8 @@ class _NativeMediaSourceSender:
         if _connection is not None:
             from magnolie_file_desktop_connection import NativeDesktopFileConnection
             if (type(_connection) is not NativeDesktopFileConnection or _connection._authority is not self._authority
-                    or _connection._channel is not self._channel or _connection._media_source is not source or _retry is not None):
+                    or _connection._channel is not self._channel
+                    or getattr(_connection,'_media_pc_source' if self._local_collection else '_media_source',None) is not source or _retry is not None):
                 raise TransferError('media_source_sender_original_connection_required')
         if type(self._channel) is not SecureChannel:raise TransferError('media_source_sender_secure_channel_required')
         self._closed=threading.Event();self._gate=threading.Lock();self._active=threading.local();self._boundary=boundary
@@ -87,6 +88,8 @@ class _NativeMediaSourceSender:
         if self._connection is not None:
             self._connection._ready()
             if self._connection._media_sender is not self or self._controls is not self._connection._controls:
+                raise TransferError('media_source_sender_original_connection_required')
+            if getattr(self._connection,'_media_pc_source' if self._local_collection else '_media_source',None) is not self._source:
                 raise TransferError('media_source_sender_original_connection_required')
         if (self._closed.is_set() or self._source._prepared.get(self._job) is not self._prepared
                 or self._prepared.failed.is_set()):raise TransferError('media_source_sender_retired')

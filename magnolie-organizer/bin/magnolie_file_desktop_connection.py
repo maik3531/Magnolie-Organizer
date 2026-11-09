@@ -105,6 +105,7 @@ class NativeDesktopFileConnection:
         self._mappings = ProtectedPhotoMappings(authority)
         self._media_trash = None
         self._media_transport = self._media_source = self._media_sender = None
+        self._media_pc_source = None
         self._media_sending_state = None
         self._media_sending_choice = None
         self._destination = NativePhotoDestinationController(authority)
@@ -117,9 +118,11 @@ class NativeDesktopFileConnection:
             if type(channel) is SecureChannel and status.get('available') is True and 23 in status.get('versions',[]):
                 from magnolie_media_transport import NativeMediaSettingsTransport
                 from magnolie_media_source import NativeMappedMediaSource
+                from magnolie_media_source_pc import NativeCollectionMediaSource
                 self._media_transport=NativeMediaSettingsTransport(authority,
                     lambda:not self._closed.is_set() and self._media_source is not None and self._data_handlers_ready)
                 self._media_source=NativeMappedMediaSource(self._preferences,self._mappings,self._media_transport)
+                self._media_pc_source=NativeCollectionMediaSource(self._preferences,self._mappings,self._media_transport)
             self._controls = NativeFileControlSession(authority.identity, self._peer, self._local)
         except BaseException:
             self.close()
@@ -401,15 +404,57 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         with self._operation():
             if self._media_source is None:raise TransferError('media_source_native_composition_required')
-            if self._album_worker is not None or self._run is not None or self._source_pending is not None:
+            if self._album_worker is not None or self._run is not None or self._source_pending is not None or self._collection_preparation_active():
                 raise TransferError('file_desktop_album_worker_busy')
             return self._media_source.freeze(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
+
+    def _collection_preparation_active(self):
+        return self._media_pc_source is not None and bool(self._media_pc_source._prepared)
+
+    def prepare_collection_media_source(self,action,expected,selected,member,*,kind='images',native_current=lambda:True):
+        """Explicit native PC selection; never a browser path or auto scan.
+
+        Pin the existing positive send binding and original action before the
+        first source IO. SEND/RECEIVE bits and control owner stay unchanged.
+        """
+        if not callable(native_current):raise TransferError('media_source_native_operation_required')
+        self._take_action(action)
+        with self._operation():
+            source=self._media_pc_source
+            if source is None:raise TransferError('media_source_native_composition_required')
+            if (self._mapped_worker is not None or self._album_worker is not None or self._run is not None
+                    or self._source_pending is not None or self._source_run is not None or self._media_sender is not None
+                    or self._media_source._prepared or source._prepared):
+                raise TransferError('file_desktop_album_worker_busy')
+            controls=self._controls
+            with controls._gate:
+                binding=controls.binding('0'*64,sender_is_local=True)
+                if binding is None:raise TransferError('media_source_current_send_control_required')
+                control_session=(controls._session_epoch,controls._remote.challenge)
+            # A successful prior terminal PC owner is never revived. A fresh
+            # exact owner may prepare another file under the same connection;
+            # protected history still forbids successor/reassociation guesses.
+            if source._closed.is_set():
+                from magnolie_media_source_pc import NativeCollectionMediaSource
+                source=NativeCollectionMediaSource(self._preferences,self._mappings,self._media_transport)
+                self._media_pc_source=source
+            def current():
+                self._ready();action.validate(self)
+                if self._media_pc_source is not source or self._controls is not controls or native_current() is not True:
+                    raise TransferError('media_collection_original_send_binding_required')
+                with controls._gate:
+                    if (controls._remote is None or (controls._session_epoch,controls._remote.challenge)!=control_session
+                            or controls.binding('0'*64,sender_is_local=True)!=binding):
+                        raise TransferError('media_collection_original_send_binding_required')
+                return True
+            current()
+            return source.freeze(self._preferences.issue_action(),expected,selected,member,kind=kind,native_current=current)
 
     def plan_media_source(self,action,expected,association,record_sha256,*,kind='images'):
         self._take_action(action)
         with self._operation():
             if self._media_source is None:raise TransferError('media_source_native_composition_required')
-            if self._album_worker is not None or self._run is not None or self._source_pending is not None:
+            if self._album_worker is not None or self._run is not None or self._source_pending is not None or self._collection_preparation_active():
                 raise TransferError('file_desktop_album_worker_busy')
             return self._media_source.plan(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
 
@@ -419,7 +464,8 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         with self._operation():
             if self._media_source is None:raise TransferError('media_source_native_composition_required')
-            if self._album_worker is not None or self._run is not None or self._source_pending is not None or self._media_sender is not None:
+            if (self._album_worker is not None or self._run is not None or self._source_pending is not None
+                    or self._media_sender is not None or self._collection_preparation_active()):
                 raise TransferError('file_desktop_album_worker_busy')
             def agreed():
                 if native_current is not None and native_current() is not True:
@@ -443,7 +489,8 @@ class NativeDesktopFileConnection:
         with self._operation():
             if self._media_source is None:raise TransferError('media_source_native_composition_required')
             if (self._mapped_worker is not None or self._album_worker is not None or self._run is not None
-                    or self._source_pending is not None or self._source_run is not None or self._media_sender is not None):
+                    or self._source_pending is not None or self._source_run is not None or self._media_sender is not None
+                    or self._collection_preparation_active()):
                 raise TransferError('file_desktop_album_worker_busy')
             from magnolie_media_source_worker import NativeMappedMediaWorker
             worker=NativeMappedMediaWorker(self,kind,book_fence,automatic=automatic,native_current=native_current);self._mapped_worker=worker
@@ -452,11 +499,14 @@ class NativeDesktopFileConnection:
             return worker
 
     def open_prepared_media_sender(self,job_id):
+        if type(job_id) is not str:raise TransferError('media_source_sender_actual_preparation_required')
         with self._operation():
             if self._media_source is None or self._media_sender is not None:
                 raise TransferError('media_source_sender_original_connection_required')
+            owners=[owner for owner in (self._media_source,self._media_pc_source) if owner is not None and job_id in owner._prepared]
+            if len(owners)!=1:raise TransferError('media_source_sender_actual_preparation_required')
             from magnolie_media_source_sender import _NativeMediaSourceSender
-            sender=_NativeMediaSourceSender(self._media_source,job_id,_connection=self)
+            sender=_NativeMediaSourceSender(owners[0],job_id,_connection=self)
             self._media_sender=sender
             return sender
 
@@ -2291,7 +2341,7 @@ class NativeDesktopFileConnection:
         self._closed.set()
         if self._mapped_worker is not None:self._mapped_worker.stop()
         self._media_sending_choice=None
-        for owner in (self._media_sender,self._media_source,self._media_transport):
+        for owner in (self._media_sender,self._media_source,self._media_pc_source,self._media_transport):
             if owner is not None:owner.close() # Signals only; active connection I/O owns cleanup.
         self._wake_album_worker()
         self._authority.revoke()  # Nonwaiting even during blocked native/socket I/O.
@@ -2310,7 +2360,7 @@ class NativeDesktopFileConnection:
                 except Exception as error:
                     failure = error
             receiver = self._run.receiver if self._run is not None else None
-            for resource in (receiver, self._media_sender, self._media_source, self._media_transport, self._catalog, self._destination, self._media_trash, self._mappings, self._preferences, self._controls, self._authority):
+            for resource in (receiver, self._media_sender, self._media_source, self._media_pc_source, self._media_transport, self._catalog, self._destination, self._media_trash, self._mappings, self._preferences, self._controls, self._authority):
                 if resource is not None:
                     try:
                         resource.close()
