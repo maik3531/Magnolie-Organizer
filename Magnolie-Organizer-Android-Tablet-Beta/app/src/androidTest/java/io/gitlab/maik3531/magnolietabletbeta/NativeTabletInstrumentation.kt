@@ -292,6 +292,22 @@ class NativeTabletInstrumentation : Instrumentation() {
         lateinit var motion:String
         synchronized(nativeMotion) {motion=JSONArray(nativeMotion.map {JSONArray(it.toList())}).toString()}
         File(out,"$name-native-motion.json").writeText(motion)
+        if(options.getString("stage")=="domains" && name=="failure-domains") {
+            // Existing synthetic replay receipts only; never read the book or image payloads here.
+            val replay=try {
+                val receipt=value("""
+                    (()=>{const text=JSON.stringify(window.__domainReplayDiagnostics ?? null);
+                      const bytes=new TextEncoder().encode(text).length;
+                      return bytes<=65536?JSON.parse(text):{truncated:true,reason:'replay-diagnostics-byte-limit',bytes,limitBytes:65536};})()
+                """.trimIndent())
+                if(receipt.toByteArray(Charsets.UTF_8).size<=65536) receipt
+                else "{\"unavailable\":true,\"reason\":\"native-replay-byte-limit\",\"limitBytes\":65536}"
+            } catch(_:Exception) {
+                "{\"unavailable\":true,\"reason\":\"replay-diagnostics-unavailable\"}"
+            }
+            // Optional evidence must never prevent the existing screenshot/DOM capture.
+            try {File(out,"$name-drawing-replay.json").writeText(replay)} catch(_:Exception) {}
+        }
         // Test-only screenshot exception; always restore the actual app's FLAG_SECURE.
         runOnMainSync {activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}
         try {
