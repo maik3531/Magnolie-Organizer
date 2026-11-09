@@ -85,7 +85,32 @@ import XCTest
             let actuallyLoaded = try store!.load()
             XCTAssertEqual(actuallyLoaded, originalText)
             let policy = try OrdinarySaveEpochPolicy(loadedPlain: actuallyLoaded)
-            let normalizedValue = try await javascript("const book=window.OrganizerTest.normalisiere(JSON.parse(text)); book.futureRoot={keep:7,edited:true}; return JSON.stringify(book);", arguments: ["text": originalText ?? "{}"])
+            // The projected loss guard deliberately rejects object-valued epoch
+            // leaves when the desktop normalizer would replace them with strings.
+            // Exercise that rejection directly; never pre-normalize away the object.
+            let meta = original?["syncMetadaten"] as? [String: Any]
+            let epochLeaves = [original?["syncEpoch"], meta?["syncEpoch"]]
+            let expectsDroppedObject = epochLeaves.contains { value in
+                guard let value else { return false }
+                return value is [String: Any] || value is [Any]
+            }
+            let normalizationBody = "const book=window.OrganizerTest.normalisiere(JSON.parse(text)); book.futureRoot={keep:7,edited:true}; return JSON.stringify(book);"
+            if expectsDroppedObject {
+                do {
+                    _ = try await javascript(normalizationBody, arguments: ["text": originalText ?? "{}"])
+                    XCTFail("Object-valued epoch fixture bypassed the projected dropped-object guard")
+                } catch {
+                    let error = error as NSError
+                    XCTAssertEqual(error.domain, WKError.errorDomain)
+                    XCTAssertEqual(error.userInfo["WKJavaScriptExceptionMessage"] as? String, "Error: macOS Beta refused a dropped object.")
+                }
+                let liveAfterRejection = try await javascript("return JSON.stringify(window.OrganizerTest.daten());")
+                XCTAssertEqual(liveAfterRejection as? String, before)
+                XCTAssertEqual(try String(contentsOf: store!.file, encoding: .utf8), originalText)
+                store = nil
+                continue
+            }
+            let normalizedValue = try await javascript(normalizationBody, arguments: ["text": originalText ?? "{}"])
             let normalized = try XCTUnwrap(normalizedValue as? String)
             let actual = try policy.prepare(candidate: normalized)
             try store!.commit(actual)
