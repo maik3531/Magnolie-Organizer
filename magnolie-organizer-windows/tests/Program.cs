@@ -255,6 +255,7 @@ runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent 
 runner.Add("Media offer envelope / strict context and shared canonical vector", MediaOfferEnvelopeTests.RunAsync);
 runner.Add("Published readback / shared vector and metadata-only authority", DevicePublishedReadbackTests.RunAsync);
 runner.Add("Media source MIME / bounded actual bytes and unknown formats", DeviceFileMediaMimeTests.ByteDerivedMimeAsync);
+runner.Add("Media source collection kinds / known exclusion preserves strict sender MIME", DeviceFileMediaMimeTests.CollectionKindsAsync);
 runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
 runner.Add("Device file native transport / actual secure echo / read-only identity", DeviceFileConnectionTransportTests.HandshakeAsync);
 runner.Add("Device file native transport / uncertain write / scope withdrawal", DeviceFileConnectionTransportTests.FailureAsync);
@@ -305,6 +306,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Collection overlap / Windows actual fully read mapped members inside explicit root are not offered twice", DeviceFileCollectionSourceTests.WindowsCollectionMappedOverlapAsync);
     runner.Add("Collection overlap / Windows actual changed mapped member reaches END before overlap skip", DeviceFileCollectionSourceTests.WindowsCollectionChangedMappedOverlapAsync);
     runner.Add("Collection overlap guards / Windows late edits filtered unprepared and foreign witnesses HOLD", DeviceFileCollectionSourceTests.WindowsCollectionOverlapGuardsAsync);
+    runner.Add("Collection media kinds / Windows known opposite container excluded without video SEND", DeviceFileCollectionSourceTests.WindowsCollectionKnownOppositeTypeAsync);
+    runner.Add("Collection media kinds / Windows unknown broken and photos-only mixed roots preserve gates", DeviceFileCollectionSourceTests.WindowsCollectionKindGuardsAsync);
     runner.Add("Collection folder choice / Windows original book connection intent control catalog guards", DeviceFileCollectionSourceTests.WindowsNativeFolderChoiceGuardsAsync);
     runner.Add("Collection roots / Windows pairing ciphertext and missing-key HOLD preserve source records", DeviceFileCollectionRootsTests.WindowsTamperAsync);
     runner.Add("Collection generation / Windows actual file and ancestor creation witness no owner revival", DeviceFileCollectionInventoryTests.WindowsGenerationAsync);

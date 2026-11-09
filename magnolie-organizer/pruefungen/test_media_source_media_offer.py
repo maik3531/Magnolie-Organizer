@@ -103,3 +103,16 @@ def test_mime_identification_uses_actual_bounded_container_bytes(kind,prefix,exp
     ids=['active','wrong-domain','sos-only','truncated','bool-size','oversize-prefix'])
 def test_mime_unknown_active_truncated_wrong_domain_and_bounds_are_closed(prefix,total,kind):
     with pytest.raises(TransferError):identify(prefix,total,kind)
+
+
+@pytest.mark.parametrize('kind,prefix,expected',[
+    ('images',png(),'image/png'),('video',struct.pack('>I',16)+b'ftypisom'+b'\0'*4,'video/mp4'),
+    ('images',struct.pack('>I',16)+b'ftypisom'+b'\0'*4,'media_collection_known_other_type'),
+    ('video',png(),'media_collection_known_other_type'),('images',b'not-media','media_source_mime_unknown'),
+    ('video',png()[:25],'media_source_mime_unknown'),('bad-kind',png(),'media_source_mime_unknown')])
+def test_collection_kind_exclusion_is_positive_container_identification_not_relaxed_sender_mime(kind,prefix,expected):
+    from magnolie_media_mime import identify_collection
+    if expected.startswith('media_'):
+        with pytest.raises(TransferError,match='^'+expected+'$'):identify_collection(prefix,len(prefix),kind)
+        with pytest.raises(TransferError):identify(prefix,len(prefix),kind) # Real sender remains strict.
+    else:assert identify_collection(prefix,len(prefix),kind)==identify(prefix,len(prefix),kind)==expected

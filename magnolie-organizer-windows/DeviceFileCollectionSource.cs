@@ -72,7 +72,7 @@ internal sealed partial class TelefonStore
                         }
                         finally { CryptographicOperations.ZeroMemory(chunk); }
                     }
-                    Require(); _ = NativeMediaContentMime.Identify(prefix, file.Size, provenance["media_type"]!.GetValue<string>());
+                    Require(); _ = NativeMediaContentMime.IdentifyCollection(prefix, file.Size, provenance["media_type"]!.GetValue<string>());
                     var hash = Convert.ToHexString(digest.GetHashAndReset()).ToLowerInvariant();
                     prepared = new(Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"), senderId, receiverId,
                         [new DeviceManifestFile(Guid.NewGuid().ToString("N"), path, file.Size, hash)], file.Size);

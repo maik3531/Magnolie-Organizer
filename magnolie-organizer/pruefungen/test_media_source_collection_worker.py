@@ -219,6 +219,35 @@ def test_actual_already_checked_mapped_file_inside_a_selected_root_is_not_relabe
         with pytest.raises(TimeoutError):h.wire.receive()
 
 
+def test_images_root_can_explicitly_filter_known_video_container_without_video_send_rights_but_never_labels_it_known(pc,native):
+    import struct
+    with composition(pc,native[0]) as h:
+        h.pc_file.write_bytes(struct.pack('>I',16)+b'ftypisom'+b'\0'*4)
+        agree(h,native[0]);worker=start(h);assert worker.join(30),worker.progress()
+        assert worker.progress()['state']=='complete' and worker.progress()['filtered_files']==1,worker.progress()
+        assert worker.progress()['saved_files']==0 and worker.progress()['known_files']==1
+        assert not h.connection._media_pc_source._prepared and h.connection._media_sender is None
+
+
+@pytest.mark.parametrize('scenario',['unknown','broken_dimensions','photos_only_mixed'])
+def test_collection_kind_exclusion_never_swallows_unknown_bytes_or_turns_filtered_files_into_publications(pc,native,scenario):
+    import struct
+    from test_media_source_media_offer import png
+    with composition(pc,native[0]) as h:
+        if scenario=='unknown':h.pc_file.write_bytes(b'not a media file')
+        elif scenario=='broken_dimensions':
+            raw=bytearray(png());struct.pack_into('>I',raw,16,40000);h.pc_file.write_bytes(raw)
+        else:
+            h.pc_file.write_bytes(png())
+            (h.pc_file.parent/'not-an-image.jpg').write_bytes(struct.pack('>I',16)+b'ftypisom'+b'\0'*4)
+            h.controller.change('photos_only',True)
+        agree(h,native[0]);worker=start(h);assert worker.join(30),worker.progress()
+        result=worker.progress()
+        if scenario=='photos_only_mixed':assert result['state']=='complete' and result['filtered_files']==3 and result['known_files']==0,result
+        else:assert result['state']=='held' and result['error']==('media_source_mime_unknown' if scenario=='unknown' else 'media_source_mime_dimensions'),result
+        assert result['saved_files']==0 and not h.connection._media_pc_source._prepared and h.connection._media_sender is None
+
+
 @pytest.mark.parametrize('fault',['symlink','root_catalog','same_size_edit'])
 def test_collection_inventory_or_original_catalog_changes_hold_without_claiming_mapped_subset_complete(pc,native,monkeypatch,fault):
     from magnolie_media_source_collection_pass import NativeCollectionPass

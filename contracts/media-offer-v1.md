@@ -1855,6 +1855,46 @@ bleiben HOLD. Gemischte Dateitypen und sonstige konservative Inventur-HOLDs sind
 damit nicht pauschal gelöst. Keine Installation, Veröffentlichung oder Öffnung
 der bestehenden Geräte-/Automatik-/Video-/Mehrdatei-/Liefergates.
 
+### Linux/Windows: positiv bekannte Gegenart ist keine unbekannte Datei (#493)
+
+Beide Plattformen reproduzierten nativ bzw. im tatsächlichen Linux-Worker
+`media_source_mime_unknown`, wenn eine ausdrücklich als Bilderquelle gewählte
+Sammlung einen erkennbaren MP4-Container enthielt. Der Typname/Dateisuffix war
+dabei kein Zeuge: Die Testdatei hieß absichtlich wie ein Bild.
+
+Nur innerhalb bereits unabhängig aufgenommener nativer Collection-Sourceowner
+unterscheidet eine neue deny-only Klassifikation jetzt den erwarteten Typ von
+einer positiv identifizierten bekannten Gegenart. Ausschließlich wenn die strikte
+erwartete Identifikation unbekannt meldet UND die ebenso strikte Gegenart wirklich
+erkannt wird, entsteht `media_collection_known_other_type`. Der Worker zählt
+dies als gefiltert, niemals als bekannte Publikation. Es gibt weder einen Cachejob
+noch ein Angebot, eine Umetikettierung oder eine neue Video-SEND-Zustimmung.
+Die bestehende Mapping-/Herkunftsaufnahme bleibt vorher erforderlich; unbekannte
+historische oder gefilterte Mappings bekommen hierdurch keinen Ersatzzeugen.
+
+Unbekannte Bytes, defekte oder zu große Dimensionen und Grenzen bleiben HOLD.
+Die tatsächliche Sender-/Empfänger-Identifikation bleibt unverändert strikt;
+deren `mime_unknown` wird nicht allgemein übersprungen. Auch gegenteilige
+Containererkennung ist keine vollständige Pixel-/Videodecoder-Abnahme. Die
+Video-Containerproben sind begrenzte Identifikationsfixtures, kein abgenommenes
+abspielbares Telefonvideo und keine Freigabe für Videoersetzung.
+
+Elf neue gezielte Linux-Fälle bestehen: tatsächlicher Bilderroot mit erkannter
+Gegenart ohne Video-SEND, unbekannte/defekte Bytes und Nur-Fotos-Mischroot sowie
+sieben Klassifikations-/strikte-Sender-Vektoren. Der durch diese Änderung betroffene
+vollständige dreistufige echte Service-/Backup-/END-Lauf besteht zusätzlich mit
+unveränderten Fristen. Vier Windows-Gruppen bestehen: zwei native Rootgruppen,
+eine Klassifikationsgruppe und der betroffene vollständige unabhängige
+Source-/Nachfolger-/Backup-/END-Fall. Aktuelle Core- und echte WinForms-Produktquelle
+bauen ohne Warnungen/Fehler. Frühere unveränderte Proofs werden nicht doppelt gezählt.
+
+Nur die sichere bekannte Gegenart wird ausgeschlossen, nicht beliebiger unbekannter
+Dateibestand als vollständig erklärt. Ungeklärte/historische bzw. nur gefilterte
+Überlappungen ohne vollständigen aktuellen Zeugen bleiben HOLD; Recovery und
+native Bestands-/Provider-/Geräteabnahme bleiben offen. Keine Installation oder
+Veröffentlichung, keine Öffnung von Capability23, automatischem gesamtem Export
+oder den Video-/Mehrdatei-/Liefergates.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

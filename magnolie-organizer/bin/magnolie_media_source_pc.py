@@ -167,9 +167,9 @@ class NativeCollectionMediaSource(NativeMappedMediaSource):
                                     finally:data[:]=b'\0'*len(data)
                                 current();return prefix
                             except BaseException:prefix[:]=b'\0'*len(prefix);raise
-                        from magnolie_media_mime import PREFIX_BYTES,identify
+                        from magnolie_media_mime import PREFIX_BYTES,identify_collection
                         prefix=prefix_bytes(PREFIX_BYTES)
-                        try:identify(prefix,member.size,kind);current()
+                        try:identify_collection(prefix,member.size,kind);current()
                         finally:prefix[:]=b'\0'*len(prefix)
                         if kind=='images' and effective(token.body)['photos_only']:
                             from magnolie_photo_metadata import MAX_METADATA_BYTES,camera_photo_matches

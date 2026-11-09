@@ -330,6 +330,8 @@ internal sealed partial class TelefonConnection
                 collection.CheckOpened(selection, member, source.ObserveCollection());
                 TelefonStore.NativePreparedMediaSource cache;
                 try { cache = source.FreezeCompletedSuccessor(); }
+                catch (InvalidDataException error) when (error.Message == "media_collection_known_other_type")
+                { Current(); continue; } // Explicit exclusion, never a known publication or new grant.
                 catch (InvalidDataException error) when (error.Message == "media_source_cache_latest_payload_already_sent")
                 { Current(); continue; }
                 using (cache) { await SendNativeMappedMediaSourceToSourceEndAsync(cache, token); }

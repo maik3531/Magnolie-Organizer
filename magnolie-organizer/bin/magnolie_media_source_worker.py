@@ -143,7 +143,7 @@ class NativeMappedMediaWorker:
                 if str(error)=='media_collection_latest_payload_already_sent':
                     with self._lock:self._known+=1
                     continue
-                if str(error)=='media_source_photo_metadata_required':
+                if str(error) in ('media_source_photo_metadata_required','media_collection_known_other_type'):
                     with self._lock:self._filtered+=1
                     continue
                 raise

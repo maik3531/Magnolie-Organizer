@@ -478,6 +478,54 @@ internal static class DeviceFileCollectionSourceTests
         }
     }
 
+    internal static async Task WindowsCollectionKnownOppositeTypeAsync()
+    {
+        using var f = await Fixture();
+        var data = new byte[] { 0,0,0,16, 102,116,121,112, 105,115,111,109, 0,0,0,0 };
+        var selection = Select(f, data); // Deliberately named .png: extensions are not classification.
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "known-opposite-type-book"), Book);
+        var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        var consent = f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id);
+        DeviceFileConnectionRunsTests.Clear(f);
+        var result = await f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, () => { }, CancellationToken.None, automatic: false);
+        TestAssert.That(result.Sent == 0 && !result.NeedsReview && !consent.Videos &&
+            f.Native.Store.ReadNativeMediaSendConsent(f.Native.Peer.Id) == consent && f.Native.Stream.Length == 0 &&
+            f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0 && File.ReadAllBytes(Path.Combine(selection.NativePath, "new-pc.png")).SequenceEqual(data),
+            "Known opposite container was exported, relabelled, granted video SEND or treated as unknown incomplete inventory.");
+    }
+
+    internal static async Task WindowsCollectionKindGuardsAsync()
+    {
+        foreach (var scenario in new[] { "unknown", "broken_dimensions", "photos_only_mixed" })
+        {
+            using var f = await Fixture(); var bytes = DeviceFileSourceSendTests.PaddedPng(length: 256);
+            if (scenario == "unknown") bytes = "not a media file"u8.ToArray();
+            if (scenario == "broken_dimensions") System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(16), 40000);
+            var selection = Select(f, bytes);
+            if (scenario == "photos_only_mixed")
+            {
+                File.WriteAllBytes(Path.Combine(selection.NativePath, "not-an-image.jpg"), [0,0,0,16,102,116,121,112,105,115,111,109,0,0,0,0]);
+                f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "photos_only", JsonValue.Create(true)!,
+                    f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "photos_only"));
+                await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+            }
+            var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "collection-kind-guard-book"), Book);
+            var book = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved); DeviceFileConnectionRunsTests.Clear(f);
+            try
+            {
+                var result = await f.Native.Connection.SynchronizeNativeMappedMediaChangesAsync("images", book, () => { }, CancellationToken.None, automatic: false);
+                TestAssert.That(scenario == "photos_only_mixed" && result.Sent == 0 && !result.NeedsReview, "Unknown/malformed bytes became a known media exclusion.");
+            }
+            catch (InvalidDataException error)
+            {
+                TestAssert.That(scenario != "photos_only_mixed" && error.Message ==
+                    (scenario == "unknown" ? "media_source_mime_unknown" : "media_source_mime_dimensions"), "Unknown kind held for wrong cause: " + error.Message);
+            }
+            TestAssert.That(f.Native.Stream.Length == 0 && f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 0,
+                "Excluded/unknown source created an offer or publication history.");
+        }
+    }
+
     internal static async Task WindowsActualSourceAsync()
     {
         using var f = await Fixture(); var data = DeviceFileSourceSendTests.PaddedPng(length: 256); var selection = Select(f, data);

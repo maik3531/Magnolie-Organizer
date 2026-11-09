@@ -8,6 +8,16 @@ namespace MagnolieOrganizer.Windows;
 internal static class NativeMediaContentMime
 {
     internal const int PrefixBytes = 1024 * 1024;
+    // Only an independently admitted collection source may use this deny-only
+    // distinction. Unknown/broken bytes still HOLD; the real sender stays strict.
+    internal static string IdentifyCollection(ReadOnlySpan<byte> prefix, long totalBytes, string kind)
+    {
+        if (kind is not ("images" or "video")) throw DeviceFileControl.Error("media_source_mime_unknown");
+        try { return Identify(prefix, totalBytes, kind); }
+        catch (InvalidDataException error) when (error.Message == "media_source_mime_unknown") { }
+        _ = Identify(prefix, totalBytes, kind == "images" ? "video" : "images");
+        throw DeviceFileControl.Error("media_collection_known_other_type");
+    }
     internal static string Identify(ReadOnlySpan<byte> prefix, long totalBytes, string kind)
     {
         if (prefix.Length > PrefixBytes || totalBytes < prefix.Length || totalBytes < 1)

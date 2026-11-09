@@ -23,4 +23,25 @@ internal static class DeviceFileMediaMimeTests
         TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(png, 1, "images"), "Prefix exceeded actual source bytes.");
         return Task.CompletedTask;
     }
+
+    internal static Task CollectionKindsAsync()
+    {
+        var png = DeviceFileSourceSendTests.PaddedPng(length: 256);
+        var video = new byte[] { 0,0,0,16,102,116,121,112,105,115,111,109,0,0,0,0 };
+        TestAssert.That(NativeMediaContentMime.IdentifyCollection(png, png.Length, "images") == "image/png" &&
+            NativeMediaContentMime.IdentifyCollection(video, video.Length, "video") == "video/mp4", "Selected collection type no longer uses actual bytes.");
+        foreach (var (kind, bytes) in new[] { ("images", video), ("video", png) })
+        {
+            try { NativeMediaContentMime.IdentifyCollection(bytes, bytes.Length, kind); throw new Exception("Opposite container obtained expected type."); }
+            catch (InvalidDataException error) { TestAssert.That(error.Message == "media_collection_known_other_type", "Opposite container was conflated with unknown bytes."); }
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(bytes, bytes.Length, kind), "Real sender relaxed kind matching.");
+        }
+        foreach (var (kind, bytes) in new[] { ("images", "not-media"u8.ToArray()), ("video", png[..25]), ("bad-kind", png) })
+        {
+            try { NativeMediaContentMime.IdentifyCollection(bytes, bytes.Length, kind); throw new Exception("Unknown container became a positive exclusion."); }
+            catch (InvalidDataException error) { TestAssert.That(error.Message == "media_source_mime_unknown", "Unknown bytes bypassed original MIME gate."); }
+        }
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.IdentifyCollection(png, 1, "images"), "Collection relaxed actual prefix bound.");
+        return Task.CompletedTask;
+    }
 }

@@ -10,6 +10,21 @@ PREFIX_BYTES = 1024 * 1024
 _SOF_MARKERS = frozenset((*range(0xc0, 0xc4), *range(0xc5, 0xc8), *range(0xc9, 0xcc), *range(0xcd, 0xd0)))
 
 
+def identify_collection(prefix,total_bytes,kind):
+    """Deny-only known opposite-container exclusion, never a video SEND grant.
+
+    Only an independently admitted native collection source calls this. Unknown,
+    broken or out-of-bound bytes still HOLD; do not catch mime_unknown as skip.
+    Sender/receiver identification remains strict and unchanged.
+    """
+    if kind not in ('images','video'):raise TransferError('media_source_mime_unknown')
+    try:return identify(prefix,total_bytes,kind)
+    except TransferError as error:
+        if str(error)!='media_source_mime_unknown':raise
+    identify(prefix,total_bytes,'video' if kind=='images' else 'images')
+    raise TransferError('media_collection_known_other_type')
+
+
 def _dimensions(width, height):
     if not 1 <= width <= 32768 or not 1 <= height <= 32768 or width * height > 24000000:
         raise TransferError('media_source_mime_dimensions')
