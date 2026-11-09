@@ -18,7 +18,8 @@ internal class NativeGalleryPublishedInspection private constructor(private val 
     private val originalPeer = peer()?.takeIf { it.allowed && it.pairingEpoch != null } ?: fail()
     private val origin = selected.body.getValue("origin").jsonObject
     private val originalBinding = origin.getValue("binding").jsonObject
-    private val binding = session.binding(origin.string("manifest_sha256")) ?: fail()
+    private val originalControl = session.operationBinding(origin.string("manifest_sha256")) ?: fail()
+    private val binding = originalControl.binding
     private val policy = index.galleryPolicy()
     private val issued = DeviceFileControl.monotonicMs()
     private var last = issued
@@ -36,7 +37,7 @@ internal class NativeGalleryPublishedInspection private constructor(private val 
             book.requireCurrent()
             val current = peer() ?: fail()
             if (current != originalPeer || current.owner !== originalPeer.owner || !current.allowed || kind == GalleryMediaType.VIDEO && !current.videoSupported ||
-                session.binding(origin.string("manifest_sha256")) != binding || index.galleryPolicy() != policy || policy.repairPending ||
+                session.operationBinding(origin.string("manifest_sha256")) != originalControl || index.galleryPolicy() != policy || policy.repairPending ||
                 policy.policy?.let { it.receiverId == current.peerId && it.receiverIdentitySha256 == current.identitySha256 &&
                     it.pairingEpoch == current.pairingEpoch && it.receiving?.enabled(kind) == true } != true ||
                 selected.state != "published" || selected.row == null || index.incomingPublication(selected.id)?.body != selected.body ||
@@ -62,9 +63,9 @@ internal class NativeGalleryPublishedInspection private constructor(private val 
     }
     internal fun bindingForReadback(destinationToken: String): DeviceTransferBinding {
         requireCurrent()
-        val current = session.binding(destinationToken) ?: fail()
-        if (current.permissionEpoch != binding.permissionEpoch) { close(); fail() }
-        requireCurrent(); return current
+        val current = session.operationBinding(destinationToken) ?: fail()
+        if (current.session != originalControl.session || current.binding.permissionEpoch != binding.permissionEpoch) { close(); fail() }
+        requireCurrent(); return current.binding
     }
     override fun close() { closed.set(true) }
     companion object {

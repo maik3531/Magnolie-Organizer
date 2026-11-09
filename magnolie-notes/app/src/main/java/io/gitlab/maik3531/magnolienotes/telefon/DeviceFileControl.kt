@@ -100,6 +100,9 @@ internal class NativeFileConfigurationTicket internal constructor()
 internal class NativeFileReceiveConfigurer internal constructor(val peerId: String, val identitySha256: String,
     val owner: Any, val permissionEpoch: String, val pairingEpoch: String)
 
+/** Ephemeral operation observation, not a durable binding, grant or resume ticket. */
+internal data class NativeFileOperationBinding(val binding: DeviceTransferBinding, val session: String)
+
 internal class NativeFileControlSession(private val identity: NativeFileControlIdentity,
     private val currentPeer: () -> NativeFileControlPeer?, private val currentLocal: () -> NativeLocalFileGrant?,
     private val monotonicMs: () -> Long = { DeviceFileControl.monotonicMs() },
@@ -112,6 +115,7 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
         .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
     private var sequence = 0L
     private var remote: DeviceFileControlPacket? = null
+    private var operationRevision = 0L
     private var pending: DeviceFileControlPacket? = null
     private var sentGrants: DeviceFileGrantState? = null
     private var sentEcho: String? = null
@@ -166,6 +170,14 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
             if (same && packet == before) return false
             if (!same || packet.grants.permissionWire() != before.grants.permissionWire() || 1 !in packet.grants.manifestVersions)
                 configurations.values.forEach { it.invalidated = true }
+        }
+        // Retain an observed transition even if a later authenticated packet
+        // returns to an older session/challenge before an IO owner next polls.
+        if (remote?.challenge != packet.challenge) {
+            if (operationRevision >= DeviceFileControl.MAX_REVISION) {
+                faulted = true; DeviceFileControl.fail("file_control_native_scope_changed")
+            }
+            operationRevision++
         }
         remote = packet
         return true
@@ -267,6 +279,16 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
         return if (senderIsLocal) DeviceTransferBinding(identity.deviceId, current.peerId, identity.identitySha256,
             current.identitySha256, epoch, destinationToken) else DeviceTransferBinding(current.peerId, identity.deviceId,
             current.identitySha256, identity.identitySha256, epoch, destinationToken)
+    }
+
+    /** Atomically observe the positive persistent binding AND this original
+     * control session. Ordinary wire/resume bindings deliberately stay stable. */
+    @Synchronized internal fun operationBinding(destinationToken: String, senderIsLocal: Boolean = false): NativeFileOperationBinding? {
+        val binding = binding(destinationToken, senderIsLocal) ?: return null
+        val witness = DeviceFileControl.digest("magnolie-native-file-operation-session-v1\u0000", JsonObject(mapOf(
+            "local_challenge" to JsonPrimitive(DeviceFileControlPacket(local.grants, sessionEpoch, 1, null).challenge),
+            "remote_challenge" to JsonPrimitive(remote!!.challenge), "revision" to JsonPrimitive(operationRevision))))
+        return NativeFileOperationBinding(binding, witness)
     }
 
     /** Actual native receiver observation for Gallery/SAF scopes. Still no OS

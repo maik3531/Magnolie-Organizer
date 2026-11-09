@@ -265,6 +265,41 @@ class GalleryIncomingRowsTest {
             assertTrue(provider.readOpens > reads); assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
         }
 
+    @Test fun laterRemoteControlSessionCannotRenewAnAdmittedPublishedInspectionAtTheSamePermissionEpoch() =
+        withPublishedInspection { f, rows, provider, published, raw, payload, token ->
+            val before = f.rows(); val reads = provider.readOpens
+            f.io {
+                val destination = published.body.getValue("origin").jsonObject.string("manifest_sha256")
+                val binding = f.session.binding(destination)!!
+                val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                val cycleOwner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                owner.requireCurrent()
+                val own = f.session.packet(); f.session.markSent(own)
+                val field = NativeFileControlSession::class.java.getDeclaredField("remote").apply { isAccessible = true }
+                val remote = field.get(f.session) as DeviceFileControlPacket
+                assertTrue(f.session.observeRemote(remote.copy(sequence = remote.sequence + 1, echo = own.challenge), f.peer))
+                val unchanged = f.session.packet(); f.session.markSent(unchanged)
+                owner.requireCurrent() // Ordinary sequence/echo traffic is not a new session.
+                assertNotEquals("a".repeat(64), remote.sessionEpoch)
+                assertTrue(f.session.observeRemote(remote.copy(sessionEpoch = "a".repeat(64), sequence = 1, echo = own.challenge), f.peer))
+                val echo = f.session.packet(); f.session.markSent(echo)
+                assertEquals(binding, f.session.binding(destination))
+                assertThrows(PhotoFolderScopeError::class.java) { owner.requireCurrent() }
+                assertThrows(PhotoFolderScopeError::class.java) { rows.inspectPublished(owner) }
+                assertEquals(reads, provider.readOpens)
+                assertTrue(f.session.observeRemote(remote.copy(sequence = remote.sequence + 2, echo = own.challenge), f.peer))
+                val returned = f.session.packet(); f.session.markSent(returned)
+                assertEquals(binding, f.session.binding(destination))
+                // Even without checking cycleOwner during the intervening
+                // session, returning to old packet bytes cannot renew it.
+                assertThrows(PhotoFolderScopeError::class.java) { cycleOwner.requireCurrent() }
+                val fresh = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                assertEquals("image/png", rows.inspectPublished(fresh).mimeType)
+            }
+            assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
+
     @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {
         NativeGalleryIncomingTransferTest.Link().use { link ->
             withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->

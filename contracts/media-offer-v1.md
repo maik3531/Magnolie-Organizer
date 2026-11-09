@@ -155,6 +155,23 @@ geprüft; die vorhandene vollständige Original-Rücklese-/Medienprüfung erzeug
 anschließend den Readback. Aus einem gespeicherten Saved-JSON allein lässt sich
 diese Fortsetzung nicht erzeugen.
 
+Eine bereits aufgenommene Notes-Publikationsprüfung bindet zusätzlich atomar
+die ursprüngliche lokale/entfernte Steuersitzung an ihre positive Transferbindung.
+Die persistente Wire-/Resume-Bindung bleibt absichtlich unverändert, ist aber
+allein kein Erneuerungsrecht für eine laufende Prüfung. Ein neuer Remote-
+Sitzungszeuge bei gleicher Berechtigungsepoche hält den alten Prüfbesitzer an.
+Ein begrenzter ausschließlich flüchtiger Übergangszähler merkt auch einen
+Wechsel zurück zu alten Control-Paketwerten, bevor der IO-Besitzer wieder prüft;
+er wird weder auf dem Wire noch in gespeicherte Journale aufgenommen. Gewöhnliche
+Sequenz-/Echo-Nachrichten derselben Sitzung ändern diesen Zeugen nicht.
+Eine neue ausdrücklich aufgenommene Prüfung kann dagegen ihre eigenen aktuellen
+Rechte prüfen. Diese Grenze wird auch vor der tatsächlichen Readback-Ausgabe
+kontrolliert; weder Aktions-/Angebotsfristen noch Grant-Bits werden erneuert.
+63 gezielte Notes-Hostfälle bestehen einschließlich tatsächlichem Providerpfad,
+Sitzungswechsel/-Rückwechsel, unveränderter persistenter Bindung, frischer
+expliziter Wiederaufnahme und Überlauf-HOLD. Das ist Robolectric-Abnahme des
+App-Codes, kein tatsächlicher Android-Geräte-/OS-Consent-Nachweis.
+
 38 Notes-Empfangs-/Transferfälle bestehen, darunter der neue Originalangebot-
 Readback, einmalige Nutzung, laufender/abgebrochener/metadatenbasierter Empfang,
 entzogenes Originalbuch und widerrufene Kontrollen. Die fünf bestehenden nativen
