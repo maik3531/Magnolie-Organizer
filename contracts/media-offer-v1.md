@@ -882,13 +882,23 @@ Medienquellen. Das ist noch keine vollständige unabhängige Linux-PC-Quelle:
 Der Picker und der geschützte PC-Sende-/Cacheowner sowie dessen globale
 Dateihistorie sind nicht angeschlossen. Ein separater unveränderlicher
 Ursprungszeuge bindet Scope, Katalogwurzel, Datenbank, Lock und Anchoridentität.
-Wird dieser vom unabhängigen geschützten Composer bei Wiederöffnung vorgegeben,
-bleibt auch ein gemeinsam fehlender Katalog samt Anchor HOLD, ohne Bootstrap.
-Die API hierfür ist vorhanden und geprüft; die externe Produktkomposition
-speichert diesen Zeugen aber noch nicht. Die interne Anchorprüfung allein ist
-kein Nachweis gegen einen gemeinsamen Reset aller unabhängigen Zeugen oder
-einen vollständigen historischen Datenbank-Rollback auf unveränderten Inodes.
-Keine automatische Wiederherstellung oder Neuauswahl wird daraus freigegeben.
+Die vorhandenen geschützten nativen Einstellungen können ihn durch eine
+ausdrückliche native Aktion im optionalen Feld `collection_roots` festhalten.
+Die Bindung verlangt eine bereits vorhandene Policy, aktiviert keine
+Einwilligung und erhält die tatsächliche Berechtigungsrevision und -epoche.
+Alte Policies ohne das Feld behalten ihre exakte Form; bestehende
+Einstellungsänderungen erhalten den gebundenen Zeugen. Eine bereits gebundene
+Originalidentität darf nicht durch einen anderen Katalog ersetzt werden.
+
+Die interne Einstellungsfactory öffnet den Katalog ausschließlich mit diesem
+gespeicherten Zeugen. Auch nach erneutem Öffnen der Einstellungen bleiben ein
+gemeinsam fehlender Katalog samt Anchor oder ein separat neu angelegter
+Ersatzkatalog HOLD, ohne Bootstrap oder Neuzuordnung. Die Produkt-UI verwendet
+diese APIs noch nicht; Picker und PC-Cache/Sender fehlen weiterhin. Das ist
+kein Nachweis gegen einen gemeinsamen Reset aller unabhängigen Zeugen samt
+Einstellungen oder einen vollständigen historischen Datenbank-Rollback auf
+unveränderten Inodes. Keine automatische Wiederherstellung oder Neuauswahl wird
+daraus freigegeben.
 
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
