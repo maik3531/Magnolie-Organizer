@@ -1706,6 +1706,75 @@ Originalfristen; weder Zeitlimit noch Quote, Recordformat oder Historiengrenze
 wurde erhöht. Dies ist ein Linux-Projektions-/Hostnachweis, keine übertragene
 Windows-Korrektur oder physische Android-/Lieferabnahme.
 
+### Linux: tatsächlicher begrenzter Lauf expliziter Sammlungsquellen (#488)
+
+Der bisher nur gemappte Sourceworker verbindet im gesamten-Sammlungsmodus jetzt
+auch die ausdrücklich geschützten PC-Quellordner. Vor dem gemappten Teil werden
+Originalkatalog, echte Root-FDs, aktuelle Native-Member und ihre vollständigen
+Native-Statzeugen eingefroren. Ohne ausdrücklich gewählten Root des aktuellen
+Medientyps oder bei unvollständiger/unklarer Inventur hält der Lauf vor einem
+gemappten Teilerfolg. Inventur bleibt begrenzt: höchstens 4096 Dateien insgesamt,
+zusätzlich vorhandene Entry-/Tiefen-/Rootgrenzen. Es gibt keinen beliebigen
+PC-Scan oder implizit neu ausgewählte Quellen.
+
+Nur der tatsächlich aktive typisierte Worker und sein exaktes ursprüngliches
+Root-/Memberobjekt dürfen eine PC-Aufnahme neben diesem eigenen Workerslot
+einreihen. Gleiche kopierte Metadaten oder ein fremder Worker genügen nicht.
+Jede Datei wird vor Admission als eigenes echtes Einzeldateiangebot vorbereitet;
+aufgenommene Mehrdateiangebote werden nicht nachträglich geteilt. Gewöhnliche
+bekannte Herkunft hält weiterhin; nur der explizite abgeschlossene Nachfolgerpfad
+aus #487 darf den geschützten Vorgänger und seine genaue Publikation übernehmen.
+Unverändert bedeutet vollständiger frischer Native-Rohhash, nicht Dateiendung,
+Größe oder alter Flag. Liegt eine tatsächlich im gemappten Teil bereits vollständig
+geprüfte Datei auch im ausgewählten Root, wird nur ihre unveränderte tatsächliche
+Native-Signatur mit der eingefrorenen Inventur korreliert: kein zweites Angebot,
+keine PC-Neuetikettierung und kein doppeltes Zählen. Der zugehörige Beobachter
+wird ausschließlich im ursprünglichen Worker nach echtem Vergleich bzw. geändertem
+Transfer mit Backup/END notiert; er ist kein READ-/Schreib-/Publikationsgrant.
+Unklare oder nur historisch zugeordnete Kandidaten ohne diesen tatsächlichen
+Vergleichszeugen halten weiterhin.
+
+Vor dem nächsten Angebot folgen jeweils tatsächlicher Saved-/Published-Readback,
+unabhängiges Rohbackup und ursprüngliches natives/socketgebundenes Quell-END.
+Backup und Retirement verwenden den tatsächlichen Sender-Sourceowner, auch bei
+PC- statt Mappingquellen. Der bisherige begrenzte Cache-Slot darf erst nach echtem
+Archivieren/END mit einem neuen Native-Inode verwendet werden; sein gleicher
+Pfad ist keine Wiederaufnahme des alten Jobs. Alle ursprünglichen Archive,
+Versionen und die 128er-Sourcegrenze bleiben erhalten.
+
+Vor Abschluss werden gesamter Rootkatalog, sämtliche ursprünglichen Member und
+ihre vollständigen Native-Signaturen erneut geprüft. Eine gleich große Änderung
+nach einem bereits abgeschlossenen Einzelschritt macht den Gesamtpass HOLD;
+die tatsächliche Einzelquittierung wird weder geleugnet noch als Gesamtabschluss
+ausgegeben. Lokaler Sendeentzug wird schon während der Inventur frisch geprüft.
+Nur-Fotos prüft tatsächliche Kamerametadaten in gemapptem und unabhängigem Teil;
+absichtlich ausgeschlossene Dateien zählen als gefiltert, niemals als bekannte
+Publikation. Abbruch und Cleanupfehler behalten ihren HOLD-Status und geben den
+Workerslot erst nach tatsächlichem Root-/Katalog-/IO-Drain frei.
+
+99 unterschiedliche betroffene Python-Hostfälle bestehen: 14 neue Collection-
+Fälle, 26 bestehende Worker-/Service-/Wifi-/Stop-/Close-/Buch-/Controlfälle und
+59 Authorityfälle aus #489. Der positive Collectionfall beginnt am tatsächlichen
+PhoneService-`sync_shared`-Einstieg mit ursprünglichem Desktop-Buchfence. Er
+schließt zwei native PC-Originale nacheinander vollständig ab, liest beide in
+einem weiteren Lauf unverändert und sendet anschließend eine echte Änderung
+derselben Native-Generation mit exakter Vorpublikation bis zu eigenem Backup/END.
+Drei echte geschützte Archive und alle älteren Jobfakten bleiben erhalten;
+PC RECEIVE und Telefon READ bleiben aus. Die Peerantworten sind authentifizierte
+Hostmodelle, keine neue Android-Abnahme.
+
+Das ist ein begrenzter Inhaltspass der expliziten Quellen, kein Lösch-, Retention-
+oder globaler Bestandsvollständigkeitsnachweis. Windows hält im gemappten Worker
+weiterhin den gesamten-Sammlungsrest zur Prüfung; seine echte Auswahloberfläche
+ist kein Ersatz für den fehlenden Windows-Produzentenanschluss. #488 bleibt
+offen, ebenso Androidpause, Video-/Mehrdatei- und Liefergates unter #486.
+
+Automatischer gesamter PC-Export bleibt ausdrücklich vor Inventur und Aufnahme
+gesperrt, bis die dafür offene native Abnahme vorliegt. Weder der manuelle
+Hostlauf noch aktivierte gemeinsame Wifi-Einstellungen öffnen dieses Gate.
+Die zusätzliche optionale Buildkomposition besteht in allen 20 Variantenfällen;
+die dabei bestätigten GUI-Imports ohne Fotomodul wurden separat in #490 behoben.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

@@ -232,7 +232,7 @@ def test_entire_collection_holds_explicitly_instead_of_claiming_mapped_subset_co
         h.controller.change('collection_mode','entire_collection');agree(h,native[0])
         monkeypatch.setattr(h.source,'plan',lambda *a,**k:pytest.fail('Unsupported collection silently planned a subset'))
         worker=start(h);assert worker.join(30),worker.progress()
-        assert worker.progress()['state']=='held' and worker.progress()['error']=='media_source_entire_collection_review_required'
+        assert worker.progress()['state']=='held' and worker.progress()['error']=='media_collection_explicit_source_roots_required'
         assert not h.source._prepared
 
 

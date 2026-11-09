@@ -420,7 +420,18 @@ class NativeDesktopFileConnection:
     def prepare_changed_collection_media_source(self,action,expected,selected,member,*,kind='images',native_current=lambda:True):
         return self._prepare_collection_media_source(action,expected,selected,member,kind,native_current,True)
 
-    def _prepare_collection_media_source(self,action,expected,selected,member,kind,native_current,completed_successor):
+    def prepare_worker_collection_media_source(self,worker,expected,selected,member,*,completed_successor=False):
+        from magnolie_media_source_worker import NativeMappedMediaWorker
+        from magnolie_media_source_collection_pass import NativeCollectionPass
+        if (type(worker) is not NativeMappedMediaWorker or self._mapped_worker is not worker
+                or type(worker._collection) is not NativeCollectionPass or type(completed_successor) is not bool):
+            raise TransferError('media_collection_original_worker_required')
+        def current():return worker._collection.require_member(selected,member)
+        current()
+        return self._prepare_collection_media_source(self.issue_receive_action(),expected,selected,member,worker._kind,current,
+            completed_successor,_worker=worker)
+
+    def _prepare_collection_media_source(self,action,expected,selected,member,kind,native_current,completed_successor,*,_worker=None):
         """Explicit native PC selection; never a browser path or auto scan.
 
         Pin the existing positive send binding and original action before the
@@ -431,7 +442,7 @@ class NativeDesktopFileConnection:
         with self._operation():
             source=self._media_pc_source
             if source is None:raise TransferError('media_source_native_composition_required')
-            if (self._mapped_worker is not None or self._album_worker is not None or self._run is not None
+            if (self._mapped_worker is not _worker or self._album_worker is not None or self._run is not None
                     or self._source_pending is not None or self._source_run is not None or self._media_sender is not None
                     or self._media_source._prepared or source._prepared):
                 raise TransferError('file_desktop_album_worker_busy')
