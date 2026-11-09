@@ -401,7 +401,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   assert.ok(startup.tabletPresent && startup.organizerPresent);
   assert.deepEqual(Object.keys(startup).sort(),['readyState','origin','tabletPresent','organizerPresent','storageBlocked','statusCode','browserTiming'].sort());
   assert.deepEqual(Object.keys(startup.browserTiming).sort(),['sampledEpochMs','timeOriginMs','sampledNowMs','navigation','scripts'].sort());
-  assert.deepEqual(Array.from(startup.browserTiming.scripts,x=>x.name),['normative-timezones.js','tablet.js','anwendung.js']);
+  assert.deepEqual(Array.from(startup.browserTiming.scripts,x=>x.name),['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','zeichenblatt.js','mcp-protocol.js','contact-group-aliases.js','qr-decoder.js','qr-dialog.js','anwendung.js']);
   assert.ok(!JSON.stringify(startup).includes('Synthetic'));
   w.document.getElementById('tablet-status').textContent=priorStatus;
   ok(true,'startup diagnostics expose fixed technical fields without document or status message content');
