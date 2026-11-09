@@ -860,9 +860,35 @@ gebunden. Links, private Backup-/Stagingpfade und Mount-Abstiege werden nicht
 als Medienquelle übernommen. Geänderte oder verworfene Leser leben nicht wieder
 auf; Schließen eines Mitglieds wartet auf laufende Lesezugriffe und verwirft
 deren unveröffentlichten Puffer. Das Schließen allein der Wurzel ist kein
-Source-END. Diese Primitive besitzt noch keinen geschützten Quellkatalog,
-nativen Picker oder angeschlossenen PC-Sende-/Cacheowner und ist keine
-vollständige Linux-Synchronisationsfunktion.
+Source-END und ist keine vollständige Linux-Synchronisationsfunktion.
+
+Der getrennte geschützte Linux-Quellwurzelkatalog verwendet die vorhandene
+AEAD-/SQLite-Deskriptorinfrastruktur, ohne Telefonpräferenzschemas zu ändern.
+Passive Abwesenheit erzeugt nichts; nur eine verbrauchbare native Aktion und
+eine gehaltene Quellwurzel erlauben eine neue Auswahl. Die maximal 32 Auswahlen
+bleiben append-only erhalten. CAS und geschützte Mitgliedschaft sowie ein an
+seinen tatsächlichen Inode gebundener Anchor verhindern stilles Ersetzen
+einzelner Katalogteile durch Kopien. Fehlende oder ausgetauschte Teile bleiben
+HOLD. Ein Paarungswechsel erhält alte Metadaten, verleiht aber keine neue
+Wiederöffnungs- oder Neuzuordnungsbefugnis. Änderungen am gespeicherten Pfad,
+nativer Identität, Geburtszeugnis oder Mount-ID werden nicht automatisch
+übernommen. Auch eine neue Mount-ID nach einem Systemneustart ist kein Anlass
+für eine automatische Reparatur.
+
+Wiederöffnung verlangt erneut die tatsächliche native Quelle und einen
+aktuellen Guard; die Auswahl selbst verleiht kein SEND. Die private
+Speicherwurzel des Katalogowners und ihre Vorfahren sind keine zulässigen
+Medienquellen. Das ist noch keine vollständige unabhängige Linux-PC-Quelle:
+Der Picker und der geschützte PC-Sende-/Cacheowner sowie dessen globale
+Dateihistorie sind nicht angeschlossen. Ein separater unveränderlicher
+Ursprungszeuge bindet Scope, Katalogwurzel, Datenbank, Lock und Anchoridentität.
+Wird dieser vom unabhängigen geschützten Composer bei Wiederöffnung vorgegeben,
+bleibt auch ein gemeinsam fehlender Katalog samt Anchor HOLD, ohne Bootstrap.
+Die API hierfür ist vorhanden und geprüft; die externe Produktkomposition
+speichert diesen Zeugen aber noch nicht. Die interne Anchorprüfung allein ist
+kein Nachweis gegen einen gemeinsamen Reset aller unabhängigen Zeugen oder
+einen vollständigen historischen Datenbank-Rollback auf unveränderten Inodes.
+Keine automatische Wiederherstellung oder Neuauswahl wird daraus freigegeben.
 
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
