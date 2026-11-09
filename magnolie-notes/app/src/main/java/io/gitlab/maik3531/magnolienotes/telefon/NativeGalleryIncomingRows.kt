@@ -94,8 +94,14 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
     private class VerifiedRead(val owner: NativeGalleryPublishedInspection, val observation: NativeIncomingMediaObservation,
         val recovery: NativeGalleryPublishedReadback)
     private val verifiedRead = ThreadLocal<VerifiedRead?>()
-    private class ArchiveTarget(val archive: NativeGalleryTrashArchive, val permit: NativeGalleryTrashBookPermit) {
+    private class ArchiveTarget(val permit: NativeGalleryTrashBookPermit, private val supplied: NativeGalleryTrashArchive? = null,
+        private val protection: DeviceTransferProtection? = null) {
+        var archive: NativeGalleryTrashArchive? = supplied
+            private set
+        val ownsArchive: Boolean get() = supplied == null
         var result: NativeGalleryArchiveEntry? = null
+        fun open(app: Context): NativeGalleryTrashArchive = archive ?: NativeGalleryTrashArchive.openForApplication(app,
+            protection ?: DeviceFileControl.fail("gallery_archive_published_pc_owner_required")).also { archive = it }
     }
     private class VerifiedArchive(val owner: NativeGalleryPublishedInspection, val target: ArchiveTarget)
     private val verifiedArchive = ThreadLocal<VerifiedArchive?>()
@@ -305,11 +311,18 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
     /** Actual app-owned PC row copy only. It does not publish, replace, trash,
      * delete or manufacture an outgoing phone GalleryPhotoSourceLease. */
     internal fun archivePublishedPc(owner: NativeGalleryPublishedInspection, archive: NativeGalleryTrashArchive,
-        permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal = CancellationSignal()): NativeGalleryArchiveEntry {
+        permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal = CancellationSignal()): NativeGalleryArchiveEntry =
+        archivePublishedPc(owner, ArchiveTarget(permit, supplied = archive), cancellation)
+
+    internal fun archivePublishedPcToApplication(owner: NativeGalleryPublishedInspection, protection: DeviceTransferProtection,
+        permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal): NativeGalleryArchiveEntry =
+        archivePublishedPc(owner, ArchiveTarget(permit, protection = protection), cancellation)
+
+    private fun archivePublishedPc(owner: NativeGalleryPublishedInspection, target: ArchiveTarget,
+        cancellation: CancellationSignal): NativeGalleryArchiveEntry {
         try {
-            owner.requireArchiveBook(permit)
+            owner.requireArchiveBook(target.permit)
             if (owner.selected.pcOrigin == null) fail("gallery_archive_published_pc_owner_required")
-            val target = ArchiveTarget(archive, permit)
             inspectPublishedOwned(owner, cancellation, null, target)
             return target.result ?: fail("gallery_archive_published_pc_owner_required")
         } catch (error: Throwable) { owner.close(); throw error }
@@ -417,14 +430,21 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 finally { verifiedRead.remove() }
             }
             if (archive != null) {
+                val target = archive.open(app); current()
                 verifiedArchive.set(VerifiedArchive(owner, archive))
                 try {
-                    archive.result = archive.archive.archivePublishedPc(this, owner, archive.permit, cancellation)
+                    archive.result = target.archivePublishedPc(this, owner, archive.permit, cancellation)
                     checkRow(); current()
                 } finally { verifiedArchive.remove() }
             }
             return observation
-        } finally { owner.close(); NativeGalleryMediaIoLane.release(lane) }
+        } finally {
+            try { owner.close() }
+            finally {
+                try { if (archive?.ownsArchive == true) archive.archive?.close() }
+                finally { NativeGalleryMediaIoLane.release(lane) }
+            }
+        }
     }
 
     private data class NativeRow(val witness: JsonObject, val pending: Long)

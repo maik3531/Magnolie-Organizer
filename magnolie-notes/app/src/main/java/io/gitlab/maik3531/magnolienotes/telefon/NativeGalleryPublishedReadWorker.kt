@@ -16,6 +16,7 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
     private val readback = AtomicReference<NativeGalleryPublishedReadback?>()
     private val result = AtomicReference<NativeIncomingMediaObservation?>()
     private val output = AtomicReference<JsonObject?>()
+    private val archive = AtomicReference<NativeGalleryArchiveEntry?>()
     private val failure = AtomicReference<Throwable?>()
     private val drained = CountDownLatch(1)
     val ioEnded: Boolean get() = ended.get()
@@ -35,8 +36,9 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
         try { readback.get()?.requireCurrent() ?: owner.get()?.requireCurrent() } catch (_: Exception) { cancel() }
     }
     internal fun belongsTo(value: Any) = value === workerOwner
-    internal fun finish(value: NativeIncomingMediaObservation?, error: Throwable?, message: JsonObject? = null) {
-        result.set(value); output.set(message); failure.set(error)
+    internal fun finish(value: NativeIncomingMediaObservation?, error: Throwable?, message: JsonObject? = null,
+        archived: NativeGalleryArchiveEntry? = null) {
+        result.set(value); output.set(message); archive.set(archived); failure.set(error)
     }
     internal fun markIoEnded() { ended.set(true) }
     internal fun ioDrained() { drained.countDown() }
@@ -53,6 +55,10 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
         if (!ended.get()) DeviceFileControl.fail("gallery_published_worker_io_pending")
         return output.get().takeIf { !canceled.get() && failure.get() == null }
     }
+    internal fun actualArchiveOutput(): NativeGalleryArchiveEntry? {
+        if (!ended.get()) DeviceFileControl.fail("gallery_published_worker_io_pending")
+        return archive.get().takeIf { !canceled.get() && failure.get() == null }
+    }
 }
 
 /** One bounded native inspection thread. Provider lane acquisition and actual
@@ -67,18 +73,23 @@ internal class NativeGalleryPublishedReadWorker(private val rows: NativeGalleryI
     val isQuiescent: Boolean get() = synchronized(gate) { active == null }
     internal fun owns(run: NativeGalleryPublishedReadRun) = run.belongsTo(this)
     internal fun start(prepare: () -> NativeGalleryPublishedInspection): NativeGalleryPublishedReadRun =
-        startNative { prepare() to null }
+        startNative { _ -> prepare() to null }
     internal fun startReadback(prepare: () -> NativeGalleryPublishedReadback): NativeGalleryPublishedReadRun =
-        startNative { prepare().let { it.owner to it } }
+        startNative { _ -> prepare().let { it.owner to it } }
+    private class ArchiveCopy(val protection: DeviceTransferProtection, val book: NativeGalleryTrashBookPermit)
+    internal fun startArchive(protection: DeviceTransferProtection, book: NativeGalleryTrashBookPermit,
+        prepare: (CancellationSignal) -> NativeGalleryPublishedInspection): NativeGalleryPublishedReadRun =
+        startNative(ArchiveCopy(protection, book)) { cancellation -> prepare(cancellation) to null }
 
-    private fun startNative(prepare: () -> Pair<NativeGalleryPublishedInspection, NativeGalleryPublishedReadback?>): NativeGalleryPublishedReadRun {
+    private fun startNative(archive: ArchiveCopy? = null,
+        prepare: (CancellationSignal) -> Pair<NativeGalleryPublishedInspection, NativeGalleryPublishedReadback?>): NativeGalleryPublishedReadRun {
         val run = synchronized(gate) {
             if (closed) DeviceFileControl.fail("gallery_published_worker_closed")
             if (active != null) DeviceFileControl.fail("gallery_published_worker_busy")
             NativeGalleryPublishedReadRun(this).also { active = it }
         }
-        fun finish(value: NativeIncomingMediaObservation?, error: Throwable?, message: JsonObject? = null) {
-            run.finish(value, error, message)
+        fun finish(value: NativeIncomingMediaObservation?, error: Throwable?, message: JsonObject? = null, archived: NativeGalleryArchiveEntry? = null) {
+            run.finish(value, error, message, archived)
             synchronized(gate) { if (active === run) active = null }
             run.markIoEnded()
             try { onEnded() } finally { run.ioDrained() }
@@ -88,14 +99,16 @@ internal class NativeGalleryPublishedReadWorker(private val rows: NativeGalleryI
             var recovery: NativeGalleryPublishedReadback? = null
             var observation: NativeIncomingMediaObservation? = null
             var message: JsonObject? = null
+            var archived: NativeGalleryArchiveEntry? = null
             var failure: Throwable? = null
             try {
                 run.cancellation.throwIfCanceled()
-                val prepared = prepare(); owner = prepared.first; recovery = prepared.second; run.install(owner, recovery)
-                if (recovery == null) observation = rows.inspectPublished(owner, run.cancellation)
+                val prepared = prepare(run.cancellation); owner = prepared.first; recovery = prepared.second; run.install(owner, recovery)
+                if (archive != null) archived = rows.archivePublishedPcToApplication(owner, archive.protection, archive.book, run.cancellation)
+                else if (recovery == null) observation = rows.inspectPublished(owner, run.cancellation)
                 else message = recovery.perform(rows, run.cancellation)
             } catch (error: Throwable) { failure = error }
-            finally { recovery?.close(); owner?.close(); finish(observation, failure, message) }
+            finally { recovery?.close(); owner?.close(); finish(observation, failure, message, archived) }
         }, "magnolie-media-published-read").apply { isDaemon = true }
         try { thread.start() } catch (error: Throwable) { finish(null, error); throw error }
         return run

@@ -76,6 +76,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         }
     }
     private val app = context.applicationContext
+    private val localRecoveryProtection = protection
     private val localIdentity = identity
     private val localPermissionCommands = NativeGalleryPermissionCommands()
     private val localRunCommands = NativeGalleryRunCommands()
@@ -248,6 +249,31 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 { currentIncomingIntent?.invoke(kind) }, selected)
         }
     }
+    /** Explicit native background action, not a frame/browser path or a future
+     * PC replacement grant. The same worker owns store close and actual drain. */
+    internal fun beginPublishedPcArchive(kind: GalleryMediaType, id: String, fingerprint: String,
+        book: NativeGalleryReceiveBookPermit, archiveBook: NativeGalleryTrashBookPermit): NativeGalleryPublishedReadRun = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
+        if (!DeviceFileControl.hash(id) || !DeviceFileControl.hash(fingerprint)) DeviceFileControl.fail("gallery_incoming_publication_invalid")
+        if (!sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent ||
+            syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        val action = NativeGalleryPcArchiveAction.capture(controls.session, kind, book, archiveBook,
+            { currentIncomingIntent?.invoke(kind) }, { incomingAvailable() && (kind != GalleryMediaType.VIDEO || videoAvailable()) })
+        try {
+            publishedReadWorker.startArchive(localRecoveryProtection, archiveBook) { cancellation ->
+                try {
+                    action.bindCancellation(cancellation)
+                    val selected = index.incomingPublication(id)?.takeIf { it.fingerprint == fingerprint && it.pcOrigin != null &&
+                        it.body.string("media_type") == kind.uriSegment } ?: DeviceFileControl.fail("gallery_archive_published_pc_owner_required")
+                    val destination = selected.body.getValue("origin").jsonObject.string("manifest_sha256")
+                    NativeGalleryPublishedInspection.capture(controls.session, index, book, nativePeer, action::currentIntent, selected,
+                        expectedControl = action.expectedControl(destination), archiveAction = action)
+                } catch (error: Throwable) { action.close(); throw error }
+            }
+        } catch (error: Throwable) { action.close(); throw error }
+    }
+
     internal fun cancelPublishedInspection(run: NativeGalleryPublishedReadRun) {
         if (!publishedReadWorker.owns(run)) DeviceFileControl.fail("gallery_published_worker_foreign_run")
         run.cancel()

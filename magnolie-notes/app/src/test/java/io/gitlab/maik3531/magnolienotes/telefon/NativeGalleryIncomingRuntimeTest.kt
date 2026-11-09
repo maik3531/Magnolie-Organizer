@@ -108,6 +108,99 @@ class NativeGalleryIncomingRuntimeTest {
         }
     }
 
+    @Test fun normalNativeConnectionArchivesPcRowsWithoutPhoneReadOrPcReceiveAndKeepsRecoveryIndependent() {
+        Harness().use { h ->
+            h.pcSendOnly(); h.completePcUpload(); h.assertReceiveOnly()
+            assertFalse(h.archiveRoot.exists())
+            assertThrows(PhotoFolderScopeError::class.java) { h.archive() } // Local trash OFF, no implicit archive bootstrap.
+            assertFalse(h.archiveRoot.exists())
+            h.f.documents.setzePapierkorb(true, 30)
+            val selected = h.published(); val local = NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                h.nativeConnection().archivePublishedPc(GalleryMediaType.IMAGES, selected.id, selected.fingerprint, h.f.book(), local)
+            } // Protected admission must run off the UI thread.
+            val controls = h.operationBinding(); val before = h.f.rows(); val frames = h.link.frames.toList()
+            val run = h.archive(); assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure())
+            val saved = run.actualArchiveOutput()!!
+            assertFalse(saved.grantsMutationAuthority); assertFalse(saved.isRemoteDeletionReceipt)
+            assertNull(run.actualReadbackOutput()); assertNull(run.observation())
+            assertEquals(controls, h.operationBinding()); assertEquals(frames, h.link.frames); assertEquals(before, h.f.rows()); h.assertReceiveOnly()
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+            NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive ->
+                assertEquals(listOf(saved), archive.entries(local)) // Store/OS lock already closed at actual run END.
+            }
+            h.nativeConnection().close(); h.f.index.close(); h.link.channel.close()
+            assertTrue(h.file.renameTo(File(h.f.root, "retained-native-pc-source.png")))
+            val offline = NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }
+            NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive ->
+                val restored = java.io.ByteArrayOutputStream(); archive.readContent(saved, offline) { restored.write(it) }
+                assertArrayEquals(h.raw, restored.toByteArray())
+            }
+        }
+    }
+
+    @Test fun normalPcArchiveNeverAdoptsLaterControlIntentBookOrCancellationBeforeBackgroundCapture() {
+        for (reason in listOf("control", "intent", "book", "cancel")) Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val before = h.f.rows(); val reads = h.provider.readOpens; val entered = CountDownLatch(1); val release = CountDownLatch(1)
+            h.incomingHook = {
+                if (Thread.currentThread().name == "magnolie-media-published-read") {
+                    entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS))
+                }
+            }
+            val run = h.archive()
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); assertFalse(h.archiveRoot.exists())
+                when (reason) {
+                    "control" -> h.rotatePcSession()
+                    "intent" -> h.incomingToken = MediaSyncTransport.IntentToken(MediaSyncSettings.change(h.token.body,
+                        "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "auto_mode", JsonPrimitive("wifi")))
+                    "book" -> h.f.unlocked = false
+                    "cancel" -> run.cancel()
+                }
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualArchiveOutput()); assertNotNull(run.nativeFailure())
+            assertFalse(h.archiveRoot.exists()); assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun normalPcArchiveChecksExactSourceAndCurrentAgreementBeforeCreatingRecoveryStorage() {
+        for (reason in listOf("agreement", "fingerprint", "bytes")) Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30); val before = h.f.rows()
+            if (reason == "agreement") {
+                h.incomingAgreement = false
+                assertThrows(PhotoFolderScopeError::class.java) { h.archive() }
+            } else {
+                if (reason == "bytes") h.file.writeBytes(h.raw.copyOf().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() })
+                val run = h.archive(fingerprint = if (reason == "fingerprint") "0".repeat(64) else h.published().fingerprint)
+                assertTrue(run.awaitIoEnded(5000)); assertNotNull(run.nativeFailure()); assertNull(run.actualArchiveOutput())
+            }
+            assertFalse(h.archiveRoot.exists()); assertEquals(before, h.f.rows())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun normalPcArchiveRetainsRuntimeAndMediaLaneUntilActualStoreAndProviderIoClose() {
+        Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30); val before = h.f.rows()
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); var queries = 0
+            h.provider.beforeQuery = {
+                if (++queries == 4) { entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS)) }
+            }
+            val run = h.archive(); var cleaned = false
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); assertFalse(h.runtime.closeWhenQuiescent { cleaned = true; h.runtime.close() })
+                assertFalse(run.ioEnded); val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe)); assertFalse(cleaned)
+            } finally { release.countDown(); h.provider.beforeQuery = {} }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualArchiveOutput()); assertNotNull(run.nativeFailure())
+            Shadows.shadowOf(Looper.getMainLooper()).idle(); assertTrue(cleaned)
+            val permit = NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }
+            NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive -> assertTrue(archive.entries(permit).isEmpty()) }
+            assertEquals(before, h.f.rows()); assertArrayEquals(h.raw, h.file.readBytes())
+        }
+    }
+
     private class Harness(joined: Boolean = true, localConsent: Boolean = joined,
         collectionMode: String = "entire_collection") : AutoCloseable {
         val helper = NativeGalleryIncomingTransferTest()
@@ -168,6 +261,25 @@ class NativeGalleryIncomingRuntimeTest {
         fun withdrawPcSend() {
             pcLocal = NativeLocalFileGrant(DeviceFileGrantState(4, "c".repeat(64), false, true), pcLocal.owner, true)
             sendPc()
+        }
+        fun pcSendOnly() {
+            pcLocal = NativeLocalFileGrant(DeviceFileGrantState(4, "e".repeat(64), true, false), pcLocal.owner, true); handshake()
+        }
+        fun assertReceiveOnly() {
+            val channel = NativeGalleryFileRuntime::class.java.getDeclaredField("controls").apply { isAccessible = true }.get(runtime) as NativeFileControlChannel
+            val local = NativeFileControlSession::class.java.getDeclaredField("local").apply { isAccessible = true }.get(channel.session) as NativeLocalFileGrant
+            assertFalse(local.grants.sendFiles); assertTrue(local.grants.receiveFiles)
+            assertTrue(pcLocal.grants.sendFiles); assertFalse(pcLocal.grants.receiveFiles)
+        }
+        fun completePcUpload() {
+            val incoming = startDispatched(pcOffer()); check(incoming.awaitIoEnded(5000)); check(incoming.nativeFailure() == null)
+            check(incoming.actualSavedOutput() != null); check(incoming.awaitAutomaticReadbackStart(5000))
+            val read = incoming.automaticReadbackRun()!!; check(read.awaitIoEnded(5000)); check(read.nativeFailure() == null); check(read.actualReadbackOutput() != null)
+        }
+        val archiveRoot: File get() = File(f.app.noBackupFilesDir, "native-media-recovery")
+        fun archive(fingerprint: String = published().fingerprint): NativeGalleryPublishedReadRun {
+            val selected = published(); val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
+            return f.io { nativeConnection().archivePublishedPc(GalleryMediaType.IMAGES, selected.id, fingerprint, f.book(), permit) }.also { inspection = it }
         }
         fun operationBinding(): NativeFileOperationBinding {
             val channel = NativeGalleryFileRuntime::class.java.getDeclaredField("controls").apply { isAccessible = true }.get(runtime) as NativeFileControlChannel

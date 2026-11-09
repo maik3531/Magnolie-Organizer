@@ -44,6 +44,17 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         }
     }
 
+    /** Explicit native selection only; the frame dispatcher above cannot create
+     * these actual saved-book permits or authorize a local archive action. */
+    internal fun archivePublishedPc(kind: GalleryMediaType, id: String, fingerprint: String,
+        book: NativeGalleryReceiveBookPermit, archiveBook: NativeGalleryTrashBookPermit): NativeGalleryPublishedReadRun {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        val selected = runtime
+        requireIncomingAgreement()
+        if (ended.get() || bound !== selected) DeviceFileControl.fail("gallery_file_connection_ended")
+        return selected.beginPublishedPcArchive(kind, id, fingerprint, book, archiveBook)
+    }
+
     /** Called after native I/O actually ends, outside the TelefonWerk monitor. */
     internal fun transportEnded() {
         ended.set(true)

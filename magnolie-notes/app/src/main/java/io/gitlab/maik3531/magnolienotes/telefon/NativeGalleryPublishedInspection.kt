@@ -12,7 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class NativeGalleryPublishedInspection private constructor(private val session: NativeFileControlSession,
     private val index: PhotoSourceJobIndex, private val book: NativeGalleryReceiveBookPermit,
     private val peer: () -> NativeFileControlPeer?, private val incomingIntent: () -> Any?,
-    internal val selected: GalleryIncomingPublication, expectedControl: NativeFileOperationBinding?) : AutoCloseable {
+    internal val selected: GalleryIncomingPublication, expectedControl: NativeFileOperationBinding?,
+    private val archiveAction: NativeGalleryPcArchiveAction?) : AutoCloseable {
     internal val kind = GalleryMediaType.entries.single { it.uriSegment == selected.body.string("media_type") }
     private val token = incomingIntent() as? MediaSyncTransport.IntentToken ?: fail()
     private val originalPeer = peer()?.takeIf { it.allowed && it.pairingEpoch != null } ?: fail()
@@ -29,11 +30,13 @@ internal class NativeGalleryPublishedInspection private constructor(private val 
     internal val isSavedReceipt: Boolean get() = false
 
     init {
+        if (archiveAction != null && archiveAction.kind != kind) fail()
         if (expectedControl != null && originalControl != expectedControl) fail()
         requireCurrent()
     }
     @Synchronized internal fun requireCurrent() {
         try {
+            archiveAction?.requireCurrent()
             val now = DeviceFileControl.monotonicMs()
             if (closed.get() || now < last || now - issued >= DeviceFileControl.MAX_TTL_MS || incomingIntent() !== token ||
                 !token.requestedIncoming(kind)) fail()
@@ -49,7 +52,7 @@ internal class NativeGalleryPublishedInspection private constructor(private val 
                     originalBinding[it] != binding.snapshot()[it]
                 }) fail()
             last = now
-        } catch (error: Exception) { closed.set(true); throw error }
+        } catch (error: Exception) { closed.set(true); archiveAction?.close(); throw error }
     }
 
     internal fun consume() {
@@ -73,13 +76,15 @@ internal class NativeGalleryPublishedInspection private constructor(private val 
         if (current.session != originalControl.session || current.binding.permissionEpoch != binding.permissionEpoch) { close(); fail() }
         requireCurrent(); return current.binding
     }
-    override fun close() { closed.set(true) }
+    override fun close() { closed.set(true); archiveAction?.close() }
     companion object {
         internal fun capture(session: NativeFileControlSession, index: PhotoSourceJobIndex, book: NativeGalleryReceiveBookPermit,
             peer: () -> NativeFileControlPeer?, incomingIntent: () -> Any?, selected: GalleryIncomingPublication,
-            expectedControl: NativeFileOperationBinding? = null): NativeGalleryPublishedInspection {
+            expectedControl: NativeFileOperationBinding? = null,
+            archiveAction: NativeGalleryPcArchiveAction? = null): NativeGalleryPublishedInspection {
             if (Build.VERSION.SDK_INT < 30 || Looper.myLooper() == Looper.getMainLooper()) fail()
-            return NativeGalleryPublishedInspection(session, index, book, peer, incomingIntent, selected, expectedControl)
+            return try { NativeGalleryPublishedInspection(session, index, book, peer, incomingIntent, selected, expectedControl, archiveAction) }
+            catch (error: Throwable) { archiveAction?.close(); throw error }
         }
         private fun fail(): Nothing = DeviceFileControl.fail("gallery_published_current_read_owner_required")
     }

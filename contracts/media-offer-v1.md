@@ -965,6 +965,32 @@ angeschlossene Recovery-Aktion oder Android-Geräte-/OS-Consent-Abnahme.
 Der native PC-Schreib-/Ersetzungs-/Archivaktions-/Löschowner bleibt separat
 zu komponieren; der bisherige HOLD bleibt.
 
+Der native Verbindungs-/Runtime-Eintritt für eine ausdrücklich ausgewählte
+PC-Archivkopie ist jetzt intern angeschlossen. Seine monotone Aktionsfrist
+beginnt vor dem Workerstart; ursprünglicher voller Incoming-Intent, positive
+Control-Sitzung und beide tatsächlichen Buchpermits bleiben bis zur Prüfung
+und Kopie gebunden. Spätere Sitzungs-/Intentwechsel oder ein Abbruch vor dem
+Hintergrund-Capture ergeben keinen neuen Besitzer. Eine fehlende aktuelle
+Verbindungsvereinbarung wird bereits am nativen Verbindungseintritt abgewiesen.
+
+Der vorhandene Publikations-Lesearbeiter besitzt auch diesen Archivmodus;
+es gibt keinen zusätzlichen Hintergrundarbeiter oder Wire-/Browserbefehl.
+Er liefert ausschließlich einen lokalen Archivnachweis, keinen Readback oder
+Saved-Beleg. App-privater Recovery-Speicher wird erst nach tatsächlicher
+Originalbyte-/MIME-/Zeilenprüfung geöffnet und noch innerhalb der gehaltenen
+Medien-IO-Bahn geschlossen. Laufabbruch und Runtime-Cleanup warten auf das
+tatsächliche Provider-/Speicherende, nicht nur auf ein gesetztes Abbruchflag.
+
+95 passende Notes-Hostfälle bestehen einschließlich vier neuer Runtimefälle:
+PC-SEND/Telefon-RECEIVE ohne umgekehrte Freigaben, unabhängige Offline-Lesbarkeit,
+verzögertes Capture mit Sitzungs-/Intent-/Buchentzug oder Abbruch, falsche
+Auswahl/Originalbytes und tatsächlich blockierte Provider-IO mit verzögertem
+Runtime-Cleanup. Keine zusätzliche Quellprüfung des unveränderten alten
+Telefonarchivpfads und keine Geräteabnahme werden daraus abgeleitet. Der
+Benutzeraktions-/Dialoganschluss fehlt weiterhin; es ist keine benutzbare
+Gesamtfunktion, keine Archivaktions-/Retention-Transition und kein PC-Ersetzungs-
+oder OS-Schreib-/Löschowner. Der starke PC-Folgeversions-HOLD bleibt bestehen.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines
