@@ -8,6 +8,13 @@ entpackte Pakete und Test-VMs sind keine zusätzlichen Entwicklungsstände.
 Ein dort gefundener Fehler wird in der zugehörigen Quelle dieses Repositorys
 behoben.
 
+Geprüfte macOS- und Tablet-Quellenstände in `main` aktuell halten, damit Codex
+im Terminal dort unmittelbar weiterarbeiten kann. Ein offener Pull Request
+ersetzt diese Quellübernahme nicht. Arbeitszweige dürfen zur Vorbereitung dienen;
+ihre geprüften Änderungen anschließend mit dem aktuellen `main` zusammenführen
+und zwischenzeitliche Änderungen erhalten. Quellübernahme und Freigabe der
+installierbaren Pakete getrennt behandeln; offene native Abnahmen bleiben offen.
+
 Die dauerhaften Quellordner heißen `magnolie-organizer`,
 `magnolie-organizer-windows`, `magnolie-notes` und `magnolie-handbuch`. Sie erhalten bei einem Release
 keine neue Versionsnummer im Verzeichnisnamen. Versionsnummern bleiben in den
