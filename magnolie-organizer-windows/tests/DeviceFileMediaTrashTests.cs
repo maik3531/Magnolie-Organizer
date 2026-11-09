@@ -5,6 +5,31 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileMediaTrashTests
 {
+    internal static NativeMediaPreviewRaster RenderActualProduct(byte[] bytes, string kind, int side, Action current)
+    {
+        var folder = Path.Combine(AppContext.BaseDirectory, "preview-product");
+        var context = System.Runtime.Loader.AssemblyLoadContext.Default;
+        System.Reflection.Assembly? Resolve(System.Runtime.Loader.AssemblyLoadContext _, System.Reflection.AssemblyName name)
+        {
+            var path = Path.Combine(folder, name.Name + ".dll");
+            return File.Exists(path) ? context.LoadFromAssemblyPath(path) : null;
+        }
+        context.Resolving += Resolve;
+        try
+        {
+            var actual = context.LoadFromAssemblyPath(Path.Combine(folder, "Magnolie Organizer.dll"));
+            var render = actual.GetType("MagnolieOrganizer.Windows.NativeMediaPreviewDrawing", true)!
+                .GetMethod("Render", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            object result;
+            try { result = render.Invoke(null, new object[] { bytes, kind, side, current })!; }
+            catch (System.Reflection.TargetInvocationException error) when (error.InnerException is not null)
+            { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
+            object Value(string name) => result.GetType().GetProperty(name)!.GetValue(result)!;
+            return new((string)Value("MimeType"), (int)Value("Width"), (int)Value("Height"), (string)Value("DataBase64"));
+        }
+        finally { context.Resolving -= Resolve; }
+    }
+
     internal static Task WindowsActualProductDrawingPreviewAsync()
     {
         var folder = Path.Combine(AppContext.BaseDirectory, "preview-product");

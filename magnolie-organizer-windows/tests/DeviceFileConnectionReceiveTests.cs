@@ -220,7 +220,9 @@ internal static class DeviceFileConnectionReceiveTests
         }
     }
 
-    internal static async Task WindowsSeparateVideoWireReceiveAsync()
+    internal static Task WindowsSeparateVideoWireReceiveAsync() => VideoWireReceiveAsync(false);
+    internal static Task WindowsVideoWireRetainedProductPreviewAsync() => VideoWireReceiveAsync(true);
+    private static async Task VideoWireReceiveAsync(bool preview)
     {
         using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
         var videoPath = Path.Combine(f.Native.Paths.Root, "native-videos"); Directory.CreateDirectory(videoPath);
@@ -229,7 +231,8 @@ internal static class DeviceFileConnectionReceiveTests
         DeviceFileConnectionRunsTests.Clear(f); var configuring = f.Native.Connection.ConfigureNativeMediaSourceAsync(new string('c', 64), "video", true);
         var request = DeviceFileConnectionRunsTests.Request(f);
         await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionCommandsTests.Configuration(request, true)); await configuring;
-        var data = new[] { "bounded video bytes one"u8.ToArray(), "bounded video bytes two"u8.ToArray() };
+        var data = preview ? new[] { DeviceFileVideoPreviewTests.Fixture(), DeviceFileVideoPreviewTests.Fixture() }
+            : new[] { "bounded video bytes one"u8.ToArray(), "bounded video bytes two"u8.ToArray() };
         var manifest = f.Manifest(("first.mp4", data[0]), ("second.mp4", data[1])); var run = await Ready(f, manifest, mediaType: "video");
         var receiving = f.Native.Connection.ReceiveNativeMediaRunAsync(run); _ = await Outbound(f, DeviceFileAcceptanceEnvelope.Kind); await Feed(f, manifest, data);
         _ = await Outbound(f, DeviceFileSavedEnvelope.Kind); request = await StoppedEndRequest(f, run);
@@ -237,5 +240,38 @@ internal static class DeviceFileConnectionReceiveTests
         TestAssert.That(File.ReadAllBytes(Path.Combine(videoPath, "first.mp4")).SequenceEqual(data[0]) && !Directory.EnumerateFileSystemEntries(f.Root).Any() &&
             Head(f)["media"]!["media_type"]!.GetValue<string>() == "video" && f.Native.Store.NativeMediaReceiveBudget(f.Native.Peer.Id) == (1, 0, 0L),
             "Video wire receive fell back to photo destination/scope or failed its exact Saved END.");
+        if (preview)
+        {
+            var job = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
+            var entry = f.Native.Store.TrashNativeMediaSavedFile(f.Native.Peer.Id, job.JobId, job.Version, manifest.Files[0].Id, () => true);
+            var trash = Path.Combine(videoPath, ".magnolie-trash-" + entry.Operation);
+            var names = Directory.GetFiles(videoPath).Order().ToArray(); var history = f.Native.Store.NativeMediaTrashHistory(f.Native.Peer.Id).ToArray();
+            byte[]? clear = null; var allowed = true; var decoded = 0;
+            NativeMediaPreviewRaster Render(byte[] bytes, string kind, int side, Action current)
+            {
+                clear = bytes; decoded++;
+                TestAssert.That(kind == "video" && bytes.SequenceEqual(data[0]), "Actual retained video preview lost typed verified source bytes.");
+                return DeviceFileMediaTrashTests.RenderActualProduct(bytes, kind, side, current);
+            }
+            foreach (var side in new[] { 192, 1024 })
+            {
+                var raster = f.Native.Store.PreviewNativeMediaTrash(f.Native.Peer.Id, entry, () => allowed, side, Render);
+                var jpeg = Convert.FromBase64String(raster.DataBase64);
+                TestAssert.That(raster.Width == 64 && raster.Height == 48 && raster.MimeType == "image/jpeg" &&
+                    jpeg.Length < 512 * 1024 && jpeg[0] == 255 && jpeg[1] == 216 && clear!.All(value => value == 0),
+                    "Actual retained video→native product renderer did not return bounded JPEG or clear private input bytes.");
+            }
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Store.PreviewNativeMediaTrash(f.Native.Peer.Id, entry with { Version = new string('0', 64) },
+                () => true, 192, Render), "A stale retained video reached the actual decoder.");
+            TestAssert.That(decoded == 2, "Stale video selection decoded private bytes.");
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Store.PreviewNativeMediaTrash(f.Native.Peer.Id, entry, () => allowed, 192,
+                (bytes, kind, side, current) => { var raster = Render(bytes, kind, side, current); allowed = false; return raster; }),
+                "Actual product raster escaped a revoked retained-video permit.");
+            TestAssert.That(clear!.All(value => value == 0) && Directory.GetFiles(videoPath).Order().SequenceEqual(names) &&
+                File.ReadAllBytes(trash).SequenceEqual(data[0]) && File.ReadAllBytes(Path.Combine(videoPath, "second.mp4")).SequenceEqual(data[1]) &&
+                !File.Exists(Path.Combine(videoPath, "first.mp4")) && f.Native.Store.NativeMediaTrashHistory(f.Native.Peer.Id).SequenceEqual(history) &&
+                f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == job && f.Native.Store.NativeMediaReceiveBudget(f.Native.Peer.Id) == (1, 0, 0L),
+                "Preview changed retained video bytes/names/history/Saved-END ownership or left clear input buffers.");
+        }
     }
 }

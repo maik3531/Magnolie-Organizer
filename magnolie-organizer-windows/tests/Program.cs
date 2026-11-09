@@ -115,6 +115,7 @@ runner.Add("Tray appearance / native visual lease and saved developer gate", Tra
 runner.Add("Tray appearance / actual KDE TLS without SMS", KdeConnectTests.TrayProjectionAsync);
 runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
 runner.Add("Media shared preferences / independent registers safe defaults replay and actor guards", MediaSyncSettingsTests.RunAsync);
+runner.Add("Video preview container / bounded memory input refuses external references", DeviceFileVideoPreviewTests.ContainerAsync);
 runner.Add("Media photo metadata / bounded actual TIFF JPEG PNG tags / unknown exclusion", PhotoCaptureMetadataTests.RunAsync);
 runner.Add("Media backup exclusions / recursive independent native component classifier", DeviceFileBackupExclusionTests.ClassifierAsync);
 runner.Add("Personal synchronization confirmed-success actual ACK / stale channel / failure", PersonalSyncSuccessTests.AcknowledgmentsAsync);
@@ -366,6 +367,11 @@ if (OperatingSystem.IsWindows())
     runner.Add("Shared UI request export / Windows strict request native status and source END without RECEIVE", DeviceFileSourceSendTests.WindowsSharedUiRequestPassAsync);
     runner.Add("Shared UI request export / Windows cancel before control ACK preserves source", DeviceFileSourceSendTests.WindowsSharedUiRequestCancelAsync);
     runner.Add("Shared UI reply failure / Windows cancels and drains before releasing UI dispatch", DeviceFileSourceSendTests.WindowsSharedUiReplyFailureAsync);
+    runner.Add("Video preview native / Windows actual memory-only H264 frame orientation and withdrawal", DeviceFileVideoPreviewTests.WindowsFrameAsync);
+    if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "preview-product")))
+        runner.Add("Video preview rotation / Windows actual product JPEG honors native display matrix", DeviceFileVideoPreviewTests.WindowsProductRotationAsync);
+    if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "preview-product")))
+        runner.Add("Video preview retained product / Windows actual wire Saved END original trash and native JPEG", DeviceFileConnectionReceiveTests.WindowsVideoWireRetainedProductPreviewAsync);
     runner.Add("Mapped native UI export / Windows SEND-only withdrawal while awaiting actual peer ACK", DeviceFileSourceSendTests.WindowsNativeUiSendWithdrawalAsync);
     runner.Add("Mapped native UI export / Windows close while awaiting actual peer ACK", DeviceFileSourceSendTests.WindowsNativeUiSendCloseAsync);
     runner.Add("Mapped export / Windows import-only and unknown content before output", DeviceFileSourceSendTests.WindowsMappedOutgoingRejectsScopeAndUnknownBytesAsync);

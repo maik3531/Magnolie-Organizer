@@ -9,8 +9,25 @@ internal static class NativeMediaPreviewDrawing
     {
         current();
         // No filename/extension inference and no shell thumbnail provider.
-        if (kind != "images" || bytes.Length > NativeMediaPreviewBytes.MaximumBytes || side is not (192 or 1024))
+        if (kind is not ("images" or "video") || bytes.Length > NativeMediaPreviewBytes.MaximumBytes || side is not (192 or 1024))
             throw DeviceFileControl.Error("media_preview_decoder_unavailable");
+        if (kind == "video")
+        {
+            using var frame = NativeMediaPreviewVideo.Decode(bytes, current);
+            using var bitmap = new Bitmap(frame.Width, frame.Height, PixelFormat.Format32bppRgb);
+            var held = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+            try
+            {
+                for (var row = 0; row < frame.Height; row++)
+                    System.Runtime.InteropServices.Marshal.Copy(frame.Pixels, row * frame.Width * 4,
+                        IntPtr.Add(held.Scan0, row * held.Stride), frame.Width * 4);
+            }
+            finally { bitmap.UnlockBits(held); }
+            bitmap.RotateFlip(frame.Rotation switch {
+                90 => RotateFlipType.Rotate90FlipNone, 180 => RotateFlipType.Rotate180FlipNone,
+                270 => RotateFlipType.Rotate270FlipNone, _ => RotateFlipType.RotateNoneFlipNone });
+            current(); return Raster(bitmap, side, current);
+        }
         // Parse dimensions BEFORE invoking the platform image decoder.
         var (width, height) = Dimensions(bytes);
         using var input = new MemoryStream(bytes, writable: false);
@@ -26,6 +43,11 @@ internal static class NativeMediaPreviewDrawing
                 5 => RotateFlipType.Rotate90FlipX, 6 => RotateFlipType.Rotate90FlipNone, 7 => RotateFlipType.Rotate270FlipX,
                 8 => RotateFlipType.Rotate270FlipNone, _ => RotateFlipType.RotateNoneFlipNone });
         }
+        return Raster(image, side, current);
+    }
+
+    private static NativeMediaPreviewRaster Raster(Image image, int side, Action current)
+    {
         var scale = Math.Min(1.0, (double)side / Math.Max(image.Width, image.Height));
         using var raster = new Bitmap(Math.Max(1, (int)(image.Width * scale)), Math.Max(1, (int)(image.Height * scale)), PixelFormat.Format24bppRgb);
         using (var graphics = Graphics.FromImage(raster))

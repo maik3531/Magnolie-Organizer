@@ -49,6 +49,7 @@
     <Compile Include="..\DeviceFileOfferEnvelope.cs" Link="DeviceFileOfferEnvelope.cs" />
     <Compile Include="..\DeviceFilePublishedReadback.cs" Link="DeviceFilePublishedReadback.cs" />
     <Compile Include="..\DeviceFileMediaPreview.cs" Link="DeviceFileMediaPreview.cs" />
+    <Compile Include="..\DeviceFileMediaPreview.Video.cs" Link="DeviceFileMediaPreview.Video.cs" />
     <Compile Include="..\DeviceFileMediaMime.cs" Link="DeviceFileMediaMime.cs" />
     <Compile Include="..\PhotoSyncSchedule.cs" Link="PhotoSyncSchedule.cs" />
     <Compile Include="..\PhotoSyncPlan.cs" Link="PhotoSyncPlan.cs" />

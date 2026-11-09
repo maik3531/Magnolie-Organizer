@@ -755,6 +755,28 @@ zufällig gleich bleiben. Alle Teilrichtungen/Medienarten benutzen den gepinnten
 Stand; ein neuer Stand verlangt einen neuen Lauf statt zusätzlicher Rechte für
 den bereits zugelassenen Vorgang.
 
+Windows besitzt einen begrenzten nativen Videovorschaurenderer für lokale
+MP4-Daten. Er erhält ausschließlich die bereits hash-/versionsgeprüften Bytes
+der ausgewählten erhaltenen Datei, nie Originalpfad, Dateiendung oder URL.
+ISO-BMFF-Referenzen auf externe Dateien/URLs/QuickTime-Referenzfilme werden vor
+dem Decoder abgewiesen. Media Foundation liest einen nur lesbaren Speicherstream;
+die Anwendung erzeugt dafür keine temporäre Klartextdatei und benutzt keinen
+Shell-Vorschaudienst. Andere Container und fehlende Plattformcodecs bleiben HOLD.
+
+Grenzen: höchstens 16 MiB Eingang, vor Decodierung geprüfte Abmessungen bis
+32768 je Achse und 24 Millionen Pixel, höchstens 128 Sample-Leseversuche für
+das erste Bild. Native Bildpuffer werden nur innerhalb ihrer tatsächlichen
+Lebenszeit benutzt; eigene Klartext-/Pixelarrays werden danach gelöscht.
+Die native Anzeige-Drehung wird vor dem bestehenden JPEG-Rasterpfad angewendet.
+Ausgegeben werden weiterhin nur begrenzte 192-/1024-Seiten-Vorschaubilder nach
+erneuter Eigentümer-/Dateiprüfung. Miniaturen bleiben standardmäßig OFF;
+Vorschau erteilt weder Wiederherstellungs-, Lösch-, Saved- noch END-Rechte.
+
+Tatsächlich nativ geprüft sind H.264-Baseline-MP4, Farbanordnung/Zeilenrichtung,
+eine 90-Grad-Displaymatrix, der reale Produkt-JPEG-Renderer sowie Vorschau nach
+echtem Empfang/Saved/Source-END und expliziter lokaler Papierkorboperation.
+Das ist keine vollständige Codec-/Geräte-/installierte GUI-Abnahme.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
