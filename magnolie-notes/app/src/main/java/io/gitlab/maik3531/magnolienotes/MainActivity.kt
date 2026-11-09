@@ -1347,6 +1347,17 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             } catch (canceled: kotlinx.coroutines.CancellationException) { throw canceled }
                             catch (failure: Exception) { sage(zusammenhang.fehlertext(failure)) }
                         } },
+                        beiMedienArchiv = { kind -> faden.launch {
+                            val activity = zusammenhang as? ComponentActivity ?: return@launch
+                            val mediaType = io.gitlab.maik3531.magnolienotes.telefon.GalleryMediaType.entries.firstOrNull { it.uriSegment == kind }
+                                ?: return@launch
+                            try {
+                                telefonWerk.archivePublishedPcMedia(activity, mediaType)
+                                sage(zusammenhang.getString(R.string.medien_pc_archiv_fertig))
+                            } catch (canceled: kotlinx.coroutines.CancellationException) { throw canceled }
+                            catch (failure: Exception) { sage(zusammenhang.getString(if (failure.message == "gallery_archive_no_published_pc_rows")
+                                R.string.medien_pc_archiv_leer else R.string.media_recovery_unavailable)) }
+                        } },
                         beiGemeinsameEinstellung = { field, value, initial -> telefonZustand.peer?.let { peer ->
                             runCatching { telefonWerk.configureCommonPreferences(peer.device_id, peer.static_public, initial, field, value) }
                                 .onFailure { sage(zusammenhang.fehlertext(it)) }

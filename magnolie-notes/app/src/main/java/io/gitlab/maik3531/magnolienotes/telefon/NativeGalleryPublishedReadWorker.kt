@@ -19,6 +19,9 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
     private val archive = AtomicReference<NativeGalleryArchiveEntry?>()
     private val failure = AtomicReference<Throwable?>()
     private val drained = CountDownLatch(1)
+    private val completionGate = Any()
+    private var completionRegistered = false
+    private var completion: (() -> Unit)? = null
     val ioEnded: Boolean get() = ended.get()
     val cancelRequested: Boolean get() = canceled.get()
     fun cancel() {
@@ -41,7 +44,22 @@ internal class NativeGalleryPublishedReadRun internal constructor(private val wo
         result.set(value); output.set(message); archive.set(archived); failure.set(error)
     }
     internal fun markIoEnded() { ended.set(true) }
-    internal fun ioDrained() { drained.countDown() }
+    internal fun ioDrained() {
+        val notify = synchronized(completionGate) {
+            drained.countDown()
+            completion.also { completion = null }
+        }
+        notify?.invoke()
+    }
+    /** A single native UI waiter, no polling thread or early END signal. */
+    internal fun notifyWhenIoDrained(completed: () -> Unit) {
+        val now = synchronized(completionGate) {
+            if (completionRegistered) DeviceFileControl.fail("gallery_published_worker_foreign_owner")
+            completionRegistered = true
+            if (drained.count == 0L) true else { completion = completed; false }
+        }
+        if (now) completed()
+    }
     internal fun awaitIoEnded(timeoutMillis: Long) = drained.await(timeoutMillis, TimeUnit.MILLISECONDS)
     internal fun observation(): NativeIncomingMediaObservation? {
         if (!ended.get()) DeviceFileControl.fail("gallery_published_worker_io_pending")

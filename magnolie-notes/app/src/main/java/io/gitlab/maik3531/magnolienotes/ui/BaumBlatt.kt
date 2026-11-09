@@ -140,7 +140,8 @@ class Telefonhandlungen(
     val beiMedienSynchronisieren: () -> Unit,
     val beiGemeinsameEinstellung: (String, JsonElement, Map<String, JsonElement>) -> Unit = { _, _, _ -> },
     val beiKontaktgruppenSchreiben: (String, String, Boolean) -> Unit = { _, _, _ -> },
-    val beiMedienEmpfang: (String) -> Unit = {}
+    val beiMedienEmpfang: (String) -> Unit = {},
+    val beiMedienArchiv: (String) -> Unit = {}
 )
 
 @Composable
@@ -460,7 +461,9 @@ fun BaumBlatt(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) { erweitertOffen = !erweitertOffen }
             if (erweitertOffen) Abschnitt(ueberschrift = stringResource(R.string.telefon_erweitert_titel)) {
                 MedienSyncEinstellungen(telefon, telefonHandlungen.beiMedienEinstellung, telefonHandlungen.beiMedienBerechtigungen,
-                    telefonHandlungen.beiMedienSynchronisieren) { kind -> telefonHandlungen.beiMedienEmpfang(kind.uriSegment) }
+                    telefonHandlungen.beiMedienSynchronisieren,
+                    beiArchiv = { kind -> telefonHandlungen.beiMedienArchiv(kind.uriSegment) },
+                    beiEmpfang = { kind -> telefonHandlungen.beiMedienEmpfang(kind.uriSegment) })
             }
         }
         if (!baumSichtbar) return@Column

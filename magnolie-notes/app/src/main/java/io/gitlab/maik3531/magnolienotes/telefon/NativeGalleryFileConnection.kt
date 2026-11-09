@@ -55,6 +55,14 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         return selected.beginPublishedPcArchive(kind, id, fingerprint, book, archiveBook)
     }
 
+    internal fun preparePcArchiveSelection(kind: GalleryMediaType, book: NativeGalleryReceiveBookPermit,
+        archiveBook: NativeGalleryTrashBookPermit): NativeGalleryPcArchiveSelection {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        val selected = runtime
+        requireIncomingAgreement()
+        return selected.preparePcArchiveSelection(kind, book, archiveBook) { !ended.get() && bound === selected }
+    }
+
     /** Called after native I/O actually ends, outside the TelefonWerk monitor. */
     internal fun transportEnded() {
         ended.set(true)

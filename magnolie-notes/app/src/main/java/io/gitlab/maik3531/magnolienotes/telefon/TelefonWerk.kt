@@ -706,6 +706,21 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
+    internal suspend fun archivePublishedPcMedia(activity: androidx.activity.ComponentActivity,
+        kind: GalleryMediaType): NativeGalleryArchiveEntry {
+        val connection = synchronized(this) {
+            val current = galleryFileConnection?.takeUnless { it.isEnded }
+                ?: DeviceFileControl.fail("file_control_native_handler_unavailable")
+            if (activeChannel !== current.channel) DeviceFileControl.fail("gallery_incoming_foreign_connection")
+            current
+        }
+        val documents = Ablage.hole(context)
+        fun unlocked() = Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+        val book = NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }, ::unlocked)
+        val archiveBook = NativeGalleryTrashBookPermit.capture(documents, ::unlocked)
+        return NativeGalleryPcArchiveUiAction.request(activity, connection, kind, book, archiveBook)
+    }
+
     private fun usesScopedContent(peer: TelefonPeer): Boolean =
         commonValues(peer)?.get("content_mode") == JsonPrimitive("phone_scope")
 

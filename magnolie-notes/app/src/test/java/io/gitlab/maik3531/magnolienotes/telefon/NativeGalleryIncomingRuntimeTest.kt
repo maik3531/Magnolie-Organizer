@@ -15,6 +15,10 @@ import org.robolectric.shadows.ShadowContentResolver
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class])
@@ -201,6 +205,164 @@ class NativeGalleryIncomingRuntimeTest {
         }
     }
 
+    @Test fun nativePcArchiveListAndRealPositiveDialogKeepTheOriginalAdmissionWithoutReadingMediaBeforeConfirmation() {
+        Harness().use { h ->
+            h.pcSendOnly(); h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val reads = h.provider.readOpens; val before = h.f.rows(); val frames = h.link.frames.toList()
+            val selection = h.archiveSelection()
+            selection.use {
+                assertEquals(listOf(NativeGalleryPcArchiveChoice(h.published().id, h.published().fingerprint, "original.png", h.raw.size.toLong())), selection.choices)
+                assertThrows(UnsupportedOperationException::class.java) {
+                    (selection.choices as MutableList<NativeGalleryPcArchiveChoice>).clear()
+                }
+                assertEquals(reads, h.provider.readOpens); assertFalse(h.archiveRoot.exists()); assertEquals(before, h.f.rows())
+                val result = java.util.concurrent.atomic.AtomicReference<Result<Int>?>()
+                NativeGalleryPcArchivePrompt.request(h.f.activity, selection) { result.set(it) }.use {
+                    val dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                    val positive = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                    assertFalse(positive.isEnabled); assertNull(result.get())
+                    dialog.listView.performItemClick(null, 0, 0)
+                    assertTrue(positive.isEnabled); assertNull(result.get()); assertEquals(reads, h.provider.readOpens)
+                    positive.performClick(); Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    val run = h.f.io { selection.confirm(result.get()!!.getOrThrow()) }.also { h.inspection = it }
+                    assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure()); assertNotNull(run.actualArchiveOutput())
+                    assertThrows(PhotoFolderScopeError::class.java) { h.f.io { selection.confirm(0) } }
+                }
+                assertEquals(before, h.f.rows()); assertEquals(frames, h.link.frames); h.assertReceiveOnly()
+            }
+        }
+    }
+
+    @Test fun nativePcArchiveDialogCancellationOrActivityPauseNeverCreatesRecoveryData() {
+        for (reason in listOf("cancel", "pause")) Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val before = h.f.rows(); val reads = h.provider.readOpens
+            h.archiveSelection().use { selection ->
+                val result = java.util.concurrent.atomic.AtomicReference<Result<Int>?>()
+                NativeGalleryPcArchivePrompt.request(h.f.activity, selection) { result.set(it) }.use {
+                    val dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                    dialog.listView.performItemClick(null, 0, 0)
+                    if (reason == "cancel") dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick()
+                    else h.f.activityController.pause()
+                    Shadows.shadowOf(Looper.getMainLooper()).idle()
+                    assertNotNull(result.get()!!.exceptionOrNull())
+                    assertThrows(PhotoFolderScopeError::class.java) { h.f.io { selection.confirm(0) } }
+                }
+            }
+            assertFalse(h.archiveRoot.exists()); assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+        }
+    }
+
+    @Test fun nativePcArchiveConfirmationCannotRefreshItsListedControlIntentOrBookAdmission() {
+        for (reason in listOf("control", "intent", "book")) Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val before = h.f.rows(); val reads = h.provider.readOpens
+            h.archiveSelection().use { selection ->
+                when (reason) {
+                    "control" -> h.rotatePcSession()
+                    "intent" -> h.incomingToken = MediaSyncTransport.IntentToken(MediaSyncSettings.change(h.token.body,
+                        "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "auto_mode", JsonPrimitive("wifi")))
+                    "book" -> h.f.unlocked = false
+                }
+                assertThrows(PhotoFolderScopeError::class.java) { h.f.io { selection.confirm(0) } }
+            }
+            assertFalse(h.archiveRoot.exists()); assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+        }
+    }
+
+    @Test fun nativePcArchiveMetadataListDoesNotRelabelLegacyRowsOrBootstrapAnEmptyArchive() {
+        Harness().use { h ->
+            val incoming = h.start(); assertTrue(incoming.awaitIoEnded(5000)); assertNull(incoming.nativeFailure())
+            h.f.documents.setzePapierkorb(true, 30)
+            val before = h.f.rows(); val reads = h.provider.readOpens
+            h.archiveSelection().use { selection ->
+                assertTrue(selection.choices.isEmpty())
+                val result = java.util.concurrent.atomic.AtomicReference<Result<Int>?>()
+                NativeGalleryPcArchivePrompt.request(h.f.activity, selection) { result.set(it) }.close()
+                assertEquals("gallery_archive_no_published_pc_rows", result.get()!!.exceptionOrNull()!!.message)
+                assertThrows(PhotoFolderScopeError::class.java) { h.f.io { selection.confirm(0) } }
+            }
+            assertFalse(h.archiveRoot.exists()); assertEquals(reads, h.provider.readOpens); assertEquals(before, h.f.rows())
+        }
+    }
+
+    @Test fun nativeArchiveCompletionWaiterRunsExactlyOnceOnlyAfterRealDrainIncludingLateRegistration() {
+        for (late in listOf(false, true)) {
+            val run = NativeGalleryPublishedReadRun(Any()); var completions = 0
+            if (!late) run.notifyWhenIoDrained { completions++ }
+            run.finish(null, null); run.markIoEnded()
+            assertEquals(0, completions); assertFalse(run.awaitIoEnded(0))
+            run.ioDrained()
+            if (late) run.notifyWhenIoDrained { completions++ }
+            assertEquals(1, completions); assertTrue(run.awaitIoEnded(0))
+            assertThrows(PhotoFolderScopeError::class.java) { run.notifyWhenIoDrained { completions++ } }
+            assertEquals(1, completions)
+        }
+    }
+
+    private fun awaitUi(condition: () -> Boolean) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (!condition() && System.nanoTime() < deadline) {
+            Shadows.shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(5)
+        }
+        assertTrue(condition())
+    }
+
+    @Test fun actualNativeArchiveCoroutineUsesThePositiveDialogAndReturnsOnlyVerifiedLocalCopy() {
+        Harness().use { h ->
+            h.pcSendOnly(); h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val result = java.util.concurrent.atomic.AtomicReference<Result<NativeGalleryArchiveEntry>?>()
+            val oldDialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+            val parent = SupervisorJob()
+            val job = CoroutineScope(parent + Dispatchers.Main.immediate).launch {
+                result.set(runCatching { NativeGalleryPcArchiveUiAction.request(h.f.activity, h.nativeConnection(), GalleryMediaType.IMAGES,
+                    h.f.book(), NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }) })
+            }
+            try {
+                awaitUi { org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog().let { it !== oldDialog && it.isShowing } }
+                val prompt = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                assertFalse(h.archiveRoot.exists()); assertNull(result.get())
+                prompt.listView.performItemClick(null, 0, 0); prompt.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                awaitUi { job.isCompleted }
+                val entry = result.get()!!.getOrThrow()
+                NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive ->
+                    assertEquals(listOf(entry), archive.entries(NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }))
+                }
+                assertFalse(entry.grantsMutationAuthority); h.assertReceiveOnly()
+                assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+            } finally { parent.cancel(); awaitUi { job.isCompleted } }
+        }
+    }
+
+    @Test fun canceledNativeArchiveCoroutineWaitsForActualProviderDrainInsteadOfAbandoningItsStore() {
+        Harness().use { h ->
+            h.completePcUpload(); h.f.documents.setzePapierkorb(true, 30)
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); var queries = 0
+            h.provider.beforeQuery = { if (++queries == 4) { entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS)) } }
+            val oldDialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+            val parent = SupervisorJob()
+            val job = CoroutineScope(parent + Dispatchers.Main.immediate).launch {
+                NativeGalleryPcArchiveUiAction.request(h.f.activity, h.nativeConnection(), GalleryMediaType.IMAGES,
+                    h.f.book(), NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked })
+            }
+            try {
+                awaitUi { org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog().let { it !== oldDialog && it.isShowing } }
+                val prompt = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                prompt.listView.performItemClick(null, 0, 0); prompt.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                awaitUi { entered.count == 0L }
+                job.cancel()
+                assertFalse(job.isCompleted)
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown(); h.provider.beforeQuery = {}; parent.cancel(); awaitUi { job.isCompleted } }
+            val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+            NativeGalleryTrashArchive.openExistingForApplication(h.f.app, h.f.protection).use { archive ->
+                assertTrue(archive.entries(NativeGalleryTrashBookPermit.capture(h.f.documents) { h.f.unlocked }).isEmpty())
+            }
+            assertArrayEquals(h.raw, h.file.readBytes())
+        }
+    }
+
     private class Harness(joined: Boolean = true, localConsent: Boolean = joined,
         collectionMode: String = "entire_collection") : AutoCloseable {
         val helper = NativeGalleryIncomingTransferTest()
@@ -277,6 +439,13 @@ class NativeGalleryIncomingRuntimeTest {
             val read = incoming.automaticReadbackRun()!!; check(read.awaitIoEnded(5000)); check(read.nativeFailure() == null); check(read.actualReadbackOutput() != null)
         }
         val archiveRoot: File get() = File(f.app.noBackupFilesDir, "native-media-recovery")
+        fun archiveSelection(): NativeGalleryPcArchiveSelection {
+            val original = nativeConnection() // Same native UI-thread binding as the normal connection owner.
+            return f.io {
+                original.preparePcArchiveSelection(GalleryMediaType.IMAGES, f.book(),
+                    NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked })
+            }
+        }
         fun archive(fingerprint: String = published().fingerprint): NativeGalleryPublishedReadRun {
             val selected = published(); val permit = NativeGalleryTrashBookPermit.capture(f.documents) { f.unlocked }
             return f.io { nativeConnection().archivePublishedPc(GalleryMediaType.IMAGES, selected.id, fingerprint, f.book(), permit) }.also { inspection = it }

@@ -260,8 +260,47 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
         val action = NativeGalleryPcArchiveAction.capture(controls.session, kind, book, archiveBook,
             { currentIncomingIntent?.invoke(kind) }, { incomingAvailable() && (kind != GalleryMediaType.VIDEO || videoAvailable()) })
+        startPcArchive(action, id, fingerprint, book, archiveBook)
+    }
+
+    internal fun preparePcArchiveSelection(kind: GalleryMediaType, book: NativeGalleryReceiveBookPermit,
+        archiveBook: NativeGalleryTrashBookPermit, connectionCurrent: () -> Boolean): NativeGalleryPcArchiveSelection = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        withReceiveIdleLane {
+            val action = NativeGalleryPcArchiveAction.capture(controls.session, kind, book, archiveBook,
+                { currentIncomingIntent?.invoke(kind) }, { connectionCurrent() && incomingAvailable() &&
+                    (kind != GalleryMediaType.VIDEO || videoAvailable()) })
+            try {
+                val peer = nativePeer() ?: DeviceFileControl.fail("gallery_archive_original_selection_required")
+                val choices = index.incomingPublications().filter { publication ->
+                    val binding = publication.body.getValue("origin").jsonObject.getValue("binding").jsonObject
+                    publication.state == "published" && publication.pcOrigin != null && publication.body.string("media_type") == kind.uriSegment &&
+                        binding.string("sender_id") == peer.peerId && binding.string("sender_identity_sha256") == peer.identitySha256 &&
+                        binding.string("receiver_id") == localIdentity.deviceId && binding.string("receiver_identity_sha256") == localIdentity.identitySha256
+                }.map { publication ->
+                    NativeGalleryPcArchiveChoice(publication.id, publication.fingerprint,
+                        publication.row!!.string("name"), publication.body.long("size"))
+                }
+                action.requireCurrent()
+                NativeGalleryPcArchiveSelection(this, action, book, archiveBook, choices)
+            } catch (error: Throwable) { action.close(); throw error }
+        }
+    }
+
+    internal fun beginSelectedPcArchive(selection: NativeGalleryPcArchiveSelection,
+        selected: NativeGalleryPcArchiveChoice): NativeGalleryPublishedReadRun = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_incoming_worker_io_required")
+        selection.requireRuntime(this, selected)
+        if (!sourceWorker.isQuiescent || !incomingWorker.isQuiescent || !publishedReadWorker.isQuiescent ||
+            syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        startPcArchive(selection.action, selected.id, selected.fingerprint, selection.book, selection.archiveBook)
+    }
+
+    private fun startPcArchive(action: NativeGalleryPcArchiveAction, id: String, fingerprint: String,
+        book: NativeGalleryReceiveBookPermit, archiveBook: NativeGalleryTrashBookPermit): NativeGalleryPublishedReadRun {
+        val kind = action.kind
         try {
-            publishedReadWorker.startArchive(localRecoveryProtection, archiveBook) { cancellation ->
+            return publishedReadWorker.startArchive(localRecoveryProtection, archiveBook) { cancellation ->
                 try {
                     action.bindCancellation(cancellation)
                     val selected = index.incomingPublication(id)?.takeIf { it.fingerprint == fingerprint && it.pcOrigin != null &&

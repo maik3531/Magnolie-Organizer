@@ -39,6 +39,7 @@ class MedienSyncEinstellungenUiTest {
     private var permissions = 0
     private var runs = 0
     private val receiving = mutableListOf<GalleryMediaType>()
+    private val archiving = mutableListOf<GalleryMediaType>()
     private val clock = BroadcastFrameClock()
     private val scope = CoroutineScope(Dispatchers.Main + clock + Job())
     private val recomposer = Recomposer(scope.coroutineContext)
@@ -53,7 +54,7 @@ class MedienSyncEinstellungenUiTest {
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
         view.setContent { MagnolieThema { MedienSyncEinstellungen(state.value, { field, value, version ->
             changes += Triple(field, value, version)
-        }, { permissions++ }, { runs++ }, { receiving += it }) } }
+        }, { permissions++ }, { runs++ }, { receiving += it }, { archiving += it }) } }
         controller!!.start().resume().visible().windowFocusChanged(true); frames()
     }
     private fun frames() {
@@ -173,6 +174,26 @@ class MedienSyncEinstellungenUiTest {
         state.value = state.value.copy(mediaPreferencesVersions = versions - "photos_only"); frames()
         assertNotNull(filter()!!.config.getOrNull(SemanticsProperties.Disabled))
         assertEquals(1, changes.size); assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+    }
+
+    @Test fun pcRecoveryCopyForwardsOnlyExplicitTypedSelectionWithoutChangingSettingsOrRunningSync() {
+        val active = JsonObject(values + mapOf("enabled" to JsonPrimitive(true), "photos_enabled" to JsonPrimitive(true),
+            "videos_enabled" to JsonPrimitive(true), "direction" to JsonPrimitive("two_way")))
+        state.value = state.value.copy(mediaPreferencesValues = active)
+        launch(); open()
+        fun button(kind: Int) = nodes().single { text(it) == label(kind) + " · " + label(R.string.medien_pc_archiv_kopie) }
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        assertTrue(archiving.isEmpty())
+        state.value = state.value.copy(mediaPreferencesReady = true); frames()
+        click(button(R.string.medien_sync_fotos)); click(button(R.string.medien_sync_videos))
+        assertEquals(listOf(GalleryMediaType.IMAGES, GalleryMediaType.VIDEO), archiving)
+        assertTrue(receiving.isEmpty()); assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        state.value = state.value.copy(mediaManualBusy = true); frames()
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        state.value = state.value.copy(mediaManualBusy = false,
+            mediaPreferencesValues = JsonObject(active + ("collection_mode" to JsonPrimitive("import_only")))); frames()
+        assertNotNull(button(R.string.medien_sync_videos).config.getOrNull(SemanticsProperties.Disabled))
+        assertEquals(2, archiving.size)
     }
 
     @Test fun galleryReceptionIsExplicitTypedAndCannotBypassClosedReadyOrImportOnly() {

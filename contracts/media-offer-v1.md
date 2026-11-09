@@ -991,6 +991,40 @@ Benutzeraktions-/Dialoganschluss fehlt weiterhin; es ist keine benutzbare
 Gesamtfunktion, keine Archivaktions-/Retention-Transition und kein PC-Ersetzungs-
 oder OS-Schreib-/Löschowner. Der starke PC-Folgeversions-HOLD bleibt bestehen.
 
+Der manuelle Notes-Benutzerweg ist nun in den vorhandenen Medieneinstellungen
+angeschlossen: typspezifische Recovery-Kopie → native Auswahl veröffentlichter
+PC-Dateien → ausdrückliche positive Bestätigung. Die begrenzte geschützte Liste
+enthält nur Namen, Größen und genaue Publikations-/Versionsauswahl des aktuellen
+Gerätepaars. Auflisten öffnet weder Providerleser noch Recovery-Speicher und
+fordert keine Android-Leseberechtigung an. Leere oder alte Nicht-PC-Zeilen werden
+nicht in PC-Ursprünge umgedeutet. Die Auswahlliste ist unveränderlich.
+
+Auswahl und anschließender Arbeiter besitzen dieselbe ursprüngliche Aufnahme,
+einschließlich ihrer schon vor Anzeige laufenden monotonen Frist. Bestätigen
+nimmt keine neue Sitzung, keinen neuen vollen Intent und keinen Ersatzbuchpermit
+auf. Abbrechen oder Activity-Pause entziehen die Auswahl; bei bereits laufender
+Kopie wird deren wirklicher CancellationSignal ausgelöst. Die Coroutine wartet
+bis zum tatsächlichen IO-Drain. Ein einmaliger Abschlusslistener am vorhandenen
+Arbeiter vermeidet einen zusätzlichen Wartethread und signalisiert weder beim
+Abbruchflag noch beim bloßen Ergebnis-Setzen einen vorzeitigen Abschluss.
+
+Die Oberfläche erklärt ausdrücklich die unveränderten Originale und fehlende
+Ersetzungs-/Löschwirkung; Papierkorbschutz wird nicht stillschweigend aktiviert.
+Import-only, fehlende gemeinsame Bereitschaft und belegter manueller Lauf
+aktivieren die Schaltflächen nicht. Bestehende lokale Recovery und ihre
+standardmäßig ausgeschalteten Vorschaubilder bleiben unverändert. 113 passende
+Hostfälle sind durch Union und gezielte Nachprüfung belegt, einschließlich
+Compose-Weiterleitung, tatsächlicher synthetischer positiver/negativer Dialoge,
+Activity-Pause, Sitzungs-/Intent-/Buchwechsel vor Bestätigung, Coroutine-Abbruch
+während blockierter Provider-IO und frühem/spätem Abschlusslistener.
+
+Dies ist ein angeschlossener Benutzerweg im Quellcode mit Robolectric-Abnahme,
+keine Installation oder tatsächliche Android-Geräteabnahme. Andere Sprachen
+verwenden für die neuen Texte zunächst den englischen Ressourcenfallback;
+deutsche Texte sind vorhanden. PC-Folgeversionsaustausch, synchronisierte
+Wiederanbindung und OS-Schreib-/Löschowner bleiben offen; ihre HOLDs und die
+Feature-/Auslieferungsgates werden durch diesen manuellen Kopierweg nicht gelöst.
+
 ### Windows: getrennte vorbereitete PC-Sicherung und rohe Offline-Recovery
 
 Ein ausdrücklicher interner nativer Eintritt kann die tatsächlichen Bytes eines

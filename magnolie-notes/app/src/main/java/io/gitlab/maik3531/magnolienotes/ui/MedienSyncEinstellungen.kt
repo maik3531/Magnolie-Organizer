@@ -34,7 +34,7 @@ private fun MedienCheckbox(label: String, checked: Boolean, enabled: Boolean = t
 @Composable
 internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
     beiAenderung: (String, JsonElement, String) -> Unit, beiBerechtigungen: () -> Unit, beiSynchronisieren: () -> Unit,
-    beiEmpfang: (GalleryMediaType) -> Unit = {}) {
+    beiEmpfang: (GalleryMediaType) -> Unit = {}, beiArchiv: (GalleryMediaType) -> Unit = {}) {
     if (!telefon.mediaPreferencesSupported) return
     val values = telefon.mediaPreferencesValues ?: return
     var offen by remember(telefon.peer?.device_id, telefon.peer?.static_public) { mutableStateOf(false) }
@@ -91,7 +91,10 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
             Triple(GalleryMediaType.VIDEO, "videos_enabled", R.string.medien_sync_videos))) {
             Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_empfang_erlauben), Modifier.fillMaxWidth(),
                 aktiv = receiving && flag(key)) { beiEmpfang(kind) }
+            Papierknopf(stringResource(label) + " · " + stringResource(R.string.medien_pc_archiv_kopie), Modifier.fillMaxWidth(),
+                aktiv = receiving && flag(key)) { beiArchiv(kind) }
         }
+        Text(stringResource(R.string.medien_pc_archiv_hinweis), color = Magnolie.braunHell)
         checkbox("skip_deletions", stringResource(R.string.personal_sync_skip_deletions))
         if (!telefon.mediaPreferencesReady) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)
         if (telefon.mediaManualBusy) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)

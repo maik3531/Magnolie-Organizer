@@ -676,6 +676,16 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         }
     }
 
+    internal fun incomingPublications(): List<GalleryIncomingPublication> = gated {
+        val ids = mutableListOf<String>()
+        db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryIncomingPublication.PREFIX + "%"),
+            null, null, "name", (GalleryIncomingPublication.MAX_RECORDS + 1).toString()).use { cursor ->
+            while (cursor.moveToNext()) ids += cursor.getString(0).removePrefix(GalleryIncomingPublication.PREFIX)
+        }
+        if (ids.size > GalleryIncomingPublication.MAX_RECORDS) fail("gallery_incoming_publication_capacity")
+        ids.map { incomingPublication(it) ?: fail("gallery_incoming_original_changed") }
+    }
+
     internal fun incomingAcceptance(id: String): GalleryIncomingAcceptance? = gated {
         if (!DeviceFileControl.hash(id)) fail("gallery_incoming_acceptance_invalid")
         val name = GalleryIncomingAcceptance.PREFIX + id
