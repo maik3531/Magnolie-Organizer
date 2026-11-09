@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('session', ROOT / 'tools/emulator-session.py')
 session = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(session)
-APP = ROOT / 'artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.18Beta-debug.apk'
+APP = ROOT / 'artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-debug.apk'
 APP_SHA = 'd9c455c524c8001cb720b4d664071e8fbd01c3079af3f4fdf37cfa4bea269023'
 SOURCE = '6562133f90c41c664745e59b4b5e72716b16160606d4266b6edddf1afee0a538'
 TEST = ROOT / 'artifacts/input-ab-instrumentation.apk'

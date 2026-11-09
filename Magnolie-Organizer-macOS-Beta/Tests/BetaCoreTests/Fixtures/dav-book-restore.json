@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "issue": 454,
+  "newEpoch": "33333333-3333-4333-8333-333333333333",
+  "restoredAt": "2026-11-08T12:00:00Z",
+  "incoming": {
+    "syncEpoch": "22222222-2222-4222-8222-222222222222",
+    "termine": [
+      {
+        "uid": "item",
+        "titel": "Synthetic",
+        "sync": true,
+        "geaendert": 1,
+        "id": "synthetic-item",
+        "datum": "2026-11-08",
+        "zeit": "10:00",
+        "endZeit": "10:30",
+        "endDatum": ""
+      }
+    ],
+    "aufgaben": [],
+    "kontakte": [],
+    "jahrestage": [],
+    "notizen": [],
+    "futureRoot": {
+      "opaque": "keep-root"
+    },
+    "geloescht": {
+      "termine": [
+        {
+          "uid": "archive-active",
+          "opaque": "keep-active"
+        }
+      ]
+    },
+    "tombstones": [
+      {
+        "id": "raw-tomb",
+        "payload": {
+          "keep": true
+        }
+      }
+    ],
+    "baumKontaktGeloescht": [],
+    "syncAbgleichBasis": {
+      "old": "remove"
+    },
+    "syncAbgleichNachweis": {
+      "old": "remove"
+    },
+    "syncNachRestore": {
+      "future": "keep"
+    },
+    "syncMetadaten": {
+      "syncEpoch": "22222222-2222-4222-8222-222222222222",
+      "futureMeta": "keep",
+      "quarantinedDeletes": {
+        "geloescht": {
+          "termine": [
+            {
+              "uid": "archive-prior",
+              "opaque": "keep-archive"
+            }
+          ]
+        }
+      },
+      "nextcloud": {
+        "pendingCommitId": "old-pending",
+        "ausstehendeTransaktion": {
+          "old": "pending"
+        },
+        "transaktionen": {
+          "old": "pending"
+        },
+        "kalender": {
+          "source": {
+            "initialisiert": true
+          }
+        }
+      }
+    },
+    "personalSync": {
+      "actor_id": "archive-actor",
+      "custom_revision": 100,
+      "custom_entities": {},
+      "custom_auto_hash": "remove",
+      "futurePersonal": "keep"
+    },
+    "einstellungen": {
+      "sync": {
+        "syncEpoch": "22222222-2222-4222-8222-222222222222",
+        "futureSync": "keep"
+      },
+      "adressen": {
+        "smsSchedulingEnabled": true,
+        "futureAddress": "keep"
+      }
+    }
+  },
+  "live": {
+    "syncEpoch": "11111111-1111-4111-8111-111111111111",
+    "syncMetadaten": {
+      "quarantinedDeletes": {
+        "geloescht": {
+          "termine": [
+            {
+              "uid": "live-prior",
+              "opaque": "keep-live"
+            }
+          ]
+        }
+      }
+    },
+    "personalSync": {
+      "actor_id": "live-actor",
+      "custom_revision": 7,
+      "custom_entities": {
+        "opaque": "live-entity"
+      }
+    },
+    "einstellungen": {
+      "adressen": {
+        "smsSchedulingEnabled": false
+      }
+    }
+  },
+  "expected": {
+    "syncEpoch": "33333333-3333-4333-8333-333333333333",
+    "termine": [
+      {
+        "uid": "item",
+        "titel": "Synthetic",
+        "sync": true,
+        "geaendert": 1794139200000,
+        "id": "synthetic-item",
+        "datum": "2026-11-08",
+        "zeit": "10:00",
+        "endZeit": "10:30",
+        "endDatum": ""
+      }
+    ],
+    "aufgaben": [],
+    "kontakte": [],
+    "jahrestage": [],
+    "notizen": [],
+    "futureRoot": {
+      "opaque": "keep-root"
+    },
+    "geloescht": {
+      "termine": [],
+      "aufgaben": [],
+      "kontakte": []
+    },
+    "tombstones": [],
+    "baumKontaktGeloescht": [],
+    "syncNachRestore": {
+      "future": "keep",
+      "additiv": true,
+      "loeschungsfrei": true,
+      "erstelltUtc": "2026-11-08T12:00:00Z"
+    },
+    "syncMetadaten": {
+      "syncEpoch": "33333333-3333-4333-8333-333333333333",
+      "futureMeta": "keep",
+      "quarantinedDeletes": {
+        "geloescht": {
+          "termine": [
+            {
+              "uid": "live-prior",
+              "opaque": "keep-live"
+            },
+            {
+              "uid": "archive-prior",
+              "opaque": "keep-archive"
+            },
+            {
+              "uid": "archive-active",
+              "opaque": "keep-active"
+            }
+          ],
+          "aufgaben": [],
+          "kontakte": []
+        },
+        "tombstones": [
+          {
+            "id": "raw-tomb",
+            "payload": {
+              "keep": true
+            }
+          }
+        ],
+        "baumKontaktGeloescht": []
+      },
+      "nextcloud": {
+        "transaktionen": {},
+        "kalender": {
+          "source": {
+            "initialisiert": true
+          }
+        }
+      },
+      "ersteSyncLoeschungsfrei": true
+    },
+    "personalSync": {
+      "actor_id": "live-actor",
+      "custom_revision": 7,
+      "custom_entities": {
+        "opaque": "live-entity"
+      },
+      "futurePersonal": "keep"
+    },
+    "einstellungen": {
+      "sync": {
+        "syncEpoch": "33333333-3333-4333-8333-333333333333",
+        "futureSync": "keep",
+        "ersteSyncLoeschungsfrei": true
+      },
+      "adressen": {
+        "smsSchedulingEnabled": false,
+        "futureAddress": "keep"
+      }
+    }
+  }
+}

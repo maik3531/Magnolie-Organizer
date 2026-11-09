@@ -1,0 +1,212 @@
+/* Reviewed lexical adapters injected into the canonical IIFE by checked anchors.
+ * This file is not loaded as a standalone browser script. */
+/*TZ_HOOK:validate-zone*/
+  function gueltigeIanaZeitzone(value, system = false) {
+    const zone = String(value || "").trim();
+    if (system && zone === "system") return zone;
+    return MagnolieTime.has(zone) ? zone : "";
+  }
+/*TZ_HOOK_END:validate-zone*/
+/*TZ_HOOK:own-zone*/
+  function eigeneIanaZeitzone(regional = DATEN.einstellungen.regional) {
+    if (regional.timeZone === undefined || regional.timeZone === "system") return MagnolieTime.systemIdentifier();
+    return gueltigeIanaZeitzone(regional.timeZone);
+  }
+/*TZ_HOOK_END:own-zone*/
+/*TZ_HOOK:organizer-zone*/
+  function organizerZeitzone() {
+    const regional = DATEN && DATEN.einstellungen && DATEN.einstellungen.regional;
+    return MagnolieTime.zoneId(regional && regional.timeZone !== undefined ? regional.timeZone : "system");
+  }
+/*TZ_HOOK_END:organizer-zone*/
+/*TZ_HOOK:organizer-parts*/
+  function organizerDatumzeitTeile(datum) {
+    const p = MagnolieTime.wallParts(organizerZeitzone(), datum);
+    return { jahr: p.year, monat: p.month, tag: p.day, stunde: p.hour, minute: p.minute, sekunde: p.second };
+  }
+/*TZ_HOOK_END:organizer-parts*/
+/*TZ_HOOK:organizer-point*/
+  function organizerZeitpunkt(jahr, monat, tag, stunde, minute) {
+    const civil = new Date(0); civil.setUTCFullYear(jahr, monat - 1, tag); civil.setUTCHours(stunde, minute, 0, 0);
+    return new Date(MagnolieTime.resolveWall(organizerZeitzone(), {
+      year: civil.getUTCFullYear(), month: civil.getUTCMonth() + 1, day: civil.getUTCDate(),
+      hour: civil.getUTCHours(), minute: civil.getUTCMinutes(), second: 0
+    }, { gap: "forward", fold: "earlier" }));
+  }
+/*TZ_HOOK_END:organizer-point*/
+/*TZ_HOOK:date-format*/
+  function datumText(datum, optionen, absolut) {
+    const options = optionen === undefined ? {} : optionen, locale = formatGebiet();
+    if (absolut || options.timeZone !== undefined) return MagnolieTime.format(datum, locale, options, organizerZeitzone());
+    return MagnolieTime.formatCivil({ year: datum.getFullYear(), month: datum.getMonth() + 1, day: datum.getDate(),
+      hour: datum.getHours(), minute: datum.getMinutes(), second: datum.getSeconds(), millisecond: datum.getMilliseconds() }, locale, options);
+  }
+/*TZ_HOOK_END:date-format*/
+/*TZ_HOOK:clock-format*/
+  function zeitText(iso, hhmm) {
+    const fund = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(String(hhmm || ""));
+    if (!fund) return String(hhmm || "");
+    const [year, month, day] = (gueltigesISO(iso) ? iso : "2000-01-01").split("-").map(Number);
+    const options = { hour: "2-digit", minute: "2-digit" };
+    if (fund[3] !== undefined) options.second = "2-digit";
+    const cycle = DATEN.einstellungen.regional.hourCycle;
+    if (cycle && cycle !== "system") options.hourCycle = cycle;
+    return MagnolieTime.formatCivil({ year, month, day, hour: +fund[1], minute: +fund[2], second: +(fund[3] || 0) }, formatGebiet(), options);
+  }
+/*TZ_HOOK_END:clock-format*/
+/*TZ_HOOK:tracking-parts*/
+  function zeitDatumTeile(minute, zone) {
+    const offset = zeitFesterOffset(zone);
+    if (offset !== null) {
+      const d = new Date((minute + offset) * 60000);
+      return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), minute: d.getUTCMinutes(), second: d.getUTCSeconds() };
+    }
+    const p = MagnolieTime.wallParts(zone, Math.round(minute * 60000));
+    return { year: p.year, month: p.month, day: p.day, hour: p.hour, minute: p.minute, second: p.second };
+  }
+/*TZ_HOOK_END:tracking-parts*/
+/*TZ_HOOK:tracking-minute*/
+  function zeitLokaleMinute(teile, zone, referenz = null, lueckeVerschieben = false) {
+    const ziel = zeitZivilMillis(teile), d = new Date(ziel);
+    zeitPruefen(Number.isFinite(ziel) && d.getUTCFullYear() === teile.year && d.getUTCMonth() + 1 === teile.month &&
+      d.getUTCDate() === teile.day && d.getUTCHours() === (teile.hour || 0) && d.getUTCMinutes() === (teile.minute || 0));
+    const fixed = zeitFesterOffset(zone);
+    if (fixed !== null) return Math.floor(ziel / 60000 - fixed);
+    const candidates = MagnolieTime.candidates(zone, teile);
+    let selected;
+    if (candidates.length) {
+      const offset = referenz === null ? null : MagnolieTime.offsetAt(zone, Math.round(referenz * 60000));
+      selected = candidates.find(value => MagnolieTime.offsetAt(zone, value) === offset) ?? candidates[0];
+    } else {
+      zeitPruefen(lueckeVerschieben);
+      selected = MagnolieTime.resolveWall(zone, teile, { gap: "forward", fold: "earlier" });
+    }
+    if (!lueckeVerschieben && selected % 60000 !== 0) {
+      const error = new RangeError("This historical time cannot be stored in whole minutes."); error.code = "unsupported-time-tracking-precision"; throw error;
+    }
+    return Math.floor(selected / 60000);
+  }
+/*TZ_HOOK_END:tracking-minute*/
+/*TZ_HOOK:planning-point*/
+  function zeitOrtszeitpunkt(datum, uhrzeit, zone, referenz = null) {
+    zone = gueltigeIanaZeitzone(zone);
+    const clock = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(uhrzeit || ""));
+    zeitPruefen(!!zone && gueltigesISO(datum) && !!clock && +clock[1] < 24 && +clock[2] < 60 && +(clock[3] || 0) < 60);
+    const [year, month, day] = datum.split("-").map(Number);
+    const parts = { year, month, day, hour: +clock[1], minute: +clock[2], second: +(clock[3] || 0) };
+    const candidates = MagnolieTime.candidates(zone, parts); zeitPruefen(candidates.length > 0);
+    const offset = referenz === null ? null : MagnolieTime.offsetAt(zone, referenz);
+    return candidates.find(value => MagnolieTime.offsetAt(zone, value) === offset) ?? candidates[0];
+  }
+/*TZ_HOOK_END:planning-point*/
+/*TZ_HOOK:zone-name*/
+  function zeitzonenName(value) {
+    if (value === "system") return _("System setting");
+    const id = String(value || "");
+    if (!id) return _("Unavailable");
+    // No instant was supplied: retain the original identity without implying
+    // today's offset, a seasonal name, or named authority over source VTIMEZONE.
+    return id.split("/").pop().replace(/_/g, " ") + " (" + id + ")";
+  }
+/*TZ_HOOK_END:zone-name*/
+/*TZ_HOOK:zone-list*/
+  function zeitzonenAuswahl(value, system = true, empty = false) {
+    const ids = [...new Set(["UTC", ...MagnolieTime.identifiers, ...(value && value !== "system" ? [value] : [])])];
+    const options = ids.map(zone => [zone, zeitzonenName(zone)]).sort((a, b) => vergleicheStandardText(a[1], b[1]));
+    if (system) options.unshift(["system", _("System setting")]);
+    if (empty) options.unshift(["", _("— not specified —")]);
+    return auswahlFeld(options, value || (empty ? "" : "system"));
+  }
+/*TZ_HOOK_END:zone-list*/
+/*TZ_HOOK:runtime-prepare*/
+  function icsRuntimeVorbereitung(mode, item, args) {
+    const task = mode === "next" || args[2] === true;
+    const prepare = value => ({ ...value, icsDisplayTarget: eintragsAnzeigeZone(value, task) });
+    item = Array.isArray(item) ? item.map(prepare) : prepare(item);
+    const zone = eigeneIanaZeitzone() || organizerZeitzone(), timeZoneIdentity = MagnolieTime.identity.payloadSHA256;
+    return { item, zone, timeZoneIdentity, key: JSON.stringify([timeZoneIdentity, mode, item, args, zone]) };
+  }
+/*TZ_HOOK_END:runtime-prepare*/
+/*TZ_HOOK:ics-wall-tail*/
+      if (zone === "UTC") return instant;
+      return MagnolieTime.wallMillis(zone, instant);
+    };
+/*TZ_HOOK_END:ics-wall-tail*/
+/*TZ_HOOK:ics-instant-tail*/
+      if (zone === "UTC") return value;
+      const p = new Date(value);
+      return MagnolieTime.resolveWall(zone, { year: p.getUTCFullYear(), month: p.getUTCMonth() + 1, day: p.getUTCDate(),
+        hour: p.getUTCHours(), minute: p.getUTCMinutes(), second: p.getUTCSeconds(), millisecond: p.getUTCMilliseconds() },
+        { gap: generated ? "omit" : "forward", fold: "earlier" });
+    };
+/*TZ_HOOK_END:ics-instant-tail*/
+/*TZ_HOOK:ics-fold-bound*/
+      let fold = 0;
+      if (!first.date && Number.isFinite(sourceHi)) {
+        if (typeof first.zone === "object") {
+          const offsets = embedded(first.zone, new Date(sourceHi).getUTCFullYear()).offsets;
+          const valid = offsets.filter(offset => wall(sourceHi - offset, first.zone) === sourceHi);
+          fold = valid.length < 2 ? 0 : Math.max(...valid) - Math.min(...valid);
+        } else {
+          const candidates = MagnolieTime.candidates(first.zone, sourceHi);
+          fold = candidates.length < 2 ? 0 : candidates[candidates.length - 1] - candidates[0];
+        }
+      }
+/*TZ_HOOK_END:ics-fold-bound*/
+/*TZ_HOOK:device-time*/
+  function geraeteZeit(wert) {
+    if (!wert) return "–";
+    const datum = new Date(wert);
+    return Number.isNaN(datum.getTime()) ? "–" : MagnolieTime.localeString(datum);
+  }
+/*TZ_HOOK_END:device-time*/
+/*TZ_HOOK:journal-time*/
+  function journalDatum(wert) {
+    if (!wert) return _("Never");
+    const datum = new Date(wert);
+    return Number.isNaN(datum.getTime()) ? _("Unknown") : MagnolieTime.localeString(datum);
+  }
+/*TZ_HOOK_END:journal-time*/
+/*TZ_HOOK:sms-time*/
+  function smsZeitText(zeit, voll) {
+    return MagnolieTime.format(new Date(zeit), undefined, voll ? { dateStyle: "full", timeStyle: "medium" } : { hour: "2-digit", minute: "2-digit" }, "system");
+  }
+/*TZ_HOOK_END:sms-time*/
+/*TZ_HOOK:contact-clock*/
+  function kontaktOrtszeit(zone, jetzt = new Date(), regional = DATEN.einstellungen.regional) {
+    zone = gueltigeIanaZeitzone(zone);
+    const own = eigeneIanaZeitzone(regional);
+    if (!zone || !own || zone === own) return null;
+    const options = { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZoneName: "short" };
+    if (["h12", "h23"].includes(regional.hourCycle)) options.hourCycle = regional.hourCycle;
+    return { zone, own_zone: own, captured_ms: +jetzt, text: datumText(jetzt, options, false) };
+  }
+/*TZ_HOOK_END:contact-clock*/
+/*TZ_HOOK:note-day-name*/
+  function notizTagesname(key) {
+    if (!key) return _("Undated");
+    const [year, month, day] = key.split("-").map(Number), today = MagnolieTime.wallParts("system", Date.now());
+    const at = MagnolieTime.resolveWall("UTC", { year, month, day });
+    const now = MagnolieTime.resolveWall("UTC", { year: today.year, month: today.month, day: today.day });
+    const age = (now - at) / 86400000;
+    if (age === 0) return _("Today");
+    if (age === 1) return _("Yesterday");
+    const locale = (document.documentElement.lang || "en").replace(/_/g, "-");
+    return MagnolieTime.formatCivil({ year, month, day }, locale, { weekday: "long", day: "numeric", month: "long", ...(year !== today.year ? { year: "numeric" } : {}) });
+  }
+/*TZ_HOOK_END:note-day-name*/
+/*TZ_HOOK:strict-planning-point*/
+  function eindeutigerOrtszeitpunkt(date, clock, zone, fold = "reject", reference = null) {
+    try {
+      const valid = gueltigeIanaZeitzone(zone), match = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(clock || ""));
+      if (!valid || !gueltigesISO(date) || !match) throw new Error("invalid_local_time");
+      const [year, month, day] = date.split("-").map(Number);
+      const values = MagnolieTime.candidates(valid, { year, month, day, hour: +match[1], minute: +match[2], second: +(match[3] || 0) });
+      if (!values.length) throw new Error("missing_local_time");
+      if (values.length === 1 || fold === "earlier") return values[0];
+      if (fold === "later") return values[values.length - 1];
+      if (reference !== null && values.includes(reference)) return reference;
+      throw new Error("ambiguous_time");
+    } catch (_) { throw zeitzonenPlanFehler("invalid_settings", "The selected local time does not exist or is ambiguous."); }
+  }
+/*TZ_HOOK_END:strict-planning-point*/

@@ -8,6 +8,13 @@ entpackte Pakete und Test-VMs sind keine zusätzlichen Entwicklungsstände.
 Ein dort gefundener Fehler wird in der zugehörigen Quelle dieses Repositorys
 behoben.
 
+Geprüfte macOS- und Tablet-Quellenstände in `main` aktuell halten, damit Codex
+im Terminal dort unmittelbar weiterarbeiten kann. Ein offener Pull Request
+ersetzt diese Quellübernahme nicht. Arbeitszweige dürfen zur Vorbereitung dienen;
+ihre geprüften Änderungen anschließend mit dem aktuellen `main` zusammenführen
+und zwischenzeitliche Änderungen erhalten. Quellübernahme und Freigabe der
+installierbaren Pakete getrennt behandeln; offene native Abnahmen bleiben offen.
+
 Die dauerhaften Quellordner heißen `magnolie-organizer`,
 `magnolie-organizer-windows`, `magnolie-notes` und `magnolie-handbuch`. Sie erhalten bei einem Release
 keine neue Versionsnummer im Verzeichnisnamen. Versionsnummern bleiben in den
@@ -53,6 +60,17 @@ Paketformat, Version, System, Einstellungen, Installationsvoraussetzungen und
 konkrete Schritte prüfen. Reproduzierten Programmfehler, Konfigurations- oder
 Bedienungsursache und weiterhin unbestätigten Befund im Issue auseinanderhalten.
 Nutzern keine Ursache unterstellen, die nicht überprüft wurde.
+
+Bei allen künftigen Tests und Fehlerkorrekturen prüfen, ob ein Befund auch andere
+Editionen oder Plattformen betreffen kann, insbesondere Linux und Windows.
+Solche gemeinsamen oder möglicherweise übertragbaren Befunde als eigenes Issue
+erfassen; Reproduktion, betroffene Quell-/Paketstände und nachgewiesene Auswirkungen
+von noch ungeprüften Verdachtsfällen klar trennen. Vorhandene Issues zuvor auf
+Dopplungen prüfen. Einen vorhandenen Fix oder übertragbaren Korrekturansatz direkt
+im Issue mit konkretem Patch bzw. Quellverweis, erforderlichen Anpassungen und
+Prüfstand dokumentieren. Auch bei späteren Fixes diese Hinweise im Issue ergänzen;
+eine Mac-/Tablet-Korrektur nicht als bereits geprüften Linux-/Windows-Fix ausgeben.
+Diese Regel gilt dauerhaft, nicht nur für die aktuell bearbeitete Portierung.
 
 ## Native Startprüfung vor jeder Veröffentlichung
 

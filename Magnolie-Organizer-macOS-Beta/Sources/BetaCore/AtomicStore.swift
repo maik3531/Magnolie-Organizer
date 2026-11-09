@@ -9,6 +9,8 @@ public final class AtomicStore {
     public let file: URL
     private let directory: URL
     private var lease: Int32 = -1
+    private var directoryIdentity = stat()
+    private var leaseIdentity = stat()
     private var expected: Data?
     private var loaded = false
     private var poisoned = false
@@ -29,6 +31,7 @@ public final class AtomicStore {
               (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFDIR), info.st_mode & 0o077 == 0 else {
             throw BetaError("Profile must be a private, owner-controlled directory (0700).")
         }
+        directoryIdentity = info
         let lock = directory.appendingPathComponent("profile.lock")
         lease = open(lock.path, O_CREAT | O_RDWR | O_NOFOLLOW | O_CLOEXEC, mode_t(0o600))
         guard lease >= 0 else { throw BetaError("Cannot open profile lease.") }
@@ -38,6 +41,7 @@ public final class AtomicStore {
             close(lease); lease = -1
             throw BetaError("Profile is unsafe or already open in another macOS Beta process.")
         }
+        leaseIdentity = info
     }
     deinit { if lease >= 0 { close(lease) } }
 
@@ -51,19 +55,103 @@ public final class AtomicStore {
     }
 
     public func commit(_ text: String, preservingCurrent: Bool = false) throws {
+        try commit(text, preservingCurrent: preservingCurrent, writeCheckpoint: { _ in })
+    }
+    internal func commit(_ text: String, preservingCurrent: Bool, writeCheckpoint: (String) throws -> Void) throws {
         guard loaded, !poisoned else { throw BetaError("Storage is not writable. Restart and inspect the original file.") }
         let data = Data(text.utf8)
         _ = try Document.object(text)
         guard try Self.read(file) == expected else { throw BetaError("Profile changed externally; refusing overwrite.") }
         if preservingCurrent { _ = try checkpoint() }
         do {
-            try Self.write(data, to: file)
+            try Self.write(data, to: file, checkpoint: writeCheckpoint)
             expected = data
         } catch {
             // An error after rename has an uncertain commit outcome. Do not acknowledge or retry in-session.
             poisoned = true
             throw error
         }
+    }
+
+    /// Restore preparation only: prove a loaded absent profile using its existing lease.
+    /// Saved profiles always take the full durability-verification path below.
+    internal func restoreSnapshotBytes() throws -> Data? {
+        guard loaded, !poisoned else { throw BetaError("No usable loaded profile for restore.") }
+        if expected != nil { return try durableSnapshotBytes() }
+        var parent = stat(), path = stat(), descriptor = stat()
+        guard lstat(directory.path, &parent) == 0, parent.st_dev == directoryIdentity.st_dev,
+              parent.st_ino == directoryIdentity.st_ino, parent.st_uid == getuid(), parent.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR), parent.st_mode & 0o077 == 0,
+              lstat(directory.appendingPathComponent("profile.lock").path, &path) == 0,
+              fstat(lease, &descriptor) == 0, path.st_dev == leaseIdentity.st_dev, path.st_ino == leaseIdentity.st_ino,
+              descriptor.st_dev == leaseIdentity.st_dev, descriptor.st_ino == leaseIdentity.st_ino,
+              descriptor.st_uid == getuid(), descriptor.st_nlink == 1, descriptor.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), descriptor.st_mode & 0o077 == 0,
+              try Self.read(file) == nil else { throw BetaError("The absent profile or its storage authority changed.") }
+        return nil
+    }
+
+    /// Evidence-only actual disk read. Like load/commit, caller must serialize access to this
+    /// profile instance; this does not authorize a sync commit or replace the profile lease.
+    internal func durableSnapshotBytes(checkpoint: (String) throws -> Void = { _ in }) throws -> Data {
+        guard loaded, !poisoned, let saved = expected else { throw BetaError("No loaded saved profile is available for disk verification.") }
+        func sameFileGeneration(_ lhs: stat, _ rhs: stat) -> Bool {
+            guard lhs.st_dev == rhs.st_dev, lhs.st_ino == rhs.st_ino, lhs.st_size == rhs.st_size,
+                  lhs.st_uid == rhs.st_uid, lhs.st_mode == rhs.st_mode, lhs.st_nlink == rhs.st_nlink else { return false }
+            #if canImport(Darwin)
+            return lhs.st_mtimespec.tv_sec == rhs.st_mtimespec.tv_sec && lhs.st_mtimespec.tv_nsec == rhs.st_mtimespec.tv_nsec &&
+                lhs.st_ctimespec.tv_sec == rhs.st_ctimespec.tv_sec && lhs.st_ctimespec.tv_nsec == rhs.st_ctimespec.tv_nsec
+            #else
+            return lhs.st_mtim.tv_sec == rhs.st_mtim.tv_sec && lhs.st_mtim.tv_nsec == rhs.st_mtim.tv_nsec &&
+                lhs.st_ctim.tv_sec == rhs.st_ctim.tv_sec && lhs.st_ctim.tv_nsec == rhs.st_ctim.tv_nsec
+            #endif
+        }
+        func validateLease() throws {
+            var parent = stat(), path = stat(), descriptor = stat()
+            guard directory.standardizedFileURL.path == directory.resolvingSymlinksInPath().path,
+                  lstat(directory.path, &parent) == 0, parent.st_uid == getuid(), parent.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR), parent.st_mode & 0o077 == 0,
+                  parent.st_dev == directoryIdentity.st_dev, parent.st_ino == directoryIdentity.st_ino,
+                  lstat(directory.appendingPathComponent("profile.lock").path, &path) == 0,
+                  fstat(lease, &descriptor) == 0, path.st_dev == leaseIdentity.st_dev, path.st_ino == leaseIdentity.st_ino,
+                  descriptor.st_dev == leaseIdentity.st_dev, descriptor.st_ino == leaseIdentity.st_ino,
+                  descriptor.st_uid == getuid(), descriptor.st_nlink == 1, descriptor.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), descriptor.st_mode & 0o077 == 0 else {
+                throw BetaError("Profile storage authority changed during verification.")
+            }
+        }
+        do {
+            try validateLease()
+            guard try Self.read(file) == saved else { throw BetaError("The actual profile changed; disk verification refused.") }
+            let descriptor = open(file.path, O_RDWR | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
+            guard descriptor >= 0 else { throw BetaError("Cannot open the actual profile for durability verification.") }
+            defer { close(descriptor) }
+            var info = stat(), path = stat()
+            guard fstat(descriptor, &info) == 0, info.st_uid == getuid(), info.st_nlink == 1,
+                  info.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), info.st_mode & 0o077 == 0,
+                  info.st_size == saved.count, lstat(file.path, &path) == 0, sameFileGeneration(info, path) else {
+                throw BetaError("Unsafe actual profile snapshot.")
+            }
+            try checkpoint("snapshot-read")
+            guard fsync(descriptor) == 0 else { throw BetaError("Profile verification file sync failed.") }
+            try checkpoint("snapshot-fsync")
+            #if canImport(Darwin)
+            guard fcntl(descriptor, F_FULLFSYNC) == 0 else { throw BetaError("Profile verification durable file sync failed.") }
+            #endif
+            try checkpoint("snapshot-fullsync")
+            var afterFileSync = stat()
+            guard fstat(descriptor, &afterFileSync) == 0, sameFileGeneration(info, afterFileSync) else { throw BetaError("Profile was written during its durability barrier.") }
+            let parent = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+            guard parent >= 0 else { throw BetaError("Cannot synchronize the profile directory.") }
+            defer { close(parent) }
+            var parentInfo = stat()
+            guard fstat(parent, &parentInfo) == 0, parentInfo.st_dev == directoryIdentity.st_dev, parentInfo.st_ino == directoryIdentity.st_ino,
+                  fsync(parent) == 0 else { throw BetaError("Profile verification directory sync failed.") }
+            try checkpoint("snapshot-dirsync")
+            try validateLease()
+            var afterRead = stat()
+            guard expected == saved, try Self.read(file) == saved, lstat(file.path, &path) == 0,
+                  fstat(descriptor, &afterRead) == 0, sameFileGeneration(info, path), sameFileGeneration(info, afterRead) else {
+                throw BetaError("Profile changed during disk verification.")
+            }
+            return saved
+        } catch { poisoned = true; throw error }
     }
 
     /// Exact on-disk bytes, including the encrypted envelope. Never a plaintext shadow
@@ -94,7 +182,8 @@ public final class AtomicStore {
         return path
     }
 
-    public static func read(_ url: URL, requirePrivate: Bool = true) throws -> Data? {
+    public static func read(_ url: URL, requirePrivate: Bool = true, maximumBytes: Int = Document.maximumBytes) throws -> Data? {
+        guard maximumBytes > 0, maximumBytes <= Document.maximumBytes else { throw BetaError("Invalid read limit.") }
         let fd = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         if fd < 0 {
             if errno == ENOENT { return nil }
@@ -104,7 +193,7 @@ public final class AtomicStore {
         var info = stat()
         guard fstat(fd, &info) == 0, (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
               info.st_nlink == 1, (!requirePrivate || (info.st_uid == getuid() && info.st_mode & 0o077 == 0)),
-              info.st_size > 0, info.st_size <= Document.maximumBytes else {
+              info.st_size > 0, info.st_size <= maximumBytes else {
             throw BetaError("File is empty, oversized, linked or not private (0600). Original retained.")
         }
         let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
@@ -117,6 +206,9 @@ public final class AtomicStore {
     }
 
     public static func write(_ data: Data, to destination: URL) throws {
+        try write(data, to: destination, checkpoint: { _ in })
+    }
+    internal static func write(_ data: Data, to destination: URL, checkpoint: (String) throws -> Void) throws {
         guard !data.isEmpty, data.count <= Document.maximumBytes else { throw BetaError("Invalid output size.") }
         let parent = destination.deletingLastPathComponent()
         guard parent.standardizedFileURL.path == parent.resolvingSymlinksInPath().path else {
@@ -132,15 +224,22 @@ public final class AtomicStore {
         guard fd >= 0 else { throw BetaError("Cannot create private temporary file.") }
         defer { close(fd); unlink(temp.path) }
         let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
+        try checkpoint("temporary-created")
         try handle.write(contentsOf: data)
+        try checkpoint("temporary-written")
         guard fsync(fd) == 0 else { throw BetaError("File synchronization failed.") }
+        try checkpoint("file-fsync")
         #if canImport(Darwin)
         guard fcntl(fd, F_FULLFSYNC) == 0 else { throw BetaError("Durable file synchronization failed.") }
         #endif
+        try checkpoint("file-fullsync")
         let dirfd = open(parent.path, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)
         guard dirfd >= 0 else { throw BetaError("Cannot synchronize output directory.") }
         defer { close(dirfd) }
+        try checkpoint("before-rename")
         guard rename(temp.path, destination.path) == 0 else { throw BetaError("Atomic replacement failed.") }
+        try checkpoint("renamed")
         guard fsync(dirfd) == 0 else { throw BetaError("Directory synchronization failed; restart before further writes.") }
+        try checkpoint("directory-fsync")
     }
 }

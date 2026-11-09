@@ -45,7 +45,14 @@ import XCTest
             """)
         let buttons = try await web.evaluateJavaScript("Array.from(document.querySelectorAll('#einst-seite-sicherheit button')).map(b => b.textContent)")
         XCTAssertTrue((buttons as? [String] ?? []).contains("Sicherung wiederherstellen …"))
-        let fonts = try await web.callAsyncJavaScript("await document.fonts.ready; return document.fonts.status;", arguments: [:], in: nil, in: .page)
+        // Without an explicit completion handler, some Apple SDKs select the
+        // synchronous Void overload despite `try await`, discarding the result.
+        let fonts: Any = try await withCheckedThrowingContinuation { continuation in
+            web.callAsyncJavaScript("await document.fonts.ready; return document.fonts.status;",
+                                    arguments: [:], in: nil, in: .page) { result in
+                continuation.resume(with: result)
+            }
+        }
         XCTAssertEqual(fonts as? String, "loaded")
     }
 }

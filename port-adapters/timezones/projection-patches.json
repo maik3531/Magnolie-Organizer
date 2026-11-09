@@ -1,0 +1,417 @@
+[
+  {
+    "id": "validate-zone",
+    "start": "  function gueltigeIanaZeitzone(value, system = false) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "b8a842b53718e38d2c02f28a2eee4fe3004f380993f87fb2a144118e532c3d6f",
+    "hook": "validate-zone",
+    "reviewedVariants": [
+      {
+        "sha256": "e6caa3e69bcb7eadeeb6b9075e2406088debbafd9a3cc3ace51bd5596a34bd00",
+        "source": "v2.0.30@067c38934b539943d8e1720abafd8a80b401d797",
+        "difference": "Same validation, alias normalization and Intl canonicalization; direct lookup without current bounded128-entry memoization. Replaced by the same normative identifier-preserving hook."
+      }
+    ]
+  },
+  {
+    "id": "own-zone",
+    "start": "  function eigeneIanaZeitzone(regional = DATEN.einstellungen.regional) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "09a53e074bb4b4a5e9bbb2fc3dc78197f8252bbd86d865d0f13b091ef57dd964",
+    "hook": "own-zone"
+  },
+  {
+    "id": "organizer-zone",
+    "start": "  function organizerZeitzone() {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "de6abcda15cfb25c88210f28a15b4864bb2318731e35a48fed3d56aad30cda87",
+    "hook": "organizer-zone"
+  },
+  {
+    "id": "organizer-parts",
+    "start": "  function organizerDatumzeitTeile(datum) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "781c983417adb493485c73d02e105c2bf74fb472de2776278321bda304fa9525",
+    "hook": "organizer-parts"
+  },
+  {
+    "id": "organizer-point",
+    "start": "  function organizerZeitpunkt(jahr, monat, tag, stunde, minute) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "42b62a9e86b0a57e3aa3f69519847303c3a7fbefd092d0ce5ec3e1ae7067c753",
+    "hook": "organizer-point"
+  },
+  {
+    "id": "date-format",
+    "start": "  function datumText(datum, optionen, absolut) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "1da6466c5a6dde8e794c62e17d181586545552cc1d180b6e8512169689104a3e",
+    "hook": "date-format"
+  },
+  {
+    "id": "clock-format",
+    "start": "  function zeitText(iso, hhmm) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "f1f4fcb709f0133755e0b09ec40df98e46391587f884ad8b74184f4d5cd23af0",
+    "hook": "clock-format"
+  },
+  {
+    "id": "tracking-parts",
+    "start": "  function zeitDatumTeile(minute, zone) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "f53dec1197d688469532d0de0e7f5cf874c65a10c1f4a4d05a42dafd6667dda4",
+    "hook": "tracking-parts"
+  },
+  {
+    "id": "tracking-minute",
+    "start": "  function zeitLokaleMinute(teile, zone, referenz = null, lueckeVerschieben = false) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "8a0e6dc3339609d9787f67495b5675749513ea4900288c9004d10c85666422d1",
+    "hook": "tracking-minute"
+  },
+  {
+    "id": "planning-point",
+    "start": "  function zeitOrtszeitpunkt(datum, uhrzeit, zone, referenz = null) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "358f36e298079938c4a25c4b4fa1a4536412bb7a3b706a2e2834576a6a627cdc",
+    "hook": "planning-point"
+  },
+  {
+    "id": "zone-name",
+    "start": "  function zeitzonenName(value) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "4abd95512e372cfdcd34a397d806f86328e29c76c64679c8abd9a091966d495d",
+    "hook": "zone-name"
+  },
+  {
+    "id": "zone-list",
+    "start": "  function zeitzonenAuswahl(value, system = true, empty = false) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "470ab8d43e2aca457ebbd4fac5d8bf2b9285b8da866422a393efd40eb9116012",
+    "hook": "zone-list"
+  },
+  {
+    "id": "runtime-prepare",
+    "start": "  function icsRuntimeVorbereitung(mode, item, args) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "ca6e5055f92338d92667dc16bebfc6e56d5c11cec68207ba084ebfe43b1f5634",
+    "hook": "runtime-prepare"
+  },
+  {
+    "id": "device-time",
+    "start": "  function geraeteZeit(wert) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "ff802e3da1089d5f8ee38b0ed7f093c6ba1e3c6339bb68f090152c5b90039d18",
+    "hook": "device-time"
+  },
+  {
+    "id": "journal-time",
+    "start": "  function journalDatum(wert) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "f70d19c9f27ca092ebc6c40980b539ac234b3918454aacc35fe3e891e34f307b",
+    "hook": "journal-time"
+  },
+  {
+    "id": "sms-time",
+    "start": "  function smsZeitText(zeit, voll) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "9995d740e934b82fc16cbf0a31e4c46df6354661c4fd123ee9e2732c4afccd41",
+    "hook": "sms-time"
+  },
+  {
+    "id": "contact-clock",
+    "start": "  function kontaktOrtszeit(zone, jetzt = new Date(), regional = DATEN.einstellungen.regional) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "c57649350a7ce291844ee6a1bf0c91c2a175a7305afd41e22c23c30d5d50549f",
+    "hook": "contact-clock"
+  },
+  {
+    "id": "note-day-name",
+    "start": "  function notizTagesname(key) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "bb41915474223de5b869a2c306945069afa3a0d41c71539feec8673bf8405a8c",
+    "hook": "note-day-name"
+  },
+  {
+    "id": "ics-own-target",
+    "start": "    const ownTarget = (typeof eigeneIanaZeitzone === \"function\" ? eigeneIanaZeitzone() : \"\") || organizerZeitzone() || Intl.DateTimeFormat().resolvedOptions().timeZone;",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "905eb03298280fe5c867adb4c2f635ef447c9c02adaf6418a3596e0c083c1c69",
+    "replacement": "    const ownTarget = organizerZeitzone();"
+  },
+  {
+    "id": "ics-planned-target",
+    "start": "      if (planned && planned.length <= 128",
+    "end": "\n    }\n    const cache",
+    "includeEnd": false,
+    "sha256": "dd5f8e2f0c94b5d177a33bc41a3e1911097fe50540d21d366d205d573cc85b9f",
+    "replacement": "      if (planned && defined.has(planned)) target = { id: planned, definition: defined.get(planned) };\n      else if (planned && MagnolieTime.has(planned)) target = planned;"
+  },
+  {
+    "id": "ics-wall-tail",
+    "start": "      if (!zone || zone === \"UTC\") return instant;",
+    "end": "    const instant =",
+    "includeEnd": false,
+    "sha256": "032ecbab0ccc2beba83107baa1aa7c5768049b9adb7f4cc113f956c3c88c4027",
+    "hook": "ics-wall-tail"
+  },
+  {
+    "id": "ics-instant-tail",
+    "start": "      if (!zone || zone === \"UTC\") return value;",
+    "end": "    const stamp =",
+    "includeEnd": false,
+    "sha256": "94b1124b992d6793454c3764bc204e1890d658b745c0b02a90b0b2a58179c2b8",
+    "hook": "ics-instant-tail"
+  },
+  {
+    "id": "ics-fold-bound",
+    "start": "      const offsets = first.date ? [0] : typeof first.zone === \"object\"",
+    "end": "      const startIndex =",
+    "includeEnd": false,
+    "sha256": "f902f912b94faf46d0b0d3f553f5bcec9aeb67f9c806327a99ba05d87a6fc09b",
+    "hook": "ics-fold-bound"
+  },
+  {
+    "id": "worker-bootstrap",
+    "start": "      const source = 'const _ = v => v, zettel = () => {}; const ICS_WOCHENTAGE = ' + JSON.stringify(ICS_WOCHENTAGE) + '; const ZEITZONEN_FORMATIERER = new Map(); let zone; function organizerZeitzone() { return zone; }\\n' +\n",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "b18484e896d51e76aab913339aa4bf457cc907233a98152bbdb2c9ed1e30123b",
+    "replacement": "      const source = MagnolieTime.workerPrelude() + 'const _ = v => v, zettel = () => {}; const ICS_WOCHENTAGE = ' + JSON.stringify(ICS_WOCHENTAGE) + '; const ZEITZONEN_FORMATIERER = new Map(); let zone; function organizerZeitzone() { return zone; }\\n' +\n"
+  },
+  {
+    "id": "worker-request-identity",
+    "start": "        self.onmessage = ({ data }) => {\n",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "45116d48856e71f9f5966275cc456a1f1c668e4f64374cd2bcad4865a6dc8e0a",
+    "replacement": "        self.onmessage = ({ data }) => {\n          if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) { self.postMessage({ key: data.key, timeZoneIdentity: MagnolieTime.identity.payloadSHA256, error: \"timezone-provider-identity\" }); return; }\n"
+  },
+  {
+    "id": "worker-base-response",
+    "start": "self.postMessage({ key: data.key, ...icsBasisExpansion(data.item, data.args) })",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "8d9f2196ff0ff6b709c4b654603595d8b1f29b5156996bc1cefbac08bbaa2ba9",
+    "replacement": "self.postMessage({ timeZoneIdentity: MagnolieTime.identity.payloadSHA256, key: data.key, ...icsBasisExpansion(data.item, data.args) })"
+  },
+  {
+    "id": "worker-event-response",
+    "start": "self.postMessage({ key: data.key, result })",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "6305ca250ba3907b489e52f30540ef250b85e3e6e2bd1e77c3e77c9d39f53913",
+    "replacement": "self.postMessage({ timeZoneIdentity: MagnolieTime.identity.payloadSHA256, key: data.key, result })"
+  },
+  {
+    "id": "worker-error-response",
+    "start": "self.postMessage({ key: data.key, error: error.code || \"recurrence-worker-error\" })",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "15fb703a1e82ef35c25d9798676926e09e48f7b3de4bded77aeb621641a330f3",
+    "replacement": "self.postMessage({ timeZoneIdentity: MagnolieTime.identity.payloadSHA256, key: data.key, error: error.code || \"recurrence-worker-error\" })"
+  },
+  {
+    "id": "worker-response-identity",
+    "start": "        const job = state.jobs.get(data.key); if (!job) return;\n",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "9ff4a4bf19a1e96a0dc5906679dd10674963a129442e88da229322acd1ec179d",
+    "replacement": "        const job = state.jobs.get(data.key); if (!job) return;\n        if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) {\n          for (const value of state.jobs.values()) if (value.status === \"pending\") Object.assign(value, { status: \"error\", error: \"timezone-provider-identity\", result: null });\n          state.worker.terminate(); state.worker = null; publish(); warn(\"timezone-provider-identity\"); return;\n        }\n"
+  },
+  {
+    "id": "worker-send-identity",
+    "start": "state.worker.postMessage({ key, mode, item, args, zone })",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "fbdb1579ad0681031ac77c96365ca9560172a7fe17b4678b61c56766e92b0f68",
+    "replacement": "state.worker.postMessage({ timeZoneIdentity: MagnolieTime.identity.payloadSHA256, key, mode, item, args, zone })"
+  },
+  {
+    "id": "personal-zone-identity",
+    "start": "        timezone = new Intl.DateTimeFormat(\"en\", { timeZone: configured }).resolvedOptions().timeZone;",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "a34ac25576123b4ebb55c007049e75dff54aa26d904d0bbbc1fead3f4fb70e0f",
+    "replacement": "        timezone = MagnolieTime.zoneId(configured);"
+  },
+  {
+    "id": "tracking-default-zone",
+    "start": "original?.zone || organizerZeitzone() || new Intl.DateTimeFormat().resolvedOptions().timeZone || \"UTC\"",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "28f7c162b7688466cb169fb799f37139c9e3650e44fa05d70b61ed2af793758e",
+    "replacement": "original?.zone || organizerZeitzone()"
+  },
+  {
+    "id": "note-timestamp",
+    "start": "      return new Intl.DateTimeFormat((document.documentElement.lang || \"en\").replace(/_/g, \"-\"),\n        { dateStyle: \"long\", timeStyle: \"medium\" }).format(new Date(timestamp));",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "d0af079c2ec0a390e45150989114935186a89c1db11f4a657e09e9846c47b8ec",
+    "replacement": "      return MagnolieTime.format(new Date(timestamp), (document.documentElement.lang || \"en\").replace(/_/g, \"-\"), { dateStyle: \"long\", timeStyle: \"medium\" }, \"system\");"
+  },
+  {
+    "id": "clock-input-utc",
+    "start": "const format = new Intl.DateTimeFormat(formatGebiet(), { hour: \"2-digit\", minute: \"2-digit\",",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "730cf19770e02f81d4d78068f8cb1074b1c6b877da7962a9132e0248be321871",
+    "replacement": "const format = new Intl.DateTimeFormat(formatGebiet(), { timeZone: \"UTC\", hour: \"2-digit\", minute: \"2-digit\","
+  },
+  {
+    "id": "clock-input-civil",
+    "start": "const datum = minute => new Date(2000, 0, 1, Math.floor(minute / 60), minute % 60);",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "d8d6f9094684fc4c669cf10c725254842ae3061553a799f08e812ab41100f162",
+    "replacement": "const datum = minute => new Date(Date.UTC(2000, 0, 1, Math.floor(minute / 60), minute % 60));"
+  },
+  {
+    "id": "system-timestamp-0",
+    "start": "new Date(vorschlag.deleted_ms).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "3ff74ba1e0b0651c523c7f39e1a5f57362683903a18580f902d277664da86f34",
+    "replacement": "MagnolieTime.localeString(new Date(vorschlag.deleted_ms),"
+  },
+  {
+    "id": "system-timestamp-1",
+    "start": "new Date(nachricht.zeit).toLocaleDateString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "9666df4fdb43a2e581170b3315d2314fe1b18069d42d0012ac9b553aedc29eed",
+    "replacement": "MagnolieTime.localeDate(new Date(nachricht.zeit),"
+  },
+  {
+    "id": "system-timestamp-2",
+    "start": "          new Date(sms.zeit).toLocaleString()), el(\"pre\", \"sms-anpassung-text\", sms.text));\n",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "ce7cb1a398c5a71152c63cee330bbef21f79842a844ed47d87f356e25e8c5382",
+    "replacement": "          MagnolieTime.localeString(new Date(sms.zeit),)), el(\"pre\", \"sms-anpassung-text\", sms.text));\n"
+  },
+  {
+    "id": "system-timestamp-3",
+    "start": "        karte.append(el(\"strong\", null, new Date(sms.zeit).toLocaleString()),\n",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "292c6c75509ee3ddd9556e3a0e726b6f2887f4708e2884d607f9ff4f88c7d514",
+    "replacement": "        karte.append(el(\"strong\", null, MagnolieTime.localeString(new Date(sms.zeit),)),\n"
+  },
+  {
+    "id": "system-timestamp-4",
+    "start": "new Date(anruf.started_ms).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "fd9fcbfb9c3c3c67f25ec29fad93da738bf898bb4e335d0e3c8060d411c54b96",
+    "replacement": "MagnolieTime.localeString(new Date(anruf.started_ms),"
+  },
+  {
+    "id": "system-timestamp-5",
+    "start": "new Date(anruf.offhook_ms).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "0a9b7c124687f0a361f4a461be9ef9fae5ac0a51bb4fb38adfca5765c8bb6ea1",
+    "replacement": "MagnolieTime.localeString(new Date(anruf.offhook_ms),"
+  },
+  {
+    "id": "system-timestamp-6",
+    "start": "new Date(anruf.ended_ms).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "7558e2488718dd76d1f862a80bcae03fa7457b7cf8da0066e4008f204e2b5158",
+    "replacement": "MagnolieTime.localeString(new Date(anruf.ended_ms),"
+  },
+  {
+    "id": "system-timestamp-7",
+    "start": "new Date(anruf.battery_captured_ms).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "1279fd78b1430078e59276d288d48d424661407bb67230233735c1c9f59aca50",
+    "replacement": "MagnolieTime.localeString(new Date(anruf.battery_captured_ms),"
+  },
+  {
+    "id": "system-timestamp-8",
+    "start": "new Date(anruf.started_ms).toLocaleDateString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "a1fbe5d70b89713f8806847c2e7bf37dbe946cda33f864dae2176879604de512",
+    "replacement": "MagnolieTime.localeDate(new Date(anruf.started_ms),"
+  },
+  {
+    "id": "system-timestamp-9",
+    "start": "new Date(aktiverAnruf.battery_captured_ms).toLocaleTimeString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "e853af53e2aebd25d672cce971245b545609dce2e1eb2dcda870e27fdde5f7f5",
+    "replacement": "MagnolieTime.localeTime(new Date(aktiverAnruf.battery_captured_ms),"
+  },
+  {
+    "id": "system-timestamp-10",
+    "start": "new Date(aktiverAnruf.started_ms).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "1c443bd2f6e782a3a931576484b4e9649713ea21aa7601d22b23ff941ea3f4bd",
+    "replacement": "MagnolieTime.localeString(new Date(aktiverAnruf.started_ms),"
+  },
+  {
+    "id": "system-timestamp-11",
+    "start": "new Date(ziel.kontaktZeit.zeit).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "f1a8e050a5d052fd91ef937bf3dc15893d1642e41eb0b99157a51d0cd19cf056",
+    "replacement": "MagnolieTime.localeString(new Date(ziel.kontaktZeit.zeit),"
+  },
+  {
+    "id": "system-timestamp-12",
+    "start": "new Date(stueck.inhalt.inhaltGeaendert).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "43c1ca57fad4f856291c8c18eb25c08832035d6290e91e2110cdfe2d2c073f47",
+    "replacement": "MagnolieTime.localeString(new Date(stueck.inhalt.inhaltGeaendert),"
+  },
+  {
+    "id": "system-timestamp-13",
+    "start": "new Date(update.letztePruefung).toLocaleString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "8c5108a989de776498d8abf3cef711d41a043ae2f0615986c47cb0572cf913a8",
+    "replacement": "MagnolieTime.localeString(new Date(update.letztePruefung),"
+  },
+  {
+    "id": "system-timestamp-14",
+    "start": "wann.toLocaleDateString(",
+    "end": "",
+    "includeEnd": false,
+    "sha256": "426542771000b26e3950c9b084c81aa96994927a3d9c3be4a1786314b4371851",
+    "replacement": "MagnolieTime.localeDate(wann,"
+  },
+  {
+    "id": "strict-planning-point",
+    "start": "  function eindeutigerOrtszeitpunkt(date, clock, zone, fold = \"reject\", reference = null) {\n",
+    "end": "\n  }\n",
+    "includeEnd": true,
+    "sha256": "777d3bc0ecef38fc019053fea0d9636d2119f74a368c813dbee2a76cdea9b32b",
+    "hook": "strict-planning-point"
+  }
+]

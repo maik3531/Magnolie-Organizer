@@ -1,0 +1,28 @@
+{
+  "schema": 2,
+  "tzdbVersion": "2026egtz",
+  "sourceVariant": "Global-TZ2026egtz-rearguard; not normal IANA history",
+  "upstream": "https://github.com/JodaOrg/global-tz",
+  "upstreamTag": "2026egtz",
+  "upstreamTagObject": "4329a8744295c5187ddae4fb3d6e6cf2de2c55ca",
+  "upstreamCommit": "4da8bf102f7582a14bafdb8473fa5e58af842706",
+  "upstreamTagVerification": "GitHub API verified=true reason=valid, signed project-maintainer tag",
+  "archiveURL": "https://github.com/JodaOrg/global-tz/releases/download/2026egtz/tzdata2026egtz-rearguard.tar.gz",
+  "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+  "archiveVerification": "Downloaded bytes matched the official GitHub release asset SHA-256 digest",
+  "generator": "build-tzif.py",
+  "payload": "tzdb-2026egtz.json",
+  "payloadSHA256": "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c",
+  "payloadBytes": 428473,
+  "namedZones": 597,
+  "uniqueRuleData": 439,
+  "rejectedZones": {
+    "Factory": "unspecified-local-time"
+  },
+  "license": "public-domain",
+  "retainedLicense": "LICENSE-tzdb.txt",
+  "licenseSHA256": "0613408568889f5739e5ae252b722a2659c02002839ad970a63dc5e9174b27cf",
+  "historicalAuthority": "UTC transition timestamps, type offsets/DST flags/abbreviations, and POSIX future from the exact Global-TZ archive; no BP ZoneRules metadata",
+  "bpStatus": "Rejected as point-rule source; see diagnostics/BP-PROVIDER-BLOCKER.md",
+  "integrationStatus": "Phase1 standalone shared data/resolver only; no UI or native-codec migration, no native-device acceptance claim"
+}

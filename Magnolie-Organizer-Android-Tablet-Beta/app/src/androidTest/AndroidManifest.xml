@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:label="Tablet Beta 2.0.18Beta Synthetic Test Documents" android:testOnly="true">
+    <application android:label="Tablet Beta 2.0.30Beta Synthetic Test Documents" android:testOnly="true">
         <receiver android:name="io.gitlab.maik3531.magnolietabletbeta.SyntheticDocumentControl" android:exported="true" />
         <provider android:name="io.gitlab.maik3531.magnolietabletbeta.SyntheticDocuments"
             android:authorities="io.gitlab.maik3531.magnolieorganizer.tablet.beta.test.documents"

@@ -40,13 +40,32 @@ try {
   w.MacBeta.send({ cmd: "speichern", id: 900, text: "{}" }, "hostTest");
   await tick();
   equal(messages.length, count, "save fenced during restore");
-  w.MacBeta.receive("sicherungWiederhergestellt", { ok: true, daten: incoming, kennwort: true });
+  const restoreOperation = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  const expectedRestore = w.MacBeta.prepareNativeRestore(JSON.stringify(incoming), restoreOperation);
+  equal(w.document.body.inert, true, "editors remain inert during native restore");
+  equal(w.MacBeta.applyNativeRestore(restoreOperation, true).snapshot, expectedRestore.snapshot, "actual callback returns exact validated model");
+  equal(w.document.body.inert, true, "model apply alone cannot release editors");
+  equal(w.MacBeta.finishNativeRestore(restoreOperation).released, true, "native final handoff releases current operation");
+  equal(w.document.body.inert, false, "editors released only after final native handoff");
   equal(t.daten().future.keep, "imported", "committed document displayed");
   equal(t.daten().notizen[0].futureAttachment, "AA==", "opaque attachment retained");
   equal(w.document.getElementById("sicherung-schleier").classList.contains("verborgen"), true, "confirmation closes on committed success");
   t.daten().notizen[0].text = "Changed after restore";
   t.speichereJetzt(); saveAck();
   equal(JSON.parse(messages.filter(m => m.cmd === "speichern").at(-1).text).future.keep, "imported", "post-restore save uses new document");
+  // Current desktop time-zone controls must not start unavailable native MCP
+  // transactions or mutate imported preferences in this port.
+  t.baueEinstellungen(); w.document.getElementById("einst-tab-ort").click();
+  const timeZoneBefore = clone(t.daten().einstellungen.regional), nativeBefore = messages.length;
+  w.document.getElementById("ort-zeitzonenmanagement").click(); await tick();
+  equal(w.document.getElementById("zeitzonenverwaltung"), null, "unsupported native time-zone dialog stays closed");
+  equal(messages.length, nativeBefore, "unsupported time-zone management sends no native command");
+  equal(t.daten().einstellungen.regional, timeZoneBefore, "unsupported management retains regional preferences");
+  assert.match(w.document.getElementById("zettel").textContent, /native time zone management is unavailable/); checks++;
+  t.daten().einstellungen.regional.timeZoneManagement = "automatic";
+  w.dispatchEvent(new w.Event("focus")); await tick();
+  equal(messages.length, nativeBefore, "imported automatic mode does not query unavailable native detection");
+  t.daten().einstellungen.regional.timeZoneManagement = timeZoneBefore.timeZoneManagement;
   // Actual desktop regional form also waits for the profile save before the native command.
   t.baueEinstellungen(); w.document.getElementById("einst-tab-regional").click();
   const regionalBeforeFailure = clone(t.daten().einstellungen.regional);
@@ -106,4 +125,32 @@ try {
   console.error("Recovery host failed after " + checks + " checks", error);
   throw error;
 } finally { await tick(); b.close(); }
+// Mirror the production Host's fresh-profile and reopen init/close payloads.
+// Compare the actual serialized whole documents, retaining all metadata checks.
+let firstProfile;
+const fresh = await boot(process.argv[2]);
+try {
+  fresh.w.MacBeta.receive("init", { daten: {}, neu: true, echterErststart: true,
+    regional: { language: "system" }, datenPfad: "/synthetic/macOS-Beta/organizer.json",
+    kennwort: false, trayVerfuegbar: false, handbuchInstalliert: false, contributorAktiv: false });
+  fresh.w.MacBeta.receive("vorBeenden", {});
+  const save = fresh.messages.filter(message => message.cmd === "speichern").at(-1);
+  assert.ok(save); checks++;
+  firstProfile = JSON.parse(save.text);
+  equal(firstProfile.notizen.length, 1, "fresh native startup creates one welcome note");
+  fresh.w.MacBeta.receive("gespeichert", { id: save.id, ok: true });
+  equal(fresh.messages.at(-1).cmd, "beenden_bereit", "fresh native close follows durable-save acknowledgment");
+} finally { await tick(); fresh.close(); }
+const reopened = await boot(process.argv[2]);
+try {
+  reopened.w.MacBeta.receive("init", { daten: firstProfile, neu: false,
+    regional: firstProfile.einstellungen.regional, datenPfad: "/synthetic/macOS-Beta/organizer.json",
+    kennwort: false, trayVerfuegbar: false, handbuchInstalliert: false, contributorAktiv: false });
+  reopened.w.MacBeta.receive("vorBeenden", {});
+  const save = reopened.messages.filter(message => message.cmd === "speichern").at(-1);
+  assert.ok(save); checks++;
+  equal(JSON.parse(save.text), firstProfile, "reopen and normal quit preserve the complete fresh profile exactly");
+  reopened.w.MacBeta.receive("gespeichert", { id: save.id, ok: true });
+  equal(reopened.messages.at(-1).cmd, "beenden_bereit", "reopened native close follows durable-save acknowledgment");
+} finally { await tick(); reopened.close(); }
 console.log(`macOS Beta recovery/regional/keyboard: ${checks} host checks. Fake native transport, NOT WKWebView validation.`);

@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <application android:label="Magnolie Organizer Android Tablet Beta 2.0.18Beta"
+    <application android:label="Magnolie Organizer Android Tablet Beta 2.0.30Beta"
         android:icon="@drawable/beta_icon" android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:allowBackup="false" android:fullBackupContent="false"
         android:usesCleartextTraffic="false" android:supportsRtl="true">

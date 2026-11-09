@@ -1,0 +1,338 @@
+/* Shared native-test-only scenarios. Every feature mutation goes through the
+ * actual current Organizer settings/forms/editor bindings, never a seeded model.
+ * Platform hosts own durable-save ACKs, reload and trusted canvas input. */
+window.NativeDomains = (() => {
+  const T=window.OrganizerTest, $=selector=>document.querySelector(selector);
+  const tr=text=>window.MagnolieI18n.gettext(text), tick=()=>new Promise(resolve=>setTimeout(resolve,30));
+  const assert=(value,message)=>{if(!value)throw Error(message);};
+  const set=(target,value)=>{
+    const field=typeof target==='string'?$(target):target;assert(field,'Missing domain form field');
+    field.value=String(value);field.dispatchEvent(new Event('input',{bubbles:true}));field.dispatchEvent(new Event('change',{bubbles:true}));return field;
+  };
+  const click=(selector,label)=>{const button=[...document.querySelectorAll(selector)].find(node=>node.textContent.trim()===tr(label));assert(button,'Missing domain action: '+label);button.click();};
+  const aria=(selector,label)=>{const button=[...document.querySelectorAll(selector)].find(node=>node.getAttribute('aria-label')===tr(label));assert(button,'Missing domain control: '+label);button.click();};
+  const date=(field,value)=>{T.setzeDatumswert(field,value);field.dispatchEvent(new Event('input',{bubbles:true}));field.dispatchEvent(new Event('change',{bubbles:true}));};
+  const clone=value=>JSON.parse(JSON.stringify(value));
+  const save=async()=>{T.speichereJetzt();await tick();};
+  let coverReceipt=null;
+  function coverTarget() {
+    const book=$('#buch'),cover=$('#deckel');assert(book&&cover,'Missing actual book cover');
+    assert(!book.classList.contains('offen'),'Domain opening must start with the actual closed cover');
+    const rect=cover.getBoundingClientRect(),left=Math.max(0,rect.left),right=Math.min(innerWidth,rect.right),
+      top=Math.max(0,rect.top),bottom=Math.min(innerHeight,rect.bottom);
+    assert(right-left>40&&bottom-top>40,'Book cover is not visibly clickable');
+    const x=(left+right)/2,y=(top+bottom)/2,hit=document.elementFromPoint(x,y);
+    assert(hit&&cover.contains(hit),'Book cover target is covered');
+    cover.addEventListener('click',event=>{coverReceipt={trusted:event.isTrusted,tag:event.target?.tagName||'',className:String(event.target?.className||'').slice(0,160)};},{capture:true,once:true});
+    return {x,y};
+  }
+  async function opened() {
+    const deadline=performance.now()+3000;let stable=0;
+    while(performance.now()<deadline) {
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      assert(!coverReceipt||coverReceipt.trusted,'Book must open through trusted native input');
+      const book=$('#buch'),cover=$('#deckel');
+      const ready=coverReceipt?.trusted&&book?.classList.contains('offen')&&cover&&getComputedStyle(cover).display==='none'&&
+        (!cover.getAnimations||cover.getAnimations().every(animation=>!['running','pending'].includes(animation.playState)));
+      stable=ready?stable+1:0;
+      if(stable>=2)return {trustedCoverClick:true,coverRemoved:true,stableFrames:stable,receipt:coverReceipt};
+    }
+    throw Error('Actual native book opening/animation did not complete within3seconds');
+  }
+  function drawingTargetReady(target) {
+    const canvas=$('.custom-zeichenblatt');assert(canvas,'Missing actual drawing canvas');
+    const points=[];
+    for(let index=0;index<=8;index++) {
+      const fraction=index/8,x=target.x1+(target.x2-target.x1)*fraction;
+      for(const y of [target.y,target.y+Math.sin(fraction*Math.PI)*8]) {
+        const hit=document.elementFromPoint(x,y);
+        assert(hit===canvas,'Native drawing target missed canvas: '+JSON.stringify({x,y,tag:hit?.tagName||'',className:String(hit?.className||'').slice(0,160)}));
+        points.push({x,y});
+      }
+    }
+    return {canvasHit:true,checkedPoints:points.length};
+  }
+  async function drawingInputReady() {
+    const deadline=performance.now()+3000;let previous='',stableSince=0,frames=0,last=null;
+    const started=deadline-3000,diagnostic={schema:1,outcome:'sampling',deadlineMilliseconds:3000,
+      requiredStableFrames:4,requiredStableMilliseconds:150,frameCount:0,maxRafGapMilliseconds:0,
+      sampleChanges:0,documentChanges:0,changeLimit:12,droppedChanges:0,changes:[]};
+    window.__domainDrawingReadiness=diagnostic;
+    let previousFrameAt=started,previousDocument='';
+    while(performance.now()<deadline) {
+      const frameAt=await new Promise(resolve=>requestAnimationFrame(resolve));
+      const canvas=$('.custom-zeichenblatt');assert(canvas,'Missing actual drawing canvas');
+      const rect=canvas.getBoundingClientRect(),module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
+      const sample={left:rect.left,top:rect.top,width:rect.width,height:rect.height,
+        bitmapWidth:canvas.width,bitmapHeight:canvas.height,modelWidth:module?.drawing?.width,modelHeight:module?.drawing?.height,
+        fonts:document.fonts?.status||'unsupported'};
+      const key=JSON.stringify(sample),now=performance.now();last=sample;
+      const observedFrameAt=Number.isFinite(frameAt)?frameAt:now;
+      const gap=Math.max(0,observedFrameAt-previousFrameAt);previousFrameAt=observedFrameAt;
+      diagnostic.frameCount++;diagnostic.maxRafGapMilliseconds=Math.max(diagnostic.maxRafGapMilliseconds,gap);
+      const documentState={visibility:document.visibilityState||'unknown',focused:document.hasFocus?.()??null};
+      const documentKey=JSON.stringify(documentState),sampleChanged=key!==previous,documentChanged=documentKey!==previousDocument;
+      if(sampleChanged)diagnostic.sampleChanges++;if(documentChanged)diagnostic.documentChanges++;
+      if(sampleChanged||documentChanged) {
+        if(diagnostic.changes.length<diagnostic.changeLimit)diagnostic.changes.push({afterMilliseconds:now-started,
+          frameGapMilliseconds:gap,sample,document:documentState});else diagnostic.droppedChanges++;
+      }
+      previousDocument=documentKey;
+      if(key!==previous||sample.fonts==='loading'){previous=key;stableSince=now;frames=0;}else frames++;
+      diagnostic.last={afterMilliseconds:now-started,frameGapMilliseconds:gap,sample,document:documentState,
+        stableFrames:frames,stableMilliseconds:now-stableSince};
+      if(frames<4||now-stableSince<150)continue;
+      assert(window.MagnolieZeichnen.valid(module?.drawing)&&module.drawing.strokes.length===0,'Input preparation requires an empty valid drawing');
+      assert(window.__domainPointers.down===0&&window.__domainPointers.move===0&&window.__domainPointers.up===0,'Input baseline must precede native pointers');
+      const top=Math.max(rect.top,0),bottom=Math.min(rect.bottom,innerHeight);
+      assert(rect.width>100&&bottom-top>80,'Drawing canvas is not visible enough for a native stroke');
+      const target={x1:rect.left+rect.width*.2,x2:rect.left+rect.width*.75,y:top+(bottom-top)*.45};
+      const hit=drawingTargetReady(target);
+      window.__domainCanvasBefore=canvas.toDataURL('image/png');
+      window.__domainIntendedStroke={widthFraction:(target.x2-target.x1)/rect.width};
+      diagnostic.outcome='ready';
+      return {target,readiness:{...hit,geometry:sample,stableFrames:frames,stableMilliseconds:now-stableSince}};
+    }
+    diagnostic.outcome='deadline';
+    throw Error('Drawing geometry/bitmap/fonts did not settle within 3 seconds: '+JSON.stringify(last));
+  }
+  async function prepare() {
+    assert(T.daten().customOrganizer.modules.length===0,'Domain acceptance requires an unused disposable custom organizer');
+    assert(['vitalwerte','blutzucker','medikamente'].every(key=>T.daten().gesundheit[key].length===0),'Domain acceptance requires unused disposable health tables');
+    T.oeffneEinstellungen();await tick();
+    for(const id of ['allgemein-register-gesundheit','allgemein-register-custom']) {const box=$('#'+id);assert(box,'Missing optional tab setting');if(!box.checked)box.click();await tick();}
+    set('#allgemein-custom-name','Synthetic domains');
+    $('#einst-tab-kalender').click();await tick();
+    for(const [kind,value] of [['temperatur','celsius'],['gewicht','kg'],['groesse','cm'],['blutzucker','mmol/L']]) {
+      set('#kalender-gesundheit-einheit-'+kind,value);await tick();
+    }
+    T.schliesseEinstellungen();await save();return {settingsThroughUi:true};
+  }
+  async function health() {
+    await T.wechsel('gesundheit');await tick();aria('.gesundheit-kopfwahl button','Vital signs');await tick();
+    let row=$('.vitalwert-tabelle tbody tr');assert(row,'Missing vital table');
+    let inputs=[...row.querySelectorAll('input')];assert(inputs.length===8,'Unexpected vital table contract');
+    date(inputs[0],'2030-05-13');set(inputs[1],'08:10');
+    [72,118,78,999,68.4,172].forEach((value,index)=>set(inputs[index+2],value));
+    click('.gesundheit-tabellenaktionen button','Save');await tick();
+    assert(T.daten().gesundheit.vitalwerte.length===0,'Invalid health value was committed');
+    set(inputs[5],36.6);click('.gesundheit-tabellenaktionen button','Save');await tick();await save();
+    const vital=T.daten().gesundheit.vitalwerte[0];assert(vital&&vital.puls===72&&vital.systolisch===118&&vital.temperatur===36.6,'Vital UI values lost');
+    aria('.gesundheit-kopfwahl button','Blood glucose table');await tick();
+    row=$('.blutzucker-tabelle tbody tr');inputs=[...row.querySelectorAll('input')];assert(inputs.length===5,'Unexpected glucose table contract');
+    date(inputs[0],'2030-05-13');set(inputs[1],'08:15');set(inputs[2],5.6);set(inputs[3],0);set(inputs[4],'Synthetic test context');
+    click('.gesundheit-tabellenaktionen button','Save');await tick();await save();
+    assert(T.daten().gesundheit.blutzucker[0]?.wert===5.6,'Glucose UI value lost');
+    aria('.gesundheit-kopfwahl button','Medication plan');await tick();
+    const left=$('.medikament-links tbody tr'),right=$('.medikament-rechts tbody tr');
+    inputs=[...left.querySelectorAll('input')];set(inputs[0],'Synthetic fixture — not medication');set(inputs[1],'Test only');
+    const form=left.querySelector('select');set(form,[...form.options].find(option=>option.value)?.value||form.options[0].value);
+    inputs=[...right.querySelectorAll('input')];assert(inputs.length===8,'Unexpected medication table contract');
+    ['1','','','','1','fixture unit','Software test','No clinical use'].forEach((value,index)=>set(inputs[index],value));
+    click('.gesundheit-tabellenaktionen button','Save');await tick();await save();
+    assert(T.daten().gesundheit.medikamente[0]?.name==='Synthetic fixture — not medication','Medication UI row lost');
+    const retained=JSON.stringify(T.daten().gesundheit);
+    set('.medikament-links tbody tr input','Discarded synthetic change');click('.gesundheit-tabellenaktionen button','Discard');await tick();
+    assert(JSON.stringify(T.daten().gesundheit)===retained,'Discard changed persisted health records');
+    aria('.gesundheit-kopfwahl button','Vital signs');await tick();
+    set($('.vitalwert-tabelle tbody tr').querySelectorAll('input')[2],73);click('.gesundheit-tabellenaktionen button','Save');await tick();await save();
+    assert(T.daten().gesundheit.vitalwerte.length===1&&T.daten().gesundheit.vitalwerte[0].puls===73,'Vital edit duplicated or lost record');
+    return {vitalRows:1,glucoseRows:1,medicationRows:1,invalidValueRejected:true,discardPreserved:true,editPreserved:true};
+  }
+  async function addModule(type,title) {
+    const before=new Set(T.daten().customOrganizer.modules.map(module=>module.id));
+    T.oeffneCustomDesigner();await tick();set('.custom-designer-werkzeuge select',type);click('.custom-designer-werkzeuge button','Add');await tick();
+    const module=T.daten().customOrganizer.modules.find(item=>!before.has(item.id));assert(module,'Designer did not create module');
+    const card=[...document.querySelectorAll('.custom-editor-karte')].find(item=>item.dataset.moduleId===module.id);set(card.querySelector('input[type=text]'),title);
+    $('.custom-designer-kopf button').click();await tick();return module.id;
+  }
+  async function custom() {
+    await T.wechsel('custom');await tick();
+    await addModule('appointments','Synthetic appointment block');await T.wechsel('custom');await tick();
+    $('.custom-modul-appointments .custom-modul-kopf-aktionen button').click();await tick();
+    set('.custom-titel-zeile input','Synthetic domain appointment');date($('.custom-eintrag-formular .datumsfeld'),'2030-05-14');
+    set('.custom-eintrag-formular .zeitfeld','12:35');set('.custom-notiz-zeile textarea','Synthetic retained appointment note');click('.custom-eintrag-aktionen button','Add');await tick();
+    $('.custom-modul-appointments .custom-modul-eintrag').click();await tick();set('.custom-eintrag-formular .zeitfeld','13:05');
+    click('.custom-eintrag-aktionen button','Save changes');await tick();
+    await addModule('tasks','Synthetic task block');await T.wechsel('custom');await tick();
+    $('.custom-modul-tasks .custom-modul-kopf-aktionen button').click();await tick();
+    set('.custom-titel-zeile input','Synthetic domain task');date($('.custom-eintrag-formular .datumsfeld'),'2030-05-15');
+    set('.custom-eintrag-formular .zeitfeld','13:40');click('.custom-eintrag-aktionen button','Add');await tick();
+    $('.custom-modul-tasks input[type=checkbox]').click();await tick();
+    await addModule('notes','Synthetic text block');await T.wechsel('custom');await tick();
+    const plus=[...document.querySelectorAll('.custom-modul-notes .custom-modul-kopf-aktionen button')].find(button=>button.textContent==='+');assert(plus,'Missing custom text add');plus.click();await tick();
+    const editor=$('.custom-modul-notes .custom-text-editor');assert(editor&&editor.isContentEditable!==false,'Missing custom text editor');
+    editor.textContent='Synthetic domain text — preserved';editor.dispatchEvent(new Event('input',{bubbles:true}));await save();
+    const modules=T.daten().customOrganizer.modules;
+    assert(modules.find(module=>module.type==='appointments')?.items[0]?.time==='13:05','Custom appointment edit lost');
+    assert(modules.find(module=>module.type==='tasks')?.items[0]?.time==='13:40'&&modules.find(module=>module.type==='tasks').items[0].done,'Custom task completion lost');
+    assert(modules.find(module=>module.type==='notes')?.items.some(item=>item.text.includes('Synthetic domain text')),'Custom text lost');
+    return {moduleTypes:['appointments','tasks','notes'],uiDesigner:true};
+  }
+  async function drawing() {
+    await addModule('drawing','Synthetic drawing sheet');await T.wechsel('custom');await tick();
+    const canvas=$('.custom-zeichenblatt');assert(canvas,'Missing actual drawing canvas');
+    canvas.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});await tick();
+    window.__domainPointers={down:0,move:0,up:0,untrusted:0,pressedMove:0};
+    for(const [type,key] of [['pointerdown','down'],['pointermove','move'],['pointerup','up']]) canvas.addEventListener(type,event=>{
+      if(event.isTrusted){window.__domainPointers[key]++;if(key==='move'&&(event.buttons&1))window.__domainPointers.pressedMove++;}else window.__domainPointers.untrusted++;
+    });
+    return (await drawingInputReady()).target;
+  }
+  function drawingReplayState(canvas,module) {
+    assert(canvas.width*canvas.height<=4*1024*1024,'Synthetic replay diagnostic raster limit');
+    const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+    const png=canvas.toDataURL('image/png'),rect=canvas.getBoundingClientRect();
+    const hash=bytes=>{let value=2166136261;for(const byte of bytes)value=Math.imul(value^byte,16777619);return (value>>>0).toString(16).padStart(8,'0');};
+    const currentCanvas=$('.custom-zeichenblatt'),currentModule=T.daten().customOrganizer.modules.find(value=>value.id===module.id);
+    const ancestry=[];
+    for(let node=canvas;node&&ancestry.length<12;node=node.parentElement) {
+      const style=getComputedStyle(node),box=node.getBoundingClientRect();
+      ancestry.push({tag:node.tagName,id:node.id,className:String(node.className||'').slice(0,160),
+        client:[node.clientWidth,node.clientHeight],offset:[node.offsetWidth,node.offsetHeight],rect:[box.left,box.top,box.width,box.height],
+        computed:[style.width,style.height],transform:style.transform,transformOrigin:style.transformOrigin,zoom:style.zoom||'normal'});
+    }
+    return {pixels,png,summary:{canvasConnected:canvas.isConnected,currentCanvasSame:currentCanvas===canvas,currentModuleSame:currentModule===module,
+      controls:[...document.querySelectorAll('.zeichen-werkzeuge button')].filter(button=>[tr('Undo'),tr('Redo')].includes(button.getAttribute('aria-label'))).map(button=>({label:button.getAttribute('aria-label'),connected:button.isConnected,disabled:button.disabled})),
+      bitmap:[canvas.width,canvas.height],geometry:[rect.left,rect.top,rect.width,rect.height],ancestry,
+      drawing:clone(module.drawing),pixelFNV1a32:hash(pixels),pngFNV1a32:hash(new TextEncoder().encode(png)),pngLength:png.length}};
+  }
+  function drawingReplayDiff(before,after,width) {
+    if(before.length!==after.length)return {sameLength:false,before:before.length,after:after.length};
+    let channels=0,maxDelta=0;const samples=[];let left=Infinity,top=Infinity,right=-1,bottom=-1;
+    for(let index=0;index<before.length;index++) {
+      const delta=Math.abs(before[index]-after[index]);if(!delta)continue;
+      channels++;maxDelta=Math.max(maxDelta,delta);
+      const pixel=Math.floor(index/4),x=pixel%width,y=Math.floor(pixel/width);
+      left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);
+      if(samples.length<16)samples.push({x,y,channel:index%4,before:before[index],after:after[index]});
+    }
+    return {sameLength:true,changedChannels:channels,maxDelta,bounds:channels?[left,top,right,bottom]:null,samples};
+  }
+  // Test-only #458 matrix. Synthetic editor-API replays are not native input.
+  function drawingReplayMatrix(actualBefore,actualRedo,source) {
+    const bookBefore=JSON.stringify(T.daten()),immutable=JSON.stringify(source),owned=[],controllers=[];
+    const started=performance.now(),result={input:'synthetic immutable editor-API replay; not native gesture',comparisons:{}};
+    const width=source.width,height=source.height,stroke=source.strokes[0];
+    const readbackLimitPixels=4000000;let readbackPixels=5*width*height,readbackReads=5; // Native before/Undo2/Redo2 already read.
+    const release=value=>{value.remove();value.width=value.height=1;};
+    const hash=bytes=>{let value=2166136261;for(const byte of bytes)value=Math.imul(value^byte,16777619);return (value>>>0).toString(16).padStart(8,'0');};
+    const canvas=()=>{const value=document.createElement('canvas');owned.push(value);return value;};
+    const read=value=>{
+      assert(value.width===width&&value.height===height,'Synthetic replay changed bitmap size');
+      assert(readbackPixels+width*height<=readbackLimitPixels,'Synthetic replay readback pixel budget exceeded');
+      readbackPixels+=width*height;readbackReads++;
+      return value.getContext('2d').getImageData(0,0,width,height).data;
+    };
+    const compare=(name,a,b)=>{result.comparisons[name]={...drawingReplayDiff(a,b,width),beforeFNV1a32:hash(a),afterFNV1a32:hash(b)};};
+    try {
+      assert(((width<=540&&height<=236&&width>0&&height>0)||(width===794&&height===236))&&source.strokes.length===1&&stroke.tool==='pen'&&stroke.points.length<=25,
+        'Synthetic replay matrix input exceeds approved pen fixture bounds');
+      const direct=canvas(),second=canvas(),copy=canvas();
+      MagnolieZeichnen.render(direct,clone(source));const directPixels=read(direct);
+      MagnolieZeichnen.render(second,clone(source));compare('directTwice',directPixels,read(second));release(second);
+      copy.width=width;copy.height=height;copy.getContext('2d').drawImage(direct,0,0);
+      compare('directVsCopy',directPixels,read(copy));release(copy);release(direct);
+      compare('nativeLiveVsDirect',actualBefore,directPixels);compare('nativeRedoVsDirect',actualRedo,directPixels);
+      for(const attached of [false,true]) {
+        const target=canvas(),sheet={...clone(source),strokes:[]};
+        if(attached) {
+          const original=$('.custom-zeichenblatt'),rect=original.getBoundingClientRect();
+          Object.assign(target.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px',pointerEvents:'none'});
+          target.setAttribute('aria-hidden','true');document.body.append(target);
+        }
+        const controller=MagnolieZeichnen.attach(target,sheet,()=>{},error=>{throw Error(String(error));});controllers.push(controller);
+        controller.setTool(stroke.tool);controller.setWidth(stroke.width);controller.setColor(stroke.color);
+        controller.begin(...stroke.points[0]);for(const point of stroke.points.slice(1))controller.move(...point);controller.finish();
+        assert(JSON.stringify(sheet)===immutable,'Synthetic editor replay changed immutable fixture semantics');
+        const live=read(target),prefix=attached?'attachedEditor':'detachedEditor';
+        controller.undo();controller.redo();const redo=read(target);
+        assert(JSON.stringify(sheet)===immutable,'Synthetic Undo/Redo changed immutable fixture semantics');
+        compare(prefix+'LiveVsRedo',live,redo);compare(prefix+'LiveVsDirect',live,directPixels);
+        compare(prefix+'RedoVsDirect',redo,directPixels);
+        controller.destroy();controllers.pop();release(target);
+      }
+      result.readbackSequences={scope:'detached synthetic controls; canvas backend is unknown, not claimed equal to native or attached canvas'};
+      for(const withPixels of [false,true]) {
+        const target=canvas(),sheet={...clone(source),strokes:[]};
+        const controller=MagnolieZeichnen.attach(target,sheet,()=>{},error=>{throw Error(String(error));});controllers.push(controller);
+        const sample=()=>{
+          const pixels=withPixels?read(target):null,png=target.toDataURL('image/png');
+          return {pixels,png,summary:{pngLength:png.length,pngFNV1a32:hash(new TextEncoder().encode(png)),...(pixels?{pixelFNV1a32:hash(pixels)}:{})}};
+        };
+        const blank=sample();blank.pixels=null;
+        controller.setTool(stroke.tool);controller.setWidth(stroke.width);controller.setColor(stroke.color);
+        controller.begin(...stroke.points[0]);for(const point of stroke.points.slice(1))controller.move(...point);controller.finish();
+        assert(JSON.stringify(sheet)===immutable,'Readback control changed immutable fixture semantics');
+        const live=sample();controller.undo();assert(sheet.strokes.length===0,'Readback control Undo did not clear stroke');
+        const undo=sample();undo.pixels=null;const freshUndo=sample();freshUndo.pixels=null;
+        controller.redo();assert(JSON.stringify(sheet)===immutable,'Readback control Redo changed immutable fixture semantics');
+        const redo=sample(),freshRedo=sample();freshRedo.pixels=null;
+        const key=withPixels?'getImageDataBeforeEachPNG':'pngOnly';
+        result.readbackSequences[key]={sequence:['blank','live','undo','freshUndo','redo','freshRedo'],pngReads:6,rgbaReads:withPixels?6:0,
+          samples:[blank,live,undo,freshUndo,redo,freshRedo].map(value=>value.summary),
+          liveRedoPNGEqual:live.png===redo.png,undoDuplicatePNGEqual:undo.png===freshUndo.png,redoDuplicatePNGEqual:redo.png===freshRedo.png,
+          modelUnchanged:true};
+        if(withPixels) {
+          compare(key+'LiveVsRedo',live.pixels,redo.pixels);compare(key+'LiveVsDirect',live.pixels,directPixels);
+          compare(key+'RedoVsDirect',redo.pixels,directPixels);
+        }
+        live.pixels=redo.pixels=null;
+        controller.destroy();controllers.pop();release(target);
+      }
+    } catch(error) {result.error=String(error.message||error).slice(0,240);}
+    finally {
+      for(const controller of controllers)try{controller.destroy();}catch(_){result.cleanupError=true;}
+      for(const node of owned)release(node);
+      result.readback={unit:'pixels',limit:readbackLimitPixels,used:readbackPixels,reads:readbackReads,nativeReadsReserved:5};
+      result.bookUnchanged=JSON.stringify(T.daten())===bookBefore;
+      result.fixtureUnchanged=JSON.stringify(source)===immutable;
+      result.elapsedMilliseconds=Math.round(performance.now()-started);
+    }
+    return result;
+  }
+  async function drawingProof() {
+    const module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
+    assert(module&&window.MagnolieZeichnen.valid(module.drawing)&&module.drawing.strokes.length===1,'Native input did not create one valid stroke');
+    const stroke=module.drawing.strokes[0],points=stroke.points;
+    const distinct=new Set(points.map(point=>JSON.stringify(point.slice(0,2)))).size;
+    assert(distinct>=3,'Native gesture did not create at least three distinct vector positions');
+    const xs=points.map(point=>point[0]),extent=Math.max(...xs)-Math.min(...xs);
+    const intended=window.__domainIntendedStroke.widthFraction;
+    assert(extent>=intended*.5,'Native stroke did not traverse a meaningful fraction of its intended path');
+    const canvas=$('.custom-zeichenblatt'),beforeUndo=drawingReplayState(canvas,module),after=beforeUndo.png;
+    window.__domainReplayDiagnostics={beforeUndo:beforeUndo.summary};
+    assert(after!==window.__domainCanvasBefore,'Native stroke changed no rendered pixels');
+    const pointer=window.__domainPointers;assert(pointer.down>0&&pointer.move>0&&pointer.up>0&&pointer.untrusted===0&&pointer.pressedMove>0,'Native stroke lacked trusted pressed-button pointer events');
+    aria('.zeichen-werkzeuge button','Undo');await tick();assert(module.drawing.strokes.length===0,'Drawing Undo did not remove stroke');
+    window.__domainReplayDiagnostics.afterUndo=drawingReplayState(canvas,module).summary;
+    const undoCanvas=$('.custom-zeichenblatt'),undoModule=T.daten().customOrganizer.modules.find(value=>value.id===module.id);
+    window.__domainReplayDiagnostics.freshAfterUndo=undoCanvas&&undoModule?drawingReplayState(undoCanvas,undoModule).summary:{missing:true};
+    aria('.zeichen-werkzeuge button','Redo');await tick();assert(module.drawing.strokes.length===1,'Drawing Redo did not restore stroke');
+    const afterRedo=drawingReplayState(canvas,module);
+    window.__domainReplayDiagnostics.afterRedo=afterRedo.summary;
+    const redoCanvas=$('.custom-zeichenblatt'),redoModule=T.daten().customOrganizer.modules.find(value=>value.id===module.id);
+    if(redoCanvas&&redoModule) {
+      const freshRedo=drawingReplayState(redoCanvas,redoModule);
+      window.__domainReplayDiagnostics.freshAfterRedo=freshRedo.summary;
+      window.__domainReplayDiagnostics.freshDiff=drawingReplayDiff(beforeUndo.pixels,freshRedo.pixels,redoCanvas.width);
+    }else window.__domainReplayDiagnostics.freshAfterRedo={missing:true};
+    window.__domainReplayDiagnostics.diff=drawingReplayDiff(beforeUndo.pixels,afterRedo.pixels,canvas.width);
+    if(afterRedo.png!==after) {
+      try {window.__domainReplayDiagnostics.matrix=drawingReplayMatrix(beforeUndo.pixels,afterRedo.pixels,clone(beforeUndo.summary.drawing));}
+      catch(error) {window.__domainReplayDiagnostics.matrix={error:String(error.message||error).slice(0,240)};}
+    }
+    assert(afterRedo.png===after,'Drawing Redo did not restore rendered pixels');await save();
+    return {strokeCount:1,pointCount:points.length,distinctPoints:distinct,strokeExtent:extent,intendedExtent:intended,pixelChange:true,undoRedo:true,pointer};
+  }
+  const snapshot=()=>clone({health:T.daten().gesundheit,custom:T.daten().customOrganizer,tab:T.daten().einstellungen.allgemein.customTab,units:T.daten().einstellungen.kalender.gesundheitEinheiten});
+  // The canonical health normalizer adds only this absent optional zero field
+  // to freshly created vital rows. Preserve every existing value and every other
+  // field; this clone is an expected-result policy, never a product-model write.
+  const expectedAfterReopen=value=>{
+    const expected=clone(value),health=expected.health||expected.gesundheit;
+    for(const row of health?.vitalwerte||[]) if(!Object.hasOwn(row,'sauerstoff')) row.sauerstoff=0;
+    return expected;
+  };
+  return {coverTarget,opened,drawingTargetReady,drawingInputReady,prepare,health,custom,drawing,drawingProof,snapshot,expectedAfterReopen};
+})();

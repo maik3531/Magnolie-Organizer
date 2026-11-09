@@ -2,22 +2,37 @@
 
 ## Version And Names
 
-`Resources/BetaIdentity.json` is the Beta version input: **2.0.18-beta.1**.
-The projected About/version and Beta release-note metadata use it. Desktop release
+`Resources/BetaIdentity.json` is the Beta version input: **2.0.30-beta.1**.
+The projected About/version and Beta release-note metadata use it.
+The target desktop baseline is 2.0.30; this prerelease identity does not imply
+native feature parity or completed macOS acceptance. Desktop release
 notes advertising unavailable native sync features are not presented as Beta features.
 
 - Display name, executable and `.app`: `Magnolie Organizer macOS Beta`.
 - Bundle identifier: `io.gitlab.maik3531.MagnolieOrganizer.macOSBeta`.
-- `CFBundleShortVersionString`: `2.0.18` (Apple numeric format).
-- `CFBundleVersion`: `2018.1` (numeric Beta build sequence).
-- `MagnolieBetaVersion`: `2.0.18-beta.1` (full semantic prerelease identity).
+- `CFBundleShortVersionString`: `2.0.30` (Apple numeric format).
+- `CFBundleVersion`: `2030.1` (numeric Beta build sequence).
+- `MagnolieBetaVersion`: `2.0.30-beta.1` (full semantic prerelease identity).
 - Development artifact path:
-  `Output/Magnolie Organizer macOS Beta-2.0.18-beta.1/Magnolie Organizer macOS Beta.app`.
+  `Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app`.
 - Export/recovery filenames contain `macOS Beta`; generated build records contain
   the full version, source input hashes and explicit native-UI/release false flags.
 
 Changing a version requires changing the identity input and matching plist values;
 tests/build checks reject disagreement. An existing output is retained, not overwritten.
+
+## Deployment target
+
+The minimum application system is macOS **12.7**, recorded consistently in the
+Swift package, Beta identity and `LSMinimumSystemVersion`. Both x86_64 Intel and
+arm64 Apple Silicon builds target this version. The builder pins the deployment
+environment and refuses a Mach-O minimum version that differs from the identity.
+This broadens the build target to many 2016-era Intel Macs; it does not establish
+runtime acceptance on those machines. Current native evidence is macOS 15 only.
+Monterey startup/WebKit/permission behavior remains unverified until tested on a
+real macOS 12.7 host. No crypto or TLS requirement is lowered for older systems.
+SDK availability checks remain active, including the EventKit 14 permission guard
+and its older-system fallback. Future systems and all device models are not implied.
 
 ## Isolation And Data
 
@@ -51,16 +66,19 @@ Crypto fixtures use public synthetic data and are test resources, not a live ide
 
 ## Runner And Release Boundary
 
-Only the macOS subtree is owned by this phase. The repository has ongoing work by
-other owners. No changes to shared frontend/desktop files or active workflows are
-part of the port. No commit, push, CI dispatch, remote publication, VM, OS image,
-GPU task or production signing was performed.
+The user authorized updating both ports and using a GitHub Actions macOS runner.
+The dedicated `ports-2.0.30.yml` workflow implements this request with read-only
+contents permissions, no persisted checkout credentials, isolated dependencies,
+two Swift jobs, a 25-minute Mac job limit and checksummed candidate uploads.
+The tablet job retains its original process/resource/coordination gates. Desktop
+sources are selected from the pinned published 2.0.30 commit only inside the
+disposable runner. Shared sources and the Windows release workflow are unchanged
+in the development checkout. The older example workflow remains inactive.
 
-`ci/macos-beta-manual.yml.example` is an inactive, manual-only proposal for a real
-GitHub macOS runner. Installing it requires explicit approval on a reviewed ref.
-It has read-only contents permissions, no persisted checkout credentials, isolated
-test dependencies, Swift jobs limited to two, a 15-minute job cap, and no upload
-or release steps. Linux Swift tests cannot substitute for Apple's SDK or macOS.
+An Actions artifact is a development candidate; it is not a production release
+or proof of complete native acceptance. Linux tests cannot substitute for Apple's
+SDK or macOS. Runner execution, test outcomes and artifact availability must each
+be verified before reporting success.
 
 The local development builder prepares a debug app and local ad-hoc signature on
 macOS only. That is not production signing, notarization, Gatekeeper approval or

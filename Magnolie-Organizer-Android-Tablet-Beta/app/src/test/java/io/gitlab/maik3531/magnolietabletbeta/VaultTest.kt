@@ -19,6 +19,19 @@ class VaultTest {
     private fun alarm(custom: Boolean = false) = JSONObject().put("id","a").put("at",100000L)
         .put("title","Private task").put("section","aufgaben").put("custom",custom)
     private fun reject(block: () -> Unit) { try { block(); fail("Must reject") } catch (_: Exception) {} }
+    private fun restoredPayload(expected:JSONObject,actual:JSONObject) {
+        for(key in expected.keys().asSequence()) {
+            if(key=="einstellungen") {
+                val source=expected.getJSONObject(key);val target=actual.getJSONObject(key)
+                for(setting in source.keys().asSequence()) assertTrue(JSONObject().put("v",source.get(setting)).similar(JSONObject().put("v",target.get(setting))))
+            } else assertTrue(key,JSONObject().put("v",expected.get(key)).similar(JSONObject().put("v",actual.get(key))))
+        }
+        assertEquals(expected.keys().asSequence().toSet()+setOf("syncEpoch","syncMetadaten","geloescht","tombstones","baumKontaktGeloescht","syncNachRestore","personalSync"),actual.keys().asSequence().toSet())
+        val epoch=actual.getString("syncEpoch");java.util.UUID.fromString(epoch)
+        assertEquals(epoch,actual.getJSONObject("syncMetadaten").getString("syncEpoch"))
+        assertEquals(epoch,actual.getJSONObject("einstellungen").getJSONObject("sync").getString("syncEpoch"))
+        assertTrue(actual.getJSONObject("syncNachRestore").getBoolean("additiv"))
+    }
     private fun Vault.session(): DocumentSession = openSession().session.also { activate(it) }
     // Unrelated primitive tests explicitly start a new loaded/acknowledged page per operation.
     private fun Vault.save(text: String, alarms: JSONArray): JSONObject = save(session(),text,alarms)
@@ -165,16 +178,36 @@ class VaultTest {
         val dir=Files.createTempDirectory("tablet-a2-channel").toFile()
         try {
             val key=key(); var armed=false
+            val vault=Vault(dir,{key},checkpoint={if(it=="backup-sync") armed=true},syncDirectory={directory ->
+                val channel=java.nio.channels.FileChannel.open(directory.toPath(),java.nio.file.StandardOpenOption.READ)
+                channel.use {if(armed) {armed=false; it.close()}; it.force(true)}
+            })
+            vault.save(data("A").toString(),JSONArray()); val page=vault.session()
+            val token=vault.prepareImport(page,data("B").toString())
+            try {vault.replace(page,token); fail("Expected channel failure")}
+            catch(e: CommitFailure) {assertEquals("uncertain",e.outcome); assertTrue(e.cause is java.nio.channels.ClosedChannelException)}
+            reject {vault.save(page,data("A").toString(),JSONArray())}
+            assertEquals("B",vault.read()!!.getJSONObject("data").getJSONArray("termine").getJSONObject(0).getString("titel"))
+        } finally {dir.deleteRecursively()}
+    }
+    @Test fun closedFileChannelAtBackupDirectorySyncKeepsPrimaryAndFencesRestore() {
+        val dir=Files.createTempDirectory("tablet-a2-backup-channel").toFile()
+        try {
+            val key=key(); var armed=false
             val vault=Vault(dir,{key},syncDirectory={directory ->
                 val channel=java.nio.channels.FileChannel.open(directory.toPath(),java.nio.file.StandardOpenOption.READ)
                 channel.use {if(armed) {armed=false; it.close()}; it.force(true)}
             })
             vault.save(data("A").toString(),JSONArray()); val page=vault.session()
             val token=vault.prepareImport(page,data("B").toString()); armed=true
-            try {vault.replace(page,token); fail("Expected channel failure")}
-            catch(e: CommitFailure) {assertEquals("uncertain",e.outcome); assertTrue(e.cause is java.nio.channels.ClosedChannelException)}
-            reject {vault.save(page,data("A").toString(),JSONArray())}
-            assertEquals("B",vault.read()!!.getJSONObject("data").getJSONArray("termine").getJSONObject(0).getString("titel"))
+            try {vault.replace(page,token); fail("Expected backup directory barrier failure")}
+            catch(e: CommitFailure) {assertEquals("before-commit",e.outcome); assertTrue(e.cause is java.nio.channels.ClosedChannelException)}
+            assertFalse(vault.isWritable(page))
+            reject {vault.save(page,data("B").toString(),JSONArray())}
+            assertEquals("A",vault.read()!!.getJSONObject("data").getJSONArray("termine").getJSONObject(0).getString("titel"))
+            val loaded=vault.openSession(); vault.activate(loaded.session)
+            assertTrue(vault.isWritable(loaded.session)); assertNotEquals(page.id,loaded.session.id)
+            reject {vault.replace(loaded.session,token)}
         } finally {dir.deleteRecursively()}
     }
     @Test fun nativeImportTokenBindsSelectedBytesSessionAndLatestRevision() {
@@ -193,8 +226,8 @@ class VaultTest {
             val current=vault.session(); val currentToken=vault.prepareImport(current,imported.toString())
             reject {vault.replace(DocumentSession("another-activity",current.revision),currentToken)}
             val result=vault.replace(current,currentToken)
-            assertTrue(imported.similar(result.getJSONObject("data")))
-            assertTrue(imported.similar(vault.read()!!.getJSONObject("data")))
+            restoredPayload(imported,result.getJSONObject("data"))
+            restoredPayload(imported,vault.read()!!.getJSONObject("data"))
             assertNotEquals(current.revision,result.getString("revision"))
             reject {vault.save(current,data("A").toString(),JSONArray())}
             reject {vault.replace(current,currentToken)}
@@ -202,7 +235,7 @@ class VaultTest {
             assertNotEquals(current.id,loaded.session.id)
             reject {recreated.activate(current)}
             recreated.activate(loaded.session)
-            assertTrue(imported.similar(loaded.value!!.getJSONObject("data")))
+            restoredPayload(imported,loaded.value!!.getJSONObject("data"))
             assertFalse(loaded.value.getBoolean("enabled")); assertFalse(loaded.value.getBoolean("customEnabled"))
         } finally {dir.deleteRecursively()}
     }

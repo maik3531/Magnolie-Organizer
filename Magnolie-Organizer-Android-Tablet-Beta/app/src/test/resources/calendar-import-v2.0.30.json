@@ -1,0 +1,533 @@
+{
+  "canonicalTag": "v2.0.30",
+  "canonicalCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+  "canonicalSources": {
+    "magnolie-organizer/bin/magnolie-organizer": "8a32d046a326b2bfdf236f8de7070917e8b729f0f71f518968a169b246893f76",
+    "magnolie-organizer/bin/magnolie_recurrence.py": "86269e77f87d0bc671733151053378077acc7eda417adce47f1395e7357ed6fe"
+  },
+  "cases": [
+    {
+      "name": "ordinal",
+      "importSource": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:monthly-ordinal\r\nDTSTAMP:20261108T161204Z\r\nDTSTART;VALUE=DATE:20240111\r\nDTEND;VALUE=DATE:20240112\r\nRRULE:FREQ=MONTHLY;BYDAY=2TH\r\nSUMMARY:Zweiter Donnerstag\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "importExpected": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "UTC",
+            "datum": "2024-01-11",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "Zweiter Donnerstag",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "monthly",
+              "bis": "",
+              "ordinal": 2,
+              "wochentag": "TH"
+            },
+            "icsKomplex": false,
+            "icsSerienUid": "",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20240111",
+              "DTEND;VALUE=DATE:20240112",
+              "RRULE:FREQ=MONTHLY;BYDAY=2TH"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "monthly-ordinal",
+            "geaendert": 1794154324000
+          }
+        ],
+        "aufgaben": [],
+        "jahrestage": []
+      }
+    },
+    {
+      "name": "setpos",
+      "importSource": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:UTC\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0000\r\nTZNAME:UTC\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:monthly-setpos\r\nDTSTAMP:20261108T161204Z\r\nDTSTART;TZID=UTC:20260130T091500\r\nDTEND;TZID=UTC:20260131T104500\r\nRRULE:FREQ=MONTHLY;BYDAY=FR;BYSETPOS=-1;UNTIL=20270131T091500Z\r\nSUMMARY:Letzter Freitag\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "importExpected": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "UTC",
+            "datum": "2026-01-30",
+            "endDatum": "2026-01-31",
+            "zeit": "09:15",
+            "endZeit": "10:45",
+            "titel": "Letzter Freitag",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "monthly",
+              "bis": "2027-01-31",
+              "ordinal": -1,
+              "wochentag": "FR",
+              "rruleForm": "bysetpos"
+            },
+            "icsKomplex": false,
+            "icsSerienUid": "",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;TZID=UTC:20260130T091500",
+              "DTEND;TZID=UTC:20260131T104500",
+              "RRULE:FREQ=MONTHLY;BYDAY=FR;BYSETPOS=-1;UNTIL=20270131T091500Z"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "monthly-setpos",
+            "geaendert": 1794154324000,
+            "icsTimezones": [
+              [
+                "BEGIN:VTIMEZONE",
+                "TZID:UTC",
+                "BEGIN:STANDARD",
+                "DTSTART:19700101T000000",
+                "TZOFFSETFROM:+0000",
+                "TZOFFSETTO:+0000",
+                "TZNAME:UTC",
+                "END:STANDARD",
+                "END:VTIMEZONE"
+              ]
+            ]
+          }
+        ],
+        "aufgaben": [],
+        "jahrestage": []
+      }
+    },
+    {
+      "name": "custom-exdate",
+      "importSource": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:custom-days\r\nDTSTAMP:20261108T161204Z\r\nDTSTART;VALUE=DATE:20260327\r\nDTEND;VALUE=DATE:20260328\r\nRDATE;VALUE=DATE:20260329,20260402\r\nEXDATE;VALUE=DATE:20260329\r\nSUMMARY:Zusatztermine\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "importExpected": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "UTC",
+            "datum": "2026-03-27",
+            "endDatum": "",
+            "zeit": "",
+            "endZeit": "",
+            "titel": "Zusatztermine",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "custom-days",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20260327",
+              "DTEND;VALUE=DATE:20260328",
+              "RDATE;VALUE=DATE:20260329,20260402",
+              "EXDATE;VALUE=DATE:20260329"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "custom-days",
+            "geaendert": 1794154324000
+          }
+        ],
+        "aufgaben": [],
+        "jahrestage": []
+      }
+    },
+    {
+      "name": "tasks",
+      "importSource": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTIMEZONE\r\nTZID:UTC\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0000\r\nTZNAME:UTC\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VTODO\r\nUID:task-parent\r\nDTSTAMP:20261108T161204Z\r\nSUMMARY:Task ü\r\nDTSTART;TZID=UTC:20260328T100000\r\nDUE;TZID=UTC:20260329T100000\r\nPRIORITY:1\r\nSTATUS:COMPLETED\r\nPERCENT-COMPLETE:100\r\nDESCRIPTION:Line 1\\nLine 2\\, semicolon\\;\r\nX-MAGNOLIE-ERINNERUNG-AM-TAG:1\r\nX-MAGNOLIE-ERINNERUNG-TAGE:2\r\nX-MAGNOLIE-REIHENFOLGE:3\r\nX-MAGNOLIE-TASK-IDENTITY:{\"parent\":\"\"\\,\"parentSource\":\"\"\\,\"source\":\"\"\\,\"uid\r\n \":\"task-parent\"\\,\"v\":1}\r\nEND:VTODO\r\nBEGIN:VTODO\r\nUID:task-child\r\nDTSTAMP:20261108T161204Z\r\nSUMMARY:Child\r\nDUE;VALUE=DATE:20260401\r\nPRIORITY:9\r\nRELATED-TO;RELTYPE=PARENT:task-parent\r\nX-MAGNOLIE-REIHENFOLGE:4\r\nX-MAGNOLIE-TASK-IDENTITY:{\"parent\":\"task-parent\"\\,\"parentSource\":\"\"\\,\"sourc\r\n e\":\"\"\\,\"uid\":\"task-child\"\\,\"v\":1}\r\nEND:VTODO\r\nEND:VCALENDAR\r\n",
+      "importExpected": {
+        "termine": [],
+        "aufgaben": [
+          {
+            "titel": "Task ü",
+            "faellig": "2026-03-29",
+            "icsAnzeigeZeitzone": "UTC",
+            "startDatum": "2026-03-28",
+            "startZeit": "10:00",
+            "faelligZeit": "10:00",
+            "prio": 1,
+            "erledigt": true,
+            "notiz": "Line 1\nLine 2, semicolon;",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "erinnern": true,
+            "individuelleErinnerungTage": 2,
+            "uid": "task-parent",
+            "icsSerienUid": "",
+            "elternUid": "",
+            "icsElternUid": "",
+            "reihenfolge": 3,
+            "geaendert": 1794154324000,
+            "icsRoundtrip": [
+              "DTSTART;TZID=UTC:20260328T100000",
+              "DUE;TZID=UTC:20260329T100000"
+            ],
+            "icsElternQuelleId": "",
+            "icsQuelleId": "",
+            "icsTimezones": [
+              [
+                "BEGIN:VTIMEZONE",
+                "TZID:UTC",
+                "BEGIN:STANDARD",
+                "DTSTART:19700101T000000",
+                "TZOFFSETFROM:+0000",
+                "TZOFFSETTO:+0000",
+                "TZNAME:UTC",
+                "END:STANDARD",
+                "END:VTIMEZONE"
+              ]
+            ]
+          },
+          {
+            "titel": "Child",
+            "faellig": "2026-04-01",
+            "icsAnzeigeZeitzone": "UTC",
+            "startDatum": "",
+            "startZeit": "",
+            "faelligZeit": "",
+            "prio": 3,
+            "erledigt": false,
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "erinnern": false,
+            "individuelleErinnerungTage": 0,
+            "uid": "task-child",
+            "icsSerienUid": "",
+            "elternUid": "task-parent",
+            "icsElternUid": "task-parent",
+            "reihenfolge": 4,
+            "geaendert": 1794154324000,
+            "icsRoundtrip": [
+              "DUE;VALUE=DATE:20260401"
+            ],
+            "icsElternQuelleId": "",
+            "icsQuelleId": "",
+            "icsTimezones": [
+              [
+                "BEGIN:VTIMEZONE",
+                "TZID:UTC",
+                "BEGIN:STANDARD",
+                "DTSTART:19700101T000000",
+                "TZOFFSETFROM:+0000",
+                "TZOFFSETTO:+0000",
+                "TZNAME:UTC",
+                "END:STANDARD",
+                "END:VTIMEZONE"
+              ]
+            ]
+          }
+        ],
+        "jahrestage": []
+      }
+    },
+    {
+      "name": "anniversaries",
+      "importSource": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Magnolie Organizer//DE\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:birthday-leap\r\nDTSTAMP:20261108T161204Z\r\nDTSTART;VALUE=DATE:19800229\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:Leap Birthday\r\nCATEGORIES:Geburtstag\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-TYP:Geburtstag\r\nX-MAGNOLIE-JAHRESTAG-TYP:birthday\r\nDESCRIPTION:Public synthetic\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:yearless\r\nDTSTAMP:20261108T161204Z\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-DATE:--02-29\r\nSUMMARY:No year\r\nCATEGORIES:Hochzeitstag\r\nX-MAGNOLIE-TYPE-ID:wedding-anniversary\r\nX-MAGNOLIE-TYP:Hochzeitstag\r\nX-MAGNOLIE-JAHRESTAG-TYP:wedding-anniversary\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "importExpected": {
+        "termine": [],
+        "aufgaben": [],
+        "jahrestage": [
+          {
+            "name": "Leap Birthday",
+            "datum": "1980-02-29",
+            "typ": "birthday",
+            "uid": "birthday-leap",
+            "icsSerienUid": "birthday-leap",
+            "notiz": "Public synthetic",
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:19800229",
+              "RRULE:FREQ=YEARLY",
+              "X-MAGNOLIE-TYPE-ID:birthday",
+              "X-MAGNOLIE-TYP:Geburtstag",
+              "X-MAGNOLIE-JAHRESTAG-TYP:birthday"
+            ],
+            "geaendert": 1794154324000
+          },
+          {
+            "name": "No year",
+            "datum": "--02-29",
+            "typ": "wedding-anniversary",
+            "uid": "yearless",
+            "icsSerienUid": "yearless",
+            "notiz": "",
+            "icsRoundtrip": [
+              "DTSTART;VALUE=DATE:20000229",
+              "RRULE:FREQ=YEARLY",
+              "X-MAGNOLIE-TYPE-ID:wedding-anniversary",
+              "X-MAGNOLIE-TYP:Hochzeitstag",
+              "X-MAGNOLIE-JAHRESTAG-TYP:wedding-anniversary"
+            ],
+            "geaendert": 1794154324000
+          }
+        ]
+      }
+    },
+    {
+      "name": "golden-komplex",
+      "importSource": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Mozilla.org/NONSGML Thunderbird//EN\nBEGIN:VEVENT\nUID:cross-platform-series\nDTSTART;TZID=America/New_York:20261101T013000\nDURATION:PT90M\nRRULE:FREQ=WEEKLY;BYDAY=MO,WE\nRDATE;TZID=America/New_York:20261105T013000\nEXDATE;TZID=America/New_York:20261109T013000\nLOCATION:Raum 7\nORGANIZER;CN=Erika:mailto:erika@example.org\nATTENDEE;CN=Mia:mailto:mia@example.org\nATTACH:https://example.org/agenda.pdf\nX-ALT-DESC;FMTTYPE=text/html:<b>Agenda</b>\nTRANSP:OPAQUE\nSUMMARY:Zonenserie\nBEGIN:VALARM\nACTION:DISPLAY\nTRIGGER:-PT15M\nEND:VALARM\nEND:VEVENT\nEND:VCALENDAR\n",
+      "importExpected": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "UTC",
+            "datum": "2026-11-01",
+            "endDatum": "",
+            "zeit": "05:30",
+            "endZeit": "07:00",
+            "titel": "Zonenserie",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "cross-platform-series",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;TZID=America/New_York:20261101T013000",
+              "DURATION:PT90M",
+              "RRULE:FREQ=WEEKLY;BYDAY=MO,WE",
+              "RDATE;TZID=America/New_York:20261105T013000",
+              "EXDATE;TZID=America/New_York:20261109T013000",
+              "LOCATION:Raum 7",
+              "ORGANIZER;CN=Erika:mailto:erika@example.org",
+              "ATTENDEE;CN=Mia:mailto:mia@example.org",
+              "ATTACH:https://example.org/agenda.pdf",
+              "X-ALT-DESC;FMTTYPE=text/html:<b>Agenda</b>",
+              "TRANSP:OPAQUE",
+              "BEGIN:VALARM",
+              "ACTION:DISPLAY",
+              "TRIGGER:-PT15M",
+              "END:VALARM"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "cross-platform-series",
+            "geaendert": 0
+          }
+        ],
+        "aufgaben": [],
+        "jahrestage": []
+      }
+    },
+    {
+      "name": "caldav-series-resource",
+      "importSource": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Example Corp//CalDAV 1.0//EN\nX-WR-CALNAME:Team Calendar\nBEGIN:VTIMEZONE\nTZID:Europe/Berlin\nBEGIN:STANDARD\nDTSTART:20261025T030000\nTZOFFSETFROM:+0200\nTZOFFSETTO:+0100\nTZNAME:CET\nEND:STANDARD\nEND:VTIMEZONE\nBEGIN:VEVENT\nUID:caldav-series-1\nDTSTAMP:20260801T080000Z\nDTSTART;TZID=Europe/Berlin:20261019T100000\nDTEND;TZID=Europe/Berlin:20261019T110000\nRRULE:FREQ=WEEKLY;COUNT=4\nEXDATE;TZID=Europe/Berlin:20261026T100000\nSUMMARY;LANGUAGE=de:Serienrunde\nX-MOZ-GENERATION:7\nX-EXAMPLE-META;X-TOKEN=alpha:opaque-value\nBEGIN:VALARM\nACTION:DISPLAY\nTRIGGER:-PT15M\nDESCRIPTION:Reminder\nEND:VALARM\nEND:VEVENT\nBEGIN:VEVENT\nUID:caldav-series-1\nRECURRENCE-ID;TZID=Europe/Berlin:20261102T100000\nDTSTAMP:20260802T080000Z\nDTSTART;TZID=Europe/Berlin:20261102T123000\nDTEND;TZID=Europe/Berlin:20261102T133000\nSUMMARY:Verschobene Serienrunde\nX-APPLE-TRAVEL-ADVISORY-BEHAVIOR:AUTOMATIC\nBEGIN:VALARM\nACTION:AUDIO\nTRIGGER:-PT5M\nATTACH;VALUE=URI:Basso\nEND:VALARM\nEND:VEVENT\nEND:VCALENDAR\n",
+      "importExpected": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "UTC",
+            "datum": "2026-10-19",
+            "endDatum": "",
+            "zeit": "08:00",
+            "endZeit": "09:00",
+            "titel": "Serienrunde",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "caldav-series-1",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;TZID=Europe/Berlin:20261019T100000",
+              "DTEND;TZID=Europe/Berlin:20261019T110000",
+              "RRULE:FREQ=WEEKLY;COUNT=4",
+              "EXDATE;TZID=Europe/Berlin:20261026T100000",
+              "X-MOZ-GENERATION:7",
+              "X-EXAMPLE-META;X-TOKEN=alpha:opaque-value",
+              "BEGIN:VALARM",
+              "ACTION:DISPLAY",
+              "TRIGGER:-PT15M",
+              "DESCRIPTION:Reminder",
+              "END:VALARM",
+              "EXDATE;TZID=Europe/Berlin:20261102T100000"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "caldav-series-1",
+            "geaendert": 1785571200000,
+            "icsQuelleName": "Team Calendar",
+            "icsQuelleId": "ics:8185f2ca853585df5fa3dd436e207f4735da362fa45a0e66a92d1cb819b97c16",
+            "icsRangeOverrides": [],
+            "icsTimezones": [
+              [
+                "BEGIN:VTIMEZONE",
+                "TZID:Europe/Berlin",
+                "BEGIN:STANDARD",
+                "DTSTART:20261025T030000",
+                "TZOFFSETFROM:+0200",
+                "TZOFFSETTO:+0100",
+                "TZNAME:CET",
+                "END:STANDARD",
+                "END:VTIMEZONE"
+              ]
+            ]
+          },
+          {
+            "icsAnzeigeZeitzone": "UTC",
+            "datum": "2026-11-02",
+            "endDatum": "",
+            "zeit": "11:30",
+            "endZeit": "12:30",
+            "titel": "Verschobene Serienrunde",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "caldav-series-1",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "RECURRENCE-ID;TZID=Europe/Berlin:20261102T100000",
+              "DTSTART;TZID=Europe/Berlin:20261102T123000",
+              "DTEND;TZID=Europe/Berlin:20261102T133000",
+              "SUMMARY:Verschobene Serienrunde",
+              "X-APPLE-TRAVEL-ADVISORY-BEHAVIOR:AUTOMATIC",
+              "BEGIN:VALARM",
+              "ACTION:AUDIO",
+              "TRIGGER:-PT5M",
+              "ATTACH;VALUE=URI:Basso",
+              "END:VALARM"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "caldav-series-1-magnolie-instanz-1201680171431eb3",
+            "geaendert": 1785657600000,
+            "icsQuelleName": "Team Calendar",
+            "icsQuelleId": "ics:8185f2ca853585df5fa3dd436e207f4735da362fa45a0e66a92d1cb819b97c16",
+            "icsTimezones": [
+              [
+                "BEGIN:VTIMEZONE",
+                "TZID:Europe/Berlin",
+                "BEGIN:STANDARD",
+                "DTSTART:20261025T030000",
+                "TZOFFSETFROM:+0200",
+                "TZOFFSETTO:+0100",
+                "TZNAME:CET",
+                "END:STANDARD",
+                "END:VTIMEZONE"
+              ]
+            ]
+          }
+        ],
+        "aufgaben": [],
+        "jahrestage": []
+      }
+    },
+    {
+      "name": "dst-series",
+      "importSource": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:dst-berlin\r\nDTSTART;TZID=Europe/Berlin:20260328T100000\r\nDTEND;TZID=Europe/Berlin:20260328T110000\r\nRRULE:FREQ=DAILY;COUNT=4\r\nRDATE;TZID=Europe/Berlin:20260402T100000\r\nEXDATE;TZID=Europe/Berlin:20260330T100000\r\nSUMMARY:DST calendar\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+      "importExpected": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "UTC",
+            "datum": "2026-03-28",
+            "endDatum": "",
+            "zeit": "09:00",
+            "endZeit": "10:00",
+            "titel": "DST calendar",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "dst-berlin",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART;TZID=Europe/Berlin:20260328T100000",
+              "DTEND;TZID=Europe/Berlin:20260328T110000",
+              "RRULE:FREQ=DAILY;COUNT=4",
+              "RDATE;TZID=Europe/Berlin:20260402T100000",
+              "EXDATE;TZID=Europe/Berlin:20260330T100000"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "dst-berlin",
+            "geaendert": 0
+          }
+        ],
+        "aufgaben": [],
+        "jahrestage": []
+      }
+    }
+  ]
+}

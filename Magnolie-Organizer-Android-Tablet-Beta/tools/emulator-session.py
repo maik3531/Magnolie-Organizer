@@ -19,14 +19,22 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-SDK = Path.home() / ".local/share/android-sdk"
+def sdk_root(environ=None):
+    environ = os.environ if environ is None else environ
+    roots = [Path(environ[name]).expanduser().resolve() for name in ('ANDROID_HOME', 'ANDROID_SDK_ROOT') if environ.get(name)]
+    if len(set(roots)) > 1:
+        raise ValueError('ANDROID_HOME and ANDROID_SDK_ROOT must identify the same SDK')
+    return roots[0] if roots else Path.home() / '.local/share/android-sdk'
+
+
+SDK = sdk_root()
 STATE = ROOT / "artifacts/emulator-session.json"
 RUNTIME = 20 * 60
 BOOT = 3 * 60
 TEST = 120
 PROGRESS = 30
 GRACE = 5
-STAGES = ('basics', 'restart', 'layout', 'time', 'navigation', 'saf', 'fault', 'print',
+STAGES = ('basics', 'restart', 'layout', 'time', 'navigation', 'saf', 'fault', 'print', 'services', 'calendar-files', 'domains', 'timezone-interop',
           'notifications', 'seed-reboot', 'verify-reboot')
 
 
@@ -71,15 +79,36 @@ def zombie(pid):
         return False
 
 
+def require_available_port(port):
+    # A previous owned server can be fully reaped while its accepted connections
+    # remain in TIME_WAIT. Match normal server rebinding without permitting a
+    # second active listener (SO_REUSEPORT is deliberately never enabled).
+    with socket.socket() as probe:
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            probe.bind(('127.0.0.1', port))
+        except OSError as exc:
+            raise RuntimeError(f'Owned loopback port {port} unavailable: errno={exc.errno}') from exc
+
+
 def owns_adb_socket(expected):
     if not expected or identity(expected['pid']) != expected or zombie(expected['pid']):
         return False
     try:
-        sockets = {os.readlink(fd) for fd in (Path('/proc') / str(expected['pid']) / 'fd').iterdir()}
+        sockets = set()
+        for fd in (Path('/proc') / str(expected['pid']) / 'fd').iterdir():
+            try:
+                sockets.add(os.readlink(fd))
+            except FileNotFoundError:
+                # ADB can close unrelated descriptors while /proc is enumerated.
+                # A missing entry says nothing about the still-open listener.
+                continue
         for line in Path('/proc/net/tcp').read_text().splitlines()[1:]:
             fields = line.split()
             if fields[1] == '0100007F:13AF' and fields[3] == '0A' and f'socket:[{fields[9]}]' in sockets:
-                return True  # 127.0.0.1:5039, LISTEN, owned fd inode
+                # 127.0.0.1:5039, LISTEN, owned fd inode; do not admit a
+                # process that exited or changed identity during the scan.
+                return identity(expected['pid']) == expected and not zombie(expected['pid'])
     except (FileNotFoundError, ProcessLookupError):
         pass
     return False
@@ -275,9 +304,16 @@ class Owner:
                 source.seek(0)
             child = self.spawn(args, 'command', env=env, stdin=source, stdout=output, stderr=subprocess.STDOUT)
             try:
-                code = self.wait(child, timeout)
-            finally:
-                self.stop_child(child, next(item for p, item in self.children if p is child))
+                try:
+                    code = self.wait(child, timeout)
+                finally:
+                    self.stop_child(child, next(item for p, item in self.children if p is child))
+            except (Deadline, Stopped) as failure:
+                # Preserve the original exception/status after exactly the same
+                # child cleanup, including bytes written before a timeout.
+                output.seek(0)
+                failure.output = output.read()
+                raise
             output.seek(0)
             text = output.read()
             if code:
@@ -328,7 +364,78 @@ def adb(owner, state, args, timeout=30):
                          timeout=timeout, env=environment(Path(state['run'])))
 
 
+def kvm_access_facts():
+    facts = dict(processUid=os.geteuid(), processGid=os.getegid(), exists=False,
+                 character=False, readable=False, writable=False)
+    try:
+        device = os.stat('/dev/kvm')
+    except OSError:
+        return facts
+    facts.update(exists=True, character=stat.S_ISCHR(device.st_mode),
+                 uid=device.st_uid, gid=device.st_gid, mode=stat.S_IMODE(device.st_mode),
+                 readable=os.access('/dev/kvm', os.R_OK), writable=os.access('/dev/kvm', os.W_OK))
+    return facts
+
+
+def emulator_boot_failure_signature(output):
+    # Fixed categories only: emulator logs can contain host paths and command
+    # arguments. Never forward arbitrary lines from the combined session log.
+    patterns = {
+        'same_avd_running': r'(?:multiple emulators.*same AVD|another emulator.*(?:running|AVD)|AVD.*already running)',
+        'avd_lock': r'(?:could not|cannot|failed to).*(?:lock|lockfile)|(?:lock|lockfile).*already',
+        'address_in_use': r'address already in use|port.*(?:in use|already.*bound)|could not bind',
+        'missing_image': r'(?:missing|cannot find|not found|does not exist).*(?:system image|kernel|system\.img)|broken AVD system path',
+        'snapshot_failure': r'snapshot.*(?:failed|error|incompatible|cannot|could not)',
+        'backend_failure': r'(?:EGL|OpenGL|Vulkan|renderer|graphics|GPU|backend).*(?:failed|error|unavailable|cannot|could not)',
+        'kvm_permission_denied': r'(?:KVM|/dev/kvm)[^\n]*(?:permission denied|access denied)|(?:permission denied|access denied)[^\n]*(?:KVM|/dev/kvm)',
+        'kvm_unavailable': r'(?:KVM|/dev/kvm)[^\n]*(?:not available|unavailable|not found|does not exist|no such file)|(?:cannot find|could not find|no such file)[^\n]*(?:KVM|/dev/kvm)',
+        'kvm_busy': r'(?:KVM|/dev/kvm)[^\n]*(?:device or resource busy|already in use)|(?:device or resource busy)[^\n]*(?:KVM|/dev/kvm)',
+        'hardware_accel_required': r'(?:x86_64|x86) emulation currently requires hardware acceleration',
+        'disk_failure': r'no space left|not enough (?:disk|space)|disk.*(?:full|insufficient)',
+        'emulator_fatal': r'\b(?:PANIC|FATAL)\s*:',
+    }
+    categories = sorted(name for name, pattern in patterns.items() if re.search(pattern, output, re.I))
+    return dict(categories=categories, recognized=bool(categories))
+
+
+def record_preboot_exit(owner, child, log):
+    try:
+        log.flush()
+        with Path(log.name).open('rb') as source:
+            source.seek(0, os.SEEK_END)
+            source.seek(max(0, source.tell()-65536))
+            technical = emulator_boot_failure_signature(source.read(65536).decode('utf-8', errors='replace'))
+    except OSError:
+        technical = dict(categories=[], recognized=False, diagnosticUnavailable=True)
+    code = child.returncode or 1
+    owner.record('emulator-preboot-exit', pid=child.pid, actualExit=child.returncode,
+                 returnedExit=code, technical=technical)
+    return code
+
+
+def system_image(api, image):
+    if api not in (26, 34, 35) or image not in ('google_apis', 'default'):
+        raise ValueError('Only supported API and exact Google/AOSP image identifiers are allowed')
+    if api == 26 and image != 'google_apis':
+        raise ValueError('API26 comparison requires the verified Google APIs x86_64 package')
+    return f'system-images;android-{api};{image};x86_64'
+
+
+def validate_image_metadata(api, image, data):
+    expected = {'AndroidVersion.ApiLevel': str(api), 'SystemImage.Abi': 'x86_64', 'SystemImage.TagId': image}
+    if api == 26:
+        expected['Pkg.Revision'] = '16'  # Exact official archive reference recorded below.
+    rows = [line.split('=',1) for line in data.decode('utf-8').splitlines() if '=' in line]
+    values = dict(rows)
+    for key, value in expected.items():
+        if values.get(key) != value or sum(row[0] == key for row in rows) != 1:
+            raise RuntimeError('Installed SDK image metadata differs from requested API/ABI/tag')
+
+
 def prepare(owner, opts):
+    system_image(opts.api, opts.image)
+    image_metadata = (SDK / f'system-images/android-{opts.api}/{opts.image}/x86_64/source.properties').read_bytes()
+    validate_image_metadata(opts.api, opts.image, image_metadata)
     idle(owner)
     run = Path.home() / '.local/share/magnolie-testing/tablet-beta' / datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
     run.mkdir(parents=True, exist_ok=False)
@@ -336,7 +443,7 @@ def prepare(owner, opts):
         (run / name).mkdir()
     name = 'Magnolie_Tablet_Beta_' + run.name
     owner.command([SDK / 'cmdline-tools/latest/bin/avdmanager', 'create', 'avd', '--name', name,
-        '--package', f'system-images;android-{opts.api};google_apis;x86_64', '--device', 'medium_tablet',
+        '--package', system_image(opts.api, opts.image), '--device', 'medium_tablet',
         '--path', run / 'avds' / (name + '.avd')], input='no\n', env=environment(run), timeout=BOOT)
     config = run / 'avds' / (name + '.avd') / 'config.ini'
     entries = dict(line.split('=', 1) for line in config.read_text().splitlines() if '=' in line)
@@ -345,15 +452,19 @@ def prepare(owner, opts):
         'hw.gpu.mode': 'swiftshader', 'skin.name': '1280x800', 'showDeviceFrame': 'no', 'disk.dataPartition.size': '4G'})
     config.write_text(''.join(f'{k}={v}\n' for k, v in entries.items()))
     versions = {}
-    for label, directory in {'systemImage': SDK / f'system-images/android-{opts.api}/google_apis/x86_64',
+    for label, directory in {'systemImage': SDK / f'system-images/android-{opts.api}/{opts.image}/x86_64',
                              'emulator': SDK / 'emulator', 'platformTools': SDK / 'platform-tools',
                              'commandLineTools': SDK / 'cmdline-tools/latest'}.items():
-        data = (directory / 'source.properties').read_bytes()
+        data = image_metadata if label == 'systemImage' else (directory / 'source.properties').read_bytes()
         versions[label] = dict(sourceProperties=data.decode(), sha256=hashlib.sha256(data).hexdigest())
+    if opts.api == 26:
+        versions['systemImage']['officialArchiveReference'] = json.loads((ROOT / 'tools/api26-system-image.json').read_text())
+    versions['systemImage']['sdkPackage'] = system_image(opts.api, opts.image)
+    versions['systemImage']['diagnosticComparison'] = opts.image == 'default'
     (run / 'evidence/sdk-versions.json').write_text(json.dumps(versions, indent=2)+'\n')
     owner.state_path = opts.state
     owner.record('prepared', run=str(run), avd=name, serial='emulator-5580', adbPort=5039,
-                 requestedApi=opts.api, compileApi=35, guestRamMiB=2048, cores=2, sdkVersions=versions)
+                 requestedApi=opts.api, systemImage=system_image(opts.api, opts.image), image=opts.image, compileApi=35, guestRamMiB=2048, cores=2, sdkVersions=versions)
 
 
 def run_session(owner, opts, after_boot=None, run_tests=None):
@@ -361,15 +472,16 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
     state = json.loads(opts.state.read_text())
     if state.get('requestedApi', state.get('runtimeApi')) != opts.api:
         raise RuntimeError('Prepared image API differs from requested API')
+    if state.get('image', 'google_apis') != opts.image:
+        raise RuntimeError('Prepared image identifier differs from requested image')
     run = Path(state['run'])
     owner.state.update({k: state[k] for k in ('run', 'avd', 'serial', 'adbPort')})
-    owner.state.update(requestedApi=opts.api, sdkVersions=state.get('sdkVersions', {}))
+    owner.state.update(requestedApi=opts.api, image=opts.image, systemImage=system_image(opts.api, opts.image), sdkVersions=state.get('sdkVersions', {}))
     owner.state_path = opts.state
     owner.record('starting', locks=[str(p) for p in lock_paths(opts)], bootSeconds=opts.boot_timeout,
                  testSeconds=opts.test_timeout, permission='main-slot-granted')
     for port in (5039, 5580, 5581):
-        with socket.socket() as probe:
-            probe.bind(('127.0.0.1', port))
+        require_available_port(port)
     env = environment(run)
     # A foreground server is a direct waitable child. Never use global kill-server,
     # start-server, pkill or a server selected by port alone.
@@ -387,6 +499,7 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
             if owns_adb_socket(owner.state['adbIdentity']):
                 break
             time.sleep(0.2)
+        owner.record('kvm-access-before-emulator', **kvm_access_facts())
         child = owner.spawn([SDK / 'emulator/emulator', '-avd', state['avd'], '-port', '5580', '-cores', '2',
             '-memory', '2048', '-gpu', 'swangle', '-no-audio', '-no-snapshot', '-no-boot-anim',
             '-no-window', '-no-metrics', '-feature', '-Vulkan', '-camera-back', 'none', '-camera-front', 'none'],
@@ -396,7 +509,7 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
         while True:
             owner.check(boot_deadline)
             if child.poll() is not None:
-                return child.returncode or 1
+                return record_preboot_exit(owner, child, log)
             try:
                 remaining = boot_deadline - time.monotonic()
                 if adb(owner, owner.state, ['shell', 'getprop', 'sys.boot_completed'], min(10, remaining)).strip() == '1':
@@ -411,7 +524,10 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
         properties = adb(owner, owner.state, ['shell', 'getprop'], 20)
         (run / 'evidence/webview-runtime.txt').write_text(webview)
         (run / 'evidence/device-runtime.txt').write_text(properties)
-        owner.record('actual-runtime', runtimeApi=int(actual_api), webviewRuntime=webview)
+        actual_abi = adb(owner, owner.state, ['shell', 'getprop', 'ro.product.cpu.abi'], 20).strip()
+        owner.record('actual-runtime', runtimeApi=int(actual_api), runtimeAbi=actual_abi, webviewRuntime=webview)
+        if actual_abi != 'x86_64':
+            raise RuntimeError('Actual runtime ABI differs from requested x86_64')
         if int(actual_api) != opts.api:
             raise RuntimeError('Actual runtime API differs from requested API')
         if after_boot:
@@ -426,12 +542,60 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
         return owner.wait(child, max(0.001, owner.deadline-time.monotonic()))
 
 
+BETA_PACKAGE = 'io.gitlab.maik3531.magnolieorganizer.tablet.beta'
+COLD_START_STAGES = frozenset(('basics', 'restart', 'layout', 'time', 'navigation', 'calendar-files', 'domains', 'timezone-interop'))
+
+
+def target_processes(owner, state, timeout):
+    output = adb(owner, state, ['shell', 'ps', '-A', '-o', 'PID,NAME'], timeout)
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    if not lines or lines[0].split() not in (['PID', 'NAME'], ['PID', 'CMD']):
+        raise RuntimeError('Cannot verify target-process termination: invalid ps header')
+    matches = []
+    for line in lines[1:]:
+        fields = line.split(None, 1)
+        if len(fields) != 2 or not fields[0].isdigit() or int(fields[0]) <= 0:
+            raise RuntimeError('Cannot verify target-process termination: invalid ps row')
+        pid, name = int(fields[0]), fields[1]
+        if name == BETA_PACKAGE or name.startswith(BETA_PACKAGE+':'):
+            matches.append(pid)
+    return sorted(matches)
+
+
+def prepare_test_process(owner, state, selector):
+    # am instrument can return before the previous instrumentation's process and
+    # UiAutomation dependencies finish shutting down. Require a verified cold
+    # target process before each stage; retain all app data and Keystore keys.
+    deadline = min(owner.deadline, time.monotonic()+10)
+    def budget():
+        owner.check(deadline)
+        return max(0.001, min(5, deadline-time.monotonic()))
+    before = target_processes(owner, state, budget())
+    owner.record('stage-process-stop', test=selector, targetPidsBefore=before)
+    output = adb(owner, state, ['shell', 'am', 'force-stop', BETA_PACKAGE], budget())
+    if output.strip():
+        raise RuntimeError('Cannot verify target-process termination: force-stop reported output')
+    while True:
+        remaining = target_processes(owner, state, budget())
+        if not remaining:
+            owner.record('stage-process-stopped', test=selector, targetPidsAfter=[])
+            return
+        owner.check(deadline)
+        time.sleep(min(0.1, max(0, deadline-time.monotonic())))
+
+
 def run_test(owner, state, selector, timeout):
     if selector not in STAGES:
         raise ValueError('Select one existing native stage: ' + ', '.join(STAGES))
+    if selector in COLD_START_STAGES:
+        prepare_test_process(owner, state, selector)
     owner.record('test', test=selector, testTimeoutSeconds=timeout)
-    output = adb(owner, state, ['shell', 'am', 'instrument', '-w', '-r', '-e', 'stage', selector,
-        'io.gitlab.maik3531.magnolieorganizer.tablet.beta.test/io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation'], timeout)
+    try:
+        output = adb(owner, state, ['shell', 'am', 'instrument', '-w', '-r', '-e', 'stage', selector,
+            'io.gitlab.maik3531.magnolieorganizer.tablet.beta.test/io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation'], timeout)
+    except (Deadline, Stopped) as failure:
+        print('PARTIAL_INSTRUMENTATION_OUTPUT\n'+str(getattr(failure, 'output', ''))[-16000:], flush=True)
+        raise
     print(output, flush=True)
     marker = 'INSTRUMENTATION_RESULT: stream='
     try:
@@ -468,7 +632,9 @@ def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument('action', choices=['prepare', 'run', 'wait', 'collect', 'stop', 'adb', 'test'])
     result.add_argument('--state', type=Path, default=STATE)
-    result.add_argument('--api', type=int, choices=(34, 35), default=34)
+    result.add_argument('--image', choices=('google_apis', 'default'), default='google_apis',
+                        help='default is an independent AOSP diagnostic; never Google acceptance')
+    result.add_argument('--api', type=int, choices=(26, 34, 35), default=34)
     result.add_argument('--vm-root', type=Path, default=ROOT.parents[1] / 'Test-VMs-20260912')
     result.add_argument('--session-root', type=Path, default=Path(os.environ.get('SESS', str(Path.home() / '.local/share/magnolie-testing/vms/rebuild-20260912'))))
     result.add_argument('--main-slot-granted', action='store_true', help='Only after explicit main-owner sole-slot permission')

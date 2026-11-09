@@ -1,11 +1,19 @@
-# Magnolie Organizer Android Tablet Beta 2.0.18Beta
+# Magnolie Organizer Android Tablet Beta 2.0.30Beta
 
 Development snapshot of the debug beta, **not a production release**.
-Development is paused. The source is retained here so work can resume from one
-documented state, tracked in [issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9).
+The 2.0.30Beta candidate uses the shared 2.0.30 interface with the native limits
+below. Current port work is tracked in [issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121);
+[issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9) retains the historical checkpoint.
 
-Basic startup and restart have been exercised in an emulator. Layout, input
-handling and complete Android runtime verification remain unfinished. There has
+Current native verification: the APK and JVM gate passed in Actions run
+42494608208, including the native DAV/account modules. Earlier emulator basics
+passed for calendar, tasks, contacts, notes, Custom, keyboard input, geometry and
+Keystore-encrypted readback; another run passed restart and the 17-series worker
+fixture. The complete 40-touch interaction gate has not passed. Run 42494608208
+failed its initial 25-second native readiness check, before those interactions.
+Bounded startup telemetry and a separate native DAV/Keystore component suite are
+being validated; they do not replace the UI gate. Complete Android runtime
+verification remains unfinished. There has
 been no physical-device acceptance or production release. The offline build
 produces debug-only candidates; source changes mark `artifacts/candidate.json`
 stale. A successful source projection does not establish release readiness.
@@ -16,9 +24,9 @@ This directory is the tablet project's only canonical directory. Nothing in
 Notes, desktop, Windows, or the shared contracts is edited by the tablet build.
 
 - Application ID: `io.gitlab.maik3531.magnolieorganizer.tablet.beta`.
-- Launcher/activity label: `Magnolie Organizer Android Tablet Beta 2.0.18Beta`.
-- Android version name/code: `2.0.18Beta` / `20018`.
-- Candidate: `artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.18Beta-debug.apk`.
+- Launcher/activity label: `Magnolie Organizer Android Tablet Beta 2.0.30Beta`.
+- Android version name/code: `2.0.30Beta` / `20030`.
+- Candidate: `artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-debug.apk`.
 - Android private data, notifications, Keystore alias, debug signing key, and
   application sandbox are separate from the phone Notes profile.
 - Minimum Android 8/API 26; compile/target API 35; JDK 17.
@@ -60,13 +68,14 @@ against the projected core and through the existing shared desktop test runner.
 | Portrait | Pages stacked vertically, scrollable binder | Small-screen, large-text and IME acceptance pending |
 | Input/accessibility | Native WebView input, keyboard guard/shortcuts, focus outlines, touch targets, reduced motion, pinch zoom | TalkBack, RTL, stylus and keyboard hardware not exercised |
 | Private persistence | AES-256-GCM, Android Keystore, synchronized file write, atomic rename, directory fsync before save ACK | Native basic save/readback, non-exportable key and process restart passed; crash/failure durability acceptance remains open |
-| Import | SAF JSON: raw canonical version-6 state or this beta's encrypted JSON envelope | Rejects invalid/lossy rows rather than silently dropping them; no ICS/VCF/CSV or desktop complete-archive importer |
-| Import replacement | Shared normalizer, explicit replacement confirmation, encrypted pre-import snapshot | Replaces the whole profile, not a merge; backup is internal, recovery UI not yet implemented |
-| Export | SAF password-encrypted JSON, PBKDF2-HMAC-SHA256 + referenced AES-GCM primitive | Beta-specific envelope, not Notes backup or desktop complete-archive format |
+| Import | SAF ICS merges calendar appointments, tasks and anniversaries through the shared importer; SAF JSON accepts raw version-6 state or this beta's encrypted envelope | ICS source metadata and records share one durable book save; no VCF/CSV or desktop complete-archive importer; native SAF ICS acceptance still pending |
+| JSON replacement | Shared normalizer, explicit replacement confirmation, encrypted pre-import snapshot | Replaces the whole profile, not a merge; backup is internal, recovery UI not yet implemented |
+| Export | SAF standard ICS for appointments, tasks and anniversaries; password-encrypted JSON for the complete book | ICS is unencrypted and collection-specific; native SAF ICS acceptance pending. JSON uses the beta envelope, not Notes backup or desktop complete-archive format |
 | PDF/printing | Canonical print HTML into a separate script/bridge-free native print WebView | Android Print dialog includes Save as PDF; no automatic completion ACK; runtime/spooler validation pending |
 | Reminders | Persisted one-off calendar/task/custom alarms, global and separate custom consent, inexact AlarmManager wakeup, boot/package restart receiver, delivery receipts | No recurrence/anniversary/health/SMS scheduling, exact alarm SLA, foreground service or force-stop bypass |
 | Localization | Existing 20-language catalogs; two small manual beta strings in all 20 locales | Native locale follows Android, web locale follows organizer settings; linguistic review not claimed |
-| Setup/holidays | Current canonical setup logic/catalogs and local country/region/cached-holiday display filter | No Android desktop setup wizard or OpenHolidays network backend; retrieval and period controls disabled |
+| Setup/holidays | Current canonical setup logic/catalogs and local country/region/cached-holiday display filter | Native bounded HTTPS public/school holiday retrieval; no Android desktop setup wizard; native integration validation pending |
+| DAV account setup | Canonical account form, revision-bound configuration, Android Keystore credentials and explicit collection discovery | Setup/discovery only; actual record synchronization remains disabled; real-server acceptance pending |
 | Text editing | Current canonical context menu, Undo/Redo and accessible Tab-key help | Key/help catalogs checked in all 20 locales; actual WebView editing history/IME acceptance pending |
 
 Unsupported bridge operations reject; they never return invented success or empty
@@ -77,15 +86,25 @@ command identifier. Main statuses are visible and accessible, not console-only.
 Contact SMS/call buttons, their context-planning actions, mail/map/letter/social
 launchers and corresponding external-integration settings are disabled. Local
 contact phone/email/address editing remains available. The bridge rejects attempted
-outgoing SMS/call/holiday commands without handing them to Android.
+outgoing SMS/call commands without handing them to Android.
 
-There is **no** EDS/Akonadi, Android account integration, Nextcloud/cloud backup,
+There is **no** EDS/Akonadi, Android system-account integration, complete Nextcloud synchronization/cloud backup,
 Magnolienbaum/phone pairing, SMS/calls, Bluetooth/WLAN sync, medication/weather
 lookup, desktop spelling service, LibreOffice/ODS/letter export, update service,
-or desktop password-lock emulation. There is no INTERNET permission, system
+or desktop password-lock emulation. INTERNET permits the native HTTPS service; the WebView still rejects external resources. There is no system
 contacts/calendar permission, shared UID, or account manager permission.
 New file attachments via the WebView file picker are not implemented. Existing
 embedded note data is retained by the shared core subject to its validation.
+
+## Local language and regional settings
+
+The shared **Language and regional display** form now saves its local choices
+through the existing canonical normalizer and native encrypted document save.
+The save waits for any edited record first and reports success only after the
+native save acknowledgment. Failed saves retain the visible changes for retry.
+Native desktop time-zone management/detection is unavailable and its management
+button is disabled; local timezone selection remains available. These local
+preferences do not configure Android system settings or desktop account services.
 
 ## Storage and Security
 
@@ -102,26 +121,47 @@ provided. A missing Keystore key, authentication failure, incomplete first write
 or invalid vault blocks startup rather than initializing an empty organizer.
 Save acknowledgments contain the desktop request ID and are sent only after
 file fsync, atomic rename and directory fsync. The serial executor also orders
-notification settings, imports and reminder delivery with saves.
+notification settings, JSON replacement and reminder delivery with saves.
 
 Native random sessions/revisions now fence saves and restore confirmations.
 Initialization must be acknowledged before writes are enabled. Uncertain
 publication and committed-readback failures leave the old page non-writable;
 only verified disk reload and a fresh page acknowledgment can reopen writes.
-The selected native import bytes, not a frontend-supplied replacement body, are
-committed and read back. Reminder follow-up failure cannot undo that commit.
+For JSON replacement, the selected native import bytes, not a frontend-supplied
+replacement body, are committed and read back. Reminder follow-up failure cannot
+undo that commit. ICS follows a separate merge route: native bounded file reading
+and decoding run off the UI and book-save executor, then the shared web importer
+merges the complete candidate. Its calendar properties and source SHA-256 metadata
+are persisted with the imported records in the same ordinary atomic book save.
+Cancellation or a decoding/metadata error applies no candidate; a failed book save
+retains the unsaved complete merge for explicit retry and never reports success.
 SAF request codes are one-use and page/session-bound, with the next code retained
 across Activity recreation. Late results do not consume a newer picker; background
 import/export completions retain the original page authority. Destruction and
 renderer loss invalidate queued work and callbacks.
 
-`before-import.enc` is an encrypted internal pre-import snapshot. Each confirmed
-import replaces it after syncing it, then replaces the main vault. Imported
+`before-import.enc` is an encrypted internal pre-import snapshot for JSON
+replacement. Each confirmed JSON replacement replaces it after syncing it, then replaces the main vault. Imported
 notification permissions are **not** trusted: global and custom native consent
 are reset, and the alarm schedule is empty until the web core reprojects it.
 Custom module/item consent remains necessary in addition to native custom consent.
 
-Export passwords are 8-1024 characters. The portable envelope is JSON with
+The three canonical ICS export actions each select the entire appointments, tasks
+or anniversaries collection; they have no frontend record filter. After the
+shared editor/durable-save guard, native code reads the authoritative saved book,
+validates the selected collection and encodes the complete ICS file off the UI and
+book IO executor. Only then does the Android create-document picker open with
+`text/calendar` and an `.ics` filename. No ICS body or record array crosses back
+through WebView. ICS has no password dialog and is explicitly labeled unencrypted;
+use encrypted JSON for a complete book backup. Unsupported kinds, invalid records
+and an empty collection reject before the picker. Picker results and queued writes
+are bound to their original page, revision and one-use request. A cancellation or
+write/flush/close failure never produces a successful export acknowledgement.
+The provider can leave a partial file after an error; SAF writes are not claimed
+atomic. The pure export codec bounds the complete output to 32 MiB. Native Android
+compile and SAF interaction remain required before accepting this route.
+
+JSON export passwords are 8-1024 characters. The portable envelope is JSON with
 `format: Magnolie-Organizer-Android-Tablet-Beta-1`, fixed 210000 PBKDF2 iterations,
 random 32-byte salt, and authenticated encrypted JSON. Wrong passwords,
 unsupported parameters and tampering reject. Keep the password separately:
@@ -129,7 +169,13 @@ Keystore data cannot be recovered after app uninstall; exported data can be
 reopened with its password. There is no plaintext export switch in this MVP.
 
 JSON state is limited to 16 MiB, incoming files/bridge envelopes to 32 MiB and
-nesting to 64. SAF provider write, flush and close failures are surfaced; provider
+nesting to 64. ICS files are limited to 32 MiB; their serialized decoded candidate
+is limited to 8 MiB and 5000 records before delivery to the UI. The completed
+message is serialized on the background worker, and the candidate plus current
+book must fit the 16 MiB preflight bound; native whole-book validation remains
+authoritative. New pickers, cancellation, reload and restore invalidate old ICS
+work; a normal book save during decoding rejects that candidate and releases its
+picker for retry. Duplicate/no-op imports also consume their picker exactly once. SAF provider write, flush and close failures are surfaced; provider
 durability and atomicity are not promised. An interrupted provider export may
 leave an incomplete encrypted destination document and must be retried.
 
@@ -196,7 +242,29 @@ bash tools/build-beta.sh
 ```
 
 `MAGNOLIE_JS_RUNTIME=node` is supported on hosts with Node; otherwise Bun is the
-default. `JAVA_HOME`, `ANDROID_HOME`, `GRADLE_USER_HOME` can be overridden.
+default. `JAVA_HOME`, `ANDROID_HOME`, `GRADLE_USER_HOME` can be overridden. `ANDROID_SDK_ROOT`
+may identify the same SDK; conflicting SDK paths fail before execution.
+
+For an empty, isolated CI cache, `bash tools/build-beta.sh --online` allows Gradle
+dependency downloads. The default remains offline. This option retains the same
+systemd resource limits, five coordination locks, deadlines, source checks, unit
+tests and artifact verification; it does not start an emulator or authorize release
+Gradle tasks. Direct JVM-only gate invocations may use `--jvm --online` within the
+same required resource-limited user service. A cloud host without that service and
+cgroup support cannot run the complete APK gate.
+
+The dedicated [`ports-2.0.30.yml`](../.github/workflows/ports-2.0.30.yml) workflow
+prepares that service on a fresh Ubuntu runner. It selects the published desktop
+tag `v2.0.30` at commit `067c38934b539943d8e1720abafd8a80b401d797`, retains the
+reviewed tablet adapter, generates canonical catalogs, and invokes `--online`
+inside the same bounded build gate. The following owned emulator UI suite tests
+the exact hash-checked app/test pair. Synthetic runtime evidence, candidate
+metadata and checksums are retained as Actions artifacts for 14 days, including
+diagnostics when a stage fails. This workflow is manual or runs on the dedicated
+`codex/ports-2.0.30` branch; it does not publish a production release. Check the
+job outcome and native evidence before treating an APK as tested. A debug key
+generated on a fresh runner is not a stable update-signing identity.
+
 The gate reuses Notes' verified wrapper with `-p` pointing **here**. It does not
 configure/build Notes. Release-named Gradle tasks are intentionally refused.
 
@@ -312,3 +380,56 @@ phase. The prepared suite command above has not been executed in this invocation
 Desktop artwork/fonts and code retain their existing licenses; see the parent
 `LICENSE.md`, `PROTECTED-ASSETS-LICENSE.txt` and canonical font license. This beta
 does not decrypt or bypass protected desktop assets/contributor controls.
+
+The separate `domains` component stage uses shared real settings and form bindings
+to create and edit vital signs, glucose and medication-plan rows, custom appointment,
+task and text blocks, and a drawing sheet. It checks invalid-value rejection,
+discard, native trusted touchscreen strokes, actual Undo/Redo pixels and vector
+data, encrypted save and complete-book reopen integrity. It does not replace the
+original UI acceptance suite and retains the existing 120-second stage limit.
+Before save, every book field must match native disk structurally. On renderer
+reopen only the canonical health normalizer's absent optional `vital.sauerstoff`
+field may acquire its zero default; changed or missing existing values still fail.
+The standard host gate runs the health/custom forms and negative integrity cases;
+canvas, Android Keystore and native persistence require the actual device stage.
+Medication online lookup, drawing file import/PDF, physical stylus behavior,
+TalkBack and IME are outside this component proof. Native success must be recorded
+for the exact APK; host checks alone do not establish that acceptance.
+
+Android system-source discovery uses public CalendarContract calendar metadata and
+ContactsContract Settings/RawContacts account metadata. Separate explicit buttons
+request READ_CALENDAR or READ_CONTACTS; startup and refresh never prompt. No
+GET_ACCOUNTS, credentials, private provider databases, contact bodies or calendar
+items are read. Android's general AccountManager visibility rules cannot expose
+every device account, so the source list represents accounts actually exposed by
+the calendar/contacts providers. Tasks/VTODO have no standard CalendarContract
+provider and remain unsupported. Source selection does not enable synchronization
+or writes; cached DAV collections keep their separate IDs.
+Queries run on a separate worker with native cancellation, a 15-second deadline,
+a 1,000-source limit and 20,000 contacts-metadata row limit. Denial, provider error
+or exceeded bounds do not clear saved selections or report truncated lists as
+complete. Pure request/discovery/merge fixtures and host permission UI tests are
+not proof of real Android account access: OS dialogs and actual provider accounts
+still need native acceptance, including API23 before any minimum-SDK reduction.
+
+Permission-dialog recreation retains only a non-authorizing code/kind quarantine
+and a process marker, never an old page request or reply authority. A same-process
+recreation blocks another dialog until the matching OS result (discarded for the
+old document) or an already-granted permission clears that slot. After process
+death the obsolete quarantine is discarded, while the saved increasing request
+code prevents an old result from completing a new request. These transitions have
+pure negative fixtures; actual Android recreation/dialog behavior still needs
+native verification.
+
+Calendar codec timezone rules now come from the single SHA-verified shared
+TZif/POSIX database, including full history and unlimited tails; ThreeTen remains
+for Gregorian arithmetic only. See [timezone provenance and limits](third-party/README.md).
+The confirmed Gaza2074 codec regression has a production-codec test: 12:30 local
+resolves to 09:30Z, and the old contradictory 10:30Z projection rejects export.
+Shared JavaScript reminder projection and actual Android resource/device
+acceptance are separate checks; this codec change does not establish them.
+
+Recurrence-instance identity hashes use explicit canonical JSON string quoting,
+matching the published Python contract for slashes, escapes and Unicode. This
+fixes Android's platform-dependent slash escaping ([#456](https://github.com/maik3531/Magnolie-Organizer/issues/456)); it does not automatically repair
+previously stored incorrect instance UIDs.

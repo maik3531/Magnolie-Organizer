@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { boot } from "./ui_harness.mjs";
 
 const b = await boot(process.argv[2], Date.parse("2026-05-01T12:00:00Z"));
@@ -26,6 +27,9 @@ try {
   w.MacBeta.receive("init", { daten: { termine: [], aufgaben: [], kontakte: [], notizen: [],
     einstellungen: { allgemein: { handbuchHinweisGezeigt: true } } }, neu: false,
     regional: { language: "en", timeZone: "UTC" } });
+  const printHTML = t.druckSeite([{ vorname: "Native", nachname: "PrintProof", notiz: "PDF evidence 2.0.30" }]);
+  assert.match(printHTML, /^<!doctype html>/i);
+  assert.ok(printHTML.includes("PrintProof"));
   for (const [name, location] of [["location", "Office"], ["escaped-location", "Room A, West; Floor 2 \\ Annex"]]) {
     t.oeffneTerminBlatt(null, "2026-05-10");
     field("#tb-titel", name); field("#tb-ganztaegig", false);
@@ -52,9 +56,14 @@ try {
     t.oeffneTerminBlatt(t.daten().termine.at(-1), "2026-03-29");
     field("#tb-zeit", "12:00"); field("#tb-endzeit", "13:00");
     w.document.querySelector("#tb-fertig").click();
-    const qualifier = zone === "system" ? "" : ";TZID=" + zone;
-    cases.push({ name: zone, record: clone(t.daten().termine.at(-1)), location: "Office",
-      start: "DTSTART" + qualifier + ":20260329T120000", end: "DTEND" + qualifier + ":20260329T130000" });
+    // A newly edited system-zone record has a resolved named timezone. Obtain
+    // only that identifier from OS metadata, never numeric rules for the oracle.
+    const identifier = zone === "system" ? w.Intl.DateTimeFormat().resolvedOptions().timeZone : zone;
+    const qualifier = ";TZID=" + identifier, edited = t.daten().termine.at(-1);
+    const start = "DTSTART" + qualifier + ":20260329T120000", end = "DTEND" + qualifier + ":20260329T130000";
+    equal(edited.icsRoundtrip.filter(line => /^DTSTART[;:]/.test(line)), [start], "actual edited start retains resolved " + zone);
+    equal(edited.icsRoundtrip.filter(line => /^DTEND[;:]/.test(line)), [end], "actual edited end retains resolved " + zone);
+    cases.push({ name: zone, record: clone(edited), location: "Office", start, end });
   }
   t.daten().einstellungen.regional.timeZone = "UTC";
   t.oeffneTerminBlatt(null, "2026-05-10");
@@ -87,10 +96,17 @@ try {
       [name, "2026-05-10", "10:00", due, early], "actual task editor record");
     tasks.push(clone(task));
   }
+  // Exercise the real save queue and carry its unmodified envelope into the
+  // Swift Request tests. Fake save acknowledgements alone cannot detect drift
+  // between canonical web messages and the production native schema.
+  t.speichereJetzt();
+  const saveRequest = clone(messages.filter(message => message.cmd === "speichern").at(-1));
+  equal(Object.keys(saveRequest).sort(), ["baumSyncLauf", "cmd", "id", "text"], "canonical local save envelope");
+  equal(saveRequest.baumSyncLauf, null, "ordinary local writes have no tree-sync authority");
   t.daten().einstellungen.erinnerung.an = true;
   if (process.argv.includes("--probe")) {
     t.daten().aufgaben = [tasks[0]]; b.at("2026-05-09T10:00:00Z"); t.pruefeErinnerungen();
-    console.log(JSON.stringify({ cases, tasks, earlyOnlyCallbacks: messages.filter(m => m.cmd === "erinnerung_zeigen").length }));
+    console.log(JSON.stringify({ cases, tasks, saveRequest, printHTML, earlyOnlyCallbacks: messages.filter(m => m.cmd === "erinnerung_zeigen").length }));
   } else {
     t.daten().aufgaben = tasks;
     checkAt("2026-05-09T09:59:59Z", 0, "not early yet");
@@ -128,6 +144,19 @@ try {
       const list = alarms({ faellig: day }, "Europe/Berlin");
       equal(list.map(a => new Date(a.at).toISOString()), [due, early], "calendar day offsets across DST");
     }
+    // Actual Mac-specific adapter, independently pinned external clocks.
+    const clocks = JSON.parse(fs.readFileSync(new URL("../../port-adapters/tests/timezone-interop-oracle.json", import.meta.url))).clocks;
+    for (const row of clocks) {
+      const [day, time] = row.wall.split("T");
+      const values = alarms({ faellig: day, faelligZeit: time, individuelleErinnerungTage: 0 }, row.identifier);
+      equal(values.map(value => value.at), [row.epochMs], "Mac task adapter external clock " + row.identifier + " " + row.wall);
+    }
+    equal(alarms({ faellig: "2074-07-15", faelligZeit: "12:30", individuelleErinnerungTage: 0 }, "Asia/Gaza")
+      .map(value => new Date(value.at).toISOString()), ["2074-07-15T09:30:00.000Z"], "Mac task adapter normative Gaza future");
+    const alias = alarms({ faellig: "2026-10-15", faelligZeit: "12:30", individuelleErinnerungTage: 0 }, "US/Eastern");
+    equal(alias.map(value => value.at), alarms({ faellig: "2026-10-15", faelligZeit: "12:30", individuelleErinnerungTage: 0 }, "America/New_York").map(value => value.at), "Mac task adapter retains alias rule equivalence");
+    equal(alarms({ faellig: "1910-01-15", faelligZeit: "12:30", individuelleErinnerungTage: 0 }, "Europe/Paris")
+      .map(value => new Date(value.at).toISOString()), ["1910-01-15T12:20:39.000Z"], "Mac task adapter historical offset seconds");
     const source = { faellig: "2026-03-29", faelligZeit: "16:00", icsAnzeigeZeitzone: "Europe/Berlin",
       icsRoundtrip: ["DUE;TZID=America/New_York:20260329T100000"] };
     const sourceAlarms = alarms(source);
@@ -175,6 +204,6 @@ try {
     t.daten().einstellungen.erinnerung.an = true;
     t.daten().aufgaben = [{ ...base, id: "locked-candidate" }];
     checkAt("2026-05-10T10:00:00Z", 0, "locked profile gate remains intact");
-    console.log(JSON.stringify({ cases, tasks, checks }));
+    console.log(JSON.stringify({ cases, tasks, saveRequest, printHTML, checks }));
   }
 } finally { b.close(); }

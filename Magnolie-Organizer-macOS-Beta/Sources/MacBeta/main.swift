@@ -8,11 +8,16 @@ import BetaCore
 final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMessageHandler,
                   WKNavigationDelegate, UNUserNotificationCenterDelegate {
     private let name = "Magnolie Organizer macOS Beta"
+    private let printing = PrintHost()
+    private lazy var communication = CommunicationLaunchBroker(system: CommunicationSystemLauncher())
+    private var manual: ManualHost?
+    private var noteFileImport: NoteFileImportHost?
     private var window: NSWindow!
     private var web: WKWebView!
     private var store: AtomicStore!
     private var entry: URL!
     private var plain: String?
+    private var ordinarySaveEpochPolicy: OrdinarySaveEpochPolicy?
     private var envelope: String?
     private var encryption: Encryption?
     private var initialized = false
@@ -22,13 +27,20 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var unlockAfter = Date.distantPast
     private var notificationConsent = false
     private var selection: BackupSelection?
-    private var restoring = false
+    private enum RestoreState { case idle, activeIO, blockedRestartRequired }
+    private var restoreState = RestoreState.idle
+    private var restoring: Bool { restoreState != .idle }
+    private var authenticatedOrigin: NativeBookRestore.AuthenticatedOrigin?
+    private var documentGeneration = UUID()
     private var catalog: [String: String] = [:]
-    private let events = EKEventStore()
+    private let systemAccounts = SystemAccounts()
+    private var calendarDatabase: NormativeTimeZoneDatabase?
+    private var davAccounts: DAVAccountService!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
             guard let resources = Bundle.main.resourceURL else { throw BetaError("Application resources missing.") }
+            calendarDatabase = try CalendarTimeContext.bundledDatabase(resources: resources)
             entry = resources.appendingPathComponent("UI/web/index.html")
             guard FileManager.default.fileExists(atPath: entry.path) else {
                 throw BetaError("No frozen generated UI. Run the documented macOS Beta development build.")
@@ -36,6 +48,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             let support = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                                      appropriateFor: nil, create: true)
             store = try AtomicStore(directory: support.appendingPathComponent("io.gitlab.maik3531.MagnolieOrganizer.macOSBeta"))
+            davAccounts = DAVAccountService(configuration: try DAVAccountFileStore(directory: store.file.deletingLastPathComponent()))
             let configuration = WKWebViewConfiguration()
             configuration.websiteDataStore = .nonPersistent()
             let bridge = "macOSBeta" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
@@ -65,8 +78,13 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         appMenu.addItem(withTitle: "Enable in-app notifications...", action: #selector(consent), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "List macOS calendars (read-only)...", action: #selector(calendars), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "List macOS reminder lists (read-only)...", action: #selector(reminders), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: "macOS " + tr("Contacts") + "…", action: #selector(systemContacts), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: "Import note files…", action: #selector(startNoteFileImport), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: tr("Quit") + " " + name, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let helpItem = NSMenuItem(), help = NSMenu(title: tr("Help"))
+        root.addItem(helpItem); helpItem.submenu = help; NSApp.helpMenu = help
+        help.addItem(withTitle: tr("Handbook"), action: #selector(openManual), keyEquivalent: "?").target = self
         let editItem = NSMenuItem(), edit = NSMenu(title: tr("Edit"))
         root.addItem(editItem); editItem.submenu = edit
         edit.addItem(withTitle: tr("Undo"), action: Selector(("undo:")), keyEquivalent: "z")
@@ -112,21 +130,30 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             }
         }
     }
-    @objc private func calendars() { list(.event) }
-    @objc private func reminders() { list(.reminder) }
-    private func list(_ type: EKEntityType) {
-        let completion: (Bool, Error?) -> Void = { granted, error in
-            DispatchQueue.main.async {
-                guard granted, error == nil else { self.alert("Access denied or unavailable. Nothing was imported or changed."); return }
-                let names = self.events.calendars(for: type).map { $0.title + " (" + $0.source.title + ")" }.sorted()
-                self.alert("Read-only discovery, not synchronization:\n\n" +
-                           (names.isEmpty ? "No lists returned by EventKit." : names.joined(separator: "\n")))
+    @objc private func calendars() { listSystemSources(.events) }
+    @objc private func reminders() { listSystemSources(.reminders) }
+    @objc private func systemContacts() { listSystemSources(.contacts) }
+    private func listSystemSources(_ kind: SystemSourcePolicy.Kind) {
+        guard plain != nil, !restoring else { alert("Unlock first."); return }
+        let generation = documentGeneration
+        Task {
+            do {
+                try await systemAccounts.requestAccess(kind)
+                let status = try await systemAccounts.status()
+                let key = kind == .contacts ? "adressbuecher" : "kalender"
+                let sources = (status[key] as? [[String: Any]] ?? []).filter {
+                    kind == .contacts || $0["art"] as? String == kind.rawValue
+                }
+                let names = sources.compactMap { $0["name"] as? String }.sorted()
+                DispatchQueue.main.async {
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                    self.alert(names.isEmpty ? "No accessible sources in this macOS service." :
+                        "macOS sources (discovery only; full synchronization is not yet enabled):\n\n" + names.joined(separator: "\n"))
+                }
+            } catch {
+                DispatchQueue.main.async { self.alert(error.localizedDescription) }
             }
         }
-        if #available(macOS 14.0, *) {
-            if type == .event { events.requestFullAccessToEvents(completion: completion) }
-            else { events.requestFullAccessToReminders(completion: completion) }
-        } else { events.requestAccess(to: type, completion: completion) }
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
@@ -136,8 +163,13 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             navigationAction.navigationType == .other && !initialized
         decisionHandler(allowed ? .allow : .cancel)
     }
+    private func invalidateRestoreUI() {
+        davAccounts?.invalidateBookAdmission()
+        if restoreState != .activeIO { restoreState = .blockedRestartRequired }
+    }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        plain = nil; encryption = nil
+        invalidateRestoreUI()
+        plain = nil; ordinarySaveEpochPolicy = nil; encryption = nil; authenticatedOrigin = nil; documentGeneration = UUID()
         alert("WebKit stopped. Unsaved changes may be lost. Disk data was not replaced with an empty document. Restart the Beta.")
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -154,33 +186,94 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             let command = fields["cmd"] as? String ?? "invalid"
             let message = command == "entsperren" ? "Unlock failed: wrong password or damaged/unsupported data." : tr(error.localizedDescription)
             var result: [String: Any] = ["ok": false, "fehler": message, "cmd": command]
+            if command == "sicherung_wiederherstellen" {
+                if restoreState == .blockedRestartRequired { result["restartRequired"] = true }
+                else if restoreState == .activeIO { result["restoreInProgress"] = true }
+            }
             if let id = fields["id"] as? NSNumber { result["id"] = id }
             if let token = fields["token"] as? String { result["token"] = token }
+            if let requestID = fields["requestId"] as? String, requestID.utf8.count <= 1024 { result["requestId"] = requestID }
             if command == "entsperren" {
                 failureCount += 1
                 if failureCount >= 3 { unlockAfter = Date().addingTimeInterval(300); failureCount = 0 }
                 result["wartet"] = max(0, Int(ceil(unlockAfter.timeIntervalSinceNow)))
             }
-            send("failure", result)
+            if ["baum_briefkasten_status", "baum_briefkasten_speichern", "baum_briefkasten_pruefen", "baum_dav_pruefen"].contains(command), plain != nil {
+                accountFailure(command: command, code: "invalid_request", message: message, requestID: result["requestId"] as? String)
+            } else { send("failure", result) }
         }
     }
     private func send(_ method: String, _ payload: Any = [:]) {
+        let generation = documentGeneration
         web.callAsyncJavaScript("window.MacBeta.receive(method, payload)",
                                 arguments: ["method": method, "payload": payload], in: nil, in: .page) { result in
             if case .failure = result {
-                self.plain = nil; self.encryption = nil
+                guard self.documentGeneration == generation else { return }
+                self.invalidateRestoreUI()
+                self.plain = nil; self.ordinarySaveEpochPolicy = nil; self.encryption = nil; self.authenticatedOrigin = nil; self.documentGeneration = UUID()
                 self.alert("UI response failed. Further saves are blocked; restart and inspect the retained file.")
             }
         }
     }
+    private func accountCallback(_ command: String) -> String {
+        ["baum_briefkasten_status": "baumBriefkastenStatus", "baum_briefkasten_speichern": "baumBriefkastenGespeichert",
+         "baum_briefkasten_pruefen": "baumBriefkastenPruefung", "baum_dav_pruefen": "baumDavPruefung"][command]!
+    }
+    private func accountFailure(command: String, code: String, message: String, requestID: String?) {
+        let generation = documentGeneration
+        Task { @MainActor in
+            let current = await self.davAccounts.status()
+            var payload = current.payload(requestID: requestID, persisted: command == "baum_briefkasten_speichern" ? false : nil)
+            payload["ok"] = false; payload["fehler"] = message; payload["fehlerCode"] = code
+            if command == "baum_dav_pruefen" { payload["errorCode"] = code; payload["reachable"] = false; payload["partial"] = false }
+            guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+            self.send(self.accountCallback(command), payload)
+        }
+    }
     private func initialize(_ text: String?, new: Bool = false, locked: Bool = false) throws {
+        documentGeneration = UUID()
         let data: Any = try text.map { try Document.plain($0) } ?? [:]
         let preferences = regional(text)
         localize(preferences)
         send("init", ["daten": data, "neu": new, "echterErststart": new, "gesperrt": locked,
                       "regional": preferences.isEmpty ? ["language": "system"] : preferences,
                       "kennwort": encryption != nil, "datenPfad": store.file.path,
-                      "trayVerfuegbar": false, "handbuchInstalliert": false, "contributorAktiv": false])
+                      "trayVerfuegbar": false, "handbuchInstalliert": true, "handbuchVersion": "2.0.30", "contributorAktiv": false])
+    }
+    @objc private func startNoteFileImport() {
+        web.evaluateJavaScript("window.App?.macOSBetaStartNoteImport()")
+    }
+    private func importNoteFiles() {
+        let generation = documentGeneration
+        Task { @MainActor in
+            guard self.plain != nil, !self.restoring else { return }
+            if self.noteFileImport == nil { self.noteFileImport = NoteFileImportHost() }
+            self.noteFileImport!.begin(parent: self.window, isCurrent: { self.plain != nil && !self.restoring && self.documentGeneration == generation }) { payload, finished in
+                self.web.callAsyncJavaScript("return await window.App.macOSBetaImportNoteFiles(payload)", arguments: ["payload": payload], in: nil, in: .page) { (result: Result<Any, Error>) in
+                    defer { finished() }
+                    guard self.documentGeneration == generation, !self.restoring else { return }
+                    switch result {
+                    case .success(let value):
+                        guard let result = value as? [String: Any], result["ok"] as? Bool == true else { self.alert("Note import did not receive a durable save acknowledgement."); return }
+                        self.alert("New notes imported and saved: \(result["count"] as? Int ?? 0)")
+                    case .failure(let error): self.alert(error.localizedDescription)
+                    }
+                }
+            }
+        }
+    }
+    @objc private func openManual() {
+        Task { @MainActor in
+            do {
+                guard let resources = Bundle.main.resourceURL else { throw BetaError("Bundled manual missing.") }
+                if self.manual == nil { self.manual = ManualHost() }
+                let requested = (self.regional(self.plain)["language"] as? String ?? "system").replacingOccurrences(of: "_", with: "-").lowercased()
+                let baseLanguage = String(requested.split(separator: "-").first ?? "")
+                let language = ManualContent.languages.contains(requested) ? requested : ManualContent.languages.contains(baseLanguage) ? baseLanguage : "system"
+                try await self.manual!.show(root: resources.appendingPathComponent("UI/manual"), language: language)
+                self.send("handbuchGeoeffnet", ["ok": true])
+            } catch { self.send("handbuchGeoeffnet", ["ok": false, "fehler": error.localizedDescription]); self.alert(error.localizedDescription) }
+        }
     }
     private func savePanel(_ data: Data, suffix: String) throws -> String? {
         let panel = NSSavePanel()
@@ -194,9 +287,28 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         try AtomicStore.write(data, to: url)
         return url.path
     }
+    private func validateRestoreCandidate(_ text: String) async throws {
+        let result: Any = try await withCheckedThrowingContinuation { continuation in
+            var finished = false
+            let timeout = DispatchWorkItem {
+                guard !finished else { return }; finished = true
+                continuation.resume(throwing: BetaError("Restore validation exceeded 10 seconds."))
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeout)
+            web.callAsyncJavaScript("return window.MacBeta.validateRestore(text);", arguments: ["text": text], in: nil, in: .page) { (result: Result<Any, Error>) in
+                guard !finished else { return }; finished = true; timeout.cancel(); continuation.resume(with: result)
+            }
+        }
+        guard result as? Bool == true else { throw BetaError("Restore validation did not complete.") }
+    }
+
     private func dispatch(_ request: Request) throws {
         guard !restoring else { throw BetaError("Please wait.") }
         switch request.command {
+        case .notiz_dateien_importieren:
+            guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
+            importNoteFiles()
+        case .handbuch_oeffnen: openManual()
         case .bereit:
             guard !initialized else { throw BetaError("Duplicate initialization refused.") }
             initialized = true
@@ -206,24 +318,31 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 if root["magnolie"] as? String == "magnolie-verschluesselt" {
                     envelope = text; try initialize(nil, locked: true)
                 } else {
-                    _ = try Document.plain(text); plain = text; try initialize(text)
+                    ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: text)
+                    plain = text; try initialize(text)
                 }
             } else {
                 // Only ENOENT from the private store can create a new profile.
+                ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: nil)
                 plain = "{}"; try initialize(nil, new: true)
             }
         case .entsperren:
             guard Date() >= unlockAfter, plain == nil, let envelope else { throw BetaError("Unlock is not available yet.") }
-            let (text, session) = try Encryption.unlock(envelope, password: request.text("kennwort"))
+            let origin = try NativeBookRestore.unlockActual(store: store, password: request.text("kennwort"))
+            let text = origin.plain, session = origin.encryption
+            authenticatedOrigin = origin
+            ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: text)
             plain = text; encryption = session; failureCount = 0
             try initialize(text)
         case .speichern:
             guard let plain else { throw BetaError("No successfully loaded, unlocked document. Save refused.") }
-            let text = request.text("text"), next = try Document.plain(text)
+            guard let ordinarySaveEpochPolicy else { throw BetaError("Native save policy is unavailable.") }
+            let text = try ordinarySaveEpochPolicy.prepare(candidate: request.text("text"))
+            let next = try Document.plain(text)
             let needsRecovery = (try? Document.assertNoLoss(Document.object(plain), next)) == nil
             let output = try encryption?.encrypt(text) ?? text
             try store.commit(output, preservingCurrent: needsRecovery)
-            self.plain = text; envelope = encryption == nil ? nil : output
+            self.plain = text; authenticatedOrigin = nil; envelope = encryption == nil ? nil : output
             send("gespeichert", ["id": request.fields["id"]!, "ok": true])
         case .kennwort_setzen:
             guard let plain, encryption == nil, envelope == nil,
@@ -240,7 +359,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             guard confirmation.runModal() == .alertFirstButtonReturn else { throw BetaError("Encryption cancelled; original file retained.") }
             let candidate = try Encryption.create(password: request.text("neu"))
             let output = try candidate.encrypt(plain)
-            try store.commit(output); encryption = candidate; envelope = output
+            try store.commit(output); authenticatedOrigin = nil; encryption = candidate; envelope = output
             send("kennwortStand", ["ok": true, "an": true])
         case .beenden: NSApp.terminate(nil)
         case .beenden_bereit:
@@ -295,34 +414,149 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             selection = candidate
             send("sicherungAusgewaehlt", ["ok": true, "pfad": candidate.url.path, "verschluesselt": candidate.encrypted])
         case .sicherung_wiederherstellen:
-            guard let current = plain, let selection else { throw BetaError("This backup cannot be used.") }
-            let source = try selection.confirmed(path: request.text("pfad"))
-            let incoming: String
-            let importedEncryption: Encryption?
-            if selection.encrypted {
-                let unlocked = try Encryption.unlock(source, password: request.text("kennwort"))
-                incoming = unlocked.0; importedEncryption = unlocked.1
-            } else { incoming = source; importedEncryption = nil }
-            _ = try Document.plain(incoming)
-            // Keep the current profile's password; an encrypted import never becomes
-            // plaintext merely because the current profile had no password yet.
-            let targetEncryption = encryption ?? importedEncryption
-            let output = try targetEncryption?.encrypt(incoming) ?? incoming
-            restoring = true
-            web.callAsyncJavaScript("window.MacBeta.validateRestore(text)", arguments: ["text": incoming], in: nil, in: .page) { result in
-                defer { self.restoring = false }
+            guard plain != nil, let selection else { throw BetaError("This backup cannot be used.") }
+            // The native latch closes synchronously, before Task enqueue or any await.
+            let transition = try davAccounts.suspendBookAdmission()
+            restoreState = .activeIO; documentGeneration = UUID()
+            let generation = documentGeneration, path = request.text("pfad"), password = request.text("kennwort")
+            Task { @MainActor in
+                var prepared: NativeBookRestore.Prepared?
+                var committed = false
                 do {
-                    guard case .success(let accepted) = result, accepted as? Bool == true, self.plain == current else {
-                        throw BetaError("This backup cannot be used.")
+                    try await self.davAccounts.awaitBookSuspension(transition)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO else { throw BetaError("Restore session changed.") }
+                    let candidate = try NativeBookRestore.prepare(store: self.store, transition: transition, selection: selection, path: path, password: password,
+                                                                 currentEncryption: self.encryption, authenticatedOrigin: self.authenticatedOrigin)
+                    prepared = candidate
+                    try await self.validateRestoreCandidate(candidate.plain)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO else { throw BetaError("Restore session changed.") }
+                    let validation = try await NativeBookRestore.validateUI(candidate, in: self.web)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO else { throw BetaError("Restore session changed.") }
+                    let saved = try NativeBookRestore.commit(candidate, store: self.store)
+                    committed = true
+                    self.plain = candidate.plain; self.encryption = candidate.encryption; self.envelope = saved.envelope
+                    self.authenticatedOrigin = nil
+                    self.ordinarySaveEpochPolicy = try OrdinarySaveEpochPolicy(loadedPlain: candidate.plain)
+                    self.selection = nil
+                    self.localize(self.regional(candidate.plain))
+                    let handoff = try await NativeBookRestore.applyUI(validation, committed: saved, in: self.web)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO else { throw BetaError("Restore session changed.") }
+                    try await self.davAccounts.completeRestoredBookTransition(transition, handoff: handoff)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO, self.plain != nil else {
+                        self.invalidateRestoreUI(); throw BetaError("Restore UI session changed during admission handoff.")
                     }
-                    _ = try selection.confirmed(path: request.text("pfad"))
-                    try self.store.commit(output, preservingCurrent: true)
-                    self.plain = incoming; self.encryption = targetEncryption
-                    self.envelope = targetEncryption == nil ? nil : output; self.selection = nil
-                    self.localize(self.regional(incoming))
-                    self.send("sicherungWiederhergestellt", ["ok": true, "daten": try Document.plain(incoming), "kennwort": targetEncryption != nil])
+                    try await NativeBookRestore.finishUI(validation, committed: saved, in: self.web)
+                    guard self.documentGeneration == generation, self.restoreState == .activeIO, self.plain != nil else {
+                        self.invalidateRestoreUI(); throw BetaError("Restore UI session changed during editor release.")
+                    }
+                    self.restoreState = .idle
                 } catch {
-                    self.send("failure", ["cmd": "sicherung_wiederherstellen", "ok": false, "fehler": self.tr(error.localizedDescription)])
+                    self.davAccounts.invalidateBookAdmission()
+                    self.restoreState = .blockedRestartRequired
+                    let outcome = committed ? "Restore was saved, but its UI handoff failed. Restart is required." :
+                        (prepared?.publicationAttempted == true ? "Restore publication has an uncertain outcome. Restart and inspect the retained profile." : "Restore was not written. Restart is required before further editing.")
+                    self.send("failure", ["cmd": "sicherung_wiederherstellen", "ok": false, "restartRequired": true, "fehler": self.tr(outcome)])
+                    self.alert(outcome + "\n" + error.localizedDescription)
+                }
+            }
+        case .baum_briefkasten_status, .baum_briefkasten_speichern, .baum_briefkasten_pruefen, .baum_dav_pruefen:
+            guard plain != nil else { throw BetaError("Unlock first.") }
+            let generation = documentGeneration
+            let requestID = request.fields["requestId"] as? String
+            let command = request.command.rawValue
+            Task { @MainActor in
+                do {
+                    let payload: [String: Any]
+                    switch request.command {
+                    case .baum_briefkasten_status:
+                        payload = await self.davAccounts.status().payload(requestID: requestID)
+                    case .baum_briefkasten_speichern:
+                        guard let kind = DAVAccountType(rawValue: request.text("kontoArt")) else { throw DAVAccountError.invalidConfiguration }
+                        let configuration = try DAVAccountConfiguration(kontoArt: kind,
+                            davAktiv: request.fields["davAktiv"] as! Bool,
+                            briefkastenAktiv: request.fields["briefkastenAktiv"] as! Bool,
+                            server: request.text("url"), benutzer: request.text("benutzer"))
+                        let saved = try await self.davAccounts.save(expectedRevision: request.text("expectedRevision"),
+                            configuration: configuration, applicationPassword: request.text("anwendungskennwort"),
+                            clearPassword: request.fields["kennwortLoeschen"] as! Bool)
+                        payload = saved.payload(requestID: requestID, persisted: true)
+                    default:
+                        let discovery = try await self.davAccounts.discover(expectedRevision: request.text("expectedRevision"))
+                        if request.command == .baum_dav_pruefen {
+                            guard let requestID else { throw BetaError("A connection test identifier is required.") }
+                            payload = discovery.connectionTestPayload(requestID: requestID)
+                        } else { payload = discovery.status.payload(requestID: requestID) }
+                    }
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                    self.send(self.accountCallback(command), payload)
+                } catch {
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                    self.accountFailure(command: command, code: DAVAccountService.code(error),
+                        message: self.tr("The DAV account operation failed."), requestID: requestID)
+                }
+            }
+        case .eds_status, .macos_systemzugriff:
+            guard plain != nil else { throw BetaError("Unlock first.") }
+            let generation = documentGeneration
+            let requestID = request.fields["requestId"] as? String
+            let accessKind = request.command == .macos_systemzugriff
+                ? SystemSourcePolicy.Kind(rawValue: request.text("art")) : nil
+            Task { @MainActor in
+                var response: [String: Any]
+                do {
+                    if let accessKind { try await self.systemAccounts.requestAccess(accessKind) }
+                    response = try await self.systemAccounts.status(requestID: requestID)
+                    let dav = await self.davAccounts.status().payload()
+                    for key in ["kalender", "adressbuecher"] {
+                        let combined = (response[key] as? [[String: Any]] ?? []) + (dav[key] as? [[String: Any]] ?? [])
+                        response[key] = combined
+                        response[key == "kalender" ? "alleKalender" : "alleAdressbuecher"] = combined
+                    }
+                    response["verfuegbar"] = !(response["kalender"] as? [[String: Any]] ?? []).isEmpty ||
+                        !(response["adressbuecher"] as? [[String: Any]] ?? []).isEmpty
+                } catch {
+                    response = ["macos": true, "fehler": error.localizedDescription,
+                                "systemAccountSyncImplemented": false]
+                    if let requestID { response["requestId"] = requestID }
+                }
+                guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                self.send("edsStatus", response)
+            }
+        case .feiertage:
+            guard plain != nil else { throw BetaError("Unlock first.") }
+            var regions: [HolidayService.Region] = []
+            let selected = request.text("region")
+            if !selected.isEmpty { regions = [.init(code: selected, name: "")] }
+            else if let raw = request.fields["regionen"] as? [Any] {
+                guard raw.count <= 26 else { throw BetaError("Too many holiday regions were selected.") }
+                for item in raw {
+                    if let pair = item as? [String], pair.count == 2 { regions.append(.init(code: pair[0], name: pair[1])) }
+                    else if let item = item as? [String: String], let code = item["code"], let title = item["name"] {
+                        regions.append(.init(code: code, name: title))
+                    } else { throw BetaError("The selected holiday region is invalid.") }
+                }
+            }
+            let selectedLanguage = regional(plain)["language"] as? String ?? "system"
+            let holidayLanguage = selectedLanguage == "system" ? (Locale.preferredLanguages.first ?? "EN") : selectedLanguage
+            let holidayGeneration = documentGeneration
+            let holidayRequestID = request.fields["requestId"] as? String
+            let holidayMessage = tr("The holidays were imported.")
+            let query = try HolidayService.Query(country: request.text("land"), regions: regions,
+                years: request.fields["jahre"] as? [Int] ?? [], includeSchool: request.fields["ferien"] as? Bool ?? true,
+                regionRequired: request.fields["regionErforderlich"] as? Bool ?? false,
+                language: holidayLanguage)
+            Task {
+                var response: [String: Any]
+                do {
+                    let entries = try await HolidayService().fetch(query)
+                    response = ["feiertage": entries.map { $0.organizerValue }, "jahre": query.years,
+                                "bericht": holidayMessage]
+                } catch { response = ["fehler": error.localizedDescription] }
+                if let id = holidayRequestID { response["requestId"] = id }
+                let result = response
+                DispatchQueue.main.async {
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == holidayGeneration else { return }
+                    self.send("feiertageErgebnis", result)
                 }
             }
         case .regional_einstellungen:
@@ -331,18 +565,77 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             let next = try RegionalSettings.merging(settings, into: plain)
             let output = try encryption?.encrypt(next) ?? next
             try store.commit(output)
-            self.plain = next; envelope = encryption == nil ? nil : output
+            self.plain = next; authenticatedOrigin = nil; envelope = encryption == nil ? nil : output
             send("regionalErgebnis", ["ok": true, "regional": settings])
-        case .export:
-            guard plain != nil, request.text("art") == "ics-termine",
-                  let records = request.fields["daten"] as? [[String: Any]] else {
-                throw BetaError("Only simple appointment ICS export is implemented; use encrypted JSON backup for the whole document.")
+        case .import:
+            guard plain != nil else { throw BetaError("Unlock first.") }
+            guard request.text("art") == "ics" else {
+                throw BetaError("This import format is not implemented in macOS Beta.")
             }
-            let text = try CalendarExport.appointments(records)
+            let generation = documentGeneration
+            let panel = NSOpenPanel(); panel.title = tr("Import")
+            panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+            panel.allowedFileTypes = ["ics"]
+            guard panel.runModal() == .OK, let url = panel.url else {
+                send("importErgebnis", ["abgebrochen": true]); return
+            }
+            guard plain != nil, !restoring, documentGeneration == generation else {
+                throw BetaError("The current document changed. Start the import again.")
+            }
+            let zone = regional(plain)["timeZone"] as? String ?? "system"
+            let sourceName = url.lastPathComponent
+            guard let database = calendarDatabase else { throw BetaError("Verified calendar timezone data is unavailable.") }
+            let timeContext = try CalendarTimeContext(database: database, systemIdentifier: TimeZone.current.identifier)
+            // Only the explicitly selected file is read, with a hard byte bound.
+            // Parsing and time-zone projection must not block AppKit or WebKit.
+            DispatchQueue.global(qos: .userInitiated).async {
+                let response: [String: Any]
+                do {
+                    let handle = try FileHandle(forReadingFrom: url)
+                    defer { try? handle.close() }
+                    let bytes = try handle.read(upToCount: ICalendarImport.maximumBytes + 1) ?? Data()
+                    response = try ICalendarImport.decode(bytes, context: timeContext, displayTimeZone: zone, sourceName: sourceName).document
+                } catch { response = ["fehler": error.localizedDescription] }
+                DispatchQueue.main.async {
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                    self.send("importErgebnis", response)
+                }
+            }
+        case .mail, .karte, .sozial:
+            guard plain != nil, !restoring else { throw BetaError("Unlock first.") }
+            let target = try CommunicationLaunchPolicy.target(command: request.command.rawValue, fields: request.fields)
+            let generation = documentGeneration
+            communication.begin(target, isCurrent: { [weak self] in
+                guard let self else { return false }
+                return self.plain != nil && !self.restoring && self.documentGeneration == generation
+            }) { [weak self] result in
+                guard let self else { return }
+                var payload = result
+                if let error = payload["fehler"] as? String { payload["fehler"] = self.tr(error) }
+                self.send("adressWeg", payload)
+            }
+        case .drucken:
+            guard plain != nil, !restoring else { throw BetaError("Printing requires an unlocked document.") }
+            _ = try PrintDocument.isolatedHTML(request.text("html"))
+            let requestID = request.fields["requestId"] as? String
+            printing.begin(html: request.text("html"), parent: window) { [weak self] result in
+                var reply = result
+                if let requestID { reply["requestId"] = requestID }
+                self?.send("printErgebnis", reply)
+            }
+        case .export:
+            guard plain != nil, let kind = ICalendarExport.Kind(rawValue: request.text("art")),
+                  let records = request.fields["daten"] as? [[String: Any]] else {
+                throw BetaError("Choose appointment, task or anniversary ICS export; use encrypted JSON backup for the whole document.")
+            }
+            guard let database = calendarDatabase else { throw BetaError("Verified calendar timezone data is unavailable.") }
+            let timeContext = try CalendarTimeContext(database: database, systemIdentifier: TimeZone.current.identifier)
+            let text = try ICalendarExport.encode(records, context: timeContext, kind: kind,
+                defaultTimeZone: regional(plain)["timeZone"] as? String ?? "system")
             let path = try savePanel(Data(text.utf8), suffix: ".ics")
             send("exportErgebnis", ["ok": path != nil, "pfad": path ?? "", "abgebrochen": path == nil,
                                     "anzahl": records.count,
-                                    "bericht": "macOS Beta: simple appointments only; application metadata and global reminder preferences are not ICS fields. Use JSON backup for a complete copy."])
+                                    "bericht": "Calendar export completed. Application metadata and global reminder preferences are not ICS fields; use JSON backup for a complete profile copy."])
         case .erinnerung_einrichten:
             send("erinnerungStand", ["fehler": "macOS Beta: reminders only while open and unlocked; no wake or background scheduler. Enable notifications in the application menu."])
         case .erinnerung_zeigen:
@@ -357,7 +650,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 if error != nil { DispatchQueue.main.async { self.send("failure", ["cmd": "erinnerung_zeigen", "ok": false, "fehler": "Notification delivery failed."]) } }
             }
         case .notiz_anhang_datei:
-            guard plain != nil, request.text("aktion") == "speichern" else {
+            guard plain != nil, request.text("aktion") == "save" else {
                 throw BetaError("Beta supports attachment Save only, not automatic opening of files.")
             }
             let text = request.text("daten")
@@ -367,12 +660,13 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             guard let type = types.first(where: { prefix == "data:" + $0.key + ";base64" }),
                   let bytes = Data(base64Encoded: String(text[text.index(after: separator)...])) else { throw BetaError("Invalid attachment encoding.") }
             let path = try savePanel(bytes, suffix: type.value)
-            send("notizAnhangDateiErgebnis", ["id": request.fields["id"]!, "aktion": "speichern", "ok": path != nil, "abgebrochen": path == nil])
+            send("notizAnhangDateiErgebnis", ["id": request.fields["id"]!, "aktion": "save", "ok": path != nil, "abgebrochen": path == nil])
         }
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if restoring { return .terminateCancel }
+        if restoreState == .activeIO { return .terminateCancel }
+        if restoreState == .blockedRestartRequired { return .terminateNow }
         if closeApproved || web == nil { return .terminateNow }
         if closePending { return .terminateCancel }
         closePending = true; send("vorBeenden")

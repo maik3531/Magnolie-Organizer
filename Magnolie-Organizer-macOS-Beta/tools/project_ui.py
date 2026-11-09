@@ -21,7 +21,7 @@ def digest(data):
 
 
 def inputs():
-    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", BETA / "Projection", BETA / "Sources", BETA / "Resources"]
+    roots = [LINUX / "web", LINUX / "symbole", REPO / "contracts", REPO / "port-adapters", BETA / "Projection", BETA / "Sources", BETA / "Resources", REPO / "magnolie-handbuch/web"]
     files = []
     for root in roots:
         if root.is_symlink():
@@ -44,6 +44,72 @@ def inventory(snapshot):
     return {name: digest(data) for name, data in snapshot.items()}
 
 
+def timezone_assets(snapshot):
+    prefix = "port-adapters/timezones/"
+    data = snapshot[prefix + "tzdb-2026egtz.json"]
+    manifest = json.loads(snapshot[prefix + "provenance.json"])
+    if (manifest.get("schema") != 2 or manifest.get("tzdbVersion") != "2026egtz" or manifest.get("payloadBytes") != 428473 or
+            manifest.get("payloadSHA256") != "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c" or
+            digest(data) != manifest["payloadSHA256"] or digest(snapshot[prefix + "LICENSE-tzdb.txt"]) != manifest.get("licenseSHA256")):
+        raise ValueError("Normative timezone source/identity/license mismatch")
+    bootstrap = snapshot[prefix + "bootstrap.template.js"].decode()
+    for marker, value in [("/*NORMATIVE_TZDB_TEXT*/null", json.dumps(data.decode())),
+                          ("/*NORMATIVE_TZDB_MANIFEST*/null", snapshot[prefix + "provenance.json"].decode().strip())]:
+        if bootstrap.count(marker) != 1:
+            raise ValueError("Normative timezone bootstrap anchor changed")
+        bootstrap = bootstrap.replace(marker, value, 1)
+    result = {"normative-timezones.js": snapshot[prefix + "resolver.js"] + b"\n" + snapshot[prefix + "port-runtime.js"] + b"\n" + bootstrap.encode()}
+    for name in ["tzdb-2026egtz.json", "provenance.json", "LICENSE-tzdb.txt"]:
+        result["timezones/" + name] = snapshot[prefix + name]
+    return result
+
+
+def apply_timezone_patches(source, snapshot):
+    prefix = "port-adapters/timezones/"
+    patches = json.loads(snapshot[prefix + "projection-patches.json"])
+    hooks = snapshot[prefix + "app-hooks.snippets"].decode()
+    canonical = source
+    for patch in patches:
+        if canonical.count(patch["start"]) != 1:
+            raise ValueError("Timezone start anchor changed: " + patch["id"])
+        start = canonical.index(patch["start"])
+        end = start + len(patch["start"])
+        if patch["end"]:
+            end = canonical.index(patch["end"], end)
+            if patch["includeEnd"]:
+                end += len(patch["end"])
+        before = canonical[start:end]
+        allowed = [patch["sha256"]] + [variant["sha256"] for variant in patch.get("reviewedVariants", [])]
+        if digest(before.encode()) not in allowed:
+            raise ValueError("Timezone canonical block changed: " + patch["id"])
+        if patch.get("hook"):
+            begin = "/*TZ_HOOK:" + patch["hook"] + "*/\n"
+            finish = "/*TZ_HOOK_END:" + patch["hook"] + "*/"
+            if hooks.count(begin) != 1 or hooks.count(finish) != 1:
+                raise ValueError("Timezone hook changed: " + patch["id"])
+            after = hooks.split(begin)[1].split(finish)[0]
+        else:
+            after = patch["replacement"]
+        if source.count(before) != 1:
+            raise ValueError("Timezone projection match changed: " + patch["id"])
+        source = source.replace(before, "/*TZ_PORT:" + patch["id"] + ":BEGIN*/" + after + "/*TZ_PORT:" + patch["id"] + ":END*/", 1)
+    return source
+
+
+
+def apply_occurrence_identity(source, snapshot):
+    patch = json.loads(snapshot["port-adapters/occurrence-identity-patch.json"])
+    marker = "/*PORT_OCCURRENCE_HELPER*/"
+    if (patch.get("schema") != 1 or digest(patch["before"].encode()) != patch["sha256"] or
+            digest(patch["mainBefore"].encode()) != patch["mainSHA256"] or
+            patch["after"].count(marker) != 1):
+        raise ValueError("Occurrence identity patch manifest changed")
+    after = patch["after"].replace(marker, snapshot["port-adapters/occurrence-identity.js"].decode())
+    if patch["mainBefore"] in source:
+        return replace_once(source, patch["mainBefore"], after + "/*PORT_OCCURRENCE_MAIN_SOURCE*/\n")
+    return replace_once(source, patch["before"], after)
+
+
 def replace_once(text, old, new):
     if text.count(old) != 1:
         raise ValueError("Canonical UI anchor changed; review the projection: " + old[:100])
@@ -53,7 +119,7 @@ def replace_once(text, old, new):
 def commands(snapshot):
     source = snapshot[str((BETA / "Sources/BetaCore/Contract.swift").relative_to(REPO))].decode()
     block = source.split("public enum Command: String, CaseIterable {", 1)[1].split("\n}", 1)[0]
-    return [name.strip() for line in block.splitlines() if line.strip().startswith("case ")
+    return [name.strip().strip("`") for line in block.splitlines() if line.strip().startswith("case ")
              for name in line.strip()[5:].split(",")]
 
 
@@ -82,8 +148,40 @@ def project(snapshot, target):
             path = target / name.removeprefix(prefix)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
+    # Finalized strokes use the same renderer as Undo/Redo, reopen and export.
+    # The shared patch is frozen input; canonical Linux/Windows sources stay intact.
+    drawing = target / "web/zeichenblatt.js"
+    drawing_source = drawing.read_text()
+    drawing_patch = json.loads(snapshot["port-adapters/drawing-finish-patch.json"])
+    drawing_base = drawing_source.replace(drawing_patch["releaseAfter"], drawing_patch["releaseBefore"])
+    if drawing_patch.get("schema") != 1 or digest(drawing_base.encode()) != drawing_patch["canonicalSHA256"]:
+        raise ValueError("Canonical drawing source changed; review the finish projection")
+    drawing_projected = replace_once(drawing_base, drawing_patch["before"], drawing_patch["after"])
+    drawing.write_text(replace_once(drawing_projected, drawing_patch["releaseBefore"], drawing_patch["releaseAfter"]))
     app = target / "web/anwendung.js"
     text = app.read_text()
+    text = apply_timezone_patches(text, snapshot)
+    text = apply_occurrence_identity(text, snapshot)
+    alarm_helper = snapshot["port-adapters/display-alarm-roundtrip.js"].decode()
+    alarm_anchor = "  function spiegeleTerminInIcs(termin, vorher = null) {"
+    alarm_before = '''    for (const alarm of saubereAlarme(termin.alarme).filter((a) => a.bearbeitbar && a.aktiviert)) {
+      const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";
+      neu.push("BEGIN:VALARM", "TRIGGER;RELATED=" + alarm.related + ":" + trigger,
+        "ACTION:DISPLAY", "DESCRIPTION:" + icsSicher(termin.titel || "Termin"), "END:VALARM");
+    }'''
+    if alarm_before in text:
+        text = replace_once(text, alarm_anchor,
+                            "/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n" + alarm_helper +
+                            "/*PORT_DISPLAY_ALARM_HELPER_END*/\n" + alarm_anchor)
+        text = replace_once(text, alarm_before, "    neu.push(...portDisplayAlarmLines(termin, vorher, alt));")
+    else:
+        accepted = json.loads(snapshot["port-adapters/display-alarm-source.json"])
+        begin = text.find("  function erhalteDisplayAlarme(termin, vorher, alt) {")
+        end = text.find(alarm_anchor, begin)
+        if (accepted.get("schema") != 1 or begin < 0 or end < begin or
+                digest(text[begin:end].encode()) != accepted["mainHelperSHA256"] or
+                text.count("    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));") != 1):
+            raise ValueError("Canonical DISPLAY alarm anchor changed")
     identity = json.loads(snapshot[str((BETA / "Resources/BetaIdentity.json").relative_to(REPO))])
     text, count = re.subn(r'^const FASSUNG = "[^"]+";', 'const FASSUNG = ' + json.dumps(identity["version"]) + ';', text, flags=re.M)
     if count != 1:
@@ -104,12 +202,15 @@ def project(snapshot, target):
     text = replace_once(text, "  function normalisiere(roh) {",
                         "  function normalisiere(roh) { return window.MacBeta.preserve(roh, normalisiereDesktop(roh)); }\n"
                         "  function normalisiereDesktop(roh) {")
-    disabled = {
-        "baueSeiteSync": "macOS Internet Accounts are not integrated. Linux EDS/Akonadi and DAV/Graph sync are not available. Read-only EventKit discovery is in the application menu.",
-    }
-    for function, message in disabled.items():
-        anchor = "  function " + function + "(wurzel) {"
-        text = replace_once(text, anchor, anchor + "\n    window.MacBeta.platformNotice(wurzel, " + json.dumps(message) + "); return;")
+    text = replace_once(text, "  function baueSeiteSync(wurzel) {", '''  function baueSeiteSync(wurzel) {
+    const systemSources = el("div"); wurzel.append(systemSources);
+    window.MacBetaSystemAccounts.render(systemSources, { tr: _, id: uid,
+      settings: () => DATEN.einstellungen.sync,
+      change: values => { wendeSyncEinstellungenDatenAn(values); planeSpeichern(); },
+      send: message => Bruecke.sende(message) });
+    baueNextcloudKonto(wurzel); return;''')
+    text = replace_once(text, "  function starteSync(stumm) {", '''  function starteSync(stumm) {
+    if (!stumm) zettel("macOS system source synchronization is not implemented. No system data was changed."); return;''')
     for function in ["baueSicherungsdateien"]:
         anchor = "  function " + function + "(wurzel) {"
         text = replace_once(text, anchor, anchor + '''
@@ -121,10 +222,26 @@ def project(snapshot, target):
           if (pfad) zeigeSicherungsanlage(pfad);
           else Bruecke.sende({ cmd: "sicherung", pfad: "", kennwort: "" });''',
                         '''          Bruecke.sende({ cmd: "sicherung", pfad: "", kennwort: "" });''')
+    text = replace_once(text, '        kennwortLoeschen: !!kennwortLoeschen });',
+                        '        kennwortLoeschen: !!kennwortLoeschen, expectedRevision: briefkastenStand.revision });')
+    text = replace_once(text, 'Bruecke.sende({ cmd: "baum_briefkasten_pruefen" })',
+                        'Bruecke.sende({ cmd: "baum_briefkasten_pruefen", expectedRevision: briefkastenStand.revision })')
+    text = replace_once(text, '  function baueNextcloudKonto(wurzel) {',
+                        '  function baueNextcloudKonto(wurzel) {\n'
+                        '    baueNextcloudKontoDesktop(wurzel);\n'
+                        '    window.MacBeta.accountControls(briefkastenStand, () => Bruecke.sende({ cmd: "baum_briefkasten_status" }));\n'
+                        '  }\n  function baueNextcloudKontoDesktop(wurzel) {')
+    # Native time-zone management/refresh is not implemented by the Beta.
+    # Keep imported preferences intact without sending unsupported MCP requests.
+    text = replace_once(text, "  function oeffneZeitzonenManagement() {",
+                        '  function oeffneZeitzonenManagement() {\n'
+                        '    zettel("macOS Beta: native time zone management is unavailable. Use Language and regional display for the local time zone."); return;')
+    text = replace_once(text, "  async function aktualisiereAutomatischeZeitzone() {",
+                        "  async function aktualisiereAutomatischeZeitzone() { return;")
     # The current desktop form uses revision-bound native MCP calls. The Beta
     # has no such native API: bind only this form to its existing validated
     # whole-document handler, retaining the save-ACK fence, not fake MCP success.
-    text = replace_once(text, '''    const speichern = knopf(_("Save"), "", async () => {
+    regional_save = '''    const speichern = knopf(_("Save"), "", async () => {
       if (!Bruecke.vorhanden) return;
       speichern.disabled = true;
       try {
@@ -137,7 +254,14 @@ def project(snapshot, target):
         zettel(_("Regional settings saved. Restart the Organizer to apply them completely."));
       } catch (_) { zettel(_("The regional settings could not be saved.")); }
       finally { speichern.disabled = false; }
-    });''', '''    const speichern = knopf(_("Save"), "", () => {
+    });'''
+    # Optional catch bindings are equivalent; every other part of the reviewed
+    # regional transaction remains an exact, single-match projection anchor.
+    regional_candidates = [regional_save, regional_save.replace("} catch (_) {", "} catch {")]
+    matching = [value for value in regional_candidates if value in text]
+    if len(matching) != 1:
+        raise ValueError("Canonical UI anchor changed; review the regional projection.")
+    text = replace_once(text, matching[0], '''    const speichern = knopf(_("Save"), "", () => {
       if (!Bruecke.vorhanden || speichern.disabled) return;
       speichern.disabled = true;
       const regional = { language: sprache.value, formatLocale: format.value.trim(),
@@ -151,7 +275,28 @@ def project(snapshot, target):
     text = replace_once(text, '    { id: "ort", name: msgid("Country & holidays") },',
                         '    { id: "regional", name: msgid("Language and regional display") },\n'
                         '    { id: "ort", name: msgid("Country & holidays") },')
-    text = replace_once(text, "  const App = {", '''  const App = {
+    note_import = snapshot[str((BETA / "Projection/note-file-import.js").relative_to(REPO))].decode()
+    text = replace_once(text, "  const App = {", note_import + "\n  const App = {\n    macOSBetaStartNoteImport, macOSBetaImportNoteFiles,")
+    text = replace_once(text, "  const App = {", '''  let macOSBetaPreparedRestore = null;
+  const App = {
+    macOSBetaPrepareNativeRestore(text, operationID) {
+      if (macOSBetaPreparedRestore) throw new Error("A native restore model is already prepared.");
+      if (typeof operationID !== "string" || !/^[a-f0-9-]{36}$/.test(operationID)) throw new Error("Invalid native restore operation.");
+      const model = normalisiere(JSON.parse(text));
+      const snapshot = JSON.stringify(model);
+      if (JSON.stringify(normalisiere(JSON.parse(snapshot))) !== snapshot) throw new Error("Restore normalization is not a fixed point.");
+      macOSBetaPreparedRestore = { operationID, snapshot };
+      return { operationID, snapshot };
+    },
+    macOSBetaApplyNativeRestore(operationID, encrypted) {
+      const prepared = macOSBetaPreparedRestore;
+      if (!prepared || prepared.operationID !== operationID) throw new Error("Stale native restore operation.");
+      macOSBetaPreparedRestore = null;
+      App.sicherungWiederhergestellt({ ok: true, daten: JSON.parse(prepared.snapshot), kennwort: encrypted === true });
+      const snapshot = JSON.stringify(DATEN);
+      if (snapshot !== prepared.snapshot || letzterSpeicherText !== snapshot) throw new Error("Actual restore callback did not retain its validated model.");
+      return { operationID, snapshot };
+    },
     macOSBetaValidateRestore(text) {
       normalisiere(JSON.parse(text));
       return true;
@@ -181,10 +326,7 @@ def project(snapshot, target):
                         '    window.MacBeta.platformNotice(wurzel, "macOS Beta: encryption can be enabled for the current profile only. Password changes/removal, backup rekeying and closed-app reminders are unavailable. Recovery files retain their original encryption state. The desktop background-service controls below have no native effect.");')
     text = replace_once(text, "  function fuelleEdsAuswahl(nutzlast) {",
                         '  function fuelleEdsAuswahl(nutzlast) {\n'
-                        '    const betaStatus = document.getElementById("sync-status");\n'
-                        '    if (betaStatus) betaStatus.textContent = "macOS Internet Accounts are not integrated in this Beta.";\n'
-                        '    const betaButton = document.getElementById("sync-jetzt");\n'
-                        '    if (betaButton) betaButton.disabled = true; return;')
+                        '    window.MacBetaSystemAccounts.update(nutzlast); return;')
     # Preserve the existing timer and due-item calculation, not a new recurrence implementation.
     text = replace_once(text, "if (!Bruecke.vorhanden) {\n        setInterval(() => pruefeErinnerungen(false), 30000);",
                         "if (window.MacBeta) {\n        setInterval(() => pruefeErinnerungen(false), 30000);")
@@ -211,15 +353,46 @@ def project(snapshot, target):
       }
     }''' + reminder[task_end:]
     text = text[:reminder_start] + reminder + text[reminder_end:]
+    # The desktop creates its first welcome note after normalizing the book.
+    # Normalize that newly generated record before its first native save so a
+    # reopen adds no delayed metadata defaults to an otherwise untouched profile.
+    welcome_before = "        DATEN.notizen.push(willkommensNotiz());"
+    welcome_after = "        DATEN.notizen.push(normalisiere({ notizen: [willkommensNotiz()] }).notizen[0]);"
+    if welcome_before in text:
+        text = replace_once(text, welcome_before, welcome_after)
+    elif text.count(welcome_after) != 1:
+        raise ValueError("Canonical welcome normalization anchor changed")
     # No automatic deletion of tombstones/trash in a port without a recovery journal.
     text = replace_once(text, "      raeumeTombstonesAuf();\n      const papierkorbBereinigt = raeumePapierkorbAuf();",
                         "      const papierkorbBereinigt = false;")
+    merge_calls = [
+        '      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);',
+        '      const { teile, doppelt, counts, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);']
+    merge_call = next((call for call in merge_calls if call + '\n      if (changed) {' in text), None)
+    if merge_call is None:
+        raise ValueError("Canonical calendar merge anchor changed")
+    text = replace_once(text, merge_call + '\n      if (changed) {',
+                        '      const calendarMetadata = window.MacBeta.calendarMetadata(DATEN, nutzlast, false);\n' +
+                        merge_call + '\n' +
+                        '      if (calendarMetadata) window.MacBeta.calendarMetadata(DATEN, nutzlast, true);\n'
+                        '      if (changed || calendarMetadata) {')
+    # Reuse canonical offline phone metadata; never guess native country prefixes.
+    text = replace_once(text, '  function oeffneSozial(eintrag) {\n    if (!Bruecke.vorhanden) return nurImProgramm();',
+                        '  function oeffneSozial(eintrag) {\n    if (!Bruecke.vorhanden) return nurImProgramm();\n'
+                        '    const nummer = telefonSchluessel(eintrag.wert, telefonHeimatland()).split("x", 1)[0];')
+    text = replace_once(text, '      aktionArt: eintrag.aktionArt || "", aktionZiel: eintrag.aktionZiel || "",\n      land: telefonHeimatland() });',
+                        '      aktionArt: eintrag.aktionArt || "", aktionZiel: eintrag.aktionZiel || "",\n      land: telefonHeimatland(), nummer: /^\\+[1-9][0-9]{5,14}$/.test(nummer) ? nummer : "" });')
+    # Retain imported GNOME preference as data, but name its macOS adapter.
+    text = replace_once(text, '["gnome-maps", _("GNOME Maps only")]',
+                        '["gnome-maps", _("Apple Maps")]')
     app.write_text(text)
     adapter = snapshot[str((BETA / "Projection/macos-beta.js").relative_to(REPO))].decode()
     adapter = replace_once(adapter, "/*GENERATED_COMMANDS*/[]", json.dumps(commands(snapshot)))
     adapter = replace_once(adapter, "/*GENERATED_IDENTITY*/{}", json.dumps(identity))
     (target / "web/macos-beta.js").write_text(adapter)
-    (target / "web/macos-beta.css").write_bytes(snapshot[str((BETA / "Projection/macos-beta.css").relative_to(REPO))])
+    (target / "web/system-accounts.js").write_bytes(snapshot[str((BETA / "Projection/system-accounts.js").relative_to(REPO))])
+    (target / "web/macos-beta.css").write_bytes(snapshot[str((BETA / "Projection/macos-beta.css").relative_to(REPO))] +
+                                              b"\n" + snapshot["port-adapters/legacy-display.css"])
     index = target / "web/index.html"
     html = replace_once(index.read_text(), "<title>Magnolie Organizer</title>",
                         "<title>Magnolie Organizer macOS Beta</title>\n<link rel=\"stylesheet\" href=\"macos-beta.css\">")
@@ -228,7 +401,13 @@ def project(snapshot, target):
     html = replace_once(html, '<script src="i18n-active.js"></script>',
                         "\n".join('<script src="i18n/' + file.name + '"></script>' for file in catalogs))
     html = replace_once(html, '<script src="anwendung.js"></script>',
-                        '<script src="macos-beta.js"></script>\n<script src="anwendung.js"></script>')
+                        '<script src="macos-beta.js"></script>\n<script src="system-accounts.js"></script>\n<script src="anwendung.js"></script>')
+    html = replace_once(html, '<script src="macos-beta.js"></script>',
+                        '<script src="normative-timezones.js"></script>\n<script src="macos-beta.js"></script>')
+    for name, data in timezone_assets(snapshot).items():
+        destination = target / "web" / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(data)
     index.write_text(html)
     # Reuse the shared gettext-generated catalogs for native standard controls.
     native = shared_catalogs(snapshot)
@@ -237,6 +416,17 @@ def project(snapshot, target):
         native[locale].update(extras.get(locale, {}))
     (target / "native-i18n.json").write_text(json.dumps(native, ensure_ascii=False, sort_keys=True) + "\n")
     (target / "BetaIdentity.json").write_text(json.dumps(identity, sort_keys=True) + "\n")
+    # Bundle the canonical manual unchanged. Every asset participates in the
+    # input freeze and generated tree hashes; no second manual content fork.
+    manual_prefix = "magnolie-handbuch/web/"
+    manual_version = json.loads(snapshot[manual_prefix + "version.json"])["version"]
+    if manual_version != "2.0.30":
+        raise ValueError("Bundled manual must match the 2.0.30 desktop baseline.")
+    for name, data in snapshot.items():
+        if name.startswith(manual_prefix):
+            destination = target / "manual" / name[len(manual_prefix):]
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
     mobile = snapshot["magnolie-handbuch/web/mobile-downloads.json"]
     notes = json.loads(mobile)["notes"]
     if notes["filename"] != "Magnolie-Notes.apk" or not notes["url"].endswith("/Magnolie-Notes.apk"):

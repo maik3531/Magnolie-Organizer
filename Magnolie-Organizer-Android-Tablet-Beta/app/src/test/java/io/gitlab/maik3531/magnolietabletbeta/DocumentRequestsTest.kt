@@ -44,6 +44,30 @@ class DocumentRequestsTest {
         assertFalse(recreated.take(current.code,1,pageB)!!.export)
     }
 
+    @Test fun backgroundCalendarSelectionCannotOutliveNewPickerOrBeFinishedTwice() {
+        val requests=DocumentRequests()
+        val first=requests.begin(false,1,pageA,ImportFormat.ICS,"ics-first")
+        assertEquals(ImportFormat.ICS,first.format)
+        assertEquals(first,requests.take(first.code,1,pageA))
+        assertTrue(requests.isActive(first))
+        val second=requests.begin(false,1,pageA,ImportFormat.JSON,"json-second")
+        assertFalse(requests.isActive(first)); assertFalse(requests.finish(first.code))
+        assertNull(requests.take(first.code,1,pageA))
+        assertEquals(second,requests.take(second.code,1,pageA))
+        assertTrue(requests.finish(second.code)); assertFalse(requests.finish(second.code))
+        assertNull(requests.active())
+    }
+    @Test fun restoreOrReloadCancellationInvalidatesAlreadySelectedCalendarBytes() {
+        val requests=DocumentRequests()
+        val picker=requests.begin(false,1,pageA,ImportFormat.ICS,"ics-selected")
+        requests.take(picker.code,1,pageA)
+        requests.cancel()
+        assertFalse(requests.isActive(picker)); assertFalse(requests.finish(picker.code))
+        assertNull(requests.take(picker.code,1,pageA))
+        try { requests.begin(true,1,pageA,ImportFormat.ICS); fail("ICS export is not part of this import route") }
+        catch (_: IllegalStateException) { }
+    }
+
     @Test fun selectedImportCannotBeReauthorizedAgainstNewVaultPage() {
         val dir=Files.createTempDirectory("tablet-picker-fence").toFile()
         try {

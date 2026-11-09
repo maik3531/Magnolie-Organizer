@@ -1,0 +1,286 @@
+{
+  "contractTag": "v2.0.30",
+  "contractCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+  "provenance": "Actual canonical appointment form, saved without edits / offset changed to 30 / editable alarm removed; prior shared raw-writer behavior, no assertion of opaque field preservation.",
+  "cases": [
+    {
+      "mode": "untouched",
+      "record": {
+        "datum": "2026-11-15",
+        "endDatum": "",
+        "icsAnzeigeZeitzone": "UTC",
+        "icsNullDauer": false,
+        "notiz": "",
+        "icsSequence": 0,
+        "akzentFarbe": "",
+        "icsQuelleName": "Synthetic native calendar",
+        "icsKomplex": false,
+        "icsQuelleId": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+        "uid": "normalized-valarm-event",
+        "titel": "Synthetic alarm fixture",
+        "kostenstelle": "",
+        "icsZusatzTermine": [],
+        "kategorien": "",
+        "wiederholung": {
+          "art": "none",
+          "bis": ""
+        },
+        "icsAenderungszeitFehlt": true,
+        "kunde": "",
+        "vertraulich": false,
+        "icsRoundtrip": [
+          "DTSTART:20261115T090000Z",
+          "DTEND:20261115T100000Z",
+          "BEGIN:VALARM",
+          "ACTION:DISPLAY",
+          "TRIGGER:-PT15M",
+          "DESCRIPTION:Synthetic reminder",
+          "END:VALARM",
+          "BEGIN:VALARM",
+          "ACTION:AUDIO",
+          "TRIGGER;VALUE=DATE-TIME:20261115T083000Z",
+          "END:VALARM"
+        ],
+        "individuelleErinnerungTage": 0,
+        "endZeit": "10:00",
+        "standardErinnerung": true,
+        "icsSerienUid": "",
+        "zeit": "09:00",
+        "icsZusatzDaten": [],
+        "vorlaeufig": false,
+        "icsEndeFehlt": false,
+        "ort": "",
+        "alarme": [
+          {
+            "id": "ics-alarm-0-c6mluk",
+            "offsetMinuten": 15,
+            "aktion": "display",
+            "aktiviert": true,
+            "quelle": "ics",
+            "triggerRaw": "-PT15M",
+            "related": "START",
+            "bearbeitbar": true
+          },
+          {
+            "id": "ics-alarm-1-108tzdj",
+            "offsetMinuten": 0,
+            "aktion": "audio",
+            "aktiviert": true,
+            "quelle": "ics",
+            "triggerRaw": "20261115T083000Z",
+            "related": "START",
+            "bearbeitbar": false
+          }
+        ],
+        "kalenderQuelle": {
+          "id": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+          "name": "Synthetic native calendar",
+          "gruppe": "",
+          "farbe": "",
+          "anbieter": "ICS"
+        },
+        "organisator": {
+          "uri": "",
+          "name": "",
+          "email": ""
+        },
+        "teilnehmer": [],
+        "kalenderAnhaenge": [],
+        "providerMetadaten": {},
+        "icsAusnahmen": [],
+        "icsRangeOverrides": [],
+        "icsAusnahmeTermine": [],
+        "icsTimezones": [],
+        "syncKonflikte": [],
+        "icsReadOnly": false,
+        "icsReadOnlyGrund": "",
+        "aufgaben": [],
+        "kontaktId": "",
+        "syncKalenderUid": "",
+        "sync": false,
+        "syncQuellen": {}
+      }
+    },
+    {
+      "mode": "edit30",
+      "record": {
+        "datum": "2026-11-15",
+        "endDatum": "",
+        "icsAnzeigeZeitzone": "UTC",
+        "icsNullDauer": false,
+        "notiz": "",
+        "icsSequence": 0,
+        "akzentFarbe": "",
+        "icsQuelleName": "Synthetic native calendar",
+        "icsKomplex": false,
+        "icsQuelleId": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+        "uid": "normalized-valarm-event",
+        "titel": "Synthetic alarm fixture",
+        "kostenstelle": "",
+        "icsZusatzTermine": [],
+        "kategorien": "",
+        "wiederholung": {
+          "art": "none",
+          "bis": ""
+        },
+        "icsAenderungszeitFehlt": true,
+        "kunde": "",
+        "vertraulich": false,
+        "icsRoundtrip": [
+          "DTSTART:20261115T090000Z",
+          "DTEND:20261115T100000Z",
+          "BEGIN:VALARM",
+          "ACTION:AUDIO",
+          "TRIGGER;VALUE=DATE-TIME:20261115T083000Z",
+          "END:VALARM",
+          "BEGIN:VALARM",
+          "TRIGGER;RELATED=START:-PT30M",
+          "ACTION:DISPLAY",
+          "DESCRIPTION:Synthetic alarm fixture",
+          "END:VALARM"
+        ],
+        "individuelleErinnerungTage": 0,
+        "endZeit": "10:00",
+        "standardErinnerung": true,
+        "icsSerienUid": "",
+        "zeit": "09:00",
+        "icsZusatzDaten": [],
+        "vorlaeufig": false,
+        "icsEndeFehlt": false,
+        "ort": "",
+        "alarme": [
+          {
+            "id": "ics-alarm-0-c6mluk",
+            "offsetMinuten": 30,
+            "aktion": "display",
+            "aktiviert": true,
+            "quelle": "ics",
+            "triggerRaw": "-PT15M",
+            "related": "START",
+            "bearbeitbar": true
+          },
+          {
+            "id": "ics-alarm-1-108tzdj",
+            "offsetMinuten": 0,
+            "aktion": "audio",
+            "aktiviert": true,
+            "quelle": "ics",
+            "triggerRaw": "20261115T083000Z",
+            "related": "START",
+            "bearbeitbar": false
+          }
+        ],
+        "kalenderQuelle": {
+          "id": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+          "name": "Synthetic native calendar",
+          "gruppe": "",
+          "farbe": "",
+          "anbieter": "ICS"
+        },
+        "organisator": {
+          "uri": "",
+          "name": "",
+          "email": ""
+        },
+        "teilnehmer": [],
+        "kalenderAnhaenge": [],
+        "providerMetadaten": {},
+        "icsAusnahmen": [],
+        "icsRangeOverrides": [],
+        "icsAusnahmeTermine": [],
+        "icsTimezones": [],
+        "syncKonflikte": [],
+        "icsReadOnly": false,
+        "icsReadOnlyGrund": "",
+        "aufgaben": [],
+        "kontaktId": "",
+        "syncKalenderUid": "",
+        "sync": false,
+        "syncQuellen": {}
+      }
+    },
+    {
+      "mode": "removeEditable",
+      "record": {
+        "datum": "2026-11-15",
+        "endDatum": "",
+        "icsAnzeigeZeitzone": "UTC",
+        "icsNullDauer": false,
+        "notiz": "",
+        "icsSequence": 0,
+        "akzentFarbe": "",
+        "icsQuelleName": "Synthetic native calendar",
+        "icsKomplex": false,
+        "icsQuelleId": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+        "uid": "normalized-valarm-event",
+        "titel": "Synthetic alarm fixture",
+        "kostenstelle": "",
+        "icsZusatzTermine": [],
+        "kategorien": "",
+        "wiederholung": {
+          "art": "none",
+          "bis": ""
+        },
+        "icsAenderungszeitFehlt": true,
+        "kunde": "",
+        "vertraulich": false,
+        "icsRoundtrip": [
+          "DTSTART:20261115T090000Z",
+          "DTEND:20261115T100000Z",
+          "BEGIN:VALARM",
+          "ACTION:AUDIO",
+          "TRIGGER;VALUE=DATE-TIME:20261115T083000Z",
+          "END:VALARM"
+        ],
+        "individuelleErinnerungTage": 0,
+        "endZeit": "10:00",
+        "standardErinnerung": true,
+        "icsSerienUid": "",
+        "zeit": "09:00",
+        "icsZusatzDaten": [],
+        "vorlaeufig": false,
+        "icsEndeFehlt": false,
+        "ort": "",
+        "alarme": [
+          {
+            "id": "ics-alarm-1-108tzdj",
+            "offsetMinuten": 0,
+            "aktion": "audio",
+            "aktiviert": true,
+            "quelle": "ics",
+            "triggerRaw": "20261115T083000Z",
+            "related": "START",
+            "bearbeitbar": false
+          }
+        ],
+        "kalenderQuelle": {
+          "id": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+          "name": "Synthetic native calendar",
+          "gruppe": "",
+          "farbe": "",
+          "anbieter": "ICS"
+        },
+        "organisator": {
+          "uri": "",
+          "name": "",
+          "email": ""
+        },
+        "teilnehmer": [],
+        "kalenderAnhaenge": [],
+        "providerMetadaten": {},
+        "icsAusnahmen": [],
+        "icsRangeOverrides": [],
+        "icsAusnahmeTermine": [],
+        "icsTimezones": [],
+        "syncKonflikte": [],
+        "icsReadOnly": false,
+        "icsReadOnlyGrund": "",
+        "aufgaben": [],
+        "kontaktId": "",
+        "syncKalenderUid": "",
+        "sync": false,
+        "syncQuellen": {}
+      }
+    }
+  ]
+}

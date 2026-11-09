@@ -1,4 +1,6 @@
 import base64
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -10,13 +12,84 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 BETA = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BETA / "tools"))
 import project_ui as projection
 import crypto_vectors
 import bridge_coverage
+import check_editor
+import check_calendar
+
+
+class SwiftChildLifecycleTests(unittest.TestCase):
+    def test_timeout_kills_only_owned_group_and_preserves_failure(self):
+        child = Mock(pid=7654321)
+        child.wait.side_effect = [subprocess.TimeoutExpired(['swift'],270),
+                                 subprocess.TimeoutExpired(['swift'],2),  -9]
+        with patch.object(check_editor.subprocess,'Popen',return_value=child) as spawn, patch.object(check_editor.os,'killpg') as terminate:
+            with self.assertRaises(subprocess.TimeoutExpired) as failure:
+                check_editor.run_swift(['swift','test'],{})
+        self.assertEqual(failure.exception.timeout,270)
+        self.assertTrue(spawn.call_args.kwargs['start_new_session'])
+        self.assertEqual([call.args for call in terminate.call_args_list],
+                         [(7654321,check_editor.signal.SIGTERM),(7654321,check_editor.signal.SIGKILL)])
+        self.assertEqual(child.wait.call_args.kwargs['timeout'],2)
+
+    def test_terminated_leader_does_not_leave_owned_group_grandchildren(self):
+        child = Mock(pid=7654321)
+        child.wait.side_effect = [subprocess.TimeoutExpired(['swift'],270), -15, -15]
+        with patch.object(check_editor.subprocess,'Popen',return_value=child), patch.object(check_editor.os,'killpg') as terminate:
+            with self.assertRaises(subprocess.TimeoutExpired): check_editor.run_swift(['swift','test'],{})
+        self.assertEqual([call.args for call in terminate.call_args_list],
+                         [(7654321,check_editor.signal.SIGTERM),(7654321,check_editor.signal.SIGKILL)])
+
+    def test_timeout_tail_keeps_only_fixed_technical_test_state(self):
+        text = "Test Case '-[BetaCoreTests.NativePrintTests testPdf]' started.\nprivate profile value\nNative print phase: appkit-print\nNative print phase: private record"
+        result = check_editor.technical_swift_tail(text)
+        self.assertIn('testPdf',result)
+        self.assertIn('Native print phase: appkit-print',result)
+        self.assertNotIn('private',result)
+        self.assertLessEqual(len(check_editor.technical_swift_tail(text*1000)),4096)
+
+
+class CalendarOracleGateTests(unittest.TestCase):
+    def artifacts(self, output):
+        # Real published-parser inputs; this fixture does not emulate Swift or
+        # claim native execution. It proves independent validation still runs
+        # before an already failed native process is propagated as failure.
+        def event(uid, title):
+            return 'BEGIN:VEVENT\r\nUID:' + uid + '\r\nDTSTART;VALUE=DATE:20260115\r\nSUMMARY:' + title + '\r\nEND:VEVENT\r\n'
+        task = 'BEGIN:VTODO\r\nUID:task\r\nSUMMARY:Task\r\nEND:VTODO\r\n'
+        for name, title in [('before', 'Original'), ('after', 'Changed'), ('expected', 'Changed')]:
+            (output / ('patch-' + name + '.ics')).write_text('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n' + event('first', title) + event('second', 'Original') + task + 'END:VCALENDAR\r\n')
+
+    def test_failed_native_suite_still_runs_real_oracle_and_remains_failed(self):
+        module = check_calendar.canonical()
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp); self.artifacts(output)
+            result = subprocess.CompletedProcess(['synthetic-failed-native-fixture'], 7)
+            receipt = io.StringIO()
+            with contextlib.redirect_stdout(receipt), self.assertRaises(subprocess.CalledProcessError) as failure:
+                check_calendar.validate_fresh_outputs(result, module, [], output)
+            self.assertEqual(failure.exception.returncode, 7)
+            self.assertIn('Published parser resource-patch sibling/recurrence/task oracle passed', receipt.getvalue())
+            self.assertIn('native full-suite return code: 7', receipt.getvalue())
+
+    def test_missing_and_symlinked_prior_artifacts_never_satisfy_oracle(self):
+        module = check_calendar.canonical()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); current = root / 'current'; prior = root / 'prior'
+            current.mkdir(); prior.mkdir(); self.artifacts(prior)
+            result = subprocess.CompletedProcess(['synthetic-artifact-fixture'], 0)
+            with contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(AssertionError, 'Current-run native calendar artifact'):
+                check_calendar.validate_fresh_outputs(result, module, [], current)
+            self.artifacts(current)
+            (current / 'patch-after.ics').unlink()
+            (current / 'patch-after.ics').symlink_to(prior / 'patch-after.ics')
+            with contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(AssertionError, 'Current-run native calendar artifact'):
+                check_calendar.validate_fresh_outputs(result, module, [], current)
 
 
 class ProjectionTests(unittest.TestCase):
@@ -24,16 +97,33 @@ class ProjectionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.snapshot = projection.inputs()
 
+    def test_canonical_manual_is_bundled_unchanged_and_hashed(self):
+        prefix = "magnolie-handbuch/web/"
+        self.assertEqual(json.loads(self.snapshot[prefix + "version.json"])["version"], "2.0.30")
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            manual = [name for name in self.snapshot if name.startswith(prefix)]
+            self.assertGreater(len(manual), 30)
+            for name in manual:
+                self.assertEqual((target / "manual" / name[len(prefix):]).read_bytes(), self.snapshot[name])
+            hashes = projection.tree_hashes(target)
+            self.assertIn("manual/index.html", hashes)
+            self.assertIn("manual/handbuch.js", hashes)
+
     def test_identity_and_no_stable_workflow(self):
         with (BETA / "Resources/Info.plist").open("rb") as stream:
             info = plistlib.load(stream)
         self.assertEqual(info["CFBundleName"], "Magnolie Organizer macOS Beta")
         self.assertEqual(info["CFBundleIdentifier"], "io.gitlab.maik3531.MagnolieOrganizer.macOSBeta")
         identity = json.loads((BETA / "Resources/BetaIdentity.json").read_text())
-        self.assertEqual(identity["version"], "2.0.18-beta.1")
+        self.assertEqual(identity["version"], "2.0.30-beta.1")
         self.assertEqual(info["MagnolieBetaVersion"], identity["version"])
         self.assertEqual(info["CFBundleShortVersionString"], identity["bundleShortVersion"])
         self.assertEqual(info["CFBundleVersion"], identity["bundleVersion"])
+        self.assertEqual(identity["minimumSystemVersion"], "12.7")
+        self.assertEqual(info["LSMinimumSystemVersion"], identity["minimumSystemVersion"])
+        self.assertIn('.macOS("12.7")', (BETA / "Package.swift").read_text())
         self.assertFalse((BETA / ".github/workflows").exists())
         workflow = (BETA / "ci/macos-beta-manual.yml.example").read_text()
         self.assertIn("workflow_dispatch:", workflow)
@@ -48,7 +138,7 @@ class ProjectionTests(unittest.TestCase):
         self.assertIn("LIMITATION RESPONSE ONLY", report)
         self.assertIn("| `sync` | yes | yes | UNSUPPORTED", report)
         self.assertIn("| `kennwort_entfernen` | yes | yes | UNSUPPORTED", report)
-        self.assertIn("| `drucken` | yes | yes | UNSUPPORTED", report)
+        self.assertIn("| `drucken` | yes | yes | source: isolated JS-free print renderer", report)
 
     def test_projection_is_reproducible_and_full_ui(self):
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-host-") as temp:
@@ -59,13 +149,26 @@ class ProjectionTests(unittest.TestCase):
             original = projection.LINUX.relative_to(projection.REPO).as_posix() + "/web/"
             for name, data in self.snapshot.items():
                 if name.startswith(original) and not name.endswith(("/index.html", "/anwendung.js")):
-                    self.assertEqual((a / "web" / name.removeprefix(original)).read_bytes(), data)
+                    actual = (a / "web" / name.removeprefix(original)).read_bytes()
+                    if name == original + "zeichenblatt.js":
+                        drawing_patch = json.loads(self.snapshot["port-adapters/drawing-finish-patch.json"])
+                        before, after = drawing_patch["before"].encode(), drawing_patch["after"].encode()
+                        release_before, release_after = drawing_patch["releaseBefore"].encode(), drawing_patch["releaseAfter"].encode()
+                        self.assertEqual(data.count(before), 1)
+                        self.assertEqual(data.count(release_before) + data.count(release_after), 1)
+                        self.assertEqual(actual, data.replace(before, after, 1).replace(release_before, release_after, 1))
+                        restored = actual.replace(after, before, 1)
+                        if release_before in data:
+                            restored = restored.replace(release_after, release_before, 1)
+                        self.assertEqual(restored, data)
+                    else:
+                        self.assertEqual(actual, data)
             html = (a / "web/index.html").read_text()
             self.assertIn("Magnolie Organizer macOS Beta", html)
             self.assertIn("connect-src 'none'", html)
             app = (a / "web/anwendung.js").read_text()
             self.assertIn('const SPEICHER_SCHLUESSEL = "magnolie-organizer-macOSBeta-daten";', app)
-            self.assertIn('const FASSUNG = "2.0.18-beta.1";', app)
+            self.assertIn('const FASSUNG = "2.0.30-beta.1";', app)
             self.assertFalse(any(file.suffix.lower() in {".pem", ".key", ".pub", ".p12", ".mobileprovision"} for file in a.rglob("*")))
             for src in re.findall(r'<script src="([^"]+)"', html):
                 self.assertTrue((a / "web" / src).is_file(), src)
@@ -96,9 +199,111 @@ class ProjectionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "anchor changed"):
                 projection.project(changed, Path(temp) / "UI")
 
+    def test_shared_display_alarm_adapter_binding_and_anchor_drift(self):
+        helper = self.snapshot["port-adapters/display-alarm-roundtrip.js"].decode()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-projection-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            app = (target / "web/anwendung.js").read_text()
+            if b'  function erhalteDisplayAlarme(termin, vorher, alt) {' in self.snapshot["magnolie-organizer/web/anwendung.js"]:
+                self.assertNotIn("PORT_DISPLAY_ALARM_HELPER_BEGIN", app)
+                self.assertEqual(app.count("    neu.push(...erhalteDisplayAlarme(termin, vorher, alt));"), 1)
+            else:
+                self.assertEqual(app.count("/*PORT_DISPLAY_ALARM_HELPER_BEGIN*/\n" + helper +
+                                           "/*PORT_DISPLAY_ALARM_HELPER_END*/"), 1)
+                self.assertEqual(app.count("    neu.push(...portDisplayAlarmLines(termin, vorher, alt));"), 1)
+        changed = dict(self.snapshot)
+        key = "magnolie-organizer/web/anwendung.js"
+        before = b'const trigger = alarm.offsetMinuten ? "-PT" + alarm.offsetMinuten + "M" : "-PT0M";'
+        if before not in changed[key]:
+            before = b'  function erhalteDisplayAlarme(termin, vorher, alt) {'
+        self.assertEqual(changed[key].count(before), 1)
+        changed[key] = changed[key].replace(before, b'const trigger = "different canonical alarm builder";')
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-drift-") as temp:
+            with self.assertRaisesRegex(ValueError, "anchor changed"):
+                projection.project(changed, Path(temp) / "UI")
+
+    def test_drawing_finish_projection_and_exact_renderer_commands(self):
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            runtime = self.javascript()
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            subprocess.run(args + [str(projection.REPO / "port-adapters/tests/drawing-finish.cjs"),
+                                   str(target / "web")], cwd=BETA, check=True, timeout=30)
+        changed = dict(self.snapshot)
+        key = "magnolie-organizer/web/zeichenblatt.js"
+        changed[key] += b"\n// canonical drift"
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-drift-") as temp:
+            with self.assertRaisesRegex(ValueError, "Canonical drawing source changed"):
+                projection.project(changed, Path(temp) / "UI")
+        patch_key = "port-adapters/drawing-finish-patch.json"
+        self.assertEqual(projection.inventory(self.snapshot)[patch_key], projection.digest(self.snapshot[patch_key]))
+        original_patch = json.loads(self.snapshot[patch_key])
+        for field, value, message in [("schema", 2, "Canonical drawing source changed"),
+                                      ("canonicalSHA256", "0" * 64, "Canonical drawing source changed"),
+                                      ("before", original_patch["before"] + " changed", "anchor changed")]:
+            changed = dict(self.snapshot)
+            changed[patch_key] = json.dumps(dict(original_patch, **{field: value})).encode()
+            with self.subTest(field=field), tempfile.TemporaryDirectory(prefix="macOS-Beta-drawing-manifest-") as temp:
+                with self.assertRaisesRegex(ValueError, message):
+                    projection.project(changed, Path(temp) / "UI")
+
+    def test_occurrence_identity_current_and_published_inputs_preserve_distinct_instances(self):
+        runtime = self.javascript()
+        args = [runtime]
+        if Path(runtime).name == "deno":
+            args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys", "--allow-run=python3,git"]
+        fixture = json.loads(self.snapshot["port-adapters/tests/fixtures/distinct-rid-same-slot.json"])
+        reference = subprocess.check_output(["git", "show", fixture["canonicalCommit"] + ":magnolie-organizer/bin/magnolie-organizer"], cwd=projection.REPO)
+        self.assertEqual(projection.digest(reference), fixture["canonicalCodecSHA256"])
+        codec = check_calendar.canonical()
+        display_zone = fixture["cases"][0]["document"]["termine"][0]["icsAnzeigeZeitzone"]
+        with patch.object(codec, "_zeitzonenname", return_value=display_zone), patch.object(codec, "_organizer_zeitzone", return_value=codec.timezone.utc):
+            for case in fixture["cases"]:
+                self.assertEqual(codec.ics_lesen(case["source"]), case["document"], case["name"])
+        app_key = "magnolie-organizer/web/anwendung.js"
+        published = subprocess.check_output(["git", "show", "067c38934b539943d8e1720abafd8a80b401d797:" + app_key], cwd=projection.REPO)
+        for label, source in [("current", self.snapshot[app_key]), ("published067c", published)]:
+            snapshot = dict(self.snapshot); snapshot[app_key] = source
+            for name in ["occurrence-identity.js", "occurrence-identity-patch.json", "occurrence-identity-projection.cjs"]:
+                key = "port-adapters/" + name
+                self.assertEqual(projection.inventory(snapshot)[key], projection.digest(snapshot[key]))
+            with self.subTest(input=label), tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-") as temp:
+                target = Path(temp) / "UI"
+                projection.project(snapshot, target)
+                result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/occurrence-identity.cjs"), "macos", str(target / "web")],
+                                        cwd=BETA, capture_output=True, text=True, timeout=120)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                print(label + ": " + result.stdout.strip())
+        changed = dict(self.snapshot)
+        changed[app_key] = changed[app_key].replace(b"function termineStarkIdentisch(links, rechts)", b"function changedTerminIdentity(links, rechts)")
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-drift-") as temp:
+            with self.assertRaisesRegex(ValueError, "anchor changed"):
+                projection.project(changed, Path(temp) / "UI")
+        changed = dict(self.snapshot)
+        patch_key = "port-adapters/occurrence-identity-patch.json"
+        manifest = json.loads(changed[patch_key]); manifest["sha256"] = "0" * 64
+        changed[patch_key] = json.dumps(manifest).encode()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-occurrence-manifest-") as temp:
+            with self.assertRaisesRegex(ValueError, "patch manifest changed"):
+                projection.project(changed, Path(temp) / "UI")
+
     def test_regional_form_drift_refuses_instead_of_guessing_native_contract(self):
         changed = dict(self.snapshot)
         key = projection.LINUX.relative_to(projection.REPO).as_posix() + "/web/anwendung.js"
+        # Both equivalent catch forms are supported, while native transaction
+        # changes below still fail closed rather than shipping a stale adapter.
+        bare = b'} catch { zettel(_("The regional settings could not be saved.")); }'
+        bound = b'} catch (_) { zettel(_("The regional settings could not be saved.")); }'
+        for source, replacement in [(bare, bound), (bound, bare)]:
+            if source in self.snapshot[key]:
+                variant = dict(self.snapshot)
+                variant[key] = variant[key].replace(source, replacement)
+                with tempfile.TemporaryDirectory(prefix="macOS-Beta-catch-binding-") as temp:
+                    projection.project(variant, Path(temp) / "UI")
         old = b"const before = await tools[0].call({}, signal);"
         self.assertEqual(changed[key].count(old), 1)
         changed[key] = changed[key].replace(old, b"const before = await differentRegionalSource();")
@@ -165,6 +370,72 @@ class ProjectionTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             print(result.stdout.strip())
 
+    def test_additive_selected_note_files_contract(self):
+        runtime = self.javascript()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-note-import-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + ["tests/note_file_import.mjs", str(target)], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
+    def test_communication_published_ui_payloads(self):
+        runtime = self.javascript()
+        args = [runtime]
+        if Path(runtime).name == "deno":
+            args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+        result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/communication-payloads.cjs")],
+                                cwd=BETA, capture_output=True, text=True, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        print(result.stdout.strip())
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-communication-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            app = (target / "web/anwendung.js").read_text()
+            self.assertIn('["gnome-maps", _("Apple Maps")]', app)
+            self.assertNotIn('["gnome-maps", _("GNOME Maps only")]', app)
+            phone = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/communication-payloads.cjs"),
+                                           str(target / "web"), "--phone-projection"], cwd=BETA,
+                                   capture_output=True, text=True, timeout=120)
+            self.assertEqual(phone.returncode, 0, phone.stdout + phone.stderr)
+            print(phone.stdout.strip())
+            adapter = (target / "web/macos-beta.js").read_text()
+            self.assertIn('"adressWeg"', adapter)
+            for command in ["mail", "karte", "sozial"]:
+                self.assertIn(command + ': "adressWeg"', adapter)
+
+    def test_shared_legacy_css_fallbacks(self):
+        runtime = self.javascript()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-legacy-css-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/legacy-display.cjs"),
+                                            "macos", str(target / "web")], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
+    def test_shared_display_alarm_actual_form(self):
+        runtime = self.javascript()
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-alarm-form-") as temp:
+            target = Path(temp) / "UI"
+            projection.project(self.snapshot, target)
+            args = [runtime]
+            if Path(runtime).name == "deno":
+                args += ["run", "--unstable-detect-cjs", "--cached-only", "--allow-read", "--allow-env", "--allow-sys"]
+            result = subprocess.run(args + [str(projection.REPO / "port-adapters/tests/display-alarm-roundtrip.cjs"),
+                                            "macos", str(target / "web")], cwd=BETA,
+                                    capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            print(result.stdout.strip())
+
     def test_current_editor_reminders_and_export(self):
         runtime = self.javascript()
         swift = os.environ.get("MACOS_BETA_SWIFT") or shutil.which("swift")
@@ -179,6 +450,15 @@ class ProjectionTests(unittest.TestCase):
                 print(result.stdout.strip())
         if not swift:
             print("Swift core execution NOT run in this host collection; use MACOS_BETA_SWIFT or tools/check_editor.py --swift.")
+
+    def test_canonical_calendar_export_contract(self):
+        swift = os.environ.get("MACOS_BETA_SWIFT") or shutil.which("swift")
+        args = [sys.executable, "tools/check_calendar.py"]
+        if swift:
+            args += ["--swift", swift]
+        result = subprocess.run(args, cwd=BETA, capture_output=True, text=True, timeout=360)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        print(result.stdout.strip())
 
     def test_recovery_regional_keyboard_contract(self):
         runtime = self.javascript()

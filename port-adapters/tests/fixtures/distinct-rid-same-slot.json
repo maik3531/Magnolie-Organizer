@@ -1,0 +1,242 @@
+{
+  "canonicalTag": "v2.0.30",
+  "canonicalCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+  "canonicalCodecSHA256": "8a32d046a326b2bfdf236f8de7070917e8b729f0f71f518968a169b246893f76",
+  "cases": [
+    {
+      "name": "distinct-rids",
+      "source": "BEGIN:VCALENDAR\nVERSION:2.0\nX-WR-CALNAME:Two moved exceptions\nBEGIN:VEVENT\nUID:two-rid-same-slot\nDTSTAMP:20260801T080000Z\nDTSTART:20300506T100000Z\nDTEND:20300506T110000Z\nRRULE:FREQ=DAILY;COUNT=3\nSUMMARY:Series master\nEND:VEVENT\nBEGIN:VEVENT\nUID:two-rid-same-slot\nRECURRENCE-ID:20300507T100000Z\nDTSTAMP:20260802T080000Z\nDTSTART:20300510T120000Z\nDTEND:20300510T130000Z\nSUMMARY:Moved occurrence\nX-OPAQUE-EXCEPTION:first\nEND:VEVENT\nBEGIN:VEVENT\nUID:two-rid-same-slot\nRECURRENCE-ID:20300508T100000Z\nDTSTAMP:20260802T080000Z\nDTSTART:20300510T120000Z\nDTEND:20300510T130000Z\nSUMMARY:Moved occurrence\nX-OPAQUE-EXCEPTION:second\nEND:VEVENT\nEND:VCALENDAR\n",
+      "document": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "Etc/UTC",
+            "datum": "2030-05-06",
+            "endDatum": "",
+            "zeit": "10:00",
+            "endZeit": "11:00",
+            "titel": "Series master",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "two-rid-same-slot",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART:20300506T100000Z",
+              "DTEND:20300506T110000Z",
+              "RRULE:FREQ=DAILY;COUNT=3",
+              "EXDATE:20300507T100000Z",
+              "EXDATE:20300508T100000Z"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "two-rid-same-slot",
+            "geaendert": 1785571200000,
+            "icsQuelleName": "Two moved exceptions",
+            "icsQuelleId": "ics:c5a9a4b10c4c0331f991ef428c8b06a4d02e1c13ac38b40fae733742aedf842f",
+            "icsRangeOverrides": []
+          },
+          {
+            "icsAnzeigeZeitzone": "Etc/UTC",
+            "datum": "2030-05-10",
+            "endDatum": "",
+            "zeit": "12:00",
+            "endZeit": "13:00",
+            "titel": "Moved occurrence",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "two-rid-same-slot",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "RECURRENCE-ID:20300507T100000Z",
+              "DTSTART:20300510T120000Z",
+              "DTEND:20300510T130000Z",
+              "SUMMARY:Moved occurrence",
+              "X-OPAQUE-EXCEPTION:first"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "two-rid-same-slot-magnolie-instanz-2db66e7fb23d7fe0",
+            "geaendert": 1785657600000,
+            "icsQuelleName": "Two moved exceptions",
+            "icsQuelleId": "ics:c5a9a4b10c4c0331f991ef428c8b06a4d02e1c13ac38b40fae733742aedf842f"
+          },
+          {
+            "icsAnzeigeZeitzone": "Etc/UTC",
+            "datum": "2030-05-10",
+            "endDatum": "",
+            "zeit": "12:00",
+            "endZeit": "13:00",
+            "titel": "Moved occurrence",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "two-rid-same-slot",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "RECURRENCE-ID:20300508T100000Z",
+              "DTSTART:20300510T120000Z",
+              "DTEND:20300510T130000Z",
+              "SUMMARY:Moved occurrence",
+              "X-OPAQUE-EXCEPTION:second"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "two-rid-same-slot-magnolie-instanz-8e5d427c7aee2c71",
+            "geaendert": 1785657600000,
+            "icsQuelleName": "Two moved exceptions",
+            "icsQuelleId": "ics:c5a9a4b10c4c0331f991ef428c8b06a4d02e1c13ac38b40fae733742aedf842f"
+          }
+        ],
+        "jahrestage": [],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": [
+          "two-rid-same-slot"
+        ]
+      }
+    },
+    {
+      "name": "master-detached",
+      "source": "BEGIN:VCALENDAR\nVERSION:2.0\nX-WR-CALNAME:Two moved exceptions\nBEGIN:VEVENT\nUID:two-rid-same-slot\nDTSTAMP:20260801T080000Z\nDTSTART:20300506T100000Z\nDTEND:20300506T110000Z\nRRULE:FREQ=DAILY;COUNT=3\nSUMMARY:Series master\nEND:VEVENT\nBEGIN:VEVENT\nUID:two-rid-same-slot\nRECURRENCE-ID:20300507T100000Z\nDTSTAMP:20260802T080000Z\nDTSTART:20300506T100000Z\nDTEND:20300506T110000Z\nSUMMARY:Series master\nX-OPAQUE-EXCEPTION:first\nEND:VEVENT\nEND:VCALENDAR\n",
+      "document": {
+        "termine": [
+          {
+            "icsAnzeigeZeitzone": "Etc/UTC",
+            "datum": "2030-05-06",
+            "endDatum": "",
+            "zeit": "10:00",
+            "endZeit": "11:00",
+            "titel": "Series master",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "two-rid-same-slot",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "DTSTART:20300506T100000Z",
+              "DTEND:20300506T110000Z",
+              "RRULE:FREQ=DAILY;COUNT=3",
+              "EXDATE:20300507T100000Z"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "two-rid-same-slot",
+            "geaendert": 1785571200000,
+            "icsQuelleName": "Two moved exceptions",
+            "icsQuelleId": "ics:c5a9a4b10c4c0331f991ef428c8b06a4d02e1c13ac38b40fae733742aedf842f",
+            "icsRangeOverrides": []
+          },
+          {
+            "icsAnzeigeZeitzone": "Etc/UTC",
+            "datum": "2030-05-06",
+            "endDatum": "",
+            "zeit": "10:00",
+            "endZeit": "11:00",
+            "titel": "Series master",
+            "notiz": "",
+            "kategorien": "",
+            "akzentFarbe": "",
+            "vertraulich": false,
+            "vorlaeufig": false,
+            "kostenstelle": "",
+            "kunde": "",
+            "individuelleErinnerungTage": 0,
+            "standardErinnerung": true,
+            "wiederholung": {
+              "art": "none",
+              "bis": ""
+            },
+            "icsKomplex": true,
+            "icsSerienUid": "two-rid-same-slot",
+            "icsZusatzDaten": [],
+            "icsZusatzTermine": [],
+            "icsEndeFehlt": false,
+            "icsNullDauer": false,
+            "icsRoundtrip": [
+              "RECURRENCE-ID:20300507T100000Z",
+              "DTSTART:20300506T100000Z",
+              "DTEND:20300506T110000Z",
+              "SUMMARY:Series master",
+              "X-OPAQUE-EXCEPTION:first"
+            ],
+            "icsSequence": 0,
+            "icsAenderungszeitFehlt": true,
+            "uid": "two-rid-same-slot-magnolie-instanz-2db66e7fb23d7fe0",
+            "geaendert": 1785657600000,
+            "icsQuelleName": "Two moved exceptions",
+            "icsQuelleId": "ics:c5a9a4b10c4c0331f991ef428c8b06a4d02e1c13ac38b40fae733742aedf842f"
+          }
+        ],
+        "jahrestage": [],
+        "aufgaben": [],
+        "wiederholend": 0,
+        "uebersprungen": 0,
+        "uebersprungenTermine": 0,
+        "uebersprungenAufgaben": 0,
+        "komplexeSerien": [
+          "two-rid-same-slot"
+        ]
+      }
+    }
+  ]
+}

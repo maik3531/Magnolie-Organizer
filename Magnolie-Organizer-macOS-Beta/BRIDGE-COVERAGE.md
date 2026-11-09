@@ -5,8 +5,8 @@ This is a command inventory, **not a passed-feature count or a native validation
 Static literal calls are compared with the Windows typed contract. Computed command names
 and native-only menu actions need the separate feature matrix; absence here is not support.
 
-Frontend SHA-256: `58496dbe2d8c9edf8c3e2a0993551b1986faa7e5a553bfd1054186ec54e6b849`
-Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef3453c82212f`
+Frontend SHA-256: `34e2d269ec76c1542f660626c0970afe2ae3f9922b886ad4e285790058e88a0c`
+Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f6193b4fa737fc2`
 
 | Command | Shared frontend literal | Windows contract | macOS Beta scope |
 | --- | --- | --- | --- |
@@ -16,10 +16,10 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `background_settings_get` | yes | yes | UNSUPPORTED: negative Beta response |
 | `background_settings_set` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_bestaetigen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `baum_briefkasten_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `baum_briefkasten_speichern` | yes | yes | UNSUPPORTED: negative Beta response |
-| `baum_briefkasten_status` | yes | yes | UNSUPPORTED: negative Beta response |
-| `baum_dav_pruefen` | — | yes | UNSUPPORTED: negative Beta response |
+| `baum_briefkasten_pruefen` | yes | yes | partial: explicit bounded DAV collection discovery; no data synchronization |
+| `baum_briefkasten_speichern` | yes | yes | partial: revision-bound config/credential transaction; Nextcloud mailbox unsupported |
+| `baum_briefkasten_status` | yes | yes | partial: native DAV configuration and Keychain availability; no sync |
+| `baum_dav_pruefen` | — | yes | partial: correlated read-only DAV connection discovery; no data synchronization |
 | `baum_delegieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_ein` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_eingang_geleert` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -39,26 +39,26 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `baum_weitergabe_annehmen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_weitergabe_erlauben` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_weitergeben` | yes | yes | UNSUPPORTED: negative Beta response |
-| `beenden` | yes | yes | source: AppKit quit handshake; native lifecycle untested |
+| `beenden` | yes | yes | source: AppKit quit/save/reopen handshake verified for fresh local profiles |
 | `beenden_abgebrochen` | yes | yes | source: cancel pending quit |
 | `beenden_bereit` | yes | yes | source: correlated pending quit only |
-| `bereit` | yes | yes | source: load/new/locked document; native startup untested |
+| `bereit` | yes | yes | source: load/new/locked document; native local startup verified |
 | `brief` | yes | yes | UNSUPPORTED: negative Beta response |
 | `cloud_sicherung_kennwort` | yes | yes | UNSUPPORTED: negative Beta response |
 | `cloud_sicherung_status` | yes | yes | UNSUPPORTED: negative Beta response |
 | `cloud_sicherung_test` | yes | yes | UNSUPPORTED: negative Beta response |
 | `contributor_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `debug_startphase` | yes | — | UNSUPPORTED: negative Beta response |
-| `drucken` | yes | yes | UNSUPPORTED: negative Beta response |
-| `eds_status` | yes | yes | UNSUPPORTED: negative Beta response |
+| `drucken` | yes | yes | source: isolated JS-free print renderer and AppKit system print/PDF dialog; native acceptance pending |
+| `eds_status` | yes | yes | partial: passive native EventKit/Contacts discovery; no synchronization |
 | `eigenes_profil_office` | yes | yes | UNSUPPORTED: negative Beta response |
 | `eigenes_profil_telefon` | yes | yes | UNSUPPORTED: negative Beta response |
-| `entsperren` | yes | yes | partial: v1/v2 Apple crypto source; no macOS crypto run |
+| `entsperren` | yes | yes | partial: v1/v2 Apple crypto fixtures verified; full password lifecycle pending |
 | `erinnerung_einrichten` | yes | yes | LIMITATION RESPONSE ONLY: no native scheduler is configured |
 | `erinnerung_zeigen` | yes | yes | partial: open/unlocked/consented session only; delivery untested |
-| `export` | yes | yes | partial: simple appointment ICS only |
+| `export` | yes | yes | partial: source-preserving appointment/task/anniversary ICS; eight native extended roundtrips passed |
 | `exportieren` | yes | — | UNSUPPORTED: negative Beta response |
-| `feiertage` | yes | yes | UNSUPPORTED: negative Beta response |
+| `feiertage` | yes | yes | source: bounded HTTPS public/school holiday retrieval with regional scope; native service tests/live public retrieval passed; full UI acceptance pending |
 | `gesamtarchiv_exportieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `gesamtarchiv_importieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `gesamtarchiv_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -73,8 +73,8 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `graph_mcp_start` | — | yes | UNSUPPORTED: negative Beta response |
 | `graph_mcp_status` | — | yes | UNSUPPORTED: negative Beta response |
 | `handbuch_herunterladen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `handbuch_oeffnen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `import` | yes | yes | UNSUPPORTED: negative Beta response |
+| `handbuch_oeffnen` | yes | yes | source: bundled canonical 2.0.30 manual; isolated local WKWebView/search; native validation pending |
+| `import` | yes | yes | partial: native selected UTF-8 ICS file; atomic codec and canonical merge; no vCard/CSV/archive import |
 | `import_lokal` | yes | yes | UNSUPPORTED: negative Beta response |
 | `internet_konten_mcp` | — | yes | UNSUPPORTED: negative Beta response |
 | `internet_konten_status` | — | yes | UNSUPPORTED: negative Beta response |
@@ -90,7 +90,7 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `journal_manuell` | — | yes | UNSUPPORTED: negative Beta response |
 | `journal_vorschau` | yes | yes | UNSUPPORTED: negative Beta response |
 | `journal_wiederherstellen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `karte` | yes | yes | UNSUPPORTED: negative Beta response |
+| `karte` | yes | yes | partial: Apple Maps adaptation or selected OSM/Google HTTPS location/route; native handler unverified |
 | `kde_dateisystem_oeffnen` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_dateisystem_stand` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_empfangsordner_waehlen` | yes | — | UNSUPPORTED: negative Beta response |
@@ -120,11 +120,15 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `kennwort_entfernen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `kennwort_setzen` | yes | yes | partial: enable for current profile only; no change/rekey |
 | `lo_benutzer` | yes | yes | UNSUPPORTED: negative Beta response |
-| `mail` | yes | yes | UNSUPPORTED: negative Beta response |
+| `macos_systemzugriff` | — | — | partial: explicit OS access prompt and refreshed source status; no synchronization |
+| `mail` | yes | yes | partial: bounded single-recipient mailto to resolved system app; open acceptance only; native handler unverified |
 | `mcp_antwort` | yes | yes | UNSUPPORTED: negative Beta response |
+| `medien_backup` | yes | — | UNSUPPORTED: negative Beta response |
+| `medien_papierkorb` | yes | — | UNSUPPORTED: negative Beta response |
 | `medikament_suchen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `mutations_snapshot` | yes | yes | partial: durable exact file checkpoint; no desktop journal index/retention |
 | `notiz_anhang_datei` | yes | yes | partial: selected data-URL attachment Save only; no Open |
+| `notiz_dateien_importieren` | — | — | source: additive selected TXT/literal Markdown/PDF/image notes; explicit preview + recovery + save ACK; native picker unverified |
 | `notiz_versand` | — | yes | UNSUPPORTED: negative Beta response |
 | `ordner_waehlen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `password_status` | — | yes | UNSUPPORTED: negative Beta response |
@@ -148,7 +152,7 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `sicherung_pruefen` | — | yes | UNSUPPORTED: negative Beta response |
 | `sicherung_waehlen` | yes | yes | source: native JSON picker pins selected path/bytes |
 | `sicherung_wiederherstellen` | yes | yes | partial: full JSON replacement + checkpoint + UI preflight; no additive/section restore |
-| `sozial` | yes | yes | UNSUPPORTED: negative Beta response |
+| `sozial` | yes | yes | partial: bounded HTTPS web services/templates; explicit no custom process/tel/SMS; native handler unverified |
 | `speichern` | yes | yes | source: durable document commit; destructive save requires checkpoint |
 | `sync` | yes | yes | UNSUPPORTED: negative Beta response |
 | `sync_bestaetigen` | yes | — | UNSUPPORTED: negative Beta response |
@@ -159,11 +163,14 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `telefon_anruf_audio_pruefen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_anruf_lautstaerke_wiederherstellen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_auflegen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_backupziel` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_bluetooth_einstellungen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_bluetooth_schalten` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_ein` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_entfernen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_entwickler_diagnose` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_foto_aktion` | yes | — | UNSUPPORTED: negative Beta response |
+| `telefon_fotoziel_waehlen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_freigabe` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_freigaben` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_kontakte` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -172,6 +179,7 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `telefon_kontaktgruppentitel` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_kontaktwerte` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_mcp` | — | yes | UNSUPPORTED: negative Beta response |
+| `telefon_medien` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_meldung_anzeigen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_oeffnen` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_paarung_bestaetigen` | — | yes | UNSUPPORTED: negative Beta response |
@@ -185,6 +193,7 @@ Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef
 | `telefon_verbinden` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_verbindung_ein` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_verbindung_stand` | — | yes | UNSUPPORTED: negative Beta response |
+| `telefon_videoziel_waehlen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_waehlen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `thunderbird_einrichten` | — | yes | UNSUPPORTED: negative Beta response |
 | `tray_einstellungen` | yes | yes | UNSUPPORTED: negative Beta response |

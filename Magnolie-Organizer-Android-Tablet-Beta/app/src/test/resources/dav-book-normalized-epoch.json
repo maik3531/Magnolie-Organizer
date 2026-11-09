@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "issue": 454,
+  "canonicalSourceSHA256": "34e2d269ec76c1542f660626c0970afe2ae3f9922b886ad4e285790058e88a0c",
+  "description": "Extracted proof fields from actual canonical normalizer+save serializer, including bewahreUnbekannteFelder.",
+  "savedBinding": {
+    "syncEpoch": "33333333-3333-4333-8333-333333333333",
+    "syncMetadaten": {
+      "syncEpoch": "33333333-3333-4333-8333-333333333333",
+      "quarantinedDeletes": {
+        "geloescht": {
+          "termine": [
+            {
+              "uid": "live-prior",
+              "opaque": "keep-live"
+            },
+            {
+              "uid": "archive-prior",
+              "opaque": "keep-archive"
+            },
+            {
+              "uid": "archive-active",
+              "opaque": "keep-active"
+            }
+          ],
+          "aufgaben": [],
+          "kontakte": []
+        },
+        "tombstones": [
+          {
+            "id": "raw-tomb",
+            "payload": {
+              "keep": true
+            }
+          }
+        ],
+        "baumKontaktGeloescht": []
+      }
+    },
+    "einstellungen": {
+      "sync": {
+        "syncEpoch": "33333333-3333-4333-8333-333333333333"
+      }
+    }
+  }
+}

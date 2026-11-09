@@ -1,6 +1,6 @@
 /* Test APK only: no activation, state assignment, perpetual observer or style reads in event callbacks. */
 (() => {
-  const ids = new WeakMap(); let next = 0, active = null, port = null;
+  const ids = new WeakMap(); let next = 0, active = null, port = null, candidate = null, preparing = false, live = true;
   const documentId = crypto.randomUUID();
   const id = e => { if (!e) return 0; if (!ids.has(e)) ids.set(e, ++next); return ids.get(e); };
   const ring = new Array(256); let written = 0;
@@ -8,6 +8,7 @@
   const snapshot = () => ({documentId,written,capacity:ring.length,
     events:Array.from({length:Math.min(written,ring.length)},(_,i)=>ring[(Math.max(0,written-ring.length)+i)%ring.length])});
   window.__nativeDiagnosticSnapshot = snapshot;
+  window.addEventListener('pagehide',()=>{live=false;preparing=false;candidate=null;active=null;port?.close?.();});
   window.__nativeProbeTarget = id; // Generic field/picker preparation uses the same identity allocator.
   window.NativeTouchProbe = {
     connect(token, sourceHash) {
@@ -15,6 +16,29 @@
         if (e.data !== token || e.ports.length !== 1) return;
         window.removeEventListener('message', receive);
         port = e.ports[0];
+        port.onmessage = event => {
+          let request; try {request=JSON.parse(event.data);} catch (_) {return;}
+          if(!live || request.kind!=='prepare' || request.token!==token || request.documentId!==documentId ||
+             request.sourceHash!==sourceHash || preparing) return;
+          if(!Number.isSafeInteger(request.step) || request.step<=0 || !Number.isFinite(request.budgetMs) ||
+             request.budgetMs<=0 || request.budgetMs>5000) return;
+          preparing=true;
+          const started=performance.now(), deadline=started+request.budgetMs;
+          const reply = payload => {
+            preparing=false;
+            port.postMessage(JSON.stringify({...payload,step:request.step,documentId,token,sourceHash,
+              asyncPrepareMs:performance.now()-started}));
+          };
+          const poll = () => {
+            if(!live) return;
+            if(performance.now()>deadline) {candidate=null; reply({kind:'prepareError',error:'Stable target readiness timed out'}); return;}
+            const prepared=NativeTouchProbe.prepare(request.step,request.label,request.section);
+            if(prepared.error) {reply({kind:'prepareError',error:prepared.error}); return;}
+            if(prepared.ready) {reply({...prepared,kind:'prepared'}); return;}
+            requestAnimationFrame(poll);
+          };
+          poll();
+        };
         port.postMessage(JSON.stringify({kind:'ready',token,sourceHash,documentId}));
       };
       window.addEventListener('message', receive);
@@ -30,7 +54,20 @@
         if (matches.length !== 1) throw Error('Expected exactly one register: '+label);
         const e = matches[0]; e.scrollIntoView({block:'nearest',behavior:'instant'});
         const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,hit=document.elementFromPoint(x,y);
-        if (!hit || !(hit===e || e.contains(hit)) || e.disabled || !e.isConnected) return {ready:false};
+        if (!hit || !(hit===e || e.contains(hit)) || e.disabled || !e.isConnected) {candidate=null; return {ready:false};}
+        let moving=false;
+        for(let ancestor=e;ancestor;ancestor=ancestor.parentElement) {
+          moving ||= (ancestor.getAnimations?.() || []).some(animation=>animation.playState==='running' && animation.effect?.getTiming().iterations!==Infinity);
+        }
+        const bounds=[r.x,r.y,r.width,r.height,visualViewport.scale,visualViewport.offsetLeft,visualViewport.offsetTop];
+        if(moving) {candidate=null; return {ready:false};}
+        if(!candidate || candidate.e!==e || candidate.bounds.some((value,index)=>Math.abs(value-bounds[index])>0.001)) {
+          const current=candidate={e,bounds,frames:0};
+          requestAnimationFrame(()=>{if(candidate!==current) return; current.frames=1;
+            requestAnimationFrame(()=>{if(candidate===current) current.frames=2;});});
+          return {ready:false};
+        }
+        if(candidate.frames!==2) return {ready:false};
         if (e.dataset.fokus !== 'register:'+section) throw Error('Label/section identity mismatch');
         const before=OrganizerTest.zustand().sektion;
         if (before===section) throw Error('No transition: expected section is already active');
@@ -41,8 +78,17 @@
         return {ready:true,step,documentId,node,label,section,before,armedAt,sourceHash:this.sourceHash,
           x,y,width:r.width,height:r.height,dpr:devicePixelRatio,pageScale:visualViewport.scale,
           viewportX:visualViewport.offsetLeft,viewportY:visualViewport.offsetTop,touchAction:getComputedStyle(e).touchAction,
-          jsPrepareMs:performance.now()-started};
+          stableFrames:candidate.frames,jsPrepareMs:performance.now()-started};
       } catch(e) {return {error:String(e)};}
+    },
+    failure() {
+      const a=active, rect=a?.e.getBoundingClientRect(), x=rect?rect.x+rect.width/2:0, y=rect?rect.y+rect.height/2:0;
+      const hit=rect?document.elementFromPoint(x,y):null;
+      return {activeStep:a?.step || 0,expectedSection:a?.section || '',actualSection:OrganizerTest.zustand().sektion,
+        targetNode:id(a?.e),rect:rect?{x:rect.x,y:rect.y,width:rect.width,height:rect.height}:null,
+        targetConnected:a?.e.isConnected===true,currentCenterHit:!!a && !!hit && (hit===a.e || a.e.contains(hit)),
+        hidden:document.hidden,focused:document.hasFocus(),pageScale:visualViewport.scale,
+        events:snapshot().events.slice(-16)};
     }
   };
   function acknowledge(a) {
@@ -50,7 +96,7 @@
     const section=OrganizerTest.zustand().sektion;
     const pendingJobs=section==='planer' ? [...(OrganizerTest.icsRuntime.state?.jobs.values()||[])].filter(j=>j.status==='pending').length : null;
     if (section==='planer' && section===a.section && pendingJobs!==0) {
-      port.postMessage(JSON.stringify({kind:'error',step:a.step,documentId,token:NativeTouchProbe.token,error:'Planner has pending jobs'}));
+      port.postMessage(JSON.stringify({kind:'error',step:a.step,documentId,token:NativeTouchProbe.token,sourceHash:NativeTouchProbe.sourceHash,error:'Planner has pending jobs'}));
       active=null; return;
     }
     const proof=a.proof.finish(section,a.e.isConnected,a.e.textContent.trim(),a.e.dataset.fokus,pendingJobs);
@@ -69,7 +115,7 @@
       const a=active; if (!a) return;
       const target=e.target.closest?.('.registerknopf');
       const at=performance.now();
-      record([a.step,index+1,id(target),e.timeStamp,at,e.pointerId||0,e.isTrusted?1:0,target?.isConnected?1:0]);
+      record([a.step,index+1,id(target),e.timeStamp,at,e.pointerId||0,e.isTrusted?1:0,target?.isConnected?1:0,e.clientX,e.clientY]);
       if (a.proof.observe({type,target,trusted:e.isTrusted,documentId,token:NativeTouchProbe.token,
           step:a.step,node:id(target),connected:target?.isConnected===true,
           stamp:e.timeStamp,at,pointerId:e.pointerId,pointerType:e.pointerType,button:e.button})) {

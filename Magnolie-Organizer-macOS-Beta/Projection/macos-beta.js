@@ -4,14 +4,27 @@
 (() => {
   const allowed = new Set(/*GENERATED_COMMANDS*/[]);
   const identity = /*GENERATED_IDENTITY*/{};
-  const methods = new Set(["init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
-    "exportErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
-    "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis"]);
+  const methods = new Set(["adressWeg", "handbuchGeoeffnet", "init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
+    "printErgebnis", "exportErgebnis", "importErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
+    "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus", "baumBriefkastenStatus",
+    "baumBriefkastenGespeichert", "baumBriefkastenPruefung", "baumDavPruefung"]);
   const unsupported = "Not implemented in Magnolie Organizer macOS Beta. Nothing was changed.";
-  const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; simple appointment ICS; " +
+  const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; calendar, task and anniversary ICS; " +
     "attachment Save; clipboard; reminders only while open. No sync, background " +
-    "wake, auto-update, password change/removal, printing or office export. Native code is not yet validated.";
-  let ready = false, restorePending = false;
+    "wake, auto-update, password change/removal or office export. Printing uses the system print dialog, including Save as PDF. Native feature acceptance remains incomplete.";
+  let ready = false, restorePending = false, nativeRestoreLocked = false;
+  let nativeRestoreOperation = null, nativeRestoreApplied = null, nativeRestoreRestartRequired = false;
+  function lockNativeRestore() {
+    nativeRestoreLocked = true;
+    document.body.inert = true;
+    document.body.setAttribute("aria-busy", "true");
+  }
+  function unlockNativeRestore() {
+    if (nativeRestoreRestartRequired) return;
+    nativeRestoreLocked = false; restorePending = false;
+    nativeRestoreOperation = null; nativeRestoreApplied = null;
+    document.body.inert = false; document.body.removeAttribute("aria-busy");
+  }
   const tr = text => window.MagnolieI18n.gettext(text);
 
   function show(text) {
@@ -33,11 +46,12 @@
       speichern: "gespeichert", entsperren: "entsperrtFehler",
       kennwort_setzen: "kennwortStand", kennwort_entfernen: "kennwortStand",
       mutations_snapshot: "mutationsSnapshot", sicherung: "sicherungFertig",
-      export: "exportErgebnis", import: "importErgebnis", import_lokal: "importErgebnis",
+      mail: "adressWeg", karte: "adressWeg", sozial: "adressWeg",
+      drucken: "printErgebnis", feiertage: "feiertageErgebnis", export: "exportErgebnis", import: "importErgebnis", import_lokal: "importErgebnis",
       erinnerung_einrichten: "erinnerungStand", erinnerung_zeigen: "erinnerungStand",
       notiz_anhang_datei: "notizAnhangDateiErgebnis", sicherung_waehlen: "sicherungAusgewaehlt",
       sicherung_wiederherstellen: "sicherungWiederhergestellt",
-      regional_einstellungen: "regionalErgebnis",
+      regional_einstellungen: "regionalErgebnis", eds_status: "edsStatus", macos_systemzugriff: "edsStatus",
       gesamtarchiv_exportieren: "gesamtarchivExportiert", gesamtarchiv_importieren: "gesamtarchivImportiert"
     };
     if (command === "sync") app.syncFehler(payload.fehler);
@@ -76,6 +90,53 @@
   }
   window.MacBeta = Object.freeze({
     preserve,
+    accountControls(account, refresh) {
+      const form = document.getElementById("nextcloud-konto");
+      if (!form || !account || (typeof account.revision === "string" && /^[a-f0-9]{64}$/.test(account.revision))) return;
+      for (const control of form.querySelectorAll("input,button,select")) control.disabled = true;
+      const button = document.createElement("button"); button.type = "button";
+      button.id = "macos-dav-refresh"; button.textContent = tr("Refresh");
+      button.addEventListener("click", () => { button.disabled = true; refresh(); });
+      form.append(button);
+    },
+    noteImportBlocked() { return !ready || restorePending; },
+    calendarMetadata(data, payload, commit) {
+      const metadata = payload.icsImportMetadata;
+      if (!metadata) return false;
+      const hash = metadata.sourceSHA256, old = data.icsImportSources;
+      if (metadata.version !== 1 || typeof hash !== "string" || !/^[a-f0-9]{64}$/.test(hash) ||
+          !Array.isArray(metadata.calendarProperties) || metadata.calendarProperties.some(line => typeof line !== "string") ||
+          (old !== undefined && (!old || typeof old !== "object" || Array.isArray(old)))) {
+        throw new Error("Calendar source metadata is invalid; import was not applied.");
+      }
+      if (old && Object.hasOwn(old, hash)) {
+        if (JSON.stringify(old[hash]) !== JSON.stringify(metadata)) throw new Error("Conflicting calendar source metadata.");
+        return false;
+      }
+      if (commit) {
+        if (old === undefined) data.icsImportSources = {};
+        data.icsImportSources[hash] = structuredClone(metadata);
+      }
+      return true;
+    },
+    prepareNativeRestore(text, operationID) {
+      if (!ready || !restorePending) throw new Error("No validated native restore is pending.");
+      const expected = window.App.macOSBetaPrepareNativeRestore(text, operationID);
+      nativeRestoreOperation = operationID; lockNativeRestore();
+      return expected;
+    },
+    applyNativeRestore(operationID, encrypted) {
+      if (!ready || !restorePending) throw new Error("No validated native restore is pending.");
+      if (nativeRestoreOperation !== operationID) throw new Error("Stale native restore operation.");
+      const receipt = window.App.macOSBetaApplyNativeRestore(operationID, encrypted);
+      nativeRestoreApplied = operationID;
+      return receipt;
+    },
+    finishNativeRestore(operationID) {
+      if (nativeRestoreRestartRequired || !nativeRestoreLocked || nativeRestoreOperation !== operationID || nativeRestoreApplied !== operationID) throw new Error("Native restore completion is stale.");
+      unlockNativeRestore();
+      return { operationID, released: true };
+    },
     validateRestore(text) {
       if (!ready || restorePending) throw new Error("Storage is not ready.");
       window.App.macOSBetaValidateRestore(text);
@@ -101,7 +162,7 @@
           ["icsRangeOverrides", "icsAusnahmeTermine", "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine", "icsTimezones"].some(key => task[key]?.length)) return [];
       const days = Number(task.individuelleErinnerungTage) || 0;
       if (task.erinnern !== true && !(Number.isInteger(days) && days >= 1 && days <= 7)) return [];
-      const displayZone = task.icsAnzeigeZeitzone || organizerZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const displayZone = task.icsAnzeigeZeitzone || organizerZone || MagnolieTime.systemIdentifier();
       const wall = (day, time) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error("Invalid task date/time.");
         const value = Date.parse(day + "T" + time + ":00Z");
@@ -109,20 +170,10 @@
         return value;
       };
       const resolve = (local, zone, preferred = null) => {
-        const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit",
-          day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
-        const parts = instant => {
-          const p = Object.fromEntries(formatter.formatToParts(new Date(instant)).map(v => [v.type, v.value]));
-          return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
-        };
-        // Sample both offsets around a transition. First fold occurrence is deterministic;
-        // nonexistent local times have no match and are not silently shifted into another hour.
-        const candidates = new Set();
-        for (const delta of [-2, 0, 2]) {
-          const sample = local + delta * 86400000, instant = local - (parts(sample) - sample);
-          if (parts(instant) === local) candidates.add(instant);
-        }
-        return candidates.has(preferred) ? preferred : candidates.size ? Math.min(...candidates) : null;
+        // Exact normative candidates: gaps are omitted, earlier folds remain
+        // deterministic, and a raw UTC occurrence can select the later fold.
+        const candidates = MagnolieTime.candidates(zone, local);
+        return candidates.includes(preferred) ? preferred : candidates.length ? candidates[0] : null;
       };
       let sourceWall = wall(task.faellig, task.faelligZeit || "08:00"), sourceZone = displayZone;
       const displayWall = sourceWall;
@@ -162,7 +213,8 @@
         queueMicrotask(() => failure(result));
         return true; // Request handled with a negative result, never a successful mutation ACK.
       }
-      if (request.cmd === "speichern" && (!ready || restorePending)) {
+      if (request.cmd === "sicherung_wiederherstellen") lockNativeRestore();
+      if (request.cmd === "speichern" && (!ready || restorePending || nativeRestoreLocked)) {
         queueMicrotask(() => failure({ cmd: "speichern", id: request.id, ok: false, fehler: "Storage initialization has not succeeded." }));
         return true;
       }
@@ -170,11 +222,19 @@
       return true;
     },
     receive(method, payload) {
-      if (method === "sicherungWiederhergestellt" || (method === "failure" && payload.cmd === "sicherung_wiederherstellen")) restorePending = false;
+      if (method === "failure" && payload.cmd === "sicherung_wiederherstellen") {
+        if (payload.restartRequired === true) {
+          nativeRestoreRestartRequired = true;
+          restorePending = true; lockNativeRestore();
+          show(payload.fehler || "Restart is required before further editing.");
+        } else if (payload.restoreInProgress === true) { lockNativeRestore(); }
+        else { unlockNativeRestore(); }
+      } else if (method === "sicherungWiederhergestellt" && !nativeRestoreLocked) restorePending = false;
       if (method === "failure") { failure(payload); return; }
       if (!methods.has(method)) throw new Error("Invalid native callback.");
       if (method === "init") {
         ready = false;
+        window.MacBetaSystemAccounts?.reset();
         window.App.init(payload);
         ready = payload.gesperrt !== true;
       } else {
@@ -190,6 +250,10 @@
     const info = document.createElement("p"); info.textContent = notice;
     const status = document.createElement("p"); status.id = "macos-beta-status";
     status.setAttribute("role", "status"); status.textContent = "Waiting for native storage.";
+    const noteImport = document.createElement("button"); noteImport.type = "button";
+    noteImport.id = "macos-note-file-import"; noteImport.textContent = "Import note files…";
+    noteImport.addEventListener("click", () => window.App.macOSBetaStartNoteImport());
+    details.append(noteImport);
     details.append(summary, info, status); document.body.prepend(details);
   }, { once: true });
 })();

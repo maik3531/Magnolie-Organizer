@@ -1,0 +1,119 @@
+[
+  {
+    "country": "GB",
+    "expectedE164": "+442079460958",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "whatsapp",
+      "wert": "020 7946 0958",
+      "aktionArt": "",
+      "aktionZiel": "",
+      "land": "GB",
+      "nummer": "+442079460958"
+    }
+  },
+  {
+    "country": "US",
+    "expectedE164": "+12025550100",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "signal",
+      "wert": "(202) 555-0100",
+      "aktionArt": "",
+      "aktionZiel": "",
+      "land": "US",
+      "nummer": "+12025550100"
+    }
+  },
+  {
+    "country": "FR",
+    "expectedE164": "+33142685300",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "custom",
+      "wert": "01 42 68 53 00",
+      "aktionArt": "website",
+      "aktionZiel": "https://example.org/?number={nummer}",
+      "land": "FR",
+      "nummer": "+33142685300"
+    }
+  },
+  {
+    "country": "IN",
+    "expectedE164": "+919123456789",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "whatsapp",
+      "wert": "09123456789",
+      "aktionArt": "",
+      "aktionZiel": "",
+      "land": "IN",
+      "nummer": "+919123456789"
+    }
+  },
+  {
+    "country": "DE",
+    "expectedE164": "+493012345678",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "signal",
+      "wert": "030 12345678",
+      "aktionArt": "",
+      "aktionZiel": "",
+      "land": "DE",
+      "nummer": "+493012345678"
+    }
+  },
+  {
+    "country": "AT",
+    "expectedE164": "+4315012345",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "custom",
+      "wert": "01 5012345",
+      "aktionArt": "website",
+      "aktionZiel": "https://example.org/?number={nummer}",
+      "land": "AT",
+      "nummer": "+4315012345"
+    }
+  },
+  {
+    "country": "CH",
+    "expectedE164": "+41446681800",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "whatsapp",
+      "wert": "044 668 1800",
+      "aktionArt": "",
+      "aktionZiel": "",
+      "land": "CH",
+      "nummer": "+41446681800"
+    }
+  },
+  {
+    "country": "US",
+    "expectedE164": "+442079460958",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "signal",
+      "wert": "011 44 20 7946 0958",
+      "aktionArt": "",
+      "aktionZiel": "",
+      "land": "US",
+      "nummer": "+442079460958"
+    }
+  },
+  {
+    "country": "GB",
+    "expectedE164": "+442079460958",
+    "request": {
+      "cmd": "sozial",
+      "dienst": "custom",
+      "wert": "+44 (0)20 7946 0958 ext 123",
+      "aktionArt": "website",
+      "aktionZiel": "https://example.org/?number={nummer}",
+      "land": "GB",
+      "nummer": "+442079460958"
+    }
+  }
+]

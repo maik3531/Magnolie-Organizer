@@ -13,12 +13,13 @@ internal object AndroidStore {
     private var instance: Vault? = null
     @Synchronized fun vault(context: Context): Vault {
         instance?.let { return it }
-        val dir = context.noBackupFilesDir
+        val ops = AndroidOsStorageFileOps
+        val dir = ops.ensurePrivateDirectory(context.noBackupFilesDir)
         val alias = "magnolie-organizer-tablet-beta-vault-v1"
         val vault = Vault(dir, {
             val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
             (store.getKey(alias, null) as? SecretKey) ?: run {
-                check(dir.listFiles().orEmpty().none { it.name.endsWith(".enc") || it.name.endsWith(".pending") }) {
+                check(ops.children(dir).none { it.name.endsWith(".enc") || it.name.endsWith(".pending") }) {
                     "Missing key for existing ciphertext; refusing reset"
                 }
                 KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
@@ -27,7 +28,7 @@ internal object AndroidStore {
                         .setKeySize(256).setRandomizedEncryptionRequired(true).build())
                 }.generateKey()
             }
-        })
+        }, fileOps = ops)
         instance = vault
         return vault
     }

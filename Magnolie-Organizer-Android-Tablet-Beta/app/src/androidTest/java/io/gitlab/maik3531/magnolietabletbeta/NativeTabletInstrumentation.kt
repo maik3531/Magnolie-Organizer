@@ -19,6 +19,7 @@ import java.io.File
 import java.security.KeyStore
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import javax.crypto.SecretKey
 
 /** No test entry points are added to the production/debug application's manifest. */
@@ -27,6 +28,10 @@ class NativeTabletInstrumentation : Instrumentation() {
     private lateinit var activity: MainActivity
     private lateinit var web: WebView
     private val checks=JSONArray()
+    private var startupState:JSONObject?=null
+    private var startupTiming:JSONObject?=null
+    @Volatile private var observedMainResumed=false
+    @Volatile private var observedMainDestroyed=false
     private var lastTouchTiming=JSONObject()
     private var lastIssuedTouch=emptyList<AsyncTouchPair.Delivery>()
     private var previousNativeDownTime=-1L
@@ -41,6 +46,11 @@ class NativeTabletInstrumentation : Instrumentation() {
     @Volatile private var inputDocument=""
     @Volatile private var ackLatch=CountDownLatch(1)
     @Volatile private var incomingAck:JSONObject?=null
+    @Volatile private var incomingPreparation:JSONObject?=null
+    @Volatile private var preparationReplyAt=0L
+    @Volatile private var preparationReplyUptime=0L
+    private var preparationLatch=CountDownLatch(1)
+    private var inputSource=""
     @Volatile private var expectedStep=0
     private var touchNumber=0
     private val provider="io.gitlab.maik3531.magnolieorganizer.tablet.beta.test.documents"
@@ -49,17 +59,26 @@ class NativeTabletInstrumentation : Instrumentation() {
     override fun onStart() {
         val stage=options.getString("stage") ?: "basics"
         android.util.Log.i("TabletNativeTest","START $stage")
+        val processLine="NATIVE_STAGE_PROCESS stage=$stage pid=${android.os.Process.myPid()} timestampMs=${System.currentTimeMillis()}"
+        sendStatus(1,Bundle().apply {putString("stream",processLine+"\n")})
         var error: Throwable?=null
         try {
             check(injector in listOf("shell","async")) {"Unknown injector"}
-            check(android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.MODEL.contains("sdk")) {"Disposable emulator required"}
+            check(DisposableEmulatorPolicy.accepts(android.os.Build.FINGERPRINT, android.os.Build.MODEL, android.os.Build.BRAND)) {"Disposable emulator required"}
             when(stage) {
+                "services" -> {
+                    pass("native Android DAV parser and secure account transactions", NativeDavAccountSmoke.run(targetContext))
+                    pass("native Android calendar codecs and system time zones", NativeCalendarSmoke.run(context,targetContext))
+                }
+                "domains" -> domains()
                 "basics" -> basics()
                 "restart" -> {launch(); assertPersisted()}
                 "layout" -> {launch(); checkLayout(); navigation()}
                 "time" -> customTimeKeyboard()
                 "navigation" -> {launch(); navigation()}
                 "saf" -> saf()
+                "calendar-files" -> calendarFiles()
+                "timezone-interop" -> timezoneInterop()
                 "fault" -> fault()
                 "print" -> printPdf()
                 "notifications" -> notifications(false)
@@ -67,7 +86,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "verify-reboot" -> verifyReboot()
                 else -> error("Unknown stage")
             }
-            capture(stage)
+            if (stage != "services") capture(stage)
         } catch(t: Throwable) {
             error=t
             android.util.Log.e("TabletNativeTest","FAIL $stage",t)
@@ -79,11 +98,24 @@ class NativeTabletInstrumentation : Instrumentation() {
             .put("brand",android.os.Build.BRAND).put("applicationId",targetContext.packageName)
             .put("applicationLabel",targetContext.applicationInfo.loadLabel(targetContext.packageManager).toString())
             .put("sourceHash",JSONObject(targetContext.assets.open("projection.json").bufferedReader().readText()).getString("sourceHash"))
-            .put("webview",WebView.getCurrentWebViewPackage()?.versionName).put("error",error?.stackTraceToString() ?: JSONObject.NULL)
+            .put("webview",androidx.webkit.WebViewCompat.getCurrentWebViewPackage(targetContext)?.versionName).put("startup",startupState ?: JSONObject.NULL)
+            .put("error",error?.stackTraceToString() ?: JSONObject.NULL)
         File(out,"$stage.json").writeText(proof.toString(2))
         if(inputPort!=null) runOnMainSync {inputPort?.close()}
         val result=Bundle().apply {putString("stream",proof.toString(2)+"\n")}
         finish(if(error==null) Activity.RESULT_OK else Activity.RESULT_CANCELED,result)
+    }
+    override fun callActivityOnDestroy(target: Activity) {
+        if (target is MainActivity) observedMainDestroyed=true
+        super.callActivityOnDestroy(target)
+    }
+    override fun callActivityOnResume(target: Activity) {
+        super.callActivityOnResume(target)
+        if (target is MainActivity) observedMainResumed=true
+    }
+    override fun callActivityOnPause(target: Activity) {
+        if (target is MainActivity) observedMainResumed=false
+        super.callActivityOnPause(target)
     }
     private fun pass(name:String,detail:Any=true) {
         checks.put(JSONObject().put("name",name).put("detail",detail))
@@ -97,10 +129,22 @@ class NativeTabletInstrumentation : Instrumentation() {
         error("Timeout: $name")
     }
     private fun launch() {
+        observedMainDestroyed=false
+        val activityStartedAt=SystemClock.elapsedRealtime()
         activity=startActivitySync(Intent(targetContext,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
+        val activityReturnedAt=SystemClock.elapsedRealtime()
         web=MainActivity::class.java.getDeclaredField("web").apply {isAccessible=true}.get(activity) as WebView
-        waitFor("native initialization acknowledged") {
-            var ready=false; runOnMainSync {ready=MainActivity::class.java.getDeclaredField("ready").apply {isAccessible=true}.getBoolean(activity)}; ready
+        try {
+            observeNativeReadiness(activityReturnedAt-activityStartedAt)
+        } catch (failure: IllegalStateException) {
+            startupState=try {startupDiagnostics()} catch (diagnosticsFailure: Exception) {
+                JSONObject().put("diagnosticError",diagnosticsFailure.javaClass.simpleName)
+            }
+            startupState?.put("timing",startupTiming ?: JSONObject.NULL)
+            val line="STARTUP_DIAGNOSTICS "+startupState.toString()
+            android.util.Log.e("TabletNativeTest",line)
+            sendStatus(1,Bundle().apply {putString("stream",line+"\n")})
+            throw failure
         }
         js("window.MagnolieI18n.setLocale('en'); OrganizerTest.daten().einstellungen.regional.language='en'; OrganizerTest.daten().einstellungen.regional.timeZone='UTC'; true")
         raw(context.assets.open("scenarios.js").bufferedReader().readText())
@@ -118,6 +162,91 @@ class NativeTabletInstrumentation : Instrumentation() {
             }
         }
         saved()
+    }
+    private fun observeNativeReadiness(startActivityMs:Long) {
+        val field=MainActivity::class.java.getDeclaredField("ready").apply {isAccessible=true}
+        check(java.lang.reflect.Modifier.isVolatile(field.modifiers)) {"Readiness flag must be published as volatile"}
+        val published=MainActivity::class.java.getDeclaredField("startupReadyAtElapsed").apply {isAccessible=true}
+        val unsupported=MainActivity::class.java.getDeclaredField("startupUnsupportedWebView").apply {isAccessible=true}
+        check(java.lang.reflect.Modifier.isVolatile(unsupported.modifiers)) {"Unsupported startup state must be published as volatile"}
+        val started=SystemClock.elapsedRealtime()
+        val gate=ReadinessObservation(started,25000)
+        val mainThreadStacks=JSONArray()
+        var polls=0; var maximumSchedulingDelay=0L; var nextDueAt=started; var nextSampleAt=started+5000
+        var publishedReadyAt=0L; var observationError:String?=null
+        try {
+            while(SystemClock.elapsedRealtime()<=gate.deadline && !gate.finished) {
+                val entered=SystemClock.elapsedRealtime()
+                maximumSchedulingDelay=maxOf(maximumSchedulingDelay,maxOf(0,entered-nextDueAt))
+                if(observedMainDestroyed) {observationError="ActivityDestroyed";break}
+                if(unsupported.get(activity)!=null) {observationError=WebViewStartup.TERMINAL_REASON;break}
+                // The same production ready flag is volatile because native account workers
+                // also read it. No main-queue RPC or alternate success predicate is needed.
+                val ready=field.getBoolean(activity)
+                val observedAt=SystemClock.elapsedRealtime()
+                publishedReadyAt=published.getLong(activity)
+                polls++
+                if(gate.observe(observedAt,ready)) break
+                if(observedAt>=nextSampleAt && mainThreadStacks.length()<4) {
+                    val frames=JSONArray(android.os.Looper.getMainLooper().thread.stackTrace.take(12).map {
+                        JSONObject().put("class",it.className).put("method",it.methodName).put("line",it.lineNumber)
+                    })
+                    mainThreadStacks.put(JSONObject().put("afterMs",SystemClock.elapsedRealtime()-started).put("frames",frames))
+                    nextSampleAt=observedAt+5000
+                }
+                nextDueAt=minOf(gate.deadline,observedAt+100)
+                SystemClock.sleep(maxOf(0,nextDueAt-SystemClock.elapsedRealtime()))
+            }
+        } finally {
+            gate.stop()
+            startupTiming=JSONObject().put("observer","volatile-ready-flag").put("startActivityMs",startActivityMs)
+                .put("observationStartedAtMs",started).put("deadlineAtMs",gate.deadline)
+                .put("mainThreadStacks",mainThreadStacks).put("observationElapsedMs",SystemClock.elapsedRealtime()-started)
+                .put("polls",polls).put("maxObserverSchedulingDelayMs",maximumSchedulingDelay)
+                .put("publishedReadyAfterMs",if(publishedReadyAt>0) publishedReadyAt-started else JSONObject.NULL)
+                .put("firstReadyAfterMs",gate.readyObservedAt?.minus(started) ?: JSONObject.NULL)
+                .put("lastObservationAfterMs",gate.lastObservedAt?.minus(started) ?: JSONObject.NULL)
+                .put("acceptedBeforeDeadline",gate.accepted).put("observationError",observationError ?: JSONObject.NULL)
+            val line="STARTUP_TIMING "+startupTiming.toString()
+            android.util.Log.i("TabletNativeTest",line)
+            sendStatus(1,Bundle().apply {putString("stream",line+"\n")})
+        }
+        check(observationError!=WebViewStartup.TERMINAL_REASON) {"Unsupported WebView: required WEB_MESSAGE_LISTENER capability is unavailable; native update path selected"}
+        check(gate.accepted && observationError==null) {"Timeout: native initialization acknowledged within 25 seconds"}
+    }
+    private fun startupDiagnostics():JSONObject {
+        val started=SystemClock.elapsedRealtime()
+        val native=AtomicReference<String?>(null)
+        val renderer=AtomicReference<String?>(null)
+        val problem=AtomicReference<String?>(null)
+        val done=CountDownLatch(1)
+        val script=context.assets.open("startup-diagnostics.js").bufferedReader().use {it.readText()}
+        activity.runOnUiThread {
+            try {
+                fun field(name:String)=MainActivity::class.java.getDeclaredField(name).apply {isAccessible=true}.get(activity)
+                val unsupported=field("startupUnsupportedWebView") as String?
+                native.set(JSONObject().put("ready",field("ready"))
+                    .put("webViewCapability",unsupported?.let {JSONObject(it)} ?: JSONObject.NULL)
+                    .put("generation",field("generation")).put("bootstrapStarted",field("bootstrapStarted"))
+                    .put("restoreFenced",field("restoreFenced")).put("pageSessionPresent",field("documentSession")!=null)
+                    .put("entryUrlMatches",web.url==MainActivity.START)
+                    .put("activityResumed",observedMainResumed).put("windowFocused",activity.hasWindowFocus())
+                    .put("interactive",activity.getSystemService(android.os.PowerManager::class.java).isInteractive)
+                    .put("keyguardLocked",activity.getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked)
+                    .put("deviceLocked",activity.getSystemService(android.app.KeyguardManager::class.java).isDeviceLocked).toString())
+                if(unsupported!=null) done.countDown()
+                else web.evaluateJavascript(script) {result -> renderer.set(result); done.countDown()}
+            } catch (failure: Exception) { problem.set(failure.javaClass.simpleName); done.countDown() }
+        }
+        val completed=done.await(2500,TimeUnit.MILLISECONDS)
+        val result=JSONObject().put("completed",completed).put("elapsedMs",SystemClock.elapsedRealtime()-started)
+        native.get()?.let {result.put("native",JSONObject(it))}
+        renderer.get()?.let {
+            try {result.put("web",JSONObject(it))}
+            catch (failure: Exception) {result.put("webResultError",failure.javaClass.simpleName)}
+        }
+        problem.get()?.let {result.put("diagnosticError",it)}
+        return result
     }
     private fun raw(script:String):String {
         val started=SystemClock.elapsedRealtime(); webEvaluations++
@@ -156,12 +285,29 @@ class NativeTabletInstrumentation : Instrumentation() {
     private fun data()=JSONObject(value("OrganizerTest.daten()"))
     private fun vault()=AndroidStore.vault(targetContext)
     private fun capture(name:String) {
+        if(options.getString("stage")=="domains") domainMark("capture.begin")
         File(out,"$name-navigation-proof.json").writeText(navigationProof.toString(2))
         File(out,"$name-rpc-metrics.json").writeText(JSONObject().put("evaluations",webEvaluations).put("evaluationMs",webEvaluationMs).toString(2))
-        File(out,"$name-diagnostics.json").writeText(value("window.__nativeDiagnosticSnapshot?.() || {}"))
+        if(options.getString("stage")!="domains") File(out,"$name-diagnostics.json").writeText(value("window.__nativeDiagnosticSnapshot?.() || {}"))
         lateinit var motion:String
         synchronized(nativeMotion) {motion=JSONArray(nativeMotion.map {JSONArray(it.toList())}).toString()}
         File(out,"$name-native-motion.json").writeText(motion)
+        if(options.getString("stage")=="domains" && name=="failure-domains") {
+            // Existing synthetic replay receipts only; never read the book or image payloads here.
+            val replay=try {
+                val receipt=value("""
+                    (()=>{const text=JSON.stringify(window.__domainReplayDiagnostics ?? null);
+                      const bytes=new TextEncoder().encode(text).length;
+                      return bytes<=65536?JSON.parse(text):{truncated:true,reason:'replay-diagnostics-byte-limit',bytes,limitBytes:65536};})()
+                """.trimIndent())
+                if(receipt.toByteArray(Charsets.UTF_8).size<=65536) receipt
+                else "{\"unavailable\":true,\"reason\":\"native-replay-byte-limit\",\"limitBytes\":65536}"
+            } catch(_:Exception) {
+                "{\"unavailable\":true,\"reason\":\"replay-diagnostics-unavailable\"}"
+            }
+            // Optional evidence must never prevent the existing screenshot/DOM capture.
+            try {File(out,"$name-drawing-replay.json").writeText(replay)} catch(_:Exception) {}
+        }
         // Test-only screenshot exception; always restore the actual app's FLAG_SECURE.
         runOnMainSync {activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}
         try {
@@ -173,9 +319,26 @@ class NativeTabletInstrumentation : Instrumentation() {
             finally {bitmap.recycle()}
         }
         finally {runOnMainSync {activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}}
-        File(out,"$name-dom.json").writeText(value("({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,section:OrganizerTest.zustand().sektion,status:document.querySelector('#tablet-status').textContent,body:document.body.innerText.slice(0,20000)})"))
-        File(out,"$name-input-events.json").writeText(value("window.__nativeInputTrace || []"))
-        File(out,"$name-fonts.json").writeText(value("({title:document.title,betaLabel:document.querySelector('#tablet-bar strong').textContent,selected:OrganizerTest.daten().einstellungen.schrift,faces:[...document.fonts].map(f=>({family:f.family,status:f.status})),fields:[...document.querySelectorAll('input:not([type=password]),textarea,[contenteditable]')].slice(0,80).map(e=>({id:e.id,tag:e.tagName,readOnly:e.readOnly===true,disabled:e.disabled===true,contentEditable:e.contentEditable,fontFamily:getComputedStyle(e).fontFamily,fontStyle:getComputedStyle(e).fontStyle,fontSize:getComputedStyle(e).fontSize}))})"))
+        if(name.startsWith("failure-") && startupTiming?.optBoolean("acceptedBeforeDeadline")==false) {
+            // Retry only the technical observation after the original gate failed; never retry readiness.
+            val timing=try {
+                val script=context.assets.open("startup-diagnostics.js").bufferedReader().use {it.readText()}
+                value("($script)").also {check(it.toByteArray(Charsets.UTF_8).size<=16384)}
+            } catch(_:Exception) {"{\"unavailable\":true,\"reason\":\"startup-renderer-observation\"}"}
+            try {File(out,"$name-startup-renderer.json").writeText(timing)} catch(_:Exception) {}
+        }
+        if(options.getString("stage")=="domains") {
+            val snapshot=JSONObject(value("({diagnostics:window.__nativeDiagnosticSnapshot?.() || {},dom:({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,section:OrganizerTest.zustand().sektion,status:document.querySelector('#tablet-status').textContent,body:document.body.innerText.slice(0,20000)}),input_events:window.__nativeInputTrace || [],fonts:({title:document.title,betaLabel:document.querySelector('#tablet-bar strong').textContent,selected:OrganizerTest.daten().einstellungen.schrift,faces:[...document.fonts].map(f=>({family:f.family,status:f.status})),fields:[...document.querySelectorAll('input:not([type=password]),textarea,[contenteditable]')].slice(0,80).map(e=>({id:e.id,tag:e.tagName,readOnly:e.readOnly===true,disabled:e.disabled===true,contentEditable:e.contentEditable,fontFamily:getComputedStyle(e).fontFamily,fontStyle:getComputedStyle(e).fontStyle,fontSize:getComputedStyle(e).fontSize}))})})"))
+            File(out,"$name-diagnostics.json").writeText(snapshot.get("diagnostics").toString())
+            File(out,"$name-dom.json").writeText(snapshot.get("dom").toString())
+            File(out,"$name-input-events.json").writeText(snapshot.get("input_events").toString())
+            File(out,"$name-fonts.json").writeText(snapshot.get("fonts").toString())
+        } else {
+            File(out,"$name-dom.json").writeText(value("({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,section:OrganizerTest.zustand().sektion,status:document.querySelector('#tablet-status').textContent,body:document.body.innerText.slice(0,20000)})"))
+            File(out,"$name-input-events.json").writeText(value("window.__nativeInputTrace || []"))
+            File(out,"$name-fonts.json").writeText(value("({title:document.title,betaLabel:document.querySelector('#tablet-bar strong').textContent,selected:OrganizerTest.daten().einstellungen.schrift,faces:[...document.fonts].map(f=>({family:f.family,status:f.status})),fields:[...document.querySelectorAll('input:not([type=password]),textarea,[contenteditable]')].slice(0,80).map(e=>({id:e.id,tag:e.tagName,readOnly:e.readOnly===true,disabled:e.disabled===true,contentEditable:e.contentEditable,fontFamily:getComputedStyle(e).fontFamily,fontStyle:getComputedStyle(e).fontStyle,fontSize:getComputedStyle(e).fontSize}))})"))
+        }
+        if(options.getString("stage")=="domains") domainMark("capture.end")
     }
     private fun nodes():List<AccessibilityNodeInfo> {
         val result=mutableListOf<AccessibilityNodeInfo>()
@@ -264,6 +427,165 @@ class NativeTabletInstrumentation : Instrumentation() {
         pass("native font/display settings", fontSettings)
         pass("real WebView responsive binder geometry",geometry)
     }
+    /** Actual WebView civil-time paths, independent of the bundled native provider. */
+    private fun timezoneInterop() {
+        launch()
+        val fixtureBytes=context.assets.open("timezone-interop-oracle.json").use {it.readBytes()}
+        val fixtureHash=java.security.MessageDigest.getInstance("SHA-256").digest(fixtureBytes)
+            .joinToString("") {"%02x".format(it.toInt() and 255)}
+        check(fixtureHash=="03c3278c744c8e121c3cdb4d1b6f7b3518adebdb10bca36affb3b7a6def72238") {"Civil-time oracle changed"}
+        val fixture=JSONObject(fixtureBytes.toString(Charsets.UTF_8))
+        val providerIdentity=NativeCalendarSmoke.providerIdentity(targetContext)
+        check(fixture.getString("expectedBundledTZDBVersion")==ProviderZoneDatabase.bundled.version)
+        val clocks=fixture.getJSONArray("clocks"); check(clocks.length()==37)
+        for(index in 0 until clocks.length()) {
+            val row=clocks.getJSONObject(index)
+            val wall=org.threeten.bp.LocalDateTime.parse(row.getString("wall"))
+            val actual=ProviderZoneDatabase.bundled.zone(row.getString("identifier")).validInstants(wall).first()*1000
+            check(actual==row.getLong("epochMs")) {"Bundled provider disagrees with external civil-time oracle"}
+        }
+        val before=data(); val savedBefore=vault().read()!!.getJSONObject("data")
+        raw(context.assets.open("timezone-interop.js").bufferedReader().use {it.readText()})
+        val proof=JSONObject(value("NativeTimezoneInterop.run("+fixture.toString()+")"))
+            .put("oracleSHA256",fixtureHash).put("nativeProvider","normative-tzif-posix").put("nativeProviderIdentity",providerIdentity)
+            .put("nativeTZDBVersion",ProviderZoneDatabase.bundled.version).put("referenceIANA",fixture.getString("ianaVersion"))
+            .put("publishedVersion",fixture.getString("publishedVersion"))
+        check(calendarComparable(data())==calendarComparable(before)) {"Civil-time audit changed the book"}
+        check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(savedBefore)) {"Civil-time audit changed saved data"}
+        File(out,"timezone-interop-comparison.json").writeText(proof.toString(2))
+        check(proof.getJSONArray("failures").length()==0 && proof.getBoolean("appParity")) {"Actual App civil-time disagreement; see timezone-interop-comparison.json"}
+        check(proof.getInt("checks")==148 && proof.getBoolean("bookUnchanged"))
+        check(proof.getString("usedForPointRules")=="normative-tzif-posix")
+        check(proof.getJSONObject("providerIdentity").getString("payloadSHA256")==providerIdentity.getString("payloadSHA256"))
+        val os=proof.getJSONObject("osIntlDiagnostics")
+        check(os.getInt("checks")==37 && !os.getBoolean("usedForPointRules"))
+        // Raw OS-Intl disagreements remain visible. The App uses its verified
+        // provider; this stage does not claim the OS timezone database was fixed.
+        pass("actual App appointment task and datumText offset paths match37 external clocks; raw OS diagnostics retained",proof)
+        raw("window.__nativeTZWorkerItem={uid:'public-native-timezone-worker',icsRoundtrip:['DTSTART;TZID=Asia/Gaza:20740715T123045','DURATION:PT1H','RRULE:FREQ=DAILY;COUNT=2']};window.__nativeTZWorkerArgs=[Date.parse('2074-07-14T00:00Z'),Date.parse('2074-07-17T00:00Z')];OrganizerTest.icsRuntime('expand',window.__nativeTZWorkerItem,window.__nativeTZWorkerArgs)")
+        check(value("!!OrganizerTest.icsRuntime.state.worker")=="true") {"Actual WebView worker was not created"}
+        waitFor("actual WebView normative worker result") {
+            value("(()=>{const rows=OrganizerTest.icsRuntime('expand',window.__nativeTZWorkerItem,window.__nativeTZWorkerArgs);const job=[...OrganizerTest.icsRuntime.state.jobs.entries()].find(([key])=>key.includes('public-native-timezone-worker'));window.__nativeTZWorkerProof={workerPresent:!!OrganizerTest.icsRuntime.state.worker,status:job?.[1].status,errorCode:job?.[1].error||'',identity:job?JSON.parse(job[0])[0]:'',instants:Array.isArray(rows)?rows.map(row=>row.icsStartUtc):[]};return Array.isArray(rows)||job?.[1].status==='error';})()") == "true"
+        }
+        val worker=JSONObject(value("window.__nativeTZWorkerProof"))
+        check(worker.getBoolean("workerPresent") && worker.getString("status")=="ready") {"Actual WebView normative worker failed: "+worker.optString("errorCode")}
+        check(worker.getString("identity")==providerIdentity.getString("payloadSHA256")) {"Worker cache used another timezone identity"}
+        val points=worker.getJSONArray("instants")
+        check(points.length()==2 && points.getLong(0)==org.threeten.bp.Instant.parse("2074-07-15T09:30:45Z").toEpochMilli() &&
+            points.getLong(1)==org.threeten.bp.Instant.parse("2074-07-16T09:30:45Z").toEpochMilli()) {"Actual WebView worker did not preserve normative Gaza seconds"}
+        check(calendarComparable(data())==calendarComparable(before) && calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(savedBefore)) {"Worker timezone proof changed the book"}
+        pass("actual isolated WebView worker preserves normative points and seconds",JSONObject().put("occurrences",2).put("identity",worker.getString("identity")).put("appParity",true).put("usedForPointRules","normative-tzif-posix").put("bookUnchanged",true))
+    }
+    private var domainStartedAt=0L
+    private val domainTimings=JSONArray()
+    private fun domainMark(phase: String) {
+        if(domainStartedAt==0L) return
+        val detail=JSONObject().put("phase",phase).put("elapsedMs",SystemClock.elapsedRealtime()-domainStartedAt)
+            .put("evaluations",webEvaluations).put("evaluationMs",webEvaluationMs)
+        domainTimings.put(detail)
+        File(out,"domains-timing.json").writeText(domainTimings.toString(2))
+        android.util.Log.i("TabletNativeTest","DOMAIN_TIMING $detail")
+        sendStatus(1,Bundle().apply {putString("stream","DOMAIN_TIMING $detail\n")})
+    }
+    /** Two RPCs minimum: start the real async action, then read its complete
+     * result/error envelope. Never poll error/result/book in separate calls. */
+    private fun domainStep(expression: String, save: Boolean=false, capture: Boolean=false): JSONObject {
+        val token=java.util.UUID.randomUUID().toString()
+        val quoted=JSONObject.quote(token)
+        val action=if(save) "NativeDomainBatch.afterSave(detail,$capture)" else "detail"
+        raw("window.__nativeDomainStep={id:$quoted,done:false}; (async()=>{const detail=await ($expression); return await ($action);})().then(result=>{if(window.__nativeDomainStep.id===$quoted)window.__nativeDomainStep={id:$quoted,done:true,result};}).catch(error=>{if(window.__nativeDomainStep.id===$quoted)window.__nativeDomainStep={id:$quoted,done:true,error:String(error.stack||error)};})")
+        var envelope=JSONObject()
+        waitFor("real domain action and durable save ACK") {
+            envelope=JSONObject(value("window.__nativeDomainStep"))
+            envelope.optString("id")==token && envelope.optBoolean("done")
+        }
+        check(!envelope.has("error")) {envelope.optString("error")}
+        return envelope.getJSONObject("result")
+    }
+    private fun domains() {
+        domainStartedAt=SystemClock.elapsedRealtime()
+        domainMark("launch.begin")
+        launch()
+        domainMark("launch.ready")
+        raw(context.assets.open("domain-scenarios.js").bufferedReader().readText()+"\n"+
+            context.assets.open("domain-batch.js").bufferedReader().readText())
+        domainMark("settings.begin")
+        pass("optional tabs and metric units configured through actual settings",domainStep("NativeDomains.prepare()",save=true))
+        domainMark("settings.saved")
+        pass("actual health tables validate and persist vital glucose medication entries",domainStep("NativeDomains.health()",save=true))
+        domainMark("health.saved")
+        pass("actual custom designer and appointment task text editors persist",domainStep("NativeDomains.custom()",save=true))
+        domainMark("custom.saved")
+        val inputReceipt=JSONObject()
+        val inputArtifact=File(out,"domains-drawing-input.json")
+        fun writeInputReceipt() {
+            val encoded=inputReceipt.toString(2)
+            check(encoded.length<=16384) {"Drawing input diagnostic exceeded its bound"}
+            inputArtifact.writeText(encoded)
+        }
+        NativeDomainAcceptance.requireOwnership(this,activity,web,"beforeReadiness") { native ->
+            inputReceipt.put("beforeReadiness",native);writeInputReceipt()
+        }
+        val target=try {domainStep("NativeDomains.drawing()")} finally {
+            try {inputReceipt.put("readiness",JSONObject(value("window.__domainDrawingReadiness || {}")));writeInputReceipt()}
+            catch(failure:Exception) {
+                try {inputReceipt.put("readinessSnapshotError",failure.javaClass.simpleName);writeInputReceipt()} catch(_:Exception) {}
+            }
+        }
+        domainMark("drawing.editor.ready")
+        fun drawingSnapshot(phase: String) {
+            inputReceipt.put(phase,JSONObject(value("""
+                (()=>{const c=document.querySelector('.custom-zeichenblatt'),m=OrganizerTest.daten().customOrganizer.modules.find(x=>x.type==='drawing');
+                if(!window.__nativeDomainInputCanvas){window.__nativeDomainInputCanvas=c;window.__nativeDomainInputModule=m;}
+                const r=c?.getBoundingClientRect(),s=m?.drawing?.strokes||[],p=s[0]?.points||[],counts=window.__domainPointers||{};
+                return {canvasConnected:c?.isConnected===true,sameCanvas:c===window.__nativeDomainInputCanvas,sameModule:m===window.__nativeDomainInputModule,
+                  geometry:r?[r.left,r.top,r.width,r.height]:null,bitmap:c?[c.width,c.height]:null,
+                  modelSize:m?.drawing?[m.drawing.width,m.drawing.height]:null,strokeCount:s.length,firstStrokePointCount:p.length,
+                  distinctSampleLimit:64,distinctSamplePoints:new Set(p.slice(0,64).map(x=>JSON.stringify(x))).size,
+                  pointers:Object.fromEntries(['down','move','up','untrusted','pressedMove'].map(k=>[k,Number(counts[k]||0)]))};})()
+            """.trimIndent())))
+            writeInputReceipt()
+        }
+        drawingSnapshot("before")
+        val gesture=try {
+            NativeDomainAcceptance.stroke(this,activity,web,target) { native ->
+                inputReceipt.put("native",native);writeInputReceipt()
+            }
+        } finally {
+            try {drawingSnapshot("after")} catch(failure:Exception) {
+                inputReceipt.put("afterSnapshotError",failure.javaClass.simpleName);writeInputReceipt()
+            }
+        }
+        domainMark("drawing.gesture.finished")
+        waitFor("trusted native drawing stroke") {
+            value("OrganizerTest.daten().customOrganizer.modules.find(module=>module.type==='drawing')?.drawing.strokes.length") == "1"
+        }
+        val drawing=domainStep("NativeDomains.drawingProof()",save=true,capture=true)
+        drawing.getJSONObject("detail").put("gesture",gesture)
+        pass("native canvas stroke pixels and vectors survive actual Undo Redo controls",drawing.getJSONObject("detail"))
+        domainMark("drawing.saved")
+        domainMark("vault.before-reopen.begin")
+        val persisted=JSONObject(vault().read()!!.getJSONObject("data").toString())
+        NativeDomainAcceptance.requireSavedEqual(drawing.getJSONObject("beforeSave"),persisted,"Native save changed or dropped original book values or fields beyond the declared empty epoch placeholders")
+        NativeDomainAcceptance.requireSavedEqual(drawing.getJSONObject("afterSave"),persisted,"Native saved book differs from the actual UI domain data beyond the declared empty epoch placeholders")
+        domainMark("vault.before-reopen.verified")
+        domainMark("reopen.begin")
+        reloadVerified()
+        domainMark("reopen.ready")
+        domainMark("renderer.snapshot.begin")
+        // Read both graphs atomically in one renderer turn. Reuse the exact
+        // pre-reload expected clone; permit only the declared oxygen-zero default.
+        val reopened=JSONObject(js(context.assets.open("domain-scenarios.js").bufferedReader().readText()+"\n"+
+            context.assets.open("domain-batch.js").bufferedReader().readText()+"\nreturn NativeDomainBatch.snapshot();"))
+        domainMark("renderer.snapshot.ready")
+        NativeDomainAcceptance.requireEqual(persisted,vault().read()!!.getJSONObject("data"),"Native domain book changed after reopen")
+        NativeDomainAcceptance.requireEqual(drawing.getJSONObject("expectedBook"),reopened.getJSONObject("book"),"Reopened renderer changed or dropped persisted book fields beyond the declared optional-zero default")
+        NativeDomainAcceptance.requireEqual(drawing.getJSONObject("expectedFeatures"),reopened.getJSONObject("features"),"Reopened health custom or drawing graph differs")
+        domainMark("reopen.verified")
+        pass("complete native book and feature graph preserve all fields through save and reopen",JSONObject()
+            .put("bookSHA256",NativeDomainAcceptance.hash(persisted)).put("featureSHA256",NativeDomainAcceptance.hash(drawing.getJSONObject("expectedFeatures"))))
+    }
+
     private fun basics() {
         launch(); pass("real AssetLoader/WebMessage initialization")
         scenario("NativeScenario.calendar()"); saved(); pass("calendar editor to encrypted native store")
@@ -286,9 +608,9 @@ class NativeTabletInstrumentation : Instrumentation() {
         val fixture=File(targetContext.getExternalFilesDir(null),"input-ab-fixture.json")
         if(options.getString("fixture")=="restore") {
             check(fixture.isFile) {"A/B fixture was not captured by basics"}
-            js("const d=OrganizerTest.daten(),seed=JSON.parse(${JSONObject.quote(fixture.readText())});for(const k of Object.keys(d))delete d[k];Object.assign(d,seed);OrganizerTest.speichereJetzt();return true")
+            scenario("NativeScenario.navigationFixture(JSON.parse(${JSONObject.quote(fixture.readText())}))")
         } else {
-            js("const d=OrganizerTest.daten();d.termine=d.termine.filter(x=>!String(x.id).startsWith('old-series-'));const base=d.termine[0];if(!base)throw Error('Missing seeded calendar'); for(let i=0;i<17;i++) d.termine.push({...base,id:'old-series-'+i,titel:'Old series '+i,datum:'2000-01-01',zeit:'10:00',endDatum:'2000-01-01',endZeit:'11:00',icsRoundtrip:['DTSTART:20000101T100000Z','DTEND:20000101T110000Z','RRULE:FREQ=DAILY;COUNT=20000'],wiederholung:{art:'daily'}}); OrganizerTest.speichereJetzt(); return true")
+            scenario("NativeScenario.navigationFixture()")
             if(options.getString("fixture")=="capture") fixture.writeText(value("OrganizerTest.daten()"))
         }
         val fixtureText=value("OrganizerTest.daten()")
@@ -296,11 +618,27 @@ class NativeTabletInstrumentation : Instrumentation() {
         File(out,"fixture.json").writeText(fixtureText)
         raw("OrganizerTest.wechsel('kalender')")
         waitFor("fixture begins on Calendar") {value("OrganizerTest.zustand().sektion")==JSONObject.quote("kalender")}
+        try {
+            waitFor("17 real old-series occurrences and indexed worker results") {value("NativeScenario.recurrenceProof().active")=="true"}
+        } catch (failure: IllegalStateException) {
+            error("Recurrence fixture was not active: "+value("NativeScenario.recurrenceProof()"))
+        }
+        val recurrence=JSONObject(value("NativeScenario.recurrenceProof()"))
+        check(recurrence.getBoolean("workerAvailable") && recurrence.getBoolean("workerActive") && recurrence.getInt("workerSeriesReady")==17) {"Real recurrence worker missing: $recurrence"}
         saved()
+        pass("17 old recurrence series indexed with real dated occurrences",recurrence)
+    }
+    private fun phase(name:String) {
+        val line="PHASE $name"
+        android.util.Log.i("TabletNativeTest",line)
+        sendStatus(1,Bundle().apply {putString("stream",line+"\n")})
     }
     private fun navigation() {
+        phase("navigation-fixture-start")
         prepareNavigationFixture()
+        phase("navigation-fixture-ready")
         connectInputProbe()
+        phase("native-touch-probe-connected")
         val durations=JSONArray(); val labels=listOf("Planner","Tasks","Contacts","Notes","Calendar","Anniversaries","Health","Tablet custom")
         for(i in 0 until 40) {
             val label=labels[i%labels.size]; val started=SystemClock.elapsedRealtime()
@@ -311,7 +649,12 @@ class NativeTabletInstrumentation : Instrumentation() {
             val preparedAt=SystemClock.elapsedRealtime()
             injectTouch(prepared.getDouble("screenX").toFloat(),prepared.getDouble("screenY").toFloat())
             val returnedAt=SystemClock.elapsedRealtime()
-            check(ackLatch.await(10,TimeUnit.SECONDS)) {"Timeout: trusted touch acknowledgement $section"}
+            check(ackLatch.await(10,TimeUnit.SECONDS)) {
+                val diagnostic=touchFailureDiagnostics()
+                sendStatus(1,Bundle().apply {putString("stream","TOUCH_TIMEOUT_DIAGNOSTICS $diagnostic\n")})
+                "Timeout: trusted touch acknowledgement $section; technicalState=$diagnostic"
+            }
+            val acknowledgedAt=SystemClock.elapsedRealtime()
             val ack=requireNotNull(incomingAck)
             check(ack.optString("kind")=="ack" && ack.optBoolean("trusted") &&
                 ack.getString("token")==inputToken && ack.getString("documentId")==inputDocument && ack.getInt("step")==i+1 &&
@@ -336,9 +679,15 @@ class NativeTabletInstrumentation : Instrumentation() {
             val total=SystemClock.elapsedRealtime()-started
             durations.put(total)
             navigationProof.put(JSONObject().put("target",prepared).put("injection",lastTouchTiming)
-                .put("ack",ack).put("prepareMs",preparedAt-started).put("ackWaitMs",SystemClock.elapsedRealtime()-returnedAt)
+                .put("ack",ack).put("prepareMs",preparedAt-started).put("ackWaitMs",acknowledgedAt-returnedAt)
                 .put("totalMs",total))
             android.util.Log.i("TabletNativeTest","TOUCH_ACK "+JSONObject(ack.toString()).apply {remove("token")}.toString())
+            val downCallMs=lastIssuedTouch.firstOrNull()?.let {it.returnedAt-it.callAt} ?: -1L
+            val upCallMs=lastIssuedTouch.lastOrNull()?.let {it.returnedAt-it.callAt} ?: -1L
+            val pairMs=if(lastIssuedTouch.size==2) lastIssuedTouch.last().event.eventTime-lastIssuedTouch.first().event.eventTime else -1L
+            phase("trusted-tab-switch-${i+1} prepareMs=${preparedAt-started} injectionMs=${returnedAt-preparedAt} " +
+                "ackWaitMs=${acknowledgedAt-returnedAt} totalMs=$total downCallMs=$downCallMs upCallMs=$upCallMs pairMs=$pairMs " +
+                "prepareEvaluations=${prepared.getInt("evaluations")} uiQueueMs=${prepared.getLong("uiQueueMs")} callbackMs=${prepared.getLong("evaluationCallbackMs")} browserPrepareMs=${prepared.optDouble("asyncPrepareMs",-1.0)}")
         }
         pass("40 real touchscreen tab switches with 17 old series",durations)
         saved()
@@ -346,6 +695,7 @@ class NativeTabletInstrumentation : Instrumentation() {
 
     private fun connectInputProbe() {
         val source=JSONObject(targetContext.assets.open("projection.json").bufferedReader().readText()).getString("sourceHash")
+        inputSource=source
         raw("NativeTouchProbe.connect(${JSONObject.quote(inputToken)},${JSONObject.quote(source)})")
         val ready=CountDownLatch(1)
         activity.runOnUiThread {
@@ -356,8 +706,11 @@ class NativeTabletInstrumentation : Instrumentation() {
                     if(row.optString("token")!=inputToken) return
                     if(row.optString("kind")=="ready" && row.optString("sourceHash")==source) {
                         inputDocument=row.getString("documentId"); ready.countDown()
-                    } else if(row.optString("documentId")==inputDocument && row.optInt("step")==expectedStep) {
-                        incomingAck=row; ackLatch.countDown()
+                    } else if(row.optString("documentId")==inputDocument && row.optInt("step")==expectedStep && row.optString("sourceHash")==inputSource) {
+                        when(row.optString("kind")) {
+                            "prepared", "prepareError" -> {incomingPreparation=row; preparationReplyAt=SystemClock.elapsedRealtime(); preparationReplyUptime=SystemClock.uptimeMillis(); preparationLatch.countDown()}
+                            "ack", "error" -> {incomingAck=row; ackLatch.countDown()}
+                        }
                     }
                 }
             })
@@ -366,40 +719,59 @@ class NativeTabletInstrumentation : Instrumentation() {
         check(ready.await(5,TimeUnit.SECONDS)) {"Test-only WebMessagePort handshake failed"}
     }
 
+    private fun touchFailureDiagnostics():String {
+        val done=CountDownLatch(1); val result=AtomicReference<String?>(null)
+        activity.runOnUiThread {
+            try {web.evaluateJavascript("NativeTouchProbe.failure()") {value -> result.set(value); done.countDown()}}
+            catch (failure:Exception) {result.set(JSONObject().put("diagnosticError",failure.javaClass.simpleName).toString()); done.countDown()}
+        }
+        done.await(2500,TimeUnit.MILLISECONDS)
+        val snapshot=JSONObject()
+        try {snapshot.put("web",JSONObject(result.get() ?: "{\"diagnosticTimeout\":true}"))}
+        catch (_:Exception) {snapshot.put("webDiagnosticInvalid",true)}
+        synchronized(nativeMotion) {snapshot.put("nativeMotion",JSONArray(nativeMotion.toList().takeLast(8).map {JSONArray(it.toList())}))}
+        snapshot.put("injection",lastTouchTiming)
+        return snapshot.toString().take(5000)
+    }
     private fun prepareTouch(step:Int,label:String,section:String):JSONObject {
-        lateinit var prepared:JSONObject
-        val before=webEvaluations
-        waitFor("stable unobscured touch target",5) {
-            val latch=CountDownLatch(1); var result="null"; val location=IntArray(2); var density=1f
-            var uiAt=0L
-            var nativeEvaluationStart=0L; var nativeArmedUptime=0L
-            val started=SystemClock.elapsedRealtime(); webEvaluations++
-            activity.runOnUiThread {
-                uiAt=SystemClock.elapsedRealtime()
-                web.getLocationOnScreen(location); density=web.resources.displayMetrics.density
-                nativeEvaluationStart=SystemClock.uptimeMillis()
-                web.evaluateJavascript("NativeTouchProbe.prepare($step,${JSONObject.quote(label)},${JSONObject.quote(section)})") {
-                    nativeArmedUptime=SystemClock.uptimeMillis(); result=it; latch.countDown()
+        val location=IntArray(2); var density=1f; var uiAt=0L
+        var nativeEvaluationStart=0L; var nativeArmedUptime=0L
+        val started=SystemClock.elapsedRealtime()
+        preparationLatch=CountDownLatch(1); incomingPreparation=null; preparationReplyAt=0; preparationReplyUptime=0
+        activity.runOnUiThread {
+            uiAt=SystemClock.elapsedRealtime()
+            web.getLocationOnScreen(location); density=web.resources.displayMetrics.density
+            nativeEvaluationStart=SystemClock.uptimeMillis()
+            val budget=5000-(uiAt-started)
+            if(budget<=0) {
+                incomingPreparation=JSONObject().put("error","Native UI readiness queue exceeded five seconds")
+                preparationReplyAt=SystemClock.elapsedRealtime(); preparationLatch.countDown()
+            } else {
+                val request=JSONObject().put("kind","prepare").put("step",step).put("label",label).put("section",section)
+                    .put("token",inputToken).put("documentId",inputDocument).put("sourceHash",inputSource).put("budgetMs",budget)
+                try {requireNotNull(inputPort).postMessage(android.webkit.WebMessage(request.toString()))}
+                catch (failure:Exception) {
+                    incomingPreparation=JSONObject().put("error","Preparation port unavailable: "+failure.javaClass.simpleName)
+                    preparationReplyAt=SystemClock.elapsedRealtime(); preparationLatch.countDown()
                 }
             }
-            // Preserve raw()'s existing per-evaluation deadline; the five-second
-            // target retry guard is not a replacement for the RPC deadline.
-            check(latch.await(20,TimeUnit.SECONDS)) {"Touch preparation evaluation timed out"}
-            webEvaluationMs+=SystemClock.elapsedRealtime()-started
-            prepared=JSONObject(result)
-            check(!prepared.has("error")) {prepared.optString("error")}
-            if(prepared.optBoolean("ready")) {
-                check(prepared.getString("documentId")==inputDocument) {"Wrong renderer document"}
-                check(prepared.getDouble("pageScale")==1.0 && prepared.getDouble("viewportX")==0.0 && prepared.getDouble("viewportY")==0.0) {"Unverified zoom conversion"}
-                prepared.put("originX",location[0]).put("originY",location[1]).put("density",density)
-                    .put("nativeEvaluationStart",nativeEvaluationStart).put("nativeArmedUptime",nativeArmedUptime)
-                    .put("evaluations",webEvaluations-before).put("uiQueueMs",uiAt-started)
-                    .put("evaluationCallbackMs",SystemClock.elapsedRealtime()-uiAt)
-                    .put("screenX",location[0]+prepared.getDouble("x")*density)
-                    .put("screenY",location[1]+prepared.getDouble("y")*density)
-                true
-            } else false
         }
+        check(preparationLatch.await(5,TimeUnit.SECONDS)) {"Stable unobscured touch target readiness timed out"}
+        nativeArmedUptime=preparationReplyUptime
+        val prepared=requireNotNull(incomingPreparation)
+        check(!prepared.has("error")) {prepared.optString("error")}
+        check(prepared.optBoolean("ready") && prepared.getString("kind")=="prepared") {"Missing prepared target"}
+        check(prepared.getString("documentId")==inputDocument && prepared.getString("sourceHash")==inputSource &&
+            prepared.getInt("step")==step && prepared.getString("label")==label && prepared.getString("section")==section) {"Wrong prepared target identity"}
+        check(prepared.getInt("stableFrames")==2) {"Touch target has not crossed two stable rendering frames"}
+        check(prepared.getDouble("pageScale")==1.0 && prepared.getDouble("viewportX")==0.0 && prepared.getDouble("viewportY")==0.0) {"Unverified zoom conversion"}
+        check(preparationReplyAt-started<=5000) {"Stable target readiness exceeded five seconds"}
+        prepared.put("originX",location[0]).put("originY",location[1]).put("density",density)
+            .put("nativeEvaluationStart",nativeEvaluationStart).put("nativeArmedUptime",nativeArmedUptime)
+            .put("evaluations",0).put("uiQueueMs",uiAt-started)
+            .put("evaluationCallbackMs",preparationReplyAt-uiAt).put("transport","bound-message-port")
+            .put("screenX",location[0]+prepared.getDouble("x")*density)
+            .put("screenY",location[1]+prepared.getDouble("y")*density)
         return prepared
     }
     private fun assertPersisted() {
@@ -433,17 +805,156 @@ class NativeTabletInstrumentation : Instrumentation() {
     }
     private fun seedDocument(name:String,text:String) {documentControl(name,text)}
     private fun selectProvider() {
-        if(nodes().none {it.text?.toString()=="Tablet Beta Test Documents"}) {
-            val menu=nodes().firstOrNull {it.contentDescription?.toString() in listOf("Show roots","Open navigation drawer","Show navigation drawer")}
-            if(menu!=null) menu.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        val label="Tablet Beta Test Documents"
+        fun documentsNode(node:AccessibilityNodeInfo)=node.isVisibleToUser && node.packageName?.toString() in setOf("com.android.documentsui","com.google.android.documentsui")
+        fun rootRowTarget(node:AccessibilityNodeInfo):AccessibilityNodeInfo? {
+            var cursor:AccessibilityNodeInfo?=node; var clickable:AccessibilityNodeInfo?=null
+            while(cursor!=null) {
+                if(clickable==null && cursor.isClickable && cursor.isEnabled && cursor.isVisibleToUser) clickable=cursor
+                if(cursor.viewIdResourceName?.endsWith(":id/roots_list")==true) return clickable
+                cursor=cursor.parent
+            }
+            return null
         }
-        clickNode("Tablet Beta Test Documents")
+        var drawerRequested=false; var rootRequested=false
+        waitFor("selected synthetic DocumentsUI provider root",15) {
+            val snapshot=nodes().filter(::documentsNode)
+            val target=snapshot.asSequence().filter {it.text?.toString()==label}.mapNotNull(::rootRowTarget).firstOrNull()
+            val state=NativeDocumentProviderState(
+                snapshot.any {it.text?.toString()==label && it.viewIdResourceName?.endsWith(":id/breadcrumb_text")==true},
+                snapshot.any {it.viewIdResourceName?.endsWith(":id/roots_list")==true},target!=null)
+            when(state.action()) {
+                NativeDocumentProviderState.Action.ALREADY_SELECTED -> true
+                NativeDocumentProviderState.Action.SELECT_ROOT -> {
+                    if(!rootRequested) {
+                        check(target!!.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {"Cannot select synthetic provider root row"}
+                        rootRequested=true
+                    }
+                    false
+                }
+                NativeDocumentProviderState.Action.OPEN_ROOTS -> {
+                    if(!drawerRequested && !rootRequested) {
+                        val menu=snapshot.firstOrNull {it.isClickable && it.isEnabled && it.contentDescription?.toString() in listOf("Show roots","Open navigation drawer","Show navigation drawer")}
+                        if(menu!=null) {
+                            check(menu.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {"Cannot open DocumentsUI roots drawer"}
+                            drawerRequested=true
+                        }
+                    }
+                    false
+                }
+                NativeDocumentProviderState.Action.WAIT_FOR_ROOT -> false
+            }
+        }
+    }
+    private fun confirmDocumentDestination(name:String) {
+        var control:AccessibilityNodeInfo?=null
+        waitFor("owned DocumentsUI destination Save control",15) {
+            val snapshot=nodes().filter {it.isVisibleToUser && it.packageName?.toString() in setOf("com.android.documentsui","com.google.android.documentsui")}
+            val expectedRoot=snapshot.any {it.viewIdResourceName?.endsWith(":id/breadcrumb_text")==true && it.text?.toString()=="Tablet Beta Test Documents"}
+            val expectedName=snapshot.any {it.className?.toString()=="android.widget.EditText" && it.viewIdResourceName=="android:id/title" && it.text?.toString()==name}
+            control=if(expectedRoot && expectedName) snapshot.filter {
+                NativeDocumentProviderControls.isSaveButton(it.packageName?.toString(),it.viewIdResourceName,it.className?.toString(),it.isVisibleToUser,it.isEnabled,it.isClickable)
+            }.singleOrNull() else null
+            control!=null
+        }
+        check(control!!.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {"Cannot confirm owned DocumentsUI destination"}
     }
     private fun importFile(name:String) {
         raw("Tablet.action('tablet_import')")
         waitFor("Android DocumentsUI") {nodes().any {it.packageName?.toString()?.contains("documentsui")==true}}
         selectProvider(); clickNode(name)
         waitFor("native restore confirmation") {nodes().any {it.text?.toString()?.contains("current data will be backed up")==true}}
+    }
+    private fun calendarComparable(value:Any?):Any? = when(value) {
+        null,JSONObject.NULL -> null
+        is JSONObject -> value.keys().asSequence().toList().sorted().associateWith {calendarComparable(value.get(it))}
+        is JSONArray -> (0 until value.length()).map {calendarComparable(value.get(it))}
+        is Number -> value.toDouble()
+        else -> value
+    }
+    private fun openCalendarPicker() {
+        raw("Tablet.action('tablet_import','ics')")
+        waitFor("calendar ACTION_OPEN_DOCUMENT") {nodes().any {it.packageName?.toString()?.contains("documentsui")==true}}
+    }
+    private fun calendarFiles() {
+        val started=SystemClock.elapsedRealtime()
+        launch(); saved()
+        val beforeCancel=data()
+        val beforeCancelSaved=vault().read()!!.getJSONObject("data")
+        check(calendarComparable(beforeCancelSaved)==calendarComparable(SavedBookEpochExpectation.nativeBook(beforeCancel,beforeCancelSaved))) {"Initial calendar book differs from the saved book beyond empty epoch placeholders"}
+        openCalendarPicker()
+        sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        waitFor("calendar picker cancellation ACK") {value("document.querySelector('#tablet-status').textContent.includes('Cancel')")=="true"}
+        saved()
+        check(calendarComparable(data())==calendarComparable(beforeCancel)) {"Cancelled calendar picker changed the book"}
+        check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeCancelSaved)) {"Cancelled calendar picker changed native saved data"}
+        pass("calendar SAF cancellation leaves the entire canonical and saved book unchanged")
+
+        val fixture=NativeCalendarFileFixture(java.util.UUID.randomUUID().toString().take(8))
+        val eventUid=fixture.eventUid;val taskUid=fixture.taskUid;val anniversaryUid=fixture.anniversaryUid
+        val source=fixture.source;val hash=fixture.sourceSHA256
+        seedDocument(fixture.fileName,source)
+        // Use the existing canonical graph normalizer on an isolated value to
+        // calculate its stable UID. Never duplicate the hash algorithm or seed DATEN.
+        val prepared=JSONObject(js("const graph=[{id:"+JSONObject.quote(fixture.sourceId+"\u0000"+taskUid)+",uid:''}];OrganizerTest.normalisiereAufgabenGraph(graph);return {book:OrganizerTest.daten(),taskUid:graph[0].uid};"))
+        val beforeImport=prepared.getJSONObject("book");val internalTaskUid=prepared.getString("taskUid")
+        check(internalTaskUid!=taskUid && internalTaskUid.startsWith("mag-task-"))
+        openCalendarPicker(); selectProvider(); clickNode(fixture.fileName)
+        var mergeObservation=JSONObject()
+        try {
+            waitFor("canonical calendar merge and source metadata") {
+                mergeObservation=JSONObject(value("(()=>{const d=OrganizerTest.daten(),task=d.aufgaben.find(x=>x.icsImportUid==='$taskUid');return {complete:d.termine.some(x=>x.uid==='$eventUid')&&!!task&&task.uid==='$internalTaskUid'&&task.icsQuelleId==='${fixture.sourceId}'&&d.jahrestage.some(x=>x.uid==='$anniversaryUid')&&!!d.icsImportSources?.['$hash'],counts:{termine:d.termine.length,aufgaben:d.aufgaben.length,jahrestage:d.jahrestage.length},task:task?{uid:task.uid,icsImportUid:task.icsImportUid,icsQuelleId:task.icsQuelleId}:null,sourceMetadata:!!d.icsImportSources?.['$hash'],status:document.querySelector('#tablet-status').textContent};})()"))
+                check(!mergeObservation.getString("status").contains("Import failed.")) {"Calendar import reported rejection"}
+                mergeObservation.getBoolean("complete")
+            }
+        } finally {File(out,"calendar-merge-observation.json").writeText(mergeObservation.toString(2))}
+        saved()
+        val merged=data(); val native=vault().read()!!.getJSONObject("data")
+        check(calendarComparable(native)==calendarComparable(SavedBookEpochExpectation.nativeBook(merged,native))) {"Calendar records and source metadata did not reach the same native saved book beyond empty epoch placeholders"}
+        for(group in listOf("termine","aufgaben","jahrestage")) check(merged.getJSONArray(group).length()==beforeImport.getJSONArray(group).length()+1) {"Canonical calendar merge did not add exactly one item per collection"}
+        for(group in listOf("notizen","kontakte")) check(calendarComparable(merged.getJSONArray(group))==calendarComparable(beforeImport.getJSONArray(group))) {"Calendar merge changed an unrelated collection"}
+        val importedTask=(0 until native.getJSONArray("aufgaben").length()).map {native.getJSONArray("aufgaben").getJSONObject(it)}.single {it.optString("icsImportUid")==taskUid}
+        check(importedTask.getString("uid")==internalTaskUid && importedTask.getString("icsQuelleId")==fixture.sourceId) {"Imported task lost its canonical internal identity or external source binding"}
+        check(importedTask.getString("titel")=="Synthetic calendar files task" && importedTask.getString("faellig")=="2030-04-06" &&
+            importedTask.getString("faelligZeit").isEmpty() && importedTask.getInt("prio")==1 && !importedTask.getBoolean("erledigt")) {"Imported task fields changed"}
+        val metadata=native.getJSONObject("icsImportSources").getJSONObject(hash)
+        check(metadata.getString("sourceSHA256")==hash && metadata.getInt("version")==1)
+        check((0 until metadata.getJSONArray("calendarProperties").length()).any {metadata.getJSONArray("calendarProperties").getString(it)=="X-NATIVE-CALENDAR-HEADER:preserve"})
+        val appointment=(0 until native.getJSONArray("termine").length()).map {native.getJSONArray("termine").getJSONObject(it)}.single {it.getString("uid")==eventUid}
+        val sourceProperties=(0 until appointment.getJSONArray("icsRoundtrip").length()).map {appointment.getJSONArray("icsRoundtrip").getString(it)}
+        check(sourceProperties.containsAll(listOf("RRULE:FREQ=DAILY;COUNT=3","RDATE:20300405T100000Z","EXDATE:20300402T100000Z","BEGIN:VALARM","TRIGGER:-PT15M","X-NATIVE-CALENDAR-OPAQUE;X-PARAM=alpha:keep"))) {"Calendar merge lost authoritative source properties"}
+        pass("real ICS ACTION_OPEN_DOCUMENT merges three collections and source SHA in one native saved book",JSONObject().put("collections",3).put("addedRecords",3).put("retainedAlarm",true))
+
+        val beforeInvalid=data()
+        val invalid=source.replace("UID:","UID:invalid-").replace("DTSTART;VALUE=DATE:19800229","DTSTART;VALUE=DATE:19800230")
+        seedDocument("native-calendar-invalid.ics",invalid)
+        openCalendarPicker(); selectProvider(); clickNode("native-calendar-invalid.ics")
+        waitFor("atomic invalid calendar rejection") {value("document.querySelector('#tablet-status').textContent.includes('Import failed.')")=="true"}
+        saved()
+        check(calendarComparable(data())==calendarComparable(beforeInvalid) && calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeInvalid)) {"Invalid later ICS component changed the book"}
+        pass("invalid later ICS component is rejected atomically through the real file picker")
+
+        documentControl("native-calendar-export.ics",delete=true)
+        raw("Tablet.exportCalendar('ics-termine')")
+        waitFor("calendar ACTION_CREATE_DOCUMENT without password") {
+            check(nodes().none {it.isVisibleToUser && it.isPassword && it.packageName?.toString()==targetContext.packageName}) {"ICS export unexpectedly requested a password"}
+            check(value("document.querySelector('#tablet-status').textContent.includes('Export failed.')")!="true") {"ICS export failed before opening its native destination picker"}
+            nodes().any {it.packageName?.toString()?.contains("documentsui")==true}
+        }
+        raw("window.__nativeCalendarExportSaved=false;window.__nativeCalendarExportObserver=new MutationObserver(()=>{if(document.querySelector('#tablet-status').textContent.includes('Saved.'))window.__nativeCalendarExportSaved=true;});window.__nativeCalendarExportObserver.observe(document.querySelector('#tablet-status'),{childList:true,subtree:true,characterData:true});")
+        selectProvider(); setNativeText("native-calendar-export.ics")
+        check(value("window.__nativeCalendarExportSaved")=="false") {"ICS export acknowledged success before destination selection"}
+        confirmDocumentDestination("native-calendar-export.ics")
+        waitFor("native calendar export completion ACK") {value("window.__nativeCalendarExportSaved")=="true"}
+        raw("window.__nativeCalendarExportObserver.disconnect()")
+        val bytes=documentControl("native-calendar-export.ics")
+        val exported=ICalendarImport.decode(bytes,"UTC").appointments.single {it.getString("uid")==eventUid}
+        val exportedRaw=(0 until exported.getJSONArray("icsRoundtrip").length()).map {exported.getJSONArray("icsRoundtrip").getString(it)}
+        check(exportedRaw.containsAll(listOf("RRULE:FREQ=DAILY;COUNT=3","BEGIN:VALARM","TRIGGER:-PT15M","X-NATIVE-CALENDAR-OPAQUE;X-PARAM=alpha:keep"))) {"Real calendar export lost source recurrence/alarm metadata"}
+        check(bytes.toString(Charsets.UTF_8).startsWith("BEGIN:VCALENDAR\r\n"))
+        check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(beforeInvalid)) {"Calendar export changed the saved book"}
+        check(SystemClock.elapsedRealtime()-started<120000) {"Calendar file stage exceeded its existing 120-second budget"}
+        pass("real ICS ACTION_CREATE_DOCUMENT bytes parse after native completion without a password",JSONObject().put("exportedBytes",bytes.size).put("rawRecurrence",true).put("rawAlarm",true).put("elapsedMs",SystemClock.elapsedRealtime()-started))
     }
     private fun saf() {
         launch(); saved(); val original=data()
@@ -470,7 +981,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         launch(); saved()
         val key=KeyStore.getInstance("AndroidKeyStore").apply {load(null)}.getKey("magnolie-organizer-tablet-beta-vault-v1",null) as SecretKey
         val armed=java.util.concurrent.atomic.AtomicBoolean(false)
-        val faultVault=Vault(targetContext.noBackupFilesDir,{key},{if(it=="rename" && armed.compareAndSet(true,false)) throw java.io.IOException("INSTRUMENTATION_ONLY_POST_RENAME")})
+        val faultVault=Vault(targetContext.noBackupFilesDir,{key},{if(it=="rename" && armed.compareAndSet(true,false)) throw java.io.IOException("INSTRUMENTATION_ONLY_POST_RENAME")},fileOps=AndroidOsStorageFileOps)
         AndroidStore.io.submit {AndroidStore::class.java.getDeclaredField("instance").apply {isAccessible=true}.set(AndroidStore,faultVault)}.get(10,TimeUnit.SECONDS)
         reloadVerified(); saved()
         val b=data(); b.getJSONArray("notizen").getJSONObject(0).put("titel","Synthetic fault B")
@@ -534,7 +1045,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         if(boxes[1].isChecked) boxes[1].performAction(AccessibilityNodeInfo.ACTION_CLICK)
         clickNode("android:id/button1"); SystemClock.sleep(300)
         val at=((System.currentTimeMillis()/60000)+2)*60000
-        val due=java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneOffset.UTC)
+        val due=org.threeten.bp.Instant.ofEpochMilli(at).atZone(org.threeten.bp.ZoneOffset.UTC)
         val date=due.toLocalDate().toString(); val time=due.toLocalTime().toString().take(5)
         val prefix=(if(reboot) "Reboot-" else "Live-")+SystemClock.elapsedRealtime()
         val created=scenario("NativeScenario.task('$prefix due','$date','$time',0,true)")

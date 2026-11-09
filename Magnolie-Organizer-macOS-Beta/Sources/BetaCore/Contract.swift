@@ -7,11 +7,17 @@ public struct BetaError: LocalizedError {
 }
 
 public enum Command: String, CaseIterable {
+    case baum_briefkasten_status, baum_briefkasten_speichern, baum_briefkasten_pruefen, baum_dav_pruefen
+    case drucken
+    case mail, karte, sozial
+    case notiz_dateien_importieren
+    case handbuch_oeffnen
+    case `import`
     case bereit, entsperren, speichern, kennwort_setzen
     case beenden, beenden_bereit, beenden_abgebrochen
     case ablage_kopieren, ablage_holen, sicherung, export
     case erinnerung_zeigen, erinnerung_einrichten, notiz_anhang_datei
-    case mutations_snapshot, sicherung_waehlen, sicherung_wiederherstellen, regional_einstellungen
+    case mutations_snapshot, sicherung_waehlen, sicherung_wiederherstellen, regional_einstellungen, feiertage, eds_status, macos_systemzugriff
 }
 
 public struct Request {
@@ -28,7 +34,11 @@ public struct Request {
         var optional: Set<String> = []
         switch command {
         case .entsperren: schema["kennwort"] = "string"
-        case .speichern: schema.merge(["id": "integer", "text": "string"]) { _, b in b }
+        case .speichern:
+            // Canonical desktop saves include a null tree-sync context for
+            // ordinary local writes. A real sync context is still unsupported.
+            schema.merge(["id": "integer", "text": "string", "baumSyncLauf": "null"]) { _, b in b }
+            optional = ["baumSyncLauf"]
         case .kennwort_setzen:
             schema.merge(["alt": "string", "neu": "string", "sicherungen": "bool",
                           "sicherungsordner": "string"]) { _, b in b }
@@ -39,7 +49,39 @@ public struct Request {
         case .sicherung_wiederherstellen:
             schema.merge(["pfad": "string", "kennwort": "string", "sicherungsordner": "string"]) { _, b in b }
             optional = ["sicherungsordner"]
+        case .feiertage:
+            schema.merge(["land": "string", "region": "string", "regionen": "array", "jahre": "years",
+                          "ferien": "bool", "regionErforderlich": "bool", "requestId": "string"]) { _, b in b }
+            optional = ["region", "regionen", "ferien", "regionErforderlich", "requestId"]
+        case .baum_briefkasten_status:
+            schema["requestId"] = "string"; optional = ["requestId"]
+        case .baum_briefkasten_speichern:
+            schema.merge(["kontoArt": "string", "davAktiv": "bool", "briefkastenAktiv": "bool",
+                          "url": "string", "benutzer": "string", "anwendungskennwort": "string",
+                          "kennwortLoeschen": "bool", "expectedRevision": "string", "requestId": "string"]) { _, b in b }
+            optional = ["requestId"]
+        case .baum_dav_pruefen:
+            schema.merge(["expectedRevision": "string", "requestId": "string"]) { _, b in b }
+        case .baum_briefkasten_pruefen:
+            schema.merge(["expectedRevision": "string", "requestId": "string"]) { _, b in b }
+            optional = ["requestId"]
+        case .eds_status:
+            schema["requestId"] = "string"; optional = ["requestId"]
+        case .macos_systemzugriff:
+            schema.merge(["art": "string", "requestId": "string"]) { _, b in b }
         case .regional_einstellungen: schema["regional"] = "object"
+        case .mail:
+            schema.merge(["email": "string", "name": "string"]) { _, b in b }
+        case .karte:
+            schema.merge(["kontakt": "object", "land": "string", "dienst": "string", "route": "bool", "absender": "string"]) { _, b in b }
+            optional = ["dienst", "route", "absender"]
+        case .sozial:
+            schema.merge(["dienst": "string", "wert": "string", "aktionArt": "string", "aktionZiel": "string", "land": "string", "nummer": "string"]) { _, b in b }
+            optional = ["aktionArt", "aktionZiel", "land", "nummer"]
+        case .drucken:
+            schema.merge(["html": "string", "requestId": "string"]) { _, b in b }
+            optional = ["requestId"]
+        case .import: schema["art"] = "string"
         case .export: schema.merge(["art": "string", "daten": "array"]) { _, b in b }
         case .erinnerung_zeigen:
             for key in ["kopf", "rumpf", "art", "stil"] { schema[key] = "string" }
@@ -64,12 +106,29 @@ public struct Request {
             case "string": valid = value is String
             case "array": valid = value is [Any]
             case "object": valid = value is [String: Any]
+            case "null": valid = value is NSNull
             case "bool": valid = boolean
             case "integer": valid = integer
+            case "years":
+                if let years = value as? [NSNumber], !years.isEmpty, years.count <= 3 {
+                    valid = years.allSatisfy { CFGetTypeID($0) != CFBooleanGetTypeID() &&
+                        $0.doubleValue.rounded() == $0.doubleValue && (1...9999).contains($0.intValue) }
+                } else { valid = false }
             case "minutes": valid = value is String || integer
             default: valid = false
             }
             guard valid else { throw BetaError("Invalid bridge field type.") }
+        }
+        if let id = fields["requestId"] as? String {
+            guard !id.isEmpty, id.utf8.count <= 1024 else { throw BetaError("Invalid request identifier.") }
+        }
+        if command == .macos_systemzugriff {
+            guard SystemSourcePolicy.Kind(rawValue: fields["art"] as? String ?? "") != nil else { throw BetaError("Invalid macOS source kind.") }
+        }
+        if let revision = fields["expectedRevision"] as? String {
+            guard revision.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
+                throw BetaError("Invalid account revision.")
+            }
         }
         if command == .speichern, ((fields["id"] as? NSNumber)?.int64Value ?? 0) < 1 {
             throw BetaError("Invalid save identifier.")

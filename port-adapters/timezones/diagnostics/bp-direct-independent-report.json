@@ -1,0 +1,413 @@
+{
+  "zones": 592,
+  "checks": 269477,
+  "historicalTransitions": 40521,
+  "futureTransitions": 24000,
+  "independentPOSIXModels": 93,
+  "provider": "Global-TZ2026egtz-rearguard/zic/CPythonZoneInfo",
+  "comparedEngine": "actual BP1.7.5",
+  "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+  "mismatches": 1340,
+  "mismatchZones": {
+    "Asia/Gaza": 1270,
+    "Asia/Hebron": 70
+  },
+  "samples": [
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        13570720200000,
+        7200,
+        [
+          2400,
+          1,
+          15,
+          14,
+          30,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP wall candidates=[13570709400000], normative=[13570713000000]",
+      "sample": [
+        "w",
+        "Asia/Gaza",
+        [
+          2400,
+          1,
+          15,
+          12,
+          30,
+          0,
+          0
+        ],
+        [
+          13570713000000
+        ],
+        null
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        253372019400000,
+        7200,
+        [
+          9999,
+          1,
+          15,
+          14,
+          30,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP wall candidates=[253372008600000], normative=[253372012200000]",
+      "sample": [
+        "w",
+        "Asia/Gaza",
+        [
+          9999,
+          1,
+          15,
+          12,
+          30,
+          0,
+          0
+        ],
+        [
+          253372012200000
+        ],
+        null
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=7200, normative=10800",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3289075200000,
+        10800,
+        [
+          2074,
+          3,
+          24,
+          3,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=7200, normative=10800",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3289075200001,
+        10800,
+        [
+          2074,
+          3,
+          24,
+          3,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP wall candidates=[3289077000000], normative=[]",
+      "sample": [
+        "w",
+        "Asia/Gaza",
+        [
+          2074,
+          3,
+          24,
+          2,
+          30,
+          0,
+          0
+        ],
+        [],
+        3289077000000
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=7200, normative=10800",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3301772399999,
+        10800,
+        [
+          2074,
+          8,
+          18,
+          1,
+          59,
+          59,
+          999
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP wall candidates=[3301774200000], normative=[3301770600000,3301774200000]",
+      "sample": [
+        "w",
+        "Asia/Gaza",
+        [
+          2074,
+          8,
+          18,
+          1,
+          30,
+          0,
+          0
+        ],
+        [
+          3301770600000,
+          3301774200000
+        ],
+        null
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3307820400000,
+        7200,
+        [
+          2074,
+          10,
+          27,
+          1,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3307820400001,
+        7200,
+        [
+          2074,
+          10,
+          27,
+          1,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP wall candidates=[3307818600000], normative=[3307818600000,3307822200000]",
+      "sample": [
+        "w",
+        "Asia/Gaza",
+        [
+          2074,
+          10,
+          27,
+          1,
+          30,
+          0,
+          0
+        ],
+        [
+          3307818600000,
+          3307822200000
+        ],
+        null
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3321129599999,
+        7200,
+        [
+          2075,
+          3,
+          30,
+          1,
+          59,
+          59,
+          999
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP wall candidates=[3321127800000], normative=[]",
+      "sample": [
+        "w",
+        "Asia/Gaza",
+        [
+          2075,
+          3,
+          30,
+          2,
+          30,
+          0,
+          0
+        ],
+        [],
+        3321131400000
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3339270000000,
+        7200,
+        [
+          2075,
+          10,
+          26,
+          1,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3339270000001,
+        7200,
+        [
+          2075,
+          10,
+          26,
+          1,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP wall candidates=[3339268200000], normative=[3339268200000,3339271800000]",
+      "sample": [
+        "w",
+        "Asia/Gaza",
+        [
+          2075,
+          10,
+          26,
+          1,
+          30,
+          0,
+          0
+        ],
+        [
+          3339268200000,
+          3339271800000
+        ],
+        null
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3352579199999,
+        7200,
+        [
+          2076,
+          3,
+          28,
+          1,
+          59,
+          59,
+          999
+        ]
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP wall candidates=[3352577400000], normative=[]",
+      "sample": [
+        "w",
+        "Asia/Gaza",
+        [
+          2076,
+          3,
+          28,
+          2,
+          30,
+          0,
+          0
+        ],
+        [],
+        3352581000000
+      ]
+    },
+    {
+      "identifier": "Asia/Gaza",
+      "error": "java.lang.IllegalArgumentException: BP offset=10800, normative=7200",
+      "sample": [
+        "o",
+        "Asia/Gaza",
+        3370719600000,
+        7200,
+        [
+          2076,
+          10,
+          24,
+          1,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "bpArtifactSHA256": "58c5593452f871ebf736dfda3bf8f3bc0de4e92cec61bc19c8ad81f9dfb70d72",
+  "bpTZDBSHA256": "e28750a597bca9fe12fc927d6e8dd71cc71e9195a90e2bc7490265ffa10f1b12",
+  "status": "FAIL: direct provider calls, no JS payload interpretation"
+}

@@ -1,3 +1,6 @@
+import java.security.MessageDigest
+import java.util.zip.ZipFile
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -9,6 +12,54 @@ val projection = tasks.register<Exec>("projectDesktop") {
     // Always reread the live canonical source, including concurrent UI corrections.
     outputs.upToDateWhen { false }
 }
+// Verify the resolved dependency, not merely the version string in this script.
+// This intentionally targets the new TZDB backport only; it does not weaken any
+// repository-wide dependency verification or accept replacement providers.
+val verifyThreeTenRuntime = tasks.register("verifyThreeTenRuntime") {
+    doLast {
+        val candidates = configurations.getByName("debugRuntimeClasspath").resolvedConfiguration.resolvedArtifacts
+            .filter { it.moduleVersion.id.group == "org.threeten" && it.moduleVersion.id.name == "threetenbp" }
+        check(candidates.size == 1) { "Exactly one verified ThreeTenBP runtime artifact is required" }
+        val artifact = candidates.single()
+        check(artifact.moduleVersion.id.version == "1.7.5" && artifact.file.extension == "jar") {
+            "Unexpected ThreeTenBP version or runtime artifact type"
+        }
+        fun sha256(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+        check(sha256(artifact.file.readBytes()) == "58c5593452f871ebf736dfda3bf8f3bc0de4e92cec61bc19c8ad81f9dfb70d72") {
+            "Resolved ThreeTenBP runtime JAR does not match the verified published artifact"
+        }
+        ZipFile(artifact.file).use { archive ->
+            val entry = archive.getEntry("org/threeten/bp/TZDB.dat") ?: error("ThreeTenBP runtime has no complete TZDB resource")
+            check(sha256(archive.getInputStream(entry).use { it.readBytes() }) == "e28750a597bca9fe12fc927d6e8dd71cc71e9195a90e2bc7490265ffa10f1b12") {
+                "ThreeTenBP TZDB resource does not match the verified full database"
+            }
+        }
+    }
+}
+
+// One authoritative shared resource, verified before packaging and compilation.
+val normativeTimezoneResources = layout.buildDirectory.dir("generated/normative-timezones/resources")
+val prepareNormativeTimezones = tasks.register("prepareNormativeTimezones") {
+    val payload = rootProject.file("../port-adapters/timezones/tzdb-2026egtz.json")
+    val license = rootProject.file("../port-adapters/timezones/LICENSE-tzdb.txt")
+    inputs.files(payload,license)
+    outputs.dir(normativeTimezoneResources)
+    outputs.upToDateWhen { false }
+    doLast {
+        val bytes=payload.readBytes()
+        val hash=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
+        check(hash=="2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c") {
+            "Normative timezone resource does not match the approved shared payload"
+        }
+        val destination=normativeTimezoneResources.get().dir("normative-timezones").asFile
+        check(!destination.exists() || destination.deleteRecursively()) { "Cannot clear generated timezone resources" }
+        check(destination.mkdirs()) { "Cannot prepare generated timezone resources" }
+        File(destination,"tzdb-2026egtz.json").writeBytes(bytes)
+        license.copyTo(File(destination,"LICENSE-tzdb.txt"),overwrite=true)
+    }
+}
+
 val betaDebugKey = rootProject.file(".debug-signing/beta-debug.keystore")
 val createBetaDebugKey = tasks.register<Exec>("createBetaDebugKey") {
     onlyIf { !betaDebugKey.exists() }
@@ -26,8 +77,8 @@ android {
         applicationId = "io.gitlab.maik3531.magnolieorganizer.tablet.beta"
         minSdk = 26
         targetSdk = 35
-        versionCode = 20018
-        versionName = "2.0.18Beta"
+        versionCode = 20030
+        versionName = "2.0.30Beta"
         testInstrumentationRunner = "io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation"
     }
     compileOptions {
@@ -36,8 +87,10 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     signingConfigs.getByName("debug").storeFile = betaDebugKey
+    sourceSets["androidTest"].assets.srcDir(rootProject.file("../port-adapters/tests"))
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/projection/assets"))
     sourceSets["main"].res.srcDir(layout.buildDirectory.dir("generated/projection/res"))
+    sourceSets["main"].resources.srcDir(normativeTimezoneResources)
     testOptions { unitTests.isReturnDefaultValues = false }
 }
 kotlin {
@@ -52,10 +105,11 @@ kotlin {
             "io/gitlab/maik3531/magnolienotes/daten/DateiDauerhaft.kt")
     }
 }
-tasks.named("preBuild") { dependsOn(projection) }
+tasks.named("preBuild") { dependsOn(projection, verifyThreeTenRuntime, prepareNormativeTimezones) }
 tasks.matching { it.name == "validateSigningDebug" }.configureEach { dependsOn(createBetaDebugKey) }
 tasks.configureEach {
-    if (name.contains("Release")) doFirst { error("Tablet Beta is debug-only; production builds are not authorized.") }
+    if (name.startsWith("compile") || name.startsWith("test") || name.endsWith("JavaRes")) dependsOn(verifyThreeTenRuntime,prepareNormativeTimezones)
+    if (name.contains("Release")) doFirst { error("Development gate supports debug only; production workflow required.") }
 }
 tasks.withType<Test>().configureEach {
     systemProperty("tablet.root", rootDir.absolutePath)
@@ -66,7 +120,12 @@ tasks.withType<Test>().configureEach {
     testLogging { events("passed", "failed", "skipped") }
 }
 dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
     implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.core:core:1.13.1")
+    implementation("org.threeten:threetenbp:1.7.5")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }

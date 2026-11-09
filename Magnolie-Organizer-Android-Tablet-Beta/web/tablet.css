@@ -26,12 +26,12 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   #schreibtisch { overflow-y: auto; display: block; padding: 12px 132px; }
   #buch { min-height: 1300px; height: auto; }
   #seiten { position: relative; inset: auto; margin: 10px; display: flex; flex-direction: column; gap: 10px; }
-  #seiten > .seite { flex: none; min-height: 600px; height: 72dvh; padding: 14px 18px 48px; }
+  #seiten > .seite { flex: none; min-height: 600px; height: 72vh; height: 72dvh; padding: 14px 18px 48px; }
   #seiten > .steg { display: none; }
   .loecher { display: none; }
   #deckel { min-height: 620px; }
   #statusleiste, .status-rechts { display: flex; flex-wrap: wrap; justify-content: center; }
-  #einstellungen-blatt, [role=dialog] { max-width: 96vw; max-height: 90dvh; overflow: auto; }
+  #einstellungen-blatt, [role=dialog] { max-width: 96vw; max-height: 90vh; max-height: 90dvh; overflow: auto; }
   .kontakt-form-inhalt { overflow: auto; }
 }
 @media (max-width: 520px) {

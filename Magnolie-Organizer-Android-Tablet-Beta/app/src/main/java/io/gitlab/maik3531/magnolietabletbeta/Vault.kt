@@ -1,22 +1,15 @@
 package io.gitlab.maik3531.magnolietabletbeta
 
 import io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto
-import io.gitlab.maik3531.magnolienotes.daten.synchronisiereOrdner
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.security.SecureRandom
-import java.util.Base64
 import java.util.UUID
 import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 internal const val MAX_BYTES = 32 * 1024 * 1024
@@ -53,7 +46,7 @@ internal fun decodeUtf8(bytes: ByteArray): String = Charsets.UTF_8.newDecoder()
     .decode(ByteBuffer.wrap(bytes)).toString()
 
 internal fun validateData(data: JSONObject) {
-    require(data.toString().toByteArray(Charsets.UTF_8).size <= 16 * 1024 * 1024)
+    VaultJson.encode(data,16 * 1024 * 1024)
     require(data.getInt("version") == 6)
     for (key in listOf("termine", "aufgaben", "kontakte", "notizen")) {
         val array = data.getJSONArray(key)
@@ -67,9 +60,12 @@ internal data class DocumentSession(val id: String, val revision: String)
 internal data class LoadedDocument(val session: DocumentSession, val value: JSONObject?)
 internal class CommitFailure(val outcome: String, cause: Exception) : Exception(outcome, cause)
 
-internal class Vault(private val directory: File, key: () -> SecretKey,
+internal class Vault(directory: File, key: () -> SecretKey,
     private val checkpoint: (String) -> Unit = {},
-    private val syncDirectory: (File) -> Unit = ::synchronisiereOrdner) {
+    syncDirectory: ((File) -> Unit)? = null,
+    private val fileOps: StorageFileOps = NioStorageFileOps) {
+    private val directory = fileOps.ensurePrivateDirectory(directory)
+    private val syncDirectory = syncDirectory ?: fileOps::syncDirectory
     private val crypto = DatenDateiKrypto(key)
     private val file = File(directory, "tablet-vault.enc")
     private var currentSession: DocumentSession? = null
@@ -109,17 +105,25 @@ internal class Vault(private val directory: File, key: () -> SecretKey,
         check(read()?.getString("revision")?.let { it == session.revision } ?: newDocument) { "Stale document revision" }
     }
 
+    private data class Snapshot(val value: JSONObject, val plaintext: ByteArray)
     @Synchronized fun read(): JSONObject? {
-        if (!file.exists()) {
-            check(!File(directory, "tablet-vault.enc.pending").exists() &&
-                !File(directory, "before-import.enc").exists()) { "Incomplete vault; recovery required" }
+        val snapshot=readSnapshot() ?: return null
+        return snapshot.value.also {snapshot.plaintext.fill(0)}
+    }
+    private fun readSnapshot(): Snapshot? {
+        val encrypted = fileOps.read(file, MAX_BYTES + 1024)
+        if (encrypted == null) {
+            check(fileOps.stat(File(directory, "tablet-vault.enc.pending")) == null &&
+                fileOps.stat(File(directory, "before-import.enc")) == null) { "Incomplete vault; recovery required" }
             return null
         }
-        require(file.length() in 1..(MAX_BYTES + 1024).toLong())
-        val value = parseObject(decodeUtf8(crypto.entschluesseln(file.readBytes(), file.name)))
-        require(value.getInt("format") == 1)
-        validateData(value.getJSONObject("data"))
-        return value
+        val plaintext=crypto.entschluesseln(encrypted,file.name)
+        try {
+            val value=parseObject(decodeUtf8(plaintext))
+            require(value.getInt("format")==1)
+            validateData(value.getJSONObject("data"))
+            return Snapshot(value,plaintext)
+        } catch(error:Exception) {plaintext.fill(0);throw error}
     }
 
     @Synchronized fun write(value: JSONObject) {
@@ -132,23 +136,23 @@ internal class Vault(private val directory: File, key: () -> SecretKey,
     private fun commit(value: JSONObject) {
         require(value.getInt("format") == 1)
         validateData(value.getJSONObject("data"))
-        val text = value.toString().toByteArray(Charsets.UTF_8)
+        val text = VaultJson.encode(value,MAX_BYTES).toByteArray(Charsets.UTF_8)
         require(text.size <= MAX_BYTES)
         val encrypted = crypto.verschluesseln(text, file.name)
         val pending = File(directory, file.name + ".pending")
         var attempted = false
         var durable = false
         try {
-            FileOutputStream(pending).use { it.write(encrypted); it.fd.sync() }
+            fileOps.writeAndSync(pending, encrypted, MAX_BYTES + 1024)
             checkpoint("file-sync")
             attempted = true
-            Files.move(pending.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            fileOps.atomicReplace(pending, file)
             checkpoint("rename")
             syncDirectory(directory)
             durable = true
             checkpoint("directory-sync")
             checkpoint("commit-readback")
-            check(file.readBytes().contentEquals(encrypted)) { "Committed bytes differ on readback" }
+            check(fileOps.read(file, MAX_BYTES + 1024)?.contentEquals(encrypted) == true) { "Committed bytes differ on readback" }
             read() ?: error("Committed vault missing")
         } catch (error: Exception) {
             if (attempted) { poisoned = true; activated = false; currentSession = null; pendingImport = null }
@@ -158,7 +162,10 @@ internal class Vault(private val directory: File, key: () -> SecretKey,
 
     @Synchronized fun save(session: DocumentSession, text: String, alarms: JSONArray): JSONObject {
         requireSession(session)
-        val data = parseObject(text)
+        val current=read()
+        check(current?.getString("revision")?.let {it==session.revision} ?: newDocument) {"Stale document revision"}
+        val loaded=current?.getJSONObject("data")?.let {VaultJson.encode(it,16 * 1024 * 1024)}
+        val data = parseObject(OrdinarySaveEpochPolicy(loaded).prepare(text))
         validateData(data)
         require(alarms.length() <= 100000)
         for (i in 0 until alarms.length()) {
@@ -168,7 +175,7 @@ internal class Vault(private val directory: File, key: () -> SecretKey,
             require(a.getString("title").length <= 300)
             a.getBoolean("custom")
         }
-        val value = read() ?: JSONObject().put("format", 1).put("enabled", false)
+        val value = current ?: JSONObject().put("format", 1).put("enabled", false)
             .put("customEnabled", false).put("delivered", JSONObject())
         value.put("data", data).put("alarms", alarms).put("revision", UUID.randomUUID().toString())
         // Keep delivery receipts only for live alarms; edits/deletions invalidate old schedules.
@@ -206,21 +213,28 @@ internal class Vault(private val directory: File, key: () -> SecretKey,
         check(candidate.session == session && candidate.token == token) { "Stale import authorization" }
         pendingImport = null; currentSession = null; activated = false
         try {
-            val data = parseObject(candidate.text)
-            validateData(data)
-            val before = read() ?: error("Initial state not saved")
-            val backup = File(directory, "before-import.enc")
-            val pending = File(directory, "before-import.pending")
-            val bytes = crypto.verschluesseln(before.toString().toByteArray(), "before-import.enc")
-            FileOutputStream(pending).use { it.write(bytes); it.fd.sync() }
-            Files.move(pending.toPath(), backup.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-            synchronisiereOrdner(directory)
-            checkpoint("backup-sync")
-            val replacement = JSONObject().put("format", 1).put("data", data).put("alarms", JSONArray())
-                .put("enabled", false).put("customEnabled", false).put("delivered", JSONObject())
-                .put("revision", UUID.randomUUID().toString())
-            commit(replacement)
-            return replacement
+            val incoming = parseObject(candidate.text)
+            validateData(incoming)
+            val before = readSnapshot() ?: error("Initial state not saved")
+            try {
+                // The epoch and quarantine are native, once per authenticated selected import.
+                val data=BookRestore.transform(incoming,before.value.getJSONObject("data"),UUID.randomUUID(),System.currentTimeMillis())
+                validateData(data)
+                check(OrdinarySaveEpochPolicy(VaultJson.encode(data,16 * 1024 * 1024)).classification==OrdinarySaveEpochPolicy.Classification.PROTECTED)
+                val replacement = JSONObject().put("format", 1).put("data", data).put("alarms", JSONArray())
+                    .put("enabled", false).put("customEnabled", false).put("delivered", JSONObject())
+                    .put("revision", UUID.randomUUID().toString())
+                VaultJson.encode(replacement,MAX_BYTES) // Reject the full output before changing any recovery file.
+                val backup = File(directory, "before-import.enc")
+                val pending = File(directory, "before-import.pending")
+                val bytes = crypto.verschluesseln(before.plaintext,"before-import.enc")
+                fileOps.writeAndSync(pending, bytes, MAX_BYTES + 1024)
+                fileOps.atomicReplace(pending, backup)
+                syncDirectory(directory)
+                checkpoint("backup-sync")
+                commit(replacement)
+                return replacement
+            } finally {before.plaintext.fill(0)}
         } catch (error: CommitFailure) { throw error }
         catch (error: Exception) { throw CommitFailure("before-commit", error) }
     }
@@ -231,9 +245,8 @@ internal object Portable {
     private const val ITERATIONS = 210000
     private fun key(password: CharArray, salt: ByteArray): SecretKey {
         require(password.size in 8..1024 && salt.size == 32)
-        val spec = PBEKeySpec(password, salt, ITERATIONS, 256)
-        return try { SecretKeySpec(SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-            .generateSecret(spec).encoded, "AES") } finally { spec.clearPassword() }
+        val bytes=Pbkdf2Sha256.derive(password,salt,ITERATIONS)
+        return try { SecretKeySpec(bytes,"AES") } finally { bytes.fill(0) }
     }
     fun seal(text: String, password: CharArray): String {
         validateData(parseObject(text))
@@ -241,15 +254,15 @@ internal object Portable {
         val key = key(password, salt)
         val bytes = DatenDateiKrypto({ key }).verschluesseln(text.toByteArray(Charsets.UTF_8), "tablet-export.json")
         return JSONObject().put("format", FORMAT).put("iterations", ITERATIONS)
-            .put("salt", Base64.getEncoder().encodeToString(salt))
-            .put("ciphertext", Base64.getEncoder().encodeToString(bytes)).toString()
+            .put("salt", StandardBase64.encode(salt))
+            .put("ciphertext", StandardBase64.encode(bytes)).toString()
     }
     fun open(text: String, password: CharArray): String {
         val obj = parseObject(text)
         require(obj.getString("format") == FORMAT && obj.getInt("iterations") == ITERATIONS)
-        val salt = Base64.getDecoder().decode(obj.getString("salt"))
+        val salt = StandardBase64.decode(obj.getString("salt"))
         val key = key(password, salt)
-        val bytes = Base64.getDecoder().decode(obj.getString("ciphertext"))
+        val bytes = StandardBase64.decode(obj.getString("ciphertext"))
         val plain = decodeUtf8(DatenDateiKrypto({ key }).entschluesseln(bytes, "tablet-export.json"))
         validateData(parseObject(plain))
         return plain

@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "role": "BLOCKED BP provider diagnostic; not an approved or integrated runtime database",
+  "provider": "org.threeten:threetenbp:1.7.5",
+  "tzdbVersion": "2026egtz",
+  "artifactSHA256": "58c5593452f871ebf736dfda3bf8f3bc0de4e92cec61bc19c8ad81f9dfb70d72",
+  "tzdbResourceSHA256": "e28750a597bca9fe12fc927d6e8dd71cc71e9195a90e2bc7490265ffa10f1b12",
+  "payloadSHA256": "3c2bdeb5e7018308187017443df72e0294b86a24415beb7588baa24800b3b965",
+  "namedZones": 592,
+  "uniqueRuleData": 438,
+  "upstream": "https://github.com/JodaOrg/global-tz",
+  "upstreamTag": "2026egtz",
+  "upstreamTagObject": "4329a8744295c5187ddae4fb3d6e6cf2de2c55ca",
+  "upstreamCommit": "4da8bf102f7582a14bafdb8473fa5e58af842706",
+  "upstreamTagVerification": "GitHub API reports signed tag verified=true, reason=valid; project maintainer Stephen Colebourne.",
+  "archiveURL": "https://github.com/JodaOrg/global-tz/releases/download/2026egtz/tzdata2026egtz-rearguard.tar.gz",
+  "archiveSHA256": "0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d",
+  "archiveVerification": "Downloaded bytes match the official GitHub release asset SHA-256 digest.",
+  "normalIANAReference": "2026e",
+  "historyPolicy": "Global-TZ/rearguard, not identical to normal IANA history; compare complete history to exactly pinned Global-TZ source.",
+  "validationStatus": "BLOCKED: complete independent reference detects genuine BP Asia/Gaza2074 and later differences; no UI integration or production readiness claim."
+}

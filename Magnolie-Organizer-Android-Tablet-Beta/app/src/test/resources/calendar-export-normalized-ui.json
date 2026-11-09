@@ -1,0 +1,172 @@
+{
+  "source": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALNAME:Synthetic native calendar\r\nBEGIN:VEVENT\r\nUID:normalized-valarm-event\r\nDTSTAMP:20261115T080000Z\r\nDTSTART:20261115T090000Z\r\nDTEND:20261115T100000Z\r\nSUMMARY:Synthetic alarm fixture\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT15M\r\nDESCRIPTION:Synthetic reminder\r\nEND:VALARM\r\nBEGIN:VALARM\r\nACTION:AUDIO\r\nTRIGGER;VALUE=DATE-TIME:20261115T083000Z\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+  "importDocument": {
+    "termine": [
+      {
+        "datum": "2026-11-15",
+        "endDatum": "",
+        "icsAnzeigeZeitzone": "UTC",
+        "icsNullDauer": false,
+        "notiz": "",
+        "icsSequence": 0,
+        "akzentFarbe": "",
+        "icsQuelleName": "Synthetic native calendar",
+        "icsKomplex": false,
+        "icsQuelleId": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+        "uid": "normalized-valarm-event",
+        "titel": "Synthetic alarm fixture",
+        "kostenstelle": "",
+        "icsZusatzTermine": [],
+        "kategorien": "",
+        "wiederholung": {
+          "bis": "",
+          "art": "none"
+        },
+        "geaendert": 1794729600000,
+        "icsAenderungszeitFehlt": true,
+        "kunde": "",
+        "vertraulich": false,
+        "icsRoundtrip": [
+          "DTSTART:20261115T090000Z",
+          "DTEND:20261115T100000Z",
+          "BEGIN:VALARM",
+          "ACTION:DISPLAY",
+          "TRIGGER:-PT15M",
+          "DESCRIPTION:Synthetic reminder",
+          "END:VALARM",
+          "BEGIN:VALARM",
+          "ACTION:AUDIO",
+          "TRIGGER;VALUE=DATE-TIME:20261115T083000Z",
+          "END:VALARM"
+        ],
+        "individuelleErinnerungTage": 0,
+        "endZeit": "10:00",
+        "standardErinnerung": true,
+        "icsSerienUid": "",
+        "zeit": "09:00",
+        "icsZusatzDaten": [],
+        "vorlaeufig": false,
+        "icsEndeFehlt": false
+      }
+    ],
+    "jahrestage": [],
+    "icsImportMetadata": {
+      "calendarProperties": [
+        "VERSION:2.0",
+        "X-WR-CALNAME:Synthetic native calendar"
+      ],
+      "sourceSHA256": "eadf95e52428be742ef20cea2cf67e2036671fb69847ecb690937d0876adb34f",
+      "version": 1
+    },
+    "aufgaben": []
+  },
+  "normalizedRecord": {
+    "datum": "2026-11-15",
+    "endDatum": "",
+    "icsAnzeigeZeitzone": "UTC",
+    "icsNullDauer": false,
+    "notiz": "",
+    "icsSequence": 0,
+    "akzentFarbe": "",
+    "icsQuelleName": "Synthetic native calendar",
+    "icsKomplex": false,
+    "icsQuelleId": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+    "uid": "normalized-valarm-event",
+    "titel": "Synthetic alarm fixture",
+    "kostenstelle": "",
+    "icsZusatzTermine": [],
+    "kategorien": "",
+    "wiederholung": {
+      "art": "none",
+      "bis": ""
+    },
+    "icsAenderungszeitFehlt": true,
+    "kunde": "",
+    "vertraulich": false,
+    "icsRoundtrip": [
+      "DTSTART:20261115T090000Z",
+      "DTEND:20261115T100000Z",
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      "TRIGGER:-PT15M",
+      "DESCRIPTION:Synthetic reminder",
+      "END:VALARM",
+      "BEGIN:VALARM",
+      "ACTION:AUDIO",
+      "TRIGGER;VALUE=DATE-TIME:20261115T083000Z",
+      "END:VALARM"
+    ],
+    "individuelleErinnerungTage": 0,
+    "endZeit": "10:00",
+    "standardErinnerung": true,
+    "icsSerienUid": "",
+    "zeit": "09:00",
+    "icsZusatzDaten": [],
+    "vorlaeufig": false,
+    "icsEndeFehlt": false,
+    "ort": "",
+    "alarme": [
+      {
+        "id": "ics-alarm-0-c6mluk",
+        "offsetMinuten": 15,
+        "aktion": "display",
+        "aktiviert": true,
+        "quelle": "ics",
+        "triggerRaw": "-PT15M",
+        "related": "START",
+        "bearbeitbar": true
+      },
+      {
+        "id": "ics-alarm-1-108tzdj",
+        "offsetMinuten": 0,
+        "aktion": "audio",
+        "aktiviert": true,
+        "quelle": "ics",
+        "triggerRaw": "20261115T083000Z",
+        "related": "START",
+        "bearbeitbar": false
+      }
+    ],
+    "kalenderQuelle": {
+      "id": "ics:960b687ab7ac82df4c2c933f2fa197d023346dd8f6d0c2b2dd9f37bc9d2d3873",
+      "name": "Synthetic native calendar",
+      "gruppe": "",
+      "farbe": "",
+      "anbieter": "ICS"
+    },
+    "organisator": {
+      "uri": "",
+      "name": "",
+      "email": ""
+    },
+    "teilnehmer": [],
+    "kalenderAnhaenge": [],
+    "providerMetadaten": {},
+    "icsAusnahmen": [],
+    "icsRangeOverrides": [],
+    "icsAusnahmeTermine": [],
+    "icsTimezones": [],
+    "syncKonflikte": [],
+    "icsReadOnly": false,
+    "icsReadOnlyGrund": "",
+    "aufgaben": [],
+    "kontaktId": "",
+    "syncKalenderUid": "",
+    "sync": false,
+    "syncQuellen": {}
+  },
+  "contractTag": "v2.0.30",
+  "contractCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+  "recordedUiSHA256": "34e2d269ec76c1542f660626c0970afe2ae3f9922b886ad4e285790058e88a0c",
+  "normalizerFunctionSHA256": {
+    "terminText": "13c9fab3b8c9bfd77336fe83ec295d18a2b6c082ea6dd817d9b655e18d255fd9",
+    "terminKennung": "8ad051bc6e36d744604e5ac85adc4a1b9930b4f2e0686e064c74e9dd489c1b28",
+    "terminHash": "899c5e20149530ac77492326311a33b57337e2fabb2bcd840d302f17737eb6d7",
+    "saubereKalenderQuelle": "321b4510a9c112f1916f094783f96a178a57c14006d93b7490dda80585a61cbe",
+    "saubereAlarme": "d6384d38bf036d9d7976fa4398213c1bc3847cce6113ec0bccfb2635e743fb77",
+    "icsRelativeMinuten": "210f2f9071381a7b13322a9276550d293c15ef9136b016a76b8bb6e0e54d24b6",
+    "icsProjektion": "7760df6addd5fde9c07f18d1448d9bf9cfee1bb98e7060bd0348862a038dbe2e",
+    "normalisiereTermine": "d4defcaa6966e03fff7cd21b9584c2b775ebb83c6186afe155f7c01417886578",
+    "wendeDateiImportDatenAn": "e1a67c44789f6de4f8eff567daad6bd754b12142d183c0685569022cfb6d3d1d"
+  }
+}

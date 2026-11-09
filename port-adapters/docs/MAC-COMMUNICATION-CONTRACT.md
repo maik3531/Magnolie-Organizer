@@ -1,0 +1,25 @@
+# Mac communication launcher contract — Refs #121
+
+The published v2.0.30 UI (`067c38934b539943d8e1720abafd8a80b401d797`) sends three commands. Existing shared frontend files remain unchanged.
+
+| Command | Actual fields | Mac adaptation |
+| --- | --- | --- |
+| `mail` | `email`, `name` | One validated address, percent-encoded RFC 6068 `mailto:` addr-spec (name remains UI context); no recipient lists, query/header fields or attachment parameters. |
+| `karte` | `kontakt`, `land`, `dienst`, `route`, `absender` | Postal street/postcode/city with country. `auto` and imported `gnome-maps` preferences use Apple Maps HTTPS; explicit OpenStreetMap/Google preferences remain their HTTPS services. Routes require a numeric street/postcode line in the sender address; the sender's name is excluded. Stored preferences are preserved. |
+| `sozial` | `dienst`, `wert`, `aktionArt`, `aktionZiel`, `land` (private projection additionally `nummer`) | Existing web-service destinations, custom HTTPS, or website templates with encoded `{wert}`, `{nummer}`, `{ziel}` substitutions. Calendar HTTPS attachments use `custom` + `aktionArt:"url"`. |
+
+The web services are WhatsApp, Threema, Facebook, Instagram, Signal, Mastodon, Teams, Snapchat, TikTok, YouTube, Telegram, X, LinkedIn, Reddit and custom HTTPS. Compatibility aliases `twitter`/`likedin` are retained. The private projection derives phone-based web links and `{nummer}` from the existing canonical `telefonSchluessel` helper and its bundled worldwide country metadata, using the saved `telefonHeimatland` and the published removal of `x` extensions. The native policy validates that optional result as E164 and never guesses a national prefix. Direct native requests without that field can use an already international number. This is URL preparation, not phone/SMS transport. Custom program commands and `phone`/`sms` services fail explicitly; no shell, executable path, arbitrary file URL or protocol launch is provided.
+
+The Core policy rejects unknown top-level fields and limits the request to 32 KiB, final URL to 8 KiB, contact/value/name fields separately. HTTPS URLs require a hostname, no credentials, and the default port or an explicit valid port 1–65535; local HTTPS servers and international domain names are allowed. Controls, encoded control characters, malformed escapes and backslashes are rejected. Single-address mail syntax excludes quoted/local-only addresses; international letters are UTF-8 percent-encoded. No crypto, network or new dependency is used.
+
+The host retains the existing trusted local main-frame bridge check and requires an unlocked current document. An injectable native broker resolves `NSWorkspace.urlForApplication(toOpen:)`, requires its file `.app` URL, then opens only the validated destination via `NSWorkspace.open(_:withApplicationAt:configuration:)`. Acceptance additionally requires a returned running application with the same resolved bundle URL, not merely a nil error. It does not invoke a process or pass a JS-selected application path. Completion is fenced by a native operation token and document generation, with a 15-second response deadline. No synthetic user-gesture flag is trusted.
+
+The published callback is `App.adressWeg({ok,womit,name,fehler})`, with no `mcpNativeAntwort` correlation in this UI path. Success means the system accepted opening the destination in its configured handler. It does not prove email transmission, message delivery, route computation or a remote page's success. UI errors are routed through the same canonical callback.
+
+Validation is deliberately separated:
+
+- `port-adapters/tests/communication-payloads.cjs` invokes the actual canonical UI functions in an in-memory host and compares 15 captured payloads with `Tests/BetaCoreTests/Fixtures/communication-ui-payloads.json`. Captures from the exact published tag and current shared source match. The test includes all four map preferences, each as location and route, mail (including an international domain), custom HTTPS (including port 8443),, website template, Telegram and the program request that the Mac policy explicitly rejects.
+- A separate `--phone-projection` host path captures nine real projected country/IDD/extension requests (GB/US/FR/IN/DE/AT/CH) in `communication-phone-payloads.json`. Current and exact-tag canonical projections both match. These are separate from the unchanged published payload contract above.
+- `CommunicationLaunchPolicyTests` covers both sets of typed golden requests, every supported web service, encoding and negative URL/header/type/bounds vectors.
+- `CommunicationLaunchBrokerTests` uses a mock resolver/opener, including absent/invalid handler, acceptance/error, replacement/cancel and stale-document completions. Tests never open a real external application.
+- Actual Swift compilation and macOS system-handler behavior require the Mac runner. A host JavaScript pass or mocked acceptance is not native handler acceptance, installed mail-client validation or a release acceptance result.
