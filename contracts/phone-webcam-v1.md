@@ -504,6 +504,30 @@ authority or frame grammar. Native bootstrap identity, server-side ACL/lifetime,
 bounded video-record decoding and binding to the actual authenticated dispatcher
 and source remain required; the registered FrameServer path is not yet complete.
 
+`PhoneCameraRelay` now joins that original pipe reader to the exact original
+source/feed COM identity. It accepts only fixed-size video records using the
+existing 18-byte canonical plaintext packet body followed by exact I420 data.
+Version, video track and integer ranges are checked; source-side continuity,
+PTS and actual SEND checks remain mandatory. One fixed-size read gives the whole
+record one deadline, with no untrusted size allocation or header/body time reset.
+The private temporary packet is cleared after copying into the native sample and
+on failure. Any parse/read/publication failure retires that original reader and
+source; its owner retirement callback must still stop the joined AV session.
+No source replacement, reconnect, frame fabrication or audio fallback is added.
+
+Five new native relay groups passed on physical Windows. A separate actual test
+process writes generated canonical I420 records through the held-original-process
+pipe; the native relay and source deliver three full exact NV12 frames to a real
+`IMFSourceReader`. Other cases reject wrong track/overflowed integers, reject a
+replacement source's feed before consuming the original reader, stop already
+pending pipe input through original source shutdown, and deny restored old SEND
+authority. Previous unchanged sample/source/pipe tests were not repeated. This
+proves the receiver half and local process boundary with controlled admission,
+not the production authenticated dispatcher, server ACL/bootstrap, registered
+FrameServer activation, system microphone or physical phone/OBS acceptance.
+The network transport remains the existing AES-GCM binary protocol; this is
+local post-admission video delivery, not a new unencrypted network option.
+
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It
 checks the authenticated global sequence and declared length before allocating

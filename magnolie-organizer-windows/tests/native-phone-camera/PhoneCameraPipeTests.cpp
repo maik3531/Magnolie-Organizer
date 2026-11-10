@@ -1,5 +1,13 @@
 #include "../../native/phone-camera/PhoneCameraPipe.h"
+#ifdef MAGNOLIE_NATIVE_RELAY_TESTS
+#include "../../native/phone-camera/PhoneCameraRelay.h"
+#endif
 #include <objbase.h>
+#ifdef MAGNOLIE_NATIVE_RELAY_TESTS
+#include <mfapi.h>
+#include <mferror.h>
+#include <mfreadwrite.h>
+#endif
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -10,6 +18,12 @@
 #include <vector>
 
 using Magnolie::PhoneCamera::PipeReader;
+#ifdef MAGNOLIE_NATIVE_RELAY_TESTS
+using Magnolie::PhoneCamera::VideoRelay;
+using Magnolie::PhoneCamera::SourceOwner;
+using Magnolie::PhoneCamera::IFrameFeed;
+using Microsoft::WRL::ComPtr;
+#endif
 
 namespace
 {
@@ -52,6 +66,25 @@ namespace
         }
         CloseHandle(connection.hEvent);
         if (!connected) { CloseHandle(pipe); CloseHandle(stop); return 21; }
+#ifdef MAGNOLIE_NATIVE_RELAY_TESTS
+        if (std::wcsncmp(mode, L"video", 5) == 0)
+        {
+            std::vector<BYTE> packet(18 + 640 * 480 * 3 / 2, 128);
+            std::fill(packet.begin() + 18, packet.begin() + 18 + 640 * 480, static_cast<BYTE>(90));
+            auto integer = [&](std::size_t offset, std::uint64_t value) {
+                for (unsigned int i = 0; i < 8; ++i) packet[offset + i] = static_cast<BYTE>(value >> (56 - 8 * i));
+            };
+            for (int i = 0; i < (std::wcscmp(mode, L"video") == 0 ? 30 : 1); ++i)
+            {
+                packet[0] = 1; packet[1] = std::wcscmp(mode, L"video-track") == 0 ? 2 : 1;
+                integer(2, std::wcscmp(mode, L"video-sequence") == 0 ? 0x8000000000000000ULL : static_cast<std::uint64_t>(i));
+                integer(10, std::wcscmp(mode, L"video-pts") == 0 ? 9007199254740992ULL : static_cast<std::uint64_t>(i) * 66667);
+                if (!Write(pipe, packet.data(), static_cast<DWORD>(packet.size()))) break;
+                if (WaitForSingleObject(stop, 67) == WAIT_OBJECT_0) break;
+            }
+            WaitForSingleObject(stop, 15000); CloseHandle(pipe); CloseHandle(stop); return 0;
+        }
+#endif
         std::vector<BYTE> data(4096); for (std::size_t i = 0; i < data.size(); ++i) data[i] = static_cast<BYTE>(i % 251);
         if (std::wcscmp(mode, L"empty") != 0)
         {
@@ -217,6 +250,133 @@ namespace
         Ok(PipeReader::Connect(peer.id, peer.process, Owner::Current, &owner, reader));
         BYTE byte = 0; Check(reader->ReadExact(&byte, PipeReader::MaxRead + 1) == E_INVALIDARG && reader->IsRetired());
     }
+
+#ifdef MAGNOLIE_NATIVE_RELAY_TESTS
+    struct MediaRuntime
+    {
+        MediaRuntime() { Ok(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET)); }
+        ~MediaRuntime() { MFShutdown(); }
+    };
+    struct RelayOwner
+    {
+        Owner original;
+        HANDLE process = nullptr;
+        std::atomic<PipeReader*> pipe{nullptr};
+        std::atomic<VideoRelay*> relay{nullptr};
+        std::atomic_bool sending{true};
+        std::atomic_int retired{0};
+        static HRESULT Current(void* context) noexcept
+        {
+            auto& owner = *static_cast<RelayOwner*>(context);
+            auto* pipe = owner.pipe.load();
+            return owner.original.current && pipe && !pipe->IsRetired() &&
+                WaitForSingleObject(owner.process, 0) == WAIT_TIMEOUT ? S_OK : E_ACCESSDENIED;
+        }
+        static HRESULT Sending(void* context) noexcept
+        { auto& owner = *static_cast<RelayOwner*>(context); return owner.sending ? Current(context) : E_ACCESSDENIED; }
+        static void Retired(void* context, HRESULT) noexcept
+        {
+            auto& owner = *static_cast<RelayOwner*>(context); ++owner.retired;
+            auto* relay = owner.relay.load(); auto* pipe = owner.pipe.load();
+            if (relay) relay->Stop(); else if (pipe) pipe->Stop();
+        }
+        SourceOwner Callbacks() { return {Current, Sending, Retired, this}; }
+    };
+    struct RelayFixture
+    {
+        MediaRuntime runtime;
+        RelayOwner owner;
+        Peer peer;
+        std::unique_ptr<PipeReader> reader;
+        ComPtr<IMFMediaSourceEx> source;
+        ComPtr<IFrameFeed> feed;
+        std::unique_ptr<VideoRelay> relay;
+        explicit RelayFixture(const wchar_t* mode) : peer(mode)
+        {
+            Ok(PipeReader::Connect(peer.id, peer.process, Owner::Current, &owner.original, reader));
+            owner.process = peer.process; owner.pipe = reader.get();
+            Ok(Magnolie::PhoneCamera::CreateSource(owner.Callbacks(), &source, &feed));
+        }
+        void Attach()
+        { Ok(VideoRelay::Create(reader, source.Get(), feed.Get(), relay)); owner.relay = relay.get(); }
+        ~RelayFixture()
+        {
+            if (source) source->Shutdown();
+            // Keep the owner and held pipe pointer alive until source shutdown.
+            relay.reset(); owner.relay = nullptr;
+        }
+    };
+
+    void RelayCrossProcessSourceReader()
+    {
+        RelayFixture f(L"video"); f.Attach();
+        ComPtr<IMFAttributes> attrs; Ok(MFCreateAttributes(&attrs, 1)); Ok(attrs->SetUINT32(MF_READWRITE_DISABLE_CONVERTERS, TRUE));
+        ComPtr<IMFSourceReader> reader; Ok(MFCreateSourceReaderFromMediaSource(f.source.Get(), attrs.Get(), &reader));
+        std::atomic_bool finished{false}; std::atomic<HRESULT> status{S_OK};
+        std::thread receive([&] {
+            while (!finished)
+            {
+                const HRESULT hr = f.relay->ReceiveOne();
+                if (FAILED(hr)) { if (!finished) status = hr; break; }
+            }
+        });
+        bool valid = true; LONGLONG previous = -1;
+        for (int i = 0; i < 3; ++i)
+        {
+            DWORD stream = 99, flags = 0; LONGLONG pts = -1; ComPtr<IMFSample> sample;
+            HRESULT hr = reader->ReadSample(static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM), 0, &stream, &flags, &pts, &sample);
+            if (FAILED(hr) || !sample || stream != 0 || pts <= previous ||
+                (flags & (MF_SOURCE_READERF_ERROR | MF_SOURCE_READERF_ENDOFSTREAM | MF_SOURCE_READERF_STREAMTICK)))
+            { valid = false; break; }
+            previous = pts;
+            ComPtr<IMFMediaBuffer> buffer; hr = sample->ConvertToContiguousBuffer(&buffer);
+            if (FAILED(hr)) { valid = false; break; }
+            BYTE* bytes = nullptr; DWORD size = 0; hr = buffer->Lock(&bytes, nullptr, &size);
+            if (FAILED(hr)) { valid = false; break; }
+            if (size != Magnolie::PhoneCamera::Samples::VideoBytes) valid = false;
+            else for (DWORD at = 0; at < size; ++at) if (bytes[at] != (at < 640 * 480 ? 90 : 128)) { valid = false; break; }
+            buffer->Unlock(); if (!valid) break;
+        }
+        finished = true; f.relay->Stop(); receive.join(); reader.Reset();
+        Check(valid && SUCCEEDED(status));
+    }
+
+    void RelayRejectsMalformedRecord()
+    {
+        for (const wchar_t* mode : {L"video-track", L"video-sequence", L"video-pts"})
+        {
+            RelayFixture f(mode); f.Attach();
+            Check(FAILED(f.relay->ReceiveOne()) && f.relay->IsRetired() && f.owner.retired == 1);
+            DWORD flags = 0; Check(f.source->GetCharacteristics(&flags) == MF_E_SHUTDOWN);
+            f.owner.original.current = true; Check(FAILED(f.relay->ReceiveOne()));
+        }
+    }
+
+    void RelayRefusesReplacementSource()
+    {
+        RelayFixture original(L"empty"), replacement(L"empty");
+        auto* held = original.reader.get();
+        Check(VideoRelay::Create(original.reader, original.source.Get(), replacement.feed.Get(), original.relay) == E_ACCESSDENIED);
+        Check(original.reader.get() == held && !original.relay && !held->IsRetired());
+    }
+
+    void RelayOriginalShutdownInterruptsInput()
+    {
+        RelayFixture f(L"empty"); f.Attach();
+        f.owner.original.signalAt = f.owner.original.calls + 2;
+        std::atomic<HRESULT> status{S_OK}; std::thread reading([&] { status = f.relay->ReceiveOne(); });
+        const DWORD pending = WaitForSingleObject(f.owner.original.pending, 1500);
+        const HRESULT shutdown = f.source->Shutdown(); reading.join();
+        Check(pending == WAIT_OBJECT_0 && SUCCEEDED(shutdown) && FAILED(status) && f.relay->IsRetired() && f.owner.retired == 1);
+    }
+
+    void RelayRequiresActualSend()
+    {
+        RelayFixture f(L"video"); f.owner.sending = false; f.Attach();
+        Check(FAILED(f.relay->ReceiveOne()) && f.relay->IsRetired() && f.owner.retired == 1);
+        f.owner.sending = true; Check(FAILED(f.relay->ReceiveOne()));
+    }
+#endif
 }
 
 int wmain(int argc, wchar_t** argv)
@@ -229,7 +389,12 @@ int wmain(int argc, wchar_t** argv)
         {"pipe-actual-peer-partial-reads", ActualPeerAndPartialReads}, {"pipe-wrong-kernel-server", WrongActualServerProcess},
         {"pipe-stop-pending-read", StopInterruptsActualPendingRead}, {"pipe-original-guard-sticky", OriginalGuardRevocationIsSticky},
         {"pipe-original-partial-read-deadline", SingleDeadlineAcrossPartialData}, {"pipe-original-process-exit", OriginalProcessExitRetiresReader},
-        {"pipe-concurrent-reader-refused", ConcurrentReadersAreRefused}, {"pipe-missing-owner-invalid-input", MissingOwnerAndInvalidInput}
+        {"pipe-concurrent-reader-refused", ConcurrentReadersAreRefused}, {"pipe-missing-owner-invalid-input", MissingOwnerAndInvalidInput},
+#ifdef MAGNOLIE_NATIVE_RELAY_TESTS
+        {"relay-real-cross-process-source-reader", RelayCrossProcessSourceReader}, {"relay-malformed-record", RelayRejectsMalformedRecord},
+        {"relay-replacement-source-refused", RelayRefusesReplacementSource}, {"relay-original-shutdown-input", RelayOriginalShutdownInterruptsInput},
+        {"relay-needs-actual-send", RelayRequiresActualSend},
+#endif
     };
     for (const auto& test : cases)
     {
