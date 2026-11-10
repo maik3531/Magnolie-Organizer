@@ -1,6 +1,6 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
-## Explicit Linux driver setup and confirmed installation (Refs #515, #520)
+## Explicit Linux driver setup and confirmed installation (Refs #515, #520, #524)
 
 Only an explicit Advanced-functions Enable/prepare with an original connected
 Notes parent may prepare the host driver. Status, startup, KDE-only selection,
@@ -16,14 +16,31 @@ to the normal system authorization. Cancel, provider change, stale offers or
 context loss cannot start installation. Package names, repositories and commands
 are never supplied by the renderer. Debian/Ubuntu and Arch-family hosts resolve
 only `v4l2loopback-dkms` from their existing repositories, restricted to a single
-newest architecture-appropriate result. The native PackageKit client keeps polkit
-interaction enabled and installs with ONLY_TRUSTED, without adding repositories,
-importing signing keys or performing a general upgrade. The transaction deadline
-is 600 seconds with native cancellation. An unconfirmed timeout is latched:
+newest architecture-appropriate result. Installation AND the fixed setup operation
+share ONE normal pkexec authorization of isolated system Python. No password is
+read or stored by Magnolie. The already authorized root worker uses native system
+PackageKit with interaction DISABLED: failure cannot silently fall through to a
+second password dialog. ONLY_TRUSTED remains mandatory, without adding repositories,
+importing signing keys or performing a general upgrade. The package-phase deadline
+is 600 seconds with native cancellation; one original 710-second deadline spans
+the authorization, installation and setup, with a five-second cancellation grace.
+An unconfirmed timeout is latched:
 there is no automatic retry or rollback claim. Package success alone is not a
-current-kernel-module or capture proof; setup and inventory are checked again
-under the same original context. Missing kernel headers, module-signing/boot or
+current-kernel-module or capture proof. The root worker confirms actual module
+loading and the original user worker checks inventory under the same Notes parents.
+After combined success, even delayed udev publication only gets a bounded inventory
+wait: it cannot start setup again or request another authorization. Missing kernel headers, module-signing/boot or
 backend problems are not papered over by a successful package transaction.
+
+During this combined operation, the original user worker checks its live Notes
+context and writes only binary native monotonic heartbeats on one private stdin
+pipe. The root worker requires a fresh stamp after the dialog; old queued stamps,
+EOF, stale/future/nonfinite stamps and the original deadline cannot authorize new
+IO. This pipe accepts no package names, paths, commands, consent flags or passwords.
+Context loss cancels the original native package transaction and interrupts setup
+through its existing exact-owned rollback. The pipe/worker ends with the operation;
+no persistent privileged service, broad polkit policy or reusable admin token exists.
+These heartbeats grant no phone capture or SEND authority.
 
 An unknown AppImage host, unavailable PackageKit integration, ambiguous/missing
 package or failed installation gets a manual system-package-manager hint naming

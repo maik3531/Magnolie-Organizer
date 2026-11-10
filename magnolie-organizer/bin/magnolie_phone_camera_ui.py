@@ -112,7 +112,14 @@ class NativeWebcamUi:
         finally:
             self.setup_gate.release()
 
-    def _prepare(self, provider, original_sources=None):
+    def _wait_devices(self, current):
+        deadline = time.monotonic() + 2
+        while True:
+            current(); devices = self.inventory()[:8]
+            if devices or time.monotonic() >= deadline: return devices
+            time.sleep(.05)
+
+    def _prepare(self, provider, original_sources=None, *, setup_allowed=True):
         with self.lock:
             self.action = None
             self.install_offer = None
@@ -141,6 +148,12 @@ class NativeWebcamUi:
             for source in original_sources: self._source_current(source)
             sources = original_sources
         devices = self.inventory()[:8]  # Explicit native action only; no base startup/status probe.
+        if not devices and not setup_allowed:
+            def current_after_install():
+                for source in sources: self._source_current(source)
+            devices = self._wait_devices(current_after_install)
+            if not devices:
+                return dict(self.status(), choices=[], action='', reason='driver_setup_failed')
         if not devices:
             def current():
                 for source in sources: self._source_current(source)
@@ -163,11 +176,7 @@ class NativeWebcamUi:
                         return dict(self.status(), choices=[], action='', reason=reason, install_token=offer['token'])
                 return dict(self.status(), choices=[], action='', reason=reason)
             # udev/logind may publish the new character node/ACL after modprobe.
-            deadline = time.monotonic() + 2
-            while True:
-                current(); devices = self.inventory()[:8]
-                if devices or time.monotonic() >= deadline: break
-                time.sleep(.05)
+            devices = self._wait_devices(current)
             if not devices:
                 return dict(self.status(), choices=[], action='', reason='driver_setup_failed')
         choices = {}
@@ -201,13 +210,10 @@ class NativeWebcamUi:
             current()
             if reason:
                 return dict(self.status(), choices=[], action='', reason=reason)
-            # A successful package transaction alone proves no usable kernel module.
-            # Re-probe/setup and inventory under the SAME original Notes parents.
-            result = self._prepare(offer['provider'], original_sources=offer['sources'])
-            if result.get('reason') == 'driver_not_installed':
-                with self.lock: self.install_offer = None
-                return dict(self.status(), choices=[], action='', reason='driver_installation_failed')
-            return result
+            # The single authorized operation already installed AND configured.
+            # Check actual outputs under the SAME parents; a late udev node must
+            # never trigger a second setup/polkit dialog.
+            return self._prepare(offer['provider'], original_sources=offer['sources'], setup_allowed=False)
         finally:
             self.setup_gate.release()
 

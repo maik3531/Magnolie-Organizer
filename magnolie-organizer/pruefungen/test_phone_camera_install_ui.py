@@ -23,6 +23,8 @@ def controlled(service, *, result='', missing_after=False):
         return ''
     def installer(current,plan):
         current();assert plan=='v4l2loopback-dkms';calls.append('install');state['installed']=True
+        if not result and not missing_after:
+            devices.append(dict(path='/dev/video42',label='Controlled installed and configured output'))
         return result
     manager=NativeWebcamUi(service,inventory=lambda:list(devices),setup=setup,
         installer=installer,install_plan=lambda:'v4l2loopback-dkms',clock=lambda:now[0],
@@ -44,7 +46,7 @@ def test_confirmed_installation_consumes_original_offer_and_rechecks_module_with
     service,_,_=connected;manager,calls,_,_=controlled(service)
     token=manager.prepare('notes')['install_token'];ready=manager.install_driver(token)
     assert ready['choices'] and ready['action'] and not ready['enabled']
-    assert calls==['probe','install','probe'] and service._native_webcam_owner is None
+    assert calls==['probe','install'] and service._native_webcam_owner is None
     with pytest.raises(PermissionError):manager.install_driver(token)
     assert calls.count('install')==1
 
@@ -74,11 +76,11 @@ def test_denied_failed_or_unconfirmed_installation_has_no_choices_or_automatic_r
         assert manager.prepare('notes')['reason']==reason and calls==['probe','install']
 
 
-def test_transaction_success_without_current_kernel_module_falls_back_to_manual_installation(connected):
+def test_combined_success_without_usable_output_never_starts_a_second_setup(connected):
     service,_,_=connected;manager,calls,_,_=controlled(service,missing_after=True)
     result=manager.install_driver(manager.prepare('notes')['install_token'])
-    assert result['reason']=='driver_installation_failed' and 'install_token' not in result
-    assert manager.install_offer is None and calls==['probe','install','probe']
+    assert result['reason']=='driver_setup_failed' and 'install_token' not in result
+    assert manager.install_offer is None and calls==['probe','install']
 
 
 def test_unknown_appimage_host_has_no_install_offer_but_can_use_existing_output(connected):
@@ -115,6 +117,57 @@ def test_service_never_constructs_installer_from_a_forged_offer_without_prepare(
     assert service._native_webcam_ui is None
 
 
+@pytest.mark.parametrize('revoke',[False,True])
+def test_delayed_udev_output_after_combined_install_never_runs_setup_again(connected,revoke):
+    service,_,_=connected;manager,calls,state,_=controlled(service)
+    count=[0]
+    def inventory():
+        if not state['installed']:return []
+        count[0]+=1
+        if count[0]==2 and revoke:service._generation+=1
+        return [dict(path='/dev/video42',label='Late controlled udev output')] if count[0]>=3 else []
+    def installed(current,plan):current();calls.append('install');state['installed']=True;return ''
+    manager.inventory=inventory;manager.installer=installed
+    token=manager.prepare('notes')['install_token']
+    if revoke:
+        with pytest.raises(PermissionError):manager.install_driver(token)
+        assert manager.action is None
+    else:assert manager.install_driver(token)['choices']
+    assert calls==['probe','install']
+
+
+def test_actual_gui_ipc_to_single_authorized_child_never_requests_another_setup(connected,tmp_path,monkeypatch):
+    import json
+    import magnolie_phone_camera_install as install
+    from test_phone_camera_install_authorization import controlled_child_popen
+    monkeypatch.setattr(install.os,'geteuid',lambda:1000)
+    service,_,_=connected;manager,calls,_,_=controlled(service);service._native_webcam_ui=manager
+    receipt=tmp_path/'authorized-result.json';authorizations=[]
+    popen=controlled_child_popen(receipt,authorizations)
+    manager.installer=lambda current,plan:install.install_driver(current,plan,popen=popen,tool=lambda names:names[0])
+    manager.inventory=lambda:([dict(path='/dev/video42',label='Controlled combined output')]
+        if receipt.exists() and json.loads(receipt.read_text())['exit']==0 else [])
+    tree=ast.parse((Path(__file__).resolve().parents[1]/'bin/magnolie-organizer').read_text())
+    method=next(node for cls in tree.body if isinstance(cls,ast.ClassDef) for node in cls.body
+        if isinstance(node,ast.FunctionDef) and node.name=='_telefon_webcam')
+    namespace={};exec(compile(ast.Module(body=[method],type_ignores=[]),'actual-single-auth-gui-worker','exec'),namespace)
+    server=background.IPCServer(None,path=str(tmp_path/'single-auth.sock'),phone_backend=service).start();answers=[]
+    try:
+        window=SimpleNamespace(_gesperrt=False,_organizer_vertraut=lambda:True,
+            _telefon=background.PhoneServiceProxy(server.path),antwort=lambda name,value:answers.append(value))
+        def call(request):
+            worker=threading.Thread(target=namespace['_telefon_webcam'],args=(window,
+                dict(cmd='telefon_webcam_aktion',requestId='single-auth',request=request)))
+            worker.start();worker.join(5);assert not worker.is_alive()
+            assert answers[-1]['ok'];return answers[-1]['webcam']
+        offered=call(dict(action='prepare',provider='notes'))
+        ready=call(dict(action='install_driver',install_token=offered['install_token']))
+        assert ready['choices'] and len(authorizations)==1 and authorizations[0][0]=='/usr/bin/pkexec'
+        assert calls==['probe'] and not ready['enabled'] and service._native_webcam_owner is None
+        call(dict(action='cancel',action_token=ready['action']))
+    finally:server.close()
+
+
 def test_actual_gui_worker_private_unix_proxy_requires_offer_and_uses_install_only_timeout(connected,tmp_path,monkeypatch):
     service,_,_=connected;manager,calls,_,_=controlled(service);service._native_webcam_ui=manager
     tree=ast.parse((Path(__file__).resolve().parents[1]/'bin/magnolie-organizer').read_text())
@@ -137,7 +190,7 @@ def test_actual_gui_worker_private_unix_proxy_requires_offer_and_uses_install_on
         offered=call(dict(action='prepare',provider='notes'))
         ready=call(dict(action='install_driver',install_token=offered['install_token']))
         call(dict(action='cancel',action_token=ready['action']))
-        assert timeouts==[150,780,30] and calls==['probe','install','probe']
+        assert timeouts==[150,780,30] and calls==['probe','install']
         assert service._native_webcam_owner is None
     finally:server.close()
 

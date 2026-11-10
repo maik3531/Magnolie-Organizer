@@ -9,6 +9,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 import magnolie_phone_camera_install as install
 
 
+def package_phase(*args,**kwargs):
+    # Exercise the EXACT fixed root payload, but only controlled API adapters.
+    namespace={'__name__':'controlled_install_test'}
+    exec(compile(install.ROOT_INSTALL_SETUP,'fixed-install-and-setup','exec'),namespace)
+    return namespace['install_package'](*args,**kwargs)
+
+
 @pytest.mark.parametrize('family',['debian','ubuntu','linuxmint','arch','manjaro'])
 def test_supported_distribution_has_only_fixed_driver_package(family):
     assert install.installation_plan(release=lambda:dict(ID=family),api=lambda:None)=='v4l2loopback-dkms'
@@ -63,10 +70,10 @@ def controlled(*, packages=None, install_error=None, during=None, resolved_error
     return dict(api=lambda:(pk,NS(Cancellable=lambda:cancellable)),timer=timer),calls,timers,cancellable
 
 
-def test_confirmed_install_uses_native_polkit_and_only_trusted_resolved_package():
+def test_package_phase_uses_existing_root_approval_and_only_trusted_resolved_package():
     options,calls,timers,cancellation=controlled();guards=[]
-    assert install.install_driver(lambda:guards.append(True),'v4l2loopback-dkms',**options)==''
-    assert calls==[('interactive',True),('resolve',(1<<3)|(1<<18)|(1<<16),['v4l2loopback-dkms']),
+    assert package_phase(lambda:guards.append(True),'v4l2loopback-dkms',**options)==''
+    assert calls==[('interactive',False),('resolve',(1<<3)|(1<<18)|(1<<16),['v4l2loopback-dkms']),
         ('install',1<<1,['v4l2loopback-dkms;controlled;all;configured-repository'])]
     assert len(guards)>=4 and timers[0].cancelled and not cancellation.cancelled
 
@@ -74,28 +81,28 @@ def test_confirmed_install_uses_native_polkit_and_only_trusted_resolved_package(
 @pytest.mark.parametrize('options',[dict(packages=[]),dict(install_error='permission_denied'),dict(resolved_error='no_backend')])
 def test_native_denial_or_missing_package_does_not_claim_installation(options):
     arguments,calls,timers,_=controlled(**options)
-    assert install.install_driver(lambda:True,'v4l2loopback-dkms',**arguments) in ('driver_installation_failed','driver_installation_unavailable')
+    assert package_phase(lambda:True,'v4l2loopback-dkms',**arguments) in ('driver_installation_failed','driver_installation_unavailable')
     assert timers[0].cancelled
     if 'install_error' not in options:assert not any(call[0]=='install' for call in calls)
 
 
 def test_unfamiliar_plan_never_loads_system_package_api():
-    assert install.install_driver(lambda:True,'arbitrary-package',api=lambda:pytest.fail('unfamiliar package'))=='driver_installation_unavailable'
+    assert package_phase(lambda:True,'arbitrary-package',api=lambda:pytest.fail('unfamiliar package'))=='driver_installation_unavailable'
 
 
 def test_deadline_cancels_native_transaction_and_reports_unconfirmed_state():
     arguments,calls,timers,cancellation=controlled(during=lambda timer,progress:timer.callback())
-    assert install.install_driver(lambda:True,'v4l2loopback-dkms',**arguments)=='driver_installation_pending'
+    assert package_phase(lambda:True,'v4l2loopback-dkms',**arguments)=='driver_installation_pending'
     assert cancellation.cancelled and timers[0].cancelled
     assert sum(call[0]=='install' for call in calls)==1
 
 
 def test_revoked_context_prevents_installation_and_cancels_running_native_transaction():
-    with pytest.raises(PermissionError):install.install_driver(lambda:False,'v4l2loopback-dkms',api=lambda:pytest.fail('revoked API'))
+    with pytest.raises(PermissionError):package_phase(lambda:False,'v4l2loopback-dkms',api=lambda:pytest.fail('revoked API'))
     current=[True]
     def revoke(timer,progress):current[0]=False;progress(None,None,None)
     arguments,_,timers,cancellation=controlled(during=revoke)
-    with pytest.raises(PermissionError):install.install_driver(lambda:current[0],'v4l2loopback-dkms',**arguments)
+    with pytest.raises(PermissionError):package_phase(lambda:current[0],'v4l2loopback-dkms',**arguments)
     assert cancellation.cancelled and timers[0].cancelled
 
 
@@ -105,18 +112,18 @@ def test_revoked_context_prevents_installation_and_cancels_running_native_transa
 ])
 def test_foreign_or_ambiguous_repository_result_never_installs(packages):
     arguments,calls,_,_=controlled(packages=packages)
-    assert install.install_driver(lambda:True,'v4l2loopback-dkms',**arguments)=='driver_installation_unavailable'
+    assert package_phase(lambda:True,'v4l2loopback-dkms',**arguments)=='driver_installation_unavailable'
     assert not any(call[0]=='install' for call in calls)
 
 
 def test_missing_native_api_after_offer_keeps_manual_fallback():
     def unavailable():raise ValueError('controlled typelib removed')
-    assert install.install_driver(lambda:True,'v4l2loopback-dkms',api=unavailable)=='driver_installation_unavailable'
+    assert package_phase(lambda:True,'v4l2loopback-dkms',api=unavailable)=='driver_installation_unavailable'
 
 
 def test_resolution_deadline_cancels_before_any_installation():
     arguments,calls,_,cancel=controlled(during_resolve=lambda timer,progress:timer.callback())
-    assert install.install_driver(lambda:True,'v4l2loopback-dkms',**arguments)=='driver_installation_pending'
+    assert package_phase(lambda:True,'v4l2loopback-dkms',**arguments)=='driver_installation_pending'
     assert cancel.cancelled and not any(call[0]=='install' for call in calls)
 
 
@@ -124,5 +131,5 @@ def test_original_context_revoked_while_resolving_never_starts_package_installat
     current=[True]
     def revoke(timer,progress):current[0]=False;progress(None,None,None)
     arguments,calls,_,cancel=controlled(during_resolve=revoke)
-    with pytest.raises(PermissionError):install.install_driver(lambda:current[0],'v4l2loopback-dkms',**arguments)
+    with pytest.raises(PermissionError):package_phase(lambda:current[0],'v4l2loopback-dkms',**arguments)
     assert cancel.cancelled and not any(call[0]=='install' for call in calls)
