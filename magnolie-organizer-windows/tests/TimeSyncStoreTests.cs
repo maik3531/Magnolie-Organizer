@@ -12,6 +12,7 @@ internal static class TimeSyncStoreTests
         {
             var paths = new WindowsPaths(root); var key = Enumerable.Repeat((byte)29, 32).ToArray();
             var store = new TelefonStore(paths, key);
+            using var ownPool = new OwnedTelefonPool(store);
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Synthetic phone", Enumerable.Repeat((byte)112, 32).ToArray());
             store.SavePeers([peer]); store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
             var local = TimeSyncContract.NewSettings(true); var remote = TimeSyncContract.NewSettings(true);
