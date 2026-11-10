@@ -15,6 +15,13 @@ ihre geprüften Änderungen anschließend mit dem aktuellen `main` zusammenführ
 und zwischenzeitliche Änderungen erhalten. Quellübernahme und Freigabe der
 installierbaren Pakete getrennt behandeln; offene native Abnahmen bleiben offen.
 
+Zur Mac-/Tablet-Portierung gehört auch die nutzbare iPhone-Anbindung über
+vorhandene Apps, insbesondere KDE Connect. Eine eigene Notes-App für das
+iPhone wird nicht umgesetzt. Die Notizfunktionen im Organizer bleiben im
+Prüfumfang. Unterstützte iPhone-Funktionen anhand der tatsächlichen
+Gegenstellenfähigkeiten integrieren und prüfen; fehlende eigene iOS-Notes
+schließen die übrige iPhone-Anbindung nicht aus.
+
 Die dauerhaften Quellordner heißen `magnolie-organizer`,
 `magnolie-organizer-windows`, `magnolie-notes` und `magnolie-handbuch`. Sie erhalten bei einem Release
 keine neue Versionsnummer im Verzeichnisnamen. Versionsnummern bleiben in den
