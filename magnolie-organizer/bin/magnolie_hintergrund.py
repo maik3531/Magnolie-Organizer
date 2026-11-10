@@ -2420,7 +2420,8 @@ class PhoneServiceProxy:
 
     def _call(self, operation, **arguments):
         setup = operation == "webcam_action" and type(arguments.get("request")) is dict and arguments["request"].get("action") == "prepare"
-        return ipc_request("phone_" + operation, arguments, self.path, timeout=150 if setup else 30)
+        installation = operation == "webcam_action" and type(arguments.get("request")) is dict and arguments["request"].get("action") == "install_driver"
+        return ipc_request("phone_" + operation, arguments, self.path, timeout=780 if installation else 150 if setup else 30)
 
     def start(self):
         if not daemon_available(self.path):

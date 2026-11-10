@@ -62,7 +62,8 @@ def open_video(choice):
 
 
 class NativeWebcamUi:
-    def __init__(self, service, *, inventory=virtual_devices, video_factory=open_video, clock=time.monotonic, setup=None):
+    def __init__(self, service, *, inventory=virtual_devices, video_factory=open_video, clock=time.monotonic, setup=None,
+            install_plan=None, installer=None):
         self.service, self.inventory, self.video_factory, self.clock = service, inventory, video_factory, clock
         self.lock = threading.RLock()
         self.action = None
@@ -70,11 +71,15 @@ class NativeWebcamUi:
         self.lease = ''
         self.setup = setup
         self.setup_gate = threading.Lock()
+        self.install_plan, self.installer = install_plan, installer
+        self.install_offer = None
+        self.installation_pending = False
 
     def status(self):
         owner = self.owner
         if owner is None:
-            return dict(included=True, enabled=False, active=False, phase='off', reason='', lease='')
+            return dict(included=True, enabled=False, active=False, phase='off',
+                reason='driver_installation_pending' if self.installation_pending else '', lease='')
         active = owner.is_streaming()
         pending = owner.done.is_set() and not owner.cleanup_confirmed
         enabled = not owner.stopping.is_set() and not owner.done.is_set()
@@ -107,9 +112,12 @@ class NativeWebcamUi:
         finally:
             self.setup_gate.release()
 
-    def _prepare(self, provider):
+    def _prepare(self, provider, original_sources=None):
         with self.lock:
             self.action = None
+            self.install_offer = None
+        if self.installation_pending:
+            return dict(self.status(), choices=[], action='', reason='driver_installation_pending')
         if provider == 'kdeconnect':
             return dict(self.status(), choices=[], action='', reason='compatible_extension_required')
         previous = self.service._native_webcam_owner
@@ -129,6 +137,9 @@ class NativeWebcamUi:
                         label=str(peer.get('display_name', ''))[:120]))
         if not sources:
             return dict(self.status(), choices=[], action='', reason='phone_unavailable')
+        if original_sources is not None:
+            for source in original_sources: self._source_current(source)
+            sources = original_sources
         devices = self.inventory()[:8]  # Explicit native action only; no base startup/status probe.
         if not devices:
             def current():
@@ -141,6 +152,15 @@ class NativeWebcamUi:
             reason = setup(current)
             current()
             if reason:
+                if reason == 'driver_not_installed':
+                    from magnolie_phone_camera_install import installation_plan
+                    plan = (self.install_plan or installation_plan)()
+                    current()
+                    if plan is not None:
+                        offer = dict(token=secrets.token_hex(32), issued=self.clock(), sources=sources,
+                            provider=provider, plan=plan)
+                        with self.lock: self.install_offer = offer
+                        return dict(self.status(), choices=[], action='', reason=reason, install_token=offer['token'])
                 return dict(self.status(), choices=[], action='', reason=reason)
             # udev/logind may publish the new character node/ACL after modprobe.
             deadline = time.monotonic() + 2
@@ -161,6 +181,35 @@ class NativeWebcamUi:
         return dict(self.status(), reason='', action=action['token'], choices=[
             dict(token=token, phone=source['label'], device=device['label'], provider='notes')
             for token, (source, device) in choices.items()])
+
+    def install_driver(self, install_token):
+        if not self.setup_gate.acquire(blocking=False):
+            return dict(self.status(), choices=[], action='', reason='driver_setup_busy')
+        try:
+            with self.lock:
+                offer = self.install_offer
+                if (offer is None or offer['token'] != install_token or
+                        not 0 <= self.clock() - offer['issued'] < 60):
+                    raise PermissionError('webcam_original_installation_offer_expired')
+                self.install_offer = None  # One use, consumed BEFORE package IO.
+            def current():
+                for source in offer['sources']: self._source_current(source)
+            current()
+            from magnolie_phone_camera_install import install_driver
+            reason = (self.installer or install_driver)(current, offer['plan'])
+            if reason == 'driver_installation_pending': self.installation_pending = True
+            current()
+            if reason:
+                return dict(self.status(), choices=[], action='', reason=reason)
+            # A successful package transaction alone proves no usable kernel module.
+            # Re-probe/setup and inventory under the SAME original Notes parents.
+            result = self._prepare(offer['provider'], original_sources=offer['sources'])
+            if result.get('reason') == 'driver_not_installed':
+                with self.lock: self.install_offer = None
+                return dict(self.status(), choices=[], action='', reason='driver_installation_failed')
+            return result
+        finally:
+            self.setup_gate.release()
 
     def start(self, action_token, choice_token, muted, front):
         with self.lock:
@@ -202,6 +251,9 @@ class NativeWebcamUi:
 
     def cancel(self, action_token):
         with self.lock:
+            if self.install_offer is not None and self.install_offer['token'] == action_token:
+                self.install_offer = None
+                return self.status()
             if self.action is None or self.action['token'] != action_token:
                 raise PermissionError('webcam_original_choice_expired')
             self.action = None

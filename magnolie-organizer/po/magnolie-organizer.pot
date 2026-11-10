@@ -5086,6 +5086,18 @@ msgstr ""
 msgid "Phone webcam"
 msgstr ""
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+
+msgid "Install and set up"
+msgstr ""
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr ""
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr ""
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr ""
 

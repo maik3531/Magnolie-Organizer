@@ -10262,6 +10262,18 @@ msgstr "تعذر إعداد الكاميرا الافتراضية."
 msgid "Virtual camera setup is already in progress."
 msgstr "إعداد الكاميرا الافتراضية جارٍ بالفعل."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "برنامج تشغيل كاميرا الويب v4l2loopback غير موجود. هل تريد تثبيته وإعداده الآن؟"
+
+msgid "Install and set up"
+msgstr "تثبيت وإعداد"
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr "يرجى تثبيت برنامج التشغيل v4l2loopback باستخدام مدير حزم النظام."
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr "قد يكون تثبيت برنامج التشغيل لا يزال جاريًا. تحقق من مدير حزم النظام قبل المحاولة مجددًا."
+
 msgid "Phone webcam"
 msgstr "كاميرا الهاتف للويب"
 

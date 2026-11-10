@@ -9966,6 +9966,18 @@ msgstr "वर्चुअल कैमरा कॉन्फ़िगर नह
 msgid "Virtual camera setup is already in progress."
 msgstr "वर्चुअल कैमरा सेटअप पहले से चल रहा है।"
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "v4l2loopback वेबकैम ड्राइवर मौजूद नहीं है। क्या इसे अभी स्थापित और सेट अप करें?"
+
+msgid "Install and set up"
+msgstr "स्थापित और सेट अप करें"
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr "कृपया सिस्टम पैकेज प्रबंधक से v4l2loopback ड्राइवर स्थापित करें।"
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr "सिस्टम में ड्राइवर की स्थापना अभी भी चल रही हो सकती है। दोबारा प्रयास करने से पहले सिस्टम पैकेज प्रबंधक की जाँच करें।"
+
 msgid "Phone webcam"
 msgstr "फ़ोन वेबकैम"
 

@@ -42,6 +42,7 @@ def test_actual_desktop_stage_contains_exact_selected_modules_and_resolves_all_r
     assert (runtime / 'magnolie_media_offer.py').exists() is photo
     assert (runtime / 'magnolie_phone_webcam.py').exists() is camera
     assert (runtime / 'magnolie_phone_camera_setup.py').exists() is camera
+    assert (runtime / 'magnolie_phone_camera_install.py').exists() is camera
     assert json.loads((data / 'build-config.json').read_text())['phoneFeatures'] == selected
     result = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'werkzeuge/runtime_pruefen.py'), str(bindir)],
         cwd=tmp_path, capture_output=True, text=True, timeout=30)

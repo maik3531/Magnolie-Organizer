@@ -10187,6 +10187,18 @@ msgstr "Virtuální kameru se nepodařilo nastavit."
 msgid "Virtual camera setup is already in progress."
 msgstr "Nastavování virtuální kamery již probíhá."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "Chybí ovladač webkamery v4l2loopback. Chcete jej nyní nainstalovat a nastavit?"
+
+msgid "Install and set up"
+msgstr "Nainstalovat a nastavit"
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr "Nainstalujte ovladač v4l2loopback pomocí systémového správce balíčků."
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr "Instalace ovladače možná stále probíhá. Před dalším pokusem zkontrolujte systémového správce balíčků."
+
 msgid "Phone webcam"
 msgstr "Webkamera telefonu"
 

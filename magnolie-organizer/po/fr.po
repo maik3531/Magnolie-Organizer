@@ -10465,6 +10465,18 @@ msgstr "Impossible de configurer la caméra virtuelle."
 msgid "Virtual camera setup is already in progress."
 msgstr "La configuration de la caméra virtuelle est déjà en cours."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "Le pilote de webcam v4l2loopback est absent. Voulez-vous l’installer et le configurer maintenant ?"
+
+msgid "Install and set up"
+msgstr "Installer et configurer"
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr "Veuillez installer le pilote v4l2loopback avec le gestionnaire de paquets du système."
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr "L’installation du pilote est peut-être encore en cours. Vérifiez le gestionnaire de paquets du système avant de réessayer."
+
 msgid "Phone webcam"
 msgstr "Webcam du téléphone"
 

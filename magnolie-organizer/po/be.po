@@ -10231,6 +10231,18 @@ msgstr "Не ўдалося наладзіць віртуальную камер
 msgid "Virtual camera setup is already in progress."
 msgstr "Наладжванне віртуальнай камеры ўжо ідзе."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "Драйвер вэб-камеры v4l2loopback адсутнічае. Усталяваць і наладзіць яго зараз?"
+
+msgid "Install and set up"
+msgstr "Усталяваць і наладзіць"
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr "Усталюйце драйвер v4l2loopback з дапамогай сістэмнага менеджара пакетаў."
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr "Магчыма, усталяванне драйвера яшчэ працягваецца. Перад паўторнай спробай праверце сістэмны менеджар пакетаў."
+
 msgid "Phone webcam"
 msgstr "Вэб-камера тэлефона"
 

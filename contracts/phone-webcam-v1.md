@@ -1,6 +1,6 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
-## Explicit Linux driver setup (Refs #515)
+## Explicit Linux driver setup and confirmed installation (Refs #515, #520)
 
 Only an explicit Advanced-functions Enable/prepare with an original connected
 Notes parent may prepare the host driver. Status, startup, KDE-only selection,
@@ -9,8 +9,31 @@ inventory uses only virtual sysfs nodes and metadata-only QUERYCAP on a held
 read-only descriptor; physical cameras, frame buffers and format changes are
 excluded. The actual capture output still requires its original native owner.
 
-When the current kernel has no `v4l2loopback` module, the UI names that driver as
-required; it does not install packages. An installed but unavailable output is
+When the current kernel has no `v4l2loopback` module, a supported host with native
+PackageKit integration gets an explicit install-and-set-up question. A one-use
+native offer (60 seconds, exact original Notes parents) is required in addition
+to the normal system authorization. Cancel, provider change, stale offers or
+context loss cannot start installation. Package names, repositories and commands
+are never supplied by the renderer. Debian/Ubuntu and Arch-family hosts resolve
+only `v4l2loopback-dkms` from their existing repositories, restricted to a single
+newest architecture-appropriate result. The native PackageKit client keeps polkit
+interaction enabled and installs with ONLY_TRUSTED, without adding repositories,
+importing signing keys or performing a general upgrade. The transaction deadline
+is 600 seconds with native cancellation. An unconfirmed timeout is latched:
+there is no automatic retry or rollback claim. Package success alone is not a
+current-kernel-module or capture proof; setup and inventory are checked again
+under the same original context. Missing kernel headers, module-signing/boot or
+backend problems are not papered over by a successful package transaction.
+
+An unknown AppImage host, unavailable PackageKit integration, ambiguous/missing
+package or failed installation gets a manual system-package-manager hint naming
+`v4l2loopback`; the AppImage never guesses arbitrary distro commands. Existing
+usable outputs and the separate installed-driver setup continue to work without
+PackageKit. The DEB declares `v4l2loopback-dkms` only as Recommends, never Depends,
+and only if its actual staged composition contains the optional webcam feature.
+No install hook starts phone capture or performs Magnolie's driver setup.
+
+An installed but unavailable output is
 prepared with normal polkit administrator authorization. Isolated system Python
 executes a fixed standard-library-only operation, not a user-writable script or
 renderer-supplied code/path. The only native argument is the original monotonic
@@ -32,10 +55,10 @@ remain independently mandatory.
 Driver/probe/administrator failure returns typed UI status without camera choices.
 Setup is single-flight and original Notes context is rechecked around native IO.
 Administrative time is bounded inside the privileged operation and outside it;
-only the prepare IPC/UI wait is extended to cover that authorized interaction.
+only the prepare and explicitly confirmed installation IPC/UI waits are extended.
 Other request deadlines are unchanged. Unit tests use real private test files
-and controlled command adapters, never host module/configuration changes. Actual
-native system authorization, boot autoload and OBS/phone acceptance remain separate
+and controlled command/PackageKit adapters, never host package/module/configuration changes. Actual
+native package installation, system authorization, boot autoload and OBS/phone acceptance remain separate
 from these source/host proofs. No package was installed or published for them.
 
 ## Scope and current status

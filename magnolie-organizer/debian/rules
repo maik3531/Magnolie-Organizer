@@ -64,6 +64,12 @@ override_dh_install:
 	fi
 	python3 -I -B werkzeuge/phone_features.py debian/magnolie-organizer/usr/bin debian/magnolie-organizer/usr/share/magnolie-organizer
 
+# Nur ein tatsächlich mit Webcam gebautes DEB empfiehlt den optionalen Treiber.
+# Keine feste Abhängigkeit und keine Modul-/Capture-Aktivierung beim Installieren.
+override_dh_gencontrol:
+	set -e; empfiehlt=$$(python3 -I -B werkzeuge/debian_webcam_recommends.py debian/magnolie-organizer/usr/share/magnolie-organizer); \
+	  dh_gencontrol -- -Vmagnolie:WebcamRecommends="$$empfiehlt"
+
 override_dh_builddeb:
 	python3 -I -B werkzeuge/runtime_pruefen.py debian/magnolie-organizer/usr/bin
 	python3 werkzeuge/release_sources.py binary debian/magnolie-organizer/usr/share/magnolie-organizer

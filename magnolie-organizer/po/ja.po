@@ -10081,6 +10081,18 @@ msgstr "仮想カメラを設定できませんでした。"
 msgid "Virtual camera setup is already in progress."
 msgstr "仮想カメラの設定はすでに進行中です。"
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "ウェブカメラ用の v4l2loopback ドライバーがありません。今すぐインストールして設定しますか？"
+
+msgid "Install and set up"
+msgstr "インストールして設定"
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr "システムのパッケージマネージャーで v4l2loopback ドライバーをインストールしてください。"
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr "システムでドライバーのインストールがまだ進行中の可能性があります。再試行する前にシステムのパッケージマネージャーを確認してください。"
+
 msgid "Phone webcam"
 msgstr "スマートフォンのウェブカメラ"
 

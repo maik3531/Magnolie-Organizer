@@ -9691,6 +9691,18 @@ msgstr "无法配置虚拟摄像头。"
 msgid "Virtual camera setup is already in progress."
 msgstr "虚拟摄像头设置已在进行中。"
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "缺少 v4l2loopback 网络摄像头驱动程序。是否立即安装并设置？"
+
+msgid "Install and set up"
+msgstr "安装并设置"
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr "请使用系统软件包管理器安装 v4l2loopback 驱动程序。"
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr "系统驱动程序的安装可能仍在进行。重试前请检查系统软件包管理器。"
+
 msgid "Phone webcam"
 msgstr "手机网络摄像头"
 

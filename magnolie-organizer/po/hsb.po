@@ -10341,6 +10341,18 @@ msgstr "Wirtuelna kamera njeda so zarjadować."
 msgid "Virtual camera setup is already in progress."
 msgstr "Wirtuelna kamera so hižo zarjaduje."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "Ćěrjak webkamery v4l2loopback faluje. Ma so nětko instalować a zarjadować?"
+
+msgid "Install and set up"
+msgstr "Instalować a zarjadować"
+
+msgid "Please install the v4l2loopback driver using the system package manager."
+msgstr "Prošu instalujće ćěrjak v4l2loopback ze systemowym zrjadowakom paketow."
+
+msgid "The system driver installation may still be running. Check the system package manager before trying again."
+msgstr "Instalacija ćěrjaka snano hišće běži. Přepruwujće systemowy zrjadowak paketow, prjedy hač hišće raz spytaće."
+
 msgid "Phone webcam"
 msgstr "Webkamera telefona"
 

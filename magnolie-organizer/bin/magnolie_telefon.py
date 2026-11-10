@@ -2962,13 +2962,13 @@ class PhoneService:
         if type(request) is not dict or type(request.get('action')) is not str:
             raise ValueError('invalid webcam action')
         fields = {'prepare': {'provider'}, 'start': {'action_token', 'choice_token', 'muted', 'front'},
-            'cancel': {'action_token'}, 'stop': {'lease'}}
+            'cancel': {'action_token'}, 'stop': {'lease'}, 'install_driver': {'install_token'}}
         action = request['action']
         if action not in fields or set(request) != fields[action] | {'action'}:
             raise ValueError('invalid webcam action')
         if action == 'prepare' and request['provider'] not in ('auto', 'notes', 'kdeconnect'):
             raise ValueError('invalid webcam provider')
-        for key in ('action_token', 'choice_token', 'lease'):
+        for key in ('action_token', 'choice_token', 'lease', 'install_token'):
             if key in request and (type(request[key]) is not str or not re.fullmatch(r'[a-f0-9]{64}', request[key])):
                 raise ValueError('invalid webcam token')
         if action == 'start' and any(type(request[key]) is not bool for key in ('muted', 'front')):
@@ -2994,6 +2994,7 @@ class PhoneService:
                 self._native_webcam_ui = manager
         action = request['action']
         if action == 'prepare': return manager.prepare(request['provider'])
+        if action == 'install_driver': return manager.install_driver(request['install_token'])
         if action == 'start': return manager.start(request['action_token'], request['choice_token'], request['muted'], request['front'])
         if action == 'cancel': return manager.cancel(request['action_token'])
         return manager.stop(request['lease'])

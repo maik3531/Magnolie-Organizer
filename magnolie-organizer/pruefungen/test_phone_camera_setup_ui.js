@@ -10,9 +10,9 @@ const begin = source.indexOf("  function kdeMedienAnfordern(");
 const end = source.indexOf("  const kdeDateisystemAnsichten", begin);
 assert(begin > 0 && end > begin);
 
-async function scenario(reason) {
+async function scenario(reason, installMode = "") {
   const dom = new JSDOM("<!doctype html><body></body>");
-  const document = dom.window.document, calls = [], timers = [], pending = new Map();
+  const document = dom.window.document, calls = [], timers = [], pending = new Map(), prompts = [];
   const el = (tag, css, text) => {
     const node = document.createElement(tag);
     if (css) node.className = css;
@@ -27,8 +27,16 @@ async function scenario(reason) {
     calls.push(message);
     const waiter = pending.get(message.requestId);
     if (waiter) {
-      const value = message.request?.action === "prepare"
+      if (message.request?.action === "install_driver") assert(document.body.textContent.includes("Please wait …"));
+      const ready = { included: true, enabled: false, phase: "off", reason: "", lease: "", action: "a".repeat(64),
+        choices: [{ token: "b".repeat(64), phone: "Notes", device: "Controlled virtual camera" }] };
+      const value = message.request?.action === "install_driver"
+        ? installMode === "failed" || installMode === "pending"
+          ? { ...ready, action: "", choices: [], reason: installMode === "failed" ? "driver_installation_failed" : "driver_installation_pending" }
+          : ready
+        : message.request?.action === "prepare"
         ? { included: true, enabled: false, phase: "off", reason, lease: "", action: reason ? "" : "a".repeat(64),
+          ...(installMode ? { install_token: "d".repeat(64) } : {}),
           choices: reason ? [] : [{ token: "b".repeat(64), phone: "Notes", device: "Controlled virtual camera" }] }
         : message.request?.action === "start"
           ? { included: true, enabled: true, phase: "starting", lease: "c".repeat(64) }
@@ -38,8 +46,15 @@ async function scenario(reason) {
     return true;
   }};
   const build = new Function("document", "el", "knopf", "_", "crypto", "setTimeout", "clearTimeout",
-    "kdeMedienAnfragen", "Bruecke", "gesperrt", source.slice(begin, end) + "\nreturn baueTelefonWebcam;")(
-      document, el, knopf, text => text, crypto, timer, () => {}, pending, bridge, false);
+    "kdeMedienAnfragen", "Bruecke", "gesperrt", "frage", source.slice(begin, end) + "\nreturn baueTelefonWebcam;")(
+      document, el, knopf, text => text, crypto, timer, () => {}, pending, bridge, false, async (...args) => {
+        prompts.push(args);
+        assert.equal(calls.filter(call => call.request?.action === "install_driver").length, 0, "Install ran before consent");
+        assert(args[0].includes("v4l2loopback") && args[1] === "Install and set up" && args[2] === "Cancel");
+        if (installMode === "provider") root.querySelector("select").dispatchEvent(new dom.window.Event("change"));
+        if (installMode === "closed") root.remove();
+        return installMode !== "no";
+      });
   const root = el("details");
   Object.defineProperty(root, "open", { value: true });
   document.body.append(root); build(root);
@@ -51,9 +66,25 @@ async function scenario(reason) {
     await enable.run();
     assert.deepEqual(calls[0].request, { action: "prepare", provider: "auto" });
     assert(timers.includes(160000), "Administrator setup was given only the normal short request timeout");
+    if (installMode) {
+      assert.equal(prompts.length, 1);
+      const installing = calls.filter(call => call.request?.action === "install_driver");
+      assert(!calls.some(call => call.request?.action === "start"), "Installation started camera capture");
+      if (["no", "provider", "closed"].includes(installMode)) {
+        assert.equal(installing.length, 0);
+        assert(calls.some(call => call.request?.action === "cancel" && call.request.action_token === "d".repeat(64)));
+      } else {
+        assert.deepEqual(installing.map(call => call.request), [{ action: "install_driver", install_token: "d".repeat(64) }]);
+        assert(timers.includes(800000));
+        if (installMode === "failed") assert(root.textContent.includes("Please install the v4l2loopback driver"));
+        if (installMode === "pending") assert(enable.disabled && root.textContent.includes("may still be running"));
+        if (installMode === "yes") assert(!start.disabled);
+      }
+      return;
+    }
     if (reason) {
       assert(start.disabled && root.querySelectorAll("select")[1].hidden);
-      if (reason === "driver_not_installed") assert(root.textContent.includes("v4l2loopback kernel driver"));
+      if (reason === "driver_not_installed") assert(root.textContent.includes("Please install the v4l2loopback driver"));
       if (reason === "driver_authentication_cancelled") assert(root.textContent.includes("System authorization was cancelled."));
       assert.equal(calls.length, 1);
     } else {
@@ -67,5 +98,6 @@ async function scenario(reason) {
 
 (async () => {
   for (const reason of ["driver_not_installed", "driver_authentication_cancelled", "driver_setup_failed", ""]) await scenario(reason);
-  console.log("PASS: 4 actual Advanced webcam UI setup scenarios; no device/root/capture IO");
+  for (const mode of ["yes", "no", "provider", "closed", "failed", "pending"]) await scenario("driver_not_installed", mode);
+  console.log("PASS: 10 actual Advanced webcam UI setup/install scenarios; no package/device/root/capture IO");
 })().catch(error => { console.error(error); process.exitCode = 1; });

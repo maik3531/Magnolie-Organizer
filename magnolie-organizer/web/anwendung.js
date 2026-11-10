@@ -29772,6 +29772,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return new Promise(resolve => {
       const requestId = crypto.randomUUID();
       const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); },
+        cmd === "telefon_webcam_aktion" && args.request?.action === "install_driver" ? 800000 :
         cmd === "telefon_webcam_aktion" && args.request?.action === "prepare" ? 160000 :
         cmd === "kde_player_datei" ? 120000 : cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
       kdeMedienAnfragen.set(requestId, { resolve, timer });
@@ -29797,16 +29798,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const front = el("input"); front.type = "checkbox";
     const muteLabel = el("label"); muteLabel.append(muted, document.createTextNode(_("Mute microphone")));
     const frontLabel = el("label"); frontLabel.append(front, document.createTextNode(_("Use front camera")));
-    let action = "", lease = "", busy = false, enabled = false, included = true, timer = null;
+    let action = "", installOffer = "", lease = "", busy = false, confirming = false, installationPending = false, revision = 0, enabled = false, included = true, timer = null;
     const visible = () => block.isConnected && wurzel.open && !gesperrt;
     const reasonText = reason => ({
       virtual_camera_missing: _("An existing virtual camera driver is required. Nothing was installed."),
-      driver_not_installed: _("For phone webcam, install the v4l2loopback kernel driver."),
+      driver_not_installed: _("Please install the v4l2loopback driver using the system package manager."),
       driver_probe_unavailable: _("The virtual camera driver could not be checked."),
       driver_authentication_unavailable: _("System authorization is unavailable."),
       driver_authentication_cancelled: _("System authorization was cancelled."),
       driver_setup_failed: _("The virtual camera could not be configured."),
       driver_setup_busy: _("Virtual camera setup is already in progress."),
+      driver_installation_unavailable: _("Please install the v4l2loopback driver using the system package manager."),
+      driver_installation_failed: _("Please install the v4l2loopback driver using the system package manager."),
+      driver_installation_pending: _("The system driver installation may still be running. Check the system package manager before trying again."),
       compatible_extension_required: _("KDE Connect requires a compatible webcam extension."),
       phone_unavailable: _("Connect Magnolie Notes over WLAN first."),
       permission_denied: _("Camera or microphone permission was denied on the phone."),
@@ -29816,8 +29820,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       not_in_build: _("Unavailable")
     })[reason] || _("Unavailable");
     function controls() {
-      prepare.disabled = busy || enabled || !included;
-      start.disabled = busy || enabled || !action || !choices.value;
+      prepare.disabled = busy || confirming || installationPending || enabled || !included;
+      start.disabled = busy || confirming || enabled || !action || !choices.value;
       stop.disabled = busy || !lease;
       provider.disabled = busy || enabled;
       choices.disabled = busy || enabled;
@@ -29825,6 +29829,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     function apply(value) {
       included = value.included !== false;
+      installationPending = value.reason === "driver_installation_pending";
       enabled = value.enabled === true; lease = value.lease || "";
       status.textContent = value.reason ? reasonText(value.reason) : value.phase === "active" ? _("Active") :
         value.phase === "starting" ? _("Waiting for phone permission and capture …") :
@@ -29832,7 +29837,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       controls();
     }
     async function request(payload) {
-      if (busy) return;
+      if (busy || confirming) return;
       busy = true; controls();
       const result = await kdeMedienAnfordern(payload ? "telefon_webcam_aktion" : "telefon_webcam_stand",
         payload ? { request: payload } : {});
@@ -29843,15 +29848,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       return result.webcam;
     }
     function discard() {
-      const old = action; action = ""; choices.replaceChildren(); choices.hidden = true; controls();
+      revision++;
+      const old = action, oldInstall = installOffer; action = ""; installOffer = ""; choices.replaceChildren(); choices.hidden = true; controls();
       if (old) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: old}});
+      if (oldInstall) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: oldInstall}});
     }
     const prepare = knopf(_("Enable"), "klein", async () => {
       discard();
-      const value = await request({action: "prepare", provider: provider.value});
-      if (!visible()) {
+      const original = revision;
+      let value = await request({action: "prepare", provider: provider.value});
+      if (!visible() || original !== revision) {
         if (value?.action) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: value.action}});
+        if (value?.install_token) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: value.install_token}});
         return;
+      }
+      if (value?.reason === "driver_not_installed" && value.install_token) {
+        installOffer = value.install_token;
+        confirming = true; controls();
+        let accepted = false;
+        try {
+          accepted = await frage(_("The v4l2loopback webcam driver is missing. Install and set it up now?"), _("Install and set up"), _("Cancel"));
+        } finally { confirming = false; controls(); }
+        if (!accepted || !visible() || original !== revision || !installOffer) { discard(); return; }
+        const token = installOffer; installOffer = "";
+        status.textContent = _("Please wait …");
+        value = await request({action: "install_driver", install_token: token});
+        if (!visible() || original !== revision) {
+          if (value?.action) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: value.action}});
+          return;
+        }
       }
       if (value?.action && Array.isArray(value.choices)) {
         action = value.action;
