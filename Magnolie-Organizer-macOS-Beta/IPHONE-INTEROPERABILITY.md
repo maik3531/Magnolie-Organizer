@@ -1,6 +1,13 @@
-# iPhone-Notizen und Zeichnungen: untersuchte Übertragungswege
+# iPhone-Anbindung: vorhandene Apps und Übertragungswege
 
-Stand: 2026-11-08, Arbeit zu #121. Untersuchung öffentlicher Quellen;
+Auftragsumfang präzisiert am 2026-11-10, Arbeit zu #121: Nutzbare
+iPhone-Anbindungen über vorhandene Apps, insbesondere KDE Connect, bleiben
+Teil des Auftrags. Eine eigene Notes-App für das iPhone wird nicht umgesetzt.
+Die folgenden Hinweise zum Export von Apple-Notizen beschreiben optionale
+Dateiwege über vorhandene Apps.
+
+Technischer Quellenstand: 2026-11-08; KDE-iOS-HEAD am 2026-11-10 erneut auf
+denselben unten genannten Commit geprüft. Untersuchung öffentlicher Quellen;
 noch kein bestandener iPhone–Organizer-Gerätetest und keine vollständige
 Apple-Notizen-Synchronisation.
 
@@ -25,6 +32,15 @@ Geprüft wurde das [offizielle KDE-Repository, Commit
   Ein ständig erreichbarer Hintergrundabgleich wird nicht zugesichert.
 
 Diese Quellprüfung bestätigt keine bestimmte installierte Store-Binärversion.
+
+## Weitere vorhandene iPhone-Fähigkeiten prüfen
+
+Der geprüfte Quellbaum enthält außerdem Plugins für RemoteInput, RunCommand,
+Battery, Ping, FindMyPhone und Presenter. Für den Organizer sind die jeweilige
+Senderichtung, ausgehandelten Fähigkeiten und verfügbaren Desktop-Adapter
+zu prüfen. Das Vorhandensein eines Plugins ist keine bestandene Magnolie-
+Integration. Neben der Dateiübertragung bleiben solche nutzbaren Verbindungen
+im Prüfumfang; ein pauschaler Ausschluss der iPhone-Anbindung gilt nicht.
 
 ## Mac-Empfänger und Alternative für ältere Macs
 

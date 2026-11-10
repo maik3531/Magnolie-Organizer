@@ -5,6 +5,12 @@ Reference release `067c38934b539943d8e1720abafd8a80b401d797`; current port snaps
 
 ## Inventory coverage
 
+Scope clarification (2026-11-10, #121): usable iPhone connections through
+existing apps, especially KDE Connect, remain part of the porting task.
+A dedicated Notes app for iPhone is excluded. Organizer note features remain in
+the acceptance scope. File/media transfer and further actually supported peer
+capabilities require separate integration and native device evidence.
+
 - All 8 declared primary sections and 13 settings pages; all 35 persisted root model keys.
 - Union 206 outer native wire commands from every tagged web JS literal, published Python dispatcher, published Windows typed contract plus current port allowlists. Each command has its own row in [command appendix](BRIDGE-ACCEPTANCE-2.0.30.md); source sites/status also in JSON.
 - All 1,364 mechanically detected named JS functions, 210 literal MCP tools, 122 App callbacks and 64 tagged contract files indexed in the scratch source-evidence JSON (not a committed dependency). Named helpers are not separate user features and literal MCP names do not cover computed action enums by themselves.

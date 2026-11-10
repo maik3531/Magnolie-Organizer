@@ -12,8 +12,11 @@ Das ist eine Komponentenabnahme; die unten offenen Funktionen bleiben offen.
 ## Ziel und verbindliche Nachweise
 
 Aktueller Auftrag: Organizer für Mac und Android-Tablet samt Handbuch.
-Notes-Begleitapps und die Übernahme von iPhone-Notizen sind auf Nutzerwunsch
-vorerst zurückgestellt.
+Die nutzbare iPhone-Anbindung über vorhandene Apps, insbesondere KDE Connect,
+gehört weiterhin zum Auftrag. Eine eigene Notes-App für das iPhone wird nicht
+umgesetzt. Die Notizfunktionen im Organizer bleiben im Funktionsprüfumfang.
+Vorhandene Datei-/Medienübertragung und weitere tatsächlich unterstützte
+KDE-Connect-Fähigkeiten sind je Gegenstelle zu integrieren und nativ zu prüfen.
 
 Beide Anwendungen sollen stabil und flüssig bedienbar sein. Unterstützte
 Funktionen müssen tatsächlich arbeiten; fehlende native Anschlüsse dürfen keine
