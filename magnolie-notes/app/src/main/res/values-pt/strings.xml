@@ -440,4 +440,9 @@
     <string name="medien_sync_direction_export">PC → telefone</string>
     <string name="medien_empfang_erlauben">Permitir a receção na galeria…</string>
     <string name="medien_sync_nur_fotos">Somente fotografias</string>
+    <string name="medien_pc_archiv_titel">Escolher um ficheiro recebido do PC para uma cópia de recuperação</string>
+    <string name="medien_pc_archiv_kopie">Criar cópia de recuperação</string>
+    <string name="medien_pc_archiv_hinweis">Copia um ficheiro selecionado recebido do PC para o armazenamento local cifrado de recuperação. Os originais permanecem inalterados. Requer um livro guardado e desbloqueado e a proteção do lixo ativada. Os conteúdos multimédia não são substituídos nem eliminados.</string>
+    <string name="medien_pc_archiv_fertig">Cópia de recuperação verificada. O original permanece inalterado.</string>
+    <string name="medien_pc_archiv_leer">Não há ficheiros publicados do PC disponíveis para este dispositivo ligado e tipo de conteúdo multimédia.</string>
 </resources>

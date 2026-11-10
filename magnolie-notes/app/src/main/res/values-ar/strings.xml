@@ -482,4 +482,9 @@
     <string name="medien_sync_direction_export">الكمبيوتر → الهاتف</string>
     <string name="medien_empfang_erlauben">السماح بالاستقبال في المعرض…</string>
     <string name="medien_sync_nur_fotos">الصور الفوتوغرافية فقط</string>
+    <string name="medien_pc_archiv_titel">اختيار ملف مستلم من الحاسوب لإنشاء نسخة استرداد</string>
+    <string name="medien_pc_archiv_kopie">إنشاء نسخة استرداد</string>
+    <string name="medien_pc_archiv_hinweis">ينسخ ملفًا محددًا مستلمًا من الحاسوب إلى مخزن الاسترداد المحلي المشفر. تبقى الملفات الأصلية دون تغيير. يتطلب كتابًا محفوظًا وغير مقفل مع تفعيل حماية سلة المهملات. لا يستبدل الوسائط ولا يحذفها.</string>
+    <string name="medien_pc_archiv_fertig">تم التحقق من نسخة الاسترداد. بقي الملف الأصلي دون تغيير.</string>
+    <string name="medien_pc_archiv_leer">لا توجد ملفات منشورة من الحاسوب لهذا الجهاز المتصل ونوع الوسائط.</string>
 </resources>

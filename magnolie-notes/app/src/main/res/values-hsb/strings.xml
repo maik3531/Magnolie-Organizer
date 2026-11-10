@@ -454,4 +454,9 @@
     <string name="medien_sync_direction_export">PC → telefon</string>
     <string name="medien_empfang_erlauben">Přijimanje do galerije dowolić…</string>
     <string name="medien_sync_nur_fotos">Jenož fota</string>
+    <string name="medien_pc_archiv_titel">Přijatu PC-dataju za wobnowjensku kopiju wubrać</string>
+    <string name="medien_pc_archiv_kopie">Wobnowjensku kopiju wutworić</string>
+    <string name="medien_pc_archiv_hinweis">Kopěruje wubranu přijatu PC-dataju do lokalneho zaklučowaneho wobnowjenskeho składowaka. Originaly njezměnjene wostanu. Wužaduje sej składowanu wotblokowanu knihu a zapinany škit papjernika. Medije so ani njenarunuja ani njehašeja.</string>
+    <string name="medien_pc_archiv_fertig">Wobnowjenska kopija je přepruwowana. Original je njezměnjeny.</string>
+    <string name="medien_pc_archiv_leer">Za tutón zwjazany grat a typ medijow njejsu žane wozjewjene PC-dataje k dispoziciji.</string>
 </resources>

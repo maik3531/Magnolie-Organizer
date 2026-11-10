@@ -453,4 +453,9 @@
     <string name="medien_sync_direction_export">PC → téléphone</string>
     <string name="medien_empfang_erlauben">Autoriser la réception dans la galerie…</string>
     <string name="medien_sync_nur_fotos">Photos uniquement</string>
+    <string name="medien_pc_archiv_titel">Choisir un fichier reçu du PC pour une copie de récupération</string>
+    <string name="medien_pc_archiv_kopie">Créer une copie de récupération</string>
+    <string name="medien_pc_archiv_hinweis">Copie un fichier sélectionné reçu du PC dans le stockage local chiffré de récupération. Les originaux restent inchangés. Nécessite un livre enregistré et déverrouillé ainsi que la protection de la corbeille activée. Aucun média ne sera remplacé ni supprimé.</string>
+    <string name="medien_pc_archiv_fertig">Copie de récupération vérifiée. Le fichier original est inchangé.</string>
+    <string name="medien_pc_archiv_leer">Aucun fichier publié du PC pour cet appareil connecté et ce type de média.</string>
 </resources>

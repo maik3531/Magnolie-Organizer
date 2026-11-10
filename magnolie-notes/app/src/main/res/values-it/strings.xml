@@ -449,4 +449,9 @@
     <string name="medien_sync_direction_export">PC → telefono</string>
     <string name="medien_empfang_erlauben">Consenti la ricezione nella galleria…</string>
     <string name="medien_sync_nur_fotos">Solo foto</string>
+    <string name="medien_pc_archiv_titel">Scegli un file ricevuto dal PC per una copia di ripristino</string>
+    <string name="medien_pc_archiv_kopie">Crea copia di ripristino</string>
+    <string name="medien_pc_archiv_hinweis">Copia un file selezionato ricevuto dal PC nello spazio locale cifrato di ripristino. Gli originali restano invariati. Richiede un libro salvato e sbloccato e la protezione del cestino attivata. I contenuti multimediali non vengono sostituiti né eliminati.</string>
+    <string name="medien_pc_archiv_fertig">Copia di ripristino verificata. Il file originale è invariato.</string>
+    <string name="medien_pc_archiv_leer">Nessun file pubblicato dal PC è disponibile per questo dispositivo collegato e tipo di contenuto multimediale.</string>
 </resources>

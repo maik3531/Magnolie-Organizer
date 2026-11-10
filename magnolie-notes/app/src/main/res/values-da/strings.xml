@@ -432,4 +432,9 @@
     <string name="medien_sync_direction_export">Pc → telefon</string>
     <string name="medien_empfang_erlauben">Tillad modtagelse i galleriet…</string>
     <string name="medien_sync_nur_fotos">Kun fotos</string>
+    <string name="medien_pc_archiv_titel">Vælg en modtaget pc-fil til en gendannelseskopi</string>
+    <string name="medien_pc_archiv_kopie">Opret gendannelseskopi</string>
+    <string name="medien_pc_archiv_hinweis">Kopierer en valgt modtaget pc-fil til det lokale krypterede gendannelseslager. Originalerne forbliver uændrede. Kræver en gemt, oplåst bog og aktiveret papirkurvsbeskyttelse. Medier hverken erstattes eller slettes.</string>
+    <string name="medien_pc_archiv_fertig">Gendannelseskopien er kontrolleret. Originalen er uændret.</string>
+    <string name="medien_pc_archiv_leer">Der er ingen offentliggjorte pc-filer til denne tilsluttede enhed og medietype.</string>
 </resources>

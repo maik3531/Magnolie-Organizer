@@ -426,4 +426,9 @@
     <string name="medien_sync_direction_export">Pc → telefoon</string>
     <string name="medien_empfang_erlauben">Ontvangst in de galerij toestaan…</string>
     <string name="medien_sync_nur_fotos">Alleen foto’s</string>
+    <string name="medien_pc_archiv_titel">Kies een ontvangen pc-bestand voor een herstelkopie</string>
+    <string name="medien_pc_archiv_kopie">Herstelkopie maken</string>
+    <string name="medien_pc_archiv_hinweis">Kopieert een geselecteerd ontvangen pc-bestand naar de lokale versleutelde herstelopslag. Originelen blijven ongewijzigd. Vereist een opgeslagen, ontgrendeld boek en ingeschakelde prullenbakbeveiliging. Media worden niet vervangen of verwijderd.</string>
+    <string name="medien_pc_archiv_fertig">Herstelkopie gecontroleerd. Het origineel is ongewijzigd.</string>
+    <string name="medien_pc_archiv_leer">Er zijn geen gepubliceerde pc-bestanden voor dit verbonden apparaat en mediatype beschikbaar.</string>
 </resources>

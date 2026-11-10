@@ -433,4 +433,9 @@
     <string name="medien_sync_direction_export">PC → telefon</string>
     <string name="medien_empfang_erlauben">Galeriye alıma izin ver…</string>
     <string name="medien_sync_nur_fotos">Yalnızca fotoğraflar</string>
+    <string name="medien_pc_archiv_titel">Kurtarma kopyası için bilgisayardan alınan bir dosya seçin</string>
+    <string name="medien_pc_archiv_kopie">Kurtarma kopyası oluştur</string>
+    <string name="medien_pc_archiv_hinweis">Bilgisayardan alınan seçili dosyayı yerel şifreli kurtarma deposuna kopyalar. Asıl dosyalar değişmez. Kaydedilmiş, kilidi açılmış bir kitap ve etkin çöp kutusu koruması gerektirir. Medya değiştirilmez veya silinmez.</string>
+    <string name="medien_pc_archiv_fertig">Kurtarma kopyası doğrulandı. Asıl dosya değişmedi.</string>
+    <string name="medien_pc_archiv_leer">Bu bağlı cihaz ve medya türü için yayımlanmış bilgisayar dosyası yok.</string>
 </resources>

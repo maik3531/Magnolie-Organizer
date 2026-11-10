@@ -432,4 +432,9 @@
     <string name="medien_sync_direction_export">PC → telefon</string>
     <string name="medien_empfang_erlauben">Tillat mottak i galleriet…</string>
     <string name="medien_sync_nur_fotos">Bare fotografier</string>
+    <string name="medien_pc_archiv_titel">Velg en mottatt PC-fil for en gjenopprettingskopi</string>
+    <string name="medien_pc_archiv_kopie">Opprett gjenopprettingskopi</string>
+    <string name="medien_pc_archiv_hinweis">Kopierer en valgt mottatt PC-fil til det lokale krypterte gjenopprettingslageret. Originalene forblir uendret. Krever en lagret, ulåst bok og aktivert papirkurvbeskyttelse. Medier blir verken erstattet eller slettet.</string>
+    <string name="medien_pc_archiv_fertig">Gjenopprettingskopien er kontrollert. Originalen er uendret.</string>
+    <string name="medien_pc_archiv_leer">Ingen publiserte PC-filer er tilgjengelige for denne tilkoblede enheten og medietypen.</string>
 </resources>

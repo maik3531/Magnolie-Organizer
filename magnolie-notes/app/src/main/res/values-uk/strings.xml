@@ -461,4 +461,9 @@
     <string name="medien_sync_direction_export">ПК → телефон</string>
     <string name="medien_empfang_erlauben">Дозволити приймання до галереї…</string>
     <string name="medien_sync_nur_fotos">Лише фотографії</string>
+    <string name="medien_pc_archiv_titel">Вибрати отриманий з ПК файл для копії відновлення</string>
+    <string name="medien_pc_archiv_kopie">Створити копію відновлення</string>
+    <string name="medien_pc_archiv_hinweis">Копіює вибраний отриманий з ПК файл до локального зашифрованого сховища відновлення. Оригінали не змінюються. Потрібні збережена розблокована книга й увімкнений захист кошика. Медіафайли не замінюються та не видаляються.</string>
+    <string name="medien_pc_archiv_fertig">Копію відновлення перевірено. Оригінал не змінено.</string>
+    <string name="medien_pc_archiv_leer">Для цього підключеного пристрою й типу медіа немає опублікованих файлів із ПК.</string>
 </resources>

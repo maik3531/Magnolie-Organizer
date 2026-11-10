@@ -412,4 +412,9 @@
     <string name="medien_sync_direction_export">电脑 → 手机</string>
     <string name="medien_empfang_erlauben">允许接收到图库…</string>
     <string name="medien_sync_nur_fotos">仅照片</string>
+    <string name="medien_pc_archiv_titel">选择从电脑接收的文件以创建恢复副本</string>
+    <string name="medien_pc_archiv_kopie">创建恢复副本</string>
+    <string name="medien_pc_archiv_hinweis">将选定的电脑接收文件复制到本地加密恢复存储中，原文件保持不变。需要已保存并解锁的笔记本，以及已启用的回收站保护。不会替换或删除媒体文件。</string>
+    <string name="medien_pc_archiv_fertig">恢复副本已验证，原文件保持不变。</string>
+    <string name="medien_pc_archiv_leer">此已连接设备和媒体类型没有可用的已发布电脑文件。</string>
 </resources>

@@ -412,4 +412,9 @@
     <string name="medien_sync_direction_export">PC → スマートフォン</string>
     <string name="medien_empfang_erlauben">ギャラリーへの受信を許可…</string>
     <string name="medien_sync_nur_fotos">写真のみ</string>
+    <string name="medien_pc_archiv_titel">復元用コピーを作成する受信済みPCファイルを選択</string>
+    <string name="medien_pc_archiv_kopie">復元用コピーを作成</string>
+    <string name="medien_pc_archiv_hinweis">選択した受信済みPCファイルを、暗号化されたローカルの復元用ストレージにコピーします。元のファイルは変更されません。保存済みでロック解除されたブックと、有効なごみ箱保護が必要です。メディアの置換や削除は行いません。</string>
+    <string name="medien_pc_archiv_fertig">復元用コピーを検証しました。元のファイルは変更されていません。</string>
+    <string name="medien_pc_archiv_leer">この接続済みデバイスとメディアの種類に対応する公開済みPCファイルはありません。</string>
 </resources>

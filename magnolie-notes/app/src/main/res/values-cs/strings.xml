@@ -454,4 +454,9 @@
     <string name="medien_sync_direction_export">PC → telefon</string>
     <string name="medien_empfang_erlauben">Povolit příjem do galerie…</string>
     <string name="medien_sync_nur_fotos">Pouze fotografie</string>
+    <string name="medien_pc_archiv_titel">Vybrat přijatý soubor z počítače pro kopii k obnovení</string>
+    <string name="medien_pc_archiv_kopie">Vytvořit kopii k obnovení</string>
+    <string name="medien_pc_archiv_hinweis">Zkopíruje vybraný přijatý soubor z počítače do místního šifrovaného úložiště pro obnovení. Originály zůstanou nezměněné. Vyžaduje uloženou odemčenou knihu a zapnutou ochranu koše. Média se nenahrazují ani nemažou.</string>
+    <string name="medien_pc_archiv_fertig">Kopie k obnovení ověřena. Originál se nezměnil.</string>
+    <string name="medien_pc_archiv_leer">Pro toto připojené zařízení a typ médií nejsou dostupné žádné zveřejněné soubory z počítače.</string>
 </resources>
