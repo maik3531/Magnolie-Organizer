@@ -44,6 +44,7 @@
     <Compile Include="..\TrayAppearanceState.cs" Link="TrayAppearanceState.cs" />
     <Compile Include="..\PhoneCameraMediaChannel.cs" Link="PhoneCameraMediaChannel.cs" />
     <Compile Include="..\PhoneCameraParent.cs" Link="PhoneCameraParent.cs" />
+    <Compile Include="..\PhoneCameraControlBinding.cs" Link="PhoneCameraControlBinding.cs" />
     <Compile Include="..\TraySyncFrames.cs" Link="TraySyncFrames.cs" />
     <Compile Include="..\TrayVisualTest.cs" Link="TrayVisualTest.cs" />
     <Compile Include="..\NativeSyncActivity.cs" Link="NativeSyncActivity.cs" />

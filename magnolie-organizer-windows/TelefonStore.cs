@@ -762,6 +762,7 @@ internal sealed partial class TelefonStore
 
     internal string Enqueue(string peerId, string kind, JsonObject body, long ttlMs, long now, string transportPolicy = "any", string? actorRunId = null)
     {
+        if (PhoneCameraControl.IsReserved(kind, body)) throw new InvalidDataException("webcam_ephemeral_control_required");
         if (kind.StartsWith("device_status.", StringComparison.Ordinal) && (body.ContainsKey("identifiers") || TelefonProtocolContract.TryInteger(body["version"], out var statusVersion) && statusVersion == 4))
             throw new InvalidDataException("Device identifiers cannot enter a persistent queue.");
         if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
@@ -988,6 +989,7 @@ internal sealed partial class TelefonStore
     internal TelefonAck CommitIncoming(string peerId, JsonObject message, long now, Func<string, JsonObject, string?> authorize,
         bool deferAcceptance = false, bool reauthorizeDuplicates = false)
     {
+        if (PhoneCameraControl.IsReserved(message)) throw new InvalidDataException("webcam_ephemeral_control_required");
         if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
         string id;
         try { TelefonMessageContract.ValidateMessage(message, now, true); id = message["message_id"]!.GetValue<string>(); }

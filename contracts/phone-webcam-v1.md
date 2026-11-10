@@ -617,6 +617,39 @@ this exact original instance between real video/audio endpoints, wait for the
 mapped presentation time, and recheck original authority before native IO. No
 phone wire timestamps, existing Linux pacing, or product fallback were changed.
 
+The Windows authenticated parent now reserves v24 controls before ordinary
+status processing, durable rejection/dedupe, inbox or outbox handling (#528).
+Malformed string/floating aliases of version 24 are reserved too and cannot
+escape into the persistent fallback. Without an explicitly bound native owner,
+valid phone REQUEST controls receive only a bounded ephemeral `not_granted` ACK;
+phone REPORT controls are rejected as the wrong role. Bluetooth receives a
+rejection without activating webcam support or disrupting ordinary transport.
+
+`PhoneCameraControlBinding` binds one native owner's live guard and retirement
+signal to the exact original `TelefonConnection`. Packets cannot create it.
+Its handoff contains at most four immutable controls; overload retires only that
+owner. One original probe/request/nonce is claimed per binding and the fixed
+native session is supplied by the worker, never by incoming packets. Duplicate
+control IDs, old probes and controls from another exchange cannot be requeued or
+stop a replacement owner. Sixteen probe identities remain remembered on that
+parent; exhausting the bound rejects further probes rather than forgetting old
+authority. Explicit stop, parent close/disposal and original guard failure
+permanently retire the binding and wake a blocked reader. A broken native cleanup
+callback is retained as an error and cannot prevent parent transport cleanup.
+
+Bound outgoing report ACKs have a sixteen-entry in-memory identity history on
+the same parent. They never enter durable ACK/retry policy, and only their first
+observed status takes effect. A rejection retires only the original bound owner;
+a contradictory duplicate or late old-owner ACK cannot affect a replacement.
+An ACK means only queued control, never native readiness, capture permission or
+actual SEND. Eleven Windows parent groups pass, including an actual encrypted
+TCP parent → authenticated RunAsync dispatcher → native inbox → encrypted ACK
+exchange, database non-persistence, bounded ACK writer/queue admission, replay,
+old-owner isolation, original revocation and cleanup-callback failure.
+This attaches the reserved transport path, not the native UI activation, v24
+advertisement, productive listener/exchange worker, provider resolver or AV output.
+Those remain required before Windows may expose a usable phone webcam.
+
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It
 checks the authenticated global sequence and declared length before allocating

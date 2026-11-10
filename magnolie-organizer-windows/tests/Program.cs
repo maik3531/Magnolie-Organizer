@@ -115,6 +115,12 @@ runner.Add("Phone webcam parent / actual original encrypted writer and ordinary 
 runner.Add("Phone webcam parent / bounded original writer admission without parent loss", PhoneCameraParentTests.BoundedAdmissionAsync);
 runner.Add("Phone webcam parent / post-encryption guard and immutable control snapshot", PhoneCameraParentTests.RevocationAndSnapshotAsync);
 runner.Add("Phone webcam parent / actual post-write revocation and desktop role", PhoneCameraParentTests.PostWriteRevocationAsync);
+runner.Add("Phone webcam parent / authenticated reserved incoming TCP dispatcher", PhoneCameraParentTests.AuthenticatedIncomingAsync);
+runner.Add("Phone webcam parent / reserved rejection and no durable controls", PhoneCameraParentTests.ReservedRejectionAndStorageAsync);
+runner.Add("Phone webcam parent / bounded native control inbox", PhoneCameraParentTests.BoundedInboxAsync);
+runner.Add("Phone webcam parent / replay and old owner isolation", PhoneCameraParentTests.ReplayAndOldOwnerAsync);
+runner.Add("Phone webcam parent / owner revocation and bounded ACK", PhoneCameraParentTests.OwnerRevocationAndBoundedAckAsync);
+runner.Add("Phone webcam parent / broken native retirement cannot block parent cleanup", PhoneCameraParentTests.BrokenRetirementCallbackAsync);
 runner.Add("Phone webcam media / original binary AV socket and Python goldens", PhoneCameraMediaChannelTests.GoldensAsync);
 runner.Add("Phone webcam media / bounded envelope tamper replay and EOF", PhoneCameraMediaChannelTests.RejectionsAsync);
 runner.Add("Phone webcam media / authenticated packet grammar", PhoneCameraMediaChannelTests.PacketGrammarAsync);

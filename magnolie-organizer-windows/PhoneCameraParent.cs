@@ -12,6 +12,15 @@ internal static class PhoneCameraControl
     private static readonly string[] Base = ["version", "request_id", "nonce", "op"];
     private static readonly HashSet<string> Reasons = ["disabled", "unsupported", "foreground_required", "permission_denied", "capture_failed", "output_failed", "retired"];
 
+    // Reserve malformed aliases too, before ordinary persistence/rejection paths.
+    internal static bool IsReserved(string? kind, JsonObject? body) =>
+        kind is Request or Report && body?["version"] is JsonValue version &&
+        (TelefonProtocolContract.TryInteger(version, out var integer) && integer == 24 ||
+         version.TryGetValue<string>(out var text) && text == "24" ||
+         version.TryGetValue<double>(out var number) && number == 24);
+    internal static bool IsReserved(JsonObject message) =>
+        IsReserved(message["kind"] is JsonValue kind && kind.TryGetValue<string>(out var text) ? text : null, message["body"] as JsonObject);
+
     private static string Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text)
         ? text : throw new InvalidDataException("webcam_control_invalid");
     private static void Hex(JsonNode? node, int count)
@@ -67,6 +76,93 @@ internal static class PhoneCameraControl
 
 internal sealed partial class TelefonConnection
 {
+    private readonly object webcamGate = new();
+    private PhoneCameraControlBinding? webcamBinding;
+    private readonly Queue<(string Request, string Nonce)> webcamProbes = new();
+    private sealed class WebcamAck(string id, PhoneCameraControlBinding binding)
+    {
+        internal readonly string Id = id;
+        internal readonly PhoneCameraControlBinding Binding = binding;
+        internal bool Observed;
+    }
+    private readonly Queue<WebcamAck> webcamAcks = new();
+
+    private void RequireWebcamParent(bool wifiOnly = true)
+    {
+        if (Volatile.Read(ref disposed) || cancellation.IsCancellationRequested || RemoteCloseReason.Length > 0 || wifiOnly &&
+            (transport != "wifi" || stream is not NetworkStream network || !network.Socket.Connected))
+            throw new InvalidOperationException("webcam_original_parent_required");
+    }
+    internal void RequireWebcamBinding(PhoneCameraControlBinding binding)
+    {
+        RequireWebcamParent();
+        if (!ReferenceEquals(Volatile.Read(ref webcamBinding), binding)) throw new InvalidOperationException("webcam_original_binding_required");
+    }
+    internal PhoneCameraControlBinding BindWebcamControl(Action originalCurrent, Action retire)
+    {
+        ArgumentNullException.ThrowIfNull(originalCurrent); ArgumentNullException.ThrowIfNull(retire);
+        RequireWebcamParent(); originalCurrent();
+        var binding = new PhoneCameraControlBinding(this, originalCurrent, retire);
+        if (Interlocked.CompareExchange(ref webcamBinding, binding, null) is not null)
+            throw new InvalidOperationException("webcam_original_owner_busy");
+        binding.RequireCurrent(); return binding;
+    }
+    internal void ReleaseWebcamBinding(PhoneCameraControlBinding binding) => Interlocked.CompareExchange(ref webcamBinding, null, binding);
+    internal bool ClaimWebcamProbe(JsonObject body)
+    {
+        lock (webcamGate)
+        {
+            var request = body["request_id"]!.GetValue<string>(); var nonce = body["nonce"]!.GetValue<string>();
+            if (webcamProbes.Any(value => value.Request == request || value.Nonce == nonce)) return false;
+            if (webcamProbes.Count == 16) return false; // Never forget old probe authority on this parent.
+            webcamProbes.Enqueue((request, nonce)); return true;
+        }
+    }
+    private void RetireWebcamControl() => Volatile.Read(ref webcamBinding)?.Dispose();
+    private void CheckWebcamControl()
+    {
+        try { Volatile.Read(ref webcamBinding)?.RequireCurrent(); }
+        catch (Exception) { } // Original native owner already retired, not a peer transport error.
+    }
+
+    private async Task HandleWebcamControlAsync(JsonObject message)
+    {
+        PhoneCameraControl.ValidateMessage(message, Now());
+        var status = "rejected"; var error = "not_granted";
+        if (message["kind"]!.GetValue<string>() != PhoneCameraControl.Request) error = "invalid_schema";
+        else if (transport == "wifi" && Volatile.Read(ref webcamBinding) is { } binding)
+        {
+            try { if (binding.Submit(message)) { status = "accepted"; error = "none"; } }
+            catch (Exception) { binding.Dispose(); }
+        }
+        // ACK means queued control, never capture, output readiness or SEND.
+        var ack = new JsonObject { ["type"] = "ack", ["message_id"] = message["message_id"]!.DeepClone(), ["status"] = status, ["error"] = error };
+        await SendWebcamFrameAsync(ack, () => { });
+    }
+    internal async Task SendBoundWebcamReportAsync(PhoneCameraControlBinding binding, JsonObject message)
+    {
+        binding.RequireCurrent();
+        lock (webcamGate)
+        {
+            if (webcamAcks.Count == 16) webcamAcks.Dequeue();
+            webcamAcks.Enqueue(new WebcamAck(message["message_id"]!.GetValue<string>(), binding));
+        }
+        try { await SendWebcamEphemeralAsync(message, binding.RequireCurrent); }
+        catch { binding.Dispose(); throw; }
+    }
+    private bool ObserveWebcamAck(JsonObject ack)
+    {
+        PhoneCameraControlBinding? owner;
+        lock (webcamGate)
+        {
+            var receipt = webcamAcks.FirstOrDefault(value => value.Id == ack["message_id"]!.GetValue<string>());
+            if (receipt is null) return false;
+            if (receipt.Observed) return true;
+            receipt.Observed = true; owner = receipt.Binding;
+        }
+        if (ack["status"]!.GetValue<string>() == "rejected") owner.Dispose();
+        return true; // Never feed original ephemeral IDs to durable retry policy.
+    }
     /// <summary>
     /// Bounded original-parent write for an explicit native webcam owner. Does
     /// not enqueue, persist, ACK, grant consent, advertise or start capture.
@@ -80,11 +176,14 @@ internal sealed partial class TelefonConnection
         PhoneCameraControl.ValidateMessage(snapshot, Now());
         if (snapshot["kind"]!.GetValue<string>() != PhoneCameraControl.Report)
             throw new InvalidDataException("webcam_desktop_report_required");
+        await SendWebcamFrameAsync(snapshot, originalCurrent);
+    }
+
+    private async Task SendWebcamFrameAsync(JsonObject snapshot, Action originalCurrent)
+    {
         void Current()
         {
-            if (Volatile.Read(ref disposed) || cancellation.IsCancellationRequested || transport != "wifi" ||
-                stream is not NetworkStream network || !network.Socket.Connected)
-                throw new InvalidOperationException("webcam_original_parent_required");
+            RequireWebcamParent(snapshot["type"]!.GetValue<string>() != "ack");
             originalCurrent();
         }
         Current();
@@ -95,7 +194,8 @@ internal sealed partial class TelefonConnection
         try
         {
             Current();
-            PhoneCameraControl.ValidateMessage(snapshot, Now());
+            if (snapshot["type"]!.GetValue<string>() == "message") PhoneCameraControl.ValidateMessage(snapshot, Now());
+            else TelefonProtocolContract.ValidateAck(snapshot);
             deadline.Token.ThrowIfCancellationRequested();
             if (sendSequence == long.MaxValue) throw new InvalidOperationException("webcam_control_sequence_exhausted");
             var header = Header(sendSequence, "desktop_to_phone");
