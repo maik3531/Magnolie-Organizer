@@ -134,6 +134,8 @@ runner.Add("Phone webcam session / missing initial track retires active joined a
 runner.Add("Phone webcam session / muted session refuses audio packets", PhoneCameraSessionTests.MutedAudioRejectedAsync);
 runner.Add("Phone webcam session / original revocation interrupts native output write", PhoneCameraSessionTests.RevocationInterruptsNativeWriteAsync);
 runner.Add("Phone webcam audio package / closed named trust boundary", PhoneCameraAudioPackageTests.ClosedTrustBoundaryAsync);
+if (OperatingSystem.IsWindows())
+    runner.Add("Phone webcam audio staging / in-memory protected ACL policy only", PhoneCameraAudioStagingTests.ProtectedAclPolicyAsync);
 if (Environment.GetEnvironmentVariable("MAGNOLIE_CABLE_PACKAGE_FIXTURE") is not null)
 {
     // Explicit existing read-only publisher fixture, never CI auto-download or

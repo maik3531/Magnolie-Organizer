@@ -483,6 +483,22 @@ VB-CABLE is selected within individual applications instead. It does not alter
 the signed INF or configure foreign interfaces. This design still needs actual
 installation/rollback and post-restart acceptance after separate permission.
 
+`PhoneCameraAudioStaging` now prepares the protected-publication source path:
+elevation is checked without requesting credentials, the fixed ProgramData root
+is created with an admin/system-owned protected ACL, existing paths are checked
+through held handles without ownership takeover or ACL repair, and original
+members are written into a fresh unpublished directory before a no-replacement
+rename to the native helper's GUID path. Partial/unknown outcomes are retained
+for review, not recursively deleted or automatically retried. This initial path
+refuses nested/UNC ProgramData relocation rather than claiming unimplemented
+held-ancestor protection. It is not wired to a user action or executed yet.
+One physical-Windows test group checks the ACL policy **in memory only**,
+including unprivileged ownership/mutation and the difference between creating
+siblings and deleting protected children. CoreTests and the real Windows-target
+project compile cleanly. Actual protected directory creation, atomic publication,
+UAC orchestration and privileged helper execution still have no acceptance proof;
+no ProgramData staging directory was created by these tests.
+
 #### Windows dedicated binary receiver (Refs #503)
 
 The separate native `native/phone-camera/PhoneCameraSamples` adapter now creates

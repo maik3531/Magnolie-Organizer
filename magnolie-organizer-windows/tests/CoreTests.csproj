@@ -48,6 +48,7 @@
     <Compile Include="..\PhoneCameraControlBinding.cs" Link="PhoneCameraControlBinding.cs" />
     <Compile Include="..\PhoneCameraSession.cs" Link="PhoneCameraSession.cs" />
     <Compile Include="..\PhoneCameraAudioPackage.cs" Link="PhoneCameraAudioPackage.cs" />
+    <Compile Include="..\PhoneCameraAudioStaging.cs" Link="PhoneCameraAudioStaging.cs" />
     <Compile Include="..\TraySyncFrames.cs" Link="TraySyncFrames.cs" />
     <Compile Include="..\TrayVisualTest.cs" Link="TrayVisualTest.cs" />
     <Compile Include="..\NativeSyncActivity.cs" Link="NativeSyncActivity.cs" />
