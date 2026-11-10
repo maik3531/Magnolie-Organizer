@@ -43,8 +43,8 @@ internal class PhoneWebcamAndroidCapture(private val service: Service, private v
     private val cameraOpenEnded = CountDownLatch(1)
     private val resources = Any()
     @Volatile private var failure: Throwable? = null
-    private var imageThread: HandlerThread? = null
-    private var audioThread: Thread? = null
+    @Volatile private var imageThread: HandlerThread? = null
+    @Volatile private var audioThread: Thread? = null
     private var reader: ImageReader? = null
     private var recorder: AudioRecord? = null
     private var camera: CameraDevice? = null
@@ -222,7 +222,12 @@ internal class PhoneWebcamAndroidCapture(private val service: Service, private v
         // unstarted factory must not remain an imaginary pending capture.
         if (!started.get()) { cameraOpenEnded.countDown(); cleanupEnded.countDown() }
     }
-    override fun isCompletelyStopped() = cleanupEnded.count == 0L && (!openRequested || cameraOpenEnded.count == 0L)
+    // A bounded cleanup ATTEMPT may finish while a native worker is still
+    // draining. Preserve its original reference and deny slot reuse until the
+    // actual thread exits, even after the shutdown-pending callback was sent.
+    override fun isCompletelyStopped() = cleanupEnded.count == 0L &&
+        imageThread?.isAlive != true && audioThread?.isAlive != true &&
+        (!openRequested || cameraOpenEnded.count == 0L)
     private fun notifyEnded() {
         try { ended(failure) }
         catch (error: Exception) {
