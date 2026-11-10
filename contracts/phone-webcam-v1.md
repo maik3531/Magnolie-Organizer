@@ -421,6 +421,44 @@ Microsoft Windows Hardware Compatibility Publisher; the vendor setup also
 passed Authenticode verification. This is trust evidence for those exact bytes,
 not installation, functional compatibility or permission to execute the setup.
 
+The narrowed Windows audio setup work (#530) now targets the original VB-CABLE
+Pack46 package, not an own unsigned kernel driver or A+B/C+D. The current
+publisher licensing page explicitly permits as-is distribution/silent embedding
+with visible VB-Audio origin and donationware information, and imposes additional
+licensing conditions for professional deployments where end users cannot identify
+or support VB-CABLE. These conditions must be shown in the eventual guided flow;
+the older package readme itself links that current licensing page. No unsupported
+vendor setup command-line switch is assumed or executed.
+
+`PhoneCameraCablePackage` pins the exact SHA256 of the INF, catalog, x64 and ARM64
+SYS files and verifies all three payloads against the catalog with native
+`DRIVER_ACTION_VERIFY`. Held read handles deny write/delete sharing. This is a
+read-only trust lease, never an installation or endpoint-readiness permit. Five
+native package groups pass on physical Windows, including real kernel-policy
+catalog membership and tamper/missing/path rejection with own-copy cleanup.
+
+`PhoneCameraCableSetup` provides a pure read-only host/device/journal/protected-path
+plan and an explicitly separate elevated installation function. The latter is
+only a **compiled, not executed or accepted** installer path so far. It refuses
+unsupported hosts, writable source staging, any existing matching device and any
+existing setup transaction. It requires an admin/system-owned fixed ProgramData
+subtree and records a collision-refusing protected journal before mutation. Its
+intended SetupAPI/newdev path selects the exact original INF and only one newly
+owned root devnode; it never uses the API that updates all matching foreign
+devices. Failure cleanup targets only that newly owned devnode, never global
+driver-store packages or another device. Pending/unknown outcomes keep their
+journal instead of enabling automatic retry. Publisher-required restart is
+reported, never performed automatically. Two read-only native plan groups pass
+on physical Windows: host/old-device query and refusal to promote user-writable
+research staging, with no setup journal created.
+
+No driver staging, device registration, installation, uninstall, vendor process,
+audio default change or reboot was performed in these tests. The managed verified
+download/protected extraction, one-question/one-UAC UI and named official manual
+fallback, actual elevated installation/cleanup, post-restart endpoint reprobe and
+real WASAPI microphone-provider acceptance remain open. Actual installation needs
+separate explicit host approval; the generated-camera approval does not cover it.
+
 #### Windows dedicated binary receiver (Refs #503)
 
 The separate native `native/phone-camera/PhoneCameraSamples` adapter now creates
