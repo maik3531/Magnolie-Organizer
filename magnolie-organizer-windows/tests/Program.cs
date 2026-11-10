@@ -1,4 +1,6 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 4 && args[0] == "--desktop-composition-readonly")
+    return DesktopPhoneCompositionTests.ReadOnly(args[1], bool.Parse(args[2]), bool.Parse(args[3]));
 if (args.Length == 1 && args[0] == "--phone-webcam-media-host") return await PhoneCameraMediaChannelTests.HostAsync();
 if (args.Length == 1 && args[0] == "--tray-drawing") { await TrayAppearanceTests.DrawingAsync(); Console.WriteLine("Tray drawing PASS"); return 0; }
 if (args.Length == 1 && args[0] == "--tray-visual-test") { await TrayAppearanceTests.VisualLeaseAsync(); Console.WriteLine("Tray visual lease PASS"); return 0; }

@@ -687,6 +687,16 @@ old-owner isolation, original revocation and cleanup-callback failure.
 This attaches the reserved transport path, not the native UI activation, v24
 advertisement, provider resolver or actual native AV output. Those remain required
 before Windows may expose a usable phone webcam.
+The always-present validator/rejection/limited-writer boundary resides in
+`TelefonWebcamBoundary.cs` (#531). Coordinator references use optional partial
+hooks, so excluding webcam modules does not require their owner/session/provider
+types. Without hooks the same strict reserved controls receive the bounded
+ephemeral rejection and cannot enter storage. Actual Windows project builds and
+PE type metadata were checked for base, camera-only, photo-only and both optional
+features: provider/session types are genuinely omitted when disabled. Eleven
+parent and ten affected session groups pass on physical Windows after this
+split. This fixes the confirmed base-build regression without forcing optional
+modules into the base edition or claiming package startup acceptance.
 
 `PhoneCameraSession` (#529) now connects the original control binding to its own
 dedicated encrypted AV receiver and a mandatory trusted native output adapter.

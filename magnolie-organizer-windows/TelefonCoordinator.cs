@@ -2148,7 +2148,7 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             await PumpOutboxAsync(); read ??= TelefonCoordinator.ReadFrameAsync(stream, 1_048_576, cancellation);
             var completed = await Task.WhenAny(read, Task.Delay(1_000, cancellation)); var now = Now();
-            CheckWebcamControl();
+            CheckNativeWebcamOwner();
             if (completed == read)
             {
                 var plain = Open(await read); read = null; lastReceivedMs = now; await HandlePlainAsync(plain);
@@ -2282,7 +2282,7 @@ internal sealed partial class TelefonConnection : IDisposable
         if (type == "ack")
         {
             TelefonProtocolContract.ValidateAck(plain); var id = plain["message_id"]!.GetValue<string>(); var status = plain["status"]!.GetValue<string>(); var error = plain["error"]!.GetValue<string>();
-            if (ObserveWebcamAck(plain)) return;
+            if (ConsumeWebcamAck(plain)) return;
             var queued = store.OutboxMessage(peer.Id, id!);
             Task? mediaAckHandling = null;
             ObserveNativeMediaAck(id, status, error, queued, ref mediaAckHandling);
@@ -2317,7 +2317,7 @@ internal sealed partial class TelefonConnection : IDisposable
         if (type != "message") throw new InvalidDataException("Unbekanntes Steuerobjekt.");
         if (PhoneCameraControl.IsReserved(plain))
         {
-            await HandleWebcamControlAsync(plain);
+            await DispatchWebcamControlAsync(plain);
             return;
         }
         if (plain["kind"]?.GetValue<string>() == PhoneContentScope.DataKind)
@@ -2674,5 +2674,5 @@ internal sealed partial class TelefonConnection : IDisposable
     private JsonObject Header(long sequence, string direction) => new() { ["p"] = TelefonCrypto.Protocol, ["sid"] = Convert.ToBase64String(sid), ["seq"] = sequence, ["dir"] = direction };
     private static byte[] LongBytes(long value) { var result = new byte[8]; BinaryPrimitives.WriteInt64BigEndian(result, value); return result; }
     private static long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    public void Dispose() { if (disposed) return; disposed = true; RetireWebcamControl(); CloseNativeFileRoute(); store.PurgeIdentifiers(peer.Id); try { stream.Dispose(); } catch { } CryptographicOperations.ZeroMemory(receiveKey); CryptographicOperations.ZeroMemory(sendKey); writer.Dispose(); }
+    public void Dispose() { if (disposed) return; disposed = true; RetireNativeWebcamOwner(); CloseNativeFileRoute(); store.PurgeIdentifiers(peer.Id); try { stream.Dispose(); } catch { } CryptographicOperations.ZeroMemory(receiveKey); CryptographicOperations.ZeroMemory(sendKey); writer.Dispose(); }
 }
