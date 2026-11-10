@@ -9,6 +9,10 @@ namespace Magnolie::PhoneCamera
         Samples::Current sending;
         void (*retired)(void* context, HRESULT reason) noexcept;
         void* context;
+        // Optional native COM/DLL lifetime anchor, never an authorization token.
+        // Held until the last source/stream state reference is released, including
+        // shutdown interfaces retained by a capture client and pending callbacks.
+        IUnknown* lifetime = nullptr;
     };
 
     // Private in-process feed. Not an IPC endpoint, capture consent or SEND grant.

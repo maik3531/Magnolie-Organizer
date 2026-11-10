@@ -39,7 +39,8 @@ namespace
         ComPtr<IMFMediaSourceEx> source;
         ComPtr<IFrameFeed> feed;
         ComPtr<IMFMediaStream2> stream;
-        Fixture() { Ok(CreateSource(owner.Callbacks(), &source, &feed)); }
+        explicit Fixture(IUnknown* lifetime = nullptr)
+        { auto callbacks = owner.Callbacks(); callbacks.lifetime = lifetime; Ok(CreateSource(callbacks, &source, &feed)); }
         ~Fixture() { if (source) source->Shutdown(); }
         void Start()
         {
@@ -248,6 +249,29 @@ namespace
         Check(f.owner.retired == 1 && f.owner.reason == MF_E_NET_TIMEOUT);
     }
 
+    class Lifetime final : public Microsoft::WRL::RuntimeClass<Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>, IUnknown>
+    {
+    public:
+        Lifetime(HANDLE ended, std::atomic_int* deaths) : ended_(ended), deaths_(deaths) {}
+        ~Lifetime() { ++*deaths_; SetEvent(ended_); }
+    private:
+        HANDLE ended_;
+        std::atomic_int* deaths_;
+    };
+
+    void NativeLifetimeOutlivesSourceAndShutdown()
+    {
+        struct Event { HANDLE value = CreateEventW(nullptr, TRUE, FALSE, nullptr); ~Event() { if (value) CloseHandle(value); } } ended;
+        Check(ended.value != nullptr); std::atomic_int deaths{0};
+        auto lifetime = Microsoft::WRL::Make<Lifetime>(ended.value, &deaths); Check(lifetime != nullptr);
+        Fixture f(lifetime.Get()); lifetime.Reset(); f.Start(); Check(deaths == 0);
+        Ok(f.source->Shutdown()); f.feed.Reset(); f.source.Reset();
+        // The capture client's old stream still executes our native code, even
+        // though its source was shut down and the controller dropped its refs.
+        Check(deaths == 0);
+        f.stream.Reset(); Check(WaitForSingleObject(ended.value, 1500) == WAIT_OBJECT_0 && deaths == 1);
+    }
+
     void ActualSourceReaderClient()
     {
         Fixture f; ComPtr<IMFAttributes> attrs; Ok(MFCreateAttributes(&attrs, 2));
@@ -312,6 +336,7 @@ int main(int argc, char** argv)
         {"source-original-descriptor", ForeignDescriptorsAndStartPositions}, {"source-stop-restart-state", StopRestartAndStreamState},
         {"source-idle-revocation-stall", IdleRevocationAndStallWatchdog}, {"source-shutdown-null-contract", ShutdownAndNullContracts},
         {"source-shutdown-unblocks-event-wait", ShutdownUnblocksActualEventWait}, {"source-no-frame-startup-timeout", StartupWithoutFramesExpires},
+        {"source-native-context-lifetime", NativeLifetimeOutlivesSourceAndShutdown},
         {"source-real-mf-source-reader", ActualSourceReaderClient}
     };
     for (const auto& test : cases)

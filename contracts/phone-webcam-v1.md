@@ -468,8 +468,13 @@ and notify the original owner; no reconnect or invented image/audio is produced.
 The callback context must remain valid until `Shutdown` returns, and callbacks
 must be nonblocking/nonreentrant. The explicit native owner must call `Shutdown`
 even if no capture client ever starts the source.
+An optional opaque COM lifetime anchor is retained by the shared native state
+until the last source/stream reference and pending callback drain. It is not
+capture/SEND authority. This permits a future COM server to keep its native
+context alive even when a client holds an already-shutdown stream. The actual
+DLL module-accounting/bootstrap implementation remains separate.
 
-Fifteen native source groups pass on the physical Windows host. In addition to
+Sixteen native source groups pass on the physical Windows host. In addition to
 direct events, tokens, bounded memory, stale backlog, original-owner/SEND denial,
 descriptor and lifetime checks, an actual `IMFSourceReader` consumes three complete
 generated NV12 frames from this source, with exact payload/PTS readback. Real
@@ -527,6 +532,28 @@ not the production authenticated dispatcher, server ACL/bootstrap, registered
 FrameServer activation, system microphone or physical phone/OBS acceptance.
 The network transport remains the existing AES-GCM binary protocol; this is
 local post-admission video delivery, not a new unencrypted network option.
+
+`PhoneCameraActivate` now implements the native `IMFActivate`/`IMFAttributes`
+boundary. A mandatory trusted original-context resolver, not attribute values,
+creates one source. Configuration is copied under the native attribute-store
+lock before construction; subsequent attribute edits cannot replace or reconfigure
+the existing source. Original context is checked around construction and before
+returning an interface. Failure, revocation and shutdown permanently retire that
+activation; restored flags cannot retry it. Detach transfers source lifetime to
+its actual owner without shutting it down, but the old activation cannot then
+create a replacement. Both activation and source independently hold their supplied
+opaque native lifetime anchors.
+
+Eight new activation groups pass on real Windows, covering metadata versus
+authority, immutable construction snapshot/original source identity, construction
+failure, context loss during/after construction, shutdown, invalid interfaces
+and a detached source retaining its real COM-owned context after activation
+release. The changed source-lifetime unit has sixteen passing source groups and
+its affected five relay groups also pass at that exact source version; these
+replace earlier runs, not additional test counts. There is still no registered
+class factory, DLL-loader/module proof, trusted production context resolver or
+FrameServer bootstrap. These object tests neither register a system camera nor
+grant actual phone consent/SEND or complete the Windows webcam.
 
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It

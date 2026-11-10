@@ -21,7 +21,7 @@ namespace Magnolie::PhoneCamera
 
     struct State
     {
-        explicit State(SourceOwner value) : owner(value), samples(SampleCurrent, this, true) {}
+        explicit State(SourceOwner value) : owner(value), lifetime(value.lifetime), samples(SampleCurrent, this, true) {}
         static HRESULT SampleCurrent(void* value) noexcept
         {
             auto& state = *static_cast<State*>(value);
@@ -31,6 +31,7 @@ namespace Magnolie::PhoneCamera
         }
         std::recursive_mutex gate;
         SourceOwner owner;
+        ComPtr<IUnknown> lifetime;
         Samples samples;
         bool shutdown = false, started = false, announced = false, received = false;
         MF_STREAM_STATE streamState = MF_STREAM_STATE_STOPPED;
