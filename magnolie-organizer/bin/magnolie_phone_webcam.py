@@ -6,6 +6,7 @@ Linux requires an existing writable v4l2loopback node and PulseAudio/PipeWire.
 """
 import ctypes
 import fcntl
+import math
 import os
 from pathlib import Path
 import re
@@ -166,6 +167,29 @@ class LinuxAudioOutput:
             self.directory = None
 
 
+class _PresentationClock:
+    """One fixed local anchor for BOTH tracks, never a clock per packet/track."""
+    def __init__(self):
+        self.anchor = self.first_pts = self.last_now = None
+
+    def delay(self, pts_us, now):
+        if not math.isfinite(now) or self.last_now is not None and now < self.last_now:
+            raise WebcamUnavailable('webcam_presentation_clock_changed')
+        self.last_now = now
+        if self.anchor is None:
+            self.anchor, self.first_pts = now, pts_us
+        # Subtract integer PTS before conversion; large valid timestamps must
+        # not lose their sub-second spacing through floating-point cancellation.
+        due = self.anchor + (pts_us - self.first_pts) / 1_000_000
+        remaining = due - now
+        if remaining > .250 + 1e-9:
+            raise WebcamUnavailable('webcam_presentation_too_far_ahead')
+        if remaining < -.250 - 1e-9:
+            raise WebcamUnavailable('webcam_presentation_too_late')
+        if remaining <= 1e-9: return 0
+        return min(max(remaining, 0), .010)
+
+
 class NativeWebcamSession:
     """Both native outputs live and die together, with no reusable consent.
 
@@ -174,7 +198,7 @@ class NativeWebcamSession:
     No capture is started here, including when audio is explicitly muted.
     """
     def __init__(self, device, guard, *, muted=False, video_factory=LinuxVideoOutput, audio_factory=LinuxAudioOutput,
-                 clock=time.monotonic, identity=None):
+                 clock=time.monotonic, identity=None, wait=None):
         if not callable(guard) or type(muted) is not bool:
             raise ValueError('invalid webcam session')
         self.identity = uuid.uuid4().hex if identity is None else identity
@@ -185,7 +209,11 @@ class NativeWebcamSession:
         self.closed = False
         self.error = None
         self.lock = threading.RLock()
+        self.write_lock = threading.Lock()
         self.stop = threading.Event()
+        self.wait = self.stop.wait if wait is None else wait
+        if not callable(self.wait): raise ValueError('invalid webcam presentation wait')
+        self.presentation = _PresentationClock()
         self.clock = clock
         self.started = clock()
         self.last_io = {}
@@ -231,28 +259,46 @@ class NativeWebcamSession:
                 self.close()
                 raise
 
-    def write(self, stream, sequence, pts_us, data):
-        with self.lock:
-            try:
-                if self.closed:
-                    raise WebcamUnavailable('webcam_session_retired')
+    def _pace(self, pts_us):
+        deadline = time.monotonic() + .300
+        for _ in range(64):
+            with self.lock:
                 self.check_lifetime()
-                if (stream not in ('video', 'audio') or stream == 'audio' and self.muted or
-                        type(sequence) is not int or type(pts_us) is not int or
-                        not 0 <= sequence < 2**63 or pts_us < 0 or pts_us > 9_007_199_254_740_991 or
-                        type(data) is not bytes or len(data) != (VIDEO_BYTES if stream == 'video' else AUDIO_BYTES)):
-                    raise WebcamUnavailable('webcam_packet_invalid')
-                previous = self.positions.get(stream)
-                if sequence != (previous[0] + 1 if previous else 0) or previous and pts_us <= previous[1]:
-                    raise WebcamUnavailable('webcam_packet_stale')
-                other = self.positions.get('audio' if stream == 'video' else 'video')
-                if other and abs(pts_us - other[1]) > 250_000:
-                    raise WebcamUnavailable('webcam_av_clock_diverged')
-                written = (self.video if stream == 'video' else self.audio).write(data)
-                self.positions[stream] = (sequence, pts_us)
-                self.last_io[stream] = self.clock()
-                self.guard()
-                return written
+                delay = self.presentation.delay(pts_us, self.clock())
+            if delay <= 0: return
+            # No native-state lock while waiting: close and the lifetime monitor
+            # can retire both outputs and wake this ORIGINAL one-packet wait.
+            if time.monotonic() >= deadline:
+                raise WebcamUnavailable('webcam_presentation_wait_timeout')
+            if self.wait(delay): raise WebcamUnavailable('webcam_session_retired')
+        raise WebcamUnavailable('webcam_presentation_wait_timeout')
+
+    def write(self, stream, sequence, pts_us, data):
+        # Serialize writes without blocking close/monitor on the state lock.
+        # There is no detached playback queue or extra copy of captured frames.
+        with self.write_lock:
+            try:
+                with self.lock:
+                    self.check_lifetime()
+                    if (stream not in ('video', 'audio') or stream == 'audio' and self.muted or
+                            type(sequence) is not int or type(pts_us) is not int or
+                            not 0 <= sequence < 2**63 or pts_us < 0 or pts_us > 9_007_199_254_740_991 or
+                            type(data) is not bytes or len(data) != (VIDEO_BYTES if stream == 'video' else AUDIO_BYTES)):
+                        raise WebcamUnavailable('webcam_packet_invalid')
+                    previous = self.positions.get(stream)
+                    if sequence != (previous[0] + 1 if previous else 0) or previous and pts_us <= previous[1]:
+                        raise WebcamUnavailable('webcam_packet_stale')
+                    other = self.positions.get('audio' if stream == 'video' else 'video')
+                    if other and abs(pts_us - other[1]) > 250_000:
+                        raise WebcamUnavailable('webcam_av_clock_diverged')
+                self._pace(pts_us)
+                with self.lock:
+                    self.check_lifetime()
+                    written = (self.video if stream == 'video' else self.audio).write(data)
+                    self.positions[stream] = (sequence, pts_us)
+                    self.last_io[stream] = self.clock()
+                    self.guard()
+                    return written
             except BaseException:
                 self.close()
                 raise

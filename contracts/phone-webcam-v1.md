@@ -559,6 +559,26 @@ there is no restart/recovery from history. Stream activity is not proof that OBS
 is consuming the camera; the requested tray indicator must use genuine native
 consumer activity rather than a mere connection or output stream.
 
+Linux output pacing now uses one original local monotonic anchor for both tracks
+(Refs #521). The first accepted PTS establishes the anchor once; later packets
+retain their relative presentation times instead of all being passed immediately
+to the native adapters after a network burst. Subtract integer PTS before float
+conversion so large valid timestamp values retain sub-second spacing. No detached
+playback queue, copied frame backlog, per-track re-anchoring or audio drops are
+introduced. One serialized packet waits in at most 10-ms steps, with original
+guards/lifetime checks and no held native-state lock during waits. Close can wake
+that original wait immediately. More than 250 ms ahead/late, a backwards/nonfinite
+clock or a bounded wait that cannot progress retires both outputs. Existing
+per-track sequence/PTS and cross-track divergence checks remain in force.
+
+Controlled clock/adapter tests and the actual encrypted receiver exercise this
+software pacing. A real-monotonic-clock probe with controlled adapters observes
+the expected 20-ms packet spacing; it is NOT a native audio playback, video
+presentation or OBS lip-sync proof. PulseAudio/PipeWire/driver latency, underruns
+and actual phone AV synchronization remain #503 native acceptance. Windows does
+not yet have native AV endpoints; these pacing semantics are an implementation
+reference, not a claimed Windows/Notes/KDE fix.
+
 ## Remaining acceptance
 
 Implement both provider adapters without fabricated capabilities or shared app
