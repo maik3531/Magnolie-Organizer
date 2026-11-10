@@ -380,6 +380,40 @@ or dependency is authorized by this design note. The existing Windows
 `DesktopPhoneBuild.PhoneCamera` constant remains only build composition, not
 runtime readiness. Neither a Windows native adapter nor its acceptance is claimed.
 
+#### Windows microphone prerequisite and signing boundary (Refs #503)
+
+The requested independent microphone cannot be replaced with a Media Foundation
+audio stream. A new own kernel audio driver for normal current Windows with
+Secure Boot would require [Microsoft's driver-signing process](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/kernel-mode-code-signing-policy--windows-vista-and-later-); an own self-signed
+certificate is not a production alternative. The user cannot obtain Microsoft
+or third-party signing for an own driver. Do not enable test signing, disable
+Secure Boot/signature enforcement, import a local root to bypass that requirement
+or promise an unsigned-driver release.
+
+The user's required alternative is an optional already appropriately signed
+third-party driver, with the same guided installation model as Linux: explain
+the missing prerequisite once and ask whether to install it. After affirmative
+consent Magnolie must manage the verified download, installation and explicit
+endpoint routing, using normal system authorization, not send the user through
+manual setup instructions or silently fall back to video without audio. No
+automatic reboot or default-audio-device change is authorized. An unavoidable
+reboot must be reported and remain under the user's control. Consent here is the
+product-flow requirement, not permission for an immediate host driver install.
+If automatic installation fails or is unsupported, Magnolie must explicitly name
+the required Windows driver and offer manual installation using its official
+provider instructions/download. A pending or unconfirmed installation must be
+reported as such, not retried automatically or claimed successful. After manual
+installation, recheck actual endpoint readiness; a help link or installed-package
+flag alone cannot authorize capture/SEND or silently enable video without audio.
+
+The provider is not selected or integrated yet. VB-CABLE is a candidate, not a
+validated dependency: its [current public licensing page](https://vb-audio.com/Services/licensing.htm) describes conditional
+as-is redistribution and silent installation with visible donationware/origin
+attribution, but the currently downloaded package's readme retains a stricter
+integration-with-author-agreement clause. Resolve the applicable permissions
+and documented unattended-install behavior before relying on it. No driver
+installer has been executed, bundled or accepted by these investigations.
+
 #### Windows dedicated binary receiver (Refs #503)
 
 The separate native `native/phone-camera/PhoneCameraSamples` adapter now creates
@@ -405,6 +439,40 @@ engine, system camera or microphone endpoint. It is not called by base startup
 or included as a mandatory native dependency. Those native joins, the Windows
 dispatcher and actual phone/OBS acceptance remain open. A Media Foundation audio
 sample is explicitly **not** an independent Windows microphone input.
+
+`PhoneCameraSource` now implements the in-process native camera media source and
+stream (`IMFMediaSourceEx`, `IMFMediaStream2`, their base event interfaces,
+`IMFSampleAllocatorControl`, CPU-only service/KS boundaries). It exposes one exact
+NV12 video stream and consumes already admitted I420 through a private feed.
+Metadata alone never grants SEND. Separate mandatory original-owner and actual
+SEND callbacks are checked at publication and again when a sample event is read;
+a retirement callback must revoke the original joined AV owner. Foreign source
+descriptors, unsupported positions/types and external event injection are refused.
+Stop/pause clear unsent requests and frames without resetting original wire
+sequence authority; shutdown is permanent and breaks the source/stream parent
+reference. Blocking event waits hold no state lock and are interrupted by shutdown.
+
+There are at most sixteen outstanding requests, including samples already queued
+but not read, plus one replaceable whole unsent video frame. Queued samples retain
+their own monotonic arrival marker: fresh subsequent frames cannot refresh an old
+sample. A 50ms native MF work-item check detects original-owner loss even while
+idle, five-second startup without a frame and 250ms streaming stalls. Stale
+delivery, request overflow, guard failure and invalid frames retire the source
+and notify the original owner; no reconnect or invented image/audio is produced.
+The callback context must remain valid until `Shutdown` returns, and callbacks
+must be nonblocking/nonreentrant. The explicit native owner must call `Shutdown`
+even if no capture client ever starts the source.
+
+Fifteen native source groups pass on the physical Windows host. In addition to
+direct events, tokens, bounded memory, stale backlog, original-owner/SEND denial,
+descriptor and lifetime checks, an actual `IMFSourceReader` consumes three complete
+generated NV12 frames from this source, with exact payload/PTS readback. Real
+blocking event shutdown and the actual five-second no-frame deadline are tested.
+These are source-object proofs, **not system-camera enumeration or OBS/phone
+acceptance**. COM activation/registration, authenticated cross-process frame-server
+delivery, joined AV presentation scheduling, the independent microphone endpoint
+and the Windows authenticated dispatcher remain open. No driver or registered
+camera was installed for these tests, and base-project dependencies are unchanged.
 
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It
