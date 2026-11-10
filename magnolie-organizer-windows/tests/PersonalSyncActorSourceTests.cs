@@ -30,6 +30,10 @@ internal static class PersonalSyncActorSourceTests
 
     internal static async Task RunAsync()
     {
+        var trace = Environment.GetEnvironmentVariable("MAGNOLIE_TEST_TRACE_ACTOR_SOURCE") == "1";
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        void Stage(string name) { if (trace) Console.WriteLine($"Actor source stage {name} ({elapsed.Elapsed.TotalSeconds:F2}s)"); }
+        Stage("begin");
         var root = Path.Combine(Path.GetTempPath(), "actor-native-source-" + Guid.NewGuid().ToString("N"));
         try
         {
@@ -133,6 +137,7 @@ internal static class PersonalSyncActorSourceTests
             }
             foreach (var producerCase in new[] { "success", "late-handoff-sql", "late-ack-sql", "mixed-blocked", "mixed-native-early", "mixed-native-late", "mixed-native-handoff", "mixed-native-overlap", "sql-retry", "changed-writer", "missing-native-book" })
             {
+                Stage("producer/" + producerCase);
                 TestAssert.That(!coordinator.NativeMixedActorReady, "Native Mixed readiness unexpectedly enabled by default or retained by another run.");
                 if (producerCase.StartsWith("mixed-native-", StringComparison.Ordinal)) coordinator.NativeMixedActorReady = true; // Test-only, before the private capability receipt.
                 var producerClock = new JsonArray(new JsonObject { ["actor_id"] = identity.Id, ["counter"] = 1 });
@@ -429,6 +434,7 @@ internal static class PersonalSyncActorSourceTests
             // post-I/O guards are actual; normal Mixed preparation remains blocked.
             foreach (var sendOrderCase in new[] { "report-first", "fixed-first", "channel-after-send" })
             {
+                Stage("send-order/" + sendOrderCase);
                 hostBook.RecordSaved("actual-host-profile", true, new string('a', 64));
                 coordinator.NativeSavedBook = () => hostBook.SaveState("actual-host-profile", true);
                 var orderHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
@@ -561,6 +567,7 @@ internal static class PersonalSyncActorSourceTests
                 "Actor network I/O held native policy/source guards.");
             foreach (var ownScenario in new[] { "before-send", "after-marker", "metadata-failure", "post-send-book" })
             {
+                Stage("own-ack/" + ownScenario);
                 var afterNativeSend = ownScenario == "after-marker";
                 var ownHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
                 await coordinator.StartPersonalActorAsync(ownHandle);
@@ -928,6 +935,7 @@ internal static class PersonalSyncActorSourceTests
             // writer-state fixture, not the GUI book writer or public activation.
             foreach (var terminalScenario in new[] { "restore", "delete", "peer-ack-sql", "peer-ack-outbox" })
             {
+                Stage("terminal/" + terminalScenario);
             var terminalChoice = terminalScenario.StartsWith("peer-ack-", StringComparison.Ordinal) ? "restore" : terminalScenario;
             var reviewHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
             await coordinator.StartPersonalActorAsync(reviewHandle); await SharedSyncTransportTests.DrainAsync(wire);
@@ -1028,9 +1036,11 @@ internal static class PersonalSyncActorSourceTests
                 {
                     for (var duplicateIndex = 0; duplicateIndex < 256; duplicateIndex++)
                     {
+                        if (duplicateIndex % 64 == 0) Stage("terminal/peer-ack-sql duplicate/" + duplicateIndex);
                         var duplicate = finalAck.DeepClone().AsObject(); duplicate["message_id"] = Guid.NewGuid().ToString("D");
                         await connection.HandlePlainAsync(duplicate);
                     }
+                    Stage("terminal/peer-ack-sql duplicates-finished");
                     var ackAdmissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
                     var ackAdmission = ackAdmissions[reviewHandle.ActorId]!;
                     var deferred = (System.Collections.IDictionary)ackAdmission.GetType().GetProperty("CompletionDeferredControls", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)!.GetValue(ackAdmission)!;
@@ -1043,13 +1053,16 @@ internal static class PersonalSyncActorSourceTests
                     TestAssert.That(deferred.Count == 256 && JsonNode.DeepEquals((JsonObject)deferred[originalAckId]!, finalAck), "Conflicting/foreign ACK replaced bounded pending receipt evidence.");
                 }
                 await coordinator.AdvancePersonalActorCompletionAsync(reviewHandle); // SQL fault still active: metadata only.
+                Stage("terminal/" + terminalScenario + "/faulted-advance-finished");
                 TestAssert.That(wire.Length == 0 && nativeSaved!.Sequence == beforePeerAckSequence,
                     "Persistent peer ACK metadata failure caused old decision resend or repeated a document write.");
                 using var drop = db.CreateCommand(); drop.CommandText = "DROP TRIGGER peer_ack_receive_fault"; drop.ExecuteNonQuery();
+                Stage("terminal/" + terminalScenario + "/fault-removed");
                 var failedPeerAck = await coordinator.PersonalActorStatusAsync(reviewHandle);
                 TestAssert.That(!failedPeerAck["phone_persisted"]!.GetValue<bool>() && failedPeerAck["deletion_completion"]!["saved"]!.GetValue<int>() == (terminalScenario == "peer-ack-sql" ? 0 : 1),
                     "Peer ACK SQL failure falsely completed a protected receipt.");
                 await coordinator.AdvancePersonalActorCompletionAsync(reviewHandle);
+                Stage("terminal/" + terminalScenario + "/recovery-finished");
                 TestAssert.That(wire.Length == 0 && nativeSaved!.Sequence == beforePeerAckSequence,
                     "Peer ACK SQL recovery resent decisions or repeated the original document save.");
             }
@@ -1072,6 +1085,7 @@ internal static class PersonalSyncActorSourceTests
             // this does not stand in for the unfinished desktop producer/GUI.
             foreach (var incomingScenario in new[] { "incoming", "mixed", "outside", "overlap" })
             {
+                Stage("incoming/" + incomingScenario);
                 var mixedIncoming = incomingScenario is "mixed" or "overlap";
                 var incomingHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
                 await coordinator.StartPersonalActorAsync(incomingHandle); await SharedSyncTransportTests.DrainAsync(wire);
@@ -1308,6 +1322,6 @@ internal static class PersonalSyncActorSourceTests
             }
             online.Clear(); TestAssert.That(Read() is null && CompletionAuthority() is null, "A disconnected native source stayed authorized.");
         }
-        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        finally { Stage("cleanup"); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 }
