@@ -459,6 +459,30 @@ fallback, actual elevated installation/cleanup, post-restart endpoint reprobe an
 real WASAPI microphone-provider acceptance remain open. Actual installation needs
 separate explicit host approval; the generated-camera approval does not cover it.
 
+The managed `PhoneCameraAudioPackage` downloader now verifies the complete original
+archive before inspecting or extracting it. It owns an immutable checked snapshot,
+uses only the fixed official HTTPS origin with bounded redirects, size and time,
+and extracts all original members with `CreateNew` into an empty owned directory.
+It does not itself establish a protected installation directory. Eight Windows
+groups passed, including an explicitly opted-in real official HTTPS download,
+unchanged extraction against the native pins, rejection of changed archives,
+redirect limits/cancellation and preservation of existing destination files.
+Ordinary tests do not download or bundle publisher bytes.
+
+The setup CLI has been compiled and run only with `--plan`. Its JSON now reports
+whether all six default-audio endpoint identities can be inspected, the intended
+endpoint policy, and `installationAttempted:false`. Current native code prepares
+the newly owned devnode disabled, applies the documented never-default policy to
+its own topology interfaces, verifies the stored values again after installation
+before explicit enable, and compares default endpoint identities afterwards.
+Those mutation paths are compiled only, **not validated by the read-only plan**.
+The comparison describes the immediate snapshot, not post-reboot preservation.
+The never-default policy blocks both automatic and manual Windows system-default
+selection; the eventual installation question must explicitly disclose that
+VB-CABLE is selected within individual applications instead. It does not alter
+the signed INF or configure foreign interfaces. This design still needs actual
+installation/rollback and post-restart acceptance after separate permission.
+
 #### Windows dedicated binary receiver (Refs #503)
 
 The separate native `native/phone-camera/PhoneCameraSamples` adapter now creates

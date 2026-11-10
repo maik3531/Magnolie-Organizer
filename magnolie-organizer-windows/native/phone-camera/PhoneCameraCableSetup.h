@@ -14,12 +14,12 @@ namespace Magnolie::PhoneCamera
     {
         CableSetupState state = CableSetupState::Failed;
         DWORD error = ERROR_SUCCESS;
-        bool ownDeviceRegistered = false, ownDeviceRemoved = false, rebootRequired = false;
+        bool ownDeviceRegistered = false, ownDeviceRemoved = false, rebootRequired = false, defaultsPreserved = false;
         std::wstring ownInstance;
     };
     struct CableSetupPlan
     {
-        bool supportedHost = false, elevated = false, protectedPackage = false, existingTransaction = false;
+        bool supportedHost = false, elevated = false, protectedPackage = false, existingTransaction = false, canInspectAudioDefaults = false;
         std::vector<std::wstring> existingDevices;
     };
     // Pure query: does NOT stage a driver, register a device, create a journal,

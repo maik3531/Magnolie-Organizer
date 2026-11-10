@@ -133,6 +133,20 @@ runner.Add("Phone webcam session / unconfirmed cleanup remains pending", PhoneCa
 runner.Add("Phone webcam session / missing initial track retires active joined audio", PhoneCameraSessionTests.MissingInitialTrackAsync);
 runner.Add("Phone webcam session / muted session refuses audio packets", PhoneCameraSessionTests.MutedAudioRejectedAsync);
 runner.Add("Phone webcam session / original revocation interrupts native output write", PhoneCameraSessionTests.RevocationInterruptsNativeWriteAsync);
+runner.Add("Phone webcam audio package / closed named trust boundary", PhoneCameraAudioPackageTests.ClosedTrustBoundaryAsync);
+if (Environment.GetEnvironmentVariable("MAGNOLIE_CABLE_PACKAGE_FIXTURE") is not null)
+{
+    // Explicit existing read-only publisher fixture, never CI auto-download or
+    // redistribution of vendor bytes in the ordinary source test suite.
+    runner.Add("Phone webcam audio package / original bytes and complete as-is extraction", PhoneCameraAudioPackageTests.OriginalSnapshotAndExtractionAsync);
+    runner.Add("Phone webcam audio package / changed archive and allocation bound", PhoneCameraAudioPackageTests.ChangedArchiveRejectedAsync);
+    runner.Add("Phone webcam audio package / existing destination preserved", PhoneCameraAudioPackageTests.ExistingDestinationPreservedAsync);
+    runner.Add("Phone webcam audio package / verified fixed-origin download", PhoneCameraAudioPackageTests.VerifiedDownloadAsync);
+    runner.Add("Phone webcam audio package / redirect origin and budget", PhoneCameraAudioPackageTests.RedirectOriginAndBudgetAsync);
+    runner.Add("Phone webcam audio package / download limits and cancellation", PhoneCameraAudioPackageTests.DownloadLimitsAndCancellationAsync);
+}
+if (Environment.GetEnvironmentVariable("MAGNOLIE_CABLE_PACKAGE_LIVE_DOWNLOAD") == "1")
+    runner.Add("Phone webcam audio package / actual Windows HTTPS verified download only", PhoneCameraAudioPackageTests.LiveOfficialDownloadAsync);
 runner.Add("Phone webcam media / original binary AV socket and Python goldens", PhoneCameraMediaChannelTests.GoldensAsync);
 runner.Add("Phone webcam media / bounded envelope tamper replay and EOF", PhoneCameraMediaChannelTests.RejectionsAsync);
 runner.Add("Phone webcam media / authenticated packet grammar", PhoneCameraMediaChannelTests.PacketGrammarAsync);

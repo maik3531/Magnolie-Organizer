@@ -7,6 +7,9 @@
 #include <shlobj.h>
 #include <cwchar>
 #include <cstring>
+#include <regstr.h>
+#include <mmdeviceapi.h>
+#include <wrl/client.h>
 
 namespace Magnolie::PhoneCamera
 {
@@ -17,12 +20,88 @@ namespace Magnolie::PhoneCamera
         constexpr wchar_t Journal[] = L"SOFTWARE\\Magnolie Organizer\\WebcamDriver\\VB-CABLE-Pack46";
         constexpr wchar_t Marker[] = L"Magnolie VB-CABLE Pack46 setup v1";
         constexpr ULONGLONG Version = (3ULL<<48)|(5ULL<<32)|(2ULL<<16);
+        constexpr GUID AudioCategory = {0x6994ad04,0x93ef,0x11d0,{0xa3,0xcc,0x00,0xa0,0xc9,0x22,0x31,0x96}};
+        constexpr GUID TopologyCategory = {0xdda54a40,0x1e4c,0x11d1,{0xa0,0x50,0x40,0x57,0x05,0xc1,0x00,0x00}};
         struct Devices { HDEVINFO value = INVALID_HANDLE_VALUE; ~Devices(){ if(value!=INVALID_HANDLE_VALUE) SetupDiDestroyDeviceInfoList(value); } };
         struct Handle { HANDLE value = nullptr; ~Handle(){ if(value && value!=INVALID_HANDLE_VALUE) CloseHandle(value); } };
         struct Key { HKEY value = nullptr; ~Key(){ if(value) RegCloseKey(value); } };
         struct Local { void* value = nullptr; ~Local(){ if(value) LocalFree(value); } };
         struct ComMemory { wchar_t* value = nullptr; ~ComMemory(){ if(value) CoTaskMemFree(value); } };
         HRESULT LastError() noexcept { return HRESULT_FROM_WIN32(GetLastError()); }
+        struct ComApartment
+        {
+            HRESULT status=CoInitializeEx(nullptr,COINIT_MULTITHREADED);
+            ~ComApartment(){if(SUCCEEDED(status)) CoUninitialize();}
+        };
+        HRESULT AudioDefaults(std::array<std::wstring,6>& result)
+        {
+            ComApartment com;
+            if(FAILED(com.status) && com.status!=RPC_E_CHANGED_MODE) return com.status;
+            Microsoft::WRL::ComPtr<IMMDeviceEnumerator> devices;
+            HRESULT hr=CoCreateInstance(__uuidof(MMDeviceEnumerator),nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&devices));
+            if(FAILED(hr)) return hr;
+            std::size_t at=0;
+            for(EDataFlow flow:{eRender,eCapture}) for(ERole role:{eConsole,eMultimedia,eCommunications})
+            {
+                Microsoft::WRL::ComPtr<IMMDevice> endpoint;
+                hr=devices->GetDefaultAudioEndpoint(flow,role,&endpoint);
+                if(hr==HRESULT_FROM_WIN32(ERROR_NOT_FOUND)){result[at++].clear();continue;}
+                if(FAILED(hr)) return hr;
+                ComMemory id;
+                hr=endpoint->GetId(&id.value);
+                if(FAILED(hr)) return hr;
+                result[at++]=id.value;
+            }
+            return S_OK; // Metadata only: never Activate/IAudioClient/capture.
+        }
+        HRESULT ConfigureOwnAppScopedInterfaces(HDEVINFO devices,SP_DEVINFO_DATA& device,const std::wstring& infPath,bool verifyOnly=false)
+        {
+            struct Inf {HINF value=INVALID_HANDLE_VALUE;~Inf(){if(value!=INVALID_HANDLE_VALUE) SetupCloseInfFile(value);}} inf;
+            inf.value=SetupOpenInfFileW(infPath.c_str(),nullptr,INF_STYLE_WIN4,nullptr);
+            if(inf.value==INVALID_HANDLE_VALUE) return LastError();
+            for(const wchar_t* name:{L"REFERENCESTRING_TopoRender1",L"REFERENCESTRING_TopoCapture1"})
+            {
+                INFCONTEXT context{};wchar_t reference[256]{};DWORD required=0;
+                if(!SetupFindFirstLineW(inf.value,L"Strings",name,&context) || !SetupGetStringFieldW(&context,1,reference,256,&required)) return LastError();
+                if(required<2 || required>256 || std::wcschr(reference,L'\\') || std::wcschr(reference,L'/')) return E_INVALIDARG;
+                for(const GUID category:{AudioCategory,TopologyCategory})
+                {
+                    SP_DEVICE_INTERFACE_DATA interfaceData{};interfaceData.cbSize=sizeof(interfaceData);
+                    if(!SetupDiCreateDeviceInterfaceW(devices,&device,&category,reference,0,&interfaceData)) return LastError();
+                    Key interfaceKey;
+                    interfaceKey.value=verifyOnly ? SetupDiOpenDeviceInterfaceRegKey(devices,&interfaceData,0,KEY_READ) :
+                        SetupDiCreateDeviceInterfaceRegKeyW(devices,&interfaceData,0,KEY_READ|KEY_WRITE,nullptr,nullptr);
+                    if(interfaceKey.value==INVALID_HANDLE_VALUE){interfaceKey.value=nullptr;return LastError();}
+                    Key endpoint;
+                    const LSTATUS opened=verifyOnly ? RegOpenKeyExW(interfaceKey.value,L"EP\\0",0,KEY_READ,&endpoint.value) :
+                        RegCreateKeyExW(interfaceKey.value,L"EP\\0",0,nullptr,REG_OPTION_NON_VOLATILE,KEY_READ|KEY_WRITE,nullptr,&endpoint.value,nullptr);
+                    if(opened!=ERROR_SUCCESS) return HRESULT_FROM_WIN32(opened);
+                    constexpr wchar_t association[]=L"{00000000-0000-0000-0000-000000000000}";
+                    constexpr DWORD mask=0x00000307; // All roles/flows, own app-specific endpoints only.
+                    if(!verifyOnly)
+                    {
+                        LSTATUS status=RegSetValueExW(endpoint.value,L"{1DA5D803-D492-4EDD-8C23-E0C0FFEE7F0E},2",0,REG_SZ,
+                            reinterpret_cast<const BYTE*>(association),sizeof(association));
+                        if(status==ERROR_SUCCESS) status=RegSetValueExW(endpoint.value,L"{F3E80BEF-1723-4FF2-BCC4-7F83DC5E46D4},3",0,REG_DWORD,
+                            reinterpret_cast<const BYTE*>(&mask),sizeof(mask));
+                        if(status==ERROR_SUCCESS) status=RegFlushKey(endpoint.value);
+                        if(status!=ERROR_SUCCESS) return HRESULT_FROM_WIN32(status);
+                    }
+                    wchar_t actualAssociation[40]{};DWORD actualMask=0,size=sizeof(actualAssociation);
+                    LSTATUS status=RegGetValueW(endpoint.value,nullptr,L"{1DA5D803-D492-4EDD-8C23-E0C0FFEE7F0E},2",RRF_RT_REG_SZ,nullptr,actualAssociation,&size);
+                    if(status!=ERROR_SUCCESS) return HRESULT_FROM_WIN32(status);
+                    if(size!=sizeof(association) || std::wcscmp(actualAssociation,association)) return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+                    size=sizeof(actualMask);
+                    status=RegGetValueW(endpoint.value,nullptr,L"{F3E80BEF-1723-4FF2-BCC4-7F83DC5E46D4},3",RRF_RT_REG_DWORD,nullptr,&actualMask,&size);
+                    if(status!=ERROR_SUCCESS) return HRESULT_FROM_WIN32(status);
+                    if(size!=sizeof(actualMask) || actualMask!=mask) return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+                }
+            }
+            // Original signed INF/catalog bytes stay untouched. Only this newly
+            // owned disabled devnode's interfaces receive documented policy.
+            // UI must disclose explicit per-app selection, not system default use.
+            return S_OK;
+        }
         bool Elevated() noexcept
         {
             Handle token;
@@ -134,6 +213,8 @@ namespace Magnolie::PhoneCamera
         try
         {
             result={}; result.supportedHost=Supported(); result.elevated=Elevated(); result.protectedPackage=ProtectedPackage(package);
+            std::array<std::wstring,6> defaults;
+            result.canInspectAudioDefaults=SUCCEEDED(AudioDefaults(defaults));
             Key journal; const LSTATUS status=RegOpenKeyExW(HKEY_LOCAL_MACHINE,Journal,0,KEY_READ,&journal.value);
             if(status!=ERROR_SUCCESS && status!=ERROR_FILE_NOT_FOUND) return HRESULT_FROM_WIN32(status);
             result.existingTransaction=status==ERROR_SUCCESS;
@@ -151,8 +232,12 @@ namespace Magnolie::PhoneCamera
             if(!plan.supportedHost){result.state=CableSetupState::Unsupported;result.error=ERROR_NOT_SUPPORTED;return result;}
             if(!plan.elevated){result.state=CableSetupState::AdministratorRequired;result.error=ERROR_ELEVATION_REQUIRED;return result;}
             if(!plan.protectedPackage){result.state=CableSetupState::UnprotectedPackage;result.error=ERROR_ACCESS_DENIED;return result;}
+            if(!plan.canInspectAudioDefaults){result.state=CableSetupState::Unsupported;result.error=ERROR_NOT_SUPPORTED;return result;}
             if(!plan.existingDevices.empty()){result.state=CableSetupState::ExistingDevice;result.error=ERROR_ALREADY_EXISTS;return result;}
             if(plan.existingTransaction){result.state=CableSetupState::ExistingTransaction;result.error=ERROR_ALREADY_EXISTS;return result;}
+            std::array<std::wstring,6> originalDefaults;
+            hr=AudioDefaults(originalDefaults);
+            if(FAILED(hr)){result.error=static_cast<DWORD>(hr);return result;}
             Local security;
             if(!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"O:BAG:BAD:P(A;CI;KA;;;SY)(A;CI;KA;;;BA)(A;CI;KR;;;BU)",
                 SDDL_REVISION_1,reinterpret_cast<PSECURITY_DESCRIPTOR*>(&security.value),nullptr)) {result.error=GetLastError();return result;}
@@ -192,6 +277,9 @@ namespace Magnolie::PhoneCamera
             constexpr wchar_t ids[]=L"VBAudioVACWDM\0";
             if(!SetupDiSetDeviceRegistryPropertyW(deviceSet.value,&device,SPDRP_HARDWAREID,reinterpret_cast<const BYTE*>(ids),sizeof(ids)))
             {fail(GetLastError());return result;}
+            constexpr DWORD disabled=CONFIGFLAG_DISABLED;
+            if(!SetupDiSetDeviceRegistryPropertyW(deviceSet.value,&device,SPDRP_CONFIGFLAGS,reinterpret_cast<const BYTE*>(&disabled),sizeof(disabled)))
+            {fail(GetLastError());return result;}
             SP_DEVINSTALL_PARAMS_W parameters{}; parameters.cbSize=sizeof(parameters);
             if(!SetupDiGetDeviceInstallParamsW(deviceSet.value,&device,&parameters)){fail(GetLastError());return result;}
             parameters.Flags|=DI_ENUMSINGLEINF|DI_QUIETINSTALL;
@@ -211,7 +299,29 @@ namespace Magnolie::PhoneCamera
             result.ownInstance=instance;
             if(Put(journal.value,L"OwnInstance",result.ownInstance)!=ERROR_SUCCESS || RegFlushKey(journal.value)!=ERROR_SUCCESS)
             {fail(ERROR_WRITE_FAULT);return result;}
+            hr=ConfigureOwnAppScopedInterfaces(deviceSet.value,device,inf);
+            if(FAILED(hr)){fail(static_cast<DWORD>(hr));return result;}
+            if(Put(journal.value,L"EndpointPolicy",L"explicit_app_selection_never_system_default")!=ERROR_SUCCESS)
+            {fail(ERROR_WRITE_FAULT);return result;}
             if(!DiInstallDevice(nullptr,deviceSet.value,&device,&driver,DIIDFLAG_NOFINISHINSTALLUI,&needReboot)) {fail(GetLastError());return result;}
+            // Do not assume the INF/co-installer retained policy written before
+            // installation. Re-read exact own interface values before enabling.
+            hr=ConfigureOwnAppScopedInterfaces(deviceSet.value,device,inf,true);
+            if(FAILED(hr)){fail(static_cast<DWORD>(hr));return result;}
+            DWORD configured=0,type=0,bytes=0;
+            if(!SetupDiGetDeviceRegistryPropertyW(deviceSet.value,&device,SPDRP_CONFIGFLAGS,&type,reinterpret_cast<BYTE*>(&configured),sizeof(configured),&bytes) || type!=REG_DWORD || bytes!=sizeof(configured))
+            {fail(ERROR_INVALID_DATA);return result;}
+            configured&=~static_cast<DWORD>(CONFIGFLAG_DISABLED);
+            if(!SetupDiSetDeviceRegistryPropertyW(deviceSet.value,&device,SPDRP_CONFIGFLAGS,reinterpret_cast<const BYTE*>(&configured),sizeof(configured)))
+            {fail(GetLastError());return result;}
+            SP_PROPCHANGE_PARAMS enable{};enable.ClassInstallHeader.cbSize=sizeof(SP_CLASSINSTALL_HEADER);enable.ClassInstallHeader.InstallFunction=DIF_PROPERTYCHANGE;
+            enable.StateChange=DICS_ENABLE;enable.Scope=DICS_FLAG_GLOBAL;enable.HwProfile=0;
+            if(!SetupDiSetClassInstallParamsW(deviceSet.value,&device,&enable.ClassInstallHeader,sizeof(enable)) || !SetupDiCallClassInstaller(DIF_PROPERTYCHANGE,deviceSet.value,&device))
+            {fail(GetLastError());return result;}
+            std::array<std::wstring,6> afterDefaults;
+            hr=AudioDefaults(afterDefaults);
+            if(FAILED(hr) || afterDefaults!=originalDefaults){fail(ERROR_RETRY);return result;}
+            result.defaultsPreserved=true;
             // Publisher documentation explicitly requires a restart. Report it
             // even if PnP's per-device flag is false; never reboot automatically.
             result.rebootRequired=true; result.state=CableSetupState::RebootRequired;

@@ -28,6 +28,7 @@ int wmain(int argc,wchar_t** argv)
         const HRESULT planned=PlanCableSetup(*package,plan);
         if(FAILED(planned)){std::printf("FAIL readonly-plan %08lx\n",static_cast<unsigned long>(planned));return 1;}
         Check(plan.supportedHost);
+        Check(plan.canInspectAudioDefaults);
         std::printf("PASS cable-readonly-native-host-and-existing-device-plan (existing=%zu elevated=%d)\n",plan.existingDevices.size(),plan.elevated ? 1 : 0);
         // Canonical test input is the existing user-writable research staging
         // directory, never the protected installation subtree. It cannot be
