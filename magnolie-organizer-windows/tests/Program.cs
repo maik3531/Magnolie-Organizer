@@ -110,6 +110,11 @@ if (args.FirstOrDefault() == "--published-release-audit")
 }
 
 var runner = new TestRunner();
+runner.Add("Phone webcam parent / strict ephemeral schema and roles", PhoneCameraParentTests.SchemaAsync);
+runner.Add("Phone webcam parent / actual original encrypted writer and ordinary sequence", PhoneCameraParentTests.OriginalWriterAsync);
+runner.Add("Phone webcam parent / bounded original writer admission without parent loss", PhoneCameraParentTests.BoundedAdmissionAsync);
+runner.Add("Phone webcam parent / post-encryption guard and immutable control snapshot", PhoneCameraParentTests.RevocationAndSnapshotAsync);
+runner.Add("Phone webcam parent / actual post-write revocation and desktop role", PhoneCameraParentTests.PostWriteRevocationAsync);
 runner.Add("Phone webcam media / original binary AV socket and Python goldens", PhoneCameraMediaChannelTests.GoldensAsync);
 runner.Add("Phone webcam media / bounded envelope tamper replay and EOF", PhoneCameraMediaChannelTests.RejectionsAsync);
 runner.Add("Phone webcam media / authenticated packet grammar", PhoneCameraMediaChannelTests.PacketGrammarAsync);

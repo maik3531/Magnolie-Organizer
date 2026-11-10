@@ -324,6 +324,25 @@ The existing Windows main project also compiles with the optional camera flag
 enabled. No Windows authenticated dispatcher, capture-control negotiation, media
 source COM DLL, microphone endpoint or OBS success is claimed by this receiver.
 
+`PhoneCameraParent.cs` additionally joins a bounded ephemeral sender to the actual
+`TelefonConnection` crypto writer and original network stream. Typed v24 REPORT
+envelopes are copied, checked against exact roles/fields/4096 bytes/60-second TTL,
+and never sent through persistent outbox helpers. Admission is limited to two
+seconds. The mandatory native guard is checked before admission, after the wait,
+after encryption and after actual IO. Pre-publication rejection consumes no
+sequence and leaves the healthy original parent usable; uncertain attempted IO
+retires only that original stream. Ordinary and ephemeral frames share the real
+existing cipher sequence. A late caller mutation cannot replace the copied
+control. REQUEST-role packets cannot be sent by this desktop entry.
+
+Five additional .NET groups execute schema/role checks and the actual encrypted
+writer on local TCP, including its original semaphore, post-encryption denial,
+two-second busy admission and revocation after actual ciphertext publication.
+These tests construct a controlled admitted parent; they do not exercise a new
+signed Windows handshake or an actual native webcam owner. No fresh-discovery
+advertisement, incoming webcam dispatcher, positive SEND authority or native
+endpoint is enabled merely by adding this sender. Those joins remain open.
+
 ## KDE Connect versus Notes
 
 Inspected upstream KDE Connect Android commit

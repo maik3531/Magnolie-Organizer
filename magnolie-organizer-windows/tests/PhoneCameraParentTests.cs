@@ -1,0 +1,154 @@
+using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text.Json.Nodes;
+
+namespace MagnolieOrganizer.Windows.Tests;
+
+internal static class PhoneCameraParentTests
+{
+    private static JsonObject Message(string op = "probe", string kind = PhoneCameraControl.Request)
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        return new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+            ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + 60_000,
+            ["body"] = new JsonObject { ["version"] = 24, ["request_id"] = Guid.NewGuid().ToString("D"), ["nonce"] = new string('a', 64), ["op"] = op } };
+    }
+
+    private static JsonObject Reply()
+    {
+        var message = Message("unavailable", PhoneCameraControl.Report);
+        message["body"]!["reason"] = "unsupported";
+        return message;
+    }
+
+    private sealed class Fixture : IDisposable
+    {
+        private readonly string root = Path.Combine(Path.GetTempPath(), "magnolie-camera-parent-" + Guid.NewGuid().ToString("N"));
+        private readonly TcpClient desktop;
+        private readonly TcpClient phone;
+        private readonly CancellationTokenSource deadline = new(TimeSpan.FromSeconds(10));
+        internal readonly TelefonStore Store;
+        internal readonly TelefonPeer Peer = new(Guid.NewGuid().ToString("D"), "Controlled original parent", new byte[32]);
+        internal readonly TelefonConnection Connection;
+        internal SemaphoreSlim Writer => (SemaphoreSlim)typeof(TelefonConnection).GetField("writer", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Connection)!;
+        internal bool HasUnexpectedFrame => phone.GetStream().DataAvailable;
+        internal Fixture()
+        {
+            var paths = new WindowsPaths(root); Store = new TelefonStore(paths, new byte[32]);
+            var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
+            try
+            {
+                phone = new TcpClient(); phone.Connect((IPEndPoint)listener.LocalEndpoint);
+                desktop = listener.AcceptTcpClient();
+            }
+            finally { listener.Stop(); }
+            Connection = new TelefonConnection(Peer, desktop.GetStream(), new byte[16],
+                Enumerable.Range(0, 72).Select(value => (byte)value).ToArray(), Store,
+                (_, _) => Task.FromResult<TelefonAck?>(null), deadline.Token, "wifi");
+        }
+        internal async Task<JsonObject> Read(long expectedSequence)
+        {
+            var frame = await TelefonCoordinator.ReadFrameAsync(phone.GetStream(), 8192, deadline.Token);
+            TestAssert.That(frame["seq"]!.GetValue<long>() == expectedSequence &&
+                frame["sid"]!.GetValue<string>() == Convert.ToBase64String(new byte[16]) &&
+                frame["dir"]!.GetValue<string>() == "desktop_to_phone", "Wrong original crypto envelope");
+            var header = frame.DeepClone().AsObject(); header.Remove("ciphertext");
+            var ciphertext = Convert.FromBase64String(frame["ciphertext"]!.GetValue<string>());
+            var clear = new byte[ciphertext.Length - 16];
+            var nonce = Enumerable.Range(68, 4).Select(value => (byte)value).Concat(new byte[8]).ToArray();
+            System.Buffers.Binary.BinaryPrimitives.WriteInt64BigEndian(nonce.AsSpan(4), expectedSequence);
+            using var aes = new AesGcm(Enumerable.Range(36, 32).Select(value => (byte)value).ToArray(), 16);
+            aes.Decrypt(nonce, ciphertext.AsSpan(0, clear.Length), ciphertext.AsSpan(clear.Length), clear, TelefonCrypto.Canonical(header));
+            return JsonNode.Parse(clear)!.AsObject();
+        }
+        public void Dispose()
+        {
+            Connection.Dispose(); desktop.Dispose(); phone.Dispose(); deadline.Dispose();
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
+    }
+
+    internal static Task SchemaAsync()
+    {
+        var probe = Message();
+        PhoneCameraControl.ValidateMessage(probe, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        foreach (var version in new JsonNode[] { JsonValue.Create("24")!, JsonValue.Create(24.0)!, JsonValue.Create(true)! })
+        {
+            var invalid = probe.DeepClone().AsObject(); invalid["body"]!["version"] = version;
+            TestAssert.Throws<InvalidDataException>(() => PhoneCameraControl.ValidateMessage(invalid, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), "Version alias admitted");
+        }
+        foreach (var mutate in new Action<JsonObject>[] {
+            value => value["body"]!["url"] = "http://phone/camera",
+            value => value["kind"] = PhoneCameraControl.Report,
+            value => value["body"]!["nonce"] = new string('A', 64),
+            value => value["body"]!["request_id"] = Guid.Empty.ToString("D"),
+            value => value["expires_ms"] = value["created_ms"]!.GetValue<long>() + 60_001,
+            value => value["expires_ms"] = value["created_ms"]!.GetValue<long>() - 1,
+            value => value["body"]!["padding"] = new string('a', 4096) })
+        {
+            var invalid = probe.DeepClone().AsObject(); mutate(invalid);
+            TestAssert.Throws<InvalidDataException>(() => PhoneCameraControl.ValidateMessage(invalid, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), "Malformed/oversized envelope admitted");
+        }
+        var offer = Message("offer", PhoneCameraControl.Report); var body = offer["body"]!.AsObject();
+        body["session"] = new string('b', 32); body["secret"] = new string('c', 64); body["port"] = 24401; body["muted"] = false; body["front"] = true;
+        PhoneCameraControl.ValidateMessage(offer, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        body["muted"] = 1;
+        TestAssert.Throws<InvalidDataException>(() => PhoneCameraControl.ValidateMessage(offer, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), "Numeric mute admitted");
+        return Task.CompletedTask;
+    }
+
+    internal static async Task OriginalWriterAsync()
+    {
+        using var fixture = new Fixture();
+        var message = Reply();
+        await fixture.Connection.SendWebcamEphemeralAsync(message, () => { });
+        TestAssert.That(JsonNode.DeepEquals(message, await fixture.Read(0)), "Original ephemeral cipher differs");
+        var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = 123 };
+        await fixture.Connection.SendPlainAsync(ping);
+        TestAssert.That(JsonNode.DeepEquals(ping, await fixture.Read(1)), "Ordinary writer no longer shares original sequence");
+        TestAssert.That(fixture.Store.OutboxMessage(fixture.Peer.Id, message["message_id"]!.GetValue<string>()) is null,
+            "Ephemeral control was persisted");
+    }
+
+    internal static async Task BoundedAdmissionAsync()
+    {
+        using var fixture = new Fixture();
+        await fixture.Writer.WaitAsync();
+        try
+        {
+            await TestAssert.ThrowsAsync<OperationCanceledException>(() => fixture.Connection.SendWebcamEphemeralAsync(Reply(), () => { }), "Writer admission not bounded");
+        }
+        finally { fixture.Writer.Release(); }
+        TestAssert.That(!fixture.HasUnexpectedFrame, "Busy writer emitted a control");
+        var healthy = Reply(); await fixture.Connection.SendWebcamEphemeralAsync(healthy, () => { });
+        TestAssert.That(JsonNode.DeepEquals(healthy, await fixture.Read(0)), "Busy admission consumed counter/closed healthy original parent");
+    }
+
+    internal static async Task RevocationAndSnapshotAsync()
+    {
+        using var fixture = new Fixture();
+        var checks = 0;
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => fixture.Connection.SendWebcamEphemeralAsync(Reply(),
+            () => { if (++checks == 3) throw new InvalidOperationException("original owner retired after encryption"); }), "Late original guard not rechecked");
+        TestAssert.That(checks == 3 && !fixture.HasUnexpectedFrame, "Prepublication rejection emitted bytes");
+        var original = Reply(); var expected = original.DeepClone();
+        await fixture.Writer.WaitAsync();
+        var sending = fixture.Connection.SendWebcamEphemeralAsync(original, () => { });
+        original["body"]!["nonce"] = new string('d', 64);
+        fixture.Writer.Release(); await sending;
+        TestAssert.That(JsonNode.DeepEquals(expected, await fixture.Read(0)), "Late caller mutation replaced original captured control");
+    }
+
+    internal static async Task PostWriteRevocationAsync()
+    {
+        using var fixture = new Fixture();
+        await TestAssert.ThrowsAsync<InvalidDataException>(() => fixture.Connection.SendWebcamEphemeralAsync(Message(), () => { }), "Desktop wrote a phone-role REQUEST");
+        var checks = 0; var message = Reply();
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => fixture.Connection.SendWebcamEphemeralAsync(message,
+            () => { if (++checks == 4) throw new InvalidOperationException("original owner revoked during IO"); }), "Publication reported ready after owner revocation");
+        TestAssert.That(checks == 4 && JsonNode.DeepEquals(message, await fixture.Read(0)), "Did not reach actual ciphertext IO before retirement");
+        await TestAssert.ThrowsAsync<Exception>(() => fixture.Connection.SendPlainAsync(new JsonObject { ["type"] = "ping" }), "Uncertain original parent remained writable");
+    }
+}
