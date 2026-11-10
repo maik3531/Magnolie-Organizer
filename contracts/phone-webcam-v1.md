@@ -28,13 +28,13 @@ been added by this backend unit; V4L2/Pulse prerequisites remain optional.
 
 This is an implemented backend boundary, **not a usable/delivered webcam yet**.
 Linux output adapters, binary transport, joined output lifetime, provider selection
-and native Notes capture/control dispatch exist. Organizer controls, Windows
-native outputs and the compatible KDE capture provider remain incomplete. The
-explicit native entry is not yet exposed by the frontend; normal startup advertises
-no webcam activation.
+and native Notes capture/control dispatch exist. Organizer Advanced-functions
+controls now expose the explicit native entry. Windows native outputs, a compatible
+KDE capture provider and actual phone/native-camera/OBS acceptance remain open.
+Normal startup advertises no webcam activation.
 No installed OBS/phone capture acceptance or package delivery is claimed.
 
-### Native Notes capture implementation, not yet activated
+### Native Notes capture implementation (explicit activation only)
 
 The Notes source now has a real ActivityResult permission host, a one-use original
 request and foreground-capture permit, and a Camera2/ImageReader + AudioRecord
@@ -60,7 +60,8 @@ hardware remain optional; registration never prompts or starts capture. All four
 gallery permission/consent slots and the webcam slot mutually block each other.
 The visible-Activity rendezvous holds no persisted request and never launches UI
 from the background. The native authenticated routes below now join this entry,
-but frontend activation is still missing, so this is not yet a usable phone webcam.
+and the Advanced-functions UI now exposes it. This is not physical phone/webcam
+acceptance or evidence of working OBS capture.
 The new checks cover 15 distinct JVM/Robolectric cases, including real Android
 adapter APIs under simulation and synthetic YUV buffers, not physical capture.
 
@@ -93,7 +94,7 @@ cannot create capture. Five service tests passed; a later Activity/manifest chec
 passed 34 cases covering the service, permission host, rendezvous, optional hardware
 contract and phone-module isolation. Android manifest declarations are not OS
 consent or physical acceptance. The authenticated control/start join is described
-below; Organizer activation, native device-success and OBS acceptance remain open.
+below; native device-success and OBS acceptance remain open.
 
 ## Authenticated control exchange under implementation
 
@@ -236,10 +237,43 @@ the queue rejection case and affected ordinary protocol/queue/manual-sync checks
 also pass. The PC retains a phone's explicit permission-denied reason instead of
 misreporting it as a successful ordinary stop.
 
-Both base dispatchers are now joined. The Organizer frontend is still not
-connected to its explicit native entry, so no end-to-end usable phone webcam or
-new normal-startup capture availability is claimed. Physical Android/OBS,
-Windows-native endpoints and the compatible KDE streaming provider remain open.
+Both base dispatchers and the Organizer frontend are now joined in source.
+Physical Android/OBS, Windows-native endpoints and the compatible KDE streaming
+provider remain open; no physical usability acceptance is claimed.
+
+### Advanced-functions native activation (Refs #503)
+
+Controls appear only below KDE Connect → Advanced functions, including for a
+Notes-only installation with no paired KDE provider. Off remains the default;
+opening the page only reads status and does not enumerate devices or import the
+optional native module. Explicit Enable prepares at most 32 opaque choices from
+live original Wi-Fi Notes parents and existing virtual video devices. Stock KDE
+selection reports that a compatible extension is required, without fallback.
+
+Preparation issues a private one-use action token and per-choice tokens, expiring
+after 60 seconds. It never returns a path or URL to the UI. Start consumes the
+action, validates explicit mute/front booleans, opens/validates the selected
+loopback output, checks fstat identity and holds that exact descriptor. Original
+store/generation/key/channel/actually-sent-capabilities identity is checked again
+under service admission before the authenticated discovery probe. The receiver
+uses that held original output, never reopens a path selected by JSON. Pending
+permission, cancellation, constructor failure and stop close the held output;
+uncertain native cleanup continues to retain the original capture slot.
+
+Strict status/action IPC and PhoneServiceProxy accept only prepare/provider,
+start/action-token/choice-token/mute/front, cancel/action-token and stop/lease.
+No persisted enabled flag, driver install, arbitrary native factory, path or URL
+is accepted. The actual GUI bridge also checks book trust and lock state. Stop
+requires the original opaque owner lease. Active status follows actual native AV
+delivery, not successful preparation or a phone's permission reply. New labels
+and diagnostic reasons are translated in all 19 desktop catalogs.
+
+Automated acceptance covers a real Unix daemon socket and signed encrypted phone
+parent, plus generated encrypted AV through the original held controlled video
+and controlled audio adapters. The actual frontend function executes with a
+controlled DOM/bridge, and the actual GUI handler is tested without GTK. These
+are source/runtime proofs, not native GUI/physical phone/OBS acceptance; no new
+driver, APK, installer or release was installed or published.
 
 ## KDE Connect versus Notes
 

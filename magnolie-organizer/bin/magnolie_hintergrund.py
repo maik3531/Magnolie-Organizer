@@ -829,6 +829,8 @@ def _request_shape(operation, arguments):
         "phone_set_call_audio": {"peer_id", "prefer_pc", "address", "echo_cancel"},
         "phone_request_status": {"peer_id", "request_id"},
         "phone_read_developer_diagnostics": {"peer_id"},
+        "phone_webcam_status": set(),
+        "phone_webcam_action": {"request"},
         "phone_read_contacts": {"peer_id", "uids"},
         "phone_contact_groups": {"peer_id", "fingerprint", "request"},
         "phone_contact_values": {"peer_id", "fingerprint", "request"},
@@ -869,6 +871,14 @@ def _request_shape(operation, arguments):
     if operation not in allowed or set(arguments) - allowed[operation]:
         raise IPCError("operation is not allowed")
     encoded = json.dumps(arguments, ensure_ascii=False, allow_nan=False)
+    if operation == "phone_webcam_action":
+        from magnolie_telefon import PhoneService
+        try:
+            if set(arguments) != {"request"} or len(encoded.encode("utf-8")) > 1024:
+                raise ValueError("invalid webcam action")
+            PhoneService.validate_webcam_action(arguments["request"])
+        except (ValueError, TypeError, KeyError) as error:
+            raise IPCError("invalid webcam action") from error
     if operation == "mcp_refresh" and (not isinstance(arguments.get("expected_revision", ""), str) or not re.fullmatch(r"(?:[a-f0-9]{64})?", arguments.get("expected_revision", ""))):
         raise IPCError("invalid KDE control revision")
     if operation == "mcp_action":
@@ -2029,6 +2039,10 @@ class IPCServer:
             return phone.read_own_profile(arguments["peer_id"])
         if operation == "phone_read_developer_diagnostics":
             return phone.read_developer_diagnostics(arguments["peer_id"])
+        if operation == "phone_webcam_status":
+            return phone.webcam_status()
+        if operation == "phone_webcam_action":
+            return phone.webcam_action(arguments["request"])
         if operation == "phone_mcp_device_status_result":
             return phone.mcp_device_status_result(arguments["request_id"])
         if operation == "phone_read_contacts":
@@ -2880,6 +2894,12 @@ class PhoneServiceProxy:
 
     def read_developer_diagnostics(self, peer_id):
         return self._call("read_developer_diagnostics", peer_id=peer_id)
+
+    def webcam_status(self):
+        return self._call("webcam_status")
+
+    def webcam_action(self, request):
+        return self._call("webcam_action", request=request)
 
     def read_contacts(self, peer_id, uids=None):
         return self._call("read_contacts", peer_id=peer_id, uids=uids)

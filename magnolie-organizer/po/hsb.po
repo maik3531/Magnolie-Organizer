@@ -10319,3 +10319,42 @@ msgstr "Symbol w systemowej lajsće (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "Wuwiwarski modus dyrbi składowany być."
+
+msgid "Phone webcam"
+msgstr "Webkamera telefona"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "Po standardźe wupinata. Wužiwa eksistowacu wirtuelnu kameru a mikrofon; ničo njeinstaluje."
+
+msgid "Mute microphone"
+msgstr "Mikrofon wupinyć"
+
+msgid "Use front camera"
+msgstr "Prědnju kameru wužiwać"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "Eksistowacy ćěrjak wirtuelneje kamery je trěbny. Ničo njeje so instalowało."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect kompatibelne rozšěrjenje webkamery wužaduje."
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Zwjazajće najprjedy Magnolie Notes přez WLAN."
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "Dowolnosć za kameru abo mikrofon bu na telefonje wotpokazana."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Wočińće Magnolie Notes na telefonje, zo byšće zaznam dowolili."
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "Předchadne posedźenje webkamery dyrbi so najprjedy dospołnje skónčić."
+
+msgid "Waiting for phone permission and capture …"
+msgstr "Čaka so na dowolnosć telefona a zaznam …"
+
+msgid "Active"
+msgstr "Aktiwny"
+
+msgid "Start"
+msgstr "Startować"

@@ -10265,3 +10265,42 @@ msgstr "Значок в системном трее (60 с)"
 
 msgid "Saved developer mode is required."
 msgstr "Режим разработчика должен быть сохранён."
+
+msgid "Phone webcam"
+msgstr "Веб-камера телефона"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "По умолчанию выключена. Использует существующие виртуальные камеру и микрофон; ничего не устанавливает."
+
+msgid "Mute microphone"
+msgstr "Отключить микрофон"
+
+msgid "Use front camera"
+msgstr "Использовать фронтальную камеру"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "Требуется уже установленный драйвер виртуальной камеры. Ничего не установлено."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "Для KDE Connect нужно совместимое расширение веб-камеры."
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Сначала подключите Magnolie Notes по Wi-Fi."
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "На телефоне отказано в доступе к камере или микрофону."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Откройте Magnolie Notes на телефоне, чтобы разрешить захват."
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "Сначала необходимо полностью остановить предыдущий сеанс веб-камеры."
+
+msgid "Waiting for phone permission and capture …"
+msgstr "Ожидание разрешения телефона и захвата…"
+
+msgid "Active"
+msgstr "Активно"
+
+msgid "Start"
+msgstr "Запустить"

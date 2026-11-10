@@ -29756,6 +29756,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const erweitert = el("details", "einst-gruppe kde-erweiterte-funktionen");
     erweitert.id = "kde-erweiterte-funktionen";
     erweitert.append(el("summary", null, _("Advanced functions")));
+    baueTelefonWebcam(erweitert);
     baueKdeEingabe(erweitert);
     baueKdeSpieler(erweitert);
     kdeBlock.append(erweitert);
@@ -29775,6 +29776,103 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!Bruecke.sende({ cmd, requestId, ...args })) {
         clearTimeout(timer); kdeMedienAnfragen.delete(requestId); resolve({ ok: false });
       }
+    });
+  }
+
+  // Ephemeral native choices only. Never use preferences, phone paths or URLs.
+  function baueTelefonWebcam(wurzel) {
+    const block = el("div", "einst-gruppe"); block.id = "telefon-webcam";
+    block.append(el("h4", null, _("Phone webcam")), el("p", "einst-hinweis",
+      _("Off by default. Uses an existing virtual camera and microphone; installs nothing.")));
+    const status = el("p", "einst-hinweis", _("Off"));
+    const provider = el("select");
+    for (const [value, label] of [["auto", _("Automatic")], ["notes", "Magnolie Notes"], ["kdeconnect", "KDE Connect"]]) {
+      const option = el("option", null, label); option.value = value; provider.append(option);
+    }
+    provider.setAttribute("aria-label", _("Phone webcam"));
+    const choices = el("select"); choices.hidden = true; choices.setAttribute("aria-label", _("Camera"));
+    const muted = el("input"); muted.type = "checkbox";
+    const front = el("input"); front.type = "checkbox";
+    const muteLabel = el("label"); muteLabel.append(muted, document.createTextNode(_("Mute microphone")));
+    const frontLabel = el("label"); frontLabel.append(front, document.createTextNode(_("Use front camera")));
+    let action = "", lease = "", busy = false, enabled = false, included = true, timer = null;
+    const visible = () => block.isConnected && wurzel.open && !gesperrt;
+    const reasonText = reason => ({
+      virtual_camera_missing: _("An existing virtual camera driver is required. Nothing was installed."),
+      compatible_extension_required: _("KDE Connect requires a compatible webcam extension."),
+      phone_unavailable: _("Connect Magnolie Notes over WLAN first."),
+      permission_denied: _("Camera or microphone permission was denied on the phone."),
+      foreground_required: _("Open Magnolie Notes on the phone to allow capture."),
+      owner_busy: _("The previous webcam session must finish stopping first."),
+      shutdown_pending: _("The previous webcam session must finish stopping first."),
+      not_in_build: _("Unavailable")
+    })[reason] || _("Unavailable");
+    function controls() {
+      prepare.disabled = busy || enabled || !included;
+      start.disabled = busy || enabled || !action || !choices.value;
+      stop.disabled = busy || !lease;
+      provider.disabled = busy || enabled;
+      choices.disabled = busy || enabled;
+      muted.disabled = front.disabled = busy || enabled;
+    }
+    function apply(value) {
+      included = value.included !== false;
+      enabled = value.enabled === true; lease = value.lease || "";
+      status.textContent = value.reason ? reasonText(value.reason) : value.phase === "active" ? _("Active") :
+        value.phase === "starting" ? _("Waiting for phone permission and capture …") :
+        value.phase === "shutdown_pending" ? reasonText("shutdown_pending") : _("Off");
+      controls();
+    }
+    async function request(payload) {
+      if (busy) return;
+      busy = true; controls();
+      const result = await kdeMedienAnfordern(payload ? "telefon_webcam_aktion" : "telefon_webcam_stand",
+        payload ? { request: payload } : {});
+      busy = false;
+      if (!block.isConnected) return;
+      if (result.ok && result.webcam) apply(result.webcam);
+      else { status.textContent = _("Unavailable"); controls(); }
+      return result.webcam;
+    }
+    function discard() {
+      const old = action; action = ""; choices.replaceChildren(); choices.hidden = true; controls();
+      if (old) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: old}});
+    }
+    const prepare = knopf(_("Enable"), "klein", async () => {
+      discard();
+      const value = await request({action: "prepare", provider: provider.value});
+      if (!visible()) {
+        if (value?.action) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: value.action}});
+        return;
+      }
+      if (value?.action && Array.isArray(value.choices)) {
+        action = value.action;
+        for (const choice of value.choices) {
+          const option = el("option", null, `${choice.phone || "Magnolie Notes"} — ${choice.device}`);
+          option.value = choice.token; choices.append(option);
+        }
+        choices.hidden = false; controls();
+      }
+    });
+    const start = knopf(_("Start"), "klein", async () => {
+      const token = action, choice = choices.value;
+      action = ""; choices.hidden = true;
+      await request({action: "start", action_token: token, choice_token: choice, muted: muted.checked, front: front.checked});
+    });
+    const stop = knopf(_("Stop"), "klein rot", () => request({action: "stop", lease}));
+    provider.addEventListener("change", discard);
+    choices.addEventListener("change", controls);
+    block.append(status, provider, prepare, choices, muteLabel, frontLabel, start, stop);
+    wurzel.append(block); controls();
+    async function refresh() {
+      clearTimeout(timer);
+      if (!visible()) return;
+      await request();
+      if (visible()) timer = setTimeout(refresh, 2000);
+    }
+    wurzel.addEventListener("toggle", () => {
+      clearTimeout(timer);
+      if (wurzel.open) refresh(); else discard();
     });
   }
 
@@ -35187,6 +35285,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       clearTimeout(request.timer); kdeMedienAnfragen.delete(value.requestId); request.resolve(value);
     },
     kdeInput(value) { App.kdeMedien(value); },
+    telefonWebcam(value) { App.kdeMedien(value); },
     kdePlayer(value) { App.kdeMedien(value); },
     personalSyncCollection(value) {
       if (!value?.device_id || typeof value.fingerprint !== "string" || !Array.isArray(value.members?.notes) || !Array.isArray(value.members?.tasks)) return;

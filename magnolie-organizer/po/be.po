@@ -10209,3 +10209,42 @@ msgstr "Значок у сістэмным трэі (60 с)"
 
 msgid "Saved developer mode is required."
 msgstr "Рэжым распрацоўшчыка павінен быць захаваны."
+
+msgid "Phone webcam"
+msgstr "Вэб-камера тэлефона"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "Прадвызначана выключана. Выкарыстоўвае наяўныя віртуальныя камеру і мікрафон; нічога не ўсталёўвае."
+
+msgid "Mute microphone"
+msgstr "Выключыць мікрафон"
+
+msgid "Use front camera"
+msgstr "Выкарыстоўваць пярэднюю камеру"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "Патрэбны наяўны драйвер віртуальнай камеры. Нічога не ўсталявана."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "Для KDE Connect патрэбна сумяшчальнае пашырэнне вэб-камеры."
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Спачатку падключыце Magnolie Notes праз Wi-Fi."
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "На тэлефоне адмоўлена ў дазволе на камеру ці мікрафон."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Адкрыйце Magnolie Notes на тэлефоне, каб дазволіць захоп."
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "Спачатку трэба цалкам спыніць папярэдні сеанс вэб-камеры."
+
+msgid "Waiting for phone permission and capture …"
+msgstr "Чаканне дазволу тэлефона і захопу…"
+
+msgid "Active"
+msgstr "Актыўна"
+
+msgid "Start"
+msgstr "Запусціць"

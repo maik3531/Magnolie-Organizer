@@ -10365,3 +10365,42 @@ msgstr "Ausgewählte PC-Quellordner"
 
 msgid "PC source folders are separate from receive destinations."
 msgstr "PC-Quellordner sind unabhängig von Empfangszielen."
+
+msgid "Phone webcam"
+msgstr "Telefon-Webcam"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "Standardmäßig aus. Verwendet eine vorhandene virtuelle Kamera und ein virtuelles Mikrofon; installiert nichts."
+
+msgid "Mute microphone"
+msgstr "Mikrofon stummschalten"
+
+msgid "Use front camera"
+msgstr "Frontkamera verwenden"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "Ein vorhandener virtueller Kameratreiber ist erforderlich. Es wurde nichts installiert."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect benötigt eine kompatible Webcam-Erweiterung."
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Verbinden Sie zuerst Magnolie Notes über WLAN."
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "Die Kamera- oder Mikrofonberechtigung wurde auf dem Telefon verweigert."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Öffnen Sie Magnolie Notes auf dem Telefon, um die Aufnahme zu erlauben."
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "Die vorherige Webcam-Sitzung muss zuerst vollständig beendet werden."
+
+msgid "Waiting for phone permission and capture …"
+msgstr "Warten auf Telefonfreigabe und Aufnahme …"
+
+msgid "Active"
+msgstr "Aktiv"
+
+msgid "Start"
+msgstr "Starten"

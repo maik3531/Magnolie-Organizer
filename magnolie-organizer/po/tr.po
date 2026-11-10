@@ -10142,3 +10142,42 @@ msgstr "Sistem tepsisi simgesi (60 sn)"
 
 msgid "Saved developer mode is required."
 msgstr "Geliştirici modu kaydedilmiş olmalıdır."
+
+msgid "Phone webcam"
+msgstr "Telefon web kamerası"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "Varsayılan olarak kapalıdır. Mevcut sanal kamera ve mikrofonu kullanır; hiçbir şey yüklemez."
+
+msgid "Mute microphone"
+msgstr "Mikrofonu sessize al"
+
+msgid "Use front camera"
+msgstr "Ön kamerayı kullan"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "Mevcut bir sanal kamera sürücüsü gereklidir. Hiçbir şey yüklenmedi."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect uyumlu bir web kamerası uzantısı gerektirir."
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Önce Magnolie Notes’u Wi-Fi üzerinden bağlayın."
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "Telefonda kamera veya mikrofon izni reddedildi."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Yakalamaya izin vermek için telefonda Magnolie Notes’u açın."
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "Önce önceki web kamerası oturumunun tamamen durması gerekir."
+
+msgid "Waiting for phone permission and capture …"
+msgstr "Telefon izni ve yakalama bekleniyor…"
+
+msgid "Active"
+msgstr "Etkin"
+
+msgid "Start"
+msgstr "Başlat"

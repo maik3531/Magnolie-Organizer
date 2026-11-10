@@ -10165,3 +10165,42 @@ msgstr "Ikona v oznamovací oblasti systému (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "Režim pro vývojáře musí být uložen."
+
+msgid "Phone webcam"
+msgstr "Webkamera telefonu"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "Ve výchozím stavu vypnuta. Používá stávající virtuální kameru a mikrofon; nic neinstaluje."
+
+msgid "Mute microphone"
+msgstr "Ztlumit mikrofon"
+
+msgid "Use front camera"
+msgstr "Použít přední kameru"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "Je vyžadován stávající ovladač virtuální kamery. Nic nebylo nainstalováno."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect vyžaduje kompatibilní rozšíření webkamery."
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Nejprve připojte Magnolie Notes přes Wi-Fi."
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "V telefonu bylo zamítnuto oprávnění ke kameře nebo mikrofonu."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Otevřete Magnolie Notes v telefonu a povolte snímání."
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "Předchozí relace webkamery se musí nejprve úplně ukončit."
+
+msgid "Waiting for phone permission and capture …"
+msgstr "Čekání na svolení telefonu a snímání…"
+
+msgid "Active"
+msgstr "Aktivní"
+
+msgid "Start"
+msgstr "Spustit"

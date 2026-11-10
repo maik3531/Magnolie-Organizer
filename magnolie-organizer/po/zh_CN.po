@@ -9669,3 +9669,42 @@ msgstr "系统托盘图标（60秒）"
 
 msgid "Saved developer mode is required."
 msgstr "必须先保存开发者模式。"
+
+msgid "Phone webcam"
+msgstr "手机网络摄像头"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "默认关闭。使用现有虚拟摄像头和麦克风；不安装任何组件。"
+
+msgid "Mute microphone"
+msgstr "麦克风静音"
+
+msgid "Use front camera"
+msgstr "使用前置摄像头"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "需要现有的虚拟摄像头驱动程序。未安装任何组件。"
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect 需要兼容的网络摄像头扩展。"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "请先通过 Wi-Fi 连接 Magnolie Notes。"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "手机上的摄像头或麦克风权限已被拒绝。"
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "请在手机上打开 Magnolie Notes 以允许采集。"
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "必须先完全停止上一次网络摄像头会话。"
+
+msgid "Waiting for phone permission and capture …"
+msgstr "正在等待手机授权和采集…"
+
+msgid "Active"
+msgstr "运行中"
+
+msgid "Start"
+msgstr "启动"

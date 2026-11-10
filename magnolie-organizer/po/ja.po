@@ -10059,3 +10059,42 @@ msgstr "システムトレイアイコン（60秒）"
 
 msgid "Saved developer mode is required."
 msgstr "開発者モードを保存する必要があります。"
+
+msgid "Phone webcam"
+msgstr "スマートフォンのウェブカメラ"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "初期状態はオフです。既存の仮想カメラとマイクを使用し、何もインストールしません。"
+
+msgid "Mute microphone"
+msgstr "マイクをミュート"
+
+msgid "Use front camera"
+msgstr "前面カメラを使用"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "既存の仮想カメラドライバーが必要です。何もインストールしていません。"
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect には互換性のあるウェブカメラ拡張機能が必要です。"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "まず Magnolie Notes を Wi-Fi で接続してください。"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "スマートフォンでカメラまたはマイクの権限が拒否されました。"
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "撮影を許可するにはスマートフォンで Magnolie Notes を開いてください。"
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "まず前のウェブカメラセッションが完全に停止する必要があります。"
+
+msgid "Waiting for phone permission and capture …"
+msgstr "スマートフォンの許可と撮影を待機中…"
+
+msgid "Active"
+msgstr "動作中"
+
+msgid "Start"
+msgstr "開始"

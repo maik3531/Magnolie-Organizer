@@ -16,11 +16,12 @@ from magnolie_phone_camera_exchange import DesktopWebcamControlExchange
 
 
 class NativePhoneWebcamOwner:
-    def __init__(self, service, peer, channel, device, *, muted=False, front=False, output_factory=None):
+    def __init__(self, service, peer, channel, device, *, muted=False, front=False, output_factory=None, prepared_cleanup=None):
         self.service, self.store, self.channel = service, service.store, channel
         self.peer_id, self.key, self.generation = peer['device_id'], peer['static_public'], service._generation
         self.device, self.muted, self.front = device, muted, front
         self.output_factory = output_factory
+        self.prepared_cleanup = prepared_cleanup
         self.stopping, self.done = threading.Event(), threading.Event()
         self.incoming = queue.Queue(maxsize=4)
         self.worker = threading.Thread(target=self._work, name='Magnolie original webcam control', daemon=True)
@@ -193,18 +194,22 @@ class NativePhoneWebcamOwner:
                 except Exception:
                     pass  # Never restore old metadata over another actual control update.
             try:
-                if self.exchange is not None:
-                    self.exchange.close()
-                    run = self.exchange.run
-                    if run is not None:
-                        # A receiver-thread exit alone does not prove successful
-                        # original native unload. Recheck that exact output owner.
-                        run.outputs.close()
+                try:
+                    if self.exchange is not None:
+                        self.exchange.close()
+                        run = self.exchange.run
+                        if run is not None:
+                            # Recheck the original native unload, not thread exit.
+                            run.outputs.close()
+                finally:
+                    if self.prepared_cleanup is not None:
+                        self.prepared_cleanup()
                 self.pending_cleanup_owner = getattr(self.error, 'native_cleanup_owner', None)
                 self.cleanup_confirmed = self.pending_cleanup_owner is None
             except Exception as error:
+                original_cleanup_owner = getattr(self.error, 'native_cleanup_owner', None)
                 self.error = error  # Retain the slot on uncertain native cleanup.
-                self.pending_cleanup_owner = getattr(error, 'native_cleanup_owner', None)
+                self.pending_cleanup_owner = getattr(error, 'native_cleanup_owner', None) or original_cleanup_owner
             self.done.set()
             with self.service.lock:
                 self.service._workers.discard(self.worker)

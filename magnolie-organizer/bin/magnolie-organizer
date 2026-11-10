@@ -22523,6 +22523,9 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_entfernen(
                 nachricht.get("kennung") or ""), daemon=True).start()
 
+        elif befehl in ("telefon_webcam_stand", "telefon_webcam_aktion"):
+            threading.Thread(target=self._telefon_webcam, args=(nachricht,), daemon=True).start()
+
         elif befehl == "telefon_anruf_audio_pruefen":
             threading.Thread(target=self._telefon_anruf_audio_pruefen, daemon=True).start()
 
@@ -25822,6 +25825,22 @@ class Fenster(_FENSTER_BASIS):
             result.pop("diagnose", None)
             result["fehler"] = str(fehler)
         self.antwort("App.telefonEntwicklerDiagnose", result)
+
+    def _telefon_webcam(self, nachricht):
+        result = {"requestId": nachricht.get("requestId"), "ok": False}
+        try:
+            if self._gesperrt or not self._organizer_vertraut() or not self._telefon:
+                raise PermissionError("webcam_unavailable")
+            if nachricht["cmd"] == "telefon_webcam_stand":
+                result["webcam"] = self._telefon.webcam_status()
+            else:
+                result["webcam"] = self._telefon.webcam_action(nachricht.get("request"))
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("webcam_unavailable")
+            result["ok"] = True
+        except Exception:
+            result.pop("webcam", None)
+        self.antwort("App.telefonWebcam", result)
 
     def _telefon_entfernen(self, kennung):
         if self._telefon:

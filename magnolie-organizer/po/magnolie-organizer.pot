@@ -9009,3 +9009,42 @@ msgstr ""
 
 msgid "PC source folders are separate from receive destinations."
 msgstr ""
+
+msgid "Phone webcam"
+msgstr ""
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr ""
+
+msgid "Mute microphone"
+msgstr ""
+
+msgid "Use front camera"
+msgstr ""
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr ""
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr ""
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr ""
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr ""
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr ""
+
+msgid "The previous webcam session must finish stopping first."
+msgstr ""
+
+msgid "Waiting for phone permission and capture …"
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Start"
+msgstr ""

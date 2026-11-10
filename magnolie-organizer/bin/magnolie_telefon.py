@@ -2868,6 +2868,7 @@ class PhoneService:
         self._native_photo_built = optional_phone.available('photo_sync')
         self._native_camera_built = optional_phone.available('phone_camera')
         self._native_webcam_owner = None
+        self._native_webcam_ui = None
         self._webcam_ephemeral_acks = weakref.WeakKeyDictionary()
         self._webcam_probe_tokens = weakref.WeakKeyDictionary()
         self._mcp_worker = threading.local()
@@ -2956,10 +2957,51 @@ class PhoneService:
         return dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=kind,
             created_ms=created, expires_ms=created + 60_000, body=body)
 
-    def begin_native_webcam(self, peer_id, *, device, muted=False, front=False):
-        """Explicit native user-confirmation entry ONLY; never startup/IPC
+    @staticmethod
+    def validate_webcam_action(request):
+        if type(request) is not dict or type(request.get('action')) is not str:
+            raise ValueError('invalid webcam action')
+        fields = {'prepare': {'provider'}, 'start': {'action_token', 'choice_token', 'muted', 'front'},
+            'cancel': {'action_token'}, 'stop': {'lease'}}
+        action = request['action']
+        if action not in fields or set(request) != fields[action] | {'action'}:
+            raise ValueError('invalid webcam action')
+        if action == 'prepare' and request['provider'] not in ('auto', 'notes', 'kdeconnect'):
+            raise ValueError('invalid webcam provider')
+        for key in ('action_token', 'choice_token', 'lease'):
+            if key in request and (type(request[key]) is not str or not re.fullmatch(r'[a-f0-9]{64}', request[key])):
+                raise ValueError('invalid webcam token')
+        if action == 'start' and any(type(request[key]) is not bool for key in ('muted', 'front')):
+            raise ValueError('invalid webcam capture choice')
+
+    def webcam_status(self):
+        manager = self._native_webcam_ui
+        if manager is None:
+            return dict(included=self._native_camera_built, enabled=False, active=False, phase='off',
+                reason='' if self._native_camera_built else 'not_in_build', lease='')
+        return manager.status()
+
+    def webcam_action(self, request):
+        self.validate_webcam_action(request)
+        if not self._native_camera_built:
+            raise PermissionError('webcam_feature_not_in_build')
+        with self.lock:
+            manager = self._native_webcam_ui
+            if manager is None:
+                if request['action'] != 'prepare':
+                    raise PermissionError('webcam_original_choice_required')
+                manager = importlib.import_module('magnolie_phone_camera_ui').NativeWebcamUi(self)
+                self._native_webcam_ui = manager
+        action = request['action']
+        if action == 'prepare': return manager.prepare(request['provider'])
+        if action == 'start': return manager.start(request['action_token'], request['choice_token'], request['muted'], request['front'])
+        if action == 'cancel': return manager.cancel(request['action_token'])
+        return manager.stop(request['lease'])
+
+    def begin_native_webcam(self, peer_id, *, device, muted=False, front=False, _output_factory=None, _prepared_cleanup=None, _source_guard=None):
+        """Explicit native user-confirmation entry ONLY; never startup, raw IPC
         metadata, incoming packets, saved flags or a photo-sync setting.
-        The Advanced-functions frontend still has to wire this native entry.
+        Advanced functions reaches this via one-use native choices, not paths.
         """
         if not self._native_camera_built:
             raise ValueError('webcam_feature_not_in_build')
@@ -2967,6 +3009,8 @@ class PhoneService:
                 type(muted) is not bool or type(front) is not bool):
             raise ValueError('invalid native webcam choice')
         with self.lock:
+            if _source_guard is not None:
+                _source_guard()
             peer = next((value for value in self.store.peers if value.get('device_id') == peer_id), None)
             channel = self.connections.get(peer_id)
             previous = self._native_webcam_owner
@@ -2977,7 +3021,8 @@ class PhoneService:
                     channel.last_capabilities is None):
                 raise PermissionError('webcam_original_live_wifi_required')
             NativePhoneWebcamOwner = importlib.import_module('magnolie_phone_camera_runtime').NativePhoneWebcamOwner
-            owner = NativePhoneWebcamOwner(self, peer, channel, device, muted=muted, front=front)
+            owner = NativePhoneWebcamOwner(self, peer, channel, device, muted=muted, front=front,
+                output_factory=_output_factory, prepared_cleanup=_prepared_cleanup)
             self._native_webcam_owner = owner
             self._workers.add(owner.worker)
             try: owner.worker.start()

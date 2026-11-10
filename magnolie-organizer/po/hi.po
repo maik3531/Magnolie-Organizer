@@ -9944,3 +9944,42 @@ msgstr "सिस्टम ट्रे आइकन (60 सेकंड)"
 
 msgid "Saved developer mode is required."
 msgstr "डेवलपर मोड सहेजा हुआ होना चाहिए।"
+
+msgid "Phone webcam"
+msgstr "फ़ोन वेबकैम"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "डिफ़ॉल्ट रूप से बंद। मौजूदा वर्चुअल कैमरा और माइक्रोफ़ोन का उपयोग करता है; कुछ भी इंस्टॉल नहीं करता।"
+
+msgid "Mute microphone"
+msgstr "माइक्रोफ़ोन म्यूट करें"
+
+msgid "Use front camera"
+msgstr "सामने वाला कैमरा उपयोग करें"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "पहले से मौजूद वर्चुअल कैमरा ड्राइवर आवश्यक है। कुछ भी इंस्टॉल नहीं किया गया।"
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect के लिए संगत वेबकैम एक्सटेंशन आवश्यक है।"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "पहले Magnolie Notes को वाई-फ़ाई से कनेक्ट करें।"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "फ़ोन पर कैमरा या माइक्रोफ़ोन की अनुमति अस्वीकार की गई।"
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "कैप्चर की अनुमति देने के लिए फ़ोन पर Magnolie Notes खोलें।"
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "पहले पिछले वेबकैम सत्र का पूरी तरह रुकना आवश्यक है।"
+
+msgid "Waiting for phone permission and capture …"
+msgstr "फ़ोन की अनुमति और कैप्चर की प्रतीक्षा में…"
+
+msgid "Active"
+msgstr "सक्रिय"
+
+msgid "Start"
+msgstr "शुरू करें"

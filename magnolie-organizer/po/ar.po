@@ -10240,3 +10240,42 @@ msgstr "أيقونة علبة النظام (60 ثانية)"
 
 msgid "Saved developer mode is required."
 msgstr "يجب حفظ وضع المطوّر."
+
+msgid "Phone webcam"
+msgstr "كاميرا الهاتف للويب"
+
+msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
+msgstr "متوقفة افتراضيًا. تستخدم كاميرا وميكروفونًا افتراضيين موجودين؛ لا تثبّت أي شيء."
+
+msgid "Mute microphone"
+msgstr "كتم الميكروفون"
+
+msgid "Use front camera"
+msgstr "استخدام الكاميرا الأمامية"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "يلزم برنامج تشغيل كاميرا افتراضية موجود مسبقًا. لم يُثبّت أي شيء."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "يتطلب KDE Connect إضافة كاميرا ويب متوافقة."
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "وصّل Magnolie Notes عبر Wi-Fi أولًا."
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "رُفض إذن الكاميرا أو الميكروفون على الهاتف."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "افتح Magnolie Notes على الهاتف للسماح بالالتقاط."
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "يجب إيقاف جلسة كاميرا الويب السابقة بالكامل أولًا."
+
+msgid "Waiting for phone permission and capture …"
+msgstr "بانتظار إذن الهاتف والالتقاط…"
+
+msgid "Active"
+msgstr "نشط"
+
+msgid "Start"
+msgstr "بدء"
