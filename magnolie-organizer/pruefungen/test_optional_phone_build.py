@@ -40,6 +40,7 @@ def test_actual_desktop_stage_contains_exact_selected_modules_and_resolves_all_r
     assert (runtime / 'magnolie_photo_schedule.py').exists() is photo
     assert (runtime / 'magnolie_media_preview.py').exists() is photo
     assert (runtime / 'magnolie_media_offer.py').exists() is photo
+    assert (runtime / 'magnolie_phone_webcam.py').exists() is camera
     assert json.loads((data / 'build-config.json').read_text())['phoneFeatures'] == selected
     result = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'werkzeuge/runtime_pruefen.py'), str(bindir)],
         cwd=tmp_path, capture_output=True, text=True, timeout=30)
@@ -51,6 +52,7 @@ assert p.available('photo_sync') is (sys.argv[2]=='True')
 assert p.available('phone_camera') is (sys.argv[3]=='True')
 import magnolie_telefon
 assert pathlib.Path(magnolie_telefon.__file__).parent == pathlib.Path(sys.argv[1])
+assert not any(name.startswith(('magnolie_phone_camera', 'magnolie_phone_webcam')) for name in sys.modules)
 '''
     result = subprocess.run([sys.executable, '-I', '-B', '-c', code, str(runtime), str(photo), str(camera)],
         cwd=tmp_path, capture_output=True, text=True, timeout=30)
@@ -61,6 +63,8 @@ def test_unconfigured_self_build_omits_features_but_prepared_distribution_needs_
     bindir, data = payload(tmp_path)
     assert stage(bindir, data) == dict(photo_sync=False, phone_camera=False)
     assert not (data / 'python/magnolie_file_desktop_connection.py').exists()
+    assert not list((data / 'python').glob('magnolie_phone_camera*.py'))
+    assert not (data / 'python/magnolie_phone_webcam.py').exists()
     (data / 'build-config.json').write_text(json.dumps({'contributorHash': 'a' * 64}))
     assert stage(bindir, data) == dict(photo_sync=True, phone_camera=True)
     assert (data / 'python/magnolie_file_desktop_connection.py').is_file()

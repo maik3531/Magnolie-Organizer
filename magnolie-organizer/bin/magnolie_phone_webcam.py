@@ -1,0 +1,293 @@
+"""Bounded native AV output for an explicitly admitted phone-camera session.
+
+No camera capture, network listener, driver installation or device-default changes.
+The authenticated transport must supply its original, revocable session guard.
+Linux requires an existing writable v4l2loopback node and PulseAudio/PipeWire.
+"""
+import ctypes
+import fcntl
+import os
+from pathlib import Path
+import re
+import shutil
+import shlex
+import stat
+import struct
+import tempfile
+import threading
+import time
+import uuid
+
+
+class WebcamUnavailable(Exception):
+    pass
+
+
+WIDTH, HEIGHT, FPS = 640, 480, 15
+VIDEO_BYTES = WIDTH * HEIGHT * 3 // 2
+SAMPLE_RATE, CHANNELS, AUDIO_SAMPLES = 48000, 1, 960
+AUDIO_BYTES = AUDIO_SAMPLES * CHANNELS * 2
+
+
+def _command(arguments):
+    # Existing bounded native helper: 3 seconds / 1 MiB, child always reaped.
+    from magnolie_anruf_audio import bounded_command, AudioUnavailable
+    try:
+        return bounded_command(arguments)
+    except (OSError, ValueError, AudioUnavailable) as error:
+        raise WebcamUnavailable('webcam_audio_server_unavailable') from error
+
+
+def _query_video(fd):
+    body = bytearray(104)
+    fcntl.ioctl(fd, 0x80685600, body, True)  # VIDIOC_QUERYCAP
+    driver = bytes(body[:16]).split(b'\0', 1)[0]
+    capabilities, device_caps = struct.unpack_from('=II', body, 84)
+    caps = device_caps if capabilities & 0x80000000 else capabilities
+    if driver not in (b'v4l2 loopback', b'v4l2loopback') or not caps & 0x2 or not caps & 0x01000000:
+        raise WebcamUnavailable('webcam_existing_loopback_output_required')
+
+
+class _FormatUnion(ctypes.Union):
+    _fields_ = [('raw', ctypes.c_ubyte * 200), ('alignment', ctypes.c_uint64)]
+
+
+class _Format(ctypes.Structure):
+    _fields_ = [('type', ctypes.c_uint32), ('data', _FormatUnion)]
+
+
+class LinuxVideoOutput:
+    """A held loopback OUTPUT descriptor, never a physical camera capture FD."""
+    def __init__(self, device):
+        self.fd = None
+        self.ready = False
+        if type(device) is not str or not re.fullmatch(r'/dev/video[0-9]+', device):
+            raise WebcamUnavailable('webcam_existing_loopback_output_required')
+        try:
+            self.fd = os.open(device, os.O_WRONLY | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
+            if not stat.S_ISCHR(os.fstat(self.fd).st_mode):
+                raise WebcamUnavailable('webcam_existing_loopback_output_required')
+            _query_video(self.fd)
+            fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            # v4l2_format's union has native 64-bit alignment on 64-bit Linux.
+            body = bytearray(ctypes.sizeof(_Format))
+            offset = _Format.data.offset
+            struct.pack_into('=I', body, 0, 2)  # V4L2_BUF_TYPE_VIDEO_OUTPUT
+            struct.pack_into('=IIIIII', body, offset, WIDTH, HEIGHT,
+                             int.from_bytes(b'YU12', 'little'), 1, WIDTH, VIDEO_BYTES)
+            request = 0xC0000000 | (len(body) << 16) | (ord('V') << 8) | 5
+            fcntl.ioctl(self.fd, request, body, True)  # VIDIOC_S_FMT
+            width, height, pixel, field, stride, size = struct.unpack_from('=IIIIII', body, offset)
+            if (width, height, pixel, field, stride, size) != (
+                    WIDTH, HEIGHT, int.from_bytes(b'YU12', 'little'), 1, WIDTH, VIDEO_BYTES):
+                raise WebcamUnavailable('webcam_native_video_format_unsupported')
+            parameters = bytearray(204)
+            struct.pack_into('=I', parameters, 0, 2)
+            struct.pack_into('=II', parameters, 12, 1, FPS)
+            fcntl.ioctl(self.fd, 0xC0CC5616, parameters, True)  # VIDIOC_S_PARM
+            numerator, denominator = struct.unpack_from('=II', parameters, 12)
+            if numerator != 1 or denominator != FPS:
+                raise WebcamUnavailable('webcam_native_video_rate_unsupported')
+            # Fail closed on missing timeout controls. A killed producer must
+            # not leave its last personal frame presented indefinitely.
+            for control, value in ((0x0098F901, 0), (0x0098F902, 1000)):
+                setting = bytearray(struct.pack('=Ii', control, value))
+                fcntl.ioctl(self.fd, 0xC008561C, setting, True)  # VIDIOC_S_CTRL
+            self.ready = True
+        except BaseException:
+            self.close()
+            raise
+
+    def write(self, data):
+        if self.fd is None:
+            raise WebcamUnavailable('webcam_output_closed')
+        try:
+            count = os.write(self.fd, data)
+        except BlockingIOError:
+            return False  # Drop ONE complete video frame; no pending-frame queue.
+        if count != len(data):
+            raise WebcamUnavailable('webcam_native_video_short_write')
+        return True
+
+    def close(self):
+        fd, self.fd = self.fd, None
+        if fd is not None:
+            try:
+                # Limited-range I420 black, no retained personal image. The
+                # kernel timeout also covers EAGAIN, process death and crashes.
+                if self.ready:
+                    os.write(fd, b'\x10' * (WIDTH * HEIGHT) + b'\x80' * (WIDTH * HEIGHT // 2))
+            except OSError:
+                pass
+            finally:
+                os.close(fd)
+
+
+class LinuxAudioOutput:
+    """One owned native microphone source; never changes the default input."""
+    def __init__(self, session, command=_command):
+        if type(session) is not str or not re.fullmatch('[0-9a-f]{32}', session):
+            raise ValueError('invalid webcam session identity')
+        self.command, self.module, self.fd, self.directory = command, None, None, None
+        self.pactl = shutil.which('pactl')
+        if self.pactl is None:
+            raise WebcamUnavailable('webcam_audio_server_unavailable')
+        self.name = 'magnolie_phone_' + session
+        keeper = None
+        try:
+            # Private directory/FIFO: no user-controlled path or shared /tmp name.
+            self.directory = tempfile.TemporaryDirectory(prefix='magnolie-webcam-')
+            pipe = self.pipe = str(Path(self.directory.name) / 'microphone.pcm')
+            os.mkfifo(pipe, 0o600)
+            keeper = os.open(pipe, os.O_RDWR | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
+            loaded = self.command([self.pactl, 'load-module', 'module-pipe-source',
+                'source_name=' + self.name, 'file=' + shlex.quote(pipe), 'format=s16le',
+                'rate=48000', 'channels=1', 'channel_map=mono']).strip()
+            if not re.fullmatch(r'[0-9]{1,10}', loaded):
+                raise WebcamUnavailable('webcam_native_audio_source_unsupported')
+            self.module = loaded
+            sources = self.command([self.pactl, 'list', 'short', 'sources'])
+            if not any(len(row) >= 6 and row[1] == self.name and row[3:6] == ['s16le', '1ch', '48000Hz']
+                       for row in (line.split() for line in sources.splitlines())):
+                raise WebcamUnavailable('webcam_native_audio_source_required')
+            self.fd = os.open(pipe, os.O_WRONLY | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
+        except BaseException:
+            self.close()
+            raise
+        finally:
+            if keeper is not None:
+                os.close(keeper)
+
+    def write(self, data):
+        if self.fd is None:
+            raise WebcamUnavailable('webcam_output_closed')
+        # One 20-ms packet is below PIPE_BUF. No silent partial/stale audio queue.
+        try:
+            count = os.write(self.fd, data)
+        except (BlockingIOError, BrokenPipeError) as error:
+            raise WebcamUnavailable('webcam_native_audio_backpressure') from error
+        if count != len(data):
+            raise WebcamUnavailable('webcam_native_audio_short_write')
+        return True
+
+    def close(self):
+        fd, self.fd = self.fd, None
+        if fd is not None:
+            os.close(fd)
+        if self.module is not None:
+            module = self.module
+            # A restarted audio server can reuse module IDs. Never unload a
+            # foreign/replacement module merely because its integer matches.
+            modules = self.command([self.pactl, 'list', 'short', 'modules'])
+            for line in modules.splitlines():
+                columns = line.split('\t')
+                if len(columns) >= 3 and columns[0] == module:
+                    arguments = shlex.split(columns[2])
+                    if (columns[1] == 'module-pipe-source' and 'source_name=' + self.name in arguments
+                            and 'file=' + self.pipe in arguments):
+                        # On failed unload retain ownership for an explicit retry.
+                        self.command([self.pactl, 'unload-module', module])
+                    break
+            self.module = None
+        if self.directory is not None:
+            self.directory.cleanup()
+            self.directory = None
+
+
+class NativeWebcamSession:
+    """Both native outputs live and die together, with no reusable consent.
+
+    Instances are NOT capabilities/advertisements or an Android consent token.
+    Never pass an unconditional guard from the actual transport/UI integration.
+    No capture is started here, including when audio is explicitly muted.
+    """
+    def __init__(self, device, guard, *, muted=False, video_factory=LinuxVideoOutput, audio_factory=LinuxAudioOutput,
+                 clock=time.monotonic, identity=None):
+        if not callable(guard) or type(muted) is not bool:
+            raise ValueError('invalid webcam session')
+        self.identity = uuid.uuid4().hex if identity is None else identity
+        if type(self.identity) is not str or not re.fullmatch('[0-9a-f]{32}', self.identity):
+            raise ValueError('invalid webcam session identity')
+        self.guard, self.muted = guard, muted
+        self.video = self.audio = None
+        self.closed = False
+        self.error = None
+        self.lock = threading.RLock()
+        self.stop = threading.Event()
+        self.clock = clock
+        self.started = clock()
+        self.last_io = {}
+        self.positions = {}
+        try:
+            self.guard()
+            self.video = video_factory(device)
+            self.guard()
+            if not muted:
+                self.audio = audio_factory(self.identity)
+            self.guard()
+        except BaseException:
+            self.close()
+            raise
+        self.monitor = threading.Thread(target=self._monitor, name='Magnolie webcam lifetime', daemon=True)
+        self.monitor.start()
+
+    def _monitor(self):
+        while not self.stop.wait(.1):
+            try:
+                self.check_lifetime()
+            except Exception as error:
+                self.error = error
+                return
+
+    def check_lifetime(self):
+        with self.lock:
+            try:
+                if self.closed:
+                    raise WebcamUnavailable('webcam_session_retired')
+                self.guard()
+                now = self.clock()
+                for stream in (('video',) if self.muted else ('video', 'audio')):
+                    last = self.last_io.get(stream)
+                    if (last is None and now - self.started > 2 or
+                            last is not None and now - last > .5):
+                        raise WebcamUnavailable('webcam_stream_timeout')
+            except BaseException:
+                self.close()
+                raise
+
+    def write(self, stream, sequence, pts_us, data):
+        with self.lock:
+            try:
+                if self.closed:
+                    raise WebcamUnavailable('webcam_session_retired')
+                self.check_lifetime()
+                if (stream not in ('video', 'audio') or stream == 'audio' and self.muted or
+                        type(sequence) is not int or type(pts_us) is not int or
+                        not 0 <= sequence < 2**63 or pts_us < 0 or pts_us > 9_007_199_254_740_991 or
+                        type(data) is not bytes or len(data) != (VIDEO_BYTES if stream == 'video' else AUDIO_BYTES)):
+                    raise WebcamUnavailable('webcam_packet_invalid')
+                previous = self.positions.get(stream)
+                if sequence != (previous[0] + 1 if previous else 0) or previous and pts_us <= previous[1]:
+                    raise WebcamUnavailable('webcam_packet_stale')
+                other = self.positions.get('audio' if stream == 'video' else 'video')
+                if other and abs(pts_us - other[1]) > 250_000:
+                    raise WebcamUnavailable('webcam_av_clock_diverged')
+                written = (self.video if stream == 'video' else self.audio).write(data)
+                self.positions[stream] = (sequence, pts_us)
+                self.last_io[stream] = self.clock()
+                self.guard()
+                return written
+            except BaseException:
+                self.close()
+                raise
+
+    def close(self):
+        with self.lock:
+            self.closed = True
+            self.stop.set()
+            try:
+                if self.audio is not None:
+                    self.audio.close()
+            finally:
+                if self.video is not None:
+                    self.video.close()
