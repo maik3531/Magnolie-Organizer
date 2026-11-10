@@ -948,6 +948,8 @@ class PhoneStore:
         return status
 
     def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any", actor_run_id=None):
+        if is_reserved_webcam_control({'kind': kind, 'body': body}):
+            raise ValueError('webcam controls cannot enter a persistent queue')
         if kind.startswith("device_status.") and ("identifiers" in body or body.get("version") == 4):
             raise ValueError("device identifiers cannot enter a persistent queue")
         now = now_ms()
@@ -2111,6 +2113,8 @@ class PhoneStore:
                         (message_id, peer_id, result, error, int(time.time() * 1000)))
 
     def remember_message(self, peer_id, message, result, error):
+        if is_reserved_webcam_control(message):
+            raise ValueError('webcam controls cannot enter persistent replay history')
         if message.get("kind") == "device_status.report":
             message = dict(message, body=without_device_identifiers(message["body"]))
         seen = now_ms()
@@ -2379,25 +2383,72 @@ class SecureChannel:
         self.lock = threading.Lock()
         self.last_send = time.monotonic()
         self.sync_activity = None
+        self.last_capabilities = None  # Original outbound wire witness, never saved readiness.
 
     def send(self, payload):
-        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
         raw = canonical(payload)
         if len(raw) > APPLICATION_MAX:
             raise ValueError("application message too large")
         with self.lock:
-            aad_object = {"p": PROTOCOL, "sid": b64(self.sid), "seq": self.send_seq,
-                          "dir": "desktop_to_phone"}
-            encrypted = AESGCM(self.send_key).encrypt(
-                self.send_prefix + self.send_seq.to_bytes(8, "big"), raw,
-                canonical(aad_object))
-            self.send_seq += 1
-            activity = self.sync_activity.enter() if self.sync_activity is not None and tray_sync_data_frame(payload) else None
+            self._send_locked(payload, raw)
+
+    def send_ephemeral(self, payload, current, *, timeout=2):
+        """Bounded live control send, never an outbox/replay entry.
+
+        current must be a NONBLOCKING original-owner check: no PhoneService
+        monitor or callbacks under this channel's writer lock. Never change the
+        socket's shared receive timeout to implement a private write deadline.
+        """
+        raw = canonical(payload)
+        if len(raw) > 4096 or not callable(current) or type(timeout) not in (int, float) or not 0 < timeout <= 2:
+            raise ValueError('invalid ephemeral control send')
+        deadline = time.monotonic() + timeout
+        current()
+        if not self.lock.acquire(timeout=max(0, deadline - time.monotonic())):
+            raise TimeoutError('ephemeral_control_writer_busy')
+        try:
+            def admitted():
+                current()
+                native_timeout = self.sock.gettimeout()
+                # send_frame uses ONE sendall, whose existing socket timeout is
+                # an absolute bound on the complete frame, not per-byte retries.
+                if (native_timeout is None or native_timeout <= 0 or
+                        native_timeout > deadline - time.monotonic()):
+                    raise TimeoutError('ephemeral_control_write_not_bounded')
+            admitted()
+            sequence = self.send_seq
             try:
-                send_frame(self.sock, dict(aad_object, ciphertext=b64(encrypted)))
-                self.last_send = time.monotonic()
-            finally:
-                if activity is not None:activity.dispose()
+                self._send_locked(payload, raw, admitted)
+            except BaseException:
+                if self.send_seq != sequence:
+                    # After an attempted frame write, a timeout may mean partial
+                    # ciphertext. Never reuse that sequence/parent as if no IO
+                    # happened. Only this original failed socket is retired.
+                    try: self.sock.shutdown(socket.SHUT_RDWR)
+                    except OSError: pass
+                    self.sock.close()
+                raise
+        finally:
+            self.lock.release()
+
+    def _send_locked(self, payload, raw, current=None):
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        aad_object = {"p": PROTOCOL, "sid": b64(self.sid), "seq": self.send_seq,
+                      "dir": "desktop_to_phone"}
+        encrypted = AESGCM(self.send_key).encrypt(
+            self.send_prefix + self.send_seq.to_bytes(8, "big"), raw,
+            canonical(aad_object))
+        if current is not None:
+            current()  # No sequence/frame publication after a wait/owner loss.
+        self.send_seq += 1
+        activity = self.sync_activity.enter() if self.sync_activity is not None and tray_sync_data_frame(payload) else None
+        try:
+            send_frame(self.sock, dict(aad_object, ciphertext=b64(encrypted)))
+            self.last_send = time.monotonic()
+            if isinstance(payload, dict) and payload.get('kind') == 'capabilities.update':
+                self.last_capabilities = copy.deepcopy(payload['body'])
+        finally:
+            if activity is not None:activity.dispose()
 
     def receive(self):
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -2799,6 +2850,12 @@ def is_reserved_file_message(value):
     return isinstance(value, dict) and isinstance(value.get('kind'), str) and value['kind'].startswith('file_transfer.')
 
 
+def is_reserved_webcam_control(value):
+    """Recognize/reject the optional namespace WITHOUT importing its modules."""
+    return (type(value) is dict and value.get('kind') in ('device_status.request', 'device_status.report') and
+        type(value.get('body')) is dict and value['body'].get('version') in (24, '24'))
+
+
 class PhoneService:
     """Own listener, pairing state, status cache and phone sessions."""
 
@@ -2809,6 +2866,10 @@ class PhoneService:
     def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None):
         self.store = PhoneStore(root, display_name)
         self._native_photo_built = optional_phone.available('photo_sync')
+        self._native_camera_built = optional_phone.available('phone_camera')
+        self._native_webcam_owner = None
+        self._webcam_ephemeral_acks = weakref.WeakKeyDictionary()
+        self._webcam_probe_tokens = weakref.WeakKeyDictionary()
         self._mcp_worker = threading.local()
         self._mcp_operations = threading.Lock()
         emit = callback or (lambda _event, _payload: None)
@@ -2888,6 +2949,110 @@ class PhoneService:
         self.contact_access_available = lambda: self.personal_sync_available()
         self.personal_offers = deque(maxlen=256)
         self.personal_offer_keys = set()
+
+    @staticmethod
+    def _webcam_control_message(kind, body):
+        created = now_ms()
+        return dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=kind,
+            created_ms=created, expires_ms=created + 60_000, body=body)
+
+    def begin_native_webcam(self, peer_id, *, device, muted=False, front=False):
+        """Explicit native user-confirmation entry ONLY; never startup/IPC
+        metadata, incoming packets, saved flags or a photo-sync setting.
+        The Advanced-functions frontend still has to wire this native entry.
+        """
+        if not self._native_camera_built:
+            raise ValueError('webcam_feature_not_in_build')
+        if (type(device) is not str or not device.startswith('/dev/video') or
+                type(muted) is not bool or type(front) is not bool):
+            raise ValueError('invalid native webcam choice')
+        with self.lock:
+            peer = next((value for value in self.store.peers if value.get('device_id') == peer_id), None)
+            channel = self.connections.get(peer_id)
+            previous = self._native_webcam_owner
+            if previous is not None and not previous.is_completely_stopped():
+                raise PermissionError('webcam_original_capture_owner_busy')
+            if (not self.enabled or self.stop_event.is_set() or not peer or peer.get('state') != 'paired' or
+                    type(channel) is not SecureChannel or self.connection_transports.get(peer_id) != 'wifi' or
+                    channel.last_capabilities is None):
+                raise PermissionError('webcam_original_live_wifi_required')
+            NativePhoneWebcamOwner = importlib.import_module('magnolie_phone_camera_runtime').NativePhoneWebcamOwner
+            owner = NativePhoneWebcamOwner(self, peer, channel, device, muted=muted, front=front)
+            self._native_webcam_owner = owner
+            self._workers.add(owner.worker)
+            try: owner.worker.start()
+            except BaseException:
+                owner.retire(); self._workers.discard(owner.worker)
+                self._native_webcam_owner = previous
+                raise
+            return owner
+
+    def _signal_native_webcam_retire(self, channel=None):
+        owner = getattr(self, '_native_webcam_owner', None)
+        if owner is not None and (channel is None or owner.channel is channel):
+            owner.retire()  # No join/callback/service-monitor acquisition.
+
+    def end_native_webcam(self, original_owner):
+        with self.lock:
+            if self._native_webcam_owner is not original_owner:
+                return False
+            original_owner.retire()
+            return True
+
+    def _send_native_webcam_ephemeral(self, owner, kind, body, *, stopping=False, expected_capabilities=None):
+        original = owner.context_current if stopping else owner.current
+        def current():
+            original()
+            if expected_capabilities is not None and owner.channel.last_capabilities is not expected_capabilities:
+                raise PermissionError('webcam_outbound_control_changed')
+        current()
+        message = self._webcam_control_message(kind, body)
+        with self.lock:
+            history = self._webcam_ephemeral_acks.setdefault(owner.channel, deque(maxlen=16))
+            history.append([message['message_id'], owner.ack_token, None])
+        owner.channel.send_ephemeral(message, current)
+
+    def _consume_native_webcam_ack(self, channel, payload):
+        with self.lock:
+            history = getattr(self, '_webcam_ephemeral_acks', {}).get(channel, ())
+            match = next((item for item in history if item[0] == payload['message_id']), None)
+            if match is None:
+                return False
+            if match[2] is not None:
+                return True  # Bounded in-memory duplicate ACK, never replay IO.
+            match[2] = payload['status']
+            owner = getattr(self, '_native_webcam_owner', None)
+            if owner is not None and owner.channel is channel and owner.ack_token is match[1] and payload['status'] == 'rejected':
+                owner.retire()
+            return True  # Never pass these IDs to persistent outbox ACK policy.
+
+    def _receive_native_webcam_message(self, peer, channel, payload):
+        # Reserved controls never reach ordinary identifiers, dedupe, store or
+        # outbox handlers, including when the optional build omits all modules.
+        received = now_ms()
+        if (set(payload) != {'type', 'v', 'message_id', 'kind', 'created_ms', 'expires_ms', 'body'} or
+                payload.get('type') != 'message' or type(payload.get('v')) is not int or payload['v'] != 1 or
+                not valid_uuid(payload.get('message_id'), 4) or
+                not valid_timestamp(payload.get('created_ms')) or not valid_timestamp(payload.get('expires_ms')) or
+                not 0 < payload['expires_ms'] - payload['created_ms'] <= 60_000 or
+                payload['created_ms'] > received + CLOCK_SKEW_MS or payload['expires_ms'] <= received or
+                len(canonical(payload)) > 4096):
+            raise ValueError('invalid ephemeral webcam control')
+        owner = getattr(self, '_native_webcam_owner', None)
+        status, error = 'rejected', 'not_granted'
+        if (getattr(self, '_native_camera_built', False) and owner is not None and owner.belongs(peer, channel)):
+            try:
+                owner.submit(payload['kind'], payload['body'])
+                status, error = 'accepted', 'none'
+            except PermissionError:
+                pass
+            except ValueError:
+                status, error = 'rejected', 'invalid_schema'
+            except Exception:
+                owner.retire()
+                status, error = 'rejected', 'temporary_failure'
+        # ACK only means a control was queued, not capture, output READY or SEND.
+        channel.send({'type': 'ack', 'message_id': payload['message_id'], 'status': status, 'error': error})
 
     def _native_file_module(self, name):
         if (not self._native_photo_built or name not in ('magnolie_file_native_authority', 'magnolie_file_desktop_connection')):
@@ -3375,7 +3540,9 @@ class PhoneService:
 
     def _native_media_activity(self):
         with self.lock:
-            return {'synchronizing': bool(self._native_photo_activity), 'camera': False}
+            camera = getattr(self, '_native_webcam_owner', None)
+            return {'synchronizing': bool(self._native_photo_activity),
+                'camera': bool(camera is not None and camera.is_streaming())}
 
     def tray_sync_activity(self):
         # Independent of the service monitor, which a blocked legacy sender can
@@ -3975,6 +4142,7 @@ class PhoneService:
             return self._stop_owned()
 
     def _stop_owned(self):
+        self._signal_native_webcam_retire()
         self.stop_event.set()
         with self.lock:
             listener, self.server = self.server, None
@@ -4132,6 +4300,7 @@ class PhoneService:
             self._purge_identifiers(peer_id)
         channel = self.connections.pop(peer_id, None)
         if channel:
+            self._signal_native_webcam_retire(channel)
             try:
                 channel.send({"type": "close", "reason": "unpaired"})
             except Exception:  # noqa: S110 - Local removal must survive a failed close frame.
@@ -8000,6 +8169,8 @@ class PhoneService:
             return True
 
     def _send_message(self, channel, peer_id, message):
+        if is_reserved_webcam_control(message):
+            return False
         if is_reserved_file_message(message):
             return False  # Dedicated native file owner only, never legacy grants/outbox.
         if personal_actor_contract.is_reserved_kind(message.get("kind")):
@@ -8016,6 +8187,10 @@ class PhoneService:
             return self._send_message_locked(channel, peer_id, message)
 
     def _send_message_locked(self, channel, peer_id, message):
+        if is_reserved_webcam_control(message):
+            return False
+        if message.get('kind') == 'capabilities.update':
+            self._signal_native_webcam_retire(channel)
         # Reserved actors require their own authorized route, never a legacy fallback.
         if is_reserved_file_message(message):
             return False
@@ -8553,6 +8728,7 @@ class PhoneService:
                 old_channel = self.connections.pop(pair_init['device_id'], None)
                 self.connection_transports.pop(pair_init['device_id'], None)
                 if old_channel is not None:
+                    self._signal_native_webcam_retire(old_channel)
                     try:
                         old_channel.sock.shutdown(socket.SHUT_RDWR)
                     except OSError:
@@ -8718,8 +8894,8 @@ class PhoneService:
             peer["last_contact_ms"] = int(time.time() * 1000)
             self.store.save_peers()
             if file_binding is not None:self._resume_automatic_photos(peer,channel)
-            self.callback("status", self.report())
             sock.settimeout(1)
+            self.callback("status", self.report())
             last_incoming = time.monotonic()
             while self.enabled and not self.stop_event.is_set():
                 try:
@@ -8742,6 +8918,7 @@ class PhoneService:
                     for message in self.store.pending(peer["device_id"], transport):
                         self._send_message(channel, peer["device_id"], message)
         finally:
+            self._signal_native_webcam_retire(channel)
             self._end_native_file_connection(channel)
             with self.lock:
                 self._file_channel_bindings.pop(channel, None)
@@ -8787,6 +8964,7 @@ class PhoneService:
                 self._file_channel_bindings[channel] = file_binding
             self.connection_transports[peer_id] = transport
         if current and current is not channel:
+            self._signal_native_webcam_retire(current)
             self._end_native_file_connection(current)
             try:
                 current.send({"type": "close", "reason": "better_transport"})
@@ -8809,6 +8987,7 @@ class PhoneService:
         channel = self.connections.get(peer_id)
         if not channel:
             return
+        self._signal_native_webcam_retire(channel)
         self._end_native_file_connection(channel)
         try:
             channel.send({"type": "close", "reason": reason})
@@ -8856,6 +9035,9 @@ class PhoneService:
             self._start_handler(sock, "bluetooth:" + peer_id, "bluetooth")
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
+        if is_reserved_webcam_control(payload):
+            self._receive_native_webcam_message(peer, channel, payload)
+            return
         # Reserved frames use only the admitted native route, never ordinary replay/GUI handlers.
         if is_reserved_file_message(payload):
             self._receive_native_file_message(peer, channel, payload)
@@ -8881,6 +9063,8 @@ class PhoneService:
         if payload.get("type") == "ack" and set(payload) == {
                 "type", "message_id", "status", "error"}:
             phone_ack_contract.validate(payload)
+            if self._consume_native_webcam_ack(channel, payload):
+                return
             with self.lock:
                 connection=getattr(self,'_native_file_connections',{}).get(channel)
                 binding=getattr(self,'_file_channel_bindings',{}).get(channel)

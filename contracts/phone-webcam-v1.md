@@ -97,7 +97,7 @@ Organizer activation, native device-success or OBS acceptance is claimed here.
 ## Authenticated control exchange under implementation
 
 Reserved desktop discovery version **24** is distinct from file versions 21/22
-and capability 23. It is NOT advertised yet. The existing capability key set is
+and capability 23. It is never advertised on startup or from saved flags. The existing capability key set is
 strict and Notes already has 16 versions when all current handlers are enabled;
 adding a seventeenth would break old peers. The compatible design therefore uses
 desktop-only discovery followed by a fresh phone-initiated probe on that same
@@ -108,8 +108,9 @@ controls: probe, offer/unavailable, prepared, send, stop/error. Offers bind the
 fresh UUID/nonce, new session/key, numeric dedicated port, explicit mute and camera
 choice; URLs, AV payloads, permission flags and extra fields are rejected. JSON
 here carries control/key negotiation only, never frames or audio. The Notes
-envelope has a 4096-byte/60-second bound. Python currently validates the body;
-its production envelope/parent dispatcher is not installed yet.
+envelope has a 4096-byte/60-second bound. The Python PhoneService dispatcher now
+validates the same envelope bound before any ordinary status, replay or storage
+route. Reserved v24 controls are rejected from persistent queue/history APIs too.
 
 The desktop exchange now binds its fresh random session/key and offered port to
 one actual original TCP control socket and one listener on that original local
@@ -125,11 +126,58 @@ Failure retires the endpoints/key/listener, not the base phone control socket.
 Ten desktop-exchange tests use real local TCP control/media sockets, actual
 encrypted synthetic AV and controlled native-output adapters, not physical capture
 devices. Nine affected receiver cases and 29 native-output cases also passed;
-the added optional module remains covered by the 20 composition cases. This is
-not yet the Linux Organizer's actual authenticated message/UI dispatch path and
-does not add Windows native outputs. The encrypted AV test is not a new proof of
-encrypted parent control negotiation: that callback's production binding remains
-to be wired and checked.
+the added optional module remains covered by the 20 composition cases. These
+earlier adapter tests did not prove an encrypted parent. That original limitation
+is addressed by the separate signed-dispatch tests below, not retroactively
+claimed for those older tests. No Windows native outputs are added.
+
+### Linux native service integration (Refs #503)
+
+`PhoneService.begin_native_webcam` is now an explicit native confirmation entry,
+not a settings loader or incoming-packet action. It requires the actual current
+SecureChannel/Wi-Fi peer, original service/store generation, protected paired
+identity, an actually sent capability witness and the optional camera build.
+No photo-sync binding, stored grant or shared-document role authorizes it. It owns
+one bounded worker and four-entry private control queue. Only that original owner
+may advertise v24, accept its fresh phone probe, bind the dedicated socket and
+prepare native outputs. Normal startup imports/probes no camera modules.
+
+Probe tokens and ACK IDs are bounded in-memory channel records, not durable
+replay state. Old probe/STOP/ACK messages cannot retire a different new owner.
+Explicit stop, service stop, pairing/transport replacement, generation loss and
+identity loss retire the original owner without provider fallback. A slot is not
+reusable until its worker and native cleanup have actually drained. The exact
+original STOP and v24 withdrawal use bounded parent control sends. Withdrawal
+checks the actual outbound capability object's identity under the writer lock,
+so it cannot restore old metadata over another real control update.
+
+The sender bounds writer-lock waiting and uses the original socket's existing
+bounded timeout without changing its receive timeout. It rechecks the nonblocking
+native owner before frame publication. Denial before IO consumes no sequence and
+keeps the parent. An actual attempted ciphertext-write failure retires only that
+uncertain original parent, rather than reusing a partial frame/sequence. Ordinary
+AV stop/failure does not reconnect or close a healthy parent.
+
+The activity projection requires actual video and default audio writes through
+the paired native outputs; a connection, offer, prepared/READY message or UI flag
+cannot turn the camera icon on. Explicit mute requires only real video writes.
+
+Eleven new service cases perform the actual signed X25519/HMAC PhoneService
+handshake and AES-GCM parent dispatch over local TCP. The positive case negotiates
+offer/prepared/SEND, sends real encrypted generated AV into controlled output
+adapters, then stops both paths while keeping the encrypted parent usable. They
+also check nonpersistent controls, optional-OFF, old peers without probes, original
+context loss, late old messages and failed native construction. Ten writer cases
+check bounds, revocation and normal-send compatibility. These are not physical
+Android/OBS or actual V4L/Pulse-output tests; the phone counterpart is test code.
+
+The #504 fix retains the actual native cleanup owner on unconfirmed Pulse
+load/unload exceptions, including constructor failures. The service retains that
+private receipt and keeps its slot busy, even if no receiver constructor returned.
+The targeted Pulse model has 15 passing cases, including two fail-before/fix-after
+cases and confirmed-cleanup control; it opens no real Pulse source. The signed
+dispatch failure test exercises this actual Pulse adapter against the controlled
+native ABI model and checks no guessed cleanup or capture-slot reuse occurs.
 
 The Notes exchange binds one original parent object, fresh probe/nonce, monotonic
 startup lifetime, phase and live native parent guard. Changed/expired original
@@ -144,9 +192,10 @@ Checks passed: 41 Python body cases, six Notes schema/capability/envelope cases
 and seven original-exchange cases. The joined positive case uses genuine Android
 permission/foreground adapters under Robolectric and generated source samples;
 it does not prove a physical phone. The exchange is not yet attached to
-TelefonWerk's actual authenticated dispatcher or Organizer activation. The desktop
-controller above supplies output-ready integration, but its base dispatcher is
-still unjoined. No new capture/control availability is advertised.
+TelefonWerk's actual authenticated dispatcher or Organizer activation. The Linux
+base dispatcher above is now joined, but the frontend has not been connected to
+its explicit native entry. There is still no end-to-end usable phone provider or
+normal startup/control availability advertisement.
 
 ## KDE Connect versus Notes
 
