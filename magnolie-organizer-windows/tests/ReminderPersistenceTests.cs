@@ -122,15 +122,15 @@ internal static class ReminderPersistenceTests
                 "Kennwortgeschützte Erinnerungsdaten wurden ohne ausdrückliche Erlaubnis freigegeben.");
 
             const string spring = """
-                {"einstellungen":{"erinnerung":{"vorlauf":15,"verpasste":true}},
-                 "termine":[{"id":"dst","datum":"2026-03-29","zeit":"02:30","titel":"DST"}]}
+                {"einstellungen":{"regional":{"timeZone":"Europe/Berlin"},"erinnerung":{"vorlauf":15,"verpasste":true}},
+                  "termine":[{"id":"dst","datum":"2026-03-29","zeit":"02:30","titel":"DST"}]}
                 """;
-            var springEarly = ReminderScheduler.DueAppointments(spring, new DateTime(2026, 3, 29, 3, 5, 0));
-            var springDue = ReminderScheduler.DueAppointments(spring, new DateTime(2026, 3, 29, 3, 15, 0));
+            var springEarly = ReminderScheduler.DueAppointments(spring, new DateTime(2026, 3, 29, 1, 5, 0, DateTimeKind.Utc));
+            var springDue = ReminderScheduler.DueAppointments(spring, new DateTime(2026, 3, 29, 1, 15, 0, DateTimeKind.Utc));
             var autumnFirst = ReminderScheduler.DueAppointments(spring.Replace("2026-03-29", "2026-10-25", StringComparison.Ordinal),
-                new DateTime(2026, 10, 25, 2, 35, 0));
+                new DateTime(2026, 10, 25, 0, 35, 0, DateTimeKind.Utc));
             var autumnSecond = ReminderScheduler.DueAppointments(spring.Replace("2026-03-29", "2026-10-25", StringComparison.Ordinal),
-                new DateTime(2026, 10, 25, 2, 55, 0));
+                new DateTime(2026, 10, 25, 1, 55, 0, DateTimeKind.Utc));
             TestAssert.That(springEarly.Count == 0 && springDue.Count == 1 && autumnFirst.Single().Key == autumnSecond.Single().Key,
                 "Lokale Uhr- oder DST-Grenzen erzeugen verlorene oder doppelte Vorkommensschlüssel.");
 
@@ -254,7 +254,8 @@ internal static class ReminderPersistenceTests
         TestAssert.That(ReminderScheduler.DueAppointments(newYork, new DateTime(2026,9,7,13,59,0,DateTimeKind.Utc)).Count == 0 &&
             ReminderScheduler.DueAppointments(newYork, new DateTime(2026,9,7,14,0,0,DateTimeKind.Utc)).Single().Start.Hour == 10 &&
             ReminderScheduler.SelectRuntimeData(newYork).Contains("America/New_York", StringComparison.Ordinal), "Organizer zone was lost during native scheduling or projection.");
-        var fold = ExchangeCodec.ParseIcs(Calendar("20261025T003000Z", "FREQ=DAILY;COUNT=1", "RDATE:20261025T013000Z"));
+        var fold = ExchangeCodec.ParseIcs(Calendar("20261025T003000Z", "FREQ=DAILY;COUNT=1", "RDATE:20261025T013000Z"),
+            timeZone: TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"));
         var foldRoot = new JsonObject { ["termine"] = fold.Termine.DeepClone(), ["einstellungen"] = new JsonObject {
             ["regional"] = new JsonObject { ["timeZone"] = "Europe/Berlin" }, ["erinnerung"] = new JsonObject { ["vorlauf"] = 0 } } };
         var foldFirst = ReminderScheduler.DueAppointments(foldRoot.ToJsonString(), new DateTime(2026,10,25,0,30,0,DateTimeKind.Utc));
