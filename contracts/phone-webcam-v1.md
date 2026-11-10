@@ -319,7 +319,9 @@ video and audio packets over a local TCP connection; their PTS, per-track sequen
 and payload hashes agree. Shared compact packet SHA-256 vectors are retained in
 `phone-webcam-media-v1-vectors.json`. .NET CoreTests exercise framing/tamper/replay,
 grammar, original key/session isolation, guard revocation, stop and deadlines.
-These are .NET tests on the Linux host, not native Windows endpoint acceptance.
+Initially these .NET tests ran on the Linux host. The six transport groups also
+pass on the existing physical Windows test machine. Neither run is native
+camera/microphone endpoint acceptance.
 The existing Windows main project also compiles with the optional camera flag
 enabled. No Windows authenticated dispatcher, capture-control negotiation, media
 source COM DLL, microphone endpoint or OBS success is claimed by this receiver.
@@ -342,6 +344,16 @@ These tests construct a controlled admitted parent; they do not exercise a new
 signed Windows handshake or an actual native webcam owner. No fresh-discovery
 advertisement, incoming webcam dispatcher, positive SEND authority or native
 endpoint is enabled merely by adding this sender. Those joins remain open.
+
+The five parent groups have additionally passed on the physical Windows test
+machine, using the existing bounded SSH test route and hash-bound test binaries.
+The first Windows run exposed only a test-cleanup defect: pooled SQLite handles
+prevented deleting the fixture's own `phone.db`, unlike Linux unlink semantics.
+Issue #505 closes exactly that own pool before deleting the own temporary root.
+Only the four affected groups were repeated; the six transport groups and one
+schema group retained their unchanged prior Windows proofs. This gives eleven
+distinct passing Windows transport/parent groups, not eleven native devices or
+physical phone/OBS acceptance. No global SQLite pool or product behavior changed.
 
 ## KDE Connect versus Notes
 
