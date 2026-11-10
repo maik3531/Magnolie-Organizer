@@ -413,6 +413,12 @@ attribution, but the currently downloaded package's readme retains a stricter
 integration-with-author-agreement clause. Resolve the applicable permissions
 and documented unattended-install behavior before relying on it. No driver
 installer has been executed, bundled or accepted by these investigations.
+Read-only checks on the physical Windows host verified the official Pack46
+catalog with Windows' kernel signing policy, including membership of both x64
+and ARM64 driver binaries and the Windows 10 INF. The catalog is signed by
+Microsoft Windows Hardware Compatibility Publisher; the vendor setup also
+passed Authenticode verification. This is trust evidence for those exact bytes,
+not installation, functional compatibility or permission to execute the setup.
 
 #### Windows dedicated binary receiver (Refs #503)
 
@@ -473,6 +479,30 @@ acceptance**. COM activation/registration, authenticated cross-process frame-ser
 delivery, joined AV presentation scheduling, the independent microphone endpoint
 and the Windows authenticated dispatcher remain open. No driver or registered
 camera was installed for these tests, and base-project dependencies are unchanged.
+
+`PhoneCameraPipe` adds a separately checked local input primitive for the pending
+FrameServer boundary. It constructs only a fixed local pipe namespace from an
+original native session GUID, opens its own overlapped read handle with security
+identification (not impersonation), and checks the kernel-reported server PID
+against an actual held original process handle. A process name or caller-supplied
+PID is not accepted as that witness. It rejects message-mode pipes and a different
+server, never reconnects, and never replaces an existing reader. Each bounded read
+has one original two-second deadline across partial IO, checks the live original
+owner during waits and after filling the buffer, and clears partial output on
+failure. Stop wakes pending IO without acquiring the reader lock; cancellation
+drains only the owned overlapped operation. Concurrent readers are refused and
+retire that original reader instead of starting a queue.
+
+Eight native pipe groups pass on physical Windows using actual distinct ordinary
+test processes and local kernel pipes: partial reads, wrong kernel server identity,
+stop/revocation during already pending IO, sticky revocation, the shared partial-read
+deadline, original-process exit, concurrent-reader rejection and invalid context.
+Six unchanged groups retain their first-run proofs; two corrected fixtures use
+real duplicated process handles, not Windows' special `GetCurrentProcess()` pseudo
+handle, and were the only groups repeated. This component supplies no phone/SEND
+authority or frame grammar. Native bootstrap identity, server-side ACL/lifetime,
+bounded video-record decoding and binding to the actual authenticated dispatcher
+and source remain required; the registered FrameServer path is not yet complete.
 
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It
