@@ -68,8 +68,13 @@ class LinuxVideoOutput:
             request = 0xC0000000 | (len(body) << 16) | (ord('V') << 8) | 5
             fcntl.ioctl(self.fd, request, body, True)  # VIDIOC_S_FMT
             width, height, pixel, field, stride, size = struct.unpack_from('=IIIIII', body, offset)
-            if (width, height, pixel, field, stride, size) != (
-                    WIDTH, HEIGHT, int.from_bytes(b'YU12', 'little'), 1, WIDTH, VIDEO_BYTES):
+            page = os.sysconf('SC_PAGE_SIZE')
+            allocation = ((VIDEO_BYTES + page - 1) // page) * page
+            # v4l2loopback may report a page-rounded allocation, not image
+            # payload bytes. Keep the packed I420 geometry/stride and writes exact.
+            if ((width, height, pixel, field, stride) != (
+                    WIDTH, HEIGHT, int.from_bytes(b'YU12', 'little'), 1, WIDTH) or
+                    size not in (VIDEO_BYTES, allocation)):
                 raise WebcamUnavailable('webcam_native_video_format_unsupported')
             parameters = bytearray(204)
             struct.pack_into('=I', parameters, 0, 2)

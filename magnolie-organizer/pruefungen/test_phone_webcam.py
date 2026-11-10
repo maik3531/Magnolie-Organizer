@@ -116,7 +116,7 @@ def test_whole_video_frame_backpressure_drops_without_queue_or_sequence_reuse():
     value.close()
 
 
-def video_kernel(monkeypatch, *, driver=b'v4l2 loopback', wrong_format=False):
+def video_kernel(monkeypatch, *, driver=b'v4l2 loopback', wrong_format=False, returned_size=None, returned_stride=None):
     writes, controls, closes = [], [], []
     monkeypatch.setattr(webcam.os, 'open', lambda *_: 91)
     monkeypatch.setattr(webcam.os, 'fstat', lambda _: type('Stat', (), {'st_mode': stat.S_IFCHR})())
@@ -137,6 +137,10 @@ def video_kernel(monkeypatch, *, driver=b'v4l2 loopback', wrong_format=False):
             assert len(body) == 208 and webcam._Format.data.offset == 8
             if wrong_format:
                 struct.pack_into('=I', body, webcam._Format.data.offset, 320)
+            if returned_size is not None:
+                struct.pack_into('=I',body,webcam._Format.data.offset+20,returned_size)
+            if returned_stride is not None:
+                struct.pack_into('=I',body,webcam._Format.data.offset+16,returned_stride)
     monkeypatch.setattr(webcam.fcntl, 'ioctl', ioctl)
     return writes, controls, closes
 
@@ -149,6 +153,26 @@ def test_actual_video_adapter_requests_native_output_format_and_crash_timeout(mo
     assert controls == [(0x0098F901, 0), (0x0098F902, 1000)]
     assert len(writes) == 2 and writes[-1] == b'\x10' * (640 * 480) + b'\x80' * (640 * 480 // 2)
     assert closes == [91]
+
+
+@pytest.mark.parametrize('page',[4096,16384,65536])
+def test_page_rounded_native_allocation_keeps_exact_i420_payload(monkeypatch,page):
+    allocation=((webcam.VIDEO_BYTES+page-1)//page)*page
+    writes,_,closes=video_kernel(monkeypatch,returned_size=allocation)
+    monkeypatch.setattr(webcam.os,'sysconf',lambda name:page)
+    value=webcam.LinuxVideoOutput('/dev/video42')
+    assert value.write(bytes(webcam.VIDEO_BYTES))
+    value.close()
+    assert all(len(frame)==webcam.VIDEO_BYTES for frame in writes) and closes==[91]
+
+
+@pytest.mark.parametrize('size,stride',[(460799,640),(460801,640),(462849,640),(460800,641),(462848,960)])
+def test_allocation_support_does_not_accept_arbitrary_sizes_or_strides(monkeypatch,size,stride):
+    writes,_,closes=video_kernel(monkeypatch,returned_size=size,returned_stride=stride)
+    monkeypatch.setattr(webcam.os,'sysconf',lambda name:4096)
+    with pytest.raises(webcam.WebcamUnavailable,match='format_unsupported'):
+        webcam.LinuxVideoOutput('/dev/video42')
+    assert not writes and closes==[91]
 
 
 @pytest.mark.parametrize('change', ['physical_camera', 'format'])

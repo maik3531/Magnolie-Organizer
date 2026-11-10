@@ -511,6 +511,20 @@ these independently. They do not request permissions or capture personal media.
 
 ## Linux native-output boundary
 
+Native `sizeimage` is a buffer allocation, not always the I420 payload length
+(Refs #523). Accept only the exact 460800-byte payload or its exact rounding to
+the current native page size; geometry, YU12, field and 640-byte stride stay exact.
+Writes and wire frames remain 460800 bytes, with no appended stale/padding bytes.
+The actual v4l2loopback0.13.2/kernel6.14 host returned allocation462848 with
+otherwise exact 640×480 I420. A user-approved temporary test subsequently captured
+30 complete generated I420 frames through an independent ffmpeg V4L2 client and
+151680 PCM samples from the exact owned microphone through parec. Every captured
+video payload matched generated frames/blank, without treating allocation padding
+as image content. Both native outputs were removed, the exact own unused test
+module unloaded and the original default microphone preserved. No physical AV,
+package install or permanent autoload configuration was involved. This proves
+these native PC backend paths, not phone/OBS synchronization or Windows endpoints.
+
 Capture requires a provisioned writable v4l2loopback output node. Only explicit
 Enable/prepare may perform the bounded driver setup described above; startup,
 status and capture do not install packages or load drivers. Refuse physical camera drivers, substituted
