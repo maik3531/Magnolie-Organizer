@@ -378,7 +378,8 @@ WASAPI loopback capture, an MF audio stream or a camera's name alone cannot be
 reported as the requested independent microphone input. No new mandatory driver
 or dependency is authorized by this design note. The existing Windows
 `DesktopPhoneBuild.PhoneCamera` constant remains only build composition, not
-runtime readiness. Neither a Windows native adapter nor its acceptance is claimed.
+runtime readiness. Neither a Windows system camera/microphone endpoint nor its
+acceptance is claimed.
 
 #### Windows microphone prerequisite and signing boundary (Refs #503)
 
@@ -551,9 +552,26 @@ and a detached source retaining its real COM-owned context after activation
 release. The changed source-lifetime unit has sixteen passing source groups and
 its affected five relay groups also pass at that exact source version; these
 replace earlier runs, not additional test counts. There is still no registered
-class factory, DLL-loader/module proof, trusted production context resolver or
-FrameServer bootstrap. These object tests neither register a system camera nor
+class factory, trusted production context resolver or FrameServer bootstrap.
+These object tests neither register a system camera nor
 grant actual phone consent/SEND or complete the Windows webcam.
+
+`PhoneCameraFactory` now provides the native `IClassFactory` boundary: only fresh
+activation/base-attribute objects, no COM aggregation or arbitrary interface/CLSID
+route. The trusted native owner supplies activation construction and DLL module
+lock accounting; neither callback may initiate capture or setup. A supplied
+opaque lifetime anchor remains held while the factory is referenced.
+
+Four native DLL groups pass on physical Windows. A separate private PE DLL was
+compiled, dynamically loaded, queried through actual `DllGetClassObject`, and
+really unloaded after native MF callbacks drained. It tests rejected class/role/
+aggregation requests, distinct activation contexts, a detached source and old
+shutdown stream still pinning their native context/DLL, and balanced module locks
+across factory lifetimes. The probe is metadata-only and **always denies SEND**:
+it contains no frame generator, phone permit, broker or microphone. No COM key,
+driver or camera device was registered for these module tests. This is ordinary
+test-process loader evidence, not FrameServer service loading or code-signing
+policy acceptance of a registered Windows camera.
 
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It
