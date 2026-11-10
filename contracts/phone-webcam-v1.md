@@ -275,6 +275,33 @@ controlled DOM/bridge, and the actual GUI handler is tested without GTK. These
 are source/runtime proofs, not native GUI/physical phone/OBS acceptance; no new
 driver, APK, installer or release was installed or published.
 
+### Windows implementation boundary (still open)
+
+The current Windows target remains `net8.0-windows10.0.19041.0`. Microsoft's
+[`MFCreateVirtualCamera`](https://learn.microsoft.com/en-us/windows/win32/api/mfvirtualcamera/nf-mfvirtualcamera-mfcreatevirtualcamera)
+API starts at Windows build 22000, not at that base target. An eventual Windows 11
+adapter therefore needs runtime availability gating and must not make Organizer
+startup or the Windows 10 base require this DLL/export. Session lifetime and
+current-user access can bound the camera's enumeration lifetime; they do not
+implement a media source or establish a microphone endpoint.
+
+The API requires the CLSID of a custom media source, not a stream URL. Microsoft's
+[`VirtualCamera` sample](https://github.com/microsoft/Windows-Camera/tree/master/Samples/VirtualCamera)
+separates the native media-source DLL from registration/installation and the
+manager. Its MSI example registers the DLL under HKLM. Do not silently run that
+installer, add its startup-task/systray behavior, wrap a physical PC camera or
+replace the optional default-OFF model with sample defaults. A usable phone
+adapter must supply decoded received phone frames to its own source and prove
+bounded activation, authenticated frame delivery and complete native teardown.
+
+A camera API is not evidence of a system microphone. Windows audio endpoint
+creation/routing must be implemented and accepted separately; ordinary playback,
+WASAPI loopback capture, an MF audio stream or a camera's name alone cannot be
+reported as the requested independent microphone input. No new mandatory driver
+or dependency is authorized by this design note. The existing Windows
+`DesktopPhoneBuild.PhoneCamera` constant remains only build composition, not
+runtime readiness. Neither a Windows native adapter nor its acceptance is claimed.
+
 ## KDE Connect versus Notes
 
 Inspected upstream KDE Connect Android commit
