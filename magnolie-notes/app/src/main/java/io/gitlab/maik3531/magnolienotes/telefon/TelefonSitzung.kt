@@ -10,6 +10,10 @@ import java.io.OutputStream
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 internal fun JsonObject.string(name: String): String =
     (getValue(name) as? JsonPrimitive)?.takeIf { it.isString }?.content
@@ -65,6 +69,10 @@ object TelefonNachrichten {
 
     fun validate(message: JsonObject, now: Long = System.currentTimeMillis()) {
         validateHeader(message, now)
+        if (PhoneWebcamControl.reserved(message)) {
+            try { PhoneWebcamControl.validateMessage(message, now) } catch (_: Exception) { fail() }
+            return
+        }
         val created = message.long("created_ms"); val expires = message.long("expires_ms")
         val body = message["body"] as? JsonObject ?: fail()
         when (message.string("kind")) {
@@ -299,8 +307,9 @@ class TelefonSecureChannel(
     private var sendSequence = 0L
     private var receiveSequence = 0L
     private var closed = false
+    private val writer = ReentrantLock()
 
-    @Synchronized fun send(payload: JsonObject) {
+    fun send(payload: JsonObject) = writer.withLock {
         if (closed) throw TelefonProtokollFehler("Die sichere Sitzung ist beendet.")
         val clear = TelefonKanonisch.bytes(payload)
         if (clear.size > TelefonParameter.ANWENDUNG_MAX) throw TelefonProtokollFehler("Anwendungsnachricht ist zu groß.")
@@ -309,6 +318,52 @@ class TelefonSecureChannel(
         sendSequence++
         TelefonRahmen.schreiben(output, JsonObject(header + ("ciphertext" to JsonPrimitive(TelefonKrypto.b64(encrypted)))),
             TelefonParameter.VERSCHLUESSELT_RAHMEN_MAX)
+    }
+
+    /** Small nonpersistent control on the ORIGINAL pipe. current must only read
+     * native atomic/volatile ownership, never acquire TelefonWerk's monitor.
+     * Writer admission is bounded; the existing transport watchdog interrupts
+     * only an actual original write, not a healthy parent while waiting for it.
+     */
+    internal fun sendEphemeral(payload: JsonObject, pipe: TelefonRoehre, current: () -> Unit,
+        timeoutMs: Long = 2_000) {
+        require(timeoutMs in 1..2_000)
+        val clear = TelefonKanonisch.bytes(payload)
+        require(clear.size <= 4096) { "webcam_control_envelope_invalid" }
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
+        current()
+        if (!writer.tryLock(maxOf(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS))
+            throw TimeoutException("webcam_control_writer_busy")
+        var attempted = false
+        var watchdog: TelefonPaarungsRoehre? = null
+        try {
+            current()
+            check(!closed) { "webcam_original_parent_retired" }
+            check(pipe.output === output) { "webcam_original_parent_pipe_required" }
+            val header = header(sendSequence, "phone_to_desktop")
+            val encrypted = TelefonKrypto.verschluesseln(sendKey, TelefonKrypto.nonce(sendPrefix, sendSequence), clear, TelefonKanonisch.bytes(header))
+            current()
+            val remainingMs = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
+            if (remainingMs < 1) throw TimeoutException("webcam_control_write_timeout")
+            current()
+            if (System.nanoTime() >= deadline) throw TimeoutException("webcam_control_write_timeout")
+            sendSequence++
+            attempted = true
+            val writeBudget = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
+            if (writeBudget < 1) throw TimeoutException("webcam_control_write_timeout")
+            watchdog = TelefonPaarungsRoehre(pipe, writeBudget)
+            TelefonRahmen.schreiben(output, JsonObject(header + ("ciphertext" to JsonPrimitive(TelefonKrypto.b64(encrypted)))),
+                TelefonParameter.VERSCHLUESSELT_RAHMEN_MAX)
+            if (System.nanoTime() >= deadline) throw TimeoutException("webcam_control_write_timeout")
+        } catch (error: Throwable) {
+            // A partial ciphertext write cannot be retried/reused on this
+            // sequence. Pre-publication rejection must leave the parent alone.
+            if (attempted) runCatching { pipe.close() }
+            throw error
+        } finally {
+            watchdog?.disarm()
+            writer.unlock()
+        }
     }
 
     fun receive(): JsonObject {
@@ -333,7 +388,7 @@ class TelefonSecureChannel(
         put("seq", JsonPrimitive(sequence)); put("dir", JsonPrimitive(direction))
     }
 
-    @Synchronized override fun close() { closed = true; sendKey.fill(0); receiveKey.fill(0) }
+    override fun close() = writer.withLock { closed = true; sendKey.fill(0); receiveKey.fill(0) }
 
     private object Base64Length {
         fun any(value: String): Int {

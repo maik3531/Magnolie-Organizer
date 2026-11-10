@@ -19,6 +19,26 @@ import java.security.MessageDigest
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class TelefonQueueDatabaseTest {
+    @Test fun webcamControlsAndMalformedVersionAliasesNeverEnterOutboxInboxOrReplayHistory() {
+        for (version in listOf(JsonPrimitive(24), JsonPrimitive("24"), JsonPrimitive(24.0), JsonPrimitive("24.0"))) {
+            val body = buildJsonObject {
+                put("version", version); put("request_id", JsonPrimitive("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"))
+                put("nonce", JsonPrimitive("b".repeat(64))); put("op", JsonPrimitive("offer"))
+                put("session", JsonPrimitive("c".repeat(32))); put("secret", JsonPrimitive("d".repeat(64)))
+                put("port", JsonPrimitive(24401)); put("muted", JsonPrimitive(false)); put("front", JsonPrimitive(false))
+            }
+            val message = TelefonNachrichten.message(PhoneWebcamControl.REPORT, body, 60_000)
+            org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { queue.queue("peer", PhoneWebcamControl.REPORT, body, 60_000) }
+            org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { queue.queuePrepared("peer", message) }
+            org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { queue.receive("peer", message) }
+            org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { queue.terminal("peer", message, "not_granted") }
+        }
+        context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
+            for (table in listOf("outbox", "inbox", "dedupe")) db.rawQuery("SELECT COUNT(*) FROM $table", null).use {
+                assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+            }
+        }
+    }
     private lateinit var context: Context
     private lateinit var queue: TelefonQueue
     private val storage = object : TelefonPayloadStorage {

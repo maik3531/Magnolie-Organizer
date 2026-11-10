@@ -352,3 +352,19 @@ def test_failed_output_constructor_retains_actual_uncertain_native_owner_and_blo
         client.send(dict(type='ping', ping_id=str(uuid.uuid4()), sent_ms=phone.now_ms()))
         assert client.receive()['type'] == 'pong'
     finally: media.close()
+
+
+def test_original_phone_permission_denial_is_retained_as_failure_without_output_or_parent_loss(connected):
+    service, peer, client = connected
+    owner = service.begin_native_webcam(peer['device_id'], device='/dev/video42')
+    client.ack(client.receive())
+    original = probe(); client.request(original); offer = client.report('offer')
+    client.request(dict(original, op='error', session=offer['session'], reason='permission_denied'))
+    client.report('stop')
+    assert owner.done.wait(4); owner.worker.join(1)
+    client.ack(client.receive())
+    assert str(owner.error) == 'webcam_permission_denied'
+    assert owner.exchange.run is None and owner.is_completely_stopped()
+    assert service._native_media_activity()['camera'] is False
+    client.send(dict(type='ping', ping_id=str(uuid.uuid4()), sent_ms=phone.now_ms()))
+    assert client.receive()['type'] == 'pong'

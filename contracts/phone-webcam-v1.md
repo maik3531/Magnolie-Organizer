@@ -28,9 +28,10 @@ been added by this backend unit; V4L2/Pulse prerequisites remain optional.
 
 This is an implemented backend boundary, **not a usable/delivered webcam yet**.
 Linux output adapters, binary transport, joined output lifetime, provider selection
-and an Android sender codec exist. Neither Android capture provider, authenticated
-start/control integration, Organizer controls nor Windows native outputs have been
-completed. No streaming capability is advertised by this unjoined backend.
+and native Notes capture/control dispatch exist. Organizer controls, Windows
+native outputs and the compatible KDE capture provider remain incomplete. The
+explicit native entry is not yet exposed by the frontend; normal startup advertises
+no webcam activation.
 No installed OBS/phone capture acceptance or package delivery is claimed.
 
 ### Native Notes capture implementation, not yet activated
@@ -58,8 +59,8 @@ camera/microphone foreground-service declaration. Camera, autofocus and micropho
 hardware remain optional; registration never prompts or starts capture. All four
 gallery permission/consent slots and the webcam slot mutually block each other.
 The visible-Activity rendezvous holds no persisted request and never launches UI
-from the background. There is still no authenticated production start route or
-advertised provider, so this is not yet a usable phone webcam.
+from the background. The native authenticated routes below now join this entry,
+but frontend activation is still missing, so this is not yet a usable phone webcam.
 The new checks cover 15 distinct JVM/Robolectric cases, including real Android
 adapter APIs under simulation and synthetic YUV buffers, not physical capture.
 
@@ -91,8 +92,8 @@ capture preparation, explicit mute and stopping. Missing/restored/stale intents
 cannot create capture. Five service tests passed; a later Activity/manifest check
 passed 34 cases covering the service, permission host, rendezvous, optional hardware
 contract and phone-module isolation. Android manifest declarations are not OS
-consent or physical acceptance. No authenticated control start/key exchange,
-Organizer activation, native device-success or OBS acceptance is claimed here.
+consent or physical acceptance. The authenticated control/start join is described
+below; Organizer activation, native device-success and OBS acceptance remain open.
 
 ## Authenticated control exchange under implementation
 
@@ -191,11 +192,54 @@ an offer is neither an OS permit nor wire SEND. A matching stop retires the run.
 Checks passed: 41 Python body cases, six Notes schema/capability/envelope cases
 and seven original-exchange cases. The joined positive case uses genuine Android
 permission/foreground adapters under Robolectric and generated source samples;
-it does not prove a physical phone. The exchange is not yet attached to
-TelefonWerk's actual authenticated dispatcher or Organizer activation. The Linux
-base dispatcher above is now joined, but the frontend has not been connected to
-its explicit native entry. There is still no end-to-end usable phone provider or
-normal startup/control availability advertisement.
+it does not prove a physical phone.
+
+### Notes dispatcher and native lifecycle integration (Refs #503)
+
+`TelefonWerk` now consumes the webcam namespace before ordinary replay/storage.
+Only an actually accepted fresh desktop capability control on that original TCP
+parent can create the private runtime; saved v24 metadata never starts a probe.
+Discovery received during authentication waits for actual session activation.
+Withdrawal, parent/lifecycle/generation replacement and stop retire its original
+runtime. Private bounded ACK records never enter the persistent queue. Neither
+control IO nor its original guard acquires Werk's book/storage monitor.
+
+`PhoneWebcamNotesRuntime` sends its fresh probe over the actual encrypted parent,
+then handles only matching offers. The main thread requests genuine OS consent
+through the existing visible-Activity host and starts the real one-use FGS only
+with that request's exact permit. No foreground host means an error, not an
+Activity launch. A late grant after parent revocation cannot start a service.
+The actual source-prepared callback queues a bounded worker operation: connect
+the dedicated socket to the parent's actual remote IP, bound to its actual local
+interface, then send PREPARED. No socket connect/control write blocks a native
+capture callback or the Activity. Only a matching authenticated SEND activates
+that original binary lane. No silent provider switch/retry exists.
+
+Original parent writes now have bounded lock admission and reuse the existing
+original-pipe deadline watchdog for actual IO; the read timeout is not misused
+as a write timeout. Pre-publication denial consumes no counter and leaves a
+healthy parent open. Attempted uncertain ciphertext IO retires that exact pipe.
+Startup is bounded to the original 60-second window, including pending consent;
+close removes the runtime's own callbacks and signals worker/capture shutdown.
+The Notes queue, prepared-outbox and inbox/history paths reject v24 and malformed
+numeric/string aliases even outside the main dispatcher.
+
+Five runtime cases use actual encrypted local TCP parent/media sockets and the
+genuine ActivityResult/FGS adapters under Robolectric. Generated source buffers
+prove the complete permit/service/connect/PREPARED/SEND/AV/STOP join; the real
+default Camera2 factory is separately checked for no-camera failure, not positive
+physical capture. Four actual Werk-routing cases use a controlled admitted parent
+and check saved-metadata inactivity, real control dispatch, foreground denial,
+withdrawal and progress while Werk's monitor is held. These admitted-parent tests
+do not claim a newly exercised signed Notes handshake. Seven bounded-writer cases,
+the queue rejection case and affected ordinary protocol/queue/manual-sync checks
+also pass. The PC retains a phone's explicit permission-denied reason instead of
+misreporting it as a successful ordinary stop.
+
+Both base dispatchers are now joined. The Organizer frontend is still not
+connected to its explicit native entry, so no end-to-end usable phone webcam or
+new normal-startup capture availability is claimed. Physical Android/OBS,
+Windows-native endpoints and the compatible KDE streaming provider remain open.
 
 ## KDE Connect versus Notes
 

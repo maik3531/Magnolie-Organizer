@@ -132,6 +132,13 @@ internal fun shouldStartPersonalSyncOnSecureWifi(
 class TelefonWerk private constructor(private val context: Context, private val storage: TelefonAblage) {
     private val developerDiagnostics = io.gitlab.maik3531.magnolienotes.Entwicklermodus(context)
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
+    private class WebcamDiscovery(val channel: TelefonSecureChannel, val pipe: TelefonTcpRoehre,
+        val generation: Long, val body: JsonObject)
+    private class WebcamAck(val id: String, val token: Any, var seen: Boolean = false)
+    @Volatile private var webcamDiscovery: WebcamDiscovery? = null
+    @Volatile private var webcamRuntime: PhoneWebcamNotesRuntime? = null
+    private val webcamAckLock = Any()
+    private val webcamAcks = java.util.WeakHashMap<TelefonSecureChannel, java.util.ArrayDeque<WebcamAck>>()
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private var galleryFileConnection: NativeGalleryFileConnection? = null
     // Compiled native source handlers. Availability is not a data grant: explicit
@@ -147,6 +154,88 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val galleryResumeCommands = NativeGalleryResumeCommands()
     private val actorSourceKey = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
     private val timePolicyFailed = mutableSetOf<String>()
+
+    private fun retireWebcam(channel: TelefonSecureChannel? = null) {
+        if (Build.VERSION.SDK_INT < 30) return
+        val previous = synchronized(this) {
+            if (channel != null && webcamDiscovery?.channel !== channel) return
+            webcamDiscovery = null
+            webcamRuntime.also { webcamRuntime = null }
+        }
+        previous?.close() // Signals only; never join native/IO workers under Werk.
+    }
+
+    private fun observeWebcamDiscovery(channel: TelefonSecureChannel, generation: Long, body: JsonObject) {
+        if (Build.VERSION.SDK_INT < 30) return
+        val previous = synchronized(this) {
+            val pipe = activeTransport?.second as? TelefonTcpRoehre ?: return
+            if (generation != pairingGeneration || !serviceRunning || activeTransport?.first != TelefonTransportArt.WIFI) return
+            if (webcamDiscovery?.let { it.channel === channel && it.generation == generation && it.body == body } == true) return
+            val status = (body["items"] as? JsonObject)?.get("device_status") as? JsonObject
+            val supported = status != null && status["available"] == JsonPrimitive(true) &&
+                (status["versions"] as? JsonArray)?.contains(JsonPrimitive(PhoneWebcamControl.DISCOVERY_VERSION)) == true
+            webcamDiscovery = if (supported) WebcamDiscovery(channel, pipe, generation, body) else null
+            webcamRuntime.also { webcamRuntime = null }
+        }
+        previous?.close()
+        maybeStartWebcam()
+    }
+
+    private fun maybeStartWebcam() {
+        if (Build.VERSION.SDK_INT < 30) return
+        val runtime = synchronized(this) {
+            val source = webcamDiscovery ?: return
+            if (webcamRuntime != null || activeChannel !== source.channel || activeTransport?.second !== source.pipe ||
+                source.generation != pairingGeneration || !serviceRunning) return
+            val holder = java.util.concurrent.atomic.AtomicReference<PhoneWebcamNotesRuntime?>()
+            val nativeCurrent = {
+                // Also used under the crypto writer lock and native capture:
+                // ONLY volatile/atomic live-source identity, no Werk/storage IO.
+                check(serviceRunning && pairingGeneration == source.generation && activeChannel === source.channel &&
+                    activeTransport?.second === source.pipe && webcamDiscovery === source && webcamRuntime === holder.get()) {
+                    "webcam_original_native_parent_retired"
+                }
+            }
+            PhoneWebcamNotesRuntime(context, source.channel, source.pipe, nativeCurrent, { message, current ->
+                current()
+                synchronized(webcamAckLock) {
+                    val runtime = checkNotNull(holder.get())
+                    val history = webcamAcks.getOrPut(source.channel) { java.util.ArrayDeque() }
+                    if (history.size >= 16) history.removeFirst()
+                    history.addLast(WebcamAck(message.string("message_id"), runtime.token))
+                }
+                source.channel.sendEphemeral(message, source.pipe, current)
+            }).also { holder.set(it); webcamRuntime = it }
+        }
+        runtime.start()
+    }
+
+    private fun receiveWebcamControl(message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val result = try {
+            PhoneWebcamControl.validateMessage(message)
+            val accepted = if (Build.VERSION.SDK_INT >= 30) {
+                val runtime = synchronized(this) {
+                    webcamRuntime?.takeIf { generation == pairingGeneration && activeChannel === channel && webcamDiscovery?.channel === channel }
+                }
+                runtime?.receive(message) == true
+            } else false
+            if (accepted) "accepted" to "none" else "rejected" to "not_granted"
+        } catch (_: IllegalArgumentException) { "rejected" to "invalid_schema" }
+        catch (_: Exception) { "rejected" to "not_granted" }
+        channel.send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second))
+    }
+
+    private fun consumeWebcamAck(channel: TelefonSecureChannel, payload: JsonObject): Boolean {
+        if (Build.VERSION.SDK_INT < 30) return false
+        val original = synchronized(webcamAckLock) {
+            val entry = webcamAcks[channel]?.firstOrNull { it.id == payload.string("message_id") } ?: return false
+            if (entry.seen) return true
+            entry.seen = true
+            if (payload.string("status") == "rejected") webcamRuntime?.takeIf { it.token === entry.token } else null
+        }
+        if (Build.VERSION.SDK_INT >= 30) original?.close()
+        return true
+    }
 
     private fun noteModeSupported(peer: TelefonPeer) = peer.remote_personal_notes_sync_available &&
         PersonalNoteMode.VERSION in peer.remote_personal_notes_sync_versions &&
@@ -1963,6 +2052,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     // Never wait for a graceful network write from a lifecycle/consent callback.
     @Synchronized private fun closeTransport() {
+        retireWebcam()
         contactGroupWriter.clear(); contactValueWriter.clear(); contactGroupTitleWriter.clear()
         val pipe = activeTransport?.second
         activeTransport = null
@@ -2544,7 +2634,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             TelefonNachrichten.validateAck(payload)
                             val id = payload.string("message_id")
                             mediaTransport(channel)?.acknowledge(payload)
-                            handleSessionAck(peer, payload, noteSession, generation, transport)
+                            handleSessionAck(peer, payload, noteSession, generation, transport, channel)
                             if (id in controls) {
                                 if (payload.string("status") !in setOf("accepted", "duplicate"))
                                     throw TelefonProtokollFehler("Magnolie Notes hat die Sitzung beendet. App und Organizer müssen denselben Protokollstand verwenden.")
@@ -2569,6 +2659,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     } // Unavailable file projection never creates/reloads identity or changes other modules.
                     refreshSharedPreferenceState()
                 }
+                maybeStartWebcam()
                 peerEffect(peer, generation) { current ->
                     queue.readyPersonalBatches().filter { it.first == current.device_id }.forEach {
                         completePersonalBatch(current, it.second, noteSession)
@@ -2614,7 +2705,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         "pong" -> TelefonNachrichten.validateHeartbeat(payload)
                         "ack" -> {
                             mediaTransport(channel)?.acknowledge(payload)
-                            handleSessionAck(peer, payload, noteSession, generation, transport)
+                             handleSessionAck(peer, payload, noteSession, generation, transport, channel)
                         }
                         "message" -> receiveMessage(peer, payload, channel, generation)
                         "close" -> { handleSessionClose(peer, payload, generation); return }
@@ -2623,6 +2714,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     sendDue(peer, channel, generation)
                 }
                 } finally {
+                    retireWebcam(channel)
                     synchronized(this) {
                         if (activeChannel === channel) activeChannel = null
                         fileChannelIdentities.remove(channel)
@@ -2684,6 +2776,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
+        if (PhoneWebcamControl.reserved(message)) {
+            receiveWebcamControl(message, channel, generation)
+            return // Never enter ordinary replay/identifier/personal-store routing.
+        }
         val media = mediaTransport(channel)
         if (message["kind"] in setOf(JsonPrimitive("capabilities.update"), JsonPrimitive("grants.update"), JsonPrimitive("personal_sync.settings")))
             media?.invalidate()
@@ -2795,6 +2891,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 }
             } else channel.send(reply)
             observeNativeFileOwnDecision(sessionPeer, message, reply, channel, generation, true)
+        }
+        if (message["kind"] == JsonPrimitive("capabilities.update") && replies.any {
+                it["type"] == JsonPrimitive("ack") && it["status"] == JsonPrimitive("accepted") }) {
+            observeWebcamDiscovery(channel, generation, message["body"] as JsonObject)
         }
         if (message["kind"] in setOf(JsonPrimitive("capabilities.update"), JsonPrimitive("grants.update"), JsonPrimitive("personal_sync.settings")))
             refreshMediaPreferenceState()
@@ -4448,8 +4548,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     @Synchronized internal fun handleSessionAck(expected: TelefonPeer, payload: JsonObject, session: PersonalNoteSession,
-        generation: Long, transport: TelefonTransportArt) {
+        generation: Long, transport: TelefonTransportArt, channel: TelefonSecureChannel? = null) {
         TelefonNachrichten.validateAck(payload)
+        val originalChannel = channel ?: noteSessions.entries.firstOrNull { it.value === session }?.key
+        if (originalChannel != null && consumeWebcamAck(originalChannel, payload)) return
         val id = payload.string("message_id")
         if (queue.outboxWireMessage(expected.device_id, id)?.let(PersonalSyncActor::isReservedMessage) == true) return
         val policy = queue.outboxPolicy(expected.device_id, id)

@@ -151,6 +151,8 @@ class NativePhoneWebcamOwner:
                         self.exchange.prepared(self.channel, body)
                         prepared = True
                     elif op in ('stop', 'error') and self.exchange is not None:
+                        if op == 'error':
+                            self.error = PermissionError('webcam_' + body['reason'])
                         self.exchange.stop(self.channel, body)
                         self.retire()
                     else:

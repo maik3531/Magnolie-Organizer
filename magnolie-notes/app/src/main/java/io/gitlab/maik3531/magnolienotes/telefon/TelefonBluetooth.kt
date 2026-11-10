@@ -35,6 +35,9 @@ internal class TelefonTcpRoehre(host: String, connectTimeoutMs: Int = 10_000,
     }
     override val input: InputStream get() = socket.getInputStream()
     override val output: OutputStream get() = socket.getOutputStream()
+    internal val remoteAddress: java.net.InetAddress get() = socket.inetAddress
+    internal val localAddress: java.net.InetAddress get() = socket.localAddress
+    internal val isClosed: Boolean get() = socket.isClosed
     override fun setReadTimeout(timeoutMs: Int) { socket.soTimeout = timeoutMs }
     override fun close() = socket.close()
 }

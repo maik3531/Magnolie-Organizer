@@ -25,7 +25,7 @@ internal object PhoneWebcamControl {
     private val hex64 = Regex("[0-9a-f]{64}")
 
     fun reserved(message: JsonObject): Boolean = message["kind"] in setOf(JsonPrimitive(REQUEST), JsonPrimitive(REPORT)) &&
-        (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(DISCOVERY_VERSION)
+        ((message["body"] as? JsonObject)?.get("version") as? JsonPrimitive)?.content?.toDoubleOrNull() == DISCOVERY_VERSION.toDouble()
 
     fun validateMessage(message: JsonObject, now: Long = System.currentTimeMillis()): JsonObject {
         TelefonNachrichten.validateHeader(message, now)
