@@ -103,6 +103,38 @@ def test_configuration_failure_removes_only_unchanged_new_owned_files(tmp_path,m
     assert not list((tmp_path/'etc').glob('*/.magnolie-*'))
 
 
+@pytest.mark.parametrize('publication',[1,2])
+@pytest.mark.parametrize('changed',[False,True])
+def test_interrupt_after_actual_publication_tracks_own_inode_before_return(tmp_path,monkeypatch,publication,changed):
+    native=payload();run,_=runner();original=os.link;count=[0]
+    directories=['modules-load.d','modprobe.d']
+    target=tmp_path/'etc'/directories[publication-1]/'magnolie-phone-webcam.conf'
+    def link(*args,**kwargs):
+        original(*args,**kwargs);count[0]+=1
+        if count[0]==publication:
+            if changed:target.write_bytes(b'new independent administrator configuration')
+            raise TimeoutError('controlled signal AFTER actual link publication')
+    monkeypatch.setattr(os,'link',link)
+    with pytest.raises(TimeoutError):native['enable'](str(tmp_path),run=run,tool='/controlled/modprobe')
+    remaining=list((tmp_path/'etc').glob('*/*.conf'))
+    assert remaining==([target] if changed else [])
+    if changed:assert target.read_bytes()==b'new independent administrator configuration'
+    assert not list((tmp_path/'etc').glob('*/.magnolie-*'))
+
+
+def test_unpublished_rollback_candidate_cannot_delete_racing_foreign_target(tmp_path,monkeypatch):
+    native=payload();run,_=runner();original=os.link
+    target=tmp_path/'etc/modules-load.d/magnolie-phone-webcam.conf'
+    def link(*args,**kwargs):
+        target.write_bytes(b'independent foreign configuration');target.chmod(0o644)
+        return original(*args,**kwargs)
+    monkeypatch.setattr(os,'link',link)
+    with pytest.raises(FileExistsError):native['enable'](str(tmp_path),run=run,tool='/controlled/modprobe')
+    assert target.read_bytes()==b'independent foreign configuration'
+    assert list((tmp_path/'etc').glob('*/*.conf'))==[target]
+    assert not list((tmp_path/'etc').glob('*/.magnolie-*'))
+
+
 def test_already_loaded_module_keeps_foreign_live_parameters(tmp_path):
     (tmp_path/'sys/module/v4l2loopback').mkdir(parents=True)
     native=payload();run,calls=runner()

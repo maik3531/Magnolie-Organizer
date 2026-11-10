@@ -89,8 +89,11 @@ def enable(root='/', run=subprocess.run, tool=None):
                 with os.fdopen(fd, 'wb') as output:
                     output.write(data); output.flush(); os.fchmod(output.fileno(), 0o644); os.fsync(output.fileno())
                     identity = os.fstat(output.fileno()).st_ino
-                os.link(temporary, filename, src_dir_fd=parent, dst_dir_fd=parent, follow_symlinks=False)
+                # Record the known temporary inode BEFORE publication: a signal
+                # immediately after link() must not leave an untracked own file.
+                # Rollback still requires actual target inode + exact own bytes.
                 created.append((parent, filename, identity, data))
+                os.link(temporary, filename, src_dir_fd=parent, dst_dir_fd=parent, follow_symlinks=False)
             finally: os.unlink(temporary, dir_fd=parent)
             os.fsync(parent)
         # Re-read our own exact bytes, including concurrent changes, before success.
