@@ -676,6 +676,9 @@ msgstr "Kontotype"
 msgid "Action"
 msgstr "Handling"
 
+msgid "Active"
+msgstr "Aktiv"
+
 msgid "Active call"
 msgstr "Aktivt opkald"
 
@@ -699,6 +702,9 @@ msgstr "Tilføj"
 
 msgid "Add %(type)s"
 msgstr "Tilføj %(type)s"
+
+msgid "Add PC source folder …"
+msgstr "Tilføj kildemappe på pc …"
 
 msgid "Add a custom tab"
 msgstr "Tilføj en brugerdefineret fane"
@@ -929,6 +935,10 @@ msgid ""
 msgstr ""
 "En post udelukkes, når en af dens kontaktgrupper er valgt. Ingen kontakter "
 "eller mærkedage slettes."
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr ""
+"En eksisterende virtuel kameradriver er påkrævet. Intet blev installeret."
 
 msgid "Android restricts this device identifier."
 msgstr "Android begrænser denne enhedsidentifikator."
@@ -1348,12 +1358,18 @@ msgstr "Bluetooth-parringen i systemet blev ikke bekræftet."
 msgid "Bold"
 msgstr "Fed"
 
+msgid "Boots"
+msgstr "Støvler"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
 msgstr ""
 "Begge grene viser den samme sekscifrede kode, når de forbindes. Bekræft den "
 "kun, hvis den er identisk; det forhindrer andre i at opsnappe forbindelsen."
+
+msgid "Both connected"
+msgstr "Begge forbundet"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1498,6 +1514,12 @@ msgstr "Opkald med %(name)s · %(date)s"
 msgid "Calligraphy pen"
 msgstr "Kalligrafipen"
 
+msgid "Camera"
+msgstr "Kamera"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "Tilladelse til kamera eller mikrofon blev afvist på telefonen."
+
 msgid "Cancel"
 msgstr "Annuller"
 
@@ -1549,6 +1571,9 @@ msgstr "Celsius (°C)"
 
 msgid "Centered on the screen"
 msgstr "Centreret på skærmen"
+
+msgid "Champagne glass"
+msgstr "Champagneglas"
 
 msgid "Change password"
 msgstr "Skift adgangskode"
@@ -1924,6 +1949,9 @@ msgstr "Bekræftelse"
 
 msgid "Connect"
 msgstr "Forbind"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Forbind først Magnolie Notes via Wi-Fi."
 
 msgid "Connect Notes before sending this entry."
 msgstr "Forbind Notes, før denne post sendes."
@@ -2607,6 +2635,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "Morgenvagt"
 
+msgid "Easter eggs"
+msgstr "Påskeæg"
+
 msgid "Edit"
 msgstr "Rediger"
 
@@ -2715,6 +2746,9 @@ msgstr ""
 "Aktivér adgangskodebeskyttelse? Dine data gemmes derefter krypteret. Uden "
 "adgangskoden går de uigenkaldeligt tabt; opbevar adgangskoden et sikkert "
 "sted."
+
+msgid "Enable photo and video synchronization"
+msgstr "Aktivér synkronisering af billeder og videoer"
 
 msgid "Enable reminders"
 msgstr "Aktivér påmindelser"
@@ -2848,6 +2882,9 @@ msgid ""
 msgstr ""
 "Indtast din adresse ovenfor. Ingen tjeneste kan beregne en rute uden et "
 "udgangspunkt."
+
+msgid "Entire collection"
+msgstr "Hele samlingen"
 
 msgid "Entries ready to import"
 msgstr "Poster klar til import"
@@ -3290,6 +3327,9 @@ msgstr "Forløb"
 msgid "Holiday retrieval is available only in the installed application."
 msgstr "Hentning af helligdage er kun tilgængelig i det installerede program."
 
+msgid "Holiday watermark"
+msgstr "Helligdagsvandmærke"
+
 msgid "Home"
 msgstr "Hjem"
 
@@ -3401,6 +3441,9 @@ msgstr "Importér én gang"
 
 msgid "Import pairing file …"
 msgstr "Importér parringsfil …"
+
+msgid "Import phone → PC only"
+msgstr "Importér kun fra telefon til pc"
 
 msgid "Import preview"
 msgstr "Forhåndsvisning af import"
@@ -3532,6 +3575,9 @@ msgstr "Indsæt link"
 msgid "Insert shape"
 msgstr "Indsæt figur"
 
+msgid "Install and set up"
+msgstr "Installer og sæt op"
+
 msgid "Install the packages, for example with:"
 msgstr "Installer pakkerne, for eksempel med:"
 
@@ -3628,6 +3674,9 @@ msgstr ""
 
 msgid "KDE Connect reception failed."
 msgstr "Modtagelse via KDE Connect mislykkedes."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect kræver en kompatibel webcamudvidelse."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4237,6 +4286,9 @@ msgstr "Flere kalendere"
 msgid "Music player"
 msgstr "Musikafspiller"
 
+msgid "Mute microphone"
+msgstr "Slå mikrofon fra"
+
 msgid "Name"
 msgstr "Navn"
 
@@ -4782,6 +4834,9 @@ msgstr ""
 "tekstnoter. Ikke-understøttede poster, layout, vedhæftninger og alarmer "
 "overføres ikke."
 
+msgid "OS tray icon (60 s)"
+msgstr "Systemets statusikon (60 s)"
+
 msgid "Objects"
 msgstr "Objekter"
 
@@ -4800,6 +4855,13 @@ msgstr ""
 "pause uden at slette dem. Aktivering genoptager dem, også dem hvis tidspunkt "
 "er overskredet. Beskeder, der allerede er overdraget til KDE Connect, kan "
 "ikke kaldes tilbage."
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"Slået fra som standard. Bruger et virtuelt kamera og en mikrofon. Opsætning "
+"af driveren kan kræve administratortilladelse."
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Tilbyd telefonændringer fra Personal Sync"
@@ -4908,6 +4970,9 @@ msgstr "Kun personlige poster kan sendes til Notes."
 msgid "Only the Notes collection"
 msgstr "Kun Notes-samlingen"
 
+msgid "Only the phone inventory"
+msgstr "Kun telefonens indhold"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4941,6 +5006,9 @@ msgid ""
 msgstr ""
 "Åbn KDE Connect på telefonen, og start parringen. Sammenlign "
 "bekræftelsesnøglen på otte tegn, og bekræft på begge enheder."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Åbn Magnolie Notes på telefonen for at tillade optagelse."
 
 msgid "Open Magnolie Organizer"
 msgstr "Åbn Magnolie Organizer"
@@ -5103,6 +5171,12 @@ msgstr "Eget vindue tilgængeligt: nej"
 
 msgid "Own window available: yes"
 msgstr "Eget vindue tilgængeligt: ja"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "Kildemapper på pc er adskilt fra modtagelsesdestinationer."
+
+msgid "PC → phone"
+msgstr "Pc → telefon"
 
 msgid "PDF file"
 msgstr "PDF-fil"
@@ -5353,8 +5427,14 @@ msgstr ""
 "Telefonopsætning er ikke tilgængelig i denne baggrundstjeneste. Genstart "
 "baggrundstjenesten, og prøv igen."
 
+msgid "Phone webcam"
+msgstr "Telefonwebcam"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "Telefonen “%(name)s” er sikkert parret."
+
+msgid "Phone → PC"
+msgstr "Telefon → PC"
 
 msgid "Phones"
 msgstr "Telefoner"
@@ -5387,8 +5467,14 @@ msgstr ""
 "Fotosynkronisering blev stoppet sikkert. Kontroller forbindelsen, før du "
 "prøver igen."
 
+msgid "Photos"
+msgstr "Billeder"
+
 msgid "Photos and videos"
 msgstr "Fotos og videoer"
+
+msgid "Photos only"
+msgstr "Kun fotos"
 
 msgid "Pick up"
 msgstr "Afhentning"
@@ -5447,6 +5533,10 @@ msgid ""
 msgstr ""
 "Angiv din e-mailadresse som betalingsreference, da ContributorKey ellers "
 "ikke kan sendes til dig."
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr "Installer driveren v4l2loopback med systemets pakkehåndtering."
 
 msgid "Please select a PDF file."
 msgstr "Vælg en PDF-fil."
@@ -5679,6 +5769,9 @@ msgstr "Årsag"
 
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "Kvittering færdiggjort. Send den tidligere bekræftelse separat."
+
+msgid "Receive"
+msgstr "Modtag"
 
 msgid "Receive files"
 msgstr "Modtag filer"
@@ -5915,6 +6008,9 @@ msgstr "Kræver en Nextcloud-konto."
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "Kræver en eksisterende BlueZ-systemparring. Kun data, ingen HFP-lyd."
 
+msgid "Reset preview"
+msgstr "Nulstil forhåndsvisning"
+
 msgid "Residual waste"
 msgstr "Restaffald"
 
@@ -6036,6 +6132,9 @@ msgstr "Rheinland-Pfalz"
 msgid "Right page"
 msgstr "Højre side"
 
+msgid "Rocket"
+msgstr "Raket"
+
 msgid "Rotate selection"
 msgstr "Drej markeringen"
 
@@ -6113,6 +6212,9 @@ msgstr "Saarland"
 msgid "Salzburg"
 msgstr "Salzburg"
 
+msgid "Santa Claus"
+msgstr "Julemand"
+
 msgid "Saturday"
 msgstr "Lørdag"
 
@@ -6167,6 +6269,9 @@ msgstr "Gemt"
 
 msgid "Saved confirmation available."
 msgstr "Bekræftelse på lagring er tilgængelig."
+
+msgid "Saved developer mode is required."
+msgstr "Udviklertilstand skal være gemt."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6284,6 +6389,9 @@ msgstr "Søger…"
 msgid "Search…"
 msgstr "Søg…"
 
+msgid "Seasonal background"
+msgstr "Sæsonbaggrund"
+
 msgid "Secondary office"
 msgstr "Sekundært kontor"
 
@@ -6351,6 +6459,9 @@ msgstr "Vælg din telefon"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "Vælg, forhåndsvis, udskriv, eksportér eller slet sundhedsoptegnelser"
+
+msgid "Selected PC source folders"
+msgstr "Valgte kildemapper på pc"
 
 msgid "Selected album synchronized."
 msgstr "Det valgte album er synkroniseret."
@@ -6489,6 +6600,12 @@ msgstr "Delte loginoplysninger"
 msgid "Shared note"
 msgstr "Delt note"
 
+msgid "Shared settings"
+msgstr "Delte indstillinger"
+
+msgid "Shared settings are not configured yet."
+msgstr "Delte indstillinger er ikke konfigureret endnu."
+
 msgid "Sharing this connection is not allowed."
 msgstr "Deling af denne forbindelse er ikke tilladt."
 
@@ -6610,6 +6727,9 @@ msgid "Snapshot restored. The first synchronization will not send deletions."
 msgstr ""
 "Øjebliksbillede gendannet. Den første synkronisering sender ingen sletninger."
 
+msgid "Snowflakes"
+msgstr "Snefnug"
+
 msgid "Snowman"
 msgstr "Snemand"
 
@@ -6697,6 +6817,12 @@ msgstr "Kvadrat"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Stars"
+msgstr "Stjerner"
+
+msgid "Start"
+msgstr "Start"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6871,11 +6997,20 @@ msgstr "Synkroniser opgaver og aftaler fra fanen »%(tab)s«"
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Synkroniser opgaver og aftaler fra den brugerdefinerede fane"
 
+msgid "Synchronize videos"
+msgstr "Synkroniser videoer"
+
 msgid "Synchronizing …"
 msgstr "Synkroniserer …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "Systemgodkendelse til konfiguration af UFW er ikke tilgængelig."
+
+msgid "System authorization is unavailable."
+msgstr "Systemgodkendelse er ikke tilgængelig."
+
+msgid "System authorization was cancelled."
+msgstr "Systemgodkendelsen blev annulleret."
 
 msgid "System default"
 msgstr "System standard"
@@ -7100,6 +7235,17 @@ msgstr "Magnolienbaums lager er beskadiget."
 
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr "Magnolienbaums lager er krypteret. Lås først organizeren op."
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "Nextcloud-kontoindstillingerne ændres. Prøv igen, når den aktuelle handling er afsluttet."
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Nextcloud-kontotransaktionen skal gendannes. Kontoændringer og nye synkroniseringsforbindelser er blokeret, indtil konfigurationen og loginoplysningerne er blevet kontrolleret."
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Nextcloud-adressebogen indeholder manglende eller dublerede UID'er."
@@ -7804,6 +7950,9 @@ msgstr "Porten er ugyldig."
 msgid "The previous data could not be backed up."
 msgstr "De tidligere data kunne ikke sikkerhedskopieres."
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "Den forrige webcamsession skal først stoppes helt."
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "Udskriftssiden findes her: %s"
@@ -8015,6 +8164,13 @@ msgstr "Synkroniseringsanmodningen kunne ikke sendes."
 msgid "The synchronization resume journal is damaged."
 msgstr "Journalen til genoptagelse af synkroniseringen er beskadiget."
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"Driverinstallationen kører muligvis stadig. Kontrollér systemets "
+"pakkehåndtering, før du prøver igen."
+
 msgid "The task is missing from the update."
 msgstr "Opgaven mangler i opdateringen."
 
@@ -8088,8 +8244,18 @@ msgstr "Opdateringsoplysningerne kan ikke læses."
 msgid "The user data could not be read."
 msgstr "Brugerdataene kunne ikke læses."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+"Webcamdriveren v4l2loopback mangler. Vil du installere og sætte den op nu?"
+
 msgid "The value is outside the general green reference range."
 msgstr "Værdien ligger uden for det generelle grønne referenceområde."
+
+msgid "The virtual camera could not be configured."
+msgstr "Det virtuelle kamera kunne ikke konfigureres."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Driveren til det virtuelle kamera kunne ikke kontrolleres."
 
 msgid "The wake-up reminder"
 msgstr "Opvågningspåmindelsen"
@@ -8174,6 +8340,12 @@ msgid ""
 msgstr ""
 "Disse indstillinger kræver de tilsvarende tilladelser i Magnolie Notes. "
 "Opkaldslyd sendes ikke via Magnolies dataforbindelse."
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "Denne Nextcloud-kalender indeholder markerede mærkedage. Kalendersynkronisering er blokeret, indtil dette omfang understøttes; ingen fuldstændig synkronisering er bekræftet."
 
 msgid "This action does not invent a task start or deadline."
 msgstr "Denne handling tilføjer ikke en manglende opgavestart eller frist."
@@ -8466,6 +8638,9 @@ msgstr "Rejse"
 msgid "Tray applet"
 msgstr "Panelapplet"
 
+msgid "Tray preview"
+msgstr "Forhåndsvisning af statusikon"
+
 msgid "Triangle"
 msgstr "Trekant"
 
@@ -8667,6 +8842,9 @@ msgstr "Brug kontaktens adresser"
 msgid "Use default"
 msgstr "Brug standard"
 
+msgid "Use front camera"
+msgstr "Brug frontkamera"
+
 msgid "Use newer version"
 msgstr "Brug nyere version"
 
@@ -8773,11 +8951,20 @@ msgstr "Via internettet"
 msgid "Video player"
 msgstr "Videoafspiller"
 
+msgid "Videos"
+msgstr "Videoer"
+
 msgid "Vienna"
 msgstr "Wien"
 
 msgid "View and edit appointment"
 msgstr "Vis og rediger aftale"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Opsætning af det virtuelle kamera er allerede i gang."
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Kun en visuel test; forbindelser og tilladelser ændres ikke."
 
 msgid "Vital signs"
 msgstr "Vitale værdier"
@@ -8810,6 +8997,9 @@ msgstr "Venter på samtykke på den anden enhed."
 msgid "Waiting for device status"
 msgstr "Venter på enhedsstatus"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "Venter på telefontilladelse og optagelse …"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8823,6 +9013,9 @@ msgid ""
 msgstr ""
 "Venter på telefonen på port %(port)s. Parringen lukker efter %(seconds)s "
 "sekunder."
+
+msgid "Waiting for the phone…"
+msgstr "Venter på telefonen…"
 
 msgid "Wake the computer from suspend"
 msgstr "Væk computeren fra slumretilstand"
@@ -9555,6 +9748,18 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr ""
+#~ "For at bruge telefonen som webcam skal kernedriveren v4l2loopback være "
+#~ "installeret."
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "Slået fra som standard. Bruger et eksisterende virtuelt kamera og en "
+#~ "virtuel mikrofon; installerer intet."
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "Indtast et andet gruppenavn."
 
@@ -10050,9 +10255,6 @@ msgstr "＋ Tilføj aftale"
 #~ "Synkroniser kun telefonens indhold. Lokale ændringer bevares. Sletninger "
 #~ "synkroniseres endnu ikke."
 
-msgid "Photos"
-msgstr "Billeder"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "Læs mediepapirkurven"
 
@@ -10084,9 +10286,6 @@ msgstr "Billeder"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "Stopper… Venter på, at programmets handling afsluttes."
 
-#~ msgid "Synchronize videos"
-#~ msgstr "Synkroniser videoer"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr "Bogen kunne ikke gemmes. Mediesynkronisering blev ikke startet."
 
@@ -10096,130 +10295,5 @@ msgstr "Billeder"
 #~ msgid "Unchanged"
 #~ msgstr "Uændret"
 
-msgid "Videos"
-msgstr "Videoer"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "Venter på programmets mediestatus"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "Kun en visuel test; forbindelser og tilladelser ændres ikke."
-
-msgid "Tray preview"
-msgstr "Forhåndsvisning af statusikon"
-
-msgid "Seasonal background"
-msgstr "Sæsonbaggrund"
-
-msgid "Holiday watermark"
-msgstr "Helligdagsvandmærke"
-
-msgid "Both connected"
-msgstr "Begge forbundet"
-
-msgid "Camera"
-msgstr "Kamera"
-
-msgid "Snowflakes"
-msgstr "Snefnug"
-
-msgid "Stars"
-msgstr "Stjerner"
-
-msgid "Boots"
-msgstr "Støvler"
-
-msgid "Santa Claus"
-msgstr "Julemand"
-
-msgid "Rocket"
-msgstr "Raket"
-
-msgid "Champagne glass"
-msgstr "Champagneglas"
-
-msgid "Easter eggs"
-msgstr "Påskeæg"
-
-msgid "Reset preview"
-msgstr "Nulstil forhåndsvisning"
-
-msgid "OS tray icon (60 s)"
-msgstr "Systemets statusikon (60 s)"
-
-msgid "Saved developer mode is required."
-msgstr "Udviklertilstand skal være gemt."
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "Slået fra som standard. Bruger et virtuelt kamera og en mikrofon. Opsætning af driveren kan kræve administratortilladelse."
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "For at bruge telefonen som webcam skal kernedriveren v4l2loopback være installeret."
-
-msgid "The virtual camera driver could not be checked."
-msgstr "Driveren til det virtuelle kamera kunne ikke kontrolleres."
-
-msgid "System authorization is unavailable."
-msgstr "Systemgodkendelse er ikke tilgængelig."
-
-msgid "System authorization was cancelled."
-msgstr "Systemgodkendelsen blev annulleret."
-
-msgid "The virtual camera could not be configured."
-msgstr "Det virtuelle kamera kunne ikke konfigureres."
-
-msgid "Virtual camera setup is already in progress."
-msgstr "Opsætning af det virtuelle kamera er allerede i gang."
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "Webcamdriveren v4l2loopback mangler. Vil du installere og sætte den op nu?"
-
-msgid "Install and set up"
-msgstr "Installer og sæt op"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "Installer driveren v4l2loopback med systemets pakkehåndtering."
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "Driverinstallationen kører muligvis stadig. Kontrollér systemets pakkehåndtering, før du prøver igen."
-
-msgid "Phone webcam"
-msgstr "Telefonwebcam"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "Slået fra som standard. Bruger et eksisterende virtuelt kamera og en virtuel mikrofon; installerer intet."
-
-msgid "Mute microphone"
-msgstr "Slå mikrofon fra"
-
-msgid "Use front camera"
-msgstr "Brug frontkamera"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "En eksisterende virtuel kameradriver er påkrævet. Intet blev installeret."
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect kræver en kompatibel webcamudvidelse."
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "Forbind først Magnolie Notes via Wi-Fi."
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "Tilladelse til kamera eller mikrofon blev afvist på telefonen."
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "Åbn Magnolie Notes på telefonen for at tillade optagelse."
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "Den forrige webcamsession skal først stoppes helt."
-
-msgid "Waiting for phone permission and capture …"
-msgstr "Venter på telefontilladelse og optagelse …"
-
-msgid "Active"
-msgstr "Aktiv"
-
-msgid "Start"
-msgstr "Start"

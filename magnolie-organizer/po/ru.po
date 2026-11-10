@@ -724,6 +724,9 @@ msgstr "Тип учётной записи"
 msgid "Action"
 msgstr "Действие"
 
+msgid "Active"
+msgstr "Активно"
+
 msgid "Active call"
 msgstr "Активный вызов"
 
@@ -748,6 +751,9 @@ msgstr "Добавить"
 
 msgid "Add %(type)s"
 msgstr "Добавить %(type)s"
+
+msgid "Add PC source folder …"
+msgstr "Добавить исходную папку на ПК …"
 
 msgid "Add a custom tab"
 msgstr "Добавить пользовательскую вкладку"
@@ -979,6 +985,11 @@ msgid ""
 msgstr ""
 "Запись исключается, если выбрана хотя бы одна из её групп контактов. "
 "Контакты и годовщины не удаляются."
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr ""
+"Требуется уже установленный драйвер виртуальной камеры. Ничего не "
+"установлено."
 
 msgid "Android restricts this device identifier."
 msgstr "Android ограничивает этот идентификатор."
@@ -1402,6 +1413,9 @@ msgstr "Сопряжение через Bluetooth в системе не под�
 msgid "Bold"
 msgstr "Жирный"
 
+msgid "Boots"
+msgstr "Сапоги"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
@@ -1409,6 +1423,9 @@ msgstr ""
 "При подключении обе ветви показывают один и тот же шестизначный код. "
 "Подтверждайте его только при полном совпадении — это не позволит "
 "постороннему перехватить соединение."
+
+msgid "Both connected"
+msgstr "Оба подключены"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1553,6 +1570,12 @@ msgstr "Звонок с %(name)s · %(date)s"
 msgid "Calligraphy pen"
 msgstr "Каллиграфическое перо"
 
+msgid "Camera"
+msgstr "Камера"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "На телефоне отказано в доступе к камере или микрофону."
+
 msgid "Cancel"
 msgstr "Отмена"
 
@@ -1604,6 +1627,9 @@ msgstr "Цельсий (°C)"
 
 msgid "Centered on the screen"
 msgstr "По центру экрана"
+
+msgid "Champagne glass"
+msgstr "Бокал шампанского"
 
 msgid "Change password"
 msgstr "Изменить пароль"
@@ -1982,6 +2008,9 @@ msgstr "Подтверждение"
 
 msgid "Connect"
 msgstr "Подключить"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Сначала подключите Magnolie Notes по Wi-Fi."
 
 msgid "Connect Notes before sending this entry."
 msgstr "Подключите Notes перед отправкой записи."
@@ -2666,6 +2695,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "Утренняя смена"
 
+msgid "Easter eggs"
+msgstr "Пасхальные яйца"
+
 msgid "Edit"
 msgstr "Изменить"
 
@@ -2774,6 +2806,9 @@ msgstr ""
 "Включить защиту паролем? После этого данные будут храниться в зашифрованном "
 "виде. Без пароля их невозможно будет восстановить; храните пароль в надёжном "
 "месте."
+
+msgid "Enable photo and video synchronization"
+msgstr "Включить синхронизацию фото и видео"
 
 msgid "Enable reminders"
 msgstr "Включить напоминания"
@@ -2904,6 +2939,9 @@ msgid ""
 msgstr ""
 "Введите свой адрес выше. Без начальной точки ни одна служба не сможет "
 "рассчитать маршрут."
+
+msgid "Entire collection"
+msgstr "Вся коллекция"
 
 msgid "Entries ready to import"
 msgstr "Записи, подготовленные к импорту"
@@ -3350,6 +3388,9 @@ msgstr "История"
 msgid "Holiday retrieval is available only in the installed application."
 msgstr "Получение праздников доступно только в установленном приложении."
 
+msgid "Holiday watermark"
+msgstr "Праздничный водяной знак"
+
 msgid "Home"
 msgstr "Дом"
 
@@ -3461,6 +3502,9 @@ msgstr "Импортировать один раз"
 
 msgid "Import pairing file …"
 msgstr "Импортировать файл сопряжения …"
+
+msgid "Import phone → PC only"
+msgstr "Только импортировать с телефона на ПК"
 
 msgid "Import preview"
 msgstr "Предварительный просмотр импорта"
@@ -3592,6 +3636,9 @@ msgstr "Вставить ссылку"
 msgid "Insert shape"
 msgstr "Вставить фигуру"
 
+msgid "Install and set up"
+msgstr "Установить и настроить"
+
 msgid "Install the packages, for example with:"
 msgstr "Установите пакеты, например командой:"
 
@@ -3688,6 +3735,9 @@ msgstr ""
 
 msgid "KDE Connect reception failed."
 msgstr "Не удалось принять данные через KDE Connect."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "Для KDE Connect нужно совместимое расширение веб-камеры."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4297,6 +4347,9 @@ msgstr "Несколько календарей"
 msgid "Music player"
 msgstr "Музыкальный проигрыватель"
 
+msgid "Mute microphone"
+msgstr "Отключить микрофон"
+
 msgid "Name"
 msgstr "Имя"
 
@@ -4841,6 +4894,9 @@ msgstr ""
 "звонков и веб-страниц — текстовыми заметками. Неподдерживаемые записи, "
 "оформление, вложения и напоминания не переносятся."
 
+msgid "OS tray icon (60 s)"
+msgstr "Значок в системном трее (60 с)"
+
 msgid "Objects"
 msgstr "Объекты"
 
@@ -4858,6 +4914,13 @@ msgstr ""
 "По умолчанию выключено. Выключение приостанавливает ожидающие "
 "запланированные SMS без их удаления. Включение возобновляет их, в том числе "
 "просроченные. Сообщения, уже переданные KDE Connect, нельзя отозвать."
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"По умолчанию выключено. Используются виртуальная камера и микрофон. "
+"Настройка драйвера может запросить права администратора."
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Предлагать изменения Personal Sync с телефона"
@@ -4974,6 +5037,9 @@ msgstr "В Notes можно отправлять только личные за�
 msgid "Only the Notes collection"
 msgstr "Только коллекция Notes"
 
+msgid "Only the phone inventory"
+msgstr "Только содержимое телефона"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -5007,6 +5073,9 @@ msgid ""
 msgstr ""
 "Откройте KDE Connect на телефоне и начните сопряжение. Сравните "
 "восьмизначный ключ проверки и подтвердите его на обоих устройствах."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Откройте Magnolie Notes на телефоне, чтобы разрешить захват."
 
 msgid "Open Magnolie Organizer"
 msgstr "Открыть Magnolie Organizer"
@@ -5170,6 +5239,12 @@ msgstr "Собственное окно доступно: нет"
 
 msgid "Own window available: yes"
 msgstr "Собственное окно доступно: да"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "Исходные папки на ПК не связаны с местами сохранения получаемых файлов."
+
+msgid "PC → phone"
+msgstr "ПК → телефон"
 
 msgid "PDF file"
 msgstr "PDF-файл"
@@ -5426,8 +5501,14 @@ msgstr ""
 "Эта фоновая служба не поддерживает настройку телефона. Перезапустите фоновую "
 "службу и попробуйте ещё раз."
 
+msgid "Phone webcam"
+msgstr "Веб-камера телефона"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "«%(name)s» восстановлено."
+
+msgid "Phone → PC"
+msgstr "Телефон → ПК"
 
 msgid "Phones"
 msgstr "Телефон"
@@ -5460,8 +5541,14 @@ msgstr ""
 "Синхронизация фотографий безопасно остановлена. Проверьте соединение перед "
 "повторной попыткой."
 
+msgid "Photos"
+msgstr "Фотографии"
+
 msgid "Photos and videos"
 msgstr "Фото и видео"
+
+msgid "Photos only"
+msgstr "Только фотографии"
 
 msgid "Pick up"
 msgstr "Забрать"
@@ -5520,6 +5607,11 @@ msgid ""
 msgstr ""
 "Укажите свой адрес электронной почты в назначении платежа, иначе "
 "ContributorKey не удастся вам отправить."
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr ""
+"Установите драйвер v4l2loopback с помощью системного менеджера пакетов."
 
 msgid "Please select a PDF file."
 msgstr "Выберите PDF-файл."
@@ -5756,6 +5848,9 @@ msgstr "Причина"
 
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "Квитанция завершена. Отправьте прежнее подтверждение отдельно."
+
+msgid "Receive"
+msgstr "Получить"
 
 msgid "Receive files"
 msgstr "Получать файлы"
@@ -5994,6 +6089,9 @@ msgstr ""
 "Требуется существующее сопряжение системы BlueZ. Только данные, без звука "
 "HFP."
 
+msgid "Reset preview"
+msgstr "Сбросить предпросмотр"
+
 msgid "Residual waste"
 msgstr "Остаточные отходы"
 
@@ -6114,6 +6212,9 @@ msgstr "Рейнланд-Пфальц"
 msgid "Right page"
 msgstr "Правая страница"
 
+msgid "Rocket"
+msgstr "Ракета"
+
 msgid "Rotate selection"
 msgstr "Повернуть выделение"
 
@@ -6190,6 +6291,9 @@ msgstr "Саар"
 msgid "Salzburg"
 msgstr "Зальцбург"
 
+msgid "Santa Claus"
+msgstr "Санта-Клаус"
+
 msgid "Saturday"
 msgstr "Суббота"
 
@@ -6244,6 +6348,9 @@ msgstr "Сохранено"
 
 msgid "Saved confirmation available."
 msgstr "Подтверждение сохранения доступно."
+
+msgid "Saved developer mode is required."
+msgstr "Режим разработчика должен быть сохранён."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6362,6 +6469,9 @@ msgstr "Поиск…"
 msgid "Search…"
 msgstr "Поиск…"
 
+msgid "Seasonal background"
+msgstr "Сезонный фон"
+
 msgid "Secondary office"
 msgstr "Дополнительный офис"
 
@@ -6431,6 +6541,9 @@ msgid "Select, preview, print, export or delete health records"
 msgstr ""
 "Выбрать, просмотреть, напечатать, экспортировать или удалить данные о "
 "здоровье"
+
+msgid "Selected PC source folders"
+msgstr "Выбранные исходные папки на ПК"
 
 msgid "Selected album synchronized."
 msgstr "Выбранный альбом синхронизирован."
@@ -6571,6 +6684,12 @@ msgstr "Общие учётные данные"
 msgid "Shared note"
 msgstr "Общая заметка"
 
+msgid "Shared settings"
+msgstr "Общие настройки"
+
+msgid "Shared settings are not configured yet."
+msgstr "Общие настройки ещё не настроены."
+
 msgid "Sharing this connection is not allowed."
 msgstr "Передача этого соединения не разрешена."
 
@@ -6691,6 +6810,9 @@ msgstr "Интервал моментального снимка"
 msgid "Snapshot restored. The first synchronization will not send deletions."
 msgstr "Снимок восстановлен. Первая синхронизация не приведет к удалению."
 
+msgid "Snowflakes"
+msgstr "Снежинки"
+
 msgid "Snowman"
 msgstr "Снеговик"
 
@@ -6778,6 +6900,12 @@ msgstr "Квадрат"
 
 msgid "St. Gallen"
 msgstr "Санкт-Галлен"
+
+msgid "Stars"
+msgstr "Звёзды"
+
+msgid "Start"
+msgstr "Запустить"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6952,11 +7080,20 @@ msgstr "Синхронизировать задачи и встречи с вк�
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Синхронизировать задачи и встречи с пользовательской вкладки"
 
+msgid "Synchronize videos"
+msgstr "Синхронизировать видео"
+
 msgid "Synchronizing …"
 msgstr "Синхронизация …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "Системная аутентификация для настройки UFW недоступна."
+
+msgid "System authorization is unavailable."
+msgstr "Системная авторизация недоступна."
+
+msgid "System authorization was cancelled."
+msgstr "Системная авторизация отменена."
 
 msgid "System default"
 msgstr "Система по умолчанию"
@@ -7186,6 +7323,17 @@ msgstr "Хранилище Magnolienbaum повреждено."
 
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr "Хранилище Magnolienbaum зашифровано. Сначала разблокируйте органайзер."
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "Настройки учётной записи Nextcloud изменяются. Повторите попытку после завершения текущей операции."
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Транзакция учётной записи Nextcloud требует восстановления. Изменения учётной записи и новые подключения синхронизации заблокированы до проверки конфигурации и учётных данных."
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Адресная книга Nextcloud содержит отсутствующие или дублирующиеся UID."
@@ -7883,6 +8031,9 @@ msgstr "Порт указан неверно."
 msgid "The previous data could not be backed up."
 msgstr "Не удалось создать резервную копию предыдущих данных."
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "Сначала необходимо полностью остановить предыдущий сеанс веб-камеры."
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "Страница печати находится по адресу: %s"
@@ -8097,6 +8248,13 @@ msgstr "Не удалось отправить запрос на синхрон�
 msgid "The synchronization resume journal is damaged."
 msgstr "Журнал возобновления синхронизации повреждён."
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"Возможно, установка драйвера ещё выполняется. Перед повторной попыткой "
+"проверьте системный менеджер пакетов."
+
 msgid "The task is missing from the update."
 msgstr "В обновлении отсутствует задача."
 
@@ -8171,9 +8329,20 @@ msgstr "Сведения об обновлении невозможно проч
 msgid "The user data could not be read."
 msgstr "Не удалось прочитать данные пользователя."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+"Драйвер веб-камеры v4l2loopback отсутствует. Установить и настроить его "
+"сейчас?"
+
 msgid "The value is outside the general green reference range."
 msgstr ""
 "Значение находится за пределами общего зелёного референсного диапазона."
+
+msgid "The virtual camera could not be configured."
+msgstr "Не удалось настроить виртуальную камеру."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Не удалось проверить драйвер виртуальной камеры."
 
 msgid "The wake-up reminder"
 msgstr "Напоминание с пробуждением"
@@ -8259,6 +8428,12 @@ msgid ""
 msgstr ""
 "Для этих параметров нужны соответствующие разрешения в Magnolie Notes. Звук "
 "звонка не передаётся через соединение для данных Magnolie."
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "Этот календарь Nextcloud содержит отмеченные памятные даты. Синхронизация календаря заблокирована до поддержки этой области; полная синхронизация не подтверждена."
 
 msgid "This action does not invent a task start or deadline."
 msgstr "Это действие не добавляет отсутствующие начало или срок задачи."
@@ -8553,6 +8728,9 @@ msgstr "Путешествие"
 msgid "Tray applet"
 msgstr "Апплет области уведомлений"
 
+msgid "Tray preview"
+msgstr "Предпросмотр значка в трее"
+
 msgid "Triangle"
 msgstr "Треугольник"
 
@@ -8754,6 +8932,9 @@ msgstr "Использовать адреса контактов"
 msgid "Use default"
 msgstr "Использовать значение по умолчанию"
 
+msgid "Use front camera"
+msgstr "Использовать фронтальную камеру"
+
 msgid "Use newer version"
 msgstr "Использовать более новую версию"
 
@@ -8861,11 +9042,20 @@ msgstr "Через Интернет"
 msgid "Video player"
 msgstr "Видеопроигрыватель"
 
+msgid "Videos"
+msgstr "Видео"
+
 msgid "Vienna"
 msgstr "Вена"
 
 msgid "View and edit appointment"
 msgstr "Просмотреть и изменить встречу"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Настройка виртуальной камеры уже выполняется."
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Только проверка оформления; подключения и разрешения не изменяются."
 
 msgid "Vital signs"
 msgstr "Основные показатели"
@@ -8898,6 +9088,9 @@ msgstr "Ожидание согласия на другом устройстве
 msgid "Waiting for device status"
 msgstr "Ожидание статуса устройства"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "Ожидание разрешения телефона и захвата…"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8911,6 +9104,9 @@ msgid ""
 msgstr ""
 "Ожидание телефона на порту %(port)s. Сопряжение закрывается через "
 "%(seconds)s секунд."
+
+msgid "Waiting for the phone…"
+msgstr "Ожидание телефона…"
 
 msgid "Wake the computer from suspend"
 msgstr "Пробуждать компьютер из режима сна"
@@ -9653,6 +9849,18 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr ""
+#~ "Для использования телефона как веб-камеры должен быть установлен драйвер "
+#~ "ядра v4l2loopback."
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "По умолчанию выключена. Использует существующие виртуальные камеру и "
+#~ "микрофон; ничего не устанавливает."
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "Введите другое название группы."
 
@@ -10162,9 +10370,6 @@ msgstr "＋ Добавить встречу"
 #~ "Синхронизировать только содержимое телефона. Локальные изменения "
 #~ "сохраняются. Удаления пока не синхронизируются."
 
-msgid "Photos"
-msgstr "Фотографии"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "Прочитать корзину медиафайлов"
 
@@ -10198,9 +10403,6 @@ msgstr "Фотографии"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "Остановка… Ожидание завершения операции приложения."
 
-#~ msgid "Synchronize videos"
-#~ msgstr "Синхронизировать видео"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr "Не удалось сохранить книгу. Синхронизация медиафайлов не началась."
 
@@ -10210,130 +10412,5 @@ msgstr "Фотографии"
 #~ msgid "Unchanged"
 #~ msgstr "Без изменений"
 
-msgid "Videos"
-msgstr "Видео"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "Ожидание состояния медиафайлов от приложения"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "Только проверка оформления; подключения и разрешения не изменяются."
-
-msgid "Tray preview"
-msgstr "Предпросмотр значка в трее"
-
-msgid "Seasonal background"
-msgstr "Сезонный фон"
-
-msgid "Holiday watermark"
-msgstr "Праздничный водяной знак"
-
-msgid "Both connected"
-msgstr "Оба подключены"
-
-msgid "Camera"
-msgstr "Камера"
-
-msgid "Snowflakes"
-msgstr "Снежинки"
-
-msgid "Stars"
-msgstr "Звёзды"
-
-msgid "Boots"
-msgstr "Сапоги"
-
-msgid "Santa Claus"
-msgstr "Санта-Клаус"
-
-msgid "Rocket"
-msgstr "Ракета"
-
-msgid "Champagne glass"
-msgstr "Бокал шампанского"
-
-msgid "Easter eggs"
-msgstr "Пасхальные яйца"
-
-msgid "Reset preview"
-msgstr "Сбросить предпросмотр"
-
-msgid "OS tray icon (60 s)"
-msgstr "Значок в системном трее (60 с)"
-
-msgid "Saved developer mode is required."
-msgstr "Режим разработчика должен быть сохранён."
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "По умолчанию выключено. Используются виртуальная камера и микрофон. Настройка драйвера может запросить права администратора."
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "Для использования телефона как веб-камеры должен быть установлен драйвер ядра v4l2loopback."
-
-msgid "The virtual camera driver could not be checked."
-msgstr "Не удалось проверить драйвер виртуальной камеры."
-
-msgid "System authorization is unavailable."
-msgstr "Системная авторизация недоступна."
-
-msgid "System authorization was cancelled."
-msgstr "Системная авторизация отменена."
-
-msgid "The virtual camera could not be configured."
-msgstr "Не удалось настроить виртуальную камеру."
-
-msgid "Virtual camera setup is already in progress."
-msgstr "Настройка виртуальной камеры уже выполняется."
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "Драйвер веб-камеры v4l2loopback отсутствует. Установить и настроить его сейчас?"
-
-msgid "Install and set up"
-msgstr "Установить и настроить"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "Установите драйвер v4l2loopback с помощью системного менеджера пакетов."
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "Возможно, установка драйвера ещё выполняется. Перед повторной попыткой проверьте системный менеджер пакетов."
-
-msgid "Phone webcam"
-msgstr "Веб-камера телефона"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "По умолчанию выключена. Использует существующие виртуальные камеру и микрофон; ничего не устанавливает."
-
-msgid "Mute microphone"
-msgstr "Отключить микрофон"
-
-msgid "Use front camera"
-msgstr "Использовать фронтальную камеру"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "Требуется уже установленный драйвер виртуальной камеры. Ничего не установлено."
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "Для KDE Connect нужно совместимое расширение веб-камеры."
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "Сначала подключите Magnolie Notes по Wi-Fi."
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "На телефоне отказано в доступе к камере или микрофону."
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "Откройте Magnolie Notes на телефоне, чтобы разрешить захват."
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "Сначала необходимо полностью остановить предыдущий сеанс веб-камеры."
-
-msgid "Waiting for phone permission and capture …"
-msgstr "Ожидание разрешения телефона и захвата…"
-
-msgid "Active"
-msgstr "Активно"
-
-msgid "Start"
-msgstr "Запустить"

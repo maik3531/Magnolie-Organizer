@@ -673,6 +673,9 @@ msgstr "खाते का प्रकार"
 msgid "Action"
 msgstr "क्रिया"
 
+msgid "Active"
+msgstr "सक्रिय"
+
 msgid "Active call"
 msgstr "सक्रिय कॉल"
 
@@ -695,6 +698,9 @@ msgstr "जोड़ें"
 
 msgid "Add %(type)s"
 msgstr "%(type)s जोड़ें"
+
+msgid "Add PC source folder …"
+msgstr "पीसी का स्रोत फ़ोल्डर जोड़ें …"
 
 msgid "Add a custom tab"
 msgstr "एक कस्टम टैब जोड़ें"
@@ -921,6 +927,9 @@ msgid ""
 msgstr ""
 "किसी प्रविष्टि का कोई भी संपर्क समूह चुने जाने पर वह बाहर रहती है। कोई संपर्क या वर्षगाँठ "
 "मिटती नहीं है।"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "पहले से मौजूद वर्चुअल कैमरा ड्राइवर आवश्यक है। कुछ भी इंस्टॉल नहीं किया गया।"
 
 msgid "Android restricts this device identifier."
 msgstr "Android इस डिवाइस पहचानकर्ता को प्रतिबंधित करता है।"
@@ -1335,12 +1344,18 @@ msgstr "प्रणाली में Bluetooth की जोड़ी बन�
 msgid "Bold"
 msgstr "मोटा"
 
+msgid "Boots"
+msgstr "जूते"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
 msgstr ""
 "कनेक्ट करते समय दोनों शाखाएँ वही छह अंकों का कोड दिखाती हैं। केवल तभी पुष्टि करें जब दोनों "
 "कोड समान हों; इससे कोई तीसरा व्यक्ति कनेक्शन को बीच में रोक नहीं सकता।"
+
+msgid "Both connected"
+msgstr "दोनों जुड़े हैं"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1480,6 +1495,12 @@ msgstr "%(name)s के साथ कॉल · %(date)s"
 msgid "Calligraphy pen"
 msgstr "सुलेख कलम"
 
+msgid "Camera"
+msgstr "कैमरा"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "फ़ोन पर कैमरा या माइक्रोफ़ोन की अनुमति अस्वीकार की गई।"
+
 msgid "Cancel"
 msgstr "रद्द करें"
 
@@ -1531,6 +1552,9 @@ msgstr "सेल्सियस (°C)"
 
 msgid "Centered on the screen"
 msgstr "स्क्रीन के बीच में"
+
+msgid "Champagne glass"
+msgstr "शैम्पेन का गिलास"
 
 msgid "Change password"
 msgstr "पासवर्ड बदलें"
@@ -1896,6 +1920,9 @@ msgstr "पुष्टि"
 
 msgid "Connect"
 msgstr "कनेक्ट करें"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "पहले Magnolie Notes को वाई-फ़ाई से कनेक्ट करें।"
 
 msgid "Connect Notes before sending this entry."
 msgstr "यह प्रविष्टि भेजने से पहले Notes को कनेक्ट करें।"
@@ -2566,6 +2593,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "सुबह की पाली"
 
+msgid "Easter eggs"
+msgstr "ईस्टर के अंडे"
+
 msgid "Edit"
 msgstr "संपादित करें"
 
@@ -2671,6 +2701,9 @@ msgid ""
 msgstr ""
 "पासवर्ड सुरक्षा सक्षम करें? आपका डेटा इसके बाद एन्क्रिप्टेड रूप में सहेजा जाएगा। पासवर्ड के "
 "बिना वह हमेशा के लिए खो जाएगा; पासवर्ड को सुरक्षित स्थान पर रखें।"
+
+msgid "Enable photo and video synchronization"
+msgstr "फ़ोटो और वीडियो समन्वयन सक्षम करें"
 
 msgid "Enable reminders"
 msgstr "रिमाइंडर सक्षम करें"
@@ -2797,6 +2830,9 @@ msgid ""
 "Enter your address above. No service can calculate directions without a "
 "starting point."
 msgstr "ऊपर अपना पता दर्ज करें। प्रारंभ बिंदु के बिना कोई सेवा दिशा-निर्देश नहीं बना सकती।"
+
+msgid "Entire collection"
+msgstr "पूरा संग्रह"
 
 msgid "Entries ready to import"
 msgstr "आयात के लिए तैयार प्रविष्टियाँ"
@@ -3236,6 +3272,9 @@ msgstr "इतिहास"
 msgid "Holiday retrieval is available only in the installed application."
 msgstr "छुट्टियाँ प्राप्त करना केवल स्थापित एप्लिकेशन में उपलब्ध है।"
 
+msgid "Holiday watermark"
+msgstr "त्योहार का वॉटरमार्क"
+
 msgid "Home"
 msgstr "घर"
 
@@ -3346,6 +3385,9 @@ msgstr "एक बार आयात करें"
 
 msgid "Import pairing file …"
 msgstr "पेयरिंग फ़ाइल आयात करें …"
+
+msgid "Import phone → PC only"
+msgstr "केवल फ़ोन से PC पर आयात करें"
 
 msgid "Import preview"
 msgstr "आयात की झलक"
@@ -3473,6 +3515,9 @@ msgstr "लिंक डालें"
 msgid "Insert shape"
 msgstr "आकृति डालें"
 
+msgid "Install and set up"
+msgstr "स्थापित और सेट अप करें"
+
 msgid "Install the packages, for example with:"
 msgstr "पैकेज स्थापित करें, उदाहरण के लिए:"
 
@@ -3566,6 +3611,9 @@ msgstr "बैकग्राउंड सेवा KDE Connect की प्र
 
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect से प्राप्ति विफल रही।"
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect के लिए संगत वेबकैम एक्सटेंशन आवश्यक है।"
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4165,6 +4213,9 @@ msgstr "एकाधिक कैलेंडर"
 msgid "Music player"
 msgstr "संगीत प्लेयर"
 
+msgid "Mute microphone"
+msgstr "माइक्रोफ़ोन म्यूट करें"
+
 msgid "Name"
 msgstr "नाम"
 
@@ -4700,6 +4751,9 @@ msgstr ""
 "प्रविष्टियाँ पाठ नोट बनती हैं। असमर्थित प्रविष्टियाँ, लेआउट, अनुलग्नक और अलार्म स्थानांतरित "
 "नहीं होते।"
 
+msgid "OS tray icon (60 s)"
+msgstr "सिस्टम ट्रे आइकन (60 सेकंड)"
+
 msgid "Objects"
 msgstr "वस्तुएँ"
 
@@ -4717,6 +4771,13 @@ msgstr ""
 "डिफ़ॉल्ट रूप से बंद है। बंद करने पर लंबित शेड्यूल किए गए SMS बिना मिटाए रुक जाते हैं। चालू "
 "करने पर वे फिर शुरू होते हैं, वे भी जिनका समय बीत चुका है। KDE Connect को पहले ही सौंपे "
 "गए संदेश वापस नहीं लिए जा सकते।"
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"डिफ़ॉल्ट रूप से बंद। वर्चुअल कैमरे और माइक्रोफ़ोन का उपयोग करता है। ड्राइवर सेटअप के लिए "
+"व्यवस्थापक अनुमति माँगी जा सकती है।"
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Personal Sync के फ़ोन बदलाव प्रस्तुत करें"
@@ -4823,6 +4884,9 @@ msgstr "केवल निजी प्रविष्टियाँ Notes क
 msgid "Only the Notes collection"
 msgstr "केवल Notes संग्रह"
 
+msgid "Only the phone inventory"
+msgstr "केवल फ़ोन की सामग्री"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4855,6 +4919,9 @@ msgid ""
 msgstr ""
 "फ़ोन पर KDE Connect खोलें और पेयरिंग शुरू करें। आठ-वर्णीय सत्यापन कुंजी की तुलना करें और "
 "दोनों डिवाइसों पर पुष्टि करें।"
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "कैप्चर की अनुमति देने के लिए फ़ोन पर Magnolie Notes खोलें।"
 
 msgid "Open Magnolie Organizer"
 msgstr "Magnolie Organizer खोलें"
@@ -5014,6 +5081,12 @@ msgstr "अपनी विंडो उपलब्ध: नहीं"
 
 msgid "Own window available: yes"
 msgstr "अपनी विंडो उपलब्ध: हाँ"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "पीसी स्रोत फ़ोल्डर प्राप्ति के गंतव्यों से अलग होते हैं।"
+
+msgid "PC → phone"
+msgstr "PC → फ़ोन"
 
 msgid "PDF file"
 msgstr "PDF फ़ाइल"
@@ -5259,8 +5332,14 @@ msgstr ""
 "पृष्ठभूमि में चल रही इस सेवा से फ़ोन की तैयारी नहीं की जा सकती। इस सेवा को फिर से शुरू करें "
 "और दोबारा कोशिश करें।"
 
+msgid "Phone webcam"
+msgstr "फ़ोन वेबकैम"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "“%(name)s” पुनर्स्थापित किया गया।"
+
+msgid "Phone → PC"
+msgstr "फ़ोन → पीसी"
 
 msgid "Phones"
 msgstr "फ़ोन"
@@ -5289,8 +5368,14 @@ msgid ""
 "Photo synchronization stopped safely. Check the connection before retrying."
 msgstr "फ़ोटो सिंक्रनाइज़ेशन सुरक्षित रूप से रुक गया। दोबारा प्रयास करने से पहले कनेक्शन जाँचें।"
 
+msgid "Photos"
+msgstr "फ़ोटो"
+
 msgid "Photos and videos"
 msgstr "फ़ोटो और वीडियो"
+
+msgid "Photos only"
+msgstr "केवल फ़ोटो"
 
 msgid "Pick up"
 msgstr "लेने जाएँ"
@@ -5349,6 +5434,10 @@ msgid ""
 msgstr ""
 "कृपया भुगतान के विवरण में अपना ईमेल पता दें, अन्यथा ContributorKey आपको भेजा नहीं जा "
 "सकेगा।"
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr "कृपया सिस्टम पैकेज प्रबंधक से v4l2loopback ड्राइवर स्थापित करें।"
 
 msgid "Please select a PDF file."
 msgstr "कृपया PDF फ़ाइल चुनें।"
@@ -5582,6 +5671,9 @@ msgstr "कारण"
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "रसीद पूरी हुई। उसकी पिछली पुष्टि अलग से भेजें।"
 
+msgid "Receive"
+msgstr "प्राप्त करें"
+
 msgid "Receive files"
 msgstr "फ़ाइलें प्राप्त करें"
 
@@ -5810,6 +5902,9 @@ msgstr "Nextcloud खाता आवश्यक है।"
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "मौजूदा BlueZ सिस्टम पेयरिंग की आवश्यकता है। केवल डेटा, कोई HFP ऑडियो नहीं।"
 
+msgid "Reset preview"
+msgstr "पूर्वावलोकन रीसेट करें"
+
 msgid "Residual waste"
 msgstr "शेष कचरा"
 
@@ -5927,6 +6022,9 @@ msgstr "राइनलैंड-पैलेटिनेट"
 msgid "Right page"
 msgstr "दायाँ पृष्ठ"
 
+msgid "Rocket"
+msgstr "रॉकेट"
+
 msgid "Rotate selection"
 msgstr "चयन घुमाएँ"
 
@@ -6004,6 +6102,9 @@ msgstr "सारलैंड"
 msgid "Salzburg"
 msgstr "साल्ज़बुर्ग"
 
+msgid "Santa Claus"
+msgstr "सांता क्लॉज़"
+
 msgid "Saturday"
 msgstr "शनिवार"
 
@@ -6058,6 +6159,9 @@ msgstr "सहेजा गया"
 
 msgid "Saved confirmation available."
 msgstr "सहेजे जाने की पुष्टि उपलब्ध है।"
+
+msgid "Saved developer mode is required."
+msgstr "डेवलपर मोड सहेजा हुआ होना चाहिए।"
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6174,6 +6278,9 @@ msgstr "खोज जारी है…"
 msgid "Search…"
 msgstr "खोजें…"
 
+msgid "Seasonal background"
+msgstr "मौसमी पृष्ठभूमि"
+
 msgid "Secondary office"
 msgstr "द्वितीयक कार्यालय"
 
@@ -6240,6 +6347,9 @@ msgstr "अपना फ़ोन चुनें"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "स्वास्थ्य रिकॉर्ड चुनें, पूर्वावलोकन करें, प्रिंट करें, निर्यात करें या हटाएँ"
+
+msgid "Selected PC source folders"
+msgstr "चुने गए पीसी स्रोत फ़ोल्डर"
 
 msgid "Selected album synchronized."
 msgstr "चुना गया एल्बम सिंक्रनाइज़ हो गया।"
@@ -6377,6 +6487,12 @@ msgstr "साझा क्रेडेंशियल"
 msgid "Shared note"
 msgstr "साझा नोट"
 
+msgid "Shared settings"
+msgstr "साझा सेटिंग"
+
+msgid "Shared settings are not configured yet."
+msgstr "साझा सेटिंग अभी कॉन्फ़िगर नहीं की गई हैं।"
+
 msgid "Sharing this connection is not allowed."
 msgstr "यह कनेक्शन साझा करने की अनुमति नहीं है।"
 
@@ -6497,6 +6613,9 @@ msgstr "स्नैपशॉट अंतराल"
 msgid "Snapshot restored. The first synchronization will not send deletions."
 msgstr "स्नैपशॉट पुनर्स्थापित किया गया। पहली सिंक्रनाइज़ेशन हटाए गए आइटम नहीं भेजेगी।"
 
+msgid "Snowflakes"
+msgstr "हिमकण"
+
 msgid "Snowman"
 msgstr "हिममानव"
 
@@ -6584,6 +6703,12 @@ msgstr "वर्ग"
 
 msgid "St. Gallen"
 msgstr "सेंट गैलेन"
+
+msgid "Stars"
+msgstr "तारे"
+
+msgid "Start"
+msgstr "शुरू करें"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6758,11 +6883,20 @@ msgstr "“%(tab)s” टैब के कार्य और मुलाका
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "कस्टम टैब के कार्य और मुलाकातें सिंक करें"
 
+msgid "Synchronize videos"
+msgstr "वीडियो का समन्वयन करें"
+
 msgid "Synchronizing …"
 msgstr "सिंक्रोनाइज़ किया जा रहा है …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "UFW कॉन्फ़िगर करने के लिए सिस्टम प्रमाणीकरण उपलब्ध नहीं है।"
+
+msgid "System authorization is unavailable."
+msgstr "सिस्टम प्राधिकरण उपलब्ध नहीं है।"
+
+msgid "System authorization was cancelled."
+msgstr "सिस्टम प्राधिकरण रद्द कर दिया गया।"
 
 msgid "System default"
 msgstr "प्रणालीगत चूक"
@@ -6982,6 +7116,17 @@ msgstr "Magnolienbaum संग्रहण क्षतिग्रस्त �
 
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr "Magnolienbaum संग्रहण एन्क्रिप्टेड है। पहले ऑर्गनाइज़र अनलॉक करें।"
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "Nextcloud खाते की सेटिंग बदली जा रही हैं। वर्तमान प्रक्रिया पूरी होने के बाद फिर प्रयास करें।"
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Nextcloud खाते के लेन-देन की पुनर्प्राप्ति आवश्यक है। कॉन्फ़िगरेशन और क्रेडेंशियल की जाँच होने तक खाते में बदलाव और नए सिंक्रनाइज़ेशन कनेक्शन अवरुद्ध हैं।"
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "नेक्स्टक्लाउड पता पुस्तिका में गायब या नकल किए गए UIDs शामिल हैं।"
@@ -7658,6 +7803,9 @@ msgstr "पोर्ट अमान्य है।"
 msgid "The previous data could not be backed up."
 msgstr "पिछले डेटा का बैकअप नहीं बन सका।"
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "पहले पिछले वेबकैम सत्र का पूरी तरह रुकना आवश्यक है।"
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "प्रिंट पृष्ठ यहाँ है: %s"
@@ -7860,6 +8008,13 @@ msgstr "सिंक्रनाइज़ेशन अनुरोध भेज�
 msgid "The synchronization resume journal is damaged."
 msgstr "सिंक्रनाइज़ेशन फिर से शुरू करने का जर्नल क्षतिग्रस्त है।"
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"सिस्टम में ड्राइवर की स्थापना अभी भी चल रही हो सकती है। दोबारा प्रयास करने से पहले "
+"सिस्टम पैकेज प्रबंधक की जाँच करें।"
+
 msgid "The task is missing from the update."
 msgstr "अपडेट में कार्य मौजूद नहीं है।"
 
@@ -7931,8 +8086,17 @@ msgstr "अपडेट जानकारी पढ़ी नहीं जा �
 msgid "The user data could not be read."
 msgstr "उपयोगकर्ता डेटा पढ़ा नहीं जा सका।"
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "v4l2loopback वेबकैम ड्राइवर मौजूद नहीं है। क्या इसे अभी स्थापित और सेट अप करें?"
+
 msgid "The value is outside the general green reference range."
 msgstr "मान सामान्य हरी संदर्भ सीमा से बाहर है।"
+
+msgid "The virtual camera could not be configured."
+msgstr "वर्चुअल कैमरा कॉन्फ़िगर नहीं किया जा सका।"
+
+msgid "The virtual camera driver could not be checked."
+msgstr "वर्चुअल कैमरा ड्राइवर की जाँच नहीं हो सकी।"
 
 msgid "The wake-up reminder"
 msgstr "जगाकर याद दिलाने वाला रिमाइंडर"
@@ -8017,6 +8181,12 @@ msgid ""
 msgstr ""
 "इन विकल्पों के लिए Magnolie Notes में संबंधित अनुमतियाँ आवश्यक हैं। कॉल की आवाज़ Magnolie "
 "डेटा कनेक्शन पर नहीं भेजी जाती।"
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "इस Nextcloud कैलेंडर में चिह्नित वर्षगाँठें हैं। इस दायरे के समर्थित होने तक कैलेंडर सिंक्रनाइज़ेशन अवरुद्ध है; पूर्ण सिंक्रनाइज़ेशन की पुष्टि नहीं हुई है।"
 
 msgid "This action does not invent a task start or deadline."
 msgstr "यह क्रिया कार्य की अनुपस्थित शुरुआत या अंतिम तिथि नहीं जोड़ती।"
@@ -8303,6 +8473,9 @@ msgstr "यात्रा"
 msgid "Tray applet"
 msgstr "सिस्टम ट्रे एप्लेट"
 
+msgid "Tray preview"
+msgstr "सिस्टम ट्रे आइकन का पूर्वावलोकन"
+
 msgid "Triangle"
 msgstr "त्रिकोण"
 
@@ -8503,6 +8676,9 @@ msgstr "संपर्क के पते उपयोग करें"
 msgid "Use default"
 msgstr "डिफ़ॉल्ट उपयोग करें"
 
+msgid "Use front camera"
+msgstr "सामने वाला कैमरा उपयोग करें"
+
 msgid "Use newer version"
 msgstr "नया संस्करण उपयोग करें"
 
@@ -8606,11 +8782,20 @@ msgstr "इंटरनेट के माध्यम से"
 msgid "Video player"
 msgstr "वीडियो प्लेयर"
 
+msgid "Videos"
+msgstr "वीडियो"
+
 msgid "Vienna"
 msgstr "वियना"
 
 msgid "View and edit appointment"
 msgstr "अपॉइंटमेंट देखें और संपादित करें"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "वर्चुअल कैमरा सेटअप पहले से चल रहा है।"
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "केवल दृश्य परीक्षण; कनेक्शन और अनुमतियाँ नहीं बदली जाती हैं।"
 
 msgid "Vital signs"
 msgstr "महत्वपूर्ण स्वास्थ्य संकेत"
@@ -8643,6 +8828,9 @@ msgstr "दूसरे डिवाइस पर सहमति की प्�
 msgid "Waiting for device status"
 msgstr "उपकरण की स्थिति का इंतजार कर रहे हैं"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "फ़ोन की अनुमति और कैप्चर की प्रतीक्षा में…"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8654,6 +8842,9 @@ msgid ""
 msgstr ""
 "पोर्ट %(port)s पर फ़ोन की प्रतीक्षा कर रहे हैं। पेयरिंग %(seconds)s सेकंड के बाद बंद हो "
 "जाएगी।"
+
+msgid "Waiting for the phone…"
+msgstr "फ़ोन की प्रतीक्षा है…"
 
 msgid "Wake the computer from suspend"
 msgstr "कंप्यूटर को सस्पेंड से जगाएँ"
@@ -9372,6 +9563,16 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr "फ़ोन वेबकैम के लिए v4l2loopback कर्नेल ड्राइवर स्थापित होना चाहिए।"
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "डिफ़ॉल्ट रूप से बंद। मौजूदा वर्चुअल कैमरा और माइक्रोफ़ोन का उपयोग करता है; कुछ भी "
+#~ "इंस्टॉल नहीं करता।"
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "कृपया समूह का कोई दूसरा नाम दर्ज करें।"
 
@@ -9845,9 +10046,6 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "केवल फ़ोन की सामग्री का समन्वयन करें। स्थानीय बदलाव सुरक्षित रहते हैं। विलोपन का "
 #~ "समन्वयन अभी नहीं होता।"
 
-msgid "Photos"
-msgstr "फ़ोटो"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "मीडिया कूड़ेदान पढ़ें"
 
@@ -9877,9 +10075,6 @@ msgstr "फ़ोटो"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "रोका जा रहा है… ऐप का कार्य समाप्त होने की प्रतीक्षा है।"
 
-#~ msgid "Synchronize videos"
-#~ msgstr "वीडियो का समन्वयन करें"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr "पुस्तक सहेजी नहीं जा सकी। मीडिया समन्वयन शुरू नहीं हुआ।"
 
@@ -9889,130 +10084,5 @@ msgstr "फ़ोटो"
 #~ msgid "Unchanged"
 #~ msgstr "अपरिवर्तित"
 
-msgid "Videos"
-msgstr "वीडियो"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "ऐप की मीडिया स्थिति की प्रतीक्षा"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "केवल दृश्य परीक्षण; कनेक्शन और अनुमतियाँ नहीं बदली जाती हैं।"
-
-msgid "Tray preview"
-msgstr "सिस्टम ट्रे आइकन का पूर्वावलोकन"
-
-msgid "Seasonal background"
-msgstr "मौसमी पृष्ठभूमि"
-
-msgid "Holiday watermark"
-msgstr "त्योहार का वॉटरमार्क"
-
-msgid "Both connected"
-msgstr "दोनों जुड़े हैं"
-
-msgid "Camera"
-msgstr "कैमरा"
-
-msgid "Snowflakes"
-msgstr "हिमकण"
-
-msgid "Stars"
-msgstr "तारे"
-
-msgid "Boots"
-msgstr "जूते"
-
-msgid "Santa Claus"
-msgstr "सांता क्लॉज़"
-
-msgid "Rocket"
-msgstr "रॉकेट"
-
-msgid "Champagne glass"
-msgstr "शैम्पेन का गिलास"
-
-msgid "Easter eggs"
-msgstr "ईस्टर के अंडे"
-
-msgid "Reset preview"
-msgstr "पूर्वावलोकन रीसेट करें"
-
-msgid "OS tray icon (60 s)"
-msgstr "सिस्टम ट्रे आइकन (60 सेकंड)"
-
-msgid "Saved developer mode is required."
-msgstr "डेवलपर मोड सहेजा हुआ होना चाहिए।"
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "डिफ़ॉल्ट रूप से बंद। वर्चुअल कैमरे और माइक्रोफ़ोन का उपयोग करता है। ड्राइवर सेटअप के लिए व्यवस्थापक अनुमति माँगी जा सकती है।"
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "फ़ोन वेबकैम के लिए v4l2loopback कर्नेल ड्राइवर स्थापित होना चाहिए।"
-
-msgid "The virtual camera driver could not be checked."
-msgstr "वर्चुअल कैमरा ड्राइवर की जाँच नहीं हो सकी।"
-
-msgid "System authorization is unavailable."
-msgstr "सिस्टम प्राधिकरण उपलब्ध नहीं है।"
-
-msgid "System authorization was cancelled."
-msgstr "सिस्टम प्राधिकरण रद्द कर दिया गया।"
-
-msgid "The virtual camera could not be configured."
-msgstr "वर्चुअल कैमरा कॉन्फ़िगर नहीं किया जा सका।"
-
-msgid "Virtual camera setup is already in progress."
-msgstr "वर्चुअल कैमरा सेटअप पहले से चल रहा है।"
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "v4l2loopback वेबकैम ड्राइवर मौजूद नहीं है। क्या इसे अभी स्थापित और सेट अप करें?"
-
-msgid "Install and set up"
-msgstr "स्थापित और सेट अप करें"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "कृपया सिस्टम पैकेज प्रबंधक से v4l2loopback ड्राइवर स्थापित करें।"
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "सिस्टम में ड्राइवर की स्थापना अभी भी चल रही हो सकती है। दोबारा प्रयास करने से पहले सिस्टम पैकेज प्रबंधक की जाँच करें।"
-
-msgid "Phone webcam"
-msgstr "फ़ोन वेबकैम"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "डिफ़ॉल्ट रूप से बंद। मौजूदा वर्चुअल कैमरा और माइक्रोफ़ोन का उपयोग करता है; कुछ भी इंस्टॉल नहीं करता।"
-
-msgid "Mute microphone"
-msgstr "माइक्रोफ़ोन म्यूट करें"
-
-msgid "Use front camera"
-msgstr "सामने वाला कैमरा उपयोग करें"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "पहले से मौजूद वर्चुअल कैमरा ड्राइवर आवश्यक है। कुछ भी इंस्टॉल नहीं किया गया।"
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect के लिए संगत वेबकैम एक्सटेंशन आवश्यक है।"
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "पहले Magnolie Notes को वाई-फ़ाई से कनेक्ट करें।"
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "फ़ोन पर कैमरा या माइक्रोफ़ोन की अनुमति अस्वीकार की गई।"
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "कैप्चर की अनुमति देने के लिए फ़ोन पर Magnolie Notes खोलें।"
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "पहले पिछले वेबकैम सत्र का पूरी तरह रुकना आवश्यक है।"
-
-msgid "Waiting for phone permission and capture …"
-msgstr "फ़ोन की अनुमति और कैप्चर की प्रतीक्षा में…"
-
-msgid "Active"
-msgstr "सक्रिय"
-
-msgid "Start"
-msgstr "शुरू करें"

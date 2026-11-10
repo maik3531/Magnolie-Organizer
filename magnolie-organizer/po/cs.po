@@ -716,6 +716,9 @@ msgstr "Typ účtu"
 msgid "Action"
 msgstr "Akce"
 
+msgid "Active"
+msgstr "Aktivní"
+
 msgid "Active call"
 msgstr "Aktivní hovor"
 
@@ -739,6 +742,9 @@ msgstr "Přidat"
 
 msgid "Add %(type)s"
 msgstr "Přidat %(type)s"
+
+msgid "Add PC source folder …"
+msgstr "Přidat zdrojovou složku v PC …"
 
 msgid "Add a custom tab"
 msgstr "Přidat vlastní kartu"
@@ -968,6 +974,10 @@ msgid ""
 msgstr ""
 "Záznam je vyloučen, pokud je vybrána alespoň jedna z jeho skupin kontaktů. "
 "Kontakty ani výročí se neodstraňují."
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr ""
+"Je vyžadován stávající ovladač virtuální kamery. Nic nebylo nainstalováno."
 
 msgid "Android restricts this device identifier."
 msgstr "Android omezuje tento identifikátor."
@@ -1385,12 +1395,18 @@ msgstr "Párování Bluetooth v systému nebylo potvrzeno."
 msgid "Bold"
 msgstr "Tučné"
 
+msgid "Boots"
+msgstr "Boty"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
 msgstr ""
 "Při připojování zobrazí obě větve stejný šestimístný kód. Potvrďte jej pouze "
 "tehdy, když se shoduje; tím zabráníte zachycení spojení cizí osobou."
+
+msgid "Both connected"
+msgstr "Obě připojení aktivní"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1534,6 +1550,12 @@ msgstr "Hovor s %(name)s · %(date)s"
 msgid "Calligraphy pen"
 msgstr "Kaligrafické pero"
 
+msgid "Camera"
+msgstr "Fotoaparát"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "V telefonu bylo zamítnuto oprávnění ke kameře nebo mikrofonu."
+
 msgid "Cancel"
 msgstr "Zrušit"
 
@@ -1585,6 +1607,9 @@ msgstr "Celsia (°C)"
 
 msgid "Centered on the screen"
 msgstr "Uprostřed obrazovky"
+
+msgid "Champagne glass"
+msgstr "Sklenka šampaňského"
 
 msgid "Change password"
 msgstr "Změnit heslo"
@@ -1958,6 +1983,9 @@ msgstr "Potvrzení"
 
 msgid "Connect"
 msgstr "Připojit"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Nejprve připojte Magnolie Notes přes Wi-Fi."
 
 msgid "Connect Notes before sending this entry."
 msgstr "Před odesláním této položky připojte Notes."
@@ -2642,6 +2670,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "Ranní směna"
 
+msgid "Easter eggs"
+msgstr "Velikonoční vejce"
+
 msgid "Edit"
 msgstr "Upravit"
 
@@ -2749,6 +2780,9 @@ msgid ""
 msgstr ""
 "Povolit ochranu heslem? Data se pak budou ukládat zašifrovaně. Bez hesla "
 "budou nenávratně ztracena; heslo si uložte na bezpečné místo."
+
+msgid "Enable photo and video synchronization"
+msgstr "Povolit synchronizaci fotografií a videí"
 
 msgid "Enable reminders"
 msgstr "Povolit připomínky"
@@ -2879,6 +2913,9 @@ msgid ""
 msgstr ""
 "Zadejte výše svou adresu. Bez výchozího bodu žádná služba nedokáže vypočítat "
 "trasu."
+
+msgid "Entire collection"
+msgstr "Celá sbírka"
 
 msgid "Entries ready to import"
 msgstr "Záznamy připravené k importu"
@@ -3322,6 +3359,9 @@ msgstr "Historie"
 msgid "Holiday retrieval is available only in the installed application."
 msgstr "Načítání svátků je dostupné pouze v nainstalované aplikaci."
 
+msgid "Holiday watermark"
+msgstr "Sváteční vodoznak"
+
 msgid "Home"
 msgstr "Domů"
 
@@ -3432,6 +3472,9 @@ msgstr "Importovat jednorázově"
 
 msgid "Import pairing file …"
 msgstr "Importovat párovací soubor …"
+
+msgid "Import phone → PC only"
+msgstr "Pouze importovat z telefonu do PC"
 
 msgid "Import preview"
 msgstr "Náhled importu"
@@ -3563,6 +3606,9 @@ msgstr "Vložit odkaz"
 msgid "Insert shape"
 msgstr "Vložit tvar"
 
+msgid "Install and set up"
+msgstr "Nainstalovat a nastavit"
+
 msgid "Install the packages, for example with:"
 msgstr "Nainstalujte balíčky, například příkazem:"
 
@@ -3658,6 +3704,9 @@ msgstr "Službě na pozadí se nepodařilo použít nastavení příjmu KDE Conn
 
 msgid "KDE Connect reception failed."
 msgstr "Příjem KDE Connect selhal."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect vyžaduje kompatibilní rozšíření webkamery."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4265,6 +4314,9 @@ msgstr "Více kalendářů"
 msgid "Music player"
 msgstr "Hudební přehrávač"
 
+msgid "Mute microphone"
+msgstr "Ztlumit mikrofon"
+
 msgid "Name"
 msgstr "Jméno"
 
@@ -4805,6 +4857,9 @@ msgstr ""
 "události, záznamy hovorů a webu na textové poznámky. Nepodporované položky, "
 "rozvržení, přílohy a upozornění se nepřenášejí."
 
+msgid "OS tray icon (60 s)"
+msgstr "Ikona v oznamovací oblasti systému (60 s)"
+
 msgid "Objects"
 msgstr "Objekty"
 
@@ -4822,6 +4877,13 @@ msgstr ""
 "Ve výchozím stavu vypnuto. Vypnutí pozastaví čekající naplánované SMS, aniž "
 "by je smazalo. Zapnutí je obnoví, včetně těch po plánovaném čase. Zprávy již "
 "předané KDE Connect nelze odvolat."
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"Ve výchozím stavu vypnuto. Používá virtuální kameru a mikrofon. Nastavení "
+"ovladače může vyžadovat oprávnění správce."
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Nabízet změny z telefonu pro Personal Sync"
@@ -4936,6 +4998,9 @@ msgstr "Do Notes lze odeslat jen osobní položky."
 msgid "Only the Notes collection"
 msgstr "Pouze kolekce Notes"
 
+msgid "Only the phone inventory"
+msgstr "Pouze obsah telefonu"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4969,6 +5034,9 @@ msgid ""
 msgstr ""
 "Otevřete KDE Connect v telefonu a spusťte párování. Porovnejte osmiznakový "
 "ověřovací klíč a potvrďte jej na obou zařízeních."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Otevřete Magnolie Notes v telefonu a povolte snímání."
 
 msgid "Open Magnolie Organizer"
 msgstr "Otevřít Magnolie Organizer"
@@ -5131,6 +5199,12 @@ msgstr "Vlastní okno k dispozici: ne"
 
 msgid "Own window available: yes"
 msgstr "Vlastní okno k dispozici: ano"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "Zdrojové složky v PC jsou oddělené od cílů příjmu."
+
+msgid "PC → phone"
+msgstr "PC → telefon"
 
 msgid "PDF file"
 msgstr "Soubor PDF"
@@ -5377,8 +5451,14 @@ msgstr ""
 "Nastavení telefonu není v této službě na pozadí dostupné. Restartujte službu "
 "na pozadí a zkuste to znovu."
 
+msgid "Phone webcam"
+msgstr "Webkamera telefonu"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "„%(name)s“ bylo obnoveno."
+
+msgid "Phone → PC"
+msgstr "Telefon → PC"
 
 msgid "Phones"
 msgstr "Telefon"
@@ -5411,8 +5491,14 @@ msgstr ""
 "Synchronizace fotografií byla bezpečně zastavena. Před dalším pokusem "
 "zkontrolujte připojení."
 
+msgid "Photos"
+msgstr "Fotografie"
+
 msgid "Photos and videos"
 msgstr "Fotografie a videa"
+
+msgid "Photos only"
+msgstr "Pouze fotografie"
 
 msgid "Pick up"
 msgstr "Vyzvednout"
@@ -5471,6 +5557,10 @@ msgid ""
 msgstr ""
 "Uveď svou e-mailovou adresu do zprávy k platbě, jinak ti nebude možné zaslat "
 "ContributorKey."
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr "Nainstalujte ovladač v4l2loopback pomocí systémového správce balíčků."
 
 msgid "Please select a PDF file."
 msgstr "Vyberte soubor PDF."
@@ -5707,6 +5797,9 @@ msgstr "Důvod"
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "Doklad dokončen. Dřívější potvrzení odešlete samostatně."
 
+msgid "Receive"
+msgstr "Přijmout"
+
 msgid "Receive files"
 msgstr "Přijímat soubory"
 
@@ -5942,6 +6035,9 @@ msgstr "Vyžaduje účet Nextcloud."
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "Vyžaduje spárování se systémem BlueZ. Pouze data, žádný zvuk HFP."
 
+msgid "Reset preview"
+msgstr "Obnovit náhled"
+
 msgid "Residual waste"
 msgstr "Směsný odpad"
 
@@ -6059,6 +6155,9 @@ msgstr "Porýní-Falc"
 msgid "Right page"
 msgstr "Pravá stránka"
 
+msgid "Rocket"
+msgstr "Raketa"
+
 msgid "Rotate selection"
 msgstr "Otočit výběr"
 
@@ -6136,6 +6235,9 @@ msgstr "Sársko"
 msgid "Salzburg"
 msgstr "Salcbursko"
 
+msgid "Santa Claus"
+msgstr "Santa Claus"
+
 msgid "Saturday"
 msgstr "Sobota"
 
@@ -6190,6 +6292,9 @@ msgstr "Uloženo"
 
 msgid "Saved confirmation available."
 msgstr "Potvrzení uložení je k dispozici."
+
+msgid "Saved developer mode is required."
+msgstr "Režim pro vývojáře musí být uložen."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6308,6 +6413,9 @@ msgstr "Hledání…"
 msgid "Search…"
 msgstr "Hledat…"
 
+msgid "Seasonal background"
+msgstr "Sezónní pozadí"
+
 msgid "Secondary office"
 msgstr "Vedlejší kancelář"
 
@@ -6377,6 +6485,9 @@ msgid "Select, preview, print, export or delete health records"
 msgstr ""
 "Vybrat, zobrazit náhled, vytisknout, exportovat nebo odstranit zdravotní "
 "záznamy"
+
+msgid "Selected PC source folders"
+msgstr "Vybrané zdrojové složky v PC"
 
 msgid "Selected album synchronized."
 msgstr "Vybrané album bylo synchronizováno."
@@ -6517,6 +6628,12 @@ msgstr "Sdílené přihlašovací údaje"
 msgid "Shared note"
 msgstr "Sdílená poznámka"
 
+msgid "Shared settings"
+msgstr "Sdílená nastavení"
+
+msgid "Shared settings are not configured yet."
+msgstr "Sdílená nastavení ještě nejsou nakonfigurována."
+
 msgid "Sharing this connection is not allowed."
 msgstr "Sdílení tohoto spojení není povoleno."
 
@@ -6637,6 +6754,9 @@ msgstr "Interval snímků"
 msgid "Snapshot restored. The first synchronization will not send deletions."
 msgstr "Snímek obnoven. První synchronizace neodešle odstranění."
 
+msgid "Snowflakes"
+msgstr "Sněhové vločky"
+
 msgid "Snowman"
 msgstr "Sněhulák"
 
@@ -6724,6 +6844,12 @@ msgstr "Čtverec"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Stars"
+msgstr "Hvězdy"
+
+msgid "Start"
+msgstr "Spustit"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6898,11 +7024,20 @@ msgstr "Synchronizovat úkoly a schůzky z karty „%(tab)s“"
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Synchronizovat úkoly a schůzky z vlastní karty"
 
+msgid "Synchronize videos"
+msgstr "Synchronizovat videa"
+
 msgid "Synchronizing …"
 msgstr "Synchronizace …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "Systémové ověření pro nastavení UFW není k dispozici."
+
+msgid "System authorization is unavailable."
+msgstr "Systémová autorizace není dostupná."
+
+msgid "System authorization was cancelled."
+msgstr "Systémová autorizace byla zrušena."
 
 msgid "System default"
 msgstr "Výchozí nastavení systému"
@@ -7130,6 +7265,17 @@ msgstr "Úložiště Magnolienbaum je poškozené."
 
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr "Úložiště Magnolienbaum je zašifrované. Nejprve organizér odemkněte."
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "Právě se mění nastavení účtu Nextcloud. Zkuste to znovu po dokončení aktuální operace."
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Transakce účtu Nextcloud vyžaduje obnovu. Změny účtu a nová synchronizační připojení jsou blokovány, dokud nebude ověřeno nastavení a přihlašovací údaje."
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Adresář Nextcloudu obsahuje chybějící nebo duplicitní UIDy."
@@ -7822,6 +7968,9 @@ msgstr "Port je neplatný."
 msgid "The previous data could not be backed up."
 msgstr "Předchozí data se nepodařilo zazálohovat."
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "Předchozí relace webkamery se musí nejprve úplně ukončit."
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "Stránka pro tisk se nachází zde: %s"
@@ -8030,6 +8179,13 @@ msgstr "Požadavek na synchronizaci se nepodařilo odeslat."
 msgid "The synchronization resume journal is damaged."
 msgstr "Deník obnovení synchronizace je poškozený."
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"Instalace ovladače možná stále probíhá. Před dalším pokusem zkontrolujte "
+"systémového správce balíčků."
+
 msgid "The task is missing from the update."
 msgstr "V aktualizaci chybí úkol."
 
@@ -8103,8 +8259,19 @@ msgstr "Informace o aktualizaci nelze přečíst."
 msgid "The user data could not be read."
 msgstr "Uživatelská data se nepodařilo přečíst."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+"Chybí ovladač webkamery v4l2loopback. Chcete jej nyní nainstalovat a "
+"nastavit?"
+
 msgid "The value is outside the general green reference range."
 msgstr "Hodnota je mimo obecné zelené referenční rozmezí."
+
+msgid "The virtual camera could not be configured."
+msgstr "Virtuální kameru se nepodařilo nastavit."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Ovladač virtuální kamery se nepodařilo ověřit."
 
 msgid "The wake-up reminder"
 msgstr "Připomínka s probuzením"
@@ -8189,6 +8356,12 @@ msgid ""
 msgstr ""
 "Tyto volby vyžadují odpovídající oprávnění v Magnolie Notes. Zvuk hovoru se "
 "přes datové připojení Magnolie nepřenáší."
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "Tento kalendář Nextcloud obsahuje označená výročí. Synchronizace kalendáře je blokována, dokud nebude tento rozsah podporován; úplná synchronizace nebyla potvrzena."
 
 msgid "This action does not invent a task start or deadline."
 msgstr "Tato akce nepřidává chybějící začátek ani termín úkolu."
@@ -8479,6 +8652,9 @@ msgstr "Cestování"
 msgid "Tray applet"
 msgstr "Applet oznamovací oblasti"
 
+msgid "Tray preview"
+msgstr "Náhled ikony v oznamovací oblasti"
+
 msgid "Triangle"
 msgstr "Trojúhelník"
 
@@ -8680,6 +8856,9 @@ msgstr "Použít adresy kontaktu"
 msgid "Use default"
 msgstr "Použít výchozí"
 
+msgid "Use front camera"
+msgstr "Použít přední kameru"
+
 msgid "Use newer version"
 msgstr "Použít novější verzi"
 
@@ -8782,11 +8961,20 @@ msgstr "Přes internet"
 msgid "Video player"
 msgstr "Videopřehrávač"
 
+msgid "Videos"
+msgstr "Videa"
+
 msgid "Vienna"
 msgstr "Vídeň"
 
 msgid "View and edit appointment"
 msgstr "Zobrazit a upravit schůzku"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Nastavování virtuální kamery již probíhá."
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Pouze vizuální test; připojení ani oprávnění se nemění."
 
 msgid "Vital signs"
 msgstr "Životní funkce"
@@ -8819,6 +9007,9 @@ msgstr "Čeká se na souhlas na druhém zařízení."
 msgid "Waiting for device status"
 msgstr "Čekání na stav zařízení"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "Čekání na svolení telefonu a snímání…"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8832,6 +9023,9 @@ msgid ""
 msgstr ""
 "Čekání na telefon na portu %(port)s. Párování skončí po %(seconds)s "
 "sekundách."
+
+msgid "Waiting for the phone…"
+msgstr "Čekání na telefon…"
 
 msgid "Wake the computer from suspend"
 msgstr "Probudit počítač z uspání"
@@ -9573,6 +9767,18 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr ""
+#~ "Pro použití telefonu jako webkamery musí být nainstalován ovladač jádra "
+#~ "v4l2loopback."
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "Ve výchozím stavu vypnuta. Používá stávající virtuální kameru a mikrofon; "
+#~ "nic neinstaluje."
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "Zadejte jiný název skupiny."
 
@@ -10063,9 +10269,6 @@ msgstr "＋ Přidat schůzku"
 #~ "Synchronizovat pouze obsah telefonu. Místní úpravy jsou zachovány. "
 #~ "Odstranění se zatím nesynchronizují."
 
-msgid "Photos"
-msgstr "Fotografie"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "Načíst koš médií"
 
@@ -10098,9 +10301,6 @@ msgstr "Fotografie"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "Zastavování… Čekání na ukončení nativní operace."
 
-#~ msgid "Synchronize videos"
-#~ msgstr "Synchronizovat videa"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr "Knihu se nepodařilo uložit. Synchronizace médií nebyla zahájena."
 
@@ -10110,130 +10310,5 @@ msgstr "Fotografie"
 #~ msgid "Unchanged"
 #~ msgstr "Beze změny"
 
-msgid "Videos"
-msgstr "Videa"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "Čekání na nativní stav médií"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "Pouze vizuální test; připojení ani oprávnění se nemění."
-
-msgid "Tray preview"
-msgstr "Náhled ikony v oznamovací oblasti"
-
-msgid "Seasonal background"
-msgstr "Sezónní pozadí"
-
-msgid "Holiday watermark"
-msgstr "Sváteční vodoznak"
-
-msgid "Both connected"
-msgstr "Obě připojení aktivní"
-
-msgid "Camera"
-msgstr "Fotoaparát"
-
-msgid "Snowflakes"
-msgstr "Sněhové vločky"
-
-msgid "Stars"
-msgstr "Hvězdy"
-
-msgid "Boots"
-msgstr "Boty"
-
-msgid "Santa Claus"
-msgstr "Santa Claus"
-
-msgid "Rocket"
-msgstr "Raketa"
-
-msgid "Champagne glass"
-msgstr "Sklenka šampaňského"
-
-msgid "Easter eggs"
-msgstr "Velikonoční vejce"
-
-msgid "Reset preview"
-msgstr "Obnovit náhled"
-
-msgid "OS tray icon (60 s)"
-msgstr "Ikona v oznamovací oblasti systému (60 s)"
-
-msgid "Saved developer mode is required."
-msgstr "Režim pro vývojáře musí být uložen."
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "Ve výchozím stavu vypnuto. Používá virtuální kameru a mikrofon. Nastavení ovladače může vyžadovat oprávnění správce."
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "Pro použití telefonu jako webkamery musí být nainstalován ovladač jádra v4l2loopback."
-
-msgid "The virtual camera driver could not be checked."
-msgstr "Ovladač virtuální kamery se nepodařilo ověřit."
-
-msgid "System authorization is unavailable."
-msgstr "Systémová autorizace není dostupná."
-
-msgid "System authorization was cancelled."
-msgstr "Systémová autorizace byla zrušena."
-
-msgid "The virtual camera could not be configured."
-msgstr "Virtuální kameru se nepodařilo nastavit."
-
-msgid "Virtual camera setup is already in progress."
-msgstr "Nastavování virtuální kamery již probíhá."
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "Chybí ovladač webkamery v4l2loopback. Chcete jej nyní nainstalovat a nastavit?"
-
-msgid "Install and set up"
-msgstr "Nainstalovat a nastavit"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "Nainstalujte ovladač v4l2loopback pomocí systémového správce balíčků."
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "Instalace ovladače možná stále probíhá. Před dalším pokusem zkontrolujte systémového správce balíčků."
-
-msgid "Phone webcam"
-msgstr "Webkamera telefonu"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "Ve výchozím stavu vypnuta. Používá stávající virtuální kameru a mikrofon; nic neinstaluje."
-
-msgid "Mute microphone"
-msgstr "Ztlumit mikrofon"
-
-msgid "Use front camera"
-msgstr "Použít přední kameru"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "Je vyžadován stávající ovladač virtuální kamery. Nic nebylo nainstalováno."
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect vyžaduje kompatibilní rozšíření webkamery."
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "Nejprve připojte Magnolie Notes přes Wi-Fi."
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "V telefonu bylo zamítnuto oprávnění ke kameře nebo mikrofonu."
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "Otevřete Magnolie Notes v telefonu a povolte snímání."
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "Předchozí relace webkamery se musí nejprve úplně ukončit."
-
-msgid "Waiting for phone permission and capture …"
-msgstr "Čekání na svolení telefonu a snímání…"
-
-msgid "Active"
-msgstr "Aktivní"
-
-msgid "Start"
-msgstr "Spustit"

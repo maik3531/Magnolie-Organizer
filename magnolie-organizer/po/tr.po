@@ -682,6 +682,9 @@ msgstr "Hesap türü"
 msgid "Action"
 msgstr "İşlem"
 
+msgid "Active"
+msgstr "Etkin"
+
 msgid "Active call"
 msgstr "Etkin arama"
 
@@ -705,6 +708,9 @@ msgstr "Ekle"
 
 msgid "Add %(type)s"
 msgstr "%(type)s ekle"
+
+msgid "Add PC source folder …"
+msgstr "Bilgisayar kaynak klasörü ekle …"
 
 msgid "Add a custom tab"
 msgstr "Özel sekme ekle"
@@ -935,6 +941,9 @@ msgid ""
 msgstr ""
 "Kişi gruplarından herhangi biri seçildiğinde kayıt hariç tutulur. Hiçbir "
 "kişi veya yıl dönümü silinmez."
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "Mevcut bir sanal kamera sürücüsü gereklidir. Hiçbir şey yüklenmedi."
 
 msgid "Android restricts this device identifier."
 msgstr "Android bu cihaz tanımlayıcısını kısıtlıyor."
@@ -1355,6 +1364,9 @@ msgstr "Sistemdeki Bluetooth eşleştirmesi onaylanmadı."
 msgid "Bold"
 msgstr "Kalın"
 
+msgid "Boots"
+msgstr "Çizmeler"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
@@ -1362,6 +1374,9 @@ msgstr ""
 "Bağlantı kurulurken iki dal da aynı altı haneli kodu gösterir. Yalnızca "
 "kodlar eşleşiyorsa onaylayın; böylece başkasının bağlantıyı araya girerek "
 "ele geçirmesi önlenir."
+
+msgid "Both connected"
+msgstr "İkisi de bağlı"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1503,6 +1518,12 @@ msgstr "%(name)s ile arama · %(date)s"
 msgid "Calligraphy pen"
 msgstr "Kaligrafi kalemi"
 
+msgid "Camera"
+msgstr "Kamera"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "Telefonda kamera veya mikrofon izni reddedildi."
+
 msgid "Cancel"
 msgstr "İptal"
 
@@ -1554,6 +1575,9 @@ msgstr "Santigrat (°C)"
 
 msgid "Centered on the screen"
 msgstr "Ekranın ortasında"
+
+msgid "Champagne glass"
+msgstr "Şampanya kadehi"
 
 msgid "Change password"
 msgstr "Parolayı değiştir"
@@ -1932,6 +1956,9 @@ msgstr "Onay"
 
 msgid "Connect"
 msgstr "Bağlan"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Önce Magnolie Notes’u Wi-Fi üzerinden bağlayın."
 
 msgid "Connect Notes before sending this entry."
 msgstr "Bu girdiyi göndermeden önce Notes’u bağlayın."
@@ -2613,6 +2640,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "Sabah vardiyası"
 
+msgid "Easter eggs"
+msgstr "Paskalya yumurtaları"
+
 msgid "Edit"
 msgstr "Düzenle"
 
@@ -2721,6 +2751,9 @@ msgstr ""
 "Parola koruması etkinleştirilsin mi? Verileriniz bundan sonra şifrelenmiş "
 "olarak saklanır. Parola olmadan geri döndürülemez biçimde kaybolur; parolayı "
 "güvenli bir yerde saklayın."
+
+msgid "Enable photo and video synchronization"
+msgstr "Fotoğraf ve video eşitlemesini etkinleştir"
 
 msgid "Enable reminders"
 msgstr "Anımsatıcıları etkinleştir"
@@ -2852,6 +2885,9 @@ msgid ""
 msgstr ""
 "Yukarıya adresinizi girin. Başlangıç noktası olmadan hiçbir hizmet yol "
 "tarifi hesaplayamaz."
+
+msgid "Entire collection"
+msgstr "Tüm koleksiyon"
 
 msgid "Entries ready to import"
 msgstr "İçe aktarılmaya hazır kayıtlar"
@@ -3296,6 +3332,9 @@ msgstr "Geçmiş"
 msgid "Holiday retrieval is available only in the installed application."
 msgstr "Tatil günlerini alma yalnızca kurulu uygulamada kullanılabilir."
 
+msgid "Holiday watermark"
+msgstr "Bayram filigranı"
+
 msgid "Home"
 msgstr "Ev"
 
@@ -3406,6 +3445,9 @@ msgstr "Bir kez içe aktar"
 
 msgid "Import pairing file …"
 msgstr "Eşleştirme dosyasını içe aktar …"
+
+msgid "Import phone → PC only"
+msgstr "Yalnızca telefondan PC’ye aktar"
 
 msgid "Import preview"
 msgstr "İçe aktarma önizlemesi"
@@ -3538,6 +3580,9 @@ msgstr "Bağlantı ekle"
 msgid "Insert shape"
 msgstr "Şekil ekle"
 
+msgid "Install and set up"
+msgstr "Yükle ve yapılandır"
+
 msgid "Install the packages, for example with:"
 msgstr "Paketleri, örneğin şu komutla kurun:"
 
@@ -3633,6 +3678,9 @@ msgstr "KDE Connect alma ayarları arka plan hizmeti tarafından uygulanamadı."
 
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect ile alım başarısız oldu."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect uyumlu bir web kamerası uzantısı gerektirir."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4241,6 +4289,9 @@ msgstr "Birden çok takvim"
 msgid "Music player"
 msgstr "Müzik çalar"
 
+msgid "Mute microphone"
+msgstr "Mikrofonu sessize al"
+
 msgid "Name"
 msgstr "Ad"
 
@@ -4782,6 +4833,9 @@ msgstr ""
 "metin notlarına dönüşür. Desteklenmeyen kayıtlar, düzen, ekler ve alarmlar "
 "aktarılmaz."
 
+msgid "OS tray icon (60 s)"
+msgstr "Sistem tepsisi simgesi (60 sn)"
+
 msgid "Objects"
 msgstr "Nesneler"
 
@@ -4799,6 +4853,13 @@ msgstr ""
 "Varsayılan olarak kapalıdır. Kapatmak, bekleyen zamanlanmış SMS’leri "
 "silmeden duraklatır. Açmak, zamanı geçmiş olanlar dahil bunları sürdürür. "
 "KDE Connect’e zaten iletilmiş mesajlar geri alınamaz."
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"Varsayılan olarak kapalıdır. Sanal kamera ve mikrofon kullanır. Sürücü "
+"kurulumu yönetici izni isteyebilir."
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Telefondaki Personal Sync değişikliklerini sun"
@@ -4905,6 +4966,9 @@ msgstr "Notes’a yalnızca kişisel girdiler gönderilebilir."
 msgid "Only the Notes collection"
 msgstr "Yalnızca Notes koleksiyonu"
 
+msgid "Only the phone inventory"
+msgstr "Yalnızca telefonun içeriği"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4938,6 +5002,9 @@ msgid ""
 msgstr ""
 "Telefonda KDE Connect'i açıp eşleştirmeyi başlatın. Sekiz karakterli "
 "doğrulama anahtarını karşılaştırıp iki cihazda da onaylayın."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Yakalamaya izin vermek için telefonda Magnolie Notes’u açın."
 
 msgid "Open Magnolie Organizer"
 msgstr "Magnolie Organizer’ı aç"
@@ -5100,6 +5167,12 @@ msgstr "Bağımsız pencere kullanılabilir: hayır"
 
 msgid "Own window available: yes"
 msgstr "Bağımsız pencere kullanılabilir: evet"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "Bilgisayar kaynak klasörleri, alma hedeflerinden ayrıdır."
+
+msgid "PC → phone"
+msgstr "PC → telefon"
 
 msgid "PDF file"
 msgstr "PDF dosyası"
@@ -5347,8 +5420,14 @@ msgstr ""
 "Bu arka plan hizmetinde telefon kurulumu kullanılamıyor. Arka plan hizmetini "
 "yeniden başlatıp tekrar deneyin."
 
+msgid "Phone webcam"
+msgstr "Telefon web kamerası"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "“%(name)s” telefonu güvenli biçimde eşleştirildi."
+
+msgid "Phone → PC"
+msgstr "Telefon → PC"
 
 msgid "Phones"
 msgstr "Telefonlar"
@@ -5381,8 +5460,14 @@ msgstr ""
 "Fotoğraf eşitlemesi güvenli bir şekilde durduruldu. Yeniden denemeden önce "
 "bağlantıyı kontrol edin."
 
+msgid "Photos"
+msgstr "Fotoğraflar"
+
 msgid "Photos and videos"
 msgstr "Fotoğraflar ve videolar"
+
+msgid "Photos only"
+msgstr "Yalnızca fotoğraflar"
 
 msgid "Pick up"
 msgstr "Al"
@@ -5441,6 +5526,10 @@ msgid ""
 msgstr ""
 "Ödeme açıklamasına e-posta adresini yaz; aksi takdirde ContributorKey sana "
 "gönderilemez."
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr "Lütfen v4l2loopback sürücüsünü sistem paket yöneticisiyle yükleyin."
 
 msgid "Please select a PDF file."
 msgstr "Lütfen bir PDF dosyası seçin."
@@ -5681,6 +5770,9 @@ msgstr "Neden"
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "Belge tamamlandı. Önceki onayını ayrıca gönderin."
 
+msgid "Receive"
+msgstr "Al"
+
 msgid "Receive files"
 msgstr "Dosyaları al"
 
@@ -5920,6 +6012,9 @@ msgstr ""
 "Mevcut bir BlueZ sistem eşleştirmesi gerektirir. Yalnızca veri, HFP sesi "
 "yoktur."
 
+msgid "Reset preview"
+msgstr "Önizlemeyi sıfırla"
+
 msgid "Residual waste"
 msgstr "Artık atık"
 
@@ -6038,6 +6133,9 @@ msgstr "Renanya-Palatina"
 msgid "Right page"
 msgstr "Sağ sayfa"
 
+msgid "Rocket"
+msgstr "Roket"
+
 msgid "Rotate selection"
 msgstr "Seçimi döndür"
 
@@ -6115,6 +6213,9 @@ msgstr "Saarland"
 msgid "Salzburg"
 msgstr "Salzburg"
 
+msgid "Santa Claus"
+msgstr "Noel Baba"
+
 msgid "Saturday"
 msgstr "Cumartesi"
 
@@ -6169,6 +6270,9 @@ msgstr "Kaydedildi"
 
 msgid "Saved confirmation available."
 msgstr "Kaydetme onayı mevcut."
+
+msgid "Saved developer mode is required."
+msgstr "Geliştirici modu kaydedilmiş olmalıdır."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6286,6 +6390,9 @@ msgstr "Aranıyor…"
 msgid "Search…"
 msgstr "Ara…"
 
+msgid "Seasonal background"
+msgstr "Mevsimsel arka plan"
+
 msgid "Secondary office"
 msgstr "İkincil ofis"
 
@@ -6353,6 +6460,9 @@ msgstr "Telefonunuzu seçin"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "Sağlık kayıtlarını seçin, önizleyin, yazdırın, dışa aktarın veya silin"
+
+msgid "Selected PC source folders"
+msgstr "Seçili bilgisayar kaynak klasörleri"
 
 msgid "Selected album synchronized."
 msgstr "Seçilen albüm eşitlendi."
@@ -6492,6 +6602,12 @@ msgstr "Paylaşılan kimlik bilgileri"
 msgid "Shared note"
 msgstr "Paylaşılan not"
 
+msgid "Shared settings"
+msgstr "Paylaşılan ayarlar"
+
+msgid "Shared settings are not configured yet."
+msgstr "Paylaşılan ayarlar henüz yapılandırılmadı."
+
 msgid "Sharing this connection is not allowed."
 msgstr "Bu bağlantının paylaşılmasına izin verilmedi."
 
@@ -6615,6 +6731,9 @@ msgstr ""
 "Anlık görüntü geri yüklendi. İlk eşzamanlamada silme işlemleri "
 "gönderilmeyecek."
 
+msgid "Snowflakes"
+msgstr "Kar taneleri"
+
 msgid "Snowman"
 msgstr "Kardan adam"
 
@@ -6702,6 +6821,12 @@ msgstr "Kare"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Stars"
+msgstr "Yıldızlar"
+
+msgid "Start"
+msgstr "Başlat"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6876,11 +7001,20 @@ msgstr "“%(tab)s” sekmesindeki görevleri ve randevuları eşitle"
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Özel sekmedeki görevleri ve randevuları eşitle"
 
+msgid "Synchronize videos"
+msgstr "Videoları eşitle"
+
 msgid "Synchronizing …"
 msgstr "Eşitleniyor …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "UFW yapılandırması için sistem kimlik doğrulaması kullanılamıyor."
+
+msgid "System authorization is unavailable."
+msgstr "Sistem yetkilendirmesi kullanılamıyor."
+
+msgid "System authorization was cancelled."
+msgstr "Sistem yetkilendirmesi iptal edildi."
 
 msgid "System default"
 msgstr "Sistem varsayılanı"
@@ -7105,6 +7239,17 @@ msgstr "Magnolienbaum depolaması bozuk."
 
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr "Magnolienbaum depolaması şifreli. Önce Organizer’ın kilidini açın."
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "Nextcloud hesap ayarları değiştiriliyor. Geçerli işlem bittikten sonra yeniden deneyin."
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Nextcloud hesap işleminin kurtarılması gerekiyor. Yapılandırma ve kimlik bilgileri denetlenene kadar hesap değişiklikleri ve yeni eşitleme bağlantıları engellenir."
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Nextcloud adres defteri eksik veya tekrar eden UID'lar içeriyor."
@@ -7798,6 +7943,9 @@ msgstr "Bağlantı noktası geçersiz."
 msgid "The previous data could not be backed up."
 msgstr "Önceki veriler yedeklenemedi."
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "Önce önceki web kamerası oturumunun tamamen durması gerekir."
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "Yazdırma sayfası şurada: %s"
@@ -8005,6 +8153,13 @@ msgstr "Eşzamanlama isteği gönderilemedi."
 msgid "The synchronization resume journal is damaged."
 msgstr "Eşzamanlamayı sürdürme günlüğü hasarlı."
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"Sistem sürücüsü kurulumu hâlâ devam ediyor olabilir. Yeniden denemeden önce "
+"sistem paket yöneticisini kontrol edin."
+
 msgid "The task is missing from the update."
 msgstr "Güncellemede görev eksik."
 
@@ -8077,8 +8232,18 @@ msgstr "Güncelleme bilgileri okunamıyor."
 msgid "The user data could not be read."
 msgstr "Kullanıcı verileri okunamadı."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+"v4l2loopback web kamerası sürücüsü eksik. Şimdi yüklenip yapılandırılsın mı?"
+
 msgid "The value is outside the general green reference range."
 msgstr "Değer, genel yeşil referans aralığının dışındadır."
+
+msgid "The virtual camera could not be configured."
+msgstr "Sanal kamera yapılandırılamadı."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Sanal kamera sürücüsü denetlenemedi."
 
 msgid "The wake-up reminder"
 msgstr "Uyandırma anımsatıcısı"
@@ -8163,6 +8328,12 @@ msgid ""
 msgstr ""
 "Bu seçenekler Magnolie Notes'ta ilgili izinleri gerektirir. Arama sesi "
 "Magnolie veri bağlantısı üzerinden gönderilmez."
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "Bu Nextcloud takvimi işaretli yıl dönümleri içeriyor. Bu kapsam desteklenene kadar takvim eşitlemesi engellenir; tam bir eşitleme onaylanmamıştır."
 
 msgid "This action does not invent a task start or deadline."
 msgstr "Bu işlem eksik bir görev başlangıcı veya son tarihi eklemez."
@@ -8454,6 +8625,9 @@ msgstr "Seyahat"
 msgid "Tray applet"
 msgstr "Sistem tepsisi uygulamacığı"
 
+msgid "Tray preview"
+msgstr "Sistem tepsisi simgesi önizlemesi"
+
 msgid "Triangle"
 msgstr "Üçgen"
 
@@ -8655,6 +8829,9 @@ msgstr "Kişi adreslerini kullan"
 msgid "Use default"
 msgstr "Varsayılanı kullan"
 
+msgid "Use front camera"
+msgstr "Ön kamerayı kullan"
+
 msgid "Use newer version"
 msgstr "Daha yeni sürümü kullan"
 
@@ -8761,11 +8938,20 @@ msgstr "İnternet üzerinden"
 msgid "Video player"
 msgstr "Video oynatıcı"
 
+msgid "Videos"
+msgstr "Videolar"
+
 msgid "Vienna"
 msgstr "Viyana"
 
 msgid "View and edit appointment"
 msgstr "Randevuyu görüntüle ve düzenle"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Sanal kamera kurulumu zaten devam ediyor."
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Yalnızca görsel testtir; bağlantılar ve izinler değiştirilmez."
 
 msgid "Vital signs"
 msgstr "Yaşamsal bulgular"
@@ -8798,6 +8984,9 @@ msgstr "Diğer cihazdaki onay bekleniyor."
 msgid "Waiting for device status"
 msgstr "Cihaz durumu bekleniyor"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "Telefon izni ve yakalama bekleniyor…"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8811,6 +9000,9 @@ msgid ""
 msgstr ""
 "Telefon %(port)s bağlantı noktasında bekleniyor. Eşleştirme %(seconds)s "
 "saniye sonra kapanır."
+
+msgid "Waiting for the phone…"
+msgstr "Telefon bekleniyor…"
 
 msgid "Wake the computer from suspend"
 msgstr "Bilgisayarı askı durumundan uyandır"
@@ -9543,6 +9735,18 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr ""
+#~ "Telefonu web kamerası olarak kullanmak için v4l2loopback çekirdek "
+#~ "sürücüsü kurulu olmalıdır."
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "Varsayılan olarak kapalıdır. Mevcut sanal kamera ve mikrofonu kullanır; "
+#~ "hiçbir şey yüklemez."
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "Lütfen farklı bir grup adı girin."
 
@@ -10042,9 +10246,6 @@ msgstr "＋ Randevu ekle"
 #~ "Yalnızca telefon içeriğini eşitle. Yerel düzenlemeler korunur. Silmeler "
 #~ "henüz eşitlenmiyor."
 
-msgid "Photos"
-msgstr "Fotoğraflar"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "Medya çöp kutusunu oku"
 
@@ -10075,9 +10276,6 @@ msgstr "Fotoğraflar"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "Durduruluyor… Uygulama işleminin bitmesi bekleniyor."
 
-#~ msgid "Synchronize videos"
-#~ msgstr "Videoları eşitle"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr "Kitap kaydedilemedi. Medya eşitlemesi başlatılmadı."
 
@@ -10087,130 +10285,5 @@ msgstr "Fotoğraflar"
 #~ msgid "Unchanged"
 #~ msgstr "Değişmedi"
 
-msgid "Videos"
-msgstr "Videolar"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "Uygulamanın medya durumu bekleniyor"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "Yalnızca görsel testtir; bağlantılar ve izinler değiştirilmez."
-
-msgid "Tray preview"
-msgstr "Sistem tepsisi simgesi önizlemesi"
-
-msgid "Seasonal background"
-msgstr "Mevsimsel arka plan"
-
-msgid "Holiday watermark"
-msgstr "Bayram filigranı"
-
-msgid "Both connected"
-msgstr "İkisi de bağlı"
-
-msgid "Camera"
-msgstr "Kamera"
-
-msgid "Snowflakes"
-msgstr "Kar taneleri"
-
-msgid "Stars"
-msgstr "Yıldızlar"
-
-msgid "Boots"
-msgstr "Çizmeler"
-
-msgid "Santa Claus"
-msgstr "Noel Baba"
-
-msgid "Rocket"
-msgstr "Roket"
-
-msgid "Champagne glass"
-msgstr "Şampanya kadehi"
-
-msgid "Easter eggs"
-msgstr "Paskalya yumurtaları"
-
-msgid "Reset preview"
-msgstr "Önizlemeyi sıfırla"
-
-msgid "OS tray icon (60 s)"
-msgstr "Sistem tepsisi simgesi (60 sn)"
-
-msgid "Saved developer mode is required."
-msgstr "Geliştirici modu kaydedilmiş olmalıdır."
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "Varsayılan olarak kapalıdır. Sanal kamera ve mikrofon kullanır. Sürücü kurulumu yönetici izni isteyebilir."
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "Telefonu web kamerası olarak kullanmak için v4l2loopback çekirdek sürücüsü kurulu olmalıdır."
-
-msgid "The virtual camera driver could not be checked."
-msgstr "Sanal kamera sürücüsü denetlenemedi."
-
-msgid "System authorization is unavailable."
-msgstr "Sistem yetkilendirmesi kullanılamıyor."
-
-msgid "System authorization was cancelled."
-msgstr "Sistem yetkilendirmesi iptal edildi."
-
-msgid "The virtual camera could not be configured."
-msgstr "Sanal kamera yapılandırılamadı."
-
-msgid "Virtual camera setup is already in progress."
-msgstr "Sanal kamera kurulumu zaten devam ediyor."
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "v4l2loopback web kamerası sürücüsü eksik. Şimdi yüklenip yapılandırılsın mı?"
-
-msgid "Install and set up"
-msgstr "Yükle ve yapılandır"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "Lütfen v4l2loopback sürücüsünü sistem paket yöneticisiyle yükleyin."
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "Sistem sürücüsü kurulumu hâlâ devam ediyor olabilir. Yeniden denemeden önce sistem paket yöneticisini kontrol edin."
-
-msgid "Phone webcam"
-msgstr "Telefon web kamerası"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "Varsayılan olarak kapalıdır. Mevcut sanal kamera ve mikrofonu kullanır; hiçbir şey yüklemez."
-
-msgid "Mute microphone"
-msgstr "Mikrofonu sessize al"
-
-msgid "Use front camera"
-msgstr "Ön kamerayı kullan"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "Mevcut bir sanal kamera sürücüsü gereklidir. Hiçbir şey yüklenmedi."
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect uyumlu bir web kamerası uzantısı gerektirir."
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "Önce Magnolie Notes’u Wi-Fi üzerinden bağlayın."
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "Telefonda kamera veya mikrofon izni reddedildi."
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "Yakalamaya izin vermek için telefonda Magnolie Notes’u açın."
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "Önce önceki web kamerası oturumunun tamamen durması gerekir."
-
-msgid "Waiting for phone permission and capture …"
-msgstr "Telefon izni ve yakalama bekleniyor…"
-
-msgid "Active"
-msgstr "Etkin"
-
-msgid "Start"
-msgstr "Başlat"

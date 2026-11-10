@@ -689,6 +689,9 @@ msgstr "Kontoart"
 msgid "Action"
 msgstr "Aktion"
 
+msgid "Active"
+msgstr "Aktiv"
+
 msgid "Active call"
 msgstr "Aktiver Anruf"
 
@@ -713,6 +716,9 @@ msgstr "Aufnehmen"
 
 msgid "Add %(type)s"
 msgstr "%(type)s hinzufügen"
+
+msgid "Add PC source folder …"
+msgstr "PC-Quellordner hinzufügen …"
 
 msgid "Add a custom tab"
 msgstr "Eigenes Register hinzufügen"
@@ -943,6 +949,11 @@ msgid ""
 msgstr ""
 "Ein Eintrag wird ausgeschlossen, sobald eine seiner Personengruppen "
 "ausgewählt ist. Kontakte und Jahrestage werden nicht gelöscht."
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr ""
+"Ein vorhandener virtueller Kameratreiber ist erforderlich. Es wurde nichts "
+"installiert."
 
 msgid "Android restricts this device identifier."
 msgstr "Android beschränkt diese Gerätekennung."
@@ -1369,6 +1380,9 @@ msgstr "Die Bluetooth-Kopplung im Betriebssystem wurde nicht bestätigt."
 msgid "Bold"
 msgstr "Fett"
 
+msgid "Boots"
+msgstr "Stiefel"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
@@ -1376,6 +1390,9 @@ msgstr ""
 "Zum Bekanntmachen zeigen beide Seiten denselben sechsstelligen Code. "
 "Bestätigen Sie ihn nur, wenn er übereinstimmt – so kann sich niemand "
 "dazwischenschieben."
+
+msgid "Both connected"
+msgstr "Beide verbunden"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1520,6 +1537,13 @@ msgstr "Telefonat mit %(name)s · %(date)s"
 msgid "Calligraphy pen"
 msgstr "Feder"
 
+msgid "Camera"
+msgstr "Kamera"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr ""
+"Die Kamera- oder Mikrofonberechtigung wurde auf dem Telefon verweigert."
+
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -1571,6 +1595,9 @@ msgstr "Celsius (°C)"
 
 msgid "Centered on the screen"
 msgstr "In der Bildschirmmitte"
+
+msgid "Champagne glass"
+msgstr "Sektglas"
 
 msgid "Change password"
 msgstr "Kennwort ändern"
@@ -1955,6 +1982,9 @@ msgstr "Konflikt"
 
 msgid "Connect"
 msgstr "Bekannt machen"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Verbinden Sie zuerst Magnolie Notes über WLAN."
 
 msgid "Connect Notes before sending this entry."
 msgstr "Verbinden Sie Notes, bevor Sie diesen Eintrag senden."
@@ -2645,6 +2675,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "Frühdienst"
 
+msgid "Easter eggs"
+msgstr "Ostereier"
+
 msgid "Edit"
 msgstr "Bearbeiten"
 
@@ -2753,6 +2786,9 @@ msgstr ""
 "Kennwortschutz einschalten? Ihre Daten werden dann verschlüsselt abgelegt. "
 "Ohne das Kennwort sind sie unwiederbringlich verloren – bitte bewahren Sie "
 "es sicher auf."
+
+msgid "Enable photo and video synchronization"
+msgstr "Foto- und Video-Synchronisation aktivieren"
 
 msgid "Enable reminders"
 msgstr "Erinnerungen einschalten"
@@ -2892,6 +2928,9 @@ msgid ""
 msgstr ""
 "Bitte tragen Sie oben Ihre eigene Anschrift ein – ohne Ausgangspunkt kann "
 "kein Dienst einen Weg berechnen."
+
+msgid "Entire collection"
+msgstr "Gesamter Bestand"
 
 msgid "Entries ready to import"
 msgstr "Einträge zum Importieren bereit"
@@ -3338,6 +3377,9 @@ msgstr "Verlauf"
 msgid "Holiday retrieval is available only in the installed application."
 msgstr "Der Abruf steht nur im installierten Programm zur Verfügung."
 
+msgid "Holiday watermark"
+msgstr "Feiertags-Wasserzeichen"
+
 msgid "Home"
 msgstr "Zuhause"
 
@@ -3449,6 +3491,9 @@ msgstr "Einmal importieren"
 
 msgid "Import pairing file …"
 msgstr "Paarungsdatei importieren …"
+
+msgid "Import phone → PC only"
+msgstr "Nur vom Telefon auf den PC importieren"
 
 msgid "Import preview"
 msgstr "Importvorschau"
@@ -3582,6 +3627,9 @@ msgstr "Link einfügen"
 msgid "Insert shape"
 msgstr "Form einfügen"
 
+msgid "Install and set up"
+msgstr "Installieren und einrichten"
+
 msgid "Install the packages, for example with:"
 msgstr "Bitte installieren Sie die Pakete, z. B. mit:"
 
@@ -3679,6 +3727,9 @@ msgstr ""
 
 msgid "KDE Connect reception failed."
 msgstr "Empfang über KDE Connect fehlgeschlagen."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect benötigt eine kompatible Webcam-Erweiterung."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4289,6 +4340,9 @@ msgstr "Mehrere Kalender"
 msgid "Music player"
 msgstr "Musikplayer"
 
+msgid "Mute microphone"
+msgstr "Mikrofon stummschalten"
+
 msgid "Name"
 msgstr "Name"
 
@@ -4838,6 +4892,9 @@ msgstr ""
 "Terminen, Anruf- und Webeinträge zu Textnotizen. Nicht unterstützte "
 "Einträge, Layout, Anhänge und Erinnerungen werden nicht übernommen."
 
+msgid "OS tray icon (60 s)"
+msgstr "OS-Tray-Symbol (60 s)"
+
 msgid "Objects"
 msgstr "Objekte"
 
@@ -4856,6 +4913,13 @@ msgstr ""
 "ohne sie zu löschen. Einschalten setzt sie fort, auch überfällige Pläne. "
 "Bereits an KDE Connect übergebene Nachrichten können nicht zurückgerufen "
 "werden."
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"Standardmäßig aus. Verwendet eine virtuelle Kamera und ein Mikrofon. Die "
+"Treibereinrichtung kann Administratorrechte anfordern."
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Telefonänderungen von Personal Sync anbieten"
@@ -4968,6 +5032,9 @@ msgstr "Nur persönliche Einträge können an Notes gesendet werden."
 msgid "Only the Notes collection"
 msgstr "Nur den Bestand auf dem Handy abgleichen"
 
+msgid "Only the phone inventory"
+msgstr "Nur der Bestand auf dem Telefon"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -5002,6 +5069,10 @@ msgstr ""
 "Öffnen Sie KDE Connect auf dem Telefon und starten Sie die Kopplung. "
 "Vergleichen Sie den achtstelligen Prüfschlüssel und bestätigen Sie auf "
 "beiden Geräten."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr ""
+"Öffnen Sie Magnolie Notes auf dem Telefon, um die Aufnahme zu erlauben."
 
 msgid "Open Magnolie Organizer"
 msgstr "Magnolie Organizer öffnen"
@@ -5168,6 +5239,12 @@ msgstr "Eigenes Fenster möglich: nein"
 
 msgid "Own window available: yes"
 msgstr "Eigenes Fenster möglich: ja"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "PC-Quellordner sind unabhängig von Empfangszielen."
+
+msgid "PC → phone"
+msgstr "PC → Telefon"
 
 msgid "PDF file"
 msgstr "PDF-Datei"
@@ -5431,8 +5508,14 @@ msgstr ""
 "Die Telefoneinrichtung ist in diesem Hintergrunddienst nicht verfügbar. "
 "Starten Sie den Hintergrunddienst neu und versuchen Sie es erneut."
 
+msgid "Phone webcam"
+msgstr "Telefon-Webcam"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "Telefon „%(name)s“ ist sicher gekoppelt."
+
+msgid "Phone → PC"
+msgstr "Telefon → PC"
 
 msgid "Phones"
 msgstr "Telefone"
@@ -5465,8 +5548,14 @@ msgstr ""
 "Fotoabgleich sicher angehalten. Vor einem erneuten Versuch die Verbindung "
 "prüfen."
 
+msgid "Photos"
+msgstr "Fotos"
+
 msgid "Photos and videos"
 msgstr "Fotos und Videos"
+
+msgid "Photos only"
+msgstr "Nur Fotos"
 
 msgid "Pick up"
 msgstr "Abholen"
@@ -5527,6 +5616,11 @@ msgid ""
 msgstr ""
 "Bitte als Verwendungszweck deine E-Mail-Adresse angeben, da sonst der "
 "ContributorKey nicht zugesendet werden kann."
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr ""
+"Bitte den Treiber v4l2loopback über die Systempaketverwaltung installieren."
 
 msgid "Please select a PDF file."
 msgstr "Bitte eine PDF-Datei auswählen."
@@ -5765,6 +5859,9 @@ msgstr "Grund"
 
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "Beleg vervollständigt. Die frühere Bestätigung separat senden."
+
+msgid "Receive"
+msgstr "Empfangen"
 
 msgid "Receive files"
 msgstr "Dateien empfangen"
@@ -6005,6 +6102,9 @@ msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr ""
 "Erfordert eine bestehende Systemkopplung über BlueZ. Nur Daten, kein HFP-Ton."
 
+msgid "Reset preview"
+msgstr "Vorschau zurücksetzen"
+
 msgid "Residual waste"
 msgstr "Restmüll"
 
@@ -6124,6 +6224,9 @@ msgstr "Rheinland-Pfalz"
 msgid "Right page"
 msgstr "Rechte Seite"
 
+msgid "Rocket"
+msgstr "Rakete"
+
 msgid "Rotate selection"
 msgstr "Auswahl drehen"
 
@@ -6201,6 +6304,9 @@ msgstr "Saarland"
 msgid "Salzburg"
 msgstr "Salzburg"
 
+msgid "Santa Claus"
+msgstr "Weihnachtsmann"
+
 msgid "Saturday"
 msgstr "Samstag"
 
@@ -6256,6 +6362,9 @@ msgstr "Gespeichert"
 
 msgid "Saved confirmation available."
 msgstr "Speicherbestätigung vorhanden."
+
+msgid "Saved developer mode is required."
+msgstr "Nur mit gespeichertem Entwicklermodus verfügbar."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6373,6 +6482,9 @@ msgstr "Suche läuft …"
 msgid "Search…"
 msgstr "Suchen …"
 
+msgid "Seasonal background"
+msgstr "Saisonaler Hintergrund"
+
 msgid "Secondary office"
 msgstr "Zweitsitz"
 
@@ -6441,6 +6553,9 @@ msgstr "Wählen Sie Ihr Telefon aus"
 msgid "Select, preview, print, export or delete health records"
 msgstr ""
 "Gesundheitseinträge auswählen, ansehen, drucken, exportieren oder löschen"
+
+msgid "Selected PC source folders"
+msgstr "Ausgewählte PC-Quellordner"
 
 msgid "Selected album synchronized."
 msgstr "Ausgewähltes Album abgeglichen."
@@ -6582,6 +6697,12 @@ msgstr "Gemeinsame Zugangsdaten"
 msgid "Shared note"
 msgstr "Gemeinsame Notiz"
 
+msgid "Shared settings"
+msgstr "Gemeinsame Einstellungen"
+
+msgid "Shared settings are not configured yet."
+msgstr "Die gemeinsamen Einstellungen sind noch nicht eingerichtet."
+
 msgid "Sharing this connection is not allowed."
 msgstr "Die Weitergabe dieser Verbindung ist nicht freigegeben."
 
@@ -6704,6 +6825,9 @@ msgstr ""
 "Wiederherstellungspunkt wiederhergestellt. Beim ersten Abgleich werden keine "
 "Löschungen gesendet."
 
+msgid "Snowflakes"
+msgstr "Eiskristalle"
+
 msgid "Snowman"
 msgstr "Schneemann"
 
@@ -6791,6 +6915,12 @@ msgstr "Quadrat"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Stars"
+msgstr "Sterne"
+
+msgid "Start"
+msgstr "Starten"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6968,12 +7098,21 @@ msgstr ""
 "Aufgaben und Termine aus der benutzerdefinierten Registerkarte "
 "synchronisieren"
 
+msgid "Synchronize videos"
+msgstr "Videos abgleichen"
+
 msgid "Synchronizing …"
 msgstr "Synchronisiere …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr ""
 "Die Systemauthentifizierung zum Einrichten von UFW ist nicht verfügbar."
+
+msgid "System authorization is unavailable."
+msgstr "Die Systemfreigabe ist nicht verfügbar."
+
+msgid "System authorization was cancelled."
+msgstr "Die Systemfreigabe wurde abgebrochen."
 
 msgid "System default"
 msgstr "Systemvorgabe"
@@ -7208,6 +7347,17 @@ msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr ""
 "Die Magnolienbaum-Ablage ist verschlüsselt. Bitte den Organizer zuerst "
 "entsperren."
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "Die Nextcloud-Kontoeinstellungen werden gerade geändert. Nach Abschluss des laufenden Vorgangs erneut versuchen."
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Die Nextcloud-Kontotransaktion muss wiederhergestellt werden. Kontoänderungen und neue Synchronisationsverbindungen sind gesperrt, bis die Konfiguration und die Zugangsdaten geprüft wurden."
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Das Nextcloud-Adressbuch enthält fehlende oder doppelte UIDs."
@@ -7936,6 +8086,9 @@ msgstr "Der Port ist ungültig."
 msgid "The previous data could not be backed up."
 msgstr "Der bisherige Bestand konnte nicht gesichert werden."
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "Die vorherige Webcam-Sitzung muss zuerst vollständig beendet werden."
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "Die Druckseite liegt unter: %s"
@@ -8158,6 +8311,13 @@ msgstr "Die Synchronisierungsanfrage konnte nicht gesendet werden."
 msgid "The synchronization resume journal is damaged."
 msgstr "Das Journal zur Fortsetzung der Synchronisierung ist beschädigt."
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"Die Treiberinstallation des Systems läuft möglicherweise noch. Bitte vor "
+"einem erneuten Versuch die Systempaketverwaltung prüfen."
+
 msgid "The task is missing from the update."
 msgstr "Der Rückmeldung fehlt die Aufgabe."
 
@@ -8233,8 +8393,19 @@ msgstr "Die Aktualisierungsinformation ist unlesbar."
 msgid "The user data could not be read."
 msgstr "Die Benutzerdaten ließen sich nicht lesen."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+"Der Webcam-Treiber v4l2loopback fehlt. Soll er jetzt installiert und "
+"eingerichtet werden?"
+
 msgid "The value is outside the general green reference range."
 msgstr "Der Wert liegt außerhalb des allgemeinen grünen Referenzbereichs."
+
+msgid "The virtual camera could not be configured."
+msgstr "Die virtuelle Kamera konnte nicht eingerichtet werden."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Der Treiber für die virtuelle Kamera konnte nicht geprüft werden."
 
 msgid "The wake-up reminder"
 msgstr "Der Weckruf"
@@ -8321,6 +8492,12 @@ msgid ""
 msgstr ""
 "Diese Optionen erfordern die entsprechenden Berechtigungen in Magnolie "
 "Notes. Anrufton wird nicht über die Magnolie-Datenverbindung übertragen."
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "Dieser Nextcloud-Kalender enthält markierte Jahrestage. Die Kalendersynchronisation ist gesperrt, bis dieser Bereich unterstützt wird; eine vollständige Synchronisation wurde nicht bestätigt."
 
 msgid "This action does not invent a task start or deadline."
 msgstr ""
@@ -8619,6 +8796,9 @@ msgstr "Reise"
 msgid "Tray applet"
 msgstr "Tray-Applet"
 
+msgid "Tray preview"
+msgstr "Tray-Vorschau"
+
 msgid "Triangle"
 msgstr "Dreieck"
 
@@ -8822,6 +9002,9 @@ msgstr "Anschriften weiterverwenden"
 msgid "Use default"
 msgstr "Standard verwenden"
 
+msgid "Use front camera"
+msgstr "Frontkamera verwenden"
+
 msgid "Use newer version"
 msgstr "Neuere Fassung verwenden"
 
@@ -8926,11 +9109,22 @@ msgstr "Über Internet"
 msgid "Video player"
 msgstr "Videoplayer"
 
+msgid "Videos"
+msgstr "Videos"
+
 msgid "Vienna"
 msgstr "Wien"
 
 msgid "View and edit appointment"
 msgstr "Termin ansehen und bearbeiten"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Die virtuelle Kamera wird bereits eingerichtet."
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr ""
+"Nur ein Darstellungstest; Verbindungen und Berechtigungen bleiben "
+"unverändert."
 
 msgid "Vital signs"
 msgstr "Vitalwerte"
@@ -8963,6 +9157,9 @@ msgstr "Warten auf die Zustimmung am anderen Gerät."
 msgid "Waiting for device status"
 msgstr "Warten auf Gerätestatus"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "Warten auf Telefonfreigabe und Aufnahme …"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8976,6 +9173,9 @@ msgid ""
 msgstr ""
 "Warten auf das Telefon an Port %(port)s. Die Kopplung endet nach %(seconds)s "
 "Sekunden."
+
+msgid "Waiting for the phone…"
+msgstr "Warte auf das Telefon…"
 
 msgid "Wake the computer from suspend"
 msgstr "Rechner aus der Bereitschaft wecken"
@@ -9707,6 +9907,18 @@ msgstr[1] "… und %(count)s weitere, die ebenfalls gedruckt werden."
 msgid "＋ Add appointment"
 msgstr "＋ Termin hinzufügen"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr ""
+#~ "Für die Handy-Webcam muss der Kernel-Treiber v4l2loopback installiert "
+#~ "sein."
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "Standardmäßig aus. Verwendet eine vorhandene virtuelle Kamera und ein "
+#~ "virtuelles Mikrofon; installiert nichts."
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "Bitte einen anderen Gruppennamen eingeben."
 
@@ -10129,15 +10341,6 @@ msgstr "＋ Termin hinzufügen"
 #~ "gewöhnliche Apps eingeschränkt. Die Rufnummernberechtigung ist "
 #~ "freiwillig; es wird keine Sonderrolle angefordert."
 
-msgid "Photos"
-msgstr "Fotos"
-
-msgid "Photos only"
-msgstr "Nur Fotos"
-
-msgid "Videos"
-msgstr "Videos"
-
 #~ msgid "Album selection changed. Read the albums again."
 #~ msgstr "Die Albumauswahl hat sich geändert. Lesen Sie die Alben erneut ein."
 
@@ -10182,9 +10385,6 @@ msgstr "Videos"
 
 #~ msgid "Request access on phone"
 #~ msgstr "Zugriff auf dem Handy anfragen"
-
-#~ msgid "Synchronize videos"
-#~ msgstr "Videos abgleichen"
 
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr ""
@@ -10306,134 +10506,3 @@ msgstr "Videos"
 #~ msgstr ""
 #~ "Medienpapierkorb-Vorgang abgeschlossen. Lesen Sie die Einträge vor einem "
 #~ "weiteren Vorgang erneut ein."
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "Nur ein Darstellungstest; Verbindungen und Berechtigungen bleiben unverändert."
-
-msgid "Tray preview"
-msgstr "Tray-Vorschau"
-
-msgid "Seasonal background"
-msgstr "Saisonaler Hintergrund"
-
-msgid "Holiday watermark"
-msgstr "Feiertags-Wasserzeichen"
-
-msgid "Both connected"
-msgstr "Beide verbunden"
-
-msgid "Camera"
-msgstr "Kamera"
-
-msgid "Snowflakes"
-msgstr "Eiskristalle"
-
-msgid "Stars"
-msgstr "Sterne"
-
-msgid "Boots"
-msgstr "Stiefel"
-
-msgid "Santa Claus"
-msgstr "Weihnachtsmann"
-
-msgid "Rocket"
-msgstr "Rakete"
-
-msgid "Champagne glass"
-msgstr "Sektglas"
-
-msgid "Easter eggs"
-msgstr "Ostereier"
-
-msgid "Reset preview"
-msgstr "Vorschau zurücksetzen"
-
-msgid "OS tray icon (60 s)"
-msgstr "OS-Tray-Symbol (60 s)"
-
-msgid "Saved developer mode is required."
-msgstr "Nur mit gespeichertem Entwicklermodus verfügbar."
-
-msgid "Add PC source folder …"
-msgstr "PC-Quellordner hinzufügen …"
-
-msgid "Selected PC source folders"
-msgstr "Ausgewählte PC-Quellordner"
-
-msgid "PC source folders are separate from receive destinations."
-msgstr "PC-Quellordner sind unabhängig von Empfangszielen."
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "Standardmäßig aus. Verwendet eine virtuelle Kamera und ein Mikrofon. Die Treibereinrichtung kann Administratorrechte anfordern."
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "Für die Handy-Webcam muss der Kernel-Treiber v4l2loopback installiert sein."
-
-msgid "The virtual camera driver could not be checked."
-msgstr "Der Treiber für die virtuelle Kamera konnte nicht geprüft werden."
-
-msgid "System authorization is unavailable."
-msgstr "Die Systemfreigabe ist nicht verfügbar."
-
-msgid "System authorization was cancelled."
-msgstr "Die Systemfreigabe wurde abgebrochen."
-
-msgid "The virtual camera could not be configured."
-msgstr "Die virtuelle Kamera konnte nicht eingerichtet werden."
-
-msgid "Virtual camera setup is already in progress."
-msgstr "Die virtuelle Kamera wird bereits eingerichtet."
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "Der Webcam-Treiber v4l2loopback fehlt. Soll er jetzt installiert und eingerichtet werden?"
-
-msgid "Install and set up"
-msgstr "Installieren und einrichten"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "Bitte den Treiber v4l2loopback über die Systempaketverwaltung installieren."
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "Die Treiberinstallation des Systems läuft möglicherweise noch. Bitte vor einem erneuten Versuch die Systempaketverwaltung prüfen."
-
-msgid "Phone webcam"
-msgstr "Telefon-Webcam"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "Standardmäßig aus. Verwendet eine vorhandene virtuelle Kamera und ein virtuelles Mikrofon; installiert nichts."
-
-msgid "Mute microphone"
-msgstr "Mikrofon stummschalten"
-
-msgid "Use front camera"
-msgstr "Frontkamera verwenden"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "Ein vorhandener virtueller Kameratreiber ist erforderlich. Es wurde nichts installiert."
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect benötigt eine kompatible Webcam-Erweiterung."
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "Verbinden Sie zuerst Magnolie Notes über WLAN."
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "Die Kamera- oder Mikrofonberechtigung wurde auf dem Telefon verweigert."
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "Öffnen Sie Magnolie Notes auf dem Telefon, um die Aufnahme zu erlauben."
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "Die vorherige Webcam-Sitzung muss zuerst vollständig beendet werden."
-
-msgid "Waiting for phone permission and capture …"
-msgstr "Warten auf Telefonfreigabe und Aufnahme …"
-
-msgid "Active"
-msgstr "Aktiv"
-
-msgid "Start"
-msgstr "Starten"

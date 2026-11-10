@@ -2601,6 +2601,9 @@ msgid ""
 "place."
 msgstr ""
 
+msgid "Enable photo and video synchronization"
+msgstr ""
+
 msgid "Enable reminders"
 msgstr ""
 
@@ -2723,6 +2726,9 @@ msgstr ""
 msgid ""
 "Enter your address above. No service can calculate directions without a "
 "starting point."
+msgstr ""
+
+msgid "Entire collection"
 msgstr ""
 
 msgid "Entries ready to import"
@@ -2954,9 +2960,6 @@ msgid ""
 "For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
 "router; CGNAT can prevent this. For IPv6, allow the port in the router and "
 "computer firewalls."
-msgstr ""
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
 msgstr ""
 
 msgid ""
@@ -3250,6 +3253,9 @@ msgstr ""
 msgid "Import pairing file …"
 msgstr ""
 
+msgid "Import phone → PC only"
+msgstr ""
+
 msgid "Import preview"
 msgstr ""
 
@@ -3362,6 +3368,9 @@ msgid "Insert link"
 msgstr ""
 
 msgid "Insert shape"
+msgstr ""
+
+msgid "Install and set up"
 msgstr ""
 
 msgid "Install the packages, for example with:"
@@ -4656,6 +4665,9 @@ msgstr ""
 msgid "Only the Notes collection"
 msgstr ""
 
+msgid "Only the phone inventory"
+msgstr ""
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4844,6 +4856,9 @@ msgid "Own window available: yes"
 msgstr ""
 
 msgid "PC source folders are separate from receive destinations."
+msgstr ""
+
+msgid "PC → phone"
 msgstr ""
 
 msgid "PDF file"
@@ -5086,19 +5101,10 @@ msgstr ""
 msgid "Phone webcam"
 msgstr ""
 
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr ""
-
-msgid "Install and set up"
-msgstr ""
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr ""
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr ""
-
 msgid "Phone “%(name)s” is securely paired."
+msgstr ""
+
+msgid "Phone → PC"
 msgstr ""
 
 msgid "Phones"
@@ -5132,6 +5138,9 @@ msgid "Photos"
 msgstr ""
 
 msgid "Photos and videos"
+msgstr ""
+
+msgid "Photos only"
 msgstr ""
 
 msgid "Pick up"
@@ -5188,6 +5197,10 @@ msgstr ""
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
+msgstr ""
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
 msgstr ""
 
 msgid "Please select a PDF file."
@@ -5412,6 +5425,9 @@ msgid "Reason"
 msgstr ""
 
 msgid "Receipt completed. Send its historical confirmation separately."
+msgstr ""
+
+msgid "Receive"
 msgstr ""
 
 msgid "Receive files"
@@ -6205,6 +6221,12 @@ msgstr ""
 msgid "Shared note"
 msgstr ""
 
+msgid "Shared settings"
+msgstr ""
+
+msgid "Shared settings are not configured yet."
+msgstr ""
+
 msgid "Sharing this connection is not allowed."
 msgstr ""
 
@@ -6589,6 +6611,9 @@ msgstr ""
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr ""
 
+msgid "Synchronize videos"
+msgstr ""
+
 msgid "Synchronizing …"
 msgstr ""
 
@@ -6806,6 +6831,17 @@ msgid "The Magnolienbaum storage is damaged."
 msgstr ""
 
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
+msgstr ""
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr ""
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
 msgstr ""
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
@@ -7639,6 +7675,11 @@ msgstr ""
 msgid "The synchronization resume journal is damaged."
 msgstr ""
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+
 msgid "The task is missing from the update."
 msgstr ""
 
@@ -7703,6 +7744,9 @@ msgid "The update information is unreadable."
 msgstr ""
 
 msgid "The user data could not be read."
+msgstr ""
+
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
 msgstr ""
 
 msgid "The value is outside the general green reference range."
@@ -7784,6 +7828,12 @@ msgstr ""
 msgid ""
 "These options require the matching permissions in Magnolie Notes. Call audio "
 "is not sent over the Magnolie data connection."
+msgstr ""
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
 msgstr ""
 
 msgid "This action does not invent a task start or deadline."
@@ -8400,6 +8450,9 @@ msgstr ""
 msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
+msgstr ""
+
+msgid "Waiting for the phone…"
 msgstr ""
 
 msgid "Wake the computer from suspend"

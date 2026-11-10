@@ -645,6 +645,9 @@ msgstr "アカウントの種類"
 msgid "Action"
 msgstr "操作"
 
+msgid "Active"
+msgstr "動作中"
+
 msgid "Active call"
 msgstr "通話中"
 
@@ -668,6 +671,9 @@ msgstr "追加"
 
 msgid "Add %(type)s"
 msgstr "%(type)sを追加"
+
+msgid "Add PC source folder …"
+msgstr "PC の同期元フォルダーを追加 …"
 
 msgid "Add a custom tab"
 msgstr "カスタムタブを追加"
@@ -897,6 +903,9 @@ msgid ""
 msgstr ""
 "所属する連絡先グループが1つでも選択されていれば、その項目は除外されます。連絡"
 "先や記念日は削除されません。"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "既存の仮想カメラドライバーが必要です。何もインストールしていません。"
 
 msgid "Android restricts this device identifier."
 msgstr "Android がこの端末識別子を制限しています。"
@@ -1317,12 +1326,18 @@ msgstr "システム側の Bluetooth ペアリングが確認されていませ�
 msgid "Bold"
 msgstr "太字"
 
+msgid "Boots"
+msgstr "ブーツ"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
 msgstr ""
 "接続時、両方のブランチに同じ 6 桁のコードが表示されます。一致する場合だけ確認"
 "してください。第三者による接続の傍受を防げます。"
+
+msgid "Both connected"
+msgstr "両方に接続"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1467,6 +1482,12 @@ msgstr "%(name)s との通話 · %(date)s"
 msgid "Calligraphy pen"
 msgstr "カリグラフィーペン"
 
+msgid "Camera"
+msgstr "カメラ"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "スマートフォンでカメラまたはマイクの権限が拒否されました。"
+
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -1518,6 +1539,9 @@ msgstr "摂氏 (°C)"
 
 msgid "Centered on the screen"
 msgstr "画面中央"
+
+msgid "Champagne glass"
+msgstr "シャンパングラス"
 
 msgid "Change password"
 msgstr "パスワードを変更"
@@ -1891,6 +1915,9 @@ msgstr "確認"
 
 msgid "Connect"
 msgstr "接続"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "まず Magnolie Notes を Wi-Fi で接続してください。"
 
 msgid "Connect Notes before sending this entry."
 msgstr "この項目を送る前に Notes を接続してください。"
@@ -2575,6 +2602,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "早番"
 
+msgid "Easter eggs"
+msgstr "イースターエッグ"
+
 msgid "Edit"
 msgstr "編集"
 
@@ -2682,6 +2712,9 @@ msgid ""
 msgstr ""
 "パスワード保護を有効にしますか？データは暗号化して保存されます。パスワードを"
 "失うとデータは復元できません。安全な場所に保管してください。"
+
+msgid "Enable photo and video synchronization"
+msgstr "写真と動画の同期を有効にする"
 
 msgid "Enable reminders"
 msgstr "リマインダーを有効化"
@@ -2814,6 +2847,9 @@ msgid ""
 "Enter your address above. No service can calculate directions without a "
 "starting point."
 msgstr "上に住所を入力してください。出発地点がなければ経路を計算できません。"
+
+msgid "Entire collection"
+msgstr "コレクション全体"
 
 msgid "Entries ready to import"
 msgstr "取り込みを待っている項目"
@@ -3256,6 +3292,9 @@ msgstr "推移"
 msgid "Holiday retrieval is available only in the installed application."
 msgstr "祝日の取得はインストール版アプリケーションでのみ利用できます。"
 
+msgid "Holiday watermark"
+msgstr "祝祭日の透かし"
+
 msgid "Home"
 msgstr "自宅"
 
@@ -3366,6 +3405,9 @@ msgstr "1回だけインポート"
 
 msgid "Import pairing file …"
 msgstr "ペアリングファイルをインポート …"
+
+msgid "Import phone → PC only"
+msgstr "スマートフォンから PC へのみインポート"
 
 msgid "Import preview"
 msgstr "取り込みのプレビュー"
@@ -3497,6 +3539,9 @@ msgstr "リンクを挿入"
 msgid "Insert shape"
 msgstr "図形を挿入"
 
+msgid "Install and set up"
+msgstr "インストールして設定"
+
 msgid "Install the packages, for example with:"
 msgstr "必要なパッケージをインストールしてください。例:"
 
@@ -3596,6 +3641,9 @@ msgstr ""
 
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect の受信に失敗しました。"
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect には互換性のあるウェブカメラ拡張機能が必要です。"
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4200,6 +4248,9 @@ msgstr "複数のカレンダー"
 msgid "Music player"
 msgstr "音楽プレーヤー"
 
+msgid "Mute microphone"
+msgstr "マイクをミュート"
+
 msgid "Name"
 msgstr "名前"
 
@@ -4747,6 +4798,9 @@ msgstr ""
 "定に、通話とWebの記録はテキストメモになります。未対応の項目、レイアウト、添付"
 "ファイル、通知は転送されません。"
 
+msgid "OS tray icon (60 s)"
+msgstr "システムトレイアイコン（60秒）"
+
 msgid "Objects"
 msgstr "オブジェクト"
 
@@ -4764,6 +4818,13 @@ msgstr ""
 "初期設定ではオフです。オフにすると未送信のSMS予約を削除せずに一時停止します。"
 "オンにすると、予定時刻を過ぎた予約も含めて再開します。すでにKDE Connectに渡し"
 "たメッセージは取り消せません。"
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"初期状態ではオフです。仮想カメラとマイクを使用します。ドライバーの設定で管理"
+"者権限を求められる場合があります。"
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Personal Sync の電話側の変更を提示する"
@@ -4865,6 +4926,9 @@ msgstr "Notes に送信できるのは個人の項目だけです。"
 msgid "Only the Notes collection"
 msgstr "Notes コレクションのみ"
 
+msgid "Only the phone inventory"
+msgstr "スマートフォン内の項目のみ"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4898,6 +4962,9 @@ msgid ""
 msgstr ""
 "電話で KDE Connect を開いてペアリングを開始します。8文字の確認キーを比較し、"
 "両方のデバイスで確認してください。"
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "撮影を許可するにはスマートフォンで Magnolie Notes を開いてください。"
 
 msgid "Open Magnolie Organizer"
 msgstr "Magnolie Organizer を開く"
@@ -5059,6 +5126,12 @@ msgstr "独自ウィンドウ利用可能：いいえ"
 
 msgid "Own window available: yes"
 msgstr "独自ウィンドウ利用可能：はい"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "PC の同期元フォルダーと受信先は別々です。"
+
+msgid "PC → phone"
+msgstr "PC → スマートフォン"
 
 msgid "PDF file"
 msgstr "PDF ファイル"
@@ -5302,8 +5375,14 @@ msgstr ""
 "現在のバックグラウンドサービスでは電話の設定を行えません。バックグラウンド"
 "サービスを再起動して、もう一度お試しください。"
 
+msgid "Phone webcam"
+msgstr "スマートフォンのウェブカメラ"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "「%(name)s」を復元しました。"
+
+msgid "Phone → PC"
+msgstr "スマートフォン → PC"
 
 msgid "Phones"
 msgstr "電話"
@@ -5334,8 +5413,14 @@ msgid ""
 "Photo synchronization stopped safely. Check the connection before retrying."
 msgstr "写真の同期を安全に停止しました。再試行する前に接続を確認してください。"
 
+msgid "Photos"
+msgstr "写真"
+
 msgid "Photos and videos"
 msgstr "写真と動画"
+
+msgid "Photos only"
+msgstr "写真のみ"
 
 msgid "Pick up"
 msgstr "迎えに行く"
@@ -5394,6 +5479,12 @@ msgid ""
 msgstr ""
 "振込の摘要にメールアドレスを記載してください。記載がない場合、ContributorKey"
 "をお送りできません。"
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr ""
+"システムのパッケージマネージャーで v4l2loopback ドライバーをインストールして"
+"ください。"
 
 msgid "Please select a PDF file."
 msgstr "PDF ファイルを選択してください。"
@@ -5621,6 +5712,9 @@ msgstr "理由"
 
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "記録を補完しました。以前の確認は別途送信してください。"
+
+msgid "Receive"
+msgstr "受信"
 
 msgid "Receive files"
 msgstr "ファイルを受信"
@@ -5857,6 +5951,9 @@ msgstr ""
 "既存のBlueZシステムペアリングが必要です。データのみで、HFPオーディオはありま"
 "せん。"
 
+msgid "Reset preview"
+msgstr "プレビューをリセット"
+
 msgid "Residual waste"
 msgstr "一般ごみ"
 
@@ -5974,6 +6071,9 @@ msgstr "ラインラント＝プファルツ"
 msgid "Right page"
 msgstr "右ページ"
 
+msgid "Rocket"
+msgstr "ロケット"
+
 msgid "Rotate selection"
 msgstr "選択範囲を回転"
 
@@ -6051,6 +6151,9 @@ msgstr "ザールラント"
 msgid "Salzburg"
 msgstr "ザルツブルク"
 
+msgid "Santa Claus"
+msgstr "サンタクロース"
+
 msgid "Saturday"
 msgstr "土曜日"
 
@@ -6106,6 +6209,9 @@ msgstr "保存済み"
 
 msgid "Saved confirmation available."
 msgstr "保存確認があります。"
+
+msgid "Saved developer mode is required."
+msgstr "開発者モードを保存する必要があります。"
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6222,6 +6328,9 @@ msgstr "検索しています…"
 msgid "Search…"
 msgstr "検索…"
 
+msgid "Seasonal background"
+msgstr "季節の背景"
+
 msgid "Secondary office"
 msgstr "第二オフィス"
 
@@ -6289,6 +6398,9 @@ msgstr "携帯電話を選んでください"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "健康記録を選択、プレビュー、印刷、エクスポート、または削除"
+
+msgid "Selected PC source folders"
+msgstr "選択した PC の同期元フォルダー"
 
 msgid "Selected album synchronized."
 msgstr "選択したアルバムを同期しました。"
@@ -6426,6 +6538,12 @@ msgstr "共有認証情報"
 msgid "Shared note"
 msgstr "共有メモ"
 
+msgid "Shared settings"
+msgstr "共有設定"
+
+msgid "Shared settings are not configured yet."
+msgstr "共有設定はまだ構成されていません。"
+
 msgid "Sharing this connection is not allowed."
 msgstr "この接続の共有は許可されていません。"
 
@@ -6546,6 +6664,9 @@ msgstr "スナップショット間隔"
 msgid "Snapshot restored. The first synchronization will not send deletions."
 msgstr "スナップショットが復元されました。最初の同期では削除は送信されません。"
 
+msgid "Snowflakes"
+msgstr "雪の結晶"
+
 msgid "Snowman"
 msgstr "雪だるま"
 
@@ -6633,6 +6754,12 @@ msgstr "正方形"
 
 msgid "St. Gallen"
 msgstr "ザンクト・ガレン"
+
+msgid "Stars"
+msgstr "星"
+
+msgid "Start"
+msgstr "開始"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6807,11 +6934,20 @@ msgstr "「%(tab)s」タブのタスクと予定を同期"
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "カスタムタブのタスクと予定を同期"
 
+msgid "Synchronize videos"
+msgstr "動画を同期"
+
 msgid "Synchronizing …"
 msgstr "同期しています …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "UFW を設定するためのシステム認証を利用できません。"
+
+msgid "System authorization is unavailable."
+msgstr "システム認証を利用できません。"
+
+msgid "System authorization was cancelled."
+msgstr "システム認証がキャンセルされました。"
 
 msgid "System default"
 msgstr "システムのデフォルト"
@@ -7041,6 +7177,17 @@ msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr ""
 "Magnolienbaum のストレージは暗号化されています。先に Organizer のロックを解除"
 "してください。"
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "Nextcloud アカウントの設定を変更中です。現在の操作が完了してから再試行してください。"
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Nextcloud アカウントのトランザクションを復旧する必要があります。構成と認証情報の確認が完了するまで、アカウントの変更と新しい同期接続はブロックされます。"
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Nextcloud のアドレス帳には、欠落または重複した UID が含まれています。"
@@ -7737,6 +7884,9 @@ msgstr "ポートが無効です。"
 msgid "The previous data could not be backed up."
 msgstr "以前のデータをバックアップできませんでした。"
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "まず前のウェブカメラセッションが完全に停止する必要があります。"
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "印刷ページの場所：%s"
@@ -7946,6 +8096,13 @@ msgstr "同期リクエストを送信できませんでした。"
 msgid "The synchronization resume journal is damaged."
 msgstr "同期再開ジャーナルが破損しています。"
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"システムでドライバーのインストールがまだ進行中の可能性があります。再試行する"
+"前にシステムのパッケージマネージャーを確認してください。"
+
 msgid "The task is missing from the update."
 msgstr "更新にタスクがありません。"
 
@@ -8018,8 +8175,19 @@ msgstr "更新情報を読み取れません。"
 msgid "The user data could not be read."
 msgstr "ユーザーデータを読み取れませんでした。"
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+"ウェブカメラ用の v4l2loopback ドライバーがありません。今すぐインストールして"
+"設定しますか？"
+
 msgid "The value is outside the general green reference range."
 msgstr "値が一般的な緑色の基準範囲外です。"
+
+msgid "The virtual camera could not be configured."
+msgstr "仮想カメラを設定できませんでした。"
+
+msgid "The virtual camera driver could not be checked."
+msgstr "仮想カメラのドライバーを確認できませんでした。"
 
 msgid "The wake-up reminder"
 msgstr "ウェイクアップリマインダー"
@@ -8105,6 +8273,12 @@ msgid ""
 msgstr ""
 "これらのオプションには Magnolie Notes で対応する権限が必要です。通話音声は "
 "Magnolie のデータ接続では送信されません。"
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "この Nextcloud カレンダーにはマーク付きの記念日が含まれています。この範囲がサポートされるまでカレンダーの同期はブロックされ、完全な同期は確認されていません。"
 
 msgid "This action does not invent a task start or deadline."
 msgstr "この操作は、タスクにない開始日時や期限を追加しません。"
@@ -8396,6 +8570,9 @@ msgstr "旅行"
 msgid "Tray applet"
 msgstr "システムトレイアプレット"
 
+msgid "Tray preview"
+msgstr "トレイアイコンのプレビュー"
+
 msgid "Triangle"
 msgstr "三角形"
 
@@ -8598,6 +8775,9 @@ msgstr "連絡先の住所を使用"
 msgid "Use default"
 msgstr "既定を使用"
 
+msgid "Use front camera"
+msgstr "前面カメラを使用"
+
 msgid "Use newer version"
 msgstr "新しい版を使用"
 
@@ -8702,11 +8882,20 @@ msgstr "インターネット経由"
 msgid "Video player"
 msgstr "動画プレーヤー"
 
+msgid "Videos"
+msgstr "動画"
+
 msgid "Vienna"
 msgstr "ウィーン"
 
 msgid "View and edit appointment"
 msgstr "予定を表示・編集"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "仮想カメラの設定はすでに進行中です。"
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "表示のみのテストです。接続や権限は変更されません。"
 
 msgid "Vital signs"
 msgstr "バイタルサイン"
@@ -8739,6 +8928,9 @@ msgstr "もう一方のデバイスでの同意を待っています。"
 msgid "Waiting for device status"
 msgstr "デバイスの状態を待っています"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "スマートフォンの許可と撮影を待機中…"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8751,6 +8943,9 @@ msgid ""
 "seconds."
 msgstr ""
 "ポート%(port)sで電話を待機中です。ペアリングは%(seconds)s秒後に終了します。"
+
+msgid "Waiting for the phone…"
+msgstr "スマートフォンを待機中…"
 
 msgid "Wake the computer from suspend"
 msgstr "サスペンド状態のコンピューターを復帰"
@@ -9470,6 +9665,18 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr ""
+#~ "スマートフォンをウェブカメラとして使うには、v4l2loopback カーネルドライ"
+#~ "バーのインストールが必要です。"
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "初期状態はオフです。既存の仮想カメラとマイクを使用し、何もインストールしま"
+#~ "せん。"
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "別のグループ名を入力してください。"
 
@@ -9958,9 +10165,6 @@ msgstr "＋ 予定を追加"
 #~ "スマートフォンの内容のみを同期します。ローカルの編集は保持されます。削除は"
 #~ "まだ同期されません。"
 
-msgid "Photos"
-msgstr "写真"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "メディアのゴミ箱を読み込み"
 
@@ -9992,9 +10196,6 @@ msgstr "写真"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "停止しています… ネイティブ操作の終了を待っています。"
 
-#~ msgid "Synchronize videos"
-#~ msgstr "動画を同期"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr "ブックを保存できませんでした。メディア同期は開始していません。"
 
@@ -10004,130 +10205,5 @@ msgstr "写真"
 #~ msgid "Unchanged"
 #~ msgstr "変更なし"
 
-msgid "Videos"
-msgstr "動画"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "ネイティブのメディア状態を待っています"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "表示のみのテストです。接続や権限は変更されません。"
-
-msgid "Tray preview"
-msgstr "トレイアイコンのプレビュー"
-
-msgid "Seasonal background"
-msgstr "季節の背景"
-
-msgid "Holiday watermark"
-msgstr "祝祭日の透かし"
-
-msgid "Both connected"
-msgstr "両方に接続"
-
-msgid "Camera"
-msgstr "カメラ"
-
-msgid "Snowflakes"
-msgstr "雪の結晶"
-
-msgid "Stars"
-msgstr "星"
-
-msgid "Boots"
-msgstr "ブーツ"
-
-msgid "Santa Claus"
-msgstr "サンタクロース"
-
-msgid "Rocket"
-msgstr "ロケット"
-
-msgid "Champagne glass"
-msgstr "シャンパングラス"
-
-msgid "Easter eggs"
-msgstr "イースターエッグ"
-
-msgid "Reset preview"
-msgstr "プレビューをリセット"
-
-msgid "OS tray icon (60 s)"
-msgstr "システムトレイアイコン（60秒）"
-
-msgid "Saved developer mode is required."
-msgstr "開発者モードを保存する必要があります。"
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "初期状態ではオフです。仮想カメラとマイクを使用します。ドライバーの設定で管理者権限を求められる場合があります。"
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "スマートフォンをウェブカメラとして使うには、v4l2loopback カーネルドライバーのインストールが必要です。"
-
-msgid "The virtual camera driver could not be checked."
-msgstr "仮想カメラのドライバーを確認できませんでした。"
-
-msgid "System authorization is unavailable."
-msgstr "システム認証を利用できません。"
-
-msgid "System authorization was cancelled."
-msgstr "システム認証がキャンセルされました。"
-
-msgid "The virtual camera could not be configured."
-msgstr "仮想カメラを設定できませんでした。"
-
-msgid "Virtual camera setup is already in progress."
-msgstr "仮想カメラの設定はすでに進行中です。"
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "ウェブカメラ用の v4l2loopback ドライバーがありません。今すぐインストールして設定しますか？"
-
-msgid "Install and set up"
-msgstr "インストールして設定"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "システムのパッケージマネージャーで v4l2loopback ドライバーをインストールしてください。"
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "システムでドライバーのインストールがまだ進行中の可能性があります。再試行する前にシステムのパッケージマネージャーを確認してください。"
-
-msgid "Phone webcam"
-msgstr "スマートフォンのウェブカメラ"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "初期状態はオフです。既存の仮想カメラとマイクを使用し、何もインストールしません。"
-
-msgid "Mute microphone"
-msgstr "マイクをミュート"
-
-msgid "Use front camera"
-msgstr "前面カメラを使用"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "既存の仮想カメラドライバーが必要です。何もインストールしていません。"
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect には互換性のあるウェブカメラ拡張機能が必要です。"
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "まず Magnolie Notes を Wi-Fi で接続してください。"
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "スマートフォンでカメラまたはマイクの権限が拒否されました。"
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "撮影を許可するにはスマートフォンで Magnolie Notes を開いてください。"
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "まず前のウェブカメラセッションが完全に停止する必要があります。"
-
-msgid "Waiting for phone permission and capture …"
-msgstr "スマートフォンの許可と撮影を待機中…"
-
-msgid "Active"
-msgstr "動作中"
-
-msgid "Start"
-msgstr "開始"

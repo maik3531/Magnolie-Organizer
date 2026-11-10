@@ -682,6 +682,9 @@ msgstr "Accounttype"
 msgid "Action"
 msgstr "Actie"
 
+msgid "Active"
+msgstr "Actief"
+
 msgid "Active call"
 msgstr "Actief gesprek"
 
@@ -706,6 +709,9 @@ msgstr "Toevoegen"
 
 msgid "Add %(type)s"
 msgstr "%(type)s toevoegen"
+
+msgid "Add PC source folder …"
+msgstr "Bronmap op pc toevoegen …"
 
 msgid "Add a custom tab"
 msgstr "Een aangepast tabblad toevoegen"
@@ -937,6 +943,11 @@ msgid ""
 msgstr ""
 "Een item wordt uitgesloten zodra een van zijn contactgroepen is "
 "geselecteerd. Er worden geen contacten of gedenkdagen verwijderd."
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr ""
+"Een bestaand virtueel camerastuurprogramma is vereist. Er is niets "
+"geïnstalleerd."
 
 msgid "Android restricts this device identifier."
 msgstr "Android beperkt deze apparaatidentificatie."
@@ -1360,6 +1371,9 @@ msgstr "De Bluetooth-koppeling in het systeem is niet bevestigd."
 msgid "Bold"
 msgstr "Vet"
 
+msgid "Boots"
+msgstr "Laarzen"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
@@ -1367,6 +1381,9 @@ msgstr ""
 "Beide takken tonen bij het verbinden dezelfde zescijferige code. Bevestig "
 "deze alleen als de codes overeenkomen; zo voorkomt u dat iemand de "
 "verbinding onderschept."
+
+msgid "Both connected"
+msgstr "Beide verbonden"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1509,6 +1526,12 @@ msgstr "Gesprek met %(name)s · %(date)s"
 msgid "Calligraphy pen"
 msgstr "Kalligrafiepen"
 
+msgid "Camera"
+msgstr "Camera"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "De camera- of microfoontoestemming is op de telefoon geweigerd."
+
 msgid "Cancel"
 msgstr "Annuleren"
 
@@ -1560,6 +1583,9 @@ msgstr "Celsius (°C)"
 
 msgid "Centered on the screen"
 msgstr "Gecentreerd op het scherm"
+
+msgid "Champagne glass"
+msgstr "Champagneglas"
 
 msgid "Change password"
 msgstr "Wachtwoord wijzigen"
@@ -1940,6 +1966,9 @@ msgstr "Bevestiging"
 
 msgid "Connect"
 msgstr "Verbinden"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Verbind Magnolie Notes eerst via wifi."
 
 msgid "Connect Notes before sending this entry."
 msgstr "Verbind Notes voordat je dit item verzendt."
@@ -2637,6 +2666,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "Vroege dienst"
 
+msgid "Easter eggs"
+msgstr "Paaseieren"
+
 msgid "Edit"
 msgstr "Bewerken"
 
@@ -2745,6 +2777,9 @@ msgstr ""
 "Wachtwoordbeveiliging inschakelen? Uw gegevens worden daarna versleuteld "
 "opgeslagen. Zonder het wachtwoord zijn ze onherroepelijk verloren; bewaar "
 "het wachtwoord op een veilige plaats."
+
+msgid "Enable photo and video synchronization"
+msgstr "Synchronisatie van foto’s en video’s inschakelen"
 
 msgid "Enable reminders"
 msgstr "Herinneringen inschakelen"
@@ -2876,6 +2911,9 @@ msgid ""
 msgstr ""
 "Voer hierboven uw adres in. Zonder vertrekpunt kan geen enkele service een "
 "route berekenen."
+
+msgid "Entire collection"
+msgstr "Gehele verzameling"
 
 msgid "Entries ready to import"
 msgstr "Gegevens klaar voor import"
@@ -3321,6 +3359,9 @@ msgid "Holiday retrieval is available only in the installed application."
 msgstr ""
 "Feestdagen ophalen is alleen beschikbaar in de geïnstalleerde toepassing."
 
+msgid "Holiday watermark"
+msgstr "Feestdagwatermerk"
+
 msgid "Home"
 msgstr "Privé"
 
@@ -3432,6 +3473,9 @@ msgstr "Eenmalig importeren"
 
 msgid "Import pairing file …"
 msgstr "Koppelingsbestand importeren …"
+
+msgid "Import phone → PC only"
+msgstr "Alleen van telefoon naar pc importeren"
 
 msgid "Import preview"
 msgstr "Importvoorbeeld"
@@ -3564,6 +3608,9 @@ msgstr "Koppeling invoegen"
 msgid "Insert shape"
 msgstr "Vorm invoegen"
 
+msgid "Install and set up"
+msgstr "Installeren en instellen"
+
 msgid "Install the packages, for example with:"
 msgstr "Installeer de pakketten, bijvoorbeeld met:"
 
@@ -3661,6 +3708,9 @@ msgstr ""
 
 msgid "KDE Connect reception failed."
 msgstr "Ontvangst via KDE Connect mislukt."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect vereist een compatibele webcamuitbreiding."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4271,6 +4321,9 @@ msgstr "Meerdere agenda's"
 msgid "Music player"
 msgstr "Muziekspeler"
 
+msgid "Mute microphone"
+msgstr "Microfoon dempen"
+
 msgid "Name"
 msgstr "Naam"
 
@@ -4818,6 +4871,9 @@ msgstr ""
 "dagafspraken, oproep- en webgegevens tekstnotities. Niet-ondersteunde items, "
 "opmaak, bijlagen en alarmen worden niet overgenomen."
 
+msgid "OS tray icon (60 s)"
+msgstr "Systeemvakpictogram (60 s)"
+
 msgid "Objects"
 msgstr "Objecten"
 
@@ -4836,6 +4892,13 @@ msgstr ""
 "berichten zonder ze te verwijderen. Inschakelen hervat ze, ook als het "
 "geplande tijdstip verstreken is. Berichten die al aan KDE Connect zijn "
 "doorgegeven, kunnen niet worden teruggeroepen."
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"Standaard uitgeschakeld. Gebruikt een virtuele camera en microfoon. Het "
+"instellen van het stuurprogramma kan om beheerdersrechten vragen."
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Wijzigingen van Personal Sync op de telefoon aanbieden"
@@ -4946,6 +5009,9 @@ msgstr "Alleen persoonlijke items kunnen naar Notes worden verzonden."
 msgid "Only the Notes collection"
 msgstr "Alleen de Notes-verzameling"
 
+msgid "Only the phone inventory"
+msgstr "Alleen de inhoud van de telefoon"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4979,6 +5045,9 @@ msgid ""
 msgstr ""
 "Open KDE Connect op de telefoon en start het koppelen. Vergelijk de "
 "verificatiesleutel van acht tekens en bevestig op beide apparaten."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Open Magnolie Notes op de telefoon om opname toe te staan."
 
 msgid "Open Magnolie Organizer"
 msgstr "Magnolie Organizer openen"
@@ -5142,6 +5211,12 @@ msgstr "Eigen venster beschikbaar: nee"
 
 msgid "Own window available: yes"
 msgstr "Eigen venster beschikbaar: ja"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "Bronmappen op de pc staan los van ontvangstbestemmingen."
+
+msgid "PC → phone"
+msgstr "Pc → telefoon"
 
 msgid "PDF file"
 msgstr "PDF-bestand"
@@ -5405,8 +5480,14 @@ msgstr ""
 "Deze achtergrondservice ondersteunt het instellen van een telefoon niet. "
 "Start de achtergrondservice opnieuw en probeer het nogmaals."
 
+msgid "Phone webcam"
+msgstr "Telefoonwebcam"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "Telefoon ‘%(name)s’ is veilig gekoppeld."
+
+msgid "Phone → PC"
+msgstr "Telefoon → pc"
 
 msgid "Phones"
 msgstr "Telefoons"
@@ -5439,8 +5520,14 @@ msgstr ""
 "Fotosynchronisatie is veilig gestopt. Controleer de verbinding voordat u het "
 "opnieuw probeert."
 
+msgid "Photos"
+msgstr "Foto’s"
+
 msgid "Photos and videos"
 msgstr "Foto's en video's"
+
+msgid "Photos only"
+msgstr "Alleen foto’s"
 
 msgid "Pick up"
 msgstr "Ophalen"
@@ -5499,6 +5586,12 @@ msgid ""
 msgstr ""
 "Vermeld je e-mailadres in de betalingsomschrijving; anders kan de "
 "ContributorKey niet naar je worden verzonden."
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr ""
+"Installeer het stuurprogramma v4l2loopback via de pakketbeheerder van het "
+"systeem."
 
 msgid "Please select a PDF file."
 msgstr "Selecteer een PDF-bestand."
@@ -5736,6 +5829,9 @@ msgstr "Reden"
 
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "Bewijs voltooid. Verzend de eerdere bevestiging afzonderlijk."
+
+msgid "Receive"
+msgstr "Ontvangen"
 
 msgid "Receive files"
 msgstr "Bestanden ontvangen"
@@ -5978,6 +6074,9 @@ msgstr ""
 "Vereist een bestaande BlueZ-systeemkoppeling. Alleen gegevens, geen HFP-"
 "audio."
 
+msgid "Reset preview"
+msgstr "Voorbeeld herstellen"
+
 msgid "Residual waste"
 msgstr "Restafval"
 
@@ -6097,6 +6196,9 @@ msgstr "Rijnland-Palts"
 msgid "Right page"
 msgstr "Rechterpagina"
 
+msgid "Rocket"
+msgstr "Raket"
+
 msgid "Rotate selection"
 msgstr "Selectie draaien"
 
@@ -6174,6 +6276,9 @@ msgstr "Saarland"
 msgid "Salzburg"
 msgstr "Salzburg"
 
+msgid "Santa Claus"
+msgstr "Kerstman"
+
 msgid "Saturday"
 msgstr "Zaterdag"
 
@@ -6229,6 +6334,9 @@ msgstr "Opgeslagen"
 
 msgid "Saved confirmation available."
 msgstr "Opslagbevestiging beschikbaar."
+
+msgid "Saved developer mode is required."
+msgstr "De ontwikkelaarsmodus moet opgeslagen zijn."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6346,6 +6454,9 @@ msgstr "Zoeken…"
 msgid "Search…"
 msgstr "Zoeken…"
 
+msgid "Seasonal background"
+msgstr "Seizoensachtergrond"
+
 msgid "Secondary office"
 msgstr "Nevenvestiging"
 
@@ -6415,6 +6526,9 @@ msgid "Select, preview, print, export or delete health records"
 msgstr ""
 "Gezondheidsgegevens selecteren, bekijken, afdrukken, exporteren of "
 "verwijderen"
+
+msgid "Selected PC source folders"
+msgstr "Geselecteerde bronmappen op de pc"
 
 msgid "Selected album synchronized."
 msgstr "Geselecteerd album gesynchroniseerd."
@@ -6555,6 +6669,12 @@ msgstr "Gedeelde aanmeldgegevens"
 msgid "Shared note"
 msgstr "Gedeelde notitie"
 
+msgid "Shared settings"
+msgstr "Gedeelde instellingen"
+
+msgid "Shared settings are not configured yet."
+msgstr "De gedeelde instellingen zijn nog niet geconfigureerd."
+
 msgid "Sharing this connection is not allowed."
 msgstr "Deze verbinding mag niet worden gedeeld."
 
@@ -6677,6 +6797,9 @@ msgstr ""
 "Momentopname hersteld. Bij de eerste synchronisatie worden geen "
 "verwijderingen verzonden."
 
+msgid "Snowflakes"
+msgstr "Sneeuwvlokken"
+
 msgid "Snowman"
 msgstr "Sneeuwpop"
 
@@ -6764,6 +6887,12 @@ msgstr "Vierkant"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Stars"
+msgstr "Sterren"
+
+msgid "Start"
+msgstr "Starten"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6939,11 +7068,20 @@ msgstr "Taken en afspraken van het tabblad ‘%(tab)s’ synchroniseren"
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Taken en afspraken van het aangepaste tabblad synchroniseren"
 
+msgid "Synchronize videos"
+msgstr "Video’s synchroniseren"
+
 msgid "Synchronizing …"
 msgstr "Synchroniseren …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "Systeemverificatie voor het configureren van UFW is niet beschikbaar."
+
+msgid "System authorization is unavailable."
+msgstr "Systeemautorisatie is niet beschikbaar."
+
+msgid "System authorization was cancelled."
+msgstr "Systeemautorisatie is geannuleerd."
 
 msgid "System default"
 msgstr "Systeemstandaard"
@@ -7176,6 +7314,17 @@ msgstr "De opslag van Magnolienbaum is beschadigd."
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr ""
 "De opslag van Magnolienbaum is versleuteld. Ontgrendel eerst de organizer."
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "De Nextcloud-accountinstellingen worden gewijzigd. Probeer het opnieuw nadat de huidige bewerking is voltooid."
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "De Nextcloud-accounttransactie moet worden hersteld. Accountwijzigingen en nieuwe synchronisatieverbindingen zijn geblokkeerd totdat de configuratie en aanmeldgegevens zijn gecontroleerd."
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Het Nextcloud-adresboek bevat ontbrekende of dubbele UIDs."
@@ -7906,6 +8055,9 @@ msgstr "De poort is ongeldig."
 msgid "The previous data could not be backed up."
 msgstr "Er kon geen back-up van de vorige gegevens worden gemaakt."
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "De vorige webcamsessie moet eerst volledig worden gestopt."
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "De afdrukpagina bevindt zich in: %s"
@@ -8125,6 +8277,13 @@ msgstr "Het synchronisatieverzoek kon niet worden verzonden."
 msgid "The synchronization resume journal is damaged."
 msgstr "Het hervattingslogboek voor synchronisatie is beschadigd."
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"De installatie van het stuurprogramma is mogelijk nog bezig. Controleer de "
+"pakketbeheerder van het systeem voordat u het opnieuw probeert."
+
 msgid "The task is missing from the update."
 msgstr "De taak ontbreekt in de update."
 
@@ -8198,8 +8357,20 @@ msgstr "De update-informatie is onleesbaar."
 msgid "The user data could not be read."
 msgstr "De gebruikersgegevens konden niet worden gelezen."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+"Het webcamstuurprogramma v4l2loopback ontbreekt. Wilt u het nu installeren "
+"en instellen?"
+
 msgid "The value is outside the general green reference range."
 msgstr "De waarde ligt buiten het algemene groene referentiebereik."
+
+msgid "The virtual camera could not be configured."
+msgstr "De virtuele camera kon niet worden ingesteld."
+
+msgid "The virtual camera driver could not be checked."
+msgstr ""
+"Het stuurprogramma voor de virtuele camera kon niet worden gecontroleerd."
 
 msgid "The wake-up reminder"
 msgstr "De wekherinnering"
@@ -8284,6 +8455,12 @@ msgid ""
 msgstr ""
 "Deze opties vereisen de bijbehorende machtigingen in Magnolie Notes. "
 "Gespreksaudio wordt niet via de Magnolie-gegevensverbinding verzonden."
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "Deze Nextcloud-agenda bevat gemarkeerde gedenkdagen. Agendasynchronisatie is geblokkeerd totdat dit bereik wordt ondersteund; er is geen volledige synchronisatie bevestigd."
 
 msgid "This action does not invent a task start or deadline."
 msgstr ""
@@ -8582,6 +8759,9 @@ msgstr "Reizen"
 msgid "Tray applet"
 msgstr "Systeemvak-applet"
 
+msgid "Tray preview"
+msgstr "Voorbeeld van het systeemvakpictogram"
+
 msgid "Triangle"
 msgstr "Driehoek"
 
@@ -8784,6 +8964,9 @@ msgstr "Contactadressen gebruiken"
 msgid "Use default"
 msgstr "Standaard gebruiken"
 
+msgid "Use front camera"
+msgstr "Camera aan voorkant gebruiken"
+
 msgid "Use newer version"
 msgstr "Nieuwere versie gebruiken"
 
@@ -8890,11 +9073,21 @@ msgstr "Via internet"
 msgid "Video player"
 msgstr "Videospeler"
 
+msgid "Videos"
+msgstr "Video’s"
+
 msgid "Vienna"
 msgstr "Wenen"
 
 msgid "View and edit appointment"
 msgstr "Afspraak bekijken en bewerken"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "De virtuele camera wordt al ingesteld."
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr ""
+"Alleen een visuele test; verbindingen en machtigingen worden niet gewijzigd."
 
 msgid "Vital signs"
 msgstr "Vitale waarden"
@@ -8927,6 +9120,9 @@ msgstr "Wachten op toestemming op het andere apparaat."
 msgid "Waiting for device status"
 msgstr "Wachten op apparaatstatus"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "Wachten op telefoontoestemming en opname …"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8940,6 +9136,9 @@ msgid ""
 msgstr ""
 "Wachten op de telefoon op poort %(port)s. De koppeling sluit na %(seconds)s "
 "seconden."
+
+msgid "Waiting for the phone…"
+msgstr "Wachten op de telefoon…"
 
 msgid "Wake the computer from suspend"
 msgstr "Computer uit slaapstand wekken"
@@ -9677,6 +9876,18 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr ""
+#~ "Voor de telefoonwebcam moet het kernelstuurprogramma v4l2loopback "
+#~ "geïnstalleerd zijn."
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "Standaard uit. Gebruikt een bestaande virtuele camera en microfoon; "
+#~ "installeert niets."
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "Voer een andere groepsnaam in."
 
@@ -10185,9 +10396,6 @@ msgstr "＋ Afspraak toevoegen"
 #~ "Alleen de inhoud van de telefoon synchroniseren. Lokale wijzigingen "
 #~ "blijven behouden. Verwijderingen worden nog niet gesynchroniseerd."
 
-msgid "Photos"
-msgstr "Foto’s"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "Mediaprullenbak lezen"
 
@@ -10221,9 +10429,6 @@ msgstr "Foto’s"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "Stoppen… Wachten tot de native bewerking eindigt."
 
-#~ msgid "Synchronize videos"
-#~ msgstr "Video’s synchroniseren"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr ""
 #~ "Het boek kon niet worden opgeslagen. Mediasynchronisatie is niet gestart."
@@ -10234,130 +10439,5 @@ msgstr "Foto’s"
 #~ msgid "Unchanged"
 #~ msgstr "Ongewijzigd"
 
-msgid "Videos"
-msgstr "Video’s"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "Wachten op native mediastatus"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "Alleen een visuele test; verbindingen en machtigingen worden niet gewijzigd."
-
-msgid "Tray preview"
-msgstr "Voorbeeld van het systeemvakpictogram"
-
-msgid "Seasonal background"
-msgstr "Seizoensachtergrond"
-
-msgid "Holiday watermark"
-msgstr "Feestdagwatermerk"
-
-msgid "Both connected"
-msgstr "Beide verbonden"
-
-msgid "Camera"
-msgstr "Camera"
-
-msgid "Snowflakes"
-msgstr "Sneeuwvlokken"
-
-msgid "Stars"
-msgstr "Sterren"
-
-msgid "Boots"
-msgstr "Laarzen"
-
-msgid "Santa Claus"
-msgstr "Kerstman"
-
-msgid "Rocket"
-msgstr "Raket"
-
-msgid "Champagne glass"
-msgstr "Champagneglas"
-
-msgid "Easter eggs"
-msgstr "Paaseieren"
-
-msgid "Reset preview"
-msgstr "Voorbeeld herstellen"
-
-msgid "OS tray icon (60 s)"
-msgstr "Systeemvakpictogram (60 s)"
-
-msgid "Saved developer mode is required."
-msgstr "De ontwikkelaarsmodus moet opgeslagen zijn."
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "Standaard uitgeschakeld. Gebruikt een virtuele camera en microfoon. Het instellen van het stuurprogramma kan om beheerdersrechten vragen."
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "Voor de telefoonwebcam moet het kernelstuurprogramma v4l2loopback geïnstalleerd zijn."
-
-msgid "The virtual camera driver could not be checked."
-msgstr "Het stuurprogramma voor de virtuele camera kon niet worden gecontroleerd."
-
-msgid "System authorization is unavailable."
-msgstr "Systeemautorisatie is niet beschikbaar."
-
-msgid "System authorization was cancelled."
-msgstr "Systeemautorisatie is geannuleerd."
-
-msgid "The virtual camera could not be configured."
-msgstr "De virtuele camera kon niet worden ingesteld."
-
-msgid "Virtual camera setup is already in progress."
-msgstr "De virtuele camera wordt al ingesteld."
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "Het webcamstuurprogramma v4l2loopback ontbreekt. Wilt u het nu installeren en instellen?"
-
-msgid "Install and set up"
-msgstr "Installeren en instellen"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "Installeer het stuurprogramma v4l2loopback via de pakketbeheerder van het systeem."
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "De installatie van het stuurprogramma is mogelijk nog bezig. Controleer de pakketbeheerder van het systeem voordat u het opnieuw probeert."
-
-msgid "Phone webcam"
-msgstr "Telefoonwebcam"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "Standaard uit. Gebruikt een bestaande virtuele camera en microfoon; installeert niets."
-
-msgid "Mute microphone"
-msgstr "Microfoon dempen"
-
-msgid "Use front camera"
-msgstr "Camera aan voorkant gebruiken"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "Een bestaand virtueel camerastuurprogramma is vereist. Er is niets geïnstalleerd."
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect vereist een compatibele webcamuitbreiding."
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "Verbind Magnolie Notes eerst via wifi."
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "De camera- of microfoontoestemming is op de telefoon geweigerd."
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "Open Magnolie Notes op de telefoon om opname toe te staan."
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "De vorige webcamsessie moet eerst volledig worden gestopt."
-
-msgid "Waiting for phone permission and capture …"
-msgstr "Wachten op telefoontoestemming en opname …"
-
-msgid "Active"
-msgstr "Actief"
-
-msgid "Start"
-msgstr "Starten"

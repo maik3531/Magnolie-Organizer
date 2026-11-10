@@ -623,6 +623,9 @@ msgstr "账户类型"
 msgid "Action"
 msgstr "操作"
 
+msgid "Active"
+msgstr "运行中"
+
 msgid "Active call"
 msgstr "当前通话"
 
@@ -645,6 +648,9 @@ msgstr "添加"
 
 msgid "Add %(type)s"
 msgstr "添加%(type)s"
+
+msgid "Add PC source folder …"
+msgstr "添加电脑源文件夹 …"
 
 msgid "Add a custom tab"
 msgstr "添加自定义标签页"
@@ -869,6 +875,9 @@ msgid ""
 msgstr ""
 "只要选中了条目所属的任一联系人分组，该条目就会被排除。联系人和纪念日不会被删"
 "除。"
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr "需要现有的虚拟摄像头驱动程序。未安装任何组件。"
 
 msgid "Android restricts this device identifier."
 msgstr "Android 限制访问此设备标识符。"
@@ -1278,12 +1287,18 @@ msgstr "尚未确认系统中的 Bluetooth 配对。"
 msgid "Bold"
 msgstr "粗体"
 
+msgid "Boots"
+msgstr "靴子"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
 msgstr ""
 "连接时两个分支都会显示相同的六位代码。只有在代码完全一致时才确认，以防他人截"
 "获连接。"
+
+msgid "Both connected"
+msgstr "两者均已连接"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1417,6 +1432,12 @@ msgstr "与 %(name)s 的通话 · %(date)s"
 msgid "Calligraphy pen"
 msgstr "书法笔"
 
+msgid "Camera"
+msgstr "相机"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "手机上的摄像头或麦克风权限已被拒绝。"
+
 msgid "Cancel"
 msgstr "取消"
 
@@ -1468,6 +1489,9 @@ msgstr "摄氏度 (°C)"
 
 msgid "Centered on the screen"
 msgstr "屏幕居中"
+
+msgid "Champagne glass"
+msgstr "香槟杯"
 
 msgid "Change password"
 msgstr "更改密码"
@@ -1820,6 +1844,9 @@ msgstr "确认"
 
 msgid "Connect"
 msgstr "连接"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "请先通过 Wi-Fi 连接 Magnolie Notes。"
 
 msgid "Connect Notes before sending this entry."
 msgstr "发送此条目前请连接 Notes。"
@@ -2482,6 +2509,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "早班"
 
+msgid "Easter eggs"
+msgstr "复活节彩蛋"
+
 msgid "Edit"
 msgstr "编辑"
 
@@ -2587,6 +2617,9 @@ msgid ""
 msgstr ""
 "启用密码保护？之后您的数据将以加密形式存储。没有密码，数据将无法恢复；请将密"
 "码妥善保管。"
+
+msgid "Enable photo and video synchronization"
+msgstr "启用照片和视频同步"
 
 msgid "Enable reminders"
 msgstr "启用提醒"
@@ -2711,6 +2744,9 @@ msgid ""
 "Enter your address above. No service can calculate directions without a "
 "starting point."
 msgstr "请在上方输入您的地址。没有起点，任何服务都无法计算路线。"
+
+msgid "Entire collection"
+msgstr "整个集合"
 
 msgid "Entries ready to import"
 msgstr "待导入的条目"
@@ -3145,6 +3181,9 @@ msgstr "历史趋势"
 msgid "Holiday retrieval is available only in the installed application."
 msgstr "只有安装版应用程序支持获取假日。"
 
+msgid "Holiday watermark"
+msgstr "节日水印"
+
 msgid "Home"
 msgstr "家庭"
 
@@ -3253,6 +3292,9 @@ msgstr "仅导入一次"
 
 msgid "Import pairing file …"
 msgstr "导入配对文件 …"
+
+msgid "Import phone → PC only"
+msgstr "仅从手机导入到电脑"
 
 msgid "Import preview"
 msgstr "导入预览"
@@ -3374,6 +3416,9 @@ msgstr "插入链接"
 msgid "Insert shape"
 msgstr "插入形状"
 
+msgid "Install and set up"
+msgstr "安装并设置"
+
 msgid "Install the packages, for example with:"
 msgstr "安装所需软件包，例如："
 
@@ -3466,6 +3511,9 @@ msgstr "后台服务无法应用 KDE Connect 接收设置。"
 
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect 接收失败。"
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect 需要兼容的网络摄像头扩展。"
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4054,6 +4102,9 @@ msgstr "多个日历"
 msgid "Music player"
 msgstr "音乐播放器"
 
+msgid "Mute microphone"
+msgstr "麦克风静音"
+
 msgid "Name"
 msgstr "名称"
 
@@ -4579,6 +4630,9 @@ msgstr ""
 "日转为全天日程，通话和网页记录转为文本笔记。不传输不支持的条目、版式、附件和"
 "提醒。"
 
+msgid "OS tray icon (60 s)"
+msgstr "系统托盘图标（60秒）"
+
 msgid "Objects"
 msgstr "物体"
 
@@ -4595,6 +4649,11 @@ msgid ""
 msgstr ""
 "默认关闭。关闭后会暂停待发送的 SMS 计划，但不会删除它们。启用后会恢复这些计"
 "划，包括已过预定时间的计划。已交给 KDE Connect 的消息无法撤回。"
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr "默认关闭。使用虚拟摄像头和麦克风。驱动程序设置可能需要管理员授权。"
 
 msgid "Offer Personal Sync phone changes"
 msgstr "提供 Personal Sync 手机更改"
@@ -4692,6 +4751,9 @@ msgstr "只能将个人条目发送到 Notes。"
 msgid "Only the Notes collection"
 msgstr "仅 Notes 集合"
 
+msgid "Only the phone inventory"
+msgstr "仅手机中的内容"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4722,6 +4784,9 @@ msgid ""
 msgstr ""
 "在手机上打开 KDE Connect 并开始配对。比较八字符验证密钥，然后在两台设备上确"
 "认。"
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "请在手机上打开 Magnolie Notes 以允许采集。"
 
 msgid "Open Magnolie Organizer"
 msgstr "打开 Magnolie Organizer"
@@ -4880,6 +4945,12 @@ msgstr "可用独立窗口：否"
 
 msgid "Own window available: yes"
 msgstr "可用独立窗口：是"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "电脑源文件夹与接收目标相互独立。"
+
+msgid "PC → phone"
+msgstr "电脑 → 手机"
 
 msgid "PDF file"
 msgstr "PDF 文件"
@@ -5116,8 +5187,14 @@ msgid ""
 "background service and try again."
 msgstr "当前后台服务无法进行手机设置。请重启后台服务后重试。"
 
+msgid "Phone webcam"
+msgstr "手机网络摄像头"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "已恢复“%(name)s”。"
+
+msgid "Phone → PC"
+msgstr "手机 → 电脑"
 
 msgid "Phones"
 msgstr "电话"
@@ -5146,8 +5223,14 @@ msgid ""
 "Photo synchronization stopped safely. Check the connection before retrying."
 msgstr "照片同步已安全停止。重试前请检查连接。"
 
+msgid "Photos"
+msgstr "照片"
+
 msgid "Photos and videos"
 msgstr "照片和视频"
+
+msgid "Photos only"
+msgstr "仅照片"
 
 msgid "Pick up"
 msgstr "接取"
@@ -5205,6 +5288,10 @@ msgid ""
 "ContributorKey cannot be sent to you."
 msgstr ""
 "请在付款用途说明中填写你的电子邮箱地址，否则无法向你发送ContributorKey。"
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr "请使用系统软件包管理器安装 v4l2loopback 驱动程序。"
 
 msgid "Please select a PDF file."
 msgstr "请选择 PDF 文件。"
@@ -5431,6 +5518,9 @@ msgstr "原因"
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "凭证已补全。请单独发送其先前的确认。"
 
+msgid "Receive"
+msgstr "接收"
+
 msgid "Receive files"
 msgstr "接收文件"
 
@@ -5655,6 +5745,9 @@ msgstr "需要 Nextcloud 账户。"
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "需要现有的 BlueZ 系统配对。仅限数据，不支持 HFP 音频。"
 
+msgid "Reset preview"
+msgstr "重置预览"
+
 msgid "Residual waste"
 msgstr "其他垃圾"
 
@@ -5768,6 +5861,9 @@ msgstr "莱茵兰-普法尔茨"
 msgid "Right page"
 msgstr "右页"
 
+msgid "Rocket"
+msgstr "火箭"
+
 msgid "Rotate selection"
 msgstr "旋转选区"
 
@@ -5842,6 +5938,9 @@ msgstr "萨尔兰"
 msgid "Salzburg"
 msgstr "萨尔茨堡"
 
+msgid "Santa Claus"
+msgstr "圣诞老人"
+
 msgid "Saturday"
 msgstr "星期六"
 
@@ -5896,6 +5995,9 @@ msgstr "已保存"
 
 msgid "Saved confirmation available."
 msgstr "已有保存确认。"
+
+msgid "Saved developer mode is required."
+msgstr "必须先保存开发者模式。"
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6010,6 +6112,9 @@ msgstr "正在搜索…"
 msgid "Search…"
 msgstr "搜索…"
 
+msgid "Seasonal background"
+msgstr "季节背景"
+
 msgid "Secondary office"
 msgstr "第二办公室"
 
@@ -6075,6 +6180,9 @@ msgstr "选择您的手机"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "选择、预览、打印、导出或删除健康记录"
+
+msgid "Selected PC source folders"
+msgstr "已选电脑源文件夹"
 
 msgid "Selected album synchronized."
 msgstr "所选相册已同步。"
@@ -6212,6 +6320,12 @@ msgstr "共享凭据"
 msgid "Shared note"
 msgstr "共享便笺"
 
+msgid "Shared settings"
+msgstr "共享设置"
+
+msgid "Shared settings are not configured yet."
+msgstr "尚未配置共享设置。"
+
 msgid "Sharing this connection is not allowed."
 msgstr "未授权分享此连接。"
 
@@ -6330,6 +6444,9 @@ msgstr "快照间隔"
 msgid "Snapshot restored. The first synchronization will not send deletions."
 msgstr "快照已恢复。第一次同步不会发送删除操作。"
 
+msgid "Snowflakes"
+msgstr "雪花"
+
 msgid "Snowman"
 msgstr "雪人"
 
@@ -6415,6 +6532,12 @@ msgstr "正方形"
 
 msgid "St. Gallen"
 msgstr "圣加仑"
+
+msgid "Stars"
+msgstr "星星"
+
+msgid "Start"
+msgstr "启动"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -6589,11 +6712,20 @@ msgstr "同步“%(tab)s”选项卡中的任务和日程"
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "同步自定义选项卡中的任务和日程"
 
+msgid "Synchronize videos"
+msgstr "同步视频"
+
 msgid "Synchronizing …"
 msgstr "正在同步 …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "用于配置 UFW 的系统身份验证不可用。"
+
+msgid "System authorization is unavailable."
+msgstr "系统授权不可用。"
+
+msgid "System authorization was cancelled."
+msgstr "系统授权已取消。"
 
 msgid "System default"
 msgstr "系统默认"
@@ -6808,6 +6940,17 @@ msgstr "Magnolienbaum 存储已损坏。"
 
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr "Magnolienbaum 存储已加密。请先解锁 Organizer。"
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "正在更改 Nextcloud 账户设置。请在当前操作完成后重试。"
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Nextcloud 账户事务需要恢复。在检查配置和凭据之前，账户更改和新的同步连接均被阻止。"
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Nextcloud 地址簿包含丢失或重复的 UID。"
@@ -7466,6 +7609,9 @@ msgstr "端口无效。"
 msgid "The previous data could not be backed up."
 msgstr "无法备份之前的数据。"
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "必须先完全停止上一次网络摄像头会话。"
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "打印页面位于：%s"
@@ -7664,6 +7810,11 @@ msgstr "无法发送同步请求。"
 msgid "The synchronization resume journal is damaged."
 msgstr "同步续传日志已损坏。"
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr "系统驱动程序的安装可能仍在进行。重试前请检查系统软件包管理器。"
+
 msgid "The task is missing from the update."
 msgstr "更新中缺少该任务。"
 
@@ -7734,8 +7885,17 @@ msgstr "更新信息无法读取。"
 msgid "The user data could not be read."
 msgstr "无法读取用户数据。"
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr "缺少 v4l2loopback 网络摄像头驱动程序。是否立即安装并设置？"
+
 msgid "The value is outside the general green reference range."
 msgstr "该数值超出一般绿色参考范围。"
+
+msgid "The virtual camera could not be configured."
+msgstr "无法配置虚拟摄像头。"
+
+msgid "The virtual camera driver could not be checked."
+msgstr "无法检查虚拟摄像头驱动程序。"
 
 msgid "The wake-up reminder"
 msgstr "唤醒提醒"
@@ -7815,6 +7975,12 @@ msgid ""
 msgstr ""
 "这些选项需要 Magnolie Notes 中相应的权限。通话音频不会通过 Magnolie 数据连接"
 "传输。"
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "此 Nextcloud 日历包含带标记的纪念日。在支持此范围之前，日历同步已被阻止；尚未确认任何完整同步。"
 
 msgid "This action does not invent a task start or deadline."
 msgstr "此操作不会添加任务缺失的开始时间或截止时间。"
@@ -8092,6 +8258,9 @@ msgstr "旅行"
 msgid "Tray applet"
 msgstr "系统托盘小程序"
 
+msgid "Tray preview"
+msgstr "托盘图标预览"
+
 msgid "Triangle"
 msgstr "三角形"
 
@@ -8291,6 +8460,9 @@ msgstr "使用联系人地址"
 msgid "Use default"
 msgstr "使用默认设置"
 
+msgid "Use front camera"
+msgstr "使用前置摄像头"
+
 msgid "Use newer version"
 msgstr "使用较新版本"
 
@@ -8387,11 +8559,20 @@ msgstr "通过互联网"
 msgid "Video player"
 msgstr "视频播放器"
 
+msgid "Videos"
+msgstr "视频"
+
 msgid "Vienna"
 msgstr "维也纳"
 
 msgid "View and edit appointment"
 msgstr "查看并编辑约会"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "虚拟摄像头设置已在进行中。"
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "仅测试外观；不会更改连接或权限。"
 
 msgid "Vital signs"
 msgstr "生命体征"
@@ -8423,6 +8604,9 @@ msgstr "正在等待另一台设备同意。"
 msgid "Waiting for device status"
 msgstr "等待设备状态"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "正在等待手机授权和采集…"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8432,6 +8616,9 @@ msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr "正在等待端口 %(port)s 上的电话。配对将在 %(seconds)s 秒后关闭。"
+
+msgid "Waiting for the phone…"
+msgstr "正在等待手机…"
 
 msgid "Wake the computer from suspend"
 msgstr "从挂起状态唤醒计算机"
@@ -9126,6 +9313,14 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr "要使用手机网络摄像头功能，必须安装 v4l2loopback 内核驱动程序。"
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr "默认关闭。使用现有虚拟摄像头和麦克风；不安装任何组件。"
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "请输入不同的群组名称。"
 
@@ -9570,9 +9765,6 @@ msgstr "＋ 添加约会"
 #~ "Deletions are not synchronized yet."
 #~ msgstr "仅同步手机上的内容。本地修改会保留。目前尚不同步删除操作。"
 
-msgid "Photos"
-msgstr "照片"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "读取媒体回收站"
 
@@ -9602,9 +9794,6 @@ msgstr "照片"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "正在停止… 等待原生操作结束。"
 
-#~ msgid "Synchronize videos"
-#~ msgstr "同步视频"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr "无法保存笔记本。未开始媒体同步。"
 
@@ -9614,130 +9803,5 @@ msgstr "照片"
 #~ msgid "Unchanged"
 #~ msgstr "未更改"
 
-msgid "Videos"
-msgstr "视频"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "等待原生媒体状态"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "仅测试外观；不会更改连接或权限。"
-
-msgid "Tray preview"
-msgstr "托盘图标预览"
-
-msgid "Seasonal background"
-msgstr "季节背景"
-
-msgid "Holiday watermark"
-msgstr "节日水印"
-
-msgid "Both connected"
-msgstr "两者均已连接"
-
-msgid "Camera"
-msgstr "相机"
-
-msgid "Snowflakes"
-msgstr "雪花"
-
-msgid "Stars"
-msgstr "星星"
-
-msgid "Boots"
-msgstr "靴子"
-
-msgid "Santa Claus"
-msgstr "圣诞老人"
-
-msgid "Rocket"
-msgstr "火箭"
-
-msgid "Champagne glass"
-msgstr "香槟杯"
-
-msgid "Easter eggs"
-msgstr "复活节彩蛋"
-
-msgid "Reset preview"
-msgstr "重置预览"
-
-msgid "OS tray icon (60 s)"
-msgstr "系统托盘图标（60秒）"
-
-msgid "Saved developer mode is required."
-msgstr "必须先保存开发者模式。"
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "默认关闭。使用虚拟摄像头和麦克风。驱动程序设置可能需要管理员授权。"
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "要使用手机网络摄像头功能，必须安装 v4l2loopback 内核驱动程序。"
-
-msgid "The virtual camera driver could not be checked."
-msgstr "无法检查虚拟摄像头驱动程序。"
-
-msgid "System authorization is unavailable."
-msgstr "系统授权不可用。"
-
-msgid "System authorization was cancelled."
-msgstr "系统授权已取消。"
-
-msgid "The virtual camera could not be configured."
-msgstr "无法配置虚拟摄像头。"
-
-msgid "Virtual camera setup is already in progress."
-msgstr "虚拟摄像头设置已在进行中。"
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "缺少 v4l2loopback 网络摄像头驱动程序。是否立即安装并设置？"
-
-msgid "Install and set up"
-msgstr "安装并设置"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "请使用系统软件包管理器安装 v4l2loopback 驱动程序。"
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "系统驱动程序的安装可能仍在进行。重试前请检查系统软件包管理器。"
-
-msgid "Phone webcam"
-msgstr "手机网络摄像头"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "默认关闭。使用现有虚拟摄像头和麦克风；不安装任何组件。"
-
-msgid "Mute microphone"
-msgstr "麦克风静音"
-
-msgid "Use front camera"
-msgstr "使用前置摄像头"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "需要现有的虚拟摄像头驱动程序。未安装任何组件。"
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect 需要兼容的网络摄像头扩展。"
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "请先通过 Wi-Fi 连接 Magnolie Notes。"
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "手机上的摄像头或麦克风权限已被拒绝。"
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "请在手机上打开 Magnolie Notes 以允许采集。"
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "必须先完全停止上一次网络摄像头会话。"
-
-msgid "Waiting for phone permission and capture …"
-msgstr "正在等待手机授权和采集…"
-
-msgid "Active"
-msgstr "运行中"
-
-msgid "Start"
-msgstr "启动"

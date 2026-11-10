@@ -762,6 +762,9 @@ msgstr "Kontowy typ"
 msgid "Action"
 msgstr "Akcija"
 
+msgid "Active"
+msgstr "Aktiwny"
+
 msgid "Active call"
 msgstr "Aktualne zawołanje"
 
@@ -786,6 +789,9 @@ msgstr "Přidać"
 
 msgid "Add %(type)s"
 msgstr "%(type)s přidać"
+
+msgid "Add PC source folder …"
+msgstr "Žórłowy rjadowak na PC přidać …"
 
 msgid "Add a custom tab"
 msgstr "Swójski rajtark přidać"
@@ -1016,6 +1022,10 @@ msgid ""
 msgstr ""
 "Zapisk so wuzamknje, hdyž je znajmjeńša jedna z jeho skupin kontaktow "
 "wubrana. Kontakty a róčnicy so njezhašeja."
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
+msgstr ""
+"Eksistowacy ćěrjak wirtuelneje kamery je trěbny. Ničo njeje so instalowało."
 
 msgid "Android restricts this device identifier."
 msgstr "Android tutón identifikator wobmjezuje."
@@ -1436,6 +1446,9 @@ msgstr "Skoplowanje přez Bluetooth w systemje njeje so wobkrućiło."
 msgid "Bold"
 msgstr "Tučny"
 
+msgid "Boots"
+msgstr "Škórnje"
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
@@ -1443,6 +1456,9 @@ msgstr ""
 "Při zwjazowanju pokazujetej wobaj wotrězkej samsny šěsćměstny kod. Wobkrućće "
 "jón jenož, hdyž so woprawdźe kryje; tak zadźěwaće tomu, zo něchtó zwisk "
 "wotposłucha."
+
+msgid "Both connected"
+msgstr "Wobaj zwjazanej"
 
 msgid ""
 "Both devices must opt in. Turning this off pauses reminders and updates from "
@@ -1585,6 +1601,12 @@ msgstr "Zawołanje z %(name)s · %(date)s"
 msgid "Calligraphy pen"
 msgstr "Kaligrafiske pjero"
 
+msgid "Camera"
+msgstr "Kamera"
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr "Dowolnosć za kameru abo mikrofon bu na telefonje wotpokazana."
+
 msgid "Cancel"
 msgstr "Přetorhnyć"
 
@@ -1636,6 +1658,9 @@ msgstr "Celsius (°C)"
 
 msgid "Centered on the screen"
 msgstr "Srjedźa wobrazowki"
+
+msgid "Champagne glass"
+msgstr "Šampańska šklenčka"
 
 msgid "Change password"
 msgstr "Hesło změnić"
@@ -2013,6 +2038,9 @@ msgstr "Wobkrućenje"
 
 msgid "Connect"
 msgstr "Zwjazać"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Zwjazajće najprjedy Magnolie Notes přez WLAN."
 
 msgid "Connect Notes before sending this entry."
 msgstr "Zwjazajće Notes, prjedy hač tutón zapisk pósćeleće."
@@ -2709,6 +2737,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr "Ranja změna"
 
+msgid "Easter eggs"
+msgstr "Jutrowne jejka"
+
 msgid "Edit"
 msgstr "Wobdźěłać"
 
@@ -2816,6 +2847,9 @@ msgid ""
 msgstr ""
 "Škit z hesłom zmóžnić? Waše daty so potom zaklučowane składuja. Bjez hesła "
 "su njewróćomnje zhubjene; chowajće hesło na wěstym městnje."
+
+msgid "Enable photo and video synchronization"
+msgstr "Synchronizaciju fotow a widejow zmóžnić"
 
 msgid "Enable reminders"
 msgstr "Dopominanja zmóžnić"
@@ -2946,6 +2980,9 @@ msgid ""
 msgstr ""
 "Zapodajće horjeka swoju adresu. Žana słužba njemóže puć bjez startoweho "
 "městna wuličić."
+
+msgid "Entire collection"
+msgstr "Cyła zběrka"
 
 msgid "Entries ready to import"
 msgstr "Zapiski přihotowane za import"
@@ -3389,6 +3426,9 @@ msgid "Holiday retrieval is available only in the installed application."
 msgstr ""
 "Wotwołanje swjatych dnjow je jenož w instalowanym nałoženju k dispoziciji."
 
+msgid "Holiday watermark"
+msgstr "Swjedźenski wodowy znamješk"
+
 msgid "Home"
 msgstr "Doma"
 
@@ -3499,6 +3539,9 @@ msgstr "Jónu importować"
 
 msgid "Import pairing file …"
 msgstr "Porowanski dataj importować …"
+
+msgid "Import phone → PC only"
+msgstr "Jenož z telefona na PC importować"
 
 msgid "Import preview"
 msgstr "Přehlad importa"
@@ -3632,6 +3675,9 @@ msgstr "Wotkaz zasadźić"
 msgid "Insert shape"
 msgstr "Formu zasadźić"
 
+msgid "Install and set up"
+msgstr "Instalować a zarjadować"
+
 msgid "Install the packages, for example with:"
 msgstr "Instalujće pakety, na přikład z:"
 
@@ -3726,6 +3772,9 @@ msgstr "Pozadkowa słužba njemóžeše přijimanske nastajenja KDE Connect nał
 
 msgid "KDE Connect reception failed."
 msgstr "Přijimanje KDE Connect je so njeporadźiło."
+
+msgid "KDE Connect requires a compatible webcam extension."
+msgstr "KDE Connect kompatibelne rozšěrjenje webkamery wužaduje."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4335,6 +4384,9 @@ msgstr "Wjacore protyki"
 msgid "Music player"
 msgstr "Hudźbny wothrawak"
 
+msgid "Mute microphone"
+msgstr "Mikrofon wupinyć"
+
 msgid "Name"
 msgstr "Mjeno"
 
@@ -4878,6 +4930,9 @@ msgstr ""
 "zawołanjow a webstronow tekstowe noticy. Njepodpěrane zapiski, wuhotowanje, "
 "přiwěški a dopomnjenki so njepřenjesu."
 
+msgid "OS tray icon (60 s)"
+msgstr "Symbol w systemowej lajsće (60 s)"
+
 msgid "Objects"
 msgstr "Předmjety"
 
@@ -4895,6 +4950,13 @@ msgstr ""
 "Po standardźe wupinjene. Wupinanje zastaji čakace planowane SMS, bjez toho "
 "zo by je zhašało. Zapinanje je pokročuje, tež te z překročenym časom. "
 "Powěsće, kotrež su so hižo KDE Connect přepodali, njedadźa so wróćo wołać."
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
+msgstr ""
+"Po standardźe wupinjene. Wužiwa wirtuelnu kameru a mikrofon. Zarjadowanje "
+"ćěrjaka móže prawa administratora požadać."
 
 msgid "Offer Personal Sync phone changes"
 msgstr "Telefonowe změny Personal Sync poskićić"
@@ -5019,6 +5081,9 @@ msgstr "Jenož wosobinske zapiski hodźa so do Notes pósłać."
 msgid "Only the Notes collection"
 msgstr "Jenož zběrka Notes"
 
+msgid "Only the phone inventory"
+msgstr "Jenož wobsah telefona"
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -5052,6 +5117,9 @@ msgid ""
 msgstr ""
 "Wočińće KDE Connect na telefonje a započńće sparowanje. Přirunajće "
 "wosomznamješkowy přepruwowanski kluč a wobkrućće jón na woběmaj gratajomaj."
+
+msgid "Open Magnolie Notes on the phone to allow capture."
+msgstr "Wočińće Magnolie Notes na telefonje, zo byšće zaznam dowolili."
 
 msgid "Open Magnolie Organizer"
 msgstr "Magnolie Organizer wočinić"
@@ -5214,6 +5282,12 @@ msgstr "Wosobinske wokno k dispoziciji: ně"
 
 msgid "Own window available: yes"
 msgstr "Wosobinske wokno k dispoziciji: haj"
+
+msgid "PC source folders are separate from receive destinations."
+msgstr "Žórłowe rjadowaki na PC su wot přijimanskich cilow dźělene."
+
+msgid "PC → phone"
+msgstr "PC → telefon"
 
 msgid "PDF file"
 msgstr "PDF-dataj"
@@ -5474,8 +5548,14 @@ msgstr ""
 "Tuta pozadkowa słužba zarjadowanje telefona njepodpěruje. Startujće "
 "pozadkowu słužbu znowa a spytajće hišće raz."
 
+msgid "Phone webcam"
+msgstr "Webkamera telefona"
+
 msgid "Phone “%(name)s” is securely paired."
 msgstr "„%(name)s“ bu wobnowjene."
+
+msgid "Phone → PC"
+msgstr "Telefon → PC"
 
 msgid "Phones"
 msgstr "Telefon"
@@ -5508,8 +5588,14 @@ msgstr ""
 "Synchronizacija fotow je so wěsće zastajiła. Přepruwujće zwisk před dalšim "
 "pospytom."
 
+msgid "Photos"
+msgstr "Fota"
+
 msgid "Photos and videos"
 msgstr "Fota a wideja"
+
+msgid "Photos only"
+msgstr "Jenož fota"
 
 msgid "Pick up"
 msgstr "Wotewzać"
@@ -5568,6 +5654,11 @@ msgid ""
 msgstr ""
 "Podaj swoju e-mejlowu adresu jako zaměr płaćenja, hewak so ContributorKey "
 "tebi připosłać njemóže."
+
+msgid ""
+"Please install the v4l2loopback driver using the system package manager."
+msgstr ""
+"Prošu instalujće ćěrjak v4l2loopback ze systemowym zrjadowakom paketow."
 
 msgid "Please select a PDF file."
 msgstr "Prošu wubjerće PDF-dataj."
@@ -5810,6 +5901,9 @@ msgstr "Přičina"
 msgid "Receipt completed. Send its historical confirmation separately."
 msgstr "Dokład dokónčeny. Prjedawše wobkrućenje separatnje pósłać."
 
+msgid "Receive"
+msgstr "Přijeć"
+
 msgid "Receive files"
 msgstr "Dataje přijimać"
 
@@ -6047,6 +6141,9 @@ msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr ""
 "Trjeba hižo wobstejace BlueZ-systemowe porowanje. Jenož daty, žane HFP awdio."
 
+msgid "Reset preview"
+msgstr "Přehlad wróćo stajić"
+
 msgid "Residual waste"
 msgstr "Zbytne wotpadki"
 
@@ -6166,6 +6263,9 @@ msgstr "Porýnska-Pfalca"
 msgid "Right page"
 msgstr "Prawa strona"
 
+msgid "Rocket"
+msgstr "Raketa"
+
 msgid "Rotate selection"
 msgstr "Wuběr wjerćeć"
 
@@ -6243,6 +6343,9 @@ msgstr "Saarland"
 msgid "Salzburg"
 msgstr "Salzburg"
 
+msgid "Santa Claus"
+msgstr "Hodowny muž"
+
 msgid "Saturday"
 msgstr "Sobota"
 
@@ -6298,6 +6401,9 @@ msgstr "Składowane"
 
 msgid "Saved confirmation available."
 msgstr "Wobkrućenje składowanja je k dispoziciji."
+
+msgid "Saved developer mode is required."
+msgstr "Wuwiwarski modus dyrbi składowany być."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6417,6 +6523,9 @@ msgstr "Pyta so…"
 msgid "Search…"
 msgstr "Pytać…"
 
+msgid "Seasonal background"
+msgstr "Pozadk po ročnym času"
+
 msgid "Secondary office"
 msgstr "Pobočna běrownja"
 
@@ -6484,6 +6593,9 @@ msgstr "Wubjerće swój telefon"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "Strowotne zapiski wubrać, přehladować, ćišćeć, eksportować abo zhašeć"
+
+msgid "Selected PC source folders"
+msgstr "Wubrane žórłowe rjadowaki na PC"
 
 msgid "Selected album synchronized."
 msgstr "Wubrany album je synchronizowany."
@@ -6623,6 +6735,12 @@ msgstr "Zhromadne přizjewjenske daty"
 msgid "Shared note"
 msgstr "Dźělena notica"
 
+msgid "Shared settings"
+msgstr "Zhromadne nastajenja"
+
+msgid "Shared settings are not configured yet."
+msgstr "Zhromadne nastajenja hišće zarjadowane njejsu."
+
 msgid "Sharing this connection is not allowed."
 msgstr "Dale daće tutoho zwiska njeje dowolene."
 
@@ -6744,6 +6862,9 @@ msgid "Snapshot restored. The first synchronization will not send deletions."
 msgstr ""
 "Snapshot restawrowany. Prěnja synchronizacija njebudźe wotstronjenja pósłać."
 
+msgid "Snowflakes"
+msgstr "Sněhowe płatki"
+
 msgid "Snowman"
 msgstr "Sněhak"
 
@@ -6831,6 +6952,12 @@ msgstr "Kwadrat"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Stars"
+msgstr "Hwězdy"
+
+msgid "Start"
+msgstr "Startować"
 
 msgctxt "time tracking"
 msgid "Start"
@@ -7005,11 +7132,20 @@ msgstr "Nadawki a terminy z rajtarka „%(tab)s“ synchronizować"
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Nadawki a terminy z wužiwarjoweho rajtarka synchronizować"
 
+msgid "Synchronize videos"
+msgstr "Wideja synchronizować"
+
 msgid "Synchronizing …"
 msgstr "Synchronizuje so …"
 
 msgid "System authentication for configuring UFW is unavailable."
 msgstr "Systemowa awtentifikacija za konfiguraciju UFW k dispoziciji njeje."
+
+msgid "System authorization is unavailable."
+msgstr "Systemowa awtorizacija k dispoziciji njeje."
+
+msgid "System authorization was cancelled."
+msgstr "Systemowa awtorizacija je so přetorhnyła."
 
 msgid "System default"
 msgstr "Systemstandard"
@@ -7244,6 +7380,17 @@ msgstr "Składowak Magnolienbaum je wobškodźeny."
 msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
 msgstr ""
 "Składowak Magnolienbaum je zaklučowany. Wotzamkńće najprjedy organizator."
+
+msgid ""
+"The Nextcloud account settings are being changed. Try again after the "
+"current operation finishes."
+msgstr "Nastajenja konta Nextcloud so runje měnjeja. Spytajće znowa po skónčenju aktualneje operacije."
+
+msgid ""
+"The Nextcloud account transaction needs recovery. Account changes and new "
+"synchronization connections are blocked until the configuration and "
+"credentials have been checked."
+msgstr "Transakcija konta Nextcloud sej wobnowjenje žada. Změny konta a nowe synchronizaciske zwiski su blokowane, doniž njejsu konfiguracija a přistupne daty přepruwowane."
 
 msgid "The Nextcloud address book contains missing or duplicate UIDs."
 msgstr "Adresnik Nextcloud wobsahuje pobrachowace abo dwójne UIDs."
@@ -7944,6 +8091,9 @@ msgstr "Port je njepłaćiwy."
 msgid "The previous data could not be backed up."
 msgstr "Předchadne daty njehodźachu so zawěsćić."
 
+msgid "The previous webcam session must finish stopping first."
+msgstr "Předchadne posedźenje webkamery dyrbi so najprjedy dospołnje skónčić."
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr "Ćišćenska strona je tu: %s"
@@ -8153,6 +8303,13 @@ msgstr "Synchronizaciske naprašowanje njeda so pósłać."
 msgid "The synchronization resume journal is damaged."
 msgstr "Dźenik za pokročowanje synchronizacije je wobškodźeny."
 
+msgid ""
+"The system driver installation may still be running. Check the system "
+"package manager before trying again."
+msgstr ""
+"Instalacija ćěrjaka snano hišće běži. Přepruwujće systemowy zrjadowak "
+"paketow, prjedy hač hišće raz spytaće."
+
 msgid "The task is missing from the update."
 msgstr "Nadawk w aktualizaciji faluje."
 
@@ -8227,8 +8384,18 @@ msgstr "Informacija wo aktualizaciji njeje čitajomna."
 msgid "The user data could not be read."
 msgstr "Wužiwarske daty njehodźachu so čitać."
 
+msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
+msgstr ""
+"Ćěrjak webkamery v4l2loopback faluje. Ma so nětko instalować a zarjadować?"
+
 msgid "The value is outside the general green reference range."
 msgstr "Hódnota je zwonka powšitkowneho zeleneho referencneho wobłuka."
+
+msgid "The virtual camera could not be configured."
+msgstr "Wirtuelna kamera njeda so zarjadować."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Ćěrjak wirtuelneje kamery njeda so přepruwować."
 
 msgid "The wake-up reminder"
 msgstr "Dopominanje z budźenjem"
@@ -8313,6 +8480,12 @@ msgid ""
 msgstr ""
 "Tute nastajenja sej wotpowědne dowolnosće w Magnolie Notes žadaja. Zynk "
 "zawołanja so přez datowy zwisk Magnolie njepřenjesuje."
+
+msgid ""
+"This Nextcloud calendar contains marked anniversaries. Calendar "
+"synchronization is blocked until this scope is supported; no complete "
+"synchronization was confirmed."
+msgstr "Tutón kalendar Nextcloud wobsahuje woznamjenjene róčnicy. Synchronizacija kalendarja je blokowana, doniž so tutón wobłuk njepodpěruje; dospołna synchronizacija njeje so wobkrućiła."
 
 msgid "This action does not invent a task start or deadline."
 msgstr "Tuta akcija njedodawa falowacy spočatk abo termin nadawka."
@@ -8603,6 +8776,9 @@ msgstr "Pućowanje"
 msgid "Tray applet"
 msgstr "Aplet systemoweho pola"
 
+msgid "Tray preview"
+msgstr "Přehlad symbola w systemowej lajsće"
+
 msgid "Triangle"
 msgstr "Třiróžk"
 
@@ -8807,6 +8983,9 @@ msgstr "Adresy kontakta wužiwać"
 msgid "Use default"
 msgstr "Standard wužiwać"
 
+msgid "Use front camera"
+msgstr "Prědnju kameru wužiwać"
+
 msgid "Use newer version"
 msgstr "Nowšu wersiju wužiwać"
 
@@ -8910,11 +9089,20 @@ msgstr "Přez internet"
 msgid "Video player"
 msgstr "Widejowothrawak"
 
+msgid "Videos"
+msgstr "Wideja"
+
 msgid "Vienna"
 msgstr "Wjeń"
 
 msgid "View and edit appointment"
 msgstr "Termin pokazać a wobdźěłać"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Wirtuelna kamera so hižo zarjaduje."
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr "Jenož wizuelny test; zwiski a prawa so njezměnja."
 
 msgid "Vital signs"
 msgstr "Witalne znamjenja"
@@ -8947,6 +9135,9 @@ msgstr "Čaka so na přizwolenje na druhim graće."
 msgid "Waiting for device status"
 msgstr "Čakanje na status nastroja"
 
+msgid "Waiting for phone permission and capture …"
+msgstr "Čaka so na dowolnosć telefona a zaznam …"
+
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
 "the handoff."
@@ -8960,6 +9151,9 @@ msgid ""
 msgstr ""
 "Čakać na telefon w přistawje %(port)s. Porowanje so po %(seconds)s sekundach "
 "zakónči."
+
+msgid "Waiting for the phone…"
+msgstr "Čaka so na telefon…"
 
 msgid "Wake the computer from suspend"
 msgstr "Ličak ze spanja zbudźić"
@@ -9709,6 +9903,18 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
 
+#~ msgid "For phone webcam, install the v4l2loopback kernel driver."
+#~ msgstr ""
+#~ "Za wužiwanje telefona jako webkamery dyrbi jaderny ćěrjak v4l2loopback "
+#~ "instalowany być."
+
+#~ msgid ""
+#~ "Off by default. Uses an existing virtual camera and microphone; installs "
+#~ "nothing."
+#~ msgstr ""
+#~ "Po standardźe wupinata. Wužiwa eksistowacu wirtuelnu kameru a mikrofon; "
+#~ "ničo njeinstaluje."
+
 #~ msgid "Please enter a different group name."
 #~ msgstr "Prošu zapodajće druhe mjeno skupiny."
 
@@ -10217,9 +10423,6 @@ msgstr "＋ Termin přidać"
 #~ "Jenož wobsah telefona synchronizować. Lokalne změny so wobchowaja. "
 #~ "Zhašenja so hišće njesynchronizuja."
 
-msgid "Photos"
-msgstr "Fota"
-
 #~ msgid "Read media recycle bin"
 #~ msgstr "Medijowy papjernik wučitać"
 
@@ -10252,9 +10455,6 @@ msgstr "Fota"
 #~ msgid "Stopping… Waiting for the native operation to end."
 #~ msgstr "Zastajuje so… Čaka so na kónc natiwneje operacije."
 
-#~ msgid "Synchronize videos"
-#~ msgstr "Wideja synchronizować"
-
 #~ msgid "The book could not be saved. Media synchronization was not started."
 #~ msgstr "Kniha njeda so składować. Medijowa synchronizacija so njespušći."
 
@@ -10264,130 +10464,5 @@ msgstr "Fota"
 #~ msgid "Unchanged"
 #~ msgstr "Njezměnjene"
 
-msgid "Videos"
-msgstr "Wideja"
-
 #~ msgid "Waiting for native media status"
 #~ msgstr "Čaka so na natiwny medijowy status"
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr "Jenož wizuelny test; zwiski a prawa so njezměnja."
-
-msgid "Tray preview"
-msgstr "Přehlad symbola w systemowej lajsće"
-
-msgid "Seasonal background"
-msgstr "Pozadk po ročnym času"
-
-msgid "Holiday watermark"
-msgstr "Swjedźenski wodowy znamješk"
-
-msgid "Both connected"
-msgstr "Wobaj zwjazanej"
-
-msgid "Camera"
-msgstr "Kamera"
-
-msgid "Snowflakes"
-msgstr "Sněhowe płatki"
-
-msgid "Stars"
-msgstr "Hwězdy"
-
-msgid "Boots"
-msgstr "Škórnje"
-
-msgid "Santa Claus"
-msgstr "Hodowny muž"
-
-msgid "Rocket"
-msgstr "Raketa"
-
-msgid "Champagne glass"
-msgstr "Šampańska šklenčka"
-
-msgid "Easter eggs"
-msgstr "Jutrowne jejka"
-
-msgid "Reset preview"
-msgstr "Přehlad wróćo stajić"
-
-msgid "OS tray icon (60 s)"
-msgstr "Symbol w systemowej lajsće (60 s)"
-
-msgid "Saved developer mode is required."
-msgstr "Wuwiwarski modus dyrbi składowany być."
-
-msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
-msgstr "Po standardźe wupinjene. Wužiwa wirtuelnu kameru a mikrofon. Zarjadowanje ćěrjaka móže prawa administratora požadać."
-
-msgid "For phone webcam, install the v4l2loopback kernel driver."
-msgstr "Za wužiwanje telefona jako webkamery dyrbi jaderny ćěrjak v4l2loopback instalowany być."
-
-msgid "The virtual camera driver could not be checked."
-msgstr "Ćěrjak wirtuelneje kamery njeda so přepruwować."
-
-msgid "System authorization is unavailable."
-msgstr "Systemowa awtorizacija k dispoziciji njeje."
-
-msgid "System authorization was cancelled."
-msgstr "Systemowa awtorizacija je so přetorhnyła."
-
-msgid "The virtual camera could not be configured."
-msgstr "Wirtuelna kamera njeda so zarjadować."
-
-msgid "Virtual camera setup is already in progress."
-msgstr "Wirtuelna kamera so hižo zarjaduje."
-
-msgid "The v4l2loopback webcam driver is missing. Install and set it up now?"
-msgstr "Ćěrjak webkamery v4l2loopback faluje. Ma so nětko instalować a zarjadować?"
-
-msgid "Install and set up"
-msgstr "Instalować a zarjadować"
-
-msgid "Please install the v4l2loopback driver using the system package manager."
-msgstr "Prošu instalujće ćěrjak v4l2loopback ze systemowym zrjadowakom paketow."
-
-msgid "The system driver installation may still be running. Check the system package manager before trying again."
-msgstr "Instalacija ćěrjaka snano hišće běži. Přepruwujće systemowy zrjadowak paketow, prjedy hač hišće raz spytaće."
-
-msgid "Phone webcam"
-msgstr "Webkamera telefona"
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr "Po standardźe wupinata. Wužiwa eksistowacu wirtuelnu kameru a mikrofon; ničo njeinstaluje."
-
-msgid "Mute microphone"
-msgstr "Mikrofon wupinyć"
-
-msgid "Use front camera"
-msgstr "Prědnju kameru wužiwać"
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr "Eksistowacy ćěrjak wirtuelneje kamery je trěbny. Ničo njeje so instalowało."
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr "KDE Connect kompatibelne rozšěrjenje webkamery wužaduje."
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr "Zwjazajće najprjedy Magnolie Notes přez WLAN."
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr "Dowolnosć za kameru abo mikrofon bu na telefonje wotpokazana."
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr "Wočińće Magnolie Notes na telefonje, zo byšće zaznam dowolili."
-
-msgid "The previous webcam session must finish stopping first."
-msgstr "Předchadne posedźenje webkamery dyrbi so najprjedy dospołnje skónčić."
-
-msgid "Waiting for phone permission and capture …"
-msgstr "Čaka so na dowolnosć telefona a zaznam …"
-
-msgid "Active"
-msgstr "Aktiwny"
-
-msgid "Start"
-msgstr "Startować"
