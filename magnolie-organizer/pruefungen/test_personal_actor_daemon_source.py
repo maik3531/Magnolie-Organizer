@@ -197,6 +197,12 @@ def test_proxy_terminal_deferral_is_bounded_and_never_a_saved_receipt(tmp_path, 
         assert admission["completion"].summary()["saved"] == 0
         assert not proxy.personal_actor_status(handle)["phone_persisted"]
         assert not server._phone_actor_book_probes and not channel.sent
+        original=copy.deepcopy(deferred)
+        for remaining in (240,224):
+            state=proxy.advance_personal_actor_completion(handle)
+            assert len(deferred)==remaining and all(value==original[key] for key,value in deferred.items())
+            assert state['phone_persisted'] and state['deletion_completion']['saved']==1
+            assert not server._phone_actor_book_probes and not channel.sent
 
 
 def test_proxy_terminal_advance_respects_existing_outbox_backoff(tmp_path, monkeypatch):

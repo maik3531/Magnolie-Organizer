@@ -19,6 +19,17 @@ def fixture(tmp_path, monkeypatch, decision='delete', own_ack=False, admitted=Fa
     provider = lambda:book.current('native-completion-profile',True)
     service, peer, channel, registry, handle, events = owned_transport(tmp_path,monkeypatch,
         deletions=True,skip_deletions=False,book_source=provider)
+    semantic_callback=service.callback
+    activity=[]
+    def callback(kind,payload):
+        if kind=='personal_sync_activity' and type(payload) is dict and payload=={}:
+            active=service.tray_sync_activity()['synchronizing']
+            if type(active) is not bool or active is not (not activity[-1] if activity else True):
+                semantic_callback('invalid_personal_sync_activity',payload)
+            activity.append(active)
+        else:semantic_callback(kind,payload)
+    service.callback=callback
+    service._completion_test_activity=activity
     fingerprint = phone.fingerprint(phone.unb64(peer['static_public'],32))
     private = actor.storage_peer(handle.actor_id)
     proposal = {'proposal_id':str(uuid.uuid4()),'kind':'note','id':'note-one','parent_id':'',
@@ -48,6 +59,19 @@ def fixture(tmp_path, monkeypatch, decision='delete', own_ack=False, admitted=Fa
         updated = scope.advance(completion.before,notes,['task-one'])
         for part in scope.chunks(updated): session.receive(binding,part)
     return service,peer,channel,registry,handle,events,book,completion,ack,advance
+
+
+def test_completion_fixture_keeps_semantic_callback_denial_and_validates_real_activity(tmp_path,monkeypatch):
+    service,peer,channel,registry,handle,events,book,completion,ack,advance=fixture(tmp_path,monkeypatch,admitted=True)
+    service.personal_actor_admissions[handle.actor_id]['completion']=completion
+    advance([])
+    service._receive_personal_actor(peer,channel,ack)
+    assert service._completion_test_activity==[True,False]
+    assert not service.tray_sync_activity()['synchronizing'] and not events and not channel.sent
+    service.callback('unexpected_content',{'synthetic':True})
+    assert events==[('unexpected_content',{'synthetic':True})]
+    service.callback('personal_sync_activity',{'unexpected':True})
+    assert events[-1]==('personal_sync_activity',{'unexpected':True})
 
 
 def test_success_requires_fresh_expected_scope_and_durable_control(tmp_path,monkeypatch):
@@ -286,6 +310,41 @@ def test_peer_ack_sql_deferral_keeps_exact_identity_and_bounded_untrusted_metada
     service._receive_personal_actor(peer, channel, foreign)
     assert len(deferred) == 256 and completion.summary()['saved'] == 0 and registry.read_completion_controls(handle) == []
     with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER peer_ack_bounded_fault')
+    assert not channel.sent and not events
+
+
+def test_one_native_advance_bounds_real_sql_receipt_work_and_retains_original_backlog(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events, book, completion, ack, advance = fixture(tmp_path, monkeypatch, admitted=True)
+    admission=service.personal_actor_admissions[handle.actor_id]
+    admission.update(completion=completion,save_receipt=copy.deepcopy(completion.saved_book),phone_data_persisted=True,
+        completion_ids=set(),completion_native_acks={})
+    advance([])
+    sequence=book.save_state('native-completion-profile',True)['sequence']
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("CREATE TRIGGER advance_budget_fault BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic advance budget fault'); END")
+    for _ in range(256):
+        candidate=copy.deepcopy(ack);candidate['message_id']=str(uuid.uuid4())
+        service._receive_personal_actor(peer,channel,candidate)
+    deferred=admission['completion_deferred_controls'];original=copy.deepcopy(deferred)
+    assert len(deferred)==256 and completion.summary()['saved']==0 and registry.read_completion_controls(handle)==[]
+    with sqlite3.connect(service.store.database_path) as db:db.execute('DROP TRIGGER advance_budget_fault')
+    receive=service._receive_personal_actor;processed=[]
+    def counted(*args):
+        processed.append(args[2]['message_id'])
+        return receive(*args)
+    monkeypatch.setattr(service,'_receive_personal_actor',counted)
+    for remaining in (240,224):
+        processed.clear()
+        state=service.advance_personal_actor_completion(registry,handle)
+        assert len(processed)==16,'One native advance persisted the entire deferred receipt backlog'
+        assert len(deferred)==remaining and all(value==original[key] for key,value in deferred.items())
+        assert state['phone_persisted'] and state['deletion_completion']['saved']==1
+        assert book.save_state('native-completion-profile',True)['sequence']==sequence
+        assert not channel.sent and not events
+    processed.clear()
+    book.record_saved('native-completion-profile',True,'b'*64)
+    with pytest.raises(PermissionError):service.advance_personal_actor_completion(registry,handle)
+    assert not processed and len(deferred)==224
     assert not channel.sent and not events
 
 

@@ -23,7 +23,19 @@ first call takes about 2.8 seconds. The full group also passes on Linux/.NET.
 The Windows fixture separately releases only its own SQLite pool after users
 drain (#507). This is not physical phone or installed GUI acceptance. Python's
 different explicit advance contract is separately tracked for reproduction in
-#509; the Windows proof is not a Python/Linux product fix.
+#509; the Windows proof alone is not a Python/Linux product fix.
+
+The separate Python reproduction (#509) confirmed 256 actual receive/persist
+attempts in one explicit native Advance after an injected SQL failure. That
+single-handle operation now captures at most 16 pending originals, preserving its
+different native GUI-proof and subsequent ACK/outbox contract. Direct protected
+store and actual private Unix-IPC cases verify 240 then 224 untouched entries,
+fresh operation-live GUI proof, no document/decision replay, and rejection after
+the saved book changes between partial advances. No Windows latency measurement
+is claimed for Python. Completion guard, IPC and tray regressions pass on Linux.
+Their fixture distinguishes only exact empty `personal_sync_activity` callbacks
+and validates activity transitions (#510); content-bearing or unexpected callback
+events remain visible to its unchanged no-content assertions.
 
 ## Start contract
 

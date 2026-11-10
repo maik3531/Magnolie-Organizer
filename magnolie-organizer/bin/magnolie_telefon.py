@@ -6272,6 +6272,7 @@ class PhoneService:
         Deferred wire ACKs are untrusted pending metadata, not persisted receipts.
         Network writes remain outside native service/SQLite guards.
         """
+        from itertools import islice
         with self.lock:
             admission = self.personal_actor_admissions.get(handle.actor_id)
             if (admission is None or admission["registry"] is not registry or admission["handle"] != handle or
@@ -6283,7 +6284,10 @@ class PhoneService:
                 if str(error) == "actor_completion_not_ready":
                     return self.personal_actor_status(registry, handle)
                 raise
-            pending = list(admission.get("completion_deferred_controls", {}).items())
+            # A filled untrusted queue is not permission for an unbounded
+            # synchronous receipt-write burst. Preserve untouched originals
+            # for the next explicit native operation and its fresh proof.
+            pending = list(islice(admission.get("completion_deferred_controls", {}).items(), 16))
             peer = self.store.peer(admission["peer"])
             channel = admission["channel"]
         for message_id, wire in pending:
