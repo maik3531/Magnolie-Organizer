@@ -647,8 +647,57 @@ TCP parent → authenticated RunAsync dispatcher → native inbox → encrypted 
 exchange, database non-persistence, bounded ACK writer/queue admission, replay,
 old-owner isolation, original revocation and cleanup-callback failure.
 This attaches the reserved transport path, not the native UI activation, v24
-advertisement, productive listener/exchange worker, provider resolver or AV output.
-Those remain required before Windows may expose a usable phone webcam.
+advertisement, provider resolver or actual native AV output. Those remain required
+before Windows may expose a usable phone webcam.
+
+`PhoneCameraSession` (#529) now connects the original control binding to its own
+dedicated encrypted AV receiver and a mandatory trusted native output adapter.
+Construction starts nothing; explicit Run is single-use. After the original
+phone probe it binds one listener only on the actual authenticated parent's local
+IP, creates a fresh random session/secret, and publishes OFFER. Phone PREPARED
+must arrive through that exact original binding before accepting the media socket
+from the original remote IP and preparing the output provider. Both real camera
+and microphone readiness must be checked before publishing SEND, except that an
+explicit native mute choice omits the microphone requirement. Missing microphone
+readiness aborts the joined run; there is no silent video-only fallback. No media
+read or output write is reachable until SEND ciphertext publication succeeds.
+
+The original serialized receiver enforces first-zero/consecutive per-track
+sequences, increasing track PTS, the common 250ms track-divergence bound, and
+refuses audio in an explicitly muted session. One integer-subtracted original
+PTS anchor paces both tracks on the local monotonic clock with at most 10ms waits;
+more than 250ms ahead/late aborts rather than building a playback queue. The
+native adapter still must map that shared original epoch to MF system time
+(#527), recheck original authority and perform actual native IO. Both original
+guards and actual endpoint readiness are checked throughout. A separate bounded
+monitor detects control/permission loss, a missing initial track after two
+seconds and 500ms track inactivity. Startup is bounded to sixty seconds, media
+accept to two seconds and native preparation receives a ten-second cancellation
+deadline. The trusted provider must honor cancellation and make writes bounded
+and interruptible by its nonblocking Stop; it may not detach unresolved IO.
+
+Stop permanently cancels the original run, closes only its own sockets, wakes
+pending media input and signals both outputs. Explicit stop-induced socket errors
+are not misreported as capture failure. Cleanup waits for its original control/
+monitor tasks and makes a best-effort STOP on the still-current parent before
+disposing the binding. Cancelling an inbox dequeue transfers no control and
+leaves final retirement to that owning controller. Unconfirmed provider cleanup
+is retained separately and never reported as a stopped, reusable owner; no retry
+or replacement is performed. Copied frame buffers and the owned secret are cleared.
+
+Ten session groups pass on physical Windows using an actual controlled encrypted
+parent, actual AES-GCM binary media socket and an explicitly controlled test-only
+output adapter: joined AV and measured 20ms/66.667ms presentation spacing, required
+microphone refusal before SEND, explicit mute, failed SEND publication, original
+revocation during pending input and output writes, track gaps, missing initial
+video while audio stays active, undeclared muted audio and pending cleanup. Eleven
+affected parent groups also pass at the changed binding semantics; the six
+unchanged binary-channel groups retain their appropriate earlier passing proof.
+This is the productive session/controller implementation with controlled output
+tests, **not a real Windows microphone/phone/OBS acceptance**. There is no default
+output adapter or product test generator. Native UI admission/discovery, the
+concrete FrameServer broker/ACL/activation context and real camera/microphone
+provider adapters remain unconnected; the feature must not yet advertise readiness.
 
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It

@@ -8,7 +8,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class PhoneCameraParentTests
 {
-    private static JsonObject Message(string op = "probe", string kind = PhoneCameraControl.Request)
+    internal static JsonObject Message(string op = "probe", string kind = PhoneCameraControl.Request)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         return new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
@@ -23,7 +23,7 @@ internal static class PhoneCameraParentTests
         return message;
     }
 
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         private readonly string root = Path.Combine(Path.GetTempPath(), "magnolie-camera-parent-" + Guid.NewGuid().ToString("N"));
         private readonly TcpClient desktop;
@@ -224,7 +224,7 @@ internal static class PhoneCameraParentTests
         storage.NoPersistentControls();
     }
 
-    private static JsonObject Follow(JsonObject probe, string op, string session = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+    internal static JsonObject Follow(JsonObject probe, string op, string session = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
     {
         var value = Message(op); value["body"]!["request_id"] = probe["body"]!["request_id"]!.DeepClone();
         value["body"]!["nonce"] = probe["body"]!["nonce"]!.DeepClone(); value["body"]!["session"] = session; return value;

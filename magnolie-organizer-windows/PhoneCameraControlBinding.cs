@@ -75,6 +75,10 @@ internal sealed class PhoneCameraControlBinding : IDisposable
         {
             RequireCurrent(); var value = await incoming.Reader.ReadAsync(cancellation); RequireCurrent(); return value;
         }
+        // Cancel only this pending dequeue. The original native owner performs
+        // its own final STOP publication and then disposes the binding; no
+        // cancelled read may transfer a queued control or restore authority.
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
         catch { Dispose(); throw; }
     }
     internal Task SendAsync(JsonObject report)

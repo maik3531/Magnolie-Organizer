@@ -98,6 +98,20 @@ internal sealed partial class TelefonConnection
         RequireWebcamParent();
         if (!ReferenceEquals(Volatile.Read(ref webcamBinding), binding)) throw new InvalidOperationException("webcam_original_binding_required");
     }
+    internal (Socket Listener, System.Net.IPAddress Remote) OpenWebcamListener(PhoneCameraControlBinding binding)
+    {
+        RequireWebcamBinding(binding);
+        var original = ((NetworkStream)stream).Socket;
+        if (original.LocalEndPoint is not System.Net.IPEndPoint local || original.RemoteEndPoint is not System.Net.IPEndPoint remote)
+            throw new InvalidOperationException("webcam_original_ip_parent_required");
+        var listener = new Socket(original.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+        try
+        {
+            listener.Bind(new System.Net.IPEndPoint(local.Address, 0)); listener.Listen(1);
+            binding.RequireCurrent(); return (listener, remote.Address);
+        }
+        catch { listener.Dispose(); throw; }
+    }
     internal PhoneCameraControlBinding BindWebcamControl(Action originalCurrent, Action retire)
     {
         ArgumentNullException.ThrowIfNull(originalCurrent); ArgumentNullException.ThrowIfNull(retire);

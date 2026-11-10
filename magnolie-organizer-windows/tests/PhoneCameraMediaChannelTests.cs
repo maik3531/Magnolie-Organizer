@@ -34,12 +34,13 @@ internal static class PhoneCameraMediaChannelTests
 
     // Independent sender, checked against the Python packet SHA-256 goldens.
     // Only this controlled test counterpart encrypts: production Windows is RX.
-    private static byte[] Packet(ulong global, byte track = 2, ulong trackSequence = 0,
-        ulong pts = 0, int size = PhoneCameraMediaChannel.AudioBytes, byte fill = 42, byte version = 1)
+    internal static byte[] Packet(ulong global, byte track = 2, ulong trackSequence = 0,
+        ulong pts = 0, int size = PhoneCameraMediaChannel.AudioBytes, byte fill = 42, byte version = 1,
+        string? sessionIdentity = null, byte[]? sessionSecret = null)
     {
         var protocol = Encoding.ASCII.GetBytes("magnolie-phone-webcam/1\0phone_to_desktop\0");
-        var session = Convert.FromHexString(Session);
-        var material = HKDF.DeriveKey(HashAlgorithmName.SHA256, Secret, 36, session, protocol);
+        var session = Convert.FromHexString(sessionIdentity ?? Session);
+        var material = HKDF.DeriveKey(HashAlgorithmName.SHA256, sessionSecret ?? Secret, 36, session, protocol);
         using var cipher = new AesGcm(material.AsSpan(0, 32), 16);
         var plain = new byte[18 + size]; plain[0] = version; plain[1] = track;
         BinaryPrimitives.WriteUInt64BigEndian(plain.AsSpan(2), trackSequence);

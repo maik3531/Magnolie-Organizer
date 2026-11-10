@@ -121,6 +121,16 @@ runner.Add("Phone webcam parent / bounded native control inbox", PhoneCameraPare
 runner.Add("Phone webcam parent / replay and old owner isolation", PhoneCameraParentTests.ReplayAndOldOwnerAsync);
 runner.Add("Phone webcam parent / owner revocation and bounded ACK", PhoneCameraParentTests.OwnerRevocationAndBoundedAckAsync);
 runner.Add("Phone webcam parent / broken native retirement cannot block parent cleanup", PhoneCameraParentTests.BrokenRetirementCallbackAsync);
+runner.Add("Phone webcam session / original encrypted control and joined binary AV pacing", PhoneCameraSessionTests.JoinedEncryptedAvAsync);
+runner.Add("Phone webcam session / required microphone prevents SEND fallback", PhoneCameraSessionTests.MissingMicrophonePreventsSendAsync);
+runner.Add("Phone webcam session / explicit native mute only", PhoneCameraSessionTests.ExplicitMuteAsync);
+runner.Add("Phone webcam session / unpublished SEND never reads media", PhoneCameraSessionTests.FailedSendNeverReadsMediaAsync);
+runner.Add("Phone webcam session / original revocation interrupts pending input", PhoneCameraSessionTests.RevocationStopsPendingInputAsync);
+runner.Add("Phone webcam session / track gap retires joined output", PhoneCameraSessionTests.TrackGapRetiresBothAsync);
+runner.Add("Phone webcam session / unconfirmed cleanup remains pending", PhoneCameraSessionTests.CleanupFailureRemainsPendingAsync);
+runner.Add("Phone webcam session / missing initial track retires active joined audio", PhoneCameraSessionTests.MissingInitialTrackAsync);
+runner.Add("Phone webcam session / muted session refuses audio packets", PhoneCameraSessionTests.MutedAudioRejectedAsync);
+runner.Add("Phone webcam session / original revocation interrupts native output write", PhoneCameraSessionTests.RevocationInterruptsNativeWriteAsync);
 runner.Add("Phone webcam media / original binary AV socket and Python goldens", PhoneCameraMediaChannelTests.GoldensAsync);
 runner.Add("Phone webcam media / bounded envelope tamper replay and EOF", PhoneCameraMediaChannelTests.RejectionsAsync);
 runner.Add("Phone webcam media / authenticated packet grammar", PhoneCameraMediaChannelTests.PacketGrammarAsync);
