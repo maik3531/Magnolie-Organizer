@@ -582,6 +582,41 @@ driver or camera device was registered for these module tests. This is ordinary
 test-process loader evidence, not FrameServer service loading or code-signing
 policy acceptance of a registered Windows camera.
 
+The separately approved private generated-image harness has now passed a real
+Windows FrameServer/system-camera probe after the #526 activation correction.
+An elevated interactive setup host created only its own temporary current-user,
+session-lifetime camera. A separate **unelevated** interactive consumer opened
+exactly the returned symbolic link through standard `MFCreateDeviceSource`,
+not direct source activation, and read twelve complete byte-exact NV12 frames:
+six of each generated pattern, with strictly increasing timestamps. One initial
+status-only `STREAMTICK` response was not counted as an image. The private
+generator used `MFGetSystemTime` rather than an unrelated zero-based epoch.
+The camera, exact own COM tree, tasks, processes and known-hash probe files were
+removed; the final DLL was removed after FrameServer stopped naturally, without
+manually stopping the service. The original physical camera was unchanged and
+never opened. No physical microphone, phone, foreign driver or reboot was used.
+This establishes actual service activation and standard normal-user capture for
+that temporary generated source, **not the production authenticated phone path,
+microphone endpoint, joined AV synchronization, OBS or package acceptance**.
+The test-only generator and registration scripts remain private, not a product
+fallback or a persistent installed camera.
+
+`PhoneCameraClock` (#527) supplies an independently checked common integer epoch
+mapper for the pending original joined Windows AV owner. One shared instance
+anchors the first admitted remote PTS to native MF system-time microseconds;
+both tracks retain their exact relative offsets, including an earlier timestamp
+from the other track. It never creates separate track/client epochs. Original
+owner and actual SEND are checked before and after mapping. Invalid ranges,
+backwards native time, native-domain overflow or more than 250ms ahead/late retire
+that original clock permanently; restoring flags cannot re-anchor it. Nine native
+clock groups pass on physical Windows, including microsecond differences near
+the largest accepted remote PTS and a real `MFGetSystemTime` domain check.
+This mapper is **not a scheduler or endpoint integration**: authenticated packet
+sequence/PTS validation remains upstream; a future joined controller must share
+this exact original instance between real video/audio endpoints, wait for the
+mapped presentation time, and recheck original authority before native IO. No
+phone wire timestamps, existing Linux pacing, or product fallback were changed.
+
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It
 checks the authenticated global sequence and declared length before allocating
