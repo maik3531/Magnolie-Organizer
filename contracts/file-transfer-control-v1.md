@@ -3966,6 +3966,37 @@ full personal-sync/control-handshake or desktop file-controller acceptance. The
 desktop source/receiver dispatcher/preferences/activation UI remains unconnected,
 with discovery 21 still absent.
 
+### Linux original native destination dialog lifetime (Refs #499)
+
+The current Organizer photo/video folder handler prepares an ephemeral native
+lease before opening GTK's folder dialog. Preparation captures the original
+connection/authority, control position, shared intent and complete protected
+preferences. The GUI supplies its saved canonical plaintext hash and held original
+book-file signature; these are compared with authenticated saved-book metadata,
+not treated as authority. The daemon holds the original book and metadata database
+descriptors and authenticates the bounded raw metadata head, rejecting an identical
+plaintext reseal or copied database as a changed original position.
+
+The dialog stays on the main thread; preparation/commit/cancel use native IO
+workers and private Unix IPC. Commit checks its original 60-second lifetime,
+preferences CAS and selected directory witness, holds the directory, and rechecks
+the live original context through the actual preference write callback. It
+serializes with the existing saved-book metadata publisher, without borrowing
+trash/deletion/copy permissions. Cancellation retires a committing lease but keeps
+its slot until IO drains. Expiry/reconnect/cleanup release only owned descriptors.
+Old unowned photo/video path IPC operations are removed. Renderer/wire paths or
+approval flags cannot construct this original owner.
+
+The reproduced stale photo/video path after a newly saved independent PC SEND
+decision is rejected; the new SEND decision is preserved. Normal explicit choices,
+retained backup destinations, trash-OFF books and PC SEND with phone READ/receive
+OFF remain supported. Controlled native-handler/private IPC tests and affected
+destination, source-choice, optional-build and background regressions pass. These
+are source/host proofs, not installed GTK, physical phone or release acceptance.
+The Windows counterpart remains separately tracked in #500; this Linux fix does
+not certify that Windows implementation. No consent, thumbnails or synchronization
+defaults, installed package, driver or publication are changed.
+
 ### Explicit native photo-destination choice (UI/persistence join pending)
 
 The Linux native folder controller is inert on construction. Only an exact

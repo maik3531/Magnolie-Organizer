@@ -79,8 +79,18 @@ def _media_folder_component(name,suffix,fallback_user_name):
     return (safe or 'Telefon')+suffix
 
 class NativePhotoDestinationAction:
-    def __init__(self,owner,clock):
+    def __init__(self,owner,clock,*,native_current=None):
+        if native_current is not None and not callable(native_current):raise TransferError('photo_destination_native_guard_required')
         self._owner=owner;self._clock=clock;self._issued=clock();self._used=False;self._valid=False;self._gate=threading.Lock()
+        self._native_current=native_current
+
+    def _current(self):
+        try:
+            if self._native_current is not None and self._native_current() is False:
+                raise TransferError('photo_destination_native_guard_changed')
+        except BaseException:
+            with self._gate:self._valid=False
+            raise
     def consume(self,owner):
         with self._gate:
             if self._used or owner is not self._owner:raise TransferError('photo_destination_action_not_current')
@@ -89,6 +99,7 @@ class NativePhotoDestinationAction:
             if type(now) is not int or type(self._issued) is not int or self._issued<0 or now<self._issued or now-self._issued>=60_000:
                 raise TransferError('photo_destination_action_not_current')
             self._valid=True
+        self._current()
     def validate(self,owner):
         with self._gate:
             if owner is not self._owner or not self._used or not self._valid:raise TransferError('photo_destination_action_not_current')
@@ -96,6 +107,7 @@ class NativePhotoDestinationAction:
             if type(now) is not int or now<self._issued or now-self._issued>=60_000:
                 self._valid=False
                 raise TransferError('photo_destination_action_not_current')
+        self._current()
 
 @dataclass(frozen=True)
 class NativePhotoDestinationChoice:

@@ -807,8 +807,7 @@ def _request_shape(operation, arguments):
         "accept_receive": {"receive_id", "directory"}, "reject_receive": {"receive_id"},
         "phone_report": set(), "phone_tray_sync_activity": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
         "phone_photo_sync_action": {"peer_id", "fingerprint", "request"},
-        "phone_photo_sync_video_destination": {"peer_id", "fingerprint", "path"},
-        "phone_photo_sync_photo_destination": {"peer_id", "fingerprint", "path"},
+        "phone_photo_sync_destination_choice": {"peer_id", "fingerprint", "destination_action", "media_type", "selection", "path", "witness", "book_version", "book_witness"},
         "phone_photo_sync_backup_locations": {"peer_id", "fingerprint", "media_type", "backup_action", "version", "book_version", "path"},
         "phone_photo_sync_sending_consent": {"peer_id", "fingerprint", "consent_action", "photos", "videos", "selection", "version"},
         "phone_photo_sync_collection_choice": {"peer_id", "fingerprint", "collection_action", "media_type", "selection", "path", "witness", "version"},
@@ -871,6 +870,22 @@ def _request_shape(operation, arguments):
     if operation not in allowed or set(arguments) - allowed[operation]:
         raise IPCError("operation is not allowed")
     encoded = json.dumps(arguments, ensure_ascii=False, allow_nan=False)
+    if operation == "phone_photo_sync_destination_choice":
+        action=arguments.get("destination_action")
+        if (set(arguments)!={"peer_id","fingerprint","destination_action","media_type","selection","path","witness","book_version","book_witness"} or
+                action not in ("prepare","commit","cancel") or arguments.get("media_type") not in ("images","video") or
+                not _status_query_id(arguments.get("peer_id")) or type(arguments.get("fingerprint")) is not str or
+                not re.fullmatch(r"[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}",arguments["fingerprint"]) or len(encoded.encode("utf-8"))>16384):
+            raise IPCError("invalid original destination choice")
+        if (action=="prepare" and (any(arguments[key] is not None for key in ("selection","path","witness")) or
+                    type(arguments["book_version"]) is not str or not re.fullmatch(r"[a-f0-9]{64}",arguments["book_version"]) or
+                    type(arguments["book_witness"]) is not list or len(arguments["book_witness"])!=9 or
+                    any(type(number) is not int or number<0 for number in arguments["book_witness"])) or
+                action!="prepare" and (arguments["book_version"] is not None or arguments["book_witness"] is not None) or
+                action!="prepare" and (type(arguments["selection"]) is not str or not re.fullmatch(r"[a-f0-9]{64}",arguments["selection"])) or
+                action=="cancel" and (arguments["path"] is not None or arguments["witness"] is not None) or
+                action=="commit" and (type(arguments["path"]) is not str or not 1<=len(arguments["path"])<=4096 or type(arguments["witness"]) is not dict)):
+            raise IPCError("invalid original destination choice")
     if operation == "phone_webcam_action":
         from magnolie_telefon import PhoneService
         try:
@@ -2054,8 +2069,7 @@ class IPCServer:
         calls = {
             "phone_report": ("report", ()),
             "phone_photo_sync_action": ("photo_sync_action", ("peer_id", "fingerprint", "request")),
-            "phone_photo_sync_video_destination": ("photo_sync_video_destination", ("peer_id", "fingerprint", "path")),
-            "phone_photo_sync_photo_destination": ("photo_sync_photo_destination", ("peer_id", "fingerprint", "path")),
+            "phone_photo_sync_destination_choice": ("photo_sync_destination_choice", ("peer_id", "fingerprint", "destination_action", "media_type", "selection", "path", "witness", "book_version", "book_witness")),
             "phone_photo_sync_backup_locations": ("photo_sync_backup_locations", ("peer_id", "fingerprint", "media_type", "backup_action", "version", "book_version", "path")),
             "phone_photo_sync_sending_consent": ("photo_sync_sending_consent", ("peer_id", "fingerprint", "consent_action", "photos", "videos", "selection", "version")),
             "phone_photo_sync_collection_choice": ("photo_sync_collection_choice", ("peer_id", "fingerprint", "collection_action", "media_type", "selection", "path", "witness", "version")),
@@ -2830,11 +2844,9 @@ class PhoneServiceProxy:
 
     def photo_sync_action(self, peer_id, fingerprint, request):
         return self._call("photo_sync_action", peer_id=peer_id, fingerprint=fingerprint, request=request)
-    def photo_sync_video_destination(self, peer_id, fingerprint, path):
-        return self._call("photo_sync_video_destination", peer_id=peer_id, fingerprint=fingerprint, path=path)
-
-    def photo_sync_photo_destination(self, peer_id, fingerprint, path):
-        return self._call("photo_sync_photo_destination", peer_id=peer_id, fingerprint=fingerprint, path=path)
+    def photo_sync_destination_choice(self,peer_id,fingerprint,operation,media_type,selection=None,path=None,witness=None,book_version=None,book_witness=None):
+        return self._call("photo_sync_destination_choice",peer_id=peer_id,fingerprint=fingerprint,destination_action=operation,
+            media_type=media_type,selection=selection,path=path,witness=witness,book_version=book_version,book_witness=book_witness)
 
     def photo_sync_sending_consent(self,peer_id,fingerprint,operation,photos=None,videos=None,selection=None,version=None):
         return self._call("photo_sync_sending_consent",peer_id=peer_id,fingerprint=fingerprint,consent_action=operation,

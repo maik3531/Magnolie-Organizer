@@ -25114,36 +25114,87 @@ class Fenster(_FENSTER_BASIS):
         except Exception:answer(ok=False)
 
     def _telefon_videoziel_waehlen(self, nachricht):
-        kennung=nachricht.get("kennung")
+        source=self._telefon;kennung=nachricht.get("kennung");selection=[None];root=[None];book=[None];owned=[False]
+        answered=threading.Event()
+        def retire_root():
+            try:
+                if root[0] is not None:root[0].close()
+            finally:
+                if book[0] is not None:book[0].close()
+        def answer(**value):
+            if answered.is_set():return
+            answered.set()
+            retire_root()
+            if owned[0]:self._telefon_videoziel_dialog=False
+            self.antwort("App.telefonFotoErgebnis",dict(device_id=kennung,**value))
+            if owned[0]:self._telefon_stand_melden()
         try:
-            if (self._gesperrt or not self._telefon or set(nachricht)!={"cmd","kennung","fingerprint"}
+            if (self._gesperrt or source is None or set(nachricht)!={"cmd","kennung","fingerprint"}
                     or nachricht.get("cmd") not in ("telefon_videoziel_waehlen","telefon_fotoziel_waehlen") or getattr(self,"_telefon_videoziel_dialog",False)
-                    or getattr(self,"_telefon_sammlungsordner_pending",False)
+                    or getattr(self,"_telefon_sammlungsordner_pending",False) or getattr(self,"_telefon_senden_pending",False)
                     or type(kennung) is not str or type(nachricht.get("fingerprint")) is not str):
                 raise ValueError("photo_sync_invalid_action")
-            self._telefon_videoziel_dialog=True
-            try:
-                fotos=nachricht["cmd"]=="telefon_fotoziel_waehlen"
-                pfad=self._ordner_waehlen(_("Destination folder"),standard=GLib.get_user_special_dir(
-                    GLib.UserDirectory.DIRECTORY_PICTURES if fotos else GLib.UserDirectory.DIRECTORY_VIDEOS) or "")
-            finally:self._telefon_videoziel_dialog=False
-            if not pfad:
-                self.antwort("App.telefonFotoErgebnis", {"ok": True, "device_id": kennung, "canceled": True})
-                return
-            def annehmen():
+            fingerprint=nachricht["fingerprint"];fotos=nachricht["cmd"]=="telefon_fotoziel_waehlen";kind="images" if fotos else "video"
+            saved=self._telefon_actor_buchnachweis();deadline=time.monotonic()+60
+            observed=getattr(self,"_notes_actor_saved_data",None)
+            if (type(saved) is not dict or observed is None or len(observed)<3 or
+                    (saved.get("book_source"),saved.get("sequence"))!=observed[:2]):
+                raise ValueError("media_destination_original_saved_book_required")
+            book_version=observed[2]
+            def current():
+                if (self._telefon is not source or self._gesperrt or not self._organizer_vertraut() or saved is None
+                        or self._telefon_actor_buchnachweis()!=saved or time.monotonic()>=deadline):
+                    raise ValueError("media_destination_original_context_changed")
+                if book[0] is not None:book[0].require_current()
+                return True
+            current()
+            import importlib
+            book[0]=importlib.import_module("magnolie_photo_destination_choice").NativeDialogBook(daten_datei())
+            current();self._telefon_videoziel_dialog=True;owned[0]=True
+            def cancel():
+                if selection[0] is not None:
+                    try:source.photo_sync_destination_choice(kennung,fingerprint,"cancel",kind,selection=selection[0])
+                    except Exception:pass
+            def work(operation):
                 try:
-                    if self._gesperrt or not self._telefon:raise ValueError("photo_sync_unavailable")
-                    auswahl=self._telefon.photo_sync_photo_destination if fotos else self._telefon.photo_sync_video_destination
-                    auswahl(kennung,nachricht["fingerprint"],pfad)
-                    self.antwort("App.telefonFotoErgebnis", {"ok": True, "device_id": kennung})
-                except (ValueError, RuntimeError, OSError):
-                    self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung, "error": _("Synchronization failed.")})
-                self._telefon_stand_melden()
-            worker=threading.Thread(target=annehmen,name="magnolie-video-native-choice",daemon=True)
-            worker.start()
-            return worker
-        except (ValueError, RuntimeError, OSError):
-            self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung, "error": _("Synchronization failed.")})
+                    if operation in ("cancel","reject"):
+                        cancel();retire_root();answer(ok=operation=="cancel",**({"canceled":True} if operation=="cancel" else {}));return
+                    current()
+                    if operation=="commit":
+                        import importlib
+                        root[0]._require()
+                        witness=importlib.import_module("magnolie_media_source_choice").native_folder_witness(root[0])
+                        source.photo_sync_destination_choice(kennung,fingerprint,"commit",kind,selection=selection[0],path=root[0]._directory.path,witness=witness)
+                        root[0]._require();current();retire_root();answer(ok=True);return
+                    page=source.photo_sync_destination_choice(kennung,fingerprint,"prepare",kind,
+                        book_version=book_version,book_witness=list(book[0].signature))
+                    selection[0]=page["selection"];current()
+                    def dialog():
+                        try:
+                            current()
+                            path=self._ordner_waehlen(_("Destination folder"),standard=GLib.get_user_special_dir(
+                                GLib.UserDirectory.DIRECTORY_PICTURES if fotos else GLib.UserDirectory.DIRECTORY_VIDEOS) or "")
+                            current()
+                            if not path:start("cancel");return False
+                            import importlib
+                            NativeCollectionRoot=importlib.import_module("magnolie_media_source_collection").NativeCollectionRoot
+                            root[0]=NativeCollectionRoot(path,current)
+                            start("commit")
+                        except Exception:start("reject")
+                        return False
+                    GLib.idle_add(dialog)
+                except Exception:
+                    cancel();retire_root();answer(ok=False,error=_("Synchronization failed."))
+                finally:
+                    if operation in ("commit","cancel","reject"):retire_root()
+            def start(operation):
+                worker=threading.Thread(target=work,args=(operation,),name="magnolie-native-destination-"+operation,daemon=True)
+                self._telefon_videoziel_worker=worker
+                try:worker.start()
+                except Exception:cancel();retire_root();answer(ok=False);return None
+                return worker
+            return start("prepare")
+        except Exception:answer(ok=False,error=_("Synchronization failed."))
 
     def _telefon_foto_aktion(self, nachricht):
         kennung=nachricht.get("kennung")

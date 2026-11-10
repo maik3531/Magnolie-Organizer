@@ -190,9 +190,9 @@ class ProtectedPhotoPreferences:
         self._parent_fd=self._root_fd=self._lock_fd=self._db_fd=None;self._db=None
         self._root_key=self._lock_key=self._db_key=None;self._last=None
 
-    def issue_action(self):
+    def issue_action(self,*,_native_current=None):
         if self._closed.is_set():raise TransferError('photo_preferences_closed')
-        return NativePhotoDestinationAction(self,self._clock)
+        return NativePhotoDestinationAction(self,self._clock,native_current=_native_current)
 
     def _peer(self):
         if self._closed.is_set() or self._uncertain:raise TransferError('photo_preferences_closed_or_pending')

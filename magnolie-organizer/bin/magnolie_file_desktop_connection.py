@@ -110,6 +110,7 @@ class NativeDesktopFileConnection:
         self._media_sending_choice = None
         self._media_collection_choice = None
         self._media_collection_gate = threading.Lock()
+        self._native_destination_choice = None
         self._media_collection_roots_state = None
         self._destination = NativePhotoDestinationController(authority)
         try:
@@ -653,6 +654,52 @@ class NativeDesktopFileConnection:
                     self._send_controls(now_ms)
                     return dict(version=result.version,photos=choice[4],videos=choice[5])
 
+    def native_destination_choice(self,operation,*,kind,selection=None,path=None,witness=None,book_version=None,book_witness=None):
+        from magnolie_file_control import _hex
+        from magnolie_photo_destination_choice import NativeDestinationFolderChoice
+        if (kind not in ('images','video') or operation not in ('prepare','commit','cancel') or
+                operation=='prepare' and (selection is not None or path is not None or witness is not None) or
+                operation!='prepare' and (not _hex(selection) or book_version is not None or book_witness is not None) or
+                operation=='cancel' and (path is not None or witness is not None)):
+            raise TransferError('media_destination_native_choice_invalid')
+        if operation=='prepare':
+            with self._operation():
+                with self._media_collection_gate:
+                    collection=self._media_collection_choice
+                    if collection is not None and not collection._used and (collection._closed or time.monotonic()-collection._issued>=60):
+                        collection.close();self._media_collection_choice=None
+                    previous=self._native_destination_choice
+                    if previous is not None and not getattr(previous,'_committing',False) and (
+                            previous.closed.is_set() or previous.clock()-previous.issued>=60):
+                        previous.close();self._native_destination_choice=None
+                    if self._native_destination_choice is not None or self._media_collection_choice is not None:
+                        raise TransferError('media_destination_native_choice_pending')
+                # We already own the native IO gate: do not re-enter its
+                # non-reentrant public lazy getter later during commit.
+                if self._desktop_session is None:self._desktop_session=NativePhotoDesktopSession(self)
+                if self._desktop_session._running:raise TransferError('file_desktop_album_worker_busy')
+                choice=NativeDestinationFolderChoice(self,kind,book_version=book_version,book_witness=book_witness)
+                with self._media_collection_gate:
+                    if self._closed.is_set():choice.close();raise TransferError('file_desktop_connection_closed')
+                    self._native_destination_choice=choice
+                return dict(selection=choice.selection,media_type=kind)
+        with self._media_collection_gate:
+            choice=self._native_destination_choice
+            if choice is None or choice.selection!=selection or choice.kind!=kind:
+                raise TransferError('media_destination_native_choice_changed')
+            if operation=='cancel':
+                choice.close()
+                if not getattr(choice,'_committing',False):self._native_destination_choice=None
+                return dict(canceled=True)
+            if getattr(choice,'_committing',False):raise TransferError('media_destination_native_choice_changed')
+            choice._committing=True
+        try:
+            with self._operation():return choice.commit(path,witness)
+        finally:
+            choice.close()
+            with self._media_collection_gate:
+                if self._native_destination_choice is choice:self._native_destination_choice=None
+
     def native_collection_choice(self,operation,*,kind='images',selection=None,path=None,witness=None,version=None):
         """One original private native dialog, never a public path/approval."""
         from magnolie_file_control import _hex
@@ -680,7 +727,11 @@ class NativeDesktopFileConnection:
                         previous=self._media_collection_choice
                         if previous is not None and not previous._used and (previous._closed or time.monotonic()-previous._issued>=60):
                             previous.close();self._media_collection_choice=None
-                        if self._media_collection_choice is not None:raise TransferError('media_collection_native_choice_pending')
+                        destination=self._native_destination_choice
+                        if destination is not None and not getattr(destination,'_committing',False) and (
+                                destination.closed.is_set() or destination.clock()-destination.issued>=60):
+                            destination.close();self._native_destination_choice=None
+                        if self._media_collection_choice is not None or self._native_destination_choice is not None:raise TransferError('media_collection_native_choice_pending')
                 choice=NativeCollectionFolderChoice(self,kind,version)
                 if operation=='prepare':
                     consent=choice._expected.policy.sending
@@ -2428,6 +2479,8 @@ class NativeDesktopFileConnection:
         with self._media_collection_gate:
             choice=self._media_collection_choice;self._media_collection_choice=None
             if choice is not None:choice.close()
+            destination=self._native_destination_choice;self._native_destination_choice=None
+            if destination is not None:destination.close()
         for owner in (self._media_sender,self._media_source,self._media_pc_source,self._media_transport):
             if owner is not None:owner.close() # Signals only; active connection I/O owns cleanup.
         self._wake_album_worker()
@@ -3243,13 +3296,14 @@ class NativePhotoDesktopSession:
             connection._require_video_metadata_scope()
             with self._lock:self._video_supported=True
 
-    def _retain_backup_destination(self,before,media_type,previous,selected):
+    def _retain_backup_destination(self,before,media_type,previous,selected,*,_native_current=None):
         if previous is None or previous==selected:return
         connection=self.connection;preferences=connection._preferences
         from magnolie_media_backups import NativeMediaBackupLocations
         from hashlib import sha256
         scope=sha256(canonical(dict(subject=preferences._subject,media_type=media_type))).hexdigest()
         def current():
+            if _native_current is not None:_native_current()
             connection._ready()
             if preferences.read()!=before:raise TransferError('photo_preferences_cas_conflict')
             return True
@@ -3266,8 +3320,7 @@ class NativePhotoDesktopSession:
         choice=(chooser.choose_default(chooser.issue_action()) if path is None else chooser.choose_custom(chooser.issue_action(),path))
         self._retain_backup_destination(before,'images',policy.destination,choice.destination)
         saved=preferences.set_photo_destination(preferences.issue_action(),before,choice,historical_choice='keep_existing')
-        with self._lock:
-            self._destination=saved.policy.destination.path;self._state='off';self._albums=[];self._permission=None
+        self._destination_choice_committed('images',saved)
 
     def _choose_video_destination(self, path):
         connection=self.connection;preferences=connection._preferences;before=preferences.read()
@@ -3284,10 +3337,19 @@ class NativePhotoDesktopSession:
             self._retain_backup_destination(before,'video',previous,choice.destination)
             saved=preferences.set_video_scope(preferences.issue_action(),before,enabled=False,destination_choice=choice,historical_choice='keep_existing')
         finally:chooser.close()
+        self._destination_choice_committed('video',saved)
+
+    def _destination_choice_committed(self,kind,saved):
+        # Passive metadata only; never starts a transfer, changes consent or
+        # sends controls while reflecting an explicitly selected destination.
         with self._lock:
-            self._video_supported=True;self._video_enabled=False
-            self._video_destination=saved.policy.videos.destination.path
-            self._state='videos_off';self._video_albums=[];self._video_permission=None
+            self._active_media=kind
+            if kind=='images':
+                self._destination=saved.policy.destination.path;self._state='off';self._albums=[];self._permission=None
+            else:
+                self._video_supported=True;self._video_enabled=False
+                self._video_destination=saved.policy.videos.destination.path
+                self._state='videos_off';self._video_albums=[];self._video_permission=None
 
     def _disable_video(self):
         saved=self._local_video_enabled(False) # Local consent closes before any remote output or failure.
