@@ -232,3 +232,32 @@ def test_lifetime_monitor_revokes_without_another_incoming_packet():
     value.monitor.join(timeout=1)
     assert not value.monitor.is_alive() and value.closed
     assert isinstance(value.error, webcam.WebcamUnavailable)
+
+
+def test_stream_arrival_clock_starts_after_both_native_endpoints_are_ready():
+    now = [0.0]
+    def output(identity):
+        now[0] += 1.5
+        return Output(identity)
+    value = webcam.NativeWebcamSession('/dev/video42', lambda: None,
+        video_factory=output, audio_factory=output, clock=lambda: now[0])
+    try:
+        assert value.started == 3
+        value.check_lifetime()
+        now[0] += 2.1
+        with pytest.raises(webcam.WebcamUnavailable, match='stream_timeout'): value.check_lifetime()
+    finally:
+        value.close(); value.monitor.join(timeout=1)
+
+
+def test_native_readiness_wait_never_refreshes_original_callers_permission_deadline():
+    now = [0.0]; outputs = []
+    def output(identity):
+        now[0] += 1.5
+        value = Output(identity); outputs.append(value); return value
+    def original():
+        if now[0] >= 2: raise PermissionError('original startup permission expired')
+    with pytest.raises(PermissionError, match='original startup'):
+        webcam.NativeWebcamSession('/dev/video42', original,
+            video_factory=output, audio_factory=output, clock=lambda: now[0])
+    assert len(outputs) == 2 and all(value.closed for value in outputs)

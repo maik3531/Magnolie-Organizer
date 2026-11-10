@@ -8,6 +8,7 @@ import ctypes.util
 import re
 import shlex
 import threading
+import time
 
 
 class PulseUnavailable(Exception):
@@ -49,6 +50,7 @@ def _library():
         'pa_context_new': (C.c_void_p, [C.c_void_p, C.c_char_p]),
         'pa_context_connect': (C.c_int, [C.c_void_p, C.c_char_p, C.c_int, C.c_void_p]),
         'pa_context_get_state': (C.c_int, [C.c_void_p]),
+        'pa_context_errno': (C.c_int, [C.c_void_p]),
         'pa_context_set_state_callback': (None, [C.c_void_p, _StateCallback, C.c_void_p]),
         'pa_context_disconnect': (None, [C.c_void_p]),
         'pa_context_unref': (None, [C.c_void_p]),
@@ -75,6 +77,8 @@ class PulsePipeSource:
         self.started = False
         self.module = None
         self.load_uncertain = False
+        self.source_query_count = 0
+        self.source_ready_retries = 0
         self.pending = None
         self.ready = threading.Event()
         self.state_callback = _StateCallback(self._state_changed)
@@ -112,19 +116,44 @@ class PulsePipeSource:
             if not result or result[0] == 0xffffffff:
                 raise PulseUnavailable('webcam_native_audio_source_unsupported')
             self.module = result[0]
-            valid = []
-            def source(_context, info, end, _userdata):
-                if end:
-                    valid.append(end > 0)
-                    self.pending.set()
-                elif info:
-                    value = info.contents
-                    spec = value.sample_spec
-                    valid.append(value.name == name.encode('ascii') and (spec.format, spec.rate, spec.channels) == (3, 48000, 1))
-            self._operation(_SourceCallback(source), lambda callback: self.library.pa_context_get_source_info_by_name(
-                self.context, name.encode('ascii'), callback, None))
-            if valid != [True, True]:
-                raise PulseUnavailable('webcam_native_audio_format_unsupported')
+            # PipeWire may acknowledge the module BEFORE exporting its source.
+            # Wait only for this exact newly owned source, on the SAME native
+            # context and one absolute deadline. Never reload/reconnect/guess.
+            deadline = time.monotonic() + 3
+            while True:
+                valid, observed, errors = [], [], []
+                def source(_context, info, end, _userdata):
+                    if end:
+                        valid.append(end > 0)
+                        if end < 0:
+                            errors.append(self.library.pa_context_errno(_context))
+                        self.pending.set()
+                    elif info:
+                        value = info.contents
+                        spec = value.sample_spec
+                        observed.append((value.name == name.encode('ascii'), spec.format, spec.rate, spec.channels))
+                        valid.append(value.name == name.encode('ascii') and (spec.format, spec.rate, spec.channels) == (3, 48000, 1))
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise PulseUnavailable('webcam_native_audio_source_start_timeout')
+                self.source_query_count += 1
+                self._operation(_SourceCallback(source), lambda callback: self.library.pa_context_get_source_info_by_name(
+                    self.context, name.encode('ascii'), callback, None), timeout=remaining)
+                if valid == [True, True]:
+                    break
+                # PA_ERR_NOENTITY is transient only after our confirmed load.
+                # Permission errors, wrong identity/spec or missing completion
+                # are NEVER readiness retries or a format-substitution fallback.
+                if valid == [False] and errors == [5]:
+                    self.source_ready_retries += 1
+                    self.require()
+                    threading.Event().wait(max(0, min(.05, deadline - time.monotonic())))
+                    continue
+                error = PulseUnavailable('webcam_native_audio_format_unsupported')
+                error.native_source_format = tuple(observed)
+                error.native_source_completion = tuple(valid)
+                error.native_source_error = tuple(errors)
+                raise error
         except BaseException:
             self.close()
             raise
@@ -149,7 +178,7 @@ class PulsePipeSource:
             finally:
                 self.library.pa_threaded_mainloop_unlock(self.loop)
 
-    def _operation(self, callback, begin):
+    def _operation(self, callback, begin, *, timeout=3):
         with self.lock:
             self.require()
             done = self.pending = threading.Event()
@@ -162,7 +191,7 @@ class PulsePipeSource:
                 self.pending = None
                 raise PulseUnavailable('webcam_audio_operation_unavailable')
             try:
-                if not done.wait(3):
+                if not done.wait(timeout):
                     raise PulseUnavailable('webcam_audio_operation_timeout')
                 self.require()
             finally:

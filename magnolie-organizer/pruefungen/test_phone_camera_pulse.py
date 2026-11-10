@@ -17,6 +17,8 @@ class NativePulse:
         self.name = b'magnolie_phone_' + b'a' * 32
         self.reject_load = self.reject_unload = self.wrong_format = self.restart = self.suppress_load_result = False
         self.callback = None
+        self.missing_source_queries = 0
+        self.source_error = 5
 
     def pa_threaded_mainloop_new(self): self.calls.append('loop-new'); return 10
     def pa_threaded_mainloop_get_api(self, loop): assert loop == 10; return 20
@@ -27,6 +29,7 @@ class NativePulse:
         self.calls.append('connect-original-no-autospawn'); return 0
     def pa_threaded_mainloop_start(self, loop): self.callback(30, None); return 0
     def pa_context_get_state(self, context): assert context == 30; return self.state
+    def pa_context_errno(self, context): assert context == 30; return self.source_error
     def pa_threaded_mainloop_lock(self, loop): pass
     def pa_threaded_mainloop_unlock(self, loop): pass
     def pa_context_load_module(self, context, name, arguments, callback, userdata):
@@ -38,6 +41,11 @@ class NativePulse:
         return 50
     def pa_context_get_source_info_by_name(self, context, name, callback, userdata):
         assert context == 30 and name == self.name
+        self.calls.append('query-original-source')
+        if self.missing_source_queries:
+            self.missing_source_queries -= 1
+            callback(context, None, -1, None)
+            return 51
         value = pulse._SourcePrefix()
         value.name = self.name; value.index = 9
         value.sample_spec.format = 5 if self.wrong_format else 3
@@ -129,3 +137,26 @@ def test_uncertain_load_never_reports_clean_stop_or_guesses_a_module_id(monkeypa
     with pytest.raises(pulse.PulseUnavailable, match='shutdown_pending'): source(native)
     assert 'unload-original' not in native.calls
     assert native.calls[-4:] == ['loop-stop', 'disconnect-original', 'context-unref', 'loop-free']
+
+
+def test_confirmed_module_waits_for_exact_source_without_reload_or_new_context():
+    native = NativePulse(); native.missing_source_queries = 2
+    value = source(native)
+    try:
+        assert value.module == 42 and native.calls.count('query-original-source') == 3
+        assert native.calls.count('context-new') == native.calls.count('load-original') == 1
+    finally: value.close()
+
+
+def test_source_permission_error_is_not_retried_as_startup_readiness():
+    native = NativePulse(); native.missing_source_queries = 1; native.source_error = 1
+    with pytest.raises(pulse.PulseUnavailable, match='format_unsupported'): source(native)
+    assert native.calls.count('query-original-source') == 1 and native.calls.count('unload-original') == 1
+
+
+def test_missing_source_wait_has_one_absolute_deadline_and_original_cleanup(monkeypatch):
+    native = NativePulse(); native.missing_source_queries = 100
+    ticks = iter(range(100))
+    monkeypatch.setattr(pulse.time, 'monotonic', lambda: next(ticks))
+    with pytest.raises(pulse.PulseUnavailable, match='source_start_timeout'): source(native)
+    assert native.calls.count('load-original') == 1 and native.calls.count('unload-original') == 1

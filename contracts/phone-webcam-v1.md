@@ -10,6 +10,13 @@ permission/foreground-service controls, not a new settings page.
 Webcam is a separate optional feature, OFF by default, independent of photo/video
 sync. Selecting/enabling photo sync or merely connecting either app never enables
 camera/microphone capture. Notes has priority for automatic provider selection.
+While enabled, expose genuine system-wide camera and associated microphone
+endpoints, behaving like separately attached webcam hardware for applications
+using the OS's normal capture interfaces. No per-application Magnolie plugin,
+private stream URL or Organizer preview can substitute for this requirement.
+Explicit disable/disconnect must retire both endpoints/feed paths. Verify actual
+compatibility in independent capture applications rather than promising every
+possible application's behavior without testing it.
 The Organizer must remain fully usable without this optional feature. No new
 mandatory package, virtual-device driver, camera/audio service or phone app may
 become a base startup dependency. Do not import/probe webcam backends during base
@@ -23,8 +30,34 @@ This is an implemented backend boundary, **not a usable/delivered webcam yet**.
 Linux output adapters, binary transport, joined output lifetime, provider selection
 and an Android sender codec exist. Neither Android capture provider, authenticated
 start/control integration, Organizer controls nor Windows native outputs have been
-completed. No camera/microphone permission is advertised or granted by this code.
+completed. No streaming capability is advertised by this unjoined backend.
 No installed OBS/phone capture acceptance or package delivery is claimed.
+
+### Native Notes capture implementation, not yet activated
+
+The Notes source now has a real ActivityResult permission host, a one-use original
+request and foreground-capture permit, and a Camera2/ImageReader + AudioRecord
+engine. Constructors do not prompt, probe devices or start capture. The permission
+host requires a visible original Activity and rechecks actual OS permissions;
+result Booleans, missing microphone permission, expired or changed native contexts
+cannot authorize a start. An old stopped Activity keeps its OS-result slot until
+that exact callback returns, preventing reassignment to a newer request.
+
+The engine requires the original actual camera/microphone foreground-service
+types before looking up a camera. Explicit mute omits microphone capture. It uses
+bounded ImageReader buffers, exact padded/interleaved YUV→I420 conversion, and
+Camera2 realtime / AudioRecord boottime timestamps. Native permission loss,
+device errors, startup/stalled tracks and close retire the common session.
+Late camera-open callbacks close their original device on the still-live app
+executor; unknown native shutdown remains pending rather than authorizing reuse.
+Ordinary optional adapter/observer failures are contained instead of crashing
+the Activity or native cleanup thread.
+
+This entry remains unjoined: no MainActivity registration, camera/microphone
+manifest permission/service declaration, authenticated start route or binary
+sender capture lane has been enabled. It is not yet a usable phone provider.
+The new checks cover 15 distinct JVM/Robolectric cases, including real Android
+adapter APIs under simulation and synthetic YUV buffers, not physical capture.
 
 ## KDE Connect versus Notes
 
@@ -144,6 +177,21 @@ or permission to guess a module ID. Native event loops/contexts are retired even
 on these errors. Successful actual module removal and fault behavior still need
 native source/device acceptance. A read-only native ABI/connection probe is not
 proof of source creation, audio delivery or cleanup.
+
+A subsequent bounded native Linux test did create the owned microphone source,
+read 38400 bytes through a normal external PulseAudio capture client, verify
+generated nonzero PCM samples, and confirm the original module unload. A separate
+read-only check found zero remaining Magnolie virtual sources. Only the newly
+created virtual source was read; no physical microphone/camera was opened.
+This is a native microphone-backend proof, not phone AV/OBS acceptance.
+
+That probe also exposed module acknowledgement before source export on startup.
+Source readiness now waits at most three seconds for the exact newly owned source
+on the same original native connection, and retries only PA_ERR_NOENTITY. Wrong
+identity/format/permission and connection loss still fail; there is no reload,
+reconnect or fallback. Initial data-arrival timing begins after both native
+endpoints are ready, while the caller's original permission/deadline guard remains
+unchanged. The affected desktop tests cover these readiness/timeout boundaries.
 
 A common lifetime monitor retires both outputs on original-authority loss,
 missing initial tracks (two seconds), or track inactivity (500 ms). The joined

@@ -197,6 +197,10 @@ class NativeWebcamSession:
             if not muted:
                 self.audio = audio_factory(self.identity)
             self.guard()
+            # Stream arrival is timed from actual endpoint readiness, not from
+            # before an asynchronous native source was exported. The original
+            # caller's consent/deadline guard above is NOT renewed or replaced.
+            self.started = self.clock()
         except BaseException:
             self.close()
             raise
