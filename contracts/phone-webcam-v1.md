@@ -382,6 +382,30 @@ runtime readiness. Neither a Windows native adapter nor its acceptance is claime
 
 #### Windows dedicated binary receiver (Refs #503)
 
+The separate native `native/phone-camera/PhoneCameraSamples` adapter now creates
+real Media Foundation samples and media types from already admitted payloads.
+Video converts the exact 640x480 I420 planes to tightly packed NV12, without
+changing the input. Audio preserves the exact PCM16LE 48kHz mono bytes. Both
+retain the same original phone PTS epoch using integer microseconds-to-100ns
+conversion, with no receipt-time or separate-track rebasing. Exact payload sizes,
+per-track sequences, increasing PTS and the existing 250ms cross-track bound are
+enforced. Explicit mute rejects audio; invalid data, original-owner denial and
+stop permanently retire both paths. The mandatory nonblocking native owner guard
+is checked before allocation, around buffer filling and before sample publication.
+The downstream owner must independently remain current at actual delivery.
+
+Ten native groups passed on the physical Windows host using the real Media
+Foundation APIs and generated AV only, including byte-for-byte NV12/PCM readback,
+large common timestamps, all four guard boundaries, revocation/retirement, payload,
+sequence/PTS, skew and mute checks. MSVC and Windows SDK were explicitly approved
+and installed; their separate native smoke test compiled against the real SDK
+and found the system virtual-camera API, without creating any device.
+This adapter is not yet a registered COM media source, frame-server IPC, pacing
+engine, system camera or microphone endpoint. It is not called by base startup
+or included as a mandatory native dependency. Those native joins, the Windows
+dispatcher and actual phone/OBS acceptance remain open. A Media Foundation audio
+sample is explicitly **not** an independent Windows microphone input.
+
 `PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
 for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It
 checks the authenticated global sequence and declared length before allocating
