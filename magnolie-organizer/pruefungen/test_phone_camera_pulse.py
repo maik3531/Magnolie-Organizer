@@ -160,3 +160,35 @@ def test_missing_source_wait_has_one_absolute_deadline_and_original_cleanup(monk
     monkeypatch.setattr(pulse.time, 'monotonic', lambda: next(ticks))
     with pytest.raises(pulse.PulseUnavailable, match='source_start_timeout'): source(native)
     assert native.calls.count('load-original') == 1 and native.calls.count('unload-original') == 1
+
+
+@pytest.mark.parametrize('failure', ['format_then_unconfirmed_unload', 'unconfirmed_load'])
+def test_constructor_failure_retains_exact_native_cleanup_owner_without_reconstruction(monkeypatch, failure):
+    native = NativePulse()
+    if failure == 'unconfirmed_load':
+        event_type = pulse.threading.Event
+        class ExpiredWait(event_type):
+            def wait(self, timeout=None): return self.is_set()
+        monkeypatch.setattr(pulse.threading, 'Event', ExpiredWait)
+        native.suppress_load_result = True
+    else:
+        native.wrong_format = native.reject_unload = True
+    with pytest.raises(pulse.PulseUnavailable) as caught:
+        source(native)
+    original = getattr(caught.value, 'native_cleanup_owner', None)
+    assert original is not None, 'failed constructor must retain the actual uncertain native owner'
+    assert original.context is None and original.loop is None and not original.started
+    assert original.load_uncertain if failure == 'unconfirmed_load' else original.module == 42
+    with pytest.raises(pulse.PulseUnavailable) as again:
+        original.close()
+    assert again.value.native_cleanup_owner is original
+    assert native.calls.count('context-new') == 1 and native.calls.count('load-original') == 1
+    assert native.calls.count('unload-original') == (0 if failure == 'unconfirmed_load' else 1)
+
+
+def test_confirmed_constructor_failure_cleanup_is_not_marked_uncertain():
+    native = NativePulse(); native.wrong_format = True
+    with pytest.raises(pulse.PulseUnavailable) as caught:
+        source(native)
+    assert getattr(caught.value, 'native_cleanup_owner', None) is None
+    assert native.calls.count('unload-original') == 1

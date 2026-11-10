@@ -204,6 +204,17 @@ class PulsePipeSource:
                     self.library.pa_threaded_mainloop_unlock(self.loop)
 
     def close(self):
+        try:
+            self._close_original()
+        except BaseException as error:
+            # The constructor may fail before returning this resource owner.
+            # Keep its ORIGINAL uncertainty reachable; callers must not treat
+            # a missing return value as proof that no native module survived.
+            # This is private native evidence, never serialized wire metadata.
+            error.native_cleanup_owner = self
+            raise
+
+    def _close_original(self):
         with self.lock:
             try:
                 if self.load_uncertain:
