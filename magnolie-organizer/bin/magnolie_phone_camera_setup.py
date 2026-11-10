@@ -30,7 +30,9 @@ def trusted_tool(names):
         try: info = os.stat(path)
         except FileNotFoundError: continue
         if stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o022 and os.access(path, os.X_OK):
-            return path
+            # Validate the target, but preserve the fixed invocation name:
+            # modprobe is commonly a kmod multicall symlink (argv[0] matters).
+            return name
     raise RuntimeError('setup_tool_missing')
 
 def directory(parent, name):
@@ -125,7 +127,7 @@ def system_tool(names):
         try: info = path.stat()
         except FileNotFoundError: continue
         if path.is_file() and info.st_uid == 0 and not info.st_mode & 0o022 and os.access(path, os.X_OK):
-            return str(path)
+            return str(Path(name))  # Keep modinfo's kmod multicall argv[0].
     return None
 
 

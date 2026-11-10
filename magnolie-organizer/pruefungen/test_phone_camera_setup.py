@@ -195,3 +195,23 @@ def test_successful_authorization_cannot_admit_revoked_original_source(monkeypat
         setup.prepare_driver(lambda:current[0],run=run,tool=lambda names:names[0],
             loaded=lambda:pytest.fail('Revoked setup admitted a module result'))
     assert len(calls)==2
+
+
+@pytest.mark.parametrize('selector,name',[('user','modinfo'),('root','modprobe')])
+def test_root_owned_multicall_target_keeps_original_invocation_alias(tmp_path,monkeypatch,selector,name):
+    target=tmp_path/'controlled-kmod';target.write_text('#!/usr/bin/python3\nimport os,sys\nprint(os.path.basename(sys.argv[0]))\n')
+    target.chmod(0o755);alias=tmp_path/name;alias.symlink_to(target)
+    original=os.stat
+    def root_owned(path,*args,**kwargs):
+        info=original(path,*args,**kwargs)
+        if os.fspath(path)==str(target):
+            values=list(info);values[4]=0;return os.stat_result(values)
+        return info
+    monkeypatch.setattr(os,'stat',root_owned)
+    selected=(setup.system_tool if selector=='user' else payload()['trusted_tool'])((str(alias),))
+    assert selected==str(alias) and selected!=str(target)
+    assert subprocess.run([selected],capture_output=True,text=True,check=True,timeout=5).stdout.strip()==name
+    target.chmod(0o777)
+    if selector=='user':assert setup.system_tool((str(alias),)) is None
+    else:
+        with pytest.raises(RuntimeError,match='setup_tool_missing'):payload()['trusted_tool']((str(alias),))
