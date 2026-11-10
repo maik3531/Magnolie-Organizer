@@ -9,8 +9,6 @@ import fcntl
 import os
 from pathlib import Path
 import re
-import shutil
-import shlex
 import stat
 import struct
 import tempfile
@@ -27,15 +25,6 @@ WIDTH, HEIGHT, FPS = 640, 480, 15
 VIDEO_BYTES = WIDTH * HEIGHT * 3 // 2
 SAMPLE_RATE, CHANNELS, AUDIO_SAMPLES = 48000, 1, 960
 AUDIO_BYTES = AUDIO_SAMPLES * CHANNELS * 2
-
-
-def _command(arguments):
-    # Existing bounded native helper: 3 seconds / 1 MiB, child always reaped.
-    from magnolie_anruf_audio import bounded_command, AudioUnavailable
-    try:
-        return bounded_command(arguments)
-    except (OSError, ValueError, AudioUnavailable) as error:
-        raise WebcamUnavailable('webcam_audio_server_unavailable') from error
 
 
 def _query_video(fd):
@@ -125,13 +114,13 @@ class LinuxVideoOutput:
 
 class LinuxAudioOutput:
     """One owned native microphone source; never changes the default input."""
-    def __init__(self, session, command=_command):
+    def __init__(self, session, owner_factory=None):
         if type(session) is not str or not re.fullmatch('[0-9a-f]{32}', session):
             raise ValueError('invalid webcam session identity')
-        self.command, self.module, self.fd, self.directory = command, None, None, None
-        self.pactl = shutil.which('pactl')
-        if self.pactl is None:
-            raise WebcamUnavailable('webcam_audio_server_unavailable')
+        self.owner = self.fd = self.directory = None
+        if owner_factory is None:
+            from magnolie_phone_camera_pulse import PulsePipeSource
+            owner_factory = PulsePipeSource
         self.name = 'magnolie_phone_' + session
         keeper = None
         try:
@@ -140,17 +129,10 @@ class LinuxAudioOutput:
             pipe = self.pipe = str(Path(self.directory.name) / 'microphone.pcm')
             os.mkfifo(pipe, 0o600)
             keeper = os.open(pipe, os.O_RDWR | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
-            loaded = self.command([self.pactl, 'load-module', 'module-pipe-source',
-                'source_name=' + self.name, 'file=' + shlex.quote(pipe), 'format=s16le',
-                'rate=48000', 'channels=1', 'channel_map=mono']).strip()
-            if not re.fullmatch(r'[0-9]{1,10}', loaded):
-                raise WebcamUnavailable('webcam_native_audio_source_unsupported')
-            self.module = loaded
-            sources = self.command([self.pactl, 'list', 'short', 'sources'])
-            if not any(len(row) >= 6 and row[1] == self.name and row[3:6] == ['s16le', '1ch', '48000Hz']
-                       for row in (line.split() for line in sources.splitlines())):
-                raise WebcamUnavailable('webcam_native_audio_source_required')
+            self.owner = owner_factory(self.name, pipe)
+            self.owner.require()
             self.fd = os.open(pipe, os.O_WRONLY | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
+            self.owner.require()
         except BaseException:
             self.close()
             raise
@@ -161,6 +143,7 @@ class LinuxAudioOutput:
     def write(self, data):
         if self.fd is None:
             raise WebcamUnavailable('webcam_output_closed')
+        self.owner.require()
         # One 20-ms packet is below PIPE_BUF. No silent partial/stale audio queue.
         try:
             count = os.write(self.fd, data)
@@ -168,27 +151,16 @@ class LinuxAudioOutput:
             raise WebcamUnavailable('webcam_native_audio_backpressure') from error
         if count != len(data):
             raise WebcamUnavailable('webcam_native_audio_short_write')
+        self.owner.require()
         return True
 
     def close(self):
         fd, self.fd = self.fd, None
         if fd is not None:
             os.close(fd)
-        if self.module is not None:
-            module = self.module
-            # A restarted audio server can reuse module IDs. Never unload a
-            # foreign/replacement module merely because its integer matches.
-            modules = self.command([self.pactl, 'list', 'short', 'modules'])
-            for line in modules.splitlines():
-                columns = line.split('\t')
-                if len(columns) >= 3 and columns[0] == module:
-                    arguments = shlex.split(columns[2])
-                    if (columns[1] == 'module-pipe-source' and 'source_name=' + self.name in arguments
-                            and 'file=' + self.pipe in arguments):
-                        # On failed unload retain ownership for an explicit retry.
-                        self.command([self.pactl, 'unload-module', module])
-                    break
-            self.module = None
+        if self.owner is not None:
+            self.owner.close()
+            self.owner = None
         if self.directory is not None:
             self.directory.cleanup()
             self.directory = None

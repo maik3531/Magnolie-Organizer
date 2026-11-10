@@ -134,9 +134,16 @@ microphone source under the same session identity. Never change default inputs.
 Check actual advertised PCM format. Refuse audio backpressure/partial writes
 instead of silently dropping audio. Drop only complete video frames on EAGAIN.
 Native adapters must still be validated on actual audio-server/driver versions.
-The CLI module ownership check refuses an observed reused foreign module ID;
-atomic ownership across an audio-server restart between CLI calls is not yet
-guaranteed and must be resolved before enabling the production audio adapter.
+The initial CLI ownership check was replaced with one persistent original native
+libpulse connection for load, exact source-format inspection and unload. No
+automatic reconnect or historical module-index reuse on another server is allowed.
+The library is loaded only on explicit use; a missing library/server fails only
+this feature, without autospawning an audio daemon. A server loss/unconfirmed
+module load/unload is reported as failed/shutdown-pending, never as a clean stop
+or permission to guess a module ID. Native event loops/contexts are retired even
+on these errors. Successful actual module removal and fault behavior still need
+native source/device acceptance. A read-only native ABI/connection probe is not
+proof of source creation, audio delivery or cleanup.
 
 A common lifetime monitor retires both outputs on original-authority loss,
 missing initial tracks (two seconds), or track inactivity (500 ms). The joined

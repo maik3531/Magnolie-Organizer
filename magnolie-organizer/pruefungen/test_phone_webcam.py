@@ -169,21 +169,19 @@ def test_native_video_rejects_non_device_paths_without_opening(monkeypatch, path
     opening.assert_not_called()
 
 
-def test_native_microphone_is_real_fifo_source_and_never_changes_default(monkeypatch):
-    monkeypatch.setattr(webcam.shutil, 'which', lambda _: '/usr/bin/pactl')
+def test_native_microphone_is_real_fifo_source_with_one_persistent_owner():
     calls = []; name = 'magnolie_phone_' + 'a' * 32; pipe = None; reader = None
-    def command(args):
+    def owner(source_name, path):
         nonlocal pipe, reader
-        calls.append(args)
-        if args[1] == 'load-module':
-            pipe = next(arg[5:] for arg in args if arg.startswith('file='))
-            assert stat.S_ISFIFO(os.stat(pipe).st_mode) and os.stat(pipe).st_mode & 0o777 == 0o600
-            reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)
-            return '42\n'
-        if args[-1] == 'sources': return '9\t' + name + '\tmodule-pipe-source\ts16le 1ch 48000Hz\tIDLE\n'
-        if args[-1] == 'modules': return '42\tmodule-pipe-source\tsource_name=' + name + ' file=' + pipe + '\t0\n'
-        assert args[1:] == ['unload-module', '42']; return ''
-    value = webcam.LinuxAudioOutput('a' * 32, command=command)
+        assert source_name == name
+        pipe = path
+        assert stat.S_ISFIFO(os.stat(pipe).st_mode) and os.stat(pipe).st_mode & 0o777 == 0o600
+        reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)
+        calls.append('load')
+        result = Mock()
+        result.close.side_effect = lambda: calls.append('unload-original-owner')
+        return result
+    value = webcam.LinuxAudioOutput('a' * 32, owner_factory=owner)
     try:
         assert value.write(b'\x12\x34' * webcam.AUDIO_SAMPLES)
         assert os.read(reader, webcam.AUDIO_BYTES) == b'\x12\x34' * webcam.AUDIO_SAMPLES
@@ -191,18 +189,16 @@ def test_native_microphone_is_real_fifo_source_and_never_changes_default(monkeyp
         value.close()
         if reader is not None: os.close(reader)
     assert not Path(pipe).exists()
-    assert [call[1] for call in calls] == ['load-module', 'list', 'list', 'unload-module']
+    assert calls == ['load', 'unload-original-owner']
 
 
-def test_audio_cleanup_never_unloads_reused_foreign_module_id(monkeypatch):
+def test_audio_cleanup_never_discards_an_original_owner_shutdown_failure():
     value = object.__new__(webcam.LinuxAudioOutput)
-    calls = []
     value.fd = value.directory = None
-    value.module = '42'; value.name = 'magnolie_phone_' + 'a' * 32
-    value.pipe = '/private/owned/microphone.pcm'; value.pactl = '/usr/bin/pactl'
-    value.command = lambda args: calls.append(args) or '42\tmodule-pipe-source\tsource_name=foreign file=/foreign\t0\n'
-    value.close()
-    assert len(calls) == 1 and calls[0][-1] == 'modules' and value.module is None
+    original = value.owner = Mock()
+    original.close.side_effect = webcam.WebcamUnavailable('shutdown pending')
+    with pytest.raises(webcam.WebcamUnavailable, match='shutdown pending'): value.close()
+    assert value.owner is original and value.fd is None
 
 
 def test_pair_cleanup_closes_camera_even_if_audio_server_refuses_unload():
