@@ -4,6 +4,7 @@
 #include <wrl.h>
 #include <atomic>
 #include <cstdio>
+#include <cstring>
 #include <stdexcept>
 
 using namespace Magnolie::PhoneCamera;
@@ -105,6 +106,19 @@ namespace
         DWORD flags = 0; Check(source->GetCharacteristics(&flags) == MF_E_SHUTDOWN);
     }
 
+    void ReleasedActivationDoesNotShutdownHeldSource()
+    {
+        Fixture f; ComPtr<IMFMediaSourceEx> source;
+        Ok(f.activate->ActivateObject(IID_PPV_ARGS(&source)));
+        f.activate.Reset();
+        DWORD flags = 0;
+        const HRESULT live = source->GetCharacteristics(&flags);
+        const bool stillLive = SUCCEEDED(live) && flags == MFMEDIASOURCE_IS_LIVE && f.root->retired == 0;
+        source->Shutdown();
+        if (!stillLive) std::printf("REPRO released-activation-held-source HRESULT=%08lx\n", static_cast<unsigned long>(live));
+        Check(stillLive);
+    }
+
     void DetachedSourceKeepsNativeContext()
     {
         struct Event { HANDLE handle = CreateEventW(nullptr, TRUE, FALSE, nullptr); ~Event() { if (handle) CloseHandle(handle); } } ended;
@@ -134,7 +148,7 @@ namespace
     }
 }
 
-int main()
+int main(int argc, char** argv)
 {
     if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return 2;
     if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET))) { CoUninitialize(); return 3; }
@@ -143,10 +157,12 @@ int main()
         {"activate-metadata-snapshot-original-source", MetadataSnapshotAndOriginalSource}, {"activate-metadata-not-authority", MetadataCannotGrantAuthority},
         {"activate-construction-failure-no-retry", FailedConstructionDoesNotRetry}, {"activate-context-lost-during-construct", LostOriginalContextDuringConstruction},
         {"activate-original-context-revoked", OriginalContextRevokedAfterActivation}, {"activate-shutdown-original-source", ShutdownRetiresOnlyOriginalSource},
-        {"activate-detached-source-context-lifetime", DetachedSourceKeepsNativeContext}, {"activate-unsupported-interface-arguments", UnsupportedInterfaceAndInvalidArguments}
+        {"activate-detached-source-context-lifetime", DetachedSourceKeepsNativeContext}, {"activate-unsupported-interface-arguments", UnsupportedInterfaceAndInvalidArguments},
+        {"activate-release-preserves-held-source", ReleasedActivationDoesNotShutdownHeldSource}
     };
     for (const auto& test : cases)
     {
+        if (argc == 2 && std::strcmp(argv[1], test.name) != 0) continue;
         try { test.run(); std::printf("PASS %s\n", test.name); }
         catch (...) { ++failed; std::printf("FAIL %s\n", test.name); }
         std::fflush(stdout);

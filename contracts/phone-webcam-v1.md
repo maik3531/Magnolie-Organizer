@@ -545,6 +545,15 @@ its actual owner without shutting it down, but the old activation cannot then
 create a replacement. Both activation and source independently hold their supplied
 opaque native lifetime anchors.
 
+The activation object's final COM release is not an implicit source shutdown
+(#526). A separately held source remains usable without requiring a prior
+`DetachObject`; the original native controller still must explicitly shut it
+down. Explicit `ShutdownObject`, construction failure and original-authority
+revocation retain their permanent retirement semantics. Nine native activation
+groups now pass, including the regression that failed with `MF_E_SHUTDOWN` before
+this correction; the four affected real DLL lifetime groups also pass. This
+corrects a Windows-specific object-lifetime defect, not a phone/OBS acceptance.
+
 Eight new activation groups pass on real Windows, covering metadata versus
 authority, immutable construction snapshot/original source identity, construction
 failure, context loss during/after construction, shutdown, invalid interfaces

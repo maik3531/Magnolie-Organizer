@@ -12,7 +12,10 @@ namespace Magnolie::PhoneCamera
     {
     public:
         explicit Activate(ActivateOwner owner) : owner_(owner), lifetime_(owner.lifetime) {}
-        ~Activate() { ShutdownObject(); }
+        // Releasing activation metadata is not a request to shut down a source
+        // independently held by FrameServer. Its original controller still
+        // owns explicit Shutdown and the source's live authority checks.
+        ~Activate() = default;
         HRESULT Initialize() noexcept { return MFCreateAttributes(&attributes_, 8); }
         STDMETHODIMP ActivateObject(REFIID iid, void** result) override
         {
