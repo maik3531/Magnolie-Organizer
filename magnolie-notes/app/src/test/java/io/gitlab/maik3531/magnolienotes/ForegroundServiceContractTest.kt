@@ -14,6 +14,35 @@ class ForegroundServiceContractTest {
     }
 
     @Test
+    fun optionalWebcamHasNoExportedOrBootEntryAndDoesNotRequireCaptureHardware() {
+        val document = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(project.resolve("src/main/AndroidManifest.xml"))
+        val android = "http://schemas.android.com/apk/res/android"
+        val service = document.getElementsByTagName("service").let { nodes ->
+            (0 until nodes.length).map { nodes.item(it) as Element }
+                .single { it.getAttributeNS(android, "name") == ".telefon.PhoneWebcamCaptureService" }
+        }
+        assertEquals("false", service.getAttributeNS(android, "exported"))
+        assertEquals(0, service.getElementsByTagName("intent-filter").length)
+        val features = document.getElementsByTagName("uses-feature").let { nodes ->
+            (0 until nodes.length).map { nodes.item(it) as Element }
+                .associate { it.getAttributeNS(android, "name") to it.getAttributeNS(android, "required") }
+        }
+        for (name in listOf("camera", "camera.any", "camera.autofocus", "microphone")) {
+            assertEquals("false", features["android.hardware.$name"])
+        }
+        val activity = project.resolve("src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt").readText()
+        val early = activity.substringAfter("override fun onCreate").substringBefore("acceptGalleryPermissionIntent(intent)")
+        assertTrue("PhoneWebcamForeground.register(it)" in early)
+        assertEquals(4, Regex("phoneWebcamPermissionHost\\?\\.requestPending == true").findAll(early).count())
+        for (slot in listOf("galleryPermissionHost", "galleryVideoPermissionHost", "galleryWriteConsentHost", "galleryPcWriteConsentHost")) {
+            assertTrue("$slot?.requestPending == true" in early.substringBefore("galleryWriteConsentHost ="))
+        }
+        assertFalse("PhoneWebcamServiceStarts.start" in activity)
+        assertFalse("PhoneWebcamForeground.request" in activity)
+    }
+
+    @Test
     fun permanentDeviceListenersDoNotUseTimedDataSyncServiceType() {
         val manifestFile = project.resolve("src/main/AndroidManifest.xml")
         val manifest = manifestFile.readText()
@@ -29,8 +58,10 @@ class ForegroundServiceContractTest {
             "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
             "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
             "android.permission.FOREGROUND_SERVICE_LOCATION",
+            "android.permission.FOREGROUND_SERVICE_CAMERA",
+            "android.permission.FOREGROUND_SERVICE_MICROPHONE",
         ), foregroundPermissions.toSet())
-        assertEquals(4, foregroundPermissions.size)
+        assertEquals(6, foregroundPermissions.size)
         assertEquals(1, permissions.count { it == "android.permission.CHANGE_NETWORK_STATE" })
 
         val services = document.getElementsByTagName("service").let { nodes ->
@@ -42,6 +73,7 @@ class ForegroundServiceContractTest {
         }
         assertEquals("connectedDevice", services[".baum.BaumDienst"])
         assertEquals("connectedDevice", services[".telefon.TelefonDienst"])
+        assertEquals(setOf("camera", "microphone"), services[".telefon.PhoneWebcamCaptureService"]?.split('|')?.toSet())
         assertEquals(setOf("specialUse", "location"), services[".zeit.ZeitDienst"]?.split('|')?.toSet())
         val timeService = document.getElementsByTagName("service").let { nodes ->
             (0 until nodes.length).map { nodes.item(it) as Element }

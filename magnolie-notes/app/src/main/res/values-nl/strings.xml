@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Telefoonwebcam</string>
+    <string name="webcam_startet">Telefoonwebcam starten…</string>
+    <string name="webcam_aktiv">Camera en microfoon zijn actief</string>
+    <string name="webcam_stumm">Camera actief; microfoon gedempt</string>
+    <string name="webcam_stoppt">Telefoonwebcam stoppen…</string>
+    <string name="webcam_beenden">Stoppen</string>
     <string name="telefon_erweitert_titel">Geavanceerde functies</string>
     <string name="media_recovery_title">Herstel van foto’s en video’s</string>
     <string name="media_recovery_hint">Lokale versleutelde herstelkopieën, ook beschikbaar zonder de eerdere verbinding. De herstelkopie en bestaande media blijven bij het herstellen behouden.</string>

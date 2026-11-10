@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Webcam do telemóvel</string>
+    <string name="webcam_startet">A iniciar a webcam do telemóvel…</string>
+    <string name="webcam_aktiv">Câmara e microfone ativos</string>
+    <string name="webcam_stumm">Câmara ativa; microfone silenciado</string>
+    <string name="webcam_stoppt">A parar a webcam do telemóvel…</string>
+    <string name="webcam_beenden">Parar</string>
     <string name="telefon_erweitert_titel">Funcionalidades avançadas</string>
     <string name="media_recovery_title">Recuperação de fotografias e vídeos</string>
     <string name="media_recovery_hint">Cópias de recuperação locais encriptadas, também disponíveis sem a ligação anterior. A cópia de recuperação e os ficheiros multimédia existentes são preservados ao restaurar.</string>

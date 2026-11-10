@@ -53,11 +53,46 @@ executor; unknown native shutdown remains pending rather than authorizing reuse.
 Ordinary optional adapter/observer failures are contained instead of crashing
 the Activity or native cleanup thread.
 
-This entry remains unjoined: no MainActivity registration, camera/microphone
-manifest permission/service declaration, authenticated start route or binary
-sender capture lane has been enabled. It is not yet a usable phone provider.
+The entry now has early MainActivity permission-host registration and a private
+camera/microphone foreground-service declaration. Camera, autofocus and microphone
+hardware remain optional; registration never prompts or starts capture. All four
+gallery permission/consent slots and the webcam slot mutually block each other.
+The visible-Activity rendezvous holds no persisted request and never launches UI
+from the background. There is still no authenticated production start route or
+advertised provider, so this is not yet a usable phone webcam.
 The new checks cover 15 distinct JVM/Robolectric cases, including real Android
 adapter APIs under simulation and synthetic YUV buffers, not physical capture.
+
+The bounded capture/send lane now implements separate current-capture and actual
+bilateral-SEND guards. Before receiver-ready admission it retains only the newest
+private video/audio sample and sends nothing; readiness requires fresh samples
+for both default tracks. Active audio has a ten-packet bound and stops both paths
+on backpressure, never silently dropping audio. Only whole unsent video frames
+may be replaced, without allocating gaps in per-track wire sequences. The common
+epoch comes from the actual held boot timestamps, not UI flags or receipt time.
+Guards remain live even while the queue is empty; denied old owners cannot revive
+when matching flags return. A dedicated already-connected SocketChannel writer
+uses nonblocking bounded IO and creates no listener, target selection or reconnect.
+Ten targeted JVM tests include independent wire digests and an actual local socket
+write.
+
+The joined foreground run now owns the actual Camera2/AudioRecord engine, lane
+and originally admitted dedicated socket. The remote address must match the
+authenticated parent's pinned peer; capture preparation is not permission to
+send. Five joined-runtime tests cover generated-source wire output, missing SEND,
+wrong peer and the real default engine's no-camera cleanup under Robolectric.
+Three affected existing engine tests also passed after the lifetime join.
+
+The nonexported, nonsticky service accepts only a one-use in-memory native handoff,
+uses the actual camera/microphone foreground types, and stops only for its exact
+opaque original token. The one-capture slot remains held until native drain AND
+service destruction. Its localized notification distinguishes starting, actual
+capture preparation, explicit mute and stopping. Missing/restored/stale intents
+cannot create capture. Five service tests passed; a later Activity/manifest check
+passed 34 cases covering the service, permission host, rendezvous, optional hardware
+contract and phone-module isolation. Android manifest declarations are not OS
+consent or physical acceptance. No authenticated control start/key exchange,
+Organizer activation, native device-success or OBS acceptance is claimed here.
 
 ## KDE Connect versus Notes
 

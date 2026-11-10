@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Webcam du téléphone</string>
+    <string name="webcam_startet">Démarrage de la webcam du téléphone…</string>
+    <string name="webcam_aktiv">La caméra et le microphone sont actifs</string>
+    <string name="webcam_stumm">Caméra active ; microphone coupé</string>
+    <string name="webcam_stoppt">Arrêt de la webcam du téléphone…</string>
+    <string name="webcam_beenden">Arrêter</string>
     <string name="telefon_erweitert_titel">Fonctions avancées</string>
     <string name="media_recovery_title">Récupération des photos et vidéos</string>
     <string name="media_recovery_hint">Copies de récupération locales chiffrées, disponibles même sans la connexion précédente. La copie de récupération et les médias existants sont conservés lors de la restauration.</string>

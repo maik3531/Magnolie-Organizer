@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">手机网络摄像头</string>
+    <string name="webcam_startet">正在启动手机网络摄像头…</string>
+    <string name="webcam_aktiv">摄像头和麦克风正在使用</string>
+    <string name="webcam_stumm">摄像头正在使用；麦克风已静音</string>
+    <string name="webcam_stoppt">正在停止手机网络摄像头…</string>
+    <string name="webcam_beenden">停止</string>
     <string name="telefon_erweitert_titel">高级功能</string>
     <string name="media_recovery_title">照片和视频恢复</string>
     <string name="media_recovery_hint">本地加密恢复副本，即使没有原来的连接也可使用。恢复时会保留恢复副本和现有媒体。</string>

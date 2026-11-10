@@ -18,6 +18,7 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Size
+import androidx.annotation.RequiresApi
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -31,9 +32,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * This engine is not yet wired into a service/control handler or advertised as
  * a usable provider. Native physical device acceptance remains separate.
  */
+@RequiresApi(30)
 internal class PhoneWebcamAndroidCapture(private val service: Service, private val permit: PhoneWebcamCapturePermit,
     private val sample: (video: Boolean, bootTimeNanos: Long, bytes: ByteArray) -> Unit,
-    private val ended: (Throwable?) -> Unit) : AutoCloseable {
+    private val ended: (Throwable?) -> Unit) : PhoneWebcamCaptureDevice {
     private val started = AtomicBoolean(false)
     private val active = AtomicBoolean(false)
     private val stop = CountDownLatch(1)
@@ -56,7 +58,7 @@ internal class PhoneWebcamAndroidCapture(private val service: Service, private v
     val terminalFailure: Throwable? get() = failure
 
     @SuppressLint("MissingPermission") // Real fresh permission/FGS check below and at every callback/read.
-    fun start() {
+    override fun start() {
         check(Looper.myLooper() == Looper.getMainLooper()) { "webcam_foreground_start_thread_required" }
         check(started.compareAndSet(false, true)) { "webcam_capture_start_already_used" }
         try {
@@ -214,8 +216,13 @@ internal class PhoneWebcamAndroidCapture(private val service: Service, private v
     }
 
     private fun fail(error: Throwable) { if (failure == null && cleanupEnded.count != 0L) failure = error; close() }
-    override fun close() { active.set(false); permit.close(); stop.countDown() }
-    fun isCompletelyStopped() = cleanupEnded.count == 0L && (!openRequested || cameraOpenEnded.count == 0L)
+    override fun close() {
+        active.set(false); permit.close(); stop.countDown()
+        // Construction alone owns no native resource/worker. A cancelled
+        // unstarted factory must not remain an imaginary pending capture.
+        if (!started.get()) { cameraOpenEnded.countDown(); cleanupEnded.countDown() }
+    }
+    override fun isCompletelyStopped() = cleanupEnded.count == 0L && (!openRequested || cameraOpenEnded.count == 0L)
     private fun notifyEnded() {
         try { ended(failure) }
         catch (error: Exception) {

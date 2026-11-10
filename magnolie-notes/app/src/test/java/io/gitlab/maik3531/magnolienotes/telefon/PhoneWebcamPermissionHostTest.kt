@@ -37,7 +37,7 @@ class PhoneWebcamPermissionHostTest {
             return super.getSystemService(name)
         }
     }
-    private class Fixture : AutoCloseable {
+    internal class Fixture : AutoCloseable {
         val controller = Robolectric.buildActivity(ComponentActivity::class.java).create()
         val activity = controller.get()
         var competing = false

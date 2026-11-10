@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Веб-камера телефона</string>
+    <string name="webcam_startet">Запуск веб-камеры телефона…</string>
+    <string name="webcam_aktiv">Камера и микрофон активны</string>
+    <string name="webcam_stumm">Камера активна; микрофон выключен</string>
+    <string name="webcam_stoppt">Остановка веб-камеры телефона…</string>
+    <string name="webcam_beenden">Остановить</string>
     <string name="telefon_erweitert_titel">Расширенные функции</string>
     <string name="media_recovery_title">Восстановление фото и видео</string>
     <string name="media_recovery_hint">Локальные зашифрованные копии для восстановления, доступные и без прежнего подключения. При восстановлении копия и существующие медиафайлы сохраняются.</string>

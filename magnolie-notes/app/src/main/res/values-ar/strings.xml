@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">كاميرا الهاتف ككاميرا ويب</string>
+    <string name="webcam_startet">جارٍ تشغيل كاميرا الهاتف…</string>
+    <string name="webcam_aktiv">الكاميرا والميكروفون نشطان</string>
+    <string name="webcam_stumm">الكاميرا نشطة؛ الميكروفون مكتوم</string>
+    <string name="webcam_stoppt">جارٍ إيقاف كاميرا الهاتف…</string>
+    <string name="webcam_beenden">إيقاف</string>
     <string name="telefon_erweitert_titel">ميزات متقدمة</string>
     <string name="media_recovery_title">استعادة الصور والفيديوهات</string>
     <string name="media_recovery_hint">نسخ استعادة محلية مشفرة، متاحة أيضًا دون الاتصال السابق. تُحفظ نسخة الاستعادة والوسائط الموجودة عند الاستعادة.</string>

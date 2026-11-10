@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Kamera internetowa telefonu</string>
+    <string name="webcam_startet">Uruchamianie kamery internetowej telefonu…</string>
+    <string name="webcam_aktiv">Kamera i mikrofon są aktywne</string>
+    <string name="webcam_stumm">Kamera aktywna; mikrofon wyciszony</string>
+    <string name="webcam_stoppt">Zatrzymywanie kamery internetowej telefonu…</string>
+    <string name="webcam_beenden">Zatrzymaj</string>
     <string name="telefon_erweitert_titel">Funkcje zaawansowane</string>
     <string name="media_recovery_title">Odzyskiwanie zdjęć i filmów</string>
     <string name="media_recovery_hint">Lokalne zaszyfrowane kopie odzyskiwania, dostępne również bez poprzedniego połączenia. Podczas przywracania kopia odzyskiwania i istniejące multimedia zostają zachowane.</string>

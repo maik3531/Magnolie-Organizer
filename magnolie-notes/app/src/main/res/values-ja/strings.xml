@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">スマートフォンのウェブカメラ</string>
+    <string name="webcam_startet">スマートフォンのウェブカメラを起動中…</string>
+    <string name="webcam_aktiv">カメラとマイクが動作中です</string>
+    <string name="webcam_stumm">カメラ動作中・マイクはミュート</string>
+    <string name="webcam_stoppt">スマートフォンのウェブカメラを停止中…</string>
+    <string name="webcam_beenden">停止</string>
     <string name="telefon_erweitert_titel">高度な機能</string>
     <string name="media_recovery_title">写真と動画の復元</string>
     <string name="media_recovery_hint">以前の接続がなくても利用できる、ローカルの暗号化された復元用コピーです。復元時も復元用コピーと既存のメディアは保持されます。</string>

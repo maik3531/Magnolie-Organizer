@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Phone webcam</string>
+    <string name="webcam_startet">Starting phone webcam…</string>
+    <string name="webcam_aktiv">Camera and microphone are active</string>
+    <string name="webcam_stumm">Camera active; microphone muted</string>
+    <string name="webcam_stoppt">Stopping phone webcam…</string>
+    <string name="webcam_beenden">Stop</string>
     <string name="medien_pc_archiv_titel">Choose a received PC file for a recovery copy</string>
     <string name="medien_pc_archiv_kopie">Create recovery copy</string>
     <string name="medien_pc_archiv_hinweis">Copies a selected received PC file into local encrypted recovery storage. Originals stay unchanged. Requires a saved, unlocked book and enabled trash protection. This does not replace or delete media.</string>

@@ -23,6 +23,12 @@
          photo/video READ never requests metadata-location permission. -->
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+    <!-- Optional webcam only: runtime consent is requested by an original
+         authenticated desktop action in a visible Activity, never at startup. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <!-- Der Empfangsdienst läuft als sichtbarer Vordergrunddienst. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -51,6 +57,10 @@
         android:maxSdkVersion="30" />
 
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.location" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
@@ -103,6 +113,12 @@
                 <data android:scheme="magnolie-pair" />
             </intent-filter>
         </activity>
+
+        <!-- No exported/boot route; exact one-use in-memory capture owner only. -->
+        <service
+            android:name=".telefon.PhoneWebcamCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone" />
 
         <!-- Only our immutable notification PendingIntent may use the Custom route. -->
         <activity-alias

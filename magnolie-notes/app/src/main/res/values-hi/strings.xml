@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">फ़ोन वेबकैम</string>
+    <string name="webcam_startet">फ़ोन वेबकैम शुरू हो रहा है…</string>
+    <string name="webcam_aktiv">कैमरा और माइक्रोफ़ोन सक्रिय हैं</string>
+    <string name="webcam_stumm">कैमरा सक्रिय; माइक्रोफ़ोन म्यूट है</string>
+    <string name="webcam_stoppt">फ़ोन वेबकैम बंद हो रहा है…</string>
+    <string name="webcam_beenden">बंद करें</string>
     <string name="telefon_erweitert_titel">उन्नत सुविधाएँ</string>
     <string name="media_recovery_title">फ़ोटो और वीडियो पुनर्प्राप्ति</string>
     <string name="media_recovery_hint">स्थानीय एन्क्रिप्ट की गई पुनर्प्राप्ति प्रतियाँ, जो पुराने कनेक्शन के बिना भी उपलब्ध हैं। बहाल करते समय पुनर्प्राप्ति प्रति और मौजूदा मीडिया सुरक्षित रहते हैं।</string>

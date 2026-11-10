@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Handy-Webcam</string>
+    <string name="webcam_startet">Handy-Webcam wird gestartet…</string>
+    <string name="webcam_aktiv">Kamera und Mikrofon sind aktiv</string>
+    <string name="webcam_stumm">Kamera aktiv; Mikrofon stumm</string>
+    <string name="webcam_stoppt">Handy-Webcam wird beendet…</string>
+    <string name="webcam_beenden">Beenden</string>
     <string name="medien_pc_archiv_titel">Empfangene PC-Datei für eine Wiederherstellungskopie auswählen</string>
     <string name="medien_pc_archiv_kopie">Wiederherstellungskopie anlegen</string>
     <string name="medien_pc_archiv_hinweis">Kopiert eine ausgewählte empfangene PC-Datei in den lokalen verschlüsselten Wiederherstellungsspeicher. Originale bleiben unverändert. Benötigt ein gespeichertes, entsperrtes Buch und eingeschalteten Papierkorbschutz. Medien werden weder ersetzt noch gelöscht.</string>

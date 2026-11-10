@@ -121,6 +121,7 @@ private fun liesPortableArchiv(context: Context, uri: Uri): ByteArray {
 
 
 class MainActivity : ComponentActivity() {
+    private var phoneWebcamPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamPermissionHost? = null
     private var galleryPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
     private var galleryVideoPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
     private var galleryWriteConsentHost: io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryWriteConsentHost? = null
@@ -139,21 +140,29 @@ class MainActivity : ComponentActivity() {
         super.onCreate(zustand)
         // Register before STARTED without constructing a phone store/service.
         // Explicit native file activation can attach later, preserving drafts.
+        phoneWebcamPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamPermissionHost(this) {
+            galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
+                galleryWriteConsentHost?.requestPending == true || galleryPcWriteConsentHost?.requestPending == true
+        }.also { io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamForeground.register(it) }
         galleryWriteConsentHost = io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryWriteConsentHost(this) {
             galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
-                galleryPcWriteConsentHost?.requestPending == true
+                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true
         }
         galleryPcWriteConsentHost = io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryPcWriteConsentHost(this) {
             galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
-                galleryWriteConsentHost?.requestPending == true
+                galleryWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true
         }.also { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryPcReplacementForeground.register(this, it) }
         galleryPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this,
-            writeConsent = galleryWriteConsentHost, otherPermissionPending = { galleryPcWriteConsentHost?.requestPending == true }).also {
+            writeConsent = galleryWriteConsentHost, otherPermissionPending = {
+                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true
+            }).also {
             io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
         }
         galleryVideoPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this,
             io.gitlab.maik3531.magnolienotes.telefon.GalleryMediaType.VIDEO, galleryWriteConsentHost,
-            otherPermissionPending = { galleryPcWriteConsentHost?.requestPending == true }).also {
+            otherPermissionPending = {
+                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true
+            }).also {
             io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
         }
         acceptGalleryPermissionIntent(intent)
@@ -179,6 +188,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        phoneWebcamPermissionHost?.let {
+            io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamForeground.unregister(it)
+            it.close()
+        }
+        phoneWebcamPermissionHost = null
         galleryPermissionHost?.let { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.unregisterHost(it) }
         galleryPermissionHost = null
         galleryVideoPermissionHost?.let { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.unregisterHost(it) }

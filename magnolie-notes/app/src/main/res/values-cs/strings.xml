@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Webkamera telefonu</string>
+    <string name="webcam_startet">Spouštění webkamery telefonu…</string>
+    <string name="webcam_aktiv">Kamera a mikrofon jsou aktivní</string>
+    <string name="webcam_stumm">Kamera aktivní; mikrofon ztlumen</string>
+    <string name="webcam_stoppt">Zastavování webkamery telefonu…</string>
+    <string name="webcam_beenden">Zastavit</string>
     <string name="telefon_erweitert_titel">Pokročilé funkce</string>
     <string name="media_recovery_title">Obnovení fotografií a videí</string>
     <string name="media_recovery_hint">Místní šifrované kopie pro obnovení, dostupné i bez původního připojení. Při obnovení se kopie i stávající média zachovají.</string>

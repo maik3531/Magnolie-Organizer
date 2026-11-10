@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Telefon web kamerası</string>
+    <string name="webcam_startet">Telefon web kamerası başlatılıyor…</string>
+    <string name="webcam_aktiv">Kamera ve mikrofon etkin</string>
+    <string name="webcam_stumm">Kamera etkin; mikrofon sessizde</string>
+    <string name="webcam_stoppt">Telefon web kamerası durduruluyor…</string>
+    <string name="webcam_beenden">Durdur</string>
     <string name="telefon_erweitert_titel">Gelişmiş özellikler</string>
     <string name="media_recovery_title">Fotoğraf ve video kurtarma</string>
     <string name="media_recovery_hint">Önceki bağlantı olmadan da kullanılabilen yerel şifreli kurtarma kopyaları. Geri yükleme sırasında kurtarma kopyası ve mevcut medya korunur.</string>

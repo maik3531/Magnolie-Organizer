@@ -73,11 +73,17 @@ internal class PhoneWebcamCapturePermit private constructor(private val request:
     val muted get() = request.muted
     val frontCamera get() = request.frontCamera
 
+    internal fun requireVisibleStart() {
+        check(service == null) { "webcam_foreground_owner_already_used" }
+        val activity = checkNotNull(originalActivity.get()) { "webcam_original_activity_required" }
+        check(activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) && !activity.isFinishing) { "webcam_visible_activity_required" }
+        request.requirePermissions(activity)
+    }
+
     @Synchronized fun enterForeground(actual: Service) {
         try {
             check(service == null) { "webcam_foreground_owner_already_used" }
-            val activity = checkNotNull(originalActivity.get()) { "webcam_original_activity_required" }
-            check(activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) && !activity.isFinishing) { "webcam_visible_activity_required" }
+            requireVisibleStart()
             request.requirePermissions(actual)
             checkForeground(actual)
             request.claimForeground()
@@ -94,7 +100,7 @@ internal class PhoneWebcamCapturePermit private constructor(private val request:
     }
     private fun checkForeground(actual: Service) {
         // Optional feature requirement only; Notes itself keeps its older minSdk.
-        check(Build.VERSION.SDK_INT >= 30) { "webcam_android_version_unsupported" }
+        if (Build.VERSION.SDK_INT < 30) error("webcam_android_version_unsupported")
         val mask = ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
         val expected = ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or if (muted) 0 else ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
         check(actual.foregroundServiceType and mask == expected) { "webcam_actual_foreground_capture_required" }

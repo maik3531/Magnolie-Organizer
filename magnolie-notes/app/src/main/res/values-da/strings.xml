@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Telefonwebkamera</string>
+    <string name="webcam_startet">Starter telefonwebkamera…</string>
+    <string name="webcam_aktiv">Kamera og mikrofon er aktive</string>
+    <string name="webcam_stumm">Kamera aktivt; mikrofon slået fra</string>
+    <string name="webcam_stoppt">Stopper telefonwebkamera…</string>
+    <string name="webcam_beenden">Stop</string>
     <string name="telefon_erweitert_titel">Avancerede funktioner</string>
     <string name="media_recovery_title">Gendannelse af billeder og videoer</string>
     <string name="media_recovery_hint">Lokale krypterede gendannelseskopier, også tilgængelige uden den tidligere forbindelse. Gendannelseskopien og eksisterende medier bevares ved gendannelse.</string>

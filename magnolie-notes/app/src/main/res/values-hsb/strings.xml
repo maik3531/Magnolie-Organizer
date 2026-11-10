@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Webkamera telefona</string>
+    <string name="webcam_startet">Webkamera telefona so startuje…</string>
+    <string name="webcam_aktiv">Kamera a mikrofon stej aktiwnej</string>
+    <string name="webcam_stumm">Kamera je aktiwna; mikrofon je wupinjeny</string>
+    <string name="webcam_stoppt">Webkamera telefona so zastaja…</string>
+    <string name="webcam_beenden">Zastajić</string>
     <string name="telefon_erweitert_titel">Rozšěrjene funkcije</string>
     <string name="media_recovery_title">Wobnowjenje fotow a widejow</string>
     <string name="media_recovery_hint">Lokalne zaklučowane kopije za wobnowjenje, kotrež su tež bjez prjedawšeho zwiska k dispoziciji. Při wobnowjenju so kopija a eksistowace medije wobchowaja.</string>

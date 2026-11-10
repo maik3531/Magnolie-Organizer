@@ -112,7 +112,7 @@ class TelefonModuleTest {
 
     @Test fun `Produktcode hat keine native SMS Implementierung`() {
         val forbidden = listOf("android.permission.SEND_SMS", "android.permission.RECEIVE_SMS",
-            "SmsManager", "SmsEingang", "SmsStatus", "android.permission.RECORD_AUDIO",
+            "SmsManager", "SmsEingang", "SmsStatus",
             "android.permission.MODIFY_PHONE_STATE", "READ_PRIVILEGED_PHONE_STATE", "ROLE_DIALER", "ROLE_SMS",
             "android.provider.Telephony.SMS_RECEIVED")
         val activeFiles = main.walkTopDown().filter(File::isFile).filterNot {
@@ -120,6 +120,17 @@ class TelefonModuleTest {
         }.toList()
         forbidden.forEach { term ->
             assertFalse("$term ist noch im Produktcode", activeFiles.any { it.readText().contains(term) })
+        }
+        // Microphone permission belongs exclusively to the separate optional
+        // webcam. Phone/call startup must never become a recording path.
+        assertEquals(setOf("AndroidManifest.xml"), activeFiles.filter {
+            it.readText().contains("android.permission.RECORD_AUDIO")
+        }.map { it.name }.toSet())
+        for (name in listOf("TelefonModule.kt", "TelefonWerk.kt", "TelefonDienst.kt")) {
+            val source = File(main, "java/io/gitlab/maik3531/magnolienotes/telefon/$name").readText()
+            assertFalse(source.contains("AudioRecord"))
+            assertFalse(source.contains("MediaRecorder"))
+            assertFalse(source.contains("PhoneWebcamServiceStarts.start"))
         }
         // v4 permits the number permission only for the separate owned-device opt-in.
         assertEquals(setOf("AndroidManifest.xml", "MainActivity.kt", "DeviceIdentifiers.kt"),
@@ -141,7 +152,7 @@ class TelefonModuleTest {
         assertFalse(module.contains("notification.actions"))
     }
 
-    @Test fun `finale Manifeste enthalten nur Dial und Benachrichtigungsdienst`() {
+    @Test fun `finale Manifeste enthalten keine SMS oder Anrufaufzeichnung und nur separaten Webcamdienst`() {
         val variant = if (BuildConfig.DEBUG) "debug" else "release"
         val task = if (BuildConfig.DEBUG) "Debug" else "Release"
         val manifests = listOf(
@@ -152,13 +163,15 @@ class TelefonModuleTest {
         assertTrue("Generierte Manifeste fehlen", manifests.all(File::isFile))
         manifests.forEach { file ->
             val manifest = file.readText()
-            listOf("SEND_SMS", "RECEIVE_SMS", "READ_PRIVILEGED_PHONE_STATE", "RECORD_AUDIO",
+            listOf("SEND_SMS", "RECEIVE_SMS", "READ_PRIVILEGED_PHONE_STATE",
                 "MODIFY_PHONE_STATE", "ROLE_DIALER", "ROLE_SMS", "SmsEingang", "SmsStatus", "SMS_RECEIVED")
                 .forEach { assertFalse("$it in ${file.path}", manifest.contains(it)) }
             assertFalse("ACTION_DIAL in ${file.path}", manifest.contains("android.intent.action.DIAL"))
             listOf("CALL_PHONE", "READ_PHONE_STATE", "READ_PHONE_NUMBERS", "ANSWER_PHONE_CALLS", "READ_CALL_LOG", "WAKE_LOCK")
                 .forEach { assertTrue("$it fehlt in ${file.path}", manifest.contains(it)) }
             assertTrue("NotificationListener fehlt in ${file.path}", manifest.contains("NotificationListenerService"))
+            assertTrue("Optionales Webcam-Mikrofon fehlt in ${file.path}", manifest.contains("android.permission.RECORD_AUDIO"))
+            assertTrue("Separater Webcamdienst fehlt in ${file.path}", manifest.contains("PhoneWebcamCaptureService"))
         }
     }
 

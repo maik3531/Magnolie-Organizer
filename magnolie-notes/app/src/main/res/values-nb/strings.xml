@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="webcam_kanal">Telefon som webkamera</string>
+    <string name="webcam_startet">Starter telefonens webkamera…</string>
+    <string name="webcam_aktiv">Kamera og mikrofon er aktive</string>
+    <string name="webcam_stumm">Kamera aktivt; mikrofon dempet</string>
+    <string name="webcam_stoppt">Stopper telefonens webkamera…</string>
+    <string name="webcam_beenden">Stopp</string>
     <string name="telefon_erweitert_titel">Avanserte funksjoner</string>
     <string name="media_recovery_title">Gjenoppretting av bilder og videoer</string>
     <string name="media_recovery_hint">Lokale krypterte gjenopprettingskopier, også tilgjengelige uten den tidligere tilkoblingen. Gjenopprettingskopien og eksisterende medier beholdes ved gjenoppretting.</string>
