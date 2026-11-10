@@ -1,4 +1,11 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--phone-audio-protected-preparation-probe")
+{
+    if (!OperatingSystem.IsWindows()) return 77;
+    return await PhoneCameraAudioProtectedPreparationTests.RunAsync();
+}
+if (args.Length == 2 && args[0] == "--desktop-helper-readonly")
+    return DesktopPhoneCompositionTests.HelperReadOnly(args[1]);
 if (args.Length == 4 && args[0] == "--desktop-composition-readonly")
     return DesktopPhoneCompositionTests.ReadOnly(args[1], bool.Parse(args[2]), bool.Parse(args[3]));
 if (args.Length == 1 && args[0] == "--phone-webcam-media-host") return await PhoneCameraMediaChannelTests.HostAsync();
@@ -134,6 +141,18 @@ runner.Add("Phone webcam session / missing initial track retires active joined a
 runner.Add("Phone webcam session / muted session refuses audio packets", PhoneCameraSessionTests.MutedAudioRejectedAsync);
 runner.Add("Phone webcam session / original revocation interrupts native output write", PhoneCameraSessionTests.RevocationInterruptsNativeWriteAsync);
 runner.Add("Phone webcam audio package / closed named trust boundary", PhoneCameraAudioPackageTests.ClosedTrustBoundaryAsync);
+runner.Add("Phone webcam audio helper / immutable resource snapshot and no external fallback", PhoneCameraAudioHelperTests.ImmutableSnapshotAsync);
+runner.Add("Phone webcam audio helper / checksum and native executable rejection", PhoneCameraAudioHelperTests.TamperAndPeAsync);
+runner.Add("Phone webcam audio helper / strict embedded source descriptor", PhoneCameraAudioHelperTests.StrictSourceDescriptorAsync);
+runner.Add("Phone webcam audio setup / strict original read-only plan", PhoneCameraAudioSetupTests.StrictPlanAsync);
+runner.Add("Phone webcam audio setup / reboot result never claims endpoint readiness", PhoneCameraAudioSetupTests.RebootIsNotReadinessAsync);
+runner.Add("Phone webcam audio setup / bounded wire and cancellation", PhoneCameraAudioSetupTests.OriginalBoundedWireAsync);
+if (OperatingSystem.IsWindows())
+    runner.Add("Phone webcam audio setup / bounded original invocation shape only", PhoneCameraAudioSetupTests.ArgumentBoundaryAsync);
+if (OperatingSystem.IsWindows())
+    runner.Add("Phone webcam audio setup / actual first-instance pipe and original PID only", PhoneCameraAudioSetupTests.ActualLocalPipeIdentityAsync);
+if (OperatingSystem.IsWindows())
+    runner.Add("Phone webcam audio bootstrap / protected managed inputs and apphost gate only", PhoneCameraAudioBootstrapTests.ProtectedManagedInputsAsync);
 if (OperatingSystem.IsWindows())
     runner.Add("Phone webcam audio staging / in-memory protected ACL policy only", PhoneCameraAudioStagingTests.ProtectedAclPolicyAsync);
 if (Environment.GetEnvironmentVariable("MAGNOLIE_CABLE_PACKAGE_FIXTURE") is not null)

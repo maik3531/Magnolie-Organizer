@@ -22,6 +22,8 @@ internal static class PhoneCameraAudioStagingTests
         TestAssert.That(!Allowed("O:BAG:BA"), "Missing DACL admitted");
         TestAssert.That(Allowed(prefix + "(A;;FA;;;BA)(A;;0x00000002;;;BU)", parent: true) &&
             !Allowed(prefix + "(A;;FA;;;BA)(A;;0x00000040;;;BU)", parent: true), "ProgramData sibling-create/delete distinction lost");
+        TestAssert.That(Allowed("O:SYG:SYD:PAI(A;OICIIO;GA;;;CO)(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)(A;CI;0x116;;;BU)", parent: true),
+            "Observed standard Windows ProgramData ACL refused despite mandatory held no-write/no-delete sharing");
         return Task.CompletedTask;
     }
 }

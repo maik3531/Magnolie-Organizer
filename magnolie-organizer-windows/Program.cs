@@ -3,14 +3,22 @@ using System.Threading;
 
 namespace MagnolieOrganizer.Windows;
 
-internal static class Program
+internal static partial class Program
 {
     private const string MutexName = @"Local\MagnolieOrganizer.Windows";
     private const string HandbookMutexName = @"Local\MagnolieOrganizer.Windows.Handbook";
+    static partial void HandleWebcamAudioSetup(string[] args, ref bool handled);
 
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Length != 0 && args[0] is "--phone-camera-audio-elevated" or "--phone-camera-audio-elevated-plan" or "--phone-camera-audio-preparation-probe")
+        {
+            var audioSetupHandled = false;
+            HandleWebcamAudioSetup(args, ref audioSetupHandled);
+            if (!audioSetupHandled) Environment.ExitCode = 50;
+            return; // Missing optional module must not start the ordinary GUI.
+        }
         if (args.Length == 1 && args[0] == FilesystemRuntimeSetup.StatusArgument)
         { Environment.ExitCode = FilesystemRuntimeSetup.Available ? 0 : 1; return; }
         if (args.Length == 1 && args[0] == FilesystemRuntimeSetup.SetupArgument)

@@ -453,10 +453,11 @@ on physical Windows: host/old-device query and refusal to promote user-writable
 research staging, with no setup journal created.
 
 No driver staging, device registration, installation, uninstall, vendor process,
-audio default change or reboot was performed in these tests. The managed verified
-download/protected extraction, one-question/one-UAC UI and named official manual
-fallback, actual elevated installation/cleanup, post-restart endpoint reprobe and
-real WASAPI microphone-provider acceptance remain open. Actual installation needs
+audio default change or reboot was performed in these tests. The source now
+includes verified download/protected publication, the native one-question/one-UAC
+flow and named official manual fallback. Actual UAC/GUI admission, elevated driver
+installation/cleanup, post-restart endpoint reprobe and real WASAPI
+microphone-provider acceptance remain open. Actual installation needs
 separate explicit host approval; the generated-camera approval does not cover it.
 
 The managed `PhoneCameraAudioPackage` downloader now verifies the complete original
@@ -475,6 +476,10 @@ endpoint policy, and `installationAttempted:false`. Current native code prepares
 the newly owned devnode disabled, applies the documented never-default policy to
 its own topology interfaces, verifies the stored values again after installation
 before explicit enable, and compares default endpoint identities afterwards.
+In addition to the configuration flag, the documented `DI_INSTALLDISABLED` flag
+is set before `DIF_INSTALLDEVICE` and cleared only after policy readback, before
+the explicit enable operation; there is no assumption that a registry flag alone
+establishes the installation handler's disabled-state contract.
 Those mutation paths are compiled only, **not validated by the read-only plan**.
 The comparison describes the immediate snapshot, not post-reboot preservation.
 The never-default policy blocks both automatic and manual Windows system-default
@@ -491,13 +496,77 @@ members are written into a fresh unpublished directory before a no-replacement
 rename to the native helper's GUID path. Partial/unknown outcomes are retained
 for review, not recursively deleted or automatically retried. This initial path
 refuses nested/UNC ProgramData relocation rather than claiming unimplemented
-held-ancestor protection. It is not wired to a user action or executed yet.
-One physical-Windows test group checks the ACL policy **in memory only**,
-including unprivileged ownership/mutation and the difference between creating
-siblings and deleting protected children. CoreTests and the real Windows-target
-project compile cleanly. Actual protected directory creation, atomic publication,
-UAC orchestration and privileged helper execution still have no acceptance proof;
-no ProgramData staging directory was created by these tests.
+held-ancestor protection. The actual protected-publication path has now passed
+a separately approved Windows preparation probe: all original members and the
+source-bound own helper were published unchanged, held byte leases refused helper
+writes, the real native `--plan` accepted `protectedPackage:true`, and exact own
+files/GUID/root were removed without a journal or driver installation. Production
+cleanup consumes only a known uninstalled preparation; once installation may have
+started, it refuses cleanup/reuse rather than deleting an unknown outcome.
+
+That real probe exposed Windows-specific gaps missed by the earlier memory-only
+test. Normal ProgramData allows concrete child-create/EA/attribute rights. Its
+ACL is not repaired or weakened: the held parent uses `FILE_LIST_DIRECTORY` and
+no data-write/delete sharing. A metadata-only directory open does not participate
+in those Windows sharing checks. Own admin/system-write-only roots permit write
+sharing so their children can be atomically renamed, while retaining no-delete
+sharing on the held directory itself. The probe checks that actual parent
+data-write access is refused. Metadata-only attribute APIs are not claimed to be
+disabled by this sharing policy. Failed-probe own remnants were verified by exact
+hash/membership/scope and removed before subsequent runs; no foreign ACL changed.
+The separate memory-only ACL group also passes the observed standard Windows ACL.
+
+`werkzeuge/phone_audio_helper.py` builds the own native x64 executable with the
+installed MSVC/SDK and records exact source/binary hashes. The optional MSBuild
+resource target rejects stale sources, changed binary bytes and base-edition
+embedding, and embeds a checked snapshot rather than a mutable external path.
+Runtime helper bytes and metadata come only from bounded immutable assembly
+resources, never a download or an external runtime manifest. Four actual project
+compositions and PE metadata checks confirm optional types/resource exclusion;
+camera compositions contain exactly the compiled helper bytes. Three helper
+validation groups and three negative resource-build checks pass. This hash/source
+binding is not a claim of Microsoft signing for Magnolie's own user-mode helper;
+the original driver catalog/kernel-policy verification remains mandatory.
+
+`PhoneCameraAudioSetup` now supplies the explicit native setup flow. One question
+names VB-CABLE, VB-Audio origin/donationware/professional conditions, administrator
+approval, manual restart and per-application-only selection. After consent the
+original verified archive is sent in memory through one local current-user-only
+first-instance pipe to the normal Windows `runas` child; both peer process IDs,
+the original user SID, random one-use token and embedded helper hash are checked.
+Elevation as a different account is refused rather than comparing the wrong
+user's audio defaults. No credentials are read or stored. Native preparation and
+installation require separate live handshakes on that original pipe; no phone
+packet, saved flag, metadata ACK, startup or reconnect creates setup authority.
+Before `runas`, the managed bootstrap must itself be protected: the apphost and
+managed entry must share a local protected application directory, every ancestor
+is held without namespace replacement/data-write sharing, and a bounded,
+non-reparse application-tree walk checks trusted ownership/no ordinary-user
+mutation rights and retains read leases on all load inputs, including runtime and
+culture/native subdirectories. User-writable portable/framework-dependent hosts
+are unsupported for this automatic route and receive the official manual
+fallback. This avoids elevating a mutable .NET bootstrap merely because the later
+native helper is pinned. One Windows group checks the ownership/ACL policy and
+framework-dependent host refusal without elevation; a positive protected-apphost
+UAC test is still pending separate interactive approval.
+The elevated child verifies the archive again, retains protected executable/file
+leases, checks the real native read-only plan, and only then may invoke install.
+An unknown outcome after installation admission stays pending, never retries or
+reboots. The UI awaits child ownership asynchronously; the three-minute IPC
+deadline is not permission to kill an in-flight PnP transaction or claim a hard
+native installation completion limit. Reboot-required is never endpoint readiness.
+
+A separate explicit preparation-probe mode is bound at both pipe ends and refuses
+all native mutation modes, including retry/uninstall; it can run only `--plan`
+and then remove its known uninstalled preparation. Base builds reserve the setup
+arguments and return unsupported rather than starting the ordinary GUI. Five
+bounded Windows setup groups cover strict result/argument/wire validation and an
+actual controlled local first-instance pipe with both original-PID checks; they
+do not execute UAC or installation. The approved protected-publication test used
+the existing elevated test account, so it also is **not** a UAC consent test.
+The actual advanced-functions admission/provider connection, translated question
+catalogs and GUI/UAC operation still need acceptance. No Windows v24 readiness or
+working system microphone is advertised by this preparation work.
 
 #### Windows dedicated binary receiver (Refs #503)
 

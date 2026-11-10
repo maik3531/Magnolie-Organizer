@@ -1,0 +1,54 @@
+<Project>
+  <!-- Optional artifact input, not permission to install. The ordinary/base
+       build needs no native toolchain; missing helper means named manual setup. -->
+  <UsingTask TaskName="SnapshotPhoneAudioHelper" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <InputDirectory ParameterType="System.String" Required="true" />
+      <OutputDirectory ParameterType="System.String" Required="true" />
+      <BinaryOutput ParameterType="System.String" Output="true" />
+      <ManifestOutput ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var sources = new[] {
+          "native/phone-camera/PhoneCameraCablePackage.h", "native/phone-camera/PhoneCameraCablePackage.cpp",
+          "native/phone-camera/PhoneCameraCableSetup.h", "native/phone-camera/PhoneCameraCableSetup.cpp",
+          "native/phone-camera/PhoneCameraCableSetupMain.cpp", "werkzeuge/phone_audio_helper.py", "PhoneCameraAudioHelper.targets"
+        };
+        Func<byte[],string> hash = bytes => { using(var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); };
+        var binary = File.ReadAllBytes(Path.Combine(InputDirectory, "Magnolie.PhoneAudioSetup.x64.exe"));
+        if(binary.Length < 128 || binary.Length > 8*1024*1024 || binary[0] != 77 || binary[1] != 90) throw new InvalidDataException("Invalid helper PE size/header");
+        var pe = BitConverter.ToInt32(binary, 60);
+        if(pe < 64 || pe > binary.Length-26 || BitConverter.ToUInt32(binary, pe) != 0x4550 || BitConverter.ToUInt16(binary, pe+4) != 0x8664 ||
+           (BitConverter.ToUInt16(binary, pe+22) & 0x2000) != 0) throw new InvalidDataException("Helper must be the native x64 executable");
+        var lines = new[] { "magnolie-phone-audio-helper-v1", "architecture=x64", "sha256=" + hash(binary) }
+          .Concat(sources.Select(name => "source=" + name + "|" + hash(File.ReadAllBytes(Path.Combine(Root, name))))).ToArray();
+        var manifest = File.ReadAllLines(Path.Combine(InputDirectory, "phone-audio-helper.manifest"));
+        if(!lines.SequenceEqual(manifest)) throw new InvalidDataException("Helper artifact/source descriptor is stale or changed");
+        Directory.CreateDirectory(OutputDirectory);
+        BinaryOutput = Path.Combine(OutputDirectory, "Magnolie.PhoneAudioSetup.x64.exe");
+        ManifestOutput = Path.Combine(OutputDirectory, "phone-audio-helper.manifest");
+        // Embed the checked snapshot, not an external path that could change
+        // between verification and C# resource compilation.
+        File.WriteAllBytes(BinaryOutput, binary);
+        File.WriteAllLines(ManifestOutput, lines, new System.Text.UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="PreparePhoneAudioHelperResource" BeforeTargets="AssignTargetPaths" Condition="'$(MagnoliePhoneCameraHelperDirectory)' != ''">
+    <Error Condition="'$(MagnoliePhoneCamera)' != 'true'" Text="The audio helper may only be embedded in the optional camera composition." />
+    <SnapshotPhoneAudioHelper Root="$(MSBuildProjectDirectory)" InputDirectory="$(MagnoliePhoneCameraHelperDirectory)" OutputDirectory="$(IntermediateOutputPath)phone-audio-helper">
+      <Output TaskParameter="BinaryOutput" PropertyName="PhoneAudioHelperSnapshot" />
+      <Output TaskParameter="ManifestOutput" PropertyName="PhoneAudioHelperManifestSnapshot" />
+    </SnapshotPhoneAudioHelper>
+    <ItemGroup>
+      <EmbeddedResource Include="$(PhoneAudioHelperSnapshot)" LogicalName="Magnolie.PhoneAudioSetup.x64.exe" />
+      <EmbeddedResource Include="$(PhoneAudioHelperManifestSnapshot)" LogicalName="Magnolie.PhoneAudioSetup.manifest" />
+    </ItemGroup>
+  </Target>
+</Project>

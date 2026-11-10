@@ -282,7 +282,10 @@ namespace Magnolie::PhoneCamera
             {fail(GetLastError());return result;}
             SP_DEVINSTALL_PARAMS_W parameters{}; parameters.cbSize=sizeof(parameters);
             if(!SetupDiGetDeviceInstallParamsW(deviceSet.value,&device,&parameters)){fail(GetLastError());return result;}
-            parameters.Flags|=DI_ENUMSINGLEINF|DI_QUIETINSTALL;
+            // Documented installation flag: CONFIGFLAG_DISABLED alone is not
+            // the contract for DIF_INSTALLDEVICE's default handler. Install
+            // disabled until own endpoint policy has survived the INF install.
+            parameters.Flags|=DI_ENUMSINGLEINF|DI_QUIETINSTALL|DI_INSTALLDISABLED;
             if(wcscpy_s(parameters.DriverPath,inf.c_str()) || !SetupDiSetDeviceInstallParamsW(deviceSet.value,&device,&parameters) ||
                 !SetupDiBuildDriverInfoList(deviceSet.value,&device,SPDIT_COMPATDRIVER)) {fail(GetLastError());return result;}
             SP_DRVINFO_DATA_W driver{};driver.cbSize=sizeof(driver);
@@ -308,6 +311,10 @@ namespace Magnolie::PhoneCamera
             // installation. Re-read exact own interface values before enabling.
             hr=ConfigureOwnAppScopedInterfaces(deviceSet.value,device,inf,true);
             if(FAILED(hr)){fail(static_cast<DWORD>(hr));return result;}
+            parameters={};parameters.cbSize=sizeof(parameters);
+            if(!SetupDiGetDeviceInstallParamsW(deviceSet.value,&device,&parameters)){fail(GetLastError());return result;}
+            parameters.Flags&=~static_cast<DWORD>(DI_INSTALLDISABLED);
+            if(!SetupDiSetDeviceInstallParamsW(deviceSet.value,&device,&parameters)){fail(GetLastError());return result;}
             DWORD configured=0,type=0,bytes=0;
             if(!SetupDiGetDeviceRegistryPropertyW(deviceSet.value,&device,SPDRP_CONFIGFLAGS,&type,reinterpret_cast<BYTE*>(&configured),sizeof(configured),&bytes) || type!=REG_DWORD || bytes!=sizeof(configured))
             {fail(ERROR_INVALID_DATA);return result;}
