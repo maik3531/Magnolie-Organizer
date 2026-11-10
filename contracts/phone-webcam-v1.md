@@ -94,6 +94,39 @@ contract and phone-module isolation. Android manifest declarations are not OS
 consent or physical acceptance. No authenticated control start/key exchange,
 Organizer activation, native device-success or OBS acceptance is claimed here.
 
+## Authenticated control exchange under implementation
+
+Reserved desktop discovery version **24** is distinct from file versions 21/22
+and capability 23. It is NOT advertised yet. The existing capability key set is
+strict and Notes already has 16 versions when all current handlers are enabled;
+adding a seventeenth would break old peers. The compatible design therefore uses
+desktop-only discovery followed by a fresh phone-initiated probe on that same
+authenticated parent. Never send extension controls to an unproven older peer.
+
+The matching Notes/Python schema uses small `device_status.request/report` v24
+controls: probe, offer/unavailable, prepared, send, stop/error. Offers bind the
+fresh UUID/nonce, new session/key, numeric dedicated port, explicit mute and camera
+choice; URLs, AV payloads, permission flags and extra fields are rejected. JSON
+here carries control/key negotiation only, never frames or audio. The Notes
+envelope has a 4096-byte/60-second bound. Python currently validates the body;
+its production envelope/parent dispatcher is not installed yet.
+
+The Notes exchange binds one original parent object, fresh probe/nonce, monotonic
+startup lifetime, phase and live native parent guard. Changed/expired original
+authority cannot revive when matching flags return. Foreign parent/nonce packets
+cannot adopt or retire a different exchange. A permit with matching metadata is
+insufficient: it must belong to the exact original Android permission request.
+The exchange can construct the real joined foreground run; only that run's source
+preparation callback permits a matching receiver-ready SEND transition. Before it,
+an offer is neither an OS permit nor wire SEND. A matching stop retires the run.
+
+Checks passed: 41 Python body cases, six Notes schema/capability/envelope cases
+and seven original-exchange cases. The joined positive case uses genuine Android
+permission/foreground adapters under Robolectric and generated source samples;
+it does not prove a physical phone. The exchange is not yet attached to
+TelefonWerk's actual authenticated dispatcher, a desktop native-output controller
+or Organizer activation. No new capture/control availability is advertised.
+
 ## KDE Connect versus Notes
 
 Inspected upstream KDE Connect Android commit

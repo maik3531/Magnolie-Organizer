@@ -72,6 +72,7 @@ internal class PhoneWebcamCapturePermit private constructor(private val request:
     val session get() = request.session
     val muted get() = request.muted
     val frontCamera get() = request.frontCamera
+    internal fun belongsTo(original: PhoneWebcamCaptureRequest) = request === original
 
     internal fun requireVisibleStart() {
         check(service == null) { "webcam_foreground_owner_already_used" }
