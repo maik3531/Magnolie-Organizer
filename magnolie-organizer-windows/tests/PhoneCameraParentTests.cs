@@ -66,6 +66,9 @@ internal static class PhoneCameraParentTests
         public void Dispose()
         {
             Connection.Dispose(); desktop.Dispose(); phone.Dispose(); deadline.Dispose();
+            // Windows retains the SQLite file through this fixture's pooled
+            // connections. Release only the exact OWN pool, never global pools.
+            using (var ownPool = Store.OpenDatabase()) Microsoft.Data.Sqlite.SqliteConnection.ClearPool(ownPool);
             if (Directory.Exists(root)) Directory.Delete(root, true);
         }
     }
