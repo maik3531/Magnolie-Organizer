@@ -10344,6 +10344,27 @@ msgstr "Icono de la bandeja del sistema (60 s)"
 msgid "Saved developer mode is required."
 msgstr "El modo de desarrollador debe estar guardado."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Desactivada de forma predeterminada. Usa una cámara y un micrófono virtuales. La configuración del controlador puede solicitar permisos de administrador."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "Para usar el teléfono como cámara web, debe estar instalado el controlador del núcleo v4l2loopback."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "No se pudo comprobar el controlador de la cámara virtual."
+
+msgid "System authorization is unavailable."
+msgstr "La autorización del sistema no está disponible."
+
+msgid "System authorization was cancelled."
+msgstr "Se canceló la autorización del sistema."
+
+msgid "The virtual camera could not be configured."
+msgstr "No se pudo configurar la cámara virtual."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "La cámara virtual ya se está configurando."
+
 msgid "Phone webcam"
 msgstr "Webcam del teléfono"
 

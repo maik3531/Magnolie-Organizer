@@ -2419,7 +2419,8 @@ class PhoneServiceProxy:
         self._actor_book_source_active = False
 
     def _call(self, operation, **arguments):
-        return ipc_request("phone_" + operation, arguments, self.path, timeout=30)
+        setup = operation == "webcam_action" and type(arguments.get("request")) is dict and arguments["request"].get("action") == "prepare"
+        return ipc_request("phone_" + operation, arguments, self.path, timeout=150 if setup else 30)
 
     def start(self):
         if not daemon_available(self.path):

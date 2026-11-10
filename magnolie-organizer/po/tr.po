@@ -10143,6 +10143,27 @@ msgstr "Sistem tepsisi simgesi (60 sn)"
 msgid "Saved developer mode is required."
 msgstr "Geliştirici modu kaydedilmiş olmalıdır."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Varsayılan olarak kapalıdır. Sanal kamera ve mikrofon kullanır. Sürücü kurulumu yönetici izni isteyebilir."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "Telefonu web kamerası olarak kullanmak için v4l2loopback çekirdek sürücüsü kurulu olmalıdır."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Sanal kamera sürücüsü denetlenemedi."
+
+msgid "System authorization is unavailable."
+msgstr "Sistem yetkilendirmesi kullanılamıyor."
+
+msgid "System authorization was cancelled."
+msgstr "Sistem yetkilendirmesi iptal edildi."
+
+msgid "The virtual camera could not be configured."
+msgstr "Sanal kamera yapılandırılamadı."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Sanal kamera kurulumu zaten devam ediyor."
+
 msgid "Phone webcam"
 msgstr "Telefon web kamerası"
 

@@ -12,7 +12,20 @@ import threading
 import time
 
 
+def probe_virtual_video(node, info):
+    from magnolie_phone_webcam import _query_video
+    fd = os.open(node, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
+    try:
+        held = os.fstat(fd)
+        if (held.st_dev, held.st_ino, held.st_rdev) != (info.st_dev, info.st_ino, info.st_rdev):
+            raise PermissionError('webcam_original_device_changed')
+        _query_video(fd)  # QUERYCAP only: no buffers, format changes or capture.
+    finally:
+        os.close(fd)
+
+
 def virtual_devices():
+    from magnolie_phone_webcam import WebcamUnavailable
     result = []
     root = Path('/sys/class/video4linux')
     if not root.is_dir():
@@ -26,10 +39,11 @@ def virtual_devices():
             info = node.lstat()
             if not stat.S_ISCHR(info.st_mode):
                 continue
+            probe_virtual_video(node, info)
             label = (entry / 'name').read_text(encoding='utf-8').strip()[:120]
             result.append(dict(path=str(node), label=label or entry.name,
                 identity=(info.st_dev, info.st_ino, info.st_rdev), sysfs=str(target)))
-        except (OSError, ValueError):
+        except (OSError, ValueError, WebcamUnavailable):
             continue
     return result
 
@@ -48,12 +62,14 @@ def open_video(choice):
 
 
 class NativeWebcamUi:
-    def __init__(self, service, *, inventory=virtual_devices, video_factory=open_video, clock=time.monotonic):
+    def __init__(self, service, *, inventory=virtual_devices, video_factory=open_video, clock=time.monotonic, setup=None):
         self.service, self.inventory, self.video_factory, self.clock = service, inventory, video_factory, clock
         self.lock = threading.RLock()
         self.action = None
         self.owner = None
         self.lease = ''
+        self.setup = setup
+        self.setup_gate = threading.Lock()
 
     def status(self):
         owner = self.owner
@@ -84,6 +100,14 @@ class NativeWebcamUi:
     def prepare(self, provider):
         if provider not in ('auto', 'notes', 'kdeconnect'):
             raise ValueError('invalid webcam provider')
+        if not self.setup_gate.acquire(blocking=False):
+            return dict(self.status(), choices=[], action='', reason='driver_setup_busy')
+        try:
+            return self._prepare(provider)
+        finally:
+            self.setup_gate.release()
+
+    def _prepare(self, provider):
         with self.lock:
             self.action = None
         if provider == 'kdeconnect':
@@ -107,7 +131,25 @@ class NativeWebcamUi:
             return dict(self.status(), choices=[], action='', reason='phone_unavailable')
         devices = self.inventory()[:8]  # Explicit native action only; no base startup/status probe.
         if not devices:
-            return dict(self.status(), choices=[], action='', reason='virtual_camera_missing')
+            def current():
+                for source in sources: self._source_current(source)
+            setup = self.setup
+            if setup is None:
+                from magnolie_phone_camera_setup import prepare_driver
+                setup = prepare_driver
+            current()
+            reason = setup(current)
+            current()
+            if reason:
+                return dict(self.status(), choices=[], action='', reason=reason)
+            # udev/logind may publish the new character node/ACL after modprobe.
+            deadline = time.monotonic() + 2
+            while True:
+                current(); devices = self.inventory()[:8]
+                if devices or time.monotonic() >= deadline: break
+                time.sleep(.05)
+            if not devices:
+                return dict(self.status(), choices=[], action='', reason='driver_setup_failed')
         choices = {}
         for source in sources[:4]:
             for device in devices:

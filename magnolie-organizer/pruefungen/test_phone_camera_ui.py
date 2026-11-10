@@ -14,8 +14,10 @@ from magnolie_phone_camera_transport import WebcamMediaSocket
 from magnolie_phone_webcam import NativeWebcamSession, VIDEO_BYTES, AUDIO_BYTES
 import socket
 import os
+import ast
+import threading
 import magnolie_hintergrund as background
-from magnolie_phone_camera_ui import open_video
+from magnolie_phone_camera_ui import open_video, probe_virtual_video
 
 
 class Video:
@@ -51,6 +53,72 @@ def test_off_status_and_explicit_kde_refusal_never_inventory_or_open(connected):
     assert manager.status()['phase'] == 'off'
     assert manager.prepare('kdeconnect')['reason'] == 'compatible_extension_required'
     assert service._native_webcam_owner is None
+
+
+def test_explicit_enable_prepares_driver_then_fresh_native_choices_without_capture(connected):
+    service,_,_=connected;devices=[];calls=[]
+    def setup(current):
+        current();calls.append('setup')
+        devices.append(dict(path='/dev/video42',label='Controlled newly configured output'))
+        current();return ''
+    manager=NativeWebcamUi(service,inventory=lambda:list(devices),setup=setup,
+        video_factory=lambda _:pytest.fail('Driver setup started capture'))
+    assert manager.status()['phase']=='off' and not calls
+    page=manager.prepare('notes')
+    assert page['action'] and len(page['choices'])==1 and calls==['setup']
+    assert not page['enabled'] and service._native_webcam_owner is None
+    manager.cancel(page['action'])
+    assert manager.action is None
+
+
+def test_virtual_inventory_queries_only_the_held_original_metadata_fd(tmp_path,monkeypatch):
+    path=tmp_path/'controlled-query-only-node';path.write_bytes(b'no frame data')
+    info=path.stat();queried=[]
+    def query(fd):
+        assert os.fstat(fd).st_ino==info.st_ino
+        queried.append(fd)
+    monkeypatch.setattr('magnolie_phone_webcam._query_video',query)
+    probe_virtual_video(path,info)
+    assert len(queried)==1
+    with pytest.raises(OSError):os.fstat(queried[0])
+    path.rename(tmp_path/'held-old-query-node');path.write_bytes(b'keep different node')
+    with pytest.raises(PermissionError):probe_virtual_video(path,info)
+    assert len(queried)==1 and path.read_bytes()==b'keep different node'
+
+
+@pytest.mark.parametrize('reason',['driver_not_installed','driver_authentication_cancelled','driver_authentication_unavailable','driver_setup_failed'])
+def test_setup_failure_returns_typed_need_without_choices_or_capture(connected,reason):
+    service,_,_=connected;calls=[]
+    manager=NativeWebcamUi(service,inventory=lambda:[],setup=lambda current:calls.append(True) or reason)
+    result=manager.prepare('auto')
+    assert result['reason']==reason and result['choices']==[] and result['action']==''
+    assert calls==[True] and not result['enabled'] and service._native_webcam_owner is None
+
+
+def test_setup_is_not_started_without_notes_or_for_kde_only(connected):
+    service,peer,client=connected;calls=[]
+    manager=NativeWebcamUi(service,inventory=lambda:[],setup=lambda _:calls.append(True))
+    assert manager.prepare('kdeconnect')['reason']=='compatible_extension_required'
+    service.connections.pop(peer['device_id'])
+    assert manager.prepare('notes')['reason']=='phone_unavailable' and not calls
+
+
+def test_admin_setup_context_change_cannot_admit_replacement_source(connected):
+    service,peer,client=connected
+    def setup(current):
+        current();service._generation+=1;return ''
+    manager=NativeWebcamUi(service,inventory=lambda:[],setup=setup)
+    with pytest.raises(PermissionError):manager.prepare('notes')
+    assert manager.action is None and service._native_webcam_owner is None
+
+
+def test_concurrent_enable_cannot_launch_second_administrator_setup(connected):
+    service,_,_=connected;calls=[]
+    manager=NativeWebcamUi(service,inventory=lambda:[],setup=lambda _:calls.append(True))
+    manager.setup_gate.acquire()
+    try:assert manager.prepare('notes')['reason']=='driver_setup_busy'
+    finally:manager.setup_gate.release()
+    assert not calls and manager.action is None
 
 
 def test_actual_descriptor_identity_is_checked_and_changed_output_is_closed(tmp_path, monkeypatch):
@@ -182,7 +250,7 @@ def test_service_daemon_and_proxy_route_only_ephemeral_tokens_without_status_inv
     calls = []
     def ipc(operation, arguments, path, timeout):
         background._request_shape(operation, arguments)
-        calls.append(operation)
+        calls.append((operation,timeout))
         return background.IPCServer._phone_operation(server, operation, arguments)
     monkeypatch.setattr(background, 'ipc_request', ipc)
     proxy = background.PhoneServiceProxy(path='/controlled/no-socket')
@@ -193,7 +261,7 @@ def test_service_daemon_and_proxy_route_only_ephemeral_tokens_without_status_inv
     with pytest.raises(PermissionError):
         proxy.webcam_action(dict(action='start', action_token=result['action'], choice_token=result['choices'][0]['token'], muted=False, front=False))
     assert service._native_webcam_owner is None
-    assert calls == ['phone_webcam_status', 'phone_webcam_action', 'phone_webcam_action', 'phone_webcam_action']
+    assert calls == [('phone_webcam_status',30), ('phone_webcam_action',150), ('phone_webcam_action',30), ('phone_webcam_action',30)]
 
 
 def test_base_status_does_not_import_optional_ui_or_probe(connected, monkeypatch):
@@ -244,6 +312,40 @@ def test_actual_unix_daemon_proxy_activates_and_stops_original_signed_phone_owne
         assert videos[0].closed and manager.owner.is_completely_stopped()
     finally:
         server.close()
+
+
+def test_actual_gui_worker_proxy_and_unix_daemon_prepare_driver_only_after_enable(connected,tmp_path):
+    service,_,_=connected;devices=[];setups=[];answers=[]
+    def setup(current):
+        current();setups.append(True)
+        devices.append(dict(path='/dev/video42',label='Controlled prepared virtual output'))
+        return ''
+    manager=NativeWebcamUi(service,inventory=lambda:list(devices),setup=setup,
+        video_factory=lambda _:pytest.fail('Setup path opened capture output'))
+    service._native_webcam_ui=manager
+    tree=ast.parse((Path(__file__).parents[1]/'bin/magnolie-organizer').read_text())
+    method=next(node for cls in tree.body if isinstance(cls,ast.ClassDef) for node in cls.body
+        if isinstance(node,ast.FunctionDef) and node.name=='_telefon_webcam')
+    namespace={}
+    exec(compile(ast.Module(body=[method],type_ignores=[]),'actual-webcam-gui-worker','exec'),namespace)
+    server=background.IPCServer(None,path=str(tmp_path/'setup.sock'),phone_backend=service).start()
+    try:
+        window=SimpleNamespace(_gesperrt=False,_organizer_vertraut=lambda:True,
+            _telefon=background.PhoneServiceProxy(server.path),antwort=lambda name,value:answers.append((name,value)))
+        def call(message):
+            worker=threading.Thread(target=namespace['_telefon_webcam'],args=(window,message))
+            worker.start();worker.join(5);assert not worker.is_alive()
+            assert answers[-1][0]=='App.telefonWebcam'
+            return answers[-1][1]
+        assert call(dict(cmd='telefon_webcam_stand',requestId='read'))['webcam']['phase']=='off'
+        assert not setups
+        response=call(dict(cmd='telefon_webcam_aktion',requestId='enable',request=dict(action='prepare',provider='notes')))
+        assert response['ok'] and response['webcam']['choices'] and setups==[True]
+        assert service._native_webcam_owner is None and not response['webcam']['enabled']
+        token=response['webcam']['action']
+        window._telefon.webcam_action(dict(action='cancel',action_token=token))
+        assert manager.action is None
+    finally:server.close()
 
 
 def test_ui_to_real_daemon_signed_parent_and_encrypted_av_reuses_original_held_video(connected, tmp_path, monkeypatch):

@@ -10219,6 +10219,27 @@ msgstr "Значок у системному треї (60 с)"
 msgid "Saved developer mode is required."
 msgstr "Режим розробника має бути збережено."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Типово вимкнено. Використовує віртуальну камеру та мікрофон. Налаштування драйвера може потребувати дозволу адміністратора."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "Для використання телефона як вебкамери має бути встановлено драйвер ядра v4l2loopback."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Не вдалося перевірити драйвер віртуальної камери."
+
+msgid "System authorization is unavailable."
+msgstr "Системна авторизація недоступна."
+
+msgid "System authorization was cancelled."
+msgstr "Системну авторизацію скасовано."
+
+msgid "The virtual camera could not be configured."
+msgstr "Не вдалося налаштувати віртуальну камеру."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Налаштування віртуальної камери вже триває."
+
 msgid "Phone webcam"
 msgstr "Вебкамера телефона"
 

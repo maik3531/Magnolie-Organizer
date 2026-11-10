@@ -648,6 +648,9 @@ msgstr ""
 msgid "Action"
 msgstr ""
 
+msgid "Active"
+msgstr ""
+
 msgid "Active call"
 msgstr ""
 
@@ -666,6 +669,9 @@ msgid "Add"
 msgstr ""
 
 msgid "Add %(type)s"
+msgstr ""
+
+msgid "Add PC source folder …"
 msgstr ""
 
 msgid "Add a custom tab"
@@ -886,6 +892,9 @@ msgstr ""
 msgid ""
 "An entry is excluded when any of its contact groups is selected. No contacts "
 "or anniversaries are deleted."
+msgstr ""
+
+msgid "An existing virtual camera driver is required. Nothing was installed."
 msgstr ""
 
 msgid "Android restricts this device identifier."
@@ -1285,9 +1294,15 @@ msgstr ""
 msgid "Bold"
 msgstr ""
 
+msgid "Boots"
+msgstr ""
+
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+
+msgid "Both connected"
 msgstr ""
 
 msgid ""
@@ -1418,6 +1433,12 @@ msgstr ""
 msgid "Calligraphy pen"
 msgstr ""
 
+msgid "Camera"
+msgstr ""
+
+msgid "Camera or microphone permission was denied on the phone."
+msgstr ""
+
 msgid "Cancel"
 msgstr ""
 
@@ -1466,6 +1487,9 @@ msgid "Celsius (°C)"
 msgstr ""
 
 msgid "Centered on the screen"
+msgstr ""
+
+msgid "Champagne glass"
 msgstr ""
 
 msgid "Change password"
@@ -1807,6 +1831,9 @@ msgid "Conflict"
 msgstr ""
 
 msgid "Connect"
+msgstr ""
+
+msgid "Connect Magnolie Notes over WLAN first."
 msgstr ""
 
 msgid "Connect Notes before sending this entry."
@@ -2467,6 +2494,9 @@ msgctxt "time tracking"
 msgid "Early shift"
 msgstr ""
 
+msgid "Easter eggs"
+msgstr ""
+
 msgid "Edit"
 msgstr ""
 
@@ -2926,6 +2956,9 @@ msgid ""
 "computer firewalls."
 msgstr ""
 
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr ""
+
 msgid ""
 "For this purpose, appointments, tasks, anniversaries and the names of "
 "responsible people are kept unencrypted in a separate file readable only by "
@@ -3108,6 +3141,9 @@ msgid "History"
 msgstr ""
 
 msgid "Holiday retrieval is available only in the installed application."
+msgstr ""
+
+msgid "Holiday watermark"
 msgstr ""
 
 msgid "Home"
@@ -3416,6 +3452,9 @@ msgid ""
 msgstr ""
 
 msgid "KDE Connect reception failed."
+msgstr ""
+
+msgid "KDE Connect requires a compatible webcam extension."
 msgstr ""
 
 msgid ""
@@ -3985,6 +4024,9 @@ msgstr ""
 msgid "Music player"
 msgstr ""
 
+msgid "Mute microphone"
+msgstr ""
+
 msgid "Name"
 msgstr ""
 
@@ -4492,6 +4534,9 @@ msgid ""
 "alarms are not transferred."
 msgstr ""
 
+msgid "OS tray icon (60 s)"
+msgstr ""
+
 msgid "Objects"
 msgstr ""
 
@@ -4505,6 +4550,11 @@ msgid ""
 "Off by default. Turning this off pauses pending SMS plans without deleting "
 "them. Enabling resumes them, including overdue plans. Messages already "
 "handed to KDE Connect cannot be recalled."
+msgstr ""
+
+msgid ""
+"Off by default. Uses a virtual camera and microphone. Driver setup may "
+"request administrator permission."
 msgstr ""
 
 msgid "Offer Personal Sync phone changes"
@@ -4630,6 +4680,9 @@ msgstr ""
 msgid ""
 "Open KDE Connect on the phone and start pairing. Compare the eight-character "
 "verification key and confirm on both devices."
+msgstr ""
+
+msgid "Open Magnolie Notes on the phone to allow capture."
 msgstr ""
 
 msgid "Open Magnolie Organizer"
@@ -4788,6 +4841,9 @@ msgid "Own window available: no"
 msgstr ""
 
 msgid "Own window available: yes"
+msgstr ""
+
+msgid "PC source folders are separate from receive destinations."
 msgstr ""
 
 msgid "PDF file"
@@ -5025,6 +5081,9 @@ msgstr ""
 msgid ""
 "Phone setup is unavailable in this background service. Restart the "
 "background service and try again."
+msgstr ""
+
+msgid "Phone webcam"
 msgstr ""
 
 msgid "Phone “%(name)s” is securely paired."
@@ -5565,6 +5624,9 @@ msgstr ""
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr ""
 
+msgid "Reset preview"
+msgstr ""
+
 msgid "Residual waste"
 msgstr ""
 
@@ -5676,6 +5738,9 @@ msgstr ""
 msgid "Right page"
 msgstr ""
 
+msgid "Rocket"
+msgstr ""
+
 msgid "Rotate selection"
 msgstr ""
 
@@ -5749,6 +5814,9 @@ msgstr ""
 msgid "Salzburg"
 msgstr ""
 
+msgid "Santa Claus"
+msgstr ""
+
 msgid "Saturday"
 msgstr ""
 
@@ -5802,6 +5870,9 @@ msgid "Saved"
 msgstr ""
 
 msgid "Saved confirmation available."
+msgstr ""
+
+msgid "Saved developer mode is required."
 msgstr ""
 
 msgid "Saved to: %(path)s (%(count)s entry)"
@@ -5916,6 +5987,9 @@ msgstr ""
 msgid "Search…"
 msgstr ""
 
+msgid "Seasonal background"
+msgstr ""
+
 msgid "Secondary office"
 msgstr ""
 
@@ -5978,6 +6052,9 @@ msgid "Select your phone"
 msgstr ""
 
 msgid "Select, preview, print, export or delete health records"
+msgstr ""
+
+msgid "Selected PC source folders"
 msgstr ""
 
 msgid "Selected album synchronized."
@@ -6234,6 +6311,9 @@ msgstr ""
 msgid "Snapshot restored. The first synchronization will not send deletions."
 msgstr ""
 
+msgid "Snowflakes"
+msgstr ""
+
 msgid "Snowman"
 msgstr ""
 
@@ -6318,6 +6398,12 @@ msgid "Square"
 msgstr ""
 
 msgid "St. Gallen"
+msgstr ""
+
+msgid "Stars"
+msgstr ""
+
+msgid "Start"
 msgstr ""
 
 msgctxt "time tracking"
@@ -6495,6 +6581,12 @@ msgid "Synchronizing …"
 msgstr ""
 
 msgid "System authentication for configuring UFW is unavailable."
+msgstr ""
+
+msgid "System authorization is unavailable."
+msgstr ""
+
+msgid "System authorization was cancelled."
 msgstr ""
 
 msgid "System default"
@@ -7344,6 +7436,9 @@ msgstr ""
 msgid "The previous data could not be backed up."
 msgstr ""
 
+msgid "The previous webcam session must finish stopping first."
+msgstr ""
+
 #, python-format
 msgid "The print page is located at: %s"
 msgstr ""
@@ -7599,6 +7694,12 @@ msgid "The user data could not be read."
 msgstr ""
 
 msgid "The value is outside the general green reference range."
+msgstr ""
+
+msgid "The virtual camera could not be configured."
+msgstr ""
+
+msgid "The virtual camera driver could not be checked."
 msgstr ""
 
 msgid "The wake-up reminder"
@@ -7941,6 +8042,9 @@ msgstr ""
 msgid "Tray applet"
 msgstr ""
 
+msgid "Tray preview"
+msgstr ""
+
 msgid "Triangle"
 msgstr ""
 
@@ -8139,6 +8243,9 @@ msgstr ""
 msgid "Use default"
 msgstr ""
 
+msgid "Use front camera"
+msgstr ""
+
 msgid "Use newer version"
 msgstr ""
 
@@ -8235,6 +8342,12 @@ msgstr ""
 msgid "View and edit appointment"
 msgstr ""
 
+msgid "Virtual camera setup is already in progress."
+msgstr ""
+
+msgid "Visual test only; no connections or permissions are changed."
+msgstr ""
+
 msgid "Vital signs"
 msgstr ""
 
@@ -8262,6 +8375,9 @@ msgid "Waiting for consent on the other device."
 msgstr ""
 
 msgid "Waiting for device status"
+msgstr ""
+
+msgid "Waiting for phone permission and capture …"
 msgstr ""
 
 msgid ""
@@ -8949,102 +9065,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "＋ Add appointment"
-msgstr ""
-
-
-#. Appearance preview; visual-only controls. Refs #432.
-msgid "Visual test only; no connections or permissions are changed."
-msgstr ""
-
-msgid "Tray preview"
-msgstr ""
-
-msgid "Seasonal background"
-msgstr ""
-
-msgid "Holiday watermark"
-msgstr ""
-
-msgid "Both connected"
-msgstr ""
-
-msgid "Camera"
-msgstr ""
-
-msgid "Snowflakes"
-msgstr ""
-
-msgid "Stars"
-msgstr ""
-
-msgid "Boots"
-msgstr ""
-
-msgid "Santa Claus"
-msgstr ""
-
-msgid "Rocket"
-msgstr ""
-
-msgid "Champagne glass"
-msgstr ""
-
-msgid "Easter eggs"
-msgstr ""
-
-msgid "Reset preview"
-msgstr ""
-
-msgid "OS tray icon (60 s)"
-msgstr ""
-
-msgid "Saved developer mode is required."
-msgstr ""
-
-msgid "Add PC source folder …"
-msgstr ""
-
-msgid "Selected PC source folders"
-msgstr ""
-
-msgid "PC source folders are separate from receive destinations."
-msgstr ""
-
-msgid "Phone webcam"
-msgstr ""
-
-msgid "Off by default. Uses an existing virtual camera and microphone; installs nothing."
-msgstr ""
-
-msgid "Mute microphone"
-msgstr ""
-
-msgid "Use front camera"
-msgstr ""
-
-msgid "An existing virtual camera driver is required. Nothing was installed."
-msgstr ""
-
-msgid "KDE Connect requires a compatible webcam extension."
-msgstr ""
-
-msgid "Connect Magnolie Notes over WLAN first."
-msgstr ""
-
-msgid "Camera or microphone permission was denied on the phone."
-msgstr ""
-
-msgid "Open Magnolie Notes on the phone to allow capture."
-msgstr ""
-
-msgid "The previous webcam session must finish stopping first."
-msgstr ""
-
-msgid "Waiting for phone permission and capture …"
-msgstr ""
-
-msgid "Active"
-msgstr ""
-
-msgid "Start"
 msgstr ""

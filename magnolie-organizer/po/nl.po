@@ -10290,6 +10290,27 @@ msgstr "Systeemvakpictogram (60 s)"
 msgid "Saved developer mode is required."
 msgstr "De ontwikkelaarsmodus moet opgeslagen zijn."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Standaard uitgeschakeld. Gebruikt een virtuele camera en microfoon. Het instellen van het stuurprogramma kan om beheerdersrechten vragen."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "Voor de telefoonwebcam moet het kernelstuurprogramma v4l2loopback geïnstalleerd zijn."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Het stuurprogramma voor de virtuele camera kon niet worden gecontroleerd."
+
+msgid "System authorization is unavailable."
+msgstr "Systeemautorisatie is niet beschikbaar."
+
+msgid "System authorization was cancelled."
+msgstr "Systeemautorisatie is geannuleerd."
+
+msgid "The virtual camera could not be configured."
+msgstr "De virtuele camera kon niet worden ingesteld."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "De virtuele camera wordt al ingesteld."
+
 msgid "Phone webcam"
 msgstr "Telefoonwebcam"
 

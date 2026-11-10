@@ -9670,6 +9670,27 @@ msgstr "系统托盘图标（60秒）"
 msgid "Saved developer mode is required."
 msgstr "必须先保存开发者模式。"
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "默认关闭。使用虚拟摄像头和麦克风。驱动程序设置可能需要管理员授权。"
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "要使用手机网络摄像头功能，必须安装 v4l2loopback 内核驱动程序。"
+
+msgid "The virtual camera driver could not be checked."
+msgstr "无法检查虚拟摄像头驱动程序。"
+
+msgid "System authorization is unavailable."
+msgstr "系统授权不可用。"
+
+msgid "System authorization was cancelled."
+msgstr "系统授权已取消。"
+
+msgid "The virtual camera could not be configured."
+msgstr "无法配置虚拟摄像头。"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "虚拟摄像头设置已在进行中。"
+
 msgid "Phone webcam"
 msgstr "手机网络摄像头"
 

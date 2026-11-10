@@ -10366,6 +10366,27 @@ msgstr "Ausgewählte PC-Quellordner"
 msgid "PC source folders are separate from receive destinations."
 msgstr "PC-Quellordner sind unabhängig von Empfangszielen."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Standardmäßig aus. Verwendet eine virtuelle Kamera und ein Mikrofon. Die Treibereinrichtung kann Administratorrechte anfordern."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "Für die Handy-Webcam muss der Kernel-Treiber v4l2loopback installiert sein."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Der Treiber für die virtuelle Kamera konnte nicht geprüft werden."
+
+msgid "System authorization is unavailable."
+msgstr "Die Systemfreigabe ist nicht verfügbar."
+
+msgid "System authorization was cancelled."
+msgstr "Die Systemfreigabe wurde abgebrochen."
+
+msgid "The virtual camera could not be configured."
+msgstr "Die virtuelle Kamera konnte nicht eingerichtet werden."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Die virtuelle Kamera wird bereits eingerichtet."
+
 msgid "Phone webcam"
 msgstr "Telefon-Webcam"
 

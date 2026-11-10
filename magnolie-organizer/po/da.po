@@ -10152,6 +10152,27 @@ msgstr "Systemets statusikon (60 s)"
 msgid "Saved developer mode is required."
 msgstr "Udviklertilstand skal være gemt."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Slået fra som standard. Bruger et virtuelt kamera og en mikrofon. Opsætning af driveren kan kræve administratortilladelse."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "For at bruge telefonen som webcam skal kernedriveren v4l2loopback være installeret."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Driveren til det virtuelle kamera kunne ikke kontrolleres."
+
+msgid "System authorization is unavailable."
+msgstr "Systemgodkendelse er ikke tilgængelig."
+
+msgid "System authorization was cancelled."
+msgstr "Systemgodkendelsen blev annulleret."
+
+msgid "The virtual camera could not be configured."
+msgstr "Det virtuelle kamera kunne ikke konfigureres."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Opsætning af det virtuelle kamera er allerede i gang."
+
 msgid "Phone webcam"
 msgstr "Telefonwebcam"
 

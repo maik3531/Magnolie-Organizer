@@ -29771,7 +29771,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function kdeMedienAnfordern(cmd, args = {}) {
     return new Promise(resolve => {
       const requestId = crypto.randomUUID();
-      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, cmd === "kde_player_datei" ? 120000 : cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
+      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); },
+        cmd === "telefon_webcam_aktion" && args.request?.action === "prepare" ? 160000 :
+        cmd === "kde_player_datei" ? 120000 : cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
       kdeMedienAnfragen.set(requestId, { resolve, timer });
       if (!Bruecke.sende({ cmd, requestId, ...args })) {
         clearTimeout(timer); kdeMedienAnfragen.delete(requestId); resolve({ ok: false });
@@ -29783,7 +29785,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function baueTelefonWebcam(wurzel) {
     const block = el("div", "einst-gruppe"); block.id = "telefon-webcam";
     block.append(el("h4", null, _("Phone webcam")), el("p", "einst-hinweis",
-      _("Off by default. Uses an existing virtual camera and microphone; installs nothing.")));
+      _("Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission.")));
     const status = el("p", "einst-hinweis", _("Off"));
     const provider = el("select");
     for (const [value, label] of [["auto", _("Automatic")], ["notes", "Magnolie Notes"], ["kdeconnect", "KDE Connect"]]) {
@@ -29799,6 +29801,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const visible = () => block.isConnected && wurzel.open && !gesperrt;
     const reasonText = reason => ({
       virtual_camera_missing: _("An existing virtual camera driver is required. Nothing was installed."),
+      driver_not_installed: _("For phone webcam, install the v4l2loopback kernel driver."),
+      driver_probe_unavailable: _("The virtual camera driver could not be checked."),
+      driver_authentication_unavailable: _("System authorization is unavailable."),
+      driver_authentication_cancelled: _("System authorization was cancelled."),
+      driver_setup_failed: _("The virtual camera could not be configured."),
+      driver_setup_busy: _("Virtual camera setup is already in progress."),
       compatible_extension_required: _("KDE Connect requires a compatible webcam extension."),
       phone_unavailable: _("Connect Magnolie Notes over WLAN first."),
       permission_denied: _("Camera or microphone permission was denied on the phone."),

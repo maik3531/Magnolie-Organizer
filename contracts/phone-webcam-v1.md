@@ -1,5 +1,43 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Explicit Linux driver setup (Refs #515)
+
+Only an explicit Advanced-functions Enable/prepare with an original connected
+Notes parent may prepare the host driver. Status, startup, KDE-only selection,
+missing Notes and disabled optional builds do not run driver setup. Virtual
+inventory uses only virtual sysfs nodes and metadata-only QUERYCAP on a held
+read-only descriptor; physical cameras, frame buffers and format changes are
+excluded. The actual capture output still requires its original native owner.
+
+When the current kernel has no `v4l2loopback` module, the UI names that driver as
+required; it does not install packages. An installed but unavailable output is
+prepared with normal polkit administrator authorization. Isolated system Python
+executes a fixed standard-library-only operation, not a user-writable script or
+renderer-supplied code/path. The only native argument is the original monotonic
+setup deadline: a late authorization cannot create a new privileged interval.
+No permissive polkit policy, persistent capture authorization or generic IPC
+root-command route is introduced.
+
+The operation loads only `v4l2loopback` and creates its own
+`magnolie-phone-webcam.conf` under `modules-load.d` and, if no existing module
+options/live parameters would be overridden, `modprobe.d`. Default new-module
+options are one output, exclusive caps and a Magnolie label; no fixed video number
+or default-device change is imposed. Directory/file owner, mode, type, link and
+exact-content checks reject unfamiliar files and symlinks. New files are published
+exclusively and durably; failure rolls back only unchanged newly owned files.
+No existing module is unloaded. Autoload prepares the driver for future boots,
+not phone capture. Reconnection, phone permissions and original AV/SEND authority
+remain independently mandatory.
+
+Driver/probe/administrator failure returns typed UI status without camera choices.
+Setup is single-flight and original Notes context is rechecked around native IO.
+Administrative time is bounded inside the privileged operation and outside it;
+only the prepare IPC/UI wait is extended to cover that authorized interaction.
+Other request deadlines are unchanged. Unit tests use real private test files
+and controlled command adapters, never host module/configuration changes. Actual
+native system authorization, boot autoload and OBS/phone acceptance remain separate
+from these source/host proofs. No package was installed or published for them.
+
 ## Scope and current status
 
 The user prioritizes webcam before further photo target switching and requests
@@ -450,8 +488,9 @@ these independently. They do not request permissions or capture personal media.
 
 ## Linux native-output boundary
 
-Requires an already provisioned writable v4l2loopback output node; never install
-or load drivers automatically. Refuse physical camera drivers, substituted
+Capture requires a provisioned writable v4l2loopback output node. Only explicit
+Enable/prepare may perform the bounded driver setup described above; startup,
+status and capture do not install packages or load drivers. Refuse physical camera drivers, substituted
 formats/rates and missing timeout controls. Request the exact native I420 output
 format and frame rate, a one-second kernel frame timeout and no indefinite frame
 sustain. Stop writes a black frame when possible and closes the output; kernel

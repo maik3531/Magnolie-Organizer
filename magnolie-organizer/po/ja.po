@@ -10060,6 +10060,27 @@ msgstr "システムトレイアイコン（60秒）"
 msgid "Saved developer mode is required."
 msgstr "開発者モードを保存する必要があります。"
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "初期状態ではオフです。仮想カメラとマイクを使用します。ドライバーの設定で管理者権限を求められる場合があります。"
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "スマートフォンをウェブカメラとして使うには、v4l2loopback カーネルドライバーのインストールが必要です。"
+
+msgid "The virtual camera driver could not be checked."
+msgstr "仮想カメラのドライバーを確認できませんでした。"
+
+msgid "System authorization is unavailable."
+msgstr "システム認証を利用できません。"
+
+msgid "System authorization was cancelled."
+msgstr "システム認証がキャンセルされました。"
+
+msgid "The virtual camera could not be configured."
+msgstr "仮想カメラを設定できませんでした。"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "仮想カメラの設定はすでに進行中です。"
+
 msgid "Phone webcam"
 msgstr "スマートフォンのウェブカメラ"
 

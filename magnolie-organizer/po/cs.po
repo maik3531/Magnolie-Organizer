@@ -10166,6 +10166,27 @@ msgstr "Ikona v oznamovací oblasti systému (60 s)"
 msgid "Saved developer mode is required."
 msgstr "Režim pro vývojáře musí být uložen."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Ve výchozím stavu vypnuto. Používá virtuální kameru a mikrofon. Nastavení ovladače může vyžadovat oprávnění správce."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "Pro použití telefonu jako webkamery musí být nainstalován ovladač jádra v4l2loopback."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Ovladač virtuální kamery se nepodařilo ověřit."
+
+msgid "System authorization is unavailable."
+msgstr "Systémová autorizace není dostupná."
+
+msgid "System authorization was cancelled."
+msgstr "Systémová autorizace byla zrušena."
+
+msgid "The virtual camera could not be configured."
+msgstr "Virtuální kameru se nepodařilo nastavit."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Nastavování virtuální kamery již probíhá."
+
 msgid "Phone webcam"
 msgstr "Webkamera telefonu"
 

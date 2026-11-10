@@ -10241,6 +10241,27 @@ msgstr "أيقونة علبة النظام (60 ثانية)"
 msgid "Saved developer mode is required."
 msgstr "يجب حفظ وضع المطوّر."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "معطلة افتراضيًا. تستخدم كاميرا وميكروفونًا افتراضيين. قد يتطلب إعداد برنامج التشغيل إذن المسؤول."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "لاستخدام الهاتف ككاميرا ويب، يجب تثبيت برنامج تشغيل النواة v4l2loopback."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "تعذر التحقق من برنامج تشغيل الكاميرا الافتراضية."
+
+msgid "System authorization is unavailable."
+msgstr "تفويض النظام غير متاح."
+
+msgid "System authorization was cancelled."
+msgstr "تم إلغاء تفويض النظام."
+
+msgid "The virtual camera could not be configured."
+msgstr "تعذر إعداد الكاميرا الافتراضية."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "إعداد الكاميرا الافتراضية جارٍ بالفعل."
+
 msgid "Phone webcam"
 msgstr "كاميرا الهاتف للويب"
 

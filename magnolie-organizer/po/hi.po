@@ -9945,6 +9945,27 @@ msgstr "सिस्टम ट्रे आइकन (60 सेकंड)"
 msgid "Saved developer mode is required."
 msgstr "डेवलपर मोड सहेजा हुआ होना चाहिए।"
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "डिफ़ॉल्ट रूप से बंद। वर्चुअल कैमरे और माइक्रोफ़ोन का उपयोग करता है। ड्राइवर सेटअप के लिए व्यवस्थापक अनुमति माँगी जा सकती है।"
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "फ़ोन वेबकैम के लिए v4l2loopback कर्नेल ड्राइवर स्थापित होना चाहिए।"
+
+msgid "The virtual camera driver could not be checked."
+msgstr "वर्चुअल कैमरा ड्राइवर की जाँच नहीं हो सकी।"
+
+msgid "System authorization is unavailable."
+msgstr "सिस्टम प्राधिकरण उपलब्ध नहीं है।"
+
+msgid "System authorization was cancelled."
+msgstr "सिस्टम प्राधिकरण रद्द कर दिया गया।"
+
+msgid "The virtual camera could not be configured."
+msgstr "वर्चुअल कैमरा कॉन्फ़िगर नहीं किया जा सका।"
+
+msgid "Virtual camera setup is already in progress."
+msgstr "वर्चुअल कैमरा सेटअप पहले से चल रहा है।"
+
 msgid "Phone webcam"
 msgstr "फ़ोन वेबकैम"
 

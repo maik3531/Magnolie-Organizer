@@ -10267,6 +10267,27 @@ msgstr "Ikona w zasobniku systemowym (60 s)"
 msgid "Saved developer mode is required."
 msgstr "Tryb programisty musi być zapisany."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Domyślnie wyłączona. Używa wirtualnej kamery i mikrofonu. Konfiguracja sterownika może wymagać uprawnień administratora."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "Aby używać telefonu jako kamery internetowej, musi być zainstalowany sterownik jądra v4l2loopback."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Nie udało się sprawdzić sterownika wirtualnej kamery."
+
+msgid "System authorization is unavailable."
+msgstr "Autoryzacja systemowa jest niedostępna."
+
+msgid "System authorization was cancelled."
+msgstr "Autoryzacja systemowa została anulowana."
+
+msgid "The virtual camera could not be configured."
+msgstr "Nie udało się skonfigurować wirtualnej kamery."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Konfiguracja wirtualnej kamery już trwa."
+
 msgid "Phone webcam"
 msgstr "Kamera internetowa telefonu"
 

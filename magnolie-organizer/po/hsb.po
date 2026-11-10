@@ -10320,6 +10320,27 @@ msgstr "Symbol w systemowej lajsće (60 s)"
 msgid "Saved developer mode is required."
 msgstr "Wuwiwarski modus dyrbi składowany być."
 
+msgid "Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission."
+msgstr "Po standardźe wupinjene. Wužiwa wirtuelnu kameru a mikrofon. Zarjadowanje ćěrjaka móže prawa administratora požadać."
+
+msgid "For phone webcam, install the v4l2loopback kernel driver."
+msgstr "Za wužiwanje telefona jako webkamery dyrbi jaderny ćěrjak v4l2loopback instalowany być."
+
+msgid "The virtual camera driver could not be checked."
+msgstr "Ćěrjak wirtuelneje kamery njeda so přepruwować."
+
+msgid "System authorization is unavailable."
+msgstr "Systemowa awtorizacija k dispoziciji njeje."
+
+msgid "System authorization was cancelled."
+msgstr "Systemowa awtorizacija je so přetorhnyła."
+
+msgid "The virtual camera could not be configured."
+msgstr "Wirtuelna kamera njeda so zarjadować."
+
+msgid "Virtual camera setup is already in progress."
+msgstr "Wirtuelna kamera so hižo zarjaduje."
+
 msgid "Phone webcam"
 msgstr "Webkamera telefona"
 
