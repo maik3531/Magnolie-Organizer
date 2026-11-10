@@ -102,3 +102,61 @@ def test_no_video_only_fallback_when_an_authenticated_audio_packet_is_invalid():
         assert run.state == 'failed' and not run.outputs.audio.frames
         assert run.outputs.video.closed and run.outputs.audio.closed
     finally: sender.close(); run.stop()
+
+
+def test_actual_outputs_precede_receiver_ready_and_live_data_guard_controls_all_following_io():
+    agreed = [False]
+    calls = []
+    def ready():
+        calls.append('ready')
+        agreed[0] = True
+    def data():
+        calls.append('data')
+        if not agreed[0]: raise PermissionError('original bilateral data agreement retired')
+    sender, run = joined(receiver_ready=ready, data_guard=data)
+    try:
+        assert calls[0] == 'ready' and calls.count('ready') == 1 and 'data' in calls
+        assert run.outputs.video is not None and run.outputs.audio is not None
+        sender.send('video', 0, 0, bytes(VIDEO_BYTES))
+        sender.send('audio', 0, 0, bytes(AUDIO_BYTES))
+        assert run.outputs.video.arrived.wait(1) and run.outputs.audio.arrived.wait(1)
+        agreed[0] = False
+        assert run.ended.wait(2)
+        assert run.outputs.closed and run.channel.closed and run.state == 'failed'
+        agreed[0] = True
+        assert run.state == 'failed'  # No restored-flag/session resurrection.
+    finally: sender.close(); run.stop()
+
+
+@pytest.mark.parametrize('mode', ['ready_callback_failed', 'missing_actual_data_agreement'])
+def test_native_readiness_callback_or_absent_data_agreement_cannot_start_receiving(mode):
+    left, right = socket.socketpair()
+    outputs = []
+    def native(device, guard, **settings):
+        result = NativeWebcamSession(device, guard, video_factory=Output, audio_factory=Output, **settings)
+        outputs.append(result)
+        return result
+    def ready():
+        assert len(outputs) == 1 and not outputs[0].closed
+        assert outputs[0].audio is not None and outputs[0].video is not None
+        if mode == 'ready_callback_failed': raise PermissionError('original ready control send failed')
+    def data():
+        raise PermissionError('actual bilateral data agreement absent')
+    try:
+        with pytest.raises(PermissionError):
+            WebcamReceiveRun(right, 'a' * 32, bytes(range(32)), '/dev/video42', lambda: None,
+                output_factory=native, receiver_ready=ready, data_guard=data)
+        assert right.fileno() == -1 and outputs[0].closed
+        assert outputs[0].video.closed and outputs[0].audio.closed
+        outputs[0].monitor.join(2)
+        assert not outputs[0].monitor.is_alive()
+    finally: left.close(); right.close()
+
+
+def test_explicit_receiver_ready_requires_a_separate_live_data_guard_not_a_ready_boolean():
+    left, right = socket.socketpair()
+    try:
+        with pytest.raises(ValueError, match='requires_live_data_guard'):
+            WebcamReceiveRun(right, 'a' * 32, bytes(range(32)), '/dev/video42', lambda: None, receiver_ready=lambda: True)
+        assert right.fileno() == -1
+    finally: left.close(); right.close()

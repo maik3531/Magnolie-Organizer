@@ -11,22 +11,39 @@ from magnolie_phone_webcam import NativeWebcamSession, WebcamUnavailable
 
 
 class WebcamReceiveRun:
-    def __init__(self, sock, session, secret, device, guard, *, muted=False, output_factory=NativeWebcamSession):
+    def __init__(self, sock, session, secret, device, guard, *, muted=False, output_factory=NativeWebcamSession,
+                 receiver_ready=None, data_guard=None):
         self.outputs = self.channel = None
         self.error = None
         self.ended = threading.Event()
         self.stopping = threading.Event()
         self._state = 'starting'
+        admitted = False
         def original():
             guard()
             if self.stopping.is_set():
                 raise WebcamUnavailable('webcam_session_retired')
+            if admitted and data_guard is not None:
+                data_guard()
         try:
+            if ((receiver_ready is not None and not callable(receiver_ready)) or
+                    (data_guard is not None and not callable(data_guard)) or
+                    receiver_ready is not None and data_guard is None):
+                raise ValueError('webcam_explicit_receiver_ready_requires_live_data_guard')
             self.outputs = output_factory(device, original, muted=muted, identity=session)
             def current():
                 original()
                 if self.outputs.closed:
                     raise self.outputs.error or WebcamUnavailable('webcam_output_retired')
+            # Original capture/opt-in authority can prepare native outputs, but
+            # is NOT bilateral data admission. Only after actual endpoints are
+            # ready may the authenticated controller announce receiver-ready.
+            # The callback must use its original bounded control-send path.
+            current()
+            if receiver_ready is not None:
+                receiver_ready()
+            admitted = True
+            current()  # A callback/flag alone cannot replace the actual agreement.
             self.channel = WebcamMediaSocket(sock, session, secret, current, sending=False)
         except BaseException:
             sock.close()

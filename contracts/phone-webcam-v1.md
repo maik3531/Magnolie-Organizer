@@ -111,6 +111,26 @@ here carries control/key negotiation only, never frames or audio. The Notes
 envelope has a 4096-byte/60-second bound. Python currently validates the body;
 its production envelope/parent dispatcher is not installed yet.
 
+The desktop exchange now binds its fresh random session/key and offered port to
+one actual original TCP control socket and one listener on that original local
+interface. Only a matching prepared message permits an accepted media socket
+with the original peer address and that exact listener's local address/port.
+No accept worker, target URL or reconnect is created by this controller.
+The receiver creates both native endpoints before invoking the bounded original
+control callback for SEND. A separate live data guard must then confirm the
+agreement; a successful callback/ready Boolean alone is insufficient. Both the
+binary socket and native-output lifetime continue checking the original guards.
+Failure retires the endpoints/key/listener, not the base phone control socket.
+
+Ten desktop-exchange tests use real local TCP control/media sockets, actual
+encrypted synthetic AV and controlled native-output adapters, not physical capture
+devices. Nine affected receiver cases and 29 native-output cases also passed;
+the added optional module remains covered by the 20 composition cases. This is
+not yet the Linux Organizer's actual authenticated message/UI dispatch path and
+does not add Windows native outputs. The encrypted AV test is not a new proof of
+encrypted parent control negotiation: that callback's production binding remains
+to be wired and checked.
+
 The Notes exchange binds one original parent object, fresh probe/nonce, monotonic
 startup lifetime, phase and live native parent guard. Changed/expired original
 authority cannot revive when matching flags return. Foreign parent/nonce packets
@@ -124,8 +144,9 @@ Checks passed: 41 Python body cases, six Notes schema/capability/envelope cases
 and seven original-exchange cases. The joined positive case uses genuine Android
 permission/foreground adapters under Robolectric and generated source samples;
 it does not prove a physical phone. The exchange is not yet attached to
-TelefonWerk's actual authenticated dispatcher, a desktop native-output controller
-or Organizer activation. No new capture/control availability is advertised.
+TelefonWerk's actual authenticated dispatcher or Organizer activation. The desktop
+controller above supplies output-ready integration, but its base dispatcher is
+still unjoined. No new capture/control availability is advertised.
 
 ## KDE Connect versus Notes
 
