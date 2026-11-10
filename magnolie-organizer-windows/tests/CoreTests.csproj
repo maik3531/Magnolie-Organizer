@@ -146,6 +146,7 @@
     <Compile Include="..\DocumentExportService.cs" Link="DocumentExportService.cs" />
     <Compile Include="..\VerifiedDocumentFile.cs" Link="VerifiedDocumentFile.cs" />
     <Compile Include="..\DocumentExportService.Time.cs" Link="DocumentExportService.Time.cs" />
+    <Compile Include="..\DocumentExportService.TimeZone.cs" Link="DocumentExportService.TimeZone.cs" />
     <Compile Include="..\GesamtarchivService.cs" Link="GesamtarchivService.cs" />
     <Compile Include="..\ContactSyncModels.cs" Link="ContactSyncModels.cs" />
     <Compile Include="..\ManagedEasSourceFolders.cs" Link="ManagedEasSourceFolders.cs" />

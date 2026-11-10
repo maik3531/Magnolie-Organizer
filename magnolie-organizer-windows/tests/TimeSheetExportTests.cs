@@ -80,11 +80,33 @@ internal static class TimeSheetExportTests
         historic["entries"]![0]!["zone"] = "Africa/Monrovia"; historic["entries"]![0]!["pauseMinutes"] = 0;
         historic["entries"]![0]!["localStartMinute"] = Minute("1972-01-06T23:15:00Z");
         historic["entries"]![0]!["localEndMinute"] = Minute("1972-01-07T02:00:00Z");
+        if (Environment.GetEnvironmentVariable("MAGNOLIE_TEST_TRACE_TIME_SHEET") == "1")
+        {
+            var zone = TimeZoneInfo.FindSystemTimeZoneById("Africa/Monrovia");
+            foreach (var instant in new[] { "1972-01-07T00:00:00Z", "1972-01-07T02:00:00Z" })
+            {
+                var value = DateTimeOffset.Parse(instant, System.Globalization.CultureInfo.InvariantCulture);
+                Console.WriteLine($"Time sheet native zone={zone.Id} instant={instant} local={TimeZoneInfo.ConvertTime(value, zone):O}");
+            }
+        }
         var historicCells = DailyCells(historic);
         TestAssert.That((string?)historicCells[9].Attribute(office + "value") == "45",
             $"Minute cells need historical clock adjustment 45; got {historicCells[2].Value}–{historicCells[4].Value}, adjustment {historicCells[9].Value}.");
         historic["entries"]![0]!["localStartMinute"] = Minute("1972-01-07T00:15:00Z");
         TestAssert.Throws<ArgumentException>(() => Render(historic), "An unrelated civil-clock projection was accepted.");
+        var named = report.DeepClone().AsObject(); named["days"] = new JsonArray(1);
+        named["entries"]![0]!["zone"] = "Europe/Berlin";
+        TestAssert.That(DailyCells(named)[2].Value == "02:00 AM", "Named-zone civil cells lost the actual offset.");
+        if (OperatingSystem.IsWindows())
+        {
+            named["entries"]![0]!["zone"] = "W. Europe Standard Time";
+            TestAssert.That(DailyCells(named)[2].Value == "02:00 AM", "An existing Windows zone identity stopped rendering.");
+            foreach (var invalid in new[] { "Etc/Unknown", "Not/A_Zone", "Africa/Monrovia\0other" })
+            {
+                named["entries"]![0]!["zone"] = invalid;
+                TestAssert.Throws<ArgumentException>(() => Render(named), "Unknown ICU zone silently fell back to a default.");
+            }
+        }
         var output = Environment.GetEnvironmentVariable("MAGNOLIE_ODS_FIXTURE_OUTPUT");
         if (!string.IsNullOrEmpty(output))
         {

@@ -210,7 +210,8 @@ internal static partial class DocumentExportService
         var instant = DateTimeOffset.FromUnixTimeSeconds(minute * 60);
         if (zone is "UTC" or "GMT" or "UT" or "Z") return instant;
         var match = Regex.Match(zone, @"^(?:UTC|GMT|UT)?([+-])([0-9]{2})(?::([0-9]{2}))?$");
-        if (!match.Success) return TimeZoneInfo.ConvertTime(instant, TimeZoneInfo.FindSystemTimeZoneById(zone));
+        if (!match.Success) return OperatingSystem.IsWindows() ? TimeSheetIcuLocal(instant, zone)
+            : TimeZoneInfo.ConvertTime(instant, TimeZoneInfo.FindSystemTimeZoneById(zone));
         var hours = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
         var minutes = match.Groups[3].Success ? int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture) : 0;
         if (hours > 18 || minutes > 59 || hours == 18 && minutes != 0) throw new ArgumentException("Invalid time zone.");

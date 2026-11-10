@@ -6,6 +6,27 @@ both desktop editors, calendars and ODS renderers. The version-7 extension of
 connection. Runtime interoperability is exercised with both Python and C# peers;
 final native package acceptance remains a separate release gate.
 
+## Windows historical ODS civil times (Refs #513)
+
+Named ODS time zones on Windows use the existing system ICU calendar from
+System32 `icu.dll`, available before the project's existing Windows 10 19041
+target. No ICU package, new compiler or native DLL is installed or shipped.
+Canonical system-zone validation rejects unknown IDs instead of ICU's default
+zone fallback; existing Windows zone IDs are mapped through the native .NET
+Windows-to-IANA conversion. UTC and explicit fixed-offset handling are unchanged.
+Calendar handles are closed on every path. This helper changes only civil export
+cells: UTC elapsed-time arithmetic, formulas and the one-minute validation bound
+for renderer-supplied local projections remain unchanged.
+
+The actual Windows fixture showed `TimeZoneInfo` mapping Monrovia's historical
+1972 transition to UTC, unlike the Linux/IANA result. With system ICU, the same
+full native ODS group passes, including its 45-minute adjustment, wrong-projection
+rejection, daylight offset, Windows zone-ID compatibility and unknown/NUL-ID
+rejection. Linux/.NET and Python ODS regression cases also pass. The OS ICU C API
+boundary is documented at https://learn.microsoft.com/en-us/windows/win32/intl/international-components-for-unicode--icu-.
+This is not an installed package, physical phone print or all-platform time-zone
+acceptance; no other edition's time-zone implementation is changed by this fix.
+
 Time tracking is an optional own-device feature, separate from ordinary calendar
 appointments and from note-import direction. Turning it off preserves entries.
 The UI has one primary confirmation slider: start becomes finish in the same
