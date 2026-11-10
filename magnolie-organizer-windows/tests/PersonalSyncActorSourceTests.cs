@@ -39,6 +39,7 @@ internal static class PersonalSyncActorSourceTests
         {
             var paths = new WindowsPaths(root);
             var store = new TelefonStore(paths, Enumerable.Repeat((byte)37, 32).ToArray());
+            using var ownPool = new OwnedTelefonPool(store);
             var identity = store.LoadOrCreateIdentity(); CryptographicOperations.ZeroMemory(identity.PrivateKey);
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Synthetic", Enumerable.Repeat((byte)23, 32).ToArray());
             store.SavePeers([peer]); store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
@@ -1063,6 +1064,18 @@ internal static class PersonalSyncActorSourceTests
                     "Peer ACK SQL failure falsely completed a protected receipt.");
                 await coordinator.AdvancePersonalActorCompletionAsync(reviewHandle);
                 Stage("terminal/" + terminalScenario + "/recovery-finished");
+                if (terminalScenario == "peer-ack-sql")
+                {
+                    var admissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
+                    var admission = admissions[reviewHandle.ActorId]!;
+                    var remaining = (System.Collections.IDictionary)admission.GetType().GetProperty("CompletionDeferredControls", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)!.GetValue(admission)!;
+                    TestAssert.That(remaining.Count == 240, "One receipt pump did not preserve its bounded original backlog.");
+                    var retained = remaining.Values.Cast<JsonObject>().Select(value => value.DeepClone().AsObject()).ToArray();
+                    await coordinator.AdvancePersonalActorCompletionAsync(reviewHandle);
+                    TestAssert.That(remaining.Count == 224 && retained.Skip(16).All(value =>
+                        JsonNode.DeepEquals(value, (JsonObject)remaining[value["message_id"]!.GetValue<string>()]!)),
+                        "Next receipt pump lost/replaced untouched original pending envelopes.");
+                }
                 TestAssert.That(wire.Length == 0 && nativeSaved!.Sequence == beforePeerAckSequence,
                     "Peer ACK SQL recovery resent decisions or repeated the original document save.");
             }

@@ -1647,6 +1647,11 @@ internal sealed partial class TelefonCoordinator
         {
             await WithPersonalActorStoreAsync(registry => {
                 registry.Reap();
+                // Bound synchronous receipt persistence across ALL admissions
+                // in this pump. Retain untouched original envelopes for the
+                // next call; the existing per-envelope authority/SQL checks
+                // remain the only route to a protected receipt.
+                var completionControlsBudget = 16;
                 foreach (var admission in admitted)
                 {
                     try
@@ -1658,8 +1663,9 @@ internal sealed partial class TelefonCoordinator
                     if (admission.HistoricalSaveClaim is not null && admission.Completion is null) continue;
                     if (admission.Completion is not null)
                     {
-                        foreach (var pending in admission.CompletionDeferredControls.Values.ToArray())
+                        foreach (var pending in admission.CompletionDeferredControls.Values.Take(completionControlsBudget).ToArray())
                         {
+                            completionControlsBudget--;
                             try
                             {
                                 PersistPersonalActorPeerAcknowledgment(registry, admission, pending);

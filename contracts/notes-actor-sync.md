@@ -5,6 +5,26 @@ The existing v9 shared-start GUI path remains unchanged. Actor-scoped native
 staging, typed decisions, save/commit and late-reply isolation must be connected
 before this capability is enabled.
 
+## Windows deferred-receipt pump budget (Refs #508)
+
+The Windows native actor pump attempts at most 16 deferred completion-control
+envelopes across all admissions per invocation. Its existing 256-entry pending
+metadata bound is unchanged. Untouched envelopes retain their original identity
+and content; subsequent pumps continue without manufacturing receipt authority.
+Every attempted envelope still uses the existing original-context, saved-book,
+scope, TTL and protected receipt checks. SQL failure stops that admission's retry
+as before. No decision resend or document rewrite is introduced.
+
+The actual full native-source group passes on physical Windows, including the
+256-entry SQL-fault queue, unchanged conflict/foreign-ACK checks, bounded progress
+(240 then 224 original entries remain) and preserved saved receipt/document state.
+The recovery call previously exceeded 38 seconds on that machine; the bounded
+first call takes about 2.8 seconds. The full group also passes on Linux/.NET.
+The Windows fixture separately releases only its own SQLite pool after users
+drain (#507). This is not physical phone or installed GUI acceptance. Python's
+different explicit advance contract is separately tracked for reproduction in
+#509; the Windows proof is not a Python/Linux product fix.
+
 ## Start contract
 
 Both peers must advertise marker **12** for both `personal_notes_sync` and
