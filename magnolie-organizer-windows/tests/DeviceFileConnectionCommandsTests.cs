@@ -75,6 +75,11 @@ internal static class DeviceFileConnectionCommandsTests
 
     internal static async Task WindowsVideoNeedsCurrentPositiveAsync()
     {
+        void Trace(string stage)
+        {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_TEST_TRACE_VIDEO_SOURCE") == "1")
+                Console.WriteLine("VIDEO_SOURCE_STAGE " + stage);
+        }
         using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
         var path = Path.Combine(f.Native.Paths.Root, "native-video-target"); Directory.CreateDirectory(path);
         using (var root = DeviceFileNativeDirectory.OpenExistingForReceive(path)) f.Native.Store.SetNativeMediaDestination(f.Native.Peer.Id, "video", null, root);
@@ -87,15 +92,20 @@ internal static class DeviceFileConnectionCommandsTests
         TestAssert.That(command["body"]!["operation"]!.GetValue<string>() == "configure_videos" && command["body"]!["media_type"] is null, "Video configuration changed the normative metadata body.");
         await f.Native.Connection.HandlePlainAsync(Configuration(command, true)); await configure;
         var captured = f.Native.Connection.CaptureNativeMediaReceiveBinding(SourceVersion, "video"); TestAssert.That(captured() is not null, "Actual fresh native video configuration did not bind current receiver.");
+        Trace("fresh-positive-bound");
         Clear(f); var key = f.Native.Paths.TelefonStorageKey; var held = key + ".fixture-held"; File.Move(key, held);
-        try { await Fails(f.Native.Connection.DiscoverNativeMediaAlbumsAsync(SourceVersion, "video")); }
+        try { await Fails(f.Native.Connection.DiscoverNativeMediaAlbumsAsync(SourceVersion, "video")); Trace("missing-key-denied"); }
         finally { File.Move(held, key); }
         TestAssert.That(f.Native.Stream.Length == 0, "Missing key emitted a new source READ.");
+        Trace("restored-key-must-remain-revoked");
         await Fails(f.Native.Connection.DiscoverNativeMediaAlbumsAsync(SourceVersion, "video"));
+        Trace("restored-key-denied");
+        TestAssert.That(f.Native.Stream.Length == 0, "Returning the storage key revived source READ without fresh positive configuration.");
         try { _ = captured(); throw new InvalidOperationException("Key return revived the earlier video activation."); } catch (InvalidDataException) { }
         var oldBinding = captured;
         Clear(f); var renewed = f.Native.Connection.ConfigureNativeMediaSourceAsync(SourceVersion, "video", true); var renewedRequest = Request(f);
         await f.Native.Connection.HandlePlainAsync(Configuration(renewedRequest, true)); await renewed;
+        Trace("fresh-reconfiguration-confirmed");
         captured = f.Native.Connection.CaptureNativeMediaReceiveBinding(SourceVersion, "video");
         TestAssert.That(captured() is not null && oldBinding() is null, "Fresh positive configuration revived an old revoked binding instead of creating a new one.");
         Clear(f); var discover = f.Native.Connection.DiscoverNativeMediaAlbumsAsync(SourceVersion, "video"); var query = Request(f);

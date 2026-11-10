@@ -48,10 +48,19 @@ internal sealed partial class TelefonConnection
     private NativeSourceChoice CaptureNativeSourceChoice(string mediaType, bool positive, bool dataReady)
     {
         if (mediaType is not ("images" or "video")) throw DeviceFileControl.Error("file_sources_native_media_invalid");
-        var owner = RequireNativeFileControls(); var destination = store.ReadNativeMediaDestination(peer.Id, mediaType);
-        var choice = new NativeSourceChoice(owner, mediaType, store.ReadNativeMediaPreferences(peer.Id), destination, positive, dataReady,
-            dataReady && destination is not null ? owner.Binding(destination.DestinationToken) : null,
-            store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey), store.ReadNativeMediaReceiveConsent(peer.Id).Version);
+        var owner = RequireNativeFileControls();
+        NativeSourceChoice choice;
+        try
+        {
+            // Protected snapshot reads can reject a missing/changed key BEFORE
+            // RequireNativeSourceChoice runs. That failure must also retire the
+            // old positive video activation; returning the key cannot revive it.
+            var destination = store.ReadNativeMediaDestination(peer.Id, mediaType);
+            choice = new NativeSourceChoice(owner, mediaType, store.ReadNativeMediaPreferences(peer.Id), destination, positive, dataReady,
+                dataReady && destination is not null ? owner.Binding(destination.DestinationToken) : null,
+                store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey), store.ReadNativeMediaReceiveConsent(peer.Id).Version);
+        }
+        catch { CloseNativeSourceCommands("file_sources_native_storage_context_changed"); throw; }
         RequireNativeSourceChoice(choice); return choice;
     }
 
