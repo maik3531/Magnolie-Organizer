@@ -1,4 +1,5 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--phone-webcam-media-host") return await PhoneCameraMediaChannelTests.HostAsync();
 if (args.Length == 1 && args[0] == "--tray-drawing") { await TrayAppearanceTests.DrawingAsync(); Console.WriteLine("Tray drawing PASS"); return 0; }
 if (args.Length == 1 && args[0] == "--tray-visual-test") { await TrayAppearanceTests.VisualLeaseAsync(); Console.WriteLine("Tray visual lease PASS"); return 0; }
 if (args.Length == 1 && args[0] == "--tray-sync-io") { await TraySyncActivityTests.WriterAsync(); Console.WriteLine("Tray sync IO PASS"); return 0; }
@@ -109,6 +110,12 @@ if (args.FirstOrDefault() == "--published-release-audit")
 }
 
 var runner = new TestRunner();
+runner.Add("Phone webcam media / original binary AV socket and Python goldens", PhoneCameraMediaChannelTests.GoldensAsync);
+runner.Add("Phone webcam media / bounded envelope tamper replay and EOF", PhoneCameraMediaChannelTests.RejectionsAsync);
+runner.Add("Phone webcam media / authenticated packet grammar", PhoneCameraMediaChannelTests.PacketGrammarAsync);
+runner.Add("Phone webcam media / original secret session and unrelated connection isolation", PhoneCameraMediaChannelTests.ContextIsolationAsync);
+runner.Add("Phone webcam media / original guard idle revoke and stop", PhoneCameraMediaChannelTests.OriginalGuardAndStopAsync);
+runner.Add("Phone webcam media / original secret ownership and packet deadline", PhoneCameraMediaChannelTests.TimeoutAndSecretAsync);
 runner.Add("Tray appearance / passive owners and independent activity", TrayAppearanceTests.OwnersAsync);
 runner.Add("Tray appearance / actual encrypted personal time actor IO", TraySyncActivityTests.WriterAsync);
 runner.Add("Tray appearance / native visual lease and saved developer gate", TrayAppearanceTests.VisualLeaseAsync);

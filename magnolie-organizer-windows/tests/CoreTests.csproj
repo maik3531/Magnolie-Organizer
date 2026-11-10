@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Include="..\AtomicStore.cs" Link="AtomicStore.cs" />
     <Compile Include="..\TrayAppearanceState.cs" Link="TrayAppearanceState.cs" />
+    <Compile Include="..\PhoneCameraMediaChannel.cs" Link="PhoneCameraMediaChannel.cs" />
     <Compile Include="..\TraySyncFrames.cs" Link="TraySyncFrames.cs" />
     <Compile Include="..\TrayVisualTest.cs" Link="TrayVisualTest.cs" />
     <Compile Include="..\NativeSyncActivity.cs" Link="NativeSyncActivity.cs" />

@@ -302,6 +302,28 @@ or dependency is authorized by this design note. The existing Windows
 `DesktopPhoneBuild.PhoneCamera` constant remains only build composition, not
 runtime readiness. Neither a Windows native adapter nor its acceptance is claimed.
 
+#### Windows dedicated binary receiver (Refs #503)
+
+`PhoneCameraMediaChannel.cs` now implements the bounded original-socket receiver
+for the same HKDF-SHA256/AES-GCM phone-to-desktop lane as Python and Notes. It
+checks the authenticated global sequence and declared length before allocating
+the payload, validates exact I420/PCM packet sizes and integer ranges, and checks
+its required live original-owner guard before/during/after IO and before delivery.
+Header and payload share a single two-second deadline. Stop interrupts only its
+original dedicated socket before waiting for reader serialization; failure/EOF,
+authentication rejection, timeout and revocation permanently retire that channel.
+Mutable caller-secret bytes are not retained. It creates no listener or device.
+
+The actual Python sender and this actual .NET receiver exchange generated audio,
+video and audio packets over a local TCP connection; their PTS, per-track sequence
+and payload hashes agree. Shared compact packet SHA-256 vectors are retained in
+`phone-webcam-media-v1-vectors.json`. .NET CoreTests exercise framing/tamper/replay,
+grammar, original key/session isolation, guard revocation, stop and deadlines.
+These are .NET tests on the Linux host, not native Windows endpoint acceptance.
+The existing Windows main project also compiles with the optional camera flag
+enabled. No Windows authenticated dispatcher, capture-control negotiation, media
+source COM DLL, microphone endpoint or OBS success is claimed by this receiver.
+
 ## KDE Connect versus Notes
 
 Inspected upstream KDE Connect Android commit
