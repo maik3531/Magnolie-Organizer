@@ -12,6 +12,7 @@ internal static class McpPhoneStatusTests
         {
             var paths = new WindowsPaths(root);
             var store = new TelefonStore(paths, testStorageKey: Enumerable.Repeat((byte)7, 32).ToArray());
+            using var ownPool = new OwnedTelefonPool(store);
             store.LoadOrCreateIdentity(); store.Enabled = false;
             var peer = new TelefonPeer("11111111-1111-4111-8111-111111111111", "Owned phone", TelefonCrypto.GenerateX25519().Public);
             store.SavePeers([peer]);
@@ -36,6 +37,7 @@ internal static class McpPhoneStatusTests
     {
         var paths = new WindowsPaths(root);
         var store = new TelefonStore(paths, testStorageKey: Enumerable.Repeat((byte)8, 32).ToArray());
+        using var ownPool = new OwnedTelefonPool(store);
         store.LoadOrCreateIdentity(); store.Enabled = false;
         var peer = new TelefonPeer("22222222-2222-4222-8222-222222222222", "Owned actions phone", TelefonCrypto.GenerateX25519().Public);
         store.SavePeers([peer]);

@@ -155,6 +155,7 @@ internal static class PeerContentReadOnlyProbe
         try
         {
             var store = new TelefonStore(new WindowsPaths(root), key);
+            using var ownPool = new OwnedTelefonPool(store);
             var payload = JsonNode.Parse("[{\"device_id\":\"synthetic\",\"last_seen_ms\":100,\"grants\":{\"read\":true}}]")!.AsArray();
             byte[] Encode(JsonArray value) => Encoding.UTF8.GetBytes(new JsonObject {
                 ["blob"] = Convert.ToBase64String(store.Seal("peers", "all", Encoding.UTF8.GetBytes(value.ToJsonString()))) }.ToJsonString());

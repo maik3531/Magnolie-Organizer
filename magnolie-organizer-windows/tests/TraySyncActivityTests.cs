@@ -14,6 +14,7 @@ internal static class TraySyncActivityTests
             try
             {
                 var store = new TelefonStore(new WindowsPaths(root), new byte[32]);
+                using var ownPool = new OwnedTelefonPool(store);
                 var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Tray IO fixture", new byte[32]);
                 store.SavePeers([peer]);
                 var activity = new NativeSyncActivity();

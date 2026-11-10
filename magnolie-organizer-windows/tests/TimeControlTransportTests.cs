@@ -16,6 +16,7 @@ internal static class TimeControlTransportTests
         try
         {
             var paths = new WindowsPaths(root); var store = new TelefonStore(paths, Enumerable.Repeat((byte)19, 32).ToArray());
+            using var ownPool = new OwnedTelefonPool(store);
             var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
             capabilities["personal_tasks_sync"]!["versions"] = new JsonArray(1, 7, 13); capabilities["personal_tasks_sync"]!["available"] = true;
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Owned timer", Enumerable.Repeat((byte)112, 32).ToArray(),
