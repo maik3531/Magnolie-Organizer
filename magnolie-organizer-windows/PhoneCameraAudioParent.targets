@@ -1,0 +1,49 @@
+<Project>
+  <!-- Build-time immutable identity only, not installation/load permission. -->
+  <UsingTask TaskName="SnapshotPhoneAudioParent" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <InputDirectory ParameterType="System.String" Required="true" />
+      <OutputDirectory ParameterType="System.String" Required="true" />
+      <BinaryOutput ParameterType="System.String" Output="true" />
+      <ManifestOutput ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Linq" /><Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var names = new[] { "PhoneCameraAudioParent", "PhoneCameraClock", "PhoneCameraPipe", "PhoneCameraOutputLease",
+          "PhoneCameraOutputPublisher", "PhoneCameraRuntimeProcess", "PhoneCameraRuntimeStatus" };
+        var sources = names.SelectMany(name => new[] { "native/phone-camera/"+name+".h", "native/phone-camera/"+name+".cpp" })
+          .Concat(new[] { "native/phone-camera/PhoneCameraSamples.h", "werkzeuge/phone_audio_parent.py", "PhoneCameraAudioParent.targets" }).ToArray();
+        Func<byte[],string> hash = bytes => { using(var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); };
+        var binary = File.ReadAllBytes(Path.Combine(InputDirectory, "Magnolie.PhoneAudioParent.x64.dll"));
+        if(binary.Length < 128 || binary.Length > 8*1024*1024 || binary[0] != 77 || binary[1] != 90) throw new InvalidDataException("Invalid parent PE size/header");
+        var pe = BitConverter.ToInt32(binary, 60);
+        if(pe < 64 || pe > binary.Length-26 || BitConverter.ToUInt32(binary, pe) != 0x4550 || BitConverter.ToUInt16(binary, pe+4) != 0x8664 ||
+           (BitConverter.ToUInt16(binary, pe+22) & 0x2002) != 0x2002 || BitConverter.ToUInt16(binary, pe+24) != 0x20b)
+          throw new InvalidDataException("Parent must be an x64 PE32+ DLL");
+        var lines = new[] { "magnolie-phone-audio-parent-v1", "architecture=x64", "sha256=" + hash(binary) }
+          .Concat(sources.Select(name => "source=" + name + "|" + hash(File.ReadAllBytes(Path.Combine(Root, name))))).ToArray();
+        var manifest = File.ReadAllLines(Path.Combine(InputDirectory, "phone-audio-parent.manifest"));
+        if(!lines.SequenceEqual(manifest)) throw new InvalidDataException("Parent artifact/source descriptor is stale or changed");
+        Directory.CreateDirectory(OutputDirectory);
+        BinaryOutput = Path.Combine(OutputDirectory, "Magnolie.PhoneAudioParent.x64.dll");
+        ManifestOutput = Path.Combine(OutputDirectory, "phone-audio-parent.manifest");
+        File.WriteAllBytes(BinaryOutput, binary);
+        File.WriteAllLines(ManifestOutput, lines, new System.Text.UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="PreparePhoneAudioParentResource" BeforeTargets="AssignTargetPaths" Condition="'$(MagnoliePhoneCameraParentDirectory)' != ''">
+    <Error Condition="'$(MagnoliePhoneCamera)' != 'true'" Text="The audio parent may only be embedded in the optional camera composition." />
+    <SnapshotPhoneAudioParent Root="$(MSBuildProjectDirectory)" InputDirectory="$(MagnoliePhoneCameraParentDirectory)" OutputDirectory="$(IntermediateOutputPath)phone-audio-parent">
+      <Output TaskParameter="BinaryOutput" PropertyName="PhoneAudioParentSnapshot" />
+      <Output TaskParameter="ManifestOutput" PropertyName="PhoneAudioParentManifestSnapshot" />
+    </SnapshotPhoneAudioParent>
+    <ItemGroup>
+      <EmbeddedResource Include="$(PhoneAudioParentSnapshot)" LogicalName="Magnolie.PhoneAudioParent.x64.dll" />
+      <EmbeddedResource Include="$(PhoneAudioParentManifestSnapshot)" LogicalName="Magnolie.PhoneAudioParent.manifest" />
+      <Content Include="$(PhoneAudioParentSnapshot)" Link="Magnolie.PhoneAudioParent.x64.dll" TargetPath="Magnolie.PhoneAudioParent.x64.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+</Project>

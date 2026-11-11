@@ -1,4 +1,6 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 3 && args[0] == "--phone-audio-parent-product")
+    return PhoneCameraAudioParentPayloadTests.InspectProduct(args[1], bool.Parse(args[2]));
 if (args.Length == 3 && args[0] == "--phone-audio-runtime-product")
     return PhoneCameraAudioRuntimeTests.InspectProduct(args[1], bool.Parse(args[2]));
 if (args.Length == 1 && args[0] == "--phone-audio-protected-preparation-probe")
@@ -153,6 +155,9 @@ runner.Add("Phone webcam audio helper / strict embedded source descriptor", Phon
 runner.Add("Phone webcam audio runtime / immutable resource snapshot and absent fallback", PhoneCameraAudioRuntimeTests.ImmutableResourceAsync);
 runner.Add("Phone webcam audio runtime / exact x64 PE and digest", PhoneCameraAudioRuntimeTests.PeAndDigestAsync);
 runner.Add("Phone webcam audio runtime / strict source manifest", PhoneCameraAudioRuntimeTests.StrictManifestAsync);
+runner.Add("Phone webcam parent payload / immutable snapshot and absent external fallback", PhoneCameraAudioParentPayloadTests.ImmutableSnapshotAsync);
+runner.Add("Phone webcam parent payload / exact x64 DLL and digest", PhoneCameraAudioParentPayloadTests.PeAndDigestAsync);
+runner.Add("Phone webcam parent payload / strict fixed source descriptor", PhoneCameraAudioParentPayloadTests.StrictDescriptorAsync);
 runner.Add("Phone webcam output authority / prepared current before actual SEND", PhoneCameraSessionTests.AuthorityPrepareThenActualSendAsync);
 runner.Add("Phone webcam output authority / exact original object and independent replacement owner", PhoneCameraSessionTests.AuthorityCannotBeReplacedAsync);
 runner.Add("Phone webcam output authority / original loss permanently rejects resurrection", PhoneCameraSessionTests.AuthorityOriginalLossCannotReviveAsync);

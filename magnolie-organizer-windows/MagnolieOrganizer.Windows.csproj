@@ -97,4 +97,5 @@
   </Target>
   <Import Project="PhoneCameraAudioHelper.targets" />
   <Import Project="PhoneCameraAudioRuntime.targets" />
+  <Import Project="PhoneCameraAudioParent.targets" />
 </Project>

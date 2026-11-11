@@ -1,5 +1,38 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Immutable optional parent-DLL artifact (Refs #553)
+
+The parent C-API DLL now has its own source-bound builder using the existing
+installed MSVC/SDK. Its strict v1 descriptor covers 17 fixed native/build inputs;
+production compilation does not define private native test access. The optional
+parent MSBuild target verifies current source hashes and x64 PE32+ DLL identity,
+then uses ONE checked intermediate image for the embedded identity and fixed
+output/publish sibling. Worker and setup-helper builders/inputs remain unchanged.
+
+PhoneCameraAudioParentPayload reads only its assembly resources, checks bounded
+DLL/manifest/digest/source structure and retains a private immutable byte copy.
+Neither adjacent manifest, external path nor caller-supplied hash becomes loader
+authority. Missing resources mean unavailable; this payload never loads, writes,
+downloads or elevates. BASE needs no native artifact/compiler and explicitly
+supplying a parent artifact to disabled camera composition is refused.
+
+Three NEW payload memory groups passed. The actual existing MSVC DLL builder and
+17-source descriptor passed without loading the DLL. Actual BASE/BOTH product
+builds passed with zero warnings/errors: read-only PE inspection confirmed BASE
+absence, BOTH embedded/sibling equality and no test-only writer observer field in
+either product. Actual publish-item computation uses the checked intermediate,
+not mutable external input. Four NEW imported-target refusals passed for changed
+image, stale source digest, ARM64 image and disabled camera composition. Old
+native controller/worker/driver suites were not repeated.
+
+This is product-resource/output wiring, not a managed native loader, protected
+installed module or positive device readiness. Loader identity/held protected
+file checks and callback/module lifetime through confirmed native Close must be
+implemented before production use. Exact original-authority interop, concrete
+outputs, trusted FrameServer context and real AV/phone/OBS/package acceptance
+remain #503/#536/#538/#486. No DLL load, audio/device/installer/VM/release operation
+was exercised for these checks; pauses and default-OFF remain unchanged.
+
 ## SEND publication rechecks the exact live output owner (Refs #552)
 
 Confirmed on actual Windows before the fix: with the real crypto writer held,
