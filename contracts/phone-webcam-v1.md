@@ -19,6 +19,35 @@ observe this same live-connection requirement. Its explicit VB-CABLE installatio
 question and actual reboot-required result remain distinct from this generic hint.
 Controlled native/DOM/catalog tests are not phone, OBS or delivery acceptance.
 
+## Actual Windows setup and reboot boundary (Refs #533, #534)
+
+After an interrupted first run with no accepted installation, a fresh clean
+preflight preceded the separately authorized successful second run. The original
+unelevated desktop parent and same-user elevated child were observed; the native
+application returned 3010 and the own journal reported reboot-required. The
+unchanged signed VB-CABLE Pack46 package installed one new owned MEDIA devnode;
+its actual driver version is VB-Audio Software 3.5.2.0, not “4.6”. All six original
+user audio-default selections matched before/after installation. The 618 checked
+temporary application files and temporary tasks were removed; the successful
+driver, protected package and journal were intentionally preserved.
+
+The user subsequently restarted Windows manually. Read-only postboot acceptance
+confirmed that exact signed device active, all three topology-matched endpoints
+active with NeverSetAsDefaultEndpoint=0x307, all six original defaults unchanged,
+and the original ProgramData ACL unchanged. The journal was not rewritten by the
+acceptance probe. No automatic reboot, security weakening or reinstall occurred.
+
+This proves installation and that postboot endpoint state, not a usable system
+microphone. Separate bounded synthetic PCM probes under #534 block in capture
+IAudioClient::Initialize, including before any render AudioClient is initialized.
+Starting render with silence first did not resolve the block; omitting the
+render-only NOPERSIST flag on capture did not resolve it either. No successful
+PCM, phone/Wi-Fi AV, FrameServer broker, OBS or package acceptance follows from
+the setup result. A later transient missing-default snapshot was rejected before
+audio IO; a fresh original-user read-only snapshot again matched all six defaults.
+The cause of that transient observation remains unconfirmed. Probe code is not
+an accepted productive output adapter and is not shipped as such.
+
 ## Explicit Linux driver setup and confirmed installation (Refs #515, #520, #524)
 
 Only an explicit Advanced-functions Enable/prepare with an original connected
