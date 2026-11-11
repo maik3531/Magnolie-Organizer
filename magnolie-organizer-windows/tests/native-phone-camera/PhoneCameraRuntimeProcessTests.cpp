@@ -1,4 +1,8 @@
 #include "../../native/phone-camera/PhoneCameraRuntimeProcess.h"
+#ifdef MAGNOLIE_NATIVE_AUDIO_WORKER_TESTS
+#include "../../native/phone-camera/PhoneCameraAudioWorker.h"
+#include "../../native/phone-camera/PhoneCameraOutputPublisher.h"
+#endif
 #ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
 #include "../../native/phone-camera/PhoneCameraRuntimeStatus.h"
 #endif
@@ -295,9 +299,69 @@ namespace
         Check(WaitForSingleObject(f.ready.value, 0) == WAIT_TIMEOUT);
     }
 #endif
+
+#ifdef MAGNOLIE_NATIVE_AUDIO_WORKER_TESTS
+    std::vector<std::wstring> WorkerArguments()
+    {
+        Fixture f;
+        auto guid = [](const GUID& value) { wchar_t text[40]{}; Check(StringFromGUID2(value, text, 40)); return std::wstring(text); };
+        return {L"fixed-worker", L"--phone-audio-worker", guid(f.control), guid(f.audio), guid(f.anchor), L"1"};
+    }
+    int CallWorker(std::vector<std::wstring> values)
+    {
+        std::vector<wchar_t*> arguments; for (auto& value : values) arguments.push_back(value.data());
+        const int result = AudioWorkerMain(static_cast<int>(arguments.size()), arguments.data());
+        Check(AudioWorkerTestStage() == 0); return result;
+    }
+    void WorkerStrictCli()
+    {
+        Check(AudioWorkerMain(0, nullptr) == 64 && AudioWorkerTestStage() == 0);
+        for (int mode = 0; mode < 5; ++mode)
+        {
+            auto values = WorkerArguments();
+            if (mode == 0) values[1] = L"--setup";
+            if (mode == 1) values[2] = L"{}";
+            if (mode == 2) values[3] = values[2];
+            if (mode == 3) values[4] = L"{00000000-0000-0000-0000-000000000000}";
+            if (mode == 4) values.push_back(L"--ready");
+            Check(CallWorker(values) == 64);
+        }
+    }
+    void WorkerRefusesParentAndHandleGuessing()
+    {
+        for (const wchar_t* text : {L"0", L"-1", L"+1", L"1x", L"18446744073709551616", L"00001"})
+        { auto values = WorkerArguments(); values[5] = text; Check(CallWorker(values) == 65); }
+        Handle self;
+        Check(DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &self.value,
+            SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, TRUE, 0));
+        auto values = WorkerArguments(); values[5] = std::to_wstring(reinterpret_cast<ULONG_PTR>(self.value));
+        Check(CallWorker(values) == 65); // Self/renderer cannot be its own admitted OS parent.
+    }
+    void WorkerBeforeMediaBootstrap(bool stopExists, bool alreadyStopped, DWORD expected)
+    {
+        Fixture f; f.Create(); Handle stop;
+        if (stopExists) { stop.value = CreateEventW(nullptr, TRUE, alreadyStopped, OutputPublisher::StopName(f.control).c_str()); Check(stop.value); }
+        // No fixture Ready emulation here: the child enters the REAL worker.
+        const HRESULT resumed = f.process->Resume();
+        Check(SUCCEEDED(resumed) || f.process->IsRetired());
+        Check(WaitForSingleObject(f.process->Child(), 3000) == WAIT_OBJECT_0);
+        DWORD code = ~0UL; Check(GetExitCodeProcess(f.process->Child(), &code) && code == expected);
+        Check(WaitForSingleObject(f.ready.value, 0) == WAIT_TIMEOUT); f.Stopped();
+    }
+    void WorkerMissingOriginalStop() { WorkerBeforeMediaBootstrap(false, false, 65); }
+    void WorkerMissingOriginalControl() { WorkerBeforeMediaBootstrap(true, false, 66); }
+    void WorkerTerminalOriginalStop() { WorkerBeforeMediaBootstrap(true, true, 65); }
+#endif
 }
 int wmain(int argc, wchar_t** argv)
 {
+#ifdef MAGNOLIE_NATIVE_AUDIO_WORKER_TESTS
+    if (argc == 6 && !std::wcscmp(argv[1], L"--phone-audio-worker"))
+    {
+        const int result = AudioWorkerMain(argc, argv);
+        return AudioWorkerTestStage() == 0 ? result : 77; // Would reveal any unintended media/device entry.
+    }
+#endif
     if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return 2;
     if (argc == 6 && !std::wcscmp(argv[1], L"--phone-audio-worker"))
     { const int code = Worker(argv[2], argv[3], argv[5]); CoUninitialize(); return code; }
@@ -320,6 +384,13 @@ int wmain(int argc, wchar_t** argv)
         {"status-record-outer-deadline", StatusWholeRecordAndOuterDeadline},
         {"status-stop-pending-original", StatusStopPendingAndOriginalWithdrawal},
         {"status-exact-kernel-client", StatusRejectsOtherKernelClient},
+#endif
+#ifdef MAGNOLIE_NATIVE_AUDIO_WORKER_TESTS
+        {"worker-strict-cli", WorkerStrictCli},
+        {"worker-parent-handle-refusal", WorkerRefusesParentAndHandleGuessing},
+        {"worker-missing-original-stop", WorkerMissingOriginalStop},
+        {"worker-missing-original-control", WorkerMissingOriginalControl},
+        {"worker-terminal-original-stop", WorkerTerminalOriginalStop},
 #endif
     };
     for (const auto& test : tests)

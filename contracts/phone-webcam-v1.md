@@ -1,5 +1,54 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Actual isolated audio worker entry (Refs #548)
+
+PhoneCameraAudioWorker now builds as the standalone native x64 worker consumed by
+the runtime's fixed CLI: three distinct canonical nonzero control/audio/anchor
+GUIDs and one strictly decimal inherited original parent handle. It refuses a
+self/guessed/noninherited/dead/non-OS-parent handle or absent bounded kill-on-close
+one-process job. The original named terminal stop event must already exist and
+be unsignalled. Missing stop/control bootstrap is rejected before worker COM/MF
+startup, journal/topology queries or any AudioClient call; it never creates a
+replacement stop event or grants control from command-line metadata.
+
+The actual source path receives the original Prepare lease, starts its independent
+control reader, and calls AudioRender::Open with that actual lease. The separate
+outbound report channel checks the kernel server against the SAME held parent.
+Ready is emitted ONLY after successful Open and live original Current checks.
+The worker waits for actual SEND, reads the immutable 33-byte anchor from its
+original-parent-admitted anchor pipe and imports it with the control scope.
+There is no first-audio receipt-time anchoring. It then admits exact audio records
+through AudioRelay/Samples, maps original sample PTS through that clock, executes
+the real renderer Write and emits exact monotonically matching operation tokens
+ONLY after successful Write and live SEND checks. No constructor/status flag or
+arbitrary readiness callback replaces these calls.
+
+Report IO has a 50-ms bound; errors/stop withdraw the context and control reader.
+Control is signalled/joined before its lease/context is destroyed. The outer
+RuntimeProcess guard remains mandatory, including during COM shutdown/release:
+this worker cannot make Windows COM calls cancellable. Muted sessions must not
+launch this microphone worker; it does not silently change mute or fall back to
+another endpoint. No capture, setup, default/volume/global-effects API is added.
+
+Actual x64 MSVC /W4 /WX builds passed for the linked worker and test executable.
+Five NEW selected negative groups passed: strict CLI; parent/handle refusal; actual
+guarded child with missing stop event; missing original control pipe; terminal
+original stop event. A test-only observer confirms every case returns BEFORE
+worker COM/MF/AudioRender entry; it cannot bypass admission or substitute a device.
+The separately built production PE contains no test access. That exact hash-bound
+production PE was also executed with no arguments, an invalid command and no
+parent handle, yielding the expected64/64/65 exits; no own test process remained.
+No old status/guard/AV suite was rerun. These negative admission cases are NOT a
+positive worker/AudioClient/system-microphone/AV/OBS/package readiness acceptance.
+
+Positive Open/Write and combined AV operation remain unexecuted: real-PC audio
+starts are suspended under #536; #538 has no verified logged-in safe VM baseline.
+The immutable embedded worker artifact/manifest and protected installation,
+productive managed original-session/output binding, native parent audio/anchor
+publication and FrameServer broker remain #503, as do actual latency compensation,
+phone/OBS/system-capture and final checked-package acceptance. No devices are
+unpaused and no installer/package is published by this worker source change.
+
 ## Exact-worker status receipt bound to outer deadlines (Refs #547)
 
 RuntimeStatus supplies the parent's separate inbound status pipe for the SAME
