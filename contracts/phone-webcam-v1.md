@@ -1,5 +1,45 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Immutable cross-process AV epoch record (Refs #545)
+
+PresentationClock can now export its fixed original anchor AFTER its first
+admitted frame and import that exact anchor once BEFORE any consumer-local Map.
+The 33-byte v1 record contains version, the exact original scope GUID (canonical
+Data1/Data2/Data3 big-endian followed by Data4 bytes), remote PTS and native MF-time
+microseconds (both u64 big-endian, bounded to 2^53-1). The original mapper latches
+its export scope; subsequent exports preserve both coordinates and cannot change
+scope. An importing mapper cannot become a new exporting origin or reimport.
+
+Import validates/copies the entire record before committing either coordinate,
+requires the expected nonzero original scope and original Current/actual SEND,
+and rechecks withdrawal at its final guard. Invalid/partial/cross-scope/range
+records, replacement and authority loss retire the clock. Failed export never
+partially modifies its destination. Consumer arrival time checks its local clock
+domain only; it does NOT replace the original native or remote coordinate. Map
+continues to enforce original authority, integer/range/rollback and 250-ms due
+bounds. The exact SAME producer record must reach both tracks via their admitted
+original process/broker channels; these bytes alone grant no authority/readiness.
+
+Six new selected native groups passed: identical large-integer mapping despite
+different arrival times; malformed/cross-scope/range rejection; first-frame and
+fixed-scope export; no reimport/reanchor; original/final-guard withdrawal; and an
+actual own child importing the original record through a kernel pipe restricted
+to its explicitly inherited read handle. In the first bundle five groups passed;
+one test itself added ten million to an already near-maximum PTS. Only that test
+was corrected to use a separate valid long-lived epoch and rerun successfully.
+No product code was changed after the first build. The changed clock object/API
+also passed the nine existing local-anchor/authority/range/MF-domain regressions;
+these are not additional new tests. Builds used existing x64 MSVC /W4 /WX.
+
+This implements epoch transfer, not productive distribution or AV synchronization
+acceptance. The authenticated session must establish the original anchor from its
+first actually admitted frame, send the same record to the audio child and trusted
+FrameServer resolver, and preserve lease withdrawal. That runtime/broker wiring,
+verified launcher/outer guardian, actual device latency compensation and real
+phone/OBS/system-microphone acceptance remain #503/#536/#538/#486. No AudioClient,
+endpoint, stream, driver/install/settings/default or VM was used for these tests.
+Linux's shared local epoch is not changed or newly accepted by this Windows work.
+
 ## Original-parent control publisher (Refs #544)
 
 OutputPublisher implements the producing half of the native control lease. It

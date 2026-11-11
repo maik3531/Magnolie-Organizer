@@ -3,6 +3,7 @@
 #include <unknwn.h>
 #include <wrl/client.h>
 #include <atomic>
+#include <cstddef>
 #include <mutex>
 
 namespace Magnolie::PhoneCamera
@@ -30,6 +31,15 @@ namespace Magnolie::PhoneCamera
         explicit PresentationClock(ClockOwner owner) noexcept;
         ~PresentationClock();
         HRESULT Map(LONGLONG originalPtsUs, LONGLONG* nativePtsUs) noexcept;
+        static constexpr std::size_t AnchorBytes = 33;
+        // Original mapper exports only AFTER its first admitted frame. Deliver
+        // the SAME immutable record to both native tracks through the admitted
+        // original process/broker boundary, never untrusted metadata/attributes.
+        HRESULT ExportAnchor(const GUID& originalScope, BYTE* record, std::size_t size) noexcept;
+        // One-time import BEFORE any local mapping. Receipt time is only a
+        // rollback check; it NEVER replaces either original anchor coordinate.
+        // This data is not Current/SEND authority or a scheduling/readiness grant.
+        HRESULT ImportAnchor(const GUID& originalScope, const BYTE* record, std::size_t size) noexcept;
         void Stop() noexcept; // Nonblocking signal, including from an owner callback.
     private:
         HRESULT Check() noexcept;
@@ -38,7 +48,8 @@ namespace Magnolie::PhoneCamera
         Microsoft::WRL::ComPtr<IUnknown> lifetime_;
         std::mutex gate_;
         std::atomic_bool retired_{false};
-        bool anchored_ = false;
+        bool anchored_ = false, imported_ = false;
+        GUID anchorScope_ = GUID_NULL;
         LONGLONG remoteAnchor_ = 0, nativeAnchor_ = 0, lastNow_ = 0;
     };
 }
