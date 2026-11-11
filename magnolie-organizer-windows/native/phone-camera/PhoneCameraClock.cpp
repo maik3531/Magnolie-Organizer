@@ -5,23 +5,24 @@
 
 namespace Magnolie::PhoneCamera
 {
+    static_assert(std::atomic_bool::is_always_lock_free, "Clock Stop requires a lock-free retirement signal");
     constexpr LONGLONG MaxPtsUs = 9007199254740991LL;
     PresentationClock::PresentationClock(ClockOwner owner) noexcept : owner_(owner), lifetime_(owner.lifetime) {}
     PresentationClock::~PresentationClock() { Stop(); }
     HRESULT PresentationClock::Retire(HRESULT reason) noexcept
     {
-        if (retired_) return MF_E_SHUTDOWN;
-        retired_ = true;
+        if (retired_.exchange(true)) return MF_E_SHUTDOWN;
         if (owner_.retired) owner_.retired(owner_.context, reason);
         return reason;
     }
     HRESULT PresentationClock::Check() noexcept
     {
-        if (retired_) return MF_E_SHUTDOWN;
+        if (retired_.load()) return MF_E_SHUTDOWN;
         if (!owner_.current || !owner_.sending || !owner_.retired) return Retire(E_INVALIDARG);
         HRESULT hr = owner_.current(owner_.context);
         if (SUCCEEDED(hr)) hr = owner_.sending(owner_.context);
-        return FAILED(hr) ? Retire(hr) : S_OK;
+        if (FAILED(hr)) return Retire(hr);
+        return retired_.load() ? MF_E_SHUTDOWN : S_OK;
     }
     HRESULT PresentationClock::Map(LONGLONG pts, LONGLONG* result) noexcept
     {
@@ -44,7 +45,6 @@ namespace Magnolie::PhoneCamera
     }
     void PresentationClock::Stop() noexcept
     {
-        std::lock_guard<std::mutex> lock(gate_);
         Retire(S_OK);
     }
 }

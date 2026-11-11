@@ -1,5 +1,31 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Nonblocking native AV-clock retirement (Refs #543)
+
+PresentationClock::Stop is now a lock-free, idempotent retirement signal, not a
+wait for the mapper's anchor mutex. The original retirement callback fires once.
+Callbacks may signal Stop, but still must not reenter Map or destroy the clock
+or context; the owner stops and joins its workers before destruction. Current
+and SEND checks recheck the retirement signal after callbacks, including the
+final mapping guard, so the controlled in-guard stop produces no usable mapping.
+Actual downstream delivery still requires its separate original authority check.
+Mapping remains serialized and uses the same fixed joined AV epoch/bounds.
+
+The OLD callback contract prohibited reentrancy. This is a newly required safe
+joined-owner stop integration, not proof of a historical runtime clock failure
+or an explanation of the independent Audiosrv/SystemSettings incident. Before
+the change, controlled own-child cases failed the new nonblocking/reentrant-stop
+requirements. After the change all four cases passed under the same bounded
+own-child harness. Because Clock::Check/retirement changed, the nine existing
+integer/AV-offset/range/authority/native-MF-clock groups were also rerun and passed;
+they are regression evidence, not nine additional new tests. No endpoint,
+AudioClient, stream, installer, default role or settings operation was used.
+
+The Linux _PresentationClock.delay has no corresponding native stop/anchor mutex;
+its session uses a different lock/wakeup design. No Linux/macOS fix or device
+acceptance is inferred from this Windows source change. Shared interprocess AV
+anchor/bootstrap and productive native output/device/phone/OBS gates remain #503.
+
 ## Original native output-control lease (Refs #542)
 
 OutputLease owns an already kernel-original-process-admitted control PipeReader.
