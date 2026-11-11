@@ -1,5 +1,25 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Native audio record reception (Refs #539)
+
+The native Samples::AudioRecord entry now accepts the exact existing 1,938-byte
+v1/track-2 record, decodes its big-endian sequence/PTS with explicit integer bounds,
+and sends its unchanged PCM16LE payload through the original Samples::Audio path.
+That path retains the original live-owner checks, explicit mute, sequence/PTS
+continuity, shared AV epoch/skew and fail-closed retirement of both sample lanes.
+Invalid sizes, headers and integers produce no sample; input bytes are unchanged.
+Successful reception owns an independent actual Media Foundation memory buffer.
+
+The existing x64 MSVC /W4 /WX native build passed. Only three new memory groups
+were executed on Windows: payload/header/bounds and independent-buffer delivery;
+invalid-record atomic rejection/shared retirement; and original-owner, mute,
+continuity and AV-skew refusal. No AudioClient, endpoint or stream was opened;
+no driver, settings, default roles or installation changed. This is a native
+sample receiver entry, NOT a connected pipe/output process, system microphone,
+ordinary OBS/browser capture, phone AV synchronization or package acceptance.
+It does not change Linux/macOS outputs; productive Windows integration remains
+#503 and normal-consumer/isolated-environment acceptance remains #536/#538.
+
 ## Native audio record boundary (Refs #537)
 
 The optional Windows camera composition now includes PhoneCameraAudioPacket:

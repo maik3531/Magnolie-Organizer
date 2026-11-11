@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 using Magnolie::PhoneCamera::Samples;
@@ -185,10 +186,98 @@ namespace
         Owner race; Samples raced(Owner::Current, &race, false); race.retire = &raced;
         Check(raced.Video(data.data(), data.size(), 0, 0, &second) == MF_E_SHUTDOWN && !second);
     }
+
+    std::vector<std::uint8_t> AudioRecord(std::uint64_t sequence, std::uint64_t pts)
+    {
+        std::vector<std::uint8_t> record(Samples::AudioRecordBytes);
+        record[0] = 1; record[1] = 2;
+        for (unsigned int i = 0; i < 8; ++i)
+        {
+            record[9 - i] = static_cast<std::uint8_t>(sequence >> (8 * i));
+            record[17 - i] = static_cast<std::uint8_t>(pts >> (8 * i));
+        }
+        // PCM16LE signed extremes and asymmetric bytes: no endian conversion,
+        // gain, floating-point conversion, resampling or interleaving permitted.
+        const std::uint8_t pattern[] = {0, 0x80, 0xff, 0x7f, 0xff, 0xff, 0, 0, 0x34, 0x12};
+        for (std::size_t i = 18; i < record.size(); ++i) record[i] = pattern[(i - 18) % sizeof(pattern)];
+        return record;
+    }
+
+    void AudioRecordValid()
+    {
+        Check(Samples::AudioRecordBytes == 1938);
+        Owner owner; Samples lane(Owner::Current, &owner, false);
+        auto record = AudioRecord(0, 0x0001020304050607ULL); const auto original = record;
+        ComPtr<IMFSample> sample; Ok(lane.AudioRecord(record.data(), record.size(), &sample));
+        const std::vector<std::uint8_t> pcm(original.begin() + 18, original.end());
+        Check(Bytes(sample.Get()) == pcm && record == original && !lane.IsRetired());
+        record[18] ^= 0xff; Check(Bytes(sample.Get()) == pcm); // Actual independent MF buffer.
+        LONGLONG pts = 0; Ok(sample->GetSampleTime(&pts)); Check(pts == 0x0001020304050607LL * 10);
+        Ok(sample->GetSampleDuration(&pts)); Check(pts == 200000);
+        record = AudioRecord(1, 0x0001020304050608ULL); sample.Reset();
+        Ok(lane.AudioRecord(record.data(), record.size(), &sample));
+        Owner maxOwner; Samples maxLane(Owner::Current, &maxOwner, false);
+        record = AudioRecord(0, 9007199254740991ULL); sample.Reset();
+        Ok(maxLane.AudioRecord(record.data(), record.size(), &sample));
+        Ok(sample->GetSampleTime(&pts)); Check(pts == 90071992547409910LL);
+    }
+
+    void AudioRecordInvalid()
+    {
+        for (int invalid = 0; invalid < 12; ++invalid)
+        {
+            Owner owner; Samples lane(Owner::Current, &owner, false);
+            auto record = AudioRecord(0, 0); std::size_t size = record.size();
+            if (invalid == 0) size = 0;
+            if (invalid == 1) --size;
+            if (invalid == 2) { record.push_back(0); ++size; }
+            if (invalid == 3) record[0] = 0;
+            if (invalid == 4) record[0] = 2;
+            if (invalid == 5) record[1] = 1;
+            if (invalid == 6) record[1] = 3;
+            if (invalid == 7) record = AudioRecord(0x8000000000000000ULL, 0);
+            if (invalid == 8) record = AudioRecord(0, 9007199254740992ULL);
+            if (invalid == 9) record = AudioRecord(0, 0xffffffffffffffffULL);
+            if (invalid == 10) record = AudioRecord(0x7fffffffffffffffULL, 0); // Cannot start at max sequence.
+            const auto original = record; IMFSample* sample = reinterpret_cast<IMFSample*>(1);
+            Check(FAILED(lane.AudioRecord(invalid == 11 ? nullptr : record.data(), size, &sample)));
+            Check(sample == nullptr && lane.IsRetired() && record == original);
+            ComPtr<IMFSample> video; const auto picture = Picture();
+            Check(lane.Video(picture.data(), picture.size(), 0, 0, &video) == MF_E_SHUTDOWN && !video);
+        }
+        Owner owner; Samples lane(Owner::Current, &owner, false); const auto record = AudioRecord(0, 0);
+        Check(lane.AudioRecord(record.data(), record.size(), nullptr) == E_POINTER && lane.IsRetired());
+    }
+
+    void AudioRecordOwnerAndContinuity()
+    {
+        for (int boundary = 1; boundary <= 4; ++boundary)
+        {
+            Owner owner; owner.denyAt = boundary; Samples lane(Owner::Current, &owner, false);
+            const auto record = AudioRecord(0, 0); ComPtr<IMFSample> sample;
+            Check(FAILED(lane.AudioRecord(record.data(), record.size(), &sample)) && !sample && lane.IsRetired());
+        }
+        for (int invalid = 0; invalid < 5; ++invalid)
+        {
+            Owner owner; Samples lane(Owner::Current, &owner, invalid == 0);
+            auto record = AudioRecord(0, 100); ComPtr<IMFSample> sample;
+            if (invalid != 0) { Ok(lane.AudioRecord(record.data(), record.size(), &sample)); sample.Reset(); }
+            record = AudioRecord(invalid == 0 || invalid == 1 ? 0 : invalid == 2 ? 2 : 1,
+                invalid == 0 || invalid == 3 ? 100 : 200);
+            if (invalid == 4) lane.Retire();
+            Check(FAILED(lane.AudioRecord(record.data(), record.size(), &sample)) && !sample && lane.IsRetired());
+        }
+        Owner owner; Samples lane(Owner::Current, &owner, false); ComPtr<IMFSample> sample;
+        const auto picture = Picture(); Ok(lane.Video(picture.data(), picture.size(), 0, 0, &sample)); sample.Reset();
+        const auto record = AudioRecord(0, 250001);
+        Check(FAILED(lane.AudioRecord(record.data(), record.size(), &sample)) && !sample && lane.IsRetired());
+    }
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    if (argc > 2) return 4;
+    const std::string selection = argc == 2 ? "," + std::string(argv[1]) + "," : "";
     const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     if (FAILED(com)) return 2;
     if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET))) { CoUninitialize(); return 3; }
@@ -198,13 +287,18 @@ int main()
         {"audio-common-epoch", AudioAndCommonEpoch}, {"original-guard-four-boundaries", OriginalGuardEveryBoundary},
         {"exact-payload-sizes", InvalidSizes}, {"sequence-and-pts", SequenceAndPts},
         {"av-skew-shared-retirement", AvSkewAndSharedRetirement}, {"explicit-mute", ExplicitMute},
-        {"nulls-missing-owner", NullsAndMissingOwner}, {"stop-sequence-progress", StopAndSequenceProgress}
+        {"nulls-missing-owner", NullsAndMissingOwner}, {"stop-sequence-progress", StopAndSequenceProgress},
+        {"audio-record-valid", AudioRecordValid}, {"audio-record-invalid", AudioRecordInvalid},
+        {"audio-record-owner-continuity", AudioRecordOwnerAndContinuity}
     };
+    int selected = 0;
     for (const auto& test : cases)
     {
+        if (!selection.empty() && selection.find("," + std::string(test.name) + ",") == std::string::npos) continue;
+        ++selected;
         try { test.run(); std::printf("PASS %s\n", test.name); }
         catch (...) { ++failed; std::printf("FAIL %s\n", test.name); }
     }
     MFShutdown(); CoUninitialize();
-    return failed ? 1 : 0;
+    return failed || selected == 0 ? 1 : 0;
 }

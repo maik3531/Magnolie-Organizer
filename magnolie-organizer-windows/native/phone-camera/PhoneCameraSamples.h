@@ -17,6 +17,7 @@ namespace Magnolie::PhoneCamera
         using Current = HRESULT (*)(void*) noexcept;
         static constexpr std::size_t VideoBytes = 640 * 480 * 3 / 2;
         static constexpr std::size_t AudioBytes = 960 * 2;
+        static constexpr std::size_t AudioRecordBytes = 18 + AudioBytes;
 
         // current is mandatory, nonblocking and cannot reenter this object.
         // Its context must outlive this object and every in-progress call.
@@ -25,6 +26,10 @@ namespace Magnolie::PhoneCamera
             std::int64_t sequence, std::int64_t ptsUs, IMFSample** result) noexcept;
         HRESULT Audio(const std::uint8_t* pcm, std::size_t size,
             std::int64_t sequence, std::int64_t ptsUs, IMFSample** result) noexcept;
+        // Exact private v1/track2 record, not a pipe/device/SEND admission.
+        // Caller owns immutable input through return; failure retires both lanes.
+        HRESULT AudioRecord(const std::uint8_t* record, std::size_t size,
+            IMFSample** result) noexcept;
         void Retire() noexcept;
         bool IsRetired() const noexcept;
 

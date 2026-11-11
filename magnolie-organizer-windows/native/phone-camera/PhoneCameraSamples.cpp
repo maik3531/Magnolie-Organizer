@@ -73,6 +73,28 @@ namespace Magnolie::PhoneCamera
         std::int64_t sequence, std::int64_t ptsUs, IMFSample** result) noexcept
     { return Make(false, data, size, sequence, ptsUs, result); }
 
+    HRESULT Samples::AudioRecord(const std::uint8_t* record, std::size_t size,
+        IMFSample** result) noexcept
+    {
+        if (!result) { Retire(); return E_POINTER; }
+        *result = nullptr;
+        if (!record || size != AudioRecordBytes || record[0] != 1 || record[1] != 2)
+        { Retire(); return E_INVALIDARG; }
+        std::uint64_t sequence = 0, pts = 0;
+        for (unsigned int i = 0; i < 8; ++i)
+        {
+            sequence = (sequence << 8) | record[2 + i];
+            pts = (pts << 8) | record[10 + i];
+        }
+        if (sequence > static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)()) ||
+            pts > 9007199254740991ULL)
+        { Retire(); return E_INVALIDARG; }
+        // Keep the existing original-owner checks, mute, per-track continuity,
+        // shared AV epoch/skew and fail-closed retirement in ONE sample path.
+        return Audio(record + 18, AudioBytes, static_cast<std::int64_t>(sequence),
+            static_cast<std::int64_t>(pts), result);
+    }
+
     HRESULT Samples::Make(bool video, const std::uint8_t* data, std::size_t size,
         std::int64_t sequence, std::int64_t ptsUs, IMFSample** result) noexcept
     {
