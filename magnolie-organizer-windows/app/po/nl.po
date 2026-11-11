@@ -47,6 +47,9 @@ msgstr "Er is een bestaand VB-CABLE-apparaat gevonden; het is niet gewijzigd. De
 msgid "Magnolie could not safely install VB-CABLE. You can install the driver manually using VB-Audio's official instructions."
 msgstr "Magnolie kon VB-CABLE niet veilig installeren. Je kunt het stuurprogramma handmatig installeren met de officiële instructies van VB-Audio."
 
+msgid "VB-CABLE is a virtual Windows audio device, not a cable to your phone. Video and microphone audio use Wi-Fi; no USB cable is required."
+msgstr "VB-CABLE is een virtueel Windows-audioapparaat, geen kabel naar je telefoon. Beeld en microfoongeluid gaan via wifi; een USB-kabel is niet nodig."
+
 msgid " (filtered)"
 msgstr " (gefilterd)"
 

@@ -22,6 +22,7 @@ internal static class PhoneCameraAudioSetupUi
                 }
             }
             var question = T("To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio.") + "\n\n" +
+                T("VB-CABLE is a virtual Windows audio device, not a cable to your phone. Video and microphone audio use Wi-Fi; no USB cable is required.") + "\n\n" +
                 T("Magnolie downloads and verifies the original package. Windows asks once for administrator approval. A restart is required, but Magnolie will not restart your PC.") + "\n\n" +
                 T("VB-CABLE is selected separately in OBS or another application. This setup prevents it from becoming the Windows default audio device, including manual default selection.") + "\n\n" +
                 T("VB-CABLE is donationware by VB-Audio: www.vb-cable.com. Donations are welcome; professional deployments may require purchased licences.") + "\n" +

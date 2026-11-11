@@ -48,6 +48,9 @@ msgstr "Eksistowacy grat VB-CABLE je so namakał a njeje so změnił. Jeho wopra
 msgid "Magnolie could not safely install VB-CABLE. You can install the driver manually using VB-Audio's official instructions."
 msgstr "Magnolie njemóžeše VB-CABLE wěsće instalować. Móžeš ćěrjak po oficielnym nawodźe VB-Audio manuelnje instalować."
 
+msgid "VB-CABLE is a virtual Windows audio device, not a cable to your phone. Video and microphone audio use Wi-Fi; no USB cable is required."
+msgstr "VB-CABLE je wirtuelny awdijograt Windows, nic kabel k twojemu telefonej. Widejo a mikrofonowy zynk so přez WLAN přenošujetej; USB-kabel trěbny njeje."
+
 msgid " (filtered)"
 msgstr " (filtrowane)"
 

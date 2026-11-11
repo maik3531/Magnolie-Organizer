@@ -20,7 +20,7 @@ def test_phone_audio_question_extraction_and_all_native_catalogs(tmp_path):
     source = (ROOT / "PhoneCameraAudioSetupUi.cs").read_text(encoding="utf-8")
     keys = {json.loads(literal) for literal in re.findall(
         r'\bT\(("(?:\\.|[^"\\])*")\)', source)}
-    assert len(keys) == 10
+    assert len(keys) == 11
     pot = tmp_path / "windows.pot"
     subprocess.run(["python3", str(ROOT / "werkzeuge/pot_erzeugen.py"),
                     "--output", str(pot)], check=True)

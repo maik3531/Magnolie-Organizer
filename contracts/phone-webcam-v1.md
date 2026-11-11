@@ -596,7 +596,7 @@ The successful protected-apphost UAC snapshot precedes the final identification-
 SQOS tightening; the latter is separately checked on a real Windows pipe and in the
 current compiled project. Those different evidence boundaries remain explicit.
 
-The ten installation-question/outcome texts now have translations in all 19
+The eleven installation-question/outcome texts now have translations in all 19
 supported native locale catalogs,
 including manual-default-selection exclusion, VB-Audio origin/licensing, pending
 outcome and post-restart non-readiness. A targeted extraction/compilation test uses
@@ -621,9 +621,17 @@ consent does not grant installation permission.
 
 All four current Windows-target compositions compile and PE checks confirm that
 the form is present only with the optional camera module. The actual copied native
-runtime catalog contains the 190 owned translated entries. Unrelated existing
+runtime catalog contains the 209 owned translated entries. Unrelated existing
 runtime entries were retained when merging the productive generator's output;
 other pending catalog changes are not silently included in this task.
+
+The primary phone transport is Wi-Fi for both camera video and microphone audio,
+as requested for DroidCam-like use. A physical USB cable must not be required;
+USB is at most an optional future alternative, not the primary implementation.
+The native question explicitly distinguishes the VB-CABLE **virtual Windows
+audio device** from a physical cable to the phone, in every supported locale.
+This clarification is not a claim of completed phone-to-OBS wireless acceptance
+or of an already implemented USB alternative.
 
 #### Windows dedicated binary receiver (Refs #503)
 
