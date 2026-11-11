@@ -143,6 +143,8 @@ runner.Add("Phone webcam session / original revocation interrupts native output 
 runner.Add("Phone webcam audio package / closed named trust boundary", PhoneCameraAudioPackageTests.ClosedTrustBoundaryAsync);
 runner.Add("Phone webcam native video record / exact relay header and owned I420 copy", PhoneCameraVideoPacketTests.NativeRecordAsync);
 runner.Add("Phone webcam native video record / invalid input never changes output bytes", PhoneCameraVideoPacketTests.InvalidRecordIsAtomicAsync);
+runner.Add("Phone webcam native audio record / exact header and unchanged PCM16LE copy", PhoneCameraAudioPacketTests.NativeRecordAsync);
+runner.Add("Phone webcam native audio record / invalid input never changes output bytes", PhoneCameraAudioPacketTests.InvalidRecordIsAtomicAsync);
 runner.Add("Phone webcam audio helper / immutable resource snapshot and no external fallback", PhoneCameraAudioHelperTests.ImmutableSnapshotAsync);
 runner.Add("Phone webcam audio helper / checksum and native executable rejection", PhoneCameraAudioHelperTests.TamperAndPeAsync);
 runner.Add("Phone webcam audio helper / strict embedded source descriptor", PhoneCameraAudioHelperTests.StrictSourceDescriptorAsync);

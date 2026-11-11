@@ -1,5 +1,20 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Native audio record boundary (Refs #537)
+
+The optional Windows camera composition now includes PhoneCameraAudioPacket:
+an exact 1,938-byte native record containing version 1, track 2, big-endian u64
+sequence and PTS microseconds, then 1,920 unchanged PCM16LE mono payload bytes
+(960 samples at 48 kHz). It copies payload ownership and rejects wrong tracks,
+lengths, negative/ambiguous integers and nonexact destinations before modifying
+the destination. Two memory checks cover signed PCM extremes, little-endian
+payload preservation, header byte order, integer bounds and atomic rejection.
+Actual base/both Windows-target builds and PE inspection confirm exclusion from
+the base composition and inclusion with camera support. This serializer neither
+opens a native pipe/device nor grants capture/SEND or proves a productive audio
+adapter, ordinary OBS compatibility or joined AV scheduling. The phone wire
+format is unchanged; the isolated output process still needs a trusted bridge.
+
 ## Live Notes UI admission (Refs #535)
 
 The Advanced webcam card, including its first-setup restart hint, is hidden until

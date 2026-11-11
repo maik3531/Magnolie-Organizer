@@ -48,6 +48,7 @@
     <Compile Include="..\PhoneCameraControlBinding.cs" Link="PhoneCameraControlBinding.cs" />
     <Compile Include="..\PhoneCameraSession.cs" Link="PhoneCameraSession.cs" />
     <Compile Include="..\PhoneCameraVideoPacket.cs" Link="PhoneCameraVideoPacket.cs" />
+    <Compile Include="..\PhoneCameraAudioPacket.cs" Link="PhoneCameraAudioPacket.cs" />
     <Compile Include="..\PhoneCameraAudioPackage.cs" Link="PhoneCameraAudioPackage.cs" />
     <Compile Include="..\PhoneCameraAudioStaging.cs" Link="PhoneCameraAudioStaging.cs" />
     <Compile Include="..\PhoneCameraAudioHelperPayload.cs" Link="PhoneCameraAudioHelperPayload.cs" />
