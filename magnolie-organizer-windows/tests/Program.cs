@@ -1,4 +1,6 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 3 && args[0] == "--phone-audio-runtime-product")
+    return PhoneCameraAudioRuntimeTests.InspectProduct(args[1], bool.Parse(args[2]));
 if (args.Length == 1 && args[0] == "--phone-audio-protected-preparation-probe")
 {
     if (!OperatingSystem.IsWindows()) return 77;
@@ -148,6 +150,9 @@ runner.Add("Phone webcam native audio record / invalid input never changes outpu
 runner.Add("Phone webcam audio helper / immutable resource snapshot and no external fallback", PhoneCameraAudioHelperTests.ImmutableSnapshotAsync);
 runner.Add("Phone webcam audio helper / checksum and native executable rejection", PhoneCameraAudioHelperTests.TamperAndPeAsync);
 runner.Add("Phone webcam audio helper / strict embedded source descriptor", PhoneCameraAudioHelperTests.StrictSourceDescriptorAsync);
+runner.Add("Phone webcam audio runtime / immutable resource snapshot and absent fallback", PhoneCameraAudioRuntimeTests.ImmutableResourceAsync);
+runner.Add("Phone webcam audio runtime / exact x64 PE and digest", PhoneCameraAudioRuntimeTests.PeAndDigestAsync);
+runner.Add("Phone webcam audio runtime / strict source manifest", PhoneCameraAudioRuntimeTests.StrictManifestAsync);
 runner.Add("Phone webcam audio setup / strict original read-only plan", PhoneCameraAudioSetupTests.StrictPlanAsync);
 runner.Add("Phone webcam audio setup / reboot result never claims endpoint readiness", PhoneCameraAudioSetupTests.RebootIsNotReadinessAsync);
 runner.Add("Phone webcam audio setup / bounded wire and cancellation", PhoneCameraAudioSetupTests.OriginalBoundedWireAsync);

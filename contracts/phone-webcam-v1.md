@@ -1,5 +1,44 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Immutable optional worker artifact and installed sibling (Refs #549)
+
+The worker now has a source-bound builder using the existing Windows MSVC/SDK,
+not a replacement compiler or setup-helper rebuild. Its native x64 executable
+and strict v1 SHA256 manifest cover 23 fixed native/build inputs. The optional
+MSBuild runtime target verifies those exact current-source hashes and PE identity,
+then snapshots the checked bytes. ONE intermediate snapshot supplies both the
+embedded worker/resource descriptor and the fixed output/publish sibling. Publish
+does not reopen a mutable external artifact as its runtime image source.
+
+The managed runtime payload reads ONLY its own immutable assembly resources,
+validates bounded x64 executable/descriptor/hash/source structure, and retains
+its own binary copy. Missing resources mean unavailable, not download, user-path
+staging or permission to execute. Resource identity supplies the future native
+verifier's expected hash; an adjacent manifest/setting/command-line hash never
+does. Ordinary/base builds need no native compiler or runtime artifact, and a
+supplied artifact is rejected if the optional camera composition is disabled.
+No extra runtime elevation or write-to-user-directory path is introduced. The
+installed sibling still requires the protected-path/held-identity checks of #546.
+
+Three NEW managed memory groups passed for immutable copy/no external fallback,
+PE/digest rejection and strict manifest structure. The actual builder produced a
+native executable and exact 23-source manifest without executing it. Current BASE
+and BOTH Windows-target product builds passed with zero warnings/errors; actual
+PE inspection confirmed absence in BASE and matching embedded/sibling bytes in
+BOTH. The existing setup-helper resource hash remained unchanged. Actual
+publish-item computation points to that checked intermediate snapshot. Four new
+actual imported-target refusals passed for changed image, stale source, wrong
+machine and disabled camera composition. No old worker/guard/audio test suite was
+rerun; the memory-test inputs/assembly were preserved before adding only the
+read-only product-inspection helper.
+
+This is build/resource/output wiring, NOT an installed protected runtime or audio
+readiness acceptance. No application/worker/helper was started, installed or
+published for these checks; no endpoint/stream/AudioClient/UAC/default/VM operation
+was used. Native parent API/data/anchor publication, actual authenticated managed
+outputs/session binding, FrameServer broker and real phone/OBS/latency/package
+acceptance remain #503/#536/#538/#486. Device pauses and default-OFF remain intact.
+
 ## Actual isolated audio worker entry (Refs #548)
 
 PhoneCameraAudioWorker now builds as the standalone native x64 worker consumed by
