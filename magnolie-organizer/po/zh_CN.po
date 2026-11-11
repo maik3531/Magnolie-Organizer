@@ -5187,6 +5187,9 @@ msgid ""
 "background service and try again."
 msgstr "当前后台服务无法进行手机设置。请重启后台服务后重试。"
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "首次设置时，可能需要重新启动以安装必要的驱动程序。"
+
 msgid "Phone webcam"
 msgstr "手机网络摄像头"
 

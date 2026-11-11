@@ -5480,6 +5480,9 @@ msgstr ""
 "Deze achtergrondservice ondersteunt het instellen van een telefoon niet. "
 "Start de achtergrondservice opnieuw en probeer het nogmaals."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Bij de eerste installatie kan een herstart nodig zijn om een vereist stuurprogramma te installeren."
+
 msgid "Phone webcam"
 msgstr "Telefoonwebcam"
 

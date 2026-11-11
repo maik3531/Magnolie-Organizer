@@ -1,5 +1,24 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Live Notes UI admission (Refs #535)
+
+The Advanced webcam card, including its first-setup restart hint, is hidden until
+native status confirms a currently connected authenticated Notes session. A saved
+pairing is insufficient. Linux status checks existing live channels only, without
+optional module imports or device inventory; missing or failed status fails closed.
+The open settings view refreshes status every two seconds. Disconnect hides the
+card and discards local choices. Native start/install still require their exact
+original live channel and one-use action; visibility itself grants no authority.
+Wi-Fi and actual capabilities remain separate native preparation requirements.
+
+The German hint is: „Bei der erstmaligen Einrichtung kann wegen einer nötigen
+Treiberinstallation ein Neustart erforderlich sein.“ The hint has entries in all
+19 Linux catalogs. There is no claim about what normal Wi-Fi use does not require.
+Windows has no productive Advanced webcam card yet; its future admission must
+observe this same live-connection requirement. Its explicit VB-CABLE installation
+question and actual reboot-required result remain distinct from this generic hint.
+Controlled native/DOM/catalog tests are not phone, OBS or delivery acceptance.
+
 ## Explicit Linux driver setup and confirmed installation (Refs #515, #520, #524)
 
 Only an explicit Advanced-functions Enable/prepare with an original connected

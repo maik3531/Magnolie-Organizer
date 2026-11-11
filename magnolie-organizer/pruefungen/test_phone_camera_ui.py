@@ -16,6 +16,8 @@ import socket
 import os
 import ast
 import threading
+import gettext
+import subprocess
 import magnolie_hintergrund as background
 from magnolie_phone_camera_ui import open_video, probe_virtual_video
 
@@ -28,6 +30,21 @@ class Video:
     def close(self):
         self.closed = True
         self.closes += 1
+
+
+def test_first_setup_restart_hint_all_catalogs(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    key = 'During initial setup, a restart may be required to install a necessary driver.'
+    assert f'_("{key}")' in (root / 'web/anwendung.js').read_text()
+    for locale in (root / 'po/LINGUAS').read_text().split():
+        mo = tmp_path / f'{locale}.mo'
+        subprocess.run(['msgfmt', '--check', '--check-format', '-o', str(mo),
+            str(root / 'po' / f'{locale}.po')], check=True)
+        with mo.open('rb') as stream:
+            translated = gettext.GNUTranslations(stream).gettext(key)
+        assert translated and translated != key, locale
+        if locale == 'de':
+            assert translated == 'Bei der erstmaligen Einrichtung kann wegen einer nötigen Treiberinstallation ein Neustart erforderlich sein.'
 
 
 @pytest.fixture

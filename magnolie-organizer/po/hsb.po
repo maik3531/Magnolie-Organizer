@@ -5548,6 +5548,9 @@ msgstr ""
 "Tuta pozadkowa słužba zarjadowanje telefona njepodpěruje. Startujće "
 "pozadkowu słužbu znowa a spytajće hišće raz."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Při prěnim zarjadowanju móže instalacija trěbneho ćěrjaka znowastartowanje sej wužadać."
+
 msgid "Phone webcam"
 msgstr "Webkamera telefona"
 

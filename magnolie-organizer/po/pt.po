@@ -5509,6 +5509,9 @@ msgstr ""
 "A configuração do telefone está indisponível neste serviço em segundo plano. "
 "Reinicie o serviço e tente novamente."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Durante a configuração inicial, poderá ser necessário reiniciar para instalar um controlador necessário."
+
 msgid "Phone webcam"
 msgstr "Webcam do telemóvel"
 

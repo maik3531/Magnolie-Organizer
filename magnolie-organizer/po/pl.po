@@ -5490,6 +5490,9 @@ msgstr ""
 "Konfiguracja telefonu jest niedostępna w tej usłudze w tle. Uruchom usługę w "
 "tle ponownie i spróbuj jeszcze raz."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Podczas pierwszej konfiguracji może być wymagane ponowne uruchomienie w celu zainstalowania niezbędnego sterownika."
+
 msgid "Phone webcam"
 msgstr "Kamera internetowa telefonu"
 

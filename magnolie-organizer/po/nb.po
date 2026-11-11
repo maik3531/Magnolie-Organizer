@@ -5420,6 +5420,9 @@ msgstr ""
 "Telefonoppsett er ikke tilgjengelig i denne bakgrunnstjenesten. Start "
 "bakgrunnstjenesten på nytt og prøv igjen."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Ved førstegangsoppsett kan en omstart være nødvendig for å installere en påkrevd driver."
+
 msgid "Phone webcam"
 msgstr "Telefonwebkamera"
 

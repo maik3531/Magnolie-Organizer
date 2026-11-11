@@ -29788,6 +29788,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     block.hidden = true;
     block.append(el("h4", null, _("Phone webcam")), el("p", "einst-hinweis",
       _("Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission.")));
+    block.append(el("p", "einst-hinweis", _("During initial setup, a restart may be required to install a necessary driver.")));
     const status = el("p", "einst-hinweis", _("Off"));
     const provider = el("select");
     for (const [value, label] of [["auto", _("Automatic")], ["notes", "Magnolie Notes"], ["kdeconnect", "KDE Connect"]]) {

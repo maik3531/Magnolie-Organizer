@@ -5508,6 +5508,9 @@ msgstr ""
 "Die Telefoneinrichtung ist in diesem Hintergrunddienst nicht verfügbar. "
 "Starten Sie den Hintergrunddienst neu und versuchen Sie es erneut."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Bei der erstmaligen Einrichtung kann wegen einer nötigen Treiberinstallation ein Neustart erforderlich sein."
+
 msgid "Phone webcam"
 msgstr "Telefon-Webcam"
 

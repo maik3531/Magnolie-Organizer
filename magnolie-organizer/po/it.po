@@ -5512,6 +5512,9 @@ msgstr ""
 "La configurazione del telefono non è disponibile in questo servizio in "
 "background. Riavvia il servizio e riprova."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Durante la configurazione iniziale potrebbe essere necessario riavviare per installare un driver richiesto."
+
 msgid "Phone webcam"
 msgstr "Webcam del telefono"
 

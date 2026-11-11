@@ -5427,6 +5427,9 @@ msgstr ""
 "Telefonopsætning er ikke tilgængelig i denne baggrundstjeneste. Genstart "
 "baggrundstjenesten, og prøv igen."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Ved den første opsætning kan en genstart være nødvendig for at installere en påkrævet driver."
+
 msgid "Phone webcam"
 msgstr "Telefonwebcam"
 

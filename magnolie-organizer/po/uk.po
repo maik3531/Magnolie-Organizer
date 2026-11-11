@@ -5475,6 +5475,9 @@ msgstr ""
 "Ця фонова служба не підтримує налаштування телефона. Перезапустіть фонову "
 "службу й спробуйте ще раз."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Під час початкового налаштування може знадобитися перезавантаження для встановлення необхідного драйвера."
+
 msgid "Phone webcam"
 msgstr "Вебкамера телефона"
 

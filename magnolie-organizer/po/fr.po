@@ -5557,6 +5557,9 @@ msgstr ""
 "La configuration du téléphone est indisponible dans ce service d’arrière-"
 "plan. Redémarrez le service et réessayez."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Lors de la configuration initiale, un redémarrage peut être nécessaire pour installer un pilote requis."
+
 msgid "Phone webcam"
 msgstr "Webcam du téléphone"
 

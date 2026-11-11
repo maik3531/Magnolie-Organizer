@@ -5451,6 +5451,9 @@ msgstr ""
 "Nastavení telefonu není v této službě na pozadí dostupné. Restartujte službu "
 "na pozadí a zkuste to znovu."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "Při prvním nastavení může být kvůli instalaci potřebného ovladače nutný restart."
+
 msgid "Phone webcam"
 msgstr "Webkamera telefonu"
 

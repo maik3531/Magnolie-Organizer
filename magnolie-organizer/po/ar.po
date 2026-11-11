@@ -5549,6 +5549,9 @@ msgstr ""
 "إعداد الهاتف غير متاح في خدمة الخلفية هذه. أعد تشغيل خدمة الخلفية وحاول مرة "
 "أخرى."
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "أثناء الإعداد الأولي، قد تلزم إعادة التشغيل لتثبيت برنامج تشغيل ضروري."
+
 msgid "Phone webcam"
 msgstr "كاميرا الهاتف للويب"
 

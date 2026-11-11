@@ -5332,6 +5332,9 @@ msgstr ""
 "पृष्ठभूमि में चल रही इस सेवा से फ़ोन की तैयारी नहीं की जा सकती। इस सेवा को फिर से शुरू करें "
 "और दोबारा कोशिश करें।"
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "शुरुआती सेटअप के दौरान आवश्यक ड्राइवर इंस्टॉल करने के लिए पुनः आरंभ करना पड़ सकता है।"
+
 msgid "Phone webcam"
 msgstr "फ़ोन वेबकैम"
 

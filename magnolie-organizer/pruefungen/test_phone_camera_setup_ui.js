@@ -65,6 +65,7 @@ async function scenario(reason, installMode = "", initiallyConnected = true) {
     const start = buttons.find(button => button.textContent === "Start");
     assert(enable && start && start.disabled);
     assert(root.querySelector("#telefon-webcam").hidden, "Visible before native live status");
+    assert(root.querySelector("#telefon-webcam").textContent.includes("During initial setup, a restart may be required to install a necessary driver."));
     await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
     assert.equal(calls[0].cmd, "telefon_webcam_stand");
     if (!initiallyConnected) {

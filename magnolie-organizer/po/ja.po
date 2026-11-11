@@ -5375,6 +5375,9 @@ msgstr ""
 "現在のバックグラウンドサービスでは電話の設定を行えません。バックグラウンド"
 "サービスを再起動して、もう一度お試しください。"
 
+msgid "During initial setup, a restart may be required to install a necessary driver."
+msgstr "初回設定時に、必要なドライバーのインストールのため再起動が必要になる場合があります。"
+
 msgid "Phone webcam"
 msgstr "スマートフォンのウェブカメラ"
 
