@@ -633,6 +633,17 @@ audio device** from a physical cable to the phone, in every supported locale.
 This clarification is not a claim of completed phone-to-OBS wireless acceptance
 or of an already implemented USB alternative.
 
+The managed-to-native video record now has a dedicated pure serializer:
+`PhoneCameraVideoPacket` restores the exact version/track + big-endian sequence/
+PTS + fixed I420 payload consumed by `VideoRelay`, after the encrypted channel
+has separated header and payload. It validates the complete input and exact
+destination size before changing output bytes and does not retain frame storage.
+Two new local memory groups check byte layout, integer limits, owned payload copy
+and rejection without partial output. This is not a connected pipe, FrameServer
+broker, system output adapter or SEND permission; those trust/IO boundaries remain
+open. The pending Windows installation test's frozen app is unchanged by this
+independent serializer work.
+
 #### Windows dedicated binary receiver (Refs #503)
 
 The separate native `native/phone-camera/PhoneCameraSamples` adapter now creates
