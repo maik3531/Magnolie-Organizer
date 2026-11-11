@@ -277,6 +277,23 @@ internal static class PhoneCameraParentTests
         fixture.NoPersistentControls();
     }
 
+    internal static async Task BareSendRequiresTypedPublicationAsync()
+    {
+        using var f = new Fixture(); using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        using var owner = f.Connection.BindWebcamControl(() => { }, () => { });
+        var probe = Message(); await f.Connection.HandlePlainAsync(probe); await f.Read(0);
+        await owner.ReadAsync(deadline.Token); owner.BindSession(new string('b', 32));
+        var report = Reply(); report["body"]!["request_id"] = probe["body"]!["request_id"]!.DeepClone();
+        report["body"]!["nonce"] = probe["body"]!["nonce"]!.DeepClone(); report["body"]!["op"] = "send";
+        report["body"]!.AsObject().Remove("reason"); report["body"]!["session"] = new string('b', 32);
+        TestAssert.Throws<InvalidOperationException>(() => owner.SendAsync(report), "Bare SEND bypassed original output authority");
+        try { await f.Connection.SendBoundWebcamReportAsync(owner, report); throw new Exception("Direct parent bypass accepted SEND"); }
+        catch (InvalidOperationException) { }
+        owner.RequireCurrent();
+        await f.Connection.SendPlainAsync(new JsonObject { ["type"] = "ping" });
+        TestAssert.That((await f.Read(1))["type"]!.GetValue<string>() == "ping", "Denied SEND consumed sequence or damaged base transport");
+        f.NoPersistentControls();
+    }
     internal static async Task OwnerRevocationAndBoundedAckAsync()
     {
         using var fixture = new Fixture(); var current = true; var retired = 0;

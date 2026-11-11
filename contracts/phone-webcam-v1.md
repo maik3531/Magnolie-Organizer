@@ -1,5 +1,43 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## SEND publication rechecks the exact live output owner (Refs #552)
+
+Confirmed on actual Windows before the fix: with the real crypto writer held,
+both original backend failure and microphone readiness loss still allowed an
+encrypted SEND after release. The stronger reproduction observes the actual
+incomplete WaitAsync task after it queues, not a copied sender or timed guess.
+The original UI context stayed current and no media was written. This does not
+establish a cause for the separate Audiosrv/ordinary-consumer hang.
+
+SEND now requires SendPreparedAsync with the exact original OutputAuthority and
+same binding. Bare SEND and direct bound-parent calls without that authority
+are rejected. The composed guard checks original session identity/current and
+actual required video/microphone readiness at the existing real crypto sender's
+pre-wait, post-acquisition, pre-commit and post-write boundaries. Preparation
+Current remains readiness-free and does not require already-published SEND.
+Forged objects or another binding cannot retire the genuine prepared owner.
+
+Pre-commit output loss stops the original joined session without prematurely
+disposing its control binding: the original finally can still send terminal STOP.
+The existing attempted-write/counter fail-closed transport behavior is unchanged;
+already-committed wire data cannot be undone. No atomic device/COM cancellation
+or retroactive erasure is claimed.
+
+The same two queued-writer cases failed before and passed after on actual Windows;
+two additional API/substitution cases passed. The 10 session, 5 output-authority
+and 11 parent regressions passed because their sender guards/interfaces changed.
+Canonical test and actual BASE/BOTH product builds passed without warnings/errors.
+The partial queued-writer observer has no production implementation; its test-only
+implementation is excluded from product builds. No native endpoint/AudioClient,
+installation, VM or physical capture was exercised; device/release pauses remain.
+
+Cross-platform source comparison: Python already checks owner.stopping through
+current under its crypto writer, so the Windows Stop case is not established there.
+Its separate backend-readiness race and macOS/tablet effects remain unconfirmed.
+Transferable correction: recheck the SAME original owner and live output readiness
+at actual sender boundaries, without adding store/service/exchange monitor locks
+under the crypto writer. This Windows result is not a verified portable fix.
+
 ## Original native parent controller and versioned C boundary (Refs #551)
 
 PhoneCameraAudioParent now owns the actual runtime/control/status/anchor/audio

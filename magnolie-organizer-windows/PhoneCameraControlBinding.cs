@@ -81,19 +81,27 @@ internal sealed class PhoneCameraControlBinding : IDisposable
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
         catch { Dispose(); throw; }
     }
-    internal Task SendAsync(JsonObject report)
+    internal Task SendAsync(JsonObject report) => SendReportAsync(report, null);
+    internal Task SendPreparedAsync(JsonObject report, PhoneCameraSession.OutputAuthority original)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+        return SendReportAsync(report, original);
+    }
+    private Task SendReportAsync(JsonObject report, PhoneCameraSession.OutputAuthority? original)
     {
         RequireCurrent(); var snapshot = report.DeepClone().AsObject();
         PhoneCameraControl.ValidateMessage(snapshot, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         if (snapshot["kind"]!.GetValue<string>() != PhoneCameraControl.Report) throw new InvalidDataException("webcam_desktop_report_required");
         var body = snapshot["body"]!.AsObject();
+        if ((body["op"]!.GetValue<string>() == "send") != (original is not null))
+            throw new InvalidOperationException("webcam_typed_send_publication_required");
         lock (gate)
         {
             if (requestId != body["request_id"]!.GetValue<string>() || nonce != body["nonce"]!.GetValue<string>() ||
                 body.ContainsKey("session") && (session is null || session != body["session"]!.GetValue<string>()))
                 throw new InvalidOperationException("webcam_original_exchange_required");
         }
-        return parent.SendBoundWebcamReportAsync(this, snapshot);
+        return parent.SendBoundWebcamReportAsync(this, snapshot, original);
     }
     public void Dispose()
     {

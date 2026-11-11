@@ -81,16 +81,32 @@ internal sealed partial class TelefonConnection
         var ack = new JsonObject { ["type"] = "ack", ["message_id"] = message["message_id"]!.DeepClone(), ["status"] = status, ["error"] = error };
         await SendWebcamFrameAsync(ack, () => { });
     }
-    internal async Task SendBoundWebcamReportAsync(PhoneCameraControlBinding binding, JsonObject message)
+    internal async Task SendBoundWebcamReportAsync(PhoneCameraControlBinding binding, JsonObject message,
+        PhoneCameraSession.OutputAuthority? original = null)
     {
         binding.RequireCurrent();
+        if ((message["body"]!["op"]!.GetValue<string>() == "send") != (original is not null))
+            throw new InvalidOperationException("webcam_typed_send_publication_required");
+        void Current()
+        {
+            binding.RequireCurrent();
+            original?.RequirePublication(binding);
+        }
+        Current();
         lock (webcamGate)
         {
             if (webcamAcks.Count == 16) webcamAcks.Dequeue();
             webcamAcks.Enqueue(new WebcamAck(message["message_id"]!.GetValue<string>(), binding));
         }
-        try { await SendWebcamEphemeralAsync(message, binding.RequireCurrent); }
-        catch { binding.Dispose(); throw; }
+        try { await SendWebcamEphemeralAsync(message, Current); }
+        catch
+        {
+            // A pre-commit output loss retires its session, not the original
+            // control transport: finally must still be able to publish STOP.
+            // Attempted IO remains fail-closed inside the actual crypto sender.
+            if (original is null) binding.Dispose();
+            throw;
+        }
     }
     private bool ObserveWebcamAck(JsonObject ack)
     {

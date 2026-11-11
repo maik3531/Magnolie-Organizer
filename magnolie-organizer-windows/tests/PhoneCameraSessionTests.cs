@@ -270,4 +270,53 @@ internal static class PhoneCameraSessionTests
         await f.SendFrame(true, 0, 0); await f.WaitWrites(1); authority.RequireSending(); f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
         TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped, "Explicitly muted owner required fake microphone readiness");
     }
+    private static async Task NoSendAfterOutputLossAtWriterAsync(bool backendFailure)
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        await f.Parent.Writer.WaitAsync(f.Deadline.Token);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Observer is called AFTER the actual WaitAsync task has queued. It
+        // cannot grant readiness, execute an alternative sender or release IO.
+        f.Parent.Connection.WebcamWriterWaitProbe = (message, waiting) => {
+            if (message["body"]?["op"]?.GetValue<string>() == "send" && !waiting.IsCompleted)
+                entered.TrySetResult();
+        };
+        try
+        {
+            f.Output.ContinuePreparation.TrySetResult(); await entered.Task.WaitAsync(f.Deadline.Token);
+            TestAssert.That(!f.SawSend && !f.Session.IsSending, "SEND escaped the held original crypto writer");
+            if (backendFailure) f.Output.Authority!.ReportFailure(new IOException("controlled output lost while original writer held"));
+            else f.Output.MissingMicrophone = true;
+        }
+        finally { f.Parent.Connection.WebcamWriterWaitProbe = null; f.Parent.Writer.Release(); }
+        await f.ReadSendOrStopAsync(); await f.Run.WaitAsync(f.Deadline.Token);
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { issue = 552, backendFailure, receivedEncryptedSend = f.SawSend,
+            sourceContextStillCurrent = f.Current, framesWritten = f.Output.Written.Count, isSending = f.Session.IsSending,
+            stopped = f.Session.IsCompletelyStopped, errorType = f.Session.Error?.GetType().Name, observedActualSender = entered.Task.IsCompletedSuccessfully }));
+        TestAssert.That(!f.SawSend,
+            "Actual encrypted SEND published after output loss while the original writer was held");
+        TestAssert.That(f.Output.Written.IsEmpty && !f.Session.IsSending && f.Session.Error is not null && f.Session.IsCompletelyStopped,
+            "Controlled output loss did not preserve joined cleanup/no-media invariants");
+        f.Parent.NoPersistentControls();
+    }
+    internal static Task BackendFailureBlocksWaitingSendAsync() => NoSendAfterOutputLossAtWriterAsync(true);
+    internal static Task ReadinessLossBlocksWaitingSendAsync() => NoSendAfterOutputLossAtWriterAsync(false);
+    internal static async Task PublicationRejectsSubstituteAuthorityAsync()
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        using var other = new PhoneCameraParentTests.Fixture();
+        using var unrelated = other.Connection.BindWebcamControl(() => { }, () => { });
+        var original = f.Output.Authority!;
+        TestAssert.Throws<InvalidOperationException>(() => original.RequirePublication(unrelated), "Original output adopted another binding");
+        var forged = new PhoneCameraSession.OutputAuthority(f.Session);
+        TestAssert.Throws<InvalidOperationException>(() => forged.RequirePublication(unrelated), "Forged output context granted publication");
+        original.RequireCurrent(); unrelated.RequireCurrent();
+        TestAssert.That(f.Session.Error is null, "Substitution refusal stopped genuine prepared session");
+        f.Output.ContinuePreparation.TrySetResult(); await f.ReadSendOrStopAsync();
+        await f.SendFrame(false, 0, 0); await f.WaitWrites(1); original.RequireSending();
+        f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped, "Genuine typed SEND failed after rejected substitutions");
+    }
 }

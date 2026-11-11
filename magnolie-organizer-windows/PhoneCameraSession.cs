@@ -38,6 +38,19 @@ internal sealed class PhoneCameraSession
         internal bool Front => owner.front;
         internal void RequireCurrent() => owner.RequireOutputAuthority(this, sending: false);
         internal void RequireSending() => owner.RequireOutputAuthority(this, sending: true);
+        internal void RequirePublication(PhoneCameraControlBinding originalBinding)
+        {
+            if (!ReferenceEquals(owner.outputAuthority, this) || !ReferenceEquals(owner.binding, originalBinding))
+                throw new InvalidOperationException("webcam_original_publication_authority_required");
+            try
+            {
+                RequireCurrent();
+                owner.outputs.RequireVideoReady();
+                if (!owner.muted) owner.outputs.RequireMicrophoneReady();
+                RequireCurrent(); // Readiness callbacks cannot replace or revive the owner.
+            }
+            catch (Exception failure) { owner.Fail(failure); throw; }
+        }
         internal void ReportFailure(Exception failure)
         {
             ArgumentNullException.ThrowIfNull(failure);
@@ -238,7 +251,7 @@ internal sealed class PhoneCameraSession
             media = new PhoneCameraMediaChannel(accepted, session, secret, RequireMediaContext);
             // Construction admits only the original prepared socket/context.
             // ReceiveAsync is unreachable until actual SEND publication succeeds.
-            try { await binding.SendAsync(Report(probe, "send", session)); }
+            try { await binding.SendPreparedAsync(Report(probe, "send", session), outputAuthority); }
             catch (Exception failure) { Fail(failure); throw; }
             Volatile.Write(ref sentAt, Stopwatch.GetTimestamp()); Volatile.Write(ref sending, 1);
             await ReceiveAsync();

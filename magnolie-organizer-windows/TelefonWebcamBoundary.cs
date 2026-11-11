@@ -74,6 +74,9 @@ internal sealed partial class TelefonConnection
     partial void NativeWebcamAck(JsonObject message, ref bool consumed);
     partial void CheckNativeWebcamOwner();
     partial void RetireNativeWebcamOwner();
+    // Elided in the product (no implementation). The test host observes the
+    // actual queued writer task without replacing sender behavior or polling.
+    partial void ObserveNativeWebcamWriterWait(JsonObject snapshot, Task waiting);
 
     private async Task DispatchWebcamControlAsync(JsonObject message)
     {
@@ -102,7 +105,9 @@ internal sealed partial class TelefonConnection
         void Current() { RequireWebcamParent(snapshot["type"]!.GetValue<string>() != "ack"); originalCurrent(); }
         Current();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(TimeSpan.FromSeconds(2));
-        await writer.WaitAsync(deadline.Token); var attempted = false;
+        var waiting = writer.WaitAsync(deadline.Token);
+        ObserveNativeWebcamWriterWait(snapshot, waiting);
+        await waiting; var attempted = false;
         try
         {
             Current();
