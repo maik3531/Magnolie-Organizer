@@ -5,6 +5,65 @@
 namespace Magnolie::PhoneCamera
 {
     using Microsoft::WRL::ComPtr;
+
+    HRESULT AudioRelay::Create(std::unique_ptr<PipeReader>& reader,
+        const std::shared_ptr<Samples>& originalSamples, std::unique_ptr<AudioRelay>& result) noexcept
+    {
+        if (result || !reader || reader->IsRetired() || !originalSamples || originalSamples->IsRetired())
+            return E_INVALIDARG;
+        try
+        {
+            std::unique_ptr<AudioRelay> relay(new AudioRelay(originalSamples));
+            relay->reader_ = std::move(reader);
+            result = std::move(relay);
+            return S_OK;
+        }
+        catch (...) { return E_OUTOFMEMORY; }
+    }
+
+    bool AudioRelay::IsRetired() const noexcept
+    { return retired_.load() || samples_->IsRetired() || (reader_ && reader_->IsRetired()); }
+
+    void AudioRelay::Stop() noexcept
+    { retired_.store(true); samples_->Retire(); if (reader_) reader_->Stop(); }
+
+    HRESULT AudioRelay::Fail(HRESULT reason) noexcept
+    { Stop(); return reason; }
+
+    HRESULT AudioRelay::ReceiveOne(IMFSample** result) noexcept
+    {
+        if (!result) return Fail(E_POINTER);
+        *result = nullptr;
+        try
+        {
+            std::unique_lock<std::mutex> lock(receive_, std::try_to_lock);
+            if (!lock.owns_lock()) return Fail(HRESULT_FROM_WIN32(ERROR_BUSY));
+            struct ClearPacket
+            {
+                BYTE* data; std::size_t size;
+                ~ClearPacket() { SecureZeroMemory(data, size); }
+            } clear{packet_.data(), packet_.size()};
+            if (IsRetired()) return Fail(MF_E_SHUTDOWN);
+            // WHOLE fixed record has the PipeReader's one original deadline.
+            HRESULT hr = reader_->ReadExact(packet_.data(), packet_.size());
+            ComPtr<IMFSample> sample;
+            if (SUCCEEDED(hr)) hr = samples_->AudioRecord(packet_.data(), packet_.size(), &sample);
+            if (FAILED(hr)) return Fail(hr);
+            if (IsRetired()) return Fail(MF_E_SHUTDOWN);
+            *result = sample.Detach();
+            return S_OK;
+        }
+        catch (...) { return Fail(E_FAIL); }
+    }
+
+    AudioRelay::~AudioRelay()
+    {
+        Stop();
+        // Owner signals, joins its receive task, then releases callback contexts.
+        std::lock_guard<std::mutex> lock(receive_);
+        SecureZeroMemory(packet_.data(), packet_.size());
+    }
+
     static std::uint64_t BigEndian64(const BYTE* bytes) noexcept
     {
         std::uint64_t value = 0;

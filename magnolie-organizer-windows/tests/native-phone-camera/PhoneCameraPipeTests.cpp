@@ -20,6 +20,8 @@
 using Magnolie::PhoneCamera::PipeReader;
 #ifdef MAGNOLIE_NATIVE_RELAY_TESTS
 using Magnolie::PhoneCamera::VideoRelay;
+using Magnolie::PhoneCamera::AudioRelay;
+using Magnolie::PhoneCamera::Samples;
 using Magnolie::PhoneCamera::SourceOwner;
 using Magnolie::PhoneCamera::IFrameFeed;
 using Microsoft::WRL::ComPtr;
@@ -67,6 +69,25 @@ namespace
         CloseHandle(connection.hEvent);
         if (!connected) { CloseHandle(pipe); CloseHandle(stop); return 21; }
 #ifdef MAGNOLIE_NATIVE_RELAY_TESTS
+        if (std::wcsncmp(mode, L"audio", 5) == 0)
+        {
+            std::vector<BYTE> packet(Samples::AudioRecordBytes);
+            for (std::size_t at = 18; at < packet.size(); ++at) packet[at] = static_cast<BYTE>((at - 18) * 31);
+            auto integer = [&](std::size_t offset, std::uint64_t value) {
+                for (unsigned int i = 0; i < 8; ++i) packet[offset + i] = static_cast<BYTE>(value >> (56 - 8 * i));
+            };
+            for (int i = 0; i < (std::wcscmp(mode, L"audio-fragments") == 0 ? 2 : 1); ++i)
+            {
+                packet[0] = std::wcscmp(mode, L"audio-version") == 0 ? 2 : 1;
+                packet[1] = std::wcscmp(mode, L"audio-track") == 0 ? 1 : 2;
+                integer(2, std::wcscmp(mode, L"audio-sequence") == 0 ? 0x8000000000000000ULL : static_cast<std::uint64_t>(i));
+                integer(10, std::wcscmp(mode, L"audio-pts") == 0 ? 9007199254740992ULL : static_cast<std::uint64_t>(i) * 20000);
+                if (!Write(pipe, packet.data(), 7)) break;
+                if (std::wcscmp(mode, L"audio-short") == 0) break;
+                if (!Write(pipe, packet.data() + 7, static_cast<DWORD>(packet.size() - 7))) break;
+            }
+            WaitForSingleObject(stop, 15000); CloseHandle(pipe); CloseHandle(stop); return 0;
+        }
         if (std::wcsncmp(mode, L"video", 5) == 0)
         {
             std::vector<BYTE> packet(18 + 640 * 480 * 3 / 2, 128);
@@ -376,6 +397,106 @@ namespace
         Check(FAILED(f.relay->ReceiveOne()) && f.relay->IsRetired() && f.owner.retired == 1);
         f.owner.sending = true; Check(FAILED(f.relay->ReceiveOne()));
     }
+
+    struct AudioFixture
+    {
+        MediaRuntime runtime;
+        RelayOwner owner;
+        Peer peer;
+        std::unique_ptr<PipeReader> reader;
+        std::shared_ptr<Samples> samples;
+        std::unique_ptr<AudioRelay> relay;
+        explicit AudioFixture(const wchar_t* mode, bool muted = false) : peer(mode)
+        {
+            Ok(PipeReader::Connect(peer.id, peer.process, Owner::Current, &owner.original, reader));
+            owner.process = peer.process; owner.pipe = reader.get();
+            samples = std::make_shared<Samples>(RelayOwner::Sending, &owner, muted);
+        }
+        void Attach() { Ok(AudioRelay::Create(reader, samples, relay)); }
+    };
+
+    void AudioRelayCrossProcessFragments()
+    {
+        AudioFixture f(L"audio-fragments"); f.Attach();
+        for (int i = 0; i < 2; ++i)
+        {
+            ComPtr<IMFSample> sample; Ok(f.relay->ReceiveOne(&sample)); Check(sample && !f.relay->IsRetired());
+            LONGLONG pts = -1; Ok(sample->GetSampleTime(&pts)); Check(pts == i * 200000LL);
+            ComPtr<IMFMediaBuffer> buffer; Ok(sample->ConvertToContiguousBuffer(&buffer));
+            BYTE* bytes = nullptr; DWORD size = 0; Ok(buffer->Lock(&bytes, nullptr, &size));
+            bool valid = size == Samples::AudioBytes;
+            if (valid) for (DWORD at = 0; at < size; ++at) if (bytes[at] != static_cast<BYTE>(at * 31)) { valid = false; break; }
+            Ok(buffer->Unlock()); Check(valid);
+        }
+    }
+
+    void AudioRelayMalformedRetiresBoth()
+    {
+        for (const wchar_t* mode : {L"audio-version", L"audio-track", L"audio-sequence", L"audio-pts"})
+        {
+            AudioFixture f(mode); f.Attach(); IMFSample* sample = reinterpret_cast<IMFSample*>(1);
+            Check(FAILED(f.relay->ReceiveOne(&sample)) && sample == nullptr && f.relay->IsRetired() && f.samples->IsRetired());
+            std::vector<BYTE> picture(Samples::VideoBytes); ComPtr<IMFSample> video;
+            Check(f.samples->Video(picture.data(), picture.size(), 0, 0, &video) == MF_E_SHUTDOWN && !video);
+            f.owner.original.current = true; Check(FAILED(f.relay->ReceiveOne(&sample)) && sample == nullptr);
+        }
+    }
+
+    void AudioRelayStopAndRevokePending()
+    {
+        for (bool stop : {true, false})
+        {
+            AudioFixture f(L"empty"); f.Attach();
+            f.owner.original.signalAt = f.owner.original.calls + 2;
+            std::atomic<HRESULT> status{S_OK}; IMFSample* sample = reinterpret_cast<IMFSample*>(1);
+            std::thread receive([&] { status = f.relay->ReceiveOne(&sample); });
+            const DWORD pending = WaitForSingleObject(f.owner.original.pending, 1500);
+            if (stop) f.relay->Stop(); else f.owner.original.current = false;
+            receive.join();
+            Check(pending == WAIT_OBJECT_0 && FAILED(status) && sample == nullptr && f.relay->IsRetired() && f.samples->IsRetired());
+        }
+    }
+
+    void AudioRelayOneRecordDeadline()
+    {
+        AudioFixture f(L"audio-short"); f.Attach();
+        const auto begin = std::chrono::steady_clock::now(); ComPtr<IMFSample> sample;
+        const HRESULT status = f.relay->ReceiveOne(&sample);
+        const auto elapsed = std::chrono::steady_clock::now() - begin;
+        Check(status == HRESULT_FROM_WIN32(ERROR_TIMEOUT) && !sample && f.relay->IsRetired() && f.samples->IsRetired());
+        Check(elapsed >= std::chrono::milliseconds(1800) && elapsed < std::chrono::milliseconds(4500));
+    }
+
+    void AudioRelayMuteAndActualSend()
+    {
+        for (bool muted : {true, false})
+        {
+            AudioFixture f(L"audio", muted); f.owner.sending = muted; f.Attach();
+            ComPtr<IMFSample> sample;
+            Check(FAILED(f.relay->ReceiveOne(&sample)) && !sample && f.relay->IsRetired() && f.samples->IsRetired());
+        }
+    }
+
+    void AudioRelayCreationAndNullOutput()
+    {
+        AudioFixture f(L"empty"); auto* held = f.reader.get();
+        std::shared_ptr<Samples> missing;
+        Check(AudioRelay::Create(f.reader, missing, f.relay) == E_INVALIDARG && f.reader.get() == held && !f.relay);
+        auto retired = std::make_shared<Samples>(RelayOwner::Sending, &f.owner, false); retired->Retire();
+        Check(AudioRelay::Create(f.reader, retired, f.relay) == E_INVALIDARG && f.reader.get() == held && !f.samples->IsRetired());
+        f.Attach(); Check(!f.reader && !f.relay->IsRetired());
+        AudioFixture replacement(L"empty"); auto* replacementPipe = replacement.reader.get();
+        Check(AudioRelay::Create(replacement.reader, replacement.samples, f.relay) == E_INVALIDARG && replacement.reader.get() == replacementPipe);
+        Check(f.relay->ReceiveOne(nullptr) == E_POINTER && f.relay->IsRetired() && f.samples->IsRetired());
+    }
+
+    void AudioRelayOriginalProcessExit()
+    {
+        AudioFixture f(L"empty"); f.Attach();
+        SetEvent(f.peer.stop); Check(WaitForSingleObject(f.peer.process, 1500) == WAIT_OBJECT_0);
+        ComPtr<IMFSample> sample;
+        Check(FAILED(f.relay->ReceiveOne(&sample)) && !sample && f.relay->IsRetired() && f.samples->IsRetired());
+    }
 #endif
 }
 
@@ -394,6 +515,13 @@ int wmain(int argc, wchar_t** argv)
         {"relay-real-cross-process-source-reader", RelayCrossProcessSourceReader}, {"relay-malformed-record", RelayRejectsMalformedRecord},
         {"relay-replacement-source-refused", RelayRefusesReplacementSource}, {"relay-original-shutdown-input", RelayOriginalShutdownInterruptsInput},
         {"relay-needs-actual-send", RelayRequiresActualSend},
+        {"audio-relay-fragmented-pcm", AudioRelayCrossProcessFragments},
+        {"audio-relay-malformed-retirement", AudioRelayMalformedRetiresBoth},
+        {"audio-relay-stop-revoke", AudioRelayStopAndRevokePending},
+        {"audio-relay-record-deadline", AudioRelayOneRecordDeadline},
+        {"audio-relay-mute-send", AudioRelayMuteAndActualSend},
+        {"audio-relay-create-null", AudioRelayCreationAndNullOutput},
+        {"audio-relay-process-exit", AudioRelayOriginalProcessExit},
 #endif
     };
     for (const auto& test : cases)

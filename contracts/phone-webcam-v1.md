@@ -1,5 +1,30 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Native audio pipe receiver (Refs #540)
+
+AudioRelay now takes ownership of an already original-process-admitted PipeReader
+and retains an explicit guarded Samples owner. One fixed 1,938-byte record uses
+the reader's single whole-record deadline, then the AudioRecord entry copies PCM
+into its own Media Foundation sample. Private record storage is erased after
+each receive. Stop, malformed input, read failure, missing output or concurrent
+read refusal retire the pipe and shared sample owner; no partial sample escapes.
+Creation refusal preserves the caller's existing reader/result ownership.
+
+The existing x64 MSVC /W4 /WX relay build passed. Seven new Windows groups alone
+executed actual local kernel pipes and owned test child processes with synthetic
+PCM: fragmented consecutive records; malformed-record/shared retirement; pending
+read Stop/revocation; a partial record's whole deadline; mute/SEND refusal; invalid
+creation/null output; and original process exit. No AudioClient, endpoint, stream,
+device, driver, default role or settings operation was used. The old video tests
+were not rerun and their SourceReader evidence is not claimed for these audio tests.
+
+This is a native receiver primitive, NOT a productive WASAPI output process or
+system microphone. The original production owner must admit distinct channels,
+bind the exact sample/control owners, recheck authority at actual delivery and
+join AV scheduling/retirement; none is granted by creating this receiver. Those
+bridges and real phone/OBS/package acceptance remain #503/#486; #536/#538 remain
+open. Linux/macOS device output is unchanged and not newly accepted.
+
 ## Native audio record reception (Refs #539)
 
 The native Samples::AudioRecord entry now accepts the exact existing 1,938-byte
