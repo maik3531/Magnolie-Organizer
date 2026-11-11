@@ -1,4 +1,10 @@
 #include "../../native/phone-camera/PhoneCameraPipe.h"
+#ifdef MAGNOLIE_NATIVE_OUTPUT_LEASE_TESTS
+#include "../../native/phone-camera/PhoneCameraOutputLease.h"
+#include <mferror.h>
+using Magnolie::PhoneCamera::OutputLease;
+using Magnolie::PhoneCamera::OutputLeaseOwner;
+#endif
 #ifdef MAGNOLIE_NATIVE_RELAY_TESTS
 #include "../../native/phone-camera/PhoneCameraRelay.h"
 #endif
@@ -68,6 +74,42 @@ namespace
         }
         CloseHandle(connection.hEvent);
         if (!connected) { CloseHandle(pipe); CloseHandle(stop); return 21; }
+#ifdef MAGNOLIE_NATIVE_OUTPUT_LEASE_TESTS
+        if (std::wcsncmp(mode, L"lease", 5) == 0)
+        {
+            const bool phases = std::wcscmp(mode, L"lease-phases") == 0;
+            const bool rollback = std::wcscmp(mode, L"lease-rollback") == 0;
+            const bool replay = std::wcscmp(mode, L"lease-replay") == 0;
+            const bool gap = std::wcscmp(mode, L"lease-gap") == 0;
+            const bool late = std::wcscmp(mode, L"lease-late-refresh") == 0;
+            const int records = phases || rollback ? 3 : replay || gap || late ? 2 : 1;
+            for (int i = 0; i < records; ++i)
+            {
+                std::vector<BYTE> record(OutputLease::RecordBytes);
+                record[0] = std::wcscmp(mode, L"lease-version") == 0 ? 2 : 1;
+                record[1] = phases && i == 2 ? 3 : rollback && i == 2 ? 1 : i ? 2 : 1;
+                if (std::wcscmp(mode, L"lease-phase") == 0) record[1] = 4;
+                if (std::wcscmp(mode, L"lease-send-first") == 0) record[1] = 2;
+                if (std::wcscmp(mode, L"lease-stop-expiry") == 0) record[1] = 3;
+                std::uint64_t sequence = static_cast<std::uint64_t>(i);
+                if (replay && i == 1) sequence = 0;
+                if (gap && i == 1) sequence = 2;
+                if (std::wcscmp(mode, L"lease-integer") == 0) sequence = 0x8000000000000000ULL;
+                std::uint64_t until = phases && i == 2 ? 0 : late && i == 1 ? 1400 : 1200;
+                if (std::wcscmp(mode, L"lease-expired") == 0) until = 1000;
+                if (std::wcscmp(mode, L"lease-future") == 0) until = 1251;
+                if (std::wcscmp(mode, L"lease-boundary") == 0) until = 1250;
+                for (unsigned int n = 0; n < 8; ++n)
+                {
+                    record[2 + n] = static_cast<BYTE>(sequence >> (56 - 8 * n));
+                    record[10 + n] = static_cast<BYTE>(until >> (56 - 8 * n));
+                }
+                if (!Write(pipe, record.data(), 7) || std::wcscmp(mode, L"lease-short") == 0) break;
+                if (!Write(pipe, record.data() + 7, static_cast<DWORD>(record.size() - 7))) break;
+            }
+            WaitForSingleObject(stop, 15000); CloseHandle(pipe); CloseHandle(stop); return 0;
+        }
+#endif
 #ifdef MAGNOLIE_NATIVE_RELAY_TESTS
         if (std::wcsncmp(mode, L"audio", 5) == 0)
         {
@@ -498,6 +540,118 @@ namespace
         Check(FAILED(f.relay->ReceiveOne(&sample)) && !sample && f.relay->IsRetired() && f.samples->IsRetired());
     }
 #endif
+
+#ifdef MAGNOLIE_NATIVE_OUTPUT_LEASE_TESTS
+    struct LeaseState
+    {
+        std::atomic<ULONGLONG> now{1000};
+        std::atomic_int retired{0};
+        std::atomic<HRESULT> reason{S_OK};
+        static ULONGLONG Now(void* context) noexcept { return static_cast<LeaseState*>(context)->now.load(); }
+        static void Retired(void* context, HRESULT reason) noexcept
+        { auto& state = *static_cast<LeaseState*>(context); state.reason = reason; ++state.retired; }
+        OutputLeaseOwner Callbacks() { return {Retired, this, nullptr, Now}; }
+    };
+    struct LeaseFixture
+    {
+        Owner original;
+        LeaseState state;
+        Peer peer;
+        std::unique_ptr<PipeReader> reader;
+        std::unique_ptr<OutputLease> lease;
+        explicit LeaseFixture(const wchar_t* mode) : peer(mode)
+        { Ok(PipeReader::Connect(peer.id, peer.process, Owner::Current, &original, reader)); }
+        void Attach() { Ok(OutputLease::Create(reader, state.Callbacks(), lease)); }
+    };
+    void LeasePrepareSendStop()
+    {
+        Check(OutputLease::RecordBytes == 18);
+        LeaseFixture f(L"lease-phases"); f.Attach();
+        const auto callbacks = f.lease->Callbacks();
+        Ok(f.lease->ReceiveOne()); Ok(callbacks.current(callbacks.context));
+        Check(callbacks.sending(callbacks.context) == E_ACCESSDENIED && !f.lease->IsRetired());
+        Ok(f.lease->ReceiveOne()); Ok(callbacks.current(callbacks.context)); Ok(callbacks.sending(callbacks.context));
+        Check(f.lease->ReceiveOne() == MF_E_SHUTDOWN && f.lease->IsRetired() && f.state.retired == 1);
+        Check(FAILED(f.lease->RequireSending()) && FAILED(f.lease->ReceiveOne()) && f.state.retired == 1);
+        LeaseFixture fail(L"lease-one"); fail.Attach(); Ok(fail.lease->ReceiveOne());
+        const auto original = fail.lease->Callbacks(); original.retired(original.context, E_ACCESSDENIED);
+        Check(fail.lease->IsRetired() && fail.state.reason == E_ACCESSDENIED && fail.state.retired == 1);
+        original.retired(original.context, E_FAIL); Check(fail.state.reason == E_ACCESSDENIED && fail.state.retired == 1);
+    }
+    void LeaseMalformedControl()
+    {
+        for (const wchar_t* mode : {L"lease-version", L"lease-phase", L"lease-send-first", L"lease-stop-expiry", L"lease-expired", L"lease-future", L"lease-integer"})
+        {
+            LeaseFixture f(mode); f.Attach();
+            Check(FAILED(f.lease->ReceiveOne()) && f.lease->IsRetired() && f.state.retired == 1);
+            Check(FAILED(f.lease->RequireCurrent()) && f.state.retired == 1);
+        }
+    }
+    void LeaseSequenceAndPhaseCannotRollback()
+    {
+        for (const wchar_t* mode : {L"lease-replay", L"lease-gap", L"lease-rollback"})
+        {
+            LeaseFixture f(mode); f.Attach(); Ok(f.lease->ReceiveOne());
+            if (std::wcscmp(mode, L"lease-rollback") == 0) { Ok(f.lease->ReceiveOne()); Ok(f.lease->RequireSending()); }
+            Check(FAILED(f.lease->ReceiveOne()) && f.lease->IsRetired() && f.state.retired == 1);
+        }
+    }
+    void LeaseExpiryCannotResurrect()
+    {
+        LeaseFixture late(L"lease-late-refresh"); late.Attach(); Ok(late.lease->ReceiveOne());
+        late.state.now = 1200;
+        Check(late.lease->ReceiveOne() == HRESULT_FROM_WIN32(ERROR_TIMEOUT) && late.state.retired == 1);
+        late.state.now = 1000; Check(FAILED(late.lease->RequireCurrent()) && FAILED(late.lease->RequireSending()));
+        LeaseFixture boundary(L"lease-boundary"); boundary.Attach(); Ok(boundary.lease->ReceiveOne());
+        boundary.state.now = 1249; Ok(boundary.lease->RequireCurrent()); boundary.state.now = 1250;
+        Check(boundary.lease->RequireCurrent() == HRESULT_FROM_WIN32(ERROR_TIMEOUT) && boundary.state.retired == 1);
+        LeaseFixture clock(L"lease-one"); clock.Attach(); Ok(clock.lease->ReceiveOne()); clock.state.now = 999;
+        Check(clock.lease->RequireCurrent() == E_INVALIDARG && clock.state.retired == 1);
+    }
+    void LeaseStopExpiryInterruptPending()
+    {
+        for (bool stop : {true, false})
+        {
+            LeaseFixture f(L"lease-one"); f.Attach(); Ok(f.lease->ReceiveOne());
+            f.original.signalAt = f.original.calls + 2;
+            std::atomic<HRESULT> status{S_OK}; std::thread receive([&] { status = f.lease->ReceiveOne(); });
+            const DWORD pending = WaitForSingleObject(f.original.pending, 1500);
+            if (stop) f.lease->Stop(); else { f.state.now = 1200; f.lease->RequireCurrent(); }
+            receive.join();
+            Check(pending == WAIT_OBJECT_0 && FAILED(status) && f.lease->IsRetired() && f.state.retired == 1);
+        }
+    }
+    void LeaseOriginalProcessExit()
+    {
+        LeaseFixture f(L"lease-one"); f.Attach(); Ok(f.lease->ReceiveOne());
+        SetEvent(f.peer.stop); Check(WaitForSingleObject(f.peer.process, 1500) == WAIT_OBJECT_0);
+        Check(FAILED(f.lease->RequireCurrent()) && f.lease->IsRetired() && f.state.retired == 1);
+    }
+    void LeaseCreationHasNoGrant()
+    {
+        LeaseFixture f(L"empty"); auto* original = f.reader.get(); OutputLeaseOwner missing{};
+        Check(OutputLease::Create(f.reader, missing, f.lease) == E_INVALIDARG && f.reader.get() == original && !f.lease);
+        f.Attach(); Check(!f.reader && f.lease->Control() == original);
+        LeaseFixture replacement(L"empty"); auto* replacementReader = replacement.reader.get();
+        Check(OutputLease::Create(replacement.reader, replacement.state.Callbacks(), f.lease) == E_INVALIDARG && replacement.reader.get() == replacementReader);
+        Check(f.lease->RequireCurrent() == E_ACCESSDENIED && f.state.retired == 1);
+        Check(FAILED(f.lease->ReceiveOne()) && f.state.retired == 1);
+        replacement.reader->Stop();
+        Check(OutputLease::Create(replacement.reader, replacement.state.Callbacks(), replacement.lease) == E_INVALIDARG && replacement.reader.get() == replacementReader);
+    }
+    void LeaseConcurrentAndPartialDeadline()
+    {
+        LeaseFixture f(L"empty"); f.Attach(); f.original.signalAt = f.original.calls + 2;
+        std::atomic<HRESULT> status{S_OK}; std::thread receive([&] { status = f.lease->ReceiveOne(); });
+        const DWORD pending = WaitForSingleObject(f.original.pending, 1500);
+        const HRESULT concurrent = f.lease->ReceiveOne(); receive.join();
+        Check(pending == WAIT_OBJECT_0 && concurrent == HRESULT_FROM_WIN32(ERROR_BUSY) && FAILED(status) && f.state.retired == 1);
+        LeaseFixture partial(L"lease-short"); partial.Attach(); const auto begin = std::chrono::steady_clock::now();
+        Check(partial.lease->ReceiveOne() == HRESULT_FROM_WIN32(ERROR_TIMEOUT) && partial.state.retired == 1);
+        const auto elapsed = std::chrono::steady_clock::now() - begin;
+        Check(elapsed >= std::chrono::milliseconds(1800) && elapsed < std::chrono::milliseconds(4500));
+    }
+#endif
 }
 
 int wmain(int argc, wchar_t** argv)
@@ -522,6 +676,12 @@ int wmain(int argc, wchar_t** argv)
         {"audio-relay-mute-send", AudioRelayMuteAndActualSend},
         {"audio-relay-create-null", AudioRelayCreationAndNullOutput},
         {"audio-relay-process-exit", AudioRelayOriginalProcessExit},
+#endif
+#ifdef MAGNOLIE_NATIVE_OUTPUT_LEASE_TESTS
+        {"lease-prepare-send-stop", LeasePrepareSendStop}, {"lease-malformed-control", LeaseMalformedControl},
+        {"lease-sequence-phase-rollback", LeaseSequenceAndPhaseCannotRollback}, {"lease-expiry-no-resurrection", LeaseExpiryCannotResurrect},
+        {"lease-stop-expiry-pending", LeaseStopExpiryInterruptPending}, {"lease-original-process-exit", LeaseOriginalProcessExit},
+        {"lease-create-no-grant", LeaseCreationHasNoGrant}, {"lease-concurrent-record-deadline", LeaseConcurrentAndPartialDeadline},
 #endif
     };
     for (const auto& test : cases)

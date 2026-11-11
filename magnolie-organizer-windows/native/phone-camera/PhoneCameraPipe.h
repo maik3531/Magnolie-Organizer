@@ -26,6 +26,7 @@ namespace Magnolie::PhoneCamera
         bool IsRetired() const noexcept;
     private:
         friend class AudioRender; // Isolated renderer verifies the exact admitted OS parent, never a PID lookup replacement.
+        friend class OutputLease; // Nonblocking recheck of the original held control process.
         PipeReader(Current current, void* context) noexcept : current_(current), context_(context) {}
         HRESULT RequireCurrent() noexcept;
         const Current current_;

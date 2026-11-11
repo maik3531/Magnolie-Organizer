@@ -1,12 +1,50 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Original native output-control lease (Refs #542)
+
+OutputLease owns an already kernel-original-process-admitted control PipeReader.
+Its fixed private 18-byte v1 record contains phase (1 prepare, 2 SEND, 3 stop),
+big-endian sequence and local GetTickCount64 expiry. Whole records retain the
+original pipe deadline and are erased after use. No constructor grants Current
+or SEND. Prepare grants only Current, SEND cannot be the first record or roll back
+to prepare, and stop is terminal with zero expiry. Each nonterminal lease must be
+strictly future and no more than 250 ms away. Sequence replay/gaps, stale/far-future
+expiry, clock rollback, process loss, malformed/partial control, concurrent reads
+and Stop fail closed, signal the control reader and retire the original joined
+owner once. Even a fresh-looking later record cannot renew an already expired
+lease. The control reader's bootstrap guard must not recursively query this lease.
+
+AudioRender::Open now accepts ONLY this actual control-backed lease; its productive
+factory no longer accepts caller-supplied Current/SEND callbacks or replacement
+control objects. Prepare uses its Current callback; Write/Start use its separate
+SEND callback. The same held control process must still be the actual OS parent.
+The lease and original callback context must outlive all borrowing workers/clocks.
+
+Eight selected Windows kernel-pipe/own-child groups passed for phases, malformed
+records, sequence/phase rollback, expiry/no resurrection, pending-read Stop/expiry,
+original process exit, no-grant creation and concurrency/partial-record deadline.
+The changed typed render factory checks were selected separately, including a
+real accepted PREPARE that still cannot admit an in-process UI fallback. An initial
+test-fixture disconnected-pipe reuse failure was corrected with a fresh namespace;
+only that failed case was rerun, not the unchanged passing case. The existing
+MSVC /W4 /WX builds and production render object without test access passed.
+No positive real device initialization, AudioClient or stream was exercised.
+
+This lease is NOT a phone consent or independent original-session authority:
+the productive parent publisher must originate only from the actual authenticated
+joined session, publish SEND only after actual SEND, and withdraw/terminate its
+owned child on retirement. That publisher/child bootstrap, the ONE shared AV clock
+mapping and real endpoint/normal-consumer/phone/OBS/package acceptance remain open
+under #503/#536/#538/#486. No platform/device pause or default-OFF gate is lifted.
+
 ## Isolated native audio render worker (Refs #541)
 
 AudioRender now implements the actual WASAPI render-side code, but is not yet
 connected to a productive child-process bootstrap or advertised as ready. Open
-requires original live Current/SEND/retirement callbacks and an already admitted
-control PipeReader whose held server process is the actual OS parent, not the
-current process. This rejects an in-process UI fallback before any device access.
+now consumes only the control-backed OutputLease above, with original live
+Current/SEND/retirement and an already admitted control PipeReader whose held
+server process is the actual OS parent, not the current process. This rejects an
+in-process UI fallback before any device access.
 Preparation checks the original current capture context, not SEND: the original
 session prepares outputs before it publishes SEND. Initialization never starts
 the stream; every actual Write/Start additionally requires actual original SEND.

@@ -1,5 +1,6 @@
 #include "../../native/phone-camera/PhoneCameraAudioRender.h"
 #include "../../native/phone-camera/PhoneCameraPipe.h"
+#include "../../native/phone-camera/PhoneCameraOutputLease.h"
 #include <mfapi.h>
 #include <mferror.h>
 #include <algorithm>
@@ -225,13 +226,11 @@ namespace
 
     void MissingOwnerParentAndSendBeforeWrite()
     {
-        std::unique_ptr<AudioRender> result; ClockOwner missing{};
-        Check(AudioRender::Open(missing, nullptr, result) == E_INVALIDARG && !result);
-        Owner owner; owner.current = false;
-        Check(FAILED(AudioRender::Open(owner.Callbacks(), nullptr, result)) && !result && owner.retired == 1);
-        Owner noParent;
-        Check(FAILED(AudioRender::Open(noParent.Callbacks(), nullptr, result)) && !result && noParent.retired == 1);
-        // Rejection before journal/enumeration/activation, no positive Open.
+        std::unique_ptr<AudioRender> result;
+        Check(AudioRender::Open(nullptr, result) == E_INVALIDARG && !result);
+        // No productive raw-callback factory: the real lease is mandatory.
+        Fixture revoked; revoked.owner.current = false; auto refused = Packet();
+        Check(FAILED(revoked.output->Write(refused.Get(), revoked.owner.now)) && revoked.writer->gets == 0);
         Fixture prepared; prepared.owner.sending = false; auto sample = Packet();
         Ok(AudioRenderTestAccess::PrepareCurrent(*prepared.output));
         Check(!prepared.output->IsRetired() && prepared.writer->gets == 0 && prepared.client->starts == 0);
@@ -296,9 +295,44 @@ namespace
         Owner owner; std::unique_ptr<PipeReader> reader;
         Ok(PipeReader::Connect(session, self.value, Owner::Current, &owner, reader));
         Check(AudioRenderTestAccess::Parent(reader.get()) == E_ACCESSDENIED);
+        OutputLeaseOwner leaseOwner{Owner::Retired, &owner, nullptr, nullptr};
+        std::unique_ptr<OutputLease> lease; Ok(OutputLease::Create(reader, leaseOwner, lease));
         std::unique_ptr<AudioRender> output;
-        Check(AudioRender::Open(owner.Callbacks(), reader.get(), output) == E_ACCESSDENIED && !output);
-        reader.reset(); DisconnectNamedPipe(server.value);
+        // A real pipe alone does not grant prepare: no accepted lease yet.
+        Check(AudioRender::Open(lease.get(), output) == E_ACCESSDENIED && !output && lease->IsRetired());
+        lease.reset(); DisconnectNamedPipe(server.value);
+
+        // A failed lease is never reopened in place. Use a NEW original test
+        // context/namespace; a disconnected instance is not yet listening again.
+        CloseHandle(server.value); server.value = INVALID_HANDLE_VALUE;
+        Ok(CoCreateGuid(&session));
+        server.value = CreateNamedPipeW(PipeReader::Name(session).c_str(),
+            PIPE_ACCESS_OUTBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE | FILE_FLAG_OVERLAPPED,
+            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS, 1, 1024, 1024, 0, nullptr);
+        Check(server.value != INVALID_HANDLE_VALUE);
+        Owner preparedOwner;
+        Ok(PipeReader::Connect(session, self.value, Owner::Current, &preparedOwner, reader));
+        OutputLeaseOwner preparedLeaseOwner{Owner::Retired, &preparedOwner, nullptr,
+            [](void* context) noexcept { return static_cast<ULONGLONG>(static_cast<Owner*>(context)->now / 1000); }};
+        Ok(OutputLease::Create(reader, preparedLeaseOwner, lease));
+        std::array<BYTE, OutputLease::RecordBytes> record{}; record[0] = 1; record[1] = 1;
+        const ULONGLONG until = static_cast<ULONGLONG>(preparedOwner.now / 1000) + 250;
+        for (unsigned int i = 0; i < 8; ++i) record[10 + i] = static_cast<BYTE>(until >> (56 - 8 * i));
+        Handle sent; sent.value = CreateEventW(nullptr, TRUE, FALSE, nullptr); Check(sent.value);
+        OVERLAPPED written{}; written.hEvent = sent.value; DWORD bytes = 0;
+        bool complete = WriteFile(server.value, record.data(), static_cast<DWORD>(record.size()), &bytes, &written) != FALSE;
+        if (!complete && GetLastError() == ERROR_IO_PENDING)
+        {
+            if (WaitForSingleObject(sent.value, 1500) == WAIT_OBJECT_0)
+                complete = GetOverlappedResult(server.value, &written, &bytes, FALSE) != FALSE;
+            else { CancelIoEx(server.value, &written); DWORD ignored = 0; GetOverlappedResult(server.value, &written, &ignored, TRUE); }
+        }
+        Check(complete && bytes == record.size());
+        Ok(lease->ReceiveOne()); Ok(lease->RequireCurrent());
+        Check(lease->RequireSending() == E_ACCESSDENIED && !lease->IsRetired());
+        // Even a valid PREPARE cannot admit the UI process as its own child.
+        Check(AudioRender::Open(lease.get(), output) == E_ACCESSDENIED && !output && lease->IsRetired());
+        lease.reset(); DisconnectNamedPipe(server.value);
 
         wchar_t path[32768]{}, text[40]{};
         Check(GetModuleFileNameW(nullptr, path, 32768) != 0 && StringFromGUID2(session, text, 40));
@@ -335,7 +369,8 @@ int main(int argc, char** argv)
     if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return 2;
     if (argc == 4 && std::strcmp(argv[1], "--parent-check") == 0)
     { const int result = ParentChild(argv[2], argv[3]); CoUninitialize(); return result; }
-    if (argc != 1) { CoUninitialize(); return 4; }
+    if (argc > 2) { CoUninitialize(); return 4; }
+    const std::string selection = argc == 2 ? "," + std::string(argv[1]) + "," : "";
     if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET))) { CoUninitialize(); return 3; }
     int failed = 0;
     const struct { const char* name; void (*run)(); } tests[] = {
@@ -351,6 +386,7 @@ int main(int argc, char** argv)
     };
     for (const auto& test : tests)
     {
+        if (!selection.empty() && selection.find("," + std::string(test.name) + ",") == std::string::npos) continue;
         try { test.run(); std::printf("PASS %s\n", test.name); }
         catch (...) { ++failed; std::printf("FAIL %s\n", test.name); }
     }

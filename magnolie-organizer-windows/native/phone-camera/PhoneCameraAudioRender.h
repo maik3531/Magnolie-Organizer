@@ -9,6 +9,7 @@
 namespace Magnolie::PhoneCamera
 {
     class PipeReader;
+    class OutputLease;
     // Worker half of the isolated audio output process, NEVER an in-process UI
     // fallback. The ORIGINAL controller must impose a process-wide deadline:
     // Endpoint COM calls (including activation/Initialize/buffer/Stop/Release)
@@ -17,8 +18,7 @@ namespace Magnolie::PhoneCamera
     class AudioRender final
     {
     public:
-        static HRESULT Open(ClockOwner originalOwner, PipeReader* originalControl,
-            std::unique_ptr<AudioRender>& result) noexcept;
+        static HRESULT Open(OutputLease* originalLease, std::unique_ptr<AudioRender>& result) noexcept;
         ~AudioRender();
         // Sample contains original phone PTS; nativePtsUs comes from the ONE
         // original joined PresentationClock, not an independent audio epoch.

@@ -1,5 +1,6 @@
 #include "PhoneCameraAudioRender.h"
 #include "PhoneCameraPipe.h"
+#include "PhoneCameraOutputLease.h"
 #include <aclapi.h>
 #include <cfgmgr32.h>
 #include <devicetopology.h>
@@ -187,11 +188,13 @@ namespace Magnolie::PhoneCamera
         return matched ? control->RequireCurrent() : E_ACCESSDENIED;
     }
 
-    HRESULT AudioRender::Open(ClockOwner owner, PipeReader* control, std::unique_ptr<AudioRender>& result) noexcept
+    HRESULT AudioRender::Open(OutputLease* lease, std::unique_ptr<AudioRender>& result) noexcept
     {
-        if (result || !owner.current || !owner.sending || !owner.retired) return E_INVALIDARG;
+        if (result || !lease) return E_INVALIDARG;
         try
         {
+            const ClockOwner owner = lease->Callbacks();
+            PipeReader* const control = lease->Control();
             std::unique_ptr<AudioRender> output(new AudioRender(owner));
             // The original joined session prepares outputs BEFORE publishing
             // SEND. Require its actual current capture context here, but never
