@@ -33,6 +33,8 @@ namespace Magnolie::PhoneCamera
         SourceOwner owner;
         ComPtr<IUnknown> lifetime;
         Samples samples;
+        std::shared_ptr<PresentationClock> clock;
+        GUID clockScope = GUID_NULL;
         bool shutdown = false, started = false, announced = false, received = false;
         MF_STREAM_STATE streamState = MF_STREAM_STATE_STOPPED;
         Clock::time_point startedAt{}, receivedAt{};
@@ -179,7 +181,11 @@ namespace Magnolie::PhoneCamera
         if (s.sourceEvents) s.sourceEvents->Shutdown();
         if (s.streamEvents) s.streamEvents->Shutdown();
         if (stream_) stream_->Detach();
-        s.owner.retired(s.owner.context, reason);
+        // An anchored source has the exact SAME retirement callback/context as
+        // its clock. Notify through that clock once with the genuine reason,
+        // while the callback context is still valid through Shutdown.
+        if (s.clock) s.clock->Stop(reason);
+        else s.owner.retired(s.owner.context, reason);
         return FAILED(reason) ? reason : S_OK;
     }
 
@@ -284,6 +290,7 @@ namespace Magnolie::PhoneCamera
         if (!s.started || s.streamState != MF_STREAM_STATE_RUNNING || !s.latest || s.requests.empty()) return S_OK;
         HRESULT hr = CurrentLocked();
         if (SUCCEEDED(hr)) hr = s.owner.sending(s.owner.context);
+        if (SUCCEEDED(hr) && s.clock) hr = s.clock->RequireImportedAnchor(s.clockScope);
         if (SUCCEEDED(hr) && Clock::now() - s.receivedAt > std::chrono::milliseconds(250)) hr = MF_E_NET_TIMEOUT;
         if (FAILED(hr)) return s.shutdown ? hr : RetireLocked(hr);
         auto sample = std::move(s.latest); auto token = std::move(s.requests.front()); s.requests.pop_front();
@@ -299,8 +306,26 @@ namespace Magnolie::PhoneCamera
         std::lock_guard<std::recursive_mutex> lock(state_->gate);
         HRESULT hr = CurrentLocked(); if (FAILED(hr)) return hr;
         auto& s = *state_; ComPtr<IMFSample> sample;
+        if (s.clock)
+        {
+            hr = s.clock->RequireImportedAnchor(s.clockScope);
+            if (FAILED(hr)) return RetireLocked(hr);
+        }
         hr = s.samples.Video(data, size, sequence, ptsUs, &sample);
         if (FAILED(hr)) return RetireLocked(hr);
+        if (s.clock)
+        {
+            LONGLONG mapped = 0; hr = s.clock->Map(ptsUs, &mapped);
+            if (SUCCEEDED(hr)) hr = sample->SetSampleTime(mapped * 10);
+            if (FAILED(hr))
+            {
+                // This private sample has not entered a client event queue.
+                ComPtr<IMFMediaBuffer> buffer; BYTE* bytes = nullptr; DWORD length = 0;
+                if (SUCCEEDED(sample->GetBufferByIndex(0, &buffer)) && SUCCEEDED(buffer->Lock(&bytes, nullptr, &length)))
+                { SecureZeroMemory(bytes, length); buffer->Unlock(); }
+                return RetireLocked(hr);
+            }
+        }
         hr = sample->SetUINT64(SampleArrivedAt, MonotonicUs());
         if (FAILED(hr)) return RetireLocked(hr);
         s.received = true; s.receivedAt = Clock::now();
@@ -363,6 +388,7 @@ namespace Magnolie::PhoneCamera
             if (SUCCEEDED(hr) && type == MEMediaSample)
             {
                 hr = state_->owner.sending(state_->owner.context);
+                if (SUCCEEDED(hr) && state_->clock) hr = state_->clock->RequireImportedAnchor(state_->clockScope);
                 PROPVARIANT payload{};
                 ComPtr<IMFSample> sample;
                 UINT64 arrived = 0;
@@ -419,7 +445,8 @@ namespace Magnolie::PhoneCamera
         *stateValue = state_->streamState; return S_OK;
     }
 
-    HRESULT CreateSource(const SourceOwner& owner, IMFMediaSourceEx** result, IFrameFeed** feed) noexcept
+    static HRESULT CreateBoundSource(const SourceOwner& owner, const GUID& scope,
+        const std::shared_ptr<PresentationClock>& clock, IMFMediaSourceEx** result, IFrameFeed** feed) noexcept
     {
         if (result) *result = nullptr;
         if (feed) *feed = nullptr;
@@ -428,6 +455,7 @@ namespace Magnolie::PhoneCamera
         try
         {
             auto state = std::make_shared<State>(owner);
+            state->clock = clock; state->clockScope = scope;
             auto source = Microsoft::WRL::Make<Source>(state);
             if (!source) return E_OUTOFMEMORY;
             HRESULT hr = source->Initialize();
@@ -437,5 +465,16 @@ namespace Magnolie::PhoneCamera
             return hr;
         }
         catch (...) { return E_OUTOFMEMORY; }
+    }
+    HRESULT CreateSource(const SourceOwner& owner, IMFMediaSourceEx** result, IFrameFeed** feed) noexcept
+    { return CreateBoundSource(owner, GUID_NULL, {}, result, feed); }
+    HRESULT CreateAnchoredSource(const SourceOwner& owner, const GUID& scope,
+        const std::shared_ptr<PresentationClock>& clock, IMFMediaSourceEx** result, IFrameFeed** feed) noexcept
+    {
+        if (result) *result = nullptr;
+        if (feed) *feed = nullptr;
+        if (!result || !feed) return E_POINTER;
+        if (!clock || scope == GUID_NULL || !clock->MatchesOwner({owner.current, owner.sending, owner.retired, owner.context})) return E_ACCESSDENIED;
+        return CreateBoundSource(owner, scope, clock, result, feed);
     }
 }

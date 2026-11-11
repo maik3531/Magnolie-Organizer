@@ -1,5 +1,7 @@
 #pragma once
 #include "PhoneCameraSamples.h"
+#include "PhoneCameraClock.h"
+#include <memory>
 
 namespace Magnolie::PhoneCamera
 {
@@ -28,4 +30,12 @@ namespace Magnolie::PhoneCamera
     // retired must revoke the original joined AV owner, not a replacement session.
     // The owning controller MUST call Shutdown, including if no client starts it.
     HRESULT CreateSource(const SourceOwner& owner, IMFMediaSourceEx** source, IFrameFeed** feed) noexcept;
+    // Trusted FrameServer broker route: callback identity must match this clock;
+    // prepare may precede SEND/import, but Publish/delivery may not. The broker
+    // imports the identical parent-exported record before the first video frame.
+    // CreateSource above remains an unregistered low-level object primitive,
+    // not a production broker/clock fallback.
+    HRESULT CreateAnchoredSource(const SourceOwner& owner, const GUID& originalScope,
+        const std::shared_ptr<PresentationClock>& originalImportedClock,
+        IMFMediaSourceEx** source, IFrameFeed** feed) noexcept;
 }

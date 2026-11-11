@@ -103,6 +103,18 @@ namespace Magnolie::PhoneCamera
     }
     void PresentationClock::Stop() noexcept
     {
-        Retire(S_OK);
+        Stop(S_OK);
+    }
+    void PresentationClock::Stop(HRESULT originalReason) noexcept { Retire(originalReason); }
+    bool PresentationClock::MatchesOwner(const ClockOwner& original) const noexcept
+    {
+        return owner_.current == original.current && owner_.sending == original.sending &&
+            owner_.retired == original.retired && owner_.context == original.context;
+    }
+    HRESULT PresentationClock::RequireImportedAnchor(const GUID& scope) noexcept
+    {
+        std::lock_guard<std::mutex> lock(gate_);
+        HRESULT hr = Check(); if (FAILED(hr)) return hr;
+        return scope != GUID_NULL && imported_ && anchored_ && anchorScope_ == scope ? S_OK : Retire(E_ACCESSDENIED);
     }
 }

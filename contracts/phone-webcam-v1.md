@@ -1,5 +1,51 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Imported original AV anchor reaches actual video samples (Refs #556)
+
+CreateAnchoredSource is the explicit route for the future trusted FrameServer
+broker. Its clock must have the identical original Current/Sending/retired callback
+and context identity. Preparation may precede SEND/anchor arrival; actual publish,
+delivery and queued-sample readback require an imported anchor under the same
+original scope. Missing, foreign or merely locally-created receipt-time epochs
+are refused. CreateSource remains an unregistered low-level object primitive,
+not a production broker fallback or registration/capture grant.
+
+The original phone record is still validated by Samples. The anchored path maps
+its original PTS through the imported parent clock and sets the actual IMFSample
+timestamp in 100-ns units. It preserves sample token, fixed NV12 bytes, sequence,
+native delivery/revocation and bounded queues. A mapping failure erases its still-
+private sample buffer. Shutdown retires the clock while callback context is still
+valid, not upon a later client's final source/stream release. Source and clock
+notify the SAME original owner once with the genuine failure reason.
+
+Seven NEW actual in-memory Windows MF source/sample groups passed on final inputs:
+parent epoch reaching actual sample/time/token/bytes; no missing/receipt origin;
+same scope/owner; prepare versus SEND/withdrawal; retired clock at queued readback;
+shutdown clock lifetime; and exact once/first-error retirement. The initial six
+plus one affected legacy token/sample case passed before final review. Review of
+the new uncommitted implementation then reproduced duplicate retirement with S_OK
+masking the first source failure; a reason-preserving nonblocking Clock.Stop
+overload corrected it before commit. All seven affected anchored cases were
+checked on final code in two targeted runs; the unchanged legacy branch was not
+repeated. One intermediate comma-selector run selected zero cases and was rejected
+by the checker; it is NOT passing evidence. This was a new integration correction,
+not a confirmed defect in an earlier released package.
+
+The actual sample test uses a parent epoch of 5,000,000 us at remote PTS 1,000,
+then a consumer receipt time of 5,030,000. Its first video PTS 11,000 produces an
+actual sample time of 50,100,000 in 100-ns units, NOT a new receipt-time origin.
+These are controlled clock/MF-object checks, not measured AV/device latency.
+
+Changed native Clock/Source headers invalidated the source-bound artifacts. Both
+existing production builders were rerun sequentially on final native inputs,
+without loading/executing their outputs; earlier evidence/artifacts were retained.
+The actual optional product build and read-only PE/resource/sibling checks passed
+with the new parent/worker identities and unchanged setup helper. No old unrelated
+native controller/guard/driver suites were repeated. Actual FrameServer resolver,
+combined outputs, source registration/system authorization and real protected-
+module/phone/OBS/AV/package acceptance remain #503/#536/#538/#486. No camera was
+registered and no AudioClient/audio endpoint, installer or VM was started.
+
 ## Managed exact-owner C-API and callback lifetime (Refs #555)
 
 PhoneCameraAudioParentRuntime obtains its worker digest only from immutable

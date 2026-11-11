@@ -40,7 +40,13 @@ namespace Magnolie::PhoneCamera
         // rollback check; it NEVER replaces either original anchor coordinate.
         // This data is not Current/SEND authority or a scheduling/readiness grant.
         HRESULT ImportAnchor(const GUID& originalScope, const BYTE* record, std::size_t size) noexcept;
+        // Source preparation can bind identity before SEND, but actual delivery
+        // must require a previously imported SAME-scope anchor, never Map's local
+        // first-frame origin. This check does not export/rewrite that anchor.
+        bool MatchesOwner(const ClockOwner& original) const noexcept;
+        HRESULT RequireImportedAnchor(const GUID& originalScope) noexcept;
         void Stop() noexcept; // Nonblocking signal, including from an owner callback.
+        void Stop(HRESULT originalReason) noexcept; // Same single original notification; preserve a source failure reason.
     private:
         HRESULT Check() noexcept;
         HRESULT Retire(HRESULT reason) noexcept;

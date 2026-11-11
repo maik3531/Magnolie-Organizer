@@ -24,14 +24,18 @@ namespace
         std::atomic_bool current{true}, sending{true};
         std::atomic_int retired{0}, sendChecks{0};
         std::atomic<HRESULT> reason{S_OK};
+        std::atomic<HRESULT> firstReason{S_OK};
+        std::atomic<LONGLONG> nativeNow{5000000};
         HANDLE event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
         ~Owner() { if (event) CloseHandle(event); }
         static HRESULT Current(void* value) noexcept { return static_cast<Owner*>(value)->current ? S_OK : E_ACCESSDENIED; }
         static HRESULT Sending(void* value) noexcept
         { auto& o = *static_cast<Owner*>(value); ++o.sendChecks; return o.current && o.sending ? S_OK : E_ACCESSDENIED; }
         static void Retired(void* value, HRESULT reason) noexcept
-        { auto& o = *static_cast<Owner*>(value); o.reason = reason; ++o.retired; SetEvent(o.event); }
+        { auto& o = *static_cast<Owner*>(value); o.reason = reason; if (o.retired.fetch_add(1) == 0) o.firstReason = reason; SetEvent(o.event); }
         SourceOwner Callbacks() { return {Current, Sending, Retired, this}; }
+        static LONGLONG Now(void* value) noexcept { return static_cast<Owner*>(value)->nativeNow; }
+        ClockOwner ClockCallbacks() { return {Current, Sending, Retired, this, nullptr, Now}; }
     };
     struct Fixture
     {
@@ -39,8 +43,19 @@ namespace
         ComPtr<IMFMediaSourceEx> source;
         ComPtr<IFrameFeed> feed;
         ComPtr<IMFMediaStream2> stream;
-        explicit Fixture(IUnknown* lifetime = nullptr)
-        { auto callbacks = owner.Callbacks(); callbacks.lifetime = lifetime; Ok(CreateSource(callbacks, &source, &feed)); }
+        std::shared_ptr<PresentationClock> clock;
+        GUID scope{};
+        explicit Fixture(IUnknown* lifetime = nullptr, bool anchored = false)
+        {
+            auto callbacks = owner.Callbacks(); callbacks.lifetime = lifetime;
+            if (anchored)
+            {
+                Ok(CoCreateGuid(&scope)); auto original = owner.ClockCallbacks(); original.lifetime = lifetime;
+                clock = std::make_shared<PresentationClock>(original);
+                Ok(CreateAnchoredSource(callbacks, scope, clock, &source, &feed));
+            }
+            else Ok(CreateSource(callbacks, &source, &feed));
+        }
         ~Fixture() { if (source) source->Shutdown(); }
         void Start()
         {
