@@ -268,9 +268,40 @@ def test_base_status_does_not_import_optional_ui_or_probe(connected, monkeypatch
     service, _, _ = connected
     monkeypatch.setattr('importlib.import_module', lambda *args: pytest.fail('optional import from status'))
     assert service.webcam_status()['phase'] == 'off'
+    assert service.webcam_status()['visible'] is True
     service._native_camera_built = False
     assert service.webcam_status()['reason'] == 'not_in_build'
     with pytest.raises(PermissionError): service.webcam_action(dict(action='prepare', provider='auto'))
+
+
+def test_live_notes_visibility_not_pairing_and_stale_choices(ui):
+    manager, videos, service, peer, _ = ui
+    assert manager.status()['visible'] is True
+    action, choice = choose(manager)
+    channel = service.connections.pop(peer['device_id'])
+    assert peer['state'] == 'paired'
+    assert service.webcam_status()['visible'] is False
+    assert manager.status()['visible'] is False
+    with pytest.raises(PermissionError):
+        manager.start(action, choice, False, False)
+    assert not videos and service._native_webcam_owner is None
+    service.connections[peer['device_id']] = channel
+    assert manager.status()['visible'] is True
+    peer['state'] = 'unpaired'
+    assert manager.status()['visible'] is False
+
+
+def test_base_visibility_offline_absent_disabled_never_imports(connected, monkeypatch):
+    service, peer, _ = connected
+    monkeypatch.setattr('importlib.import_module', lambda *args: pytest.fail('optional import from visibility'))
+    assert service.webcam_status()['visible'] is True
+    service.enabled = False
+    assert service.webcam_status()['visible'] is False
+    service.enabled = True
+    service.connections.clear()
+    assert peer['state'] == 'paired' and service.webcam_status()['visible'] is False
+    service.store.peers.clear()
+    assert service.webcam_status()['visible'] is False
 
 
 def test_uncertain_cleanup_holds_slot_and_closes_prepared_video_even_if_exchange_close_fails(ui, monkeypatch):

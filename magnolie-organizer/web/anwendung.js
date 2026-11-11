@@ -29785,6 +29785,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   // Ephemeral native choices only. Never use preferences, phone paths or URLs.
   function baueTelefonWebcam(wurzel) {
     const block = el("div", "einst-gruppe"); block.id = "telefon-webcam";
+    block.hidden = true;
     block.append(el("h4", null, _("Phone webcam")), el("p", "einst-hinweis",
       _("Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission.")));
     const status = el("p", "einst-hinweis", _("Off"));
@@ -29828,6 +29829,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       muted.disabled = front.disabled = busy || enabled;
     }
     function apply(value) {
+      block.hidden = value.visible !== true;
+      if (block.hidden) discard();
       included = value.included !== false;
       installationPending = value.reason === "driver_installation_pending";
       enabled = value.enabled === true; lease = value.lease || "";
@@ -29844,7 +29847,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       busy = false;
       if (!block.isConnected) return;
       if (result.ok && result.webcam) apply(result.webcam);
-      else { status.textContent = _("Unavailable"); controls(); }
+      else { block.hidden = true; discard(); status.textContent = _("Unavailable"); controls(); }
       return result.webcam;
     }
     function discard() {
@@ -29854,6 +29857,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (oldInstall) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: oldInstall}});
     }
     const prepare = knopf(_("Enable"), "klein", async () => {
+      if (block.hidden) return;
       discard();
       const original = revision;
       let value = await request({action: "prepare", provider: provider.value});
@@ -29888,6 +29892,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     });
     const start = knopf(_("Start"), "klein", async () => {
+      if (block.hidden) return;
       const token = action, choice = choices.value;
       action = ""; choices.hidden = true;
       await request({action: "start", action_token: token, choice_token: choice, muted: muted.checked, front: front.checked});
@@ -29907,6 +29912,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       clearTimeout(timer);
       if (wurzel.open) refresh(); else discard();
     });
+    if (wurzel.open) refresh();
   }
 
   const kdeDateisystemAnsichten = new Set();

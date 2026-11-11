@@ -78,7 +78,7 @@ class NativeWebcamUi:
     def status(self):
         owner = self.owner
         if owner is None:
-            return dict(included=True, enabled=False, active=False, phase='off',
+            return dict(included=True, visible=self.service.webcam_notes_connected(), enabled=False, active=False, phase='off',
                 reason='driver_installation_pending' if self.installation_pending else '', lease='')
         active = owner.is_streaming()
         pending = owner.done.is_set() and not owner.cleanup_confirmed
@@ -89,7 +89,7 @@ class NativeWebcamUi:
             reason = next((name for name in ('permission_denied', 'foreground_required', 'unsupported', 'original_start_timeout')
                 if name in value), 'failed')
         phase = 'shutdown_pending' if pending else 'active' if active else 'starting' if enabled else 'failed' if reason else 'off'
-        return dict(included=True, enabled=enabled, active=active, phase=phase, reason=reason,
+        return dict(included=True, visible=self.service.webcam_notes_connected(), enabled=enabled, active=active, phase=phase, reason=reason,
             lease=self.lease, provider='notes', muted=owner.muted, front=owner.front)
 
     def _source_current(self, source):

@@ -2974,10 +2974,19 @@ class PhoneService:
         if action == 'start' and any(type(request[key]) is not bool for key in ('muted', 'front')):
             raise ValueError('invalid webcam capture choice')
 
+    def webcam_notes_connected(self):
+        # Live authenticated Notes state only; no optional imports/device probes.
+        with self.lock:
+            return bool(self.enabled and not self.stop_event.is_set() and any(
+                peer.get('state') == 'paired' and
+                type(self.connections.get(peer.get('device_id'))) is SecureChannel and
+                self.connections[peer['device_id']].last_capabilities is not None
+                for peer in self.store.peers))
+
     def webcam_status(self):
         manager = self._native_webcam_ui
         if manager is None:
-            return dict(included=self._native_camera_built, enabled=False, active=False, phase='off',
+            return dict(included=self._native_camera_built, visible=self.webcam_notes_connected(), enabled=False, active=False, phase='off',
                 reason='' if self._native_camera_built else 'not_in_build', lease='')
         return manager.status()
 
