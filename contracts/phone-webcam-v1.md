@@ -1,5 +1,57 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Original native parent controller and versioned C boundary (Refs #551)
+
+PhoneCameraAudioParent now owns the actual runtime/control/status/anchor/audio
+composition behind a versioned trusted-native C API. Its callbacks MUST originate
+from the exact #550 managed output authority, never renderer flags or copied
+pairing state. The expected worker hash MUST come from the immutable program
+payload. Production creation uses the protected fixed-sibling RuntimeImage gate;
+positive tests cannot bypass that gate except through absent-in-production test
+access to the fixed own diagnostic executable. Opaque handles are not pointers,
+are never reused, and permit only one original active owner at a time.
+
+Prepare creates all own first-instance user+SYSTEM/local/exact-held-child pipes
+and the outer guardian before Resume. The control publisher runs independently
+at 40-ms intervals while the actual worker prepares. Its internal first-publication
+event only closes a startup race; Ready additionally requires the exact worker
+status and same runtime's completion gate, fresh control and live original owner.
+Merely creating a handle or process does not grant readiness or SEND.
+
+The first actually admitted audio OR video PTS maps through ONE parent clock.
+The same exported 33-byte anchor goes to the worker and is available for the
+trusted FrameServer broker; every video frame must pass the parent observer before
+native video delivery. Audio uses a private erased 1938-byte copy, exact native
+sequence/monotone PTS admission and SEND checks. Its actual runtime operation is
+started before PCM publication and completed only by the same child's exact token
+status under the original 250-ms deadline. No new audio receipt-time origin is
+created, and export cannot substitute another scope/epoch.
+
+Stop is a terminal signal independent of the command mutex. Stop-reachable child
+objects are published once through atomic pointers and retained until all callers
+finish. Clock retirement occurs while its parent callback context is still alive.
+Close stops/joins publishers and verifies own worker exit before removing its
+handle; unconfirmed cleanup retains the terminal registered owner. Callers must
+retain callback/module lifetime until successful Close. Unknown/stale handles,
+replay, overlap, malformed records or original loss cannot revive or replace it.
+
+Six NEW actual Windows native/kernel groups passed: C-ABI/invalid/protected-image
+refusal; joined lease/status/anchor/PCM flow; no SEND/size/replay; original loss,
+exclusive owner and no revival; pending operation Stop with concurrent Close; and
+production DLL exports loaded only for version/invalid/denied-owner calls. The
+positive IPC peer is deliberately the fixed own diagnostic executable, NOT real
+AudioRender Open/Write or protected-package readiness. MSVC /W4 /WX test and
+production DLL builds passed without private test access in the latter. An initial
+test-only missing algorithm include failed before execution and was corrected;
+no unchanged old suites were rerun. No endpoint, AudioClient, stream, MF startup,
+installer/UAC/default/VM or physical capture operation was used.
+
+The DLL is not yet embedded/loaded by the production Organizer. Immutable DLL
+artifact/resource identity, managed loader and concrete outputs, FrameServer
+context/source wiring and actual device/AV latency/phone/OBS/package acceptance
+remain #503/#536/#538/#486. IPC/clock success is not synchronized system-microphone
+readiness. Original device pauses, default-OFF and release gates remain in force.
+
 ## Original joined output authority, not substitute callbacks (Refs #550)
 
 IPhoneCameraOutputs.PrepareAsync now receives the exact original session-owned
