@@ -1,5 +1,53 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Verified suspended runtime and external process guard (Refs #546)
+
+RuntimeImage accepts only the fixed native worker sibling of the current program,
+with SHA256 expected from the immutable original application payload. External
+manifests, settings, arbitrary executable paths and user-provided hashes are NOT
+trust sources. Read/delete-denying file and ancestor handles, non-reparse checks
+and administrator/SYSTEM/TrustedInstaller ownership plus mutation ACL checks
+protect that identity; writable portable installations fail closed. The drive
+root is held without treating its general directory-creation ACL as app trust.
+
+RuntimeProcess creates ONLY that image, suspended, with a fresh unnamed job:
+kill-on-close, one process and 256-MiB process-memory limit. No shell, elevation,
+installer, existing PID or foreign-process termination API is exposed. The exact
+inherited-handle list contains only a read/query original parent process handle;
+the job/other parent handles are not inherited. Environment/search inputs are
+reduced to the Windows system directory and the verified working directory.
+The independent guard starts before the caller may Resume. The caller must first
+establish original pipes/terminal stop channel, then verify actual child readiness
+before CompletePreparation; that method by itself grants NO readiness/authority.
+
+Bootstrap has a fixed 10-s deadline, including suspended time. Each subsequently
+declared native operation has a fixed 250-ms deadline and an exact one-use token.
+Overlap, replay, late completion, phase misuse, original Current loss on calls or
+Stop permanently retire the child. Original session retirement MUST signal Stop;
+the guard deliberately does not call a potentially blocked original callback
+while timing a native call. It requests own-job termination before notifying an
+owner on timeout; process exit is checked separately. An idle process is not a
+heartbeat/readiness witness. Stop signals without waiting on a command mutex or
+COM; WaitStopped explicitly reports cleanup confirmation/failure. The original
+owner must keep contexts alive and join/dispose outside its callbacks.
+
+Six new actual Windows kernel-process groups passed using the fixed own diagnostic
+executable through private test access only: job secured before Resume; operation
+deadline/replay/no revival; Current withdrawal/Stop; the real unchanged 10-s
+bootstrap limit while still suspended; mutable/missing-image and phase refusal;
+and abrupt own-parent ExitProcess. In the latter the child deliberately ignores
+parent death, proving kernel job cleanup rather than voluntary shutdown. A held
+wait-only child object is transferred to the test root, never reopened/killed by
+PID. MSVC /W4 /WX and a production object without private test access passed.
+
+This does NOT positively validate a protected installed worker image: the existing
+test build directory is user-writable and is refused by the productive verifier.
+The actual worker binary/embedded immutable manifest, readiness/operation response
+protocol and managed original-session binding remain #503, together with AV-anchor
+distribution/FrameServer broker, actual device latency and phone/OBS acceptance.
+No AudioClient, endpoint, stream, MF startup, installer/UAC/settings/default, VM or
+physical capture was used. Linux/macOS process models remain separately unverified.
+
 ## Immutable cross-process AV epoch record (Refs #545)
 
 PresentationClock can now export its fixed original anchor AFTER its first
