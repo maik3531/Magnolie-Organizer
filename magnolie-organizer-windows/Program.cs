@@ -12,7 +12,7 @@ internal static partial class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        if (args.Length != 0 && args[0] is "--phone-camera-audio-elevated" or "--phone-camera-audio-elevated-plan" or "--phone-camera-audio-preparation-probe")
+        if (args.Length != 0 && args[0] is "--phone-camera-audio-elevated" or "--phone-camera-audio-elevated-plan" or "--phone-camera-audio-preparation-probe" or "--prepare-phone-webcam-audio")
         {
             var audioSetupHandled = false;
             HandleWebcamAudioSetup(args, ref audioSetupHandled);

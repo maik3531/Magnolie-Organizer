@@ -40,7 +40,7 @@ internal static class DesktopPhoneCompositionTests
             .Select(type => metadata.GetString(type.Name)).ToHashSet(StringComparer.Ordinal);
         TestAssert.That(types.Contains("PhoneCameraControl"), "Always-present reserved protocol boundary omitted");
         foreach (var name in new[] { "PhoneCameraControlBinding", "PhoneCameraSession", "PhoneCameraMediaChannel", "IPhoneCameraOutputs",
-            "PhoneCameraAudioSetup", "PhoneCameraAudioHelperPayload", "PhoneCameraAudioStaging", "PhoneCameraAudioSetupUi" })
+            "PhoneCameraAudioSetup", "PhoneCameraAudioHelperPayload", "PhoneCameraAudioStaging", "PhoneCameraAudioSetupUi", "PhoneCameraAudioSetupForm" })
             TestAssert.That(types.Contains(name) == camera, "Optional camera composition mismatch: " + name);
         if (!camera)
             TestAssert.That(!metadata.ManifestResources.Any(h => metadata.GetString(metadata.GetManifestResource(h).Name).StartsWith("Magnolie.PhoneAudioSetup.", StringComparison.Ordinal)),

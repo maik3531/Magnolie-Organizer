@@ -39,6 +39,7 @@ def test_phone_audio_question_extraction_and_all_native_catalogs(tmp_path):
     subprocess.run(["python3", str(ROOT / "werkzeuge/po_zu_native.py"),
                     str(native), *arguments], check=True)
     catalogs = json.loads(native.read_text(encoding="utf-8"))["locales"]
+    shipped = json.loads((ROOT / "app/native-i18n.json").read_text(encoding="utf-8"))["locales"]
     assert set(catalogs) == set(locales)
     for locale in locales:
         catalog = catalogs[locale]
@@ -50,6 +51,7 @@ def test_phone_audio_question_extraction_and_all_native_catalogs(tmp_path):
         for key in keys:
             assert catalog[key] and catalog[key] != key, (locale, key)
             assert compiled.gettext(key) == catalog[key], (locale, key)
+            assert shipped[locale][key] == catalog[key], ("runtime", locale, key)
             assert "VB-CABLE" not in key or "VB-CABLE" in catalog[key], locale
             assert "VB-Audio" not in key or "VB-Audio" in catalog[key], locale
             assert "www.vb-cable.com" not in key or "www.vb-cable.com" in catalog[key], locale

@@ -606,6 +606,25 @@ without relying on English fallback. Driver/vendor/site names are also checked.
 This is technical catalog evidence only: independent linguistic review and the
 actual native question GUI/admission remain separate from those compilation checks.
 
+The optional Windows camera composition now exposes the explicit local utility
+`--prepare-phone-webcam-audio`. It enters a native form before normal application
+startup; it never starts pairing, capture or a phone/SEND session. Only the native
+default-No question may proceed to verified download and the guarded normal UAC
+flow. Extra arguments are refused, and camera-excluded builds return unsupported
+instead of launching the ordinary application. The form binds continuation to its
+original handle/cancellation lifetime; closing cancels further admission while
+retaining ownership until an already-started child exits. Reboot-required maps to
+3010, unknown-pending to 1618, never to microphone readiness or automatic restart.
+Actual operation of this new question window and driver installation are still
+unaccepted and require separate explicit test authorization; previous plan-only
+consent does not grant installation permission.
+
+All four current Windows-target compositions compile and PE checks confirm that
+the form is present only with the optional camera module. The actual copied native
+runtime catalog contains the 190 owned translated entries. Unrelated existing
+runtime entries were retained when merging the productive generator's output;
+other pending catalog changes are not silently included in this task.
+
 #### Windows dedicated binary receiver (Refs #503)
 
 The separate native `native/phone-camera/PhoneCameraSamples` adapter now creates

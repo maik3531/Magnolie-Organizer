@@ -4,11 +4,27 @@ internal static partial class Program
 {
     static partial void HandleWebcamAudioSetup(string[] args, ref bool handled)
     {
-        if (args.Length == 0 || args[0] is not (PhoneCameraAudioSetup.ElevatedArgument or PhoneCameraAudioSetup.ElevatedPlanArgument or PhoneCameraAudioSetup.PreparationProbeArgument)) return;
+        if (args.Length == 0 || args[0] is not (PhoneCameraAudioSetup.ElevatedArgument or PhoneCameraAudioSetup.ElevatedPlanArgument or PhoneCameraAudioSetup.PreparationProbeArgument or PhoneCameraAudioSetupForm.Argument)) return;
         handled = true;
         try
         {
-            if (args[0] == PhoneCameraAudioSetup.PreparationProbeArgument)
+            if (args[0] == PhoneCameraAudioSetupForm.Argument)
+            {
+                if (args.Length != 1) { Environment.ExitCode = 87; return; }
+                ApplicationConfiguration.Initialize();
+                using var form = new PhoneCameraAudioSetupForm();
+                Application.Run(form);
+                Environment.ExitCode = form.Result.State switch
+                {
+                    PhoneCameraAudioSetupState.Cancelled => 1223,
+                    PhoneCameraAudioSetupState.Unsupported => 50,
+                    PhoneCameraAudioSetupState.RebootRequired => 3010,
+                    PhoneCameraAudioSetupState.ExistingDevice => 1638,
+                    PhoneCameraAudioSetupState.UnknownPending => 1618,
+                    _ => 1603
+                };
+            }
+            else if (args[0] == PhoneCameraAudioSetup.PreparationProbeArgument)
             {
                 if (args.Length != 2) { Environment.ExitCode = 87; return; }
                 using var file = new FileStream(args[1], FileMode.Open, FileAccess.Read, FileShare.Read);
