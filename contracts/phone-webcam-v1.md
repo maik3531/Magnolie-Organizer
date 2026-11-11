@@ -1,5 +1,47 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Managed exact-owner C-API and callback lifetime (Refs #555)
+
+PhoneCameraAudioParentRuntime obtains its worker digest only from immutable
+resources and its C-API only from the protected original module loader. No
+production delegate table/path/hash injection exists. The versioned Cdecl owner
+layout carries bound callbacks from the exact original OutputAuthority: Current
+remains readiness/SEND-free, Sending checks actual published SEND, and Failure
+retires precisely that original joined session and runtime. Original scope is
+passed unchanged; explicitly muted owners cannot launch an audio worker.
+
+The owner, module/file leases and callback delegates are strongly rooted BEFORE
+native registration. Managed calls are counted through their actual return and
+PCM clearing, not merely until cancellation. Prepare awaits the actual native
+caller; cancellation signals Stop without detaching it. Stop does not wait for a
+command mutex. Close prevents new calls, signals native Stop, drains all admitted
+managed calls and then requires native Close confirmation before releasing module
+or roots. Concurrent Close returns the same task. Failed/unconfirmed Close stays
+terminal and rooted, with no unload, automatic retry or replacement launch.
+Write uses an exact private 1938-byte record and clears it before leaving its
+counted call; video PTS and the native 33-byte anchor are not given a new epoch.
+
+Six NEW actual Windows groups passed: original callbacks/layout/scope/digest and
+private PCM/anchor flow; forgery/original failure; cancelled Prepare drain;
+concurrent pending Write/Stop/Close; unconfirmed Close retained roots; and the
+production factory's missing-resource/no-fallback/explicit-mute refusals. The
+first five passed before adding the sixth and were not repeated. Positive calls
+use an entirely test-only controlled managed call table and fake module-release
+counter, NOT actual native Open/Write or protected DLL readiness. Delegate pointer
+roundtrip and 40-byte layout are checked, but this does not claim a positive real
+native ABI/device integration. Test fixture cleanup after simulated failed Close
+can release ONLY its own fake table, not a production native owner.
+
+The canonical test/changed optional product builds passed without warnings/errors.
+An initial private nested test-helper access error failed compilation before any
+tests; only that helper was corrected. Actual read-only product PE inspection
+confirmed the runtime with no diagnostic plan/factory/cleanup access, no held-path
+probe and no queued-writer observer. Native artifact inputs remained unchanged;
+old native/ACL/artifact suites were not repeated. Concrete combined outputs,
+trusted FrameServer scope/source delivery and real protected-module/AV/phone/OBS/
+package acceptance remain #503/#536/#538/#486. No DLL, worker, endpoint, AudioClient,
+installer or VM was activated; device pauses and default-OFF are unchanged.
+
 ## Protected held-file parent module loader (Refs #554)
 
 PhoneCameraAudioParentModule accepts only the exact original output authority,

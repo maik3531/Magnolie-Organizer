@@ -334,4 +334,104 @@ internal static class PhoneCameraSessionTests
         TestAssert.Throws<ObjectDisposedException>(() => PhoneCameraAudioParentModule.LoadCurrent(original), "Retired original reached loader resources");
         f.Parent.NoPersistentControls();
     }
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static async Task RuntimeOriginalCallbacksAndRecordsAsync()
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        var original = f.Output.Authority!; var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan();
+        var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(original, plan);
+        try
+        {
+            await runtime.PrepareAsync(f.Deadline.Token); runtime.RequireReady();
+            TestAssert.That(plan.Current() == 0 && plan.Sending() < 0 && f.Session.Error is null && plan.Scope == original.Scope && plan.OwnerBytes == 40 &&
+                plan.Digest!.SequenceEqual(Enumerable.Range(1, 32).Select(n => (byte)n)), "Original ABI/scope/digest or Current-before-SEND lost");
+            TestAssert.Throws<InvalidOperationException>(() => runtime.ObserveVideo(0), "Prepared runtime invented actual SEND");
+            f.Output.ContinuePreparation.TrySetResult(); await f.ReadSendOrStopAsync(); await f.SendFrame(false, 0, 0); await f.WaitWrites(1);
+            TestAssert.That(plan.Sending() == 0 && runtime.ObserveVideo(123) == 223, "Runtime did not use actual original SEND/video PTS");
+            var pcm = Enumerable.Repeat((byte)42, PhoneCameraMediaChannel.AudioBytes).ToArray();
+            runtime.Write(new PhoneCameraMediaFrame(false, 0, 123, pcm));
+            TestAssert.That(plan.RecordReference!.All(b => b == 0) && plan.RecordSnapshot!.Length == 1938 && plan.RecordSnapshot[0] == 1 &&
+                plan.RecordSnapshot[1] == 2 && plan.RecordSnapshot.AsSpan(18).ToArray().SequenceEqual(pcm) && pcm.All(b => b == 42), "Private native PCM copy not exact/erased or caller bytes changed");
+            TestAssert.That(runtime.ExportAnchor().SequenceEqual(Enumerable.Range(1, 33).Select(n => (byte)n)), "Native anchor export was rewritten");
+        }
+        finally { await runtime.CloseAsync(); }
+        TestAssert.That(!runtime.DiagnosticRootRetained && plan.Closes == 1 && plan.Releases == 1, "Confirmed Close did not release exact root/module once");
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static async Task RuntimeForgeryAndOriginalFailureAsync()
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan();
+        TestAssert.Throws<InvalidOperationException>(() => PhoneCameraAudioParentRuntime.CreateDiagnostic(new PhoneCameraSession.OutputAuthority(f.Session), plan), "Forged authority registered native callbacks");
+        TestAssert.That(plan.Creates == 0, "Forgery reached C-API registration");
+        var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(f.Output.Authority!, plan);
+        try
+        {
+            await runtime.PrepareAsync(f.Deadline.Token);
+            plan.Failure(unchecked((int)0x80004005)); await f.Run.WaitAsync(f.Deadline.Token);
+            var first = f.Session.Error; plan.Failure(unchecked((int)0x80070005));
+            TestAssert.That(first is not null && ReferenceEquals(first, f.Session.Error) && plan.Current() < 0 && plan.Sending() < 0 &&
+                f.Output.Stopped == 1 && f.Session.IsCompletelyStopped && plan.Stops == 1, "Native failure did not retire exact owner/runtime once");
+        }
+        finally { await runtime.CloseAsync(); }
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static async Task RuntimeCancelledPrepareDrainsAsync()
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan { HoldPrepare = true };
+        var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(f.Output.Authority!, plan);
+        using var cancellation = new CancellationTokenSource(); var preparing = runtime.PrepareAsync(cancellation.Token);
+        await plan.PrepareEntered.Task.WaitAsync(f.Deadline.Token); cancellation.Cancel();
+        try { await preparing; throw new Exception("Cancelled controlled prepare succeeded"); } catch (System.Runtime.InteropServices.COMException) { }
+        await runtime.CloseAsync();
+        TestAssert.That(plan.Active == 0 && plan.Closes == 1 && plan.Releases == 1 && !runtime.DiagnosticRootRetained, "Cancelled native prepare was detached or module released before drain");
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static async Task RuntimeConcurrentWriteCloseAsync()
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan { HoldWrite = true };
+        var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(f.Output.Authority!, plan); await runtime.PrepareAsync(f.Deadline.Token);
+        f.Output.ContinuePreparation.TrySetResult(); await f.ReadSendOrStopAsync(); await f.SendFrame(false, 0, 0); await f.WaitWrites(1);
+        var write = Task.Run(() => runtime.Write(new PhoneCameraMediaFrame(false, 0, 0, new byte[PhoneCameraMediaChannel.AudioBytes])));
+        await plan.WriteEntered.Task.WaitAsync(f.Deadline.Token); var close = runtime.CloseAsync();
+        TestAssert.That(ReferenceEquals(close, runtime.CloseAsync()), "Concurrent Close launched another cleanup");
+        try { await write; throw new Exception("Stopped pending write succeeded"); } catch (System.Runtime.InteropServices.COMException) { }
+        await close;
+        TestAssert.That(plan.Active == 0 && plan.Closes == 1 && plan.Releases == 1 && plan.RecordReference!.All(b => b == 0) &&
+            !runtime.DiagnosticRootRetained, "Close preceded managed call/PCM drain");
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static async Task RuntimeUnconfirmedCloseRetainsRootAsync()
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan { FailClose = true };
+        var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(f.Output.Authority!, plan); await runtime.PrepareAsync(f.Deadline.Token);
+        var close = runtime.CloseAsync();
+        try { await close; throw new Exception("Unconfirmed native Close reported success"); } catch (System.Runtime.InteropServices.COMException) { }
+        GC.Collect(); GC.WaitForPendingFinalizers();
+        TestAssert.That(runtime.DiagnosticRootRetained && plan.Releases == 0 && plan.Closes == 1 && ReferenceEquals(close, runtime.CloseAsync()),
+            "Unconfirmed Close unloaded callbacks/module, lost root or retried native cleanup");
+        try { runtime.RequireReady(); throw new Exception("Terminal native owner revived"); } catch (ObjectDisposedException) { }
+        runtime.ReleaseStoppedDiagnosticFixture(plan); // Own fake table only; NO real native owner/module exists.
+    }
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static async Task RuntimeProductionNoFallbackOrMutedWorkerAsync()
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        TestAssert.That(PhoneCameraAudioParentRuntime.CreateCurrent(f.Output.Authority!) is null, "Production factory replaced missing immutable worker with external runtime");
+        TestAssert.Throws<InvalidOperationException>(() => PhoneCameraAudioParentRuntime.CreateCurrent(new PhoneCameraSession.OutputAuthority(f.Session)), "Production factory accepted reconstructed authority");
+        f.Output.Authority!.RequireCurrent();
+        await using var muted = new Fixture(muted: true); muted.Output.HoldPreparation = true;
+        await muted.OfferAsync(); await muted.PreparedAsync(); await muted.Output.Preparing.Task.WaitAsync(muted.Deadline.Token);
+        TestAssert.Throws<InvalidOperationException>(() => PhoneCameraAudioParentRuntime.CreateCurrent(muted.Output.Authority!), "Explicitly muted original could launch audio worker");
+        muted.Output.Authority!.RequireCurrent();
+    }
 }

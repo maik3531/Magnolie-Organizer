@@ -392,6 +392,12 @@ if (OperatingSystem.IsWindows())
     runner.Add("Phone webcam parent module / actual writable file and ancestor refusal without load", PhoneCameraAudioParentModuleTests.ActualWritableFileAsync);
     runner.Add("Phone webcam parent module / actual junction refusal without load", PhoneCameraAudioParentModuleTests.ActualJunctionAsync);
     runner.Add("Phone webcam parent module / original live authority before resource access", PhoneCameraSessionTests.LoaderRequiresOriginalCurrentAsync);
+    runner.Add("Phone webcam parent runtime / exact original callbacks scope and private PCM record", PhoneCameraSessionTests.RuntimeOriginalCallbacksAndRecordsAsync);
+    runner.Add("Phone webcam parent runtime / forged authority and original native failure", PhoneCameraSessionTests.RuntimeForgeryAndOriginalFailureAsync);
+    runner.Add("Phone webcam parent runtime / cancelled Prepare drains native caller", PhoneCameraSessionTests.RuntimeCancelledPrepareDrainsAsync);
+    runner.Add("Phone webcam parent runtime / concurrent Write Stop Close drains before unload", PhoneCameraSessionTests.RuntimeConcurrentWriteCloseAsync);
+    runner.Add("Phone webcam parent runtime / unconfirmed Close retains terminal root without retry", PhoneCameraSessionTests.RuntimeUnconfirmedCloseRetainsRootAsync);
+    runner.Add("Phone webcam parent runtime / missing immutable resources and explicit mute forbid fallback", PhoneCameraSessionTests.RuntimeProductionNoFallbackOrMutedWorkerAsync);
     runner.Add("Calendar legacy Android alias / Windows actual source wire and RID fixture", CalendarLegacyAndroidImportTests.RunAsync);
     runner.Add("Collection inventory / Windows read-only native identities exclusions and cancellation", DeviceFileCollectionInventoryTests.WindowsInventoryAsync);
     runner.Add("Collection inventory / Windows actual reparse hardlink and paged enumeration", DeviceFileCollectionInventoryTests.WindowsHazardsAsync);
