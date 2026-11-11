@@ -18,6 +18,36 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
+msgstr "Щоб використовувати телефон як системний мікрофон, Magnolie потрібен драйвер VB-CABLE від VB-Audio."
+
+msgid "Magnolie downloads and verifies the original package. Windows asks once for administrator approval. A restart is required, but Magnolie will not restart your PC."
+msgstr "Magnolie завантажить і перевірить оригінальний пакет. Windows один раз запитає дозвіл адміністратора. Потрібне перезавантаження, але Magnolie не перезавантажуватиме комп’ютер."
+
+msgid "VB-CABLE is selected separately in OBS or another application. This setup prevents it from becoming the Windows default audio device, including manual default selection."
+msgstr "VB-CABLE вибирається окремо в OBS або іншій програмі. Це налаштування забороняє робити його стандартним аудіопристроєм Windows, зокрема вручну."
+
+msgid "VB-CABLE is donationware by VB-Audio: www.vb-cable.com. Donations are welcome; professional deployments may require purchased licences."
+msgstr "VB-CABLE — програма VB-Audio, що підтримується пожертвами: www.vb-cable.com. Пожертви вітаються; для професійного використання може знадобитися придбання ліцензій."
+
+msgid "Install VB-CABLE now?"
+msgstr "Установити VB-CABLE зараз?"
+
+msgid "Phone webcam microphone"
+msgstr "Мікрофон вебкамери телефону"
+
+msgid "VB-CABLE setup reports that a restart is required. Restart Windows yourself when convenient. Magnolie must check the actual audio endpoints afterwards; the phone microphone is not ready yet."
+msgstr "Установлення VB-CABLE повідомляє про необхідність перезавантаження. Перезавантажте Windows самостійно, коли буде зручно. Після цього Magnolie має перевірити фактичні кінцеві точки аудіо; мікрофон телефону ще не готовий."
+
+msgid "The VB-CABLE setup outcome is not confirmed. Do not retry automatically. Check the installation and any pending restart before continuing."
+msgstr "Результат установлення VB-CABLE не підтверджено. Не повторюйте спробу автоматично. Перш ніж продовжити, перевірте встановлення та потребу в перезавантаженні."
+
+msgid "An existing VB-CABLE device was found and was not changed. Its actual audio endpoints still need to be checked."
+msgstr "Знайдено наявний пристрій VB-CABLE; його не змінено. Його фактичні кінцеві точки аудіо ще потрібно перевірити."
+
+msgid "Magnolie could not safely install VB-CABLE. You can install the driver manually using VB-Audio's official instructions."
+msgstr "Magnolie не вдалося безпечно встановити VB-CABLE. Ви можете встановити драйвер вручну за офіційними інструкціями VB-Audio."
+
 msgid " (filtered)"
 msgstr " (відфільтровано)"
 

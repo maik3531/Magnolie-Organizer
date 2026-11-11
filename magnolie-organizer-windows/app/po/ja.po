@@ -17,6 +17,36 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
+msgstr "電話をシステムのマイクとして使用するには、Magnolie に VB-Audio 製の VB-CABLE ドライバーが必要です。"
+
+msgid "Magnolie downloads and verifies the original package. Windows asks once for administrator approval. A restart is required, but Magnolie will not restart your PC."
+msgstr "Magnolie は元のパッケージをダウンロードして検証します。Windows が管理者の承認を一度求めます。再起動が必要ですが、Magnolie が PC を再起動することはありません。"
+
+msgid "VB-CABLE is selected separately in OBS or another application. This setup prevents it from becoming the Windows default audio device, including manual default selection."
+msgstr "VB-CABLE は OBS などのアプリで個別に選択します。この設定では、手動での選択も含め、VB-CABLE を Windows の既定のオーディオデバイスにすることを禁止します。"
+
+msgid "VB-CABLE is donationware by VB-Audio: www.vb-cable.com. Donations are welcome; professional deployments may require purchased licences."
+msgstr "VB-CABLE は VB-Audio の寄付で支えられるソフトウェアです：www.vb-cable.com。寄付を歓迎しています。業務での導入にはライセンスの購入が必要になる場合があります。"
+
+msgid "Install VB-CABLE now?"
+msgstr "VB-CABLE を今すぐインストールしますか？"
+
+msgid "Phone webcam microphone"
+msgstr "電話のウェブカメラ用マイク"
+
+msgid "VB-CABLE setup reports that a restart is required. Restart Windows yourself when convenient. Magnolie must check the actual audio endpoints afterwards; the phone microphone is not ready yet."
+msgstr "VB-CABLE のセットアップが再起動の必要性を報告しています。都合のよいときに Windows をご自身で再起動してください。その後、Magnolie が実際のオーディオエンドポイントを確認する必要があります。電話のマイクはまだ使用できません。"
+
+msgid "The VB-CABLE setup outcome is not confirmed. Do not retry automatically. Check the installation and any pending restart before continuing."
+msgstr "VB-CABLE のセットアップ結果は確認できていません。自動的に再試行しないでください。続行する前に、インストール状況と再起動の必要性を確認してください。"
+
+msgid "An existing VB-CABLE device was found and was not changed. Its actual audio endpoints still need to be checked."
+msgstr "既存の VB-CABLE デバイスが見つかりました。変更は加えていません。実際のオーディオエンドポイントはまだ確認する必要があります。"
+
+msgid "Magnolie could not safely install VB-CABLE. You can install the driver manually using VB-Audio's official instructions."
+msgstr "Magnolie は VB-CABLE を安全にインストールできませんでした。VB-Audio の公式手順に従ってドライバーを手動でインストールできます。"
+
 msgid " (filtered)"
 msgstr "（フィルター済み）"
 

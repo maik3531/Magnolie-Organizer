@@ -17,6 +17,36 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
+msgstr "要将手机用作系统麦克风，Magnolie 需要 VB-Audio 的 VB-CABLE 驱动程序。"
+
+msgid "Magnolie downloads and verifies the original package. Windows asks once for administrator approval. A restart is required, but Magnolie will not restart your PC."
+msgstr "Magnolie 会下载并验证原始安装包。Windows 会请求一次管理员授权。安装后需要重启，但 Magnolie 不会重启你的电脑。"
+
+msgid "VB-CABLE is selected separately in OBS or another application. This setup prevents it from becoming the Windows default audio device, including manual default selection."
+msgstr "请在 OBS 或其他应用中单独选择 VB-CABLE。此设置会阻止将其设为 Windows 默认音频设备，包括手动设为默认设备。"
+
+msgid "VB-CABLE is donationware by VB-Audio: www.vb-cable.com. Donations are welcome; professional deployments may require purchased licences."
+msgstr "VB-CABLE 是 VB-Audio 提供的捐赠支持软件：www.vb-cable.com。欢迎捐赠；专业部署可能需要购买许可证。"
+
+msgid "Install VB-CABLE now?"
+msgstr "现在安装 VB-CABLE？"
+
+msgid "Phone webcam microphone"
+msgstr "手机网络摄像头麦克风"
+
+msgid "VB-CABLE setup reports that a restart is required. Restart Windows yourself when convenient. Magnolie must check the actual audio endpoints afterwards; the phone microphone is not ready yet."
+msgstr "VB-CABLE 安装程序报告需要重启。请在方便时自行重启 Windows。之后 Magnolie 必须检查实际的音频端点；手机麦克风尚未就绪。"
+
+msgid "The VB-CABLE setup outcome is not confirmed. Do not retry automatically. Check the installation and any pending restart before continuing."
+msgstr "VB-CABLE 的安装结果尚未确认。请勿自动重试。继续之前，请检查安装情况以及是否仍需重启。"
+
+msgid "An existing VB-CABLE device was found and was not changed. Its actual audio endpoints still need to be checked."
+msgstr "检测到现有的 VB-CABLE 设备，未对其进行更改。仍需检查其实际的音频端点。"
+
+msgid "Magnolie could not safely install VB-CABLE. You can install the driver manually using VB-Audio's official instructions."
+msgstr "Magnolie 无法安全安装 VB-CABLE。你可以按照 VB-Audio 的官方说明手动安装驱动程序。"
+
 msgid " (filtered)"
 msgstr "（已筛选）"
 

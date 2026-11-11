@@ -17,6 +17,36 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
+msgstr "Para utilizar o telefone como microfone do sistema, o Magnolie precisa do controlador VB-CABLE da VB-Audio."
+
+msgid "Magnolie downloads and verifies the original package. Windows asks once for administrator approval. A restart is required, but Magnolie will not restart your PC."
+msgstr "O Magnolie transfere e verifica o pacote original. O Windows pede uma única autorização de administrador. É necessário reiniciar, mas o Magnolie não reiniciará o PC."
+
+msgid "VB-CABLE is selected separately in OBS or another application. This setup prevents it from becoming the Windows default audio device, including manual default selection."
+msgstr "O VB-CABLE é selecionado separadamente no OBS ou noutra aplicação. Esta instalação impede que se torne o dispositivo de áudio predefinido do Windows, mesmo por seleção manual."
+
+msgid "VB-CABLE is donationware by VB-Audio: www.vb-cable.com. Donations are welcome; professional deployments may require purchased licences."
+msgstr "O VB-CABLE é software da VB-Audio apoiado por donativos: www.vb-cable.com. Os donativos são bem-vindos; as implementações profissionais podem exigir a compra de licenças."
+
+msgid "Install VB-CABLE now?"
+msgstr "Instalar o VB-CABLE agora?"
+
+msgid "Phone webcam microphone"
+msgstr "Microfone da webcam do telefone"
+
+msgid "VB-CABLE setup reports that a restart is required. Restart Windows yourself when convenient. Magnolie must check the actual audio endpoints afterwards; the phone microphone is not ready yet."
+msgstr "A instalação do VB-CABLE indica que é necessário reiniciar. Reinicie o Windows manualmente quando lhe convier. Depois, o Magnolie terá de verificar os pontos finais de áudio reais; o microfone do telefone ainda não está pronto."
+
+msgid "The VB-CABLE setup outcome is not confirmed. Do not retry automatically. Check the installation and any pending restart before continuing."
+msgstr "O resultado da instalação do VB-CABLE não está confirmado. Não tente novamente de forma automática. Verifique a instalação e qualquer reinício pendente antes de continuar."
+
+msgid "An existing VB-CABLE device was found and was not changed. Its actual audio endpoints still need to be checked."
+msgstr "Foi encontrado um dispositivo VB-CABLE existente, que não foi alterado. Os seus pontos finais de áudio reais ainda precisam de ser verificados."
+
+msgid "Magnolie could not safely install VB-CABLE. You can install the driver manually using VB-Audio's official instructions."
+msgstr "O Magnolie não conseguiu instalar o VB-CABLE com segurança. Pode instalar o controlador manualmente seguindo as instruções oficiais da VB-Audio."
+
 msgid " (filtered)"
 msgstr " (filtrado)"
 

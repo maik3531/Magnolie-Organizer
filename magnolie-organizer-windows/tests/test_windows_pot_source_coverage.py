@@ -11,11 +11,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_phone_audio_question_extraction_and_german_native_catalog(tmp_path):
+def test_phone_audio_question_extraction_and_all_native_catalogs(tmp_path):
     """The real question/outcome literals must survive native catalog compilation.
 
     No GUI, consent, download, UAC or driver code is executed by this test.
-    Other translated languages and native GUI acceptance remain separate work.
+    Native GUI acceptance and independent linguistic review are separate work.
     """
     source = (ROOT / "PhoneCameraAudioSetupUi.cs").read_text(encoding="utf-8")
     keys = {json.loads(literal) for literal in re.findall(
@@ -29,17 +29,34 @@ def test_phone_audio_question_extraction_and_german_native_catalog(tmp_path):
     for key in keys:
         assert "msgid " + json.dumps(key, ensure_ascii=False) + "\n" in extracted
     native = tmp_path / "native.json"
+    locales_source = (ROOT / "NativeLocalization.cs").read_text(encoding="utf-8")
+    locale_list = re.search(r'SupportedLocales\s*=\s*\[(.*?)\];', locales_source, re.S)
+    assert locale_list
+    locales = re.findall(r'"([^"]+)"', locale_list[1])
+    assert len(locales) == len(set(locales)) == 19
+    arguments = [item for locale in locales
+                 for item in (locale, str(ROOT / "app/po" / (locale + ".po")))]
     subprocess.run(["python3", str(ROOT / "werkzeuge/po_zu_native.py"),
-                    str(native), "de", str(ROOT / "app/po/de.po")], check=True)
-    catalog = json.loads(native.read_text(encoding="utf-8"))["locales"]["de"]
-    mo = tmp_path / "de.mo"
-    subprocess.run(["msgfmt", "--check", "--check-format", "-o", str(mo),
-                    str(ROOT / "app/po/de.po")], check=True)
-    with mo.open("rb") as file:
-        compiled = gettext.GNUTranslations(file)
-    for key in keys:
-        assert catalog[key] and catalog[key] != key
-        assert compiled.gettext(key) == catalog[key]
+                    str(native), *arguments], check=True)
+    catalogs = json.loads(native.read_text(encoding="utf-8"))["locales"]
+    assert set(catalogs) == set(locales)
+    for locale in locales:
+        catalog = catalogs[locale]
+        mo = tmp_path / (locale + ".mo")
+        subprocess.run(["msgfmt", "--check", "--check-format", "-o", str(mo),
+                        str(ROOT / "app/po" / (locale + ".po"))], check=True)
+        with mo.open("rb") as file:
+            compiled = gettext.GNUTranslations(file)
+        for key in keys:
+            assert catalog[key] and catalog[key] != key, (locale, key)
+            assert compiled.gettext(key) == catalog[key], (locale, key)
+            assert "VB-CABLE" not in key or "VB-CABLE" in catalog[key], locale
+            assert "VB-Audio" not in key or "VB-Audio" in catalog[key], locale
+            assert "www.vb-cable.com" not in key or "www.vb-cable.com" in catalog[key], locale
+        # Placeholder/markup corruption must not hide license origins or turn
+        # non-readiness into an English fallback. Human wording review remains
+        # distinct from compilation/coverage and is not claimed by this test.
+    catalog = catalogs["de"]
     # Safety/legal disclosures are part of the localized question, not just
     # extraction markers or an English fallback in an otherwise German UI.
     for key, fragments in (
