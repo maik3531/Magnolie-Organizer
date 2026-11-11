@@ -51,6 +51,7 @@
     <Compile Include="..\PhoneCameraAudioStaging.cs" Link="PhoneCameraAudioStaging.cs" />
     <Compile Include="..\PhoneCameraAudioHelperPayload.cs" Link="PhoneCameraAudioHelperPayload.cs" />
     <Compile Include="..\PhoneCameraAudioSetup.cs" Link="PhoneCameraAudioSetup.cs" />
+    <Compile Include="..\PhoneCameraAudioSetupPipe.cs" Link="PhoneCameraAudioSetupPipe.cs" />
     <Compile Include="..\PhoneCameraAudioBootstrapLease.cs" Link="PhoneCameraAudioBootstrapLease.cs" />
     <Compile Include="..\TraySyncFrames.cs" Link="TraySyncFrames.cs" />
     <Compile Include="..\TrayVisualTest.cs" Link="TrayVisualTest.cs" />

@@ -16,12 +16,14 @@ internal static partial class Program
                 var bytes = new byte[checked((int)file.Length)]; file.ReadExactly(bytes);
                 var package = PhoneCameraAudioPackage.Verify(bytes);
                 var result = PhoneCameraAudioSetup.RunPreparationProbeAsync(package, () => { }, CancellationToken.None).GetAwaiter().GetResult();
-                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { schema = 1, mode = "preparation-probe", state = result.State.ToString(), installationAttempted = false }));
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { schema = 1, mode = "preparation-probe", state = result.State.ToString(),
+                    failureReason = result.FailureReason, nativeError = result.NativeError, elevatedExit = result.ElevatedExit, installationAttempted = false }));
                 Environment.ExitCode = result.State == PhoneCameraAudioSetupState.PreparedOnly ? 0 : 1;
             }
             else Environment.ExitCode = PhoneCameraAudioSetup.RunElevatedAsync(args).GetAwaiter().GetResult();
         }
-        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or
+        catch (UnauthorizedAccessException) { Environment.ExitCode = 5; }
+        catch (Exception error) when (error is IOException or InvalidDataException or System.ComponentModel.Win32Exception or
             System.Security.Cryptography.CryptographicException or OperationCanceledException or ArgumentException or InvalidOperationException or System.Text.Json.JsonException)
         { Environment.ExitCode = 1603; }
     }

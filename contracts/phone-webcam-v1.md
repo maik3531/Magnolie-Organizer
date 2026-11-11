@@ -531,9 +531,20 @@ the original driver catalog/kernel-policy verification remains mandatory.
 `PhoneCameraAudioSetup` now supplies the explicit native setup flow. One question
 names VB-CABLE, VB-Audio origin/donationware/professional conditions, administrator
 approval, manual restart and per-application-only selection. After consent the
-original verified archive is sent in memory through one local current-user-only
-first-instance pipe to the normal Windows `runas` child; both peer process IDs,
-the original user SID, random one-use token and embedded helper hash are checked.
+original verified archive is sent in memory through one first-instance local
+pipe to the normal Windows `runas` child. Its protected ACL grants only the
+original `WindowsIdentity.User` SID, its owner is that exact user, and the native
+pipe rejects remote clients. Both peer process IDs, the original user SID, random
+one-use token and embedded helper hash are checked. The elevated side additionally
+holds the original parent process handle and matches its kernel start time before
+connecting, so PID reuse cannot substitute a replacement parent.
+The elevated client explicitly uses identification-only SQOS: the lower-level
+server may inspect identity but cannot impersonate/delegate an administrator
+token. This restriction is checked using the real Windows pipe token level.
+`PipeOptions.CurrentUserOnly` must **not** be used across this UAC boundary (#532):
+on Windows it also compares elevation-dependent owner identity. Same-elevation
+tests missed this defect; the first real normal-to-elevated attempt aborted before
+preparation. This correction does not broaden unrelated same-elevation pipes.
 Elevation as a different account is refused rather than comparing the wrong
 user's audio defaults. No credentials are read or stored. Native preparation and
 installation require separate live handshakes on that original pipe; no phone
@@ -547,8 +558,17 @@ culture/native subdirectories. User-writable portable/framework-dependent hosts
 are unsupported for this automatic route and receive the official manual
 fallback. This avoids elevating a mutable .NET bootstrap merely because the later
 native helper is pinned. One Windows group checks the ownership/ACL policy and
-framework-dependent host refusal without elevation; a positive protected-apphost
-UAC test is still pending separate interactive approval.
+framework-dependent host refusal without elevation. After separate approval,
+the positive protected-apphost preparation test passed on the actual desktop:
+the original unelevated Session-1 parent and elevated same-user Session-1 child
+were observed, actual local user/peer/birth-time binding succeeded and the child
+returned only `PreparedOnly`. The user reports confirming one typical Windows
+consent dialog but did not independently identify its exact dialog class; that
+observation is kept separate from the technical elevation evidence. All own app
+copy files, temporary task/processes and uninstalled package staging were removed.
+This does not accept the advanced-functions installation-question GUI or a driver
+installation, and no credentials or global UAC/security policy were accessed or
+changed.
 The elevated child verifies the archive again, retains protected executable/file
 leases, checks the real native read-only plan, and only then may invoke install.
 An unknown outcome after installation admission stays pending, never retries or
@@ -559,14 +579,22 @@ native installation completion limit. Reboot-required is never endpoint readines
 A separate explicit preparation-probe mode is bound at both pipe ends and refuses
 all native mutation modes, including retry/uninstall; it can run only `--plan`
 and then remove its known uninstalled preparation. Base builds reserve the setup
-arguments and return unsupported rather than starting the ordinary GUI. Five
-bounded Windows setup groups cover strict result/argument/wire validation and an
-actual controlled local first-instance pipe with both original-PID checks; they
-do not execute UAC or installation. The approved protected-publication test used
-the existing elevated test account, so it also is **not** a UAC consent test.
-The actual advanced-functions admission/provider connection, translated question
-catalogs and GUI/UAC operation still need acceptance. No Windows v24 readiness or
+arguments and return unsupported rather than starting the ordinary GUI. Bounded
+Windows setup groups cover strict result/argument/wire validation, the exact
+single-user pipe ACL, actual local first-instance/owner/peer-PID checks and wrong
+original-parent birth-time rejection before preparation. They do not themselves
+execute UAC or installation; the separately approved protected-apphost desktop
+probe supplies only the technical plan-mode UAC transition evidence described
+above. Bounded diagnostic reason/Win32/child-exit codes contain no raw tokens or
+credentials. The actual advanced-functions admission/provider connection,
+translated question catalogs, installation-question GUI and real installation
+still need acceptance. No Windows v24 readiness or
 working system microphone is advertised by this preparation work.
+
+Seven distinct affected setup checks pass using the appropriate retained proofs.
+The successful protected-apphost UAC snapshot precedes the final identification-only
+SQOS tightening; the latter is separately checked on a real Windows pipe and in the
+current compiled project. Those different evidence boundaries remain explicit.
 
 #### Windows dedicated binary receiver (Refs #503)
 

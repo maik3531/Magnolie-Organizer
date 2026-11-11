@@ -152,6 +152,10 @@ if (OperatingSystem.IsWindows())
 if (OperatingSystem.IsWindows())
     runner.Add("Phone webcam audio setup / actual first-instance pipe and original PID only", PhoneCameraAudioSetupTests.ActualLocalPipeIdentityAsync);
 if (OperatingSystem.IsWindows())
+    runner.Add("Phone webcam audio setup / exact original User SID ACL across elevation design", PhoneCameraAudioSetupTests.OriginalUserAclAsync);
+if (OperatingSystem.IsWindows())
+    runner.Add("Phone webcam audio setup / actual wrong original parent birth-time rejected before preparation", PhoneCameraAudioSetupTests.OriginalParentStartMismatchAsync);
+if (OperatingSystem.IsWindows())
     runner.Add("Phone webcam audio bootstrap / protected managed inputs and apphost gate only", PhoneCameraAudioBootstrapTests.ProtectedManagedInputsAsync);
 if (OperatingSystem.IsWindows())
     runner.Add("Phone webcam audio staging / in-memory protected ACL policy only", PhoneCameraAudioStagingTests.ProtectedAclPolicyAsync);
