@@ -2,11 +2,53 @@
 
 import importlib.util
 import json
+import gettext
+import re
 import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_phone_audio_question_extraction_and_german_native_catalog(tmp_path):
+    """The real question/outcome literals must survive native catalog compilation.
+
+    No GUI, consent, download, UAC or driver code is executed by this test.
+    Other translated languages and native GUI acceptance remain separate work.
+    """
+    source = (ROOT / "PhoneCameraAudioSetupUi.cs").read_text(encoding="utf-8")
+    keys = {json.loads(literal) for literal in re.findall(
+        r'\bT\(("(?:\\.|[^"\\])*")\)', source)}
+    assert len(keys) == 10
+    pot = tmp_path / "windows.pot"
+    subprocess.run(["python3", str(ROOT / "werkzeuge/pot_erzeugen.py"),
+                    "--output", str(pot)], check=True)
+    extracted = subprocess.check_output(
+        ["msgattrib", "--no-wrap", str(pot)], text=True, encoding="utf-8")
+    for key in keys:
+        assert "msgid " + json.dumps(key, ensure_ascii=False) + "\n" in extracted
+    native = tmp_path / "native.json"
+    subprocess.run(["python3", str(ROOT / "werkzeuge/po_zu_native.py"),
+                    str(native), "de", str(ROOT / "app/po/de.po")], check=True)
+    catalog = json.loads(native.read_text(encoding="utf-8"))["locales"]["de"]
+    mo = tmp_path / "de.mo"
+    subprocess.run(["msgfmt", "--check", "--check-format", "-o", str(mo),
+                    str(ROOT / "app/po/de.po")], check=True)
+    with mo.open("rb") as file:
+        compiled = gettext.GNUTranslations(file)
+    for key in keys:
+        assert catalog[key] and catalog[key] != key
+        assert compiled.gettext(key) == catalog[key]
+    # Safety/legal disclosures are part of the localized question, not just
+    # extraction markers or an English fallback in an otherwise German UI.
+    for key, fragments in (
+        ("VB-CABLE is selected separately in OBS or another application. This setup prevents it from becoming the Windows default audio device, including manual default selection.",
+         ("OBS", "Windows", "manuelle", "Standardgerät")),
+        ("VB-CABLE is donationware by VB-Audio: www.vb-cable.com. Donations are welcome; professional deployments may require purchased licences.",
+         ("VB-Audio", "www.vb-cable.com", "Donationware", "Lizenzen")),
+    ):
+        assert all(fragment in catalog[key] for fragment in fragments)
 
 
 def test_phone_handshake_timeout_uses_existing_gettext_key():

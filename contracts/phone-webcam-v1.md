@@ -596,6 +596,13 @@ The successful protected-apphost UAC snapshot precedes the final identification-
 SQOS tightening; the latter is separately checked on a real Windows pipe and in the
 current compiled project. Those different evidence boundaries remain explicit.
 
+The ten installation-question/outcome texts now have German catalog translations,
+including manual-default-selection exclusion, VB-Audio origin/licensing, pending
+outcome and post-restart non-readiness. A targeted extraction/compilation test uses
+the actual native UI literals and production native-catalog generator, then checks
+the resulting JSON against compiled gettext output. This is catalog evidence only:
+other locale translations and the actual native question GUI/admission remain open.
+
 #### Windows dedicated binary receiver (Refs #503)
 
 The separate native `native/phone-camera/PhoneCameraSamples` adapter now creates
