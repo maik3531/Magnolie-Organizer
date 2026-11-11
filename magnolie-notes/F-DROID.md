@@ -108,9 +108,23 @@ Die zu künftigen Notes-Versionen passenden signierten Referenzen werden im
 Paket `magnolie-notes-fdroid-reference` bereitgestellt. Bei neuen Builds ist
 der unerwünschte Metadatenblock bereits durch die Gradle-Konfiguration abgeschaltet.
 
-## Aufnahme
+## Aufnahme und Bezug
 
-Die Aufnahme wird im F-Droid-Projekt geprüft. Buildrezept, Quellenstand,
-Prüfergebnisse und Antragslink werden in
-[Issue #72](https://github.com/maik3531/Magnolie-Organizer/issues/72) geführt.
-Diese Dokumentation behauptet keine bereits erfolgte Aufnahme.
+Magnolie Notes ist im
+[offiziellen F-Droid-Katalog](https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes/)
+verfügbar. Bei der Prüfung am 11. November 2026 führt der Katalog Version
+**1.0.21 (Versionscode 21)**, hinzugefügt am **4. November 2026**, für
+**Android 8.0 oder neuer**. Diese Ausgabe verwendet laut Katalog die ursprüngliche
+Entwicklersignatur und ist dem dort verlinkten Quellarchiv zugeordnet.
+
+Der bestehende
+[Aufnahme-Merge-Request !50683](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/50683)
+ist zusammengeführt. Die abgeschlossene Aufnahme wird in
+[Issue #147](https://github.com/maik3531/Magnolie-Organizer/issues/147) dokumentiert;
+[Issue #72](https://github.com/maik3531/Magnolie-Organizer/issues/72) enthält die
+ursprüngliche Bau- und Einreichungsarbeit. Die Aufnahme erfolgte bereits vor
+dieser Dokumentationsaktualisierung.
+
+Künftige Versionen benötigen weiterhin eine passende veröffentlichte
+Signaturreferenz sowie die oben beschriebenen Quell-, Metadaten- und
+Reproduzierbarkeitsprüfungen.

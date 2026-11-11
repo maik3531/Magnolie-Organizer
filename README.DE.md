@@ -35,7 +35,7 @@ Speicherung und bewusst freigegebener Datenaustausch.
 |---|---|---|
 | Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.30-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.30-x86_64.AppImage) · [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.30_all.deb) |
 | Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.30-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.30-x64.zip) |
-| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.21.apk) | Android 8.0 oder neuer |
+| Android ab 8.0 | [Magnolie Notes bei F-Droid](https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes/) | [Direkte APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.21.apk) |
 | Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.30_all.deb) | Optionale Komponente des Windows-Installers |
 
 ### DEB-Hauptprogramm – auch für KDE Plasma
