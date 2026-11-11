@@ -1,5 +1,43 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Original-parent control publisher (Refs #544)
+
+OutputPublisher implements the producing half of the native control lease. It
+requires original native Current/SEND/retirement callbacks and a held live OWN
+child process whose OS parent is the current process. The verified native launcher
+must create that child suspended and establish its pipes/outer guardian before
+resuming it; this class never launches, elevates, looks a process up again by PID,
+terminates a process, installs a driver or opens an audio endpoint.
+
+The fixed local control pipe is first-instance, byte-mode, overlapped, rejects
+remote clients and has a DACL limited to the process user and SYSTEM. Accept
+requires the kernel client PID to match the still-held original child object.
+Each serialized publication derives its phase from the actual original SEND
+callback, not a supplied renderer flag: no SEND-first or rollback to prepare.
+The whole 18-byte record expires in at most 250 ms; pending writes use a 50-ms
+limit, peer accept is bounded and all owned IO is cancelled/drained on failure.
+
+Stop signals a unique terminal per-scope event and cancels ONLY its own outbound
+IO without waiting for a publisher mutex. The child must include that original
+event in its control bootstrap guard, so withdrawal does not wait for lease expiry.
+An existing event/pipe collision is refused, never reset, signalled or reused.
+Original retirement is idempotent even when its callback signals Stop again.
+
+Five actual Windows kernel-pipe/owned-child groups passed: prepare/SEND/terminal
+stop; absent Current/SEND-first refusal; phase/clock rollback; wrong held child,
+wrong kernel client and untouched existing-event collision; and Stop during a
+backpressured write. A controlled clock deliberately does not expire in the stop
+test, proving the terminal event—not expiry—withdraws the child. MSVC /W4 /WX and
+a separate production object without the private test observer both built cleanly.
+No AudioClient, endpoint, stream, MF startup, install, settings or defaults were used.
+
+Successful publication means metadata delivery only, NOT child/device readiness
+or phone consent. The productive managed-session binding must supply the exact
+authenticated Current and actual SEND state, never a saved pairing/checkbox. The
+verified runtime launcher, positive child readiness, one shared interprocess AV
+anchor, FrameServer bridge and real device/phone/OBS/package acceptance remain
+#503/#536/#538/#486. Default-OFF, explicit mute and device pauses are unchanged.
+
 ## Nonblocking native AV-clock retirement (Refs #543)
 
 PresentationClock::Stop is now a lock-free, idempotent retirement signal, not a
