@@ -386,6 +386,12 @@ runner.Add("Device file native destination / absent read does not bootstrap", De
 runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
 if (OperatingSystem.IsWindows())
 {
+    runner.Add("Phone webcam parent module / original process and fixed sibling layout", PhoneCameraAudioParentModuleTests.FixedLayoutAsync);
+    runner.Add("Phone webcam parent module / trusted owner and no unprivileged mutation rights", PhoneCameraAudioParentModuleTests.ProtectedAclAsync);
+    runner.Add("Phone webcam parent module / ambiguous callback and oversized ACL denied", PhoneCameraAudioParentModuleTests.AmbiguousAclAsync);
+    runner.Add("Phone webcam parent module / actual writable file and ancestor refusal without load", PhoneCameraAudioParentModuleTests.ActualWritableFileAsync);
+    runner.Add("Phone webcam parent module / actual junction refusal without load", PhoneCameraAudioParentModuleTests.ActualJunctionAsync);
+    runner.Add("Phone webcam parent module / original live authority before resource access", PhoneCameraSessionTests.LoaderRequiresOriginalCurrentAsync);
     runner.Add("Calendar legacy Android alias / Windows actual source wire and RID fixture", CalendarLegacyAndroidImportTests.RunAsync);
     runner.Add("Collection inventory / Windows read-only native identities exclusions and cancellation", DeviceFileCollectionInventoryTests.WindowsInventoryAsync);
     runner.Add("Collection inventory / Windows actual reparse hardlink and paged enumeration", DeviceFileCollectionInventoryTests.WindowsHazardsAsync);

@@ -319,4 +319,19 @@ internal static class PhoneCameraSessionTests
         f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
         TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped, "Genuine typed SEND failed after rejected substitutions");
     }
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static async Task LoaderRequiresOriginalCurrentAsync()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        var original = f.Output.Authority!;
+        TestAssert.That(PhoneCameraAudioParentModule.LoadCurrent(original) is null, "Missing embedded DLL acquired an external loader fallback");
+        var forged = new PhoneCameraSession.OutputAuthority(f.Session);
+        TestAssert.Throws<InvalidOperationException>(() => PhoneCameraAudioParentModule.LoadCurrent(forged), "Forged Current reached loader resources");
+        original.RequireCurrent();
+        f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.Throws<ObjectDisposedException>(() => PhoneCameraAudioParentModule.LoadCurrent(original), "Retired original reached loader resources");
+        f.Parent.NoPersistentControls();
+    }
 }

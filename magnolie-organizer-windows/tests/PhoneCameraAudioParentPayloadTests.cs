@@ -63,6 +63,9 @@ internal static class PhoneCameraAudioParentPayloadTests
         using var input = File.OpenRead(assembly); using var pe = new PEReader(input); var metadata = pe.GetMetadataReader();
         var types = metadata.TypeDefinitions.Select(h => metadata.GetTypeDefinition(h)).Select(t => metadata.GetString(t.Name)).ToHashSet();
         TestAssert.That(types.Contains(nameof(PhoneCameraAudioParentPayload)) == expected, "Parent composition mismatch");
+        TestAssert.That(types.Contains("PhoneCameraAudioParentModule") == expected, "Optional parent loader composition mismatch");
+        TestAssert.That(!metadata.MethodDefinitions.Any(h => metadata.GetString(metadata.GetMethodDefinition(h).Name) == "ProbeHeldPath"),
+            "Product retained test-only held-path access");
         TestAssert.That(!types.Contains("PhoneCameraPublicationProbe") && !metadata.FieldDefinitions.Any(h =>
             metadata.GetString(metadata.GetFieldDefinition(h).Name) == "WebcamWriterWaitProbe"), "Product retained test-only publication observer");
         var entries = metadata.ManifestResources.Select(h => metadata.GetManifestResource(h)).ToArray();

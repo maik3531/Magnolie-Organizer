@@ -1,5 +1,45 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Protected held-file parent module loader (Refs #554)
+
+PhoneCameraAudioParentModule accepts only the exact original output authority,
+checks Current before reading resources/paths, and obtains identity only from its
+embedded payload. Missing resources return unavailable, never an external module.
+The supported process is the actual installed Magnolie Organizer.exe with its
+matching assembly base directory; dotnet hosts, alternate names, UNC/relative/ADS
+and noncanonical layouts are refused. The DLL name is fixed, not configurable.
+
+Before loading, the loader holds the drive root, every ancestor and the DLL with
+no write/delete sharing; checks disk type, exact final path, directory/file kind
+and absence of reparse points; and checks each protected object's owner and DACL.
+Owners are only administrators, SYSTEM or the standard Windows installer SID.
+Untrusted mutation grants, null/oversized/ambiguous callback ACLs are refused.
+The held DLL digest must match the immutable program resource. LoadLibraryEx uses
+only the protected DLL directory and System32 dependency search; an already-loaded
+same-name module is refused, loaded module path/version/required exports checked,
+and original Current rechecked. There is no staging, ACL repair, elevation or
+installation fallback. No worker or native C-API owner is created by this loader.
+
+Six NEW Windows groups passed across the initial run and targeted correction:
+fixed process layout; trusted/read-only ACLs; ambiguous/oversized ACL refusal;
+actual writable-file/ancestor rejection; actual junction rejection; and original
+Current before resource access with no missing-resource fallback or revival.
+The junction initially failed during test-fixture command quoting, before reaching
+the loader; correcting only that fixture plus strengthening the two held-path
+assertions confirmed the exact ACL/reparse refusal reasons. The four unchanged
+successful groups were not repeated. Initial compile-only platform annotations
+were corrected without weakening the analyzer. The changed optional product built
+cleanly; read-only PE inspection found the loader and unchanged parent resource,
+without private held-path access or the test-only writer observer.
+
+These are pre-load security/negative tests, NOT a positive installed DLL-loading
+or endpoint acceptance. Test access calls only the real admission routine and is
+absent in product; it cannot bypass protection to load a diagnostic DLL. Future
+interop must retain module/file leases and callbacks until confirmed native Close,
+never unload a terminal-but-unconfirmed native owner. Exact C-API callback/lifetime
+composition, concrete outputs and FrameServer remain #503; protected installation,
+real AV/phone/OBS/package acceptance and device pauses remain #536/#538/#486.
+
 ## Immutable optional parent-DLL artifact (Refs #553)
 
 The parent C-API DLL now has its own source-bound builder using the existing
