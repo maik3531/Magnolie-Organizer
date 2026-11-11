@@ -18,9 +18,12 @@ internal static class PhoneCameraSessionTests
         private readonly ManualResetEventSlim finishWrite = new(false);
         internal bool HoldPreparation, MissingMicrophone, FailCleanup, HoldWrite;
         internal int Prepared, MicrophoneChecks, Stopped, Disposed;
+        internal PhoneCameraSession.OutputAuthority? Authority;
         internal readonly SemaphoreSlim Writes = new(0);
-        public async Task PrepareAsync(bool muted, CancellationToken cancellation)
+        public async Task PrepareAsync(PhoneCameraSession.OutputAuthority original, CancellationToken cancellation)
         {
+            original.RequireCurrent();
+            Volatile.Write(ref Authority, original);
             Interlocked.Increment(ref Prepared); Preparing.TrySetResult();
             if (HoldPreparation) await ContinuePreparation.Task.WaitAsync(cancellation);
         }
@@ -29,6 +32,7 @@ internal static class PhoneCameraSessionTests
         { Interlocked.Increment(ref MicrophoneChecks); if (MissingMicrophone) throw new IOException("controlled required microphone missing"); }
         public void Write(PhoneCameraMediaFrame frame)
         {
+            Authority!.RequireSending();
             if (HoldWrite)
             {
                 Writing.TrySetResult();
@@ -204,6 +208,66 @@ internal static class PhoneCameraSessionTests
         await f.Output.Writing.Task.WaitAsync(f.Deadline.Token); f.Current = false;
         await f.Run.WaitAsync(TimeSpan.FromSeconds(3));
         TestAssert.That(f.Session.Error is not null && f.Output.Written.IsEmpty && f.Output.Stopped == 1 && f.Session.IsCompletelyStopped,
-            "Original guard loss left native output write blocked/alive");
+             "Original guard loss left native output write blocked/alive");
+    }
+    internal static async Task AuthorityPrepareThenActualSendAsync()
+    {
+        await using var f = new Fixture(); f.Output.HoldPreparation = true;
+        await f.OfferAsync(); TestAssert.That(f.Output.Authority is null, "Output context escaped before original phone PREPARED");
+        await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+        var authority = f.Output.Authority!; authority.RequireCurrent();
+        TestAssert.That(authority.Scope != Guid.Empty && !authority.Muted && authority.Front && !f.Session.IsSending && !f.SawSend,
+            "Original configuration or prepare/SEND phase lost");
+        TestAssert.Throws<InvalidOperationException>(authority.RequireSending, "Prepare invented actual SEND");
+        authority.RequireCurrent(); TestAssert.That(f.Session.Error is null && f.Output.MicrophoneChecks == 0,
+            "Prepare authority recursed into readiness or refused Current while SEND was pending");
+        f.Output.ContinuePreparation.TrySetResult(); await f.ReadSendOrStopAsync();
+        await f.SendFrame(false, 0, 0); await f.WaitWrites(1); authority.RequireSending(); f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.Throws<ObjectDisposedException>(authority.RequireCurrent, "Stopped native context remained current");
+        TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped, "Normal authority cleanup became an error");
+    }
+    internal static async Task AuthorityCannotBeReplacedAsync()
+    {
+        await using var f = new Fixture(); await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
+        var original = f.Output.Authority!; var forged = new PhoneCameraSession.OutputAuthority(f.Session);
+        TestAssert.Throws<InvalidOperationException>(forged.RequireCurrent, "Reconstructed object granted original identity");
+        TestAssert.Throws<InvalidOperationException>(() => forged.ReportFailure(new IOException("not original")), "Forged object retired an unrelated original owner");
+        original.RequireCurrent(); TestAssert.That(f.Session.Error is null, "Forgery rejection damaged genuine current owner");
+        await using var other = new Fixture(muted:true); await other.OfferAsync(); await other.PreparedAsync(); await other.ReadSendOrStopAsync();
+        var second = other.Output.Authority!;
+        TestAssert.That(!ReferenceEquals(original, second) && original.Scope != second.Scope && second.Muted, "Distinct joined native scopes were substituted");
+        await f.SendFrame(false, 0, 0); await f.WaitWrites(1); original.RequireSending();
+        await other.SendFrame(true, 0, 0); await other.WaitWrites(1);
+        f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.Throws<ObjectDisposedException>(original.RequireSending, "Old context adopted replacement SEND");
+        second.RequireSending(); TestAssert.That(other.Session.Error is null, "Old stop affected another original joined context");
+    }
+    internal static async Task AuthorityOriginalLossCannotReviveAsync()
+    {
+        await using var f = new Fixture(); await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
+        var authority = f.Output.Authority!; f.Current = false;
+        try { authority.RequireCurrent(); throw new Exception("Revoked original output context admitted"); }
+        catch (InvalidOperationException) { }
+        f.Current = true; await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.Throws<ObjectDisposedException>(authority.RequireCurrent, "Native Current resurrected when source flag returned");
+        TestAssert.Throws<ObjectDisposedException>(authority.RequireSending, "Native SEND resurrected when source flag returned");
+        TestAssert.That(f.Session.Error is not null && !f.Session.IsSending && f.Session.IsCompletelyStopped, "Original context loss failed to retire both outputs");
+    }
+    internal static async Task AuthorityBackendFailureRetiresJoinedAsync()
+    {
+        await using var f = new Fixture(); await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
+        var authority = f.Output.Authority!; var failure = new IOException("controlled original backend failed");
+        authority.ReportFailure(failure); authority.ReportFailure(new IOException("later")); await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.That(ReferenceEquals(f.Session.Error, failure) && f.Output.Stopped == 1 && f.Output.Disposed == 1 &&
+            !f.Session.IsSending && f.Session.IsCompletelyStopped && f.Output.Written.IsEmpty, "Backend failure did not stop precisely the original joined owner once");
+    }
+    internal static async Task AuthorityExplicitMuteIsOriginalAsync()
+    {
+        await using var f = new Fixture(muted:true); f.Output.MissingMicrophone = true;
+        await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
+        var authority = f.Output.Authority!; authority.RequireCurrent();
+        TestAssert.That(authority.Muted && authority.Front && f.Output.MicrophoneChecks == 0, "Native context changed original explicit mute/front choice");
+        await f.SendFrame(true, 0, 0); await f.WaitWrites(1); authority.RequireSending(); f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped, "Explicitly muted owner required fake microphone readiness");
     }
 }

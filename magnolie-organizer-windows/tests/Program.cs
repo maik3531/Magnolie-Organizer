@@ -153,6 +153,11 @@ runner.Add("Phone webcam audio helper / strict embedded source descriptor", Phon
 runner.Add("Phone webcam audio runtime / immutable resource snapshot and absent fallback", PhoneCameraAudioRuntimeTests.ImmutableResourceAsync);
 runner.Add("Phone webcam audio runtime / exact x64 PE and digest", PhoneCameraAudioRuntimeTests.PeAndDigestAsync);
 runner.Add("Phone webcam audio runtime / strict source manifest", PhoneCameraAudioRuntimeTests.StrictManifestAsync);
+runner.Add("Phone webcam output authority / prepared current before actual SEND", PhoneCameraSessionTests.AuthorityPrepareThenActualSendAsync);
+runner.Add("Phone webcam output authority / exact original object and independent replacement owner", PhoneCameraSessionTests.AuthorityCannotBeReplacedAsync);
+runner.Add("Phone webcam output authority / original loss permanently rejects resurrection", PhoneCameraSessionTests.AuthorityOriginalLossCannotReviveAsync);
+runner.Add("Phone webcam output authority / backend failure retires original joined owner", PhoneCameraSessionTests.AuthorityBackendFailureRetiresJoinedAsync);
+runner.Add("Phone webcam output authority / immutable original explicit mute", PhoneCameraSessionTests.AuthorityExplicitMuteIsOriginalAsync);
 runner.Add("Phone webcam audio setup / strict original read-only plan", PhoneCameraAudioSetupTests.StrictPlanAsync);
 runner.Add("Phone webcam audio setup / reboot result never claims endpoint readiness", PhoneCameraAudioSetupTests.RebootIsNotReadinessAsync);
 runner.Add("Phone webcam audio setup / bounded wire and cancellation", PhoneCameraAudioSetupTests.OriginalBoundedWireAsync);

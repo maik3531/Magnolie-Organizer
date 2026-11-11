@@ -1,5 +1,42 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Original joined output authority, not substitute callbacks (Refs #550)
+
+IPhoneCameraOutputs.PrepareAsync now receives the exact original session-owned
+OutputAuthority, not a separately supplied mute flag/readiness callback. The owner
+exposes it only after the authenticated phone's prepared control and exact original
+accepted media socket/IP checks. Its native scope and original mute/front choices
+remain immutable. A reconstructed object—even for the same session—is rejected
+by identity and cannot retire the genuine owner; another session owns a different
+context/scope. Metadata or copied flags cannot replace that original object.
+
+Current checks the same original binding/capture context directly, WITHOUT calling
+output readiness recursively. Thus prepare can require Current before devices are
+ready or actual SEND is published. Sending additionally checks the original
+session's actual published SEND state. Merely querying Sending during prepare
+refuses that grant without inventing SEND or invalidating a still-current prepare.
+Original loss is permanent; returning a source flag cannot revive the context.
+Stop withdraws output admission/SEND before cancellation callbacks or outputs.Stop.
+A genuine backend failure retires only this original joined owner once and keeps
+its first error; an old stopped owner cannot affect a replacement session.
+
+Five NEW actual encrypted local-TCP/controlled-output groups passed on the existing
+local .NET host and on actual Windows: prepare versus SEND; exact/forged identity
+and independent owners; original loss/no revival; backend failure/cleanup; original
+explicit mute. Because the Prepare interface and Stop ordering changed, the ten
+affected existing Windows session/control/AV/mute/stall/cleanup cases also passed.
+These are five new groups checked on two runtimes plus ten regressions, not twenty
+new tests. The canonical test build and changed actual optional Windows product
+build passed with zero warnings/errors. Unchanged native worker/artifact/driver
+and unrelated test suites were not rerun; BASE excludes the unchanged file path.
+
+The controlled test output is not a production native implementation, and the
+typed context is not endpoint readiness or phone OS consent by itself. Native
+parent API/data/anchor publication, concrete managed native outputs and trusted
+FrameServer service context/broker wiring remain #503. Real device/phone/OBS and
+checked-package acceptance remain #536/#538/#486; no AudioClient/endpoint/stream,
+installer/UAC/default/VM/physical capture or release was exercised by these tests.
+
 ## Immutable optional worker artifact and installed sibling (Refs #549)
 
 The worker now has a source-bound builder using the existing Windows MSVC/SDK,

@@ -12,7 +12,7 @@ namespace MagnolieOrganizer.Windows;
 // is bounded, and must be interruptible by Stop; it must not leave detached IO.
 internal interface IPhoneCameraOutputs : IDisposable
 {
-    Task PrepareAsync(bool muted, CancellationToken cancellation);
+    Task PrepareAsync(PhoneCameraSession.OutputAuthority original, CancellationToken cancellation);
     void RequireVideoReady();
     void RequireMicrophoneReady();
     void Write(PhoneCameraMediaFrame frame);
@@ -27,8 +27,27 @@ internal interface IPhoneCameraOutputs : IDisposable
 /// </summary>
 internal sealed class PhoneCameraSession
 {
+    /// <summary>Identity-bound live original context, NOT a readiness or consent
+    /// grant. Native outputs retain this exact object; metadata cannot replace it.</summary>
+    internal sealed class OutputAuthority
+    {
+        private readonly PhoneCameraSession owner;
+        internal OutputAuthority(PhoneCameraSession owner) { this.owner = owner; }
+        internal Guid Scope { get; } = Guid.NewGuid();
+        internal bool Muted => owner.muted;
+        internal bool Front => owner.front;
+        internal void RequireCurrent() => owner.RequireOutputAuthority(this, sending: false);
+        internal void RequireSending() => owner.RequireOutputAuthority(this, sending: true);
+        internal void ReportFailure(Exception failure)
+        {
+            ArgumentNullException.ThrowIfNull(failure);
+            if (!ReferenceEquals(owner.outputAuthority, this)) throw new InvalidOperationException("webcam_original_output_authority_required");
+            owner.Fail(failure);
+        }
+    }
     private readonly TelefonConnection parent;
     private readonly IPhoneCameraOutputs outputs;
+    private readonly OutputAuthority outputAuthority;
     private readonly Action originalCurrent;
     private readonly bool muted, front;
     private readonly CancellationTokenSource stop = new();
@@ -38,7 +57,7 @@ internal sealed class PhoneCameraSession
     private PhoneCameraMediaChannel? media;
     private Socket? accepted;
     private Exception? error, cleanupError;
-    private int started, stopping, sending, done, cleanupConfirmed;
+    private int started, stopping, sending, done, cleanupConfirmed, outputAdmitted;
     private long sentAt, videoAt, audioAt;
     internal Exception? Error => Volatile.Read(ref error);
     internal Exception? CleanupError => Volatile.Read(ref cleanupError);
@@ -53,6 +72,7 @@ internal sealed class PhoneCameraSession
         outputs = originalOutputs ?? throw new ArgumentNullException(nameof(originalOutputs));
         this.originalCurrent = originalCurrent ?? throw new ArgumentNullException(nameof(originalCurrent));
         this.muted = muted; this.front = front;
+        outputAuthority = new OutputAuthority(this);
     }
     internal Task RunAsync()
     {
@@ -62,7 +82,8 @@ internal sealed class PhoneCameraSession
     internal void Stop()
     {
         if (Interlocked.Exchange(ref stopping, 1) != 0) return;
-        stop.Cancel(); Volatile.Write(ref sending, 0);
+        // Retire native authority BEFORE cancellation callbacks or output Stop.
+        Volatile.Write(ref outputAdmitted, 0); Volatile.Write(ref sending, 0); stop.Cancel();
         // Close only this owner's IO before waiting for a media-reader lock.
         Volatile.Read(ref listener)?.Dispose(); Volatile.Read(ref accepted)?.Dispose();
         Volatile.Read(ref media)?.Dispose();
@@ -71,6 +92,18 @@ internal sealed class PhoneCameraSession
     }
     private void Fail(Exception failure)
     { Interlocked.CompareExchange(ref error, failure, null); Stop(); }
+    private void RequireOutputAuthority(OutputAuthority original, bool sending)
+    {
+        if (!ReferenceEquals(outputAuthority, original)) throw new InvalidOperationException("webcam_original_output_authority_required");
+        if (Volatile.Read(ref stopping) != 0 || stop.IsCancellationRequested) throw new ObjectDisposedException("webcam_original_output_owner_retired");
+        if (Volatile.Read(ref outputAdmitted) != 1 || binding is null) throw new InvalidOperationException("webcam_original_joined_output_context_required");
+        // Do NOT call RequireMediaContext/output readiness here: preparation and
+        // native lease publication need Current before readiness and actual SEND.
+        try { binding.RequireCurrent(); }
+        catch (Exception failure) { Fail(failure); throw; }
+        if (Volatile.Read(ref stopping) != 0 || stop.IsCancellationRequested) throw new ObjectDisposedException("webcam_original_output_owner_retired");
+        if (sending && !IsSending) throw new InvalidOperationException("webcam_actual_send_required");
+    }
     private void RequireMediaContext()
     {
         stop.Token.ThrowIfCancellationRequested(); binding!.RequireCurrent();
@@ -197,8 +230,10 @@ internal sealed class PhoneCameraSession
             if (accepted.RemoteEndPoint is not IPEndPoint remote || !remote.Address.Equals(opened.Remote))
                 throw new InvalidDataException("webcam_original_phone_ip_required");
             listener.Dispose(); listener = null;
+            Volatile.Write(ref outputAdmitted, 1);
+            outputAuthority.RequireCurrent();
             using var outputDeadline = CancellationTokenSource.CreateLinkedTokenSource(stop.Token); outputDeadline.CancelAfter(TimeSpan.FromSeconds(10));
-            await outputs.PrepareAsync(muted, outputDeadline.Token);
+            await outputs.PrepareAsync(outputAuthority, outputDeadline.Token);
             RequireMediaContext();
             media = new PhoneCameraMediaChannel(accepted, session, secret, RequireMediaContext);
             // Construction admits only the original prepared socket/context.
