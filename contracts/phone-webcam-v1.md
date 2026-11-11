@@ -1,5 +1,55 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Isolated native audio render worker (Refs #541)
+
+AudioRender now implements the actual WASAPI render-side code, but is not yet
+connected to a productive child-process bootstrap or advertised as ready. Open
+requires original live Current/SEND/retirement callbacks and an already admitted
+control PipeReader whose held server process is the actual OS parent, not the
+current process. This rejects an in-process UI fallback before any device access.
+Preparation checks the original current capture context, not SEND: the original
+session prepares outputs before it publishes SEND. Initialization never starts
+the stream; every actual Write/Start additionally requires actual original SEND.
+The control reader and callback contexts must outlive the worker. Its original
+controller must externally bound/terminate this isolated child: endpoint COM
+activation, Initialize, buffer, Stop and Release calls cannot be made cancellable
+by this class. A late-returning call is a failure, never reported as timely output;
+already committed OS data cannot be retroactively erased by a local timer.
+
+The positive initialization path only reads the existing protected setup journal,
+checks its scope/state/error and unique ROOT\\MEDIA instance, active VB hardware
+ID/provider/version, and selects exactly one active topology-matching speaker-form
+render endpoint with the original never-default mask 0x307. It never selects a
+default or name/format fallback, starts setup, or changes properties/roles/volume.
+It requires per-client RAW, shared event-driven 48-kHz float stereo and a bounded
+buffer; this does not alter global effects or make ordinary capture clients work.
+
+Each already admitted 960-sample PCM16LE block is copied privately, converted by
+the exact power-of-two normalization and duplicated to stereo without resampling
+or gain adjustment. Presentation uses the supplied ONE joined native epoch, not a
+new audio origin. The write has a 250-ms whole-operation guard around pacing and
+buffer waits, live checks at acquisition/copy/commit/start boundaries, and shared
+retirement on failure or concurrent writes. Revocation before commit erases the
+acquired output buffer and releases it as silent; Stop itself only signals.
+
+The existing x64 MSVC /W4 /WX build passed including a separate production object
+without the private test-friend macro. Nine groups passed using controlled
+IAudioClient/IAudioRenderClient implementations, real MF memory samples, and owned
+kernel-pipe child processes for actual-parent admission. They cover exact signed
+PCM conversion, invalid input, eight owner boundaries/silent refusal, client
+errors, pending-write Stop/concurrency, whole deadline/PTS/clock rollback,
+no-owner/no-parent/in-process denial, SEND refusal before writing/starting, and
+late-returning padding/acquire/commit/start
+calls. Positive journal/device initialization and real
+AudioClient activation were NOT executed; no real endpoint, stream, driver,
+settings or defaults were touched. Earlier versions were rerun only after adding
+actual-parent admission and fixing deadline checks around returning COM calls;
+counts are not additive.
+
+Original process launch/lease/bootstrap, shared AV scheduling, actual endpoint IO
+and ordinary-consumer/phone/OBS/package acceptance remain open under #503/#536/#538.
+No Linux/macOS output or Android/device pause is changed by this source work.
+
 ## Native audio pipe receiver (Refs #540)
 
 AudioRelay now takes ownership of an already original-process-admitted PipeReader
