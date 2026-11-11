@@ -1,4 +1,7 @@
 #include "../../native/phone-camera/PhoneCameraRuntimeProcess.h"
+#ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
+#include "../../native/phone-camera/PhoneCameraRuntimeStatus.h"
+#endif
 #include <mferror.h>
 #include <objbase.h>
 #include <atomic>
@@ -10,6 +13,10 @@
 using namespace Magnolie::PhoneCamera;
 namespace Magnolie::PhoneCamera
 {
+#ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
+    struct RuntimeStatusTestAccess
+    { static bool Pending(RuntimeStatus* status) { return status && status->pending_.load(); } };
+#endif
     struct RuntimeProcessTestAccess
     {
         static std::shared_ptr<RuntimeImage> OwnExecutable()
@@ -44,7 +51,19 @@ namespace
         std::atomic_int retired{0};
         std::atomic<HRESULT> reason{S_OK};
         RuntimeProcess* process = nullptr;
-        static HRESULT Current(void* value) noexcept { return static_cast<Owner*>(value)->current ? S_OK : E_ACCESSDENIED; }
+#ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
+        RuntimeStatus* status = nullptr;
+        HANDLE pending = nullptr;
+        std::atomic_bool observePending{false};
+#endif
+        static HRESULT Current(void* value) noexcept
+        {
+            auto& o = *static_cast<Owner*>(value);
+#ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
+            if (o.observePending && o.pending && RuntimeStatusTestAccess::Pending(o.status)) SetEvent(o.pending);
+#endif
+            return o.current ? S_OK : E_ACCESSDENIED;
+        }
         static void Retired(void* value, HRESULT reason) noexcept
         { auto& o = *static_cast<Owner*>(value); o.reason = reason; ++o.retired; if (o.process) o.process->Stop(); }
         RuntimeProcessOwner Callbacks() { return {Current, Retired, this, nullptr}; }
@@ -56,6 +75,14 @@ namespace
         Handle ready;
         std::shared_ptr<RuntimeImage> image;
         std::unique_ptr<RuntimeProcess> process;
+#ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
+        std::unique_ptr<RuntimeStatus> status;
+        void StatusMode(DWORD mode)
+        {
+            audio.Data1 = mode; Create();
+            Ok(RuntimeStatus::Create(control, process.get(), status)); owner.status = status.get(); Resume();
+        }
+#endif
         Fixture()
         {
             Ok(CoCreateGuid(&control)); Ok(CoCreateGuid(&audio)); Ok(CoCreateGuid(&anchor));
@@ -71,7 +98,7 @@ namespace
         { Ok(process->WaitStopped(5000)); Check(WaitForSingleObject(process->Child(), 0) == WAIT_OBJECT_0 && owner.retired == 1); }
         ~Fixture() { if (process) { process->Stop(); process->WaitStopped(5000); } owner.process = nullptr; }
     };
-    int Worker(const wchar_t* scope, const wchar_t* parentText)
+    int Worker(const wchar_t* scope, const wchar_t* audioText, const wchar_t* parentText)
     {
         GUID id{}; wchar_t* end = nullptr; const auto raw = std::wcstoull(parentText, &end, 10);
         if (!end || *end || !raw || FAILED(CLSIDFromString(scope, &id))) return 10;
@@ -80,6 +107,40 @@ namespace
         Handle ready; ready.value = OpenEventW(EVENT_MODIFY_STATE, FALSE, ReadyName(id).c_str());
         if (!ready.value) return 12;
         SetEvent(ready.value);
+#ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
+        GUID audio{}; if (FAILED(CLSIDFromString(audioText, &audio))) return 15;
+        if (audio.Data1 >= 1 && audio.Data1 <= 12)
+        {
+            Handle pipe; pipe.value = CreateFileW(RuntimeStatus::Name(id).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+            if (pipe.value == INVALID_HANDLE_VALUE) return 16;
+            for (unsigned int n = 0; n < 2; ++n)
+            {
+                if (n && audio.Data1 == 10) break;
+                std::array<BYTE, 18> record{}; record[0] = 1; record[1] = n ? 2 : 1;
+                record[9] = static_cast<BYTE>(n); record[17] = static_cast<BYTE>(n);
+                if (!n && audio.Data1 == 2) record[0] = 2;
+                if (!n && audio.Data1 == 3) record[1] = 2;
+                if (!n && audio.Data1 == 4) record[9] = 1;
+                if (!n && audio.Data1 == 5) record[17] = 1;
+                if (n && audio.Data1 == 6) record[9] = 0;
+                if (n && audio.Data1 == 7) record[17] = 2;
+                if (n && audio.Data1 == 8) record[1] = 1;
+                const DWORD length = n && audio.Data1 == 9 ? 7 : static_cast<DWORD>(record.size());
+                DWORD written = 0; if (!WriteFile(pipe.value, record.data(), length, &written, nullptr) || written != length) return 17;
+                if (n && audio.Data1 == 9)
+                {
+                    Handle block; block.value = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+                    if (!block.value) return 18;
+                    WaitForSingleObject(block.value, 30000); return 19;
+                }
+            }
+            Handle block; block.value = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+            if (!block.value) return 18;
+            WaitForSingleObject(block.value, 30000); return 19;
+        }
+#else
+        (void)audioText;
+#endif
         // Deliberately blocked OWN native worker model. No COM/audio activation,
         // settings, endpoints, installers or network. Outer process must stop it.
         Handle blocked; blocked.value = CreateEventW(nullptr, TRUE, FALSE, nullptr);
@@ -182,15 +243,68 @@ namespace
         Check(waited == WAIT_OBJECT_0 && code == 0 && transferred && bytes == sizeof(worker.value) && worker.value);
         Check(WaitForSingleObject(worker.value, 3000) == WAIT_OBJECT_0); // Held wait-only object, never reopen/kill by PID.
     }
+#ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
+    void StatusReadyAndExactOperation()
+    {
+        Fixture f; f.StatusMode(1); Ok(f.status->WaitPrepared());
+        ULONGLONG token = 0; Ok(f.process->BeginOperation(&token)); Check(token == 1);
+        Ok(f.status->WaitWritten(token)); f.status->Stop(); f.Stopped();
+    }
+    void StatusMalformedPrepared()
+    {
+        for (DWORD mode : {2UL, 3UL, 4UL, 5UL})
+        { Fixture f; f.StatusMode(mode); Check(f.status->WaitPrepared() == E_INVALIDARG); f.Stopped(); }
+    }
+    void StatusSequenceTokenAndPhase()
+    {
+        for (DWORD mode : {6UL, 7UL, 8UL})
+        {
+            Fixture f; f.StatusMode(mode); Ok(f.status->WaitPrepared());
+            ULONGLONG token = 0; Ok(f.process->BeginOperation(&token));
+            Check(f.status->WaitWritten(token) == E_INVALIDARG); f.Stopped();
+        }
+    }
+    void StatusWholeRecordAndOuterDeadline()
+    {
+        Fixture f; f.StatusMode(9); Ok(f.status->WaitPrepared()); ULONGLONG token = 0;
+        const auto start = GetTickCount64(); Ok(f.process->BeginOperation(&token));
+        Check(FAILED(f.status->WaitWritten(token))); f.Stopped();
+        Check(GetTickCount64() - start >= 200 && GetTickCount64() - start < 2500);
+        Check(FAILED(f.process->CompleteOperation(token))); // Cannot renew expired/retired outer operation.
+    }
+    void StatusStopPendingAndOriginalWithdrawal()
+    {
+        Fixture f; f.StatusMode(10); Ok(f.status->WaitPrepared()); ULONGLONG token = 0; Ok(f.process->BeginOperation(&token));
+        Handle pending; pending.value = CreateEventW(nullptr, TRUE, FALSE, nullptr); Check(pending.value);
+        f.owner.pending = pending.value; f.owner.observePending = true;
+        std::atomic<HRESULT> result{S_OK}; std::thread reader([&] { result = f.status->WaitWritten(token); });
+        const DWORD observed = WaitForSingleObject(pending.value, 1000);
+        const auto start = GetTickCount64(); f.status->Stop(); const auto took = GetTickCount64() - start;
+        reader.join(); f.Stopped(); Check(observed == WAIT_OBJECT_0 && took < 250 && FAILED(result));
+        f.owner.observePending = false; f.owner.pending = nullptr;
+        Fixture withdrawn; withdrawn.StatusMode(10); Ok(withdrawn.status->WaitPrepared());
+        Ok(withdrawn.process->BeginOperation(&token)); withdrawn.owner.current = false;
+        Check(FAILED(withdrawn.status->WaitWritten(token))); withdrawn.Stopped();
+    }
+    void StatusRejectsOtherKernelClient()
+    {
+        Fixture f; f.Create(); Ok(RuntimeStatus::Create(f.control, f.process.get(), f.status));
+        Handle impostor; impostor.value = CreateFileW(RuntimeStatus::Name(f.control).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+        Check(impostor.value != INVALID_HANDLE_VALUE);
+        Check(f.status->WaitPrepared() == E_ACCESSDENIED); f.Stopped();
+        Check(WaitForSingleObject(f.ready.value, 0) == WAIT_TIMEOUT);
+    }
+#endif
 }
 int wmain(int argc, wchar_t** argv)
 {
     if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return 2;
     if (argc == 6 && !std::wcscmp(argv[1], L"--phone-audio-worker"))
-    { const int code = Worker(argv[2], argv[5]); CoUninitialize(); return code; }
+    { const int code = Worker(argv[2], argv[3], argv[5]); CoUninitialize(); return code; }
     if (argc == 4 && !std::wcscmp(argv[1], L"--abrupt-parent"))
     { const int code = AbruptParent(argv[2], argv[3]); CoUninitialize(); return code; }
-    if (argc != 1) { CoUninitialize(); return 3; }
+    if (argc > 2) { CoUninitialize(); return 3; }
+    const std::wstring selected = argc == 2 ? L"," + std::wstring(argv[1]) + L"," : L"";
     int failed = 0;
     const struct { const char* name; void (*run)(); } tests[] = {
         {"runtime-guard-before-resume", GuardBeforeFirstResume},
@@ -198,10 +312,23 @@ int wmain(int argc, wchar_t** argv)
         {"runtime-original-withdraw-stop", OriginalWithdrawAndStop},
         {"runtime-bootstrap-fixed-deadline", FixedBootstrapDeadline},
         {"runtime-artifact-phase-refusal", NoMutableArtifactOrInvalidPhases},
-        {"runtime-parent-death-job", ParentDeathClosesOwnJob}
+        {"runtime-parent-death-job", ParentDeathClosesOwnJob},
+#ifdef MAGNOLIE_NATIVE_RUNTIME_STATUS_TESTS
+        {"status-ready-exact-operation", StatusReadyAndExactOperation},
+        {"status-malformed-prepared", StatusMalformedPrepared},
+        {"status-sequence-token-phase", StatusSequenceTokenAndPhase},
+        {"status-record-outer-deadline", StatusWholeRecordAndOuterDeadline},
+        {"status-stop-pending-original", StatusStopPendingAndOriginalWithdrawal},
+        {"status-exact-kernel-client", StatusRejectsOtherKernelClient},
+#endif
     };
     for (const auto& test : tests)
     {
+        if (!selected.empty())
+        {
+            std::wstring name; for (const char* c = test.name; *c; ++c) name += static_cast<wchar_t>(*c);
+            if (selected.find(L"," + name + L",") == std::wstring::npos) continue;
+        }
         try { test.run(); std::printf("PASS %s\n", test.name); }
         catch (...) { ++failed; std::printf("FAIL %s\n", test.name); }
         std::fflush(stdout);

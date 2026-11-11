@@ -61,6 +61,7 @@ namespace Magnolie::PhoneCamera
         bool IsRetired() const noexcept { return retired_.load(); }
         HRESULT WaitStopped(DWORD limitMs) noexcept;
     private:
+        friend class RuntimeStatus; // Exact own-child status checks the same original owner/deadline.
         explicit RuntimeProcess(RuntimeProcessOwner owner) noexcept : owner_(owner), lifetime_(owner.lifetime) {}
         HRESULT Check() noexcept;
         HRESULT Fail(HRESULT reason) noexcept;

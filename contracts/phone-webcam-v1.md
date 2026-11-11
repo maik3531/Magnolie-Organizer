@@ -1,5 +1,41 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Exact-worker status receipt bound to outer deadlines (Refs #547)
+
+RuntimeStatus supplies the parent's separate inbound status pipe for the SAME
+RuntimeProcess. First-instance/local byte-mode overlapped IO, remote rejection and
+a user+SYSTEM DACL protect the fixed control-scope-derived namespace. Accept checks
+the actual kernel client PID against the held original child, never a lookup or
+substitute process. The runtime must outlive the status reader and its joined task.
+The independent control publisher remains free to renew leases while status waits.
+
+Each private 18-byte v1 record is phase, u64 big-endian status sequence and u64
+big-endian operation token. Ready is first, phase1/sequence0/token0; a subsequent
+write report is phase2 with the next exact sequence and actual outstanding token.
+Ready calls the SAME runtime's CompletePreparation; write acknowledgement calls
+its CompleteOperation. Malformed/partial/replayed/cross-token/phase records,
+unexpected peers, original withdrawal or Stop cancel ONLY this owned pipe and
+retire that own runtime. Reads use a whole-record bound and repeatedly recheck
+the original runtime's existing deadline. Thus a late complete record can never
+extend the outer bootstrap/operation window or resurrect a killed worker.
+
+Six selected NEW actual Windows own-child/kernel-pipe groups passed: exact ready
+and operation receipt; invalid ready version/phase/sequence/token; subsequent
+sequence/token/phase replay; partial record under the original operation deadline;
+Stop during an observed pending read plus original withdrawal; and another kernel
+client rejected while the expected child remained suspended. Existing guard groups
+were not rerun. MSVC /W4 /WX and a production status object without private test
+observers built cleanly. Tests deliberately use a fixed diagnostic child emitting
+controlled records, NOT an actual initialized audio renderer or protected package.
+
+Status bytes alone do NOT establish audio readiness: the actual packaged worker
+must emit Ready only after positive original-lease-backed AudioRender::Open, and
+write completion only after that renderer's actual Write under the matching
+operation. Its native entry/report producer, immutable artifact/manifest and
+managed authenticated-session/AV/FrameServer integration remain #503. No positive
+real AudioClient/endpoint/stream/MF startup/install/UAC/settings/default or VM was
+used; phone/OBS/system-microphone and package acceptance remain open.
+
 ## Verified suspended runtime and external process guard (Refs #546)
 
 RuntimeImage accepts only the fixed native worker sibling of the current program,
