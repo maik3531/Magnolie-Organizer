@@ -48,6 +48,45 @@ audio IO; a fresh original-user read-only snapshot again matched all six default
 The cause of that transient observation remains unconfirmed. Probe code is not
 an accepted productive output adapter and is not shipped as such.
 
+### Subsequent processing-path and actual PCM evidence (Refs #534, #536)
+
+A one-shot own-thread Wait Chain Traversal query subsequently confirmed an ALPC
+wait toward the Windows Audio service, without a detected wait cycle. Existing
+SCM/WER events independently record two Audiosrv hang terminations, waiting on
+audiodg AudioClientRpc. No debugger privileges, foreign thread suspension or memory
+dumps were used. Windows' existing service recovery restarted Audiosrv; Magnolie
+did not restart the service or Windows. Read-only inspection of the exact owned
+virtual endpoints found additional signed Waves MaxxVoice/MaxxAudio mode/stream
+effects. This is evidence of the actual processing configuration, not proof that
+Waves alone caused the hang or permission to modify other devices or drivers.
+
+Requesting RAW through IAudioClient2::SetClientProperties for the own capture
+client allowed Initialize to return. RAW is a per-client processing option, not
+a privacy, driver, exclusive-mode or always-on endpoint-effect bypass. Both own
+clients in RAW with render prepared first subsequently carried real synthetic
+PCM. The original unchanged-sample tests remained failed. Analysis of synthetic
+buffers only identified startup settling followed by an exact adjacent-sample
+0.5/0.5 interpolation. A separate predeclared test then sent 9,600 silence frames
+followed by 48,000 signal frames at 48 kHz and checked only that fixed two-tap
+model: all 48,000 signal frames matched in both channels with maximum error zero.
+No fitted gain, arbitrary DSP model or changed result for an earlier failed run
+was used. Six original-user default selections remained unchanged, and a fresh
+normal-desktop read-only check confirmed both audio services running with exit 0.
+
+This proves a bounded own virtual PCM data path with the stated transformation,
+not unprocessed bit-exact audio or ordinary OBS/browser capture. Those consumers
+do not necessarily request RAW. A separate own-endpoint property experiment
+durably saved the original empty Disable_SysFx property, set and read back the
+documented value using the ordinary endpoint IPropertyStore, tested normal-mode
+capture, and restored/verified the original empty value under the same own
+topology and 0x307 policy. Normal capture still timed out. The experiment therefore
+does not establish effective control of the modern effects store and must not be
+shipped as an automatic fix. No global enhancement setting, other endpoint, ACL,
+driver, volume, default selection or security setting was changed. Undocumented
+policy interfaces and restricted-capability bypasses are not acceptable fallbacks.
+The normal-consumer/system-service issue remains #536; concrete productive output
+adapters, common AV scheduling, phone permissions and OBS acceptance remain #503.
+
 ## Explicit Linux driver setup and confirmed installation (Refs #515, #520, #524)
 
 Only an explicit Advanced-functions Enable/prepare with an original connected
