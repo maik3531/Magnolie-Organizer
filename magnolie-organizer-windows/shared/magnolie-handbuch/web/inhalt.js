@@ -1830,8 +1830,20 @@ if (MOBILE_DOWNLOADS) {
     `<figure class='download-karte'><a href='${MOBILE_DOWNLOADS.kdeConnect.url}'>` +
     `<img class='download-qr' src='${MOBILE_DOWNLOADS.kdeConnect.qr}' alt='KDE Connect'>` +
     "<figcaption><b>KDE Connect</b><br>Google Play</figcaption></a></figure></div>";
-  HANDBUCH_ANHAENGE["android-apk-transfer"] = { inhalt: { en: cards }, neutral: true };
+  const fdroid = "<p><a href='https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes'>Magnolie Notes · F-Droid</a></p>";
+  HANDBUCH_ANHAENGE["android-apk-transfer"] = { inhalt: {
+    en: cards + fdroid + "<p>Alternatively, install and update Notes through the F-Droid client. F-Droid recommends its client: downloading an APK from its website alone provides no update notifications and is less secure. The APK transfer and checksum steps above describe the direct project download, not F-Droid. Versions and signing certificates can differ between channels. Back up your data before changing channels; do not uninstall an existing app to bypass a signature mismatch.</p>",
+    de: cards + fdroid + "<p>Alternativ können Sie Notes über den F-Droid-Client installieren und aktualisieren. F-Droid empfiehlt seinen Client: Ein reiner APK-Download von der Webseite bietet keine Updatebenachrichtigungen und ist weniger sicher. Die obigen Schritte für APK-Übertragung und Prüfsummen gelten für den direkten Projektdownload, nicht für F-Droid. Versionen und Signaturzertifikate können sich zwischen den Bezugsquellen unterscheiden. Sichern Sie vor einem Wechsel Ihre Daten; deinstallieren Sie eine vorhandene App nicht, um einen Signaturkonflikt zu umgehen.</p>"
+  } };
 }
+HANDBUCH_ANHAENGE["the-appimage"] = {
+  en: "<p>Magnolie Organizer is also listed in the <a href='https://appimage.github.io/Magnolie-Organizer'>AppImage catalogue</a>. This is a catalogue entry; check the linked release and its checksum before running an AppImage.</p>",
+  de: "<p>Magnolie Organizer ist auch im <a href='https://appimage.github.io/Magnolie-Organizer'>AppImage-Katalog</a> verzeichnet. Dies ist ein Katalogeintrag; prüfen Sie das verlinkte Release und seine Prüfsumme, bevor Sie ein AppImage starten.</p>"
+};
+HANDBUCH_ANHAENGE["first-run-assistant"] = {
+  en: "<p>On the phone-apps page, <b>Magnolie Notes · F-Droid</b> opens <a href='https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes'>the F-Droid listing</a> as an alternative to the direct APK download. Opening the link does not install the app or grant phone permissions.</p>",
+  de: "<p>Auf der Seite für Telefon-Apps führt <b>Magnolie Notes · F-Droid</b> zum <a href='https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes'>F-Droid-Eintrag</a> als Alternative zum direkten APK-Download. Das Öffnen des Links installiert keine App und erteilt keine Telefonberechtigungen.</p>"
+};
 HANDBUCH_ANHAENGE["phone-call-assignment"].en += "<div class='merke'><b>Current settings path</b>Enable <span class='knopfwort'>Bluetooth data fallback</span> in the Magnolie Notes phone settings and select the system-paired telephone there. The label means that the Magnolie fallback channel itself carries data only; the same stored device address is also used to ask BlueZ for the separate HFP call-audio connection. Restoring permissions at startup refers only to Magnolie protocol grants. Android system permissions must still be granted on the telephone.</div>";
 HANDBUCH_ANHAENGE["phone-call-assignment"].de += "<div class='merke'><b>Derzeitiger Einstellungspfad</b>Schalten Sie in den Magnolie-Notes-Telefoneinstellungen <span class='knopfwort'>Bluetooth-Datenfallback</span> ein und wählen Sie dort das systemgekoppelte Telefon. Die Bezeichnung bedeutet, dass der Magnolie-Rückfallkanal selbst nur Daten überträgt; dieselbe gespeicherte Geräteadresse verwendet Magnolie zusätzlich, um BlueZ um die getrennte HFP-Verbindung für den Gesprächston zu bitten. Das Wiederherstellen von Freigaben beim Start betrifft nur Magnolie-Protokollfreigaben. Android-Systemberechtigungen müssen weiterhin auf dem Telefon erteilt werden.</div>";
 const ANRUF_MCP_HILFE = {

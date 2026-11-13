@@ -76,6 +76,13 @@ assert.deepStrictEqual(Array.from(pages, (page) => page.id), Array.from(expected
 assert.ok(pages.every((page) => page.titel && page.inhalt !== undefined));
 assert.ok(pages.some((page) => page.id === "the-appimage"), "Die AppImage-Seite fehlt");
 const apkPage = pages.find((page) => page.id === "android-apk-transfer");
+const fdroidUrl = "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes";
+assert.ok(apkPage.inhalt.includes(fdroidUrl) && apkPage.inhalt.includes("Signaturkonflikt"),
+  "F-Droid alternative and safe channel-change explanation are missing");
+assert.ok(pages.find(page => page.id === "first-run-assistant").inhalt.includes(fdroidUrl),
+  "First-run handbook must explain its F-Droid alternative");
+assert.ok(pages.find(page => page.id === "the-appimage").inhalt.includes("https://appimage.github.io/Magnolie-Organizer"),
+  "AppImage catalogue link missing");
 assert.ok(apkPage.inhalt.includes("Magnolie-Notes.apk") &&
   apkPage.inhalt.includes("Magnolie-Notes-latest-PRUEFSUMMEN.sha256") &&
   !apkPage.inhalt.includes("Magnolie-Notes-1.0.13.apk") &&
@@ -196,4 +203,22 @@ assert.strictEqual(bridgeMessages[0].cmd, "drucken");
 assert.ok(bridgeMessages[0].html.includes("Magnolie Organizer · Handbuch"));
 
 dom.window.close();
+for (const [platformName, language] of [["linux", "en"], ["linux", "de"], ["windows", "en"]]) {
+  const linksDom = new JSDOM(html, { url: "https://handbuch.magnolie.test/", runScripts: "outside-only" });
+  try {
+    const w = linksDom.window;
+    w.eval(i18n); w.eval(deCatalog);
+    w.__MAGNOLIE_SPRACHE__ = language; w.__MAGNOLIE_PLATFORM__ = platformName;
+    for (const script of [localeStart, mobileDownloads, content, platform, runtime]) w.eval(script);
+    if (!w.Handbuch) w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
+    const renderedPages = w.Handbuch.seiten();
+    for (const [id, url] of [["android-apk-transfer", fdroidUrl], ["first-run-assistant", fdroidUrl],
+      ["the-appimage", "https://appimage.github.io/Magnolie-Organizer"]]) {
+      const fragment = new JSDOM(renderedPages.find(page => page.id === id).inhalt);
+      try { assert.ok(Array.from(fragment.window.document.querySelectorAll("a[href]"))
+        .some(link => link.href === url), `${platformName}/${language}: missing link on ${id}`); }
+      finally { fragment.window.close(); }
+    }
+  } finally { linksDom.window.close(); }
+}
 console.log(`HANDBOOK SMOKE TEST PASSED (${pages.length} shared pages; source: ${handbookSource.label})`);

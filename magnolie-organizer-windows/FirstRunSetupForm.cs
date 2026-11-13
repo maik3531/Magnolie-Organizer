@@ -7,6 +7,7 @@ internal sealed class FirstRunSetupForm : Form
 {
     // Generated from handbook mobile-downloads.json by tools/sync_mobile_downloads.py.
     internal const string MagnolieNotesUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Notes.apk";
+    internal const string MagnolieNotesFdroidUrl = "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes";
     internal const string KdeConnectUrl = "https://play.google.com/store/apps/details?id=org.kde.kdeconnect_tp";
     private static readonly Color Felt = Color.FromArgb(46, 58, 52);
     private static readonly Color FeltLight = Color.FromArgb(63, 77, 69);
@@ -608,7 +609,9 @@ internal sealed class FirstRunSetupForm : Form
             T("Downloads"));
         var downloads = new FlowLayoutPanel { AutoSize = true, WrapContents = false,
             FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 4, 0, 8) };
-        downloads.Controls.Add(PhoneDownload("Magnolie Notes", MagnolieNotesUrl, "phone-notes-qr.png"));
+        var notesDownload = PhoneDownload("Magnolie Notes", MagnolieNotesUrl, "phone-notes-qr.png");
+        notesDownload.Controls.Add(LinkButton("Magnolie Notes · F-Droid", MagnolieNotesFdroidUrl));
+        downloads.Controls.Add(notesDownload);
         downloads.Controls.Add(PhoneDownload("KDE Connect", KdeConnectUrl, "phone-kde-connect-qr.png"));
         panel.Controls.Add(downloads);
         var connections = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Width = 650 };

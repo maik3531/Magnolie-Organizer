@@ -41,6 +41,12 @@ internal static class FirstRunSetupUiSelfTest
         SetField(form, "page", 3);
         form.GetType().GetMethod("RenderPage", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, null);
         form.Show(); Application.DoEvents();
+        var downloadLinks = Descendants(Field<Panel>(form, "pageHost")).OfType<LinkLabel>().ToArray();
+        Test(downloadLinks.Count(link => Equals(link.Tag, FirstRunSetupForm.MagnolieNotesFdroidUrl) &&
+            link.Text == "Magnolie Notes · F-Droid") == 1,
+            "Phone page must offer exactly one distinct F-Droid Notes link.");
+        Test(downloadLinks.Any(link => Equals(link.Tag, FirstRunSetupForm.MagnolieNotesUrl)),
+            "F-Droid must not replace the direct project APK.");
         var pictures = Descendants(Field<Panel>(form, "pageHost")).OfType<PictureBox>()
             .Where(picture => picture.AccessibleRole == AccessibleRole.PushButton).ToArray();
         Test(pictures.Length == 2 && pictures.All(picture => picture.TabStop && picture.Width == 170 && picture.Height == 170),

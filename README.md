@@ -42,8 +42,15 @@ sharing first.
 |---|---|---|
 | Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.30-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.30-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.30_all.deb) |
 | Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.30-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.30-x64.zip) |
-| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.21.apk) | Android 8.0 or newer |
+| Android 8.0+ | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.21.apk) | [Magnolie Notes on F-Droid](https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes) |
 | Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.30_all.deb) | Included as an optional Windows component |
+
+Magnolie Organizer is also listed in the [AppImage catalogue](https://appimage.github.io/Magnolie-Organizer).
+F-Droid is an alternative Notes distribution channel; available versions and signing
+certificates can differ from the direct project APK. Before changing channels,
+make a backup; do not uninstall an existing app merely to bypass a signature mismatch.
+F-Droid recommends using its client for installation and updates: downloading an
+APK from its website alone does not provide update notifications.
 
 ### Main DEB application – including KDE Plasma
 
