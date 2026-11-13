@@ -28,6 +28,8 @@ internal static class Or6Codec
         private readonly Dictionary<(uint, uint), (uint Tag, HashSet<ushort> Fields)> schemas = new();
         private readonly Dictionary<(uint, uint), string> schemaNames = new();
         private readonly HashSet<(uint, uint)> plannerZeroDefaults = new();
+        private readonly HashSet<(uint, uint)> calendarIndexDefaults = new();
+        internal bool CalendarIndexDeclared(Entry entry) => calendarIndexDefaults.Contains(entry.Schema);
         private uint U32(int offset) => BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset, 4));
         private ushort U16(int offset) => BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(offset, 2));
         private (uint, uint) Reference(int offset) => (U32(offset), U32(offset + 4));
@@ -64,6 +66,8 @@ internal static class Or6Codec
                         !fields.Add(U16(next + 0x24))) throw Invalid();
                     if (U32(offset + 0x2c) == 0x200 && U16(next + 0x24) == 19 && U16(next + 0x26) == 2)
                         plannerZeroDefaults.Add(Reference(offset + 12));
+                    if (U32(offset + 0x2c) == 0x100 && U16(next + 0x24) == 14 && U16(next + 0x26) == 0x2003)
+                        calendarIndexDefaults.Add(Reference(offset + 12));
                     next = Address(U32(next + 0x20));
                 }
                 schemas.Add(Reference(offset + 12), (U32(offset + 0x2c), fields));
@@ -338,6 +342,67 @@ internal static class Or6Codec
         return result;
     }
 
+    private static List<JsonObject>? FiniteCalendarSeries((Entry Definition, List<Entry> Members) group,
+        HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned, Document document)
+    {
+        var ordinary = FiniteSeries(group, orphaned);
+        if (ordinary is not null) return [ordinary];
+        if (group.Members.Count == 0 || group.Members.Any(member => member.Tag != 0x100)) return null;
+        var arrays = new List<DateTime[]>();
+        foreach (ushort fid in new ushort[] { 12, 13 })
+        {
+            var raw = Bytes(group.Definition.Fields, fid);
+            if (raw.Length == 0 || raw.Length % 8 != 0) return null;
+            var dates = Enumerable.Range(0, raw.Length / 8).Select(i => Stamp(raw.AsSpan(i * 8, 8).ToArray())).ToArray();
+            if (dates.Any(date => date is null)) return null;
+            arrays.Add(dates.Select(date => date!.Value).ToArray());
+        }
+        var starts = arrays[0]; var ends = arrays[1];
+        if (starts.Length != ends.Length || group.Members.Any(member => !document.CalendarIndexDeclared(member) ||
+            member.Fields.ContainsKey(14) && Bytes(member.Fields, 14).Length != 4)) return null;
+        var ordered = group.Members.OrderBy(member => Number(member.Fields, 14)).ToArray();
+        var indices = ordered.Select(member => Number(member.Fields, 14)).ToArray();
+        if (indices.Distinct().Count() != indices.Length || indices.Any(index => index >= starts.Length)) return null;
+        var basis = ordered[0].Fields;
+        bool Known(ushort fid) => fid is 3 or 7 or 8 or 9 or 14;
+        var projected = new List<Entry>();
+        foreach (var member in ordered)
+        {
+            var fields = member.Fields; var index = Number(fields, 14);
+            var start = Stamp(Bytes(fields, 7)); var end = Stamp(Bytes(fields, 8));
+            if (start is null || end is null || end < start || Text(fields, 9).Length == 0 ||
+                basis.Keys.Concat(fields.Keys).Distinct().Any(fid => !Known(fid) &&
+                    (basis.ContainsKey(fid) != fields.ContainsKey(fid) || !Bytes(basis, fid).AsSpan().SequenceEqual(Bytes(fields, fid)))) ||
+                Categories(basis).Length > 0 && Categories(fields).Length == 0) return null;
+            var canonical = new Dictionary<ushort, byte[]>(basis) {
+                [7] = Bytes(group.Definition.Fields, 12).AsSpan((int)index * 8, 8).ToArray(),
+                [8] = Bytes(group.Definition.Fields, 13).AsSpan((int)index * 8, 8).ToArray(), [14] = new byte[4] };
+            BinaryPrimitives.WriteUInt32LittleEndian(canonical[14], index);
+            projected.Add(member with { Fields = canonical });
+        }
+        var master = FiniteSeries((group.Definition, projected), orphaned);
+        if (master is null) return null;
+        var converted = new List<JsonObject> { master };
+        string Compact(DateTime value) => value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
+        string Day(DateTime value) => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        foreach (var member in ordered)
+        {
+            var fields = member.Fields; var index = Number(fields, 14);
+            var start = Stamp(Bytes(fields, 7))!.Value; var end = Stamp(Bytes(fields, 8))!.Value;
+            if (start == starts[index] && end == ends[index] && Bytes(fields, 9).AsSpan().SequenceEqual(Bytes(basis, 9)) && Categories(fields) == Categories(basis)) continue;
+            master["icsRoundtrip"]!.AsArray().Add("EXDATE:" + Compact(starts[index]));
+            master["icsKomplex"] = true; master["icsSerienUid"] = group.Definition.Uid;
+            var child = Common(fields, member.Uid);
+            child["datum"] = Day(start); child["zeit"] = start.ToString("HH:mm", CultureInfo.InvariantCulture);
+            child["endDatum"] = end.Date != start.Date ? Day(end) : ""; child["endZeit"] = end.ToString("HH:mm", CultureInfo.InvariantCulture);
+            child["kategorien"] = Categories(fields); child["vorlaeufig"] = Number(fields, 18) != 0; child["icsSerienUid"] = group.Definition.Uid;
+            child["icsRoundtrip"] = new JsonArray("RECURRENCE-ID:" + Compact(starts[index]), "DTSTART:" + Compact(start), "DTEND:" + Compact(end),
+                "X-MAGNOLIE-OR6-OBJECT-UID:" + member.Uid);
+            converted.Add(child);
+        }
+        return converted;
+    }
+
     private static (Entry Definition, List<Entry> Members)? TaskSegmentMembers((Entry Definition, List<Entry> Members) group,
         HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned)
     {
@@ -489,8 +554,7 @@ internal static class Or6Codec
                             if (tag == 0x300) evaluated[group.Definition.Uid] = series = FiniteTaskSeries(group, orphaned);
                             else
                             {
-                                var appointment = FiniteSeries(group, orphaned);
-                                evaluated[group.Definition.Uid] = series = appointment is null ? null : [appointment];
+                                evaluated[group.Definition.Uid] = series = FiniteCalendarSeries(group, orphaned, document);
                             }
                         }
                         if (series is not null)

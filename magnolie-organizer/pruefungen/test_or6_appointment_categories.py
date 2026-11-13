@@ -57,5 +57,9 @@ def test_different_category_on_one_series_member_is_not_spread_to_the_whole_set(
     assert changed != source and len(changed) == length
     data[at:at+length] = changed
     result = read_or6(rotate(data, False))
-    assert not any(item['titel'] == CONTRACT['expected']['title'] for item in result['termine'])
-    assert result['uebersprungen'] == 3
+    selected = [item for item in result['termine'] if item['titel'] == CONTRACT['expected']['title']]
+    assert result['uebersprungen'] == 0 and len(selected) == 2
+    master, = [item for item in selected if not any(line.startswith('RECURRENCE-ID:') for line in item['icsRoundtrip'])]
+    child, = [item for item in selected if any(line.startswith('RECURRENCE-ID:') for line in item['icsRoundtrip'])]
+    assert master['kategorien'] == 'OR6-613 Work' and child['kategorien'] == 'OR6-613 Home'
+    assert 'RECURRENCE-ID:20261107T101500' in child['icsRoundtrip']

@@ -40,6 +40,10 @@ internal static class Or6AppointmentCategoryTests
         TestAssert.That(changed != source && changed.Length == source.Length, "Independent category field changed");
         Encoding.Unicode.GetBytes(changed).CopyTo(decoded, field.Value);
         var held = Or6Codec.Read(Rotate(decoded, false));
-        TestAssert.That(held.Uebersprungen == 3 && !held.Termine.OfType<JsonObject>().Any(item => ContactFields.Text(item, "titel") == title), "One occurrence category spread to the entire series");
+        var selected = held.Termine.OfType<JsonObject>().Where(item => ContactFields.Text(item, "titel") == title).ToArray();
+        TestAssert.That(held.Uebersprungen == 0 && selected.Length == 2 &&
+            selected.Count(item => ContactFields.Text(item, "kategorien") == "OR6-613 Work") == 1 &&
+            selected.Count(item => ContactFields.Text(item, "kategorien") == "OR6-613 Home" && item["icsRoundtrip"]!.AsArray().Any(value => value!.GetValue<string>() == "RECURRENCE-ID:20261107T101500")) == 1,
+            "One occurrence category spread to the entire series rather than a bound override");
     }
 }

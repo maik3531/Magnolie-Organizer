@@ -484,6 +484,79 @@ def _finite_series(group, orphaned=(), task_states=False):
     return result
 
 
+def _finite_calendar_series(group, orphaned, schemas):
+    """Verified original slot identity, not task index/date recovery (#614)."""
+    ordinary = _finite_series(group, orphaned)
+    if ordinary is not None:
+        return [ordinary]
+    definition, members = group
+    if not members or any(member[0] != 0x100 for member in members):
+        return None
+    arrays = []
+    for fid in (12, 13):
+        raw = definition[1].get(fid, b"")
+        if not raw or len(raw) % 8:
+            return None
+        values = [_stamp(raw[i:i+8]) for i in range(0, len(raw), 8)]
+        if any(value is None for value in values):
+            return None
+        arrays.append(values)
+    starts, ends = arrays
+    if len(starts) != len(ends):
+        return None
+    # The absent first index means zero only for the independently observed
+    # native computed uint32 declaration; _number alone accepts other widths.
+    if any(schemas[member[4]][1].get(14) != 0x2003 or
+           14 in member[1] and len(member[1][14]) != 4 for member in members):
+        return None
+    ordered = sorted(members, key=lambda member: _number(member[1], 14))
+    indices = [_number(member[1], 14) for member in ordered]
+    if len(set(indices)) != len(indices) or any(index >= len(starts) for index in indices):
+        return None
+    base = ordered[0][1]
+    known = {3, 7, 8, 9, 14}
+    comparable = {fid: value for fid, value in base.items() if fid not in known}
+    projected = []
+    for index, member in zip(indices, ordered):
+        fields = member[1]
+        begin, end = _stamp(fields.get(7)), _stamp(fields.get(8))
+        if (not begin or not end or end < begin or not _string(fields, 9) or
+                {fid: value for fid, value in fields.items() if fid not in known} != comparable):
+            return None  # Includes Busy/meeting differences: never ignored.
+        if _categories(base) and not _categories(fields):
+            return None  # Explicit empty-category export/inheritance unverified.
+        canonical = dict(base)
+        canonical.update({7: definition[1][12][index*8:index*8+8],
+                          8: definition[1][13][index*8:index*8+8],
+                          14: struct.pack('<I', index)})
+        projected.append((member[0], canonical, *member[2:]))
+    # Reuse strict original-link/array/rule/missing-slot/orphan checks, but only
+    # on an in-memory uniform view of the original slots, never moved clocks.
+    master = _finite_series((definition, projected), orphaned)
+    if master is None:
+        return None
+    converted = [master]
+    compact = lambda value: value.strftime("%Y%m%dT%H%M%S")
+    for index, member in zip(indices, ordered):
+        fields = member[1]
+        begin, end = _stamp(fields[7]), _stamp(fields[8])
+        if (begin == starts[index] and end == ends[index] and
+                fields.get(9) == base.get(9) and _categories(fields) == _categories(base)):
+            continue
+        master["icsRoundtrip"].append("EXDATE:" + compact(starts[index]))
+        master.update(icsKomplex=True, icsSerienUid=definition[2])
+        child = _common(fields, member[2])
+        child.update(datum=begin.strftime("%Y-%m-%d"), zeit=begin.strftime("%H:%M"),
+                     endDatum=end.strftime("%Y-%m-%d") if end.date() != begin.date() else "",
+                     endZeit=end.strftime("%H:%M"), kategorien=_categories(fields),
+                     vorlaeufig=bool(_number(fields, 18)), icsSerienUid=definition[2],
+                     icsRoundtrip=["RECURRENCE-ID:" + compact(starts[index]),
+                                   "DTSTART:" + compact(begin), "DTEND:" + compact(end),
+                                   "X-MAGNOLIE-OR6-OBJECT-UID:" + member[2]])
+        converted.append(child)
+    return converted
+
+
 def _task_segment_members(group, orphaned):
     """Retain linked history preceding the current native date-array segment.
 
@@ -635,13 +708,14 @@ def _read_or6(raw):
             if _number(fields, 10):
                 group = groups.get(uid)
                 if group and group[0][2] not in evaluated:
-                    evaluated[group[0][2]] = (_finite_task_series if tag == 0x300 else _finite_series)(group, orphaned)
+                    evaluated[group[0][2]] = (_finite_task_series(group, orphaned) if tag == 0x300 else
+                                              _finite_calendar_series(group, orphaned, document.schemas))
                 series = evaluated.get(group[0][2]) if group else None
                 if series is not None:
                     if tag == 0x300:
                         result["aufgaben"].extend(series)
                     else:
-                        result["termine"].append(series)
+                        result["termine"].extend(series)
                     # The shared counter warns about unresolved source rules;
                     # this fully verified recurrence set is already expandable.
                     consumed.update(member[2] for member in group[1])

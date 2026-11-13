@@ -201,9 +201,10 @@ def test_partial_or_conflicting_native_sets_are_not_flattened_or_joined_by_title
         count = struct.unpack_from('<I', data, address+0x28)[0]
         for index in range(count):
             entry = address+0x34+index*8
-            if struct.unpack_from('<H', data, entry)[0] == 9:
-                pointer = struct.unpack_from('<I', data, entry+4)[0]
-                data[address+pointer] = ord('X')
+            if struct.unpack_from('<H', data, entry)[0] == 15:
+                # Title overrides are verified by #614; unknown availability
+                # differences must still hold the set, never be discarded.
+                data[entry+4] ^= 1
     result = read_or6(bytes(rotate(data, False)))
     assert not any(item['titel'].startswith(('OR6-222', 'XR6-222')) for item in result['termine'])
     assert result['wiederholend'] == 0 and result['uebersprungen'] >= 3

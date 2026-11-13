@@ -12,9 +12,19 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   and tentative flag. Native categories of ordinary appointments and verified
   uniform finite appointment series map to the existing `kategorien` field
   (#613). The existing user's category palette may color them, but the import
-  does not guess a native color from a category name. Differing per-occurrence
-  categories still require explicit series-override handling, not spreading one
-  member's category to the entire set. No time-zone conversion is inferred.
+  does not guess a native color from a category name. Verified independently
+  indexed calendar occurrences (#614) retain moved start/end clocks and changed
+  title/category as source-bound exceptions, not unrelated appointments. Their
+  `RECURRENCE-ID` is the original array slot, never the moved start. Native child
+  identity remains the imported UID and `X-MAGNOLIE-OR6-OBJECT-UID` provenance
+  through calendar export/reimport. The original master excludes each overridden
+  slot; missing-slot and active-orphan guards remain in force.
+  This calendar-only path requires unique in-range indices; absent index0 is
+  accepted only with the native computed uint32 declaration (kind `0x2003`),
+  and present indices must be exactly four bytes. Task index recovery is not
+  applied. Unknown differing fields, including meeting metadata and `$Busy`,
+  remain guarded, as does unverified empty-category clearing. Pencil-in/Busy
+  availability semantics remain separate under #615. No timezone is inferred.
 - Tasks: description, native local start/due dates and clocks, priority and
   completed state. Ordinary single tasks use the same existing structured
   `startDatum`/`startZeit`/`faellig`/`faelligZeit` fields as task series (#612),
@@ -242,8 +252,19 @@ safety topic (#611); private excluded sections are never used to reconstruct it.
 single and weekly-Saturday appointment files. The category was assigned while
 single, before creating the native three-occurrence weekly set; save/reopen,
 category, clocks and all three original Find results were verified. Both readers
-test existing calendar export/reimport, absent category and conflicting-member
-guards. Both full frontends additionally verify selected-day rendering and the
+test existing calendar export/reimport and absent category. A differing member
+category now remains a bound exception under #614, never a whole-set category.
+Both full frontends additionally verify selected-day rendering and the
 existing local category palette, annual/ODS/print output, profile restoration,
 duplicate reimport and preservation of a local category edit. This does not
 claim support for other still-held native override/repetition forms (#243).
+
+`or6-native-appointment-overrides.json` retains genuine synthetic original-program
+single-move and title/category-edit snapshots after save/reopen, plus a guarded
+Pencil-in/Busy intermediate. Original native links, indices and slot arrays were
+independently checked against the original UI. Both readers test original versus
+actual clocks, native identity, calendar roundtrip and ambiguous/unknown-field
+guards. Both full frontends verify old/moved days, changed content, profile
+restoration, the actual moved-exception editor and reimport preserving its local
+edit. Earlier-fragment, duplicate-index and meeting-metadata forms not explained
+by these fixtures remain outside this proven scope (#243).
