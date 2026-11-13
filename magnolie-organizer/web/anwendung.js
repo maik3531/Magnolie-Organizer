@@ -25707,6 +25707,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let edsAngefragt = false;
   let syncLaeuft = false;
   let updateLaeuft = false;
+  let updateInstallationLaeuft = false;
   let handbuchInstalliert = false;
   let handbuchVersion = "";
   let handbuchStatus = "ungeprueft";
@@ -26064,7 +26065,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (erzwungen) zettel(_("Update checking is available only in the installed application."));
       return false;
     }
-    if (updateLaeuft || (!erzwungen && !u.automatisch)) return false;
+    if (updateLaeuft || updateInstallationLaeuft || (!erzwungen && !u.automatisch)) return false;
     if (!erzwungen && u.letztePruefung &&
       Date.now() - u.letztePruefung < 24 * 60 * 60 * 1000) return false;
     updateLaeuft = true;
@@ -30420,7 +30421,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     const updateStand = el("p", "einst-hinweis");
     updateStand.id = "update-stand";
-    if (updateLaeuft) {
+    updateStand.setAttribute("role", "status");
+    if (updateInstallationLaeuft) {
+      updateStand.textContent = _("Please wait …");
+    } else if (updateLaeuft) {
       updateStand.textContent = _("Checking the current version …");
     } else if (update.letzterFehler) {
       updateStand.textContent = uebersetzt("Last check failed: %(error)s",
@@ -30456,26 +30460,31 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const updateReihe = el("div", "knopfreihe");
     const pruefen = knopf(_("Check now"), "", () => starteUpdatePruefung(true));
     pruefen.id = "update-pruefen";
-    pruefen.disabled = !Bruecke.vorhanden || updateLaeuft;
+    pruefen.disabled = !Bruecke.vorhanden || updateLaeuft || updateInstallationLaeuft;
     updateReihe.append(pruefen);
     if (istNeuereFassung(update.letzteVersion) && update.letzteUrl) {
       const holen = knopf(uebersetzt("Install version %(version)s …",
         { version: update.letzteVersion }), "haupt", () => {
+        if (updateInstallationLaeuft) return;
         frage(uebersetzt("Install version %(version)s now? All changes will be saved. " +
           "The Organizer will close and restart after the installation.",
           { version: update.letzteVersion }), _("Apply"), _("Cancel")).then((ja) => {
           if (!ja) return;
           navigiereMitGuard(() => {}).then((freigegeben) => {
-            if (!freigegeben) return;
+            if (!freigegeben || updateInstallationLaeuft) return;
+            updateInstallationLaeuft = true;
+            if (einstSeite === "ueber") baueEinstellungen();
             nachDauerhaftemSpeichern(() => {
-              holen.disabled = true;
               Bruecke.sende({ cmd: "update_herunterladen" });
+            }, () => {
+              updateInstallationLaeuft = false;
+              if (einstSeite === "ueber") baueEinstellungen();
             });
           });
         });
       });
       holen.id = "update-herunterladen";
-      holen.disabled = !Bruecke.vorhanden;
+      holen.disabled = !Bruecke.vorhanden || updateInstallationLaeuft;
       updateReihe.append(holen);
     }
     updateKasten.append(updateReihe);
@@ -36629,6 +36638,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     updateHeruntergeladen(nutzlast) {
       nutzlast = nutzlast || {};
       if (!nutzlast.ok || !nutzlast.bereit) {
+        updateInstallationLaeuft = false;
         zettel(nutzlast.fehler || _("The package could not be opened."));
         if (einstSeite === "ueber") baueEinstellungen();
         return;
@@ -36638,6 +36648,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     updateInstallationVorbereitet(nutzlast) {
       nutzlast = nutzlast || {};
       if (!nutzlast.ok || !nutzlast.bereitZumBeenden) {
+        updateInstallationLaeuft = false;
         zettel(nutzlast.fehler || _("The package could not be opened."));
         if (einstSeite === "ueber") baueEinstellungen();
         return;
