@@ -350,7 +350,7 @@ internal static class Or6Codec
             arrays.Add(values.Select(value => value!.Value).ToArray());
         }
         var starts = arrays[0]; var ends = arrays[1];
-        if (starts.Length != ends.Length || !starts.SequenceEqual(starts.Distinct().Order())) return null;
+        if (starts.Length != ends.Length || !starts.SequenceEqual(starts.Distinct().Order()) || starts.Where((start, i) => ends[i] < start).Any()) return null;
         var history = new List<Entry>(); var current = new List<Entry>(); var seen = new HashSet<DateTime>();
         foreach (var member in group.Members)
         {
@@ -365,28 +365,40 @@ internal static class Or6Codec
             else
             {
                 var index = Number(member.Fields, 14);
-                if (index >= starts.Length || begin != starts[index] || finish != ends[index]) return null;
+                if (index >= starts.Length) return null;
                 current.Add(member);
             }
         }
-        if (history.Count == 0) return group;
         if (current.Count == 0 || group.Members.Select(member => member.Schema).Distinct().Count() != 1) return null;
         var indices = current.Select(member => Number(member.Fields, 14)).ToHashSet();
+        var recovered = current.Any(member => Stamp(Bytes(member.Fields, 7)) != starts[Number(member.Fields, 14)] || Stamp(Bytes(member.Fields, 8)) != ends[Number(member.Fields, 14)]);
+        if (recovered)
+        {
+            // Original All edits can copy index0 to every live linked task and
+            // leave template dates stale. Only a complete uniquely dated set,
+            // zero-copy indices or a full unique slot set, can recover this form.
+            if (current.Count != starts.Length || !(indices.SetEquals(new uint[] { 0 }) || indices.SetEquals(Enumerable.Range(0, starts.Length).Select(i => (uint)i)))) return null;
+            var actual = current.Select(member => Stamp(Bytes(member.Fields, 7))!.Value).Concat(starts).ToHashSet();
+            if (orphaned.Any(value => value.Schema == current[0].Schema && value.Start is { } start && actual.Contains(start))) return null;
+            current = current.OrderBy(member => Stamp(Bytes(member.Fields, 7))).ToList();
+        }
+        if (history.Count == 0 && !recovered) return group;
         if (Enumerable.Range(0, starts.Length).Any(i => !indices.Contains((uint)i) && orphaned.Contains((current[0].Schema, (uint)i, starts[i])))) return null;
         history = history.OrderBy(member => Stamp(Bytes(member.Fields, 7))).ToList();
-        // Later scoped native edits restart indices. Keep each linked earlier
-        // occurrence, projecting exact dates only in memory, never deduplicating
-        // by index or inventing historical dates from the current rule.
+        // Exact observed linked clocks only; no old template dates are invented
+        // as live occurrences. FiniteSeries must still independently match the
+        // entire actual date set before emitting a rule, otherwise uses RDATE.
         var metadata = new Dictionary<ushort, byte[]>(group.Definition.Fields);
         foreach (ushort fid in new ushort[] { 12, 13 })
         {
             ushort source = fid == 12 ? (ushort)7 : (ushort)8;
-            metadata[fid] = history.SelectMany(member => Bytes(member.Fields, source)).Concat(Bytes(metadata, fid)).ToArray();
+            metadata[fid] = history.SelectMany(member => Bytes(member.Fields, source))
+                .Concat(recovered ? current.SelectMany(member => Bytes(member.Fields, source)) : Bytes(metadata, fid)).ToArray();
         }
         var projected = new List<Entry>();
         foreach (var member in history.Concat(current))
         {
-            var index = projected.Count < history.Count ? (uint)projected.Count : (uint)history.Count + Number(member.Fields, 14);
+            var index = recovered || projected.Count < history.Count ? (uint)projected.Count : (uint)history.Count + Number(member.Fields, 14);
             var fields = new Dictionary<ushort, byte[]>(member.Fields); var encoded = new byte[4];
             BinaryPrimitives.WriteUInt32LittleEndian(encoded, index); fields[14] = encoded;
             projected.Add(member with { Fields = fields });
@@ -403,6 +415,7 @@ internal static class Or6Codec
         // appointments, but retain one task series rather than loose tasks.
         if (group.Members.Any(member => Number(member.Fields, 20) is not (1 or 2 or 4))) return null;
         foreach (var member in group.Members) _ = Date(member.Fields, 19);
+        var templates = new Dictionary<ushort, byte[]> { [12] = Bytes(group.Definition.Fields, 12), [13] = Bytes(group.Definition.Fields, 13) };
         var projected = TaskSegmentMembers(group, orphaned);
         if (projected is null) return null;
         group = projected.Value;
@@ -423,6 +436,10 @@ internal static class Or6Codec
             var line = value!.GetValue<string>();
             return (JsonNode?)JsonValue.Create(line.StartsWith("DTEND:", StringComparison.Ordinal) ? "DUE:" + line[6..] : line);
         }).ToArray());
+        foreach (var (fid, name) in new[] { ((ushort)12, "STARTS"), ((ushort)13, "DUES") })
+            if (!templates[fid].AsSpan().SequenceEqual(Bytes(group.Definition.Fields, fid)))
+                result["icsRoundtrip"]!.AsArray().Add("X-MAGNOLIE-OR6-TASK-TEMPLATE-" + name + ":" + string.Join(',',
+                    Enumerable.Range(0, templates[fid].Length / 8).Select(i => Stamp(templates[fid].AsSpan(i * 8, 8).ToArray())!.Value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture))));
         var converted = new List<JsonObject> { result };
         foreach (var member in group.Members.OrderBy(value => Number(value.Fields, 14)))
             {

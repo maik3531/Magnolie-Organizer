@@ -12,7 +12,7 @@ internal static class Or6TaskScopeTests
 {
     private const string Title = "OR6-567 Variants";
     private static JsonObject[] Selected(ExchangeImportResult result) => result.Aufgaben.OfType<JsonObject>().Where(item => ContactFields.Text(item, "titel") == Title).ToArray();
-    private static byte[] Fixture(JsonNode meta)
+    internal static byte[] Fixture(JsonNode meta)
     {
         using var input = new MemoryStream(Convert.FromBase64String(meta["gzip_base64"]!.GetValue<string>()));
         using var gzip = new GZipStream(input, CompressionMode.Decompress); using var output = new MemoryStream(); gzip.CopyTo(output);
@@ -20,7 +20,7 @@ internal static class Or6TaskScopeTests
         TestAssert.That(raw.Length == meta["bytes"]!.GetValue<int>() && Convert.ToHexString(SHA256.HashData(raw)).ToLowerInvariant() == meta["sha256"]!.GetValue<string>(), "Independent scoped task source changed");
         return raw;
     }
-    private static Dictionary<string, (bool Completed, string Category)> Occurrences(IEnumerable<JsonObject> tasks)
+    internal static Dictionary<string, (bool Completed, string Category)> Occurrences(IEnumerable<JsonObject> tasks)
     {
         var result = new Dictionary<string, (bool, string)>();
         foreach (var task in tasks)

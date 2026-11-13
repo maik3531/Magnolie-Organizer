@@ -483,9 +483,10 @@ def _finite_series(group, orphaned=(), task_states=False):
 def _task_segment_members(group, orphaned):
     """Retain linked history preceding the current native date-array segment.
 
-    Later scoped edits restart native indices at zero. Only current members
-    are checked against those indices; earlier linked records are distinct
-    occurrences, never duplicates. Projection is in memory, not source editing.
+    Later scoped edits restart indices; original bulk edits can also copy zero
+    to the whole set while leaving old template dates behind. Only complete,
+    uniquely dated, explicitly linked sets can recover that verified form.
+    Projection is in memory, never a source edit or guessed historical dates.
     """
     definition, members = group
     arrays = []
@@ -498,7 +499,8 @@ def _task_segment_members(group, orphaned):
             return None
         arrays.append(values)
     starts, ends = arrays
-    if len(starts) != len(ends) or starts != sorted(set(starts)):
+    if (len(starts) != len(ends) or starts != sorted(set(starts)) or
+            any(end < start for start, end in zip(starts, ends))):
         return None
     history, current, seen = [], [], set()
     for member in members:
@@ -513,29 +515,40 @@ def _task_segment_members(group, orphaned):
             history.append(member)
         else:
             index = _number(member[1], 14)
-            if index >= len(starts) or start != starts[index] or end != ends[index]:
+            if index >= len(starts):
                 return None
             current.append(member)
-    if not history:
-        return group
     if not current or len({member[4] for member in members}) != 1:
         return None
     indices = {_number(member[1], 14) for member in current}
+    recovered = any(_stamp(member[1][7]) != starts[_number(member[1], 14)] or
+                    _stamp(member[1][8]) != ends[_number(member[1], 14)] for member in current)
+    if recovered:
+        if len(current) != len(starts) or indices not in ({0}, set(range(len(starts)))):
+            return None  # No partial/ambiguous rebinding or unknown index default.
+        actual_starts = {_stamp(member[1][7]) for member in current}
+        candidate_starts = set(starts) | actual_starts
+        if any(schema == current[0][4] and start in candidate_starts for schema, _, start in orphaned):
+            return None  # A known active unlinked task is never guessed deleted.
+        current.sort(key=lambda member: _stamp(member[1][7]))
+    if not history and not recovered:
+        return group
     if any((current[0][4], index, starts[index]) in orphaned for index in set(range(len(starts))) - indices):
         return None
     history.sort(key=lambda member: _stamp(member[1][7]))
-    # Exact linked historical dates plus the exact current arrays. Missing
-    # current occurrences remain EXDATE, and no historical dates are invented.
-    start_bytes = b"".join(member[1][7] for member in history) + definition[1][12]
-    end_bytes = b"".join(member[1][8] for member in history) + definition[1][13]
+    # For the verified complete-set edit form, visible linked clocks take
+    # precedence over stale templates. Rule validation below still has to match
+    # every actual date; otherwise this is an exact finite RDATE set, not a rule.
+    start_bytes = b"".join(member[1][7] for member in history) + (b"".join(member[1][7] for member in current) if recovered else definition[1][12])
+    end_bytes = b"".join(member[1][8] for member in history) + (b"".join(member[1][8] for member in current) if recovered else definition[1][13])
     metadata = dict(definition[1])
     metadata.update({12: start_bytes, 13: end_bytes})
     projected = []
     for index, member in enumerate(history):
         fields = dict(member[1]); fields[14] = struct.pack('<I', index)
         projected.append((member[0], fields, *member[2:]))
-    for member in current:
-        fields = dict(member[1]); fields[14] = struct.pack('<I', len(history) + _number(fields, 14))
+    for index, member in enumerate(current):
+        fields = dict(member[1]); fields[14] = struct.pack('<I', len(history) + (index if recovered else _number(fields, 14)))
         projected.append((member[0], fields, *member[2:]))
     return ((definition[0], metadata, *definition[2:]), projected)
 
@@ -551,6 +564,7 @@ def _finite_task_series(group, orphaned=()):
         return None  # Unknown per-occurrence states must not become open tasks.
     for member in group[1]:
         _date(member[1], 19)  # Retain strict native stamp validation.
+    templates = {fid: group[0][1].get(fid, b"") for fid in (12, 13)}
     group = _task_segment_members(group, orphaned)
     if group is None:
         return None
@@ -571,6 +585,10 @@ def _finite_task_series(group, orphaned=()):
                   icsSerienUid=group[0][2],
                   icsRoundtrip=["DUE:" + line[6:] if line.startswith("DTEND:") else line
                                 for line in series["icsRoundtrip"]])
+    for fid, name in ((12, "STARTS"), (13, "DUES")):
+        if templates[fid] != group[0][1][fid]:
+            result["icsRoundtrip"].append("X-MAGNOLIE-OR6-TASK-TEMPLATE-" + name + ":" + ",".join(
+                _stamp(templates[fid][i:i+8]).strftime("%Y%m%dT%H%M%S") for i in range(0, len(templates[fid]), 8)))
     converted = [result]
     for member in sorted(group[1], key=lambda value: _number(value[1], 14)):
         completed = _number(member[1], 20) == 4

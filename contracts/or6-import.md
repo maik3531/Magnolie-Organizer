@@ -29,13 +29,21 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
    exceptions, including open occurrences; completion never spreads the category
    or status to other dates. A later scoped rule edit may restart indices while
    retaining earlier linked records. Those historical dates preceding the current
-   array segment are preserved, not deduplicated by relative index. The current
-   segment still requires exact index/start/due matches; earlier dates must lie
-   within the native anchor and pass the same content/duration/state guards.
-   Projection only combines those observed historical timestamps with the exact
-   current arrays in memory. No historical dates are extrapolated from the rule.
-   Other current-array/index discrepancies or conflicting dates remain held for
-   independent verification (#610), not silently rebound by title or date.
+   array segment are preserved, not deduplicated by relative index. Earlier
+   dates must lie within the native anchor and pass the same content/duration/
+   state guards. Current index/start/due matches are required except for the
+   independently verified complete-set edit forms (#610): the original “All”
+   action can copy index0 to every linked task; moving occurrences can leave old
+   template dates unchanged. Recovery requires a complete, uniquely dated live
+   linked set, with all indices zero or a full unique in-range slot set. Unknown
+   indices, incomplete sets, conflicting dates/content/duration/state and known
+   active unlinked tasks remain guarded. It never binds unrelated tasks by title.
+   Only observed live start/due values are projected in memory. A rule must match
+   the entire actual expansion, otherwise the exact finite `RDATE` set is used:
+   old template dates do not become phantom tasks. Changed template arrays remain
+   as non-scheduling `X-MAGNOLIE-OR6-TASK-TEMPLATE-STARTS` / `...-DUES` provenance
+   (`yyyyMMddTHHmmss`, comma-separated) across VTODO export/import and restore.
+   No historical dates or lost original recurrence identities are guessed.
 - Contacts: names, company, telephone numbers, email addresses and postal
   addresses; additional basic text fields are retained in the contact note.
   Mail-merge names and nonempty native `Extn` slots are retained as explicitly
@@ -195,4 +203,16 @@ actions. Both readers verify exact VTODO roundtrips and conflicting-history
 guards; both full frontends verify effective dates/categories/states, profile
 restoration, the original category in the editor, actual single-occurrence
 completion and reimport preserving the local edit. Additional native binding
-forms remain explicitly outside this fixture's proven scope (#610).
+ forms are covered separately by the following complete-set edit fixtures.
+
+`or6-native-task-bindings.json` retains three genuine synthetic original-program
+snapshots: a single moved/category occurrence, all indices copied to zero with
+exact original dates, and a whole-set date shift after reopening while template
+arrays remain unchanged. Original UI and source values were independently
+checked. The original bulk “All” operation also copies the selected status and
+category; its resulting open/blank values are not attributed to the importer.
+Both readers test exact effective dates/states/categories, template provenance,
+VTODO roundtrip and seven ambiguity/incompleteness guards. Both full frontends
+check expansion, profile restoration, actual single-occurrence completion and
+reimport without undoing the local edit. These verified finite forms do not
+establish compatibility with every possible native task edit or infinite rule.
