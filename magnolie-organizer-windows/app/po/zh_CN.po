@@ -8240,11 +8240,11 @@ msgstr "启用照片和视频同步"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "仅从手机导入到电脑"
+msgid "Import phone → PC only"
+msgstr "仅从手机导入到电脑"
 
-#~ msgid "PC → phone"
-#~ msgstr "电脑 → 手机"
+msgid "PC → phone"
+msgstr "电脑 → 手机"
 
 msgid "Only the phone inventory"
 msgstr "仅手机中的内容"
@@ -8308,3 +8308,20 @@ msgstr "系统托盘图标（60秒）"
 
 msgid "Saved developer mode is required."
 msgstr "必须先保存开发者模式。"
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "添加电脑源文件夹 …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "电脑源文件夹与接收目标相互独立。"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "仅照片"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "已选电脑源文件夹"

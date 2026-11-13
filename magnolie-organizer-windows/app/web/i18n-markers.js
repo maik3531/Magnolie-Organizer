@@ -1,4 +1,11 @@
 /* Nur für xgettext; diese Datei wird nicht in der Anwendung geladen. */
+/* Data-driven phone-media.js controls; share the existing Linux translations. */
+gettext("Photos only");
+gettext("Import phone → PC only");
+gettext("PC → phone");
+gettext("Add PC source folder …");
+gettext("Selected PC source folders");
+gettext("PC source folders are separate from receive destinations.");
 /* Appearance selectors use translated data-driven labels. Refs #432. */
 gettext("Visual test only; no connections or permissions are changed.");
 gettext("Tray preview");

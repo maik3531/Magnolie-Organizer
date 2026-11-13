@@ -8706,11 +8706,11 @@ msgstr "تفعيل مزامنة الصور والفيديو"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "الاستيراد من الهاتف إلى الكمبيوتر فقط"
+msgid "Import phone → PC only"
+msgstr "الاستيراد من الهاتف إلى الكمبيوتر فقط"
 
-#~ msgid "PC → phone"
-#~ msgstr "الكمبيوتر → الهاتف"
+msgid "PC → phone"
+msgstr "الكمبيوتر → الهاتف"
 
 msgid "Only the phone inventory"
 msgstr "محتويات الهاتف فقط"
@@ -8774,3 +8774,20 @@ msgstr "أيقونة علبة النظام (60 ثانية)"
 
 msgid "Saved developer mode is required."
 msgstr "يجب حفظ وضع المطوّر."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "إضافة مجلد مصدر من الكمبيوتر …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "مجلدات المصدر على الكمبيوتر منفصلة عن وجهات الاستقبال."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "الصور فقط"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "مجلدات المصدر المحددة على الكمبيوتر"

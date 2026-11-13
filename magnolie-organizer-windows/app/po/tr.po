@@ -8640,11 +8640,11 @@ msgstr "Fotoğraf ve video eşitlemesini etkinleştir"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "Yalnızca telefondan PC’ye aktar"
+msgid "Import phone → PC only"
+msgstr "Yalnızca telefondan PC’ye aktar"
 
-#~ msgid "PC → phone"
-#~ msgstr "PC → telefon"
+msgid "PC → phone"
+msgstr "PC → telefon"
 
 msgid "Only the phone inventory"
 msgstr "Yalnızca telefonun içeriği"
@@ -8708,3 +8708,20 @@ msgstr "Sistem tepsisi simgesi (60 sn)"
 
 msgid "Saved developer mode is required."
 msgstr "Geliştirici modu kaydedilmiş olmalıdır."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Bilgisayar kaynak klasörü ekle …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Bilgisayar kaynak klasörleri, alma hedeflerinden ayrıdır."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Yalnızca fotoğraflar"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Seçili bilgisayar kaynak klasörleri"

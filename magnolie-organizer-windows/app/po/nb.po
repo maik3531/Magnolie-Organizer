@@ -8653,11 +8653,11 @@ msgstr "Aktiver synkronisering av bilder og videoer"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "Importer bare fra telefon til PC"
+msgid "Import phone → PC only"
+msgstr "Importer bare fra telefon til PC"
 
-#~ msgid "PC → phone"
-#~ msgstr "PC → telefon"
+msgid "PC → phone"
+msgstr "PC → telefon"
 
 msgid "Only the phone inventory"
 msgstr "Bare telefonens innhold"
@@ -8721,3 +8721,20 @@ msgstr "Systemets statusikon (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "Utviklermodus må være lagret."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Legg til kildemappe på PC …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Kildemapper på PC er atskilt fra mottaksmål."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Bare bilder"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Valgte kildemapper på PC"

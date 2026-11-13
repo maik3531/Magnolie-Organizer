@@ -8653,11 +8653,11 @@ msgstr "Povolit synchronizaci fotografií a videí"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "Pouze importovat z telefonu do PC"
+msgid "Import phone → PC only"
+msgstr "Pouze importovat z telefonu do PC"
 
-#~ msgid "PC → phone"
-#~ msgstr "PC → telefon"
+msgid "PC → phone"
+msgstr "PC → telefon"
 
 msgid "Only the phone inventory"
 msgstr "Pouze obsah telefonu"
@@ -8721,3 +8721,20 @@ msgstr "Ikona v oznamovací oblasti systému (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "Režim pro vývojáře musí být uložen."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Přidat zdrojovou složku v PC …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Zdrojové složky v PC jsou oddělené od cílů příjmu."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Pouze fotografie"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Vybrané zdrojové složky v PC"

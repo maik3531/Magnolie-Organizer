@@ -8698,11 +8698,11 @@ msgstr "Уключыць сінхранізацыю фота і відэа"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "Толькі імпартаваць з тэлефона на ПК"
+msgid "Import phone → PC only"
+msgstr "Толькі імпартаваць з тэлефона на ПК"
 
-#~ msgid "PC → phone"
-#~ msgstr "ПК → тэлефон"
+msgid "PC → phone"
+msgstr "ПК → тэлефон"
 
 msgid "Only the phone inventory"
 msgstr "Толькі змесціва тэлефона"
@@ -8766,3 +8766,20 @@ msgstr "Значок у сістэмным трэі (60 с)"
 
 msgid "Saved developer mode is required."
 msgstr "Рэжым распрацоўшчыка павінен быць захаваны."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Дадаць зыходную папку на ПК …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Зыходныя папкі на ПК аддзеленыя ад месцаў атрымання."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Толькі фота"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Выбраныя зыходныя папкі на ПК"

@@ -8701,11 +8701,11 @@ msgstr "Увімкнути синхронізацію фото й відео"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "Лише імпортувати з телефона на ПК"
+msgid "Import phone → PC only"
+msgstr "Лише імпортувати з телефона на ПК"
 
-#~ msgid "PC → phone"
-#~ msgstr "ПК → телефон"
+msgid "PC → phone"
+msgstr "ПК → телефон"
 
 msgid "Only the phone inventory"
 msgstr "Лише вміст телефону"
@@ -8769,3 +8769,20 @@ msgstr "Значок у системному треї (60 с)"
 
 msgid "Saved developer mode is required."
 msgstr "Режим розробника має бути збережено."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Додати вихідну теку на ПК …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Вихідні теки на ПК відокремлені від місць отримання."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Лише фотографії"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Вибрані вихідні теки на ПК"

@@ -8552,11 +8552,11 @@ msgstr "写真と動画の同期を有効にする"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "スマートフォンから PC へのみインポート"
+msgid "Import phone → PC only"
+msgstr "スマートフォンから PC へのみインポート"
 
-#~ msgid "PC → phone"
-#~ msgstr "PC → スマートフォン"
+msgid "PC → phone"
+msgstr "PC → スマートフォン"
 
 msgid "Only the phone inventory"
 msgstr "スマートフォン内の項目のみ"
@@ -8620,3 +8620,20 @@ msgstr "システムトレイアイコン（60秒）"
 
 msgid "Saved developer mode is required."
 msgstr "開発者モードを保存する必要があります。"
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "PC の同期元フォルダーを追加 …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "PC の同期元フォルダーと受信先は別々です。"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "写真のみ"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "選択した PC の同期元フォルダー"

@@ -8475,11 +8475,11 @@ msgstr "फ़ोटो और वीडियो समन्वयन सक�
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "केवल फ़ोन से PC पर आयात करें"
+msgid "Import phone → PC only"
+msgstr "केवल फ़ोन से PC पर आयात करें"
 
-#~ msgid "PC → phone"
-#~ msgstr "PC → फ़ोन"
+msgid "PC → phone"
+msgstr "PC → फ़ोन"
 
 msgid "Only the phone inventory"
 msgstr "केवल फ़ोन की सामग्री"
@@ -8543,3 +8543,20 @@ msgstr "सिस्टम ट्रे आइकन (60 सेकंड)"
 
 msgid "Saved developer mode is required."
 msgstr "डेवलपर मोड सहेजा हुआ होना चाहिए।"
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "पीसी का स्रोत फ़ोल्डर जोड़ें …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "पीसी स्रोत फ़ोल्डर प्राप्ति के गंतव्यों से अलग होते हैं।"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "केवल फ़ोटो"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "चुने गए पीसी स्रोत फ़ोल्डर"

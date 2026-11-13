@@ -111,6 +111,12 @@ function generatedCatalog(locale) {
 }
 
 const template = poEntries(fs.readFileSync(path.join(poDir, "magnolie-organizer.pot"), "utf8"));
+const mediaSource = fs.readFileSync(path.join(root, "app/web/phone-media.js"), "utf8");
+for (const key of ["Photos only", "Import phone → PC only", "PC → phone", "Add PC source folder …",
+  "Selected PC source folders", "PC source folders are separate from receive destinations."]) {
+  assert.ok(mediaSource.includes(JSON.stringify(key)), "Reviewed media label no longer belongs to phone-media.js: " + key);
+  assert.ok(template.has(key), "Dynamic media control omitted from the source catalogue: " + key);
+}
 const locales = fs.readFileSync(path.join(poDir, "LINGUAS"), "utf8").trim().split(/\s+/);
 const dormantKeys = new Set();
 assert.deepStrictEqual(fs.readdirSync(poDir).filter((file) => file.endsWith(".po"))

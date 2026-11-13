@@ -8767,11 +8767,11 @@ msgstr "Activar la sincronización de fotos y vídeos"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "Solo importar del teléfono al PC"
+msgid "Import phone → PC only"
+msgstr "Solo importar del teléfono al PC"
 
-#~ msgid "PC → phone"
-#~ msgstr "PC → teléfono"
+msgid "PC → phone"
+msgstr "PC → teléfono"
 
 msgid "Only the phone inventory"
 msgstr "Solo el contenido del teléfono"
@@ -8835,3 +8835,20 @@ msgstr "Icono de la bandeja del sistema (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "El modo de desarrollador debe estar guardado."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Añadir carpeta de origen del PC …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Las carpetas de origen del PC son independientes de los destinos de recepción."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Solo fotos"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Carpetas de origen del PC seleccionadas"

@@ -8775,11 +8775,11 @@ msgstr "Synchronizaciju fotow a widejow zmóžnić"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "Jenož z telefona na PC importować"
+msgid "Import phone → PC only"
+msgstr "Jenož z telefona na PC importować"
 
-#~ msgid "PC → phone"
-#~ msgstr "PC → telefon"
+msgid "PC → phone"
+msgstr "PC → telefon"
 
 msgid "Only the phone inventory"
 msgstr "Jenož wobsah telefona"
@@ -8843,3 +8843,20 @@ msgstr "Symbol w systemowej lajsće (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "Wuwiwarski modus dyrbi składowany być."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Žórłowy rjadowak na PC přidać …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Žórłowe rjadowaki na PC su wot přijimanskich cilow dźělene."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Jenož fota"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Wubrane žórłowe rjadowaki na PC"

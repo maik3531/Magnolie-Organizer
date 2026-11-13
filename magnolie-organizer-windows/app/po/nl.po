@@ -8749,11 +8749,11 @@ msgstr "Synchronisatie van foto’s en video’s inschakelen"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-#~ msgid "Import phone → PC only"
-#~ msgstr "Alleen van telefoon naar pc importeren"
+msgid "Import phone → PC only"
+msgstr "Alleen van telefoon naar pc importeren"
 
-#~ msgid "PC → phone"
-#~ msgstr "Pc → telefoon"
+msgid "PC → phone"
+msgstr "Pc → telefoon"
 
 msgid "Only the phone inventory"
 msgstr "Alleen de inhoud van de telefoon"
@@ -8817,3 +8817,20 @@ msgstr "Systeemvakpictogram (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "De ontwikkelaarsmodus moet opgeslagen zijn."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Bronmap op pc toevoegen …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Bronmappen op de pc staan los van ontvangstbestemmingen."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Alleen foto’s"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Geselecteerde bronmappen op de pc"
