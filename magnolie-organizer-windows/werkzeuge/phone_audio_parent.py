@@ -13,7 +13,7 @@ import subprocess
 SOURCES = tuple('native/phone-camera/' + name + suffix for name in (
     'PhoneCameraAudioParent', 'PhoneCameraClock', 'PhoneCameraPipe', 'PhoneCameraOutputLease',
     'PhoneCameraOutputPublisher', 'PhoneCameraRuntimeProcess', 'PhoneCameraRuntimeStatus', 'PhoneCameraVirtualCamera',
-    'PhoneCameraBrokerProtocol', 'PhoneCameraBrokerChannel', 'PhoneCameraFrameServerPeer', 'PhoneCameraSourceBrokerParent')
+    'PhoneCameraBrokerProtocol', 'PhoneCameraBrokerChannel', 'PhoneCameraFrameServerPeer', 'PhoneCameraSourceBrokerParent', 'PhoneCameraVideoParent')
     for suffix in ('.h', '.cpp')) + ('native/phone-camera/PhoneCameraSamples.h', 'native/phone-camera/PhoneCameraModule.h',
         'werkzeuge/phone_audio_parent.py', 'PhoneCameraAudioParent.targets')
 NAME = 'Magnolie.PhoneAudioParent.x64.dll'

@@ -21,6 +21,7 @@ internal sealed partial class PhoneCameraAudioParentRuntime
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int AnchorFunction(ulong handle, [Out] byte[] record, uint bytes);
     private sealed class Calls
     {
+        internal PhoneCameraAudioParentModule? Module;
         internal required CreateFunction Create;
         internal required HandleFunction Prepare, Ready, Stop, Close;
         internal required VideoFunction Video;
@@ -28,6 +29,7 @@ internal sealed partial class PhoneCameraAudioParentRuntime
         internal required AnchorFunction Anchor;
         internal required Action ReleaseModule;
         internal static Calls From(PhoneCameraAudioParentModule module) => new() {
+            Module = module,
             Create = module.Export<CreateFunction>("MagnoliePhoneAudioCreate"), Prepare = module.Export<HandleFunction>("MagnoliePhoneAudioPrepare"),
             Ready = module.Export<HandleFunction>("MagnoliePhoneAudioRequireReady"), Stop = module.Export<HandleFunction>("MagnoliePhoneAudioStop"),
             Close = module.Export<HandleFunction>("MagnoliePhoneAudioClose"), Video = module.Export<VideoFunction>("MagnoliePhoneAudioObserveVideo"),
@@ -56,10 +58,7 @@ internal sealed partial class PhoneCameraAudioParentRuntime
     private static Exception NativeFailure(int result) => new COMException("webcam_original_native_audio_failed", result < 0 ? result : unchecked((int)0x80070005));
     private static void RequireSuccess(int result) { if (result != 0) throw NativeFailure(result); }
     private int Callback(bool sending)
-    {
-        try { if (sending) original.RequireSending(); else original.RequireCurrent(); return 0; }
-        catch (Exception failure) { return failure.HResult < 0 ? failure.HResult : unchecked((int)0x80070005); }
-    }
+        => original.NativeAuthorityStatus(sending);
     internal static PhoneCameraAudioParentRuntime? CreateCurrent(PhoneCameraSession.OutputAuthority original)
     {
         ArgumentNullException.ThrowIfNull(original); original.RequireCurrent();
@@ -198,6 +197,14 @@ internal sealed partial class PhoneCameraAudioParentRuntime
             throw new ObjectDisposedException(nameof(VideoClockLease));
         internal long ObserveVideo(long actuallyAdmittedPtsUs) => Current.ObserveVideo(actuallyAdmittedPtsUs);
         internal byte[] ExportAnchor() => Current.ExportAnchor(); // Same native 33 bytes, never reconstructed.
+        internal PhoneCameraAudioParentModule BorrowOriginalModule(PhoneCameraSession.OutputAuthority exactOriginal)
+        {
+            var parent = Current;
+            if (!ReferenceEquals(parent.original, exactOriginal))
+                throw new InvalidOperationException("webcam_video_clock_original_audio_owner_required");
+            parent.original.RequireCurrent();
+            return parent.calls.Module ?? throw new InvalidOperationException("webcam_video_original_native_module_required");
+        }
         public void Dispose() => Interlocked.Exchange(ref runtime, null)?.Exit();
     }
     internal void Stop()

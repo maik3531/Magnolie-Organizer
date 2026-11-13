@@ -38,6 +38,15 @@ internal sealed class PhoneCameraSession
         internal bool Front => owner.front;
         internal void RequireCurrent() => owner.RequireOutputAuthority(this, sending: false);
         internal void RequireSending() => owner.RequireOutputAuthority(this, sending: true);
+        // Native lease distinguishes valid preparation from terminal errors by
+        // EXACT E_ACCESSDENIED. Never translate an arbitrary failed Current or
+        // reconstructed owner into a legitimate preparation/SEND phase.
+        internal int NativeAuthorityStatus(bool sending)
+        {
+            const int denied = unchecked((int)0x80070005);
+            try { RequireCurrent(); return sending && !owner.IsSending ? denied : 0; }
+            catch (Exception error) { return error.HResult < 0 ? error.HResult : denied; }
+        }
         internal void RequirePublication(PhoneCameraControlBinding originalBinding)
         {
             if (!ReferenceEquals(owner.outputAuthority, this) || !ReferenceEquals(owner.binding, originalBinding))
@@ -87,6 +96,12 @@ internal sealed class PhoneCameraSession
         this.muted = muted; this.front = front;
         outputAuthority = new OutputAuthority(this);
     }
+    // Native bootstrap only; construction remains inert. RunAsync still needs
+    // the original connected parent, explicit live opt-in and original control
+    // exchange. No renderer, saved permission or screen-share consent fallback.
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static PhoneCameraSession CreateNative(TelefonConnection originalParent, Action originalCurrent, bool muted, bool front) =>
+        new(originalParent, new PhoneCameraNativeOutputs(), originalCurrent, muted, front);
     internal Task RunAsync()
     {
         if (Interlocked.Exchange(ref started, 1) != 0) throw new InvalidOperationException("webcam_original_session_already_used");

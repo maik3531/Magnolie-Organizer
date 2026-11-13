@@ -37,6 +37,8 @@ namespace Magnolie::PhoneCamera
     class SourceBrokerParent final
     {
     public:
+        // On failure result can retain the exact UNCONFIRMED original for
+        // cleanup/lifetime only; never discard it or infer readiness from it.
         static HRESULT Prepare(const GUID& originalScope, std::shared_ptr<VirtualCamera> originalCamera,
             SourceBrokerOwner originalOwner, std::unique_ptr<SourceBrokerParent>& result) noexcept;
         HRESULT RequireBound() noexcept; // Native binding accounting only.

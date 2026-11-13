@@ -24,6 +24,7 @@ internal sealed class PhoneCameraAudioParentPayload
         "native/phone-camera/PhoneCameraBrokerChannel.h", "native/phone-camera/PhoneCameraBrokerChannel.cpp",
         "native/phone-camera/PhoneCameraFrameServerPeer.h", "native/phone-camera/PhoneCameraFrameServerPeer.cpp",
         "native/phone-camera/PhoneCameraSourceBrokerParent.h", "native/phone-camera/PhoneCameraSourceBrokerParent.cpp",
+        "native/phone-camera/PhoneCameraVideoParent.h", "native/phone-camera/PhoneCameraVideoParent.cpp",
         "native/phone-camera/PhoneCameraSamples.h", "native/phone-camera/PhoneCameraModule.h", "werkzeuge/phone_audio_parent.py", "PhoneCameraAudioParent.targets"
     });
     private PhoneCameraAudioParentPayload(byte[] image, string hash) { binary = image; Sha256 = hash; }

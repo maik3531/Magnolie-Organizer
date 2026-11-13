@@ -75,9 +75,10 @@ namespace Magnolie::PhoneCamera
         if (result || !camera || scope == GUID_NULL || !owner.output.current || !owner.output.sending || !owner.output.retired ||
             !owner.output.context || !owner.output.lifetime || owner.output.nowMs || !owner.exportAnchor) return E_INVALIDARG;
         if (uncertainBroker.load()) return HRESULT_FROM_WIN32(ERROR_BUSY);
+        std::unique_ptr<SourceBrokerParent> parent;
         try
         {
-            auto parent = std::unique_ptr<SourceBrokerParent>(new SourceBrokerParent(std::make_unique<Hold>(std::move(camera), owner)));
+            parent.reset(new SourceBrokerParent(std::make_unique<Hold>(std::move(camera), owner)));
             HRESULT hr = parent->CaptureCurrent(); if (FAILED(hr)) return hr;
             hr = BrokerProperty::CreateOriginal(scope, parent->hold_->property); if (FAILED(hr)) return hr;
             hr = BrokerChannel::CreateServer(parent->hold_->property.Pipe(), {TransportCurrent, parent.get(), owner.output.lifetime}, parent->hold_->channel);
@@ -97,10 +98,19 @@ namespace Magnolie::PhoneCamera
                 if (WaitForMultipleObjects(2, wait, FALSE, 2000) != WAIT_OBJECT_0 + 1) hr = MF_E_SHUTDOWN;
             }
             if (SUCCEEDED(hr)) hr = parent->RequireBound();
-            if (FAILED(hr)) { parent->Stop(); parent->Close(); return hr; }
+            if (FAILED(hr))
+            {
+                parent->Stop();
+                if (FAILED(parent->Close())) result = std::move(parent); // Cleanup-only retained original, never Ready.
+                return hr;
+            }
             result = std::move(parent); return S_OK;
         }
-        catch (...) { return E_OUTOFMEMORY; }
+        catch (...)
+        {
+            if (parent) { parent->Stop(); if (FAILED(parent->Close())) result = std::move(parent); }
+            return E_OUTOFMEMORY;
+        }
     }
     HRESULT SourceBrokerParent::PublishLease() noexcept
     {

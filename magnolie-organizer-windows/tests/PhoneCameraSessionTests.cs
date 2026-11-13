@@ -342,6 +342,9 @@ internal static class PhoneCameraSessionTests
         var original = f.Output.Authority!; var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan();
         var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(original, plan);
         PhoneCameraAudioParentRuntime.VideoClockLease? videoClock = null;
+        PhoneCameraVideoParentRuntime? videoRuntime = null;
+        PhoneCameraNativeOutputs? nativeOutputs = null;
+        var videoPlan = new PhoneCameraVideoParentRuntime.DiagnosticPlan { ReadyStatus = unchecked((int)0xc00d36b6) };
         try
         {
             await runtime.PrepareAsync(f.Deadline.Token); runtime.RequireReady();
@@ -349,7 +352,17 @@ internal static class PhoneCameraSessionTests
                 "Reconstructed authority borrowed the original native clock");
             videoClock = runtime.HoldOriginalVideoClock(original);
             TestAssert.Throws<InvalidOperationException>(() => runtime.HoldOriginalVideoClock(original), "Two video owners borrowed one audio clock");
-            TestAssert.That(plan.Current() == 0 && plan.Sending() < 0 && f.Session.Error is null && plan.Scope == original.Scope && plan.OwnerBytes == 40 &&
+            videoRuntime = PhoneCameraVideoParentRuntime.CreateDiagnostic(original, videoPlan, videoClock);
+            var videoPreparing = videoRuntime.PrepareAsync(f.Deadline.Token);
+            await videoPlan.ReadyPolled.Task.WaitAsync(f.Deadline.Token);
+            TestAssert.That(!videoPreparing.IsCompleted && videoPlan.Sending() == unchecked((int)0x80070005) &&
+                videoPlan.Registration() == 0 && videoPlan.Scope == original.Scope && videoPlan.OwnerSize == 72 && videoPlan.Flags == 0,
+                "Video binding/callbacks fabricated readiness or SEND, or lost the exact ABI/scope");
+            Volatile.Write(ref videoPlan.ReadyStatus, 0); await videoPreparing;
+            videoRuntime.RequireReady();
+            nativeOutputs = PhoneCameraNativeOutputs.CreateDiagnostic(original, runtime, videoRuntime);
+            nativeOutputs.RequireVideoReady(); nativeOutputs.RequireMicrophoneReady();
+            TestAssert.That(plan.Current() == 0 && plan.Sending() == unchecked((int)0x80070005) && f.Session.Error is null && plan.Scope == original.Scope && plan.OwnerBytes == 40 &&
                 plan.Digest!.SequenceEqual(Enumerable.Range(1, 32).Select(n => (byte)n)), "Original ABI/scope/digest or Current-before-SEND lost");
             TestAssert.Throws<InvalidOperationException>(() => runtime.ObserveVideo(0), "Prepared runtime invented actual SEND");
             TestAssert.Throws<InvalidOperationException>(() => videoClock.ObserveVideo(0), "Clock hold granted SEND during preparation");
@@ -362,11 +375,25 @@ internal static class PhoneCameraSessionTests
             TestAssert.That(runtime.ExportAnchor().SequenceEqual(Enumerable.Range(1, 33).Select(n => (byte)n)), "Native anchor export was rewritten");
             TestAssert.That(videoClock.ObserveVideo(456) == 556 && videoClock.ExportAnchor().SequenceEqual(runtime.ExportAnchor()),
                 "Video lease replaced the original native mapper or anchor");
+            TestAssert.That(videoPlan.Mapped(456) == 556 && videoPlan.Anchor().SequenceEqual(runtime.ExportAnchor()),
+                "Native video callbacks replaced the held original audio clock/anchor");
+            var i420 = Enumerable.Repeat((byte)55, PhoneCameraMediaChannel.VideoBytes).ToArray();
+            nativeOutputs.Write(new PhoneCameraMediaFrame(true, 0, 456, i420));
+            TestAssert.That(videoPlan.RecordReference!.All(b => b == 0) && videoPlan.RecordSnapshot![1] == 1 &&
+                videoPlan.RecordSnapshot.AsSpan(18).ToArray().SequenceEqual(i420) && i420.All(b => b == 55),
+                "Original native I420 copy was rewritten/not erased or modified caller media");
+            await videoRuntime.CloseAsync();
+            TestAssert.That(videoPlan.Closes == 1 && videoPlan.SourceReleases == 1 && videoPlan.Registration() < 0 &&
+                !videoRuntime.DiagnosticRootRetained && plan.Releases == 0, "Video released pins before confirmed cleanup or unloaded shared audio module");
             videoClock.Dispose(); videoClock.Dispose();
             TestAssert.Throws<ObjectDisposedException>(() => videoClock.ExportAnchor(), "Disposed video clock remained usable");
             TestAssert.Throws<InvalidOperationException>(() => runtime.HoldOriginalVideoClock(original), "Disposed video hold allowed a replacement owner/epoch");
         }
-        finally { videoClock?.Dispose(); await runtime.CloseAsync(); }
+        finally
+        {
+            if (nativeOutputs is not null) nativeOutputs.Dispose();
+            else { if (videoRuntime is not null) await videoRuntime.CloseAsync(); videoClock?.Dispose(); await runtime.CloseAsync(); }
+        }
         TestAssert.That(!runtime.DiagnosticRootRetained && plan.Closes == 1 && plan.Releases == 1, "Confirmed Close did not release exact root/module once");
     }
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -375,7 +402,10 @@ internal static class PhoneCameraSessionTests
         await using var f = new Fixture(); f.Output.HoldPreparation = true;
         await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
         var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan();
-        TestAssert.Throws<InvalidOperationException>(() => PhoneCameraAudioParentRuntime.CreateDiagnostic(new PhoneCameraSession.OutputAuthority(f.Session), plan), "Forged authority registered native callbacks");
+        var forged = new PhoneCameraSession.OutputAuthority(f.Session);
+        TestAssert.That(forged.NativeAuthorityStatus(true) != unchecked((int)0x80070005) && forged.NativeAuthorityStatus(false) < 0,
+            "Forged native callback was treated as legitimate preparation");
+        TestAssert.Throws<InvalidOperationException>(() => PhoneCameraAudioParentRuntime.CreateDiagnostic(forged, plan), "Forged authority registered native callbacks");
         TestAssert.That(plan.Creates == 0, "Forgery reached C-API registration");
         var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(f.Output.Authority!, plan);
         try
@@ -409,6 +439,10 @@ internal static class PhoneCameraSessionTests
         var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan { HoldWrite = true };
         var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(f.Output.Authority!, plan); await runtime.PrepareAsync(f.Deadline.Token);
         using var videoClock = runtime.HoldOriginalVideoClock(f.Output.Authority!);
+        var videoPlan = new PhoneCameraVideoParentRuntime.DiagnosticPlan();
+        var videoRuntime = PhoneCameraVideoParentRuntime.CreateDiagnostic(f.Output.Authority!, videoPlan, videoClock);
+        await videoRuntime.PrepareAsync(f.Deadline.Token);
+        var nativeOutputs = PhoneCameraNativeOutputs.CreateDiagnostic(f.Output.Authority!, runtime, videoRuntime);
         f.Output.ContinuePreparation.TrySetResult(); await f.ReadSendOrStopAsync(); await f.SendFrame(false, 0, 0); await f.WaitWrites(1);
         var write = Task.Run(() => runtime.Write(new PhoneCameraMediaFrame(false, 0, 0, new byte[PhoneCameraMediaChannel.AudioBytes])));
         await plan.WriteEntered.Task.WaitAsync(f.Deadline.Token); var close = runtime.CloseAsync();
@@ -418,7 +452,9 @@ internal static class PhoneCameraSessionTests
         TestAssert.That(!close.IsCompleted && plan.Closes == 0 && plan.Releases == 0,
             "Audio module closed before original video clock lifetime drained");
         TestAssert.Throws<ObjectDisposedException>(() => videoClock.ObserveVideo(1), "Closing audio runtime granted a fresh video mapping");
-        videoClock.Dispose(); // Only after the controlled video owner has drained.
+        await Task.Run(nativeOutputs.Dispose); // Actual composition: Source confirmation BEFORE audio Close/unload.
+        TestAssert.That(videoPlan.Closes == 1 && videoPlan.SourceReleases == 1 && !videoRuntime.DiagnosticRootRetained,
+            "Video failed to confirm/retire original Source before shared module release");
         await close;
         TestAssert.That(plan.Active == 0 && plan.Closes == 1 && plan.Releases == 1 && plan.RecordReference!.All(b => b == 0) &&
             !runtime.DiagnosticRootRetained, "Close preceded managed call/PCM drain");
@@ -437,6 +473,30 @@ internal static class PhoneCameraSessionTests
             "Unconfirmed Close unloaded callbacks/module, lost root or retried native cleanup");
         try { runtime.RequireReady(); throw new Exception("Terminal native owner revived"); } catch (ObjectDisposedException) { }
         runtime.ReleaseStoppedDiagnosticFixture(plan); // Own fake table only; NO real native owner/module exists.
+        var heldAudioPlan = new PhoneCameraAudioParentRuntime.DiagnosticPlan();
+        var heldAudio = PhoneCameraAudioParentRuntime.CreateDiagnostic(f.Output.Authority!, heldAudioPlan);
+        await heldAudio.PrepareAsync(f.Deadline.Token);
+        var heldClock = heldAudio.HoldOriginalVideoClock(f.Output.Authority!);
+        var videoPlan = new PhoneCameraVideoParentRuntime.DiagnosticPlan { FailClose = true };
+        var video = PhoneCameraVideoParentRuntime.CreateDiagnostic(f.Output.Authority!, videoPlan, heldClock);
+        await video.PrepareAsync(f.Deadline.Token);
+        var videoClose = video.CloseAsync();
+        try { await videoClose; throw new Exception("Unknown Source cleanup was accepted"); } catch (System.Runtime.InteropServices.COMException) { }
+        var audioClose = heldAudio.CloseAsync();
+        await heldAudioPlan.StopEntered.Task.WaitAsync(f.Deadline.Token);
+        try
+        {
+            TestAssert.That(video.DiagnosticRootRetained && videoPlan.SourceReleases == 0 && videoPlan.Registration() == 0 &&
+                ReferenceEquals(videoClose, video.CloseAsync()) && videoPlan.Closes == 1 && !audioClose.IsCompleted && heldAudioPlan.Releases == 0,
+                "Unknown video cleanup retried, revoked registration accounting, released Source pins or unloaded shared audio module");
+        }
+        finally
+        {
+            video.ReleaseStoppedDiagnosticFixture(videoPlan); // Only the fake native table; not a productive retry route.
+            await audioClose;
+        }
+        TestAssert.That(videoPlan.SourceReleases == 1 && heldAudioPlan.Releases == 1 && !video.DiagnosticRootRetained,
+            "Controlled fake cleanup failed to drain its own retained test roots");
     }
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     internal static async Task RuntimeProductionNoFallbackOrMutedWorkerAsync()
@@ -446,9 +506,28 @@ internal static class PhoneCameraSessionTests
         TestAssert.That(PhoneCameraAudioParentRuntime.CreateCurrent(f.Output.Authority!) is null, "Production factory replaced missing immutable worker with external runtime");
         TestAssert.Throws<InvalidOperationException>(() => PhoneCameraAudioParentRuntime.CreateCurrent(new PhoneCameraSession.OutputAuthority(f.Session)), "Production factory accepted reconstructed authority");
         f.Output.Authority!.RequireCurrent();
+        using (var nativeOutputs = new PhoneCameraNativeOutputs())
+        {
+            try
+            {
+                await nativeOutputs.PrepareAsync(f.Output.Authority!, f.Deadline.Token);
+                throw new Exception("Missing Source acquired native outputs");
+            }
+            catch (InvalidOperationException error) when (error.Message == "webcam_installed_source_required") { }
+        }
+        f.Output.Authority!.RequireCurrent(); // A missing payload is not a new authority or audio fallback.
         await using var muted = new Fixture(muted: true); muted.Output.HoldPreparation = true;
         await muted.OfferAsync(); await muted.PreparedAsync(); await muted.Output.Preparing.Task.WaitAsync(muted.Deadline.Token);
         TestAssert.Throws<InvalidOperationException>(() => PhoneCameraAudioParentRuntime.CreateCurrent(muted.Output.Authority!), "Explicitly muted original could launch audio worker");
         muted.Output.Authority!.RequireCurrent();
+        var mutedPlan = new PhoneCameraVideoParentRuntime.DiagnosticPlan();
+        var mutedVideo = PhoneCameraVideoParentRuntime.CreateDiagnostic(muted.Output.Authority!, mutedPlan, null);
+        await mutedVideo.PrepareAsync(muted.Deadline.Token);
+        TestAssert.That(mutedPlan.Flags == 1 && mutedPlan.Sending() == unchecked((int)0x80070005), "Muted video opened audio callbacks or granted SEND");
+        TestAssert.Throws<InvalidOperationException>(() => mutedPlan.Anchor(), "Muted video borrowed an external audio anchor");
+        await mutedVideo.CloseAsync();
+        using var stoppedOutputs = new PhoneCameraNativeOutputs(); stoppedOutputs.Stop();
+        TestAssert.Throws<InvalidOperationException>(() => stoppedOutputs.PrepareAsync(muted.Output.Authority!, muted.Deadline.Token),
+            "Stopped native output composition started replacement outputs");
     }
 }

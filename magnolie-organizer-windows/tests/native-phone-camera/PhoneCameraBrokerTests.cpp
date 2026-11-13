@@ -3,6 +3,7 @@
 #include "../../native/phone-camera/PhoneCameraSourceBroker.h"
 #include "../../native/phone-camera/PhoneCameraFrameServerPeer.h"
 #include "../../native/phone-camera/PhoneCameraSourceBrokerParent.h"
+#include "../../native/phone-camera/PhoneCameraVideoParent.h"
 #include <mfapi.h>
 #include <mferror.h>
 #include <ks.h>
@@ -244,6 +245,35 @@ namespace
         Check(live.Observe(0, 2, true, false) == MF_E_SHUTDOWN && !live.Active());
         Check(live.Observe(1, 3, true, false) == S_OK && !live.Active()); // Terminal accounting itself cannot revive.
     }
+    void VideoAbiGuardsWithoutStartingAnyOutput()
+    {
+        auto owner = Microsoft::WRL::Make<Owner>(); const auto scope = Fresh(); ULONGLONG handle = 123;
+        MagnoliePhoneVideoOwnerV1 original{sizeof(original), 1, 1, 0, Owner::Current, Owner::Sending, Owner::Retired,
+            Owner::Current, nullptr, nullptr, owner.Get()};
+        Check(MagnoliePhoneVideoVersion() == 1);
+        Check(static_cast<DWORD>(MF_E_NOT_INITIALIZED) == 0xc00d36b6u); // Exact managed readiness-poll contract from the actual SDK.
+        owner->status = S_FALSE;
+        Check(MagnoliePhoneVideoCreate(&scope, &original, &handle) == E_ACCESSDENIED && !handle);
+        owner->status = S_OK;
+        for (const DWORD flag : {2u, 0u})
+        {
+            auto invalid = original; invalid.flags = flag;
+            Check(MagnoliePhoneVideoCreate(&scope, &invalid, &handle) == E_INVALIDARG && !handle);
+        }
+        Check(MagnoliePhoneVideoCreate(&scope, &original, &handle) == S_OK && handle);
+        // Create owns ONLY events/clock context. Never call productive Prepare:
+        // no MF startup, OS manager, broker/property, service or camera is opened.
+        Check(MagnoliePhoneVideoRequireReady(handle) == MF_E_NOT_INITIALIZED);
+        ULONGLONG collision = 123;
+        Check(MagnoliePhoneVideoCreate(&scope, &original, &collision) == HRESULT_FROM_WIN32(ERROR_BUSY) && !collision);
+        Check(MagnoliePhoneVideoStop(handle) == S_OK);
+        Check(MagnoliePhoneVideoPrepare(handle) == MF_E_SHUTDOWN); // Refused BEFORE starting an MTA/MF worker.
+        Check(FAILED(MagnoliePhoneVideoRequireReady(handle)));
+        Check(MagnoliePhoneVideoClose(handle) == S_OK);
+        Check(MagnoliePhoneVideoStop(handle) == E_INVALIDARG && MagnoliePhoneVideoClose(handle) == E_INVALIDARG);
+        Check(MagnoliePhoneVideoCreate(&scope, &original, &collision) == S_OK && collision != handle);
+        Check(MagnoliePhoneVideoClose(collision) == S_OK);
+    }
 }
 int main(int argc, char** argv)
 {
@@ -260,7 +290,8 @@ int main(int argc, char** argv)
             {"broker-property-success-is-not-source-proof", ReturnValueCannotBindSource}, {"broker-actual-ordinary-host-denied-before-adoption", ActualSourceBrokerRejectsOrdinaryHost},
             {"broker-prepare-before-send-no-media-timeout", PreparationDoesNotConsumeSendTimeout},
             {"broker-actual-source-output-activity-is-not-send", ActualOutputActivityIsNotBindingOrSending},
-            {"broker-activity-terminal-drain-is-not-readiness", ActivityAccountingDrainsAfterTerminalStopWithoutReadiness}};
+            {"broker-activity-terminal-drain-is-not-readiness", ActivityAccountingDrainsAfterTerminalStopWithoutReadiness},
+            {"broker-video-cabi-guards-no-output-start", VideoAbiGuardsWithoutStartingAnyOutput}};
         int ran = 0;
         for (const auto& test : cases)
             if (only.empty() || only.find(std::string(",") + test.name + ",") != std::string::npos)
