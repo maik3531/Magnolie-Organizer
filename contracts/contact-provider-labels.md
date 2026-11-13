@@ -38,3 +38,20 @@ successful second provider does not acknowledge the failed first provider.
 This is checked with complete native handlers and controlled source adapters,
 including creation, updates, label-only updates and failed readback. It does not
 itself add an automatic scheduler for every provider or prove physical delivery.
+
+## Original source identities (#583)
+
+The regular Linux contact planner resolves an existing EDS/Akonadi source binding
+by its original record UID and a DAV binding by its exact stored resource href.
+It does not substitute a new identity based on a name or matching phone number.
+Updates serialize the original source UID; the canonical local contact UID remains
+unchanged. Readback and source baseline acknowledgment use the original source
+record, including when a second provider has a different UID for the same person.
+Ambiguous bindings or a colliding canonical UID in that source refuse planning.
+Deletion uses the bound source UID and retains canonical tombstone identity on
+failure; existing revision checks still apply.
+
+Windows CardDAV already preserves `remote.Data.uid` in its outgoing copy. That
+existing protection was not a new Windows bug. The new Linux correction is checked
+with controlled whole EDS/DAV handlers and planner guards, not live accounts or
+automatic permission to synchronize additional providers.

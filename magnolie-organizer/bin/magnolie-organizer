@@ -6506,8 +6506,11 @@ def grabsteine_behalten(tombstones, zeitpunkt):
     return list(ergebnis.values())
 
 
-def kontakt_grabsteine_nach_loeschung(tombstones, loeschen, geschafft, zeitpunkt):
+def kontakt_grabsteine_nach_loeschung(tombstones, loeschen, geschafft, zeitpunkt, uid_zuordnung=None):
     """Behält die Schonfrist und ergänzt fehlgeschlagene Fernlöschungen."""
+    if uid_zuordnung:
+        loeschen = [uid_zuordnung.get(uid, uid) for uid in loeschen]
+        geschafft = {uid_zuordnung.get(uid, uid) for uid in geschafft}
     zeiten = {str(t.get("uid") or ""): t.get("zeit", 0)
               for t in tombstones or [] if isinstance(t, dict)}
     ergebnis = grabsteine_behalten(tombstones, zeitpunkt)
@@ -6779,6 +6782,20 @@ def _kontakt_eds_baseline(obj, quelle, fern):
         "abweichungBehalten": lokal_hash != remote_hash, "eigen": True}
 
 
+def _kontakt_quellen_uid(obj, quelle, dav_meta=None):
+    """Resolve only an exact existing source binding, never a name/phone guess."""
+    basis = (obj.get("syncQuellen") or {}).get(quelle) or {}
+    original_id = basis.get("id")
+    if not original_id:
+        return obj.get("uid") or ""
+    if dav_meta is None:
+        return original_id
+    treffer = [uid for uid, meta in dav_meta.items() if meta.get("href") == original_id]
+    if len(treffer) > 1:
+        raise RuntimeError(_("The address book contains an ambiguous source binding."))
+    return treffer[0] if treffer else ""
+
+
 def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                kontakt_quelle="", kontakt_nur_lesen=False):
     """Gleicht die lokale Liste mit dem entfernten Stand ab.
@@ -6800,13 +6817,22 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     neue_lokal = []
     konflikt_kopien = []
     konflikt_uids = {}
-    tote = {t.get("uid"): t.get("zeit", 0) for t in tombstones if t.get("uid")}
+    kontakt_source = (kontakt_quelle or (dav[0] if dav else "")) if felder == KONTAKT_FELDER else ""
+    kontakt_meta = (dav[2] or {}) if dav and kontakt_source else None
+    tote = {(_kontakt_quellen_uid(t, kontakt_source, kontakt_meta) if kontakt_source else t.get("uid")):
+            t.get("zeit", 0) for t in tombstones if t.get("uid")}
+    gebundene_uids = [_kontakt_quellen_uid(obj, kontakt_source, kontakt_meta)
+                     for obj in lokal if kontakt_source and
+                     ((obj.get("syncQuellen") or {}).get(kontakt_source) or {}).get("id")]
+    if len([uid for uid in gebundene_uids if uid]) != len({uid for uid in gebundene_uids if uid}):
+        raise RuntimeError(_("The address book contains an ambiguous source binding."))
     gesehen = set()
 
     if dav is not None:
         quelle, alte_etags, aktuelle_etags = dav
         for grab in tombstones:
-            uid = grab.get("uid")
+            uid = (_kontakt_quellen_uid(grab, kontakt_source, kontakt_meta)
+                   if kontakt_source else grab.get("uid"))
             if uid not in entfernt:
                 continue
             basis = ((grab.get("syncQuellen") or {}).get(quelle) or
@@ -6818,7 +6844,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     for obj in lokal:
         if not obj.get("uid"):
             obj["uid"] = _neue_uid()
-        u = obj["uid"]
+        u = _kontakt_quellen_uid(obj, kontakt_source, kontakt_meta) if kontakt_source else obj["uid"]
+        if kontakt_source and u != obj["uid"] and obj["uid"] in entfernt:
+            raise RuntimeError(_("The address book contains an ambiguous source binding."))
         gesehen.add(u)
         fern = entfernt.get(u)
         # Compatible provider additions can normalize phone/email structures.
@@ -28316,15 +28344,16 @@ class Fenster(_FENSTER_BASIS):
                         "%s · %s" % (quelle["name"], _("Contacts")),
                         fehler_ursache))
             for item in aendern:
-                meta = remote_meta.get(item["uid"])
+                source_uid = _kontakt_quellen_uid(item, buch_uid, remote_meta)
+                meta = remote_meta.get(source_uid)
                 try:
                     if not meta or not meta.get("etag"):
                         raise RuntimeError(_("The DAV ETag is missing."))
-                    item["davEtag"] = dav.put(meta["href"], vcard_text(item), meta["etag"])
+                    item["davEtag"] = dav.put(meta["href"], vcard_text(dict(item, uid=source_uid)), meta["etag"])
                     item["davHref"] = meta["href"]
                     _dav_syncquelle_setzen(item, buch_uid, meta["href"], item["davEtag"])
-                    remote_meta[item["uid"]] = {"href": meta["href"],
-                                                 "etag": item["davEtag"]}
+                    remote_meta[source_uid] = {"href": meta["href"],
+                                                  "etag": item["davEtag"]}
                     erfolgreich["aendern"] += 1
                 except Exception as fehler_ursache:
                     fehlgeschlagene_kontakte.add(item["uid"])
@@ -28333,6 +28362,8 @@ class Fenster(_FENSTER_BASIS):
                         "%s · %s" % (quelle["name"], _("Contacts")),
                         fehler_ursache))
             geschafft = set()
+            kontakt_grab_uids = {_kontakt_quellen_uid(t, buch_uid, remote_meta): t.get("uid")
+                                for t in tote_kontakte}
             for item_uid in loeschen:
                 meta = remote_meta.get(item_uid)
                 try:
@@ -28348,9 +28379,10 @@ class Fenster(_FENSTER_BASIS):
                         "%s · %s" % (quelle["name"], _("Contacts")),
                         fehler_ursache))
             tote_kontakte = kontakt_grabsteine_nach_loeschung(
-                tote_kontakte, loeschen, geschafft, jetzt_ms())
+                tote_kontakte, loeschen, geschafft, jetzt_ms(), kontakt_grab_uids)
             for item in kontakte:
-                meta = remote_meta.get(item.get("uid"))
+                source_uid = _kontakt_quellen_uid(item, buch_uid, remote_meta)
+                meta = remote_meta.get(source_uid)
                 pruefung = (item.get("kontaktProviderKonflikte") or {}).get(buch_uid)
                 if pruefung:
                     pruefung["name"] = quelle["name"]
@@ -28360,7 +28392,7 @@ class Fenster(_FENSTER_BASIS):
                     item["davHref"] = meta["href"]
                     item["davEtag"] = meta["etag"]
                     _dav_syncquelle_setzen(item, buch_uid, meta["href"], meta["etag"],
-                        baseline=fern.get(item.get("uid")) if erster else None)
+                        baseline=fern.get(source_uid) if erster else None)
             if not fehler:
                 sync_zeit = jetzt_ms()
                 adress_meta[buch_uid] = {"initialisiert": True,
@@ -29080,12 +29112,13 @@ class Fenster(_FENSTER_BASIS):
                             fehler_ursache))
                 for obj in aendern:
                     try:
-                        text = vcard_text(obj)
+                        source_uid = _kontakt_quellen_uid(obj, kontakt_quelle)
+                        text = vcard_text(dict(obj, uid=source_uid))
                         if not isinstance(client, AkonadiClient):
-                            text = _eds_vcard_transportstand(text, fern.get(obj["uid"]),
-                                buch_lesen.get("transportFotos", {}).get(obj["uid"]))
+                            text = _eds_vcard_transportstand(text, fern.get(source_uid),
+                                buch_lesen.get("transportFotos", {}).get(source_uid))
                         eds_kontakt_aendern(client, text)
-                        geschrieben.add(obj["uid"])
+                        geschrieben.add(source_uid)
                         erfolgreich["aendern"] += 1
                     except Exception as fehler_ursache:
                         fehler += 1
@@ -29115,7 +29148,8 @@ class Fenster(_FENSTER_BASIS):
                             raise RuntimeError(_("The address book backend reported an incomplete read."))
                     except Exception as fehler_ursache:
                         fehler += 1
-                        fehlgeschlagene_kontakte.update(geschrieben)
+                        fehlgeschlagene_kontakte.update(obj.get("uid") for obj in kontakte
+                            if _kontakt_quellen_uid(obj, kontakt_quelle) in geschrieben)
                         baseline_fern = {uid: k for uid, k in fern.items() if uid not in geschrieben}
                         sync_fehler.append(_sync_fehlertext("%s · %s" % (buch_name, _("Contacts")), fehler_ursache))
                 for obj in kontakte:
@@ -29129,13 +29163,15 @@ class Fenster(_FENSTER_BASIS):
                         else:
                             obj.setdefault("syncQuellen", {})[kontakt_quelle] = vorher
                     pruefung = (obj.get("kontaktProviderKonflikte") or {}).get(kontakt_quelle)
+                    source_uid = _kontakt_quellen_uid(obj, kontakt_quelle)
                     if pruefung:
                         pruefung["name"] = buch_name
-                    elif (obj.get("sync") and obj.get("uid") in baseline_fern and
+                    elif (obj.get("sync") and source_uid in baseline_fern and
                           obj.get("uid") not in fehlgeschlagene_kontakte):
-                        _kontakt_eds_baseline(obj, kontakt_quelle, baseline_fern[obj["uid"]])
+                        _kontakt_eds_baseline(obj, kontakt_quelle, baseline_fern[source_uid])
                 tote_kontakte = kontakt_grabsteine_nach_loeschung(
-                    tote_kontakte, loeschen, geschafft, jetzt_ms())
+                    tote_kontakte, loeschen, geschafft, jetzt_ms(),
+                    {_kontakt_quellen_uid(t, kontakt_quelle): t.get("uid") for t in tote_kontakte})
                 if erster_buch_sync:
                     bericht.append(_(
                         "Contacts: safe first import from %(source)s: %(count)d received.") % {
