@@ -2,11 +2,12 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed class WindowsPaths
 {
+    private static string DefaultUserRoot => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Magnolie Organizer");
+
     internal WindowsPaths(string? root = null)
     {
-        Root = root ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Magnolie Organizer");
+        Root = root ?? DefaultUserRoot;
         Data = Path.Combine(Root, "daten.json");
         Settings = Path.Combine(Root, "fenster.json");
         TraySettings = Path.Combine(Root, "tray.json");
@@ -47,6 +48,11 @@ internal sealed class WindowsPaths
     }
 
     internal string Root { get; }
+    // Scope fence, not authentication: a temporary/custom book profile must
+    // not implicitly use the installed user's global account helpers/manifest.
+    internal bool IsDefaultUserProfile => string.Equals(
+        Path.TrimEndingDirectorySeparator(Path.GetFullPath(Root)),
+        Path.TrimEndingDirectorySeparator(Path.GetFullPath(DefaultUserRoot)), StringComparison.OrdinalIgnoreCase);
     internal string Data { get; }
     internal string Settings { get; }
     internal string TraySettings { get; }

@@ -16,8 +16,12 @@ internal sealed partial class BridgeDispatcher
     private ManagedAccountOperations? managedAccountOperations;
     private ManagedAccountOperations ManagedAccounts
     {
-        get { lock (serviceGate) return managedAccountOperations ??= new(() =>
-            { lock (serviceGate) return currentPlainTextAvailable && !restoreInProgress && activeSync is null && (string.IsNullOrEmpty(currentEnvelope) || encryption.Session is not null); }); }
+        get
+        {
+            if (!paths.IsDefaultUserProfile) throw new InvalidOperationException("shared_accounts_require_default_profile");
+            lock (serviceGate) return managedAccountOperations ??= new(() =>
+                { lock (serviceGate) return currentPlainTextAvailable && !restoreInProgress && activeSync is null && (string.IsNullOrEmpty(currentEnvelope) || encryption.Session is not null); });
+        }
     }
 
     private async Task SignInInternetAccountAsync(JsonElement message)
@@ -39,7 +43,7 @@ internal sealed partial class BridgeDispatcher
 
     private async Task InternetAccountStatusAsync()
     {
-        if (!ManagedInternetAccounts.Enabled)
+        if (!paths.IsDefaultUserProfile || !ManagedInternetAccounts.Enabled)
         {
             await form.SendAsync("App.internetKontenStatus", new { bereit = false });
             return;
@@ -111,6 +115,8 @@ internal sealed partial class BridgeDispatcher
         IReadOnlyList<string> calendars, CancellationToken token)
     {
         var selected = calendars.Append(addressBook).Where(ThunderbirdBridge.IsSource).ToArray();
+        if (selected.Length > 0 && !paths.IsDefaultUserProfile)
+            throw new InvalidOperationException("shared_accounts_require_default_profile");
         var result = new List<NextcloudDavSource>();
         if (selected.Any(ThunderbirdBridge.IsManagedSource))
         {
@@ -143,7 +149,7 @@ internal sealed partial class BridgeDispatcher
         catch (Exception error) { nextcloudError = NextcloudStatusText.For(error); }
         IReadOnlyList<NextcloudDavSource> thunderbirdSources = [];
         var thunderbirdConnected = false;
-        if (File.Exists(ThunderbirdBridge.ManifestPath))
+        if (paths.IsDefaultUserProfile && File.Exists(ThunderbirdBridge.ManifestPath))
         {
             try
             {
@@ -154,7 +160,7 @@ internal sealed partial class BridgeDispatcher
             catch (Exception error) when (error is IOException or TimeoutException or OperationCanceledException)
             { /* A closed Thunderbird is unavailable, never an empty sync result. */ }
         }
-        if (ManagedInternetAccounts.Enabled)
+        if (paths.IsDefaultUserProfile && ManagedInternetAccounts.Enabled)
         {
             try
             {
