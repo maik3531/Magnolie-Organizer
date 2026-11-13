@@ -5,7 +5,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class Or6UnsupportedNoteTests
 {
-    private static byte[] Rotate(byte[] bytes, bool left)
+    internal static byte[] Rotate(byte[] bytes, bool left)
     {
         var copy = bytes.ToArray();
         for (int offset = 0; offset < copy.Length; offset += 2)

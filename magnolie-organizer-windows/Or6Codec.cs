@@ -167,7 +167,11 @@ internal static class Or6Codec
 
     private static JsonObject Common(Dictionary<ushort, byte[]> fields, string uid)
     {
-        var lines = Text(fields, 9).Split('\n'); var note = string.Join('\n', lines.Skip(1)); var body = Text(fields, 16);
+        // Only the human-readable description's line endings, not opaque IDs
+        // or contact fields. Match the existing Python splitlines behavior for
+        // native CRLF/CR/LF without leaving a CR in titles or note paragraphs.
+        var lines = Text(fields, 9).Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n');
+        var note = string.Join('\n', lines.Skip(1)); var body = Text(fields, 16);
         if (body.Length > 0) note += (note.Length > 0 ? "\n" : "") + body;
         return new() { ["titel"] = lines[0], ["notiz"] = note, ["uid"] = uid,
             ["geaendert"] = 0, ["vertraulich"] = Number(fields, 1) != 0 };
