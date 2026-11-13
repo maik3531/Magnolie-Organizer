@@ -44,6 +44,26 @@ namespace Magnolie::PhoneCamera
     }
 
     bool PipeReader::IsRetired() const noexcept { return retired_.load(); }
+    HRESULT PipeReader::AdoptBroker(HANDLE pipe, HANDLE parent, HANDLE stop, Current current, void* context,
+        std::unique_ptr<PipeReader>& result) noexcept
+    {
+        if (result || !pipe || pipe == INVALID_HANDLE_VALUE || !parent || !stop || !current) return E_INVALIDARG;
+        try
+        {
+            auto reader = std::unique_ptr<PipeReader>(new PipeReader(current, context));
+            if (!DuplicateHandle(GetCurrentProcess(), pipe, GetCurrentProcess(), &reader->pipe_, 0, FALSE, DUPLICATE_SAME_ACCESS) ||
+                !DuplicateHandle(GetCurrentProcess(), parent, GetCurrentProcess(), &reader->server_, 0, FALSE, DUPLICATE_SAME_ACCESS) ||
+                !DuplicateHandle(GetCurrentProcess(), stop, GetCurrentProcess(), &reader->stop_, 0, FALSE, DUPLICATE_SAME_ACCESS)) return HRESULT_FROM_WIN32(GetLastError());
+            reader->completed_ = CreateEventW(nullptr, TRUE, FALSE, nullptr); if (!reader->completed_) return HRESULT_FROM_WIN32(GetLastError());
+            ULONG actual = 0; DWORD flags = 0;
+            if (GetFileType(pipe) != FILE_TYPE_PIPE || !GetNamedPipeServerProcessId(pipe, &actual) ||
+                !GetNamedPipeInfo(pipe, &flags, nullptr, nullptr, nullptr) || !actual || actual != GetProcessId(parent) ||
+                (flags & (PIPE_SERVER_END | PIPE_TYPE_MESSAGE))) return E_ACCESSDENIED;
+            HRESULT hr = reader->RequireCurrent(); if (FAILED(hr)) return hr;
+            result = std::move(reader); return S_OK;
+        }
+        catch (...) { return E_OUTOFMEMORY; }
+    }
     void PipeReader::Stop() noexcept
     {
         retired_.store(true);

@@ -1,5 +1,7 @@
 #include "PhoneCameraVirtualCamera.h"
 #include "PhoneCameraModule.h"
+#include "PhoneCameraBrokerProtocol.h"
+#include <ks.h>
 #include <mfvirtualcamera.h>
 #include <mferror.h>
 #include <string>
@@ -49,6 +51,14 @@ namespace Magnolie::PhoneCamera
         { HRESULT hr = OrdinaryUser(); return FAILED(hr) ? hr : camera->Start(nullptr); }
         HRESULT Shutdown() noexcept override
         { HRESULT hr = OrdinaryUser(); return FAILED(hr) ? hr : camera->Shutdown(); }
+        HRESULT SendBinding(BYTE* property, ULONG bytes) noexcept override
+        {
+            HRESULT hr = OrdinaryUser(); if (FAILED(hr)) return hr;
+            ULONG written = 0;
+            hr = Exact(camera->SendCameraProperty(BrokerProperty::PropertySet, BrokerProperty::PropertyId,
+                KSPROPERTY_TYPE_SET, property, bytes, nullptr, 0, &written));
+            return hr == S_OK && written ? E_ACCESSDENIED : hr;
+        }
     };
 
     VirtualCamera::VirtualCamera(VirtualCameraOwner original, std::unique_ptr<Session> session) noexcept
@@ -135,6 +145,19 @@ namespace Magnolie::PhoneCamera
     {
         HRESULT hr = CurrentOwner(); if (FAILED(hr)) return hr;
         return started_.load() ? S_OK : MF_E_NOT_INITIALIZED;
+    }
+    HRESULT VirtualCamera::SendSourceBinding(BYTE* property, ULONG bytes) noexcept
+    {
+        std::lock_guard<std::mutex> lock(operation_);
+        if (bindingAttempted_ || closeAttempted_ || !started_.load()) return MF_E_SHUTDOWN;
+        bindingAttempted_ = true;
+        if (!property || bytes != BrokerProperty::Bytes) return E_INVALIDARG;
+        HRESULT hr = CurrentOwner();
+        // The broker listener already exists and runs concurrently. Never hold
+        // the cross-instance registration mutex over a synchronous broker call.
+        if (SUCCEEDED(hr)) hr = Exact(session_->SendBinding(property, bytes));
+        if (SUCCEEDED(hr)) hr = CurrentOwner();
+        return hr; // OS return is not peer authentication or media readiness.
     }
     HRESULT VirtualCamera::CloseLocked() noexcept
     {

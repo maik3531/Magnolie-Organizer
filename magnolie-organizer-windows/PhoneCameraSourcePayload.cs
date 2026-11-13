@@ -14,7 +14,8 @@ internal sealed class PhoneCameraSourcePayload
     internal string Sha256 { get; }
     internal static IReadOnlyList<string> SourceFiles { get; } = Array.AsReadOnly(new[] {
         "PhoneCameraSamples", "PhoneCameraClock", "PhoneCameraSource", "PhoneCameraActivate",
-        "PhoneCameraFactory", "PhoneCameraDormantSource", "PhoneCameraModule"
+        "PhoneCameraFactory", "PhoneCameraDormantSource", "PhoneCameraModule", "PhoneCameraPipe", "PhoneCameraOutputLease",
+        "PhoneCameraFrameServerPeer", "PhoneCameraBrokerProtocol", "PhoneCameraBrokerChannel", "PhoneCameraSourceBroker"
     }.SelectMany(name => new[] { "native/phone-camera/" + name + ".h", "native/phone-camera/" + name + ".cpp" })
         .Concat(new[] { "native/phone-camera/PhoneCameraModule.def", "werkzeuge/phone_camera_source.py", "PhoneCameraSource.targets" }).ToArray());
     private PhoneCameraSourcePayload(byte[] image, string hash) { binary = image; Sha256 = hash; }

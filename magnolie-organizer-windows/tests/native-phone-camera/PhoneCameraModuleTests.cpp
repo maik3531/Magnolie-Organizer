@@ -1,5 +1,6 @@
 #include "../../native/phone-camera/PhoneCameraModule.h"
 #include "../../native/phone-camera/PhoneCameraSource.h"
+#include "../../native/phone-camera/PhoneCameraBrokerProtocol.h"
 #include <mfapi.h>
 #include <mferror.h>
 #include <ks.h>
@@ -10,6 +11,8 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <array>
+#include <cstring>
 
 using namespace Magnolie::PhoneCamera;
 using Microsoft::WRL::ComPtr;
@@ -153,6 +156,28 @@ namespace
         auto release = Factory(); Ok(release->LockServer(FALSE));
         Check(release->LockServer(FALSE) == E_UNEXPECTED); release.Reset(); Ok(unload());
     }
+    void ActualPropertyCannotForgeFrameServerHost()
+    {
+        auto owner = Factory(); auto activation = Activation(owner.Get()); auto source = Source(activation.Get());
+        ComPtr<IKsControl> ks; Ok(source.As(&ks));
+        std::array<BYTE, sizeof(KSPROPERTY) + BrokerProperty::Bytes> packet{};
+        KSPROPERTY header{}; header.Set = BrokerProperty::PropertySet; header.Id = BrokerProperty::PropertyId;
+        header.Flags = KSPROPERTY_TYPE_GET; std::memcpy(packet.data(), &header, sizeof(header));
+        BYTE output[32]{}; std::fill(std::begin(output), std::end(output), BYTE{0xaa}); ULONG written = 123;
+        Check(FAILED(ks->KsProperty(reinterpret_cast<PKSPROPERTY>(packet.data()), static_cast<ULONG>(packet.size()), output, sizeof(output), &written)) && !written);
+        Check(std::all_of(std::begin(output), std::end(output), [](BYTE b) { return b == 0xaa; }));
+        ComPtr<IMFAttributes> metadata; Ok(source->GetSourceAttributes(&metadata)); metadata.Reset();
+        header.Flags = KSPROPERTY_TYPE_SET; std::memcpy(packet.data(), &header, sizeof(header));
+        BYTE* body = packet.data() + sizeof(header); std::memcpy(body, "MGFSB001", 8);
+        DWORD version = 1, size = BrokerProperty::Bytes, pid = GetCurrentProcessId(), session = 1; ULONGLONG birth = 1;
+        std::memcpy(body + 8, &version, 4); std::memcpy(body + 12, &size, 4); std::memcpy(body + 16, &SourceClassId, 16);
+        std::memcpy(body + 32, &SourceClassId, 16); std::memcpy(body + 48, &pid, 4); std::memcpy(body + 52, &session, 4);
+        std::memcpy(body + 56, &birth, 8); std::fill(body + 64, body + 96, BYTE{1});
+        Check(ks->KsProperty(reinterpret_cast<PKSPROPERTY>(packet.data()), static_cast<ULONG>(packet.size()), nullptr, 0, &written) == E_ACCESSDENIED && !written);
+        DWORD flags = 0; Check(source->GetCharacteristics(&flags) == MF_E_SHUTDOWN);
+        Check(FAILED(ks->KsProperty(reinterpret_cast<PKSPROPERTY>(packet.data()), static_cast<ULONG>(packet.size()), nullptr, 0, &written)));
+        ks.Reset(); source.Reset(); activation.Reset(); owner.Reset(); Ok(unload());
+    }
 }
 int wmain(int argc, wchar_t** argv)
 {
@@ -174,7 +199,8 @@ int wmain(int argc, wchar_t** argv)
         {"module-activation-release-held-source", ActivationReleaseDoesNotRevokeHeldSource},
         {"module-detached-original-source", DetachedOriginalSourceKeepsItsOwnLifetime},
         {"module-separate-originals", SeparateActivationsDoNotRetireEachOther},
-        {"module-explicit-server-lock", ExplicitServerLockDoesNotUnderflowOrImpersonateCapture}
+        {"module-explicit-server-lock", ExplicitServerLockDoesNotUnderflowOrImpersonateCapture},
+        {"module-original-property-host-denial", ActualPropertyCannotForgeFrameServerHost}
     };
     int executed = 0;
     if (!failed) for (const auto& test : cases)

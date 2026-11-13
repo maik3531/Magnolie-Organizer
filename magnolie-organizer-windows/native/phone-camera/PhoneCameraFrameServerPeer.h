@@ -23,6 +23,9 @@ namespace Magnolie::PhoneCamera
         static HRESULT Accept(HANDLE originalConnectedServerPipe, const FrameServerPeerOwner& original,
             std::shared_ptr<FrameServerPeer>& result) noexcept;
         HRESULT RequireCurrent() noexcept;
+        // Source-side property handler: actual primary process identity, not a
+        // user-provided PID/SID or a successful property return. No SCM start.
+        static HRESULT RequireCurrentHost() noexcept;
         void Stop() noexcept;
         ~FrameServerPeer();
         // Pure in-memory policy, not an IPC authority constructor. Actual Accept

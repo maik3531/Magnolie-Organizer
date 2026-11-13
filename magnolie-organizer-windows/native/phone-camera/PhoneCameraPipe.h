@@ -27,6 +27,11 @@ namespace Magnolie::PhoneCamera
     private:
         friend class AudioRender; // Isolated renderer verifies the exact admitted OS parent, never a PID lookup replacement.
         friend class OutputLease; // Nonblocking recheck of the original held control process.
+        friend class FrameServerSourceBroker;
+        // Only the actual property/capability-authenticated source broker may
+        // adopt its already connected overlapped channel; no public handle route.
+        static HRESULT AdoptBroker(HANDLE originalPipe, HANDLE originalParent, HANDLE originalStop,
+            Current current, void* context, std::unique_ptr<PipeReader>& result) noexcept;
         PipeReader(Current current, void* context) noexcept : current_(current), context_(context) {}
         HRESULT RequireCurrent() noexcept;
         const Current current_;

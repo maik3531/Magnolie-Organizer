@@ -1,6 +1,7 @@
 #include "PhoneCameraModule.h"
 #include "PhoneCameraFactory.h"
 #include "PhoneCameraDormantSource.h"
+#include "PhoneCameraSourceBroker.h"
 #include <mferror.h>
 #include <wrl.h>
 #include <atomic>
@@ -17,7 +18,10 @@ namespace Magnolie::PhoneCamera
             ModuleContext() { ++contexts; }
             ~ModuleContext() { --contexts; }
             std::atomic_bool stopped{false};
-            std::unique_ptr<DormantSourceControl> control;
+            std::mutex gate;
+            std::shared_ptr<DormantSourceControl> control;
+            Microsoft::WRL::ComPtr<ISourceBrokerLifetime> broker;
+            bool bindingAttempted = false;
 
             // Registration liveness ONLY, never passed as SourceOwner/ClockOwner
             // and never capture/SEND readiness. The dormant shell refuses media.
@@ -27,14 +31,55 @@ namespace Magnolie::PhoneCamera
             {
                 auto& root = *static_cast<ModuleContext*>(context);
                 root.stopped.store(true);
-                root.control.reset(); // State is retained across the calling Stop/Adopt.
+                std::shared_ptr<DormantSourceControl> held;
+                Microsoft::WRL::ComPtr<ISourceBrokerLifetime> activeBroker;
+                { std::lock_guard<std::mutex> lock(root.gate); held = std::move(root.control); activeBroker = std::move(root.broker); }
+                if (activeBroker) activeBroker->RequestStop(); // Never wait/join on an MF/registration callback.
+                if (held) held->Stop(); // A receiver retains the exact controller until its own drain.
             }
             static HRESULT ConstructDormant(void* context, IMFAttributes* metadata, IMFMediaSourceEx** result) noexcept
             {
                 auto& root = *static_cast<ModuleContext*>(context);
                 // No caller attributes (including a purported scope/ready flag)
                 // manufacture a broker proof or an existing capture owner.
-                return CreateDormantSource({RegistrationCurrent, &root, &root, RegistrationClosed}, result, root.control, metadata);
+                if (!result) return E_POINTER; *result = nullptr;
+                try
+                {
+                    std::unique_ptr<DormantSourceControl> controller;
+                    Microsoft::WRL::ComPtr<IMFMediaSourceEx> source;
+                    HRESULT hr = CreateDormantSource({RegistrationCurrent, &root, &root, RegistrationClosed, BindProperty}, &source, controller, metadata);
+                    if (FAILED(hr)) return hr;
+                    auto held = std::shared_ptr<DormantSourceControl>(std::move(controller));
+                    {
+                        std::lock_guard<std::mutex> lock(root.gate);
+                        if (root.stopped.load() || root.control) hr = MF_E_SHUTDOWN;
+                        else root.control = held;
+                    }
+                    if (FAILED(hr)) { source->Shutdown(); return hr; }
+                    return source.CopyTo(result);
+                }
+                catch (...) { return E_OUTOFMEMORY; }
+            }
+            static HRESULT BindProperty(void* context, const BYTE* property, ULONG bytes) noexcept
+            {
+                auto& root = *static_cast<ModuleContext*>(context);
+                std::shared_ptr<DormantSourceControl> held;
+                {
+                    std::lock_guard<std::mutex> lock(root.gate);
+                    if (root.stopped.load() || root.bindingAttempted || !root.control) return MF_E_SHUTDOWN;
+                    root.bindingAttempted = true; held = root.control;
+                }
+                Microsoft::WRL::ComPtr<ISourceBrokerLifetime> activeBroker;
+                HRESULT hr = BindOriginalSourceBroker({RegistrationCurrent, &root, &root, RegistrationClosed, BindProperty},
+                    held, property, bytes, &activeBroker);
+                if (FAILED(hr)) return hr;
+                {
+                    std::lock_guard<std::mutex> lock(root.gate);
+                    if (root.stopped.load()) hr = MF_E_SHUTDOWN;
+                    else root.broker = activeBroker;
+                }
+                if (FAILED(hr)) activeBroker->RequestStop();
+                return hr;
             }
             static HRESULT NewActivation(void*, IMFActivate** result) noexcept
             {

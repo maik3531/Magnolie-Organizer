@@ -36,7 +36,12 @@ internal static class PhoneCameraSourcePayloadTests
         TestAssert.Throws<InvalidDataException>(() => PhoneCameraSourcePayload.ReadResources(null, descriptor), "Missing image accepted");
         using var oversized = new MemoryStream(new byte[8193]);
         TestAssert.Throws<InvalidDataException>(() => PhoneCameraSourcePayload.ReadResources(image, oversized), "Unbounded resource accepted");
-        TestAssert.That(PhoneCameraSourcePayload.SourceFiles.Count == 17, "Source catalog changed");
+        TestAssert.That(PhoneCameraSourcePayload.SourceFiles.Count == 29 &&
+            new[] { "PhoneCameraPipe", "PhoneCameraOutputLease", "PhoneCameraFrameServerPeer", "PhoneCameraBrokerProtocol",
+                "PhoneCameraBrokerChannel", "PhoneCameraSourceBroker" }.All(name =>
+                PhoneCameraSourcePayload.SourceFiles.Contains("native/phone-camera/" + name + ".h") &&
+                PhoneCameraSourcePayload.SourceFiles.Contains("native/phone-camera/" + name + ".cpp")),
+            "Source catalog lost the exact original broker/transport/lease inputs");
         return Task.CompletedTask;
     }
     internal static Task PeAndDigestAsync()

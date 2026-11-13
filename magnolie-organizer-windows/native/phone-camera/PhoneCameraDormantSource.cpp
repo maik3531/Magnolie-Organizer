@@ -1,9 +1,12 @@
 #include "PhoneCameraDormantSource.h"
+#include "PhoneCameraBrokerProtocol.h"
 #include <mfapi.h>
 #include <mferror.h>
 #include <ks.h>
 #include <ksproxy.h>
 #include <wrl.h>
+#include <array>
+#include <cstring>
 
 namespace Magnolie::PhoneCamera
 {
@@ -16,7 +19,7 @@ namespace Magnolie::PhoneCamera
         const ComPtr<IUnknown> lifetime;
         const std::shared_ptr<const BYTE> identity;
         std::mutex gate;
-        bool spent = false, stopped = false;
+        bool spent = false, stopped = false, bindingAttempted = false;
         ComPtr<IMFMediaSourceEx> source;
         ComPtr<IFrameFeed> feed;
         ComPtr<IMFAttributes> metadata; // Owned snapshot; NEVER source/capture authority.
@@ -199,13 +202,28 @@ namespace Magnolie::PhoneCamera
             if (SUCCEEDED(hr)) hr = source.As(&target);
             return FAILED(hr) ? hr : target->GetAllocatorUsage(id, input, usage);
         }
-        STDMETHODIMP KsProperty(PKSPROPERTY, ULONG, LPVOID, ULONG, ULONG* returned) override
+        STDMETHODIMP KsProperty(PKSPROPERTY property, ULONG bytes, LPVOID, ULONG dataBytes, ULONG* returned) override
         {
             if (!returned) return E_POINTER; *returned = 0;
             HRESULT hr = state_->Current();
-            // The broker/property protocol is deliberately not implemented here.
-            // In particular no external SET can manufacture SourceBindingProof.
-            return FAILED(hr) ? hr : HRESULT_FROM_WIN32(ERROR_SET_NOT_FOUND);
+            if (FAILED(hr)) return hr;
+            if (!property || bytes != sizeof(KSPROPERTY) + BrokerProperty::Bytes || dataBytes || !state_->registration.bind)
+                return HRESULT_FROM_WIN32(ERROR_SET_NOT_FOUND);
+            std::array<BYTE, sizeof(KSPROPERTY) + BrokerProperty::Bytes> owned{};
+            std::memcpy(owned.data(), property, owned.size());
+            struct Clear { BYTE* bytes; std::size_t size; ~Clear() { SecureZeroMemory(bytes, size); } } clear{owned.data(), owned.size()};
+            KSPROPERTY header{}; std::memcpy(&header, owned.data(), sizeof(header));
+            if (header.Set != BrokerProperty::PropertySet || header.Id != BrokerProperty::PropertyId || header.Flags != KSPROPERTY_TYPE_SET)
+                return HRESULT_FROM_WIN32(ERROR_SET_NOT_FOUND); // No GET, echo, output bytes or secret disclosure.
+            {
+                std::lock_guard<std::mutex> lock(state_->gate);
+                if (state_->stopped || state_->bindingAttempted) return MF_E_SHUTDOWN;
+                state_->bindingAttempted = true;
+            }
+            hr = state_->registration.bind(state_->registration.context, owned.data() + sizeof(KSPROPERTY), BrokerProperty::Bytes);
+            if (hr == S_OK) hr = state_->Current();
+            if (hr != S_OK) { state_->Stop(); return FAILED(hr) ? hr : E_ACCESSDENIED; }
+            return S_OK; // Native binding only; never readiness/capture/SEND.
         }
         STDMETHODIMP KsMethod(PKSMETHOD, ULONG, LPVOID, ULONG, ULONG* returned) override
         { if (!returned) return E_POINTER; *returned = 0; return HRESULT_FROM_WIN32(ERROR_SET_NOT_FOUND); }

@@ -12,7 +12,8 @@
       <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Linq" /><Using Namespace="System.Security.Cryptography" />
       <Code Type="Fragment" Language="cs"><![CDATA[
         var names = new[] { "PhoneCameraSamples", "PhoneCameraClock", "PhoneCameraSource", "PhoneCameraActivate",
-          "PhoneCameraFactory", "PhoneCameraDormantSource", "PhoneCameraModule" };
+          "PhoneCameraFactory", "PhoneCameraDormantSource", "PhoneCameraModule", "PhoneCameraPipe", "PhoneCameraOutputLease",
+          "PhoneCameraFrameServerPeer", "PhoneCameraBrokerProtocol", "PhoneCameraBrokerChannel", "PhoneCameraSourceBroker" };
         var sources = names.SelectMany(name => new[] { "native/phone-camera/"+name+".h", "native/phone-camera/"+name+".cpp" })
           .Concat(new[] { "native/phone-camera/PhoneCameraModule.def", "werkzeuge/phone_camera_source.py", "PhoneCameraSource.targets" }).ToArray();
         Func<byte[],string> hash = bytes => { using(var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); };

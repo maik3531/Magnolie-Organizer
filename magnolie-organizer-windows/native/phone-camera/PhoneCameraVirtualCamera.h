@@ -41,8 +41,11 @@ namespace Magnolie::PhoneCamera
             virtual ~Session() = default;
             virtual HRESULT Start() noexcept = 0;
             virtual HRESULT Shutdown() noexcept = 0;
+            virtual HRESULT SendBinding(BYTE*, ULONG) noexcept { return E_NOTIMPL; }
         };
         struct OsSession;
+        friend class SourceBrokerParent;
+        HRESULT SendSourceBinding(BYTE* ownedProperty, ULONG bytes) noexcept;
 #ifdef MAGNOLIE_NATIVE_VIRTUAL_CAMERA_TESTS
         friend struct VirtualCameraTestAccess;
         static void ResetFakeUncertainty() noexcept;
@@ -55,7 +58,7 @@ namespace Magnolie::PhoneCamera
         std::unique_ptr<Session> session_;
         std::mutex operation_;
         std::atomic_bool stopped_{false}, started_{false};
-        bool startAttempted_ = false, closeAttempted_ = false;
+        bool startAttempted_ = false, closeAttempted_ = false, bindingAttempted_ = false;
         HRESULT closeResult_ = S_OK;
     };
 }

@@ -12,7 +12,8 @@ import subprocess
 
 SOURCES = tuple('native/phone-camera/' + name + suffix for name in (
     'PhoneCameraSamples', 'PhoneCameraClock', 'PhoneCameraSource', 'PhoneCameraActivate',
-    'PhoneCameraFactory', 'PhoneCameraDormantSource', 'PhoneCameraModule')
+    'PhoneCameraFactory', 'PhoneCameraDormantSource', 'PhoneCameraModule', 'PhoneCameraPipe', 'PhoneCameraOutputLease',
+    'PhoneCameraFrameServerPeer', 'PhoneCameraBrokerProtocol', 'PhoneCameraBrokerChannel', 'PhoneCameraSourceBroker')
     for suffix in ('.h', '.cpp')) + ('native/phone-camera/PhoneCameraModule.def',
         'werkzeuge/phone_camera_source.py', 'PhoneCameraSource.targets')
 NAME = 'Magnolie.PhoneCameraSource.x64.dll'
@@ -55,7 +56,7 @@ def build(output):
             arguments.append('"' + path + '"')
     arguments += ['/link', '/WX', '/DYNAMICBASE', '/NXCOMPAT', '/guard:cf', '/MACHINE:X64',
         '/DEF:"' + str(root / 'native/phone-camera/PhoneCameraModule.def') + '"',
-        'mfplat.lib', 'mfuuid.lib', 'ole32.lib', 'mfreadwrite.lib']
+        'mfplat.lib', 'mfuuid.lib', 'ole32.lib', 'mfreadwrite.lib', 'advapi32.lib', 'bcrypt.lib']
     (output / 'phone-camera-source.rsp').write_text(_response_file_text(arguments), encoding='utf-8')
     (output / 'phone-camera-source-build.cmd').write_text('@echo off\ncall "' + str(vcvars) +
         '"\nif errorlevel 1 exit /b %errorlevel%\ncl.exe @phone-camera-source.rsp\nexit /b %errorlevel%\n',

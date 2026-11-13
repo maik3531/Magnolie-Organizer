@@ -54,6 +54,26 @@ namespace Magnolie::PhoneCamera
         }
         return found;
     }
+    HRESULT FrameServerPeer::RequireCurrentHost() noexcept
+    {
+        try
+        {
+            Handle token;
+            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token.value)) return Error();
+            TOKEN_TYPE type{}; DWORD length = 0, session = 0;
+            if (!GetTokenInformation(token.value, TokenType, &type, sizeof(type), &length) || type != TokenPrimary ||
+                !GetTokenInformation(token.value, TokenSessionId, &session, sizeof(session), &length)) return E_ACCESSDENIED;
+            std::vector<BYTE> user, groups;
+            if (!TokenBlob(token.value, TokenUser, user) || user.size() < sizeof(TOKEN_USER) || !TokenBlob(token.value, TokenGroups, groups) ||
+                !AllowsIdentity(reinterpret_cast<TOKEN_USER*>(user.data())->User.Sid, session,
+                    reinterpret_cast<TOKEN_GROUPS*>(groups.data()), groups.size())) return E_ACCESSDENIED;
+            wchar_t image[32768]{}, system[32768]{}; DWORD count = 32768;
+            if (!QueryFullProcessImageNameW(GetCurrentProcess(), 0, image, &count)) return Error();
+            const UINT size = GetSystemDirectoryW(system, 32768);
+            return size && size < 32768 && !_wcsicmp(image, (std::wstring(system, size) + L"\\svchost.exe").c_str()) ? S_OK : E_ACCESSDENIED;
+        }
+        catch (...) { return E_OUTOFMEMORY; }
+    }
     HRESULT FrameServerPeer::Accept(HANDLE pipe, const FrameServerPeerOwner& owner, std::shared_ptr<FrameServerPeer>& result) noexcept
     {
         if (result || !pipe || pipe == INVALID_HANDLE_VALUE || !owner.current || !owner.retired) return E_INVALIDARG;

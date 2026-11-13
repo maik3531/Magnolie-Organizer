@@ -17,6 +17,9 @@ namespace Magnolie::PhoneCamera
         // Terminal registration cleanup, NOT capture retirement. Invoked once
         // outside shell locks; may release the owner's native controller.
         void (*closed)(void*) noexcept = nullptr;
+        // Original module-owned one-shot OS property handler only. No attributes,
+        // renderer callbacks or external proof/owner factory enter here.
+        HRESULT (*bind)(void*, const BYTE*, ULONG) noexcept = nullptr;
     };
 
     // No productive caller can construct a proof from metadata or callbacks.
