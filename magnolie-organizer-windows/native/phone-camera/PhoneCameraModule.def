@@ -1,0 +1,4 @@
+LIBRARY "Magnolie.PhoneCameraSource.x64.dll"
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE

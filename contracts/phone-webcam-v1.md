@@ -1,5 +1,35 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Native source DLL and immutable build input (Refs #586, #587)
+
+PhoneCameraModule implements the fixed custom-source COM class using the existing
+factory/activation boundaries and the dormant shell. Each activation has its own
+registration context. Source shutdown notifies that context and releases its
+controller; detached/independently held source interfaces retain their module
+lifetime. DllCanUnloadNow also accounts for explicit server locks. Only
+DllGetClassObject/DllCanUnloadNow are exported; no self-registration entry point,
+test proof factory, phone capture or fake SEND path is provided.
+
+Seven actual ordinary-process lifecycle groups passed against the unregistered
+DLL, including exact class/interface rejection, activation and detached-source
+lifetime, independent activations, metadata/property refusal and server locks.
+The final source-bound DLL was loaded and actually unloaded by the controlled
+host. This is not protected installed loading, FrameServer activation or camera
+registration. Module registration liveness never becomes a capture callback.
+
+The existing MSVC/SDK conventions also build this required DLL with a fixed
+17-input descriptor, class ID, x64 DLL role and ASLR/NX/CFG. PhoneCameraSource.targets
+validates those inputs before taking one private byte snapshot; an actual imported
+task accepted the good artifact and rejected checksum, stale source, ARM64,
+camera-OFF, wrong class ID and extra descriptor rows. A failed check leaves the
+previous valid snapshot unchanged. Build identity is not signing or load authority.
+
+The new source artifact/target is not yet imported into the managed product,
+embedded, installed or registered. The authenticated broker/proof producer,
+IMFVirtualCamera manager, combined single-approval setup and real AV acceptance
+remain #586. Old audio artifacts remain separate; no unrelated tests are repeated
+merely because this DLL/target was added.
+
 ## Dormant registration source boundary (Refs #584)
 
 PhoneCameraDormantSource separates registration/module lifetime from capture

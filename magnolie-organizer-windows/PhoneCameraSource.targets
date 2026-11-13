@@ -1,0 +1,50 @@
+<Project>
+  <!-- Immutable build identity only. Not broker, registration or load authority. -->
+  <UsingTask TaskName="SnapshotPhoneCameraSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <InputDirectory ParameterType="System.String" Required="true" />
+      <OutputDirectory ParameterType="System.String" Required="true" />
+      <BinaryOutput ParameterType="System.String" Output="true" />
+      <ManifestOutput ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Linq" /><Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var names = new[] { "PhoneCameraSamples", "PhoneCameraClock", "PhoneCameraSource", "PhoneCameraActivate",
+          "PhoneCameraFactory", "PhoneCameraDormantSource", "PhoneCameraModule" };
+        var sources = names.SelectMany(name => new[] { "native/phone-camera/"+name+".h", "native/phone-camera/"+name+".cpp" })
+          .Concat(new[] { "native/phone-camera/PhoneCameraModule.def", "werkzeuge/phone_camera_source.py", "PhoneCameraSource.targets" }).ToArray();
+        Func<byte[],string> hash = bytes => { using(var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); };
+        var binary = File.ReadAllBytes(Path.Combine(InputDirectory, "Magnolie.PhoneCameraSource.x64.dll"));
+        if(binary.Length < 128 || binary.Length > 8*1024*1024 || binary[0] != 77 || binary[1] != 90) throw new InvalidDataException("Invalid camera source PE size/header");
+        var pe = BitConverter.ToInt32(binary, 60);
+        if(pe < 64 || pe > binary.Length-96 || BitConverter.ToUInt32(binary, pe) != 0x4550 || BitConverter.ToUInt16(binary, pe+4) != 0x8664 ||
+           (BitConverter.ToUInt16(binary, pe+22) & 0x2002) != 0x2002 || BitConverter.ToUInt16(binary, pe+24) != 0x20b ||
+           (BitConverter.ToUInt16(binary, pe+94) & 0x4140) != 0x4140)
+          throw new InvalidDataException("Camera source must be an x64 PE32+ DLL with ASLR/NX/CFG");
+        var lines = new[] { "magnolie-phone-camera-source-v1", "architecture=x64", "classId=dab1e726-131a-4a3a-abea-6a8ca1b4f571", "sha256=" + hash(binary) }
+          .Concat(sources.Select(name => "source=" + name + "|" + hash(File.ReadAllBytes(Path.Combine(Root, name))))).ToArray();
+        var manifest = File.ReadAllLines(Path.Combine(InputDirectory, "phone-camera-source.manifest"));
+        if(!lines.SequenceEqual(manifest)) throw new InvalidDataException("Camera source artifact/source descriptor is stale or changed");
+        Directory.CreateDirectory(OutputDirectory);
+        BinaryOutput = Path.Combine(OutputDirectory, "Magnolie.PhoneCameraSource.x64.dll");
+        ManifestOutput = Path.Combine(OutputDirectory, "phone-camera-source.manifest");
+        File.WriteAllBytes(BinaryOutput, binary);
+        File.WriteAllLines(ManifestOutput, lines, new System.Text.UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="PreparePhoneCameraSourceResource" BeforeTargets="AssignTargetPaths" Condition="'$(MagnoliePhoneCameraSourceDirectory)' != ''">
+    <Error Condition="'$(MagnoliePhoneCamera)' != 'true'" Text="The camera source may only be embedded in the optional camera composition." />
+    <SnapshotPhoneCameraSource Root="$(MSBuildProjectDirectory)" InputDirectory="$(MagnoliePhoneCameraSourceDirectory)" OutputDirectory="$(IntermediateOutputPath)phone-camera-source">
+      <Output TaskParameter="BinaryOutput" PropertyName="PhoneCameraSourceSnapshot" />
+      <Output TaskParameter="ManifestOutput" PropertyName="PhoneCameraSourceManifestSnapshot" />
+    </SnapshotPhoneCameraSource>
+    <ItemGroup>
+      <EmbeddedResource Include="$(PhoneCameraSourceSnapshot)" LogicalName="Magnolie.PhoneCameraSource.x64.dll" />
+      <EmbeddedResource Include="$(PhoneCameraSourceManifestSnapshot)" LogicalName="Magnolie.PhoneCameraSource.manifest" />
+      <Content Include="$(PhoneCameraSourceSnapshot)" Link="Magnolie.PhoneCameraSource.x64.dll" TargetPath="Magnolie.PhoneCameraSource.x64.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+</Project>
