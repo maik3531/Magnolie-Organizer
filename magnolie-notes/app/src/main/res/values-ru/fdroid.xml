@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">Проверяйте и устанавливайте обновления Notes через клиент F-Droid. Простое скачивание APK с сайта F-Droid не обеспечивает уведомлений об обновлениях.</string>
+    <string name="about_update_fdroid_unknown">Установили Notes через F-Droid? Используйте клиент F-Droid для обновлений, а не выпуск GitHub. Простое скачивание APK с сайта не обеспечивает уведомлений F-Droid об обновлениях.</string>
+</resources>

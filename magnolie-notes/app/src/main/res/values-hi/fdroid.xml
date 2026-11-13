@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">Notes के अपडेट जाँचने और इंस्टॉल करने के लिए F-Droid क्लाइंट का उपयोग करें। केवल F-Droid वेबसाइट से APK डाउनलोड करने पर अपडेट की सूचनाएँ नहीं मिलतीं।</string>
+    <string name="about_update_fdroid_unknown">Notes को F-Droid से इंस्टॉल किया है? अपडेट के लिए GitHub रिलीज़ के बजाय F-Droid क्लाइंट का उपयोग करें। केवल वेबसाइट से APK डाउनलोड करने पर F-Droid अपडेट की सूचनाएँ नहीं मिलतीं।</string>
+</resources>

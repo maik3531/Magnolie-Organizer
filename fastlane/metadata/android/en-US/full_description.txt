@@ -25,4 +25,4 @@ Animations remain photos. Video synchronization and a separate animations subfol
 
 All integrations are optional: pairing, feature selection and Android prompts provide separate approvals. Disable functions/permissions or remove pairings at any time. Bluetooth data is separate from system-managed hands-free audio. Notes provides no native SMS/RCS service.
 
-Version information: About requests public release information from GitHub and compares it locally, without sending note content or account credentials. A link opens the browser; Notes does not download/install APK updates itself.
+Version information: F-Droid builds and installations recognized as coming from the F-Droid client refer you to that client for updates instead of checking GitHub. Otherwise, About requests public GitHub release information and compares it locally, without sending note content or account credentials. Installer information can be unavailable; a conditional F-Droid reminder remains visible. F-Droid recommends its client: downloading an APK from its website alone provides no update notifications. A link opens the browser; Notes does not download/install APK updates itself.

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">Gebruik de F-Droid-client om Notes-updates te zoeken en te installeren. Alleen een APK downloaden van de F-Droid-website levert geen updatemeldingen op.</string>
+    <string name="about_update_fdroid_unknown">Notes via F-Droid geïnstalleerd? Gebruik voor updates de F-Droid-client, niet de GitHub-uitgave. Alleen een APK downloaden van de website levert geen F-Droid-updatemeldingen op.</string>
+</resources>

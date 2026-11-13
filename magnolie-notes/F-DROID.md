@@ -73,6 +73,18 @@ gebaut, eingereicht oder veröffentlicht.
 
 ## Signaturen und bestehende Installationen
 
+Die Über-Seite verweist bei `magnolieFdroid=true` sowie bei einer von Android
+gemeldeten Installation durch `org.fdroid.fdroid` auf Updates über den
+F-Droid-Client und fragt dort keine GitHub-Releases ab. Ab Android 11 wird
+`getInstallSourceInfo` verwendet, auf älteren unterstützten Versionen
+`getInstallerPackageName`, jeweils nur für das eigene Paket und ohne neue
+Berechtigung. Das ist ein Hinweis auf den Bezugsweg, kein Signaturnachweis.
+Fehlende Angaben oder andere Installer beweisen keinen direkten Projektbezug;
+ein bedingter F-Droid-Hinweis bleibt auch dann sichtbar. Weitere Clients werden
+nicht anhand von Namensteilen geraten. Für manuell heruntergeladene APKs kann
+die ursprüngliche Webseite unbekannt bleiben. F-Droid empfiehlt den Client:
+Ein reiner Webseiten-APK-Download bietet keine Updatebenachrichtigungen.
+
 Android akzeptiert ein Update unter derselben Anwendungskennung nur mit einer
 passenden Signatur. Eine durch F-Droid selbst signierte APK ist daher nicht
 automatisch ein direktes Update einer bereits über GitHub/GitLab installierten
