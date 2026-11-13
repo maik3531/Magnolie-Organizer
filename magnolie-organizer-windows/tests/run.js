@@ -32,6 +32,7 @@ for (const test of ["welcome-first-save.js", "time-zone-planning.js", "time-zone
    "contact-source-differences.js",
    "contact-provider-bulk-review.js",
    "contact-label-content-time.js",
+   "contact-source-writeback.js",
    "contact-group-title-write.js",
   "mcp-contact-group-diagnostics.js",
   "ods-regional.js", "time-tracking-core.js", "time-tracking-ui.js", "time-sync-ui.js", "month-recurrence-stability.js", "birthday-display.js", "waste-import.js", "baum-contact-batch.js", "baum-contact-review.js", "baum-contact-time.js", "baum-contact-groups.js", "contact-import-identity.js", "baum-note-identity.js", "tree-connection-sharing.js", "personal-note-dates.js", "personal-note-identities.js", "personal-note-mode.js", "journal-selection.js", "bundled-handbook-update.js", "structured-appointment-parity.js", "handbook-smoke.js", "handbook-windows-variants.js",

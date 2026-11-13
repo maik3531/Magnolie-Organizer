@@ -48,6 +48,14 @@ later local edit is based on a causally confirmed own write rather than becoming
 false concurrent edit. The read path keeps observed values separate from common
 baselines and never overwrites an offline wish or guesses an initial value winner.
 
+Confirmed source reconciliation also records the field intent against an existing
+bound Notes baseline (#575). Thus keeping a newer canonical label, or approving a
+provider version, can update an older phone copy through the same SaveACK/prepare/
+apply/readback path instead of changing only the desktop. It neither invents a
+phone binding nor confirms an unknown baseline; existing pending ownership and
+offline wishes remain intact. This resource still covers only the two declared
+field lists, and does not add a KDE Connect contact-write capability.
+
 Phone and email deltas share one provider batch containing raw-version assertions.
 Unchanged native rows, custom labels, primary flags, unrelated MIME rows and
 unprojected duplicate rows remain intact. An ambiguous edited projection fails

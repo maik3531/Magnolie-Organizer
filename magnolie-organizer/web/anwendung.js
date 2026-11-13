@@ -14604,6 +14604,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return true;
   }
 
+  function merkeTelefonAbgleichSchreibwunsch(kontakt, vorher = null) {
+    const stand = normalisiereTelefonWerteStand(kontakt.telefonWerteStand), aktuell = kontaktWerteProjektion(kontakt);
+    const pending = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung);
+    // Reconciliation never confirms an unknown baseline or changes its owner.
+    if (!stand || !aktuell || pending?.unbekannt?.length || !gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(kontakt), stand)) return false;
+    const bekanntVorher = kopie(aktuell), quellStand = kopie(aktuell);
+    for (const name of Object.keys(stand.fields)) {
+      if (Array.isArray(vorher?.[name])) bekanntVorher[name] = kopie(vorher[name]);
+      quellStand[name] = kopie(stand.fields[name]);
+    }
+    const geaendert = merkeTelefonWerteAenderung(kontakt, bekanntVorher);
+    return merkeTelefonWerteAenderung(kontakt, quellStand) || geaendert;
+  }
+
   function telefonWerteSchreibQuelle(kontakt) {
     const pending = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung);
     if (!pending || !DATEN.kontakte.includes(kontakt)) return null;
@@ -27647,6 +27661,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       setzen(ziel, werte);
     }
+    merkeTelefonAbgleichSchreibwunsch(ziel, kontaktWerteProjektion(bisher));
   }
 
   function kontaktQuellenVergleich(ziel, karte, gespeicherteQuelle, eingangsQuelle, mitGruppen = true) {
@@ -34003,6 +34018,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (plan.hash && plan.gewaehlt) daten.kontaktImportAblehnungen.push(plan.hash);
         merkeKontaktFoto(ziel, karte.foto, "import");
         ziel.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(karte.importBindungen || [])])].slice(-32);
+        merkeTelefonAbgleichSchreibwunsch(ziel);
         zaehlung.doppelt++; continue;
       }
       if (modus === "new") {
@@ -34042,6 +34058,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(entwurf); verknuepfeKontaktJubilaeum(entwurf); });
       }
       const ergebnis = daten.kontakte.find(k => k.id === ziel.id);
+      merkeTelefonAbgleichSchreibwunsch(ergebnis, kontaktWerteProjektion(vorherKontakt));
       if (plan.geburtsname && alterNachname && ergebnis.nachname && ergebnis.nachname !== alterNachname) {
         const zeile = uebersetzt("Birth name: %(name)s", { name: alterNachname });
         if (!String(ergebnis.notiz || "").split(/\r?\n/).includes(zeile))
