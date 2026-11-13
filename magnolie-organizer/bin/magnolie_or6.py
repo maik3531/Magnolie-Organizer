@@ -485,10 +485,15 @@ def _read_or6(raw):
                 contact["geburtstag"] = birthday
             for fid, label in ((16, "Title"), (18, "Middle name"), (20, "Suffix"),
                                (22, "Position"), (25, "Department"), (27, "Assistant"),
-                               (30, "State"), (37, "URL"), (43, "Spouse"), (44, "Children")):
+                                (30, "State"), (37, "URL"), (40, "Mail merge name"), (43, "Spouse"), (44, "Children")):
                 value = "; ".join(part for part in _strings(fields, fid) if part)
                 if value:
                     contact["notiz"] += ("\n" if contact["notiz"] else "") + label + ": " + value
+            # Preserve opaque source slots without guessing their relationship
+            # to phone numbers, labels or dialable extensions.
+            for index, value in enumerate(_strings(fields, 34), 1):
+                if value:
+                    contact["notiz"] += ("\n" if contact["notiz"] else "") + "Lotus Extn slot %d: %s" % (index, value)
             for fid in range(46, 66):
                 value = _string(fields, fid)
                 if value:

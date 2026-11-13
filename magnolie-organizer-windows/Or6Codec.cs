@@ -346,11 +346,15 @@ internal static class Or6Codec
                 var birthday = Date(fields, 41).Date; if (birthday.Length > 0) contact["geburtstag"] = birthday;
                 var note = Text(fields, 39);
                 foreach (var (id, label) in new (ushort, string)[] { (16, "Title"), (18, "Middle name"), (20, "Suffix"), (22, "Position"),
-                    (25, "Department"), (27, "Assistant"), (30, "State"), (37, "URL"), (43, "Spouse"), (44, "Children") })
+                    (25, "Department"), (27, "Assistant"), (30, "State"), (37, "URL"), (40, "Mail merge name"), (43, "Spouse"), (44, "Children") })
                 {
                     var value = string.Join("; ", Strings(fields, id).Where(value => value.Length > 0));
                     if (value.Length > 0) note += (note.Length > 0 ? "\n" : "") + label + ": " + value;
                 }
+                // Opaque source slots, not guessed phone labels or dialable suffixes.
+                var extensions = Strings(fields, 34);
+                for (int index = 0; index < extensions.Length; index++)
+                    if (extensions[index].Length > 0) note += (note.Length > 0 ? "\n" : "") + $"Lotus Extn slot {index + 1}: {extensions[index]}";
                 for (ushort id = 46; id < 66; id++) { var value = Text(fields, id); if (value.Length > 0) note += $"\nCustom {id - 45}: {value}"; }
                 contact["notiz"] = note; contacts.Add(contact);
             }
