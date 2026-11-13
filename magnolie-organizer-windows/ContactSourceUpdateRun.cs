@@ -16,7 +16,7 @@ internal static class ContactSourceUpdateRun
 {
     internal static async Task<ContactSourceUpdateResult> RunAsync(JsonArray originalContacts,
         IReadOnlyList<ContactSourceAdmission> admissions, Func<Task> requireSaved,
-        Action originalCurrent, CancellationToken cancellation = default)
+        Action originalCurrent, CancellationToken cancellation = default, string homeCountry = "")
     {
         if (admissions.Any(source => string.IsNullOrWhiteSpace(source.Source)) ||
             admissions.GroupBy(source => source.Source, StringComparer.Ordinal).Any(group => group.Count() != 1))
@@ -40,7 +40,7 @@ internal static class ContactSourceUpdateRun
                 var remote = new BoundRemote(admission, bound, originalCurrent);
                 var selected = new JsonArray(bound.Select(item => (JsonNode)item.DeepClone()).ToArray());
                 var result = await new ContactSyncEngine().SyncAsync(admission.Source, selected, [], 0, remote, cancellation,
-                    beforeMutation: () => remote.CheckAsync(cancellation));
+                    beforeMutation: () => remote.CheckAsync(cancellation), homeCountry: homeCountry);
                 originalCurrent(); cancellation.ThrowIfCancellationRequested();
                 // A native run may produce a retained source-specific conflict,
                 // but never append a different provider record or drop a person.

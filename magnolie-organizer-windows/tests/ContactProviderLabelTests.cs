@@ -45,6 +45,7 @@ internal static class ContactProviderLabelTests
     }
     internal static async Task TwoSourceConvergenceAsync()
     {
+        await PhoneCountryComparisonAsync();
         var failures = new List<string>();
         foreach (var field in new[] { "telefone", "emailEintraege", "anschriften" })
         foreach (bool remoteNewer in new[] { false, true })
@@ -73,6 +74,52 @@ internal static class ContactProviderLabelTests
         TestAssert.That(failures.Count == 0, string.Join("; ", failures));
         await ContactSourceUpdateRunTests.RunAsync();
         CheckUnknownLabelsAndCategories();
+    }
+    private static async Task PhoneCountryComparisonAsync()
+    {
+        foreach (var (country, national, international) in new[] {
+            ("DE", "0123456", "+49123456"), ("DE", "030 123456", "+4930123456"),
+            ("GB", "07700 900123", "+447700900123"), ("IT", "02 12345678", "+390212345678") })
+        foreach (var spelling in new[] { national, "00" + international[1..], international })
+        {
+            var local = Card("telefone", "local", 2000);
+            local["telefone"]![0]!["wert"] = spelling;
+            var incoming = local.DeepClone().AsObject(); incoming["telefone"]![0]!["wert"] = international;
+            incoming["uid"] = "provider-phone@example.test";
+            var localBefore = local.ToJsonString(); var hashBefore = ContactFields.ContentHash(local);
+            TestAssert.That(ContactFields.StrongKeys(local, country).Overlaps(ContactFields.StrongKeys(incoming, country)),
+                "National phone spelling did not match with explicit country: " + country + spelling);
+            var remote = new Remote("phone", new RemoteContact("phone-record", "\"v1\"", 3000, incoming, true));
+            // Actual unbound sync must bind, not create another provider card.
+            var result = await new ContactSyncEngine().SyncAsync(A, new JsonArray(local.DeepClone()), [], 0, remote, homeCountry: country);
+            TestAssert.That(result.Contacts.Count == 1 && result.Counts.Conflicts == 0 && result.Counts.Errors == 0 &&
+                remote.Updates == 0 && ContactFields.Source(result.Contacts[0]!.AsObject(), A)?["id"]?.GetValue<string>() == "phone-record",
+                "Phone spelling caused a duplicate, conflict, write or lost binding");
+            TestAssert.That(result.Contacts[0]!["telefone"]![0]!["wert"]!.GetValue<string>() == spelling &&
+                local.ToJsonString() == localBefore && ContactFields.ContentHash(local) == hashBefore &&
+                remote.Current.Data["telefone"]![0]!["wert"]!.GetValue<string>() == international,
+                "Comparison rewrote original numbers or exact content hashes");
+            var again = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, remote, homeCountry: country);
+            TestAssert.That(again.Counts.Conflicts == 0 && remote.Updates == 0 && again.Contacts.Count == 1,
+                "Repeated phone spelling comparison was not stable");
+            var old = local.DeepClone().AsObject(); old["telefone"]![0]!["wert"] = "+49305550999";
+            ContactFields.SetSource(local, A, remote.Current with { ETag = "\"old\"", Data = old }, remoteBaseline: true);
+            var simultaneous = await new ContactSyncEngine().SyncAsync(A, new JsonArray(local.DeepClone()), [], 0, remote, homeCountry: country);
+            TestAssert.That(simultaneous.Counts.Conflicts == 0 && remote.Updates == 0 &&
+                simultaneous.Contacts[0]!["telefone"]![0]!["wert"]!.GetValue<string>() == spelling,
+                "Simultaneous equivalent source edits conflicted or rewrote spelling");
+        }
+        JsonObject Number(string value) => new() { ["telefone"] = new JsonArray(new JsonObject { ["wert"] = value }) };
+        foreach (var country in new[] { "", "ZZ", "GB" })
+            TestAssert.That(!ContactFields.StrongKeys(Number("0123456"), country).Overlaps(ContactFields.StrongKeys(Number("+49123456"), country)),
+                "Missing or different country silently assumed Germany");
+        foreach (var value in new[] { "+49123457", "+49123456 ext 2" })
+            TestAssert.That(!ContactFields.StrongKeys(Number("0123456 ext 1"), "DE").Overlaps(ContactFields.StrongKeys(Number(value), "DE")),
+                "Different numbers or extensions became the same identity");
+        TestAssert.That(ContactFields.StrongKeys(Number("0123456 ext 1"), "DE").Overlaps(ContactFields.StrongKeys(Number("+49123456 ext 1"), "DE")),
+            "Equivalent extension spellings failed comparison");
+        TestAssert.That(ContactFields.StrongKeys(Number("0123456 ext 1"), "DE").Overlaps(ContactFields.StrongKeys(Number("tel:+49123456;ext=1"), "DE")),
+            "RFC phone URI extension stopped matching");
     }
     private static void CheckUnknownLabelsAndCategories()
     {

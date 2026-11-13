@@ -702,7 +702,8 @@ internal sealed partial class BridgeDispatcher
                     (contactCursor <= 0 || !contacts.Concat(tombstones).OfType<JsonObject>()
                         .Any(item => ContactFields.Source(item, source) is not null));
                 result = await new ContactSyncEngine().SyncAsync(source, contacts, tombstones, contactCursor, remote,
-                    operation.Token, additiveOnly || firstContactRun, EnsureSnapshot);
+                    operation.Token, additiveOnly || firstContactRun, EnsureSnapshot,
+                    RegionalSettings.Read(paths.RegionalSettings)["homeCountry"]?.GetValue<string>() ?? "");
                 if (result.Counts.Errors > 0)
                     throw new InvalidOperationException(T("The Nextcloud operation failed."));
                 SaveProgress("contacts:" + source);
