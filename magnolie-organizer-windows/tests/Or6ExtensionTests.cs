@@ -71,6 +71,7 @@ internal static class Or6ExtensionTests
             "Unchecked original annual checkbox became a yearly recurrence.");
         CheckPlannerFields();
         CheckTaskStatus();
+        Or6TaskSeriesTests.Run();
         return Task.CompletedTask;
     }
 

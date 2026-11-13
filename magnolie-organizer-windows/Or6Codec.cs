@@ -100,7 +100,7 @@ internal static class Or6Codec
                 if (block.Tag != 0xfffffffb || block.Size < 0x58) continue;
                 if (!byKey.TryGetValue((Reference(offset + 0x20), Reference(offset + 0x28)), out var source) ||
                     !byKey.TryGetValue((Reference(offset + 0x30), Reference(offset + 0x38)), out var target) ||
-                    source.Tag != 0x100 || target.Tag != RepeatTag) continue;
+                    source.Tag is not (0x100 or 0x300) || target.Tag != RepeatTag) continue;
                 if (assigned.TryGetValue(source.Uid, out var previous) && previous != target.Uid) throw Invalid();
                 assigned[source.Uid] = target.Uid;
                 if (!groups.TryGetValue(target.Uid, out var group)) groups[target.Uid] = group = (target, new());
@@ -178,8 +178,9 @@ internal static class Or6Codec
     }
 
     private static JsonObject? FiniteSeries((Entry Definition, List<Entry> Members) group,
-        HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned)
+        HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned, bool taskStates = false)
     {
+        if (group.Members.Count == 0 || group.Members.Select(member => member.Tag).Distinct().Count() != 1) return null;
         var metadata = group.Definition.Fields;
         DateTime[]? Dates(ushort id)
         {
@@ -195,7 +196,8 @@ internal static class Or6Codec
             !starts.SequenceEqual(starts.OrderBy(value => value).Distinct())) return null;
         var ordered = group.Members.OrderBy(member => Number(member.Fields, 14)).ToArray();
         var basis = ordered[0].Fields;
-        var comparable = basis.Where(pair => pair.Key is not (7 or 8 or 14)).ToDictionary(pair => pair.Key, pair => pair.Value);
+        bool CompareField(ushort field) => field is not (7 or 8 or 14) && (!taskStates || field is not (19 or 20));
+        var comparable = basis.Where(pair => CompareField(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value);
         var indices = ordered.Select(member => (long)Number(member.Fields, 14)).ToArray();
         if (indices.Distinct().Count() != indices.Length || indices.Any(index => index >= starts.Length)) return null;
         var missing = Enumerable.Range(0, starts.Length).Except(indices.Select(index => (int)index)).ToArray();
@@ -204,7 +206,7 @@ internal static class Or6Codec
         for (var position = 0; position < ordered.Length; position++)
         {
             var fields = ordered[position].Fields; var index = (int)indices[position];
-            var other = fields.Where(pair => pair.Key is not (7 or 8 or 14)).ToDictionary(pair => pair.Key, pair => pair.Value);
+            var other = fields.Where(pair => CompareField(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value);
             if (Number(fields, 10) != 1 || comparable.Count != other.Count ||
                 comparable.Any(pair => !other.TryGetValue(pair.Key, out var value) || !pair.Value.AsSpan().SequenceEqual(value)) ||
                 Stamp(Bytes(fields, 7)) != starts[index] || Stamp(Bytes(fields, 8)) != ends[index] || ends[index] < starts[index]) return null;
@@ -261,6 +263,46 @@ internal static class Or6Codec
         return result;
     }
 
+    private static List<JsonObject>? FiniteTaskSeries((Entry Definition, List<Entry> Members) group,
+        HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned)
+    {
+        // Validate the same original native links/arrays/finite expansion as
+        // appointments, but retain one task series rather than loose tasks.
+        if (group.Members.Any(member => Number(member.Fields, 20) is not (1 or 2 or 4))) return null;
+        foreach (var member in group.Members) _ = Date(member.Fields, 19);
+        var series = FiniteSeries(group, orphaned, taskStates: true);
+        if (series is null) return null;
+        var fields = group.Members[0].Fields;
+        var allDone = group.Members.All(member => Number(member.Fields, 20) == 4);
+        var priority = Number(fields, 18, 3);
+        var result = Common(fields, group.Definition.Uid);
+        result["startDatum"] = series["datum"]!.DeepClone(); result["startZeit"] = series["zeit"]!.DeepClone();
+        result["faellig"] = series["endDatum"]!.GetValue<string>() is { Length: > 0 } end ? end : series["datum"]!.GetValue<string>();
+        result["faelligZeit"] = series["endZeit"]!.DeepClone(); result["prio"] = priority < 3 ? priority + 1 : 2;
+        result["erledigt"] = allDone;
+        result["icsSerienUid"] = group.Definition.Uid;
+        result["icsRoundtrip"] = new JsonArray(series["icsRoundtrip"]!.AsArray().Select(value => {
+            var line = value!.GetValue<string>();
+            return (JsonNode?)JsonValue.Create(line.StartsWith("DTEND:", StringComparison.Ordinal) ? "DUE:" + line[6..] : line);
+        }).ToArray());
+        var converted = new List<JsonObject> { result };
+        if (!allDone)
+            foreach (var member in group.Members.OrderBy(value => Number(value.Fields, 14)))
+            {
+                if (Number(member.Fields, 20) != 4) continue;
+                var start = Stamp(Bytes(member.Fields, 7))!.Value; var due = Stamp(Bytes(member.Fields, 8))!.Value;
+                string Compact(DateTime value) => value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
+                result["icsRoundtrip"]!.AsArray().Add("EXDATE:" + Compact(start));
+                var done = Common(member.Fields, member.Uid);
+                done["startDatum"] = start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); done["startZeit"] = start.ToString("HH:mm", CultureInfo.InvariantCulture);
+                done["faellig"] = due.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); done["faelligZeit"] = due.ToString("HH:mm", CultureInfo.InvariantCulture);
+                done["prio"] = result["prio"]!.DeepClone(); done["erledigt"] = true; done["icsSerienUid"] = group.Definition.Uid;
+                done["icsRoundtrip"] = new JsonArray("RECURRENCE-ID:" + Compact(start), "DTSTART:" + Compact(start), "DUE:" + Compact(due), "STATUS:COMPLETED", "PERCENT-COMPLETE:100");
+                converted.Add(done);
+            }
+        return converted;
+    }
+
     internal static ExchangeImportResult Read(byte[] raw)
     {
         var appointments = new JsonArray(); var tasks = new JsonArray(); var contacts = new JsonArray(); var notes = new JsonArray(); var anniversaries = new JsonArray();
@@ -268,9 +310,9 @@ internal static class Or6Codec
         var document = new Document(raw); var entries = document.Entries(repeats: true).ToList();
         var groups = document.RepeatGroups(entries); var consumed = new HashSet<string>();
         var (memberships, representedGroups) = document.ContactGroups(entries);
-        var orphaned = entries.Where(entry => entry.Tag == 0x100 && Number(entry.Fields, 10) != 0 && !groups.ContainsKey(entry.Uid))
+        var orphaned = entries.Where(entry => (entry.Tag is 0x100 or 0x300) && Number(entry.Fields, 10) != 0 && !groups.ContainsKey(entry.Uid))
             .Select(entry => (entry.Schema, Number(entry.Fields, 14), Stamp(Bytes(entry.Fields, 7)))).ToHashSet();
-        var evaluated = new Dictionary<string, JsonObject?>();
+        var evaluated = new Dictionary<string, List<JsonObject>?>();
         foreach (var entry in entries)
         {
             var (tag, fields, uid) = (entry.Tag, entry.Fields, entry.Uid);
@@ -282,12 +324,19 @@ internal static class Or6Codec
                 // retained as unresolved source-calendar rules.
                 if (Number(fields, 10) != 0)
                 {
-                    if (tag == 0x100 && groups.TryGetValue(uid, out var group))
+                    if (groups.TryGetValue(uid, out var group))
                     {
                         if (!evaluated.TryGetValue(group.Definition.Uid, out var series))
-                            evaluated[group.Definition.Uid] = series = FiniteSeries(group, orphaned);
+                        {
+                            if (tag == 0x300) evaluated[group.Definition.Uid] = series = FiniteTaskSeries(group, orphaned);
+                            else
+                            {
+                                var appointment = FiniteSeries(group, orphaned);
+                                evaluated[group.Definition.Uid] = series = appointment is null ? null : [appointment];
+                            }
+                        }
                         if (series is not null)
-                        { appointments.Add(series); foreach (var member in group.Members) consumed.Add(member.Uid); continue; }
+                        { foreach (var value in series) (tag == 0x300 ? tasks : appointments).Add(value); foreach (var member in group.Members) consumed.Add(member.Uid); continue; }
                     }
                     skipped++; continue;
                 }

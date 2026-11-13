@@ -237,7 +237,7 @@ class _Document:
                 continue
             source = by_key.get(self.reference(address+0x20) + self.reference(address+0x28))
             target = by_key.get(self.reference(address+0x30) + self.reference(address+0x38))
-            if source is None or target is None or source[0] != 0x100 or target[0] != REPEAT_TAG:
+            if source is None or target is None or source[0] not in (0x100, 0x300) or target[0] != REPEAT_TAG:
                 continue
             if source[2] in assigned and assigned[source[2]] != target[2]:
                 raise _invalid()
@@ -311,8 +311,10 @@ def _common(fields, uid):
     return result
 
 
-def _finite_series(group, orphaned=()):
+def _finite_series(group, orphaned=(), task_states=False):
     definition, members = group
+    if not members or len({member[0] for member in members}) != 1:
+        return None  # A native definition cannot mix tasks and appointments.
     metadata = definition[1]
     arrays = []
     for fid in (12, 13):
@@ -328,7 +330,8 @@ def _finite_series(group, orphaned=()):
         return None
     ordered = sorted(members, key=lambda member: _number(member[1], 14))
     base = ordered[0][1]
-    comparable = {fid:value for fid,value in base.items() if fid not in (7, 8, 14)}
+    ignored = {7, 8, 14} | ({19, 20} if task_states else set())
+    comparable = {fid:value for fid,value in base.items() if fid not in ignored}
     indices = [_number(member[1], 14) for member in ordered]
     if len(set(indices)) != len(indices) or any(index >= len(starts) for index in indices):
         return None
@@ -338,7 +341,7 @@ def _finite_series(group, orphaned=()):
     for index, member in zip(indices, ordered):
         fields = member[1]
         if (_number(fields, 10) != 1 or
-                {fid:value for fid,value in fields.items() if fid not in (7, 8, 14)} != comparable or
+                {fid:value for fid,value in fields.items() if fid not in ignored} != comparable or
                 _stamp(fields.get(7)) != starts[index] or _stamp(fields.get(8)) != ends[index] or
                 ends[index] < starts[index]):
             return None
@@ -398,6 +401,45 @@ def _finite_series(group, orphaned=()):
     return result
 
 
+def _finite_task_series(group, orphaned=()):
+    # Reuse the native link/index/array and exact finite-expansion validation,
+    # not the appointment destination model. Task data remains one VTODO set.
+    if any(_number(member[1], 20) not in (1, 2, 4) for member in group[1]):
+        return None  # Unknown per-occurrence states must not become open tasks.
+    for member in group[1]:
+        _date(member[1], 19)  # Retain strict native stamp validation.
+    series = _finite_series(group, orphaned, task_states=True)
+    if series is None:
+        return None
+    fields = group[1][0][1]
+    priority = _number(fields, 18, 3)
+    all_done = all(_number(member[1], 20) == 4 for member in group[1])
+    result = _common(fields, group[0][2])
+    result.update(startDatum=series["datum"], startZeit=series["zeit"],
+                  faellig=series["endDatum"] or series["datum"], faelligZeit=series["endZeit"],
+                  prio=priority+1 if priority < 3 else 2,
+                  erledigt=all_done,
+                  icsSerienUid=group[0][2],
+                  icsRoundtrip=["DUE:" + line[6:] if line.startswith("DTEND:") else line
+                                for line in series["icsRoundtrip"]])
+    converted = [result]
+    if not all_done:
+        for member in sorted(group[1], key=lambda value: _number(value[1], 14)):
+            if _number(member[1], 20) != 4:
+                continue
+            start, due = _stamp(member[1].get(7)), _stamp(member[1].get(8))
+            compact = lambda value: value.strftime("%Y%m%dT%H%M%S")
+            result["icsRoundtrip"].append("EXDATE:" + compact(start))
+            done = _common(member[1], member[2])
+            done.update(startDatum=start.strftime("%Y-%m-%d"), startZeit=start.strftime("%H:%M"),
+                        faellig=due.strftime("%Y-%m-%d"), faelligZeit=due.strftime("%H:%M"),
+                        prio=result["prio"], erledigt=True, icsSerienUid=group[0][2],
+                        icsRoundtrip=["RECURRENCE-ID:" + compact(start), "DTSTART:" + compact(start),
+                                      "DUE:" + compact(due), "STATUS:COMPLETED", "PERCENT-COMPLETE:100"])
+            converted.append(done)
+    return converted
+
+
 def _read_or6(raw):
     result = {key: [] for key in ("termine", "aufgaben", "kontakte", "notizen", "jahrestage", "geburtstage")}
     result.update(uebersprungen=0, wiederholend=0)
@@ -406,7 +448,7 @@ def _read_or6(raw):
     groups = document.repeat_groups(entries)
     memberships, represented_groups = document.contact_groups(entries)
     orphaned = {(entry[4], _number(entry[1], 14), _stamp(entry[1].get(7))) for entry in entries
-                if entry[0] == 0x100 and _number(entry[1], 10) and entry[2] not in groups}
+                if entry[0] in (0x100, 0x300) and _number(entry[1], 10) and entry[2] not in groups}
     consumed = set()
     evaluated = {}
     for tag, fields, uid, reference, schema in entries:
@@ -417,12 +459,15 @@ def _read_or6(raw):
             if not title:
                 continue
             if _number(fields, 10):
-                group = groups.get(uid) if tag == 0x100 else None
+                group = groups.get(uid)
                 if group and group[0][2] not in evaluated:
-                    evaluated[group[0][2]] = _finite_series(group, orphaned)
+                    evaluated[group[0][2]] = (_finite_task_series if tag == 0x300 else _finite_series)(group, orphaned)
                 series = evaluated.get(group[0][2]) if group else None
                 if series is not None:
-                    result["termine"].append(series)
+                    if tag == 0x300:
+                        result["aufgaben"].extend(series)
+                    else:
+                        result["termine"].append(series)
                     # The shared counter warns about unresolved source rules;
                     # this fully verified recurrence set is already expandable.
                     consumed.update(member[2] for member in group[1])

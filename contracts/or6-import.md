@@ -14,8 +14,17 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   Independently verified native status values 1/2 (open) and 4 (completed)
   take precedence over a completion timestamp that a Lotus reexport may retain
   on an open task (#567). Unverified/missing status layouts retain the previous
-  timestamp fallback. Native repeating-task sets remain unsupported; this status
-  correction does not remove the repeat guard or flatten them into loose tasks.
+  timestamp fallback.
+  Verified finite repeating-task sets retain their original native repeat-object
+  links, occurrence indices and start/due arrays as one recurring task (VTODO),
+  not appointments or unrelated tasks. Known completed occurrences within an open
+  set become source-bound completed instances plus exclusions on the master.
+  The existing task list selects the next due date and completes one occurrence
+  without completing the future series. Reimport does not undo that local edit.
+  Freed occurrences stay excluded. A rule is emitted only if its expansion
+  exactly matches the native dates; otherwise the explicit finite set is kept.
+  Unlinked occurrences, unknown task states, mixed task/appointment definitions
+  and other differing content remain unsupported rather than being guessed away.
 - Contacts: names, company, telephone numbers, email addresses and postal
   addresses; additional basic text fields are retained in the contact note.
   Mail-merge names and nonempty native `Extn` slots are retained as explicitly
@@ -116,3 +125,9 @@ The final two files additionally verify preselected planner/anniversary/call/web
 values, exact replacement of the original phone/URL edit controls and the
 original annual-checkbox on/off distinction. Earlier private snapshots with an
 incorrectly inserted phone number or URL are not the public expected dataset.
+
+`or6-native-tasks.json` retains a separately authored original-program weekly
+Task series, with three preselected Tuesday due dates. Both readers and actual
+task export/reimport retain one series; both frontends additionally verify
+next-due selection, source-bound duplicate reimport, original completion
+exceptions and single-occurrence completion without losing future tasks.
