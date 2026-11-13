@@ -18,7 +18,7 @@ namespace Magnolie::PhoneCamera
 
     // Original ordinary-user CurrentUser/Session registration. Never a proof
     // producer, installer, audio-default selector or elevated fallback.
-    // Create on an original MTA worker; caller keeps MFStartup/COM alive until
+    // Create/Start/Close/destroy on original MTA workers; caller keeps MFStartup/COM alive until
     // this object has been destroyed. No thread impersonation is accepted.
     class VirtualCamera final
     {

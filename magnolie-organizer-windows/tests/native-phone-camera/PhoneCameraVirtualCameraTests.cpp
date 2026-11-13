@@ -172,6 +172,15 @@ namespace
         Check(waiting && start == MF_E_SHUTDOWN && close == S_OK && calls.starts == 1 && calls.shutdowns == 1 && calls.destroyed == 1);
         Check(camera->RequireCurrent() == MF_E_SHUTDOWN);
     }
+    void ActualApartmentDenialBeforeCameraApi()
+    {
+        auto owner = Microsoft::WRL::Make<Owner>(); std::unique_ptr<VirtualCamera> camera;
+        Check(VirtualCamera::Create(owner->Callbacks(), camera) == CO_E_NOTINITIALIZED && !camera);
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED); Check(hr == S_OK);
+        hr = VirtualCamera::Create(owner->Callbacks(), camera);
+        CoUninitialize();
+        Check(hr == E_ACCESSDENIED && !camera); // No MFStartup, DLL load, camera configuration or registration.
+    }
 }
 int main(int argc, char** argv)
 {
@@ -183,7 +192,8 @@ int main(int argc, char** argv)
             {"virtual-exact-owner", ExactOwnerStatus}, {"virtual-ambiguous-start", AmbiguousStartNoRetry},
             {"virtual-unknown-close", UnknownShutdownRetainsOriginal}, {"virtual-stop-during-start", StopDuringOriginalStart},
             {"virtual-revocation", RevocationIsTerminal}, {"virtual-no-owner", NoOwnerNoOsAction},
-            {"virtual-owner-lifetime", OriginalOwnerLifetime}, {"virtual-start-close-race", ConcurrentStartClose}};
+            {"virtual-owner-lifetime", OriginalOwnerLifetime}, {"virtual-start-close-race", ConcurrentStartClose},
+            {"virtual-apartment-denial", ActualApartmentDenialBeforeCameraApi}};
         int ran = 0;
         for (const auto& test : cases)
             if (only.empty() || only.find(std::string(",") + test.name + ",") != std::string::npos)

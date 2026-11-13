@@ -9,6 +9,7 @@ namespace Magnolie::PhoneCamera
     namespace
     {
         std::atomic_bool uncertainRegistration{false};
+        std::mutex registrationCalls;
         HRESULT Exact(HRESULT hr) noexcept { return hr == S_OK ? S_OK : FAILED(hr) ? hr : E_ACCESSDENIED; }
         HRESULT OrdinaryUser() noexcept
         {
@@ -44,8 +45,10 @@ namespace Magnolie::PhoneCamera
             camera.Reset(); // Release COM before unloading its original module.
             if (module) FreeLibrary(module);
         }
-        HRESULT Start() noexcept override { return camera->Start(nullptr); }
-        HRESULT Shutdown() noexcept override { return camera->Shutdown(); }
+        HRESULT Start() noexcept override
+        { HRESULT hr = OrdinaryUser(); return FAILED(hr) ? hr : camera->Start(nullptr); }
+        HRESULT Shutdown() noexcept override
+        { HRESULT hr = OrdinaryUser(); return FAILED(hr) ? hr : camera->Shutdown(); }
     };
 
     VirtualCamera::VirtualCamera(VirtualCameraOwner original, std::unique_ptr<Session> session) noexcept
@@ -87,8 +90,12 @@ namespace Magnolie::PhoneCamera
             // name prevents reopening/stopping someone else's matching camera.
             // This public GUID is collision avoidance, NEVER a secret/capability.
             std::wstring name = std::wstring(L"Magnolie Phone Camera ") + suffix;
-            hr = Exact(create(MFVirtualCameraType_SoftwareCameraSource, MFVirtualCameraLifetime_Session,
-                MFVirtualCameraAccess_CurrentUser, name.c_str(), source, nullptr, 0, &session->camera));
+            {
+                std::lock_guard<std::mutex> lock(registrationCalls);
+                if (uncertainRegistration.load()) return HRESULT_FROM_WIN32(ERROR_BUSY);
+                hr = Exact(create(MFVirtualCameraType_SoftwareCameraSource, MFVirtualCameraLifetime_Session,
+                    MFVirtualCameraAccess_CurrentUser, name.c_str(), source, nullptr, 0, &session->camera));
+            }
             if (FAILED(hr)) return hr;
             if (!session->camera) return E_UNEXPECTED;
             auto manager = std::unique_ptr<VirtualCamera>(new VirtualCamera(original, std::move(session)));
@@ -103,6 +110,7 @@ namespace Magnolie::PhoneCamera
         if (uncertainRegistration.load()) { stopped_.store(true); return HRESULT_FROM_WIN32(ERROR_BUSY); }
         HRESULT hr = Exact(owner_.current(owner_.context));
         if (FAILED(hr)) stopped_.store(true);
+        if (hr == S_OK && uncertainRegistration.load()) { stopped_.store(true); return HRESULT_FROM_WIN32(ERROR_BUSY); }
         return stopped_.load() && hr == S_OK ? MF_E_SHUTDOWN : hr;
     }
     HRESULT VirtualCamera::Start() noexcept
@@ -111,7 +119,14 @@ namespace Magnolie::PhoneCamera
         if (startAttempted_ || closeAttempted_) return MF_E_SHUTDOWN;
         startAttempted_ = true;
         HRESULT hr = CurrentOwner();
-        if (SUCCEEDED(hr)) hr = Exact(session_->Start());
+        if (SUCCEEDED(hr))
+        {
+            // Linearize SDK calls across original instances: another owner may
+            // have reported unknown shutdown after our CurrentOwner check.
+            std::lock_guard<std::mutex> registration(registrationCalls);
+            hr = uncertainRegistration.load() ? HRESULT_FROM_WIN32(ERROR_BUSY) :
+                stopped_.load() ? MF_E_SHUTDOWN : Exact(session_->Start());
+        }
         if (SUCCEEDED(hr)) hr = CurrentOwner();
         if (FAILED(hr)) { CloseLocked(); return hr; }
         started_.store(true); return S_OK; // Registration only, NEVER Ready/SEND.
@@ -126,9 +141,12 @@ namespace Magnolie::PhoneCamera
         stopped_.store(true); started_.store(false);
         if (closeAttempted_) return closeResult_;
         closeAttempted_ = true;
-        closeResult_ = Exact(session_->Shutdown());
+        {
+            std::lock_guard<std::mutex> registration(registrationCalls);
+            closeResult_ = Exact(session_->Shutdown());
+            if (closeResult_ != S_OK) uncertainRegistration.store(true);
+        }
         if (closeResult_ == S_OK) session_.reset();
-        else uncertainRegistration.store(true);
         // No Remove(), retry, re-open or different lifetime/access fallback.
         return closeResult_;
     }
