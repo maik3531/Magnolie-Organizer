@@ -28299,6 +28299,7 @@ class Fenster(_FENSTER_BASIS):
                     dav=(buch_uid, basis.get("etags"), remote_meta))
                 fehler = 0
             erfolgreich = {"anlegen": 0, "aendern": 0, "loeschen": 0}
+            fehlgeschlagene_kontakte = set()
             for item in anlegen:
                 href = quelle["href"].rstrip("/") + "/" + _dav_uid_dateiname(item["uid"], ".vcf")
                 try:
@@ -28309,7 +28310,7 @@ class Fenster(_FENSTER_BASIS):
                                                  "etag": item["davEtag"]}
                     erfolgreich["anlegen"] += 1
                 except Exception as fehler_ursache:
-                    item["sync"] = False
+                    fehlgeschlagene_kontakte.add(item["uid"])
                     fehler += 1
                     sync_fehler.append(_sync_fehlertext(
                         "%s · %s" % (quelle["name"], _("Contacts")),
@@ -28326,7 +28327,7 @@ class Fenster(_FENSTER_BASIS):
                                                  "etag": item["davEtag"]}
                     erfolgreich["aendern"] += 1
                 except Exception as fehler_ursache:
-                    item["sync"] = False
+                    fehlgeschlagene_kontakte.add(item["uid"])
                     fehler += 1
                     sync_fehler.append(_sync_fehlertext(
                         "%s · %s" % (quelle["name"], _("Contacts")),
@@ -28353,7 +28354,9 @@ class Fenster(_FENSTER_BASIS):
                 pruefung = (item.get("kontaktProviderKonflikte") or {}).get(buch_uid)
                 if pruefung:
                     pruefung["name"] = quelle["name"]
-                if meta and item.get("sync"):
+                # A failed source stays pending; do not disable other sources or
+                # acknowledge the canonical content as this provider's baseline.
+                if meta and item.get("sync") and item.get("uid") not in fehlgeschlagene_kontakte:
                     item["davHref"] = meta["href"]
                     item["davEtag"] = meta["etag"]
                     _dav_syncquelle_setzen(item, buch_uid, meta["href"], meta["etag"],
@@ -29013,6 +29016,10 @@ class Fenster(_FENSTER_BASIS):
                 client = buch_client
                 fern = buch_fern
                 kontakt_quelle = ("akonadi:" if buch_uid.startswith("akonadi-addressbook:") else "eds:") + buch_uid
+                kontakt_baselines_vorher = {
+                    obj.get("id") or obj.get("uid"): json.loads(json.dumps(
+                        (obj.get("syncQuellen") or {}).get(kontakt_quelle)))
+                    for obj in kontakte}
                 geburtstage = buch_lesen["geburtstage"]
                 erster_buch_sync = not bool(buch_basis.get("initialisiert"))
                 if buch_nur_lesen:
@@ -29037,6 +29044,7 @@ class Fenster(_FENSTER_BASIS):
                 fehler = 0
                 verweigert = []
                 geschrieben = set()
+                fehlgeschlagene_kontakte = set()
                 for recht, liste in (("create", anlegen), ("change", aendern)):
                     if recht not in buch_rechte and liste:
                         verweigert.extend(liste)
@@ -29066,7 +29074,7 @@ class Fenster(_FENSTER_BASIS):
                         erfolgreich["anlegen"] += 1
                     except Exception as fehler_ursache:
                         fehler += 1
-                        obj["sync"] = False
+                        fehlgeschlagene_kontakte.add(obj["uid"])
                         sync_fehler.append(_sync_fehlertext(
                             "%s · %s" % (buch_name, _("Contacts")),
                             fehler_ursache))
@@ -29081,7 +29089,7 @@ class Fenster(_FENSTER_BASIS):
                         erfolgreich["aendern"] += 1
                     except Exception as fehler_ursache:
                         fehler += 1
-                        obj["sync"] = False
+                        fehlgeschlagene_kontakte.add(obj["uid"])
                         sync_fehler.append(_sync_fehlertext(
                             "%s · %s" % (buch_name, _("Contacts")),
                             fehler_ursache))
@@ -29107,16 +29115,24 @@ class Fenster(_FENSTER_BASIS):
                             raise RuntimeError(_("The address book backend reported an incomplete read."))
                     except Exception as fehler_ursache:
                         fehler += 1
-                        for obj in kontakte:
-                            if obj.get("uid") in geschrieben:
-                                obj["sync"] = False
+                        fehlgeschlagene_kontakte.update(geschrieben)
                         baseline_fern = {uid: k for uid, k in fern.items() if uid not in geschrieben}
                         sync_fehler.append(_sync_fehlertext("%s · %s" % (buch_name, _("Contacts")), fehler_ursache))
                 for obj in kontakte:
+                    if obj.get("uid") in fehlgeschlagene_kontakte:
+                        # Planning may have recorded an observed remote version.
+                        # Failed/uncertain delivery must not acknowledge its
+                        # local projection or alter this source's prior baseline.
+                        vorher = kontakt_baselines_vorher.get(obj.get("id") or obj.get("uid"))
+                        if vorher is None:
+                            (obj.get("syncQuellen") or {}).pop(kontakt_quelle, None)
+                        else:
+                            obj.setdefault("syncQuellen", {})[kontakt_quelle] = vorher
                     pruefung = (obj.get("kontaktProviderKonflikte") or {}).get(kontakt_quelle)
                     if pruefung:
                         pruefung["name"] = buch_name
-                    elif obj.get("sync") and obj.get("uid") in baseline_fern:
+                    elif (obj.get("sync") and obj.get("uid") in baseline_fern and
+                          obj.get("uid") not in fehlgeschlagene_kontakte):
                         _kontakt_eds_baseline(obj, kontakt_quelle, baseline_fern[obj["uid"]])
                 tote_kontakte = kontakt_grabsteine_nach_loeschung(
                     tote_kontakte, loeschen, geschafft, jetzt_ms())

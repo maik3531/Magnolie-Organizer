@@ -24,3 +24,17 @@ controlled remotes plus the existing Windows contact/Graph regression group.
 These are not physical provider/phone delivery tests or installable-package
 acceptance. General all-source fanout and the full Notes postal/scalar write path
 are separate from this correction (#575).
+
+## Source-local failures (#581)
+
+Linux DAV and EDS/Akonadi contact handlers do not change the contact's global
+`sync` marker because one source write or EDS readback failed. The failed source
+does not advance its acknowledged content baseline or successful source cursor.
+Other original source mappings remain intact. In particular, an EDS baseline
+recorded while planning is restored to its prior state on failed/uncertain
+delivery. Retrying reads the provider again before making a new decision; a
+successful second provider does not acknowledge the failed first provider.
+
+This is checked with complete native handlers and controlled source adapters,
+including creation, updates, label-only updates and failed readback. It does not
+itself add an automatic scheduler for every provider or prove physical delivery.
