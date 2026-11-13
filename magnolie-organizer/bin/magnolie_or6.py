@@ -461,11 +461,13 @@ def _read_or6(raw):
             phones = [{"wert": value, "typen": phone_types.get(index, ["VOICE"])}
                       for index, value in enumerate(_strings(fields, 33)) if value]
             emails = list(dict.fromkeys(value for value in _strings(fields, 35) if value))
-            columns = [_strings(fields, fid) for fid in (28, 31, 29, 32)]
+            columns = [_strings(fields, fid) for fid in (28, 31, 29, 32, 30)]
             addresses = []
             for index in range(max(map(len, columns))):
                 address = {key: values[index] if index < len(values) else "" for key, values in
-                           zip(("strasse", "plz", "ort", "land"), columns)}
+                           zip(("strasse", "plz", "ort", "land", "region"), columns)}
+                if not address["region"]:
+                    del address["region"]
                 if any(address.values()):
                     address["typen"] = ["WORK"] if index == 0 else ["HOME"] if index == 1 else []
                     addresses.append(address)

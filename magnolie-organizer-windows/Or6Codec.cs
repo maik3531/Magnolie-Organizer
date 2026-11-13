@@ -317,15 +317,16 @@ internal static class Or6Codec
                             0 => new JsonArray("WORK", "VOICE"), 3 => new JsonArray("HOME", "VOICE"),
                             6 => new JsonArray("WORK", "FAX"), _ => new JsonArray("VOICE") } }).ToArray());
                 var emails = Strings(fields, 35).Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
-                var addresses = new JsonArray(); var columns = new[] { Strings(fields, 28), Strings(fields, 31), Strings(fields, 29), Strings(fields, 32) };
-                var keys = new[] { "strasse", "plz", "ort", "land" };
+                var addresses = new JsonArray(); var columns = new[] { Strings(fields, 28), Strings(fields, 31), Strings(fields, 29), Strings(fields, 32), Strings(fields, 30) };
+                var keys = new[] { "strasse", "plz", "ort", "land", "region" };
                 for (var index = 0; index < columns.Max(column => column.Length); index++)
                 {
                     var address = new JsonObject(); var nonempty = false;
                     for (var column = 0; column < columns.Length; column++)
                     {
                         var value = index < columns[column].Length ? columns[column][index] : "";
-                        address[keys[column]] = value; nonempty |= value.Length > 0;
+                        if (keys[column] != "region" || value.Length > 0) address[keys[column]] = value;
+                        nonempty |= value.Length > 0;
                     }
                     if (!nonempty) continue;
                     address["typen"] = index == 0 ? new JsonArray("WORK") : index == 1 ? new JsonArray("HOME") : new JsonArray(); addresses.Add(address);
@@ -342,7 +343,7 @@ internal static class Or6Codec
                     string Escape(string value) => value.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\\", "\\\\").Replace(";", "\\;").Replace(",", "\\,").Replace("\n", "\\n");
                     contact["vcardRoundtrip"] = new JsonArray("CATEGORIES:" + string.Join(',', categories.Select(Escape)));
                 }
-                if (addresses.Count > 0) foreach (var key in keys) contact[key] = addresses[0]![key]!.DeepClone();
+                if (addresses.Count > 0) foreach (var key in keys.Where(key => key != "region")) contact[key] = addresses[0]![key]!.DeepClone();
                 var birthday = Date(fields, 41).Date; if (birthday.Length > 0) contact["geburtstag"] = birthday;
                 var note = Text(fields, 39);
                 foreach (var (id, label) in new (ushort, string)[] { (16, "Title"), (18, "Middle name"), (20, "Suffix"), (22, "Position"),

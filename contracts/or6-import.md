@@ -16,6 +16,9 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   Mail-merge names and nonempty native `Extn` slots are retained as explicitly
   labelled source text (#579). Slot positions remain visible; no interpretation
   as a phone label or dialable extension is inferred, and numbers are unchanged.
+  Native `State` values remain in the corresponding structured address `region`
+  slot (#580), including sparse source slots; no region is guessed from a postal
+  code. Existing labelled source-note text is retained as well.
 - Notepad pages: title and plain text extracted from RTF, including escaped
   Windows-1252 characters and Unicode escapes. Embedded objects are not executed.
 - Stable record identities derive from the legacy object's origin and ID.
