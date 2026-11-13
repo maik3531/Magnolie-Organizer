@@ -184,6 +184,11 @@ tasks.configureEach {
 // dafür laufen die Einheitstests im Projektstammverzeichnis.
 tasks.withType<Test>().configureEach {
     workingDir = rootDir
+    // Robolectric/Compose retain SDK sandboxes across classes. Bound the
+    // serial worker lifetime instead of accumulating them for the whole gate.
+    maxParallelForks = 1
+    maxHeapSize = "768m"
+    forkEvery = 32
     val cross = providers.gradleProperty("magnolieCrossTests").orNull == "true"
     // These explicit tests launch external Python sources and a separately built
     // Windows test host; unchanged Kotlin classes are not evidence they still pass.
