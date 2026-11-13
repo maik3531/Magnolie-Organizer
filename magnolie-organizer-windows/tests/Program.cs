@@ -1,4 +1,14 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--phone-camera-source-payload")
+{
+    await PhoneCameraSourcePayloadTests.ImmutableResourcesAsync();
+    await PhoneCameraSourcePayloadTests.PeAndDigestAsync();
+    await PhoneCameraSourcePayloadTests.StrictDescriptorAsync();
+    Console.WriteLine("PASS source immutable resources\nPASS source PE and digest\nPASS source strict descriptor");
+    return 0;
+}
+if (args.Length == 3 && args[0] == "--phone-camera-source-product")
+    return PhoneCameraSourcePayloadTests.InspectProduct(args[1], bool.Parse(args[2]));
 if (args.Length == 3 && args[0] == "--phone-audio-parent-product")
     return PhoneCameraAudioParentPayloadTests.InspectProduct(args[1], bool.Parse(args[2]));
 if (args.Length == 3 && args[0] == "--phone-audio-runtime-product")
@@ -158,6 +168,9 @@ runner.Add("Phone webcam audio runtime / strict source manifest", PhoneCameraAud
 runner.Add("Phone webcam parent payload / immutable snapshot and absent external fallback", PhoneCameraAudioParentPayloadTests.ImmutableSnapshotAsync);
 runner.Add("Phone webcam parent payload / exact x64 DLL and digest", PhoneCameraAudioParentPayloadTests.PeAndDigestAsync);
 runner.Add("Phone webcam parent payload / strict fixed source descriptor", PhoneCameraAudioParentPayloadTests.StrictDescriptorAsync);
+runner.Add("Phone webcam source payload / immutable bounded resources", PhoneCameraSourcePayloadTests.ImmutableResourcesAsync);
+runner.Add("Phone webcam source payload / x64 DLL protections and digest", PhoneCameraSourcePayloadTests.PeAndDigestAsync);
+runner.Add("Phone webcam source payload / exact class and source descriptor", PhoneCameraSourcePayloadTests.StrictDescriptorAsync);
 runner.Add("Phone webcam output authority / prepared current before actual SEND", PhoneCameraSessionTests.AuthorityPrepareThenActualSendAsync);
 runner.Add("Phone webcam output authority / exact original object and independent replacement owner", PhoneCameraSessionTests.AuthorityCannotBeReplacedAsync);
 runner.Add("Phone webcam output authority / original loss permanently rejects resurrection", PhoneCameraSessionTests.AuthorityOriginalLossCannotReviveAsync);

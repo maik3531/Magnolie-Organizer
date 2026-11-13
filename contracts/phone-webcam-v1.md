@@ -44,8 +44,23 @@ task accepted the good artifact and rejected checksum, stale source, ARM64,
 camera-OFF, wrong class ID and extra descriptor rows. A failed check leaves the
 previous valid snapshot unchanged. Build identity is not signing or load authority.
 
-The new source artifact/target is not yet imported into the managed product,
-embedded, installed or registered. The authenticated broker/proof producer,
+The source snapshot target is now imported into the optional managed product.
+When an explicit build artifact directory is supplied, it embeds the immutable
+DLL/descriptor pair and copies the fixed DLL sibling. PhoneCameraSourcePayload
+consumes only the embedded pair, with bounded reads, an owned byte snapshot,
+exact class/source descriptor, checksum and x64 DLL ASLR/NX/CFG checks. Missing
+both resources means unavailable; incomplete or invalid resources are refused.
+This validates build identity, not a signature, trusted installation, COM/source
+identity, broker readiness or capture permission. No adjacent descriptor or
+runtime path supplies authority. The consumer neither loads nor registers code.
+
+Three new managed groups cover immutable/bounded resources, PE/digest refusal
+and strict class/source descriptors. Actual changed BOTH and BASE builds and
+read-only source/parent/worker resource checks passed; BOTH's source DLL sibling
+matches its embedded identity, while BASE excludes the source type/resources.
+These are managed composition checks, not installed package acceptance.
+
+The source DLL is not yet installed or registered. The authenticated broker/proof producer,
 IMFVirtualCamera manager, combined single-approval setup and real AV acceptance
 remain #586. Old audio artifacts remain separate; no unrelated tests are repeated
 merely because this DLL/target was added.
