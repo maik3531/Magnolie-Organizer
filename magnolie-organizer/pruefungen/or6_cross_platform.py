@@ -24,9 +24,11 @@ scope.add_argument("--planner-boundaries-only", action="store_true")
 scope.add_argument("--task-scopes-only", action="store_true")
 scope.add_argument("--task-bindings-only", action="store_true")
 scope.add_argument("--section-removal-only", action="store_true")
+scope.add_argument("--appointment-categories-only", action="store_true")
 args = parser.parse_args()
 files = {}
-contracts = (["or6-native-section-removal.json"] if args.section_removal_only else
+contracts = (["or6-native-appointment-categories.json"] if args.appointment_categories_only else
+             ["or6-native-section-removal.json"] if args.section_removal_only else
              ["or6-native-task-bindings.json"] if args.task_bindings_only else
              ["or6-native-task-scopes.json"] if args.task_scopes_only else
              ["or6-native-extensions.json"] if args.extensions_only else

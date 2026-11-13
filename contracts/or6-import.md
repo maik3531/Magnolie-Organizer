@@ -9,7 +9,12 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
 ## Supported subset
 
 - Basic appointments: description, local date/time, explicit end, confidentiality
-  and tentative flag. No time-zone conversion is inferred from the legacy file.
+  and tentative flag. Native categories of ordinary appointments and verified
+  uniform finite appointment series map to the existing `kategorien` field
+  (#613). The existing user's category palette may color them, but the import
+  does not guess a native color from a category name. Differing per-occurrence
+  categories still require explicit series-override handling, not spreading one
+  member's category to the entire set. No time-zone conversion is inferred.
 - Tasks: description, native local start/due dates and clocks, priority and
   completed state. Ordinary single tasks use the same existing structured
   `startDatum`/`startZeit`/`faellig`/`faelligZeit` fields as task series (#612),
@@ -118,7 +123,8 @@ appointments or contacts. Confidential entries in the newly supported sections
 are skipped rather than dropping a confidentiality marker the destination
 collection cannot represent. Distribution-list-specific options are not contact-group permissions.
 Unsupported live entries are counted where
-identified. Formatting, attachments, non-contact categories and alarms are not transferred.
+identified. Formatting, attachments and alarms are not transferred; unverified
+category/override combinations remain unsupported rather than guessed.
 An allocated notepad entry with a nonempty body in an unrecognized non-RTF format
 is omitted as one unsupported entry rather than blocking every other supported
 collection (#564). Its title is not imported as a misleading empty replacement,
@@ -231,3 +237,13 @@ This establishes no resurrection for that verified ordinary removal path, not
 general visibility or reachability semantics for arbitrary active/detached/hidden
 native roots. Those broader container/selection checks remain a separate open
 safety topic (#611); private excluded sections are never used to reconstruct it.
+
+`or6-native-appointment-categories.json` adds independently inspected original
+single and weekly-Saturday appointment files. The category was assigned while
+single, before creating the native three-occurrence weekly set; save/reopen,
+category, clocks and all three original Find results were verified. Both readers
+test existing calendar export/reimport, absent category and conflicting-member
+guards. Both full frontends additionally verify selected-day rendering and the
+existing local category palette, annual/ODS/print output, profile restoration,
+duplicate reimport and preservation of a local category edit. This does not
+claim support for other still-held native override/repetition forms (#243).

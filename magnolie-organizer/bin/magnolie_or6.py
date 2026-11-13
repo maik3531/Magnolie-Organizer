@@ -430,6 +430,10 @@ def _finite_series(group, orphaned=(), task_states=False):
     if not _string(base, 9):
         return None
     result = _common(base, definition[2])
+    if not task_states:
+        categories = _categories(base)
+        if categories:
+            result["kategorien"] = categories
     first, end = starts[0], ends[0]
     result.update(datum=first.strftime("%Y-%m-%d"), zeit=first.strftime("%H:%M"),
         endDatum=end.strftime("%Y-%m-%d") if end.date() != first.date() else "", endZeit=end.strftime("%H:%M"),
@@ -553,7 +557,7 @@ def _task_segment_members(group, orphaned):
     return ((definition[0], metadata, *definition[2:]), projected)
 
 
-def _task_categories(fields):
+def _categories(fields):
     return ", ".join(dict.fromkeys(value for value in _strings(fields, 3) if value))
 
 
@@ -575,7 +579,7 @@ def _finite_task_series(group, orphaned=()):
     priority = _number(fields, 18, 3)
     all_done = all(_number(member[1], 20) == 4 for member in group[1])
     result = _common(fields, group[0][2])
-    categories = _task_categories(fields)
+    categories = _categories(fields)
     if categories:
         result["kategorien"] = categories
     result.update(startDatum=series["datum"], startZeit=series["zeit"],
@@ -592,7 +596,7 @@ def _finite_task_series(group, orphaned=()):
     converted = [result]
     for member in sorted(group[1], key=lambda value: _number(value[1], 14)):
         completed = _number(member[1], 20) == 4
-        member_categories = _task_categories(member[1])
+        member_categories = _categories(member[1])
         if completed == all_done and member_categories == categories:
             continue
         start, due = _stamp(member[1].get(7)), _stamp(member[1].get(8))
@@ -653,6 +657,9 @@ def _read_or6(raw):
                 if not begin or not end or (end, end_time) < (begin, time):
                     result["uebersprungen"] += 1
                     continue
+                categories = _categories(fields)
+                if categories:
+                    common["kategorien"] = categories
                 result["termine"].append(dict(common, datum=begin, zeit=time,
                     endDatum=end if end != begin else "", endZeit=end_time,
                     vorlaeufig=bool(_number(fields, 18))))

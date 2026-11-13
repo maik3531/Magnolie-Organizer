@@ -291,6 +291,7 @@ internal static class Or6Codec
         string Day(DateTime value) => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         string Compact(DateTime value) => value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
         var result = Common(basis, group.Definition.Uid);
+        if (!taskStates && Categories(basis) is { Length: > 0 } category) result["kategorien"] = category;
         result["datum"] = Day(first); result["zeit"] = first.ToString("HH:mm", CultureInfo.InvariantCulture);
         result["endDatum"] = end.Date != first.Date ? Day(end) : "";
         result["endZeit"] = end.ToString("HH:mm", CultureInfo.InvariantCulture); result["vorlaeufig"] = Number(basis, 18) != 0;
@@ -406,7 +407,7 @@ internal static class Or6Codec
         return (group.Definition with { Fields = metadata }, projected);
     }
 
-    private static string TaskCategories(Dictionary<ushort, byte[]> fields) => string.Join(", ", Strings(fields, 3).Where(value => value.Length > 0).Distinct());
+    private static string Categories(Dictionary<ushort, byte[]> fields) => string.Join(", ", Strings(fields, 3).Where(value => value.Length > 0).Distinct());
 
     private static List<JsonObject>? FiniteTaskSeries((Entry Definition, List<Entry> Members) group,
         HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned)
@@ -425,7 +426,7 @@ internal static class Or6Codec
         var allDone = group.Members.All(member => Number(member.Fields, 20) == 4);
         var priority = Number(fields, 18, 3);
         var result = Common(fields, group.Definition.Uid);
-        var categories = TaskCategories(fields);
+        var categories = Categories(fields);
         if (categories.Length > 0) result["kategorien"] = categories;
         result["startDatum"] = series["datum"]!.DeepClone(); result["startZeit"] = series["zeit"]!.DeepClone();
         result["faellig"] = series["endDatum"]!.GetValue<string>() is { Length: > 0 } end ? end : series["datum"]!.GetValue<string>();
@@ -443,7 +444,7 @@ internal static class Or6Codec
         var converted = new List<JsonObject> { result };
         foreach (var member in group.Members.OrderBy(value => Number(value.Fields, 14)))
             {
-                var completed = Number(member.Fields, 20) == 4; var memberCategories = TaskCategories(member.Fields);
+                var completed = Number(member.Fields, 20) == 4; var memberCategories = Categories(member.Fields);
                 if (completed == allDone && memberCategories == categories) continue;
                 var start = Stamp(Bytes(member.Fields, 7))!.Value; var due = Stamp(Bytes(member.Fields, 8))!.Value;
                 string Compact(DateTime value) => value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
@@ -502,6 +503,7 @@ internal static class Or6Codec
                 if (tag == 0x100)
                 {
                     if (start.Date.Length == 0 || end.Date.Length == 0 || string.CompareOrdinal(end.Date + end.Time, start.Date + start.Time) < 0) { skipped++; continue; }
+                    if (Categories(fields) is { Length: > 0 } category) common["kategorien"] = category;
                     common["datum"] = start.Date; common["zeit"] = start.Time; common["endDatum"] = end.Date != start.Date ? end.Date : "";
                     common["endZeit"] = end.Time; common["vorlaeufig"] = Number(fields, 18) != 0; appointments.Add(common);
                 }
