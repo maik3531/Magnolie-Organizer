@@ -1,5 +1,30 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Exact native authority confirmation (Refs #585)
+
+Native Current/Sending callbacks confirm authority only with `S_OK`. `S_FALSE`
+and other nonnegative status values are not permission: Samples, PresentationClock,
+Source publication/delivery/readback, activation, PipeReader and AudioRender now
+convert them to `E_ACCESSDENIED`. Genuine failing HRESULTs retain their cause.
+Ordinary COM/IO status handling is unchanged. Refusal remains terminal for an
+admitted owner; later returning `S_OK` cannot revive it. Preparation may still
+precede SEND, but publishing media cannot.
+
+Eight new device-free native groups cover those boundaries. The first seven
+reproduced against the original components and passed after correction. The pipe
+fixture initially supplied the invalid current-process pseudohandle; it was
+corrected to a held real process handle and separately reproduced before/after.
+Existing affected native suites were rerun because their source inputs changed.
+The renderer fixture never creates an AudioClient; its production object also
+compiles without the test-access macro. Parent/worker immutable artifacts and the
+changed optional product composition were rebuilt and inspected without payload
+execution. Unchanged base composition inputs were not rerun.
+
+This is Windows HRESULT-specific hardening, not a proven Linux/Notes defect or
+completed webcam. The registration-bound bootstrap (#584), real FrameServer peer,
+normal microphone, joined AV/OBS and installable-package acceptance remain open;
+existing device/audio/VM pauses are unchanged.
+
 ## Separate LocalService FrameServer peer admission (Refs #557)
 
 FrameServer custom sources run as LocalService in Session 0, not SYSTEM or a

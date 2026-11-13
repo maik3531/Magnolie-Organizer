@@ -54,7 +54,7 @@ namespace Magnolie::PhoneCamera
     {
         if (IsRetired()) return HRESULT_FROM_WIN32(ERROR_OPERATION_ABORTED);
         const HRESULT hr = current_(context_);
-        if (FAILED(hr)) { Stop(); return hr; }
+        if (hr != S_OK) { Stop(); return FAILED(hr) ? hr : E_ACCESSDENIED; }
         if (IsRetired()) return HRESULT_FROM_WIN32(ERROR_OPERATION_ABORTED);
         // Hold the actual original process object; never look a peer up again by PID.
         if (server_ && WaitForSingleObject(server_, 0) != WAIT_TIMEOUT)

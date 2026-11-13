@@ -11,6 +11,10 @@
 
 namespace Magnolie::PhoneCamera
 {
+    // Only authority callbacks use this conversion. Ordinary COM success/status
+    // results keep their documented HRESULT semantics.
+    static HRESULT ConfirmedAuthority(HRESULT hr) noexcept
+    { return hr == S_OK ? S_OK : FAILED(hr) ? hr : E_ACCESSDENIED; }
     using Microsoft::WRL::ComPtr;
     using Microsoft::WRL::RuntimeClass;
     using Microsoft::WRL::RuntimeClassFlags;
@@ -26,8 +30,8 @@ namespace Magnolie::PhoneCamera
         {
             auto& state = *static_cast<State*>(value);
             if (state.shutdown) return MF_E_SHUTDOWN;
-            HRESULT hr = state.owner.current(state.owner.context);
-            return FAILED(hr) ? hr : state.owner.sending(state.owner.context);
+            HRESULT hr = ConfirmedAuthority(state.owner.current(state.owner.context));
+            return FAILED(hr) ? hr : ConfirmedAuthority(state.owner.sending(state.owner.context));
         }
         std::recursive_mutex gate;
         SourceOwner owner;
@@ -167,7 +171,7 @@ namespace Magnolie::PhoneCamera
     HRESULT Source::CurrentLocked() noexcept
     {
         if (state_->shutdown) return MF_E_SHUTDOWN;
-        const HRESULT hr = state_->owner.current(state_->owner.context);
+        const HRESULT hr = ConfirmedAuthority(state_->owner.current(state_->owner.context));
         return FAILED(hr) ? RetireLocked(hr) : state_->shutdown ? MF_E_SHUTDOWN : S_OK;
     }
 
@@ -289,13 +293,13 @@ namespace Magnolie::PhoneCamera
         auto& s = *state_;
         if (!s.started || s.streamState != MF_STREAM_STATE_RUNNING || !s.latest || s.requests.empty()) return S_OK;
         HRESULT hr = CurrentLocked();
-        if (SUCCEEDED(hr)) hr = s.owner.sending(s.owner.context);
+        if (SUCCEEDED(hr)) hr = ConfirmedAuthority(s.owner.sending(s.owner.context));
         if (SUCCEEDED(hr) && s.clock) hr = s.clock->RequireImportedAnchor(s.clockScope);
         if (SUCCEEDED(hr) && Clock::now() - s.receivedAt > std::chrono::milliseconds(250)) hr = MF_E_NET_TIMEOUT;
         if (FAILED(hr)) return s.shutdown ? hr : RetireLocked(hr);
         auto sample = std::move(s.latest); auto token = std::move(s.requests.front()); s.requests.pop_front();
         if (token) hr = sample->SetUnknown(MFSampleExtension_Token, token.Get());
-        if (SUCCEEDED(hr)) hr = s.owner.sending(s.owner.context);
+        if (SUCCEEDED(hr)) hr = ConfirmedAuthority(s.owner.sending(s.owner.context));
         if (SUCCEEDED(hr)) hr = CurrentLocked();
         if (SUCCEEDED(hr)) hr = s.streamEvents->QueueEventParamUnk(MEMediaSample, GUID_NULL, S_OK, sample.Get());
         return FAILED(hr) ? (s.shutdown ? hr : RetireLocked(hr)) : S_OK;
@@ -387,7 +391,7 @@ namespace Magnolie::PhoneCamera
             MediaEventType type = MEUnknown; hr = (*result)->GetType(&type);
             if (SUCCEEDED(hr) && type == MEMediaSample)
             {
-                hr = state_->owner.sending(state_->owner.context);
+                hr = ConfirmedAuthority(state_->owner.sending(state_->owner.context));
                 if (SUCCEEDED(hr) && state_->clock) hr = state_->clock->RequireImportedAnchor(state_->clockScope);
                 PROPVARIANT payload{};
                 ComPtr<IMFSample> sample;
