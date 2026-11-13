@@ -110,6 +110,49 @@ internal static class ContactFields
         return JsonNode.DeepEquals(left, right);
     }
 
+    // Separate classification from the exact persisted content/baseline hashes.
+    // Only field labels/types/roles are optional here; actual contact values,
+    // group membership, photos and unknown provider properties remain content.
+    private static JsonObject LabelComparison(JsonObject contact, bool valuesOnly)
+    {
+        var projection = ConflictProjection(contact);
+        projection["foto"] = Text(contact, "foto");
+        foreach (var field in new[] { "telefone", "emailEintraege", "anschriften" })
+        {
+            if (projection[field] is not JsonArray rows) continue;
+            var comparable = rows.Select(row =>
+            {
+                var copy = row?.DeepClone();
+                if (valuesOnly && copy is JsonObject value)
+                    foreach (var label in new[] { "label", "typen", "rolle" }) value.Remove(label);
+                if (!valuesOnly && copy is JsonObject labelled)
+                {
+                    var types = (labelled["typen"] as JsonArray ?? []).Select(type => type?.GetValue<string>() ?? "").ToArray();
+                    var home = Text(labelled, "rolle") == "private" || new[] { "Home", "Home phone", "Private", "Privat", "Zuhause" }
+                        .Any(alias => NativeLocalization.IsTranslation(alias, Text(labelled, "label")));
+                    if (types.Length == 0)
+                    {
+                        var inferred = home ? "HOME" : new[] { "Mobile", "Mobil", "Handy" }.Any(alias => NativeLocalization.IsTranslation(alias, Text(labelled, "label"))) ? "CELL" :
+                            new[] { "Work", "Work phone", "Arbeit" }.Any(alias => NativeLocalization.IsTranslation(alias, Text(labelled, "label"))) ? "WORK" : "";
+                        if (inferred.Length > 0) { labelled["typen"] = new JsonArray(inferred); labelled.Remove("label"); types = [inferred]; }
+                    }
+                    if (home && types.SequenceEqual(new[] { "HOME" })) { labelled.Remove("rolle"); labelled.Remove("label"); }
+                }
+                return copy;
+            }).ToArray();
+            projection[field] = new JsonArray(comparable.GroupBy(row => row is null ? "null" :
+                Convert.ToHexString(MagnolienbaumCrypto.Canonical(row)), StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal).Select(group => group.First()).ToArray());
+        }
+        return projection;
+    }
+
+    internal static bool SameLabelValues(JsonObject left, JsonObject right) =>
+        JsonNode.DeepEquals(LabelComparison(left, true), LabelComparison(right, true));
+
+    internal static bool SameLabelMetadata(JsonObject left, JsonObject right) =>
+        JsonNode.DeepEquals(LabelComparison(left, false), LabelComparison(right, false));
+
     internal static JsonObject MergeAdditions(JsonObject existing, JsonObject incoming)
     {
         JsonNode? Merge(JsonNode? a, JsonNode? b)
@@ -750,8 +793,9 @@ internal sealed class ContactSyncEngine
                 var localChanged = ContactFields.Dirty(item, mapping, other.Data);
                 var localProjection = ContactFields.ConflictProjection(item);
                 var remoteProjection = ContactFields.ConflictProjection(other.Data);
+                var sameLabelValues = ContactFields.SameLabelValues(item, other.Data);
                 // Membership sets must use the source baseline, never additive union.
-                var sameContact = JsonNode.DeepEquals(localProjection["gruppen"], remoteProjection["gruppen"]) &&
+                var sameContact = sameLabelValues || JsonNode.DeepEquals(localProjection["gruppen"], remoteProjection["gruppen"]) &&
                     ContactFields.NonConflicting(localProjection, remoteProjection);
                 var incomingData = sameContact ? ContactFields.MergeAdditions(item, other.Data) : other.Data;
                 var conflictingChanges = remoteChanged && localChanged && !sameContact;
@@ -764,7 +808,36 @@ internal sealed class ContactSyncEngine
                     ContactFields.Text(item, "geburtstag").Length > 0 && ContactFields.Text(other.Data, "geburtstag").Length == 0 &&
                     (remoteStore.SupportsYearlessBirthdays || !ContactFields.Text(item, "geburtstag").StartsWith("--", StringComparison.Ordinal));
                 var wroteRemote = false;
-                if (additiveOnly)
+                if (sameLabelValues)
+                {
+                    if (ContactFields.SameLabelMetadata(item, other.Data))
+                        ContactFields.SetSource(item, source, other, remoteBaseline: additiveOnly);
+                    else
+                    {
+                        var clockLimit = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 300000;
+                        // An unchanged original source revision is not a newer
+                        // user edit merely because our own prior write is recent.
+                        var incomingNewer = remoteChanged && localTime > 0 && localTime <= clockLimit &&
+                            other.Modified > 0 && other.Modified <= clockLimit && other.Modified > localTime;
+                        if (incomingNewer)
+                        {
+                            ContactFields.CopyRemoteFields(item, other.Data, source); item["geaendert"] = other.Modified;
+                            ContactFields.SetSource(item, source, other, remoteBaseline: additiveOnly); updated++;
+                        }
+                        else if (additiveOnly) ContactFields.SetSource(item, source, other, remoteBaseline: true);
+                        else
+                        {
+                            if (beforeMutation is not null) await beforeMutation();
+                            try
+                            {
+                                var changed = await remoteStore.UpdateAsync(other, uid, item, cancellationToken);
+                                ContactFields.SetSource(item, source, changed); updated++; wroteRemote = true;
+                            }
+                            catch { errors++; }
+                        }
+                    }
+                }
+                else if (additiveOnly)
                 {
                     if (other.Modified > localTime)
                     {

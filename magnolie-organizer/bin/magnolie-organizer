@@ -6571,6 +6571,59 @@ def _kontakt_konflikt_inhalt(obj):
     return normal(inhalt)
 
 
+def _kontakt_label_vergleich(obj, nur_werte=False):
+    """Label classification only; persisted linux-1 hashes remain exact."""
+    inhalt = _kontakt_konflikt_inhalt(obj)
+    for feld in ("telefon", "mobil", "emails", "email", "strasse", "plz", "ort"):
+        inhalt.pop(feld, None)
+    inhalt["foto"] = obj.get("foto") or None
+    inhalt["vcardParameter"] = obj.get("vcardParameter") or None
+    for feld, lesen in (("telefone", _telefon_liste), ("emailEintraege", _email_eintraege),
+                        ("anschriften", _anschrift_liste)):
+        zeilen = []
+        for roh in obj.get(feld) or lesen(obj):
+            if not isinstance(roh, dict):
+                return None
+            zeile = json.loads(json.dumps(roh))
+            if nur_werte:
+                for key in ("label", "typen", "rolle"):
+                    zeile.pop(key, None)
+            else:
+                typen = sorted(set(_telefon_typen(zeile.get("typen"))))
+                if feld == "telefone":
+                    for normalisiert in _telefon_liste(obj):
+                        if (normalisiert.get("wert") == zeile.get("wert") and
+                                normalisiert.get("label", "") == zeile.get("label", "")):
+                            typen = sorted(set(typen) | set(normalisiert.get("typen") or []))
+                label = str(zeile.get("label") or "").strip().casefold()
+                if (label in ("home", "privat", "private", "zuhause") or
+                        zeile.get("rolle") == "private") and not set(typen) - {"HOME", "VOICE"}:
+                    zeile.pop("label", None)
+                    zeile.pop("rolle", None)
+                    typen = sorted((set(typen) | {"HOME"}) - {"VOICE"})
+                zeile["typen"] = typen
+            if feld == "telefone":
+                zeile["wert"] = _telefon_schluessel(str(zeile.get("wert") or ""))
+            elif feld == "emailEintraege":
+                zeile["wert"] = str(zeile.get("wert") or "").strip().casefold()
+            zeile = {key: value for key, value in zeile.items() if value not in (None, "", [], {})}
+            zeilen.append(json.dumps(zeile, ensure_ascii=False, sort_keys=True))
+        inhalt[feld] = sorted(set(zeilen)) or None
+    return inhalt
+
+
+def _kontakt_labels_uebernehmen(obj, fern):
+    # Values have already been compared, so only replace their representation.
+    _telefone_setzen(obj, json.loads(json.dumps(_telefon_liste(fern))))
+    obj["emailEintraege"] = json.loads(json.dumps(_email_eintraege(fern)))
+    obj["emails"] = _email_liste(fern)
+    obj["email"] = next(iter(obj["emails"]), "")
+    _anschriften_setzen(obj, json.loads(json.dumps(_anschrift_liste(fern))))
+    for feld in ("telefone", "emailEintraege", "anschriften"):
+        if isinstance(fern.get(feld), list):
+            obj[feld] = json.loads(json.dumps(fern[feld]))
+
+
 def _kontakt_nur_ergaenzungen(obj, fern):
     def kompatibel(alt, neu):
         if alt is None or neu is None: return True
@@ -6778,6 +6831,39 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         kontakt_identisch = (felder == KONTAKT_FELDER and fern is not None and
                              _kontakt_personengruppen(obj) == _kontakt_personengruppen(fern) and
                              _kontakt_nur_ergaenzungen(obj, fern))
+        if (felder == KONTAKT_FELDER and fern is not None and
+                _kontakt_label_vergleich(obj, True) is not None and
+                _kontakt_label_vergleich(obj, True) == _kontakt_label_vergleich(fern, True)):
+            quelle = kontakt_quelle or (dav[0] if dav else None)
+            basis = (obj.get("syncQuellen") or {}).get(quelle) or {}
+            if kontakt_quelle:
+                remote_neu = (basis.get("inhaltFormat") == _sync_inhalt_format(felder) and
+                              bool(basis.get("inhaltSha256")) and
+                              basis["inhaltSha256"] != _sync_inhalt_hash(fern, felder))
+            else:
+                meta = ((dav[2] or {}).get(u) or {}) if dav else {}
+                remote_neu = bool(basis.get("etag") and meta.get("etag") and
+                                  basis["etag"] != meta["etag"])
+            verschieden = _kontakt_label_vergleich(obj) != _kontakt_label_vergleich(fern)
+            lokal_zeit, fern_zeit = obj.get("geaendert") or 0, fern.get("geaendert") or 0
+            limit = int(time.time() * 1000) + 300000
+            if (verschieden and remote_neu and
+                    isinstance(lokal_zeit, (int, float)) and isinstance(fern_zeit, (int, float)) and
+                    0 < lokal_zeit < fern_zeit <= limit):
+                _kontakt_labels_uebernehmen(obj, fern)
+                obj["geaendert"] = fern_zeit
+                zaehler["lokal_geaendert"] += 1
+            elif verschieden and not kontakt_nur_lesen:
+                aendern.append(obj)
+                zaehler["remote_geaendert"] += 1
+            if quelle and (obj.get("kontaktProviderKonflikte") or {}).get(quelle):
+                del obj["kontaktProviderKonflikte"][quelle]
+                if not obj["kontaktProviderKonflikte"]:
+                    obj.pop("kontaktProviderKonflikte", None)
+            if kontakt_quelle:
+                _kontakt_eds_baseline(obj, kontakt_quelle, fern)
+            neue_lokal.append(obj)
+            continue
         if kontakt_identisch:
             _kontakt_ergaenzungen_uebernehmen(obj, fern)
             quelle = kontakt_quelle or (dav[0] if dav else None)

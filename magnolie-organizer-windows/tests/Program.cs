@@ -277,6 +277,8 @@ runner.Add("OR6 description lines / appointment CRLF LF CR preserve title notes 
 runner.Add("OR6 description lines / anniversary CRLF LF CR preserve name notes and UID", Or6LineEndingTests.AnniversaryDescriptionsAsync);
 runner.Add("OR6 contact source text / preserve Extn slots and mail merge name without guessing", Or6ContactSourceTextTests.PreserveSourceTextAsync);
 runner.Add("OR6 contact region / native State and sparse address roles survive", Or6ContactSourceTextTests.PreserveRegionSlotsAsync);
+runner.Add("Contact native labels / two sources converge without transport-time rollback", ContactProviderLabelTests.TwoSourceConvergenceAsync);
+runner.Add("Contact native labels / real values and failed original writes remain protected", ContactProviderLabelTests.RealChangesAndFailedWritesAsync);
 runner.Add("OR6 extension / original recurring set / categories / sparse phone contexts", Or6ExtensionTests.RunAsync);
 runner.Add("Country flags / local ISO artwork / native setup coordinates", CountryFlagsTests.RunAsync);
 runner.Add("Local import / native readers / semantic snapshot CAS", LocalImportSourceTests.RunAsync);
