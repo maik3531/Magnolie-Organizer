@@ -1865,7 +1865,18 @@ internal static partial class ExchangeCodec
         return result.ToString();
     }
     private static string CleanUri(string value, string prefix) => value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? value[prefix.Length..] : value;
-    private static bool ValidEmail(string value) => value.Length is > 2 and <= 254 && value.Contains('@') && !value.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase);
+    internal static string EmailAddressSpelling(string value)
+    {
+        var matches = Regex.Matches(value, @"\(at\)|\[at\]", RegexOptions.IgnoreCase);
+        return !value.Contains('@') && matches.Count == 1
+            ? Regex.Replace(value, @"\(at\)|\[at\]", "@", RegexOptions.IgnoreCase) : value;
+    }
+
+    private static bool ValidEmail(string value)
+    {
+        value = EmailAddressSpelling(value);
+        return value.Length is > 2 and <= 254 && value.Contains('@') && !value.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase);
+    }
     private static string ParseBirthday(string value)
     {
         value = value.Trim();

@@ -50,6 +50,7 @@ internal static class ContactProviderLabelTests
         await PhoneCountryComparisonAsync();
         await EmailCaseComparisonAsync();
         await BoundSharpSComparisonAsync();
+        await ObfuscatedEmailAsync();
         var failures = new List<string>();
         foreach (var field in new[] { "telefone", "emailEintraege", "anschriften" })
         foreach (bool remoteNewer in new[] { false, true })
@@ -79,6 +80,32 @@ internal static class ContactProviderLabelTests
         await ContactSourceUpdateRunTests.RunAsync();
         CheckUnknownLabelsAndCategories();
     }
+    private static async Task ObfuscatedEmailAsync()
+    {
+        foreach (var spelling in new[] { "Maik3531(at)Gmail.com", "Maik3531[at]Gmail.com", "Maik3531[AT]Gmail.com" })
+        {
+            var parsed = ExchangeCodec.ParseVCard("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:mail-fixture\r\nFN:Synthetic\r\nEMAIL:" + spelling + "\r\nEND:VCARD\r\n").Kontakte.Single()!.AsObject();
+            TestAssert.That(parsed["emailEintraege"]!.AsArray().Count == 1, "Actual vCard reader discarded an obfuscated email");
+            parsed["notiz"] = "Keep " + spelling;
+            var local = parsed.DeepClone().AsObject(); local["id"] = "mail-local"; local["sync"] = true;
+            ContactFields.NormalizeEmailAddresses(local);
+            TestAssert.That(ContactFields.Text(local, "email") == "maik3531@gmail.com" && ContactFields.Text(local, "notiz") == "Keep " + spelling,
+                "Mail field was not normalized or free text was rewritten");
+            var wire = new Remote("obfuscated", new RemoteContact("mail-record", "\"v1\"", 1000, parsed, true)) { Writable = false };
+            var result = await new ContactSyncEngine().SyncAsync(A, new JsonArray(local), [], 0, wire);
+            TestAssert.That(result.Contacts.Count == 1 && result.Counts.Errors == 0 && result.Counts.Conflicts == 0 && wire.Updates == 0,
+                "Read-only obfuscated email caused a duplicate/error/conflict/write");
+            wire.Writable = true;
+            result = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, wire);
+            result = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, wire);
+            TestAssert.That(wire.Updates == 1 && ContactFields.Text(wire.Current.Data, "email") == "maik3531@gmail.com" &&
+                ContactFields.Text(wire.Current.Data, "notiz") == "Keep " + spelling && result.Counts.Conflicts == 0,
+                "Obfuscated email did not converge through the original guarded source");
+        }
+        TestAssert.That(ExchangeCodec.ParseVCard("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Synthetic\r\nEMAIL:a(at)b(at)example.test\r\nEND:VCARD\r\n")
+            .Kontakte.Single()!["emailEintraege"]!.AsArray().Count == 0, "Ambiguous obfuscation was guessed as an email");
+    }
+
     private static async Task BoundSharpSComparisonAsync()
     {
         foreach (var field in new[] { "email", "notiz" })

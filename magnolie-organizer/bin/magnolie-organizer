@@ -4482,6 +4482,9 @@ def _email_adresse(wert):
         text = klammer.group(1).strip()
     if text.lower().startswith("mailto:"):
         text = text[7:]
+    verschleiert = re.findall(r"\(at\)|\[at\]", text, re.I)
+    if "@" not in text and len(verschleiert) == 1:
+        text = re.sub(r"\(at\)|\[at\]", "@", text, flags=re.I)
     if len(text) > 254 or not _EMAIL_MUSTER.match(text):
         return ""
     domain = text.rsplit("@", 1)[-1].lower()
@@ -4496,19 +4499,22 @@ def _kontakt_emails_klein(kontakt, anwenden=True):
     def adresse(obj, feld):
         nonlocal geaendert
         wert = obj.get(feld)
-        if not isinstance(wert, str) or "@" not in wert:
+        if not isinstance(wert, str):
             return
-        klein = wert.strip().lower()
+        klein = _email_adresse(wert).lower()
+        if not klein:
+            return
         if wert != klein:
             geaendert = True
             if anwenden:
                 obj[feld] = klein
     adresse(kontakt, "email")
     for index, wert in enumerate(kontakt.get("emails") or []):
-        if isinstance(wert, str) and "@" in wert and wert != wert.strip().lower():
+        klein = _email_adresse(wert).lower() if isinstance(wert, str) else ""
+        if klein and wert != klein:
             geaendert = True
             if anwenden and isinstance(kontakt.get("emails"), list):
-                kontakt["emails"][index] = wert.strip().lower()
+                kontakt["emails"][index] = klein
     for zeile in kontakt.get("emailEintraege") or []:
         if isinstance(zeile, dict):
             adresse(zeile, "wert")

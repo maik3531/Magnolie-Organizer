@@ -186,8 +186,9 @@ internal static class ContactFields
         var changed = false;
         void Address(JsonObject obj, string field)
         {
-            if (obj[field] is not JsonValue item || !item.TryGetValue<string>(out var value) || !value.Contains('@')) return;
-            var lower = value.Trim().ToLowerInvariant();
+            if (obj[field] is not JsonValue item || !item.TryGetValue<string>(out var value)) return;
+            var lower = ExchangeCodec.EmailAddressSpelling(value).Trim().ToLowerInvariant();
+            if (!lower.Contains('@')) return;
             if (lower == value) return;
             changed = true;
             if (apply) obj[field] = lower;
@@ -195,8 +196,12 @@ internal static class ContactFields
         Address(contact, "email");
         if (contact["emails"] is JsonArray emails)
             for (var i = 0; i < emails.Count; i++)
-                if (emails[i] is JsonValue item && item.TryGetValue<string>(out var value) && value.Contains('@') && value != value.Trim().ToLowerInvariant())
-                { changed = true; if (apply) emails[i] = value.Trim().ToLowerInvariant(); }
+                if (emails[i] is JsonValue item && item.TryGetValue<string>(out var value))
+                {
+                    var lower = ExchangeCodec.EmailAddressSpelling(value).Trim().ToLowerInvariant();
+                    if (!lower.Contains('@') || lower == value) continue;
+                    changed = true; if (apply) emails[i] = lower;
+                }
         foreach (var row in (contact["emailEintraege"] as JsonArray ?? []).OfType<JsonObject>()) Address(row, "wert");
         return changed;
     }

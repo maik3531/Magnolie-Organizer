@@ -3260,6 +3260,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const klammer = text.match(/<([^<>]+)>/);
     if (klammer) text = klammer[1].trim();
     text = text.replace(/^mailto:/i, "");
+    if (!text.includes("@") && (text.match(/\(at\)|\[at\]/gi) || []).length === 1)
+      text = text.replace(/\(at\)|\[at\]/i, "@");
     if (text.length > 254 ||
       !/^[^\s@<>,;:]+@[^\s@<>,;:]+\.[^\s@<>,;:]+$/.test(text)) return "";
     const domain = text.slice(text.lastIndexOf("@") + 1).toLowerCase();
@@ -3306,6 +3308,35 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function emailListe(kontakt) {
     return emailEintragListe(kontakt).map((eintrag) => eintrag.wert);
+  }
+
+  function emailAdressenImText(text) {
+    text = String(text || "");
+    const muster = /[\p{L}\p{N}._%+-]+(?:@|\(at\)|\[at\])[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/giu;
+    const aus = [];
+    for (const match of text.matchAll(muster)) {
+      const davor = text[match.index - 1] || "";
+      if (davor && /[\p{L}\p{N}._%+@)\]-]/u.test(davor)) continue;
+      const email = emailAdresse(match[0]);
+      if (email) aus.push({ start: match.index, ende: match.index + match[0].length, text: match[0], email });
+      if (aus.length >= 32) break;
+    }
+    return aus;
+  }
+
+  function emailTextElement(klasse, text) {
+    text = String(text || "");
+    const ziel = el("div", klasse);
+    let position = 0;
+    for (const treffer of emailAdressenImText(text)) {
+      ziel.append(document.createTextNode(text.slice(position, treffer.start)));
+      const link = el("a", null, treffer.text);
+      link.href = "mailto:" + treffer.email;
+      link.addEventListener("click", (event) => { event.preventDefault(); schreibePost(null, treffer.email); });
+      ziel.append(link); position = treffer.ende;
+    }
+    ziel.append(document.createTextNode(text.slice(position)));
+    return ziel;
   }
 
   function setzeEmailListe(kontakt, eintraege) {
@@ -3948,7 +3979,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const schleier = el("div", "eingabe-schleier sms-detail-schleier");
     const dialog = el("div", "eingabe-dialog sms-detail-dialog");
     const schliessen = () => { beendeModal(schleier); schleier.remove(); };
-    const text = el("div", "sms-detail-text", nachricht.text);
+    const text = emailTextElement("sms-detail-text", nachricht.text);
     const liste = el("dl", "sms-detail-liste");
     const zeile = (name, wert) => { liste.append(el("dt", null, name), el("dd", null, wert || "–")); };
     zeile(_("Date"), smsZeitText(nachricht.zeit, true));
@@ -3980,7 +4011,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const reihe = el("div", "sms-nachricht " + nachricht.richtung);
       const blase = el("div", "sms-blase");
       blase.dataset.smsId = nachricht.id;
-      blase.append(el("div", "sms-text", nachricht.text));
+      blase.append(emailTextElement("sms-text", nachricht.text));
       const meta = el("div", "sms-meta", smsZeitText(nachricht.zeit, false));
       if (nachricht.richtung === "ausgang") {
         const legende = smsStatusText(nachricht.status);
@@ -21960,8 +21991,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }).then((eingabe) => {
       if (eingabe === null || !flaeche.isConnected) return;
       let adresse = String(eingabe).trim();
-      if (new RegExp("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").test(adresse)) {
-        adresse = "mailto:" + adresse;
+      const email = emailAdresse(adresse);
+      if (email) {
+        adresse = "mailto:" + email;
       }
       if (!new RegExp("^(?:https?:|mailto:)", "i").test(adresse)) adresse = "https://" + adresse;
       const link = document.createElement("a");
@@ -21973,7 +22005,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         link.append(bereich.extractContents());
         bereich.insertNode(link);
       } else {
-        link.textContent = adresse.replace(/^mailto:/i, "");
+        link.textContent = email ? String(eingabe).trim().replace(/^mailto:/i, "") : adresse.replace(/^mailto:/i, "");
         flaeche.append(link);
       }
       flaeche.dispatchEvent(new Event("input", { bubbles: true }));
@@ -22756,6 +22788,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     pruefeSchreibung(flaeche);
     const htmlStand = {};
     flaeche.innerHTML = saeubereHtml(notiz.html, htmlStand) || textZuHtml(notiz.text);
+    const emailAktionen = el("div", "notiz-email-aktionen");
+    const aktualisiereEmailAktionen = () => {
+      emailAktionen.replaceChildren();
+      const gesehen = new Set();
+      for (const treffer of emailAdressenImText(htmlZuText(flaeche))) {
+        if (gesehen.has(treffer.email)) continue;
+        gesehen.add(treffer.email);
+        const taste = knopf(treffer.text, "klein", () => schreibePost(null, treffer.email));
+        taste.title = _("Email") + ": " + treffer.email;
+        emailAktionen.append(taste);
+      }
+      emailAktionen.hidden = !gesehen.size;
+    };
+    aktualisiereEmailAktionen();
+    flaeche.addEventListener("input", aktualisiereEmailAktionen);
 
     const geaendert = () => {
       notizAenderungMerken(notiz);
@@ -22888,7 +22935,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       for (const taste of [...einfuegen.querySelectorAll("button"),
         ...leiste.querySelectorAll("button")]) taste.disabled = true;
     }
-    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, rahmen,
+    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, emailAktionen, rahmen,
       bindeSchreibTab(flaeche));
     if (notiz.anhaenge.length) {
       const anhaenge = el("div", "notiz-anhaenge");
