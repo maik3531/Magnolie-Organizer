@@ -34151,8 +34151,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           zielWahl.addEventListener("change", () => { entscheidungsVersion++; plan.gewaehlt = true; plan.eindeutig = false; neuer.disabled = true; plan.zielId = zielWahl.value; plan.modus = ""; plan.geburtsname = false; plan.auswahl = { felder: {}, listen: {} }; wahl.value = ""; aktualisieren(); });
           wahl.addEventListener("change", () => {
             entscheidungsVersion++; plan.gewaehlt = true; plan.modus = wahl.value;
-            if (rest.checked && hashesFertig && plan.eindeutig && plan.modus) {
-              for (const anderer of plaene) if (anderer.eindeutig && (!anderer.modus || providerIds.length && anderer.modus === "skip") && !anderer.gewaehlt &&
+            // Creating a separate person needs no inferred existing target.
+            // All target-dependent decisions still require unique identity.
+            if (rest.checked && hashesFertig && (plan.eindeutig || plan.modus === "new") && plan.modus) {
+              for (const anderer of plaene) if ((anderer.eindeutig || plan.modus === "new") && (!anderer.modus || providerIds.length && anderer.modus === "skip") && !anderer.gewaehlt &&
                   (plan.modus !== "newer" || anderer.neuereEntscheidung)) {
                 anderer.modus = plan.modus; anderer.gewaehlt = true;
                 anderer.auswahl.felder = kopie(plan.auswahl.felder);
@@ -34199,7 +34201,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       anwenden.dataset.importAnwenden = "true";
       rest.addEventListener("change", () => {
         if (!rest.checked || !hashesFertig) return;
-        const index = plaene.findIndex(plan => plan.gewaehlt && plan.eindeutig && plan.modus && plan.modus !== "skip");
+        const index = plaene.findIndex(plan => plan.gewaehlt && (plan.eindeutig || plan.modus === "new") && plan.modus && plan.modus !== "skip");
         const feld = zeilen.querySelector('[data-import-entscheidung="' + index + '"]');
         if (feld) feld.dispatchEvent(new Event("change"));
       });
