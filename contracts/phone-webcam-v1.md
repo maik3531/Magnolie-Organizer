@@ -90,11 +90,15 @@ records are refused, not interpreted as an unused transaction. Row hashes and
 history links detect corruption but are NOT authentication or installed-source
 proof; trusted ownership still depends on the protected filesystem boundary.
 
-Four new groups passed with actual owned temporary files on Linux and ordinary
+Four new groups passed with actual owned temporary files on Linux and
 Windows: flushed step order/readback, terminal uncertainty, strict audit, and
 exclusive original writer. Prefix/truncation tests simulate interrupted records,
 not power-loss durability certification. The tests do not invoke the production
 ProgramData factory, elevation, registry/COM registration, PnP or audio clients.
+They do not certify a medium-integrity process or the original non-elevated
+runtime's access to the genuine LocalService/FrameServer primary token. An
+administrator diagnostic process or a service-status observation is not that
+admission proof; no elevated streaming or identity/ACL fallback is permitted.
 The test-only arbitrary-path factory and writer fault hook are excluded from the
 product. No journal receipt grants capture, SourceBindingProof or UI readiness.
 
