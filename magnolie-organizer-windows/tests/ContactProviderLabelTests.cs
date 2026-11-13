@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Text.Json;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
@@ -71,6 +72,27 @@ internal static class ContactProviderLabelTests
         }
         TestAssert.That(failures.Count == 0, string.Join("; ", failures));
         await ContactSourceUpdateRunTests.RunAsync();
+        CheckUnknownLabelsAndCategories();
+    }
+    private static void CheckUnknownLabelsAndCategories()
+    {
+        foreach (var label in new[] { "Immobilienbuero", "Automobilclub", "Wohnmobilverein" })
+        {
+            var text = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:category-fixture\r\nN:Fixture;Alex;;;\r\nFN:Alex Fixture\r\n" +
+                "item1.TEL;TYPE=VOICE:+49305550123\r\nitem1.X-ABLabel:" + label + "\r\nCATEGORIES:Home,Privat,OR6-600 Custom\r\nEND:VCARD\r\n";
+            for (var pass = 0; pass < 3; pass++)
+            {
+                var contact = ExchangeCodec.ParseVCard(text).Kontakte.Single()!.AsObject();
+                var phone = contact["telefone"]!.AsArray().Single()!.AsObject();
+                TestAssert.That(phone["typen"]!.AsArray().Select(type => type!.GetValue<string>()).SequenceEqual(new[] { "VOICE" }) &&
+                    phone["label"]!.GetValue<string>() == label && phone["rolle"] is null && contact["vertraulich"] is null,
+                    "Free label was classified as mobile/private or lost after repeated interchange");
+                TestAssert.That(contact["vcardRoundtrip"]!.AsArray().Any(line => line!.GetValue<string>() == "CATEGORIES:Home,Privat,OR6-600 Custom"),
+                    "Contact group names were confused with field types or lost during repeated import");
+                using var input = JsonDocument.Parse(new JsonArray(contact.DeepClone()).ToJsonString());
+                text = ExchangeCodec.WriteVCard(input.RootElement).Text;
+            }
+        }
     }
     internal static async Task RealChangesAndFailedWritesAsync()
     {

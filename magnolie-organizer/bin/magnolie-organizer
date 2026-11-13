@@ -4321,8 +4321,12 @@ def _telefon_typen_aus_label(typen, label):
     apple = re.fullmatch(r"_\$!<([^<>]+)>!\$_", text)
     vergleich = (apple.group(1) if apple else text).casefold()
     vergleich = re.sub(r"[\s_-]+", "", vergleich)
-    if (vergleich in ("mobil", "mobile", "handy", "cell", "iphone")
-            or "mobil" in vergleich):
+    # Free labels such as Immobilienbuero or Automobilclub are not phone
+    # roles. Only known complete aliases can supplement the explicit TYPE;
+    # arbitrary provider labels/categories must remain intact (#600).
+    if vergleich in ("mobil", "mobile", "handy", "cell", "iphone",
+                     "mobiltelefon", "mobilfunk", "mobilephone", "cellphone",
+                     "privatesmobiltelefon"):
         aus.add("CELL")
     elif vergleich in ("zuhause", "home", "privat", "private"):
         aus.add("HOME")
