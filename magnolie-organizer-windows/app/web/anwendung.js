@@ -27385,6 +27385,39 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       !/^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG|CATEGORIES)[;:]/i.test(s)).slice().sort();
   }
 
+  function kontaktQuellenVergleich(ziel, karte, gespeicherteQuelle, eingangsQuelle, mitGruppen = true) {
+    const vergleich = el("div", "kontakt-quellenvergleich");
+    const adresse = e => ["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim());
+    const zeilen = (k, feld) => {
+      if (feld === "telefone") return telefonListe(k).map(e => [telefonSchluessel(e.wert), e.wert]);
+      if (feld === "emailEintraege") return emailEintragListe(k).map(e => [kanonischerText(e.wert), e.wert]);
+      if (feld === "anschriften") return anschriftListe(k).map(e => [kanonischerEntwurf(adresse(e)), adresse(e).filter(Boolean).join(", ")]);
+      if (feld === "gruppen") return kontaktGruppen(k).map(e => [e, kontaktGruppenName(e)]);
+      const wert = String(k[feld] || "").trim(); return wert ? [[wert, wert]] : [];
+    };
+    for (const [feld, titel] of Object.entries({ vorname: _("First name"), nachname: _("Last name"), anzeigename: _("Name"),
+      firma: _("Company"), notiz: _("Note"), geburtstag: _("Birthday"), jubilaeum: _("Anniversary"),
+      telefone: _("Phone numbers"), emailEintraege: _("Email addresses"), anschriften: _("Address"), gruppen: _("Contact groups") })) {
+      if (feld === "gruppen" && !mitGruppen) continue;
+      const alt = zeilen(ziel, feld), neu = zeilen(karte, feld);
+      const links = alt.filter(([key]) => !neu.some(([anderer]) => anderer === key));
+      const rechts = neu.filter(([key]) => !alt.some(([anderer]) => anderer === key));
+      if (!links.length && !rechts.length) continue;
+      const unterschied = el("section", "kontakt-quellenunterschied"); unterschied.dataset.kontaktVergleich = feld;
+      unterschied.append(el("strong", null, titel));
+      const quellen = el("div", "kontakt-quellenspalten");
+      for (const [klasse, rolle, quelle, werte] of [["gespeichert", _("Saved"), gespeicherteQuelle, links],
+        ["eingang", _("Incoming"), eingangsQuelle, rechts]]) {
+        const seite = el("section", "kontakt-quelle kontakt-quelle-" + klasse);
+        seite.append(el("strong", null, rolle + (quelle && quelle !== rolle ? " · " + quelle : "")),
+          el("pre", null, [...new Set(werte.map(([, text]) => text))].join("\n") || "—"));
+        quellen.append(seite);
+      }
+      unterschied.append(quellen); vergleich.append(unterschied);
+    }
+    return vergleich;
+  }
+
   function kontaktKonfliktInhalt(k) {
     const basis = baumKontaktVergleich(k, true, true, false, true); delete basis.namen;
     basis.telefone = [...new Set(telefonListe(k).map(e => telefonSchluessel(e.wert)))].sort();
@@ -27855,6 +27888,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ziel = lauf.daten.kontakte.find(k => k.id === zielWahl.value); revision = kanonischerEntwurf(ziel);
       fehler.textContent = "";
       auswahl = { felder: {}, listen: {}, leeren: {} }; felder.textContent = "";
+      const peerName = baumPartnerListe().find(p => p.kennung === stueck.von)?.name || _("Incoming");
+      felder.append(kontaktQuellenVergleich(ziel, karte, kontaktKonfliktHerkunft(ziel, _("Saved")), peerName, karte.baumGruppenBekannt === true));
       if (karte.baumGruppenBekannt === true) {
         const gruppenText = kontakt => kontaktGruppen(kontakt).map(kontaktGruppenName).join(", ") || "—";
         const wahl = auswahlFeld([["keep", _("Keep existing") + ": " + gruppenText(ziel)],
@@ -27967,6 +28002,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const duplikatRevision = duplikat ? kanonischerEntwurf(duplikat) : "";
     const revision = kanonischerEntwurf(ziel), karte = normalisiere({kontakte:[konflikt.kontakt]}).kontakte[0];
     if (!karte) return;
+    const sammelRevision = kanonischerEntwurf(DATEN);
+    const weitereZiele = duplikat ? [] : bestand.kontakte.filter(k => k !== ziel &&
+      k.syncKonflikte?.[source]?.kontakt && k.syncKonflikte[source].mapping?.id && k.syncKonflikte[source].mapping.etag);
+    const alle = document.createElement("input"); alle.type = "checkbox"; alle.dataset.syncKontaktRest = "true";
+    alle.disabled = !weitereZiele.length;
     const schleier = el("div", "eingabe-schleier sync-kontakt-konflikt"), dialog = el("section", "eingabe-dialog");
     dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
     const felder = el("div"), fehler = el("p", "einst-warnung"), auswahl = {felder:{},listen:{},leeren:{}};
@@ -27976,6 +28016,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       telefone:_("Phone numbers"),emailEintraege:_("Email addresses"),anschriften:_("Address")};
     const beschreibe = wert => typeof wert === "string" ? wert : wert.wert ||
       [wert.strasse,wert.plz,wert.ort,wert.region,wert.land].filter(Boolean).join(", ");
+    felder.append(kontaktQuellenVergleich(ziel, karte, kontaktKonfliktHerkunft(ziel, _("Saved")),
+      kontaktKonfliktHerkunft(karte, source || _("Incoming"))));
     for (const feld of BAUM_KONTAKT_FELDER) {
       if (String(ziel[feld] || "") === String(karte[feld] || "")) continue;
       if (["geburtstag","jubilaeum"].includes(feld) && !karte[feld]) continue;
@@ -28028,7 +28070,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     syncKontaktDialogSchliessen = schliessen;
     const gueltig=()=>schleier.isConnected&&DATEN===bestand&&!gesperrt&&!syncLaeuft&&DATEN.kontakte.includes(ziel)&&kanonischerEntwurf(ziel)===revision&&
-      (!duplikat || DATEN.kontakte.includes(duplikat) && kanonischerEntwurf(duplikat)===duplikatRevision);
+      (!duplikat || DATEN.kontakte.includes(duplikat) && kanonischerEntwurf(duplikat)===duplikatRevision) &&
+      (!alle.checked || kanonischerEntwurf(DATEN) === sammelRevision);
     const knoepfe=el("div","dialog-knoepfe");
     const zeitHinweis = el("p", "einst-hinweis", _("Reliable modification times are not available for both versions."));
     let neuereEntscheidung = null, neuerKnopf = null;
@@ -28050,9 +28093,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           }
            const [lokalzeit, quellzeit] = await zeiten;
            if (!gueltig()) throw new Error(_("Conflict"));
-           const entwurf = await baueSyncKontaktEntwurf(bestand, ziel, karte, auswahl, modus, zusatzWahl, lokalzeit, quellzeit);
-          if (!gueltig()) throw new Error(_("Conflict"));
-          mitMutationsSnapshot("pre-contact-merge",()=>{
+            const entwurf = await baueSyncKontaktEntwurf(bestand, ziel, karte, auswahl, modus, zusatzWahl, lokalzeit, quellzeit);
+           if (!gueltig()) throw new Error(_("Conflict"));
+           const weitereEntwuerfe = [];
+           if (alle.checked) for (const anderesZiel of weitereZiele) {
+             const andererKonflikt = anderesZiel.syncKonflikte[source];
+             const andereKarte = normalisiere({ kontakte: [andererKonflikt.kontakt] }).kontakte[0];
+             if (!andereKarte) continue;
+             const andereAuswahl = modus === "merge" ? baumKontaktAuswahlFuerRest(ziel, karte, auswahl, anderesZiel, andereKarte) : {};
+             if (andereAuswahl === null) continue;
+             const andereLokalzeit = await kontaktInhaltszeit(anderesZiel);
+             const andereQuellzeit = kontaktZeitGueltig(andereKarte.vcardRev) ? andereKarte.vcardRev : 0;
+             let andererModus = modus;
+             if (entscheidung === "newer") {
+               if (!andereLokalzeit || !andereQuellzeit || andereLokalzeit === andereQuellzeit) continue;
+               andererModus = andereLokalzeit > andereQuellzeit ? "keep" : "replace";
+             }
+             const andererEntwurf = await baueSyncKontaktEntwurf(bestand, anderesZiel, andereKarte, andereAuswahl,
+               andererModus, zusatzWahl, andereLokalzeit, andereQuellzeit);
+             if (!gueltig()) throw new Error(_("Conflict"));
+             weitereEntwuerfe.push({ ziel: anderesZiel, entwurf: andererEntwurf, konflikt: andererKonflikt });
+           }
+           mitMutationsSnapshot("pre-contact-merge",()=>{
             if(!gueltig()){fehler.textContent=_("Conflict");return;}
              wendeSyncKontaktInhaltAn(ziel, entwurf);
             ziel.syncQuellen ||= {};
@@ -28082,11 +28144,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               DATEN.kontakte=DATEN.kontakte.filter(k=>k!==duplikat);
               normalisiereKontaktVerweise(DATEN);
               if(offenerSmsChat?.kontaktId===duplikat.id)offenerSmsChat.kontaktId=ziel.id;
-            } else {
-               setzeKontaktProviderFreigabe(ziel, source, konflikt);
-            }
-            ziel.geaendert=Date.now();verknuepfeKontaktGeburtstag(ziel);verknuepfeKontaktJubilaeum(ziel);
-            schliessen();planeSpeichern();zeichneAlles();
+             } else {
+                setzeKontaktProviderFreigabe(ziel, source, konflikt);
+             }
+             for (const weiterer of weitereEntwuerfe) {
+               wendeSyncKontaktInhaltAn(weiterer.ziel, weiterer.entwurf);
+               setzeKontaktProviderFreigabe(weiterer.ziel, source, weiterer.konflikt);
+               weiterer.ziel.geaendert = Date.now();
+               verknuepfeKontaktGeburtstag(weiterer.ziel); verknuepfeKontaktJubilaeum(weiterer.ziel);
+             }
+             ziel.geaendert=Date.now();verknuepfeKontaktGeburtstag(ziel);verknuepfeKontaktJubilaeum(ziel);
+             schliessen();planeSpeichern();zeichneAlles();
+             if (alle.checked && weitereEntwuerfe.length < weitereZiele.length)
+               zettel(_("Conflict") + " (" + (weitereZiele.length - weitereEntwuerfe.length) + ")");
             if (duplikat) nachDauerhaftemSpeichern(() => {
               if (DATEN !== bestand || gesperrt || aktiverEditor) return;
               const gruppe = findeDubletten()[0];
@@ -28102,8 +28172,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (entscheidung === "newer") { neuerKnopf = button; button.disabled = true; }
     }
     knoepfe.append(knopf(_("Cancel"),"",schliessen));
+    const restZeile = el("label", "hak");
+    restZeile.append(alle, document.createTextNode(" " + _("Apply to the remaining conflicts") + " (" + weitereZiele.length + ")"));
     dialog.append(el("h2",null,(duplikat?_("Merge duplicate contact cards"):_("Conflict"))+" · "+kontaktName(ziel)),
-      el("p",null,_("Contacts with different information were found. How would you like to proceed?")),felder,zeitHinweis,fehler,knoepfe);
+      el("p",null,_("Contacts with different information were found. How would you like to proceed?")),felder,restZeile,zeitHinweis,fehler,knoepfe);
     schleier.append(dialog);document.body.append(schleier);
     registriereModal(schleier,dialog,{anfang:knoepfe.querySelector("button"),schliessen});
     zeiten.then(([lokal, fern]) => {
@@ -33015,6 +33087,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             vorher.textContent = ziel ? beschreibe(ziel) : "";
             lokalQuelle.textContent = ziel ? kontaktKonfliktHerkunft(ziel, _("Saved")) : _("Saved");
             vergleich.textContent = "";
+            if (ziel) vergleich.append(kontaktQuellenVergleich(ziel, plan.karte, lokalQuelle.textContent, plan.herkunft));
             if (ziel && !plan.ergaenzung) {
               const alt = beschreibeFelder(ziel), neu = beschreibeFelder(plan.karte);
               alt.forEach(([feld, wert], index) => {

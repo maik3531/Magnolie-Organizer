@@ -6489,3 +6489,11 @@ body[data-linien="aus"] #tb-notiz {
   row-gap: 6px;
 }
 .allgemein-tray-hauptzeile > .hak { margin: 0; }
+.kontakt-quellenvergleich { margin-block: .7rem; }
+.kontakt-quellenunterschied { margin-block: .6rem; }
+.kontakt-quellenspalten { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.kontakt-quelle { border: 2px solid; border-inline-start-width: 6px; border-radius: .35rem; padding: .6rem; min-width: 0; }
+.kontakt-quelle pre { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 0; color: inherit; }
+.kontakt-quelle-gespeichert { border-color: #b86600; background: rgba(230, 126, 0, .12); }
+.kontakt-quelle-eingang { border-color: #23834a; background: rgba(35, 131, 74, .12); }
+@media (max-width: 620px) { .kontakt-quellenspalten { grid-template-columns: 1fr; } }

@@ -27631,6 +27631,39 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       !/^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG|CATEGORIES)[;:]/i.test(s)).slice().sort();
   }
 
+  function kontaktQuellenVergleich(ziel, karte, gespeicherteQuelle, eingangsQuelle, mitGruppen = true) {
+    const vergleich = el("div", "kontakt-quellenvergleich");
+    const adresse = e => ["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim());
+    const zeilen = (k, feld) => {
+      if (feld === "telefone") return telefonListe(k).map(e => [telefonSchluessel(e.wert), e.wert]);
+      if (feld === "emailEintraege") return emailEintragListe(k).map(e => [kanonischerText(e.wert), e.wert]);
+      if (feld === "anschriften") return anschriftListe(k).map(e => [kanonischerEntwurf(adresse(e)), adresse(e).filter(Boolean).join(", ")]);
+      if (feld === "gruppen") return kontaktGruppen(k).map(e => [e, kontaktGruppenName(e)]);
+      const wert = String(k[feld] || "").trim(); return wert ? [[wert, wert]] : [];
+    };
+    for (const [feld, titel] of Object.entries({ vorname: _("First name"), nachname: _("Last name"), anzeigename: _("Name"),
+      firma: _("Company"), notiz: _("Note"), geburtstag: _("Birthday"), jubilaeum: _("Anniversary"),
+      telefone: _("Phone numbers"), emailEintraege: _("Email addresses"), anschriften: _("Address"), gruppen: _("Contact groups") })) {
+      if (feld === "gruppen" && !mitGruppen) continue;
+      const alt = zeilen(ziel, feld), neu = zeilen(karte, feld);
+      const links = alt.filter(([key]) => !neu.some(([anderer]) => anderer === key));
+      const rechts = neu.filter(([key]) => !alt.some(([anderer]) => anderer === key));
+      if (!links.length && !rechts.length) continue;
+      const unterschied = el("section", "kontakt-quellenunterschied"); unterschied.dataset.kontaktVergleich = feld;
+      unterschied.append(el("strong", null, titel));
+      const quellen = el("div", "kontakt-quellenspalten");
+      for (const [klasse, rolle, quelle, werte] of [["gespeichert", _("Saved"), gespeicherteQuelle, links],
+        ["eingang", _("Incoming"), eingangsQuelle, rechts]]) {
+        const seite = el("section", "kontakt-quelle kontakt-quelle-" + klasse);
+        seite.append(el("strong", null, rolle + (quelle && quelle !== rolle ? " · " + quelle : "")),
+          el("pre", null, [...new Set(werte.map(([, text]) => text))].join("\n") || "—"));
+        quellen.append(seite);
+      }
+      unterschied.append(quellen); vergleich.append(unterschied);
+    }
+    return vergleich;
+  }
+
   function kontaktKonfliktInhalt(k) {
     const basis = baumKontaktVergleich(k, true, true, false, true); delete basis.namen;
     basis.telefone = [...new Set(telefonListe(k).map(e => telefonSchluessel(e.wert)))].sort();
@@ -28101,6 +28134,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ziel = lauf.daten.kontakte.find(k => k.id === zielWahl.value); revision = kanonischerEntwurf(ziel);
       fehler.textContent = "";
       auswahl = { felder: {}, listen: {}, leeren: {} }; felder.textContent = "";
+      const peerName = baumPartnerListe().find(p => p.kennung === stueck.von)?.name || _("Incoming");
+      felder.append(kontaktQuellenVergleich(ziel, karte, kontaktKonfliktHerkunft(ziel, _("Saved")), peerName, karte.baumGruppenBekannt === true));
       if (karte.baumGruppenBekannt === true) {
         const gruppenText = kontakt => kontaktGruppen(kontakt).map(kontaktGruppenName).join(", ") || "—";
         const wahl = auswahlFeld([["keep", _("Keep existing") + ": " + gruppenText(ziel)],
@@ -34090,6 +34125,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             vorher.textContent = ziel ? beschreibe(ziel) : "";
             lokalQuelle.textContent = ziel ? kontaktKonfliktHerkunft(ziel, _("Saved")) : _("Saved");
             vergleich.textContent = "";
+            if (ziel) vergleich.append(kontaktQuellenVergleich(ziel, plan.karte, lokalQuelle.textContent, plan.herkunft));
             if (ziel && !plan.ergaenzung) {
               const alt = beschreibeFelder(ziel), neu = beschreibeFelder(plan.karte);
               alt.forEach(([feld, wert], index) => {
