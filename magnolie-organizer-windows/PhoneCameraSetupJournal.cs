@@ -65,8 +65,7 @@ internal sealed partial class PhoneCameraSetupJournal : IDisposable
             held.Add(PhoneCameraAudioStaging.HoldProtected(root, programData: false));
             // Fixed journal, never truncate/reuse/replace an old transaction,
             // including an empty/partial file left by failed creation.
-            output = new FileStream(Path.Combine(root, "combined-setup-v1.journal"), FileMode.CreateNew,
-                FileAccess.Write, FileShare.Read, 4096, FileOptions.WriteThrough);
+            output = PhoneCameraAudioStaging.CreateProtectedFile(Path.Combine(root, "combined-setup-v1.journal"));
             return new PhoneCameraSetupJournal(output, held.ToArray(), Guid.NewGuid(), source.Sha256, helper.Sha256);
         }
         catch
@@ -77,6 +76,7 @@ internal sealed partial class PhoneCameraSetupJournal : IDisposable
         }
     }
     private static bool IsHash(string? text) => text is { Length: 64 } && !text.AsSpan().ContainsAnyExcept("0123456789abcdef");
+    internal string SourceSha256 { get { lock (gate) return current.SourceSha256; } }
     private static string ModuleRelativePath(string hash) => "Magnolie-Webcam-Source\\" + hash + "\\" + PhoneCameraSourcePayload.Filename;
     private static bool IsInstance(string? text) => text is { Length: > 0 and < 200 } && text.All(c => c is >= ' ' and <= '~');
     private static bool Allows(Phase from, Phase to) => from is not (Phase.RebootRequired or Phase.Failed or Phase.UnknownPending) &&

@@ -420,6 +420,9 @@ runner.Add("Device file native destination / absent read does not bootstrap", De
 runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
 if (OperatingSystem.IsWindows())
 {
+    runner.Add("Phone webcam source registration / memory-only registry ACL policy", PhoneCameraSourceRegistrationTests.RegistryAclPolicyAsync);
+    runner.Add("Phone webcam source registration / memory-only exact readback", PhoneCameraSourceRegistrationTests.ExactReadbackAsync);
+    runner.Add("Phone webcam source registration / memory-only persistent file owner", PhoneCameraSourceRegistrationTests.PersistentFileOwnerAsync);
     runner.Add("Phone webcam parent module / original process and fixed sibling layout", PhoneCameraAudioParentModuleTests.FixedLayoutAsync);
     runner.Add("Phone webcam parent module / trusted owner and no unprivileged mutation rights", PhoneCameraAudioParentModuleTests.ProtectedAclAsync);
     runner.Add("Phone webcam parent module / ambiguous callback and oversized ACL denied", PhoneCameraAudioParentModuleTests.AmbiguousAclAsync);

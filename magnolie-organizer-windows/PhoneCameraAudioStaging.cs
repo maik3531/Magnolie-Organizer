@@ -18,6 +18,7 @@ namespace MagnolieOrganizer.Windows;
 internal static class PhoneCameraAudioStaging
 {
     private const string Security = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FRFX;;;BU)";
+    internal const string PersistentFileSecurity = "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FRFX;;;BU)";
     private const uint ReadControl = 0x00020000, ReadAttributes = 0x80, ListDirectory = 0x1;
     private const uint BackupSemantics = 0x02000000, OpenReparsePoint = 0x00200000;
     private const uint ShareReadOnly = 1, ShareReadWrite = 3, OpenExisting = 3;
@@ -224,10 +225,29 @@ internal static class PhoneCameraAudioStaging
         }
         finally { LocalFree(descriptor); }
     }
+    // New persistent setup files need an explicit trusted OWNER as well as a
+    // write-protected DACL. Do not assume the creating token's default owner.
+    // CREATE_NEW never alters an existing file or repairs someone else's ACL.
+    internal static FileStream CreateProtectedFile(string path)
+    {
+        if (!ConvertStringSecurityDescriptorToSecurityDescriptor(PersistentFileSecurity, 1, out var descriptor, out _))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        try
+        {
+            var security = new SecurityAttributes { Length = Marshal.SizeOf<SecurityAttributes>(), Descriptor = descriptor };
+            var handle = CreateProtectedFileHandle(path, 0x40020000, ShareReadOnly, ref security, 1, 0x80000080, IntPtr.Zero);
+            if (handle.IsInvalid) { var error = Marshal.GetLastWin32Error(); handle.Dispose(); throw new Win32Exception(error); }
+            try { return new FileStream(handle, FileAccess.Write, 4096); }
+            catch { handle.Dispose(); throw; }
+        }
+        finally { LocalFree(descriptor); }
+    }
     [StructLayout(LayoutKind.Sequential)] private struct AttributeTag { internal uint Attributes, Tag; }
     [StructLayout(LayoutKind.Sequential)] private struct SecurityAttributes { internal int Length; internal IntPtr Descriptor; internal int Inherit; }
     [DllImport("kernel32.dll", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern SafeFileHandle CreateFile(string path, uint access, uint sharing, IntPtr security, uint creation, uint flags, IntPtr template);
+    [DllImport("kernel32.dll", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateProtectedFileHandle(string path, uint access, uint sharing, ref SecurityAttributes security, uint creation, uint flags, IntPtr template);
     [DllImport("kernel32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetFileInformationByHandleEx(SafeFileHandle file, int type, out AttributeTag result, uint size);
     [DllImport("advapi32.dll")]

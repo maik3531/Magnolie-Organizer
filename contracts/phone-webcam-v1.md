@@ -1,5 +1,44 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Persistent Source deployment contract (Refs #588)
+
+PhoneCameraSourceRegistration now implements the future elevated Source step,
+but has NO active caller in the current audio-only setup. It consumes its own
+embedded payload and matching original journal identity. Before mutation it
+requires an administrator, an explicit machine64 COM parent with protected
+owner/DACL, and no existing fixed class in either machine64 or current-user64
+view. It never uses merged HKCR, a user-selected DLL or an HKCU fallback.
+
+After the flushed SourceIntent it creates a fixed protected permanent
+`ProgramData/Magnolie-Webcam-Source/<digest>/Magnolie.PhoneCameraSource.x64.dll`
+from owned resource bytes, refusing an existing digest directory/file. Parent
+directory handles and the checked DLL read lease are held through registration.
+Both the persistent DLL and the new journal file request an explicit trusted
+owner/DACL at CREATE_NEW, rather than assuming the creating token's default
+owner. The DLL's held local-file/no-reparse/final-path identity and protected
+owner/DACL are checked before the machine COM path is written.
+Both the class and InprocServer32 key require actual REG_CREATED_NEW_KEY;
+collisions do not authorize value replacement. The fixed REG_SZ path and Both
+threading model, exact key/value shape, protected ACLs and held DLL digest are
+checked before recording SourceInstalled. A later error records terminal
+uncertainty when possible and preserves every partial file/key; no automatic
+rollback, ACL repair, foreign takeover or unknown-outcome retry is implemented.
+
+Registry ACLs have a distinct rights mask: KEY_NOTIFY is allowed read access,
+not FILE_WRITE_EA. Three new actual-Windows memory-only groups check that policy,
+the actual persistent-file creation descriptor and strict registration readback,
+including wrong path/type/threading and extra
+values/subkeys. A separate explicit Registry64 read-only query observed protected
+standard COM parents and no fixed class at the time of that query. Neither result
+is a registered-source or protected-install acceptance test.
+
+The protected file publication, Win32 key creation/flush and combined PnP path
+have only been compiled, NOT executed or accepted. InstallCurrent neither loads
+the DLL nor invokes COM/FrameServer or audio clients; SourceInstalled is setup
+accounting, NOT OS source-identity proof, signature validation or capture readiness.
+The original single-approval IPC/microphone setup still needs integration and
+safe native acceptance. No Source installer is exposed to phone/renderer commands.
+
 ## Combined setup journal boundary (Refs #588)
 
 PhoneCameraSetupJournal implements a bounded, collision-refusing durable setup
@@ -30,9 +69,10 @@ ProgramData factory, elevation, registry/COM registration, PnP or audio clients.
 The test-only arbitrary-path factory and writer fault hook are excluded from the
 product. No journal receipt grants capture, SourceBindingProof or UI readiness.
 
-The combined installer is still missing: persistent protected DLL deployment,
-exclusive exact COM registration/readback and linkage to the original mic setup
-must actually consume these durable steps within ONE approved elevated process.
+The Source step now has a compiled persistent deployment/registration contract,
+but has not been executed or natively accepted. The combined installer and
+linkage to the original mic setup must actually consume these durable steps
+within ONE approved elevated process.
 The existing microphone-only reboot result is not combined webcam success.
 Broker/VirtualCamera/real AV acceptance and all existing device pauses remain.
 

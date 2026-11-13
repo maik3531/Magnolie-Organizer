@@ -82,6 +82,7 @@ internal static class PhoneCameraSourcePayloadTests
         var types = metadata.TypeDefinitions.Select(h => metadata.GetTypeDefinition(h)).Select(t => metadata.GetString(t.Name)).ToHashSet();
         TestAssert.That(types.Contains(nameof(PhoneCameraSourcePayload)) == expected, "Source composition mismatch");
         TestAssert.That(types.Contains(nameof(PhoneCameraSetupJournal)) == expected, "Setup journal composition mismatch");
+        TestAssert.That(types.Contains(nameof(PhoneCameraSourceRegistration)) == expected, "Source registration composition mismatch");
         TestAssert.That(!metadata.MethodDefinitions.Any(h => metadata.GetString(metadata.GetMethodDefinition(h).Name).StartsWith("JournalFixture", StringComparison.Ordinal)),
             "Product retained arbitrary journal-path factory or writer fault hook");
         var entries = metadata.ManifestResources.Select(h => metadata.GetManifestResource(h)).ToArray();
