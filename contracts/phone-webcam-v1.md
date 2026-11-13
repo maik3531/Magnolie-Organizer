@@ -1,5 +1,41 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Combined setup journal boundary (Refs #588)
+
+PhoneCameraSetupJournal implements a bounded, collision-refusing durable setup
+record for the future combined installer. Its production factory consumes its
+own embedded Source/helper identities and the fixed original microphone package
+digest, holds the existing protected ProgramData/root checks, and creates one
+fixed journal with CreateNew/WriteThrough. No existing/empty/partial journal is
+overwritten, removed or reopened for mutation. The factory is NOT wired to the
+current audio-only setup, plan/preparation probes or incoming phone commands.
+
+The journal records separate Prepared → SourceIntent → SourceInstalled →
+MicrophoneIntent → RebootRequired steps. Each complete row is flushed to disk
+before the method returns; intent must precede its future external mutation.
+Source class/digest/fixed relative deployment path, helper and original mic
+package identities remain bound throughout. Failed/UnknownPending are terminal;
+a write/flush exception poisons the live writer before any retry. Review retains
+known source/mic steps and any known original devnode even on a partial failure.
+Interrupted prefixes remain pending; truncated/corrupt/noncanonical/misbound
+records are refused, not interpreted as an unused transaction. Row hashes and
+history links detect corruption but are NOT authentication or installed-source
+proof; trusted ownership still depends on the protected filesystem boundary.
+
+Four new groups passed with actual owned temporary files on Linux and ordinary
+Windows: flushed step order/readback, terminal uncertainty, strict audit, and
+exclusive original writer. Prefix/truncation tests simulate interrupted records,
+not power-loss durability certification. The tests do not invoke the production
+ProgramData factory, elevation, registry/COM registration, PnP or audio clients.
+The test-only arbitrary-path factory and writer fault hook are excluded from the
+product. No journal receipt grants capture, SourceBindingProof or UI readiness.
+
+The combined installer is still missing: persistent protected DLL deployment,
+exclusive exact COM registration/readback and linkage to the original mic setup
+must actually consume these durable steps within ONE approved elevated process.
+The existing microphone-only reboot result is not combined webcam success.
+Broker/VirtualCamera/real AV acceptance and all existing device pauses remain.
+
 ## Native response-file linker routing (Refs #587)
 
 All three native artifact builders keep compiler arguments on separate lines but

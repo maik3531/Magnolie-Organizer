@@ -1,4 +1,13 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--phone-camera-setup-journal")
+{
+    await PhoneCameraSetupJournalTests.DurableOrderAsync();
+    await PhoneCameraSetupJournalTests.GuardsAndUncertaintyAsync();
+    await PhoneCameraSetupJournalTests.StrictAuditAsync();
+    await PhoneCameraSetupJournalTests.ExclusiveOrderAsync();
+    Console.WriteLine("PASS combined journal durable order\nPASS combined journal uncertainty\nPASS combined journal strict audit\nPASS combined journal exclusive order");
+    return 0;
+}
 if (args.Length == 1 && args[0] == "--phone-camera-source-payload")
 {
     await PhoneCameraSourcePayloadTests.ImmutableResourcesAsync();
@@ -171,6 +180,10 @@ runner.Add("Phone webcam parent payload / strict fixed source descriptor", Phone
 runner.Add("Phone webcam source payload / immutable bounded resources", PhoneCameraSourcePayloadTests.ImmutableResourcesAsync);
 runner.Add("Phone webcam source payload / x64 DLL protections and digest", PhoneCameraSourcePayloadTests.PeAndDigestAsync);
 runner.Add("Phone webcam source payload / exact class and source descriptor", PhoneCameraSourcePayloadTests.StrictDescriptorAsync);
+runner.Add("Phone webcam setup journal / flushed intents and partial completion", PhoneCameraSetupJournalTests.DurableOrderAsync);
+runner.Add("Phone webcam setup journal / terminal uncertainty and no retry", PhoneCameraSetupJournalTests.GuardsAndUncertaintyAsync);
+runner.Add("Phone webcam setup journal / strict identity and history audit", PhoneCameraSetupJournalTests.StrictAuditAsync);
+runner.Add("Phone webcam setup journal / exclusive original writer", PhoneCameraSetupJournalTests.ExclusiveOrderAsync);
 runner.Add("Phone webcam output authority / prepared current before actual SEND", PhoneCameraSessionTests.AuthorityPrepareThenActualSendAsync);
 runner.Add("Phone webcam output authority / exact original object and independent replacement owner", PhoneCameraSessionTests.AuthorityCannotBeReplacedAsync);
 runner.Add("Phone webcam output authority / original loss permanently rejects resurrection", PhoneCameraSessionTests.AuthorityOriginalLossCannotReviveAsync);

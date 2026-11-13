@@ -171,7 +171,7 @@ internal static class PhoneCameraAudioStaging
         }
     }
 
-    private static SafeFileHandle HoldProtected(string path, bool programData)
+    internal static SafeFileHandle HoldProtected(string path, bool programData)
     {
         // Normal ProgramData grants users concrete child-create/EA/attribute
         // rights. Never repair its ACL: deny write/delete sharing on the held
@@ -207,7 +207,7 @@ internal static class PhoneCameraAudioStaging
         }
         catch { handle.Dispose(); throw; }
     }
-    private static bool CreateProtected(string path, bool allowExisting)
+    internal static bool CreateProtected(string path, bool allowExisting)
     {
         if (!ConvertStringSecurityDescriptorToSecurityDescriptor(Security, 1, out var descriptor, out _))
             throw new Win32Exception(Marshal.GetLastWin32Error());

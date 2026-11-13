@@ -55,6 +55,7 @@
     <Compile Include="..\PhoneCameraAudioRuntimePayload.cs" Link="PhoneCameraAudioRuntimePayload.cs" />
     <Compile Include="..\PhoneCameraAudioParentPayload.cs" Link="PhoneCameraAudioParentPayload.cs" />
     <Compile Include="..\PhoneCameraSourcePayload.cs" Link="PhoneCameraSourcePayload.cs" />
+    <Compile Include="..\PhoneCameraSetupJournal.cs" Link="PhoneCameraSetupJournal.cs" />
     <Compile Include="..\PhoneCameraAudioParentModule.cs" Link="PhoneCameraAudioParentModule.cs" />
     <Compile Include="..\PhoneCameraAudioParentRuntime.cs" Link="PhoneCameraAudioParentRuntime.cs" />
     <Compile Include="..\PhoneCameraAudioSetup.cs" Link="PhoneCameraAudioSetup.cs" />
