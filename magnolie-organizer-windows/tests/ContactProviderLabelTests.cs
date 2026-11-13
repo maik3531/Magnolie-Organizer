@@ -70,6 +70,7 @@ internal static class ContactProviderLabelTests
             catch (Exception error) { failures.Add(field + "/" + (remoteNewer ? "remote" : "local") + ": " + error.Message); }
         }
         TestAssert.That(failures.Count == 0, string.Join("; ", failures));
+        await ContactSourceUpdateRunTests.RunAsync();
     }
     internal static async Task RealChangesAndFailedWritesAsync()
     {

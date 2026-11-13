@@ -63,7 +63,8 @@ internal static class NextcloudDavSelection
     }
 }
 
-internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, Uri Href, bool SupportsVTodo = true, bool ReadOnly = false);
+internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, Uri Href, bool SupportsVTodo = true, bool ReadOnly = false,
+    bool? CanUpdate = null);
 internal sealed record NextcloudDavSources(IReadOnlyList<NextcloudDavSource> Calendars,
     IReadOnlyList<NextcloudDavSource> AddressBooks, string Error = "");
 internal sealed record NextcloudDavObject(Uri Href, string ETag, string Text);
@@ -260,7 +261,7 @@ internal sealed class NextcloudDavClient : IDisposable
     {
         var typeNamespace = kind == "calendar" ? "urn:ietf:params:xml:ns:caldav" : "urn:ietf:params:xml:ns:carddav";
         var typeName = kind == "calendar" ? "calendar" : "addressbook";
-        var componentProperty = kind == "calendar" ? "<c:supported-calendar-component-set/>" : "";
+        var componentProperty = kind == "calendar" ? "<c:supported-calendar-component-set/>" : "<d:current-user-privilege-set/>";
         var xml = await PropFindAsync(context, home, "1",
             $"<d:propfind xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:prop><d:displayname/><d:resourcetype/>{componentProperty}</d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
         ValidateMultiStatus(xml, false);
@@ -277,7 +278,13 @@ internal sealed class NextcloudDavClient : IDisposable
             var components = properties.SelectMany(element => element.DescendantsAndSelf()).FirstOrDefault(element => element.Name.LocalName == "supported-calendar-component-set" && element.Name.NamespaceName == "urn:ietf:params:xml:ns:caldav");
             var supportsVTodo = components is null || components.Descendants().Any(element => element.Name.LocalName == "comp" &&
                 string.Equals(element.Attribute("name")?.Value, "VTODO", StringComparison.OrdinalIgnoreCase));
-            result[uid] = new NextcloudDavSource(uid, string.IsNullOrWhiteSpace(displayName) ? Uri.UnescapeDataString(href.Segments.Last().Trim('/')) : displayName, kind, href, supportsVTodo);
+            // Missing/failed privilege discovery is UNKNOWN, not an automatic
+            // contact write grant. Keep create/delete/manual policy independent.
+            var privileges = properties.SingleOrDefault(element => element.Name == XName.Get("current-user-privilege-set", "DAV:"));
+            bool? canUpdate = privileges is null ? null : privileges.Elements(XName.Get("privilege", "DAV:")).SelectMany(element => element.Elements()).Any(element =>
+                element.Name == XName.Get("all", "DAV:") || element.Name == XName.Get("write", "DAV:") || element.Name == XName.Get("write-content", "DAV:"));
+            result[uid] = new NextcloudDavSource(uid, string.IsNullOrWhiteSpace(displayName) ? Uri.UnescapeDataString(href.Segments.Last().Trim('/')) : displayName,
+                kind, href, supportsVTodo, CanUpdate: kind == "addressbook" ? canUpdate : null);
         }
         return result.Values.OrderBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase).ThenBy(item => item.Uid, StringComparer.Ordinal).ToArray();
     }

@@ -64,6 +64,7 @@
     <Compile Include="..\PhoneCameraAudioParentRuntime.cs" Link="PhoneCameraAudioParentRuntime.cs" />
     <Compile Include="..\PhoneCameraVideoParentRuntime.cs" Link="PhoneCameraVideoParentRuntime.cs" />
     <Compile Include="..\PhoneCameraNativeOutputs.cs" Link="PhoneCameraNativeOutputs.cs" />
+    <Compile Include="..\ContactSourceUpdateRun.cs" Link="ContactSourceUpdateRun.cs" />
     <Compile Include="..\PhoneCameraAudioSetup.cs" Link="PhoneCameraAudioSetup.cs" />
     <Compile Include="..\PhoneCameraAudioSetupPipe.cs" Link="PhoneCameraAudioSetupPipe.cs" />
     <Compile Include="..\PhoneCameraAudioBootstrapLease.cs" Link="PhoneCameraAudioBootstrapLease.cs" />

@@ -172,7 +172,7 @@ internal sealed partial class BridgeDispatcher
         }
         var addressBooks = new List<object> { new { uid = "windows-contacts", name = T("Windows Contacts folder"), art = "lokal", eingerichtet = true } };
         if (clientId.Length > 0 && signedIn) addressBooks.Add(new { uid = "microsoft-graph", name = "Outlook.com / Microsoft 365", art = "graph", eingerichtet = true });
-        addressBooks.AddRange(dav.AddressBooks.Select(source => (object)new { uid = source.Uid, name = source.Name, art = accountType == "generic-dav" ? "generic-carddav" : "nextcloud-carddav", eingerichtet = true }));
+        addressBooks.AddRange(dav.AddressBooks.Select(source => (object)new { uid = source.Uid, name = source.Name, art = accountType == "generic-dav" ? "generic-carddav" : "nextcloud-carddav", eingerichtet = true, canUpdate = source.CanUpdate }));
         addressBooks.AddRange(thunderbirdSources.Where(source => source.Kind == "addressbook")
             .Select(source => (object)new { uid = source.Uid, name = source.Name, art = "thunderbird", eingerichtet = true }));
         await form.SendAsync("App.edsStatus", new

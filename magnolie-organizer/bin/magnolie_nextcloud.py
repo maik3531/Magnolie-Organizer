@@ -744,6 +744,8 @@ class NextcloudDav:
         properties = [DAV + "displayname", DAV + "resourcetype", DAV + "sync-token"]
         if kind == "calendar":
             properties.append(CALDAV + "supported-calendar-component-set")
+        else:
+            properties.append(DAV + "current-user-privilege-set")
         rows = self.propfind(home, properties, "1")
         marker = CALDAV + "calendar" if kind == "calendar" else CARDDAV + "addressbook"
         result = []
@@ -756,12 +758,20 @@ class NextcloudDav:
             components = props.get(CALDAV + "supported-calendar-component-set")
             supports_vtodo = components is None or any(
                 child.attrib.get("name", "").upper() == "VTODO" for child in components)
+            privileges = props.get(DAV + "current-user-privilege-set")
+            # A connected account/collection is not evidence of write access.
+            # Unknown remains unknown; only actual current-user DAV grants can
+            # admit an automatic update of an already bound contact. This does
+            # not grant create/delete or change the existing manual sync policy.
+            can_update = (None if privileges is None else any(
+                grant.tag in {DAV + "all", DAV + "write", DAV + "write-content"}
+                for privilege in privileges.findall(DAV + "privilege") for grant in privilege))
             result.append({"uid": source_id(kind, absolute,
                                              getattr(self.client, "account_type", "nextcloud")), "name":
                            ((display.text or "").strip() if display is not None else "") or
                            urllib.parse.unquote(urllib.parse.urlsplit(absolute).path.rstrip("/").rsplit("/", 1)[-1]),
                            "href": absolute, "art": kind,
-                           **({"supportsVtodo": supports_vtodo} if kind == "calendar" else {})})
+                            **({"supportsVtodo": supports_vtodo} if kind == "calendar" else {"canUpdate": can_update})})
         return sorted(result, key=lambda item: (item["name"].casefold(), item["uid"]))
 
     def report(self, collection, kind):
