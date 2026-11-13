@@ -4490,6 +4490,31 @@ def _email_adresse(wert):
     return text
 
 
+def _kontakt_emails_klein(kontakt, anwenden=True):
+    """Canonical profile spelling; retain wire values until a guarded write."""
+    geaendert = False
+    def adresse(obj, feld):
+        nonlocal geaendert
+        wert = obj.get(feld)
+        if not isinstance(wert, str) or "@" not in wert:
+            return
+        klein = wert.strip().lower()
+        if wert != klein:
+            geaendert = True
+            if anwenden:
+                obj[feld] = klein
+    adresse(kontakt, "email")
+    for index, wert in enumerate(kontakt.get("emails") or []):
+        if isinstance(wert, str) and "@" in wert and wert != wert.strip().lower():
+            geaendert = True
+            if anwenden and isinstance(kontakt.get("emails"), list):
+                kontakt["emails"][index] = wert.strip().lower()
+    for zeile in kontakt.get("emailEintraege") or []:
+        if isinstance(zeile, dict):
+            adresse(zeile, "wert")
+    return geaendert
+
+
 def _email_eintraege(kontakt):
     """Liefert E-Post-Anschriften mit Typ und freier Bezeichnung."""
     kandidaten = []
@@ -6838,7 +6863,10 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     Liefert (neue_lokal, anlegen, aendern, loeschen_uids, zaehler).
     Bei gleichem Eintrag gewinnt die zuletzt geänderte Seite.
     """
-    if felder == KONTAKT_FELDER: lokal = _kontakte_gleiche_karten_buendeln(lokal)
+    if felder == KONTAKT_FELDER:
+        for obj in lokal:
+            _kontakt_emails_klein(obj)
+        lokal = _kontakte_gleiche_karten_buendeln(lokal)
     zaehler = {"lokal_neu": 0, "lokal_geaendert": 0, "lokal_geloescht": 0,
                "remote_neu": 0, "remote_geaendert": 0, "remote_geloescht": 0,
                "konflikte": 0}
@@ -6911,6 +6939,10 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 obj["geaendert"] = fern_zeit
                 zaehler["lokal_geaendert"] += 1
             elif verschieden and not kontakt_nur_lesen:
+                aendern.append(obj)
+                zaehler["remote_geaendert"] += 1
+            if not kontakt_nur_lesen and _kontakt_emails_klein(fern, anwenden=False) and obj not in aendern:
+                _kontakt_emails_klein(obj)
                 aendern.append(obj)
                 zaehler["remote_geaendert"] += 1
             if quelle and (obj.get("kontaktProviderKonflikte") or {}).get(quelle):
@@ -7221,6 +7253,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     if kontakt_quelle and kontakt_nur_lesen:
         anlegen, aendern, loeschen = [], [], []
         zaehler.update(remote_neu=0, remote_geaendert=0, remote_geloescht=0)
+    if felder == KONTAKT_FELDER:
+        for obj in neue_lokal:
+            _kontakt_emails_klein(obj)
     return neue_lokal, anlegen, aendern, loeschen, zaehler
 
 

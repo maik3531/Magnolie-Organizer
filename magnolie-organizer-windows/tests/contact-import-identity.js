@@ -62,6 +62,18 @@ for (const web of require("./web-test-roots")) {
       assert.equal(T.daten().kontakte.length, 2, "Different country/number/extension was silently merged");
       assert.equal(JSON.stringify(T.daten().kontakte[0]), before);
     }
+    for (const field of ["email", "emails", "emailEintraege"]) {
+      const address = value => field === "email" ? value : field === "emails" ? [value] : [{ wert: value }];
+      const original = "Alex.Example+tag@Example.Test";
+      w.App.init({ neu: false, daten: { kontakte: [
+        { id: "email-case", vorname: "Email", nachname: "Fixture", [field]: address(original) }] } });
+      T.mergeKontakte([{ vorname: "Email", nachname: "Fixture", [field]: address(original.toLowerCase()), notiz: "Same email" }]);
+      assert.equal(T.daten().kontakte.length, 1, field + " e-mail case created duplicate");
+      assert.equal(T.daten().kontakte[0].notiz, "Same email");
+      assert.equal(T.daten().kontakte[0].email, original.toLowerCase(), "E-mail spelling was not canonical lowercase");
+      T.mergeKontakte([{ vorname: "Email", nachname: "Fixture", [field]: address("alex.example+other@example.test") }]);
+      assert.equal(T.daten().kontakte.length, 2, "Significant e-mail plus tag ignored");
+    }
     console.log("CONTACT IMPORT IDENTITY PASSED:", web);
   } finally { w.close(); }
 }

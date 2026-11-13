@@ -3264,7 +3264,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       !/^[^\s@<>,;:]+@[^\s@<>,;:]+\.[^\s@<>,;:]+$/.test(text)) return "";
     const domain = text.slice(text.lastIndexOf("@") + 1).toLowerCase();
     if (domain === "invalid" || domain.endsWith(".invalid")) return "";
-    return text;
+    return text.toLowerCase();
   }
 
   function emailEintragListe(kontakt) {

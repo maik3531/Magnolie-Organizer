@@ -488,6 +488,7 @@ internal sealed class NextcloudDavClient : IDisposable
 
 internal sealed class NextcloudCardDavRemote(NextcloudDavClient client, NextcloudDavSource source) : IContactRemote
 {
+    public bool? CanWrite => !client.ReadOnly && !source.ReadOnly;
     public async Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken cancellationToken)
     {
         var result = new List<RemoteContact>();

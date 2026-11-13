@@ -88,6 +88,7 @@ internal static class ContactSourceUpdateRun
                 contact => ContactFields.Text(contact, "uid"), StringComparer.Ordinal);
         }
         public bool SupportsYearlessBirthdays => admission.Remote.SupportsYearlessBirthdays;
+        public bool? CanWrite => admission.CanUpdate == true && admission.Remote.CanWrite != false;
         internal async Task CheckAsync(CancellationToken cancellation)
         {
             originalCurrent(); cancellation.ThrowIfCancellationRequested();

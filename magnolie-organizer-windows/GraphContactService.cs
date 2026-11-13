@@ -250,6 +250,7 @@ internal sealed class GraphDeviceSignIn
 
 internal sealed class GraphApiClient : IContactRemote
 {
+    public bool? CanWrite => true;
     // Graph's birthday property requires a complete date; its serializer
     // deliberately omits yearless values instead of inventing a year.
     public bool SupportsYearlessBirthdays => false;

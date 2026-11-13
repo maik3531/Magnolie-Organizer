@@ -3266,7 +3266,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       !/^[^\s@<>,;:]+@[^\s@<>,;:]+\.[^\s@<>,;:]+$/.test(text)) return "";
     const domain = text.slice(text.lastIndexOf("@") + 1).toLowerCase();
     if (domain === "invalid" || domain.endsWith(".invalid")) return "";
-    return text;
+    return text.toLowerCase();
   }
 
   function emailEintragListe(kontakt) {

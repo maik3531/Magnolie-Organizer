@@ -20,6 +20,8 @@ internal static class ContactProviderLabelTests
         internal RemoteContact Current = current;
         internal int Updates;
         internal bool FailUpdate;
+        internal bool? Writable = true;
+        public bool? CanWrite => Writable;
         public Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<RemoteContact>>([Current with { Data = Current.Data.DeepClone().AsObject() }]);
         public Task<RemoteContact> CreateAsync(string uid, JsonObject contact, CancellationToken cancellationToken) => throw new Exception("Unexpected creation");
@@ -46,6 +48,7 @@ internal static class ContactProviderLabelTests
     internal static async Task TwoSourceConvergenceAsync()
     {
         await PhoneCountryComparisonAsync();
+        await EmailCaseComparisonAsync();
         var failures = new List<string>();
         foreach (var field in new[] { "telefone", "emailEintraege", "anschriften" })
         foreach (bool remoteNewer in new[] { false, true })
@@ -75,6 +78,71 @@ internal static class ContactProviderLabelTests
         await ContactSourceUpdateRunTests.RunAsync();
         CheckUnknownLabelsAndCategories();
     }
+    private static async Task EmailCaseComparisonAsync()
+    {
+        foreach (var sourceReadOnly in new[] { false, true })
+        foreach (var clientReadOnly in new[] { false, true })
+        {
+            using var http = new HttpClient();
+            using var client = new NextcloudDavClient((NextcloudMailboxSettingsStore)null!, http) { ReadOnly = clientReadOnly };
+            var source = new NextcloudDavSource(A, "Synthetic", "addressbook", new Uri("https://example.invalid/book/"), ReadOnly: sourceReadOnly);
+            TestAssert.That(new NextcloudCardDavRemote(client, source).CanWrite == (!sourceReadOnly && !clientReadOnly),
+                "DAV/bridge read-only capability was not propagated");
+        }
+        foreach (var field in new[] { "email", "emails", "emailEintraege" })
+        {
+            JsonObject Email(string address) => new() {
+                ["id"] = "email-person", ["uid"] = "email@example.test", ["vorname"] = "Alex", ["nachname"] = "Email Fixture",
+                ["sync"] = true, ["geaendert"] = 2000L,
+                [field] = field == "email" ? JsonValue.Create(address) : field == "emails" ? new JsonArray(address) :
+                    new JsonArray(new JsonObject { ["wert"] = address, ["typen"] = new JsonArray("HOME") }) };
+            var local = Email("Alex.Example+tag@Example.Test");
+            var lower = Email("alex.example+tag@example.test");
+            var original = Email("old@example.test");
+            var first = new Remote("email-a", new RemoteContact("email-a", "\"a-v2\"", 3000, lower.DeepClone().AsObject(), true));
+            var second = new Remote("email-b", new RemoteContact("email-b", "\"b-v2\"", 3000, lower.DeepClone().AsObject(), true));
+            var exact = ContactFields.ContentHash(local);
+            var adopted = await new ContactSyncEngine().SyncAsync(A, new JsonArray(local.DeepClone()), [], 0, first);
+            TestAssert.That(adopted.Contacts.Count == 1 && adopted.Counts.Errors == 0 && adopted.Counts.Conflicts == 0 && first.Updates == 0,
+                "E-mail case created an unbound duplicate or write: " + field);
+            ContactFields.SetSource(local, A, first.Current with { ETag = "\"a-v1\"", Data = original }, remoteBaseline: true);
+            ContactFields.SetSource(local, B, second.Current with { ETag = "\"b-v1\"", Data = original }, remoteBaseline: true);
+            var result = await new ContactSyncEngine().SyncAsync(A, new JsonArray(local.DeepClone()), [], 0, first);
+            result = await new ContactSyncEngine().SyncAsync(B, result.Contacts, [], 0, second);
+            result = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, first);
+            TestAssert.That(result.Counts.Conflicts == 0 && first.Updates == 0 && second.Updates == 0 && result.Contacts.Count == 1 &&
+                JsonNode.DeepEquals(result.Contacts[0]![field], lower[field]) && ContactFields.ContentHash(local) == exact &&
+                result.Contacts[0]!["syncQuellen"]!.AsObject().Count == 2, "E-mail case caused two-source churn or failed canonical lowercase: " + field);
+            first.Current = first.Current with { ETag = "\"a-v3\"", Data = Email("Alex.Example+tag@Example.Test") };
+            second.Current = second.Current with { ETag = "\"b-v3\"", Data = Email("Alex.Example+tag@Example.Test") };
+            var readOnly = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, first, additiveOnly: true);
+            TestAssert.That(first.Updates == 0 && JsonNode.DeepEquals(readOnly.Contacts[0]![field], lower[field]), "Read-only import wrote a provider");
+            first.Writable = false;
+            var noWriteGrant = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, first);
+            TestAssert.That(noWriteGrant.Counts.Errors == 0 && noWriteGrant.Counts.Conflicts == 0 && first.Updates == 0,
+                "Read-only source e-mail case caused an error/conflict or a write attempt");
+            first.Writable = null;
+            var unknownGrant = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, first);
+            TestAssert.That(unknownGrant.Counts.Errors == 0 && unknownGrant.Counts.Conflicts == 0 && first.Updates == 0,
+                "Unknown capability granted an optional spelling write");
+            first.Writable = true;
+            result = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, first);
+            result = await new ContactSyncEngine().SyncAsync(B, result.Contacts, [], 0, second);
+            result = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, first);
+            TestAssert.That(result.Counts.Conflicts == 0 && first.Updates == 1 && second.Updates == 1 &&
+                JsonNode.DeepEquals(first.Current.Data[field], lower[field]) && JsonNode.DeepEquals(second.Current.Data[field], lower[field]),
+                "Uppercase provider e-mail was not written lowercase once to each original source");
+            first.Current = first.Current with { ETag = "\"a-v4\"", Data = Email("Alex.Example+tag@Example.Test") };
+            first.FailUpdate = true;
+            var failed = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, first);
+            TestAssert.That(failed.Counts.Errors == 1 && first.Updates == 1 &&
+                ContactFields.Source(failed.Contacts[0]!.AsObject(), A)?["etag"]?.GetValue<string>() != "\"a-v4\"",
+                "Failed lowercase write was falsely acknowledged");
+            foreach (var different in new[] { "alex.example@example.test", "alexexample+tag@example.test", "alex.example+other@example.test" })
+                TestAssert.That(!ContactFields.SameLabelValues(local, Email(different)), "Significant e-mail characters were ignored: " + different);
+        }
+    }
+
     private static async Task PhoneCountryComparisonAsync()
     {
         foreach (var (country, national, international) in new[] {
