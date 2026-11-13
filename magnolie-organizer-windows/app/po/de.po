@@ -3052,8 +3052,8 @@ msgstr "Müllentleerungen mitdrucken"
 msgid "Incoming"
 msgstr "Eingehend"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Eingehende KDE Connect-Dateien (immer bestätigen)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Eingehende KDE Connect-Dateien (immer bestätigen)"
 
 msgid "Incoming call"
 msgstr "Eingehender Anruf"
@@ -4737,8 +4737,8 @@ msgstr "Foto von %(name)s"
 msgid "Photos"
 msgstr "Fotos"
 
-msgid "Photos only"
-msgstr "Nur Fotos"
+#~ msgid "Photos only"
+#~ msgstr "Nur Fotos"
 
 msgid "Photos and videos"
 msgstr "Fotos und Videos"
@@ -8811,11 +8811,11 @@ msgstr "Foto- und Video-Synchronisation aktivieren"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Nur vom Telefon auf den PC importieren"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Nur vom Telefon auf den PC importieren"
 
-msgid "PC → phone"
-msgstr "PC → Telefon"
+#~ msgid "PC → phone"
+#~ msgstr "PC → Telefon"
 
 msgid "Only the phone inventory"
 msgstr "Nur der Bestand auf dem Telefon"
@@ -8880,11 +8880,11 @@ msgstr "OS-Tray-Symbol (60 s)"
 msgid "Saved developer mode is required."
 msgstr "Nur mit gespeichertem Entwicklermodus verfügbar."
 
-msgid "Add PC source folder …"
-msgstr "PC-Quellordner hinzufügen …"
+#~ msgid "Add PC source folder …"
+#~ msgstr "PC-Quellordner hinzufügen …"
 
-msgid "Selected PC source folders"
-msgstr "Ausgewählte PC-Quellordner"
+#~ msgid "Selected PC source folders"
+#~ msgstr "Ausgewählte PC-Quellordner"
 
-msgid "PC source folders are separate from receive destinations."
-msgstr "PC-Quellordner sind unabhängig von Empfangszielen."
+#~ msgid "PC source folders are separate from receive destinations."
+#~ msgstr "PC-Quellordner sind unabhängig von Empfangszielen."

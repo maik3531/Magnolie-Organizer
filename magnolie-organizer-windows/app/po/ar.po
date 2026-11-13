@@ -3089,8 +3089,8 @@ msgstr "تضمين جمع النفايات"
 msgid "Incoming"
 msgstr "وارد"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "الملفات الواردة عبر KDE Connect (التأكيد دائمًا)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "الملفات الواردة عبر KDE Connect (التأكيد دائمًا)"
 
 msgid "Incoming call"
 msgstr "مكالمة واردة"
@@ -8706,11 +8706,11 @@ msgstr "تفعيل مزامنة الصور والفيديو"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "الاستيراد من الهاتف إلى الكمبيوتر فقط"
+#~ msgid "Import phone → PC only"
+#~ msgstr "الاستيراد من الهاتف إلى الكمبيوتر فقط"
 
-msgid "PC → phone"
-msgstr "الكمبيوتر → الهاتف"
+#~ msgid "PC → phone"
+#~ msgstr "الكمبيوتر → الهاتف"
 
 msgid "Only the phone inventory"
 msgstr "محتويات الهاتف فقط"

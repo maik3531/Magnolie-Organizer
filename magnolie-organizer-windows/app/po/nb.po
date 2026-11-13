@@ -3015,8 +3015,8 @@ msgstr "Ta med avfallshentinger"
 msgid "Incoming"
 msgstr "Innkommende"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Innkommende KDE Connect-filer (bekreft alltid)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Innkommende KDE Connect-filer (bekreft alltid)"
 
 msgid "Incoming call"
 msgstr "Innkommende anrop"
@@ -8653,11 +8653,11 @@ msgstr "Aktiver synkronisering av bilder og videoer"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Importer bare fra telefon til PC"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Importer bare fra telefon til PC"
 
-msgid "PC → phone"
-msgstr "PC → telefon"
+#~ msgid "PC → phone"
+#~ msgstr "PC → telefon"
 
 msgid "Only the phone inventory"
 msgstr "Bare telefonens innhold"

@@ -3048,8 +3048,8 @@ msgstr "Включить вывоз отходов"
 msgid "Incoming"
 msgstr "Входящий"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Входящие файлы KDE Connect (всегда запрашивать подтверждение)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Входящие файлы KDE Connect (всегда запрашивать подтверждение)"
 
 msgid "Incoming call"
 msgstr "Входящий звонок"
@@ -8726,11 +8726,11 @@ msgstr "Включить синхронизацию фото и видео"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Только импортировать с телефона на ПК"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Только импортировать с телефона на ПК"
 
-msgid "PC → phone"
-msgstr "ПК → телефон"
+#~ msgid "PC → phone"
+#~ msgstr "ПК → телефон"
 
 msgid "Only the phone inventory"
 msgstr "Только содержимое телефона"

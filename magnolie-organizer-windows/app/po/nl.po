@@ -3041,8 +3041,8 @@ msgstr "Afvalinzamelingen opnemen"
 msgid "Incoming"
 msgstr "Inkomend"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Inkomende KDE Connect-bestanden (altijd bevestigen)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Inkomende KDE Connect-bestanden (altijd bevestigen)"
 
 msgid "Incoming call"
 msgstr "Inkomende oproep"
@@ -8749,11 +8749,11 @@ msgstr "Synchronisatie van foto’s en video’s inschakelen"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Alleen van telefoon naar pc importeren"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Alleen van telefoon naar pc importeren"
 
-msgid "PC → phone"
-msgstr "Pc → telefoon"
+#~ msgid "PC → phone"
+#~ msgstr "Pc → telefoon"
 
 msgid "Only the phone inventory"
 msgstr "Alleen de inhoud van de telefoon"

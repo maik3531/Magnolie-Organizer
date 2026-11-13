@@ -3042,8 +3042,8 @@ msgstr "Incluir recolhas de resíduos"
 msgid "Incoming"
 msgstr "Entrada"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Ficheiros recebidos pelo KDE Connect (confirmar sempre)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Ficheiros recebidos pelo KDE Connect (confirmar sempre)"
 
 msgid "Incoming call"
 msgstr "Chamada recebida"
@@ -8745,11 +8745,11 @@ msgstr "Ativar a sincronização de fotografias e vídeos"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Importar apenas do telefone para o PC"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Importar apenas do telefone para o PC"
 
-msgid "PC → phone"
-msgstr "PC → telefone"
+#~ msgid "PC → phone"
+#~ msgstr "PC → telefone"
 
 msgid "Only the phone inventory"
 msgstr "Apenas o conteúdo do telefone"

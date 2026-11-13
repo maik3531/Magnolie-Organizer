@@ -3009,8 +3009,8 @@ msgstr "Medtag affaldsafhentninger"
 msgid "Incoming"
 msgstr "Indkommende"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Indgående KDE Connect-filer (bekræft altid)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Indgående KDE Connect-filer (bekræft altid)"
 
 msgid "Incoming call"
 msgstr "Indgående opkald"
@@ -8645,11 +8645,11 @@ msgstr "Aktivér synkronisering af billeder og videoer"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Importér kun fra telefon til pc"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Importér kun fra telefon til pc"
 
-msgid "PC → phone"
-msgstr "Pc → telefon"
+#~ msgid "PC → phone"
+#~ msgstr "Pc → telefon"
 
 msgid "Only the phone inventory"
 msgstr "Kun telefonens indhold"

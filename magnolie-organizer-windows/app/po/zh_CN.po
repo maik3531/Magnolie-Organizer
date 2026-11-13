@@ -2878,8 +2878,8 @@ msgstr "包含垃圾收集"
 msgid "Incoming"
 msgstr "传入"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "传入的 KDE Connect 文件（始终确认）"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "传入的 KDE Connect 文件（始终确认）"
 
 msgid "Incoming call"
 msgstr "来电"
@@ -8240,11 +8240,11 @@ msgstr "启用照片和视频同步"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "仅从手机导入到电脑"
+#~ msgid "Import phone → PC only"
+#~ msgstr "仅从手机导入到电脑"
 
-msgid "PC → phone"
-msgstr "电脑 → 手机"
+#~ msgid "PC → phone"
+#~ msgstr "电脑 → 手机"
 
 msgid "Only the phone inventory"
 msgstr "仅手机中的内容"

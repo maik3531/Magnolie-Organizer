@@ -2971,8 +2971,8 @@ msgstr "ごみ収集を含める"
 msgid "Incoming"
 msgstr "着信"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "受信する KDE Connect ファイル（常に確認）"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "受信する KDE Connect ファイル（常に確認）"
 
 msgid "Incoming call"
 msgstr "着信"
@@ -8552,11 +8552,11 @@ msgstr "写真と動画の同期を有効にする"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "スマートフォンから PC へのみインポート"
+#~ msgid "Import phone → PC only"
+#~ msgstr "スマートフォンから PC へのみインポート"
 
-msgid "PC → phone"
-msgstr "PC → スマートフォン"
+#~ msgid "PC → phone"
+#~ msgstr "PC → スマートフォン"
 
 msgid "Only the phone inventory"
 msgstr "スマートフォン内の項目のみ"

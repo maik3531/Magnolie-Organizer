@@ -62,8 +62,13 @@ async function check(web, mode) {
 }
 (async () => {
   const results = [];
-  for (const web of require("./web-test-roots")) for (const mode of (process.argv[2] ? process.argv[2].split(",") :
-    ["labels", "number", "note", "address-labels", "address-value", "email-labels", "email-value"])) {
+  const allModes = ["labels", "number", "note", "address-labels", "address-value", "email-labels", "email-value"];
+  // The canonical runner supplies version/installer metadata to every test.
+  // Only an explicit non-version argument is a requested narrow mode list.
+  const requested = process.argv[2];
+  const modes = !requested || /^\d+\.\d+\.\d+$/.test(requested) ? allModes : requested.split(",");
+  assert.ok(modes.every(mode => allModes.includes(mode)), "Unknown contact review test mode");
+  for (const web of require("./web-test-roots")) for (const mode of modes) {
     try { await check(web, mode); results.push({ web, mode, passed: true }); }
     catch (error) { results.push({ web, mode, passed: false, error: error.message }); }
   }

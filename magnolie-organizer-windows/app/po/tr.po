@@ -3008,8 +3008,8 @@ msgstr "Atık toplamalarını dahil et"
 msgid "Incoming"
 msgstr "Gelen"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Gelen KDE Connect dosyaları (her zaman onay iste)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Gelen KDE Connect dosyaları (her zaman onay iste)"
 
 msgid "Incoming call"
 msgstr "Gelen arama"
@@ -8640,11 +8640,11 @@ msgstr "Fotoğraf ve video eşitlemesini etkinleştir"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Yalnızca telefondan PC’ye aktar"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Yalnızca telefondan PC’ye aktar"
 
-msgid "PC → phone"
-msgstr "PC → telefon"
+#~ msgid "PC → phone"
+#~ msgstr "PC → telefon"
 
 msgid "Only the phone inventory"
 msgstr "Yalnızca telefonun içeriği"

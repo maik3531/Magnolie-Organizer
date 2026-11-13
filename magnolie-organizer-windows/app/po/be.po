@@ -3037,8 +3037,8 @@ msgstr "Уключыць вываз адходаў"
 msgid "Incoming"
 msgstr "Паступае"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Уваходныя файлы KDE Connect (заўсёды пацвярджаць)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Уваходныя файлы KDE Connect (заўсёды пацвярджаць)"
 
 msgid "Incoming call"
 msgstr "Уваходны званок"
@@ -8698,11 +8698,11 @@ msgstr "Уключыць сінхранізацыю фота і відэа"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Толькі імпартаваць з тэлефона на ПК"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Толькі імпартаваць з тэлефона на ПК"
 
-msgid "PC → phone"
-msgstr "ПК → тэлефон"
+#~ msgid "PC → phone"
+#~ msgstr "ПК → тэлефон"
 
 msgid "Only the phone inventory"
 msgstr "Толькі змесціва тэлефона"

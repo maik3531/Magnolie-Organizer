@@ -3047,8 +3047,8 @@ msgstr "Includi raccolte rifiuti"
 msgid "Incoming"
 msgstr "In arrivo"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "File KDE Connect in arrivo (conferma sempre)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "File KDE Connect in arrivo (conferma sempre)"
 
 msgid "Incoming call"
 msgstr "Chiamata in arrivo"
@@ -8781,11 +8781,11 @@ msgstr "Attiva la sincronizzazione di foto e video"
 
 
 #. Native media UI package completeness (Refs #330, #392).
-msgid "Import phone → PC only"
-msgstr "Importa solo dal telefono al PC"
+#~ msgid "Import phone → PC only"
+#~ msgstr "Importa solo dal telefono al PC"
 
-msgid "PC → phone"
-msgstr "PC → telefono"
+#~ msgid "PC → phone"
+#~ msgstr "PC → telefono"
 
 msgid "Only the phone inventory"
 msgstr "Solo i contenuti del telefono"
