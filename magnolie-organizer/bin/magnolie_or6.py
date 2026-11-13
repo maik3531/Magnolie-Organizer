@@ -444,8 +444,13 @@ def _read_or6(raw):
             else:
                 completed, completed_time = _date(fields, 19)
                 priority = _number(fields, 18, 3)
+                # Original-program open/completed/reopened controls verify
+                # Status 1/2 as open and 4 as complete. A Lotus reexport may
+                # leave a completion stamp even on an explicitly open task.
+                status = _number(fields, 20)
+                done = status == 4 if status in (1, 2, 4) else bool(completed)
                 result["aufgaben"].append(dict(common, faellig=end, prio=priority+1 if priority < 3 else 2,
-                                               erledigt=bool(completed)))
+                                               erledigt=done))
         elif tag == 0x400:
             first, last = _string(fields, 17), _string(fields, 19)
             company = _string(fields, 23)

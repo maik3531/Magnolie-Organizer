@@ -11,6 +11,11 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
 - Basic appointments: description, local date/time, explicit end, confidentiality
   and tentative flag. No time-zone conversion is inferred from the legacy file.
 - Tasks: description, due date, priority and completed state.
+  Independently verified native status values 1/2 (open) and 4 (completed)
+  take precedence over a completion timestamp that a Lotus reexport may retain
+  on an open task (#567). Unverified/missing status layouts retain the previous
+  timestamp fallback. Native repeating-task sets remain unsupported; this status
+  correction does not remove the repeat guard or flatten them into loose tasks.
 - Contacts: names, company, telephone numbers, email addresses and postal
   addresses; additional basic text fields are retained in the contact note.
   Mail-merge names and nonempty native `Extn` slots are retained as explicitly

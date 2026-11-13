@@ -303,7 +303,12 @@ internal static class Or6Codec
                 {
                     var priority = Number(fields, 18, 3);
                     common["faellig"] = end.Date; common["prio"] = priority < 3 ? priority + 1 : 2;
-                    common["erledigt"] = Date(fields, 19).Date.Length > 0; tasks.Add(common);
+                    var completed = Date(fields, 19).Date.Length > 0;
+                    // Independently toggled original-program states: an open
+                    // task (1/2) can retain a completion stamp after reexport.
+                    // Preserve the existing fallback for unverified layouts.
+                    var status = Number(fields, 20);
+                    common["erledigt"] = status is 1 or 2 or 4 ? status == 4 : completed; tasks.Add(common);
                 }
             }
             else if (tag == 0x400)
