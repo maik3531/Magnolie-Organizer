@@ -30,7 +30,7 @@ class WebcamReceiveRun:
                     (data_guard is not None and not callable(data_guard)) or
                     receiver_ready is not None and data_guard is None):
                 raise ValueError('webcam_explicit_receiver_ready_requires_live_data_guard')
-            self.outputs = output_factory(device, original, muted=muted, identity=session)
+            self.outputs = output_factory(device, original, muted=muted, identity=session, prepare_only=True)
             def current():
                 original()
                 if self.outputs.closed:
@@ -44,6 +44,7 @@ class WebcamReceiveRun:
                 receiver_ready()
             admitted = True
             current()  # A callback/flag alone cannot replace the actual agreement.
+            self.outputs.arm_media_deadline()  # Timing only; no fresh permission/PTS anchor.
             self.channel = WebcamMediaSocket(sock, session, secret, current, sending=False)
         except BaseException:
             sock.close()

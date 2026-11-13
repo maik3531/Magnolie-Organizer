@@ -88,6 +88,41 @@ def test_fresh_original_probe_binds_listener_and_random_key_without_starting_nat
     assert 24 == offer['version'] and 'url' not in offer
 
 
+def test_valid_slow_ready_send_does_not_consume_native_first_media_deadline(f):
+    f.offer(); _, accepted = f.connect()
+    f.exchange.prepared(f.parent, f.packet('prepared'))
+    def native(device, guard, **settings):
+        output = NativeWebcamSession(device, guard, video_factory=Output, audio_factory=Output,
+            clock=lambda: f.now, **settings)
+        f.outputs.append(output)
+        return output
+    def original_ready(packet):
+        f.now += 3  # Still within the ORIGINAL 60-second control permission.
+        f.exchange._current()
+        f.outputs[0].check_lifetime()
+        assert not f.outputs[0].positions and f.outputs[0].presentation.anchor is None
+        f.send_ready(packet)
+    run = f.exchange.bind_receiver(f.parent, accepted, '/dev/video42', original_ready, output_factory=native)
+    assert f.exchange.phase == 'sending' and len(f.ready) == 1
+    assert run.outputs.started == f.now and not run.outputs.positions and run.outputs.presentation.anchor is None
+
+
+def test_slow_ready_never_renews_the_original_control_permission(f):
+    f.offer(); _, accepted = f.connect()
+    f.exchange.prepared(f.parent, f.packet('prepared'))
+    def native(device, guard, **settings):
+        output = NativeWebcamSession(device, guard, video_factory=Output, audio_factory=Output,
+            clock=lambda: f.now, **settings)
+        f.outputs.append(output)
+        return output
+    def expired_ready(_):
+        f.now += 61
+        f.outputs[0].check_lifetime()
+    with pytest.raises(PermissionError, match='original_control_retired'):
+        f.exchange.bind_receiver(f.parent, accepted, '/dev/video42', expired_ready, output_factory=native)
+    assert f.exchange.phase == 'retired' and not f.ready and f.outputs[0].closed
+
+
 def test_prepared_real_socket_and_actual_output_readiness_precede_send_then_bound_av_and_stop(f):
     offer = f.offer(); phone, accepted = f.connect()
     f.exchange.prepared(f.parent, f.packet('prepared'))

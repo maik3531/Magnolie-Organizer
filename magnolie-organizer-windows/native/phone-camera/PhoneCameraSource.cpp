@@ -39,9 +39,9 @@ namespace Magnolie::PhoneCamera
         Samples samples;
         std::shared_ptr<PresentationClock> clock;
         GUID clockScope = GUID_NULL;
-        bool shutdown = false, started = false, announced = false, received = false;
+        bool shutdown = false, started = false, announced = false, received = false, sendingObserved = false;
         MF_STREAM_STATE streamState = MF_STREAM_STATE_STOPPED;
-        Clock::time_point startedAt{}, receivedAt{};
+        Clock::time_point sendingAt{}, receivedAt{};
         GUID descriptorId{};
         MFWORKITEM_KEY timer = 0;
         ComPtr<IMFMediaEventQueue> sourceEvents, streamEvents;
@@ -234,7 +234,7 @@ namespace Magnolie::PhoneCamera
         if (hr != S_OK) return FAILED(hr) ? hr : MF_E_INVALIDMEDIATYPE;
         hr = CurrentLocked(); if (FAILED(hr)) return hr;
         s.started = true; s.streamState = MF_STREAM_STATE_RUNNING;
-        s.startedAt = Clock::now(); s.received = false; s.latest.Reset();
+        s.sendingObserved = false; s.received = false; s.latest.Reset();
         s.outstanding -= s.requests.size(); s.requests.clear();
         hr = s.sourceEvents->QueueEventParamUnk(s.announced ? MEUpdatedStream : MENewStream, GUID_NULL, S_OK, stream_.Get());
         PROPVARIANT zero{}; zero.vt = VT_I8; zero.hVal.QuadPart = 0;
@@ -345,9 +345,22 @@ namespace Magnolie::PhoneCamera
         auto& s = *state_; s.timer = 0;
         HRESULT hr = CurrentLocked(); if (FAILED(hr)) return S_OK;
         const auto now = Clock::now();
-        if (s.started && ((s.received && now - s.receivedAt > std::chrono::milliseconds(250)) ||
-            (!s.received && now - s.startedAt > std::chrono::seconds(5))))
-        { RetireLocked(MF_E_NET_TIMEOUT); return S_OK; }
+        if (s.started)
+        {
+            const HRESULT sending = s.owner.sending(s.owner.context);
+            if (sending == S_OK)
+            {
+                if (!s.sendingObserved) { s.sendingAt = now; s.sendingObserved = true; }
+                if ((s.received && now - s.receivedAt > std::chrono::milliseconds(250)) ||
+                    (!s.received && now - s.sendingAt > std::chrono::seconds(5)))
+                { RetireLocked(MF_E_NET_TIMEOUT); return S_OK; }
+            }
+            else if (sending != E_ACCESSDENIED || s.sendingObserved || s.received)
+            { RetireLocked(FAILED(sending) ? sending : E_ACCESSDENIED); return S_OK; }
+            // Genuine preparation (Current, not yet SEND) has no media-arrival
+            // deadline. Original consent/peer/control-lease checks above remain
+            // active. This starts neither a PTS epoch nor capture/readiness.
+        }
         hr = ScheduleLocked(); if (FAILED(hr)) RetireLocked(hr);
         return S_OK;
     }

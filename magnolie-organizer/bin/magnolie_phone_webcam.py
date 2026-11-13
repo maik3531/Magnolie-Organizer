@@ -203,8 +203,8 @@ class NativeWebcamSession:
     No capture is started here, including when audio is explicitly muted.
     """
     def __init__(self, device, guard, *, muted=False, video_factory=LinuxVideoOutput, audio_factory=LinuxAudioOutput,
-                 clock=time.monotonic, identity=None, wait=None):
-        if not callable(guard) or type(muted) is not bool:
+                 clock=time.monotonic, identity=None, wait=None, prepare_only=False):
+        if not callable(guard) or type(muted) is not bool or type(prepare_only) is not bool:
             raise ValueError('invalid webcam session')
         self.identity = uuid.uuid4().hex if identity is None else identity
         if type(self.identity) is not str or not re.fullmatch('[0-9a-f]{32}', self.identity):
@@ -220,7 +220,7 @@ class NativeWebcamSession:
         if not callable(self.wait): raise ValueError('invalid webcam presentation wait')
         self.presentation = _PresentationClock()
         self.clock = clock
-        self.started = clock()
+        self.started = None if prepare_only else clock()
         self.last_io = {}
         self.positions = {}
         try:
@@ -230,10 +230,10 @@ class NativeWebcamSession:
             if not muted:
                 self.audio = audio_factory(self.identity)
             self.guard()
-            # Stream arrival is timed from actual endpoint readiness, not from
-            # before an asynchronous native source was exported. The original
-            # caller's consent/deadline guard above is NOT renewed or replaced.
-            self.started = self.clock()
+            # The receiver additionally arms this ONLY after its original READY
+            # control send and separate live data agreement have succeeded.
+            # Original permission/deadline checks remain active during preparation.
+            self.started = None if prepare_only else self.clock()
         except BaseException:
             self.close()
             raise
@@ -255,11 +255,30 @@ class NativeWebcamSession:
                     raise WebcamUnavailable('webcam_session_retired')
                 self.guard()
                 now = self.clock()
+                if self.started is None:
+                    return  # Preparation is not SEND or media-arrival readiness.
                 for stream in (('video',) if self.muted else ('video', 'audio')):
                     last = self.last_io.get(stream)
                     if (last is None and now - self.started > 2 or
                             last is not None and now - last > .5):
                         raise WebcamUnavailable('webcam_stream_timeout')
+            except BaseException:
+                self.close()
+                raise
+
+    def arm_media_deadline(self):
+        """One-shot timing ONLY, not consent, READY, SEND or a PTS epoch.
+
+        The original receiver must first recheck its separate real data guard.
+        Every later write/monitor still invokes that SAME original live guard.
+        """
+        with self.lock:
+            try:
+                self.check_lifetime()
+                if self.started is not None or self.positions:
+                    raise WebcamUnavailable('webcam_media_deadline_already_armed')
+                self.started = self.clock()
+                self.guard()
             except BaseException:
                 self.close()
                 raise
@@ -285,6 +304,8 @@ class NativeWebcamSession:
             try:
                 with self.lock:
                     self.check_lifetime()
+                    if self.started is None:
+                        raise WebcamUnavailable('webcam_actual_sending_not_admitted')
                     if (stream not in ('video', 'audio') or stream == 'audio' and self.muted or
                             type(sequence) is not int or type(pts_us) is not int or
                             not 0 <= sequence < 2**63 or pts_us < 0 or pts_us > 9_007_199_254_740_991 or
