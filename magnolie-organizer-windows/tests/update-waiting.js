@@ -63,8 +63,14 @@ async function check(web, failure) {
   } finally { w.close(); }
 }
 (async () => {
+  const linux = process.env.MAGNOLIE_LINUX_SOURCE
+    ? path.join(process.env.MAGNOLIE_LINUX_SOURCE, "web")
+    : [path.resolve(__dirname, "../../magnolie-organizer/web"),
+      path.resolve(__dirname, "../shared/magnolie-organizer/web")]
+      .find(candidate => fs.existsSync(path.join(candidate, "anwendung.js")));
+  assert.ok(linux, "Source-bound Linux frontend is required");
   for (const web of [path.resolve(__dirname, "../app/web"),
-    process.env.MAGNOLIE_LINUX_SOURCE ? path.join(process.env.MAGNOLIE_LINUX_SOURCE, "web") : path.resolve(__dirname, "../../magnolie-organizer/web")]) {
+    linux]) {
     for (const failure of ["save", "download", "install", ""]) await check(web, failure);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
