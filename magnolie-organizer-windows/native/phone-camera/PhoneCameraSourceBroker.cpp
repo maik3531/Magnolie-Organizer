@@ -134,7 +134,7 @@ namespace Magnolie::PhoneCamera
             // Receiver starts while Source construction is in progress, so the
             // actual original preparation lease can renew without a larger TTL.
             hr = StartWorker(); if (FAILED(hr)) return hr;
-            const SourceOwner owner{Current, Sending, Retired, this, this};
+            const SourceOwner owner{Current, Sending, Retired, this, this, Active};
             auto proof = std::unique_ptr<SourceBindingProof>(new SourceBindingProof(*control_, owner, property_.Scope(), clock));
             hr = control_->Adopt(std::move(proof));
             Microsoft::WRL::ComPtr<IFrameFeed> feed;
@@ -144,9 +144,16 @@ namespace Magnolie::PhoneCamera
             {
                 std::lock_guard<std::mutex> lock(resources_);
                 if (stopped_.load()) return MF_E_SHUTDOWN;
-                feed_ = feed; bound_.store(true);
+                feed_ = feed;
             }
-            return Receipt("MGFSBND1", S_OK); // Binding accounting ONLY, never media Ready.
+            hr = Receipt("MGFSBND1", S_OK); // Binding accounting ONLY, never media Ready.
+            if (SUCCEEDED(hr))
+            {
+                std::lock_guard<std::mutex> lock(resources_);
+                if (stopped_.load()) return MF_E_SHUTDOWN;
+                bound_.store(true); // Publish only AFTER the binding receipt, never race telemetry ahead.
+            }
+            return hr;
         }
         void AbortBeforePublication() noexcept
         {
@@ -192,6 +199,31 @@ namespace Magnolie::PhoneCamera
             return self.lease_->RequireSending();
         }
         static void Retired(void* context, HRESULT) noexcept { static_cast<FrameServerSourceBroker*>(context)->RequestStop(); }
+        static void Active(void* context, bool active) noexcept
+        {
+            auto& self = *static_cast<FrameServerSourceBroker*>(context);
+            auto old = self.activeEvent_.load();
+            for (;;)
+            {
+                if ((old & 1) == (active ? 1u : 0u)) return;
+                const auto version = (old >> 1) + 1;
+                if (version > (std::numeric_limits<DWORD>::max)()) { self.RequestStop(); return; }
+                if (self.activeEvent_.compare_exchange_weak(old, (version << 1) | (active ? 1u : 0u))) return;
+            }
+        }
+        HRESULT PublishActive() noexcept
+        {
+            if (!bound_.load()) return S_OK;
+            const auto event = activeEvent_.load(); if (event == lastActiveEvent_) return S_OK;
+            if ((event >> 1) != (lastActiveEvent_ >> 1) + 1) return E_ACCESSDENIED;
+            HRESULT hr = Current(this); if (FAILED(hr)) return hr;
+            std::array<BYTE, 32> record{}; std::memcpy(record.data(), "MGFSACT1", 8);
+            const auto scope = property_.Scope(); const DWORD active = static_cast<DWORD>(event & 1), version = static_cast<DWORD>(event >> 1);
+            std::memcpy(record.data() + 8, &scope, 16); std::memcpy(record.data() + 24, &active, 4); std::memcpy(record.data() + 28, &version, 4);
+            hr = channel_->Write(record.data(), static_cast<DWORD>(record.size()));
+            if (SUCCEEDED(hr)) lastActiveEvent_ = event;
+            return hr;
+        }
         HRESULT Receipt(const char* magic, HRESULT result) noexcept
         {
             std::shared_ptr<BrokerChannel> channel;
@@ -265,6 +297,7 @@ namespace Magnolie::PhoneCamera
                     }
                     else hr = E_INVALIDARG;
                     if (FAILED(hr)) break;
+                    hr = PublishActive(); if (FAILED(hr)) break;
                 }
             }
             catch (...) { }
@@ -295,6 +328,8 @@ namespace Magnolie::PhoneCamera
         Microsoft::WRL::ComPtr<IFrameFeed> feed_;
         std::mutex resources_;
         std::atomic_bool stopped_{false}, bound_{false};
+        std::atomic<std::uint64_t> activeEvent_{0};
+        std::uint64_t lastActiveEvent_ = 0;
         bool authenticated_ = false;
     };
     HRESULT BindOriginalSourceBroker(RegistrationLifetime registration, const std::shared_ptr<DormantSourceControl>& target,

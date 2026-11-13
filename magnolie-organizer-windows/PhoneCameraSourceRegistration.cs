@@ -9,8 +9,8 @@ using Microsoft.Win32.SafeHandles;
 
 namespace MagnolieOrganizer.Windows;
 
-// Original combined elevated setup ONLY. Not wired to the audio-only installer.
-// Does not activate COM/FrameServer, load a DLL or establish capture authority.
+// Original combined elevated setup plus ordinary read-only installed readback.
+// Neither path activates COM/FrameServer, loads a DLL or grants capture authority.
 [SupportedOSPlatform("windows")]
 internal static class PhoneCameraSourceRegistration
 {
@@ -91,6 +91,70 @@ internal static class PhoneCameraSourceRegistration
     }
     private static IReadOnlyDictionary<string, RegistryValue> ReadValues(RegistryKey key) => key.GetValueNames().ToDictionary(name => name,
         name => new RegistryValue(key.GetValueKind(name), key.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames)), StringComparer.Ordinal);
+    // Ordinary runtime readback of our OWN embedded Source. Not installation,
+    // capture/SEND authority, a journal receipt or a path/hash supplied by UI.
+    internal sealed class InstalledLease : IDisposable
+    {
+        private readonly ModuleLease module;
+        private readonly RegistryKey machine, user, parent, ownClass, inproc;
+        private readonly object gate = new();
+        private bool disposed, retired;
+        private InstalledLease(ModuleLease module, RegistryKey machine, RegistryKey user,
+            RegistryKey parent, RegistryKey ownClass, RegistryKey inproc)
+        { this.module = module; this.machine = machine; this.user = user; this.parent = parent; this.ownClass = ownClass; this.inproc = inproc; }
+        internal void RequireCurrent()
+        {
+            lock (gate)
+            {
+                if (disposed) throw new ObjectDisposedException(nameof(InstalledLease));
+                if (retired) throw new UnauthorizedAccessException("webcam_source_installed_lease_retired");
+                try
+                {
+                    using var shadow = user.OpenSubKey(ClassParent + "\\" + ClassName, writable: false);
+                    if (shadow is not null) throw new UnauthorizedAccessException("webcam_source_user_class_shadow_preserved");
+                    RequireRegistrySecurity(parent); RequireRegistrySecurity(ownClass); RequireRegistrySecurity(inproc);
+                    if (!MatchesRegistration(ReadValues(ownClass), ownClass.GetSubKeyNames(), ReadValues(inproc), inproc.GetSubKeyNames(), module.Path))
+                        throw new UnauthorizedAccessException("webcam_source_original_registration_changed");
+                    // Module/root handles deny write/delete sharing. Initial digest is
+                    // immutable while held; do not hash an entire DLL per video/audio check.
+                }
+                catch { retired = true; throw; } // No restored-key/shadow removal resurrection.
+            }
+        }
+        public void Dispose()
+        {
+            lock (gate)
+            {
+                if (disposed) return; disposed = true;
+                inproc.Dispose(); ownClass.Dispose(); parent.Dispose(); user.Dispose(); machine.Dispose(); module.Dispose();
+            }
+        }
+        internal static InstalledLease Open(PhoneCameraSourcePayload payload)
+        {
+            ModuleLease? module = null; RegistryKey? machine = null, user = null, parent = null, ownClass = null, inproc = null;
+            try
+            {
+                module = ModuleLease.OpenCurrent(payload); // Read-only/no create/elevation/ACL repair.
+                machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+                user = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64);
+                parent = machine.OpenSubKey(ClassParent, writable: false) ?? throw new IOException("webcam_source_class_parent_missing");
+                ownClass = parent.OpenSubKey(ClassName, writable: false) ?? throw new IOException("webcam_source_installed_class_missing");
+                inproc = ownClass.OpenSubKey("InprocServer32", writable: false) ?? throw new IOException("webcam_source_installed_server_missing");
+                var lease = new InstalledLease(module, machine, user, parent, ownClass, inproc);
+                lease.RequireCurrent(); return lease;
+            }
+            catch
+            {
+                inproc?.Dispose(); ownClass?.Dispose(); parent?.Dispose(); user?.Dispose(); machine?.Dispose(); module?.Dispose();
+                throw;
+            }
+        }
+    }
+    internal static InstalledLease? HoldInstalledCurrent()
+    {
+        var own = PhoneCameraSourcePayload.LoadEmbedded();
+        return own is null ? null : InstalledLease.Open(own);
+    }
     private static RegistryKey CreateNewKey(RegistryKey parent, string name)
     {
         if (!ConvertStringSecurityDescriptorToSecurityDescriptor(Security, 1, out var descriptor, out _))
@@ -122,7 +186,9 @@ internal static class PhoneCameraSourceRegistration
         private readonly List<IDisposable> held = [];
         private FileStream? image;
         internal string Path { get; private set; } = "";
-        internal static ModuleLease Publish(PhoneCameraSourcePayload payload)
+        internal static ModuleLease Publish(PhoneCameraSourcePayload payload) => Open(payload, publish: true);
+        internal static ModuleLease OpenCurrent(PhoneCameraSourcePayload payload) => Open(payload, publish: false);
+        private static ModuleLease Open(PhoneCameraSourcePayload payload, bool publish)
         {
             var result = new ModuleLease();
             try
@@ -135,14 +201,17 @@ internal static class PhoneCameraSourceRegistration
                     throw new InvalidDataException("webcam_source_programdata_invalid");
                 result.held.Add(PhoneCameraAudioStaging.HoldProtected(programData, programData: true));
                 var root = System.IO.Path.Combine(programData, "Magnolie-Webcam-Source");
-                PhoneCameraAudioStaging.CreateProtected(root, allowExisting: true);
+                if (publish) PhoneCameraAudioStaging.CreateProtected(root, allowExisting: true);
                 result.held.Add(PhoneCameraAudioStaging.HoldProtected(root, programData: false));
                 var directory = System.IO.Path.Combine(root, payload.Sha256);
-                PhoneCameraAudioStaging.CreateProtected(directory, allowExisting: false);
+                if (publish) PhoneCameraAudioStaging.CreateProtected(directory, allowExisting: false);
                 result.held.Add(PhoneCameraAudioStaging.HoldProtected(directory, programData: false));
                 result.Path = System.IO.Path.Combine(directory, PhoneCameraSourcePayload.Filename);
-                using (var output = PhoneCameraAudioStaging.CreateProtectedFile(result.Path))
-                { payload.WriteSnapshot(output); output.Flush(flushToDisk: true); }
+                if (publish)
+                {
+                    using var output = PhoneCameraAudioStaging.CreateProtectedFile(result.Path);
+                    payload.WriteSnapshot(output); output.Flush(flushToDisk: true);
+                }
                 // Explicit trusted owner + DACL at CREATE_NEW, never a token's
                 // assumed default owner or promotion of a user-owned cache.
                 var handle = OpenImage(result.Path, 0x80020000, 1, IntPtr.Zero, 3, 0x200000, IntPtr.Zero);

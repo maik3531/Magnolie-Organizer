@@ -179,7 +179,9 @@ namespace Magnolie::PhoneCamera
     {
         auto& s = *state_;
         if (s.shutdown) return MF_E_SHUTDOWN;
+        const bool wasActive = s.started && s.streamState == MF_STREAM_STATE_RUNNING;
         s.shutdown = true; s.started = false; s.samples.Retire();
+        if (wasActive && s.owner.active) s.owner.active(s.owner.context, false);
         s.latest.Reset(); s.requests.clear(); s.outstanding = 0;
         if (s.timer) { MFCancelWorkItem(s.timer); s.timer = 0; }
         if (s.sourceEvents) s.sourceEvents->Shutdown();
@@ -241,7 +243,9 @@ namespace Magnolie::PhoneCamera
         if (SUCCEEDED(hr)) hr = s.streamEvents->QueueEventParamVar(MEStreamStarted, GUID_NULL, S_OK, &zero);
         if (SUCCEEDED(hr)) hr = s.sourceEvents->QueueEventParamVar(MESourceStarted, GUID_NULL, S_OK, &zero);
         if (FAILED(hr)) return RetireLocked(hr);
-        s.announced = true; return S_OK;
+        s.announced = true;
+        if (s.owner.active) s.owner.active(s.owner.context, true);
+        return S_OK;
     }
 
     HRESULT Source::Stop()
@@ -250,7 +254,9 @@ namespace Magnolie::PhoneCamera
         HRESULT hr = CurrentLocked(); if (FAILED(hr)) return hr;
         auto& s = *state_;
         if (!s.started) return MF_E_INVALID_STATE_TRANSITION;
+        const bool wasActive = s.streamState == MF_STREAM_STATE_RUNNING;
         s.started = false; s.streamState = MF_STREAM_STATE_STOPPED;
+        if (wasActive && s.owner.active) s.owner.active(s.owner.context, false);
         s.latest.Reset(); s.outstanding -= s.requests.size(); s.requests.clear();
         hr = s.streamEvents->QueueEventParamVar(MEStreamStopped, GUID_NULL, S_OK, nullptr);
         if (SUCCEEDED(hr)) hr = s.sourceEvents->QueueEventParamVar(MESourceStopped, GUID_NULL, S_OK, nullptr);
@@ -447,9 +453,12 @@ namespace Magnolie::PhoneCamera
         if (stateValue != MF_STREAM_STATE_RUNNING && stateValue != MF_STREAM_STATE_STOPPED && stateValue != MF_STREAM_STATE_PAUSED)
             return E_INVALIDARG;
         if (stateValue == MF_STREAM_STATE_RUNNING && !state_->started) return MF_E_INVALID_STATE_TRANSITION;
+        const bool wasActive = state_->started && state_->streamState == MF_STREAM_STATE_RUNNING;
         state_->streamState = stateValue;
         if (stateValue != MF_STREAM_STATE_RUNNING)
         { state_->latest.Reset(); state_->outstanding -= state_->requests.size(); state_->requests.clear(); }
+        const bool isActive = state_->started && stateValue == MF_STREAM_STATE_RUNNING;
+        if (wasActive != isActive && state_->owner.active) state_->owner.active(state_->owner.context, isActive);
         return S_OK;
     }
     STDMETHODIMP Stream::GetStreamState(MF_STREAM_STATE* stateValue)

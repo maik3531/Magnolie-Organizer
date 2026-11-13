@@ -48,6 +48,22 @@ internal static class PhoneCameraSourceRegistrationTests
             !Matches(classes, ["InprocServer32"], server, ["foreign"]) && !Matches(classes, ["InprocServer32"], server, [], ""), "Foreign subkey/empty path accepted");
         var extra = new Dictionary<string, PhoneCameraSourceRegistration.RegistryValue>(classes) { ["foreign"] = new(RegistryValueKind.String, "keep") };
         TestAssert.That(!Matches(extra, ["InprocServer32"], server, []), "Foreign class value ignored");
+        // This actual test assembly has no embedded Source: ordinary readback
+        // must return before opening native keys/files, never find a sidecar or
+        // attempt the elevated installation path. This is NOT installed acceptance.
+        TestAssert.That(PhoneCameraSourcePayload.LoadEmbedded() is null &&
+            PhoneCameraSourceRegistration.HoldInstalledCurrent() is null,
+            "Absent embedded Source acquired an installed/adjacent fallback");
+        foreach (var kind in new[] { RegistryValueKind.ExpandString, RegistryValueKind.MultiString, RegistryValueKind.Binary })
+        {
+            var changed = new Dictionary<string, PhoneCameraSourceRegistration.RegistryValue>(classes) {
+                [""] = new(kind, "Magnolie Phone Camera Source") };
+            TestAssert.That(!Matches(changed, ["InprocServer32"], server, []), "Class readback lost exact value kind");
+        }
+        var before = new Dictionary<string, PhoneCameraSourceRegistration.RegistryValue>(server);
+        TestAssert.That(!Matches(classes, ["InprocServer32"], server, [], path + ".foreign") &&
+            server.Count == before.Count && server.All(pair => before[pair.Key] == pair.Value),
+            "Read-only mismatch rewrote the original registration snapshot");
         return Task.CompletedTask;
     }
     internal static Task PersistentFileOwnerAsync()

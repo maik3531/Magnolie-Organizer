@@ -2,6 +2,7 @@
 #include "../../native/phone-camera/PhoneCameraBrokerChannel.h"
 #include "../../native/phone-camera/PhoneCameraSourceBroker.h"
 #include "../../native/phone-camera/PhoneCameraFrameServerPeer.h"
+#include "../../native/phone-camera/PhoneCameraSourceBrokerParent.h"
 #include <mfapi.h>
 #include <mferror.h>
 #include <ks.h>
@@ -24,6 +25,8 @@ namespace
         int binds = 0, closed = 0;
         std::atomic<int> retired{0};
         std::atomic<HRESULT> reason{S_OK};
+        std::atomic<int> activeChanges{0};
+        std::atomic_bool active{false};
         static HRESULT Current(void* context) noexcept { return static_cast<Owner*>(context)->status; }
         static void Closed(void* context) noexcept { ++static_cast<Owner*>(context)->closed; }
         static HRESULT Bind(void* context, const BYTE*, ULONG size) noexcept
@@ -31,6 +34,8 @@ namespace
         static HRESULT Sending(void*) noexcept { return E_ACCESSDENIED; }
         static void Retired(void* context, HRESULT retirementReason) noexcept
         { auto& self = *static_cast<Owner*>(context); self.reason.store(retirementReason); ++self.retired; }
+        static void Active(void* context, bool running) noexcept
+        { auto& self = *static_cast<Owner*>(context); self.active.store(running); ++self.activeChanges; }
         BrokerChannelOwner Channel() { return {Current, this, this}; }
         RegistrationLifetime Registration() { return {Current, this, this, Closed, Bind}; }
     };
@@ -193,6 +198,52 @@ namespace
         const int retired = owner->retired.load(); source->Shutdown();
         if (current != S_OK || retired != 0) throw std::runtime_error("source retired during preparation before actual SEND");
     }
+    void ActualOutputActivityIsNotBindingOrSending()
+    {
+        auto owner = Microsoft::WRL::Make<Owner>(); Microsoft::WRL::ComPtr<IMFMediaSourceEx> source;
+        Microsoft::WRL::ComPtr<IFrameFeed> feed;
+        Check(CreateSource({Owner::Current, Owner::Sending, Owner::Retired, owner.Get(), owner.Get(), Owner::Active}, &source, &feed) == S_OK);
+        Microsoft::WRL::ComPtr<IMFPresentationDescriptor> descriptor; Check(source->CreatePresentationDescriptor(&descriptor) == S_OK);
+        Check(!owner->active.load() && owner->activeChanges.load() == 0);
+        PROPVARIANT start{}; start.vt = VT_EMPTY;
+        Check(source->Start(descriptor.Get(), &GUID_NULL, &start) == S_OK && owner->active.load() && owner->activeChanges.load() == 1);
+        Check(Owner::Sending(owner.Get()) == E_ACCESSDENIED); // Actual MF Start grants no phone SEND.
+        Check(source->Start(descriptor.Get(), &GUID_NULL, &start) == MF_E_INVALID_STATE_TRANSITION && owner->activeChanges.load() == 1);
+        Microsoft::WRL::ComPtr<IMFMediaEvent> event;
+        Check(source->GetEvent(MF_EVENT_FLAG_NO_WAIT, &event) == S_OK);
+        MediaEventType type{}; Check(event->GetType(&type) == S_OK && type == MENewStream);
+        PROPVARIANT value{}; PropVariantInit(&value);
+        Check(event->GetValue(&value) == S_OK);
+        Microsoft::WRL::ComPtr<IMFMediaStream2> stream;
+        const HRESULT queried = value.vt == VT_UNKNOWN && value.punkVal ? value.punkVal->QueryInterface(IID_PPV_ARGS(&stream)) : E_NOINTERFACE;
+        PropVariantClear(&value); Check(queried == S_OK);
+        Check(stream->SetStreamState(MF_STREAM_STATE_PAUSED) == S_OK && !owner->active.load() && owner->activeChanges.load() == 2);
+        Check(stream->SetStreamState(MF_STREAM_STATE_PAUSED) == S_OK && owner->activeChanges.load() == 2);
+        Check(stream->SetStreamState(MF_STREAM_STATE_RUNNING) == S_OK && owner->active.load() && owner->activeChanges.load() == 3);
+        Check(source->Stop() == S_OK && !owner->active.load() && owner->activeChanges.load() == 4);
+        Check(stream->SetStreamState(MF_STREAM_STATE_RUNNING) == MF_E_INVALID_STATE_TRANSITION && owner->activeChanges.load() == 4);
+        Check(source->Start(descriptor.Get(), &GUID_NULL, &start) == S_OK && owner->active.load() && owner->activeChanges.load() == 5);
+        Check(source->Shutdown() == S_OK && !owner->active.load() && owner->activeChanges.load() == 6);
+        Check(FAILED(stream->SetStreamState(MF_STREAM_STATE_RUNNING)) && owner->activeChanges.load() == 6);
+    }
+    void ActivityAccountingDrainsAfterTerminalStopWithoutReadiness()
+    {
+        SourceBrokerActivity activity;
+        Check(!activity.Active());
+        Check(activity.Observe(1, 1, false, false) == E_ACCESSDENIED && !activity.Active());
+        Check(activity.Observe(2, 1, true, false) == E_ACCESSDENIED && !activity.Active());
+        Check(activity.Observe(1, 0, true, false) == E_ACCESSDENIED && !activity.Active());
+        Check(activity.Observe(1, 2, true, false) == E_ACCESSDENIED && !activity.Active());
+        Check(activity.Observe(1, 1, true, false) == S_OK && activity.Active());
+        Check(activity.Observe(1, 1, true, false) == E_ACCESSDENIED); // Replay cannot advance accounting.
+        Check(activity.Observe(0, 2, true, true) == S_OK && !activity.Active());
+        Check(activity.Observe(1, 3, true, true) == S_OK && !activity.Active()); // Drain ONLY, never Ready.
+        Check(activity.Observe(0, 4, true, true) == S_OK && !activity.Active());
+        SourceBrokerActivity live;
+        Check(live.Observe(1, 1, true, false) == S_OK && live.Active());
+        Check(live.Observe(0, 2, true, false) == MF_E_SHUTDOWN && !live.Active());
+        Check(live.Observe(1, 3, true, false) == S_OK && !live.Active()); // Terminal accounting itself cannot revive.
+    }
 }
 int main(int argc, char** argv)
 {
@@ -207,7 +258,9 @@ int main(int argc, char** argv)
             {"broker-guard-no-host-fallback", ChannelGuardNoFallback}, {"broker-own-kernel-channel-is-not-admission", ActualOwnKernelChannelNoAdmission},
             {"broker-original-resource-creation-policy", ActualOriginalResourceCreationPolicy},
             {"broker-property-success-is-not-source-proof", ReturnValueCannotBindSource}, {"broker-actual-ordinary-host-denied-before-adoption", ActualSourceBrokerRejectsOrdinaryHost},
-            {"broker-prepare-before-send-no-media-timeout", PreparationDoesNotConsumeSendTimeout}};
+            {"broker-prepare-before-send-no-media-timeout", PreparationDoesNotConsumeSendTimeout},
+            {"broker-actual-source-output-activity-is-not-send", ActualOutputActivityIsNotBindingOrSending},
+            {"broker-activity-terminal-drain-is-not-readiness", ActivityAccountingDrainsAfterTerminalStopWithoutReadiness}};
         int ran = 0;
         for (const auto& test : cases)
             if (only.empty() || only.find(std::string(",") + test.name + ",") != std::string::npos)

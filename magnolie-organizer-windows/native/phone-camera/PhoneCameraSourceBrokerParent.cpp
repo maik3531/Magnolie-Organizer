@@ -135,8 +135,16 @@ namespace Magnolie::PhoneCamera
         if (FAILED(hr)) return hr;
         GUID scope{}; HRESULT status{}; DWORD reserved = 0;
         std::memcpy(&scope, receipt.data() + 8, 16); std::memcpy(&status, receipt.data() + 24, 4); std::memcpy(&reserved, receipt.data() + 28, 4);
-        if (scope != hold_->property.Scope() || status != S_OK || reserved) return E_ACCESSDENIED;
-        if (!std::memcmp(receipt.data(), "MGFSBND1", 8) && !bound_.load() && !stopped_.load())
+        if (scope != hold_->property.Scope()) return E_ACCESSDENIED;
+        if (!std::memcmp(receipt.data(), "MGFSACT1", 8))
+        {
+            // Already queued telemetry must drain ahead of the terminal cleanup
+            // receipt. It can never revive CaptureCurrent/RequireActive after Stop.
+            hr = activity_.Observe(static_cast<DWORD>(status), reserved, bound_.load(), stopped_.load());
+            return hr == MF_E_SHUTDOWN ? Fail(hr) : hr;
+        }
+        if (status != S_OK || reserved) return E_ACCESSDENIED;
+        if (!std::memcmp(receipt.data(), "MGFSBND1", 8) && !bound_.load())
         { bound_.store(true); SetEvent(hold_->bound); return S_OK; }
         if (!std::memcmp(receipt.data(), "MGFSEND1", 8))
         {
@@ -191,11 +199,16 @@ namespace Magnolie::PhoneCamera
         if (!bound_.load()) return MF_E_NOT_INITIALIZED; // Acquire publication before touching peer state.
         return CaptureCurrent();
     }
+    HRESULT SourceBrokerParent::RequireActive() noexcept
+    {
+        HRESULT hr = RequireBound(); if (FAILED(hr)) return hr;
+        return activity_.Active() ? S_OK : MF_E_NOT_INITIALIZED;
+    }
     HRESULT SourceBrokerParent::WriteVideo(const BYTE* record, DWORD bytes) noexcept
     {
         if (!record || bytes != 18 + 640 * 480 * 3 / 2 || record[0] != 1 || record[1] != 1) return Fail(E_INVALIDARG);
         std::lock_guard<std::mutex> lock(transmit_);
-        HRESULT hr = RequireBound();
+        HRESULT hr = RequireActive();
         if (SUCCEEDED(hr)) hr = Exact(hold_->owner.output.sending(hold_->owner.output.context));
         if (SUCCEEDED(hr)) hr = PublishLease();
         if (SUCCEEDED(hr) && !anchorSent_)
