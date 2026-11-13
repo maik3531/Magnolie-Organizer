@@ -8,4 +8,10 @@ internal sealed partial class PhoneCameraSetupJournal
         new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 4096, FileOptions.WriteThrough),
         [], Guid.NewGuid(), new string('a', 64), new string('b', 64));
     internal void JournalFixtureBreakWriter() => file.Dispose();
+    internal static PhoneCameraSetupJournal JournalFixtureCreateFromHeader(string path, PhoneCameraCombinedSetupWire header)
+    {
+        header.RequireCompletedInstallHeader();
+        return new(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 4096, FileOptions.WriteThrough),
+            [], header.Transaction, new string('a', 64), new string('b', 64));
+    }
 }

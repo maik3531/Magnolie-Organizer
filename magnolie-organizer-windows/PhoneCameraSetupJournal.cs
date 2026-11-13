@@ -42,8 +42,10 @@ internal sealed partial class PhoneCameraSetupJournal : IDisposable
     // Future combined elevated installer only, AFTER its original explicit
     // approval. Not wired to the current audio-only setup or a preparation probe.
     [SupportedOSPlatform("windows")]
-    internal static PhoneCameraSetupJournal CreateCurrent()
+    internal static PhoneCameraSetupJournal CreateCurrent(PhoneCameraCombinedSetupWire originalHeader)
     {
+        ArgumentNullException.ThrowIfNull(originalHeader);
+        originalHeader.RequireCompletedInstallHeader(); // BEFORE identity/path/file operations; not user approval.
         using var identity = WindowsIdentity.GetCurrent();
         if (!new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator))
             throw new UnauthorizedAccessException("webcam_setup_journal_administrator_required");
@@ -66,7 +68,7 @@ internal sealed partial class PhoneCameraSetupJournal : IDisposable
             // Fixed journal, never truncate/reuse/replace an old transaction,
             // including an empty/partial file left by failed creation.
             output = PhoneCameraAudioStaging.CreateProtectedFile(Path.Combine(root, "combined-setup-v1.journal"));
-            return new PhoneCameraSetupJournal(output, held.ToArray(), Guid.NewGuid(), source.Sha256, helper.Sha256);
+            return new PhoneCameraSetupJournal(output, held.ToArray(), originalHeader.Transaction, source.Sha256, helper.Sha256);
         }
         catch
         {

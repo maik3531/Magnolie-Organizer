@@ -1,4 +1,18 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--phone-camera-combined-journal-binding")
+{
+    await PhoneCameraCombinedSetupWireTests.JournalTransactionAndPlanGuardAsync();
+    Console.WriteLine("PASS combined header original journal transaction and plan guard");
+    return 0;
+}
+if (args.Length == 1 && args[0] == "--phone-camera-combined-setup-wire")
+{
+    await PhoneCameraCombinedSetupWireTests.IdentityAndEchoAsync();
+    await PhoneCameraCombinedSetupWireTests.RejectWrongIdentityAsync();
+    await PhoneCameraCombinedSetupWireTests.InterruptedExchangeAsync();
+    Console.WriteLine("PASS combined setup header identities and echo\nPASS combined setup wrong identity refusal\nPASS combined setup interrupted exchange");
+    return 0;
+}
 if (args.Length == 1 && args[0] == "--phone-camera-setup-native-result")
 {
     await PhoneCameraSetupJournalTests.NativeResultAfterSourceAsync();
@@ -196,6 +210,10 @@ runner.Add("Phone webcam setup journal / exclusive original writer", PhoneCamera
 runner.Add("Phone webcam setup native result / original Source and own instance", PhoneCameraSetupJournalTests.NativeResultAfterSourceAsync);
 runner.Add("Phone webcam setup native result / terminal ambiguous helper outcome", PhoneCameraSetupJournalTests.NativeAmbiguityIsTerminalAsync);
 runner.Add("Phone webcam setup native result / exclusive durable completion", PhoneCameraSetupJournalTests.NativeResultExclusiveAndPoisonedAsync);
+runner.Add("Phone webcam combined setup wire / own identities and transaction echo", PhoneCameraCombinedSetupWireTests.IdentityAndEchoAsync);
+runner.Add("Phone webcam combined setup wire / wrong composition mode and transaction refusal", PhoneCameraCombinedSetupWireTests.RejectWrongIdentityAsync);
+runner.Add("Phone webcam combined setup wire / interrupted exchange no retry", PhoneCameraCombinedSetupWireTests.InterruptedExchangeAsync);
+runner.Add("Phone webcam combined setup wire / original journal transaction and plan guard", PhoneCameraCombinedSetupWireTests.JournalTransactionAndPlanGuardAsync);
 runner.Add("Phone webcam output authority / prepared current before actual SEND", PhoneCameraSessionTests.AuthorityPrepareThenActualSendAsync);
 runner.Add("Phone webcam output authority / exact original object and independent replacement owner", PhoneCameraSessionTests.AuthorityCannotBeReplacedAsync);
 runner.Add("Phone webcam output authority / original loss permanently rejects resurrection", PhoneCameraSessionTests.AuthorityOriginalLossCannotReviveAsync);

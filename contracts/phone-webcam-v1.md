@@ -1,5 +1,42 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Separate combined-setup identity wire (Refs #588)
+
+PhoneCameraCombinedSetupWire defines a separate bounded v2 identity exchange for
+the future original combined setup caller. It is NOT appended to the existing
+audio-only protocol, and has no active UI/CLI/elevated/installer caller yet.
+Its fixed 144-byte header contains magic `MGWSET02`, little-endian version2 and
+expected Plan1/Install2 mode, a nonempty transaction GUID, the fixed Source class,
+and32-byte Source/helper/original microphone package digests. Production factories
+take Source/helper identities only from their own verified embedded resources;
+missing resources are unavailable, with no external path/manifest fallback.
+
+The receiver compares its own composition and separately expected mode. The
+original sender then requires an exact echo including its transaction; a child
+cannot assume that sender role. Headers are owned copies, including across Stream
+read/write callbacks, and a failed/cancelled send or echo attempt cannot be retried
+on that object. A decoder error must retire the caller's original conversation,
+not trigger scanning/reconnection until another header happens to fit.
+
+These public fields and their equality are NOT a MAC, original peer identity,
+user approval, installed-source proof, capture permission or readiness. The future
+caller must still enforce original SID/PID/birth/pipe checks, one actual original
+mutation approval, protected setup ownership and joined outcomes. The wire never
+invokes any installer, registry, device, camera or audio client.
+
+Four new groups passed on Linux and Windows against actual stream/file methods:
+both-mode framing/identity/echo and caller-buffer isolation; wrong version/mode/
+class/artifact/package/transaction refusal; truncation/cancellation/flush failures
+without retry; and the original header transaction reaching the actual journal.
+The production journal factory now requires a completed Install-receiver header
+and records exactly that transaction instead of generating an unrelated GUID.
+Plan, sender-role or incomplete-echo headers fail before Windows identity/path/
+file operations. That structural gate is NOT original peer or user approval.
+The corresponding production protected-file factory was not invoked in tests.
+Those are stream/fixture-file checks, not a native service/process or
+privileged setup acceptance. Arbitrary-identity factories exist only in the test
+host and are excluded from the optional product; BASE excludes the wire type.
+
 ## Activation metadata without capture authority (Refs #589)
 
 The actual Source COM module passes the owned IMFActivate snapshot into its
