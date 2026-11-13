@@ -87,6 +87,37 @@ internal sealed partial class PhoneCameraSetupJournal : IDisposable
     internal void ConfirmSource() => Advance(Phase.SourceInstalled);
     internal void BeginMicrophone() => Advance(Phase.MicrophoneIntent);
     internal void ConfirmMicrophoneRebootRequired(string ownInstance) => Advance(Phase.RebootRequired, ownInstance);
+    // Future combined original helper caller only, AFTER authenticated process/
+    // pipe completion. JSON is accounting, never peer identity or readiness.
+    // A mic-only result cannot skip SourceInstalled/MicrophoneIntent.
+    internal Phase RecordMicrophoneResult(int nativeExit, string? json)
+    {
+        lock (gate)
+        {
+            if (disposed || poisoned || current.Phase != Phase.MicrophoneIntent.ToString())
+                throw new InvalidOperationException("webcam_setup_original_microphone_intent_required");
+            string? ownInstance = null;
+            var confirmed = false;
+            try
+            {
+                if (json is { Length: > 0 and <= PhoneCameraAudioSetupWire.MaximumNativeResult })
+                {
+                    confirmed = nativeExit == 3010 && PhoneCameraAudioSetupWire.IsRebootResult(json, out ownInstance) && IsInstance(ownInstance);
+                    if (!confirmed) ownInstance = PhoneCameraAudioSetupWire.KnownFailedInstance(nativeExit, json);
+                    if (!IsInstance(ownInstance)) ownInstance = null;
+                }
+            }
+            catch (Exception error) when (error is JsonException or InvalidOperationException or FormatException or OverflowException)
+            {
+                // The admitted native step may have mutated before producing a
+                // malformed/truncated reply. Never turn that into safe retry.
+                ownInstance = null;
+            }
+            var next = confirmed ? Phase.RebootRequired : Phase.UnknownPending;
+            Advance(next, ownInstance);
+            return next;
+        }
+    }
     internal void RecordFailure(bool unknown, string? knownMicrophoneInstance = null) =>
         Advance(unknown ? Phase.UnknownPending : Phase.Failed, knownMicrophoneInstance);
     private void Advance(Phase next, string? ownInstance = null)

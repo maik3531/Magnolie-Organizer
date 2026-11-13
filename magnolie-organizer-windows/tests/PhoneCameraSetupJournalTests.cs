@@ -24,6 +24,94 @@ internal static class PhoneCameraSetupJournalTests
         }
     }
     private static PhoneCameraSetupJournal.Audit Audit(Fixture fixture) => PhoneCameraSetupJournal.Inspect(fixture.Read());
+    private static JsonObject NativeReboot() => new() { ["schema"] = 1, ["driver"] = "VB-CABLE", ["mode"] = "install",
+        ["state"] = "reboot_required", ["error"] = 0, ["ownDeviceRegistered"] = true, ["ownDeviceRemoved"] = false,
+        ["rebootRequired"] = true, ["defaultsPreserved"] = true, ["ownInstance"] = "ROOT\\MEDIA\\original-native-1" };
+    internal static Task NativeResultAfterSourceAsync()
+    {
+        var json = NativeReboot().ToJsonString();
+        TestAssert.That(PhoneCameraAudioSetupWire.IsRebootResult(json, out var own) && own == "ROOT\\MEDIA\\original-native-1",
+            "Original helper OwnInstance not extracted verbatim");
+        using var fixture = new Fixture();
+        using (var writer = PhoneCameraSetupJournal.JournalFixtureCreate(fixture.Path))
+        {
+            foreach (var stage in Enumerable.Range(0, 3))
+            {
+                var before = fixture.Read();
+                TestAssert.Throws<InvalidOperationException>(() => writer.RecordMicrophoneResult(3010, json), "Mic-only outcome skipped original Source or intent");
+                TestAssert.That(fixture.Read().SequenceEqual(before), "Rejected mic-only result changed journal");
+                if (stage == 0) writer.BeginSource();
+                if (stage == 1) writer.ConfirmSource();
+            }
+            writer.BeginMicrophone();
+            TestAssert.That(writer.RecordMicrophoneResult(3010, json) == PhoneCameraSetupJournal.Phase.RebootRequired, "Exact native outcome refused");
+            TestAssert.Throws<InvalidOperationException>(() => writer.RecordMicrophoneResult(3010, json), "Confirmed native outcome consumed twice");
+        }
+        var audit = Audit(fixture);
+        TestAssert.That(audit.SourceConfirmed && audit.MicrophoneStarted && audit.OwnMicrophoneInstance == own &&
+            audit.Outcome == PhoneCameraSetupJournal.Phase.RebootRequired, "Joint native result lost original instance or Source step");
+        return Task.CompletedTask;
+    }
+    internal static Task NativeAmbiguityIsTerminalAsync()
+    {
+        var variants = new List<(int Exit, string? Json)> { (0, NativeReboot().ToJsonString()), (5, NativeReboot().ToJsonString()),
+            (1223, NativeReboot().ToJsonString()), (3010, null), (3010, ""), (3010, "{"), (3010, "[]"),
+            (3010, new string('x', PhoneCameraAudioSetupWire.MaximumNativeResult + 1)) };
+        foreach (var mutation in new Action<JsonObject>[] {
+            o => o["schema"] = 2, o => o["driver"] = "foreign", o => o["mode"] = "plan", o => o["state"] = "unknown_pending",
+            o => o["error"] = 5, o => o["error"] = "0", o => o["error"] = JsonNode.Parse("9999999999999999999999999999999"),
+            o => o["ownDeviceRegistered"] = false, o => o["ownDeviceRemoved"] = true, o => o["rebootRequired"] = false,
+            o => o["defaultsPreserved"] = false, o => o["defaultsPreserved"] = "true", o => o["ownInstance"] = "",
+            o => o["ownInstance"] = "ROOT\nMEDIA", o => o["ownInstance"] = new string('a', 200),
+            o => o.Remove("ownInstance"), o => o["unknown"] = "keep" })
+        { var reply = NativeReboot(); mutation(reply); variants.Add((3010, reply.ToJsonString())); }
+        variants.Add((3010, NativeReboot().ToJsonString().Replace("\"schema\":1", "\"schema\":1,\"schema\":1", StringComparison.Ordinal)));
+        foreach (var (exit, reply) in variants)
+        {
+            using var fixture = new Fixture();
+            using var writer = PhoneCameraSetupJournal.JournalFixtureCreate(fixture.Path);
+            writer.BeginSource(); writer.ConfirmSource(); writer.BeginMicrophone();
+            TestAssert.That(writer.RecordMicrophoneResult(exit, reply) == PhoneCameraSetupJournal.Phase.UnknownPending,
+                "Ambiguous native outcome certified completion");
+            var audit = Audit(fixture);
+            TestAssert.That(audit.Outcome == PhoneCameraSetupJournal.Phase.UnknownPending && audit.SourceConfirmed &&
+                audit.MicrophoneStarted && audit.OwnMicrophoneInstance is null, "Uncertain outcome lost known steps or invented devnode");
+            TestAssert.Throws<InvalidOperationException>(writer.BeginMicrophone, "Uncertain native mutation retried");
+            TestAssert.Throws<InvalidOperationException>(() => writer.RecordMicrophoneResult(3010, NativeReboot().ToJsonString()), "Late receipt revived uncertain transaction");
+        }
+        foreach (var (exit, state) in new[] { (1603, "failed"), (1618, "unknown_pending"), (1618, "cleanup_pending") })
+        {
+            using var fixture = new Fixture(); using var writer = PhoneCameraSetupJournal.JournalFixtureCreate(fixture.Path);
+            writer.BeginSource(); writer.ConfirmSource(); writer.BeginMicrophone();
+            var reply = NativeReboot(); reply["state"] = state; reply["error"] = 5;
+            TestAssert.That(writer.RecordMicrophoneResult(exit, reply.ToJsonString()) == PhoneCameraSetupJournal.Phase.UnknownPending &&
+                Audit(fixture).OwnMicrophoneInstance == "ROOT\\MEDIA\\original-native-1", "Known partial native devnode was discarded or certified as success");
+        }
+        return Task.CompletedTask;
+    }
+    internal static async Task NativeResultExclusiveAndPoisonedAsync()
+    {
+        using (var fixture = new Fixture())
+        using (var writer = PhoneCameraSetupJournal.JournalFixtureCreate(fixture.Path))
+        {
+            writer.BeginSource(); writer.ConfirmSource(); writer.BeginMicrophone();
+            var accepted = 0;
+            await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => {
+                try { writer.RecordMicrophoneResult(3010, NativeReboot().ToJsonString()); Interlocked.Increment(ref accepted); }
+                catch (InvalidOperationException) { }
+            })));
+            TestAssert.That(accepted == 1 && Audit(fixture).Outcome == PhoneCameraSetupJournal.Phase.RebootRequired, "Native result had multiple journal winners");
+        }
+        using (var fixture = new Fixture())
+        using (var writer = PhoneCameraSetupJournal.JournalFixtureCreate(fixture.Path))
+        {
+            writer.BeginSource(); writer.ConfirmSource(); writer.BeginMicrophone(); writer.JournalFixtureBreakWriter();
+            TestAssert.Throws<ObjectDisposedException>(() => writer.RecordMicrophoneResult(3010, NativeReboot().ToJsonString()), "Broken durable outcome write succeeded");
+            TestAssert.Throws<InvalidOperationException>(() => writer.RecordMicrophoneResult(3010, NativeReboot().ToJsonString()), "Unconfirmed durable write retried");
+            TestAssert.That(Audit(fixture).Outcome == PhoneCameraSetupJournal.Phase.UnknownPending &&
+                Audit(fixture).LastPhase == PhoneCameraSetupJournal.Phase.MicrophoneIntent, "Write failure fabricated completed journal");
+        }
+    }
     internal static Task DurableOrderAsync()
     {
         using var fixture = new Fixture();

@@ -20,6 +20,9 @@ internal sealed record PhoneCameraAudioSetupResult(PhoneCameraAudioSetupState St
 internal static class PhoneCameraAudioSetupWire
 {
     internal const int MaximumArchive = 4 * 1024 * 1024;
+    internal const int MaximumNativeResult = 16384;
+    private static readonly string[] NativeResultFields = ["schema", "driver", "mode", "state", "error", "ownDeviceRegistered",
+        "ownDeviceRemoved", "rebootRequired", "defaultsPreserved", "ownInstance"];
     internal static bool AllowsNativeMode(string mode, bool preparationOnly) => mode == "--plan" || !preparationOnly && mode == "--install";
     internal static async Task WriteIntAsync(Stream stream, int value, CancellationToken cancellation)
     {
@@ -49,15 +52,35 @@ internal static class PhoneCameraAudioSetupWire
             root.GetProperty("endpointPolicy").GetString() != "explicit_app_selection_never_system_default" || root.GetProperty("installationAttempted").GetBoolean()) return false;
         var count = root.GetProperty("existingDeviceCount").GetInt32(); existing = count > 0; return count == 0;
     }
-    internal static bool IsRebootResult(string json)
+    internal static bool IsRebootResult(string json) => IsRebootResult(json, out _);
+    internal static bool IsRebootResult(string json, out string? ownInstance)
     {
+        ownInstance = null;
         using var document = JsonDocument.Parse(json); var root = document.RootElement;
-        return Fields(root, ["schema", "driver", "mode", "state", "error", "ownDeviceRegistered", "ownDeviceRemoved", "rebootRequired", "defaultsPreserved", "ownInstance"]) &&
+        var confirmed = Fields(root, NativeResultFields) &&
             root.GetProperty("schema").GetInt32() == 1 && root.GetProperty("driver").GetString() == "VB-CABLE" && root.GetProperty("mode").GetString() == "install" &&
             root.GetProperty("state").GetString() == "reboot_required" && root.GetProperty("error").GetInt64() == 0 &&
             root.GetProperty("ownDeviceRegistered").GetBoolean() && !root.GetProperty("ownDeviceRemoved").GetBoolean() &&
             root.GetProperty("rebootRequired").GetBoolean() && root.GetProperty("defaultsPreserved").GetBoolean() &&
             root.GetProperty("ownInstance").GetString() is { Length: > 0 and < 200 };
+        if (confirmed) ownInstance = root.GetProperty("ownInstance").GetString();
+        return confirmed;
+    }
+    // Preserve a known devnode from the original helper's partial failure, not
+    // a success/ownership/retry grant. Exit/state pairs match CableSetupMain.
+    internal static string? KnownFailedInstance(int nativeExit, string json)
+    {
+        if (nativeExit is not (1603 or 1618)) return null;
+        using var document = JsonDocument.Parse(json); var root = document.RootElement;
+        if (!Fields(root, NativeResultFields) || root.GetProperty("schema").GetInt32() != 1 ||
+            root.GetProperty("driver").GetString() != "VB-CABLE" || root.GetProperty("mode").GetString() != "install") return null;
+        var state = root.GetProperty("state").GetString();
+        if (!(nativeExit == 1603 && state == "failed" || nativeExit == 1618 && state is "unknown_pending" or "cleanup_pending") ||
+            root.GetProperty("error").GetInt64() is < 0 or > uint.MaxValue || !root.GetProperty("ownDeviceRegistered").GetBoolean()) return null;
+        _ = root.GetProperty("ownDeviceRemoved").GetBoolean();
+        _ = root.GetProperty("rebootRequired").GetBoolean();
+        _ = root.GetProperty("defaultsPreserved").GetBoolean();
+        return root.GetProperty("ownInstance").GetString();
     }
 }
 
@@ -244,7 +267,7 @@ internal static class PhoneCameraAudioSetup
             // After mutation, cancellation does not authorize terminating or
             // restarting PnP. Keep the process and all leases until it exits.
             await child.WaitForExitAsync(); var json = await output; var stderr = await errors;
-            if (json.Length > 16384 || stderr.Length != 0) throw new InvalidDataException("webcam_audio_native_result_invalid");
+            if (json.Length > PhoneCameraAudioSetupWire.MaximumNativeResult || stderr.Length != 0) throw new InvalidDataException("webcam_audio_native_result_invalid");
             return (child.ExitCode, json);
         }
     }

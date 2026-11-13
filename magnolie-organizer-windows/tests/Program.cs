@@ -1,4 +1,13 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--phone-camera-setup-native-result")
+{
+    await PhoneCameraSetupJournalTests.NativeResultAfterSourceAsync();
+    await PhoneCameraSetupJournalTests.NativeAmbiguityIsTerminalAsync();
+    await PhoneCameraSetupJournalTests.NativeResultExclusiveAndPoisonedAsync();
+    await PhoneCameraAudioSetupTests.RebootIsNotReadinessAsync();
+    Console.WriteLine("PASS original native result requires Source\nPASS ambiguous native result is terminal\nPASS native result exclusive durable writer\nPASS affected legacy reboot result not readiness");
+    return 0;
+}
 if (args.Length == 1 && args[0] == "--phone-camera-setup-journal")
 {
     await PhoneCameraSetupJournalTests.DurableOrderAsync();
@@ -184,6 +193,9 @@ runner.Add("Phone webcam setup journal / flushed intents and partial completion"
 runner.Add("Phone webcam setup journal / terminal uncertainty and no retry", PhoneCameraSetupJournalTests.GuardsAndUncertaintyAsync);
 runner.Add("Phone webcam setup journal / strict identity and history audit", PhoneCameraSetupJournalTests.StrictAuditAsync);
 runner.Add("Phone webcam setup journal / exclusive original writer", PhoneCameraSetupJournalTests.ExclusiveOrderAsync);
+runner.Add("Phone webcam setup native result / original Source and own instance", PhoneCameraSetupJournalTests.NativeResultAfterSourceAsync);
+runner.Add("Phone webcam setup native result / terminal ambiguous helper outcome", PhoneCameraSetupJournalTests.NativeAmbiguityIsTerminalAsync);
+runner.Add("Phone webcam setup native result / exclusive durable completion", PhoneCameraSetupJournalTests.NativeResultExclusiveAndPoisonedAsync);
 runner.Add("Phone webcam output authority / prepared current before actual SEND", PhoneCameraSessionTests.AuthorityPrepareThenActualSendAsync);
 runner.Add("Phone webcam output authority / exact original object and independent replacement owner", PhoneCameraSessionTests.AuthorityCannotBeReplacedAsync);
 runner.Add("Phone webcam output authority / original loss permanently rejects resurrection", PhoneCameraSessionTests.AuthorityOriginalLossCannotReviveAsync);

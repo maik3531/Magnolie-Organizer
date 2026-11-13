@@ -107,6 +107,24 @@ but has not been executed or natively accepted. The combined installer and
 linkage to the original mic setup must actually consume these durable steps
 within ONE approved elevated process.
 The existing microphone-only reboot result is not combined webcam success.
+
+The journal's native-result bridge now extracts the original helper's OwnInstance
+without rewriting it. This path requires SourceInstalled and MicrophoneIntent
+before accepting the bounded native reply; only exit3010 plus the exact original
+reboot-required schema/flags can append RebootRequired. Missing, oversized,
+malformed, contradictory or late replies remain terminal UnknownPending and
+cannot authorize retry. Exact failed/cleanup-pending/unknown-pending exit/state
+pairs can preserve a known original devnode for review without certifying success
+or granting ownership/cleanup rights. The original process/pipe authentication is
+still required by the future caller; JSON is not peer or installation proof.
+
+Three new actual temporary-file/JSON groups and one affected legacy reboot-result
+group passed on Linux and Windows, including ordering, ambiguous receipts,
+concurrent completion and a failed durable write. Existing independent journal
+groups and native artifacts did not change and were not rerun. The bridge is not
+wired to a new live UI/elevated entry and never starts a helper, driver, source or
+audio client. Actual combined installation, normal-process authority, microphone
+readiness and AV acceptance remain open under the existing pauses.
 Broker/VirtualCamera/real AV acceptance and all existing device pauses remain.
 
 ## Native response-file linker routing (Refs #587)
