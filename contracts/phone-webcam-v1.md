@@ -1,5 +1,47 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Separate LocalService FrameServer peer admission (Refs #557)
+
+FrameServer custom sources run as LocalService in Session 0, not SYSTEM or a
+child of the Organizer. A read-only query on the Windows test host confirmed the
+configured FrameServer account and unrestricted service SID while the service
+was stopped. This did not start the service, enumerate cameras or initialize audio.
+The audio worker's stricter original-parent and user/SYSTEM pipe rules therefore
+remain unchanged; they are not reused as FrameServer authentication.
+
+PhoneCameraFrameServerPeer accepts only a connected byte-mode server pipe and
+reads its client PID/session from the kernel. It holds that process and its
+primary token, requires LocalService, Session 0 and the exact enabled FrameServer
+service SID (not deny-only/duplicate/absent), and checks the System32 svchost image.
+PID/session association, process liveness and original Current are rechecked.
+Token groups are bounded and their SID pointers stay inside the owned token blob.
+No metadata PID, user-selected SID, SYSTEM alias, World/AuthenticatedUsers grant
+or broad LocalService fallback can construct an admitted peer.
+
+Rejected/unadmitted peers do not retire the genuine original owner or close its
+base pipe. An admitted peer's later loss is terminal and signals that original
+owner once. This is only peer admission, NOT source-scope resolution, phone
+capture permission, actual SEND or output readiness. Admission must run under
+the future broker's bounded ownership/cleanup design, never as a crypto-Current
+callback. No elevation or permission repair is attempted if process/token access
+is denied. The Microsoft sample's World-access app-launch notification pipe is
+not a model for capture authority and is not copied here.
+
+Six NEW actual Windows groups passed: fixed service identity policy, mandatory
+enabled group, bounded/owned token blob, real own-user pipe rejection without
+base transport/owner loss, endpoint role/type rejection, and original Current
+before peer admission (including refusal of S_FALSE). Positive token identity
+exists ONLY as in-memory SID test data; no real LocalService process was admitted.
+The production object also compiled without a test factory/bypass. Existing
+parent/worker artifact inputs were unchanged and their old suites were not rerun.
+
+The new component is not yet linked into the original parent or FrameServer
+resolver. Real service-peer/token-access acceptance, trusted scope/lease/anchor/
+video routing, combined outputs and actual module/device/AV/phone/OBS/package
+acceptance remain #503/#536/#538/#486. No service, camera, audio endpoint, installer
+or VM was started. Source code here is Windows-only; the transferable rule is
+kernel peer identity rather than metadata authority, not a proven portable fix.
+
 ## Imported original AV anchor reaches actual video samples (Refs #556)
 
 CreateAnchoredSource is the explicit route for the future trusted FrameServer
