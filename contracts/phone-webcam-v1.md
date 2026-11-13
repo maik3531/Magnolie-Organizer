@@ -1,5 +1,39 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Dormant registration source boundary (Refs #584)
+
+PhoneCameraDormantSource separates registration/module lifetime from capture
+authority. Its unregistered MF shell offers static metadata but no presentation,
+event wait, Start or frame-feed access before binding. Caller-set attributes and
+KS properties cannot grant authority. Registration Current is a separate type,
+requires exact S_OK and cannot satisfy the capture SourceOwner or SEND checks.
+
+The native controller can adopt one exact-target SourceBindingProof. Its constructor
+is private to the future trusted FrameServerSourceBroker; the ordinary product
+has no implemented proof producer or property/bootstrap protocol yet. Tests alone
+can create controlled proofs through a build-only friend. This private C++ API is
+not itself a cryptographic or OS source-identity proof. After admission, the shell
+constructs the actual anchored source with its identical original clock owner.
+Foreign targets/clocks cannot consume an unbound slot; authenticated adoption is
+one attempt and cannot replace/revive an owner. No broker IO occurs under the
+shell lock. Shutdown detaches and shuts down the real source outside that lock,
+including a source being constructed concurrently; delegated event waits wake.
+The native owner must join its calls before destroying the controller.
+
+Eleven new actual MF-memory/COM groups passed: pre-binding refusal, no property
+grant, exact target, one original/preparation versus SEND, registration revocation,
+Stop during adoption, original clock, module lifetime, pending event wait, stale
+target, and lost capture owner despite a live registration. A production object
+compiled without test access, and a separate negative compilation confirmed that
+ordinary code cannot construct a proof. No existing unchanged native suites or
+artifacts were rebuilt: this component is not yet linked into their catalogs.
+
+This is a new source component, not a historical released-bug reproduction or a
+usable registered camera. Factory/module/IMFVirtualCamera wiring, authenticated
+property/broker admission, real LocalService access, combined setup and actual
+AV/OBS/phone/package acceptance remain open. No system registration, AudioClient,
+endpoint, installer, VM or device-pause change was part of these checks.
+
 ## Exact native authority confirmation (Refs #585)
 
 Native Current/Sending callbacks confirm authority only with `S_OK`. `S_FALSE`
