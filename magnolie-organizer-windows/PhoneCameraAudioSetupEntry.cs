@@ -4,11 +4,14 @@ internal static partial class Program
 {
     static partial void HandleWebcamAudioSetup(string[] args, ref bool handled)
     {
-        if (args.Length == 0 || args[0] is not (PhoneCameraAudioSetup.ElevatedArgument or PhoneCameraAudioSetup.ElevatedPlanArgument or PhoneCameraAudioSetup.PreparationProbeArgument or PhoneCameraAudioSetupForm.Argument)) return;
+        if (args.Length == 0 || args[0] is not (PhoneCameraAudioSetup.ElevatedArgument or PhoneCameraAudioSetup.ElevatedPlanArgument or PhoneCameraAudioSetup.PreparationProbeArgument or PhoneCameraAudioSetupForm.Argument or
+            PhoneCameraAudioSetup.CombinedElevatedArgument or PhoneCameraAudioSetup.CombinedElevatedPlanArgument)) return;
         handled = true;
         try
         {
-            if (args[0] == PhoneCameraAudioSetupForm.Argument)
+            if (args[0] is PhoneCameraAudioSetup.CombinedElevatedArgument or PhoneCameraAudioSetup.CombinedElevatedPlanArgument)
+                Environment.ExitCode = PhoneCameraAudioSetup.RunCombinedElevatedAsync(args).GetAwaiter().GetResult();
+            else if (args[0] == PhoneCameraAudioSetupForm.Argument)
             {
                 if (args.Length != 1) { Environment.ExitCode = 87; return; }
                 ApplicationConfiguration.Initialize();

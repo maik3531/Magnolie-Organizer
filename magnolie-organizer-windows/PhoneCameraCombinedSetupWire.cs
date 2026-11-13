@@ -4,16 +4,16 @@ using System.Security.Cryptography;
 namespace MagnolieOrganizer.Windows;
 
 // Public identity metadata ONLY, not authentication, mutation permission,
-// installation confirmation or capture authority. Future original caller must
+// installation confirmation or capture authority. The original caller must
 // additionally enforce PID/SID/birth/pipe binding and explicit user approval.
-// No live UI/CLI/installer caller exists for this separate v2 wire yet.
+// Used only by the separate original combined setup, never the audio v1 wire.
 internal sealed partial class PhoneCameraCombinedSetupWire
 {
     internal enum Mode { Plan = 1, Install = 2 }
     internal const int HeaderBytes = 144;
     private readonly byte[] header;
     private readonly bool parent;
-    private int writeStarted, writeCompleted, echoStarted;
+    private int writeStarted, writeCompleted, echoStarted, echoCompleted, resultStarted;
     internal Mode RequestedMode => (Mode)BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(12));
     internal Guid Transaction => new(header.AsSpan(16, 16));
     private PhoneCameraCombinedSetupWire(byte[] ownedHeader, bool parent)
@@ -89,10 +89,11 @@ internal sealed partial class PhoneCameraCombinedSetupWire
         cancellation.ThrowIfCancellationRequested();
         if (!CryptographicOperations.FixedTimeEquals(header, echoed))
             throw new InvalidDataException("webcam_combined_setup_original_transaction_changed");
+        Volatile.Write(ref echoCompleted, 1);
         // No Ready/admission flag is produced. This is NOT user confirmation.
     }
     // Structural metadata gate ONLY. Original peer/mutation approval must still
-    // be verified by the future caller, not inferred from this method succeeding.
+    // be verified by the caller, not inferred from this method succeeding.
     internal void RequireCompletedInstallHeader()
     {
         if (parent || RequestedMode != Mode.Install || Volatile.Read(ref writeCompleted) != 1)

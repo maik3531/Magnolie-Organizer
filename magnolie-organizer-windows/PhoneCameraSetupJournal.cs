@@ -39,8 +39,8 @@ internal sealed partial class PhoneCameraSetupJournal : IDisposable
         Append(current); // CreateNew collision refusal happens before this constructor.
     }
 
-    // Future combined elevated installer only, AFTER its original explicit
-    // approval. Not wired to the current audio-only setup or a preparation probe.
+    // Combined elevated installer only, AFTER its original explicit approval.
+    // Not wired to the audio-only setup or a preparation probe.
     [SupportedOSPlatform("windows")]
     internal static PhoneCameraSetupJournal CreateCurrent(PhoneCameraCombinedSetupWire originalHeader)
     {
@@ -89,7 +89,7 @@ internal sealed partial class PhoneCameraSetupJournal : IDisposable
     internal void ConfirmSource() => Advance(Phase.SourceInstalled);
     internal void BeginMicrophone() => Advance(Phase.MicrophoneIntent);
     internal void ConfirmMicrophoneRebootRequired(string ownInstance) => Advance(Phase.RebootRequired, ownInstance);
-    // Future combined original helper caller only, AFTER authenticated process/
+    // Combined original helper caller only, AFTER authenticated process/
     // pipe completion. JSON is accounting, never peer identity or readiness.
     // A mic-only result cannot skip SourceInstalled/MicrophoneIntent.
     internal Phase RecordMicrophoneResult(int nativeExit, string? json)

@@ -31,6 +31,7 @@ internal static class PhoneCameraCombinedSetupWireTests
     }
     internal static async Task IdentityAndEchoAsync()
     {
+        await PhoneCameraCombinedSetupResultTests.RoundTripAsync();
         foreach (var mode in new[] { PhoneCameraCombinedSetupWire.Mode.Plan, PhoneCameraCombinedSetupWire.Mode.Install })
         {
             var source = Source(); var helper = Helper(); var transaction = Guid.NewGuid();
@@ -62,6 +63,7 @@ internal static class PhoneCameraCombinedSetupWireTests
     }
     internal static async Task RejectWrongIdentityAsync()
     {
+        await PhoneCameraCombinedSetupResultTests.RejectAsync();
         var original = Parent(); var bytes = await Encode(original);
         foreach (var offset in new[] { 0, 8, 12, 32, 48, 80, 112 })
         {
@@ -89,6 +91,7 @@ internal static class PhoneCameraCombinedSetupWireTests
     { public override Task FlushAsync(CancellationToken cancellationToken) => Task.FromException(new IOException("owned flush fixture")); }
     internal static async Task InterruptedExchangeAsync()
     {
+        await PhoneCameraCombinedSetupResultTests.InterruptedAsync();
         var parent = Parent(); var bytes = await Encode(parent);
         using var truncated = new MemoryStream(bytes[..^1]);
         await TestAssert.ThrowsAsync<EndOfStreamException>(async () => {

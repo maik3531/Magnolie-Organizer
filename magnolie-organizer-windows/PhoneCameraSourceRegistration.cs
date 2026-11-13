@@ -9,7 +9,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace MagnolieOrganizer.Windows;
 
-// Future combined elevated setup ONLY. Not wired to the audio-only installer.
+// Original combined elevated setup ONLY. Not wired to the audio-only installer.
 // Does not activate COM/FrameServer, load a DLL or establish capture authority.
 [SupportedOSPlatform("windows")]
 internal static class PhoneCameraSourceRegistration

@@ -87,7 +87,7 @@ internal static class PhoneCameraAudioSetupWire
 /// <summary>Explicit native user action only. Not invoked by acceptance tests:
 /// this path prepares ProgramData and can install a driver after actual UAC.</summary>
 [SupportedOSPlatform("windows")]
-internal static class PhoneCameraAudioSetup
+internal static partial class PhoneCameraAudioSetup
 {
     internal const string ElevatedArgument = "--phone-camera-audio-elevated";
     internal const string ElevatedPlanArgument = "--phone-camera-audio-elevated-plan";
