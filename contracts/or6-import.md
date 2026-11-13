@@ -25,6 +25,16 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   applied. Unknown differing fields, including meeting metadata and `$Busy`,
   remain guarded, as does unverified empty-category clearing. Pencil-in/Busy
   availability semantics remain separate under #615. No timezone is inferred.
+  A separately verified Calendar later-segment edit (#616) may retain earlier
+  linked occurrences while restarting relative indices for the current arrays.
+  Only an earlier sequentially indexed segment with unique observed clocks,
+  unchanged content/availability, one schema and dates within the native anchor
+  is projected ahead of the exact current arrays. Current members still require
+  exact slot/start/end matches; ambiguous history and unknown meeting metadata
+  remain held. No historical dates are extrapolated from an old rule or deduced
+  from duplicate indices. The rule must match all actual dates, otherwise the
+  exact finite set is retained. Original current templates survive as
+  `X-MAGNOLIE-OR6-CALENDAR-TEMPLATE-STARTS` / `...-ENDS` provenance, not schedules.
 - Tasks: description, native local start/due dates and clocks, priority and
   completed state. Ordinary single tasks use the same existing structured
   `startDatum`/`startZeit`/`faellig`/`faelligZeit` fields as task series (#612),
@@ -268,3 +278,15 @@ guards. Both full frontends verify old/moved days, changed content, profile
 restoration, the actual moved-exception editor and reimport preserving its local
 edit. Earlier-fragment, duplicate-index and meeting-metadata forms not explained
 by these fixtures remain outside this proven scope (#243).
+
+`or6-native-calendar-history.json` retains the genuine synthetic Calendar repeat
+extension at the last of three existing occurrences. The original offered no
+separate scope dialog; accepting the changed Until value retained all four
+expected dates while its current arrays contained only the last two. Reopened
+Find/Edit dialogs and native links/indices were independently checked. Both
+readers verify all observed dates, unchanged clocks/category, template provenance,
+actual ICS roundtrip and rejection of ambiguous indices/content/durations. Missing
+current slots stay excluded; active unlinked slots are not guessed deleted. Both
+full frontends verify all four days and neighboring absences, profile restoration
+and reimport preserving local edits. This is not universal native fragment or
+meeting-metadata compatibility.

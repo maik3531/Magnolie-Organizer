@@ -342,11 +342,72 @@ internal static class Or6Codec
         return result;
     }
 
+    private static List<JsonObject>? CalendarHistorySeries((Entry Definition, List<Entry> Members) group,
+        HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned, Document document)
+    {
+        if (group.Members.Count == 0 || group.Members.Any(member => member.Tag != 0x100 || !document.CalendarIndexDeclared(member) ||
+            member.Fields.ContainsKey(14) && Bytes(member.Fields, 14).Length != 4) || group.Members.Select(member => member.Schema).Distinct().Count() != 1) return null;
+        var arrays = new List<DateTime[]>();
+        foreach (ushort fid in new ushort[] { 12, 13 })
+        {
+            var raw = Bytes(group.Definition.Fields, fid);
+            if (raw.Length == 0 || raw.Length % 8 != 0) return null;
+            var values = Enumerable.Range(0, raw.Length / 8).Select(i => Stamp(raw.AsSpan(i * 8, 8).ToArray())).ToArray();
+            if (values.Any(value => value is null)) return null;
+            arrays.Add(values.Select(value => value!.Value).ToArray());
+        }
+        var starts = arrays[0]; var ends = arrays[1]; var anchor = Stamp(Bytes(group.Definition.Fields, 6));
+        if (anchor is null || starts.Length != ends.Length || !starts.SequenceEqual(starts.Distinct().Order())) return null;
+        var history = new List<Entry>(); var current = new List<Entry>(); var seen = new HashSet<DateTime>();
+        var basis = group.Members[0].Fields;
+        foreach (var member in group.Members)
+        {
+            var fields = member.Fields; var start = Stamp(Bytes(fields, 7)); var end = Stamp(Bytes(fields, 8));
+            if (start is not { } begin || end is not { } finish || finish < begin || !seen.Add(begin) || begin.Date < anchor.Value.Date ||
+                basis.Keys.Concat(fields.Keys).Distinct().Any(fid => fid is not (7 or 8 or 14) &&
+                    (basis.ContainsKey(fid) != fields.ContainsKey(fid) || !Bytes(basis, fid).AsSpan().SequenceEqual(Bytes(fields, fid))))) return null;
+            if (begin < starts[0]) history.Add(member);
+            else
+            {
+                var index = Number(fields, 14);
+                if (index >= starts.Length || begin != starts[index] || finish != ends[index]) return null;
+                current.Add(member);
+            }
+        }
+        history = history.OrderBy(member => Stamp(Bytes(member.Fields, 7))).ToList();
+        if (history.Count == 0 || current.Count == 0 || !history.Select(member => Number(member.Fields, 14)).SequenceEqual(Enumerable.Range(0, history.Count).Select(i => (uint)i))) return null;
+        var indices = current.Select(member => Number(member.Fields, 14)).ToHashSet();
+        if (indices.Count != current.Count || Enumerable.Range(0, starts.Length).Any(i => !indices.Contains((uint)i) && orphaned.Contains((group.Members[0].Schema, (uint)i, starts[i])))) return null;
+        var metadata = new Dictionary<ushort, byte[]>(group.Definition.Fields);
+        foreach (var (fid, source) in new[] { ((ushort)12, (ushort)7), ((ushort)13, (ushort)8) })
+            metadata[fid] = history.SelectMany(member => Bytes(member.Fields, source)).Concat(Bytes(metadata, fid)).ToArray();
+        var projected = new List<Entry>();
+        foreach (var member in history.Concat(current))
+        {
+            var index = projected.Count < history.Count ? (uint)projected.Count : (uint)history.Count + Number(member.Fields, 14);
+            var fields = new Dictionary<ushort, byte[]>(member.Fields) { [14] = new byte[4] };
+            BinaryPrimitives.WriteUInt32LittleEndian(fields[14], index); projected.Add(member with { Fields = fields });
+        }
+        // Exact observed historical clocks plus exact current arrays only; no
+        // extrapolated old rule dates or generic task index recovery.
+        var master = FiniteSeries((group.Definition with { Fields = metadata }, projected), orphaned);
+        if (master is null) return null;
+        foreach (var (fid, name) in new[] { ((ushort)12, "STARTS"), ((ushort)13, "ENDS") })
+        {
+            var raw = Bytes(group.Definition.Fields, fid);
+            master["icsRoundtrip"]!.AsArray().Add("X-MAGNOLIE-OR6-CALENDAR-TEMPLATE-" + name + ":" + string.Join(',',
+                Enumerable.Range(0, raw.Length / 8).Select(i => Stamp(raw.AsSpan(i * 8, 8).ToArray())!.Value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture))));
+        }
+        return [master];
+    }
+
     private static List<JsonObject>? FiniteCalendarSeries((Entry Definition, List<Entry> Members) group,
         HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned, Document document)
     {
         var ordinary = FiniteSeries(group, orphaned);
         if (ordinary is not null) return [ordinary];
+        var historical = CalendarHistorySeries(group, orphaned, document);
+        if (historical is not null) return historical;
         if (group.Members.Count == 0 || group.Members.Any(member => member.Tag != 0x100)) return null;
         var arrays = new List<DateTime[]>();
         foreach (ushort fid in new ushort[] { 12, 13 })

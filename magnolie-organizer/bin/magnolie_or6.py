@@ -484,11 +484,76 @@ def _finite_series(group, orphaned=(), task_states=False):
     return result
 
 
+def _calendar_history_series(group, orphaned, schemas):
+    """Original Calendar later-segment edit, not generic task recovery (#616)."""
+    definition, members = group
+    if not members or any(member[0] != 0x100 for member in members) or len({member[4] for member in members}) != 1:
+        return None
+    if any(schemas[member[4]][1].get(14) != 0x2003 or
+           14 in member[1] and len(member[1][14]) != 4 for member in members):
+        return None
+    arrays = []
+    for fid in (12, 13):
+        raw = definition[1].get(fid, b"")
+        if not raw or len(raw) % 8:
+            return None
+        values = [_stamp(raw[i:i+8]) for i in range(0, len(raw), 8)]
+        if any(value is None for value in values):
+            return None
+        arrays.append(values)
+    starts, ends = arrays
+    anchor = _stamp(definition[1].get(6))
+    if not anchor or len(starts) != len(ends) or starts != sorted(set(starts)):
+        return None
+    history, current, seen = [], [], set()
+    base = {fid: value for fid, value in members[0][1].items() if fid not in (7, 8, 14)}
+    for member in members:
+        fields = member[1]; begin, end = _stamp(fields.get(7)), _stamp(fields.get(8))
+        if (not begin or not end or begin in seen or end < begin or begin.date() < anchor.date() or
+                {fid: value for fid, value in fields.items() if fid not in (7, 8, 14)} != base):
+            return None  # No unknown content/Busy/meeting history is discarded.
+        seen.add(begin)
+        if begin < starts[0]:
+            history.append(member)
+        else:
+            index = _number(fields, 14)
+            if index >= len(starts) or begin != starts[index] or end != ends[index]:
+                return None  # Historical identity not guessed for moved members.
+            current.append(member)
+    history.sort(key=lambda member: _stamp(member[1][7]))
+    if not history or not current or [_number(member[1], 14) for member in history] != list(range(len(history))):
+        return None  # Only independently observed earlier sequential segment.
+    indices = [_number(member[1], 14) for member in current]
+    if len(set(indices)) != len(indices):
+        return None
+    missing = set(range(len(starts))) - set(indices)
+    if any((members[0][4], index, starts[index]) in orphaned for index in missing):
+        return None
+    metadata = dict(definition[1])
+    for fid, source in ((12, 7), (13, 8)):
+        metadata[fid] = b"".join(member[1][source] for member in history) + metadata[fid]
+    projected = []
+    for ordinal, member in enumerate(history + current):
+        fields = dict(member[1]); fields[14] = struct.pack('<I', ordinal if ordinal < len(history) else len(history) + _number(fields, 14))
+        projected.append((member[0], fields, *member[2:]))
+    master = _finite_series(((definition[0], metadata, *definition[2:]), projected), orphaned)
+    if master is None:
+        return None  # Same rule-expansion/duration/link guards as normal sets.
+    for fid, name in ((12, "STARTS"), (13, "ENDS")):
+        raw = definition[1][fid]
+        master["icsRoundtrip"].append("X-MAGNOLIE-OR6-CALENDAR-TEMPLATE-" + name + ":" + ",".join(
+            _stamp(raw[i:i+8]).strftime("%Y%m%dT%H%M%S") for i in range(0, len(raw), 8)))
+    return [master]
+
+
 def _finite_calendar_series(group, orphaned, schemas):
     """Verified original slot identity, not task index/date recovery (#614)."""
     ordinary = _finite_series(group, orphaned)
     if ordinary is not None:
         return [ordinary]
+    historical = _calendar_history_series(group, orphaned, schemas)
+    if historical is not None:
+        return historical
     definition, members = group
     if not members or any(member[0] != 0x100 for member in members):
         return None
