@@ -531,7 +531,11 @@ def _read_or6(raw):
                     "typ": "anniversary", "notiz": common["notiz"], "uid": uid, "geaendert": 0})
             elif tag == 0x200 or (_number(fields, 19) == 0 and _number(fields, 18) & 0x10000 and begin == end):
                 if tag == 0x200:
-                    common["notiz"] += ("\n" if common["notiz"] else "") + "Lotus planner event type: " + str(_number(fields, 18))
+                    # Independently named native schema fields: Row != KeyID.
+                    # Neither number proves a category name or palette color.
+                    for fid, label in ((18, "Row"), (19, "KeyID")):
+                        if fid in fields:
+                            common["notiz"] += ("\n" if common["notiz"] else "") + "Lotus planner " + label + ": " + str(_number(fields, fid))
                 result["termine"].append(dict(common, datum=begin, zeit="", endDatum=end if end != begin else "", endZeit="", vorlaeufig=False))
             else:
                 result["uebersprungen"] += 1

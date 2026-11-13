@@ -34,8 +34,11 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   Verified native Work, Home and Work-fax slots retain their phone contexts;
   empty preceding slots do not change later slot meanings.
 - Basic planner date spans become all-day appointments with the original
-  inclusive last date; their native event-type number is retained in the note.
-  Row layout, event-type labels and busy-time booking are not inferred.
+  inclusive last date. Present native `Row` (field 18) and `KeyID` (field 19)
+  values remain separately labelled in the note (#568); absent fields are not
+  fabricated as zero. `Row` is not an event-type number. Row layout, event-type
+  labels, palette colors and busy-time booking are not inferred from these
+  numbers; named types and color migration remain unverified.
 - Native anniversaries with the verified annual checkbox become anniversary
   entries. Turning that checkbox off in the original application produces a
   single all-day appointment with the same stable identity, not a yearly rule.

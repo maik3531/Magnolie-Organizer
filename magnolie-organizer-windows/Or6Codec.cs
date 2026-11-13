@@ -386,8 +386,14 @@ internal static class Or6Codec
                 {
                     if (tag == 0x200)
                     {
-                        var note = common["notiz"]!.GetValue<string>();
-                        common["notiz"] = note + (note.Length > 0 ? "\n" : "") + "Lotus planner event type: " + Number(fields, 18).ToString(CultureInfo.InvariantCulture);
+                        // Native schema names Row and KeyID are distinct. Do
+                        // not present either number as a verified type/color.
+                        foreach (var (field, label) in new[] { ((ushort)18, "Row"), ((ushort)19, "KeyID") })
+                        {
+                            if (!fields.ContainsKey(field)) continue;
+                            var note = common["notiz"]!.GetValue<string>();
+                            common["notiz"] = note + (note.Length > 0 ? "\n" : "") + "Lotus planner " + label + ": " + Number(fields, field).ToString(CultureInfo.InvariantCulture);
+                        }
                     }
                     common["datum"] = start.Date; common["zeit"] = ""; common["endDatum"] = end.Date != start.Date ? end.Date : "";
                     common["endZeit"] = ""; common["vorlaeufig"] = false; appointments.Add(common);

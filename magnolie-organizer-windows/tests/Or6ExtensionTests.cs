@@ -69,6 +69,49 @@ internal static class Or6ExtensionTests
         TestAssert.That(once.Jahrestage.Count == 0 && once.Uebersprungen == 0 && JsonNode.DeepEquals(oneOff["uid"], annual["uid"]) &&
             oneOff["datum"]!.GetValue<string>() == "2026-11-04" && oneOff["zeit"]!.GetValue<string>() == "" && oneOff["wiederholung"] is null,
             "Unchecked original annual checkbox became a yearly recurrence.");
+        CheckPlannerFields();
         return Task.CompletedTask;
+    }
+
+    private static void CheckPlannerFields()
+    {
+        var raw = Fixture("sections-corrected-222.or6");
+        var original = Or6Codec.Read(raw);
+        foreach (var (row, keyId) in new (ushort Row, ushort? KeyId)[] { (1, null), (7, 2), (2, 7), (0, 0) })
+        {
+            var data = Or6UnsupportedNoteTests.Rotate(raw, true);
+            for (int offset = 0; offset < data.Length;)
+            {
+                var tag = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset));
+                var size = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset + 8)));
+                if (tag == 0x200)
+                {
+                    var count = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset + 0x28)));
+                    for (var i = 0; i < count; i++)
+                    {
+                        var entry = offset + 0x34 + i * 8;
+                        var field = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(entry));
+                        if (field != 18 && !(field == 3 && keyId.HasValue)) continue;
+                        BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(entry), field == 18 ? (ushort)18 : (ushort)19);
+                        BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(entry + 2), 2);
+                        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(entry + 4), field == 18 ? row : keyId!.Value);
+                    }
+                }
+                offset += size;
+            }
+            var result = Or6Codec.Read(Or6UnsupportedNoteTests.Rotate(data, false));
+            var planner = result.Termine.OfType<JsonObject>().Single(value => value["titel"]!.GetValue<string>() == "OR6-222 Planned span");
+            var note = planner["notiz"]!.GetValue<string>();
+            TestAssert.That(!note.Contains("event type", StringComparison.Ordinal) && note.Split('\n').Contains("Lotus planner Row: " + row) &&
+                (keyId.HasValue ? note.Split('\n').Contains("Lotus planner KeyID: " + keyId.Value) : !note.Contains("KeyID:", StringComparison.Ordinal)),
+                "Native planner Row/KeyID were conflated or a missing type reference invented");
+            TestAssert.That(!planner.ContainsKey("farbe") && !planner.ContainsKey("kategorie") && !planner.ContainsKey("kategorien"),
+                "Unverified native planner numbers became colors/categories");
+            var basis = original.Termine.OfType<JsonObject>().Single(value => JsonNode.DeepEquals(value["uid"], planner["uid"])).DeepClone().AsObject();
+            var projection = planner.DeepClone().AsObject(); basis.Remove("notiz"); projection.Remove("notiz");
+            TestAssert.That(JsonNode.DeepEquals(basis, projection) && JsonNode.DeepEquals(result.Kontakte, original.Kontakte) &&
+                JsonNode.DeepEquals(result.Aufgaben, original.Aufgaben) && JsonNode.DeepEquals(result.Notizen, original.Notizen) &&
+                JsonNode.DeepEquals(result.Jahrestage, original.Jahrestage), "Planner metadata changed dates, identity or unrelated records");
+        }
     }
 }
