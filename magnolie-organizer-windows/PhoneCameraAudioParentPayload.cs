@@ -19,7 +19,8 @@ internal sealed class PhoneCameraAudioParentPayload
         "native/phone-camera/PhoneCameraOutputPublisher.h", "native/phone-camera/PhoneCameraOutputPublisher.cpp",
         "native/phone-camera/PhoneCameraRuntimeProcess.h", "native/phone-camera/PhoneCameraRuntimeProcess.cpp",
         "native/phone-camera/PhoneCameraRuntimeStatus.h", "native/phone-camera/PhoneCameraRuntimeStatus.cpp",
-        "native/phone-camera/PhoneCameraSamples.h", "werkzeuge/phone_audio_parent.py", "PhoneCameraAudioParent.targets"
+        "native/phone-camera/PhoneCameraVirtualCamera.h", "native/phone-camera/PhoneCameraVirtualCamera.cpp",
+        "native/phone-camera/PhoneCameraSamples.h", "native/phone-camera/PhoneCameraModule.h", "werkzeuge/phone_audio_parent.py", "PhoneCameraAudioParent.targets"
     });
     private PhoneCameraAudioParentPayload(byte[] image, string hash) { binary = image; Sha256 = hash; }
     internal static PhoneCameraAudioParentPayload? LoadEmbedded()

@@ -12,9 +12,9 @@
       <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Linq" /><Using Namespace="System.Security.Cryptography" />
       <Code Type="Fragment" Language="cs"><![CDATA[
         var names = new[] { "PhoneCameraAudioParent", "PhoneCameraClock", "PhoneCameraPipe", "PhoneCameraOutputLease",
-          "PhoneCameraOutputPublisher", "PhoneCameraRuntimeProcess", "PhoneCameraRuntimeStatus" };
+          "PhoneCameraOutputPublisher", "PhoneCameraRuntimeProcess", "PhoneCameraRuntimeStatus", "PhoneCameraVirtualCamera" };
         var sources = names.SelectMany(name => new[] { "native/phone-camera/"+name+".h", "native/phone-camera/"+name+".cpp" })
-          .Concat(new[] { "native/phone-camera/PhoneCameraSamples.h", "werkzeuge/phone_audio_parent.py", "PhoneCameraAudioParent.targets" }).ToArray();
+          .Concat(new[] { "native/phone-camera/PhoneCameraSamples.h", "native/phone-camera/PhoneCameraModule.h", "werkzeuge/phone_audio_parent.py", "PhoneCameraAudioParent.targets" }).ToArray();
         Func<byte[],string> hash = bytes => { using(var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); };
         var binary = File.ReadAllBytes(Path.Combine(InputDirectory, "Magnolie.PhoneAudioParent.x64.dll"));
         if(binary.Length < 128 || binary.Length > 8*1024*1024 || binary[0] != 77 || binary[1] != 90) throw new InvalidDataException("Invalid parent PE size/header");
