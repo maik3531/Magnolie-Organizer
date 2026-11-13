@@ -19,19 +19,25 @@ namespace Magnolie::PhoneCamera
         bool spent = false, stopped = false;
         ComPtr<IMFMediaSourceEx> source;
         ComPtr<IFrameFeed> feed;
+        ComPtr<IMFAttributes> metadata; // Owned snapshot; NEVER source/capture authority.
 
         HRESULT Stop() noexcept
         {
             ComPtr<IMFMediaSourceEx> original;
+            ComPtr<IMFAttributes> originalMetadata;
             {
                 std::lock_guard<std::mutex> lock(gate);
                 if (stopped) return MF_E_SHUTDOWN;
                 stopped = true; spent = true;
                 original = std::move(source); feed.Reset();
+                originalMetadata = std::move(metadata);
             }
             // Source callbacks/shutdown may signal this controller. Never hold
             // the shell lock across any source call or blocking MF event wait.
             if (original) original->Shutdown();
+            // Metadata can contain arbitrary COM objects. Release outside the
+            // shell lock, before registry cleanup, with stopped already sticky.
+            originalMetadata.Reset();
             if (registration.closed) registration.closed(registration.context);
             return S_OK;
         }
@@ -121,9 +127,40 @@ namespace Magnolie::PhoneCamera
         {
             if (!result) return E_POINTER; *result = nullptr;
             ComPtr<IMFMediaSourceEx> source; HRESULT hr = state_->Bound(source);
-            if (hr != MF_E_NOT_INITIALIZED) return FAILED(hr) ? hr : source->GetSourceAttributes(result);
-            // No caller-supplied attributes or saved flags become authority.
-            return MFCreateAttributes(result, 0);
+            if (FAILED(hr) && hr != MF_E_NOT_INITIALIZED) return hr;
+            ComPtr<IMFAttributes> metadata;
+            {
+                std::lock_guard<std::mutex> lock(state_->gate);
+                if (state_->stopped) return MF_E_SHUTDOWN;
+                metadata = state_->metadata;
+            }
+            // Return an independent store. Neither later activation changes nor
+            // a caller modifying returned metadata may retarget this source.
+            ComPtr<IMFAttributes> snapshot;
+            hr = MFCreateAttributes(&snapshot, 8);
+            if (SUCCEEDED(hr) && metadata) hr = metadata->CopyAllItems(snapshot.Get());
+            if (SUCCEEDED(hr)) hr = snapshot->SetUINT32(MF_DEVICESTREAM_ATTRIBUTE_FRAMESOURCE_TYPES, MFFrameSourceTypes_Color);
+            if (SUCCEEDED(hr) && source)
+            {
+                ComPtr<IMFAttributes> native;
+                hr = source->GetSourceAttributes(&native);
+                // Canonical source-owned media invariants override any caller
+                // metadata collision. No attribute is ever read as authority.
+                // CopyAllItems REPLACES the destination, it is not an overlay.
+                UINT32 count = 0;
+                if (SUCCEEDED(hr)) hr = native->GetCount(&count);
+                for (UINT32 i = 0; SUCCEEDED(hr) && i < count; ++i)
+                {
+                    GUID key{}; PROPVARIANT item{};
+                    hr = native->GetItemByIndex(i, &key, &item);
+                    if (SUCCEEDED(hr)) hr = snapshot->SetItem(key, item);
+                    PropVariantClear(&item);
+                }
+                DWORD flags = 0;
+                if (SUCCEEDED(hr)) hr = source->GetCharacteristics(&flags);
+            }
+            if (SUCCEEDED(hr)) hr = state_->Current();
+            return FAILED(hr) ? hr : snapshot.CopyTo(result);
         }
         STDMETHODIMP GetStreamAttributes(DWORD id, IMFAttributes** result) override
         {
@@ -232,7 +269,7 @@ namespace Magnolie::PhoneCamera
     DormantSourceControl::~DormantSourceControl() { state_->Stop(); }
 
     HRESULT CreateDormantSource(RegistrationLifetime registration, IMFMediaSourceEx** result,
-        std::unique_ptr<DormantSourceControl>& control) noexcept
+        std::unique_ptr<DormantSourceControl>& control, IMFAttributes* activationMetadata) noexcept
     {
         if (!result) return E_POINTER; *result = nullptr;
         if (control || !registration.current || !registration.context || !registration.lifetime) return E_INVALIDARG;
@@ -240,6 +277,9 @@ namespace Magnolie::PhoneCamera
         {
             auto state = std::make_shared<DormantSourceState>(registration);
             HRESULT hr = state->Current(); if (FAILED(hr)) return hr;
+            hr = MFCreateAttributes(&state->metadata, 8);
+            if (SUCCEEDED(hr) && activationMetadata) hr = activationMetadata->CopyAllItems(state->metadata.Get());
+            if (FAILED(hr)) return hr;
             auto shell = Microsoft::WRL::Make<DormantSource>(state);
             if (!shell) return E_OUTOFMEMORY;
             auto owner = std::unique_ptr<DormantSourceControl>(new DormantSourceControl(state));

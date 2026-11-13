@@ -59,7 +59,7 @@ namespace Magnolie::PhoneCamera
     private:
         friend class SourceBindingProof;
         friend HRESULT CreateDormantSource(RegistrationLifetime, IMFMediaSourceEx**,
-            std::unique_ptr<DormantSourceControl>&) noexcept;
+            std::unique_ptr<DormantSourceControl>&, IMFAttributes*) noexcept;
         explicit DormantSourceControl(std::shared_ptr<DormantSourceState> state) : state_(std::move(state)) {}
         const std::shared_ptr<DormantSourceState> state_;
     };
@@ -68,5 +68,5 @@ namespace Magnolie::PhoneCamera
     // Static metadata is available; presentation/events/Start/feed require the
     // genuine one-time binding. This function never grants capture or SEND.
     HRESULT CreateDormantSource(RegistrationLifetime registration, IMFMediaSourceEx** source,
-        std::unique_ptr<DormantSourceControl>& control) noexcept;
+        std::unique_ptr<DormantSourceControl>& control, IMFAttributes* activationMetadata = nullptr) noexcept;
 }

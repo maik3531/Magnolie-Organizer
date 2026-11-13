@@ -1,5 +1,34 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Activation metadata without capture authority (Refs #589)
+
+The actual Source COM module passes the owned IMFActivate snapshot into its
+dormant source. Ordinary symbolic-link/string/GUID/blob/COM metadata is retained
+per original shell, before and after genuine adoption. GetSourceAttributes returns
+an independent store; later activation/caller-store changes cannot retarget the
+source. Source-owned media invariants (including fixed Color source type) win
+over conflicting caller metadata. CopyAllItems replaces its target, so canonical
+bound-source attributes are overlaid individually rather than erasing the saved
+activation metadata. Neither public metadata, IUnknown, class/scope flags nor
+symbolic links become capture/SEND authority or an OS source-binding proof.
+
+The new production-module case reproduced the missing symbolic-link attribute
+before the fix. The final source-bound DLL passed ten unregistered module groups
+(three new metadata/lifetime/isolation cases and seven affected lifecycle cases),
+including a metadata COM object's reentrant Shutdown during release and actual
+DLL unload. A separate new actual MF shell case verifies metadata both before
+and after test-only adoption, preserved canonical Color/no implicit SEND, and
+original capture loss refusing metadata readback while registration remains live.
+Fourteen affected shell/lifetime cases passed at the final source state as well.
+The test-only adoption is not a productive broker or OS identity proof.
+
+Metadata COM references are moved out of the shell lock before release during
+terminal Stop; registration cleanup remains separate and outside locks. The new
+Source artifact replaces only its changed 17-input snapshot. Parent/worker
+catalogs and base managed inputs are unchanged. No camera registration, real
+FrameServer/AudioClient, driver setup, physical phone or AV/OBS acceptance occurs
+in these tests. Those remain #588/#503 under the existing device pauses.
+
 ## Persistent Source deployment contract (Refs #588)
 
 PhoneCameraSourceRegistration now implements the future elevated Source step,

@@ -26,8 +26,9 @@ namespace Magnolie::PhoneCamera
 }
 namespace
 {
-    void Check(bool value) { if (!value) throw std::runtime_error("dormant source boundary assertion"); }
-    void Ok(HRESULT hr) { Check(hr == S_OK); }
+    void CheckAt(bool value, int line) { if (!value) throw std::runtime_error("dormant source assertion line " + std::to_string(line)); }
+#define Check(value) CheckAt(value, __LINE__)
+    void Ok(HRESULT hr) { if (hr != S_OK) throw std::runtime_error("dormant source HRESULT " + std::to_string(static_cast<long>(hr))); }
     class Root final : public Microsoft::WRL::RuntimeClass<Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>, IUnknown>
     {
     public:
@@ -65,8 +66,8 @@ namespace
         std::unique_ptr<DormantSourceControl> control;
         std::shared_ptr<PresentationClock> clock;
         GUID scope{};
-        Fixture()
-        { Check(root != nullptr); clock = std::make_shared<PresentationClock>(root->ClockCallbacks()); Ok(CoCreateGuid(&scope)); Ok(CreateDormantSource(root->RegistrationOwner(), &source, control)); }
+        explicit Fixture(IMFAttributes* metadata = nullptr)
+        { Check(root != nullptr); clock = std::make_shared<PresentationClock>(root->ClockCallbacks()); Ok(CoCreateGuid(&scope)); Ok(CreateDormantSource(root->RegistrationOwner(), &source, control, metadata)); }
         ~Fixture() { if (control) control->Stop(); }
         std::unique_ptr<SourceBindingProof> Proof()
         { return DormantSourceTestAccess::Proof(*control, root->CaptureOwner(), scope, clock); }
@@ -90,6 +91,28 @@ namespace
         Check(f.source.As(&feed) == E_NOINTERFACE && !feed);
         Check(f.control->GetBoundFeed(&feed) == MF_E_NOT_INITIALIZED && !feed);
         Check(f.root->checks == 0 && f.root->retired == 0);
+    }
+    void MetadataSurvivesBindingWithoutMaskingCaptureLoss()
+    {
+        ComPtr<IMFAttributes> activation; Ok(MFCreateAttributes(&activation, 4));
+        Ok(activation->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, L"original-metadata-only"));
+        Ok(activation->SetUINT32(MF_DEVICESTREAM_ATTRIBUTE_FRAMESOURCE_TYPES, 0xffffffff));
+        Fixture f(activation.Get());
+        Ok(activation->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, L"caller-replacement"));
+        auto check = [&] {
+            ComPtr<IMFAttributes> attributes; Ok(f.source->GetSourceAttributes(&attributes));
+            wchar_t value[64]{}; UINT32 used = 0, type = 0;
+            Ok(attributes->GetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, value, 64, &used));
+            Check(std::wstring(value) == L"original-metadata-only");
+            Ok(attributes->GetUINT32(MF_DEVICESTREAM_ATTRIBUTE_FRAMESOURCE_TYPES, &type)); Check(type == MFFrameSourceTypes_Color);
+        };
+        check(); Check(f.root->checks == 0);
+        f.root->sending = E_ACCESSDENIED; Ok(f.control->Adopt(f.Proof()));
+        check(); Check(f.root->retired == 0); // Metadata never requires/grants SEND.
+        f.root->capture = E_ACCESSDENIED;
+        ComPtr<IMFAttributes> denied; Check(f.source->GetSourceAttributes(&denied) == E_ACCESSDENIED && !denied);
+        Check(f.root->retired == 1 && f.root->registration == S_OK);
+        f.root->capture = S_OK; Check(FAILED(f.source->GetSourceAttributes(&denied)) && !denied);
     }
     void ExternalPropertiesCannotConstructProof()
     {
@@ -232,6 +255,7 @@ int main(int argc, char** argv)
     if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return 2;
     if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET))) { CoUninitialize(); return 3; }
     const struct { const char* name; void (*run)(); } cases[] = {
+        {"dormant-metadata-bound-owner-loss", MetadataSurvivesBindingWithoutMaskingCaptureLoss},
         {"dormant-no-capture-authority", DormantMetadataNeverCreatesCaptureAuthority},
         {"dormant-no-property-grant", ExternalPropertiesCannotConstructProof},
         {"dormant-exact-target", WrongTargetDoesNotConsumeOriginalSlot},
@@ -255,6 +279,7 @@ int main(int argc, char** argv)
         if (!selection.empty() && selection.find("," + std::string(test.name) + ",") == std::string::npos) continue;
         ++selected;
         try { test.run(); std::printf("PASS %s\n", test.name); }
+        catch (const std::exception& error) { ++failed; std::printf("FAIL %s (%s)\n", test.name, error.what()); }
         catch (...) { ++failed; std::printf("FAIL %s\n", test.name); }
         std::fflush(stdout);
     }

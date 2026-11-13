@@ -4,10 +4,12 @@
 #include <mferror.h>
 #include <ks.h>
 #include <ksproxy.h>
-#include <wrl/client.h>
+#include <wrl.h>
 #include <cstdio>
 #include <stdexcept>
 #include <string>
+#include <algorithm>
+#include <iterator>
 
 using namespace Magnolie::PhoneCamera;
 using Microsoft::WRL::ComPtr;
@@ -25,6 +27,70 @@ namespace
     { ComPtr<IMFActivate> result; Ok(from->CreateInstance(nullptr, IID_PPV_ARGS(&result))); return result; }
     ComPtr<IMFMediaSourceEx> Source(IMFActivate* from)
     { ComPtr<IMFMediaSourceEx> result; Ok(from->ActivateObject(IID_PPV_ARGS(&result))); return result; }
+    void ActivationMetadataRoundTripDoesNotAuthorizeCapture()
+    {
+        const GUID tag = {0x7b0022b1,0x3359,0x42a9,{0xa6,0xb7,0xe0,0x22,0x19,0xf5,0xa2,0x41}};
+        const GUID blob = {0x7b0022b2,0x3359,0x42a9,{0xa6,0xb7,0xe0,0x22,0x19,0xf5,0xa2,0x41}};
+        const BYTE data[] = {2, 4, 8, 16};
+        auto owner = Factory(); auto activation = Activation(owner.Get());
+        Ok(activation->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, L"magnolie-metadata-original"));
+        Ok(activation->SetGUID(tag, SourceClassId)); Ok(activation->SetBlob(blob, data, sizeof(data)));
+        auto source = Source(activation.Get()); ComPtr<IMFAttributes> attributes;
+        Ok(source->GetSourceAttributes(&attributes));
+        wchar_t link[64]{}; GUID value{}; BYTE copied[4]{}; UINT32 used = 0;
+        Ok(attributes->GetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, link, 64, &used));
+        Check(std::wstring(link) == L"magnolie-metadata-original");
+        Ok(attributes->GetGUID(tag, &value)); Check(value == SourceClassId);
+        Ok(attributes->GetBlob(blob, copied, sizeof(copied), &used));
+        Check(used == sizeof(data) && std::equal(std::begin(data), std::end(data), std::begin(copied)));
+        Ok(activation->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, L"changed-activation"));
+        Ok(attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, L"changed-returned-store"));
+        attributes.Reset(); Ok(source->GetSourceAttributes(&attributes));
+        Ok(attributes->GetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, link, 64, &used));
+        Check(std::wstring(link) == L"magnolie-metadata-original");
+        PROPVARIANT position{}; Check(source->Start(nullptr, nullptr, &position) == MF_E_NOT_INITIALIZED);
+        ComPtr<IFrameFeed> feed; Check(source.As(&feed) == E_NOINTERFACE && !feed);
+        Ok(source->Shutdown()); attributes.Reset(); source.Reset(); activation.Reset(); owner.Reset(); Ok(unload());
+    }
+    class MetadataCookie final : public Microsoft::WRL::RuntimeClass<Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>, IUnknown>
+    {
+    public:
+        MetadataCookie(int* deaths, HRESULT* reentered) : deaths_(deaths), reentered_(reentered) {}
+        ~MetadataCookie() { if (source) *reentered_ = source->Shutdown(); ++*deaths_; }
+        IMFMediaSourceEx* source = nullptr; // Test holds it through this callback.
+    private:
+        int* deaths_; HRESULT* reentered_;
+    };
+    void MetadataLifetimeAndReentrantShutdown()
+    {
+        const GUID key = {0x7b0022b3,0x3359,0x42a9,{0xa6,0xb7,0xe0,0x22,0x19,0xf5,0xa2,0x41}};
+        int deaths = 0; HRESULT reentered = E_UNEXPECTED;
+        auto owner = Factory(); auto activation = Activation(owner.Get());
+        auto cookie = Microsoft::WRL::Make<MetadataCookie>(&deaths, &reentered); Check(cookie != nullptr);
+        Ok(activation->SetUnknown(key, cookie.Get())); auto source = Source(activation.Get()); cookie->source = source.Get();
+        ComPtr<IMFAttributes> metadata; Ok(source->GetSourceAttributes(&metadata));
+        ComPtr<IUnknown> held; Ok(metadata->GetUnknown(key, IID_PPV_ARGS(&held)));
+        Ok(activation->DeleteAllItems()); cookie.Reset(); held.Reset(); metadata.Reset();
+        Check(deaths == 0); // Only the source's snapshot still owns the cookie.
+        Ok(source->Shutdown()); Check(deaths == 1 && reentered == MF_E_SHUTDOWN);
+        Check(source->GetSourceAttributes(&metadata) == MF_E_SHUTDOWN && !metadata);
+        source.Reset(); activation.Reset(); owner.Reset(); Ok(unload());
+    }
+    void SeparateMetadataAndIndependentSourceLifetime()
+    {
+        const GUID key = {0x7b0022b4,0x3359,0x42a9,{0xa6,0xb7,0xe0,0x22,0x19,0xf5,0xa2,0x41}};
+        auto owner = Factory(); auto a = Activation(owner.Get()); auto b = Activation(owner.Get());
+        Ok(a->SetString(key, L"source-a")); Ok(b->SetString(key, L"source-b"));
+        auto first = Source(a.Get()); auto second = Source(b.Get());
+        a.Reset(); owner.Reset();
+        ComPtr<IMFAttributes> attributes; Ok(first->GetSourceAttributes(&attributes));
+        wchar_t value[32]{}; UINT32 used = 0;
+        Ok(attributes->GetString(key, value, 32, &used)); Check(std::wstring(value) == L"source-a");
+        attributes.Reset(); Ok(first->Shutdown()); first.Reset();
+        Ok(second->GetSourceAttributes(&attributes));
+        Ok(attributes->GetString(key, value, 32, &used)); Check(std::wstring(value) == L"source-b");
+        Ok(second->Shutdown()); attributes.Reset(); second.Reset(); b.Reset(); Ok(unload());
+    }
     void UnknownClassAndInterfaceDoNotRetainModule()
     {
         Ok(unload()); void* result = reinterpret_cast<void*>(1);
@@ -90,7 +156,7 @@ namespace
 }
 int wmain(int argc, wchar_t** argv)
 {
-    if (argc != 2 || FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return 2;
+    if ((argc != 2 && argc != 3) || FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return 2;
     if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET))) { CoUninitialize(); return 3; }
     HMODULE module = LoadLibraryExW(argv[1], nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!module) { MFShutdown(); CoUninitialize(); return 4; }
@@ -99,6 +165,9 @@ int wmain(int argc, wchar_t** argv)
     int failed = 0;
     if (!factory || !unload || GetProcAddress(module, "DllRegisterServer") || GetProcAddress(module, "DllUnregisterServer")) failed = 1;
     const struct { const char* name; void (*run)(); } cases[] = {
+        {"module-metadata-roundtrip-no-authority", ActivationMetadataRoundTripDoesNotAuthorizeCapture},
+        {"module-metadata-release-reentrant-stop", MetadataLifetimeAndReentrantShutdown},
+        {"module-metadata-separate-originals", SeparateMetadataAndIndependentSourceLifetime},
         {"module-exact-class-interface", UnknownClassAndInterfaceDoNotRetainModule},
         {"module-factory-activation-lifetime", FactoryAndActivationHoldIndependentModuleLifetime},
         {"module-dormant-no-property-grant", ActualModuleIsDormantAndIgnoresAuthorityMetadata},
@@ -107,12 +176,17 @@ int wmain(int argc, wchar_t** argv)
         {"module-separate-originals", SeparateActivationsDoNotRetireEachOther},
         {"module-explicit-server-lock", ExplicitServerLockDoesNotUnderflowOrImpersonateCapture}
     };
+    int executed = 0;
     if (!failed) for (const auto& test : cases)
     {
+        std::wstring name; for (const char* at = test.name; *at; ++at) name.push_back(static_cast<wchar_t>(*at));
+        if (argc == 3 && (L"," + std::wstring(argv[2]) + L",").find(L"," + name + L",") == std::wstring::npos) continue;
+        ++executed;
         try { test.run(); std::printf("PASS %s\n", test.name); }
         catch (...) { ++failed; std::printf("FAIL %s\n", test.name); }
         std::fflush(stdout);
     }
+    if (!executed) ++failed;
     // Do not unload a failed test's still-held native callbacks. Its bounded
     // test process exits; no unsafe FreeLibrary is used to force a passing result.
     if (unload && unload() == S_OK)

@@ -29,12 +29,12 @@ namespace Magnolie::PhoneCamera
                 root.stopped.store(true);
                 root.control.reset(); // State is retained across the calling Stop/Adopt.
             }
-            static HRESULT ConstructDormant(void* context, IMFAttributes*, IMFMediaSourceEx** result) noexcept
+            static HRESULT ConstructDormant(void* context, IMFAttributes* metadata, IMFMediaSourceEx** result) noexcept
             {
                 auto& root = *static_cast<ModuleContext*>(context);
                 // No caller attributes (including a purported scope/ready flag)
                 // manufacture a broker proof or an existing capture owner.
-                return CreateDormantSource({RegistrationCurrent, &root, &root, RegistrationClosed}, result, root.control);
+                return CreateDormantSource({RegistrationCurrent, &root, &root, RegistrationClosed}, result, root.control, metadata);
             }
             static HRESULT NewActivation(void*, IMFActivate** result) noexcept
             {
