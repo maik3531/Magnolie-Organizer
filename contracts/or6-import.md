@@ -50,9 +50,23 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
 - Basic planner date spans become all-day appointments with the original
   inclusive last date. Present native `Row` (field 18) and `KeyID` (field 19)
   values remain separately labelled in the note (#568); absent fields are not
-  fabricated as zero. `Row` is not an event-type number. Row layout, event-type
-  labels, palette colors and busy-time booking are not inferred from these
-  numbers; named types and color migration remain unverified.
+  fabricated as observed zero fields. `Row` is not an event-type number.
+  A uniquely bound planner configuration now supplies the original key name as
+  `kategorien` and the independently verified key color as `akzentFarbe`. The
+  existing calendar, annual planner, print and spreadsheet views use these
+  fields directly; there is no separate planner UI or guessed global category
+  palette. The native configuration's explicit Section ID owns the labels.
+  A unique allocated planner root and matching native schema name/namespace
+  identify the event scope, including multiple planners sharing one options
+  schema. Native OID arithmetic and globally unique options are not assumed.
+  All15 original-program key slots and their actual event fills were verified
+  after save/reopen; native bright green is `#00c200`, not guessed `#00ff00`.
+  The explicitly selected first slot omits KeyID19 in the original file; its
+  semantic zero default applies only to the declared native uint16 KeyID and
+  does not invent a present field in source notes. Missing/ambiguous configuration
+  or an unknown key does not acquire a guessed name/color. A prior export that
+  already discarded renamed keys cannot recreate them. Row layout and busy-time
+  booking remain separate unsupported semantics, not inferred from a key.
 - Native anniversaries with the verified annual checkbox become anniversary
   entries. Turning that checkbox off in the original application produces a
   single all-day appointment with the same stable identity, not a yearly rule.
@@ -131,3 +145,14 @@ Task series, with three preselected Tuesday due dates. Both readers and actual
 task export/reimport retain one series; both frontends additionally verify
 next-due selection, source-bound duplicate reimport, original completion
 exceptions and single-occurrence completion without losing future tasks.
+
+`or6-native-planner.json` retains a synthetic two-planner original-program file:
+each section has15 independently renamed keys, and all15 slots were explicitly
+selected for dated events before saving and reopening. The fixture includes
+two different key names for the same numeric slot in different sections, a
+shared options schema, and the original first-slot omission. Independent
+expected names/dates/colors are retained beside the source hash. Both native
+readers test scope ambiguity/missing metadata and calendar export roundtrips;
+both full frontends additionally verify real calendar rendering, annual-planner
+models, print/ODS output, duplicate reimport and preservation of a local color
+edit. These are source/controlled UI checks, not installed-package approval.

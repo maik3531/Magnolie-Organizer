@@ -11,6 +11,9 @@ internal static class Or6Codec
 {
     private const int MaxBlocks = 250000, MaxFields = 512;
     private const uint RepeatTag = 0xfefffff2;
+    // Original-program UI slots and all15 saved event fills, not guessed RGBs.
+    private static readonly string[] PlannerColors = ["#ff0000", "#00c200", "#0000ff", "#ffff00", "#ff00ff", "#00ffff",
+        "#800000", "#008000", "#000080", "#808000", "#800080", "#008080", "#808080", "#c0c0c0", "#000000"];
     private sealed record Entry(uint Tag, Dictionary<ushort, byte[]> Fields, string Uid,
         (uint, uint) Object, (uint, uint) Schema);
     private static readonly Encoding Wide = new UnicodeEncoding(false, false, true);
@@ -23,6 +26,8 @@ internal static class Or6Codec
         private readonly byte[] data;
         private readonly Dictionary<int, (uint Tag, int Size)> blocks = new();
         private readonly Dictionary<(uint, uint), (uint Tag, HashSet<ushort> Fields)> schemas = new();
+        private readonly Dictionary<(uint, uint), string> schemaNames = new();
+        private readonly HashSet<(uint, uint)> plannerZeroDefaults = new();
         private uint U32(int offset) => BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset, 4));
         private ushort U16(int offset) => BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(offset, 2));
         private (uint, uint) Reference(int offset) => (U32(offset), U32(offset + 4));
@@ -57,17 +62,37 @@ internal static class Or6Codec
                     if (!seen.Add(next) || seen.Count > MaxFields || !blocks.TryGetValue(next, out var field) ||
                         field.Tag != 0xfffffffd || field.Size < 0x32 || Reference(next + 0x18) != Reference(offset + 12) ||
                         !fields.Add(U16(next + 0x24))) throw Invalid();
+                    if (U32(offset + 0x2c) == 0x200 && U16(next + 0x24) == 19 && U16(next + 0x26) == 2)
+                        plannerZeroDefaults.Add(Reference(offset + 12));
                     next = Address(U32(next + 0x20));
                 }
                 schemas.Add(Reference(offset + 12), (U32(offset + 0x2c), fields));
+                if (U32(offset + 0x2c) == 0x200 && block.Size >= 0xc8)
+                    try { schemaNames[Reference(offset + 12)] = Wide.GetString(data, offset + 0x48, 128).Split('\0')[0]; }
+                    catch (DecoderFallbackException) { }
             }
         }
 
-        internal IEnumerable<Entry> Entries(bool repeats = false)
+        internal IEnumerable<Entry> Entries(bool repeats = false, bool plannerSections = false)
         {
             foreach (var (offset, block) in blocks)
             {
-                if (offset == 0 || block.Tag >= 0x80000000 && !(repeats && block.Tag == RepeatTag)) continue;
+                if (plannerSections)
+                {
+                    if (block.Tag != 0xfeffffff || block.Size < 0x34) continue;
+                    var rootCount = U32(offset + 0x28);
+                    if (rootCount > MaxFields || 0x34 + rootCount * 8 > block.Size) continue;
+                    var planner = false;
+                    // Only inspect the inline kind enum before reading a name;
+                    // unrelated/notebook section roots are not reconstructed.
+                    for (var i = 0; i < rootCount; i++)
+                    {
+                        var field = offset + 0x34 + i * 8;
+                        if (U16(field) == 5 && U16(field + 2) == 4 && U32(field + 4) == 0x200) planner = true;
+                    }
+                    if (!planner) continue;
+                }
+                else if (offset == 0 || block.Tag >= 0x80000000 && !(repeats && block.Tag == RepeatTag)) continue;
                 if (block.Size < 0x34 || !schemas.TryGetValue(Reference(offset + 0x18), out var schema) || schema.Tag != block.Tag) throw Invalid();
                 var count = U32(offset + 0x28);
                 if (count > MaxFields || 0x34 + count * 8 > block.Size) throw Invalid();
@@ -87,6 +112,41 @@ internal static class Or6Codec
                 var (idValue, origin) = Reference(offset + 12);
                 yield return new(block.Tag, fields, $"or6:{origin:x8}:{idValue:x8}", (idValue, origin), Reference(offset + 0x18));
             }
+        }
+
+        internal bool PlannerZeroDefault((uint, uint) schema) => plannerZeroDefaults.Contains(schema);
+
+        internal Dictionary<(uint, uint), string[]> PlannerKeys(List<Entry> entries)
+        {
+            var roots = Entries(plannerSections: true).ToArray();
+            var rootCounts = roots.GroupBy(root => root.Object).ToDictionary(group => group.Key, group => group.Count());
+            var schemaIndex = schemaNames.Where(pair => pair.Value.Length > 0)
+                .GroupBy(pair => (pair.Key.Item2, pair.Value)).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
+            var bindings = new Dictionary<(uint, uint), List<(uint, uint)>>();
+            foreach (var root in roots)
+            {
+                if (rootCounts[root.Object] != 1 || !schemaIndex.TryGetValue((root.Object.Item2, Text(root.Fields, 3)), out var matches) || matches.Length != 1) continue;
+                if (!bindings.TryGetValue(matches[0], out var targets)) bindings[matches[0]] = targets = [];
+                targets.Add(root.Object);
+            }
+            var configs = new Dictionary<(uint, uint), List<string[]>>();
+            foreach (var entry in entries.Where(entry => entry.Tag == 0x201))
+            {
+                var reference = Bytes(entry.Fields, 3); var encoded = Bytes(entry.Fields, 10);
+                if (reference.Length != 8 || encoded.Length % 2 != 0) continue;
+                string[] names;
+                try { names = Wide.GetString(encoded).Split('\0'); }
+                catch (DecoderFallbackException) { continue; }
+                if (names.Length < 15 || names.Skip(15).Any(name => name.Length > 0)) continue;
+                var target = (BinaryPrimitives.ReadUInt32LittleEndian(reference), BinaryPrimitives.ReadUInt32LittleEndian(reference.AsSpan(4)));
+                if (!configs.TryGetValue(target, out var options)) configs[target] = options = [];
+                options.Add(names.Take(15).ToArray());
+            }
+            // Config records share an options schema across sections: only
+            // their explicit Section ID owns the labels. Native schema/root
+            // name+namespace must resolve uniquely; never use OID arithmetic.
+            return bindings.Where(pair => pair.Value.Count == 1 && configs.TryGetValue(pair.Value[0], out var values) && values.Count == 1)
+                .ToDictionary(pair => pair.Key, pair => configs[pair.Value[0]][0]);
         }
 
         internal Dictionary<string, (Entry Definition, List<Entry> Members)> RepeatGroups(List<Entry> entries)
@@ -308,6 +368,7 @@ internal static class Or6Codec
         var appointments = new JsonArray(); var tasks = new JsonArray(); var contacts = new JsonArray(); var notes = new JsonArray(); var anniversaries = new JsonArray();
         var skipped = 0; var recurring = 0;
         var document = new Document(raw); var entries = document.Entries(repeats: true).ToList();
+        var plannerKeys = document.PlannerKeys(entries);
         var groups = document.RepeatGroups(entries); var consumed = new HashSet<string>();
         var (memberships, representedGroups) = document.ContactGroups(entries);
         var orphaned = entries.Where(entry => (entry.Tag is 0x100 or 0x300) && Number(entry.Fields, 10) != 0 && !groups.ContainsKey(entry.Uid))
@@ -440,6 +501,16 @@ internal static class Or6Codec
                 {
                     if (tag == 0x200)
                     {
+                        // Actual first-slot entries omit native KeyID19. Only
+                        // the declared uint16 field has this verified default;
+                        // absent source fields are not invented in notes below.
+                        var keyId = document.PlannerZeroDefault(entry.Schema) && (!fields.ContainsKey(19) || Bytes(fields, 19).Length == 2)
+                            ? Number(fields, 19) : uint.MaxValue;
+                        if (plannerKeys.TryGetValue(entry.Schema, out var names) && keyId < PlannerColors.Length)
+                        {
+                            common["kategorien"] = names[(int)keyId];
+                            common["akzentFarbe"] = PlannerColors[(int)keyId];
+                        }
                         // Native schema names Row and KeyID are distinct. Do
                         // not present either number as a verified type/color.
                         foreach (var (field, label) in new[] { ((ushort)18, "Row"), ((ushort)19, "KeyID") })

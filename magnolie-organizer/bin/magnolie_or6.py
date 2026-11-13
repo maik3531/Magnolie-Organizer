@@ -18,6 +18,10 @@ MAX_BYTES = 32 * 1024 * 1024
 MAX_BLOCKS = 250000
 MAX_FIELDS = 512
 REPEAT_TAG = 0xfefffff2
+# Independently selected original-program KeyID0..14 and actual saved event fills.
+PLANNER_COLORS = ("#ff0000", "#00c200", "#0000ff", "#ffff00", "#ff00ff", "#00ffff",
+                  "#800000", "#008000", "#000080", "#808000", "#800080", "#008080",
+                  "#808080", "#c0c0c0", "#000000")
 _RTF_CONTROL = re.compile(r"([a-zA-Z]+)(-?\d{1,10})? ?")
 
 
@@ -157,6 +161,7 @@ class _Document:
         if self.blocks.get(0) != (0x66099660, 1024):
             raise _invalid()
         self.schemas = {}
+        self.schema_names = {}
         for address, (tag, size) in self.blocks.items():
             if tag != 0xffffffff:
                 continue
@@ -166,6 +171,11 @@ class _Document:
             if key in self.schemas:
                 raise _invalid()
             self.schemas[key] = (self.u32(address + 0x2c), self._schema_fields(address))
+            if self.schemas[key][0] == 0x200 and size >= 0xc8:
+                try:
+                    self.schema_names[key] = _wide(self.data[address+0x48:address+0xc8]).split("\0")[0]
+                except ValueError:
+                    pass  # Unreadable optional metadata is not a guessed label.
 
     def u32(self, offset):
         return struct.unpack_from("<I", self.data, offset)[0]
@@ -189,10 +199,21 @@ class _Document:
             offset = self.u32(offset + 0x20)
         return fields
 
-    def entries(self, repeats=False):
+    def entries(self, repeats=False, planner_sections=False):
         for address, (tag, size) in self.blocks.items():
             # Freed blocks retain old text. Only live application allocations count.
-            if not address or tag >= 0x80000000 and not (repeats and tag == REPEAT_TAG):
+            if planner_sections:
+                if tag != 0xfeffffff or size < 0x34:
+                    continue
+                count = self.u32(address + 0x28)
+                if count > MAX_FIELDS or 0x34 + count * 8 > size:
+                    continue
+                # Inspect only the inline section-kind enum before reading any
+                # section name: unrelated/notebook roots are not reconstructed.
+                if not any(struct.unpack_from("<HHI", self.data, address+0x34+i*8) == (5, 4, 0x200)
+                           for i in range(count)):
+                    continue
+            elif not address or tag >= 0x80000000 and not (repeats and tag == REPEAT_TAG):
                 continue
             if size < 0x34:
                 raise _invalid()
@@ -218,6 +239,42 @@ class _Document:
                 fields[fid] = blob
             oid, origin = self.reference(address+12)
             yield tag, fields, "or6:%08x:%08x" % (origin, oid), (oid, origin), self.reference(address+0x18)
+
+    def planner_keys(self, entries):
+        """Unique native root/name/namespace binding, never OID arithmetic.
+
+        Configs can share one options schema across different sections. Their
+        explicit Section ID, not that shared schema, owns the names. Actual
+        root names remain aligned with event-schema names after tab renames.
+        """
+        roots = list(self.entries(planner_sections=True))
+        root_counts, schema_index = {}, {}
+        for root in roots:
+            root_counts[root[3]] = root_counts.get(root[3], 0) + 1
+        for key, name in self.schema_names.items():
+            if name:
+                schema_index.setdefault((key[1], name), []).append(key)
+        bindings = {}
+        for _, fields, _, reference, _ in roots:
+            if root_counts[reference] != 1:
+                continue
+            name = _string(fields, 3)
+            candidates = schema_index.get((reference[1], name), [])
+            if len(candidates) == 1:
+                bindings.setdefault(candidates[0], []).append(reference)
+        configs = {}
+        for tag, fields, _, _, _ in entries:
+            if tag != 0x201 or len(fields.get(3, b"")) != 8 or 10 not in fields:
+                continue
+            try:
+                names = _wide(fields[10]).split("\0")
+            except ValueError:
+                continue
+            if len(names) < 15 or any(names[15:]):
+                continue
+            configs.setdefault(struct.unpack("<II", fields[3]), []).append(names[:15])
+        return {schema: configs[references[0]][0] for schema, references in bindings.items()
+                if len(references) == 1 and len(configs.get(references[0], [])) == 1}
 
     def records(self):
         for tag, fields, uid, reference, schema in self.entries():
@@ -445,6 +502,7 @@ def _read_or6(raw):
     result.update(uebersprungen=0, wiederholend=0)
     document = _Document(raw)
     entries = list(document.entries(repeats=True))
+    planner_keys = document.planner_keys(entries)
     groups = document.repeat_groups(entries)
     memberships, represented_groups = document.contact_groups(entries)
     orphaned = {(entry[4], _number(entry[1], 14), _stamp(entry[1].get(7))) for entry in entries
@@ -581,6 +639,15 @@ def _read_or6(raw):
                     "typ": "anniversary", "notiz": common["notiz"], "uid": uid, "geaendert": 0})
             elif tag == 0x200 or (_number(fields, 19) == 0 and _number(fields, 18) & 0x10000 and begin == end):
                 if tag == 0x200:
+                    # The original UI's explicitly selected first slot is
+                    # serialized without field19. This semantic zero default
+                    # is limited to a declared native uint16 KeyID; absence is
+                    # still not printed as an observed source field below.
+                    key_id = (_number(fields, 19) if document.schemas[schema][1].get(19) == 2 and
+                              (19 not in fields or len(fields[19]) == 2) else -1)
+                    if schema in planner_keys and 0 <= key_id < len(PLANNER_COLORS):
+                        common["kategorien"] = planner_keys[schema][key_id]
+                        common["akzentFarbe"] = PLANNER_COLORS[key_id]
                     # Independently named native schema fields: Row != KeyID.
                     # Neither number proves a category name or palette color.
                     for fid, label in ((18, "Row"), (19, "KeyID")):
