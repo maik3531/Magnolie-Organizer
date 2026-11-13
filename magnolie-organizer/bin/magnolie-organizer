@@ -6626,9 +6626,15 @@ def _kontakt_konflikt_inhalt(obj):
     return normal(inhalt)
 
 
-def _kontakt_label_vergleich(obj, nur_werte=False):
+def _kontakt_label_vergleich(obj, nur_werte=False, quellumschrift=False):
     """Label classification only; persisted linux-1 hashes remain exact."""
     inhalt = _kontakt_konflikt_inhalt(obj)
+    def umschrift(wert):
+        return wert.replace("ß", "ss").replace("ẞ", "SS") if isinstance(wert, str) else wert
+    if quellumschrift:
+        for feld in ("vorname", "nachname", "anzeigename", "firma", "strasse", "ort", "land"):
+            if feld in inhalt:
+                inhalt[feld] = umschrift(inhalt[feld])
     for feld in ("telefon", "mobil", "emails", "email", "strasse", "plz", "ort"):
         inhalt.pop(feld, None)
     inhalt["foto"] = obj.get("foto") or None
@@ -6664,6 +6670,10 @@ def _kontakt_label_vergleich(obj, nur_werte=False):
                 if "typen" in zeile:
                     zeile["typen"] = [typ for typ in zeile["typen"] if typ != "INTERNET"]
             zeile = {key: value for key, value in zeile.items() if value not in (None, "", [], {})}
+            if quellumschrift and feld == "anschriften":
+                for key in ("strasse", "ort", "region", "land"):
+                    if key in zeile:
+                        zeile[key] = umschrift(zeile[key])
             zeilen.append(json.dumps(zeile, ensure_ascii=False, sort_keys=True))
         inhalt[feld] = sorted(set(zeilen)) or None
     return inhalt
@@ -6916,9 +6926,11 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         kontakt_identisch = (felder == KONTAKT_FELDER and fern is not None and
                              _kontakt_personengruppen(obj) == _kontakt_personengruppen(fern) and
                              _kontakt_nur_ergaenzungen(obj, fern))
+        quellumschrift = bool(kontakt_source and
+                             ((obj.get("syncQuellen") or {}).get(kontakt_source) or {}).get("id"))
         if (felder == KONTAKT_FELDER and fern is not None and
-                _kontakt_label_vergleich(obj, True) is not None and
-                _kontakt_label_vergleich(obj, True) == _kontakt_label_vergleich(fern, True)):
+                _kontakt_label_vergleich(obj, True, quellumschrift) is not None and
+                _kontakt_label_vergleich(obj, True, quellumschrift) == _kontakt_label_vergleich(fern, True, quellumschrift)):
             quelle = kontakt_quelle or (dav[0] if dav else None)
             basis = (obj.get("syncQuellen") or {}).get(quelle) or {}
             if kontakt_quelle:
@@ -6929,7 +6941,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 meta = ((dav[2] or {}).get(u) or {}) if dav else {}
                 remote_neu = bool(basis.get("etag") and meta.get("etag") and
                                   basis["etag"] != meta["etag"])
-            verschieden = _kontakt_label_vergleich(obj) != _kontakt_label_vergleich(fern)
+            verschieden = _kontakt_label_vergleich(obj, False, quellumschrift) != _kontakt_label_vergleich(fern, False, quellumschrift)
             lokal_zeit, fern_zeit = obj.get("geaendert") or 0, fern.get("geaendert") or 0
             limit = int(time.time() * 1000) + 300000
             if (verschieden and remote_neu and

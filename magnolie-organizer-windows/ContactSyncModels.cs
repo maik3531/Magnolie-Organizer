@@ -115,9 +115,20 @@ internal static class ContactFields
     // Separate classification from the exact persisted content/baseline hashes.
     // Only field labels/types/roles are optional here; actual contact values,
     // group membership, photos and unknown provider properties remain content.
-    private static JsonObject LabelComparison(JsonObject contact, bool valuesOnly, string homeCountry)
+    private static JsonObject LabelComparison(JsonObject contact, bool valuesOnly, string homeCountry, bool sourceTransliteration)
     {
         var projection = ComparisonProjection(contact, homeCountry);
+        if (sourceTransliteration)
+        {
+            static void Fold(JsonObject obj, string field)
+            {
+                if (obj[field] is JsonValue value && value.TryGetValue<string>(out var text))
+                    obj[field] = text.Replace("ß", "ss", StringComparison.Ordinal).Replace("ẞ", "SS", StringComparison.Ordinal);
+            }
+            foreach (var field in new[] { "vorname", "nachname", "anzeigename", "firma", "strasse", "ort", "land" }) Fold(projection, field);
+            foreach (var row in (projection["anschriften"] as JsonArray ?? []).OfType<JsonObject>())
+                foreach (var field in new[] { "strasse", "ort", "region", "land" }) Fold(row, field);
+        }
         projection["foto"] = Text(contact, "foto");
         foreach (var field in new[] { "telefone", "emailEintraege", "anschriften" })
         {
@@ -149,11 +160,11 @@ internal static class ContactFields
         return projection;
     }
 
-    internal static bool SameLabelValues(JsonObject left, JsonObject right, string homeCountry = "") =>
-        JsonNode.DeepEquals(LabelComparison(left, true, homeCountry), LabelComparison(right, true, homeCountry));
+    internal static bool SameLabelValues(JsonObject left, JsonObject right, string homeCountry = "", bool sourceTransliteration = false) =>
+        JsonNode.DeepEquals(LabelComparison(left, true, homeCountry, sourceTransliteration), LabelComparison(right, true, homeCountry, sourceTransliteration));
 
-    internal static bool SameLabelMetadata(JsonObject left, JsonObject right, string homeCountry = "") =>
-        JsonNode.DeepEquals(LabelComparison(left, false, homeCountry), LabelComparison(right, false, homeCountry));
+    internal static bool SameLabelMetadata(JsonObject left, JsonObject right, string homeCountry = "", bool sourceTransliteration = false) =>
+        JsonNode.DeepEquals(LabelComparison(left, false, homeCountry, sourceTransliteration), LabelComparison(right, false, homeCountry, sourceTransliteration));
 
     // Comparison only: never use country-dependent keys as persisted baselines.
     internal static JsonObject ComparisonProjection(JsonObject contact, string homeCountry)
@@ -846,7 +857,8 @@ internal sealed class ContactSyncEngine
                 var localChanged = ContactFields.Dirty(item, mapping, other.Data);
                 var localProjection = ContactFields.ConflictProjection(item);
                 var remoteProjection = ContactFields.ConflictProjection(other.Data);
-                var sameLabelValues = ContactFields.SameLabelValues(item, other.Data, homeCountry);
+                var sourceTransliteration = originalMapping is JsonObject original && ContactFields.Text(original, "id") == remoteId;
+                var sameLabelValues = ContactFields.SameLabelValues(item, other.Data, homeCountry, sourceTransliteration);
                 // Membership sets must use the source baseline, never additive union.
                 var sameContact = sameLabelValues || JsonNode.DeepEquals(localProjection["gruppen"], remoteProjection["gruppen"]) &&
                     ContactFields.NonConflicting(localProjection, remoteProjection);
@@ -863,7 +875,7 @@ internal sealed class ContactSyncEngine
                 var wroteRemote = false;
                 if (sameLabelValues)
                 {
-                    if (ContactFields.SameLabelMetadata(item, other.Data, homeCountry))
+                    if (ContactFields.SameLabelMetadata(item, other.Data, homeCountry, sourceTransliteration))
                         ContactFields.SetSource(item, source, other, remoteBaseline: additiveOnly);
                     else
                     {

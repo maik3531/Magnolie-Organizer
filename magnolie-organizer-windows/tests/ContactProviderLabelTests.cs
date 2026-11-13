@@ -49,6 +49,7 @@ internal static class ContactProviderLabelTests
     {
         await PhoneCountryComparisonAsync();
         await EmailCaseComparisonAsync();
+        await BoundSharpSComparisonAsync();
         var failures = new List<string>();
         foreach (var field in new[] { "telefone", "emailEintraege", "anschriften" })
         foreach (bool remoteNewer in new[] { false, true })
@@ -78,6 +79,40 @@ internal static class ContactProviderLabelTests
         await ContactSourceUpdateRunTests.RunAsync();
         CheckUnknownLabelsAndCategories();
     }
+    private static async Task BoundSharpSComparisonAsync()
+    {
+        foreach (var field in new[] { "email", "notiz" })
+        {
+            var a = new JsonObject { [field] = field == "email" ? "groß@example.test" : "Maße" };
+            var b = new JsonObject { [field] = field == "email" ? "gross@example.test" : "Masse" };
+            TestAssert.That(!ContactFields.SameLabelValues(a, b, sourceTransliteration: true),
+                "Transliteration changed an address identifier or free text");
+        }
+        TestAssert.That(!ContactFields.SameLabelValues(new JsonObject { ["nachname"] = "Groß" }, new JsonObject { ["nachname"] = "Gross" }),
+            "Unbound people were granted source transliteration equivalence");
+        foreach (var field in new[] { "nachname", "firma", "strasse", "ort", "anschriften" })
+        foreach (var readOnly in new[] { false, true })
+        {
+            var local = Card("telefone", "local", 2000);
+            var remote = local.DeepClone().AsObject(); var old = local.DeepClone().AsObject();
+            if (field == "anschriften")
+            {
+                local[field] = new JsonArray(new JsonObject { ["strasse"] = "Großstraße 12", ["ort"] = "Großstadt", ["region"] = "Großregion" });
+                remote[field] = new JsonArray(new JsonObject { ["strasse"] = "Grossstrasse 12", ["ort"] = "Grossstadt", ["region"] = "Grossregion" });
+            }
+            else { local[field] = "Großstraße"; remote[field] = "Grossstrasse"; old[field] = "Previous"; }
+            var wire = new Remote("sharp-s", new RemoteContact("sharp-record", "\"new\"", 3000, remote, true)) { Writable = !readOnly };
+            ContactFields.SetSource(local, A, wire.Current with { ETag = "\"old\"", Data = old }, remoteBaseline: true);
+            var exact = ContactFields.ContentHash(local);
+            var result = await new ContactSyncEngine().SyncAsync(A, new JsonArray(local.DeepClone()), [], 0, wire);
+            TestAssert.That(result.Counts.Conflicts == 0 && result.Counts.Errors == 0 && wire.Updates == 0 && result.Contacts.Count == 1 &&
+                JsonNode.DeepEquals(result.Contacts[0]![field], local[field]) && JsonNode.DeepEquals(wire.Current.Data[field], remote[field]) &&
+                ContactFields.ContentHash(local) == exact, "Bound German source transliteration conflicted or lost spelling: " + field);
+            var repeat = await new ContactSyncEngine().SyncAsync(A, result.Contacts, [], 0, wire);
+            TestAssert.That(repeat.Counts.Conflicts == 0 && repeat.Counts.Errors == 0 && wire.Updates == 0, "Transliteration caused source churn");
+        }
+    }
+
     private static async Task EmailCaseComparisonAsync()
     {
         foreach (var sourceReadOnly in new[] { false, true })
