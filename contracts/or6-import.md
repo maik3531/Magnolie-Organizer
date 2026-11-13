@@ -216,3 +216,13 @@ VTODO roundtrip and seven ambiguity/incompleteness guards. Both full frontends
 check expansion, profile restoration, actual single-occurrence completion and
 reimport without undoing the local edit. These verified finite forms do not
 establish compatibility with every possible native task edit or infinite rule.
+
+`or6-native-section-removal.json` retains the genuine synthetic ordinary
+notebook-section removal before, after confirmed Remove/Yes/Apply/save, and after
+reopening (#570). Both readers verify two active/imported pages before and zero
+after, identical other collections/counters, and unchanged caller buffers. Early
+automation samples that missed the confirmation are intentionally not included.
+This establishes no resurrection for that verified ordinary removal path, not
+general visibility or reachability semantics for arbitrary active/detached/hidden
+native roots. Those broader container/selection checks remain a separate open
+safety topic (#611); private excluded sections are never used to reconstruct it.
