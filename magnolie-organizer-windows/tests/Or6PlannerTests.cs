@@ -9,10 +9,10 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class Or6PlannerTests
 {
-    private static uint U32(byte[] data, int at) => BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(at, 4));
+    internal static uint U32(byte[] data, int at) => BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(at, 4));
     private static ushort U16(byte[] data, int at) => BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(at, 2));
-    private static IEnumerable<int> Blocks(byte[] data) { for (var at = 0; at < data.Length; at += (int)U32(data, at + 8)) yield return at; }
-    private static (int Entry, int Length, int Value) Field(byte[] data, int owner, int id)
+    internal static IEnumerable<int> Blocks(byte[] data) { for (var at = 0; at < data.Length; at += (int)U32(data, at + 8)) yield return at; }
+    internal static (int Entry, int Length, int Value) Field(byte[] data, int owner, int id)
     {
         for (var i = 0; i < U32(data, owner + 0x28); i++)
         {
@@ -23,7 +23,7 @@ internal static class Or6PlannerTests
     }
     private static string FieldText(byte[] data, int owner, int id)
     { var field = Field(data, owner, id); return Encoding.Unicode.GetString(data, field.Value, field.Length).TrimEnd('\0'); }
-    private static byte[] Rotate(byte[] raw, bool decode)
+    internal static byte[] Rotate(byte[] raw, bool decode)
     {
         var data = raw.ToArray();
         for (var at = 0; at < data.Length; at += 2)
@@ -96,7 +96,7 @@ internal static class Or6PlannerTests
             else TestAssert.That(changed["OR6-568 B04 original"]["kategorien"] is null && changed["OR6-568 B04 original"]["akzentFarbe"] is null, "Ambiguous/missing metadata or unknown KeyID was guessed");
         }
     }
-    private static string FieldTextIfPresent(byte[] data, int owner, int id)
+    internal static string FieldTextIfPresent(byte[] data, int owner, int id)
     { try { return FieldText(data, owner, id); } catch (Exception error) when (error.Message == "Independent native field missing") { return ""; } }
     private static uint FieldNumberIfPresent(byte[] data, int owner, int id)
     { try { var field = Field(data, owner, id); return field.Length == 4 ? U32(data, field.Value) : 0; } catch (Exception error) when (error.Message == "Independent native field missing") { return 0; } }

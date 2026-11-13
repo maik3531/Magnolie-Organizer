@@ -358,6 +358,28 @@ def _date(fields, fid):
     return (f"{when.year:04d}-{when.month:02d}-{when.day:02d}", when.strftime("%H:%M")) if when else ("", "")
 
 
+def _planner_source_clock(fields):
+    """Original UI shows inclusive dates for these verified legacy clocks.
+
+    Keep the exact local timestamp parts as source properties, not a guessed
+    timezone or scheduling rule. Other clock shapes remain unsupported.
+    """
+    raw = [fields.get(fid, b"") for fid in (7, 8)]
+    if any(len(value) != 8 or value[7] != 0 for value in raw):
+        return None
+    begin, end = map(_stamp, raw)
+    if not begin or not end or end < begin:
+        return None
+    midnights = all((value.hour, value.minute, value.second) == (0, 0, 0) for value in (begin, end))
+    same_day_hours = begin.date() == end.date() and all(value.minute == value.second == 0 for value in (begin, end))
+    if not (midnights or same_day_hours):
+        return None
+    compact = lambda value: (f"{value.year:04d}{value.month:02d}{value.day:02d}T"
+                             f"{value.hour:02d}{value.minute:02d}{value.second:02d}")
+    return ["X-MAGNOLIE-OR6-PLANNER-LOCAL-START:" + compact(begin),
+            "X-MAGNOLIE-OR6-PLANNER-LOCAL-END:" + compact(end)]
+
+
 def _common(fields, uid):
     title = _string(fields, 9)
     result = {"titel": title.splitlines()[0], "notiz": "\n".join(title.splitlines()[1:]),
@@ -627,13 +649,21 @@ def _read_or6(raw):
                 continue
             begin, time = _date(fields, 7)
             end, end_time = _date(fields, 8)
-            # Only native date-only spans and the independently verified annual
-            # checkbox are understood. Do not invent a rule for custom repeats.
-            if (not begin or not end or end < begin or time != "00:00" or
-                    end_time != "23:59" or _number(fields, 10) or _number(fields, 1)):
+            # Planner UI has independently verified inclusive date presentation
+            # for the bounded legacy clock forms below; anniversaries do not
+            # acquire these semantics. Repeat/confidential guards stay intact.
+            if (not begin or not end or end < begin or _number(fields, 10) or _number(fields, 1)):
                 result["uebersprungen"] += 1
                 continue
+            source_clock = None
+            if time != "00:00" or end_time != "23:59":
+                source_clock = _planner_source_clock(fields) if tag == 0x200 else None
+                if source_clock is None:
+                    result["uebersprungen"] += 1
+                    continue
             common = _common(fields, uid)
+            if source_clock is not None:
+                common["icsRoundtrip"] = source_clock
             if tag == 0x600 and _number(fields, 19) == 1 and not _number(fields, 18) & 0x10000 and begin == end:
                 result["jahrestage"].append({"name": common["titel"], "datum": begin,
                     "typ": "anniversary", "notiz": common["notiz"], "uid": uid, "geaendert": 0})

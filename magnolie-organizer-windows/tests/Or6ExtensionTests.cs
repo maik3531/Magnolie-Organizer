@@ -22,6 +22,7 @@ internal static class Or6ExtensionTests
     internal static Task RunAsync()
     {
         Or6PlannerTests.Run();
+        Or6PlannerBoundaryTests.Run();
         var expected = Contract()["expected"]!;
         var raw = Fixture("weekly-monday-222.or6"); var result = Or6Codec.Read(raw);
         var series = result.Termine.OfType<JsonObject>().Where(item => item["titel"]!.GetValue<string>() == expected["weekly"]!["title"]!.GetValue<string>()).ToArray();

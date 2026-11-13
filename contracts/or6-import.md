@@ -66,7 +66,19 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   does not invent a present field in source notes. Missing/ambiguous configuration
   or an unknown key does not acquire a guessed name/color. A prior export that
   already discarded renamed keys cannot recreate them. Row layout and busy-time
-  booking remain separate unsupported semantics, not inferred from a key.
+   booking remain separate unsupported semantics, not inferred from a key.
+   Legacy planner clocks (#609) also retain the independently verified inclusive
+   date presentation: midnight Dec3 to midnight Dec4 occupies both dates;
+   same-date 08:00–18:00 and zero-duration midnight each occupy one date. These
+   additional forms are limited to nonreversed timestamps with reserved byte
+   zero, either both midnight or same-date whole hours. Original local clocks
+   remain in `icsRoundtrip` as `X-MAGNOLIE-OR6-PLANNER-LOCAL-START` and
+   `X-MAGNOLIE-OR6-PLANNER-LOCAL-END` (`yyyyMMddTHHmmss`). They are provenance,
+   not event times, timezone guesses or recurrence rules. Calendar export/import
+   and profile restoration preserve them. Other clock forms remain unsupported;
+   anniversary, repetition and confidentiality guards are unchanged. Original
+   UI date presentation and retained raw clocks were independently inspected;
+   successful normalization by the original boundary editor is **not** claimed.
 - Native anniversaries with the verified annual checkbox become anniversary
   entries. Turning that checkbox off in the original application produces a
   single all-day appointment with the same stable identity, not a yearly rule.
@@ -156,3 +168,10 @@ readers test scope ambiguity/missing metadata and calendar export roundtrips;
 both full frontends additionally verify real calendar rendering, annual-planner
 models, print/ODS output, duplicate reimport and preservation of a local color
 edit. These are source/controlled UI checks, not installed-package approval.
+
+`or6-native-planner-boundaries.json` adds three synthetic timestamp variants
+whose inclusive date ranges were inspected in the unmodified original UI.
+Both readers test exact clock provenance, calendar export/reimport, seven
+negative clock/flag guards and anniversary exclusion. Both full frontends check
+each affected date and its neighboring dates, including overlapping entries
+matched by title, annual/ODS models, print, reimport and profile restoration.

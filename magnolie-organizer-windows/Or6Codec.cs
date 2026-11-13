@@ -211,6 +211,20 @@ internal static class Or6Codec
         catch (DecoderFallbackException) { throw Invalid(); }
     }
     private static string Text(Dictionary<ushort, byte[]> fields, ushort id) => Strings(fields, id)[0];
+    private static string[]? PlannerSourceClock(Dictionary<ushort, byte[]> fields)
+    {
+        var first = Bytes(fields, 7); var last = Bytes(fields, 8);
+        if (first.Length != 8 || last.Length != 8 || first[7] != 0 || last[7] != 0) return null;
+        var start = Stamp(first); var end = Stamp(last);
+        if (start is not { } begin || end is not { } finish || finish < begin) return null;
+        var midnights = begin.TimeOfDay == TimeSpan.Zero && finish.TimeOfDay == TimeSpan.Zero;
+        var sameDayHours = begin.Date == finish.Date && begin.Minute == 0 && begin.Second == 0 && finish.Minute == 0 && finish.Second == 0;
+        if (!midnights && !sameDayHours) return null;
+        // Original UI shows inclusive dates, but the original local clocks
+        // are retained verbatim. These X properties are not recurrence/TZ rules.
+        return ["X-MAGNOLIE-OR6-PLANNER-LOCAL-START:" + begin.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture),
+            "X-MAGNOLIE-OR6-PLANNER-LOCAL-END:" + finish.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture)];
+    }
     private static DateTime? Stamp(byte[] value)
     {
         if (value.Length == 0 || value.AsSpan().SequenceEqual(new byte[] { 2, 0, 2, 2, 2, 2, 2, 2 })) return null;
@@ -491,9 +505,16 @@ internal static class Or6Codec
                 if (Text(fields, 9).Length == 0) continue;
                 var start = Date(fields, 7); var end = Date(fields, 8);
                 if (start.Date.Length == 0 || end.Date.Length == 0 || string.CompareOrdinal(end.Date, start.Date) < 0 ||
-                    start.Time != "00:00" || end.Time != "23:59" || Number(fields, 10) != 0 || Number(fields, 1) != 0)
+                    Number(fields, 10) != 0 || Number(fields, 1) != 0)
                 { skipped++; continue; }
+                string[]? sourceClock = null;
+                if (start.Time != "00:00" || end.Time != "23:59")
+                {
+                    sourceClock = tag == 0x200 ? PlannerSourceClock(fields) : null;
+                    if (sourceClock is null) { skipped++; continue; }
+                }
                 var common = Common(fields, uid);
+                if (sourceClock is not null) common["icsRoundtrip"] = new JsonArray(sourceClock.Select(value => JsonValue.Create(value)).ToArray());
                 if (tag == 0x600 && Number(fields, 19) == 1 && (Number(fields, 18) & 0x10000) == 0 && start.Date == end.Date)
                     anniversaries.Add(new JsonObject { ["name"] = common["titel"]!.DeepClone(), ["datum"] = start.Date,
                         ["typ"] = "anniversary", ["notiz"] = common["notiz"]!.DeepClone(), ["uid"] = uid, ["geaendert"] = 0 });
