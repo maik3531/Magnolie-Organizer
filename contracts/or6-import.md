@@ -10,7 +10,12 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
 
 - Basic appointments: description, local date/time, explicit end, confidentiality
   and tentative flag. No time-zone conversion is inferred from the legacy file.
-- Tasks: description, due date, priority and completed state.
+- Tasks: description, native local start/due dates and clocks, priority and
+  completed state. Ordinary single tasks use the same existing structured
+  `startDatum`/`startZeit`/`faellig`/`faelligZeit` fields as task series (#612),
+  including the existing task editor and VTODO roundtrip. Missing native stamps
+  remain empty, not filled from a due date, current date or guessed work hours;
+  no source timezone is inferred. Original identity/status/priority are unchanged.
   Independently verified native status values 1/2 (open) and 4 (completed)
   take precedence over a completion timestamp that a Lotus reexport may retain
   on an open task (#567). Unverified/missing status layouts retain the previous

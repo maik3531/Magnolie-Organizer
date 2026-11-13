@@ -26,6 +26,7 @@ internal static class Or6ExtensionTests
         Or6TaskScopeTests.Run();
         Or6TaskBindingTests.Run();
         Or6SectionRemovalTests.Run();
+        Or6SingleTaskDateTests.Run();
         var expected = Contract()["expected"]!;
         var raw = Fixture("weekly-monday-222.or6"); var result = Or6Codec.Read(raw);
         var series = result.Termine.OfType<JsonObject>().Where(item => item["titel"]!.GetValue<string>() == expected["weekly"]!["title"]!.GetValue<string>()).ToArray();

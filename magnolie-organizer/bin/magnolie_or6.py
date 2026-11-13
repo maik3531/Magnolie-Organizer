@@ -664,7 +664,8 @@ def _read_or6(raw):
                 # leave a completion stamp even on an explicitly open task.
                 status = _number(fields, 20)
                 done = status == 4 if status in (1, 2, 4) else bool(completed)
-                result["aufgaben"].append(dict(common, faellig=end, prio=priority+1 if priority < 3 else 2,
+                result["aufgaben"].append(dict(common, startDatum=begin, startZeit=time,
+                                               faellig=end, faelligZeit=end_time, prio=priority+1 if priority < 3 else 2,
                                                erledigt=done))
         elif tag == 0x400:
             first, last = _string(fields, 17), _string(fields, 19)

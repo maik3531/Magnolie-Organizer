@@ -508,7 +508,8 @@ internal static class Or6Codec
                 else
                 {
                     var priority = Number(fields, 18, 3);
-                    common["faellig"] = end.Date; common["prio"] = priority < 3 ? priority + 1 : 2;
+                    common["startDatum"] = start.Date; common["startZeit"] = start.Time;
+                    common["faellig"] = end.Date; common["faelligZeit"] = end.Time; common["prio"] = priority < 3 ? priority + 1 : 2;
                     var completed = Date(fields, 19).Date.Length > 0;
                     // Independently toggled original-program states: an open
                     // task (1/2) can retain a completion stamp after reexport.
