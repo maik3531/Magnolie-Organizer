@@ -6636,6 +6636,8 @@ def _kontakt_label_vergleich(obj, nur_werte=False):
                 zeile["wert"] = _telefon_schluessel(str(zeile.get("wert") or ""))
             elif feld == "emailEintraege":
                 zeile["wert"] = str(zeile.get("wert") or "").strip().casefold()
+                if "typen" in zeile:
+                    zeile["typen"] = [typ for typ in zeile["typen"] if typ != "INTERNET"]
             zeile = {key: value for key, value in zeile.items() if value not in (None, "", [], {})}
             zeilen.append(json.dumps(zeile, ensure_ascii=False, sort_keys=True))
         inhalt[feld] = sorted(set(zeilen)) or None
