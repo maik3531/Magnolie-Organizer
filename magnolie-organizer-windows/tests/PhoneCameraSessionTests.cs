@@ -341,12 +341,18 @@ internal static class PhoneCameraSessionTests
         await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
         var original = f.Output.Authority!; var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan();
         var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(original, plan);
+        PhoneCameraAudioParentRuntime.VideoClockLease? videoClock = null;
         try
         {
             await runtime.PrepareAsync(f.Deadline.Token); runtime.RequireReady();
+            TestAssert.Throws<InvalidOperationException>(() => runtime.HoldOriginalVideoClock(new PhoneCameraSession.OutputAuthority(f.Session)),
+                "Reconstructed authority borrowed the original native clock");
+            videoClock = runtime.HoldOriginalVideoClock(original);
+            TestAssert.Throws<InvalidOperationException>(() => runtime.HoldOriginalVideoClock(original), "Two video owners borrowed one audio clock");
             TestAssert.That(plan.Current() == 0 && plan.Sending() < 0 && f.Session.Error is null && plan.Scope == original.Scope && plan.OwnerBytes == 40 &&
                 plan.Digest!.SequenceEqual(Enumerable.Range(1, 32).Select(n => (byte)n)), "Original ABI/scope/digest or Current-before-SEND lost");
             TestAssert.Throws<InvalidOperationException>(() => runtime.ObserveVideo(0), "Prepared runtime invented actual SEND");
+            TestAssert.Throws<InvalidOperationException>(() => videoClock.ObserveVideo(0), "Clock hold granted SEND during preparation");
             f.Output.ContinuePreparation.TrySetResult(); await f.ReadSendOrStopAsync(); await f.SendFrame(false, 0, 0); await f.WaitWrites(1);
             TestAssert.That(plan.Sending() == 0 && runtime.ObserveVideo(123) == 223, "Runtime did not use actual original SEND/video PTS");
             var pcm = Enumerable.Repeat((byte)42, PhoneCameraMediaChannel.AudioBytes).ToArray();
@@ -354,8 +360,13 @@ internal static class PhoneCameraSessionTests
             TestAssert.That(plan.RecordReference!.All(b => b == 0) && plan.RecordSnapshot!.Length == 1938 && plan.RecordSnapshot[0] == 1 &&
                 plan.RecordSnapshot[1] == 2 && plan.RecordSnapshot.AsSpan(18).ToArray().SequenceEqual(pcm) && pcm.All(b => b == 42), "Private native PCM copy not exact/erased or caller bytes changed");
             TestAssert.That(runtime.ExportAnchor().SequenceEqual(Enumerable.Range(1, 33).Select(n => (byte)n)), "Native anchor export was rewritten");
+            TestAssert.That(videoClock.ObserveVideo(456) == 556 && videoClock.ExportAnchor().SequenceEqual(runtime.ExportAnchor()),
+                "Video lease replaced the original native mapper or anchor");
+            videoClock.Dispose(); videoClock.Dispose();
+            TestAssert.Throws<ObjectDisposedException>(() => videoClock.ExportAnchor(), "Disposed video clock remained usable");
+            TestAssert.Throws<InvalidOperationException>(() => runtime.HoldOriginalVideoClock(original), "Disposed video hold allowed a replacement owner/epoch");
         }
-        finally { await runtime.CloseAsync(); }
+        finally { videoClock?.Dispose(); await runtime.CloseAsync(); }
         TestAssert.That(!runtime.DiagnosticRootRetained && plan.Closes == 1 && plan.Releases == 1, "Confirmed Close did not release exact root/module once");
     }
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -397,11 +408,17 @@ internal static class PhoneCameraSessionTests
         await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
         var plan = new PhoneCameraAudioParentRuntime.DiagnosticPlan { HoldWrite = true };
         var runtime = PhoneCameraAudioParentRuntime.CreateDiagnostic(f.Output.Authority!, plan); await runtime.PrepareAsync(f.Deadline.Token);
+        using var videoClock = runtime.HoldOriginalVideoClock(f.Output.Authority!);
         f.Output.ContinuePreparation.TrySetResult(); await f.ReadSendOrStopAsync(); await f.SendFrame(false, 0, 0); await f.WaitWrites(1);
         var write = Task.Run(() => runtime.Write(new PhoneCameraMediaFrame(false, 0, 0, new byte[PhoneCameraMediaChannel.AudioBytes])));
         await plan.WriteEntered.Task.WaitAsync(f.Deadline.Token); var close = runtime.CloseAsync();
         TestAssert.That(ReferenceEquals(close, runtime.CloseAsync()), "Concurrent Close launched another cleanup");
         try { await write; throw new Exception("Stopped pending write succeeded"); } catch (System.Runtime.InteropServices.COMException) { }
+        await plan.StopEntered.Task.WaitAsync(f.Deadline.Token);
+        TestAssert.That(!close.IsCompleted && plan.Closes == 0 && plan.Releases == 0,
+            "Audio module closed before original video clock lifetime drained");
+        TestAssert.Throws<ObjectDisposedException>(() => videoClock.ObserveVideo(1), "Closing audio runtime granted a fresh video mapping");
+        videoClock.Dispose(); // Only after the controlled video owner has drained.
         await close;
         TestAssert.That(plan.Active == 0 && plan.Closes == 1 && plan.Releases == 1 && plan.RecordReference!.All(b => b == 0) &&
             !runtime.DiagnosticRootRetained, "Close preceded managed call/PCM drain");

@@ -44,7 +44,7 @@ internal sealed partial class PhoneCameraAudioParentRuntime
     private readonly TaskCompletionSource drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private ulong handle;
     private int active, stopped;
-    private bool closing, prepared, prepareCalled;
+    private bool closing, prepared, prepareCalled, videoClockTaken;
     private Task? closeTask;
     private PhoneCameraAudioParentRuntime(PhoneCameraSession.OutputAuthority original, Calls calls)
     {
@@ -168,6 +168,37 @@ internal sealed partial class PhoneCameraAudioParentRuntime
         try { RequireSuccess(calls.Anchor(own, record, (uint)record.Length)); original.RequireSending(); return record; }
         catch (Exception failure) { CryptographicOperations.ZeroMemory(record); Fail(failure); throw; }
         finally { Exit(); }
+    }
+    // One exact video owner borrows the EXISTING native audio mapper/anchor.
+    // The hold is a counted lifetime, never readiness/SEND or a new clock epoch.
+    // Video must confirm its own Source cleanup before disposing this hold and
+    // awaiting audio Close. Unknown video cleanup must retain it, not unload.
+    internal VideoClockLease HoldOriginalVideoClock(PhoneCameraSession.OutputAuthority exactOriginal) => new(this, exactOriginal);
+    internal sealed class VideoClockLease : IDisposable
+    {
+        private PhoneCameraAudioParentRuntime? runtime;
+        internal VideoClockLease(PhoneCameraAudioParentRuntime parent, PhoneCameraSession.OutputAuthority exactOriginal)
+        {
+            if (!ReferenceEquals(parent.original, exactOriginal) || parent.original.Muted)
+                throw new InvalidOperationException("webcam_video_clock_original_audio_owner_required");
+            parent.Enter(sending: false);
+            try
+            {
+                lock (parent.gate)
+                {
+                    if (parent.closing || Volatile.Read(ref parent.stopped) != 0)
+                        throw new ObjectDisposedException("webcam_original_native_audio_retired");
+                    if (parent.videoClockTaken) throw new InvalidOperationException("webcam_video_clock_already_taken");
+                    parent.videoClockTaken = true; runtime = parent; // Enter stays counted until exact video cleanup.
+                }
+            }
+            catch { parent.Exit(); throw; }
+        }
+        private PhoneCameraAudioParentRuntime Current => Volatile.Read(ref runtime) ??
+            throw new ObjectDisposedException(nameof(VideoClockLease));
+        internal long ObserveVideo(long actuallyAdmittedPtsUs) => Current.ObserveVideo(actuallyAdmittedPtsUs);
+        internal byte[] ExportAnchor() => Current.ExportAnchor(); // Same native 33 bytes, never reconstructed.
+        public void Dispose() => Interlocked.Exchange(ref runtime, null)?.Exit();
     }
     internal void Stop()
     {
