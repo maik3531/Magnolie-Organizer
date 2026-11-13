@@ -496,7 +496,15 @@ def _read_or6(raw):
             result["kontakte"].append(contact)
         elif tag == 0x510:
             title = _string(fields, 7)
-            text = _rtf(fields.get(8, b""))
+            body = fields.get(8, b"")
+            # An opaque unsupported note is not a corrupt allocation chain.
+            # Do not guess a plaintext encoding or silently import its title as
+            # complete content. Omit/count this entry in the existing preview;
+            # recognized-but-malformed RTF still fails through the strict parser.
+            if len(body) <= 1024 * 1024 and b"{\\rtf" not in body and body.strip(b"\x00\xff\x02"):
+                result["uebersprungen"] += 1
+                continue
+            text = _rtf(body)
             if title or text:
                 result["notizen"].append({"titel": title, "text": text, "uid": uid})
         elif tag in (0x200, 0x600):

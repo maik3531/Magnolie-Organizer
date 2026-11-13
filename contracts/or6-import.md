@@ -46,6 +46,14 @@ are skipped rather than dropping a confidentiality marker the destination
 collection cannot represent. Distribution-list-specific options are not contact-group permissions.
 Unsupported live entries are counted where
 identified. Formatting, attachments, non-contact categories and alarms are not transferred.
+An allocated notepad entry with a nonempty body in an unrecognized non-RTF format
+is omitted as one unsupported entry rather than blocking every other supported
+collection (#564). Its title is not imported as a misleading empty replacement,
+and the body is not guessed to be plaintext. Known empty-body sentinels retain
+their existing title-only behavior. Recognized but malformed RTF still rejects
+the import, as do corrupt allocation/schema/field boundaries. The original file
+remains untouched; the existing import preview/report must be reviewed for
+omission counts before accepting the supported subset.
 The native result always includes the translated limitation report; this is
 not advertised as a lossless conversion. Password-protected or unfamiliar
 storage variants are rejected rather than guessed.

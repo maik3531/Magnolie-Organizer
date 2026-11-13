@@ -352,7 +352,14 @@ internal static class Or6Codec
             }
             else if (tag == 0x510)
             {
-                var title = Text(fields, 7); var text = RtfText(Bytes(fields, 8));
+                var title = Text(fields, 7); var body = Bytes(fields, 8);
+                // Unknown body format: omit/count the whole note, not an empty
+                // title-only approximation or guessed plaintext. The existing
+                // import preview reports omissions. Known malformed RTF remains
+                // a strict error; structural validation above is unchanged.
+                if (body.Length <= 1024 * 1024 && body.AsSpan().IndexOf("{\\rtf"u8) < 0 && body.Any(value => value is not (0 or 255 or 2)))
+                { skipped++; continue; }
+                var text = RtfText(body);
                 if (title.Length + text.Length > 0) notes.Add(new JsonObject { ["titel"] = title, ["text"] = text, ["uid"] = uid });
             }
             else if (tag is 0x200 or 0x600)
