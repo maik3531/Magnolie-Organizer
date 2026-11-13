@@ -270,7 +270,7 @@ internal static class Or6Codec
             !starts.SequenceEqual(starts.OrderBy(value => value).Distinct())) return null;
         var ordered = group.Members.OrderBy(member => Number(member.Fields, 14)).ToArray();
         var basis = ordered[0].Fields;
-        bool CompareField(ushort field) => field is not (7 or 8 or 14) && (!taskStates || field is not (19 or 20));
+        bool CompareField(ushort field) => field is not (7 or 8 or 14) && (!taskStates || field is not (3 or 19 or 20));
         var comparable = basis.Where(pair => CompareField(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value);
         var indices = ordered.Select(member => (long)Number(member.Fields, 14)).ToArray();
         if (indices.Distinct().Count() != indices.Length || indices.Any(index => index >= starts.Length)) return null;
@@ -337,6 +337,65 @@ internal static class Or6Codec
         return result;
     }
 
+    private static (Entry Definition, List<Entry> Members)? TaskSegmentMembers((Entry Definition, List<Entry> Members) group,
+        HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned)
+    {
+        var arrays = new List<DateTime[]>();
+        foreach (ushort fid in new ushort[] { 12, 13 })
+        {
+            var raw = Bytes(group.Definition.Fields, fid);
+            if (raw.Length == 0 || raw.Length % 8 != 0) return null;
+            var values = Enumerable.Range(0, raw.Length / 8).Select(i => Stamp(raw.AsSpan(i * 8, 8).ToArray())).ToArray();
+            if (values.Any(value => value is null)) return null;
+            arrays.Add(values.Select(value => value!.Value).ToArray());
+        }
+        var starts = arrays[0]; var ends = arrays[1];
+        if (starts.Length != ends.Length || !starts.SequenceEqual(starts.Distinct().Order())) return null;
+        var history = new List<Entry>(); var current = new List<Entry>(); var seen = new HashSet<DateTime>();
+        foreach (var member in group.Members)
+        {
+            var start = Stamp(Bytes(member.Fields, 7)); var end = Stamp(Bytes(member.Fields, 8));
+            if (start is not { } begin || end is not { } finish || finish < begin || !seen.Add(begin)) return null;
+            if (begin < starts[0])
+            {
+                var anchor = Stamp(Bytes(group.Definition.Fields, 6));
+                if (anchor is null || begin.Date < anchor.Value.Date) return null;
+                history.Add(member);
+            }
+            else
+            {
+                var index = Number(member.Fields, 14);
+                if (index >= starts.Length || begin != starts[index] || finish != ends[index]) return null;
+                current.Add(member);
+            }
+        }
+        if (history.Count == 0) return group;
+        if (current.Count == 0 || group.Members.Select(member => member.Schema).Distinct().Count() != 1) return null;
+        var indices = current.Select(member => Number(member.Fields, 14)).ToHashSet();
+        if (Enumerable.Range(0, starts.Length).Any(i => !indices.Contains((uint)i) && orphaned.Contains((current[0].Schema, (uint)i, starts[i])))) return null;
+        history = history.OrderBy(member => Stamp(Bytes(member.Fields, 7))).ToList();
+        // Later scoped native edits restart indices. Keep each linked earlier
+        // occurrence, projecting exact dates only in memory, never deduplicating
+        // by index or inventing historical dates from the current rule.
+        var metadata = new Dictionary<ushort, byte[]>(group.Definition.Fields);
+        foreach (ushort fid in new ushort[] { 12, 13 })
+        {
+            ushort source = fid == 12 ? (ushort)7 : (ushort)8;
+            metadata[fid] = history.SelectMany(member => Bytes(member.Fields, source)).Concat(Bytes(metadata, fid)).ToArray();
+        }
+        var projected = new List<Entry>();
+        foreach (var member in history.Concat(current))
+        {
+            var index = projected.Count < history.Count ? (uint)projected.Count : (uint)history.Count + Number(member.Fields, 14);
+            var fields = new Dictionary<ushort, byte[]>(member.Fields); var encoded = new byte[4];
+            BinaryPrimitives.WriteUInt32LittleEndian(encoded, index); fields[14] = encoded;
+            projected.Add(member with { Fields = fields });
+        }
+        return (group.Definition with { Fields = metadata }, projected);
+    }
+
+    private static string TaskCategories(Dictionary<ushort, byte[]> fields) => string.Join(", ", Strings(fields, 3).Where(value => value.Length > 0).Distinct());
+
     private static List<JsonObject>? FiniteTaskSeries((Entry Definition, List<Entry> Members) group,
         HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned)
     {
@@ -344,12 +403,17 @@ internal static class Or6Codec
         // appointments, but retain one task series rather than loose tasks.
         if (group.Members.Any(member => Number(member.Fields, 20) is not (1 or 2 or 4))) return null;
         foreach (var member in group.Members) _ = Date(member.Fields, 19);
+        var projected = TaskSegmentMembers(group, orphaned);
+        if (projected is null) return null;
+        group = projected.Value;
         var series = FiniteSeries(group, orphaned, taskStates: true);
         if (series is null) return null;
         var fields = group.Members[0].Fields;
         var allDone = group.Members.All(member => Number(member.Fields, 20) == 4);
         var priority = Number(fields, 18, 3);
         var result = Common(fields, group.Definition.Uid);
+        var categories = TaskCategories(fields);
+        if (categories.Length > 0) result["kategorien"] = categories;
         result["startDatum"] = series["datum"]!.DeepClone(); result["startZeit"] = series["zeit"]!.DeepClone();
         result["faellig"] = series["endDatum"]!.GetValue<string>() is { Length: > 0 } end ? end : series["datum"]!.GetValue<string>();
         result["faelligZeit"] = series["endZeit"]!.DeepClone(); result["prio"] = priority < 3 ? priority + 1 : 2;
@@ -360,18 +424,19 @@ internal static class Or6Codec
             return (JsonNode?)JsonValue.Create(line.StartsWith("DTEND:", StringComparison.Ordinal) ? "DUE:" + line[6..] : line);
         }).ToArray());
         var converted = new List<JsonObject> { result };
-        if (!allDone)
-            foreach (var member in group.Members.OrderBy(value => Number(value.Fields, 14)))
+        foreach (var member in group.Members.OrderBy(value => Number(value.Fields, 14)))
             {
-                if (Number(member.Fields, 20) != 4) continue;
+                var completed = Number(member.Fields, 20) == 4; var memberCategories = TaskCategories(member.Fields);
+                if (completed == allDone && memberCategories == categories) continue;
                 var start = Stamp(Bytes(member.Fields, 7))!.Value; var due = Stamp(Bytes(member.Fields, 8))!.Value;
                 string Compact(DateTime value) => value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
                 result["icsRoundtrip"]!.AsArray().Add("EXDATE:" + Compact(start));
                 var done = Common(member.Fields, member.Uid);
                 done["startDatum"] = start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); done["startZeit"] = start.ToString("HH:mm", CultureInfo.InvariantCulture);
                 done["faellig"] = due.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); done["faelligZeit"] = due.ToString("HH:mm", CultureInfo.InvariantCulture);
-                done["prio"] = result["prio"]!.DeepClone(); done["erledigt"] = true; done["icsSerienUid"] = group.Definition.Uid;
-                done["icsRoundtrip"] = new JsonArray("RECURRENCE-ID:" + Compact(start), "DTSTART:" + Compact(start), "DUE:" + Compact(due), "STATUS:COMPLETED", "PERCENT-COMPLETE:100");
+                done["prio"] = result["prio"]!.DeepClone(); done["erledigt"] = completed; done["kategorien"] = memberCategories; done["icsSerienUid"] = group.Definition.Uid;
+                done["icsRoundtrip"] = new JsonArray("RECURRENCE-ID:" + Compact(start), "DTSTART:" + Compact(start), "DUE:" + Compact(due),
+                    "STATUS:" + (completed ? "COMPLETED" : "NEEDS-ACTION"), "PERCENT-COMPLETE:" + (completed ? "100" : "0"));
                 converted.Add(done);
             }
         return converted;

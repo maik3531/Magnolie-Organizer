@@ -409,7 +409,7 @@ def _finite_series(group, orphaned=(), task_states=False):
         return None
     ordered = sorted(members, key=lambda member: _number(member[1], 14))
     base = ordered[0][1]
-    ignored = {7, 8, 14} | ({19, 20} if task_states else set())
+    ignored = {7, 8, 14} | ({3, 19, 20} if task_states else set())
     comparable = {fid:value for fid,value in base.items() if fid not in ignored}
     indices = [_number(member[1], 14) for member in ordered]
     if len(set(indices)) != len(indices) or any(index >= len(starts) for index in indices):
@@ -480,6 +480,70 @@ def _finite_series(group, orphaned=(), task_states=False):
     return result
 
 
+def _task_segment_members(group, orphaned):
+    """Retain linked history preceding the current native date-array segment.
+
+    Later scoped edits restart native indices at zero. Only current members
+    are checked against those indices; earlier linked records are distinct
+    occurrences, never duplicates. Projection is in memory, not source editing.
+    """
+    definition, members = group
+    arrays = []
+    for fid in (12, 13):
+        raw = definition[1].get(fid, b"")
+        if not raw or len(raw) % 8:
+            return None
+        values = [_stamp(raw[i:i+8]) for i in range(0, len(raw), 8)]
+        if any(value is None for value in values):
+            return None
+        arrays.append(values)
+    starts, ends = arrays
+    if len(starts) != len(ends) or starts != sorted(set(starts)):
+        return None
+    history, current, seen = [], [], set()
+    for member in members:
+        start, end = _stamp(member[1].get(7)), _stamp(member[1].get(8))
+        if not start or not end or start in seen or end < start:
+            return None
+        seen.add(start)
+        if start < starts[0]:
+            anchor = _stamp(definition[1].get(6))
+            if not anchor or start.date() < anchor.date():
+                return None
+            history.append(member)
+        else:
+            index = _number(member[1], 14)
+            if index >= len(starts) or start != starts[index] or end != ends[index]:
+                return None
+            current.append(member)
+    if not history:
+        return group
+    if not current or len({member[4] for member in members}) != 1:
+        return None
+    indices = {_number(member[1], 14) for member in current}
+    if any((current[0][4], index, starts[index]) in orphaned for index in set(range(len(starts))) - indices):
+        return None
+    history.sort(key=lambda member: _stamp(member[1][7]))
+    # Exact linked historical dates plus the exact current arrays. Missing
+    # current occurrences remain EXDATE, and no historical dates are invented.
+    start_bytes = b"".join(member[1][7] for member in history) + definition[1][12]
+    end_bytes = b"".join(member[1][8] for member in history) + definition[1][13]
+    metadata = dict(definition[1])
+    metadata.update({12: start_bytes, 13: end_bytes})
+    projected = []
+    for index, member in enumerate(history):
+        fields = dict(member[1]); fields[14] = struct.pack('<I', index)
+        projected.append((member[0], fields, *member[2:]))
+    for member in current:
+        fields = dict(member[1]); fields[14] = struct.pack('<I', len(history) + _number(fields, 14))
+        projected.append((member[0], fields, *member[2:]))
+    return ((definition[0], metadata, *definition[2:]), projected)
+
+
+def _task_categories(fields):
+    return ", ".join(dict.fromkeys(value for value in _strings(fields, 3) if value))
+
+
 def _finite_task_series(group, orphaned=()):
     # Reuse the native link/index/array and exact finite-expansion validation,
     # not the appointment destination model. Task data remains one VTODO set.
@@ -487,6 +551,9 @@ def _finite_task_series(group, orphaned=()):
         return None  # Unknown per-occurrence states must not become open tasks.
     for member in group[1]:
         _date(member[1], 19)  # Retain strict native stamp validation.
+    group = _task_segment_members(group, orphaned)
+    if group is None:
+        return None
     series = _finite_series(group, orphaned, task_states=True)
     if series is None:
         return None
@@ -494,6 +561,9 @@ def _finite_task_series(group, orphaned=()):
     priority = _number(fields, 18, 3)
     all_done = all(_number(member[1], 20) == 4 for member in group[1])
     result = _common(fields, group[0][2])
+    categories = _task_categories(fields)
+    if categories:
+        result["kategorien"] = categories
     result.update(startDatum=series["datum"], startZeit=series["zeit"],
                   faellig=series["endDatum"] or series["datum"], faelligZeit=series["endZeit"],
                   prio=priority+1 if priority < 3 else 2,
@@ -502,20 +572,22 @@ def _finite_task_series(group, orphaned=()):
                   icsRoundtrip=["DUE:" + line[6:] if line.startswith("DTEND:") else line
                                 for line in series["icsRoundtrip"]])
     converted = [result]
-    if not all_done:
-        for member in sorted(group[1], key=lambda value: _number(value[1], 14)):
-            if _number(member[1], 20) != 4:
-                continue
-            start, due = _stamp(member[1].get(7)), _stamp(member[1].get(8))
-            compact = lambda value: value.strftime("%Y%m%dT%H%M%S")
-            result["icsRoundtrip"].append("EXDATE:" + compact(start))
-            done = _common(member[1], member[2])
-            done.update(startDatum=start.strftime("%Y-%m-%d"), startZeit=start.strftime("%H:%M"),
-                        faellig=due.strftime("%Y-%m-%d"), faelligZeit=due.strftime("%H:%M"),
-                        prio=result["prio"], erledigt=True, icsSerienUid=group[0][2],
-                        icsRoundtrip=["RECURRENCE-ID:" + compact(start), "DTSTART:" + compact(start),
-                                      "DUE:" + compact(due), "STATUS:COMPLETED", "PERCENT-COMPLETE:100"])
-            converted.append(done)
+    for member in sorted(group[1], key=lambda value: _number(value[1], 14)):
+        completed = _number(member[1], 20) == 4
+        member_categories = _task_categories(member[1])
+        if completed == all_done and member_categories == categories:
+            continue
+        start, due = _stamp(member[1].get(7)), _stamp(member[1].get(8))
+        compact = lambda value: value.strftime("%Y%m%dT%H%M%S")
+        result["icsRoundtrip"].append("EXDATE:" + compact(start))
+        done = _common(member[1], member[2])
+        done.update(startDatum=start.strftime("%Y-%m-%d"), startZeit=start.strftime("%H:%M"),
+                    faellig=due.strftime("%Y-%m-%d"), faelligZeit=due.strftime("%H:%M"),
+                    prio=result["prio"], erledigt=completed, kategorien=member_categories, icsSerienUid=group[0][2],
+                    icsRoundtrip=["RECURRENCE-ID:" + compact(start), "DTSTART:" + compact(start),
+                                  "DUE:" + compact(due), "STATUS:" + ("COMPLETED" if completed else "NEEDS-ACTION"),
+                                  "PERCENT-COMPLETE:" + ("100" if completed else "0")])
+        converted.append(done)
     return converted
 
 

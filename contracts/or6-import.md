@@ -24,7 +24,18 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   Freed occurrences stay excluded. A rule is emitted only if its expansion
   exactly matches the native dates; otherwise the explicit finite set is kept.
   Unlinked occurrences, unknown task states, mixed task/appointment definitions
-  and other differing content remain unsupported rather than being guessed away.
+   and other differing content remain unsupported rather than being guessed away.
+   Individually assigned categories also become source-bound `RECURRENCE-ID`
+   exceptions, including open occurrences; completion never spreads the category
+   or status to other dates. A later scoped rule edit may restart indices while
+   retaining earlier linked records. Those historical dates preceding the current
+   array segment are preserved, not deduplicated by relative index. The current
+   segment still requires exact index/start/due matches; earlier dates must lie
+   within the native anchor and pass the same content/duration/state guards.
+   Projection only combines those observed historical timestamps with the exact
+   current arrays in memory. No historical dates are extrapolated from the rule.
+   Other current-array/index discrepancies or conflicting dates remain held for
+   independent verification (#610), not silently rebound by title or date.
 - Contacts: names, company, telephone numbers, email addresses and postal
   addresses; additional basic text fields are retained in the contact note.
   Mail-merge names and nonempty native `Extn` slots are retained as explicitly
@@ -175,3 +186,13 @@ Both readers test exact clock provenance, calendar export/reimport, seven
 negative clock/flag guards and anniversary exclusion. Both full frontends check
 each affected date and its neighboring dates, including overlapping entries
 matched by title, annual/ODS models, print, reimport and profile restoration.
+
+`or6-native-task-scopes.json` retains genuine synthetic original-program
+single-category and later-segment-extension snapshots. The latter has four
+linked occurrences with indices `0/1/0/1` but only two current-array dates.
+Expected completion/category/date values were selected before the original UI
+actions. Both readers verify exact VTODO roundtrips and conflicting-history
+guards; both full frontends verify effective dates/categories/states, profile
+restoration, the original category in the editor, actual single-occurrence
+completion and reimport preserving the local edit. Additional native binding
+forms remain explicitly outside this fixture's proven scope (#610).

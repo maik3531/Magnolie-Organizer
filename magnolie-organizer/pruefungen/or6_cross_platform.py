@@ -21,9 +21,12 @@ scope = parser.add_mutually_exclusive_group()
 scope.add_argument("--extensions-only", action="store_true")
 scope.add_argument("--planner-only", action="store_true")
 scope.add_argument("--planner-boundaries-only", action="store_true")
+scope.add_argument("--task-scopes-only", action="store_true")
 args = parser.parse_args()
 files = {}
-contracts = ["or6-native-extensions.json"] if args.extensions_only else ["or6-native-fixtures.json", "or6-native-extensions.json"]
+contracts = (["or6-native-task-scopes.json"] if args.task_scopes_only else
+             ["or6-native-extensions.json"] if args.extensions_only else
+             ["or6-native-fixtures.json", "or6-native-extensions.json"])
 if args.planner_only or args.planner_boundaries_only:
     name = "or6-native-planner-boundaries.json" if args.planner_boundaries_only else "or6-native-planner.json"
     item = json.loads((root / "contracts" / name).read_text())["file"]
