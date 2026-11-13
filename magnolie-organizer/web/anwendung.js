@@ -27600,7 +27600,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return karte;
   }
 
-  function baumKontaktVergleich(kontakt, ohneFoto = false, alsObjekt = false, mitGruppen = false) {
+  function baumKontaktVergleich(kontakt, ohneFoto = false, alsObjekt = false, mitGruppen = false, nurKontaktWerte = false) {
     const werte = {};
     for (const feld of ["vorname", "nachname", "anzeigename", "firma", "notiz", "foto", "jubilaeum"])
       werte[feld] = String(kontakt[feld] || "").trim();
@@ -27610,9 +27610,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const art = e => String(e.label || telefonArt(e) || "");
     const sortiert = liste => liste.map(kanonischerEntwurf).sort();
     werte.telefone = sortiert(telefonListe(kontakt).map(e => [telefonSchluessel(e.wert), art(e)]));
+    // Only conflict classification ignores source-specific field labels.
+    // Default hashes, stored revisions and actual metadata remain exact.
+    if (nurKontaktWerte) werte.telefone = [...new Set(telefonListe(kontakt).map(e => telefonSchluessel(e.wert)))].sort();
     werte.emails = sortiert(emailEintragListe(kontakt).map(e => [kanonischerText(e.wert), art(e)]));
     werte.anschriften = sortiert(anschriftListe(kontakt).map(e =>
       [art(e), ...["strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim())]));
+    if (nurKontaktWerte) {
+      werte.emails = [...new Set(emailEintragListe(kontakt).map(e => kanonischerText(e.wert)))].sort();
+      werte.anschriften = [...new Set(sortiert(anschriftListe(kontakt).map(e =>
+        ["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim()))))];
+    }
     werte.namen = (kontakt.vcardRoundtrip || []).filter(s => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).slice().sort();
     if (mitGruppen) werte.gruppen = kontaktGruppen(kontakt).slice().sort();
     return alsObjekt ? werte : kanonischerEntwurf(werte);
@@ -27624,7 +27632,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function kontaktKonfliktInhalt(k) {
-    const basis = baumKontaktVergleich(k, true, true); delete basis.namen;
+    const basis = baumKontaktVergleich(k, true, true, false, true); delete basis.namen;
     basis.telefone = [...new Set(telefonListe(k).map(e => telefonSchluessel(e.wert)))].sort();
     basis.emails = [...new Set(emailEintragListe(k).map(e => kanonischerText(e.wert)))].sort();
     return kanonischerEntwurf([basis, kontaktpersonenListe(k),
@@ -27658,7 +27666,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function baumKontaktNurErgaenzungen(ziel, karte) {
     const mitGruppen = karte.baumGruppenBekannt === true;
-    const bisher = JSON.parse(baumKontaktVergleich(ziel, ziel.fotoManuell, false, mitGruppen)), eingang = JSON.parse(baumKontaktVergleich(karte, ziel.fotoManuell, false, mitGruppen));
+    const bisher = JSON.parse(baumKontaktVergleich(ziel, ziel.fotoManuell, false, mitGruppen, true)), eingang = JSON.parse(baumKontaktVergleich(karte, ziel.fotoManuell, false, mitGruppen, true));
     for (const feld of ["telefone", "emails"]) {
       if (!bisher[feld].every(wert => eingang[feld].includes(wert))) return false;
       bisher[feld] = eingang[feld];
@@ -27683,7 +27691,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         Number(inhalt.version) < meta.version)) return { art: "gleich", ziel, bekannteVersion: true };
     const starkeKennung = !!bindung?.size || [...schluessel.keys()].some(key =>
       (key.startsWith("e:") || key.startsWith("t:")) && index.get(key)?.has(ziel));
-    if (starkeKennung && baumKontaktVergleich(ziel, ziel.fotoManuell, false, karte.baumGruppenBekannt === true) === baumKontaktVergleich(karte, ziel.fotoManuell, false, karte.baumGruppenBekannt === true)) return { art: "gleich", ziel };
+    if (starkeKennung && baumKontaktVergleich(ziel, ziel.fotoManuell, false, karte.baumGruppenBekannt === true, true) === baumKontaktVergleich(karte, ziel.fotoManuell, false, karte.baumGruppenBekannt === true, true)) return { art: "gleich", ziel };
     if (starkeKennung && baumKontaktNurErgaenzungen(ziel, karte)) return { art: "ergaenzung", ziel };
     return { art: "konflikt", kandidaten, eindeutig: starkeKennung };
   }
@@ -27726,8 +27734,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (plan.bekannteVersion && inhalt.fassung >= 3 && kontaktZeitGueltig(inhalt.inhaltGeaendert)) {
       const zeit = await kontaktInhaltszeit(plan.ziel);
       if (zeit && inhalt.inhaltGeaendert > zeit && !kontaktZeitInhaltGleich(
-          baumKontaktVergleich(plan.ziel, plan.ziel.fotoManuell, true, inhalt.fassung >= 4),
-          baumKontaktVergleich(baumKontaktKarte(stueck), plan.ziel.fotoManuell, true, inhalt.fassung >= 4)))
+          baumKontaktVergleich(plan.ziel, plan.ziel.fotoManuell, true, inhalt.fassung >= 4, true),
+          baumKontaktVergleich(baumKontaktKarte(stueck), plan.ziel.fotoManuell, true, inhalt.fassung >= 4, true)))
         plan = { art: "konflikt", kandidaten: [plan.ziel], eindeutig: true };
     }
     const ziel = plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null;
