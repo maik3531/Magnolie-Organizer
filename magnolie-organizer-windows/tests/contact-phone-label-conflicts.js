@@ -50,10 +50,10 @@ async function check(web, mode) {
       const saved = T.daten().kontakte[0];
       assert.equal(T.daten().kontakte.length, 1);
       assert.ok(saved.telefone.some(e => e.label === "CELL"), "Existing phone metadata was discarded");
-      assert.ok(saved.telefone.some(e => e.label === "HOME"), "Incoming phone metadata was discarded");
+      assert.equal(saved.telefone.length, 1, "Unverified incoming label was accumulated instead of retaining the canonical local label");
       if (mode === "address-labels") {
         assert.ok(saved.anschriften.some(e => e.label === "Privat"), "Existing address label was discarded");
-        assert.ok(saved.anschriften.some(e => e.label === "Home"), "Incoming address label was discarded");
+        assert.equal(saved.anschriften.length, 1, "Unverified incoming address label was accumulated");
         assert.ok(saved.anschriften.every(e => e.plz === "10115" && e.strasse === address.strasse));
       }
       if (mode === "email-labels") assert.equal(saved.emailEintraege[0].label, "HOME", "Existing email label was replaced");

@@ -27385,6 +27385,24 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       !/^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG|CATEGORIES)[;:]/i.test(s)).slice().sort();
   }
 
+  function wendeKontaktBezeichnungenAn(ziel, bisher, quelle, eingangNeuer) {
+    const adresse = e => kanonischerEntwurf(["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim()));
+    for (const [lesen, setzen, key] of [[telefonListe, setzeTelefonListe, e => telefonSchluessel(e.wert)],
+      [emailEintragListe, setzeEmailListe, e => kanonischerText(e.wert)], [anschriftListe, setzeAnschriftListe, adresse]]) {
+      const alt = lesen(bisher), neu = lesen(quelle), aktuell = lesen(ziel);
+      const gemeinsam = new Set(alt.map(key).filter(k => neu.some(e => key(e) === k)));
+      const bevorzugt = eingangNeuer ? neu : alt, erledigt = new Set(), werte = [];
+      for (const eintrag of aktuell) {
+        const k = key(eintrag);
+        if (!gemeinsam.has(k)) { werte.push(eintrag); continue; }
+        if (erledigt.has(k)) continue;
+        erledigt.add(k);
+        werte.push(...bevorzugt.filter(e => key(e) === k).map(e => kopie(e)));
+      }
+      setzen(ziel, werte);
+    }
+  }
+
   function kontaktQuellenVergleich(ziel, karte, gespeicherteQuelle, eingangsQuelle, mitGruppen = true) {
     const vergleich = el("div", "kontakt-quellenvergleich");
     const adresse = e => ["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim());
@@ -27622,12 +27640,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   async function uebernehmeBaumKontaktPlan(daten, stueck, plan, pruefen = () => true) {
     const vorher = daten.kontakte.length;
+    const vorherKontakt = plan.ziel ? kopie(plan.ziel) : null;
     const zeitRelevant = !!plan.ziel?.kontaktZeit || stueck.inhalt?.fassung >= 3 && kontaktZeitGueltig(stueck.inhalt.inhaltGeaendert);
     const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
     const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
     if (!pruefen()) return false;
     if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" }))) return false;
     const ziel = plan.ziel || daten.kontakte[vorher];
+    if (vorherKontakt && !plan.behalten && !plan.bekannteVersion) {
+      const zeit = stueck.inhalt?.fassung >= 3 ? stueck.inhalt.inhaltGeaendert : 0;
+      wendeKontaktBezeichnungenAn(ziel, vorherKontakt, baumKontaktKarte(stueck),
+        kontaktZeitGueltig(zeit) && kontaktZeitGueltig(vorherZeit) && zeit > vorherZeit);
+    }
     if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(stueck), stueck.inhalt?.fassung >= 3 ? stueck.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, daten);
     return pruefen();
   }
@@ -27801,11 +27825,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             const zeitRelevant = !!plan.ziel?.kontaktZeit || angebot.inhalt?.fassung >= 3 && kontaktZeitGueltig(angebot.inhalt.inhaltGeaendert);
             const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
             const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
+            const vorherKontakt = plan.ziel ? kopie(plan.ziel) : null;
             if (DATEN !== bestand || gesperrt || lauf.beendet) throw new Error(_("Conflict"));
             if (!mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(angebot, {}, {
               aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" })))
               throw new Error(_("The offered entry is incomplete."));
             const ziel = plan.ziel || lauf.daten.kontakte[anzahl];
+            if (vorherKontakt && !plan.behalten && !plan.bekannteVersion) {
+              const zeit = angebot.inhalt?.fassung >= 3 ? angebot.inhalt.inhaltGeaendert : 0;
+              wendeKontaktBezeichnungenAn(ziel, vorherKontakt, baumKontaktKarte(angebot),
+                kontaktZeitGueltig(zeit) && kontaktZeitGueltig(vorherZeit) && zeit > vorherZeit);
+            }
             if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(angebot),
               angebot.inhalt?.fassung >= 3 ? angebot.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, lauf.daten);
           }
@@ -32897,6 +32927,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function wendeKontaktDateiVorgabenAn({ plaene, bestand }) {
     let geaendert = false;
+    for (const plan of plaene) if (!plan.gewaehlt && plan.modus === "keep" && plan.eindeutig &&
+        kontaktZeitGueltig(plan.lokalzeit) && kontaktZeitGueltig(plan.quellzeit) && plan.quellzeit > plan.lokalzeit) {
+      plan.modus = "merge"; plan.bezeichnungenNeu = true; geaendert = true;
+    }
     for (const plan of plaene) if (plan.abgelehnt && !plan.gewaehlt) { plan.modus = "skip"; geaendert = true; }
     for (const plan of plaene) if (!plan.modus && !plan.gewaehlt && plan.eindeutig && plan.neuereEntscheidung &&
         bestand.einstellungen.sync.kontaktNeuereBevorzugen) { plan.modus = "newer"; geaendert = true; }
@@ -32943,6 +32977,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       const vorher = personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt);
       const vorherZeit = await kontaktInhaltszeit(ziel);
+      const vorherKontakt = kopie(ziel);
       const alterNachname = ziel.nachname;
       if (modus === "merge") {
         karte.uid = ziel.uid; karte.geaendert = 0;
@@ -32953,6 +32988,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (feld === "foto" && wahl === "incoming") { ziel.fotoManuell = true; delete ziel.fotoQuelle; }
         }
         for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) regel.setzen(ziel, regel.lesen(gewaehlt));
+        if (plan.bezeichnungenNeu && !plan.gewaehlt) wendeKontaktBezeichnungenAn(ziel, vorherKontakt, karte, true);
         mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
       } else {
         const entwurf = baumKontaktEntwurf(ziel, karte, {}, modus, "import");
