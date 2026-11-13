@@ -1315,6 +1315,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var plain = encrypted ? decoder.Unlock(text, Text(message, "kennwort")) : text;
             decoder.Clear();
             var data = JsonNode.Parse(plain) as JsonObject ?? throw new InvalidDataException("Invalid backup.");
+            BackupDataValidation.Validate(data);
             var counts = new[] { "notizen", "aufgaben", "termine", "kontakte", "jahrestage" }
                 .ToDictionary(key => key, key => (data[key] as JsonArray)?.Count ?? 0);
             await form.SendAsync("App.sicherungAusgewaehlt", new { ok = true, requestId, pfad = Path.GetFullPath(source),
@@ -1355,6 +1356,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             }
             RequireJsonObject(plainText);
             var restoredData = JsonNode.Parse(plainText)!.AsObject();
+            BackupDataValidation.Validate(restoredData);
             await FencePhoneRestoreAsync();
             await MutationGate.Global.WaitAsync(); locked = true;
             restorePoint = CreateRestorePoint();

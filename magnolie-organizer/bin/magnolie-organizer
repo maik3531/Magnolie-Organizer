@@ -2434,6 +2434,29 @@ def automatische_sicherung_anlegen(daten, ordner, kennwort, aufbewahrung,
     return ziel
 
 
+def sicherungsprofil_gueltig(daten):
+    """Minimum legacy profile shape, not a new version/full-schema requirement.
+
+    Keep old partial profiles and unknown future fields unchanged. Optional
+    nulls may coexist with a recognizable collection/object, but are not proof
+    that an unrelated JSON file is an Organizer backup (#601).
+    """
+    if not isinstance(daten, dict):
+        return False
+    erkannt = False
+    for felder, art in ((("notizen", "aufgaben", "termine", "kontakte", "jahrestage",
+                          "notizgruppen", "notizbuecher", "personen"), list),
+                        (("einstellungen", "gesundheit", "customOrganizer", "zeiterfassung"), dict)):
+        for feld in felder:
+            wert = daten.get(feld)
+            if wert is None:
+                continue
+            if not isinstance(wert, art):
+                return False
+            erkannt = True
+    return erkannt
+
+
 def sicherung_lesen(pfad, kennwort="", expected_revision=None):
     """Liest und prüft eine Sicherungsdatei, ohne den Bestand zu verändern."""
     pfad = os.path.abspath(os.path.expanduser(str(pfad or "").strip()))
@@ -2475,7 +2498,7 @@ def sicherung_lesen(pfad, kennwort="", expected_revision=None):
                 "fehler": _("The backup does not contain readable organizer data."),
                 "brauchtKennwort": False,
                 "verschluesselt": verschluesselt}
-    if not isinstance(daten, dict):
+    if not sicherungsprofil_gueltig(daten):
         return {"ok": False,
                 "fehler": _("The backup does not contain a complete data set."),
                 "brauchtKennwort": False,
