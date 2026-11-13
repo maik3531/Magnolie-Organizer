@@ -15,7 +15,7 @@ import tempfile
 REPO = Path(__file__).resolve().parents[2]
 PUBLISHED = '067c38934b539943d8e1720abafd8a80b401d797'
 DESKTOP = ['magnolie-organizer', 'magnolie-organizer-windows', 'magnolie-handbuch',
-           'magnolie-notes', 'contracts', 'LICENSE.md', 'PROTECTED-ASSETS-LICENSE.txt']
+           'magnolie-notes', 'contracts', 'PROTECTED-ASSETS-LICENSE.txt']
 PORTS = ['Magnolie-Organizer-Android-Tablet-Beta', 'Magnolie-Organizer-macOS-Beta', 'port-adapters']
 # Overlay only this checkpoint's runtime transformation sources onto committed
 # ports. Unrelated in-flight native codec edits cannot enter this host proof.
@@ -55,7 +55,10 @@ def main():
             tree = base / label
             tree.mkdir()
             archive(head, PORTS, tree, env)
-            archive(desktop_ref, DESKTOP, tree, env)
+            # Published desktop trees still use the old notice filename.
+            names = run(['git', 'ls-tree', '--name-only', desktop_ref], REPO, env).splitlines()
+            notices = [name for name in ('LICENSE.md', 'LICENSING.md', 'LICENSE') if name in names]
+            archive(desktop_ref, DESKTOP + notices, tree, env)
             for name, data in overlays.items():
                 (tree / name).write_bytes(data)
             # Match native CI's canonical gettext preparation rather than

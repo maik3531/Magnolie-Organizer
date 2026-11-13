@@ -197,4 +197,4 @@ Programm- und Handbuchquellen stehen unter **GPL-3.0-or-later**, soweit eine
 Datei nichts anderes nennt. Mitgelieferte Schriften behalten ihre eigenen
 Lizenzen. Für den geschützten Kaffee-QR und das Porträt gilt der gesonderte
 [Nutzungshinweis](PROTECTED-ASSETS-LICENSE.txt).
-Eine Übersicht steht in [LICENSE.md](LICENSE.md).
+Eine Übersicht steht in [LICENSING.md](LICENSING.md).

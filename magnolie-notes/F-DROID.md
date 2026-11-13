@@ -3,7 +3,7 @@
 ## Öffentlicher Bau ohne Produktionsschlüssel
 
 Magnolie Notes verwendet GPL-3.0-or-later; siehe die übergeordnete
-[`LICENSE.md`](../LICENSE.md) und den dort verlinkten vollständigen Lizenztext.
+[`LICENSING.md`](../LICENSING.md) und den dort verlinkten vollständigen Lizenztext.
 Die Android-App verwendet AndroidX/Compose, Kotlin Serialization,
 Bouncy Castle und libphonenumber. Sie benötigt weder Google Play Services
 noch Firebase und kann ohne Konto als lokales Notizbuch verwendet werden.

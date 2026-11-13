@@ -202,4 +202,4 @@ Program and handbook sources are licensed under **GPL-3.0-or-later** unless a
 file states otherwise. Third-party fonts retain their included licenses. The
 protected coffee QR and portrait have a separate, limited
 [usage permission](PROTECTED-ASSETS-LICENSE.txt).
-See [LICENSE.md](LICENSE.md) for the repository-wide overview.
+See [LICENSING.md](LICENSING.md) for the repository-wide overview.

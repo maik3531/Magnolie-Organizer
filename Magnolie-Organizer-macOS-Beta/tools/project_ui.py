@@ -31,7 +31,7 @@ def inputs():
                 raise ValueError("Symlinked source refused: " + str(file))
             if file.is_file():
                 files.append(file)
-    files += [LINUX / "bin/magnolie-organizer", REPO / "LICENSE.md", REPO / "PROTECTED-ASSETS-LICENSE.txt",
+    files += [LINUX / "bin/magnolie-organizer", REPO / ("LICENSE.md" if (REPO / "LICENSE.md").is_file() else "LICENSING.md"), REPO / "PROTECTED-ASSETS-LICENSE.txt",
               REPO / "magnolie-organizer-windows/LICENSE",
               REPO / "magnolie-organizer-windows/BridgeDispatcherContract.cs",
               REPO / "magnolie-organizer-windows/EncryptionService.cs",
@@ -434,7 +434,9 @@ def project(snapshot, target):
     (target / "web/mobile-downloads.json").write_bytes(mobile)
     licenses = target / "Licenses"
     licenses.mkdir()
-    for source, name in [("LICENSE.md", "LICENSE.md"), ("PROTECTED-ASSETS-LICENSE.txt", "PROTECTED-ASSETS-LICENSE.txt"),
+    # Keep the payload name stable and support the pinned pre-rename desktop tree.
+    notice = "LICENSE.md" if "LICENSE.md" in snapshot else "LICENSING.md"
+    for source, name in [(notice, "LICENSE.md"), ("PROTECTED-ASSETS-LICENSE.txt", "PROTECTED-ASSETS-LICENSE.txt"),
                          ("magnolie-organizer-windows/LICENSE", "GPL-3.0.txt")]:
         (licenses / name).write_bytes(snapshot[source])
 

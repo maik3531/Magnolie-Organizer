@@ -173,6 +173,12 @@ class ProjectionTests(unittest.TestCase):
             for src in re.findall(r'<script src="([^"]+)"', html):
                 self.assertTrue((a / "web" / src).is_file(), src)
             self.assertTrue((a / "Licenses/GPL-3.0.txt").is_file())
+            notice = "LICENSE.md" if "LICENSE.md" in self.snapshot else "LICENSING.md"
+            self.assertEqual((a / "Licenses/LICENSE.md").read_bytes(), self.snapshot[notice])
+            self.assertEqual((a / "Licenses/PROTECTED-ASSETS-LICENSE.txt").read_bytes(),
+                             self.snapshot["PROTECTED-ASSETS-LICENSE.txt"])
+            self.assertEqual((a / "Licenses/GPL-3.0.txt").read_bytes(),
+                             self.snapshot["magnolie-organizer-windows/LICENSE"])
             self.assertEqual((a / "web/kaffee-qr.mga").read_bytes(), self.snapshot[original + "kaffee-qr.mga"])
             self.assertTrue(list((a / "web/schriften").rglob("*.otf")))
             symbols = projection.LINUX.relative_to(projection.REPO).as_posix() + "/symbole/"
