@@ -34,6 +34,16 @@ property/broker admission, real LocalService access, combined setup and actual
 AV/OBS/phone/package acceptance remain open. No system registration, AudioClient,
 endpoint, installer, VM or device-pause change was part of these checks.
 
+For the pending native registry/module composition (#586), RegistrationLifetime
+also has an optional terminal `closed` notification, separate from capture
+retirement. It runs once outside the shell lock, after source shutdown. The native
+registry may release its controller from that callback; controller calls retain
+their state locally before invoking any callbacks. Three additional native cases
+cover registry-owned-controller release from Source.Shutdown, from the controller's
+own Stop, and during adoption. Those three and the eleven affected shell groups
+passed on the changed implementation. This is lifecycle wiring for a future
+registry, not the authenticated broker, combined setup or OS camera registration.
+
 ## Exact native authority confirmation (Refs #585)
 
 Native Current/Sending callbacks confirm authority only with `S_OK`. `S_FALSE`

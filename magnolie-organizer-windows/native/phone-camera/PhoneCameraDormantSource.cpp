@@ -32,6 +32,7 @@ namespace Magnolie::PhoneCamera
             // Source callbacks/shutdown may signal this controller. Never hold
             // the shell lock across any source call or blocking MF event wait.
             if (original) original->Shutdown();
+            if (registration.closed) registration.closed(registration.context);
             return S_OK;
         }
         HRESULT Current() noexcept
@@ -183,44 +184,51 @@ namespace Magnolie::PhoneCamera
 
     HRESULT DormantSourceControl::Adopt(std::unique_ptr<SourceBindingProof> proof) noexcept
     {
-        if (!proof || proof->target_ != state_->identity) return E_ACCESSDENIED;
+        // A terminal callback can release this controller during the call.
+        // Keep state locally and never dereference this again after callbacks.
+        auto state = state_;
+        if (!proof || proof->target_ != state->identity) return E_ACCESSDENIED;
         if (proof->scope_ == GUID_NULL || !proof->clock_ || !proof->owner_.current ||
             !proof->owner_.sending || !proof->owner_.retired || !proof->owner_.lifetime ||
             !proof->clock_->MatchesOwner({proof->owner_.current, proof->owner_.sending,
                 proof->owner_.retired, proof->owner_.context, proof->owner_.lifetime})) return E_ACCESSDENIED;
-        HRESULT hr = state_->Current(); if (FAILED(hr)) return hr;
+        HRESULT hr = state->Current(); if (FAILED(hr)) return hr;
         {
-            std::lock_guard<std::mutex> lock(state_->gate);
-            if (state_->stopped || state_->spent) return MF_E_SHUTDOWN;
-            state_->spent = true; // One authenticated adoption attempt, never rebind.
+            std::lock_guard<std::mutex> lock(state->gate);
+            if (state->stopped || state->spent) return MF_E_SHUTDOWN;
+            state->spent = true; // One authenticated adoption attempt, never rebind.
         }
         ComPtr<IMFMediaSourceEx> candidate; ComPtr<IFrameFeed> feed;
         hr = CreateAnchoredSource(proof->owner_, proof->scope_, proof->clock_, &candidate, &feed);
-        if (SUCCEEDED(hr)) hr = state_->Current();
+        if (SUCCEEDED(hr)) hr = state->Current();
         if (SUCCEEDED(hr))
         {
-            std::lock_guard<std::mutex> lock(state_->gate);
-            if (state_->stopped) hr = MF_E_SHUTDOWN;
-            else { state_->source = candidate; state_->feed = feed; }
+            std::lock_guard<std::mutex> lock(state->gate);
+            if (state->stopped) hr = MF_E_SHUTDOWN;
+            else { state->source = candidate; state->feed = feed; }
         }
-        if (FAILED(hr)) { if (candidate) candidate->Shutdown(); state_->Stop(); }
+        if (FAILED(hr)) { if (candidate) candidate->Shutdown(); state->Stop(); }
         return hr;
     }
     HRESULT DormantSourceControl::RequireBound() noexcept
     {
+        auto state = state_;
         ComPtr<IMFMediaSourceEx> source;
-        HRESULT hr = state_->Bound(source); if (FAILED(hr)) return hr;
+        HRESULT hr = state->Bound(source); if (FAILED(hr)) return hr;
         DWORD flags = 0; return source->GetCharacteristics(&flags);
     }
     HRESULT DormantSourceControl::GetBoundFeed(IFrameFeed** result) noexcept
     {
         if (!result) return E_POINTER; *result = nullptr;
-        HRESULT hr = RequireBound(); if (FAILED(hr)) return hr;
-        std::lock_guard<std::mutex> lock(state_->gate);
-        if (state_->stopped || !state_->feed) return MF_E_SHUTDOWN;
-        return state_->feed.CopyTo(result);
+        auto state = state_;
+        ComPtr<IMFMediaSourceEx> source;
+        HRESULT hr = state->Bound(source); if (FAILED(hr)) return hr;
+        DWORD flags = 0; hr = source->GetCharacteristics(&flags); if (FAILED(hr)) return hr;
+        std::lock_guard<std::mutex> lock(state->gate);
+        if (state->stopped || !state->feed) return MF_E_SHUTDOWN;
+        return state->feed.CopyTo(result);
     }
-    HRESULT DormantSourceControl::Stop() noexcept { return state_->Stop(); }
+    HRESULT DormantSourceControl::Stop() noexcept { auto state = state_; return state->Stop(); }
     DormantSourceControl::~DormantSourceControl() { state_->Stop(); }
 
     HRESULT CreateDormantSource(RegistrationLifetime registration, IMFMediaSourceEx** result,

@@ -33,7 +33,9 @@ namespace
     public:
         std::atomic<HRESULT> registration{S_OK}, capture{S_OK}, sending{S_OK}, reason{S_OK};
         std::atomic_int checks{0}, retired{0};
+        std::atomic_int closed{0};
         std::atomic<DormantSourceControl*> stopOnCapture{nullptr};
+        std::unique_ptr<DormantSourceControl> ownedControl;
         std::atomic_int* deaths = nullptr;
         ~Root() { if (deaths) ++*deaths; }
         static HRESULT Registration(void* context) noexcept { return static_cast<Root*>(context)->registration.load(); }
@@ -50,6 +52,8 @@ namespace
             if (root.retired.fetch_add(1) == 0) root.reason = reason;
             root.capture = MF_E_SHUTDOWN;
         }
+        static void Closed(void* context) noexcept
+        { auto& root = *static_cast<Root*>(context); ++root.closed; root.ownedControl.reset(); }
         RegistrationLifetime RegistrationOwner() { return {Registration, this, this}; }
         SourceOwner CaptureOwner() { return {Current, Sending, Retired, this, this}; }
         ClockOwner ClockCallbacks() { return {Current, Sending, Retired, this, this}; }
@@ -185,6 +189,43 @@ namespace
         f.root->capture = S_OK;
         Check(f.control->RequireBound() == MF_E_SHUTDOWN);
     }
+    void RegistryReleasesControllerOnSourceShutdown()
+    {
+        std::atomic_int deaths{0};
+        auto root = Microsoft::WRL::Make<Root>(); root->deaths = &deaths;
+        ComPtr<IMFMediaSourceEx> source;
+        Ok(CreateDormantSource({Root::Registration, root.Get(), root.Get(), Root::Closed}, &source, root->ownedControl));
+        Root* held = root.Get(); root.Reset();
+        Ok(source->Shutdown()); Check(held->closed == 1 && !held->ownedControl && held->retired == 0);
+        Check(source->Shutdown() == MF_E_SHUTDOWN && held->closed == 1 && deaths == 0);
+        source.Reset(); Check(deaths == 1);
+    }
+    void RegistryCanReleaseCallingStopController()
+    {
+        std::atomic_int deaths{0};
+        auto root = Microsoft::WRL::Make<Root>(); root->deaths = &deaths;
+        ComPtr<IMFMediaSourceEx> source;
+        Ok(CreateDormantSource({Root::Registration, root.Get(), root.Get(), Root::Closed}, &source, root->ownedControl));
+        Root* held = root.Get(); auto calling = root->ownedControl.get(); root.Reset();
+        Ok(calling->Stop()); // Callback intentionally destroys calling, not its held state.
+        Check(held->closed == 1 && !held->ownedControl && held->retired == 0);
+        DWORD flags = 99; Check(source->GetCharacteristics(&flags) == MF_E_SHUTDOWN && flags == 0);
+        source.Reset(); Check(deaths == 1);
+    }
+    void RegistryCanReleaseControllerDuringAdoption()
+    {
+        Fixture f;
+        // Recreate only the dormant shell, with the native registry notification.
+        f.control.reset(); f.source.Reset();
+        Ok(CreateDormantSource({Root::Registration, f.root.Get(), f.root.Get(), Root::Closed}, &f.source, f.control));
+        auto proof = f.Proof();
+        auto calling = f.control.get(); f.root->ownedControl = std::move(f.control);
+        f.root->stopOnCapture = calling;
+        Check(calling->Adopt(std::move(proof)) == MF_E_SHUTDOWN);
+        Check(f.root->closed == 1 && !f.root->ownedControl && f.root->retired == 1);
+        ComPtr<IMFPresentationDescriptor> descriptor;
+        Check(f.source->CreatePresentationDescriptor(&descriptor) == MF_E_SHUTDOWN && !descriptor);
+    }
 }
 int main(int argc, char** argv)
 {
@@ -201,7 +242,10 @@ int main(int argc, char** argv)
         {"dormant-module-lifetime", RegistrationModuleLifetimeSurvivesControlRelease},
         {"dormant-stop-unblocks-event-wait", StopUnblocksDelegatedEventWait},
         {"dormant-stale-target", StaleTargetProofCannotAdoptNewShell},
-        {"dormant-lost-capture-owner", LivingRegistrationDoesNotMaskLostCaptureOwner}
+        {"dormant-lost-capture-owner", LivingRegistrationDoesNotMaskLostCaptureOwner},
+        {"dormant-registry-source-shutdown", RegistryReleasesControllerOnSourceShutdown},
+        {"dormant-registry-release-in-stop", RegistryCanReleaseCallingStopController},
+        {"dormant-registry-release-in-adoption", RegistryCanReleaseControllerDuringAdoption}
     };
     const std::string selection = argc == 2 ? "," + std::string(argv[1]) + "," : "";
     if (argc > 2) { MFShutdown(); CoUninitialize(); return 4; }

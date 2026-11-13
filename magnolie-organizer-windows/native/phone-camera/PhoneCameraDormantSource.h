@@ -14,6 +14,9 @@ namespace Magnolie::PhoneCamera
         HRESULT (*current)(void*) noexcept;
         void* context;
         IUnknown* lifetime;
+        // Terminal registration cleanup, NOT capture retirement. Invoked once
+        // outside shell locks; may release the owner's native controller.
+        void (*closed)(void*) noexcept = nullptr;
     };
 
     // No productive caller can construct a proof from metadata or callbacks.
