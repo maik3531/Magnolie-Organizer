@@ -18,6 +18,14 @@ SOURCES = tuple('native/phone-camera/' + name + suffix for name in (
 NAME = 'Magnolie.PhoneAudioWorker.x64.exe'
 
 
+def _response_file_text(arguments):
+    if arguments.count('/link') != 1:
+        raise ValueError('Exactly one linker delimiter is required')
+    index = arguments.index('/link')
+    # cl.exe forwards only the remainder of THIS response-file line to link.exe.
+    return '\n'.join(arguments[:index] + [' '.join(arguments[index:])]) + '\n'
+
+
 def build(output):
     if os.name != 'nt':
         raise RuntimeError('Use the existing Windows MSVC/SDK environment, not a substitute compiler')
@@ -46,7 +54,7 @@ def build(output):
             arguments.append('"' + path + '"')
     arguments += ['/link', '/WX', '/DYNAMICBASE', '/NXCOMPAT', '/guard:cf', '/MACHINE:X64',
         'mfplat.lib', 'mfuuid.lib', 'ole32.lib', 'setupapi.lib', 'cfgmgr32.lib', 'advapi32.lib', 'bcrypt.lib', 'uuid.lib']
-    (output / 'phone-audio-runtime.rsp').write_text('\n'.join(arguments) + '\n', encoding='utf-8')
+    (output / 'phone-audio-runtime.rsp').write_text(_response_file_text(arguments), encoding='utf-8')
     (output / 'phone-audio-runtime-build.cmd').write_text('@echo off\ncall "' + str(vcvars) +
         '"\nif errorlevel 1 exit /b %errorlevel%\ncl.exe @phone-audio-runtime.rsp\nexit /b %errorlevel%\n', encoding='utf-8', newline='\r\n')
     with (output / 'phone-audio-runtime-build.log').open('w', encoding='utf-8') as log:

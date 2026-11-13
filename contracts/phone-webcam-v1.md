@@ -1,5 +1,25 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Native response-file linker routing (Refs #587)
+
+All three native artifact builders keep compiler arguments on separate lines but
+put `/link` and its complete linker tail on one response-file line. Separate tail
+lines were interpreted as compiler options: actual MSVC logs contained ignored
+NXCOMPAT/MACHINE options, and the new source DLL had no DEF-specified COM exports.
+The corrected source DLL exports exactly the two COM entry points; the parent
+retains its nine C-ABI exports. All three final artifacts have their required x64
+role and ASLR/NX/CFG flags with no ignored-option warnings. This finding does not
+establish that older artifacts lacked effective default protections or caused
+the independent Audiosrv failure.
+
+Three writer cases reproduced the old formatting; nine portable cases now pass,
+including preserved path quoting and invalid delimiter refusal. The source-bound
+parent/worker artifacts were rebuilt because their builder inputs changed; the
+worker's binary digest happened to remain unchanged, but its descriptor changed.
+The changed optional product composition and its three existing resource/sibling
+identities passed read-only checks. Unchanged base/native-method suites were not
+rerun, and no audio worker, installer or registered camera was started.
+
 ## Native source DLL and immutable build input (Refs #586, #587)
 
 PhoneCameraModule implements the fixed custom-source COM class using the existing
