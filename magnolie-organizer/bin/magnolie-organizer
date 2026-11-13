@@ -5427,14 +5427,14 @@ def kontakte_vor_sync_zuordnen(lokal, entfernt):
         uid = obj.get("uid")
         if obj.get("sync") or obj.get("kontaktProviderKonflikte") or (uid and uid in entfernt):
             continue
-        mails = {wert.casefold() for wert in _email_liste(obj)}
+        mails = {wert.lower() for wert in _email_liste(obj)}
         telefone = _kontakt_telefone(obj)
         name = _kontakt_name_schluessel(obj)
         kandidaten = []
         for fern_uid, fern in entfernt.items():
             if fern_uid in vergeben:
                 continue
-            fern_mails = {wert.casefold() for wert in _email_liste(fern)}
+            fern_mails = {wert.lower() for wert in _email_liste(fern)}
             stark = bool(mails & fern_mails) or bool(telefone & _kontakt_telefone(fern))
             sparsam = (_kontakt_sparsam(obj) or _kontakt_sparsam(fern)) and name == _kontakt_name_schluessel(fern)
             if stark or sparsam:
@@ -6607,7 +6607,7 @@ def _kontakt_konflikt_inhalt(obj):
     for feld in ("telefon", "mobil", "telefone", "email", "emails", "emailEintraege"):
         inhalt.pop(feld, None)
     inhalt["telefone"] = sorted(_kontakt_telefone(obj))
-    inhalt["emails"] = sorted({wert.casefold() for wert in _email_liste(obj)})
+    inhalt["emails"] = sorted({wert.lower() for wert in _email_liste(obj)})
     groups = set()
     for line in obj.get('vcardRoundtrip') or []:
         prop = _prop_zerlegen(line) if isinstance(line, str) else None
@@ -6660,7 +6660,7 @@ def _kontakt_label_vergleich(obj, nur_werte=False):
             if feld == "telefone":
                 zeile["wert"] = _telefon_schluessel(str(zeile.get("wert") or ""))
             elif feld == "emailEintraege":
-                zeile["wert"] = str(zeile.get("wert") or "").strip().casefold()
+                zeile["wert"] = str(zeile.get("wert") or "").strip().lower()
                 if "typen" in zeile:
                     zeile["typen"] = [typ for typ in zeile["typen"] if typ != "INTERNET"]
             zeile = {key: value for key, value in zeile.items() if value not in (None, "", [], {})}
@@ -6709,7 +6709,7 @@ def _kontakt_ergaenzungs_schluessel(obj):
     keys = [('uid', uid) for uid in ((obj.get('kontaktAliase') or {}).get('uids') or [])]
     name = _kontakt_name_schluessel(obj)
     if name:
-        keys.extend(('mail', name, wert.casefold()) for wert in _email_liste(obj))
+        keys.extend(('mail', name, wert.lower()) for wert in _email_liste(obj))
         keys.extend(('phone', name, wert) for wert in _kontakt_telefone(obj))
     return keys
 
@@ -6721,7 +6721,7 @@ def _kontakt_ergaenzung_indexieren(index, obj):
 
 def _kontakt_passende_ergaenzung(karten, fern, index=None, mit_ersetzung=False):
     name = _kontakt_name_schluessel(fern)
-    mails = {wert.casefold() for wert in _email_liste(fern)}
+    mails = {wert.lower() for wert in _email_liste(fern)}
     telefone = _kontakt_telefone(fern)
     if index is not None:
         keys = [('uid', fern.get('uid'))]
@@ -6733,7 +6733,7 @@ def _kontakt_passende_ergaenzung(karten, fern, index=None, mit_ersetzung=False):
     passend = [obj for obj in karten if
         (fern.get('uid') in ((obj.get('kontaktAliase') or {}).get('uids') or []) or
          name and name == _kontakt_name_schluessel(obj) and (
-             mails & {wert.casefold() for wert in _email_liste(obj)} or telefone & _kontakt_telefone(obj))) and
+             mails & {wert.lower() for wert in _email_liste(obj)} or telefone & _kontakt_telefone(obj))) and
         (mit_ersetzung or _kontakt_nur_ergaenzungen(obj, fern) or _kontakt_nur_ergaenzungen(fern, obj))]
     return passend[0] if len(passend) == 1 else None
 
