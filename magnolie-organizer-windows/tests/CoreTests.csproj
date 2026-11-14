@@ -80,6 +80,7 @@
     <Compile Include="..\NotesOriginalChoiceSave.cs" Link="NotesOriginalChoiceSave.cs" />
     <Compile Include="..\NotesOriginalJournalCrypto.cs" Link="NotesOriginalJournalCrypto.cs" />
     <Compile Include="..\NotesOriginalRequestIntents.cs" Link="NotesOriginalRequestIntents.cs" />
+    <Compile Include="..\NotesOriginalSavedAckIntents.cs" Link="NotesOriginalSavedAckIntents.cs" />
     <Compile Include="..\NotesOriginalReturnHash.cs" Link="NotesOriginalReturnHash.cs" />
     <Compile Include="..\ContactSourceNativeSession.cs" Link="ContactSourceNativeSession.cs" />
     <Compile Include="..\ContactSourceAutomation.cs" Link="ContactSourceAutomation.cs" />

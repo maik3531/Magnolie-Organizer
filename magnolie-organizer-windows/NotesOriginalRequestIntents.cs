@@ -61,7 +61,7 @@ internal sealed class NotesOriginalRequestIntents
     private static string RecordKey(string physical, JsonObject frame) => NotesOriginalSchema.Hash(new JsonObject {
         ["physical"] = physical, ["request_id"] = frame["request"]!["request_id"]!.DeepClone() });
 
-    private static JsonObject Validate(string key, string physical, JsonObject frame)
+    internal static JsonObject Validate(string key, string physical, JsonObject frame)
     {
         NotesOriginalSchema.Fields(frame, "version", "state", "request", "request_sha256", "source", "source_seal", "export", "local_before", "book_before", "physical");
         if (NotesOriginalSchema.Integer(frame, "version") != 1 || NotesOriginalSchema.Text(frame, "state") != "request_pending" ||
@@ -159,7 +159,7 @@ internal sealed class NotesOriginalRequestIntents
         }
     }
 
-    private void CheckStored(FreshProof proof, NotesOriginalJournalCrypto crypto, string identity)
+    private JsonObject CheckStored(FreshProof proof, NotesOriginalJournalCrypto crypto, string identity)
     {
         if (identity != proof.KeyIdentity) throw new InvalidOperationException("notes_request_journal_key_changed");
         using var directory = files.Open() ?? throw new IOException("notes_request_private_history_missing");
@@ -168,6 +168,21 @@ internal sealed class NotesOriginalRequestIntents
         if (stored is null || stored.Value.Key != proof.Key || NotesOriginalSchema.Hash(stored.Value.Frame) != proof.FrameHash ||
             directory.Read("r-" + proof.Key + ".json", Limit) != stored.Value.Encrypted)
             throw new InvalidOperationException("notes_request_physical_history_changed");
+        return stored.Value.Frame.DeepClone().AsObject();
+    }
+
+    internal (string Key, string KeyIdentity, JsonObject Frame) SavedRequest(NotesOriginalPendingResult pending)
+    {
+        pending.ConfirmedSave(); // Actual native callback before file/registry locks.
+        var context = Crypto(); JsonObject record; FreshProof proof;
+        lock (gate)
+        {
+            proof = fresh.Values.SingleOrDefault(value => ReferenceEquals(value.Pending, pending)) ??
+                throw new InvalidOperationException("notes_request_owned_saved_context_required");
+            record = CheckStored(proof, context.Crypto, context.Identity);
+        }
+        pending.ConfirmedSave();
+        return (proof.Key, proof.KeyIdentity, record);
     }
 
     private JsonObject RequireFresh(FreshProof proof, NotesOriginalNegotiation protocol)

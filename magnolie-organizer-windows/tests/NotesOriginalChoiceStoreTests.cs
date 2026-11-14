@@ -346,6 +346,91 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine($"Notes physical-first request intentions: {modes.Length} synthetic cases passed (loaded history never restores send rights).");
     }
 
+    internal static async Task SavedAcksAsync(string root)
+    {
+        var modes = new[] { "success", "before-save", "failed-save", "missing-request", "tampered-history", "missing-history", "key-change", "request-tamper",
+            "revoke", "later-real-save", "stop", "history-written-crash", "readback-crash", "stop-during-seal", "reloaded-request-store", "unknown-ack-root", "revoke-during-seal" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            var requestRoot = Path.Combine(h.Root, "requests"); var ackRoot = Path.Combine(h.Root, "acks");
+            byte keyByte = 42;
+            byte[] Key() => Enumerable.Repeat(keyByte, 32).ToArray();
+            ContactSourcePrivateFiles Boundary(string path) => new(path, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            var requests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+            NotesOriginalSavedAckIntents? outcomes = null;
+            outcomes = new(Boundary(ackRoot), Key, requests, phase =>
+            {
+                if (mode == "history-written-crash" && phase == "history-written" || mode == "readback-crash" && phase == "after-readback")
+                    throw new IOException("synthetic-saved-history-interruption");
+                if (mode == "stop-during-seal" && phase == "after-readback") outcomes!.Stop();
+                if (mode == "revoke-during-seal" && phase == "after-readback") h.Store.Revoke();
+            });
+            var pending = h.Choice.CreatePending()!; h.PendingResult = pending;
+            if (mode != "missing-request") requests.Seal(pending);
+            var request = pending.Request(); var historyKey = NotesOriginalSchema.Hash(request);
+            TestAssert.That(outcomes.LoadHeld(historyKey) is null && !Directory.Exists(ackRoot), "Missing saved history read created a store");
+            var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = historyKey,
+                ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+            foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+            h.Send(result);
+            if (mode == "before-save")
+            {
+                Hold(() => outcomes.Seal(pending)); TestAssert.That(!Directory.Exists(ackRoot), "Transport/result created saved history without actual write"); continue;
+            }
+            var commit = pending.PrepareCommit(h.Host.SourceResultCommit);
+            if (mode == "failed-save") h.Host.FailAfterPrimary = true;
+            var saved = await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject());
+            if (mode is "failed-save" or "missing-request")
+            {
+                TestAssert.That(saved["ok"]!.GetValue<bool>() == (mode == "missing-request"), "Actual synthetic writer returned unexpected status");
+                Hold(() => outcomes.Seal(pending)); TestAssert.That(!Directory.Exists(ackRoot), "Missing request/genuine save minted ACK history"); continue;
+            }
+            if (mode == "reloaded-request-store")
+            {
+                var reloadedRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+                var reloadedOutcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, reloadedRequests);
+                Hold(() => reloadedOutcomes.Seal(pending));
+                TestAssert.That(!Directory.Exists(ackRoot), "Loaded request history reconstructed saved-ACK authority"); continue;
+            }
+            if (mode == "unknown-ack-root")
+            {
+                using (Boundary(ackRoot).Open(create: true)) { }
+                Hold(() => outcomes.Seal(pending));
+                TestAssert.That(!System.IO.File.Exists(Path.Combine(ackRoot, ".journal-key")), "Unknown ACK root silently initialized"); continue;
+            }
+            if (mode is "history-written-crash" or "readback-crash" or "stop-during-seal" or "revoke-during-seal")
+            {
+                Hold(() => outcomes.Seal(pending));
+                var reloaded = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests);
+                TestAssert.That(reloaded.LoadHeld(historyKey) is JsonObject, "Genuine saved history was lost after interruption");
+                TestAssert.Throws<InvalidOperationException>(() => new NotesOriginalSavedAckIntents.SavedAck(new object()).Body(), "Loaded/counterfeit history became an ACK proof"); continue;
+            }
+            var ack = outcomes.Seal(pending); var body = ack.Body();
+            TestAssert.That(body["art"]!.GetValue<string>() == "kontakt_original_saveack" && body["desktop_sha256"]!.GetValue<string>() == h.Host.Saved()!.Sha256 &&
+                body["request_sha256"]!.GetValue<string>() == historyKey && JsonNode.DeepEquals(outcomes.Seal(pending).Body(), body), "Native saved ACK lost exact witness correlation/idempotence");
+            var loaded = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests).LoadHeld(historyKey)!;
+            loaded["result"]!["receipt_id"] = Guid.NewGuid().ToString();
+            TestAssert.That(!JsonNode.DeepEquals(loaded, outcomes.LoadHeld(historyKey)), "Loaded saved history alias changed private outcome");
+            if (mode == "success") continue;
+            if (mode == "tampered-history") System.IO.File.WriteAllText(Directory.GetFiles(ackRoot, "a-*.json").Single(), "{}");
+            if (mode == "missing-history") System.IO.File.Delete(Directory.GetFiles(ackRoot, "a-*.json").Single());
+            if (mode == "key-change") keyByte = 43;
+            if (mode == "request-tamper") System.IO.File.WriteAllText(Directory.GetFiles(requestRoot, "r-*.json").Single(), "{}");
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode == "stop") outcomes.Stop();
+            if (mode == "later-real-save")
+            {
+                var later = JsonNode.Parse(commit.Text)!.AsObject(); later["new-user-edit"] = "preserve";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Later actual save failed");
+            }
+            Hold(() => ack.Body());
+            if (mode is "revoke" or "later-real-save" or "stop")
+                TestAssert.That(outcomes.LoadHeld(historyKey) is not null, "Live witness invalidation erased independent genuine history");
+        }
+        Console.WriteLine($"Notes independent genuine saved-ACK history: {modes.Length} actual-writer synthetic cases passed (loaded history is not ACK authority).");
+    }
+
     private static async Task ScenarioAsync(string root, string mode)
     {
         using var h = new Fixture(root, mode == "native-default");

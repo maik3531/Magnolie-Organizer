@@ -287,6 +287,14 @@ internal sealed class NotesOriginalPendingResult
         _ = witness.RequireCurrent(); RequireOrigin(); _ = witness.RequireCurrent();
         return witness; // No wire ACK or durable history is minted here.
     }
+
+    internal JsonObject CaptureSavedResult()
+    {
+        var received = RequireOrigin();
+        var saved = ConfirmedSave().RequireCurrent();
+        return new JsonObject { ["result"] = received.Body.DeepClone(),
+            ["saved_book"] = new JsonArray(saved.BookSource, saved.Sequence, saved.Sha256) };
+    }
 }
 
 internal static class NotesOriginalSchema

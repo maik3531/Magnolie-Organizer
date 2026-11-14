@@ -1130,6 +1130,35 @@ registered. Terminal retirement, query recovery, independent saved-ACK history,
 controller/pump/setup and production key-backend selection remain outstanding;
 physical holds are deliberately not released by this slice.
 
+### Windows genuine independent saved-ACK history (#633)
+
+`NotesOriginalSavedAckIntents` now seals an independent encrypted record only after
+the actual pending's real `ConfirmedSave` witness and exact owned process request
+context verify. The original physical/archive intention must still match. The
+record binds the complete request history/result and actual saved book identity,
+sequence/hash to the same existing independent journal identity. It cannot be
+created from a transport/result receipt, failed writer, missing or loaded-only
+request store. No source-consent key or replacement journal key is used.
+
+Only durable readback plus fresh native rechecks issue the private in-process ACK
+proof. Its body revalidates the current genuine witness/source/result, unchanged
+physical/archive request, exact outcome ciphertext/frame and process epoch.
+Idempotent sealing reuses identical history, never overwrites conflicting history.
+Read-only loads return cloned data, not an ACK proof. Stop/revocation/later real
+book writes invalidate live proof but do not delete genuine independent history.
+Interruptions after durable history leave read-only recovery data, not send rights.
+
+Evidence: 17 additional actual generated-writer synthetic scenarios pass on both
+managed host and existing noninteractive Windows, alongside retained prior cases.
+They cover real saved ACK/idempotence, before/failed save, absent or reloaded request
+context, outcome/request tampering, missing history, key change, revocation/later
+native save/Stop, history-write/readback interruptions, Stop/revoke during sealing
+and unknown pre-existing outcome root. Release CoreTests and BASE builds are clean.
+Still outstanding: fresh native reauthorization of loaded history, query-only
+restart recovery, exact terminal/mapping installation and physical retirement,
+reserved sender/controller pump/bootstrap and common setup. None is inferred from
+the now-durable JSON; no production sender/key backend or installation is enabled.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
