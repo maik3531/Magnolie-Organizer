@@ -31,6 +31,15 @@ internal sealed class NotesOriginalNegotiation
         }
     }
 
+    internal (MagnolienbaumCoordinator.NotesPins Peer, MagnolienbaumCoordinator.NotesPins Own) NativeProbePins()
+    {
+        lock (gate)
+        {
+            if (!active) throw new InvalidOperationException("notes_original_protocol_cancelled");
+            return (peer, own);
+        }
+    } // Support probe only, never source permission.
+
     internal void Accept(JsonObject body, MagnolienbaumCoordinator.NativeNotesOrigin origin, string transport)
     {
         var expected = Probe(); expected["antwort"] = true;

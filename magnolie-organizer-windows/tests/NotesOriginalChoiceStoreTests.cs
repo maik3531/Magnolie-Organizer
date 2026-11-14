@@ -55,6 +55,8 @@ internal static class NotesOriginalChoiceStoreTests
         private string transport = "";
         internal NotesOriginalPendingResult? PendingResult;
         internal NotesOriginalNegotiation? Protocol;
+        internal JsonObject RemoteState => sender;
+        internal JsonObject RemotePeer => target;
         internal bool CaptureRecovery;
         internal (JsonObject Body, MagnolienbaumCoordinator.NativeNotesOrigin Origin, string Transport) RecoveryObservation =>
             (observed!.DeepClone().AsObject(), origin!, transport);
@@ -616,6 +618,120 @@ internal static class NotesOriginalChoiceStoreTests
             Hold(() => requests.Seal(pending));
         }
         Console.WriteLine($"Notes fresh VERIFIED local recovery: {modes.Length} synthetic actual-writer cases passed (real bootstrap then metadata save, no provider replay).");
+    }
+
+    private sealed class NotesHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler) : HttpMessageHandler
+    { protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellation) => handler(request, cancellation); }
+
+    internal static async Task ReservedTransportAsync(string root)
+    {
+        var modes = new[] { "probe", "request", "unconfirmed-query", "history-query", "saved-ack", "restored-ack", "offline", "fake-request", "fake-ack",
+            "drop-policy", "peer-change", "own-secret-loss", "stop-after-handshake", "stop-after-receipt", "bad-receipt", "cancel-after-handshake", "deadline" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            ContactSourcePrivateFiles Boundary(string leaf) => new(Path.Combine(h.Root, leaf), controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var requests = new NotesOriginalRequestIntents(Boundary("requests"), Key);
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary("acks"), Key, requests);
+            var pending = h.Choice.CreatePending()!; h.PendingResult = pending;
+            var fresh = requests.Seal(pending); var originalRequest = pending.Request();
+            h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own);
+            if (mode != "probe") { var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer); }
+            NotesOriginalRequestIntents.UnconfirmedQuery? unconfirmed = null;
+            NotesOriginalSavedAckIntents.HistoryQuery? history = null;
+            NotesOriginalSavedAckIntents.SavedAck? savedAck = null;
+            NotesOriginalSavedAckIntents.RestoredAck? restoredAck = null;
+            if (mode == "unconfirmed-query") unconfirmed = requests.ReadOnlyQuery(Path.GetFullPath(h.Host.DataPath), "chosen-private-id", h.Store, h.Protocol);
+            if (mode is "history-query" or "saved-ack" or "restored-ack")
+            {
+                var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(originalRequest),
+                    ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = originalRequest[name]!.DeepClone();
+                h.Send(result); var commit = pending.PrepareCommit(h.Host.SourceResultCommit);
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "Reserved ACK fixture writer failed");
+                savedAck = outcomes.Seal(pending);
+                history = outcomes.ReadOnlyQuery(NotesOriginalSchema.Hash(originalRequest), h.Store, h.Protocol);
+                if (mode == "restored-ack")
+                {
+                    h.CaptureRecovery = true; h.Send(result); var observation = h.RecoveryObservation;
+                    restoredAck = outcomes.Reauthorize(history, observation.Body, observation.Origin, observation.Transport, h.Protocol);
+                }
+            }
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var gate = typeof(MagnolienbaumCoordinator).GetField("gate", flags)!.GetValue(h.Coordinator)!;
+            var live = (JsonObject)typeof(MagnolienbaumCoordinator).GetField("state", flags)!.GetValue(h.Coordinator)!;
+            var beforeOutbox = ((JsonArray)typeof(MagnolienbaumCoordinator).GetField("outbox", flags)!.GetValue(h.Coordinator)!).ToJsonString();
+            var sessions = new List<MagnolienbaumFsSession>();
+            var calls = new List<string>(); var contents = new List<JsonObject>(); var allowed = mode != "offline";
+            using var cancellation = new CancellationTokenSource();
+            using var handler = new NotesHandler(async (request, token) =>
+            {
+                if (!request.RequestUri!.AbsolutePath.StartsWith("/magnolie/v2/", StringComparison.Ordinal)) throw new CallbackViolation();
+                calls.Add(request.RequestUri.AbsolutePath);
+                var acquired = await Task.Run(() =>
+                {
+                    var treeFree = Monitor.TryEnter(gate, TimeSpan.FromSeconds(1)); if (treeFree) Monitor.Exit(gate);
+                    var bookFree = MutationGate.Global.Wait(TimeSpan.FromSeconds(1)); if (bookFree) MutationGate.Global.Release();
+                    return treeFree && bookFree;
+                });
+                if (!acquired) throw new CallbackViolation(); // Must not be swallowed as an expected transport failure.
+                if (mode == "deadline") await Task.Delay(Timeout.Infinite, token);
+                var payload = JsonNode.Parse(await request.Content!.ReadAsStringAsync(token))!.AsObject(); JsonObject reply;
+                if (request.RequestUri.AbsolutePath.EndsWith("/sitzung", StringComparison.Ordinal))
+                {
+                    var built = MagnolienbaumFs1.BuildResponse(h.RemoteState, h.RemotePeer, payload); sessions.Add(built.Session); reply = built.Response;
+                    if (mode == "drop-policy") allowed = false;
+                    if (mode == "peer-change") live["partner"]![0]!["kontaktSync"] = false;
+                    if (mode == "own-secret-loss") live.Remove("geheim");
+                    if (mode == "stop-after-handshake") await h.Coordinator.StopAsync();
+                    if (mode == "cancel-after-handshake") cancellation.Cancel();
+                }
+                else
+                {
+                    var session = sessions.Last(); var opened = MagnolienbaumFs1.OpenEnvelope(session, "synthetic-notes", "synthetic-desktop", payload);
+                    contents.Add(opened.Content.DeepClone().AsObject()); reply = MagnolienbaumFs1.BuildAcknowledgement(session, payload);
+                    if (mode == "bad-receipt") reply["mac"] = Convert.ToBase64String(new byte[32]);
+                    if (mode == "stop-after-receipt") await h.Coordinator.StopAsync();
+                }
+                return new(System.Net.HttpStatusCode.OK) { Content = new StringContent(reply.ToJsonString()) };
+            });
+            var clientField = typeof(MagnolienbaumCoordinator).GetField("client", flags)!;
+            ((HttpClient)clientField.GetValue(h.Coordinator)!).Dispose(); clientField.SetValue(h.Coordinator, new HttpClient(handler));
+            async Task<bool> Send() => mode switch
+            {
+                "probe" => await h.Coordinator.SendNotesProbeAsync(h.Protocol, () => allowed, cancellation.Token),
+                "unconfirmed-query" => await h.Coordinator.SendNotesQueryAsync(unconfirmed!, h.Protocol, () => allowed, cancellation.Token),
+                "history-query" => await h.Coordinator.SendNotesQueryAsync(history!, h.Protocol, () => allowed, cancellation.Token),
+                "saved-ack" => await h.Coordinator.SendNotesSavedAckAsync(savedAck!, h.Protocol, () => allowed, cancellation.Token),
+                "restored-ack" => await h.Coordinator.SendNotesSavedAckAsync(restoredAck!, h.Protocol, () => allowed, cancellation.Token),
+                "fake-ack" => await h.Coordinator.SendNotesSavedAckAsync(new NotesOriginalSavedAckIntents.SavedAck(new object()), h.Protocol, () => allowed, cancellation.Token),
+                _ => await h.Coordinator.SendNotesRequestAsync(pending, mode == "fake-request" ? new(new object()) : fresh, h.Protocol, () => allowed, cancellation.Token)
+            };
+            try
+            {
+                var timer = System.Diagnostics.Stopwatch.StartNew(); bool delivered;
+                if (mode == "cancel-after-handshake")
+                {
+                    await TestAssert.ThrowsAsync<OperationCanceledException>(async () => { _ = await Send(); }, "Caller cancellation was ignored"); delivered = false;
+                }
+                else delivered = await Send();
+                TestAssert.That(delivered == (mode is "probe" or "request" or "unconfirmed-query" or "history-query" or "saved-ack" or "restored-ack"), "Reserved transport disposition was wrong: " + mode);
+                if (mode is "offline" or "fake-request" or "fake-ack") TestAssert.That(calls.Count == 0, "Offline/counterfeit request reached networking");
+                if (mode is "drop-policy" or "peer-change" or "own-secret-loss" or "stop-after-handshake" or "cancel-after-handshake" or "deadline") TestAssert.That(calls.Count == 1 && contents.Count == 0, "Invalid context sent draft after handshake or bypassed the actual attempted handshake");
+                if (mode == "deadline") TestAssert.That(timer.Elapsed >= TimeSpan.FromSeconds(7) && timer.Elapsed < TimeSpan.FromSeconds(12), "Reserved send did not exercise its bounded network deadline");
+                if (mode is "bad-receipt" or "stop-after-receipt") TestAssert.That(calls.Count == 2 && contents.Count == 1, "Uncertain-delivery case did not reach the actual encrypted message");
+                if (mode == "probe") TestAssert.Throws<InvalidOperationException>(() => h.Protocol.RequireCurrent(), "Transport receipt negotiated profile without actual native offer");
+                if (mode == "request") TestAssert.That(contents.Count == 1 && JsonNode.DeepEquals(contents[0], originalRequest), "Reserved request body was retargeted");
+                if (mode is "unconfirmed-query" or "history-query") TestAssert.That(contents.Single()["ziel"] is null && contents.Single()["art"]!.GetValue<string>() == "kontakt_original_statusanfrage", "Reserved query acquired write target");
+                if (mode is "saved-ack" or "restored-ack") TestAssert.That(contents.Single()["desktop_sha256"]!.GetValue<string>() == h.Host.Saved()!.Sha256 &&
+                    requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Transport receipt retired native request history");
+                TestAssert.That(((JsonArray)typeof(MagnolienbaumCoordinator).GetField("outbox", flags)!.GetValue(h.Coordinator)!).ToJsonString() == beforeOutbox,
+                    "Reserved draft entered generic outbox");
+            }
+            finally { foreach (var session in sessions) session.Dispose(); }
+        }
+        Console.WriteLine($"Notes reserved native FS1 transport: {modes.Length} synthetic authenticated-handler cases passed (no generic fallback or receipt settlement).");
     }
 
     internal static async Task SavedAcksAsync(string root)

@@ -74,6 +74,7 @@
     <Compile Include="..\ContactSourceSavedDavRun.cs" Link="ContactSourceSavedDavRun.cs" />
     <Compile Include="..\ContactSourceSavedCommit.cs" Link="ContactSourceSavedCommit.cs" />
     <Compile Include="..\MagnolienbaumCoordinator.NotesOriginal.cs" Link="MagnolienbaumCoordinator.NotesOriginal.cs" />
+    <Compile Include="..\MagnolienbaumCoordinator.NotesTransport.cs" Link="MagnolienbaumCoordinator.NotesTransport.cs" />
     <Compile Include="..\NotesOriginalNegotiation.cs" Link="NotesOriginalNegotiation.cs" />
     <Compile Include="..\NotesOriginalPendingResult.cs" Link="NotesOriginalPendingResult.cs" />
     <Compile Include="..\NotesOriginalChoiceStore.cs" Link="NotesOriginalChoiceStore.cs" />

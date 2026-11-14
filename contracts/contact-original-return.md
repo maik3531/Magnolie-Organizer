@@ -1308,6 +1308,35 @@ BASE builds are clean. This joins the real native write boundary, not an automat
 queue: controller construction, shared bounded bootstrap scheduling, reserved
 transport/pump, key-backend selection and actual common setup remain outstanding.
 
+### Windows reserved typed FS1 sending (#633)
+
+The coordinator now has separate native-only send methods for probes, fresh-owned
+requests, unconfirmed/history queries and genuine live/restored ACKs. No method
+accepts copied draft JSON or generic queue items; there is no legacy/mailbox
+fallback. ACKs additionally require the actual current negotiated paired pins.
+Probe transport receipts alone do not negotiate a profile or grant source access.
+
+Current paired desktop/peer IDs/keys/permissions and Stop generation are captured
+under the brief tree gate. Native body/source callbacks and networking run outside
+tree/book gates. Native WLAN policy, own secret availability/identity, pins, Stop
+generation and exact body are rechecked around every network phase and receipt.
+Existing endpoint/Post/FS1 crypto primitives are reused, with an eight-second linked
+budget for the whole operation and only existing paired endpoint alternatives.
+Offline/uncertain outcomes are quiet false; explicit caller cancellation propagates.
+An authenticated delivery receipt never confirms metadata save or native settlement.
+
+Seventeen new synthetic authenticated-handler cases pass in the full managed group
+and a clearly identified new-test-only noninteractive Windows slice. All six typed
+paths, offline/counterfeit request/ACK, policy/permission/key loss after handshake,
+Stop before message/after receipt, invalid receipt, caller cancellation and the
+actual bounded network timeout are covered. A separate thread acquires tree and
+global book gates at every callback; custom assertion exceptions cannot be mistaken
+for expected network failure. Generic outbox stays unchanged and native request
+holds remain pending after ACK delivery. Release CoreTests and BASE builds are clean.
+No controller, timer or sender is registered at startup; bounded discovery/owner
+dispatch/shared bootstrap scheduling, existing-key backend and actual setup remain
+outstanding. This is not installed-app/device/provider acceptance or publication.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

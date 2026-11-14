@@ -23,6 +23,23 @@ internal sealed partial class NotesOriginalSavedAckIntents
             if (proof is not SavedProof native) throw new InvalidOperationException("notes_ack_native_saved_proof_required");
             return native.Store.Body(native);
         }
+        internal JsonObject RequireFor(NotesOriginalNegotiation protocol)
+        {
+            if (proof is not SavedProof native) throw new InvalidOperationException("notes_ack_native_saved_proof_required");
+            var body = Body();
+            var history = native.Store.LoadHeld(native.Key) ?? throw new InvalidOperationException("notes_ack_genuine_history_missing");
+            if (NotesOriginalSchema.Hash(history) != native.FrameHash) throw new InvalidOperationException("notes_ack_genuine_history_changed");
+            RequireProtocol(history["request_history"]!["source"]!.AsObject(), protocol);
+            Body(); return body;
+        }
+    }
+
+    private static void RequireProtocol(JsonObject source, NotesOriginalNegotiation protocol)
+    {
+        var pins = protocol.RequireCurrent();
+        if (source["peer"]![0]!.GetValue<string>() != pins.Peer.Id || source["peer"]![1]!.GetValue<string>() != pins.Peer.PublicKey ||
+            source["own"]![0]!.GetValue<string>() != pins.Own.Id || source["own"]![1]!.GetValue<string>() != pins.Own.PublicKey)
+            throw new InvalidOperationException("notes_ack_native_protocol_pins_changed");
     }
 
     internal NotesOriginalSavedAckIntents(ContactSourcePrivateFiles files, Func<byte[]?> existingKey,

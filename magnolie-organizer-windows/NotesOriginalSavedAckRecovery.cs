@@ -42,6 +42,12 @@ internal sealed partial class NotesOriginalSavedAckIntents
             var body = record["result"]!.DeepClone().AsObject(); body["art"] = "kontakt_original_saveack";
             body["desktop_sha256"] = record["saved_book"]![2]!.DeepClone(); return body;
         }
+        internal JsonObject RequireFor(NotesOriginalNegotiation protocol)
+        {
+            var native = Native(); var history = native.History.Store.RequireRestored(native);
+            RequireProtocol(history["request_history"]!["source"]!.AsObject(), protocol);
+            return Body();
+        }
         internal bool TerminalConfirmed()
         {
             var native = Native(); native.History.Store.RequireRestored(native);
