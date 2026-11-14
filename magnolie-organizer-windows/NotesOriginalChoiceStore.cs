@@ -177,7 +177,7 @@ internal sealed partial class NotesOriginalChoiceStore
 
     internal bool RecognizesSaved() => ReadKnown() is not null; // Correlation only, not a saved witness or ACK grant.
 
-    internal string VerifySavedHistory(JsonObject history, bool requireExactTarget = true)
+    internal string VerifySavedHistory(JsonObject history)
     {
         // Read-only native correlation, never a new SavedWitness/RecordSaved.
         // The history issuer must independently authenticate its own journal.
@@ -193,9 +193,12 @@ internal sealed partial class NotesOriginalChoiceStore
         var model = observed.Snapshot?.Text ?? currentNativeData?.Invoke() ?? throw new InvalidOperationException("notes_choice_owned_native_model_required");
         var contacts = JsonNode.Parse(model)!["kontakte"] as JsonArray ?? throw new InvalidDataException("notes_choice_native_contacts_required");
         var selected = contacts.OfType<JsonObject>().Where(value => Text(value, "id") == Text(source, "local_id")).ToArray();
-        if (selected.Length != 1 || Text(selected[0], "uid") != Text(source, "local_uid") ||
-            requireExactTarget && !JsonNode.DeepEquals(NotesOriginalExportChoice.Project(selected[0], original["export"]!["kontakt"]!.AsObject()), original["request"]!["ziel"]))
-            throw new InvalidOperationException("notes_choice_historical_target_changed");
+        // A genuine old saved witness remains historical after a subsequent
+        // local content edit. Its original request/target is authenticated by
+        // the independent journal; current ID/UID and installed metadata still
+        // must match. Unconfirmed recovery retains its separate exact-target gate.
+        if (selected.Length != 1 || Text(selected[0], "uid") != Text(source, "local_uid"))
+            throw new InvalidOperationException("notes_choice_historical_contact_changed");
         var result = history["result"]!.AsObject();
         var expected = new JsonObject { ["fassung"] = 1, ["share_id"] = result["share_id"]!.DeepClone(), ["basis"] = result["next_basis"]!.DeepClone(),
             ["native_revision"] = NotesOriginalSchema.Integer(result, "native_revision").ToString(System.Globalization.CultureInfo.InvariantCulture) };

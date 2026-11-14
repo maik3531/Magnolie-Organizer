@@ -104,7 +104,7 @@ internal sealed partial class NotesOriginalSavedAckIntents
         if (source["peer"]![0]!.GetValue<string>() != pins.Peer.Id || source["peer"]![1]!.GetValue<string>() != pins.Peer.PublicKey ||
             source["own"]![0]!.GetValue<string>() != pins.Own.Id || source["own"]![1]!.GetValue<string>() != pins.Own.PublicKey)
             throw new InvalidOperationException("notes_ack_history_protocol_pins_changed");
-        var binding = proof.Consent.VerifySavedHistory(record, requireExactTarget: false);
+        var binding = proof.Consent.VerifySavedHistory(record);
         var physical = requests.LoadPhysical(binding, NotesOriginalSchema.Text(source, "local_id"));
         if (physical is not null && NotesOriginalSchema.Text(physical, "state") == "request_settled")
         {
@@ -112,7 +112,6 @@ internal sealed partial class NotesOriginalSavedAckIntents
             if (!requests.RetiredArchiveMatches(physical)) throw new InvalidOperationException("notes_ack_retired_archive_changed");
             physical.Remove("terminal"); physical["state"] = "request_pending";
         }
-        else proof.Consent.VerifySavedHistory(record); // Unsettled work still requires the exact selected target.
         if (!JsonNode.DeepEquals(physical, record["request_history"])) throw new InvalidOperationException("notes_ack_history_physical_changed");
         protocol.RequireCurrent();
         lock (gate) if (proof.Generation != generation) throw new InvalidOperationException("notes_ack_history_process_expired");

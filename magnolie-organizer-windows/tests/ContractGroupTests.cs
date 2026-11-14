@@ -836,6 +836,18 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "historical-followup")
+            {
+                await NotesOriginalChoiceStoreTests.SavedAcksAsync(Path.Combine(root, "notes-followup-history"), followupSlice: true);
+                await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
+                await NotesOriginalChoiceStoreTests.VerifiedRecoveryAsync(Path.Combine(root, "notes-verified-recovery"));
+                return; // Narrow #635 evidence: historical ACK boundary plus unchanged strict unconfirmed paths.
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "history-only")
+            {
+                await NotesOriginalChoiceStoreTests.SavedAcksAsync(Path.Combine(root, "notes-saved-ack-intentions"));
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "export-and-recovery")
             {
                 await NotesOriginalChoiceStoreTests.ExportBootstrapAsync(Path.Combine(root, "notes-export-bootstrap"));

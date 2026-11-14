@@ -833,12 +833,15 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine($"Notes regular export bootstrap/private discovery: {modes.Length} synthetic native-writer cases passed (no fake recovered request or primary-read saved scope).");
     }
 
-    internal static async Task SavedAcksAsync(string root)
+    internal static async Task SavedAcksAsync(string root, bool followupSlice = false)
     {
         var modes = new[] { "success", "before-save", "failed-save", "missing-request", "tampered-history", "missing-history", "key-change", "request-tamper",
             "revoke", "later-real-save", "stop", "history-written-crash", "readback-crash", "stop-during-seal", "reloaded-request-store", "unknown-ack-root", "revoke-during-seal",
-            "query-restart", "query-later-save", "query-revoked", "query-target-changed", "query-mapping-changed", "query-no-offer", "query-no-history", "query-stop",
-            "query-prepared", "query-settled", "query-wrong-receipt", "query-wrong-desktop", "query-copy-origin", "query-expire-origin", "query-no-reconstructed-ack" };
+            "query-restart", "query-later-save", "query-revoked", "query-target-and-mapping-changed", "query-mapping-changed", "query-no-offer", "query-no-history", "query-stop",
+            "query-prepared", "query-settled", "query-wrong-receipt", "query-wrong-desktop", "query-copy-origin", "query-expire-origin", "query-no-reconstructed-ack", "query-followup-local-edit", "query-uid-changed", "query-id-changed" };
+        if (followupSlice) modes = modes.Where(mode => mode is "query-followup-local-edit" or "query-target-and-mapping-changed" or "query-mapping-changed" or
+            "query-revoked" or "query-no-history" or "query-no-reconstructed-ack" or "query-wrong-receipt" or "query-wrong-desktop" or "query-copy-origin" or
+            "query-expire-origin" or "key-change" or "request-tamper" or "query-uid-changed" or "query-id-changed").ToArray();
         foreach (var mode in modes)
         {
             using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
@@ -903,11 +906,14 @@ internal static class NotesOriginalChoiceStoreTests
             TestAssert.That(!JsonNode.DeepEquals(loaded, outcomes.LoadHeld(historyKey)), "Loaded saved history alias changed private outcome");
             if (mode.StartsWith("query-", StringComparison.Ordinal))
             {
-                if (mode is "query-later-save" or "query-target-changed" or "query-mapping-changed")
+                if (mode is "query-later-save" or "query-target-and-mapping-changed" or "query-mapping-changed" or "query-followup-local-edit" or "query-uid-changed" or "query-id-changed")
                 {
                     var later = JsonNode.Parse(commit.Text)!.AsObject(); later["independent-user-edit"] = "preserve";
-                    if (mode == "query-target-changed") later["kontakte"]![0]!["vorname"] = "New chosen target";
+                    if (mode is "query-target-and-mapping-changed" or "query-followup-local-edit") later["kontakte"]![0]!["vorname"] = "New chosen target";
+                    if (mode == "query-target-and-mapping-changed") later["kontakte"]![0]!["notesOriginalBasis"]!["target_sha256"] = new string('f', 64);
                     if (mode == "query-mapping-changed") later["kontakte"]![0]!["notesOriginalBasis"]!["receipt_id"] = Guid.NewGuid().ToString();
+                    if (mode == "query-uid-changed") later["kontakte"]![0]!["uid"] = "different-native-uid";
+                    if (mode == "query-id-changed") later["kontakte"]![0]!["id"] = "different-native-id";
                     TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Known later save failed");
                 }
                 if (mode == "query-revoked") h.Store.Revoke();
@@ -917,9 +923,10 @@ internal static class NotesOriginalChoiceStoreTests
                 TestAssert.That(h.Host.Snapshot() is null, "Restart read invented saved snapshot");
                 var reloadedRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
                 var reloadedOutcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, reloadedRequests);
+                var primaryBeforeQuery = System.IO.File.ReadAllBytes(h.Host.DataPath);
                 h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own);
                 if (mode != "query-no-offer") { var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer); }
-                if (mode is "query-revoked" or "query-target-changed" or "query-mapping-changed" or "query-no-offer" or "query-no-history")
+                if (mode is "query-revoked" or "query-target-and-mapping-changed" or "query-mapping-changed" or "query-no-offer" or "query-no-history" or "query-uid-changed" or "query-id-changed")
                     Hold(() => reloadedOutcomes.ReadOnlyQuery(historyKey, h.NewStore(), h.Protocol));
                 else
                 {
@@ -931,9 +938,9 @@ internal static class NotesOriginalChoiceStoreTests
                     else
                     {
                         var response = result.DeepClone().AsObject();
-                        if (mode is "query-prepared" or "query-settled" or "query-wrong-desktop" or "query-no-reconstructed-ack")
+                        if (mode is "query-prepared" or "query-settled" or "query-wrong-desktop" or "query-no-reconstructed-ack" or "query-followup-local-edit")
                         {
-                            response["art"] = "kontakt_original_abschlussstatus"; response["phase"] = mode == "query-settled" ? "settled" : "prepared";
+                            response["art"] = "kontakt_original_abschlussstatus"; response["phase"] = mode is "query-settled" or "query-followup-local-edit" ? "settled" : "prepared";
                             response["desktop_sha256"] = mode == "query-wrong-desktop" ? new string('0', 64) : body["desktop_sha256"]!.DeepClone();
                         }
                         if (mode == "query-wrong-receipt") response["receipt_id"] = Guid.NewGuid().ToString();
@@ -945,7 +952,7 @@ internal static class NotesOriginalChoiceStoreTests
                         else
                         {
                             var restored = reloadedOutcomes.Reauthorize(query, observation.Body, observation.Origin, observation.Transport, h.Protocol);
-                            TestAssert.That(JsonNode.DeepEquals(restored.Body(), body) && restored.TerminalConfirmed() == (mode == "query-settled"),
+                            TestAssert.That(JsonNode.DeepEquals(restored.Body(), body) && restored.TerminalConfirmed() == (mode is "query-settled" or "query-followup-local-edit"),
                                 "Fresh result did not reauthorize exact historical ACK/hash or falsely settled history");
                             TestAssert.That(reloadedRequests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null,
                                 "Terminal observation released physical hold without exact installation");
@@ -956,10 +963,17 @@ internal static class NotesOriginalChoiceStoreTests
                                 Hold(() => restored.Body());
                             }
                             TestAssert.Throws<InvalidOperationException>(() => new NotesOriginalSavedAckIntents.RestoredAck(new object()).Body(), "Counterfeit restored ACK proof accepted");
+                            if (mode == "query-followup-local-edit")
+                            {
+                                reloadedRequests.Retire(reloadedOutcomes.SealTerminal(restored));
+                                TestAssert.That(JsonNode.Parse(h.Host.CurrentNativeText!)!["kontakte"]![0]!["vorname"]!.GetValue<string>() == "New chosen target" &&
+                                    System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(primaryBeforeQuery), "Historical ACK lost the subsequent local edit or rewrote the book");
+                            }
                         }
                     }
                 }
                 TestAssert.That(h.Host.Snapshot() is null, "Query recovery called RecordSaved");
+                TestAssert.That(System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(primaryBeforeQuery), "Historical query/reauthorization rewrote actual native book");
                 Hold(() => ack.Body()); continue;
             }
             if (mode == "success") continue;

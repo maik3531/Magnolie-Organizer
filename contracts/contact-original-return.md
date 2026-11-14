@@ -1370,6 +1370,39 @@ absent until the actual writer. Release CoreTests and BASE builds are clean.
 No production controller/pump/common setup or existing-key backend is registered;
 automatic coalesced bootstrap dispatch is still missing and nothing is installed.
 
+### Historical ACKs after later local edits (#635)
+
+The initial Windows history gate was too strict: after a real metadata save and
+independent genuine ACK sealing, a later ordinary local content edit prevented even
+the target-free inquiry/reauthorization of that old ACK. A positive synthetic case
+reproduced `notes_choice_historical_target_changed`, leaving the old physical hold
+stranded despite unchanged private source, ID/UID and installed original metadata.
+The earlier Windows descriptions requiring current mutable-target equality for
+genuine historical ACKs are superseded by this correction.
+
+Only for independently authenticated genuine saved history, current mutable content
+may now advance. Current private key/generation/book/setup/pins, known authenticated
+primary/owned model, exact ID/UID and installed original metadata still must match.
+The original request/target remains immutable and authenticated inside its independent
+journal. Fresh actual native result/status is still required to resend the original
+saved hash; terminal durability and matching installation still precede retirement.
+No book rewrite or new saved witness is needed. Unconfirmed recovery/fresh provider
+requests keep their strict exact-current-target checks unchanged.
+
+The final focused matrix passes on host and noninteractive Windows: 14 historical
+positive/negative cases, 10 unconfirmed-query and 20 VERIFIED/bootstrap cases
+(overlapping earlier evidence). Explicit ID/UID/mapping/key/revocation/history and
+missing-history terminal reconstruction negatives remain denied. A subsequent local
+edit survives fresh settled status and journal retirement byte-for-byte, with the
+reopened saved snapshot still absent. The full earlier managed matrix and clean
+Release CoreTests/BASE builds are retained; the last two additions are test-only
+ID/UID negatives and need no second unchanged product build.
+
+Linux already separates these authorities in `_verify_history_context` versus
+`_RecoveredRequestContext.require_current`; that concrete source approach was
+ported without changing Linux/Notes inputs or claiming new Linux/physical Android
+acceptance. Production registration, setup and device/package pauses are unchanged.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
