@@ -170,6 +170,54 @@ class NativeNotesController:
             self._register(owner)
             return NativeNotesWork('query', query, request['request_id'])
 
+    def discover(self, protocol):
+        """Native worker: known consent slots only; genuine saved ACK wins."""
+        if type(protocol) is not NativeNotesProtocolNegotiation:
+            raise PermissionError('notes_controller_owned_protocol_required')
+        with self._work:
+            pins = protocol.require_current()
+            with self._lock:
+                self._require_active()
+                if self._peers.get(pins) is not protocol:
+                    raise PermissionError('notes_controller_owned_protocol_required')
+            works = []
+            with self._book_gate():
+                selected = self._consent._discovery_sources(pins)
+                if selected is None:
+                    return ()
+                binding, sources = selected
+                for source in sources:  # Consent schema caps the entire list at 256.
+                    with self._lock:
+                        self._require_active()
+                        if (self._consent.root, source['local_id']) in self._physical:
+                            continue
+                        if sum(owner.pins == pins for owner in self._owners.values()) >= self._per_peer:
+                            break
+                    try:
+                        found = self._requests._discover_slot(binding, source)
+                        if found is None:
+                            continue
+                        key, physical, record = found
+                        if record['state'] == 'request_settled':
+                            continue
+                        saved_key = self._outcomes._key(record)
+                        saved = self._outcomes.load_held(saved_key)
+                        if saved is not None:
+                            # A corrupt/conflicting saved ACK must hold this
+                            # source, never downgrade to unconfirmed recovery.
+                            if (saved.get('request_intention') != key or
+                                    _frame_bytes(saved.get('request')) != _frame_bytes(record['request'])):
+                                raise PermissionError('notes_controller_discovery_saved_history_changed')
+                            work = self.register_history(saved_key, protocol)
+                        else:
+                            work = self.register_unconfirmed(key, protocol, physical=physical)
+                        works.append(work)
+                    except (PermissionError, ValueError, OSError, RuntimeError, InvalidTag):
+                        with self._lock:
+                            self._held.append('discovery')
+                protocol.require_current()
+            return tuple(works)
+
     def receive(self, peer, body, origin, transport):
         """Actual native FS1 callback: no book/key/consent/journal/worker calls."""
         if type(origin) is not NativeNotesFsOrigin or not isinstance(body, dict):

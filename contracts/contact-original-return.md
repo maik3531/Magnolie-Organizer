@@ -773,6 +773,30 @@ Still outstanding: bounded automatic discovery/transport/worker pumping, genuine
 common setup UI and Windows counterpart. The window hooks remain unregistered
 as an active production controller; no source capability or scheduler is enabled.
 
+### Private slot discovery (#633, continuation of #628)
+
+The explicitly owned controller can now rediscover pending work from the current
+private consent selection (at most 256 sources) and the exact HMAC-derived physical
+slot for each selected native book/contact. It checks the known actual primary and
+owned native model first, performs no directory enumeration and creates no missing
+store or key. Discovery runs under the native book gate, never in FS1 receive.
+
+An independently sealed genuine saved-ACK record takes priority over unconfirmed
+recovery. Its exact request and intention link must match; corrupt/conflicting
+saved history holds that source instead of falling back to a new metadata save.
+Otherwise the typed unconfirmed read-only query is restored, including a
+physical-only crash record. Neither route issues a provider-send nonce, writer
+witness or ACK. Existing owners are not duplicated; per-peer admission is bounded,
+one corrupt slot does not block other approved sources, and retired slots are
+skipped. Fresh negotiated pins and current private source authority remain required.
+
+Evidence: 153 affected controller/request/consent cases passed, including 13 new
+discovery cases (restart, saved-ACK preference, physical-only, no request/store,
+corrupt/conflicting saved history, changed key, revoked consent, unknown primary,
+unnegotiated/stopped owner, bounded two-source admission and isolated corruption).
+Directory enumeration is explicitly forbidden in the focused tests. Automatic
+invocation/transport pumping, setup and Windows integration remain outstanding.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

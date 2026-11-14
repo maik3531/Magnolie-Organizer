@@ -151,6 +151,25 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
     def has_desired_consent(self):
         return self._active_record() is not None
 
+    def _discovery_sources(self, pins):
+        """Bounded private selection for slot lookup, not mutation authority."""
+        active = self._active_record()
+        if active is None:
+            return None
+        key, payload = active
+        primary, binding = self._primary()
+        if (self._native_data is None or payload['content'] != primary.content_sha256 or
+                payload['book'] != self._tag(key, b'book', binding.encode('utf-8')) or
+                book_hash(self._native_data()) != primary.content_sha256):
+            raise PermissionError('notes_choice_recognized_primary_required')
+        with self._locked() as directory:
+            if self._record(directory) != active or self._intent(directory, key, payload) is not None:
+                raise PermissionError('notes_choice_native_context_changed')
+        if self._primary() != (primary, binding):
+            raise PermissionError('notes_choice_native_primary_changed')
+        return binding, [dict(source) for source in payload['choices']
+            if (tuple(source['peer']), tuple(source['own'])) == pins]
+
     def _publish(self, directory, key, payload):
         try:
             self._write(directory, '.transaction', b'pending\n')

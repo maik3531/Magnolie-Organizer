@@ -85,6 +85,109 @@ class Runtime:
             self.h.native.fs_sitzung_loeschen(channel)
 
 
+@pytest.mark.parametrize('mode', ['pending', 'physical-only', 'saved', 'corrupt-saved', 'conflicting-saved',
+    'no-request', 'wrong-key', 'revoked', 'unknown-primary', 'unnegotiated', 'stopped'])
+def test_discovery_uses_only_private_selected_physical_slots_and_prefers_real_saved_ack(native, monkeypatch, tmp_path, mode):
+    from magnolie_contact_notes_return import NativeNotesHistoryQuery
+    from magnolie_contact_notes_requests import NativeNotesUnconfirmedQuery
+    h = Harness(native, tmp_path)
+    try:
+        h.configure(); old = Runtime(h)
+        if mode != 'no-request':
+            start = old.start(); request = start.intent.request()
+            proof = start.intent._request_intention
+            if mode == 'physical-only':
+                Path(old.controller._requests.root, 'r-' + proof.key + '.bin').unlink()
+            if mode in ('saved', 'corrupt-saved', 'conflicting-saved'):
+                h.send(old.result(request)); save = old.controller.process_one()
+                assert h.save(monkeypatch, invocation=save.intent)['ok']
+                old.controller.finish_save(save)
+                saved_path, = (tmp_path / 'outcomes').glob('*.bin')
+                if mode == 'corrupt-saved':
+                    blob = saved_path.read_bytes(); saved_path.write_bytes(blob[:-1] + bytes([blob[-1] ^ 1]))
+                if mode == 'conflicting-saved':
+                    from magnolie_contact_notes_return import _frame_bytes
+                    record = old.outcomes.load_held(saved_path.stem)
+                    record['request_intention'] = '0' * 64
+                    nonce = b'X' * 12
+                    saved_path.write_bytes(b'\x01' + nonce + old.outcomes._cipher().encrypt(nonce,
+                        _frame_bytes(record), old.outcomes._DOMAIN + saved_path.stem.encode('ascii')))
+        old.controller.stop(); h.restart()
+        runtime = Runtime(h); c = runtime.controller
+        if mode != 'unnegotiated': runtime.negotiate()
+        if mode == 'revoked': h.store.revoke()
+        if mode == 'wrong-key': c._requests._existing_key = lambda: b'K' * 32
+        if mode == 'unknown-primary':
+            changed = copy.deepcopy(h.probe._aktuelle_daten); changed['kontakte'][0]['notiz'] = 'Unknown replacement'
+            native.speichere_text(h.probe._vielleicht_verschluesseln(json.dumps(changed)))
+        if mode == 'stopped': c.stop()
+        before = Path(native.daten_datei()).read_bytes()
+        disk = {p: p.read_bytes() for root in (tmp_path / 'outcomes', Path(c._requests.root), Path(h.store.root))
+            if root.exists() for p in root.iterdir() if p.is_file() and p.name != '.lock'}
+        def no_scan(*_args, **_kwargs):
+            raise AssertionError('Discovery must not enumerate any directory')
+        with monkeypatch.context() as scoped:
+            scoped.setattr('os.scandir', no_scan)
+            scoped.setattr('os.listdir', no_scan)
+            if mode in ('unknown-primary', 'unnegotiated', 'stopped'):
+                with pytest.raises(PermissionError): c.discover(runtime.protocol)
+            else:
+                found = c.discover(runtime.protocol)
+                if mode in ('pending', 'physical-only', 'saved'):
+                    work, = found
+                    assert work.kind == 'query' and work.request_id == request['request_id']
+                    assert type(work.intent) is (NativeNotesHistoryQuery if mode == 'saved' else NativeNotesUnconfirmedQuery)
+                    assert 'ziel' not in work.intent.request()
+                    assert c.discover(runtime.protocol) == (), 'Repeated discovery duplicated a physical owner'
+                else:
+                    assert found == () and c.counts()['owners'] == 0
+                    if mode in ('corrupt-saved', 'conflicting-saved', 'wrong-key'):
+                        assert c.counts()['held'] == 1
+        assert c._requests._fresh == {}
+        if mode != 'stopped': assert c.ready_acks() == ()
+        assert h.probe._kontakt_quellen_buchaufnahme() is None
+        assert Path(native.daten_datei()).read_bytes() == before
+        assert all(p.read_bytes() == contents for p, contents in disk.items())
+        if mode == 'no-request': assert not Path(c._requests.root).exists() and not (tmp_path / 'outcomes').exists()
+    finally:
+        h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['bounded', 'isolated-corrupt-slot'])
+def test_private_discovery_budget_and_one_corrupt_physical_slot_do_not_admit_or_block_other_sources(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    try:
+        data = copy.deepcopy(h.probe._aktuelle_daten)
+        second = copy.deepcopy(data['kontakte'][0]); second.update(id='second-id', uid='second-uid')
+        data['kontakte'].append(second)
+        assert h.save(monkeypatch, data)['ok']
+        h.configure()
+        export2 = dict(h.export, share_id='second-private-share', setup_id='55555555-5555-4555-8555-555555555555')
+        body, origin, transport = h.observed(export2)
+        choice2 = NativeNotesExportChoice(body, origin, transport, h.probe._kontakt_quellen_buchaufnahme(),
+            h.probe._kontakt_quellen_buchaufnahme, lambda _: 'second-id')
+        h.store.configure([h.choice, choice2])
+        old = Runtime(h); old.negotiate()
+        h.send(h.export); one = old.controller.process_one()
+        h.send(export2); two = old.controller.process_one()
+        assert one.kind == two.kind == 'request'
+        if mode == 'isolated-corrupt-slot':
+            proof = one.intent._request_intention
+            path = Path(old.controller._requests.root, 'p-' + proof.physical + '.bin')
+            blob = path.read_bytes(); path.write_bytes(blob[:-1] + bytes([blob[-1] ^ 1]))
+        old.controller.stop(); h.restart()
+        runtime = Runtime(h, per_peer=1); runtime.negotiate(); c = runtime.controller
+        found, = c.discover(runtime.protocol)
+        expected = two if mode == 'isolated-corrupt-slot' else one
+        assert found.request_id == expected.request_id and found.kind == 'query'
+        assert c.counts()['owners'] == 1 and c.counts()['held'] == (1 if mode == 'isolated-corrupt-slot' else 0)
+        assert c.discover(runtime.protocol) == ()
+        assert c.counts()['owners'] == 1 and c._requests._fresh == {} and c.ready_acks() == ()
+        assert h.probe._kontakt_quellen_buchaufnahme() is None
+    finally:
+        h.service.anhalten()
+
+
 @pytest.mark.parametrize('mode', ['complete', 'prepared', 'duplicate', 'conflict', 'stop-before-worker',
     'stop-before-save', 'stop-after-save', 'expired-frame', 'unknown-result', 'early-save-boolean'])
 def test_registry_joins_actual_receive_worker_save_and_terminal_history_without_receive_io(native, monkeypatch, tmp_path, mode):

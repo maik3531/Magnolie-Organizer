@@ -224,6 +224,30 @@ class NativeNotesRequestIntents:
             raise PermissionError('notes_request_journal_key_unavailable')
         return hashlib.sha256(key).hexdigest()
 
+    def _physical_id(self, binding, local_id):
+        key = self._existing_key()
+        if type(key) is not bytes or len(key) != 32:
+            raise PermissionError('notes_request_journal_key_unavailable')
+        return hmac.new(key, self._DOMAIN + b'physical\0' + _frame_bytes([binding, local_id]), hashlib.sha256).hexdigest()
+
+    def _discover_slot(self, binding, source):
+        # Exactly one known private source -> exactly one descriptor-relative
+        # physical slot. Never enumerate request archives or unrelated paths.
+        physical = self._physical_id(binding, source['local_id'])
+        try:
+            with self._locked(create=False) as directory:
+                self._identity(directory)
+                try:
+                    key, _, record = self._physical(directory, physical)
+                except FileNotFoundError:
+                    return None
+        except FileNotFoundError:
+            return None
+        if (any(record[name] != source[name] for name in ('peer', 'own', 'local_id', 'local_uid')) or
+                record['export']['share_id'] != source['share_id'] or record['export']['setup_id'] != source['setup_id']):
+            raise PermissionError('notes_request_discovery_source_changed')
+        return key, physical, record
+
     def _identity(self, directory, create=False):
         expected = self._key_id().encode('ascii')
         try:
@@ -261,7 +285,7 @@ class NativeNotesRequestIntents:
         primary, binding = seal.store._primary()
         if primary.content_sha256 != pending._snapshot.content_sha256:
             raise PermissionError('notes_request_actual_primary_changed')
-        physical = hmac.new(key, self._DOMAIN + b'physical\0' + _frame_bytes([binding, pending._local_id]), hashlib.sha256).hexdigest()
+        physical = self._physical_id(binding, pending._local_id)
         return {'format': 1, 'state': 'request_pending', 'physical': physical, 'journal_key_sha256': hashlib.sha256(key).hexdigest(),
             'peer': list(pending._peer), 'own': list(pending._own), 'local_id': pending._local_id,
             'local_uid': pending._local_uid, 'choice_seal': source, 'export': export,
