@@ -264,3 +264,7 @@ WLAN-return retry, broader providers/accounts, durable cross-session consent,
 Linux and full Notes scalar/postal return remain follow-up work under #618.
 New consent messages may fall back to English until their catalog integration;
 localized installed-dialog acceptance is not claimed by these source tests.
+An opt-in native modal probe uses only a blank owner and synthetic catalog, with
+no profiles or provider IO. The available noninteractive Windows runner refused
+`ShowDialog`; an approved interactive session is required. The production consent
+dialog is not relaxed into a service notification to work around that boundary.

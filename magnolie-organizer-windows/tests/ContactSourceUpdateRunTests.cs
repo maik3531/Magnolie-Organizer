@@ -188,6 +188,8 @@ internal static class ContactSourceUpdateRunTests
         await SavedDavOrchestrationAsync();
         await SavedResultCommitAsync();
         await NativeSessionAsync();
+        var dialogProduct = Environment.GetEnvironmentVariable("MAGNOLIE_CONTACT_DIALOG_PRODUCT");
+        if (OperatingSystem.IsWindows() && !string.IsNullOrEmpty(dialogProduct)) await ContactSourceNativeDialogTests.RunAsync(dialogProduct);
         if (!OperatingSystem.IsWindows()) await NativeFrontendWireAsync();
     }
 
