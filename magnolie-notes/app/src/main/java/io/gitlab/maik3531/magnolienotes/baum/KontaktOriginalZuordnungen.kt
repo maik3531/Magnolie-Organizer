@@ -13,15 +13,16 @@ import javax.crypto.SecretKey
  * Only the exact mappings selected in a live native setup decision may be saved.
  * Existing journal key only: no default-on key generation or read repair.
  */
-internal class KontaktOriginalZuordnungen private constructor(root: File, existingKey: () -> SecretKey?) {
-    private val files = KontaktOriginalDateien(root)
+internal class KontaktOriginalZuordnungen private constructor(root: File, existingKey: () -> SecretKey?, stage: (String) -> Unit = {}) {
+    private val files = KontaktOriginalDateien(root, stage = stage)
     private val cipher = DatenDateiKrypto({ existingKey() ?: error("contact_original_journal_key_unavailable") })
     private class Beleg(val store: KontaktOriginalZuordnungen, val key: String, val hash: String, val record: JsonObject)
     private class FolgeBeleg(val original: Beleg, val grant: KontaktOriginalFreigaben.Freigabe)
     private class NaechsterBeleg(val original: FolgeBeleg, val result: AndroidKontakt,
         val record: JsonObject, val encrypted: ByteArray)
     /** Provisional future map only. Creating/reading it NEVER installs a new
-     * baseline or settles the physical attempt. Actual desktop SaveACK is absent.
+     * baseline or settles the physical attempt. Only the separately authenticated
+     * terminal journal may install those exact bytes after desktop SaveACK.
      */
     class NaechsteZuordnung internal constructor(private val beleg: Any) {
         private fun native(): NaechsterBeleg = beleg as? NaechsterBeleg
@@ -242,6 +243,67 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
         if (proof.store !== this || valid != true) throw SecurityException("contact_original_mapping_unavailable")
     }
 
+    /** Read-only native source/setup context; historical ACKs do not become
+     * fresh apply grants or force an older map over a newer completed request.
+     */
+    internal fun pruefeAbschlussKontext(grant: KontaktOriginalFreigaben.Freigabe,
+        abschluss: KontaktOriginalVersuche.Abschluss) {
+        val manifest = abschluss.kontext(grant)
+        val encrypted = requireNotNull(Krypto.b64Roh(manifest.getValue("ciphertext").jsonPrimitive.content))
+        val peer = grant.partner()
+        // The canonical share belongs to the private encrypted map, not ACK JSON.
+        val shareId = abschluss.freigabeId(grant)
+        val key = slot(peer.kennung, shareId)
+        require(hash(encrypted) == manifest.getValue("next_basis").jsonPrimitive.content)
+        val next = decode(key, encrypted)
+        val observed = record(peer, shareId, grant.bindung, grant.entscheidungId())
+        require(listOf("original", "peer", "share", "decision_id").all { next[it] == observed[it] }) {
+            "contact_original_result_context_changed"
+        }
+        grant.pruefen(); abschluss.kontext(grant)
+    }
+
+    internal fun pruefeInstallierteFolge(grant: KontaktOriginalFreigaben.Freigabe,
+        abschluss: KontaktOriginalVersuche.Abschluss) {
+        pruefeAbschlussKontext(grant, abschluss)
+        val manifest = abschluss.kontext(grant)
+        val key = slot(grant.partner().kennung, abschluss.freigabeId(grant))
+        require(files.mitSperre(create = false) {
+            files.lesen("$key.bin")?.let { hash(it) == manifest.getValue("next_basis").jsonPrimitive.content } == true
+        } == true) { "contact_original_installed_next_mapping_required" }
+        grant.pruefen()
+    }
+
+    internal fun uebernehmenAbschluss(grant: KontaktOriginalFreigaben.Freigabe,
+        abschluss: KontaktOriginalVersuche.Abschluss): Zuordnung {
+        val manifest = abschluss.fuerInstallation(grant)
+        val shareId = abschluss.freigabeId(grant)
+        val key = slot(grant.partner().kennung, shareId)
+        val nextBytes = requireNotNull(Krypto.b64Roh(manifest.getValue("ciphertext").jsonPrimitive.content))
+        require(hash(nextBytes) == manifest.getValue("next_basis").jsonPrimitive.content)
+        val next = decode(key, nextBytes)
+        require(next == record(grant.partner(), shareId, grant.bindung, grant.entscheidungId())) {
+            "contact_original_next_mapping_native_frame_changed"
+        }
+        val result = requireNotNull(files.mitSperre(create = false) {
+            val previous = requireNotNull(files.lesen("$key.bin"))
+            require(hash(previous) == manifest.getValue("before_basis").jsonPrimitive.content || previous.contentEquals(nextBytes)) {
+                "contact_original_mapping_changed"
+            }
+            if (!previous.contentEquals(nextBytes)) {
+                val old = decode(key, previous)
+                require(listOf("original", "peer", "share", "decision_id").all { old[it] == next[it] } &&
+                    next.getValue("revision").jsonPrimitive.long > old.getValue("revision").jsonPrimitive.long)
+                files.schreiben("$key.bin", nextBytes) // EXACT presealed bytes, never re-encrypt a new basis.
+            }
+            val saved = requireNotNull(files.lesen("$key.bin"))
+            require(saved.contentEquals(nextBytes) && decode(key, saved) == next)
+            Zuordnung(Beleg(this, key, hash(saved), next))
+        })
+        result.pruefen(grant); abschluss.fuerInstallation(grant)
+        return result
+    }
+
     private fun decode(key: String, bytes: ByteArray): JsonObject {
         val plain = cipher.entschluesseln(bytes, domain(key))
         try {
@@ -302,6 +364,6 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
             }
         }
         fun ausBestehendemJournal(context: Context) = KontaktOriginalZuordnungen(File(context.filesDir, "kontakt-original-zuordnungen"), ::vorhandenerJournalKey)
-        internal fun fuerTest(root: File, key: () -> SecretKey?) = KontaktOriginalZuordnungen(root, key)
+        internal fun fuerTest(root: File, stage: (String) -> Unit = {}, key: () -> SecretKey?) = KontaktOriginalZuordnungen(root, key, stage)
     }
 }

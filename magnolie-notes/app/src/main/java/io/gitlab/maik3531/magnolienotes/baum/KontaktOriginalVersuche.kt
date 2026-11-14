@@ -23,6 +23,25 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
     private class Beleg(val store: KontaktOriginalVersuche, val key: String, val hash: String, val record: JsonObject)
     private class AusgangsBeleg(val result: Beleg, val grant: KontaktOriginalFreigaben.Freigabe,
                                val mapping: KontaktOriginalZuordnungen.Zuordnung)
+    private class AbschlussBeleg(val store: KontaktOriginalVersuche, val physical: String,
+        val archive: String, val hash: String, val record: JsonObject)
+    /** Private acknowledged journal proof, never reconstructed from a wire DTO. */
+    class Abschluss internal constructor(private val beleg: Any) {
+        private fun native() = beleg as? AbschlussBeleg ?: throw SecurityException("contact_original_native_settlement_required")
+        internal fun fuerInstallation(grant: KontaktOriginalFreigaben.Freigabe): JsonObject = native().let {
+            require(it.record["settlement"] == JsonPrimitive("prepared"))
+            it.store.pruefeAbschluss(it, grant, exactAfter = true)
+            it.record.getValue("next_mapping").jsonObject
+        }
+        internal fun kontext(grant: KontaktOriginalFreigaben.Freigabe): JsonObject = native().let {
+            it.store.pruefeAbschluss(it, grant, exactAfter = false)
+            it.record.getValue("next_mapping").jsonObject
+        }
+        internal fun freigabeId(grant: KontaktOriginalFreigaben.Freigabe): String = native().let {
+            it.store.pruefeAbschluss(it, grant, exactAfter = false)
+            it.record.getValue("share_id").jsonPrimitive.content
+        }
+    }
     /** Native outgoing result data only, not a negotiated wire frame or ACK.
      * Every read rechecks actual consent, native result and private continuity.
      */
@@ -174,6 +193,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         val result = files.mitSperre(create = false) {
             val blob = files.lesen("$key.bin") ?: return@mitSperre null
             val record = decode(key, blob)
+            if (freigegeben(key, blob, record)) return@mitSperre null
             require(record["original"] == identity) { "contact_original_attempt_identity_changed" }
             Offen(Beleg(this, key, hash(blob), record))
         }
@@ -191,6 +211,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         require(uuid(requestId) && digest(requestHash) && digest(expectedBasis))
         val owned = Json.decodeFromString(KontaktDaten.serializer(), Json.encodeToString(KontaktDaten.serializer(), ziel))
         grant.pruefen()
+        pruefeNeueAnfrage(grant, requestId)
         require(mapping.basisHash(grant) == expectedBasis) { "contact_original_expected_baseline_changed" }
         check(laden(grant) == null) { "contact_original_attempt_held" }
         KontaktOriginalInhalt(grant).pruefePlan(owned)
@@ -207,6 +228,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         val owned = Json.decodeFromString(KontaktDaten.serializer(), Json.encodeToString(KontaktDaten.serializer(), ziel))
         val targetHash = KontaktSync.hash(owned)
         grant.pruefen()
+        pruefeNeueAnfrage(grant, requestId)
         check(laden(grant) == null) { "contact_original_attempt_held" }
         val pinnedMapping = mapping.festhalten(grant)
         require(digest(expectedBasis) && pinnedMapping.hash(grant) == expectedBasis) { "contact_original_expected_baseline_changed" }
@@ -284,7 +306,10 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         grant.pruefen(); sicherung.pruefen(grant.bindung); mapping?.pruefen(grant)
         val result = requireNotNull(files.mitSperre(create = true) {
             // A new request ID cannot bypass an old unknown attempt on this original.
-            check(files.lesen("$key.bin") == null) { "contact_original_attempt_held" }
+            pruefeKeineHistorie(key, requestId)
+            files.lesen("$key.bin")?.let { previous ->
+                check(freierPlatz(key, previous)) { "contact_original_attempt_held" }
+            }
             files.schreiben("$key.bin", blob)
             val saved = requireNotNull(files.lesen("$key.bin"))
             require(saved.contentEquals(blob) && decode(key, saved) == record)
@@ -302,9 +327,166 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         grant.pruefen()
         val key = originalPlatz(identitaet(grant))
         return requireNotNull(files.mitSperre(create = true) {
-            check(files.lesen("$key.bin") == null) { "contact_original_attempt_held" }
+            files.lesen("$key.bin")?.let { previous ->
+                check(freierPlatz(key, previous)) { "contact_original_attempt_held" }
+            }
             refresh()
         })
+    }
+
+    /** History survives reuse of the physical slot; old UUIDs never mint apply. */
+    internal fun pruefeNeueAnfrage(grant: KontaktOriginalFreigaben.Freigabe, requestId: String) {
+        require(uuid(requestId)); grant.pruefen()
+        val key = originalPlatz(identitaet(grant))
+        files.mitSperre(create = false) { pruefeKeineHistorie(key, requestId) }
+        grant.pruefen()
+    }
+
+    private fun pruefeKeineHistorie(physical: String, requestId: String) {
+        files.lesen("${archiveKey(physical, requestId)}.bin")?.let {
+            decode(physical, it)
+            error("contact_original_request_settled")
+        }
+    }
+
+    private fun freigegeben(physical: String, blob: ByteArray, record: JsonObject): Boolean {
+        if (record["settlement"] != JsonPrimitive("settled")) return false
+        val archive = requireNotNull(files.lesen("${archiveKey(physical, record.getValue("request_id").jsonPrimitive.content)}.bin")) {
+            "contact_original_terminal_history_required"
+        }
+        require(archive.contentEquals(blob) && decode(physical, archive) == record) { "contact_original_terminal_history_changed" }
+        return true
+    }
+
+    private fun freierPlatz(physical: String, blob: ByteArray): Boolean = try {
+        freigegeben(physical, blob, decode(physical, blob))
+    } catch (error: Exception) {
+        // A damaged or unreadable existing slot remains held, never empty.
+        throw IllegalStateException("contact_original_attempt_held", error)
+    }
+
+    private fun archive(grant: KontaktOriginalFreigaben.Freigabe, requestId: String): AbschlussBeleg? {
+        val physical = originalPlatz(identitaet(grant)); val key = archiveKey(physical, requestId)
+        return files.mitSperre(create = false) {
+            val blob = files.lesen("$key.bin") ?: return@mitSperre null
+            val record = decode(physical, blob)
+            require(record["request_id"] == JsonPrimitive(requestId) && record["settlement"] != null)
+            AbschlussBeleg(this, physical, key, hash(blob), record)
+        }
+    }
+
+    private fun pruefeAbschluss(proof: AbschlussBeleg, grant: KontaktOriginalFreigaben.Freigabe, exactAfter: Boolean) {
+        require(proof.store === this && proof.record["desktop_saved_sha256"] != null)
+        grant.pruefen()
+        require(proof.record["original"] == identitaet(grant)) { "contact_original_result_identity_changed" }
+        if (exactAfter) {
+            val receipt = proof.record.getValue("receipt").jsonObject
+            val current = grant.bindung.aktuell()
+            require(receipt["revision"] == JsonPrimitive(grant.bindung.revision) &&
+                receipt["lookup"] == JsonPrimitive(current.lookupKey) && receipt["contact_id"] == JsonPrimitive(current.contactId) &&
+                proof.record["target_exact_sha256"] == JsonPrimitive(exactTargetHash(current.daten))) {
+                "contact_original_result_native_frame_changed"
+            }
+        }
+        require(files.mitSperre(create = false) {
+            val blob = files.lesen("${proof.archive}.bin") ?: return@mitSperre false
+            hash(blob) == proof.hash && decode(proof.physical, blob) == proof.record
+        } == true) { "contact_original_terminal_history_changed" }
+        grant.pruefen()
+    }
+
+    /** ACK -> prepared history -> exact map CAS -> complete history -> slot marker.
+     * No deletion is needed: a released marker may be replaced by a NEW UUID,
+     * while its independent per-request terminal history remains durable.
+     */
+    internal fun abschliessen(grant: KontaktOriginalFreigaben.Freigabe, mappings: KontaktOriginalZuordnungen,
+        body: JsonObject, lifetime: () -> Unit): Abschluss {
+        lifetime(); grant.pruefen()
+        val requestId = (body["request_id"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        require(requestId != null && uuid(requestId))
+        var proof = archive(grant, requestId)
+        if (proof == null) {
+            val mapping = mappings.finden(grant.partner(), body.getValue("share_id").jsonPrimitive.content)
+                ?: throw SecurityException("contact_original_native_mapping_required")
+            val receipt = laden(grant)?.bestaetigung() ?: error("contact_original_verified_receipt_required")
+            val acknowledged = receipt.bestaetigenDesktop(grant, mapping, body, lifetime)
+            val physical = originalPlatz(identitaet(grant))
+            val source = requireNotNull(files.mitSperre(create = false) {
+                val blob = requireNotNull(files.lesen("$physical.bin"))
+                val value = decode(physical, blob)
+                require(value["request_id"] == JsonPrimitive(requestId) &&
+                    value["desktop_saved_sha256"] == body["desktop_sha256"])
+                Beleg(this, physical, hash(blob), value)
+            })
+            val record = JsonObject(source.record + ("settlement" to JsonPrimitive("prepared")))
+            val key = archiveKey(source.key, requestId)
+            val clear = record.toString().toByteArray(Charsets.UTF_8)
+            val encrypted = try { cipher.verschluesseln(clear, domain(source.key)) } finally { clear.fill(0) }
+            lifetime(); acknowledged.pruefen()
+            proof = requireNotNull(files.mitSperre(create = false) {
+                val slot = requireNotNull(files.lesen("${source.key}.bin"))
+                require(hash(slot) == source.hash && decode(source.key, slot) == source.record)
+                check(files.lesen("$key.bin") == null)
+                files.schreiben("$key.bin", encrypted)
+                val saved = requireNotNull(files.lesen("$key.bin"))
+                require(saved.contentEquals(encrypted) && decode(source.key, saved) == record)
+                AbschlussBeleg(this, source.key, key, hash(saved), record)
+            })
+        }
+        val initial = requireNotNull(proof)
+        val record = initial.record; val receipt = record.getValue("receipt").jsonObject
+        val expected = buildJsonObject {
+            put("art", "kontakt_original_saveack"); put("fassung", 1)
+            put("request_id", record.getValue("request_id")); put("request_sha256", record.getValue("request_sha256"))
+            put("share_id", record.getValue("share_id")); put("before_basis", record.getValue("mapping_sha256"))
+            put("target_sha256", record.getValue("target_sha256")); put("receipt_id", receipt.getValue("id"))
+            put("native_revision", receipt.getValue("revision")); put("desktop_sha256", record.getValue("desktop_saved_sha256"))
+            put("next_basis", record.getValue("next_mapping").jsonObject.getValue("next_basis"))
+        }
+        require(body == expected) { "contact_original_saveack_correlation_changed" }
+        lifetime()
+        val owned = Abschluss(initial)
+        mappings.pruefeAbschlussKontext(grant, owned)
+        if (record["settlement"] == JsonPrimitive("prepared")) {
+            mappings.uebernehmenAbschluss(grant, owned)
+            lifetime(); pruefeAbschluss(initial, grant, exactAfter = true)
+            val complete = JsonObject(record + ("settlement" to JsonPrimitive("settled")))
+            val clear = complete.toString().toByteArray(Charsets.UTF_8)
+            val encrypted = try { cipher.verschluesseln(clear, domain(initial.physical)) } finally { clear.fill(0) }
+            proof = requireNotNull(files.mitSperre(create = false) {
+                val before = requireNotNull(files.lesen("${initial.archive}.bin"))
+                require(hash(before) == initial.hash && decode(initial.physical, before) == record)
+                files.schreiben("${initial.archive}.bin", encrypted)
+                val saved = requireNotNull(files.lesen("${initial.archive}.bin"))
+                require(saved.contentEquals(encrypted) && decode(initial.physical, saved) == complete)
+                AbschlussBeleg(this, initial.physical, initial.archive, hash(saved), complete)
+            })
+        }
+        val terminal = requireNotNull(proof); val result = Abschluss(terminal)
+        lifetime(); mappings.pruefeAbschlussKontext(grant, result)
+        // A later attempt must never be cleared by a duplicate historical ACK.
+        val sameSlot = files.mitSperre(create = false) {
+            files.lesen("${terminal.physical}.bin")?.let {
+                val slot = decode(terminal.physical, it)
+                slot["request_id"] == JsonPrimitive(requestId) && slot["settlement"] != JsonPrimitive("settled")
+            } == true
+        } == true
+        if (sameSlot) {
+            mappings.pruefeInstallierteFolge(grant, result)
+            lifetime(); pruefeAbschluss(terminal, grant, exactAfter = false)
+            files.mitSperre(create = false) {
+                val blob = requireNotNull(files.lesen("${terminal.physical}.bin"))
+                val slot = decode(terminal.physical, blob)
+                if (slot["request_id"] == JsonPrimitive(requestId)) {
+                    require(JsonObject(slot - "settlement") == JsonObject(terminal.record - "settlement"))
+                    val archived = requireNotNull(files.lesen("${terminal.archive}.bin"))
+                    require(hash(archived) == terminal.hash && decode(terminal.physical, archived) == terminal.record)
+                    if (!blob.contentEquals(archived)) files.schreiben("${terminal.physical}.bin", archived)
+                }
+            }
+        }
+        lifetime(); pruefeAbschluss(terminal, grant, exactAfter = false)
+        return result
     }
 
     private fun identitaet(grant: KontaktOriginalFreigaben.Freigabe): JsonObject {
@@ -336,12 +518,14 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
             val hasNextMapping = "next_mapping" in value
             val hasExactTarget = "target_exact_sha256" in value
             val hasDesktopSave = "desktop_saved_sha256" in value
+            val hasSettlement = "settlement" in value
             require(value.keys == setOf("format", "state", "attempt_id", "request_id", "request_sha256", "target_sha256",
                 "original", "before_revision", "before_sha256", "lookup", "contact_id", "protection") +
                 (if (verified) setOf("receipt") else emptySet()) +
                 (if (hasNextMapping && verified) setOf("next_mapping") else emptySet()) +
                 (if (hasExactTarget) setOf("target_exact_sha256") else emptySet()) +
                 (if (hasDesktopSave && verified) setOf("desktop_saved_sha256") else emptySet()) +
+                (if (hasSettlement && verified) setOf("settlement") else emptySet()) +
                 (if (hasMapping) setOf("share_id", "mapping_sha256") else emptySet()) &&
                 value["format"] == JsonPrimitive(1) && (verified || value["state"] == JsonPrimitive("held")))
             fun text(name: String) = (value[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: error("contact_original_attempt_text")
@@ -352,6 +536,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
             }
             if (hasDesktopSave) require(verified && hasExactTarget && value["target_exact_sha256"] != JsonNull &&
                 hasNextMapping && digest(text("desktop_saved_sha256")))
+            if (hasSettlement) require(verified && hasDesktopSave && text("settlement") in setOf("prepared", "settled"))
             if (hasMapping && value["share_id"] != JsonNull) {
                 require(text("share_id").isNotBlank() && text("share_id").codePointCount(0, text("share_id").length) <= 128 && text("share_id").none(Char::isISOControl) &&
                     text("share_id").codePoints().noneMatch { it in 0xD800..0xDFFF } && digest(text("mapping_sha256")))
@@ -409,6 +594,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         private fun digest(value: String) = value.matches(Regex("[0-9a-f]{64}"))
         private fun uuid(value: String) = runCatching { UUID.fromString(value).let { it.toString() == value && it.version() == 4 } }.getOrDefault(false)
         private fun domain(key: String) = "kontakt-original-versuch-v1:$key"
+        private fun archiveKey(physical: String, requestId: String) = "r-" + hash("$physical:$requestId".toByteArray(Charsets.UTF_8))
         fun ausBestehendemJournal(context: Context) = KontaktOriginalVersuche(File(context.filesDir, "kontakt-original-versuche"), ::vorhandenerJournalKey)
         internal fun fuerTest(root: File, stage: (String) -> Unit = {}, key: () -> SecretKey?) = KontaktOriginalVersuche(root, key, stage)
     }

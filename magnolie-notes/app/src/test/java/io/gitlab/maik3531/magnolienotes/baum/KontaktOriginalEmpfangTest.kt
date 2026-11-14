@@ -52,11 +52,13 @@ class KontaktOriginalEmpfangTest {
     private var sequence = 0
     private var connection = true
     private var beforeProtection: () -> Unit = {}
+    private var mapStage: (String) -> Unit = {}
+    private var attemptStage: (String) -> Unit = {}
     private val id = "11111111-1111-4111-8111-111111111111"
     private val share = "canonical-original-kept"
     private var quote = "b".repeat(64)
-    private fun maps() = KontaktOriginalZuordnungen.fuerTest(File(parent, "maps")) { journalKey }
-    private fun attempts() = KontaktOriginalVersuche.fuerTest(File(parent, "attempts")) { journalKey }
+    private fun maps() = KontaktOriginalZuordnungen.fuerTest(File(parent, "maps"), stage = mapStage) { journalKey }
+    private fun attempts() = KontaktOriginalVersuche.fuerTest(File(parent, "attempts"), stage = attemptStage) { journalKey }
     private fun sourcePeer() = KontaktOriginalFreigaben.Partner(sender.kennung, sender.oeffentlich)
     private fun newConsent() = KontaktOriginalDauerfreigaben(File(parent, "consent"), KontaktOriginalSchutz.fuerTest(
         { consentKey }, { rotations++; consentKey = SecretKeySpec(ByteArray(32) { 93 }, "AES") }, { consentKey = null }))
@@ -307,21 +309,33 @@ class KontaktOriginalEmpfangTest {
             "desktop_sha256" to JsonPrimitive("e".repeat(64))))
     }
 
-    @Test fun actualAuthenticatedSaveAckPersistsCorrelationButDoesNotInstallMappingOrReleasePhysicalHold() {
+    private fun expectedNextBytes(): ByteArray {
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }
+        val cipher = io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({ journalKey })
+        val clear = cipher.entschluesseln(file.readBytes(), "kontakt-original-versuch-v1:${file.nameWithoutExtension}")
+        val record = try { Json.parseToJsonElement(clear.decodeToString()).jsonObject } finally { clear.fill(0) }
+        return requireNotNull(Krypto.b64Roh(record.getValue("next_mapping").jsonObject.getValue("ciphertext").jsonPrimitive.content))
+    }
+
+    @Test fun actualAuthenticatedSaveAckInstallsExactPresealedMappingAndReleasesOnlyWithDurableHistory() {
         val ack = verifiedSaveAck()
         val mapFile = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }; val oldMap = mapFile.readBytes()
+        val next = expectedNextBytes()
         send(ack)
         val actual = maps().beobachten(context, sourcePeer(), share)!!
-        assertEquals("e".repeat(64), attempts().laden(scope.freigabe(actual))!!.bestaetigung()!!.desktopHash())
-        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" }; val saved = file.readBytes()
+        assertNull(attempts().laden(scope.freigabe(actual)))
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }; val saved = file.readBytes()
+        val history = File(parent, "attempts").listFiles()!!.single { it.name.startsWith("r-") }
+        assertArrayEquals(saved, history.readBytes()); assertFalse(oldMap.contentEquals(next))
         send(ack)
         assertArrayEquals(saved, file.readBytes())
         server.anhalten(); store = Ablage.fuerTest(context) { dataKey }; consent = newConsent(); attach()
         send(ack)
-        assertArrayEquals(saved, file.readBytes()); assertArrayEquals(oldMap, mapFile.readBytes())
+        assertArrayEquals(saved, file.readBytes()); assertArrayEquals(next, mapFile.readBytes())
         val restoredScope = KontaktOriginalFreigaben(consent) { sourcePeer() }
         assertTrue(restoredScope.wiederherstellen(consent.laden()!!))
-        assertThrows(IllegalStateException::class.java) { maps().aktualisieren(restoredScope.freigabe(actual), share, attempts()) }
+        assertEquals(ack["next_basis"]!!.jsonPrimitive.content,
+            maps().aktualisieren(restoredScope.freigabe(actual), share, attempts()).basisHash(restoredScope.freigabe(actual)))
         assertEquals(1, provider.batchCalls); assertEquals(1, queued().size); assertEquals(1, rotations)
     }
 
@@ -366,9 +380,9 @@ class KontaktOriginalEmpfangTest {
         assertArrayEquals(before, file.readBytes()); assertEquals(1, provider.batchCalls)
     }
 
-    @Test fun interruptedActualSaveAckReceiveCommitRecoversWithoutProviderReplayOrPhysicalRelease() {
+    @Test fun interruptedActualSaveAckReceiveCommitRecoversWithoutProviderReplayOrSecondMappingChange() {
         val ack = verifiedSaveAck()
-        val mapFile = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }; val oldMap = mapFile.readBytes()
+        val mapFile = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }; val next = expectedNextBytes()
         server.anhalten()
         store = Ablage.fuerTest(context, { dataKey }, { step ->
             if (step == io.gitlab.maik3531.magnolienotes.daten.PaarCommitSchritt.ABSICHT_DAUERHAFT)
@@ -376,10 +390,146 @@ class KontaktOriginalEmpfangTest {
         })
         attach()
         assertThrows(java.io.IOException::class.java) { send(ack) }
-        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" }; val acknowledged = file.readBytes()
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }; val acknowledged = file.readBytes()
         server.anhalten(); store = Ablage.fuerTest(context) { dataKey }; consent = newConsent(); attach()
         send(ack)
-        assertArrayEquals(acknowledged, file.readBytes()); assertArrayEquals(oldMap, mapFile.readBytes())
+        assertArrayEquals(acknowledged, file.readBytes()); assertArrayEquals(next, mapFile.readBytes())
         assertEquals(1, provider.batchCalls); assertEquals(1, queued().size); assertEquals(1, rotations)
+    }
+
+    @Test fun settlementRecoversBeforePreparedHistoryReplacement() = settlementCrash("before-prepared")
+    @Test fun settlementRecoversAfterPreparedHistoryReplacement() = settlementCrash("after-prepared")
+    @Test fun settlementRecoversAfterExactNextMappingReplacement() = settlementCrash("after-map")
+    @Test fun settlementRecoversAfterCompleteHistoryBeforeSlotRelease() = settlementCrash("after-complete")
+    @Test fun settlementRecoversAfterReleasedSlotMarkerWithoutDeletingHistory() = settlementCrash("after-release")
+
+    private fun settlementCrash(phase: String) {
+        val ack = verifiedSaveAck(); val next = expectedNextBytes()
+        var archiveWrites = 0; var slotWrites = 0
+        attemptStage = { step ->
+            val archive = step.startsWith("r-")
+            if (archive && step.endsWith(":temporary_flushed") && archiveWrites == 0 && phase == "before-prepared")
+                throw java.io.IOException("Controlled before prepared history replacement")
+            if (step.endsWith(":replaced")) {
+                if (archive) archiveWrites++ else slotWrites++
+                if (archive && archiveWrites == 1 && phase == "after-prepared" ||
+                    archive && archiveWrites == 2 && phase == "after-complete" ||
+                    !archive && slotWrites == 2 && phase == "after-release")
+                    throw java.io.IOException("Controlled terminal journal phase $phase")
+            }
+        }
+        mapStage = { if (phase == "after-map" && it.endsWith(":replaced"))
+            throw java.io.IOException("Controlled exact next mapping interruption") }
+        server.anhalten(); attach()
+        assertThrows(java.io.IOException::class.java) { send(ack) }
+        assertEquals(1, provider.batchCalls)
+        attemptStage = {}; mapStage = {}
+        server.anhalten(); store = Ablage.fuerTest(context) { dataKey }; consent = newConsent(); attach()
+        send(ack)
+        val map = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }
+        assertArrayEquals(next, map.readBytes())
+        val physical = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }
+        val history = File(parent, "attempts").listFiles()!!.single { it.name.startsWith("r-") }
+        assertArrayEquals(history.readBytes(), physical.readBytes())
+        val before = physical.readBytes(); send(ack)
+        assertArrayEquals(before, physical.readBytes()); assertArrayEquals(next, map.readBytes())
+        assertEquals(1, provider.batchCalls); assertEquals(1, rotations)
+    }
+
+    @Test fun oldRequestHistorySurvivesNewAttemptsAndOldAckCannotReleaseTheNewPhysicalHold() {
+        configure(); val first = request(); send(first)
+        val ack = JsonObject(queued().single() + mapOf("art" to JsonPrimitive(KontaktOriginalEmpfang.BESTAETIGUNG),
+            "desktop_sha256" to JsonPrimitive("e".repeat(64))))
+        send(ack)
+        binding = maps().beobachten(context, sourcePeer(), share)!!
+        quote = maps().finden(sourcePeer(), share)!!.basisHash(scope.freigabe(binding))
+        assertThrows(IllegalStateException::class.java) { send(first) }
+        val secondId = UUID.randomUUID().toString()
+        val second = JsonObject(request(binding.aktuell().daten.copy(notiz = "Next actual saved edit")) +
+            ("request_id" to JsonPrimitive(secondId)))
+        assertThrows(IllegalStateException::class.java) { send(JsonObject(second + ("request_id" to JsonPrimitive(id)))) }
+        send(second)
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }
+        val held = file.readBytes(); send(ack)
+        assertArrayEquals(held, file.readBytes()); assertEquals(2, provider.batchCalls)
+        binding = maps().beobachten(context, sourcePeer(), share)!!
+        assertEquals(secondId, attempts().laden(scope.freigabe(binding))!!.anfrageId())
+        val secondAck = JsonObject(queued().last() + mapOf("art" to JsonPrimitive(KontaktOriginalEmpfang.BESTAETIGUNG),
+            "desktop_sha256" to JsonPrimitive("f".repeat(64))))
+        val next = expectedNextBytes(); send(secondAck); send(ack)
+        assertEquals(2, File(parent, "attempts").listFiles()!!.count { it.name.startsWith("r-") })
+        assertArrayEquals(next, File(parent, "maps").listFiles()!!.single { it.extension == "bin" }.readBytes())
+        binding = maps().beobachten(context, sourcePeer(), share)!!
+        assertNull(attempts().laden(scope.freigabe(binding)))
+        assertThrows(IllegalStateException::class.java) { send(first) }
+        assertEquals(2, provider.batchCalls)
+    }
+
+    private fun preparedAck(): JsonObject {
+        val ack = verifiedSaveAck()
+        attemptStage = { if (it.startsWith("r-") && it.endsWith(":replaced"))
+            throw java.io.IOException("Controlled persisted prepared history") }
+        server.anhalten(); attach()
+        assertThrows(java.io.IOException::class.java) { send(ack) }
+        attemptStage = {}
+        server.anhalten(); store = Ablage.fuerTest(context) { dataKey }; consent = newConsent(); attach()
+        return ack
+    }
+
+    @Test fun preparedHistoryCannotInstallItsOldMapAfterAnotherNativeProviderEdit() {
+        val ack = preparedAck()
+        val map = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }; val before = map.readBytes()
+        val slot = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }; val held = slot.readBytes()
+        provider.raw[ContactsContract.RawContacts.VERSION] = (provider.raw[ContactsContract.RawContacts.VERSION] as Number).toLong() + 1
+        assertThrows(IllegalArgumentException::class.java) { send(ack) }
+        assertArrayEquals(before, map.readBytes()); assertArrayEquals(held, slot.readBytes()); assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun aNewNativeSetupDecisionCannotBeOverwrittenByOldPreparedHistory() {
+        val ack = preparedAck()
+        binding = maps().beobachten(context, sourcePeer(), share)!!
+        configure() // A genuine separate native decision, not reconstructed portable tags.
+        val map = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }; val selected = map.readBytes()
+        val slot = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }; val held = slot.readBytes()
+        assertThrows(IllegalArgumentException::class.java) { send(ack) }
+        assertArrayEquals(selected, map.readBytes()); assertArrayEquals(held, slot.readBytes()); assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun aThirdValidMappingCiphertextIsHeldRatherThanReplacedByAnOldPreparedNextMap() {
+        val ack = preparedAck()
+        val map = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }
+        val cipher = io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({ journalKey })
+        val domain = "kontakt-original-zuordnung-v1:${map.nameWithoutExtension}"
+        val original = map.readBytes()
+        val clear = cipher.entschluesseln(original, domain)
+        val changed = try { cipher.verschluesseln(clear, domain) } finally { clear.fill(0) }
+        assertFalse(changed.contentEquals(original)); map.writeBytes(changed)
+        val slot = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }; val held = slot.readBytes()
+        assertThrows(IllegalArgumentException::class.java) { send(ack) }
+        assertArrayEquals(changed, map.readBytes()); assertArrayEquals(held, slot.readBytes()); assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun missingTerminalHistoryTurnsAReleasedMarkerBackIntoAHoldNeverReconstructsAuthority() {
+        val ack = verifiedSaveAck(); send(ack)
+        val history = File(parent, "attempts").listFiles()!!.single { it.name.startsWith("r-") }
+        assertTrue(history.delete()) // This test's own isolated synthetic archive only.
+        val slot = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" }; val held = slot.readBytes()
+        binding = maps().beobachten(context, sourcePeer(), share)!!
+        assertThrows(IllegalArgumentException::class.java) { attempts().laden(scope.freigabe(binding)) }
+        assertThrows(IllegalStateException::class.java) { maps().aktualisieren(scope.freigabe(binding), share, attempts()) }
+        assertThrows(IllegalArgumentException::class.java) { send(ack) }
+        assertArrayEquals(held, slot.readBytes()); assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun copiedJsonCannotMintNativeMappingSettlementOrQueryAProviderThroughIt() {
+        configure()
+        val grant = scope.freigabe(binding)
+        val queries = provider.queries
+        for (fake in listOf(Any(), buildJsonObject { put("settlement", "settled") })) {
+            val proof = KontaktOriginalVersuche.Abschluss(fake)
+            assertThrows(SecurityException::class.java) { maps().uebernehmenAbschluss(grant, proof) }
+            assertThrows(SecurityException::class.java) { maps().pruefeAbschlussKontext(grant, proof) }
+        }
+        assertEquals(queries, provider.queries); assertEquals(0, provider.batchCalls)
     }
 }

@@ -7,7 +7,7 @@ import kotlinx.serialization.json.*
 import java.util.UUID
 
 /** Full-return receive controller. Production dispatch remains disabled until
- * negotiated desktop result/save-ACK and terminal settlement are connected.
+ * negotiated desktop sending/restoration and genuine native setup are connected.
  * Connection policy is a native callback, never a field supplied by the peer.
  */
 internal class KontaktOriginalEmpfang(
@@ -51,9 +51,7 @@ internal class KontaktOriginalEmpfang(
             val binding = mappings.beobachten(context, peer, share)
                 ?: throw SecurityException("contact_original_native_mapping_required")
             val grant = scope.freigabe(binding)
-            val mapping = mappings.finden(peer, share) ?: throw SecurityException("contact_original_native_mapping_required")
-            val receipt = attempts.laden(grant)?.bestaetigung() ?: error("contact_original_verified_receipt_required")
-            receipt.bestaetigenDesktop(grant, mapping, body) { lifetime() }
+            attempts.abschliessen(grant, mappings, body) { lifetime() }
             lifetime()
         }
 
@@ -85,6 +83,7 @@ internal class KontaktOriginalEmpfang(
             val grant = scope.freigabe(binding)
             val mapping = mappings.finden(peer, request.share)
                 ?: throw SecurityException("contact_original_native_mapping_required")
+            attempts.pruefeNeueAnfrage(grant, request.id)
             val before = binding.aktuell().daten
             // Only the explicitly modeled full-content fields are a patch.
             // Phone/email/photo/groups cannot be requested or silently changed.

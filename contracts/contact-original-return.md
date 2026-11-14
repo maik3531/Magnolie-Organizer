@@ -213,8 +213,8 @@ does not invoke the native mapping/book guard.
 This is still production-unregistered. The initial tests supply a synthetic
 native mapping guard; the authenticated export/native-choice extension below
 provides a bounded process-local issuer, not durable setup. Durable private ACK
-intents/restart recovery, actual request/ACK sending, terminal settlement and
-Windows counterpart remain unfinished. A subsequent actual common frontend
+intents/restart recovery, actual request/ACK sending and the Windows counterpart
+remain unfinished; the native Notes terminal phase is described below. A subsequent actual common frontend
 init/normalize/save-message test confirms that `notesOriginalBasis` is already
 retained by the existing contact object copy, including exact decimal Long text.
 Imported permission-looking metadata triggers no native operation; no frontend
@@ -292,10 +292,10 @@ writer/intent scenarios and six reserved generic-send denials; one subsequently
 added actual post-durable-write revocation case passes separately. These counts
 overlap previous matrices. Synthetic independent keys and isolated private files
 are used; no installed journal key, original contact or real device is accessed.
-Terminal history, native mapping installation/slot release, native setup UI,
+The native Notes terminal phase is now implemented below. Native setup UI,
 Windows controller, negotiated sending and package/device acceptance remain open.
 
-### Notes authenticated desktop-ACK receive phase, still held (#628)
+### Notes authenticated desktop-ACK receive phase (#628)
 
 The isolated native `Baumwerk` controller now admits the dedicated draft
 `kontakt_original_saveack` only through actual FS1 origin and its existing native
@@ -317,13 +317,56 @@ interruption/restart test passes separately, giving 48 controller cases in the
 retained composite evidence. It recovers an already durable ACK phase and retries
 without another provider batch or changed receipt ciphertext.
 
-This phase deliberately does not install a mapping, remove protection, archive a
-terminal result or release the physical original slot. Tests assert that the old
-map bytes and physical hold survive ACK/restart. Crash-safe terminal history and
-idempotent installation of the already presealed next mapping are required next;
-the overall lifecycle, negotiated counterpart sender and native setup remain
-unfinished. A separate synthetic Linux sender-intent test and Notes receiver test
-are not a physical or installed cross-device end-to-end acceptance claim.
+That earlier phase alone deliberately did not install a mapping or release the
+physical original slot. The controller now joins the crash-safe terminal phase
+below; direct receipt acknowledgement alone still does not settle an attempt.
+The overall negotiated counterpart sender and native setup remain unfinished.
+A separate synthetic Linux sender-intent test and Notes receiver test are not a
+physical or installed cross-device end-to-end acceptance claim.
+
+### Native terminal history and exact next-map installation (#628)
+
+The actual authenticated ACK controller now performs this ordered durable
+sequence: retain desktop acknowledgement, write separate per-request prepared
+history, CAS-install the **exact presealed next mapping ciphertext**, complete
+the terminal history, then mark the physical slot released. There is no file
+deletion. A released slot may be overwritten only by a new request UUID while
+its matching independent terminal history remains available. Missing or damaged
+history turns a released marker into a hold, never an empty default slot.
+
+Only a private native `Abschluss` proof from acknowledged history authorizes map
+installation. The encrypted next map must match the actual native after-model,
+revision, canonical share, original, peer and setup decision. The installed map
+may be the old quoted ciphertext or already the exact next ciphertext; a third
+valid ciphertext is held rather than overwritten. A new native provider edit or
+setup decision cannot be overwritten by an old prepared settlement. No new random
+mapping hash is generated after desktop SaveACK, so the saved next basis stays
+equal to the actual installed one.
+
+Recovery after prepared-history write, map replacement, complete-history write
+or released-marker replacement is idempotent and does not replay the provider.
+Old UUIDs remain non-replayable after the physical slot is reused. A historical
+identical ACK can be recognized without clearing a newer attempt or rolling its
+map backwards. Historical ACK checking is read-only source/setup continuity,
+not fresh permission to apply the old target. All native/provider callbacks stay
+outside private file locks; actual receive work stays under the native writer
+gate. Pinned original protections are retained, not silently deleted/unpinned.
+
+The changed host API28/API35 matrix passes 94 attempt, 66 mapping/export and
+68 controller cases. Two subsequently added cases check preservation of a third
+valid map ciphertext. Controller evidence includes five injected durable phase
+interruptions, actual receive pair-commit interruption, sequential requests with
+historical ACKs, changed native data/setup, absent history and copied proof
+rejection. The first run's two old damaged-slot tests differed only in exception
+type; unreadable slots now retain the previous held error contract and the full
+changed matrix was actually rerun. No invalid slot was treated as empty.
+
+Linux's intent store still exposes loaded records only as held history; Windows'
+confirmed-save witness does not itself settle a Notes physical attempt. Neither
+is assumed to implement this Android-side terminal journal. Those counterpart
+orchestrators, durable private desktop setup/primary-book restoration, native UI,
+negotiation and reserved native sending remain open. Production capability/UI
+advertisement stays OFF; no installed/device acceptance is inferred.
 
 | Counterpart | What the source establishes | What is still needed for this automatic path |
 | --- | --- | --- |
@@ -522,10 +565,10 @@ Host API28/API35 checks cover 28 mapping cases, 50 canonical-bound outcome cases
 Canonical IDs retain the existing protocol's Unicode code-point limits without
 renaming or truncation, including through verified-receipt persistence. The
 matrices overlap earlier checkpoints.
-This is still a native API boundary, not an installed automatic feature. Actual
-combined setup UI, genuine native export/baseline advancement, authenticated full
-request/result/desktop-SaveACK handling and safe terminal-history release remain
-unconnected. In particular, no source change is handled by prompting again on
+That checkpoint was a native API boundary, not an installed automatic feature.
+Native export, authenticated receive and terminal settlement have since been
+joined as described above; combined setup UI, production negotiation/sending and
+desktop restoration remain unconnected. No source change is handled by prompting again on
 every run or by secretly registering imported mappings.
 
 ### Native basis refresh without another setup decision
@@ -645,8 +688,8 @@ passes 20 cases and the durable source core passes 104; earlier
 overlapping matrices are not additional cases. Software keystore/peer/provider
 fixtures and private test files are used, not real contacts or installed apps.
 Native receipts are **not** desktop baseline SaveACKs. Verified records still
-block the next write until that separately authenticated lifecycle is joined;
-automatic release/reconciliation is deliberately not invented here.
+block the next write until the separately authenticated terminal lifecycle above
+has completed; receipt creation alone does not release them.
 
 Next, connect genuine native setup, authenticated full receiver/sender and the
 actual desktop baseline-save acknowledgement/reconciliation lifecycle.
@@ -662,8 +705,9 @@ mapping remains byte-for-byte unchanged and the physical attempt stays held.
 
 This ordering lets a future desktop result save include the actual next basis
 before issuing its authenticated SaveACK. Generating a different basis only
-after that ACK would leave the desktop's saved baseline behind again. No code
-currently installs the provisional map or releases history. Unknown outcomes
+after that ACK would leave the desktop's saved baseline behind again. The terminal
+phase above now installs those exact bytes after authenticated desktop ACK.
+Unknown outcomes
 cannot mint it; legacy VERIFIED records without it stay readable but do not gain
 an invented next basis. Copied provisional objects, malformed Base64/hash pairs,
 unmapped records and pending-map fields on an unknown hold are rejected.
@@ -672,8 +716,8 @@ The affected 72 API28/API35 attempt cases pass, including decrypting the actual
 provisional map under its own mapping domain, checking exact native result and
 unchanged installed map, restart-stable quote, legacy hold and malformed-history
 rejection. Existing mapping/source/protection evidence is retained where its
-behavior did not change. This is still not an authenticated result dispatcher,
-actual desktop baseline SaveACK or terminal-history release.
+behavior did not change. This earlier provisional-map checkpoint alone was not
+an authenticated dispatcher or terminal-history release.
 
 ### Desktop confirmed-save evidence for the result lifecycle
 
@@ -688,8 +732,9 @@ re-emission does not invoke the provider writer again.
 Revoked permission, a new setup decision, changed native after-state, legacy
 missing-next-basis records or copied result objects cannot produce this outgoing
 result. The affected 82 API28/API35 attempt cases pass. This remains native
-result data, not an enabled negotiated wire frame or a desktop SaveACK. Real
-transport correlation and crash-safe terminal-history settlement remain open.
+result data, not an enabled negotiated wire frame or a desktop SaveACK. Native
+receive correlation and terminal settlement are now implemented above; production
+counterpart negotiation/sending and restoration remain open.
 
 The existing Linux contact-result commit and Windows `ContactSourceSavedCommit`
 now issue process-local saved witnesses only after their real native writer has
