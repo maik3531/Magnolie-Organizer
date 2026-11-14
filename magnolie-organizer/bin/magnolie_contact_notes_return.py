@@ -308,6 +308,18 @@ class NativeNotesNoMutationRequired(ValueError):
     """Successful native planning found no modeled target mutation."""
 
 
+def _validate_notes_export(owned):
+    """DTO validation only, never source selection or book-save authority."""
+    if (not isinstance(owned, dict) or set(owned) != {'art', 'fassung', 'share_id', 'before_basis', 'setup_id', 'native_revision', 'content_sha256', 'kontakt'} or
+            owned['art'] != 'kontakt_original_export' or type(owned['fassung']) is not int or owned['fassung'] != 1 or
+            not isinstance(owned['share_id'], str) or not 0 < len(owned['share_id']) <= 128 or
+            any(ord(char) < 32 or ord(char) == 127 or 0xD800 <= ord(char) <= 0xDFFF for char in owned['share_id']) or
+            not _digest(owned['before_basis']) or not _request_uuid(owned['setup_id']) or type(owned['native_revision']) is not int or
+            not 0 <= owned['native_revision'] <= 2**63 - 1 or not _digest(owned['content_sha256']) or
+            notes_content_hash(owned['kontakt']) != owned['content_sha256']):
+        raise ValueError('notes_original_export_schema')
+
+
 class NativeNotesExportChoice:
     """Process-local native choice from an actual authenticated Notes export.
 
@@ -323,14 +335,7 @@ class NativeNotesExportChoice:
         owned = json.loads(self._body_text)
         self._origin, self._transport, self._capture = origin, transport_id, capture_current
         self._peer, self._own = origin.require_current(owned, transport_id)
-        if (set(owned) != {'art', 'fassung', 'share_id', 'before_basis', 'setup_id', 'native_revision', 'content_sha256', 'kontakt'} or
-                owned['art'] != 'kontakt_original_export' or type(owned['fassung']) is not int or owned['fassung'] != 1 or
-                not isinstance(owned['share_id'], str) or not 0 < len(owned['share_id']) <= 128 or
-                any(ord(char) < 32 or ord(char) == 127 or 0xD800 <= ord(char) <= 0xDFFF for char in owned['share_id']) or
-                not _digest(owned['before_basis']) or not _request_uuid(owned['setup_id']) or type(owned['native_revision']) is not int or
-                not 0 <= owned['native_revision'] <= 2**63 - 1 or not _digest(owned['content_sha256']) or
-                notes_content_hash(owned['kontakt']) != owned['content_sha256']):
-            raise ValueError('notes_original_export_schema')
+        _validate_notes_export(owned)
         if capture_current() != snapshot:
             raise PermissionError('notes_original_export_book_changed')
         contacts = snapshot.book().get('kontakte', [])

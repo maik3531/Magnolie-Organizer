@@ -543,3 +543,106 @@ def test_actual_window_automatically_queues_a_real_known_primary_bootstrap_befor
         assert probe._notes_original_work_error is None
     finally:
         h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['request', 'unchanged', 'wrong-setup', 'revoked', 'bad-export-hash', 'unknown-primary', 'stop-before-write'])
+def test_regular_fresh_export_after_restart_bootstraps_only_its_existing_private_native_selection(native, monkeypatch, tmp_path, mode):
+    from magnolie_contact_notes_return import notes_content_hash
+    h = Harness(native, tmp_path)
+    try:
+        h.configure()
+        export = copy.deepcopy(h.export)
+        if mode == 'unchanged':
+            export['kontakt'] = dict(h.before, **h.choice.pending().request()['ziel'])
+            export['content_sha256'] = notes_content_hash(export['kontakt'])
+        if mode == 'wrong-setup': export['setup_id'] = '55555555-5555-4555-8555-555555555555'
+        if mode == 'bad-export-hash': export['content_sha256'] = '0' * 64
+        h.restart()
+        if mode == 'revoked': h.store.revoke()
+        if mode == 'unknown-primary':
+            changed = copy.deepcopy(h.probe._aktuelle_daten); changed['kontakte'][0]['notiz'] = 'Unknown replaced primary'
+            native.speichere_text(h.probe._vielleicht_verschluesseln(json.dumps(changed)))
+        runtime = Runtime(h); runtime.negotiate(); c = runtime.controller
+        h.probe._notes_original_controller = c
+        before = Path(native.daten_datei()).read_bytes()
+        h.send(export)
+        work = native.Fenster._notes_original_native_arbeit(h.probe)
+        if mode in ('wrong-setup', 'revoked', 'bad-export-hash', 'unknown-primary'):
+            assert work.kind == 'held' and h.probe._speicher_auftraege.empty()
+            assert h.probe._kontakt_quellen_buchaufnahme() is None
+            assert Path(native.daten_datei()).read_bytes() == before
+            assert c._export_bootstraps == {}
+            return
+        assert work.kind == 'needs-real-save' and not work.request_id
+        assert c.counts()['owners'] == 0 and not Path(c._requests.root).exists()
+        assert h.probe._kontakt_quellen_buchaufnahme() is None
+        assert native.Fenster._notes_original_native_arbeit(h.probe).kind == 'waiting'
+        assert h.probe._speicher_auftraege.qsize() == 1, 'Deferred export queued the same bootstrap twice'
+        if mode == 'stop-before-write': c.stop()
+        monkeypatch.setattr(native, 'erinnerungsdaten_schreiben', lambda **_: True)
+        h.probe._speicher_auftraege.put(None)
+        thread = threading.Thread(target=native.Fenster._speicher_lauf, args=(h.probe,), daemon=True)
+        thread.start(); thread.join(15)
+        assert not thread.is_alive()
+        if mode == 'stop-before-write':
+            assert work.intent.result == {'confirmed': False}
+            assert Path(native.daten_datei()).read_bytes() == before and h.probe._kontakt_quellen_buchaufnahme() is None
+            return
+        assert work.intent.result == {'confirmed': True}
+        assert h.probe._kontakt_quellen_buchaufnahme().sequence == 1 and c.ready_acks() == ()
+        planned = native.Fenster._notes_original_native_arbeit(h.probe)
+        assert planned.kind == ('unchanged' if mode == 'unchanged' else 'request')
+        assert c.counts()['owners'] == (0 if mode == 'unchanged' else 1)
+        assert c._export_bootstraps == {} and h.choices == 1
+        assert not (tmp_path / 'outcomes').exists()
+    finally:
+        h.service.anhalten()
+
+
+@pytest.mark.parametrize('failure', [False, True])
+def test_multiple_approved_exports_share_one_actual_book_bootstrap_not_full_book_copies_per_source(native, monkeypatch, tmp_path, failure):
+    h = Harness(native, tmp_path)
+    try:
+        data = copy.deepcopy(h.probe._aktuelle_daten)
+        second = copy.deepcopy(data['kontakte'][0]); second.update(id='second-id', uid='second-uid')
+        data['kontakte'].append(second)
+        assert h.save(monkeypatch, data)['ok']
+        h.configure()
+        export2 = dict(h.export, share_id='second-private-share', setup_id='55555555-5555-4555-8555-555555555555')
+        body, origin, transport = h.observed(export2)
+        choice2 = NativeNotesExportChoice(body, origin, transport, h.probe._kontakt_quellen_buchaufnahme(),
+            h.probe._kontakt_quellen_buchaufnahme, lambda _: 'second-id')
+        h.store.configure([h.choice, choice2])
+        h.restart(); runtime = Runtime(h); runtime.negotiate(); c = runtime.controller
+        h.probe._notes_original_controller = c
+        h.send(h.export); h.send(export2)
+        bootstrap = native.Fenster._notes_original_native_arbeit(h.probe)
+        assert bootstrap.kind == 'needs-real-save'
+        assert native.Fenster._notes_original_native_arbeit(h.probe).kind == 'waiting'
+        assert h.probe._speicher_auftraege.qsize() == 1 and len(c._export_bootstraps) == 1
+        monkeypatch.setattr(native, 'erinnerungsdaten_schreiben', lambda **_: True)
+        if failure:
+            def reject():
+                raise PermissionError('synthetic_one_source_bootstrap_failure')
+            monkeypatch.setattr(bootstrap.intent, '_require_before', reject)
+        h.probe._speicher_auftraege.put(None)
+        thread = threading.Thread(target=native.Fenster._speicher_lauf, args=(h.probe,), daemon=True)
+        thread.start(); thread.join(15)
+        assert not thread.is_alive()
+        if failure:
+            assert bootstrap.intent.result == {'confirmed': False}
+            assert c._export_bootstraps == {} and c.counts()['queued'] == 1
+            assert h.probe._kontakt_quellen_buchaufnahme() is None
+            other = native.Fenster._notes_original_native_arbeit(h.probe)
+            assert other.kind == 'needs-real-save'
+            h.probe._speicher_auftraege.put(None)
+            thread = threading.Thread(target=native.Fenster._speicher_lauf, args=(h.probe,), daemon=True)
+            thread.start(); thread.join(15)
+            assert not thread.is_alive() and other.intent.result == {'confirmed': True}
+        assert h.probe._kontakt_quellen_buchaufnahme().sequence == 1
+        assert native.Fenster._notes_original_native_arbeit(h.probe).kind == 'request'
+        if not failure:
+            assert native.Fenster._notes_original_native_arbeit(h.probe).kind == 'request'
+        assert c.counts()['owners'] == (1 if failure else 2) and c._export_bootstraps == {}
+    finally:
+        h.service.anhalten()

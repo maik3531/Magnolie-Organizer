@@ -4,7 +4,7 @@ Receive stages authenticated frames only. Native callers run work later under
 the book gate, submit the returned real writer invocation, then report actual
 completion through after_saved (which rechecks the genuine saved witness).
 No renderer factory, source chooser, polling thread or automatic key creation.
-Pre-save pending durability/restart restoration is not supplied by this registry.
+Private pending history supports read-only restart recovery, never provider replay.
 """
 from collections import OrderedDict, deque
 from dataclasses import dataclass
@@ -50,6 +50,14 @@ class _Frame:
     owner: object
 
 
+@dataclass
+class _ExportBootstrap:
+    pins: tuple
+    identity: tuple
+    protocol: NativeNotesProtocolNegotiation
+    bootstrap: object = None
+
+
 class NativeNotesController:
     def __init__(self, consent, outcomes, book_gate, *, max_peers=8, per_peer=8, frame_budget=256 * 1024):
         if (type(consent) is not NativeNotesChoiceStore or type(outcomes) is not NativeNotesAckIntents or
@@ -63,6 +71,7 @@ class NativeNotesController:
         self._lock, self._work = threading.RLock(), threading.RLock()
         self._active = True
         self._peers, self._owners, self._physical = {}, {}, {}
+        self._export_bootstraps = {}
         self._frames = OrderedDict()
         self._held = deque(maxlen=max_peers * per_peer)
 
@@ -89,6 +98,19 @@ class NativeNotesController:
             self._require_active()
             if self._owners.get((owner.pins, owner.request['request_id'])) is not owner or owner.held:
                 raise PermissionError('notes_controller_owner_held_or_replaced')
+
+    def _guard_export(self, owner):
+        with self._lock:
+            self._require_active()
+            if self._export_bootstraps.get(owner.identity) is not owner or self._peers.get(owner.pins) is not owner.protocol:
+                raise PermissionError('notes_controller_export_bootstrap_replaced')
+        owner.protocol.require_current()
+
+    def _bootstrap_busy(self):
+        with self._lock:
+            saves = [owner.bootstrap for owner in self._owners.values()]
+            saves += [owner.bootstrap for owner in self._export_bootstraps.values()]
+        return any(save is not None and not save.done.is_set() for save in saves)
 
     def _register(self, owner):
         with self._lock:
@@ -220,6 +242,37 @@ class NativeNotesController:
                         result = NativeNotesWork('negotiated', protocol)
                     elif frame.kind == 'kontakt_original_export':
                         protocol.require_current()
+                        identity = frame.pins, body['share_id'], body['setup_id']
+                        if self._consent._capture() is None:
+                            with self._lock:
+                                self._require_active()
+                                lease = self._export_bootstraps.get(identity)
+                                if lease is None:
+                                    if self._export_bootstraps or self._bootstrap_busy():
+                                        key = frame.pins, frame.kind, (body['share_id'], body['setup_id'])
+                                        if key not in self._frames and sum(item.pins == frame.pins for item in self._frames.values()) < self._per_peer:
+                                            self._frames[key] = frame
+                                        return NativeNotesWork('waiting')  # One real book bootstrap, not one full-book copy per source.
+                                    lease = _ExportBootstrap(frame.pins, identity, protocol)
+                                    self._export_bootstraps[identity] = lease
+                            new = lease.bootstrap is None
+                            if new:
+                                try:
+                                    lease.bootstrap = self._consent.bootstrap_export(body, frame.origin, frame.transport,
+                                        lambda lease=lease: self._guard_export(lease))
+                                except Exception:
+                                    with self._lock:
+                                        if self._export_bootstraps.get(identity) is lease:
+                                            del self._export_bootstraps[identity]
+                                    raise
+                            with self._lock:
+                                self._require_active()
+                                key = frame.pins, frame.kind, (body['share_id'], body['setup_id'])
+                                if key not in self._frames and sum(item.pins == frame.pins for item in self._frames.values()) < self._per_peer:
+                                    self._frames[key] = frame
+                            return NativeNotesWork('needs-real-save', lease.bootstrap) if new else NativeNotesWork('waiting')
+                        with self._lock:
+                            self._export_bootstraps.pop(identity, None)
                         choice = self._consent.restore(body, frame.origin, frame.transport)
                         try:
                             pending = choice.pending()
@@ -264,7 +317,7 @@ class NativeNotesController:
                                             raise PermissionError('notes_controller_conflicting_recovery_result')
                                         if queued is None and sum(item.pins == frame.pins for item in self._frames.values()) < self._per_peer:
                                             self._frames[key] = frame
-                                    if owner.bootstrap is None:
+                                    if owner.bootstrap is None and not self._bootstrap_busy():
                                         owner.bootstrap = NativeNotesBootstrapSave(needed.context, lambda owner=owner: self._guard(owner))
                                         return NativeNotesWork('needs-real-save', owner.bootstrap, owner.request['request_id'])
                                     return NativeNotesWork('waiting', request_id=owner.request['request_id'])
@@ -325,6 +378,18 @@ class NativeNotesController:
             with self._lock:
                 matches = [owner for owner in self._owners.values()
                     if owner.request['request_id'] == work.request_id and owner.bootstrap is work.intent]
+                exports = [owner for owner in self._export_bootstraps.values() if owner.bootstrap is work.intent]
+                if work.intent.done.is_set() and work.intent.result != {'confirmed': True}:
+                    for owner in exports:
+                        del self._export_bootstraps[owner.identity]
+                        pins, share, setup = owner.identity
+                        self._frames.pop((pins, 'kontakt_original_export', (share, setup)), None)
+                        self._held.append('kontakt_original_export')
+                    for owner in matches:
+                        owner.held = True
+            if not work.request_id and len(exports) == 1 and work.intent.result == {'confirmed': True}:
+                self._guard_export(exports[0])
+                return NativeNotesWork('bootstrap-saved')
             if len(matches) != 1 or work.intent.result != {'confirmed': True}:
                 raise PermissionError('notes_controller_bootstrap_unconfirmed')
             self._guard(matches[0])
@@ -342,6 +407,7 @@ class NativeNotesController:
             for protocol in self._peers.values():
                 protocol.cancel()
             self._frames.clear()
+            self._export_bootstraps.clear()
             self._requests.forget_process_proofs()
 
     def counts(self):

@@ -47,6 +47,22 @@ class _RecognizedNotesAckContext:
         self.store._verify_saved_ack(self)
 
 
+@dataclass(frozen=True)
+class _NotesExportBootstrapContext:
+    consent: object
+    body_text: bytes
+    origin: NativeNotesFsOrigin
+    transport: str
+
+    def require_current(self):
+        if type(self.consent) is not NativeNotesChoiceStore or type(self.origin) is not NativeNotesFsOrigin:
+            raise PermissionError('notes_choice_native_export_bootstrap_required')
+        body = json.loads(self.body_text)
+        pins = self.origin.require_current(body, self.transport)
+        self.consent._verify_history_context(self, pins)
+        self.origin.require_current(body, self.transport)
+
+
 class NativeNotesChoiceStore(NativeContactBookSaveChain):
     _private = staticmethod(_PrivateFiles._private)
     _locked = _PrivateFiles._locked
@@ -246,6 +262,25 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
             unconfirmed = history_proof.store._read_query_proof(history_proof)
             history = {name: unconfirmed[name] for name in ('peer', 'own', 'choice_seal', 'local_id', 'local_uid')}
             history.update(source_setup_id=unconfirmed['export']['setup_id'], result={'share_id': unconfirmed['request']['share_id']})
+        elif type(history_proof) is _NotesExportBootstrapContext and history_proof.consent is self:
+            from magnolie_contact_notes_return import _validate_notes_export
+            body = json.loads(history_proof.body_text)
+            _validate_notes_export(body)
+            if history_proof.origin.require_current(body, history_proof.transport) != pins:
+                raise PermissionError('notes_choice_authenticated_export_changed')
+            selected = self._active_record()
+            if selected is None:
+                raise PermissionError('notes_choice_source_not_granted')
+            selected_key, selected_payload = selected
+            sources = [source for source in selected_payload['choices'] if source['peer'] == list(pins[0]) and source['own'] == list(pins[1]) and
+                source['share_id'] == body['share_id'] and source['setup_id'] == body['setup_id']]
+            if len(sources) != 1:
+                raise PermissionError('notes_choice_source_changed')
+            source = sources[0]
+            history = {name: source[name] for name in ('peer', 'own', 'local_id', 'local_uid')}
+            history.update(source_setup_id=source['setup_id'], result={'share_id': source['share_id']},
+                choice_seal={'key_sha256': hashlib.sha256(selected_key).hexdigest(), 'generation': selected_payload['generation'],
+                    'book': selected_payload['book'], 'source_sha256': hashlib.sha256(_frame_bytes(source)).hexdigest()})
         else:
             raise PermissionError('notes_choice_private_ack_history_required')
         if pins != (tuple(history['peer']), tuple(history['own'])):
@@ -277,6 +312,14 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
         if self._primary() != (primary, binding):
             raise PermissionError('notes_choice_native_primary_changed')
         return history
+
+    def bootstrap_export(self, body, origin, transport, guard):
+        from magnolie_contact_notes_requests import NativeNotesBootstrapSave
+        if type(origin) is not NativeNotesFsOrigin:
+            raise PermissionError('notes_choice_authenticated_export_required')
+        context = _NotesExportBootstrapContext(self, _frame_bytes(body), origin, transport)
+        context.require_current()
+        return NativeNotesBootstrapSave(context, guard)
 
     def restore(self, body, origin, transport_id):
         if type(origin) is not NativeNotesFsOrigin:

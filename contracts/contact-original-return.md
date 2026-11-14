@@ -748,10 +748,30 @@ fake completion Booleans, stop before write and metadata-already-written crashes
 All peers, keys and books are synthetic; no physical/installed counterpart or
 package/device acceptance is claimed. Native Notes sources are unchanged.
 
-Still outstanding: bounded automatic discovery/transport/worker pumping and the
-regular fresh-export first-save path outside unconfirmed recovery, genuine common
-setup UI and Windows counterpart. The window hooks remain unregistered as an
-active production controller; no source capability or scheduler is enabled.
+### Regular fresh-export first-save bootstrap (#628)
+
+A fresh authenticated export can now bootstrap the first real save after restart
+without an unconfirmed request record. Its separate private export context checks
+the exact existing consent selection, setup, pins, recognized primary, native model
+and selected ID/UID. Schema validation alone grants no authority. No recovered
+request, fresh choice or saved observation is fabricated. The actual serial writer
+performs the bootstrap; only afterwards may the same export restore the private
+choice and plan an exact no-op or seal a new request.
+
+Multiple approved sources share one whole-book bootstrap rather than queueing
+full-book copies per source. A failed bootstrap retires only its deferred export
+and releases the transient bootstrap lease; other approved exports can proceed.
+It never releases a durable provider-request hold. Stop, revocation, wrong setup,
+bad export hash and unknown primary are negative cases.
+
+Evidence: 190 controller/request/consent/pending cases passed before the final
+failure-isolation addition; the final 123 controller/reserved-send/origin/runtime
+cases passed, including the added two-source failed-bootstrap recovery case.
+These matrices overlap and do not constitute separate platform acceptance.
+
+Still outstanding: bounded automatic discovery/transport/worker pumping, genuine
+common setup UI and Windows counterpart. The window hooks remain unregistered
+as an active production controller; no source capability or scheduler is enabled.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 

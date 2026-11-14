@@ -130,7 +130,8 @@ class _RecoveredRequestContext:
 class NativeNotesBootstrapSave:
     """Exact known current model -> real ordinary writer, never a primary witness."""
     def __init__(self, context, guard):
-        if type(context) is not _RecoveredRequestContext or not callable(guard):
+        from magnolie_contact_notes_consent import _NotesExportBootstrapContext
+        if type(context) not in (_RecoveredRequestContext, _NotesExportBootstrapContext) or not callable(guard):
             raise PermissionError('notes_request_native_bootstrap_required')
         self._context, self._guard = context, guard
         guard(); context.require_current()
