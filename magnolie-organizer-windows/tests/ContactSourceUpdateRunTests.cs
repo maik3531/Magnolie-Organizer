@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Security;
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
@@ -11,8 +12,16 @@ internal static class ContactSourceUpdateRunTests
 {
     private sealed class Protector : ISecretProtector
     {
+        internal bool Unavailable;
+        internal Action? OnRead;
         public byte[] Protect(byte[] plain) => plain.Select(value => (byte)(value ^ 0x5a)).ToArray();
-        public byte[] Unprotect(byte[] encrypted) => Protect(encrypted);
+        public byte[] Unprotect(byte[] encrypted)
+        {
+            if (Unavailable) throw new CryptographicException("Controlled native credential unavailable");
+            var plain = Protect(encrypted);
+            try { OnRead?.Invoke(); return plain; }
+            catch { CryptographicOperations.ZeroMemory(plain); throw; }
+        }
     }
     private sealed class Handler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handle) : HttpMessageHandler
     {
@@ -23,6 +32,7 @@ internal static class ContactSourceUpdateRunTests
         private readonly string root = Path.Combine(Path.GetTempPath(), "magnolie-contact-source-" + Guid.NewGuid().ToString("N"));
         private readonly HttpClient http;
         internal NextcloudMailboxSettingsStore Settings = null!;
+        internal readonly Protector Secrets = new();
         internal readonly NextcloudDavClient Client;
         internal HttpClient Transport => http;
         internal readonly string WireUid;
@@ -46,7 +56,7 @@ internal static class ContactSourceUpdateRunTests
             using var input = JsonDocument.Parse(new JsonArray(card).ToJsonString());
             Wire = ExchangeCodec.WriteVCard(input.RootElement).Text;
             ExtraWire = Wire.Replace("UID:" + WireUid + "\r\n", "UID:other-original-" + name + "\r\n", StringComparison.Ordinal);
-            var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "settings.json"), Path.Combine(root, "secret.dat"), new Protector());
+            var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "settings.json"), Path.Combine(root, "secret.dat"), Secrets);
             Settings = settings;
             settings.SaveConfiguration(new NextcloudMailboxSettings(true, false, origin + "/nc", "synthetic") { AccountType = accountType }, "synthetic-only", false);
             http = new HttpClient(new Handler(Handle)); Client = new NextcloudDavClient(settings, http);
@@ -189,18 +199,27 @@ internal static class ContactSourceUpdateRunTests
         ContactSourcePrivateFilesTests.Run();
         await ContactSourceApprovalStoreTests.RunAsync();
         await DurableNativeSessionAsync();
+        await AutomationAsync();
         await SavedDavOrchestrationAsync();
         await SavedResultCommitAsync();
         await NativeSessionAsync();
         var dialogProduct = Environment.GetEnvironmentVariable("MAGNOLIE_CONTACT_DIALOG_PRODUCT");
         if (OperatingSystem.IsWindows() && !string.IsNullOrEmpty(dialogProduct)) await ContactSourceNativeDialogTests.RunAsync(dialogProduct);
-        if (!OperatingSystem.IsWindows()) await NativeFrontendWireAsync();
+        if (!OperatingSystem.IsWindows())
+        {
+            await NativeFrontendWireAsync();
+            foreach (var mode in new[] { "durable", "restart", "account-return", "wlan-return" }) await NativeFrontendWireAsync(mode);
+        }
     }
 
     private static async Task NativeSessionAsync()
     {
         using (BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_freigabe\",\"requestId\":\"native-dialog\"}")) { }
         using (BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_widerrufen\"}")) { }
+        using (BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_widerrufen\",\"dauerhaft\":true}")) { }
+        using (BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_widerrufen\",\"dauerhaft\":false}")) { }
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_widerrufen\",\"dauerhaft\":\"true\"}"),
+            "Durable consent revoke accepted a nonboolean wire value");
         using (BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_update\",\"requestId\":\"native-run\",\"standSha256\":\"context-not-grant\"}")) { }
         TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_update\",\"requestId\":\"native-run\",\"standSha256\":\"context-not-grant\",\"sources\":[\"unapproved\"]}"),
             "Native source command accepted renderer source grants");
@@ -426,7 +445,179 @@ internal static class ContactSourceUpdateRunTests
         }
     }
 
-    private static async Task NativeFrontendWireAsync()
+    private static async Task AutomationAsync()
+    {
+        foreach (var mode in new[] { "default-off", "normal", "restart", "wlan-return", "account-return", "account-loss-before-run",
+            "account-loss-during-save", "volatile-pause", "durable-revoke", "failed-durable-revoke", "wrong-ack-hash", "cancel",
+            "empty", "revoke-during-restore", "dispose", "concurrent-probe", "external-intent-revoke", "corrupt-recognized-record" })
+        {
+            var root = Path.Combine(Path.GetTempPath(), "magnolie-native-contact-automation-" + Guid.NewGuid().ToString("N"));
+            var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
+                ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
+            using var source = new Source("automation", "generic-dav", original);
+            var remote = await source.OriginalAsync(); var local = original.DeepClone().AsObject();
+            ContactFields.SetSource(local, source.Catalog.Uid, remote, remoteBaseline: true);
+            local["notiz"] = "Canonical note"; local["geaendert"] = 2000L;
+            var document = new JsonObject { ["kontakte"] = new JsonArray(local), ["fraction"] = 1.25 };
+            ContactSourceAutomation? automation = null;
+            try
+            {
+                var host = new PersonalActorNativeSaveHost(root, document.ToJsonString());
+                var failRevoke = false; var notices = new List<ContactSourceAutomationNotice>();
+                var files = new ContactSourcePrivateFiles(Path.Combine(root, "consent"), new AtomicStore(stage =>
+                { if (failRevoke && stage == AtomicStore.WriteStage.TemporaryFlushed) throw new IOException("Controlled durable revoke failure"); }),
+                    controlledUnix: !OperatingSystem.IsWindows());
+                var store = new ContactSourceApprovalStore(files, source.Settings, () => host.Snapshot(), () => host.DataPath, new Protector(), () => host.Primary());
+                host.ApprovalStore = store;
+                var wlan = true; var protections = 0; var decisions = 0;
+                ContactSourceNativeSession NewSession() => new(host.Snapshot, host.Saved, source.Settings, host.SourceResultCommit,
+                    () => wlan, _ => protections++, source.Transport, store);
+                var session = NewSession();
+                ContactSourceAutomation NewAutomation() => new(store, session, host.Snapshot, () => host.Available, notice =>
+                {
+                    var ack = host.Responses.Last().Value;
+                    TestAssert.That(ack["ok"]!.GetValue<bool>() && ack["id"]!.GetValue<long>() == notice.Id &&
+                        ack["standSha256"]!.GetValue<string>() == notice.Sha256, "Positive/negative authority notice preceded its real current SaveACK");
+                    notices.Add(notice); return Task.CompletedTask;
+                });
+                automation = NewAutomation();
+                void Attach() => host.SaveAckObserver = async (id, hash, recognized) => { await automation.SavedAsync(id, hash, recognized); };
+                Attach();
+                async Task<JsonObject> Save(int id)
+                    => await host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = id, ["text"] = document.ToJsonString() });
+                await Save(91);
+                TestAssert.That(notices.Count == 0 && !automation.HasCurrentIntent && !Directory.Exists(Path.Combine(root, "consent")),
+                    "Default actual SaveACK created durable state/permission");
+                if (mode == "default-off")
+                {
+                    source.Secrets.Unavailable = true;
+                    TestAssert.That(!await automation.ProbeAsync() && notices.Count == 0, "Default monitor observed account access or minted permission");
+                    Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode); continue;
+                }
+                var setup = await automation.ConfigureAsync((choices, _, _) =>
+                { decisions++; return Task.FromResult<IReadOnlyList<string>?>([choices.Single().Uid]); });
+                TestAssert.That(setup.Desired && setup.Grants == 1 && setup.Id == 91 && setup.Sha256 == host.Saved()!.Sha256,
+                    "Native setup did not correlate persisted human intent to actual SaveACK");
+                var generation = store.LoadCurrent()!.Generation;
+                if (mode == "cancel")
+                {
+                    var canceled = await automation.ConfigureAsync((_, _, _) => Task.FromResult<IReadOnlyList<string>?>(null));
+                    TestAssert.That(!canceled.Changed && store.LoadCurrent()!.Generation == generation, "Cancel erased durable setup");
+                }
+                if (mode == "empty")
+                {
+                    var empty = await automation.ConfigureAsync((_, _, _) => Task.FromResult<IReadOnlyList<string>?>([]));
+                    TestAssert.That(empty.Changed && !empty.Desired && session.GrantCount == 0 && store.LoadCurrent() is null,
+                        "Explicit empty setup retained automatic authority");
+                    Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode); continue;
+                }
+                if (mode == "restart")
+                {
+                    automation.Dispose();
+                    host = new PersonalActorNativeSaveHost(root, "not-a-saved-witness", reopen: true);
+                    store = new(files, source.Settings, () => host.Snapshot(), () => host.DataPath, new Protector(), () => host.Primary());
+                    host.ApprovalStore = store; session = NewSession(); automation = NewAutomation(); Attach();
+                    TestAssert.That(host.Snapshot() is null && session.GrantCount == 0, "Startup minted a saved witness/grant without real SaveACK");
+                }
+                if (mode is "durable-revoke" or "failed-durable-revoke")
+                {
+                    failRevoke = mode == "failed-durable-revoke";
+                    Exception? failure = null;
+                    try { await automation.RevokeAsync(true); } catch (Exception error) { failure = error; }
+                    TestAssert.That((failure is not null) == failRevoke && session.GrantCount == 0 && !automation.HasCurrentIntent,
+                        "Durable revoke failed to hold current runtime or report persistence failure");
+                    failRevoke = false;
+                    await Save(92); await automation.ProbeAsync();
+                    if (mode == "failed-durable-revoke")
+                    {
+                        var canceled = await automation.ConfigureAsync((_, _, _) => Task.FromResult<IReadOnlyList<string>?>(null));
+                        TestAssert.That(!canceled.Changed && !canceled.Desired && !automation.HasCurrentIntent,
+                            "Cancel unblocked a failed durable revoke or advertised automatic resumption");
+                    }
+                    TestAssert.That(notices.Count == 0 && session.GrantCount == 0, "Durably blocked automation silently resumed after save/probe");
+                    Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode); continue;
+                }
+                if (mode == "volatile-pause")
+                {
+                    await automation.RevokeAsync(false);
+                    TestAssert.That(store.LoadCurrent()!.Generation == generation && !await automation.ProbeAsync(), "Volatile pause erased intent or restored without a new real ACK");
+                }
+                if (mode == "wrong-ack-hash")
+                {
+                    await automation.SavedAsync(92, new string('0', 64), true);
+                    TestAssert.That(notices.Count == 0, "Wrong-hash native correlation emitted positive authority");
+                    Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode); continue;
+                }
+                if (mode == "dispose")
+                {
+                    automation.Dispose();
+                    TestAssert.That(!await automation.SavedAsync(92, host.Saved()!.Sha256, true) && notices.Count == 0 && session.GrantCount == 0,
+                        "Disposed native automation emitted authority");
+                    Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode); continue;
+                }
+                if (mode == "revoke-during-restore")
+                    source.Secrets.OnRead = () => { source.Secrets.OnRead = null; automation.RevokeAsync(false).GetAwaiter().GetResult(); };
+                if (mode == "account-loss-during-save") source.Secrets.Unavailable = true;
+                document["actualOrdinaryEdit"] = true;
+                var saved = await Save(92);
+                TestAssert.That(saved["ok"]!.GetValue<bool>() && saved["kontaktQuellenDauerhaft"]!.GetValue<bool>(), "Actual writer lost persistent native intent");
+                if (mode is "external-intent-revoke" or "corrupt-recognized-record")
+                {
+                    if (mode == "external-intent-revoke") store.Revoke();
+                    else { using var state = files.Open()!; state.Write("approval.json", "{broken", 1024); }
+                    var reads = source.Reads; var discovery = source.Discoveries;
+                    TestAssert.That(!await automation.ProbeAsync(wait: true) && !notices.Last().Ok && session.GrantCount == 0 &&
+                        source.Reads == reads && source.Discoveries == discovery && source.Writes == 0,
+                        "Revoked/corrupt recognized intent retained a usable native grant or reached provider IO");
+                    var countBefore = notices.Count; await automation.ProbeAsync();
+                    TestAssert.That(notices.Count == countBefore, "Quiet unusable intent repeated prompts/notices");
+                    Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode); continue;
+                }
+                if (mode == "revoke-during-restore")
+                {
+                    TestAssert.That(notices.Count == 0 && session.GrantCount == 0 && store.HasDesiredConsent(), "Stale restoring worker undid volatile revoke");
+                    Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode); continue;
+                }
+                if (mode is "account-return" or "account-loss-before-run" or "account-loss-during-save")
+                {
+                    source.Secrets.Unavailable = true;
+                    var reads = source.Reads; var discoveries = source.Discoveries;
+                    TestAssert.That(!await automation.ProbeAsync(wait: true) && session.GrantCount == 0 && notices.Last().Ok == false &&
+                        store.HasDesiredConsent() && source.Reads == reads && source.Discoveries == discoveries, "Unavailable account granted IO or erased human intent");
+                    source.Secrets.Unavailable = false;
+                    TestAssert.That(await automation.ProbeAsync(wait: true) && notices.Last().Ok && session.GrantCount == 1,
+                        "Quiet account return did not restore the same actual SaveACK without new setup");
+                }
+                TestAssert.That(notices.Last().Ok && decisions == 1 && store.LoadCurrent()!.Generation == generation, "Once-approved automation required a second decision");
+                var count = notices.Count;
+                if (mode == "concurrent-probe") await Task.WhenAll(automation.ProbeAsync(), automation.ProbeAsync(), automation.ProbeAsync());
+                else await automation.ProbeAsync();
+                TestAssert.That(notices.Count == count, "Unchanged quiet probes reissued positive grants or invalidated running scopes");
+                if (mode == "wlan-return")
+                {
+                    wlan = false; var reads = source.Reads; var discoveries = source.Discoveries;
+                    try { await session.RunAsync(host.Saved()!.Sha256); throw new Exception("No WLAN was accepted"); }
+                    catch (InvalidOperationException error) when (error.Message == "contact_source_wlan_required") { }
+                    TestAssert.That(source.Reads == reads && source.Discoveries == discoveries && source.Writes == 0, "WLAN wait reached provider IO");
+                    wlan = true; TestAssert.That(await automation.ProbeAsync(), "WLAN return lost current native permission");
+                }
+                var result = await session.RunAsync(host.Saved()!.Sha256);
+                TestAssert.That(result.Offer is not null && result.SourceErrors == 0 && source.Writes == 1 && protections == 1,
+                    "Actual SaveACK automation did not reach protected original CAS/readback");
+                document["kontakte"] = result.Offer!.Contacts.DeepClone();
+                var resultAck = await host.SaveOriginalContactResultAsync(result.Offer.Token, document);
+                TestAssert.That(resultAck["ok"]!.GetValue<bool>() && notices.Last().Ok, "Native result SaveACK did not restore current durable scope");
+                var beforeReads = source.Reads; var beforeDiscovery = source.Discoveries;
+                var clean = await session.RunAsync(host.Saved()!.Sha256);
+                TestAssert.That(clean.Offer is null && clean.SourceErrors == 0 && source.Reads == beforeReads && source.Discoveries == beforeDiscovery && source.Writes == 1,
+                    "Clean result-authority restoration retried provider IO");
+                Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode);
+            }
+            finally { automation?.Dispose(); if (Directory.Exists(root)) Directory.Delete(root, true); }
+        }
+    }
+
+    private static async Task NativeFrontendWireAsync(string mode = "legacy")
     {
         // Host uses the existing Node runtime. Windows checks the same common
         // native command/session and actual writer separately; no installed GUI
@@ -442,20 +633,50 @@ internal static class ContactSourceUpdateRunTests
             ["notizen"] = new JsonArray(new JsonObject { ["id"] = "keep-note", ["titel"] = "Keep", ["text"] = "Other domains unchanged" }) };
         var root = Path.Combine(Path.GetTempPath(), "magnolie-frontend-native-source-wire-" + Guid.NewGuid().ToString("N"));
         Process? process = null;
+        ContactSourceAutomation? automation = null;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(55));
         try
         {
             var host = new PersonalActorNativeSaveHost(root, document.ToJsonString()); var protections = 0;
-            var session = new ContactSourceNativeSession(host.Snapshot, host.Saved, source.Settings, host.SourceResultCommit,
-                () => true, snapshot => { protections++; new AtomicStore().WriteRecoverableJson(Path.Combine(root, "pre-contact.json"), snapshot.Text); }, source.Transport);
+            var durable = mode != "legacy"; var wlan = true;
+            var files = new ContactSourcePrivateFiles(Path.Combine(root, "consent"), controlledUnix: !OperatingSystem.IsWindows());
+            ContactSourceApprovalStore NewStore() => new(files, source.Settings, () => host.Snapshot(), () => host.DataPath, new Protector(), () => host.Primary());
+            var store = NewStore();
+            ContactSourceNativeSession NewSession() => new(host.Snapshot, host.Saved, source.Settings, host.SourceResultCommit,
+                () => wlan, snapshot => { protections++; new AtomicStore().WriteRecoverableJson(Path.Combine(root, "pre-contact.json"), snapshot.Text); },
+                source.Transport, durable ? store : null);
+            var session = NewSession();
+            if (durable) host.ApprovalStore = store;
+            if (mode == "restart")
+            {
+                document["kontakte"]![0]!["notiz"] = "Canonical note";
+                await host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 1, ["text"] = document.ToJsonString() });
+                await session.ConfigureAsync((catalog, _, _) => Task.FromResult<IReadOnlyList<string>?>(catalog.Select(item => item.Uid).ToArray()), timeout.Token);
+                session.Revoke();
+                host = new PersonalActorNativeSaveHost(root, "not-a-saved-witness", reopen: true);
+                store = NewStore(); host.ApprovalStore = store; session = NewSession();
+                TestAssert.That(host.Snapshot() is null && session.GrantCount == 0, "Restarted wire minted native authority before actual SaveACK");
+            }
             var repository = TestSource.Root("contracts/contact-provider-labels.md");
             var windows = File.Exists(Path.Combine(repository, "MagnolieOrganizer.Windows.csproj")) ? repository : Path.Combine(repository, "magnolie-organizer-windows");
             var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE") ?? "node") {
                 RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
             start.ArgumentList.Add(Path.Combine(windows, "tests", "contact-original-source-updates.js")); start.ArgumentList.Add("--wire");
+            if (mode == "restart") start.Environment["MAGNOLIE_TEST_DURABLE_RESTART"] = "1";
+            if (mode is "account-return" or "wlan-return") start.Environment["MAGNOLIE_TEST_EXPECT_ORIGINAL_RUNS"] = "2";
             process = Process.Start(start) ?? throw new InvalidOperationException("Existing Node runtime required");
             var errors = process.StandardError.ReadToEndAsync();
             async Task Reply(string callback, object value) { await process.StandardInput.WriteLineAsync(System.Text.Json.JsonSerializer.Serialize(new { callback, value })); await process.StandardInput.FlushAsync(); }
+            if (durable)
+            {
+                automation = new(store, session, host.Snapshot, () => host.Available, notice => Reply("originalKontaktDauerfreigabe",
+                    new { id = notice.Id, standSha256 = notice.Sha256, ok = notice.Ok, freigaben = notice.Grants }));
+                host.SaveAckObserver = async (id, hash, recognized) =>
+                {
+                    await Reply("gespeichert", host.Responses.Last().Value);
+                    await automation.SavedAsync(id, hash, recognized);
+                };
+            }
             await process.StandardInput.WriteLineAsync(new JsonObject { ["type"] = "init", ["daten"] = document }.ToJsonString()); await process.StandardInput.FlushAsync();
             var completed = false; var saves = 0; var configured = 0; var updates = 0;
             while (await process.StandardOutput.ReadLineAsync(timeout.Token) is { } line)
@@ -463,11 +684,13 @@ internal static class ContactSourceUpdateRunTests
                 var packet = JsonNode.Parse(line)!.AsObject();
                 if (packet["type"]!.GetValue<string>() == "complete")
                 {
-                    TestAssert.That(saves >= 3 && configured == 1 && updates == 1 && source.Writes == 1 && source.ExtraWrites == 1 && protections == 1 &&
+                    TestAssert.That(saves >= (mode == "restart" ? 2 : 3) && configured == (mode == "restart" ? 0 : 1) &&
+                        updates == (mode is "account-return" or "wlan-return" ? 2 : 1) && source.Writes == 1 && source.ExtraWrites == 1 && protections == 1 &&
                         host.Responses.Last().Value["kontaktOriginalGespeichert"]!.GetValue<string>() == packet["token"]!.GetValue<string>() &&
                         new EncryptionService().Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password) == packet["text"]!.GetValue<string>(),
                         "Actual frontend→native SaveACK→native session/provider→actual encrypted result SaveACK wire incomplete");
                     var proofPath = Environment.GetEnvironmentVariable("MAGNOLIE_CONTACT_SOURCE_WIRE_PROOF");
+                    if (mode != "legacy" && !string.IsNullOrEmpty(proofPath)) proofPath += "." + mode + ".json";
                     if (!string.IsNullOrEmpty(proofPath)) await File.WriteAllTextAsync(proofPath, new JsonObject {
                         ["sourceCount"] = 2, ["providerWrites"] = source.Writes + source.ExtraWrites,
                         ["nativeProtectionCalls"] = protections, ["actualNativeSaveCommands"] = saves,
@@ -478,33 +701,80 @@ internal static class ContactSourceUpdateRunTests
                         ["twoDistinctProviderAccounts"] = false, ["installedNativeDialogAcceptance"] = false,
                         ["nativeWlanDetectionAcceptance"] = false, ["liveProviderOrPrivateInputs"] = false
                     }.ToJsonString());
+                    Console.WriteLine("CONTACT SOURCE FRONTEND NATIVE WIRE PASS " + mode);
                     completed = true; break;
                 }
                 var command = packet["value"]!.AsObject();
                 switch (command["cmd"]!.GetValue<string>())
                 {
                     case "speichern":
-                        saves++; await Reply("gespeichert", await host.SaveBridgeEnvelopeAsync(command)); break;
+                        saves++;
+                        var saved = await host.SaveBridgeEnvelopeAsync(command);
+                        if (!durable) await Reply("gespeichert", saved);
+                        break;
                     case "kontakt_originalquellen_freigabe":
                     {
                         using var consentEnvelope = BridgeDispatcherContract.Parse(command.ToJsonString());
                         TestAssert.That(host.Snapshot() is not null && JsonNode.Parse(host.Snapshot()!.Text)!["kontakte"]![0]!["notiz"]!.GetValue<string>() == "Canonical note" &&
                             session.GrantCount == 0, "Actual frontend requested source consent before its actual edited SaveACK");
                         configured++;
-                        var changed = await session.ConfigureAsync((catalog, selected, token) => Task.FromResult<IReadOnlyList<string>?>(catalog.Select(item => item.Uid).ToArray()), timeout.Token);
-                        await Reply("originalKontaktFreigabe", new { requestId = command["requestId"]!.GetValue<string>(), ok = true, changed, freigaben = session.GrantCount }); break;
+                        if (durable)
+                        {
+                            var setup = await automation!.ConfigureAsync((catalog, selected, token) =>
+                                Task.FromResult<IReadOnlyList<string>?>(catalog.Select(item => item.Uid).ToArray()), timeout.Token);
+                            if (mode == "account-return") source.Settings.ClearApplicationPassword();
+                            if (mode == "wlan-return") wlan = false;
+                            await Reply("originalKontaktFreigabe", new { requestId = command["requestId"]!.GetValue<string>(), ok = true,
+                                changed = setup.Changed, freigaben = setup.Grants, dauerhaft = setup.Desired, wartet = setup.Waiting,
+                                id = setup.Id, standSha256 = setup.Sha256 });
+                        }
+                        else
+                        {
+                            var changed = await session.ConfigureAsync((catalog, selected, token) => Task.FromResult<IReadOnlyList<string>?>(catalog.Select(item => item.Uid).ToArray()), timeout.Token);
+                            await Reply("originalKontaktFreigabe", new { requestId = command["requestId"]!.GetValue<string>(), ok = true, changed, freigaben = session.GrantCount });
+                        }
+                        break;
                     }
                     case "kontakt_originalquellen_update":
                     {
                         using var updateEnvelope = BridgeDispatcherContract.Parse(command.ToJsonString());
                         updates++;
+                        if (mode == "account-return" && updates == 1)
+                        {
+                            var reads = source.Reads; var discovery = source.Discoveries;
+                            TestAssert.That(session.GrantCount == 0, "Missing native credential retained a usable status count");
+                            await Reply("edsStatus", new { verfuegbar = true, buchOk = true, windows = true,
+                                kalender = Array.Empty<object>(), adressbuecher = Array.Empty<object>(),
+                                originalKontaktUpdates = new { verfuegbar = true, freigaben = session.GrantCount } });
+                            TestAssert.That(!await automation!.ProbeAsync(wait: true), "Locked source credential retained usable automation");
+                            await Reply("originalKontaktErgebnis", new { requestId = command["requestId"]!.GetValue<string>(), ok = false, code = "account_access_wait", freigaben = 0 });
+                            TestAssert.That(source.Reads == reads && source.Discoveries == discovery && source.Writes == 0 && source.ExtraWrites == 0,
+                                "Known account wait reached provider IO");
+                            source.Settings.SetApplicationPassword("synthetic-only");
+                            await automation.ProbeAsync(wait: true); break;
+                        }
+                        if (mode == "wlan-return" && updates == 1)
+                        {
+                            var reads = source.Reads; var discovery = source.Discoveries;
+                            try { await session.RunAsync(command["standSha256"]!.GetValue<string>(), timeout.Token); throw new Exception("Missing WLAN did not hold native wire"); }
+                            catch (InvalidOperationException error) when (error.Message == "contact_source_wlan_required") { }
+                            await Reply("originalKontaktErgebnis", new { requestId = command["requestId"]!.GetValue<string>(), ok = false, code = "wlan_required", freigaben = session.GrantCount });
+                            TestAssert.That(source.Reads == reads && source.Discoveries == discovery && source.Writes == 0, "Known WLAN wait reached provider IO");
+                            wlan = true;
+                            TestAssert.That(await automation!.ProbeAsync(wait: true), "WLAN return lost native scope");
+                            await Reply("originalKontaktNetz", new { wlan = true }); break;
+                        }
+                        if (durable) TestAssert.That(await automation!.ProbeAsync(wait: true), "Current native durable scope was unavailable before provider IO");
                         var result = await session.RunAsync(command["standSha256"]!.GetValue<string>(), timeout.Token);
                         TestAssert.That(result.SourceErrors == 0 && result.Offer is not null, "Actual frontend's native source run was held unexpectedly");
                         await Reply("originalKontaktErgebnis", new { requestId = command["requestId"]!.GetValue<string>(), ok = true,
                             token = result.Offer!.Token, originalSha256 = result.Offer.OriginalSha256, kontakte = result.Offer.Contacts,
                             fehlerQuellen = result.SourceErrors, freigaben = result.Grants }); break;
                     }
-                    case "kontakt_originalquellen_widerrufen": session.Revoke(); break;
+                    case "kontakt_originalquellen_widerrufen":
+                        if (durable) await automation!.RevokeAsync(command["dauerhaft"]?.GetValue<bool>() == true);
+                        else session.Revoke();
+                        break;
                 }
             }
             await process.WaitForExitAsync(timeout.Token);
@@ -512,6 +782,7 @@ internal static class ContactSourceUpdateRunTests
         }
         finally
         {
+            automation?.Dispose();
             if (process is not null) { if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync(); } process.Dispose(); }
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
@@ -821,13 +1092,15 @@ internal static class ContactSourceUpdateRunTests
     {
         foreach (var mode in new[] { "success", "no-grant", "wrong-account", "wrong-href", "thunderbird",
             "readonly", "unknown", "revoked-during-read", "account-changed", "snapshot-failed",
-            "revoked-during-snapshot", "privilege-during-snapshot", "account-during-snapshot", "book-during-snapshot", "cancelled", "cancel-during-snapshot" })
+            "revoked-during-snapshot", "privilege-during-snapshot", "account-during-snapshot", "book-during-snapshot", "cancelled", "cancel-during-snapshot",
+            "retarget-same-origin", "missing-native-cookie", "fake-native-cookie", "unminted-native-record", "revoked-callback-bypass" })
         {
             var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
                 ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
             using var first = new Source("first", "generic-dav", original);
             using var second = new Source("second", "nextcloud", original);
             var a = await first.OriginalAsync(); var b = await second.OriginalAsync();
+            if (mode == "retarget-same-origin") await first.ExtraOriginalAsync();
             var local = original.DeepClone().AsObject();
             ContactFields.SetSource(local, first.Catalog.Uid, a, remoteBaseline: true);
             ContactFields.SetSource(local, second.Catalog.Uid, b, remoteBaseline: true);
@@ -843,6 +1116,12 @@ internal static class ContactSourceUpdateRunTests
             var approval = new NativeDavContactUpdateApproval(first.Catalog.Uid, first.Catalog.Href, revision,
                 _ => approved ? Task.CompletedTask : Task.FromException(new UnauthorizedAccessException("explicit approval withdrawn")));
             if (approved) approval = scope.Capture().Single();
+            var badNativeBinding = mode is "retarget-same-origin" or "missing-native-cookie" or "fake-native-cookie" or "unminted-native-record" or "revoked-callback-bypass";
+            if (mode == "retarget-same-origin") approval = approval with { Source = first.ExtraCatalog.Uid, Collection = first.ExtraCatalog.Href };
+            if (mode == "missing-native-cookie") approval = approval with { NativeConsent = null };
+            if (mode == "fake-native-cookie") approval = approval with { NativeConsent = new object() };
+            if (mode == "unminted-native-record") approval = new(approval.Source, approval.Collection, approval.AccountRevision, _ => Task.CompletedTask);
+            if (mode == "revoked-callback-bypass") { scope.Revoke(); approval = approval with { RequireApproved = _ => Task.CompletedTask }; }
             if (mode == "wrong-account") approval = approval with { AccountRevision = "unrelated-revision" };
             if (mode == "wrong-href") approval = approval with { Collection = new Uri("https://first.invalid/nc/books/other/") };
             if (mode == "thunderbird") approval = approval with { Source = "thunderbird-addressbook:unrelated" };
@@ -867,7 +1146,7 @@ internal static class ContactSourceUpdateRunTests
             try
             {
                 factory = await first.OpenFactoryAsync(approval, Current, Protect, cancel.Token);
-                TestAssert.That(mode is not ("no-grant" or "wrong-account" or "wrong-href" or "thunderbird" or "readonly" or "unknown" or "cancelled"),
+                TestAssert.That(!badNativeBinding && mode is not ("no-grant" or "wrong-account" or "wrong-href" or "thunderbird" or "readonly" or "unknown" or "cancelled"),
                     "Factory admitted an unapproved/misrouted/non-writable source: " + mode);
                 if (mode == "revoked-during-read") first.BeforeContentRead = () => { approved = false; scope.Revoke(); };
                 if (mode == "account-changed") first.Settings.SaveConfiguration(first.Settings.Load()!, "changed-synthetic-secret", false);
@@ -883,12 +1162,13 @@ internal static class ContactSourceUpdateRunTests
                 else TestAssert.That(ContactFields.Source(result.Contacts[0]!.AsObject(), first.Catalog.Uid)!.ToJsonString() == baseline,
                     "Held factory source advanced its baseline: " + mode);
             }
-            catch (UnauthorizedAccessException) when (mode is "no-grant" or "wrong-account" or "wrong-href" or "thunderbird" or "readonly" or "unknown")
+            catch (UnauthorizedAccessException) when (badNativeBinding || mode is "no-grant" or "wrong-account" or "wrong-href" or "thunderbird" or "readonly" or "unknown")
             {
                 TestAssert.That(first.Writes == 0 && first.Reads == reads, "Rejected factory source performed content IO");
                 if (mode is not ("readonly" or "unknown")) TestAssert.That(first.Discoveries == discoveries, "Unapproved source performed discovery");
                 await ContactSourceUpdateRun.RunAsync(contacts, [second.Admit()], () => Task.CompletedTask, Current);
                 TestAssert.That(second.Writes == 1, "Rejected factory source blocked an independent source");
+                if (badNativeBinding) Console.WriteLine("CONTACT SOURCE FACTORY NATIVE BINDING PASS " + mode);
             }
             catch (InvalidOperationException error) when (mode == "book-during-snapshot" && error.Message == "factory book changed")
             { TestAssert.That(first.Writes + second.Writes == 0 && snapshots == 1, "Book invalidation failed to stop the entire run"); }

@@ -19,7 +19,14 @@ internal sealed partial class PersonalActorNativeSaveHost
     private ContactSourceSavedCommit OriginalContactCommit => contactSourceSavedCommit ??= new(NativeActorSavedBook);
     internal ContactSourceSavedCommit SourceResultCommit => OriginalContactCommit;
     internal ContactSourceApprovalStore? ApprovalStore;
+    internal Func<int, string, bool, Task>? SaveAckObserver;
     private ContactSourceApprovalStore? OriginalContactApprovals => ApprovalStore;
+    private async Task OriginalContactSaveAcknowledgedAsync(int id, string hash, bool recognized)
+    {
+        TestAssert.That(MutationGate.Global.Wait(0), "Actual contact restore continuation still held the writer mutation gate");
+        MutationGate.Global.Release();
+        if (SaveAckObserver is not null) await SaveAckObserver(id, hash, recognized);
+    }
     private readonly CancellationTokenSource backgroundLifetime = new();
     private readonly Replies form = new();
     private string currentPlainText, currentEnvelope;

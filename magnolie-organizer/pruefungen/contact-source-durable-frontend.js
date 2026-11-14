@@ -1,7 +1,7 @@
 "use strict";
 const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
 const { createHash, webcrypto } = require("node:crypto"), { JSDOM } = require("jsdom");
-const web = path.resolve(__dirname, "../web");
+const web = process.env.MAGNOLIE_TEST_WEB ? path.resolve(process.env.MAGNOLIE_TEST_WEB) : path.resolve(__dirname, "../web");
 const sha = text => createHash("sha256").update(text).digest("hex");
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function boot() {
@@ -31,8 +31,11 @@ async function boot() {
 }
 async function run() {
   let count = 0;
-  for (const mode of ["success", "unsolicited", "missing-marker", "wrong-id", "wrong-hash", "repair-pending", "uncommitted",
-    "pending-save", "newer-edit", "native-revoked", "explicit-revoked", "reloaded", "account-wait-resume", "result-save-no-loop", "locked", "initial-setup-account-wait", "setup-stored-but-waiting"]) {
+  const statusWait = process.env.MAGNOLIE_TEST_DURABLE_STATUS_WAIT === "1";
+  const modes = ["success", "unsolicited", "missing-marker", "wrong-id", "wrong-hash", "repair-pending", "uncommitted",
+    "pending-save", "newer-edit", "native-revoked", "explicit-revoked", "reloaded", "account-wait-resume", "result-save-no-loop", "locked", "initial-setup-account-wait", "setup-stored-but-waiting"];
+  if (statusWait) modes.push("status-wait-return");
+  for (const mode of modes) {
     const b = await boot();
     try {
       const extra = ["missing-marker", "initial-setup-account-wait", "setup-stored-but-waiting"].includes(mode) ? { kontaktQuellenDauerhaft: false } : mode === "repair-pending" ? { repairPending: true } :
@@ -71,9 +74,17 @@ async function run() {
           b.w.App.originalKontaktErgebnis({ requestId: update.requestId, ok: false, code: "account_access_wait", freigaben: 0 });
         } else assert.equal(b.commands("kontakt_originalquellen_update").length, 0);
       }
+      if (mode === "status-wait-return") {
+        b.notice(saved);
+        const update = b.commands("kontakt_originalquellen_update").at(-1); assert.ok(update);
+        b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sync").click();
+        b.w.App.edsStatus({ verfuegbar: true, buchOk: true, windows: true, kalender: [], adressbuecher: [],
+          originalKontaktUpdates: { verfuegbar: true, freigaben: 0 } });
+        b.w.App.originalKontaktErgebnis({ requestId: update.requestId, ok: false, code: "account_access_wait", freigaben: 0 });
+      }
       b.notice(saved, mode === "wrong-id" ? { id: saved.id + 1 } : mode === "wrong-hash" ? { standSha256: "0".repeat(64) } : {});
       const allowed = ["success", "account-wait-resume", "result-save-no-loop", "setup-stored-but-waiting"].includes(mode);
-      assert.equal(b.commands("kontakt_originalquellen_update").length, mode === "initial-setup-account-wait" ? 2 : allowed ? 1 : 0, mode);
+      assert.equal(b.commands("kontakt_originalquellen_update").length, ["initial-setup-account-wait", "status-wait-return"].includes(mode) ? 2 : allowed ? 1 : 0, mode);
       if (mode === "result-save-no-loop") {
         const update = b.commands("kontakt_originalquellen_update").at(-1), contacts = JSON.parse(JSON.stringify(b.t.daten().kontakte));
         contacts[0].syncQuellen = { native: { etag: '"v2"' } };
@@ -92,6 +103,6 @@ async function run() {
       count++; console.log("DURABLE CONTACT FRONTEND PASS", mode);
     } finally { b.close(); }
   }
-  assert.equal(count, 17);
+  assert.equal(count, statusWait ? 18 : 17);
 }
 run().catch(error => { console.error(error); process.exitCode = 1; });

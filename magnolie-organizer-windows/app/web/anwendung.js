@@ -6725,6 +6725,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function verwerfeSpeichernNachRestore() {
+    originalKontaktDauerNachweis = originalKontaktLetzterAck = null;
+    originalKontaktWlanWartet = false;
     originalKontaktGeneration++;
     originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     letzterSpeicherSha256 = ""; baumSpeicherNachweis = baumPostVorSpeichern = null;
@@ -25565,28 +25567,36 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let originalKontaktFreigaben = 0, originalKontaktLauf = null, originalKontaktSpeicher = null;
   let originalKontaktGeneration = 0;
   let originalKontaktFreigabeAnfrage = "";
+  let originalKontaktWlanWartet = false;
+  let originalKontaktDauerNachweis = null, originalKontaktLetzterAck = null;
 
-  function originalKontaktUpdatesWiderrufen() {
+  function originalKontaktUpdatesWiderrufen(dauerhaft = false) {
+    originalKontaktWlanWartet = false;
     originalKontaktGeneration++;
     originalKontaktFreigaben = 0;
     originalKontaktFreigabeAnfrage = "";
     originalKontaktSpeicher = null;
-    if (Bruecke.vorhanden) Bruecke.sende({ cmd: "kontakt_originalquellen_widerrufen" });
+    originalKontaktDauerNachweis = originalKontaktLetzterAck = null;
+    if (Bruecke.vorhanden) Bruecke.sende({ cmd: "kontakt_originalquellen_widerrufen", dauerhaft: dauerhaft === true });
   }
 
   function starteOriginalKontaktUpdates() {
     if (!Bruecke.vorhanden || !initialisiert || !antwortErhalten || gesperrt || originalKontaktFreigaben < 1 ||
-        originalKontaktLauf || originalKontaktSpeicher || syncLaeuft || kontaktSyncPruefungLauf || aktiverEditor || mcpSyncAktiv() ||
+        originalKontaktFreigabeAnfrage || originalKontaktLauf || originalKontaktSpeicher || syncLaeuft || kontaktSyncPruefungLauf || aktiverEditor || mcpSyncAktiv() ||
         laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null || !/^[0-9a-f]{64}$/.test(letzterSpeicherSha256)) return;
     sichereNotizSnapshot();
     if (JSON.stringify(DATEN) !== letzterSpeicherText || speicherTimer !== null) return;
     const lauf = { requestId: crypto.randomUUID(), bestand: DATEN, text: letzterSpeicherText, sha256: letzterSpeicherSha256,
       generation: originalKontaktGeneration };
     originalKontaktLauf = lauf;
-    if (!Bruecke.sende({ cmd: "kontakt_originalquellen_update", requestId: lauf.requestId, standSha256: lauf.sha256 }))
+    originalKontaktWlanWartet = false;
+    if (!Bruecke.sende({ cmd: "kontakt_originalquellen_update", requestId: lauf.requestId, standSha256: lauf.sha256 })) {
       originalKontaktLauf = null;
+      return false;
+    }
     // Only a native terminal reply releases the run. A timeout is NOT evidence
     // of delivery failure and must not start another provider attempt.
+    return true;
   }
 
   function empfangeOriginalKontaktErgebnis(nutzlast) {
@@ -25596,6 +25606,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (lauf.generation !== originalKontaktGeneration) return;
     if (Number.isSafeInteger(nutzlast.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
     if (nutzlast.ok !== true) {
+      if (nutzlast.code === "account_access_wait" && originalKontaktDauerNachweis) originalKontaktDauerNachweis.starten = true;
+      if (nutzlast.code === "wlan_required") originalKontaktWlanWartet = true;
       if (nutzlast.code === "wlan_required" && $("#sync-status")) $("#sync-status").textContent = _("Waiting for Wi-Fi.");
       return;
     }
@@ -32334,7 +32346,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (nutzlast.originalKontaktUpdates?.verfuegbar === true) {
       const freigaben = nutzlast.originalKontaktUpdates.freigaben;
       if (freigaben === 0) {
-        if (originalKontaktFreigaben > 0) originalKontaktGeneration++;
+        // Missing usable access is not a human revoke. Retain the authenticated
+        // SaveACK correlation so the same waiting run can resume quietly.
+        if (originalKontaktFreigaben > 0 && !originalKontaktDauerNachweis) originalKontaktGeneration++;
         originalKontaktFreigaben = 0; // Discovery/status never grants automatic delivery.
       }
       const knoepfe = el("div", "knopfreihe");
@@ -32345,7 +32359,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (!Bruecke.sende({ cmd: "kontakt_originalquellen_freigabe", requestId: originalKontaktFreigabeAnfrage }))
             originalKontaktFreigabeAnfrage = "";
         });
-      }), knopf(_("Revoke"), "", originalKontaktUpdatesWiderrufen));
+      }), knopf(_("Revoke"), "", () => originalKontaktUpdatesWiderrufen(true)));
       wahl.append(knoepfe);
     }
 
@@ -33649,6 +33663,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let sperrZustand = { eingabe: "", wartet: 0, uhr: null, art: "pin" };
 
   function zeigeSperrbildschirm(wartet) {
+    originalKontaktWlanWartet = false;
+    if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher || originalKontaktDauerNachweis) originalKontaktUpdatesWiderrufen();
+    originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     kontaktFotoDialogSchliessen?.();
     syncKontaktDialogSchliessen?.();
     kontaktDateiPruefungSchliessen?.();
@@ -34269,7 +34286,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
     trayDarstellungTestStand(value) { window.MagnolieAppearance?.nativeResult(value); },
     init(nutzlast) {
-      if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher) originalKontaktUpdatesWiderrufen();
+      if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher || originalKontaktDauerNachweis) originalKontaktUpdatesWiderrufen();
       originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
       window.MagnolieAppearance?.update({ today: "", developer: false, locked: true });
       verwerfeKdeEmpfangDialoge();
@@ -36024,8 +36041,36 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (nutzlast?.freigaben === 0) { originalKontaktGeneration++; originalKontaktSpeicher = null; }
       if (Number.isSafeInteger(nutzlast?.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
       if (letzterEdsStatus?.originalKontaktUpdates) letzterEdsStatus.originalKontaktUpdates.freigaben = originalKontaktFreigaben;
-      if (nutzlast?.ok === true && nutzlast.changed === true && originalKontaktFreigaben > 0)
+      const ack = originalKontaktLetzterAck;
+      if (nutzlast?.ok === true && nutzlast.dauerhaft === true && ack && nutzlast.id === ack.id &&
+          nutzlast.standSha256 === ack.sha256 && (ack.generation === originalKontaktGeneration || nutzlast.wartet === true) &&
+          letzterSpeicherText === ack.text && letzterSpeicherSha256 === ack.sha256)
+        originalKontaktDauerNachweis = { ...ack, generation: originalKontaktGeneration, starten: nutzlast.wartet === true };
+      if (nutzlast?.ok === false && $("#sync-status"))
+        $("#sync-status").textContent = _("The contact source permission could not be saved. Automatic updates are paused.");
+      if (nutzlast?.ok === true && (nutzlast.changed === true || originalKontaktWlanWartet) && originalKontaktFreigaben > 0)
         nachDauerhaftemSpeichern(starteOriginalKontaktUpdates);
+    },
+    originalKontaktDauerfreigabe(nutzlast) {
+      const nachweis = originalKontaktDauerNachweis;
+      if (!nachweis || nutzlast?.id !== nachweis.id || nutzlast?.standSha256 !== nachweis.sha256 ||
+          nachweis.generation !== originalKontaktGeneration || gesperrt || originalKontaktFreigabeAnfrage ||
+          letzterSpeicherSha256 !== nachweis.sha256 || letzterSpeicherText !== nachweis.text ||
+          JSON.stringify(DATEN) !== nachweis.text || laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null) return;
+      if (nutzlast.ok !== true) {
+        originalKontaktFreigaben = 0;
+        if ($("#sync-status")) $("#sync-status").textContent = _("Waiting for account access. Automatic contact updates will resume when available.");
+        return;
+      }
+      if (!Number.isSafeInteger(nutzlast.freigaben) || nutzlast.freigaben < 1) return;
+      originalKontaktFreigaben = nutzlast.freigaben;
+      if (nachweis.starten && starteOriginalKontaktUpdates()) nachweis.starten = false;
+    },
+    originalKontaktNetz(nutzlast) {
+      if (nutzlast?.wlan === true) {
+        if (originalKontaktWlanWartet) starteOriginalKontaktUpdates();
+        else if (originalKontaktDauerNachweis?.starten && starteOriginalKontaktUpdates()) originalKontaktDauerNachweis.starten = false;
+      }
     },
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
     gespeichert(ergebnis) {
@@ -36051,6 +36096,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (erledigt) {
           letzterSpeicherText = erledigt.text;
           letzterSpeicherSha256 = typeof ergebnis.standSha256 === "string" ? ergebnis.standSha256 : "";
+          originalKontaktLetzterAck = ergebnis.committed === true && ergebnis.repairPending !== true && /^[0-9a-f]{64}$/.test(letzterSpeicherSha256) ? {
+            id: ergebnis.id, sha256: letzterSpeicherSha256, text: erledigt.text,
+            generation: originalKontaktGeneration, starten: !originalKontaktNachweis } : null;
+          originalKontaktDauerNachweis = ergebnis.kontaktQuellenDauerhaft === true ? originalKontaktLetzterAck : null;
+          if (originalKontaktDauerNachweis) originalKontaktFreigaben = 0;
+          if (ergebnis.kontaktQuellenFehler === true) originalKontaktFreigaben = 0;
           if (baumSpeicherNachweis?.text === erledigt.text) baumSpeicherNachweis = null;
         }
         const d = organizerDatumzeitTeile(new Date());
@@ -36059,7 +36110,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }), true);
         pumpeSpeichern();
         zeitAbgleichAutomatisch();
-        if (!originalKontaktNachweis) starteOriginalKontaktUpdates();
+        if (!originalKontaktNachweis && !originalKontaktDauerNachweis) starteOriginalKontaktUpdates();
       } else {
         if (originalKontaktNachweis) originalKontaktUpdatesWiderrufen();
         speicherFehlgeschlagen(ergebnis.fehler, erledigt);

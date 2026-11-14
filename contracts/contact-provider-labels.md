@@ -744,10 +744,11 @@ seventeen native account cases continue passing, and Core/actual BASE product
 builds are clean. No live provider, real account, modal UI or installed app proof
 is claimed.
 
-The later save/primary/scope/writer checkpoints below extend this core. Actual
-setup, durable revocation, frontend restoration and WLAN-return integration are
-still pending. The Windows application remains session-only for now; these native
-components are not a delivered persistent automatic feature. Whole private-key
+The later save/primary/scope/writer and application checkpoints below extend this
+core. Native setup, durable revocation, frontend restoration and quiet WLAN/account
+return are now connected in source; interactive product acceptance remains #625
+and exact Windows original-book protection remains #619. No installed persistent
+automatic feature or released package is claimed here. Whole private-key
 directory rollback or a hostile same-user/admin process is not defended here.
 
 A controlled native-only Linux record-copy retarget was separately confirmed and
@@ -843,9 +844,8 @@ controlled. Four affected actual historical/ordinary SaveAsync regression groups
 also pass on host. Existing native helper matrices remain passing. Core and actual
 BASE product builds are clean; no package was installed or published.
 
-The real application still does not persist native setup decisions or restore
-the scope/frontend after SaveACK, and has no connected durable WLAN/account-return
-monitor yet. Consequently Windows once-configured automation is not complete.
+The subsequent application integration connects setup, scope/frontend restore
+and quiet WLAN/account return. This writer checkpoint alone was not that feature.
 
 ### Durable-capable native session API (#621)
 
@@ -863,7 +863,70 @@ original CAS/readback and actual encrypted writer/result SaveACK, including new
 native owners after restart and clean-result no-IO repetition. Provider transport
 and decision/protection callbacks remain synthetic; these are not interactive
 modal or live-provider proofs. Existing helper/writer matrices pass and Core/BASE
-product builds are clean. The real Bridge has not yet opted its session into this
-durable API: that must be connected together with SaveACK-correlated frontend
-restoration, explicit durable-revoke commands and quiet WLAN/account return, not
-activated piecemeal with stale session guards.
+product builds are clean. The real Bridge now opts into this API together with
+the complete correlation/lifecycle connection below, not piecemeal with stale
+session guards.
+
+### Windows once-configured application connection (#621)
+
+The actual native Bridge now connects its genuine setup dialog to the durable
+session/store and the `ContactSourceAutomation` lifecycle coordinator. Cancel,
+explicit empty selection, durable revoke and volatile pause remain distinct. A
+failed durable revoke reports failure and blocks this process; Cancel cannot
+quietly unblock it. The native dialog explains restart persistence, waiting and
+revocation. No imported document settings or discovery counts create consent.
+
+Only the actual successful writer records a native ACK correlation. After its
+ACK and release of the writer mutation gate, current signed intent restores a
+typed native scope and emits a separate positive ID/raw-hash-correlated notice.
+The frontend requires that same accepted committed/unrepaired ACK, exact current
+text/hash/generation and no newer pending save/dirty book/lock before scheduling.
+Markers alone never grant IO. Result-save restoration does not repeat a clean
+provider run. Default-OFF creates no consent files, observes no credentials and
+starts no monitor. Consent errors preserve ordinary saves but clear usable grants.
+
+The native host starts its bounded fifteen-second monitor only for recognized
+signed intent. It reuses the existing tracked background-work lifecycle, permits
+one probe at a time and stops/disposes on pause/shutdown. Probes perform no provider
+HTTP requests: they validate current native book/credential access and the existing
+Windows WLAN profile observation. Known account/WLAN waits resume without another
+dialog; unknown mutation outcomes and source conflicts remain held rather than
+blindly retried. No new driver, service, download or permission bypass is added.
+
+Eighteen additional coordinator cases pass on host and actual Windows, including
+restart, account loss/return, pause/revoke, corrupt/revoked state, failed durable
+revoke followed by Cancel, disposal and stale restore. Five actual frontend/native/
+encrypted-writer wires pass on host: existing session, durable setup, fresh native
+owner/frontend restart with no second setup, account removal/return with an
+intervening zero-count status, and WLAN return. Each updates exactly two bound
+original books once, with one native protection callback and confirmed result
+SaveACK. The restarted wire needs two actual save commands and no setup command;
+the two waiting wires issue a second update command only after proven pre-IO wait.
+Transport/decision/protection/WLAN observations remain synthetic. These are not
+actual modal, physical WLAN or installed-product acceptance proofs.
+
+Eighteen full-frontend cases pass (seventeen existing durable cases plus the
+status/wait-return race), as do Windows original frontend14/WLAN9, affected
+desktop/MCP/custom-save regressions and four historical/ordinary actual SaveAsync
+groups. Existing native session14/writer14/scope20/primary19/save32/core54-or-55 and
+native private-file/account matrices pass; these matrices overlap. Core/actual
+BASE product builds are clean and output web bytes match the tested source.
+
+The direct DAV factory now independently requires the scope-minted exact native
+decision witness before and after every supplied approval callback. A controlled
+native-only same-origin record-copy factory admission was reproduced before this
+check; five new factory cases reject retargeting, missing/fake witnesses and
+revoked callback replacement before discovery. No external Bridge/MCP/document
+exploit was established. Linux transfer hardening remains #623.
+
+A separate zero-count status race was confirmed on unchanged Linux in #624:
+metadata could invalidate the durable ACK correlation before known account-wait
+and return replies. Windows now clears usable counts without treating that
+metadata as human revocation when an authenticated durable ACK exists; explicit
+revoke/lock/reload/new-save fences remain. This is not yet a Linux fix.
+
+Interactive Windows acceptance is blocked by the existing noninteractive runner
+and continues in #625; #619 still owns exact original-book snapshot coverage.
+No installed app, live provider, device/VM, package installation or publication
+acceptance is claimed. After #621 source integration, #623 and #624 precede the
+broader Notes/provider return #622.

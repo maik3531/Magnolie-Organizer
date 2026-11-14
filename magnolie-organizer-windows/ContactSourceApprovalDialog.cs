@@ -19,7 +19,7 @@ internal static class ContactSourceApprovalDialog
                 layout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
                 layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
                 var message = new Label { AutoSize = true, MaximumSize = new Size(700, 0), Text = translate(
-                    "Allow updates to selected original address books for this session only. Automatic updates require Wi-Fi and existing contact bindings. No contacts will be created or deleted. Locking or changing accounts requires approval again.") };
+                    "Allow updates to selected original address books, including after restarting. Automatic updates wait for Wi-Fi and account access and require existing contact bindings. No contacts will be created or deleted. An empty selection revokes permission; you can also revoke it in Settings.") };
                 var choices = new CheckedListBox { Dock = DockStyle.Fill, CheckOnClick = true, HorizontalScrollbar = true };
                 foreach (var source in sources)
                 {

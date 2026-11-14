@@ -68,7 +68,9 @@ internal sealed class ContactSourceDavFactory : IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
         lifetime.ThrowIfCancellationRequested(); cancellation.ThrowIfCancellationRequested();
         requireBookCurrent();
+        ContactSourceApprovalScope.RequireNativeDecision(approval, cancellation);
         await approval.RequireApproved(cancellation);
+        ContactSourceApprovalScope.RequireNativeDecision(approval, cancellation);
         requireBookCurrent();
         lifetime.ThrowIfCancellationRequested(); cancellation.ThrowIfCancellationRequested();
         var current = settings.ReadSnapshot();

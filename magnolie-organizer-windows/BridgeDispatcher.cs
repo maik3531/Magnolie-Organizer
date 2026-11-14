@@ -286,7 +286,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         break;
                     case "sync": await SynchronizeContactsAsync(message); break;
                     case "kontakt_originalquellen_freigabe": await ConfigureOriginalContactSourcesAsync(message); break;
-                    case "kontakt_originalquellen_widerrufen": await RevokeOriginalContactSourcesAsync(); break;
+                    case "kontakt_originalquellen_widerrufen": await RevokeOriginalContactSourcesAsync(message); break;
                     case "kontakt_originalquellen_update": await UpdateOriginalContactSourcesAsync(message); break;
                     case "sync_commit":
                         if (Text(message, "requestId") is { Length: > 0 } commitRequest)
@@ -905,6 +905,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private async Task SaveAsync(JsonElement message, NativeHistoricalWriterInvocation? historical = null)
     {
         var locked = false;
+        var contactAckCommitted = false;
+        var contactAckRecognized = false;
         var id = Integer(message, "id");
         var text = Text(message, "text");
         if (!currentPlainTextAvailable)
@@ -1018,6 +1020,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 standSha256 = BaumSyncSnapshot.Hash(text),
                 kontaktOriginalGespeichert = originalContactWrite?.Completed == true ? originalContactWrite.Token : "" });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);
+            contactAckCommitted = true;
+            contactAckRecognized = contactConsentRecognized && !contactConsentError;
         }
         catch (Exception error)
         {
@@ -1025,6 +1029,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = T("Warning: The data could not be saved.") });
         }
         finally { if (locked) MutationGate.Global.Release(); }
+        if (contactAckCommitted) await OriginalContactSaveAcknowledgedAsync(id, BaumSyncSnapshot.Hash(text), contactAckRecognized);
     }
 
     // Private native issuer, never an ExecuteMcp/request action. The frontend
@@ -1983,6 +1988,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     {
         lock (serviceGate) { if (disposed) return; disposed = true; }
         currentPlainTextAvailable = false;
+        StopOriginalContactMonitor(); originalContactAutomation?.Dispose();
         noteSendJobs?.Dispose();
         backgroundLifetime.Cancel();
         ClearPersonalSyncRuntime();
