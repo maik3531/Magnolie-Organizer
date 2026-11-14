@@ -17,6 +17,13 @@ device acceptance or previously observed user-data corruption.
 
 ## Notes: two different existing paths
 
+The FS1 receiver prerequisite in #627 pins the peer and local public identity
+from handshake to payload acceptance on Notes, Linux and Windows. An open
+ephemeral channel is not relabelled as a newly pinned identity under the same
+branch ID. Changed pins are rejected before dispatch, consuming/clearing the
+session. Unchanged pins and cosmetic name changes still work. This channel check
+does not itself grant source rights or supply a provider/baseline SaveACK.
+
 - `magnolie-notes/.../telefon/ContactValueWrite.kt` resource **19** accepts only
   `telefone` and `emailEintraege`. Preparation and apply receipts carry the exact
   selected field set and account tuple. `ContactValueWriteAndroid.kt` binds a

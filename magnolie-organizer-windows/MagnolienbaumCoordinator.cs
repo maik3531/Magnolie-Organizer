@@ -1406,6 +1406,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         {
             var partner = Partner(incoming.PartnerId);
             if (partner is null || !Boolean(partner, "bestaetigt")) throw new InvalidOperationException("Dieser Zweig wurde noch nicht bestätigt.");
+            if (String(partner, "oeffentlich") != incoming.PartnerPublicKey || String(state, "oeffentlich") != incoming.OwnPublicKey)
+                throw new InvalidOperationException("Die sichere Sitzung ist unbekannt oder abgelaufen.");
             var opened = MagnolienbaumFs1.OpenEnvelope(incoming.Session, String(state, "kennung"), String(partner, "kennung"), payload);
             var seen = partner["transportIds"] as JsonArray ?? new JsonArray();
             if (!seen.Any(item => item?.GetValue<string>() == opened.TransportId))

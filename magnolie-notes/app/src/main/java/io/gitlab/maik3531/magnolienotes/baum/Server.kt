@@ -82,7 +82,10 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         val sitzung: Sitzung.Offen,
         val partner: String,
         val adresse: String,
-        val ablauf: Long
+        val ablauf: Long,
+        val partnerSchluessel: String,
+        val eigeneKennung: String,
+        val eigenerSchluessel: String
     )
 
     private class Lauf(val buchse: ServerSocket, val arbeiter: ThreadPoolExecutor) {
@@ -304,7 +307,8 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             throw BaumFehler("Diese sichere Sitzung gibt es schon.")
         }
         sitzungen[antwort.sitzung.sid] = OffeneSitzung(
-            antwort.sitzung, partner.kennung, quelle, jetzt + SITZUNG_SEKUNDEN
+            antwort.sitzung, partner.kennung, quelle, jetzt + SITZUNG_SEKUNDEN,
+            partner.oeffentlich, eigen.kennung, eigen.oeffentlich
         )
         return antwort.nachricht
     }
@@ -321,9 +325,19 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             val partner = handlung.partner(offen.partner)
                 ?: throw BaumFehler("Dieser Zweig ist unbekannt.")
             if (!partner.bestaetigt) throw BaumFehler("Dieser Zweig ist noch nicht bestätigt.")
+            fun identitaetPruefen() {
+                val aktuell = handlung.partner(offen.partner)
+                val selbst = handlung.eigen()
+                if (aktuell?.bestaetigt != true || aktuell.oeffentlich != offen.partnerSchluessel ||
+                    eigen.kennung != offen.eigeneKennung || eigen.oeffentlich != offen.eigenerSchluessel ||
+                    selbst?.kennung != offen.eigeneKennung || selbst.oeffentlich != offen.eigenerSchluessel)
+                    throw BaumFehler("Die sichere Sitzung ist unbekannt oder abgelaufen.")
+            }
+            identitaetPruefen()
             val (inhalt, transportId) = Sitzung.oeffneUmschlag(
                 offen.sitzung, eigen.kennung, partner.kennung, umschlag
             )
+            identitaetPruefen()
             handlung.verarbeiteNachricht(partner.kennung, inhalt, transportId = transportId)
             handlung.adresseGesehen(partner.kennung, quelle)
             return Sitzung.baueQuittung(offen.sitzung, umschlag)

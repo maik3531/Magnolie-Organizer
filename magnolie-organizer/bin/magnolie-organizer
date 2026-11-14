@@ -16128,7 +16128,12 @@ class BaumDienst(object):
                             "The secure session is unknown or expired."))
                     sitzung = offen["sitzung"]
                     partner = baum_partner(zustand, offen["partner"])
-                    if not partner or not partner.get("bestaetigt"):
+                    if (not partner or not partner.get("bestaetigt") or not offen.get("partnerSchluessel") or
+                            not offen.get("eigenerSchluessel") or
+                            partner.get("oeffentlich") != offen.get("partnerSchluessel") or
+                            zustand.get("oeffentlich") != offen.get("eigenerSchluessel")):
+                        self._fs_sitzungen.pop(sitzungs_id, None)
+                        fs_sitzung_loeschen(sitzung)
                         raise RuntimeError(_(
                             "This branch has not been confirmed."))
                     _umschlag_fs_felder_pruefen(
