@@ -16,6 +16,7 @@ internal sealed class NotesOriginalExportChoice
     private readonly Func<NativeActorBookSnapshot?> capture;
     private readonly Action requireNativeSelection;
     private volatile bool active = true;
+    private volatile NotesOriginalChoiceStore.SourceSeal? consent;
     internal sealed record PendingSeed(NotesOriginalExportChoice Choice, NativeActorBookSnapshot Snapshot, JsonObject Request,
         string Id, string Uid, long BeforeRevision, Func<NativeActorBookSnapshot?> Capture);
     private sealed record PendingProof(PendingSeed Seed);
@@ -24,6 +25,7 @@ internal sealed class NotesOriginalExportChoice
         ? native.Seed with { Request = native.Seed.Request.DeepClone().AsObject() }
         : throw new InvalidOperationException("notes_original_owned_pending_required");
     internal (MagnolienbaumCoordinator.NotesPins Peer, MagnolienbaumCoordinator.NotesPins Own) Pins { get; }
+    internal string NativeBookSource => bookSource;
 
     internal NotesOriginalExportChoice(JsonObject body, MagnolienbaumCoordinator.NativeNotesOrigin origin, string transport,
         NativeActorBookSnapshot snapshot, Func<NativeActorBookSnapshot?> capture,
@@ -60,9 +62,21 @@ internal sealed class NotesOriginalExportChoice
 
     internal void Revoke() => active = false;
 
+    internal void AttachConsent(NotesOriginalChoiceStore.SourceSeal seal)
+    { seal.RequireOwner(this); consent = seal; }
+
+    internal JsonObject PrivateSourceBinding()
+    {
+        RequireCurrent();
+        return new() { ["peer"] = new JsonArray(Pins.Peer.Id, Pins.Peer.PublicKey), ["own"] = new JsonArray(Pins.Own.Id, Pins.Own.PublicKey),
+            ["share_id"] = export["share_id"]!.DeepClone(), ["setup_id"] = export["setup_id"]!.DeepClone(),
+            ["local_id"] = localId, ["local_uid"] = localUid };
+    }
+
     internal void RequireCurrent()
     {
         if (!active) throw new InvalidOperationException("notes_original_native_choice_revoked");
+        consent?.RequireCurrent();
         requireNativeSelection(); origin.RequireCurrent(export, transport);
         var current = capture();
         if (current is null || current.SavedBook.BookSource != bookSource)
@@ -72,6 +86,7 @@ internal sealed class NotesOriginalExportChoice
         if (matches.Length != 1 || NotesOriginalSchema.Text(matches[0], "uid") != localUid)
             throw new InvalidOperationException("notes_original_export_contact_changed");
         origin.RequireCurrent(export, transport); requireNativeSelection();
+        consent?.RequireCurrent();
         if (!active) throw new InvalidOperationException("notes_original_native_choice_revoked");
     }
 

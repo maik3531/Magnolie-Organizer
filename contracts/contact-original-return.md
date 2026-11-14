@@ -982,6 +982,54 @@ request intentions/nonces, independently sealed ACK history, restart/bootstrap,
 reserved transport/pump and the common actual setup UI. No production registration,
 installed-app/device/provider acceptance or package publication is implied.
 
+### Windows private stable-book consent core (#633)
+
+Explicit native approval can now persist authenticated choices in a separate
+private store. Only the actual chosen native book owner may supply its exact
+ID/UID/pins/share/setup bindings. A dedicated CurrentUser DPAPI purpose protects
+a fresh independent 32-byte consent key; AES-GCM encrypts/authenticates the bounded
+choice record. The native book path is keyed, and its exact canonical content is
+bound to an authenticated actual primary and real native saved snapshot. No DAV
+account consent, portable profile flag, ACK/request journal key or raw-key fallback
+is reused. Only the existing private filesystem boundary is shared.
+
+Approval/revocation rotate the private key/generation; unknown/interrupted state
+holds. Exact raw-file CAS protects a newer explicit decision from an older worker;
+a final context failure quarantines only that worker's own published state. Private
+source seals belong to the exact choice object. Native callbacks run outside file
+sessions, and raw key/roundtrip/plain buffers are cleared. Missing-store reads and
+revocation create no key/root and perform no book/selection callback. Loading never
+generates a replacement key. Revoked, lost, corrupt, pending, replayed old-record or
+foreign-book state grants no permission.
+
+On a stable genuinely saved book, a new store owner can restore only from a fresh
+actual authenticated export with the same private source/pins/setup and unchanged
+selected ID/UID, without asking the chooser again. A primary read after reopening
+still leaves the native saved snapshot absent; consent cannot call `RecordSaved`
+to fabricate it. A changed actual book deliberately holds at this stage: the
+known-book save chain and actual writer advancement are not joined yet. This is
+not complete restart/automatic Windows synchronization or permission to activate it.
+
+Evidence: 22 new synthetic consent-core scenarios pass on both the controlled
+managed host and existing noninteractive Windows runner, together with the prior
+origin/negotiation/pending/actual-writer/identity group. They cover missing store,
+stable restore, revocation, key loss/corruption/pending/old-record replay, foreign
+book/choice, wrong source/setup, changed-book hold, actual same-content save,
+reopen without a saved observation, raw protector rejection, counterfeit/foreign
+seals, callback lock order, newer-decision CAS, book change during approval and key
+buffer clearing/unavailability. Windows additionally exercises a real dedicated
+synthetic DPAPI key and rejects the DAV-purpose unprotect; non-Windows production
+protection refuses instead of falling back. Release CoreTests and BASE product
+source builds pass without warnings/errors. The initial test-only compile errors
+(fixture AES decrypt argument and platform guard inside a lambda) were corrected;
+no product failure was inferred from them.
+
+Still outstanding: known-book intent/advancement/recovery and real save/bootstrap
+hooks before using persistent seals for metadata saves, private request intentions,
+independent ACK history, reserved Windows transport/pump and common native setup.
+Whole-private-root rollback/hostile same-user or administrator control is not claimed
+prevented. No production controller, package installation or publication is enabled.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
