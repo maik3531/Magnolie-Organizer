@@ -82,6 +82,7 @@
     <Compile Include="..\NotesOriginalRequestIntents.cs" Link="NotesOriginalRequestIntents.cs" />
     <Compile Include="..\NotesOriginalSavedAckIntents.cs" Link="NotesOriginalSavedAckIntents.cs" />
     <Compile Include="..\NotesOriginalSavedAckRecovery.cs" Link="NotesOriginalSavedAckRecovery.cs" />
+    <Compile Include="..\NotesOriginalTerminalHistory.cs" Link="NotesOriginalTerminalHistory.cs" />
     <Compile Include="..\NotesOriginalReturnHash.cs" Link="NotesOriginalReturnHash.cs" />
     <Compile Include="..\ContactSourceNativeSession.cs" Link="ContactSourceNativeSession.cs" />
     <Compile Include="..\ContactSourceAutomation.cs" Link="ContactSourceAutomation.cs" />

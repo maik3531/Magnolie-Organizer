@@ -1214,6 +1214,38 @@ Release CoreTests and BASE builds are clean. Fresh VERIFIED local recovery,
 bootstrap/writer scheduling, terminal retirement and the reserved controller/pump/
 setup are still missing; query support alone enables none of them.
 
+### Windows durable terminal retirement and exact next-slot reuse (#633)
+
+A fresh authenticated exact `settled` status can now seal a separate independent
+terminal record bound to the original genuine ACK/request/physical slot. Durable
+terminal readback and the still-current native source/ID/UID/installed metadata
+precede any request retirement. Prepared, forged, missing/tampered, revoked or
+wrong-installation proof cannot release the hold. Terminal hashes alone remain
+insufficient; the genuine original ACK history is never replaced by terminal data.
+
+The opaque terminal proof authorizes only its own request store. Retirement writes
+the settled archive first and physical slot last, then verifies both. Partial
+transitions stay held and are repairable only through the same checked durable
+terminal chain. A next UUID can reserve that slot only with the matching native
+terminal proof and exact settled physical/archive state. An old completion cannot
+retire or overwrite a new pending request. Historical data stays private/retained.
+
+For an already retired request, independently validated terminal history plus exact
+installed ID/UID/mapping allow later local content edits without permanently
+stranding the next request. Before retirement, unsettled work still requires its
+exact chosen modeled target. A reloaded terminal chain needs fresh native status
+reauthorization, never a fabricated current writer witness or saved snapshot.
+
+Fifteen new synthetic actual-writer cases pass in the full managed group and a
+clearly identified new-test-only noninteractive Windows slice. They cover success,
+prepared/fake proof, terminal/archive/physical interruption, wrong installation,
+tampered/missing terminal, missing archive, exact next-UUID reuse, reloaded repair,
+revocation/Stop/mapping change between terminal sealing and physical retirement.
+Release CoreTests and BASE builds are clean; unrelated platform evidence is retained.
+Fresh VERIFIED local recovery/bootstrap, reserved transport/controller/pump, the
+existing key-backend selection and common real setup remain unconnected; production
+stays OFF and no package/device acceptance or installation is implied.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

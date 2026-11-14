@@ -836,6 +836,11 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "terminal-only")
+            {
+                await NotesOriginalChoiceStoreTests.TerminalAsync(Path.Combine(root, "notes-terminal-retirement"));
+                return; // Explicit new-test-only slice, prior unchanged evidence retained separately.
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "unconfirmed-only")
             {
                 await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
@@ -851,6 +856,7 @@ internal static class ContractGroupTests
             NotesOriginalChoiceStoreTests.Requests(Path.Combine(root, "notes-request-intentions"));
             await NotesOriginalChoiceStoreTests.SavedAcksAsync(Path.Combine(root, "notes-saved-ack-intentions"));
             await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
+            await NotesOriginalChoiceStoreTests.TerminalAsync(Path.Combine(root, "notes-terminal-retirement"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

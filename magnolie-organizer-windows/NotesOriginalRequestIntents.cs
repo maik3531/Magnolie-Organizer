@@ -73,8 +73,16 @@ internal sealed class NotesOriginalRequestIntents
 
     internal static JsonObject Validate(string key, string physical, JsonObject frame)
     {
-        NotesOriginalSchema.Fields(frame, "version", "state", "request", "request_sha256", "source", "source_seal", "export", "local_before", "book_before", "physical");
-        if (NotesOriginalSchema.Integer(frame, "version") != 1 || NotesOriginalSchema.Text(frame, "state") != "request_pending" ||
+        var state = NotesOriginalSchema.Text(frame, "state");
+        var fields = new[] { "version", "state", "request", "request_sha256", "source", "source_seal", "export", "local_before", "book_before", "physical" };
+        NotesOriginalSchema.Fields(frame, state == "request_settled" ? fields.Concat(["terminal"]).ToArray() : fields);
+        if (state == "request_settled")
+        {
+            var terminal = frame["terminal"] as JsonObject ?? throw new InvalidDataException("notes_request_terminal_marker_required");
+            NotesOriginalSchema.Fields(terminal, "key", "sha256");
+            if (terminal.Any(pair => !NotesOriginalSchema.Hex(NotesOriginalSchema.String(pair.Value)))) throw new InvalidDataException("notes_request_terminal_marker_invalid");
+        }
+        if (NotesOriginalSchema.Integer(frame, "version") != 1 || state is not ("request_pending" or "request_settled") ||
             NotesOriginalSchema.Text(frame, "physical") != physical || !NotesOriginalSchema.Hex(physical) ||
             frame["request"] is not JsonObject request || frame["source"] is not JsonObject source || frame["export"] is not JsonObject export ||
             frame["local_before"] is not JsonObject before || frame["source_seal"] is not JsonObject seal ||
@@ -129,8 +137,9 @@ internal sealed class NotesOriginalRequestIntents
         return (key, encrypted, Validate(key, physical, crypto.Open(NotesOriginalJournalCrypto.Purpose.UnconfirmedRequest, key, encrypted)));
     }
 
-    internal FreshRequest Seal(NotesOriginalPendingResult pending)
+    internal FreshRequest Seal(NotesOriginalPendingResult pending, NotesOriginalSavedAckIntents.TerminalProof? previousTerminal = null)
     {
+        var release = previousTerminal?.RequireFor(this); // Native callbacks before registry/file locks.
         var captured = pending.CaptureRequestIntention(); var context = Crypto();
         var physical = context.Crypto.Physical(captured.Binding, NotesOriginalSchema.Text(captured.Frame["source"]!.AsObject(), "local_id"));
         var frame = captured.Frame; frame["physical"] = physical; var key = RecordKey(physical, frame);
@@ -148,7 +157,9 @@ internal sealed class NotesOriginalRequestIntents
             using (var directory = files.Open(create: true) ?? throw new IOException("notes_request_private_root_required"))
             {
                 Identity(directory, context.Identity, initialize: true);
-                if (Physical(directory, context.Crypto, physical) is not null)
+                var previous = Physical(directory, context.Crypto, physical);
+                if (previous is not null && (release is null || !JsonNode.DeepEquals(previous.Value.Frame, release.Settled) ||
+                        directory.Read("r-" + previous.Value.Key + ".json", Limit) != previous.Value.Encrypted))
                     throw new InvalidOperationException("notes_request_physical_held");
                 if (directory.Read("r-" + key + ".json", Limit) is not null) throw new InvalidOperationException("notes_request_loaded_history_held");
                 var wrapper = new JsonObject { ["key"] = key, ["encrypted"] = encrypted }.ToJsonString();
@@ -227,9 +238,48 @@ internal sealed class NotesOriginalRequestIntents
     internal UnconfirmedQuery ReadOnlyQuery(string nativeBinding, string localId, NotesOriginalChoiceStore consent, NotesOriginalNegotiation protocol)
     {
         var frame = LoadPhysical(nativeBinding, localId) ?? throw new InvalidOperationException("notes_request_private_history_required");
+        if (NotesOriginalSchema.Text(frame, "state") != "request_pending") throw new InvalidOperationException("notes_request_already_settled");
         long epoch; lock (gate) epoch = generation;
         var proof = new QueryProof(this, consent, nativeBinding, localId, NotesOriginalSchema.Hash(frame), epoch);
         RequireQuery(proof, protocol); return new(proof);
+    }
+
+    internal void Retire(NotesOriginalSavedAckIntents.TerminalProof terminal)
+    {
+        var release = terminal.RequireFor(this); var context = Crypto();
+        var physical = NotesOriginalSchema.Text(release.Original, "physical"); var key = RecordKey(physical, release.Original);
+        var encrypted = context.Crypto.Seal(NotesOriginalJournalCrypto.Purpose.UnconfirmedRequest, key, release.Settled);
+        lock (gate)
+        {
+            using var directory = files.Open() ?? throw new IOException("notes_request_private_history_missing");
+            Identity(directory, context.Identity, initialize: false);
+            var current = Physical(directory, context.Crypto, physical) ?? throw new IOException("notes_request_physical_missing");
+            var archive = directory.Read("r-" + key + ".json", Limit) ?? throw new IOException("notes_request_archive_missing");
+            var decoded = Validate(key, physical, context.Crypto.Open(NotesOriginalJournalCrypto.Purpose.UnconfirmedRequest, key, archive));
+            if (current.Key != key ||
+                !JsonNode.DeepEquals(current.Frame, release.Original) && !JsonNode.DeepEquals(current.Frame, release.Settled) ||
+                !JsonNode.DeepEquals(decoded, release.Original) && !JsonNode.DeepEquals(decoded, release.Settled))
+                throw new InvalidOperationException("notes_request_retirement_history_changed");
+            // Archive first, physical slot last. A partial transition remains
+            // held; only this exact durable terminal proof can repair it.
+            directory.Write("r-" + key + ".json", encrypted, Limit); stage("retired-archive-written");
+            directory.Write("p-" + physical + ".json", new JsonObject { ["key"] = key, ["encrypted"] = encrypted }.ToJsonString(), Limit);
+            stage("retired-physical-written");
+            if (Physical(directory, context.Crypto, physical)?.Encrypted != encrypted || directory.Read("r-" + key + ".json", Limit) != encrypted)
+                throw new IOException("notes_request_retirement_unconfirmed");
+            fresh.Remove(key);
+        }
+        terminal.RequireFor(this);
+    }
+
+    internal bool RetiredArchiveMatches(JsonObject settled)
+    {
+        var context = Crypto(); var physical = NotesOriginalSchema.Text(settled, "physical"); var key = RecordKey(physical, settled);
+        using var directory = files.Open(); if (directory is null) return false;
+        Identity(directory, context.Identity, initialize: false);
+        var stored = Physical(directory, context.Crypto, physical);
+        return stored is not null && JsonNode.DeepEquals(stored.Value.Frame, settled) &&
+            directory.Read("r-" + key + ".json", Limit) == stored.Value.Encrypted;
     }
 
     private JsonObject RequireQuery(QueryProof proof, NotesOriginalNegotiation protocol)

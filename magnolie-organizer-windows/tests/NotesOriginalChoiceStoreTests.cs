@@ -396,6 +396,116 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine($"Notes unconfirmed query-only restart: {modes.Length} synthetic cases passed (no replay, pending writer, saved witness or ACK).");
     }
 
+    internal static async Task TerminalAsync(string root)
+    {
+        var modes = new[] { "success", "prepared", "fake", "terminal-crash", "archive-crash", "physical-crash", "mapping-change", "tampered-terminal", "missing-archive", "reuse", "reloaded-terminal",
+            "revoke-before-retire", "mapping-after-terminal", "stop-before-retire", "missing-terminal" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            var requestRoot = Path.Combine(h.Root, "requests"); var ackRoot = Path.Combine(h.Root, "acks");
+            ContactSourcePrivateFiles Boundary(string path) => new(path, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var fault = true;
+            var requests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key, phase =>
+            {
+                if (fault && (mode == "archive-crash" && phase == "retired-archive-written" || mode == "physical-crash" && phase == "retired-physical-written"))
+                    throw new IOException("synthetic-retirement-boundary");
+            });
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests, phase =>
+            { if (fault && mode == "terminal-crash" && phase == "terminal-written") throw new IOException("synthetic-terminal-durable-boundary"); });
+            var pending = h.Choice.CreatePending()!; h.PendingResult = pending; requests.Seal(pending);
+            var request = pending.Request(); var key = NotesOriginalSchema.Hash(request);
+            var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = key,
+                ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+            foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+            h.Send(result); var commit = pending.PrepareCommit(h.Host.SourceResultCommit);
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "Actual terminal fixture metadata writer failed");
+            var ack = outcomes.Seal(pending).Body();
+            h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own); var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+            var query = outcomes.ReadOnlyQuery(key, h.Store, h.Protocol);
+            h.CaptureRecovery = true;
+            var settled = result.DeepClone().AsObject(); settled["art"] = "kontakt_original_abschlussstatus"; settled["phase"] = mode == "prepared" ? "prepared" : "settled";
+            settled["desktop_sha256"] = ack["desktop_sha256"]!.DeepClone(); h.Send(settled); var observed = h.RecoveryObservation;
+            var restored = outcomes.Reauthorize(query, observed.Body, observed.Origin, observed.Transport, h.Protocol);
+            var binding = Path.GetFullPath(h.Host.DataPath);
+            if (mode == "prepared")
+            {
+                Hold(() => outcomes.SealTerminal(restored)); TestAssert.That(Directory.GetFiles(ackRoot, "a-*.json").Length == 1 &&
+                    requests.LoadPhysical(binding, "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Prepared status released physical hold"); continue;
+            }
+            if (mode == "fake") { Hold(() => requests.Retire(new(new object()))); continue; }
+            if (mode == "mapping-change")
+            {
+                var changed = JsonNode.Parse(commit.Text)!.AsObject(); changed["kontakte"]![0]!["notesOriginalBasis"]!["receipt_id"] = Guid.NewGuid().ToString();
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual changed-mapping save failed");
+                Hold(() => outcomes.SealTerminal(restored)); continue;
+            }
+            if (mode == "terminal-crash")
+            {
+                Hold(() => outcomes.SealTerminal(restored));
+                TestAssert.That(requests.LoadPhysical(binding, "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Terminal-write crash released request early"); fault = false;
+            }
+            var terminal = outcomes.SealTerminal(restored);
+            if (mode is "revoke-before-retire" or "mapping-after-terminal" or "stop-before-retire" or "missing-terminal")
+            {
+                if (mode == "revoke-before-retire") h.Store.Revoke();
+                if (mode == "stop-before-retire") outcomes.Stop();
+                if (mode == "mapping-after-terminal")
+                {
+                    var changed = JsonNode.Parse(commit.Text)!.AsObject(); changed["kontakte"]![0]!["notesOriginalBasis"]!["receipt_id"] = Guid.NewGuid().ToString();
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual mapping edit after terminal failed");
+                }
+                if (mode == "missing-terminal")
+                {
+                    var terminalKey = terminal.RequireFor(requests).Settled["terminal"]!["key"]!.GetValue<string>();
+                    System.IO.File.Delete(Path.Combine(ackRoot, "a-" + terminalKey + ".json"));
+                }
+                Hold(() => requests.Retire(terminal));
+                TestAssert.That(requests.LoadPhysical(binding, "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Invalid current terminal installation released hold"); continue;
+            }
+            if (mode == "tampered-terminal")
+            {
+                var terminalKey = terminal.RequireFor(requests).Settled["terminal"]!["key"]!.GetValue<string>();
+                System.IO.File.WriteAllText(Path.Combine(ackRoot, "a-" + terminalKey + ".json"), "{}");
+                Hold(() => requests.Retire(terminal)); continue;
+            }
+            if (mode == "missing-archive")
+            {
+                System.IO.File.Delete(Directory.GetFiles(requestRoot, "r-*.json").Single()); Hold(() => requests.Retire(terminal)); continue;
+            }
+            if (mode is "archive-crash" or "physical-crash") { Hold(() => requests.Retire(terminal)); fault = false; }
+            requests.Retire(terminal);
+            var retired = requests.LoadPhysical(binding, "chosen-private-id")!;
+            TestAssert.That(retired["state"]!.GetValue<string>() == "request_settled" && requests.RetiredArchiveMatches(retired), "Terminal history and physical/archive retirement diverged");
+            TestAssert.That(outcomes.LoadHeld(key) is not null, "Retirement destroyed genuine independent saved history");
+            if (mode == "reuse")
+            {
+                var changed = JsonNode.Parse(commit.Text)!.AsObject(); changed["kontakte"]![0]!["vorname"] = "New intended local value";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual post-terminal edit failed");
+                var export = h.Export.DeepClone().AsObject(); var provider = export["kontakt"]!.AsObject();
+                foreach (var field in request["ziel"]!.AsObject()) provider[field.Key] = field.Value?.DeepClone();
+                export["content_sha256"] = NotesOriginalReturnHash.ContentHash(provider); export["before_basis"] = new string('d', 64); export["native_revision"] = 2;
+                h.Send(export); var next = h.Restore().CreatePending()!;
+                Hold(() => requests.Seal(next)); requests.Seal(next, terminal);
+                TestAssert.That(requests.LoadPhysical(binding, "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Valid terminal proof failed to permit exact next UUID slot");
+                Hold(() => requests.Retire(terminal)); // An old completion must not overwrite the next request.
+            }
+            if (mode == "reloaded-terminal")
+            {
+                requests.Stop(); outcomes.Stop(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+                var reloadedRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+                var reloadedOutcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, reloadedRequests);
+                h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own); offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+                var recoveredQuery = reloadedOutcomes.ReadOnlyQuery(key, h.NewStore(), h.Protocol); h.Send(settled); observed = h.RecoveryObservation;
+                var recovered = reloadedOutcomes.Reauthorize(recoveredQuery, observed.Body, observed.Origin, observed.Transport, h.Protocol);
+                reloadedRequests.Retire(reloadedOutcomes.SealTerminal(recovered));
+                TestAssert.That(h.Host.Snapshot() is null, "Terminal repair created a saved witness from primary reads");
+            }
+        }
+        Console.WriteLine($"Notes durable terminal retirement: {modes.Length} native-writer synthetic cases passed (settled history and matching installed mapping before physical reuse).");
+    }
+
     internal static async Task SavedAcksAsync(string root)
     {
         var modes = new[] { "success", "before-save", "failed-save", "missing-request", "tampered-history", "missing-history", "key-change", "request-tamper",
