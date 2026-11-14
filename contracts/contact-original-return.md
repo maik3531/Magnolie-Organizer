@@ -212,9 +212,10 @@ does not invoke the native mapping/book guard.
 
 This is still production-unregistered. The initial tests supply a synthetic
 native mapping guard; the authenticated export/native-choice extension below
-provides a bounded process-local issuer, not durable setup. Durable private ACK
-intents/restart recovery, actual request/ACK sending and the Windows counterpart
-remain unfinished; the native Notes terminal phase is described below. A subsequent actual common frontend
+provides a bounded process-local issuer, not by itself durable setup. The separate
+private choice/save-chain store below now supplies checked fresh-export restore.
+Outstanding-result/ACK recovery, actual request/ACK sending and the Windows
+counterpart remain unfinished; the native Notes terminal phase is described below. A subsequent actual common frontend
 init/normalize/save-message test confirms that `notesOriginalBasis` is already
 retained by the existing contact object copy, including exact decimal Long text.
 Imported permission-looking metadata triggers no native operation; no frontend
@@ -236,8 +237,8 @@ registered native callback; without it, exports and results both reject rather
 than falling back to the renderer. Later `NativeNotesExportChoice` validates the
 authenticated export and invokes a native choice callback over actual saved
 contacts. It binds the chosen local ID/UID and native book owner, not imported
-tags, names or a default contact. Native setup UI and restart-safe restoration
-are not yet implemented; tests use an explicit synthetic choice.
+tags, names or a default contact. Native setup UI is not implemented; tests use
+an explicit synthetic choice. Private fresh-owner restoration is described below.
 
 The resulting pending request projects the selected saved contact's modeled
 name/raw-N/FN/scalar/postal fields onto the authenticated full native before-model.
@@ -256,8 +257,8 @@ on host API28/API35, including draft frame ownership and source revocation.
 The full common frontend source was used unchanged; neither these host checks
 nor synthetic counterpart frames are physical Android/libcore or installed
 Windows acceptance. Native selection remains bounded by its original authenticated
-session lifetime until genuine durable authority and fresh-session restoration
-are connected; it must not be reconstituted from the portable basis field.
+session lifetime. Replacing it requires the private checked fresh-session restore
+below, never reconstitution from the portable basis field.
 
 The draft export now also carries the opaque UUID of the actual native setup
 decision. It comes from the same checked source grant, not a renderer field or
@@ -281,9 +282,67 @@ retargeting cases. They include actual authenticated export/explicit selection
 before the real encrypted writer and durable ACK intent, missing choice despite
 a confirmed save, legacy missing-setup history, invalid setup values and native
 choice revocation after durable intent. Notes' 66 affected host mapping/export
-cases pass with the actual source decision UUID in the frame. Durable private
-choice persistence/primary-book adoption and native setup UI are still missing;
-none of these checks authorizes a restart from portable IDs or history alone.
+cases pass with the actual source decision UUID in the frame. These checks alone
+do not authorize restart from portable IDs or history; the separate private store
+below supplies the known-book chain. Native setup UI is still missing.
+
+### Private Notes choice and actual native book-save restoration (#628)
+
+`NativeNotesChoiceStore` now persists genuine authenticated choices under its own
+nonportable consent key and AES-GCM domain, not DAV-account approval or the
+independent ACK-outcome journal key. Only explicit native configuration from
+actual `NativeNotesExportChoice` objects creates a consent key. Missing/default
+reads, empty revocation and copied setup objects create none. The sealed record
+binds native/desktop pins, share/setup UUID, selected existing local ID/UID, stable
+native primary binding and exact known complete-book content fingerprint.
+Duplicate source/local bindings are rejected rather than guessed. This bounded
+store currently permits one Notes choice per local contact, not an unproved
+multi-source metadata layout.
+
+The mature ordinary-save/known-old-or-new-primary chain is factored into
+`NativeContactBookSaveChain`. Existing DAV record/key/MAC formats and primary
+witness imports remain compatible; source permission remains in independent
+subclasses. A Notes store cannot masquerade as `NativeStoredContactApproval`.
+Sharing save mechanics grants neither DAV account rights nor Notes mapping
+authority. Native callbacks remain outside the private file lock.
+
+The actual Linux encrypted/atomic writer records a Notes before-save intent and
+advances it only after its real unrepaired saved observation. A new native owner
+may recover a known old/new authenticated primary outcome, but that observation
+is deliberately not a saved-writer witness. After the first actual ordinary save,
+a fresh authenticated export with the same private pins/share/setup and unchanged
+chosen ID/UID can restore the choice without invoking the user chooser again.
+The encrypted-primary envelope hash and clear SaveACK payload hash are distinct
+domains: their shared content fingerprint is compared, not those raw hashes.
+Unknown primary contents, missing consent keys, changed pins/setup/binding and
+unconfirmed transactions do not authorize restoration. No name/default-book or
+portable-tag fallback exists.
+
+Consent-sidecar failures hold automation, not the user's ordinary save. Known
+post-advance or repair-pending outcomes can recover through the native chain;
+unknown outcomes remain held. A failed setup publication quarantines its new
+ephemeral choice. Revocation invalidates attached scopes but leaves independently
+encrypted outcome history readable. Native startup registers only the default
+no-files/no-keys reader and save-chain hook, not a chooser, receiver, sender or
+advertised feature. The new required runtime helpers are declared in the existing
+Debian/RPM/AppImage/Flatpak source manifests.
+
+Evidence: 277 affected Linux cases passed after the shared-chain/writer change;
+then 21 focused Notes cases passed after adding known old/new restart and uncertain
+publication checks. The final startup/runtime source-fixture run passes 58 cases,
+including the now 22 Notes cases. These matrices overlap. Existing DAV/private
+primary/scope and actual writer cases retain their unchanged evidence. One early
+repair fixture read the final reminder callback instead of `App.gespeichert`;
+correcting that callback selection fixed the test, not a product save failure.
+All keys, peers and encrypted primary files are synthetic and isolated. Runtime
+source composition is not a package build, installation or native acceptance.
+
+Still outstanding: recovery of an already saved ACK intention from a fresh
+authenticated repeated result when a native hold prevents a new export; that
+must not forge a saved witness from a primary read or replay provider mutation.
+Native setup UI, actual default-off receiver orchestration, negotiated reserved
+sending and Windows counterpart remain unfinished. No installed end-to-end
+automation or other-platform restoration is claimed.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 
@@ -390,7 +449,8 @@ changed matrix was actually rerun. No invalid slot was treated as empty.
 Linux's intent store still exposes loaded records only as held history; Windows'
 confirmed-save witness does not itself settle a Notes physical attempt. Neither
 is assumed to implement this Android-side terminal journal. Those counterpart
-orchestrators, durable private desktop setup/primary-book restoration, native UI,
+orchestrators, outstanding-outcome restoration beyond fresh-export private choice,
+native UI,
 negotiation and reserved native sending remain open. Production capability/UI
 advertisement stays OFF; no installed/device acceptance is inferred.
 

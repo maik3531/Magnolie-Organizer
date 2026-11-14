@@ -20932,6 +20932,7 @@ class Fenster(_FENSTER_BASIS):
         from magnolie_contact_source_book import NativeContactSourceBook
         self._kontakt_quellen_buch = NativeContactSourceBook()
         self._kontakt_quellen_dauerstore()
+        self._notes_original_choice_store_hole()
         self._zeit_abgleich_ausgang = queue.Queue()
         self._zeit_abgleich_ausgang_sperre = threading.Lock()
         self._zeit_abgleich_ausgang_aktiv = False
@@ -23704,6 +23705,9 @@ class Fenster(_FENSTER_BASIS):
             contact_approval_store = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
             contact_approval_intent = None
             contact_approval_error = None
+            notes_choice_store = getattr(self, '_notes_original_choice_store', None)
+            notes_choice_intent = None
+            notes_choice_error = None
             try:
                 with self._daten_sperre:
                     from magnolie_contact_source_book import NativeContactSourceResultCommit
@@ -23728,7 +23732,7 @@ class Fenster(_FENSTER_BASIS):
                     changed = isinstance(previous, dict) and journal_inhalt_geaendert(previous, daten)
                     covered = lease.covers(previous, proof, time.monotonic())
                     def native_write(payload):
-                        nonlocal warnung, contact_approval_intent, contact_approval_error
+                        nonlocal warnung, contact_approval_intent, contact_approval_error, notes_choice_intent, notes_choice_error
                         if contact_approval_store is not None:
                             try:
                                 if contact_approval_store.has_desired_consent():
@@ -23744,6 +23748,13 @@ class Fenster(_FENSTER_BASIS):
                                 # Consent-sidecar failures hold automatic source
                                 # authority, not the user's ordinary book save.
                                 contact_approval_error = 'contact_approval_save_preparation_failed'
+                        if notes_choice_store is not None:
+                            try:
+                                notes_choice_intent = notes_choice_store.prepare_current_save(payload)
+                            except Exception:
+                                # Independent Notes consent may be held, but
+                                # must never block the user's ordinary save.
+                                notes_choice_error = 'notes_choice_save_preparation_failed'
                         contact_book = getattr(self, "_kontakt_quellen_buch", None)
                         if contact_book is not None:
                             contact_book.invalidate_saved()
@@ -23809,11 +23820,20 @@ class Fenster(_FENSTER_BASIS):
                                         self._kontakt_quellen_buchaufnahme())
                                 except Exception:
                                     contact_approval_error = 'contact_approval_save_confirmation_failed'
+                            if notes_choice_intent is not None:
+                                try:
+                                    notes_choice_store.confirm_save(notes_choice_intent,
+                                        self._kontakt_quellen_buchaufnahme())
+                                except Exception:
+                                    notes_choice_error = 'notes_choice_save_confirmation_failed'
                     if contact_approval_store is not None:
                         # Native diagnostic only, never a renderer grant. Repair
                         # or unknown saves leave the signed intent for recovery.
                         self._kontakt_quellen_dauerfehler = contact_approval_error or (
                             'contact_approval_save_repair_pending' if warnung else None)
+                    if notes_choice_store is not None:
+                        self._notes_original_choice_error = notes_choice_error or (
+                            'notes_choice_save_repair_pending' if warnung else None)
                 ergebnis = {"id": kennung, "ok": True, "committed": True,
                             "repairPending": bool(warnung), "fehler": warnung,
                             "standSha256": lease.ack}
@@ -23828,6 +23848,8 @@ class Fenster(_FENSTER_BASIS):
                 sys.stderr.write(_("Saving failed: %s") % fehler + "\n")
                 if contact_approval_store is not None:
                     self._kontakt_quellen_dauerfehler = contact_approval_error or 'contact_approval_save_unconfirmed'
+                if notes_choice_store is not None:
+                    self._notes_original_choice_error = notes_choice_error or 'notes_choice_save_unconfirmed'
                 self._beenden_angefragt = False
                 self._beenden_speicherfehler = True
                 ergebnis = {
@@ -24971,6 +24993,17 @@ class Fenster(_FENSTER_BASIS):
                 self._kontakt_quellen_buchaufnahme, lambda: os.path.realpath(daten_datei()),
                 capture_primary=self._kontakt_quellen_hauptdatei_aufnahme)
             self._kontakt_quellen_dauerfreigabe = store
+        return store
+
+    def _notes_original_choice_store_hole(self):
+        """Native reader/save-chain only: no files, keys, sender or grant by default."""
+        from magnolie_contact_notes_consent import NativeNotesChoiceStore
+        store = getattr(self, '_notes_original_choice_store', None)
+        if store is None:
+            store = NativeNotesChoiceStore(os.path.join(daten_verzeichnis(), 'notes-original-choice'),
+                self._kontakt_quellen_buchaufnahme, lambda: os.path.realpath(daten_datei()),
+                self._kontakt_quellen_hauptdatei_aufnahme)
+            self._notes_original_choice_store = store
         return store
 
     def _kontakt_quellen_dauerwiederherstellen(self, save_id, saved_sha256):

@@ -259,6 +259,9 @@ class NativeNotesExportChoice:
     def require_current(self):
         if not self._active:
             raise PermissionError('notes_original_native_choice_revoked')
+        persistent = getattr(self, '_persistent_guard', None)
+        if persistent is not None:
+            persistent()
         body = json.loads(self._body_text)
         self._origin.require_current(body, self._transport)
 
@@ -269,6 +272,8 @@ class NativeNotesExportChoice:
         if len(matches) != 1 or matches[0].get('uid') != self._uid:
             raise PermissionError('notes_original_export_contact_changed')
         self._origin.require_current(body, self._transport)
+        if persistent is not None:
+            persistent()
 
     def revoke(self):
         """Native choice-owner cancellation; no renderer/document restore path."""
