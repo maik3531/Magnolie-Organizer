@@ -31,7 +31,7 @@ async function boot() {
 }
 async function run() {
   let count = 0;
-  const statusWait = process.env.MAGNOLIE_TEST_DURABLE_STATUS_WAIT === "1";
+  const statusWait = process.env.MAGNOLIE_TEST_DURABLE_STATUS_WAIT !== "0";
   const modes = ["success", "unsolicited", "missing-marker", "wrong-id", "wrong-hash", "repair-pending", "uncommitted",
     "pending-save", "newer-edit", "native-revoked", "explicit-revoked", "reloaded", "account-wait-resume", "result-save-no-loop", "locked", "initial-setup-account-wait", "setup-stored-but-waiting"];
   if (statusWait) modes.push("status-wait-return");

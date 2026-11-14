@@ -33420,7 +33420,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     if (nutzlast.originalKontaktUpdates?.verfuegbar === true) {
       if (nutzlast.originalKontaktUpdates.freigaben === 0) {
-        if (originalKontaktFreigaben > 0) originalKontaktGeneration++;
+        // Missing usable access is not a human revoke. Keep the authenticated
+        // SaveACK correlation for a known waiting run and its native return.
+        if (originalKontaktFreigaben > 0 && !originalKontaktDauerNachweis) originalKontaktGeneration++;
         originalKontaktFreigaben = 0; // Status/discovery never grants delivery.
       }
       const knoepfe = el("div", "knopfreihe");

@@ -20,8 +20,9 @@ from magnolie_contact_source_book import NativeContactSourceBook
 import magnolie_nextcloud as nc
 
 
-@pytest.mark.parametrize('return_wlan,durable_restart', [(False, False), (True, False), ('after-write', False), (False, True)])
-def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(native, tmp_path, monkeypatch, return_wlan, durable_restart):
+@pytest.mark.parametrize('return_wlan,durable_restart,account_return', [(False, False, False), (True, False, False),
+    ('after-write', False, False), (False, True, False), (False, False, True)])
+def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(native, tmp_path, monkeypatch, return_wlan, durable_restart, account_return):
     node = os.environ.get('NODE') or shutil.which('node')
     if not node: pytest.skip('Explicit existing Node runtime required for actual frontend wire')
     root = Path(__file__).resolve().parents[2]
@@ -50,6 +51,7 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
     monkeypatch.setattr(store, 'checked_client', lambda revision, purpose='dav', transport=None, interactive=True:
                         actual_client(revision, purpose=purpose, transport=provider_transport, interactive=interactive))
     monkeypatch.setattr(native, 'nextcloud_speicher', lambda: store)
+    host._kontakt_quellen_dauerstore()  # Match actual window construction before the first real SaveACK.
     monkeypatch.setattr(native, 'kontakt_quellen_wlan_verfuegbar', lambda: wlan[0])
     monkeypatch.setattr(native, 'kontakt_quellen_freigabe_dialog', lambda parent, choices, selected:
                         tuple(item['uid'] for item in choices))
@@ -58,7 +60,7 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
     removed = []
     glib = SimpleNamespace(idle_add=lambda fn, *args: idles.append((fn, args)),
                            source_remove=lambda timer: removed.append(timer))
-    if return_wlan: glib.timeout_add_seconds = lambda seconds, fn: 17
+    if return_wlan or account_return: glib.timeout_add_seconds = lambda seconds, fn: 17
     monkeypatch.setattr(native, 'GLib', glib)
     actual_thread = threading.Thread
     def make_thread(*args, **kwargs):
@@ -78,7 +80,7 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
     host._kontakt_quellen_schutz = protect
     environment = dict(os.environ, MAGNOLIE_TEST_WEB=str(root / 'magnolie-organizer/web'),
                        MAGNOLIE_TEST_DURABLE_RESTART='1' if durable_restart else '0',
-                       MAGNOLIE_TEST_EXPECT_ORIGINAL_RUNS='2' if return_wlan else '1')
+                       MAGNOLIE_TEST_EXPECT_ORIGINAL_RUNS='2' if return_wlan or account_return else '1')
     saves, forwarded, complete = 0, 0, None
     planner_observations = []
     actual_plan = native.kontakt_quellen_update_plan
@@ -93,6 +95,9 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
     wire_commands = []
     wlan_returns = 0
     requests_before_update = None
+    account_waits = 0
+    removed_credential = None
+    approved_generation = None
     def settle():
         for _ in range(5):
             for thread in list(threads):
@@ -142,7 +147,8 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
                 if command['cmd'] == 'kontakt_originalquellen_freigabe': assert saves == 2 and source.writes == 0
                 if command['cmd'] == 'kontakt_originalquellen_update':
                     assert saves == (1 if durable_restart else 2)
-                    if return_wlan and not wlan_returns: requests_before_update = len(source.records)
+                    if return_wlan and not wlan_returns or account_return and not account_waits:
+                        requests_before_update = len(source.records)
                 host.bei_nachricht(json.dumps(command, ensure_ascii=False))
                 settle()
                 if command['cmd'] == 'speichern':
@@ -155,6 +161,15 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
                         continue
                     if callback == 'App.originalKontaktNetz':
                         send({'callback': 'originalKontaktNetz', 'value': response}); continue
+                    if account_return and callback == 'App.originalKontaktErgebnis' and response.get('code') == 'account_access_wait':
+                        assert account_waits == 0 and source.writes == 0 and not protected
+                        assert len(source.records) == requests_before_update, 'Known credential wait reached provider IO'
+                        send({'callback': 'originalKontaktErgebnis', 'value': response})
+                        slot, secret = removed_credential
+                        store.secrets.store(slot, secret)
+                        account_waits += 1
+                        host._kontakt_quellen_netz_pruefen(); settle()
+                        continue
                     if return_wlan and callback == 'App.originalKontaktErgebnis' and response.get('code') == 'wlan_required':
                         assert wlan_returns == 0
                         if return_wlan == 'after-write':
@@ -171,6 +186,17 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
                         assert response.get('token'), {'writes': source.writes,
                             'plannerObservations': planner_observations, 'protectionErrors': protection_errors}
                     send({'callback': callback.split('.', 1)[1], 'value': response})
+                    if account_return and callback == 'App.originalKontaktFreigabe' and response.get('freigaben') == 1 and removed_credential is None:
+                        approved_generation = host._kontakt_quellen_dauerfreigabe.load_current().generation
+                        slot = next(iter(store.secrets.values))
+                        removed_credential = (slot, store.secrets.values[slot])
+                        store.secrets.clear(slot)
+                        count = len(host._kontakt_quellen_freigaben.capture())
+                        assert count == 0
+                        # Native usable status reaches the frontend before the
+                        # known wait response. Metadata must not erase intent.
+                        send({'callback': 'edsStatus', 'value': {'verfuegbar': True, 'buchOk': True,
+                            'kalender': [], 'adressbuecher': [], 'originalKontaktUpdates': {'verfuegbar': True, 'freigaben': count}}})
             if complete is None:
                 print('wire-diagnostic=' + json.dumps({'saves': saves, 'writes': source.writes,
                     'plannerObservations': planner_observations, 'commands': wire_commands,
@@ -192,6 +218,9 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
                 except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=5)
             process.stdin.close(); process.stdout.close()
     assert saves == (2 if durable_restart else 3) and source.writes == 1 and len(protected) == 1
+    assert wire_commands.count('kontakt_originalquellen_freigabe') == (0 if durable_restart else 1)
+    if account_return:
+        assert host._kontakt_quellen_dauerfreigabe.load_current().generation == approved_generation
     if durable_restart:
         assert 'kontakt_originalquellen_freigabe' not in wire_commands
         assert host._kontakt_quellen_dauerfreigabe.load_current().generation == previous.generation
@@ -200,7 +229,8 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
     if return_wlan == 'after-write':
         assert 'REPORT' in methods[methods.index('PUT') + 1:], 'Uncertain write was acknowledged without a fresh source read'
     assert wlan_returns == int(bool(return_wlan))
-    if return_wlan: assert removed == [17]
+    assert account_waits == int(account_return)
+    if return_wlan or account_return: assert removed == [17]
     actual = native.daten_entschluesseln(Path(native.daten_datei()).read_text(), host._kennwort)
     assert actual == complete['text']
     saved = host._kontakt_quellen_buchaufnahme()

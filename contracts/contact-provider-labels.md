@@ -956,5 +956,33 @@ against hostile Python code already executing in the same native process.
 Native original binding, UID/href/ETag/CAS/readback, update-only, protection,
 noninteractive credentials, save/restart semantics and Notes priority remain.
 No installed-app, live-provider, device/VM, installation or release acceptance is
-claimed. The separate Linux status/wait-return issue #624 is still open here;
+claimed. The separate Linux status/wait-return correction follows below;
 Windows native acceptance #625/#619 and broader return #622 remain separate.
+
+## Linux usable-status versus durable intent (#624)
+
+A zero-count source status still clears currently usable frontend grants. When an
+authenticated durable SaveACK correlation exists, that metadata no longer bumps
+its generation as though the user had revoked consent. Only the subsequent exact
+positive native account-return witness can restore permission; status itself
+never grants. Explicit revoke, lock/reload, pending/newer saves and dirty-data
+fences are unchanged. The previously failing eighteenth full-frontend case is now
+part of the canonical default matrix and passes on both Linux and Windows.
+
+The actual Linux frontend/native/DAV/encrypted-writer wire now additionally removes
+the controlled native credential-backend slot after setup, sends the resulting
+native count-zero status before the known pre-IO account-wait response, restores
+that same slot and drives the existing native monitor. It resumes without a second
+setup, keeps the original sealed consent generation, updates the original once,
+confirms exact encrypted protection and commits the result through the actual
+encrypted writer. All five wire cases pass, including existing WLAN-return,
+uncertain-after-write reconciliation and fresh-owner restart cases. The fixture
+now constructs the store before its first real ACK exactly as the actual window
+constructor does; omission of that fixture hook initially prevented recovery and
+was not an additional product defect.
+
+Linux original frontend14/WLAN9 and affected desktop/MCP/custom-save regressions
+pass. The unchanged native 401-case #623 matrix is not needlessly repeated for
+this frontend-only change. Observations/credentials/provider transport remain
+synthetic; no real keyring, installed app, device/VM, installation or publication
+acceptance is implied. Broader Notes/provider return remains #622.
