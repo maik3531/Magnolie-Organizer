@@ -46,12 +46,14 @@ internal static class NotesOriginalChoiceStoreTests
         internal int Choices;
         internal bool NoCallbacks, CheckOutsideLock;
         internal Action? GuardHook;
+        internal string? FailSaveStage;
         private readonly bool nativeDefault;
         private readonly JsonObject sender, target;
         private bool receiving;
         private JsonObject? observed;
         private MagnolienbaumCoordinator.NativeNotesOrigin? origin;
         private string transport = "";
+        internal NotesOriginalPendingResult? PendingResult;
 
         internal Fixture(string root, bool nativeDefault = false)
         {
@@ -79,7 +81,13 @@ internal static class NotesOriginalChoiceStoreTests
             Coordinator.NotesOriginalReceive = (_, body, proof, mid) =>
             {
                 receiving = true;
-                try { observed = body.DeepClone().AsObject(); origin = proof; transport = mid; return true; }
+                try
+                {
+                    if (body["art"]!.GetValue<string>() == "kontakt_original_ergebnis" && PendingResult is not null)
+                        PendingResult.StageResult(body, proof, mid);
+                    else { observed = body.DeepClone().AsObject(); origin = proof; transport = mid; }
+                    return true;
+                }
                 finally { receiving = false; }
             };
             Send(Export); Choice = MakeChoice();
@@ -94,7 +102,8 @@ internal static class NotesOriginalChoiceStoreTests
         internal ContactSourcePrimaryBook Primary() { Outside(); return Host.Primary(); }
         private string Binding() { Outside(); return Path.GetFullPath(Host.DataPath); }
         internal NotesOriginalChoiceStore NewStore() => new(new(ConsentRoot, controlledUnix: !OperatingSystem.IsWindows()),
-            Capture, Primary, Binding, nativeDefault ? null : Protector);
+            Capture, Primary, Binding, nativeDefault ? null : Protector, () => Host.CurrentNativeText,
+            stage => { if (stage == FailSaveStage) throw new IOException("synthetic-notes-consent-save-interruption"); });
         internal void Send(JsonObject body)
         {
             using var start = MagnolienbaumFs1.BuildStart(sender, target);
@@ -127,6 +136,116 @@ internal static class NotesOriginalChoiceStoreTests
             "callbacks-outside-lock", "newer-decision-cas", "changed-during-approval", "zeroed-keys", "unavailable-key", "native-default" };
         foreach (var mode in modes) await ScenarioAsync(Path.Combine(root, mode), mode);
         Console.WriteLine($"Notes durable private consent core: {modes.Length} synthetic scenarios passed (stable-book only; no native save-chain activation).");
+    }
+
+    internal static async Task SaveChainAsync(string root)
+    {
+        var modes = new[] { "actual-save", "actual-metadata", "first-real-save", "prepared-before-write", "failed-primary-recover",
+            "fake-intent", "foreign-intent-owner", "wrong-target", "tampered-intent", "no-rollback", "revoke", "newer-decision",
+            "callbacks-outside-lock", "uid-change", "missing-current-model" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]);
+            var oldKey = System.IO.File.ReadAllText(h.File(".key.dpapi")); var next = h.Book.DeepClone().AsObject(); next["known-user-edit"] = "preserve";
+            if (mode == "fake-intent")
+            {
+                Hold(() => h.Store.ConfirmSave(new(new object()), h.Host.Snapshot()!)); continue;
+            }
+            if (mode == "missing-current-model")
+            {
+                h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+                var unowned = new NotesOriginalChoiceStore(new(h.ConsentRoot, controlledUnix: !OperatingSystem.IsWindows()), h.Capture, h.Primary,
+                    () => Path.GetFullPath(h.Host.DataPath), h.Protector);
+                Hold(() => unowned.PrepareCurrentSave(h.Book.ToJsonString()));
+                TestAssert.That(!System.IO.File.Exists(h.File(".save-intent.json")) && h.Host.Snapshot() is null, "Unsaved primary bypassed owned native model"); continue;
+            }
+            if (mode is "actual-save" or "callbacks-outside-lock" or "uid-change" or "actual-metadata" or "first-real-save" or "failed-primary-recover")
+            {
+                h.Host.NativeNotesChoices = h.Store;
+                if (mode == "callbacks-outside-lock") h.CheckOutsideLock = true;
+                if (mode == "first-real-save")
+                {
+                    h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
+                    TestAssert.That(h.Host.Snapshot() is null, "Reopen fabricated saved observation"); next = h.Book.DeepClone().AsObject();
+                }
+                if (mode == "uid-change") next["kontakte"]![0]!["uid"] = "changed-canonical-identity";
+                NotesOriginalPendingResult? pending = null; NotesOriginalPendingResult.NativeCommit? metadata = null;
+                if (mode == "actual-metadata")
+                {
+                    pending = h.Choice.CreatePending()!; h.PendingResult = pending;
+                    var request = pending.Request();
+                    var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                        ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                    foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+                    h.Send(result); metadata = pending.PrepareCommit(h.Host.SourceResultCommit); next = JsonNode.Parse(metadata.Text)!.AsObject();
+                }
+                if (mode == "failed-primary-recover") h.Host.FailAfterPrimary = true;
+                var response = await h.Host.SaveOriginalContactResultAsync(metadata?.Offer.Token ?? "", next);
+                if (mode == "failed-primary-recover")
+                {
+                    TestAssert.That(!response["ok"]!.GetValue<bool>() && h.Host.Snapshot() is null && System.IO.File.Exists(h.File(".save-intent.json")), "Failed primary lost prepared recovery intent");
+                    Hold(() => h.Store.RecoverPrimary(h.Host.Primary())); // Stale owned model must not be adopted.
+                    h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+                    h.Store.RecoverPrimary(h.Host.Primary());
+                    TestAssert.That(h.Host.Snapshot() is null && !System.IO.File.Exists(h.File(".save-intent.json")), "Primary permission recovery minted a saved witness");
+                    Hold(() => h.Restore()); h.Host.NativeNotesChoices = h.Store;
+                    response = await h.Host.SaveOriginalContactResultAsync("", JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject());
+                }
+                TestAssert.That(response["ok"]!.GetValue<bool>() && response["notesOriginalDauerhaft"]!.GetValue<bool>() &&
+                    !response["notesOriginalFehler"]!.GetValue<bool>() && !System.IO.File.Exists(h.File(".save-intent.json")) &&
+                    System.IO.File.ReadAllText(h.File(".key.dpapi")) == oldKey, "Actual writer did not advance known-book consent with the same key: " + mode);
+                if (mode == "uid-change") { Hold(h.Choice.RequireCurrent); Hold(() => h.Restore()); continue; }
+                if (pending is not null) TestAssert.That(pending.ConfirmedSave().RequireCurrent() == h.Host.Saved(), "Persistent source seal blocked actual metadata writer witness");
+                h.Send(h.Export); h.Restore(h.NewStore()).RequireCurrent(); TestAssert.That(h.Choices == 1, "Real save chain requested source setup again"); continue;
+            }
+            var intent = h.Store.PrepareCurrentSave(next.ToJsonString())!;
+            TestAssert.That(System.IO.File.Exists(h.File(".save-intent.json")), "Native intent was not durable before writer invalidation");
+            h.Choice.RequireCurrent();
+            if (mode == "prepared-before-write")
+            {
+                h.Store.RecoverSaved(h.Host.Snapshot()!);
+                TestAssert.That(!System.IO.File.Exists(h.File(".save-intent.json")), "Prepared-only crash failed to return to known before"); continue;
+            }
+            if (mode == "foreign-intent-owner") { Hold(() => h.NewStore().ConfirmSave(intent, h.Host.Snapshot()!)); continue; }
+            if (mode == "tampered-intent")
+            {
+                var frame = JsonNode.Parse(System.IO.File.ReadAllText(h.File(".save-intent.json")))!.AsObject(); frame["payload"]!["new"] = new string('f', 64);
+                System.IO.File.WriteAllText(h.File(".save-intent.json"), frame.ToJsonString()); Hold(() => h.Store.HasDesiredConsent()); continue;
+            }
+            if (mode == "revoke") h.Store.Revoke();
+            var actual = next.DeepClone().AsObject(); if (mode == "wrong-target") actual["unplanned-user-edit"] = true;
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", actual))["ok"]!.GetValue<bool>(), "Actual unhooked native writer failed");
+            if (mode == "wrong-target") { Hold(() => h.Store.ConfirmSave(intent, h.Host.Snapshot()!)); Hold(() => h.Store.RecoverSaved(h.Host.Snapshot()!)); continue; }
+            if (mode == "revoke") { Hold(() => h.Store.ConfirmSave(intent, h.Host.Snapshot()!)); TestAssert.That(!h.Store.HasDesiredConsent(), "Old intent rearmed revoked consent"); continue; }
+            if (mode == "newer-decision")
+            {
+                var fresh = h.MakeChoice(); h.Store.Approve([fresh]); var current = System.IO.File.ReadAllText(h.File("approval.json"));
+                Hold(() => h.Store.ConfirmSave(intent, h.Host.Snapshot()!)); fresh.RequireCurrent();
+                TestAssert.That(System.IO.File.ReadAllText(h.File("approval.json")) == current, "Old save completion overwrote newer conscious setup"); continue;
+            }
+            var archive = System.IO.File.ReadAllText(h.File(".save-intent.json")); h.Store.ConfirmSave(intent, h.Host.Snapshot()!);
+            if (mode == "no-rollback")
+            {
+                System.IO.File.WriteAllText(h.File(".save-intent.json"), archive);
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", h.Book.DeepClone().AsObject()))["ok"]!.GetValue<bool>(), "Actual synthetic rollback writer failed");
+                Hold(() => h.Store.RecoverSaved(h.Host.Snapshot()!)); Hold(h.Choice.RequireCurrent);
+            }
+        }
+        Console.WriteLine($"Notes actual known-book save chain: {modes.Length} synthetic native-writer/recovery scenarios passed (no primary-read saved witness).");
+        foreach (var phase in new[] { "intent-written", "content-written", "content-readback", "before-intent-delete", "intent-deleted" })
+        {
+            using var h = new Fixture(Path.Combine(root, "fault-" + phase)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            h.FailSaveStage = phase;
+            var proposal = h.Book.DeepClone().AsObject(); proposal["known-user-edit"] = phase;
+            var response = await h.Host.SaveOriginalContactResultAsync("", proposal);
+            TestAssert.That(response["ok"]!.GetValue<bool>() && response["notesOriginalFehler"]!.GetValue<bool>(), "Consent interruption blocked ordinary actual user save");
+            var saved = h.Host.Saved(); TestAssert.That(saved is not null, "Actual user writer lost real saved observation");
+            h.FailSaveStage = null; h.Store.RecoverSaved(h.Host.Snapshot()!);
+            TestAssert.That(h.Host.Saved() == saved && h.Store.RecognizesSaved() && !System.IO.File.Exists(h.File(".save-intent.json")),
+                "Interrupted private save-chain recovery rewrote user data or invented a new saved observation");
+            h.Send(h.Export); h.Restore(h.NewStore()).RequireCurrent();
+        }
+        Console.WriteLine("Notes private save-chain interruption: 5 signed-intent/content/readback/delete boundary scenarios passed.");
     }
 
     private static async Task ScenarioAsync(string root, string mode)

@@ -19,6 +19,8 @@ internal sealed partial class PersonalActorNativeSaveHost
     private ContactSourceSavedCommit OriginalContactCommit => contactSourceSavedCommit ??= new(NativeActorSavedBook);
     internal ContactSourceSavedCommit SourceResultCommit => OriginalContactCommit;
     internal ContactSourceApprovalStore? ApprovalStore;
+    internal NotesOriginalChoiceStore? NativeNotesChoices { get; set; }
+    internal string? CurrentNativeText => currentPlainTextAvailable ? currentPlainText : null;
     internal Func<int, string, bool, Task>? SaveAckObserver;
     private ContactSourceApprovalStore? OriginalContactApprovals => ApprovalStore;
     private async Task OriginalContactSaveAcknowledgedAsync(int id, string hash, bool recognized)

@@ -5,10 +5,10 @@ using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
-// Private stable-book consent core only, not startup hydration, a known-book
-// writer chain, request history, a production controller or a renderer factory.
-// A changed native book deliberately holds until the real save chain is joined.
-internal sealed class NotesOriginalChoiceStore
+// Private native consent/known-book chain building blocks, not startup hydration,
+// request history, a production controller or a renderer factory. Unknown books
+// still hold; only this store's authenticated native save intents may advance.
+internal sealed partial class NotesOriginalChoiceStore
 {
     private sealed class ConsentKeyProtector : ISecretProtector
     {
@@ -43,6 +43,7 @@ internal sealed class NotesOriginalChoiceStore
     {
         internal byte[] Key { get; } = key;
         internal JsonObject Payload { get; } = payload;
+        internal JsonObject? Intent { get; set; }
         internal string Identity => Convert.ToHexString(SHA256.HashData(Key)).ToLowerInvariant();
         public void Dispose() => CryptographicOperations.ZeroMemory(Key);
     }
@@ -53,17 +54,22 @@ internal sealed class NotesOriginalChoiceStore
     private readonly Func<ContactSourcePrimaryBook> primary;
     private readonly Func<string> binding;
     private readonly ISecretProtector keyProtector;
+    private readonly Func<string?>? currentNativeData;
+    private readonly Action<string> saveStage;
     private static readonly byte[] Domain = "Magnolie/native-notes-original-choice/windows/v1\0"u8.ToArray();
     private const int Limit = 192 * 1024;
 
     internal NotesOriginalChoiceStore(ContactSourcePrivateFiles files, Func<NativeActorBookSnapshot?> capture,
-        Func<ContactSourcePrimaryBook> primary, Func<string> binding, ISecretProtector? keyProtector = null)
+        Func<ContactSourcePrimaryBook> primary, Func<string> binding, ISecretProtector? keyProtector = null,
+        Func<string?>? currentNativeData = null, Action<string>? saveStage = null)
     {
         this.files = files ?? throw new ArgumentNullException(nameof(files));
         this.capture = capture ?? throw new ArgumentNullException(nameof(capture));
         this.primary = primary ?? throw new ArgumentNullException(nameof(primary));
         this.binding = binding ?? throw new ArgumentNullException(nameof(binding));
         this.keyProtector = keyProtector ?? new ConsentKeyProtector();
+        this.currentNativeData = currentNativeData;
+        this.saveStage = saveStage ?? (_ => { }); // Bounded native fault-injection hook, no permission callback.
     }
 
     private static string Canonical(JsonObject value) => Encoding.UTF8.GetString(NativeBookJson.Canonical(value));
@@ -119,11 +125,16 @@ internal sealed class NotesOriginalChoiceStore
     {
         using var directory = files.Open();
         if (directory is null) return null;
+        return Read(directory);
+    }
+
+    private State? Read(ContactSourcePrivateFiles.Session directory)
+    {
         var transaction = directory.Read(".transaction", 32);
         var keyText = directory.Read(".key.dpapi", 16 * 1024);
         var recordText = directory.Read("approval.json", Limit);
         if (transaction is null && keyText is null && recordText is null && directory.Read(".save-intent.json", Limit) is null) return null;
-        if (transaction != "clean\n" || keyText is null || recordText is null || directory.Read(".save-intent.json", Limit) is not null)
+        if (transaction != "clean\n" || keyText is null || recordText is null)
             throw new InvalidOperationException("notes_choice_private_state_pending");
         byte[]? key = null;
         try
@@ -144,7 +155,9 @@ internal sealed class NotesOriginalChoiceStore
                 using var aes = new AesGcm(key, 16); aes.Decrypt(nonce, cipher, tag, clear, Domain);
                 var payload = Parse(new UTF8Encoding(false, true).GetString(clear)); Validate(payload);
                 if (!NativeBookJson.Canonical(payload).AsSpan().SequenceEqual(clear)) throw new InvalidDataException("notes_choice_noncanonical_record");
-                var result = new State(key, payload); key = null; return result;
+                var result = new State(key, payload);
+                result.Intent = ReadIntent(directory, result);
+                key = null; return result;
             }
             finally { CryptographicOperations.ZeroMemory(clear); }
         }
@@ -153,6 +166,8 @@ internal sealed class NotesOriginalChoiceStore
 
     internal bool HasDesiredConsent()
     { using var state = Read(); return state?.Payload["choices"]!.AsArray().Count > 0; }
+
+    internal bool RecognizesSaved() => ReadKnown() is not null; // Correlation only, not a saved witness or ACK grant.
 
     private Known? ReadKnown()
     {
@@ -163,7 +178,7 @@ internal sealed class NotesOriginalChoiceStore
         var actual = primary(); var nativeBinding = binding();
         if (!Path.IsPathFullyQualified(nativeBinding) || actual.Binding != Path.GetFullPath(nativeBinding) ||
             saved.SavedBook.Sha256 != actual.PlainHash || NativeBookJson.Hash(JsonNode.Parse(saved.Text)!) != actual.Content ||
-            Text(state.Payload, "content") != actual.Content || Text(state.Payload, "book") != Tag(state.Key, "book", nativeBinding))
+            !RecognizesContent(state, actual.Content) || Text(state.Payload, "book") != Tag(state.Key, "book", nativeBinding))
             throw new InvalidOperationException("notes_choice_recognized_native_book_required");
         using var again = Read();
         if (again is null || again.Identity != state.Identity || Canonical(again.Payload) != Canonical(state.Payload) ||
@@ -186,41 +201,31 @@ internal sealed class NotesOriginalChoiceStore
 
     private RawState Publish(byte[] key, JsonObject payload, RawState expected)
     {
-        Validate(payload);
-        var clear = NativeBookJson.Canonical(payload);
+        var encoded = EncodePayload(key, payload);
+        var protectedKey = keyProtector.Protect(key);
         try
         {
-            if (clear.Length > 128 * 1024) throw new InvalidDataException("notes_choice_record_budget");
-            var nonce = RandomNumberGenerator.GetBytes(12); var cipher = new byte[clear.Length]; var tag = new byte[16];
-            using (var aes = new AesGcm(key, 16)) aes.Encrypt(nonce, clear, cipher, tag, Domain);
-            var encoded = new JsonObject { ["version"] = 1, ["nonce"] = Convert.ToBase64String(nonce),
-                ["cipher"] = Convert.ToBase64String(cipher), ["tag"] = Convert.ToBase64String(tag) }.ToJsonString();
-            var protectedKey = keyProtector.Protect(key);
+            if (protectedKey.Length <= 32) throw new CryptographicException("notes_choice_wrapped_key_required");
+            var roundtrip = keyProtector.Unprotect(protectedKey);
             try
             {
-                if (protectedKey.Length <= 32) throw new CryptographicException("notes_choice_wrapped_key_required");
-                var roundtrip = keyProtector.Unprotect(protectedKey);
-                try
-                {
-                    if (!CryptographicOperations.FixedTimeEquals(roundtrip, key)) throw new CryptographicException("notes_choice_key_readback_changed");
-                }
-                finally { CryptographicOperations.ZeroMemory(roundtrip); }
-                using var directory = files.Open(create: true) ?? throw new IOException("notes_choice_private_root_required");
-                if (Raw(directory) != expected) throw new InvalidOperationException("notes_choice_newer_private_decision");
-                try
-                {
-                    directory.Write(".transaction", "pending\n", 32);
-                    directory.Delete(".save-intent.json");
-                    directory.Write(".key.dpapi", Convert.ToBase64String(protectedKey), 16 * 1024);
-                    directory.Write("approval.json", encoded, Limit);
-                    directory.Write(".transaction", "clean\n", 32);
-                    return Raw(directory);
-                }
-                catch { try { directory.Write(".transaction", "pending\n", 32); } catch { } throw; }
+                if (!CryptographicOperations.FixedTimeEquals(roundtrip, key)) throw new CryptographicException("notes_choice_key_readback_changed");
             }
-            finally { CryptographicOperations.ZeroMemory(protectedKey); }
+            finally { CryptographicOperations.ZeroMemory(roundtrip); }
+            using var directory = files.Open(create: true) ?? throw new IOException("notes_choice_private_root_required");
+            if (Raw(directory) != expected) throw new InvalidOperationException("notes_choice_newer_private_decision");
+            try
+            {
+                directory.Write(".transaction", "pending\n", 32);
+                directory.Delete(".save-intent.json");
+                directory.Write(".key.dpapi", Convert.ToBase64String(protectedKey), 16 * 1024);
+                directory.Write("approval.json", encoded, Limit);
+                directory.Write(".transaction", "clean\n", 32);
+                return Raw(directory);
+            }
+            catch { try { directory.Write(".transaction", "pending\n", 32); } catch { } throw; }
         }
-        finally { CryptographicOperations.ZeroMemory(clear); }
+        finally { CryptographicOperations.ZeroMemory(protectedKey); }
     }
 
     internal void Approve(IReadOnlyList<NotesOriginalExportChoice> selections)

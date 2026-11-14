@@ -961,6 +961,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
             ContactSourceApprovalStore? contactConsent = null;
             ContactSourceApprovalStore.SaveIntent? contactConsentWrite = null;
             var contactConsentError = false;
+            var notesConsent = NativeNotesChoices;
+            NotesOriginalChoiceStore.SaveIntent? notesConsentWrite = null;
+            var notesConsentError = false;
             try { contactConsent = OriginalContactApprovals; }
             catch (Exception) { contactConsentError = true; } // Consent storage cannot prevent an ordinary save.
             void NativeWrite(string payload)
@@ -968,6 +971,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 if (contactConsent is not null)
                     try { contactConsentWrite = contactConsent.PrepareCurrentSave(payload); }
                     catch (Exception) { contactConsentError = true; } // Unknown/pending state holds automatic delivery, not user edits.
+                if (notesConsent is not null)
+                    try { notesConsentWrite = notesConsent.PrepareCurrentSave(payload); }
+                    catch (Exception) { notesConsentError = true; } // No unknown-book adoption and no blocked ordinary user save.
                 actorBookOwner.InvalidateSaved();
                 historicalWriteStarted = historical is not null;
                 if (!coveredBySync && !coveredByTree && changed)
@@ -982,6 +988,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 currentPlainText = payload;
                 currentPlainTextAvailable = true;
                 actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), !restoreInProgress && !disposed, BaumSyncSnapshot.Hash(payload));
+                // Complete the private known-book chain before a source result's
+                // post-writer guard. This is not a wire ACK or a saved-witness issuer.
+                if (notesConsent is not null && notesConsentWrite is not null && !notesConsentError)
+                    try { notesConsent.ConfirmSave(notesConsentWrite, NativeActorBook() ??
+                        throw new InvalidOperationException("notes_choice_real_saved_book_required")); }
+                    catch (Exception) { notesConsentError = true; }
             }
             if (originalContactWrite is not null) originalContactWrite.Write(text, NativeWrite);
             else if (historical is null) NativeWrite(text);
@@ -1013,10 +1025,16 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     contactConsentRecognized = contactConsent.RecognizesSaved(); // Correlation marker only, NOT usable permission.
                 }
                 catch (Exception) { contactConsentError = true; }
+            var notesConsentRecognized = false;
+            if (notesConsent is not null && !notesConsentError)
+                try { notesConsentRecognized = notesConsent.RecognizesSaved(); }
+                catch (Exception) { notesConsentError = true; }
             await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "", kontaktPruefung = contactPlan,
                 committed = true, repairPending = false,
                 kontaktQuellenDauerhaft = contactConsentRecognized && !contactConsentError,
                 kontaktQuellenFehler = contactConsentError,
+                notesOriginalDauerhaft = notesConsentRecognized && !notesConsentError,
+                notesOriginalFehler = notesConsentError,
                 standSha256 = BaumSyncSnapshot.Hash(text),
                 kontaktOriginalGespeichert = originalContactWrite?.Completed == true ? originalContactWrite.Token : "" });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);

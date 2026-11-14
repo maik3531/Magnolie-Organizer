@@ -9,6 +9,8 @@ internal sealed partial class BridgeDispatcher
     private ContactSourceAutomation? originalContactAutomation;
     private System.Threading.Timer? originalContactMonitor;
     private int originalContactProbe;
+    // Native-only explicit injection. No startup factory, renderer grant or timer.
+    internal NotesOriginalChoiceStore? NativeNotesChoices { get; set; }
     private ContactSourceApprovalStore OriginalContactApprovals => LazyInitializer.EnsureInitialized(ref originalContactApprovalStore,
         () => new(new ContactSourcePrivateFiles(Path.Combine(Path.GetFullPath(paths.Root), "kontakt-quellen-freigabe")),
             NextcloudSettings, NativeActorBook, () => Path.GetFullPath(paths.Data), capturePrimary: () =>

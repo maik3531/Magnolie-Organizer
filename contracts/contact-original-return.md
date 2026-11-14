@@ -1030,6 +1030,54 @@ independent ACK history, reserved Windows transport/pump and common native setup
 Whole-private-root rollback/hostile same-user or administrator control is not claimed
 prevented. No production controller, package installation or publication is enabled.
 
+### Windows actual known-book writer/repair join (#633)
+
+The previously stable-only core now has a separate authenticated known-book save
+intent and the actual existing native writer hook. A native in-memory proof binds
+store/key/generation/token, actual before snapshot or authenticated primary/owned
+model, exact next canonical content and raw payload SHA. Its private seven-field
+HMAC intent is durable/read back before the native writer invalidates its old saved
+observation. Native callbacks remain outside private file sessions. Mutating save
+and recovery calls use the existing serial native book mutation gate, not receive.
+
+`BridgeDispatcher.SaveAsync` consults only an explicitly injected native store,
+default null, with no startup factory or scheduler. It prepares immediately before
+actual storage and confirms after real encrypted/atomic writing and `RecordSaved`,
+before the contact result's post-writer source guard. The exact saved raw hash,
+native book identity/next sequence and original intent are checked. The same
+consent key/generation/choices survive an ordinary known book save without another
+selection; a changed/missing selected ID/UID still holds that binding. Passive
+`notesOriginalDauerhaft`/`notesOriginalFehler` fields report correlation, not authority.
+A private chain error does not block an ordinary user save; Notes delivery holds.
+
+The signed intent stays throughout encrypted record replacement/readback and is
+removed only afterwards. Recovery accepts only its exact old/new content and
+cannot roll an already advanced new book back to the old book or overwrite newer
+source consent. Fake/copied-store intents, altered MACs, unrelated targets and
+revocation fail closed. A recognized primary plus the actual owned native model
+can repair permission bookkeeping after reopening without a saved snapshot; it
+never calls `RecordSaved` or issues a writer witness. A stale owned model is denied.
+Only a subsequent actual ordinary/native bootstrap save creates the first real
+saved observation; automatic controller bootstrap scheduling remains unconnected.
+
+Evidence: 15 additional actual-writer/recovery scenarios and five interruption
+boundaries pass on both managed host and the existing noninteractive Windows
+runner. The persistent-seal metadata case reaches the actual generated encrypted
+`SaveAsync` and obtains the real saved witness. Other cases cover ordinary writes,
+first real save, prepared-only/after-primary crashes, stale model, counterfeit and
+foreign-owner intents, wrong target/MAC, no rollback, revocation/newer decision,
+callback lock order, ID/UID change and missing native model. Failures after intent
+write/content replacement/readback/before deletion/after deletion preserve a
+successful ordinary user write and recover without an extra book save or fabricated
+save sequence. Existing original-contact regressions pass on both hosts; Release
+CoreTests and BASE product builds are clean. Final source change after these runs
+is a comment correcting the now-joined class description, with no behavior change.
+
+Still outstanding: independent private request-intention/outcome history and fresh
+send nonces, exact restart recovery, reserved Windows transport/controller pump,
+automatic bootstrap scheduling and genuine common setup. No installed-app/UI/live
+provider/device acceptance, production registration or package delivery is implied.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
