@@ -97,6 +97,23 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         return result
     }
 
+    /** Controller admission: reject invalid scope/ambiguous native operations or
+     * oversized Binder parcels BEFORE creating protection and persistent holds.
+     * The ordinary apply path still repeats the native plan and atomic assertions.
+     */
+    fun vorbereitenGeplant(grant: KontaktOriginalFreigaben.Freigabe, mapping: KontaktOriginalZuordnungen.Zuordnung,
+                          expectedBasis: String, requestId: String, requestHash: String, ziel: KontaktDaten,
+                          sichern: () -> KontaktOriginalSicherungen.Sicherung): Vorbereitet {
+        require(uuid(requestId) && digest(requestHash) && digest(expectedBasis))
+        val owned = Json.decodeFromString(KontaktDaten.serializer(), Json.encodeToString(KontaktDaten.serializer(), ziel))
+        grant.pruefen()
+        require(mapping.basisHash(grant) == expectedBasis) { "contact_original_expected_baseline_changed" }
+        check(laden(grant) == null) { "contact_original_attempt_held" }
+        KontaktOriginalInhalt(grant).pruefePlan(owned)
+        val protection = sichern()
+        return vorbereiten(grant, mapping, expectedBasis, requestId, requestHash, KontaktSync.hash(owned), protection)
+    }
+
     fun vorbereiten(grant: KontaktOriginalFreigaben.Freigabe, mapping: KontaktOriginalZuordnungen.Zuordnung,
                     expectedBasis: String, requestId: String, requestHash: String,
                     targetHash: String, sicherung: KontaktOriginalSicherungen.Sicherung): Vorbereitet {

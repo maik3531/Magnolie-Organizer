@@ -22,6 +22,35 @@ internal class KontaktOriginalInhalt(private val freigabe: KontaktOriginalFreiga
         verbraucht = true // A failed/uncertain attempt cannot be replayed by this writer.
         fun guard() { freigabe.pruefen(); freigabePruefen(); freigabe.pruefen() }
         guard()
+        val plan = planen(ziel)
+        if (plan.operationen.isEmpty()) { guard(); return bindung.aktuell() }
+        guard(); bindung.aktuell()
+        originalSchuetzen(plan.before)
+        guard()
+        bindung.aktuell()
+        guard()
+        bindung.resolver().applyBatch(ContactsContract.AUTHORITY, plan.operationen)
+        freigabe.pruefenNachSchreiben(); freigabePruefen(); freigabe.pruefenNachSchreiben()
+        return bindung.ruecklesenNachSchreiben().also {
+            require(it.daten == ziel) { "contact_original_full_readback_failed" }
+            freigabe.pruefenNachSchreiben()
+        }
+    }
+
+    /** Admission preflight uses the SAME native operation/Parcel planner as
+     * apply, before a controller captures protection or reserves a durable hold.
+     * This is neither permission nor a reusable provider-write token.
+     */
+    fun pruefePlan(ziel: KontaktDaten) {
+        val plan = planen(ziel)
+        require(plan.operationen.isNotEmpty()) { "contact_original_target_unchanged" }
+        freigabe.pruefen()
+    }
+
+    private data class Plan(val before: AndroidKontakt, val operationen: ArrayList<ContentProviderOperation>)
+
+    private fun planen(ziel: KontaktDaten): Plan {
+        freigabe.pruefen()
         val before = bindung.aktuell()
         val alt = before.daten
         require(alt.copy(vorname = ziel.vorname, nachname = ziel.nachname, anzeigename = ziel.anzeigename,
@@ -29,7 +58,7 @@ internal class KontaktOriginalInhalt(private val freigabe: KontaktOriginalFreiga
             jubilaeum = ziel.jubilaeum, anschriften = ziel.anschriften) == ziel) { "contact_original_field_scope_changed" }
         val parsed = KontaktSync.lies(KontaktSync.inhalt(KontaktNachricht("original-return", 1, "native", 0, ziel, 2)))
         require(parsed?.kontakt?.copy(gruppen = ziel.gruppen) == ziel) { "contact_original_content_invalid" }
-        if (ziel == alt) { guard(); return bindung.aktuell() }
+        if (ziel == alt) return Plan(before, arrayListOf())
         val ops = arrayListOf<ContentProviderOperation>()
         fun scalar(mime: String, values: Map<String, Any>, event: Int? = null) {
             val args = listOf(bindung.rawContactId.toString(), mime) + listOfNotNull(event?.toString())
@@ -66,20 +95,7 @@ internal class KontaktOriginalInhalt(private val freigabe: KontaktOriginalFreiga
                 require(parcel.dataSize() <= AndroidKontakte.MAX_RESTORE_NUTZLAST) { "contact_original_binder_budget_required" }
             }
         } finally { parcel.recycle() }
-        // Planning can reject ambiguity before creating any protection record.
-        guard(); bindung.aktuell()
-        originalSchuetzen(before)
-        guard()
-        bindung.aktuell()
-        guard()
-        bindung.resolver().applyBatch(ContactsContract.AUTHORITY, guarded)
-        // Native approval is checked after writing without reusing the old
-        // provider revision; readback below independently verifies new identity.
-        freigabe.pruefenNachSchreiben(); freigabePruefen(); freigabe.pruefenNachSchreiben()
-        return bindung.ruecklesenNachSchreiben().also {
-            require(it.daten == ziel) { "contact_original_full_readback_failed" }
-            freigabe.pruefenNachSchreiben()
-        }
+        return Plan(before, guarded)
     }
 
     private data class Postal(val id: Long, val value: KontaktAnschrift, val unmodelliert: Boolean)

@@ -310,6 +310,21 @@ targeted rerun; the other 106 passing cases were retained unchanged.
 
 ### Pinned original protection and durable native outcomes
 
+Controller admission can now use `vorbereitenGeplant` to validate the request
+identity and quoted mapping basis, reject an existing physical hold, and run
+the actual native field/scope, ambiguity and Parcel-budget planner **before**
+invoking original protection or reserving a durable attempt. The planner is
+shared with the eventual writer, not a second approximation of its rules.
+Unchanged targets are rejected without creating a mutation attempt. Apply still
+replans and performs the native assertions in the actual atomic provider batch;
+preflight is not reusable write permission or a replacement for CAS.
+
+The changed-input run passes 104 source/writer and 64 attempt host cases on
+API28/API35. New admission cases exercise out-of-scope/invalid/unchanged content,
+native scalar ambiguity, oversized Parcel, stale basis, failed protection and
+an actual protected verified write. No authenticated full-return dispatcher is
+enabled by adding this native controller entry point.
+
 `KontaktOriginalSicherungen` now writes and rereads an actual pinned contact-only
 before-image through the existing snapshot store and AES-GCM journal cipher.
 It checks native identity, complete row membership, exact portable content and

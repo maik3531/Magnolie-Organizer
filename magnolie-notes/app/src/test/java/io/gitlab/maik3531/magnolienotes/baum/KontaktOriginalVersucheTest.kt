@@ -415,4 +415,84 @@ class KontaktOriginalVersucheTest {
         assertEquals(verified, ledger().laden(grant())!!.bestaetigung() != null)
         assertEquals(if (verified) 1 else 0, provider.batchCalls)
     }
+
+    @Test fun plannedAdmissionRejectsOutOfScopeInvalidAndUnchangedTargetsBeforeProtectionOrHold() {
+        val before = binding.aktuell().daten
+        val targets = listOf(before,
+            before.copy(telefone = listOf(KontaktWert("privat", "123"))),
+            before.copy(emailEintraege = listOf(KontaktWert("privat", "synthetic@example.invalid"))),
+            before.copy(foto = "Not in requested full-content scope"),
+            before.copy(gruppen = listOf("Not selected")),
+            before.copy(notiz = "x".repeat(20_001)))
+        for (target in targets) {
+            assertThrows(IllegalArgumentException::class.java) {
+                ledger().vorbereitenGeplant(grant(), mapping, basis, request, requestHash, target) {
+                    fail("Invalid target reached durable original protection"); reference()
+                }
+            }
+            assertFalse(root.exists())
+        }
+        assertEquals(0, provider.writes); assertEquals(0, provider.batchCalls)
+    }
+
+    @Test fun plannedAdmissionRejectsOversizedParcelBeforeProtectionOrDurableReservation() {
+        val text = "x".repeat(1900)
+        val target = binding.aktuell().daten.copy(anschriften = List(100) {
+            KontaktAnschrift("privat", "$it$text", text, text, text, text)
+        })
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            ledger().vorbereitenGeplant(grant(), mapping, basis, request, requestHash, target) {
+                fail("Oversized batch reached protection"); reference()
+            }
+        }
+        assertEquals("contact_original_binder_budget_required", error.message)
+        assertFalse(root.exists()); assertEquals(0, provider.batchCalls)
+    }
+
+    @Test fun plannedAdmissionRejectsNativeScalarAmbiguityBeforeCreatingAnyProtection() {
+        provider.add(ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE,
+            mapOf(ContactsContract.CommonDataKinds.Organization.COMPANY to "First"))
+        provider.add(ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE,
+            mapOf(ContactsContract.CommonDataKinds.Organization.COMPANY to "Second"))
+        provider.raw[RawContacts.VERSION] = 4L
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
+        mapping = maps.aktualisieren(grant(), "canonical-original-kept", ledger())
+        basis = mapping.basisHash(grant())
+        val target = binding.aktuell().daten.copy(firma = "Ambiguous native company row")
+        assertThrows(IllegalArgumentException::class.java) {
+            ledger().vorbereitenGeplant(grant(), mapping, basis, request, requestHash, target) {
+                fail("Ambiguous scalar reached protection"); reference()
+            }
+        }
+        assertNull(ledger().laden(grant())); assertEquals(0, provider.batchCalls)
+    }
+
+    @Test fun plannedAdmissionChecksQuotedBasisBeforeProtectionAndDoesNotReserveAfterProtectionFailure() {
+        val target = binding.aktuell().daten.copy(notiz = "Planned but not protected")
+        assertThrows(IllegalArgumentException::class.java) {
+            ledger().vorbereitenGeplant(grant(), mapping, "0".repeat(64), request, requestHash, target) {
+                fail("Old quoted basis reached protection"); reference()
+            }
+        }
+        assertThrows(java.io.IOException::class.java) {
+            ledger().vorbereitenGeplant(grant(), mapping, basis, request, requestHash, target) {
+                throw java.io.IOException("Controlled actual protection failure")
+            }
+        }
+        assertFalse(root.exists()); assertEquals(0, provider.batchCalls)
+    }
+
+    @Test fun plannedAdmissionStillRequiresActualPinnedProtectionAndVerifiesTheProviderWrite() {
+        val target = binding.aktuell().daten.copy(notiz = "Planned native original return")
+        var calls = 0
+        val token = ledger().vorbereitenGeplant(grant(), mapping, basis, request, requestHash, target) {
+            calls++; reference()
+        }
+        assertEquals(1, calls); assertEquals(0, provider.batchCalls)
+        val receipt = token.anwenden(target) {}
+        assertEquals(KontaktSync.hash(target), receipt.zielHash())
+        assertEquals("canonical-original-kept", receipt.freigabeId()); assertEquals(basis, receipt.basisHash())
+        assertEquals(1, provider.batchCalls)
+    }
 }
