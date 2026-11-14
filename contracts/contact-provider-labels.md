@@ -413,3 +413,29 @@ cases initially skipped for missing Node selection and then pass with the existi
 explicit Node/Python paths (no dependency installation). Native consent dialog,
 dispatcher/frontend SaveACK planning and safe result adoption are still unconnected;
 this is not installed UI or autonomous synchronization acceptance.
+
+## Linux native consent dialog and bridge (#618, intermediate)
+
+The Linux `kontakt_originalquellen_freigabe` bridge command now discovers its
+catalog through the actual native account store/client and returns to GTK's main
+thread for the explicit modal session decision. IPC supplies only a request ID,
+not choices, credentials, rights or selected sources. The default-empty native
+scope retains Cancel, treats Apply with no selection as revocation, and rejects
+book/account/revocation changes before or during the decision. A revoke arriving
+during discovery prevents the delayed dialog from reopening stale intent.
+`kontakt_originalquellen_widerrufen` revokes the scope immediately.
+
+The actual GTK dialog is modal, has Cancel as the default action, uses plain text
+labels and defaults unchecked unless a current session already selected a source.
+Six opt-in actual GTK modal cases pass under the existing isolated Xvfb, including
+default-OFF/Cancel/empty Apply/selected Apply/changed selection/close. Thirteen
+controlled actual dispatcher/native-discovery cases pass with synthetic network
+transport and decision callbacks; the combined affected factory/manifest run
+passes 98 cases. The actual modal probe leaves no Xvfb or test process running.
+No Organizer window/profile, private originals, live provider or installation is
+used for these probes.
+
+The settings button/frontend SaveACK scheduling, Linux update command/controller,
+WLAN lifecycle and safe frontend result adoption remain unconnected. This native
+consent command alone neither starts source updates nor grants EDS/Akonadi or
+persistent consent. New consent strings currently use normal catalog fallback.

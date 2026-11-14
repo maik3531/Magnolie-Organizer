@@ -22375,6 +22375,16 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._sync_bestaetigen,
                              args=(nachricht.get("transactionId"), nachricht.get("requestId")), daemon=True).start()
 
+        elif befehl == 'kontakt_originalquellen_freigabe':
+            self._kontakt_quellen_freigabe_starten(nachricht.get('requestId'))
+
+        elif befehl == 'kontakt_originalquellen_widerrufen':
+            self._kontakt_quellen_dialog_generation = getattr(self, '_kontakt_quellen_dialog_generation', 0) + 1
+            scope = getattr(self, '_kontakt_quellen_freigaben', None)
+            if scope is not None:
+                scope.revoke()
+            self.antwort('App.originalKontaktFreigabe', {'ok': True, 'changed': True, 'freigaben': 0})
+
         elif befehl == "internet_konten_mcp":
             self.antwort("App.internetKontenMcp", {"requestId": nachricht.get("requestId"), "ok": False,
                          "code": "profile_locked" if getattr(self, "_gesperrt", True) else "unsupported_feature"})
@@ -24854,6 +24864,64 @@ class Fenster(_FENSTER_BASIS):
             self._speicher_auftraege.put(('contact-source-' + uuid.uuid4().hex,
                                         invocation.text, None, None, invocation))
             return invocation
+
+    def _kontakt_quellen_freigabe_starten(self, request_id):
+        """Native discovery -> GTK decision; IPC supplies no catalog or grants."""
+        from magnolie_contact_source_dav import NativeDavApprovalScope
+        if getattr(self, '_kontakt_quellen_dialog_aktiv', False):
+            self.antwort('App.originalKontaktFreigabe', {'requestId': request_id, 'ok': False,
+                                                       'code': 'native_busy'})
+            return
+        snapshot = self._kontakt_quellen_buchaufnahme()
+        if snapshot is None:
+            self.antwort('App.originalKontaktFreigabe', {'requestId': request_id, 'ok': False,
+                                                       'code': 'contact_source_book_not_saved'})
+            return
+        store = nextcloud_speicher()
+        scope = getattr(self, '_kontakt_quellen_freigaben', None)
+        if scope is None:
+            scope = self._kontakt_quellen_freigaben = NativeDavApprovalScope(
+                self._kontakt_quellen_buchnachweis, store)
+        self._kontakt_quellen_dialog_aktiv = True
+        self._kontakt_quellen_dialog_generation = getattr(self, '_kontakt_quellen_dialog_generation', 0) + 1
+        generation = self._kontakt_quellen_dialog_generation
+
+        def report(ok, changed=False):
+            self._kontakt_quellen_dialog_aktiv = False
+            self.antwort('App.originalKontaktFreigabe', {'requestId': request_id,
+                'ok': ok, 'changed': changed, 'freigaben': len(scope.capture())})
+            return False
+
+        def discover():
+            client = None
+            try:
+                settings, present, revision, error = store.read_snapshot()
+                if error is not None or not settings or settings.get('davAktiv') is not True or not present:
+                    raise PermissionError('contact_source_account_not_available')
+                client = store.checked_client(revision, purpose='dav')
+                catalog = NextcloudDav(client).collections('addressbook')
+
+                def decide():
+                    try:
+                        if (self._kontakt_quellen_dialog_generation != generation or
+                                self._kontakt_quellen_buchaufnahme() != snapshot or
+                                store.read_snapshot()[2] != revision):
+                            raise PermissionError('contact_source_approval_context_changed')
+                        changed = scope.configure(catalog, lambda choices, selected:
+                            kontakt_quellen_freigabe_dialog(self, choices, selected))
+                        return report(True, changed)
+                    except Exception:
+                        return report(False)
+                GLib.idle_add(decide)
+            except Exception:
+                GLib.idle_add(report, False)
+            finally:
+                if client is not None:
+                    client.password = ''
+        try:
+            threading.Thread(target=discover, daemon=True).start()
+        except Exception:
+            report(False)
 
     def _telefon_actor_buchbindung(self):
         # Native fields only: never call GTK/a main loop from a receiver/store callback.
@@ -29443,6 +29511,53 @@ def sync_quellen_aufteilen(kalender_uids, adressbuch_uid):
         ("nextcloud-addressbook:", "generic-dav-addressbook:")) else "")
     return nextcloud_kalender, eds_kalender, nextcloud_buch, (
         "" if nextcloud_buch else adressbuch_uid)
+
+
+def kontakt_quellen_freigabe_dialog(parent, choices, selected):
+    """GTK main-thread explicit session decision; never infer writable = approved."""
+    if Gtk is None or threading.current_thread() is not threading.main_thread():
+        raise RuntimeError('contact_source_native_dialog_unavailable')
+    choices = tuple(choices)
+    if (len(choices) > 256 or any(not isinstance(item.get('uid'), str) or not item['uid'] for item in choices) or
+            len({item['uid'] for item in choices}) != len(choices)):
+        raise ValueError('contact_source_approval_catalog_ambiguous')
+    dialog = Gtk.Dialog(title=_("Update original contact sources"), transient_for=parent,
+                        modal=True, destroy_with_parent=True)
+    try:
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        dialog.add_button(_("Apply"), Gtk.ResponseType.APPLY)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL)
+        dialog.set_default_size(560, 360)
+        content = dialog.get_content_area()
+        content.set_spacing(12)
+        content.set_border_width(12)
+        explanation = Gtk.Label(label=_(
+            "Allow automatic updates only to the selected original address books for this session. "
+            "Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. "
+            "Nothing is selected by default. An empty selection revokes all approvals."))
+        explanation.set_line_wrap(True)
+        explanation.set_max_width_chars(70)
+        explanation.set_xalign(0)
+        content.pack_start(explanation, False, False, 0)
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        buttons = []
+        for item in choices:
+            name = str(item.get('name') or _("Original address book"))
+            name = ''.join(char if char.isprintable() else ' ' for char in name)[:200]
+            button = Gtk.CheckButton(label=name)
+            button.set_active(item['uid'] in selected)
+            rows.pack_start(button, False, False, 0)
+            buttons.append((item['uid'], button))
+        scroll.add(rows)
+        content.pack_start(scroll, True, True, 0)
+        dialog.show_all()
+        if dialog.run() != Gtk.ResponseType.APPLY:
+            return None
+        return tuple(uid for uid, button in buttons if button.get_active())
+    finally:
+        dialog.destroy()
 
 
 def kontakt_quellen_update_bindungen(snapshot, quelle):
