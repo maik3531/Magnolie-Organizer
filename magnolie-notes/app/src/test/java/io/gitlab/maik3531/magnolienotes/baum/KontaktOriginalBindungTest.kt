@@ -744,6 +744,54 @@ class KontaktOriginalBindungTest {
         assertEquals(1, fixture.rotations); assertEquals(0, provider.writes)
     }
 
+    @Test fun failedSetupDependencyNeverPublishesNewDurablePermission() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        val scope = KontaktOriginalFreigaben(store) { peer }
+        assertThrows(java.io.IOException::class.java) {
+            scope.einrichten(listOf(binding), speichern = { throw java.io.IOException("Controlled exact-original setup dependency failure") }) { it.toSet() }
+        }
+        assertFalse(scope.gewuenscht)
+        assertNull(store.laden())
+        assertFalse(fixture.root.exists())
+        assertEquals(0, fixture.rotations)
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun failedSetupDependencyPreservesOnlyThePreviouslyAcceptedDurableIntent() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        val scope = KontaktOriginalFreigaben(store) { peer }
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        val before = File(fixture.root, "approval.bin").readBytes()
+        val old = scope.freigabe(binding)
+        assertThrows(java.io.IOException::class.java) {
+            scope.einrichten(listOf(binding), speichern = {
+                assertThrows(SecurityException::class.java) { old.pruefen() }
+                throw java.io.IOException("Controlled binding setup dependency failure")
+            }) { it.toSet() }
+        }
+        assertArrayEquals(before, File(fixture.root, "approval.bin").readBytes())
+        assertEquals(1, fixture.rotations)
+        assertFalse(scope.gewuenscht)
+        val fresh = KontaktOriginalFreigaben(store) { peer }
+        assertTrue(fresh.wiederherstellen(store.laden()!!))
+        fresh.freigabe(binding).pruefen()
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun peerChangeInSetupDependencyStopsBeforeAnyNewDurableGrantPublication() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        val scope = KontaktOriginalFreigaben(store) { peer }
+        assertThrows(SecurityException::class.java) {
+            scope.einrichten(listOf(binding), speichern = {
+                assertFalse(fixture.root.exists())
+                peer = peer!!.copy(schluessel = "Changed during exact-original setup")
+            }) { it.toSet() }
+        }
+        assertNull(store.laden()); assertFalse(fixture.root.exists())
+        assertEquals(0, fixture.rotations); assertFalse(scope.gewuenscht)
+        assertEquals(0, provider.writes)
+    }
+
     internal class OriginalProvider : ContentProvider() {
         val status = mutableMapOf<String, Any?>(ProviderStatus.STATUS to ProviderStatus.STATUS_NORMAL,
             ProviderStatus.DATABASE_CREATION_TIMESTAMP to 123456L)

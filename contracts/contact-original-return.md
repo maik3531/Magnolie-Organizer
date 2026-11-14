@@ -177,6 +177,13 @@ Its private files use no-follow reads, bounded sizes, owner-only permissions,
 cross-process file locking and the existing atomic-write/flush/directory-sync
 pattern. Native peer/provider callbacks run outside the private file lock.
 
+Additional native setup dependencies run before the owned durable source store
+publishes a new approval, with context checks around them. Thus failed exact-
+original setup cannot leave a fresh owner able to restore a new partial approval.
+A previously accepted durable record remains unchanged if such an early dependency
+fails; the failed current scope itself stays blocked. This ordering does not yet
+implement the pending private canonical share/original mapping or its actual UI.
+
 A persistent negative/pending marker is installed before changing keys/state and
 precedes explicit key revocation. Publication uncertainty, including failure
 immediately after pending-marker removal, is held instead of being acknowledged.

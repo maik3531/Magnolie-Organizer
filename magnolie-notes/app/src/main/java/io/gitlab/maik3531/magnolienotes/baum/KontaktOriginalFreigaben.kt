@@ -72,6 +72,11 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
         var persisted: KontaktOriginalDauerfreigaben.Gespeichert? = null
         try {
             decision.pruefen()
+            // Complete exact-original setup dependencies BEFORE publishing the
+            // owned durable permission. A failed later hook must not leave a
+            // fresh owner able to restore a setup that never finished.
+            speichern?.invoke(decision)
+            decision.pruefen()
             if (dauerStore != null) {
                 persisted = dauerStore.bewilligen(decision)
                 if (selected.isNotEmpty()) {
@@ -80,7 +85,6 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
                     require(stored.aus(dauerStore) && stored.partner() == peer && stored.quellen() == selected)
                 }
             }
-            speichern?.invoke(decision)
             decision.pruefen()
         } catch (error: Exception) {
             // An unsuccessful durable setup may have invalidated its old key.
