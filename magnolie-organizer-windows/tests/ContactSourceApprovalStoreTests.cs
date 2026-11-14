@@ -327,6 +327,7 @@ internal static class ContactSourceApprovalStoreTests
             }
             Console.WriteLine("CONTACT SOURCE APPROVAL STORE PASS " + mode);
         }
+        await SaveChainAsync();
         if (OperatingSystem.IsWindows())
         {
             using var fixture = new Fixture(actualDpapi: true);
@@ -341,6 +342,126 @@ internal static class ContactSourceApprovalStoreTests
             fixture.Store.Revoke();
             TestAssert.That(fixture.NewStore().LoadCurrent() is null, "Actual DPAPI native consent revoke did not persist");
             Console.WriteLine("CONTACT SOURCE APPROVAL STORE PASS actual-windows-dpapi-key-account-synthetic-only");
+        }
+    }
+
+    private static async Task SaveChainAsync()
+    {
+        const string next = "{\"version\":6,\"kontakte\":[],\"fraction\":1.25,\"ordinaryEdit\":true}";
+        foreach (var mode in new[] { "disabled-no-io", "advance", "same-content", "old-outcome", "new-outcome", "unknown-outcome",
+            "pending-no-permission", "unconfirmed", "wrong-snapshot", "wrong-store", "wrong-token", "wrong-generation", "wrong-key",
+            "wrong-next", "revoked", "reapproved", "credential-locked", "changed-binding", "replayed-intent", "tampered-intent",
+            "malformed-intent", "prepare-failure", "advance-failure", "no-rollback", "callbacks-outside-lock", "new-owner-confirm",
+            "changed-before-intent", "changed-after-intent", "duplicate-intent", "no-intent-recovery" })
+        {
+            using var fixture = new Fixture();
+            if (mode == "disabled-no-io")
+            {
+                var snapshot = fixture.Capture()!; fixture.BlockBook = true; fixture.Credentials.Unavailable = true;
+                TestAssert.That(!fixture.Store.HasDesiredConsent() && fixture.Store.PrepareSave(snapshot, next) is null &&
+                    fixture.Store.RecoverSaved(snapshot) is null && !Directory.Exists(Path.Combine(fixture.Root, "consent")),
+                    "Disabled save chain observed book/account or created consent");
+                Console.WriteLine("CONTACT SOURCE APPROVAL SAVE PASS " + mode); continue;
+            }
+            var original = await fixture.ApproveAsync();
+            var old = fixture.Capture()!;
+            if (mode == "no-intent-recovery")
+            {
+                TestAssert.That(fixture.Store.RecoverSaved(old) is null, "No-intent recovery invented a save advancement");
+                Console.WriteLine("CONTACT SOURCE APPROVAL SAVE PASS " + mode); continue;
+            }
+            if (mode == "changed-before-intent") fixture.Save(next);
+            if (mode == "changed-after-intent")
+            {
+                fixture.Captures = 0;
+                fixture.OnCapture = count => { if (count == 2) fixture.Save(next); };
+            }
+            if (mode == "prepare-failure") { fixture.FailWrite = 1; fixture.Writes = 0; }
+            if (mode is "changed-before-intent" or "changed-after-intent" or "prepare-failure")
+            {
+                await FailsAsync(() => { fixture.Store.PrepareSave(old, next); return Task.CompletedTask; }, "Unconfirmed/stale save preparation succeeded");
+                fixture.FailWrite = 0;
+                if (mode == "changed-after-intent")
+                    await FailsAsync(() => { fixture.Store.LoadCurrent(); return Task.CompletedTask; }, "Uncertain prepared intent released permission");
+                Console.WriteLine("CONTACT SOURCE APPROVAL SAVE PASS " + mode); continue;
+            }
+            if (mode == "callbacks-outside-lock") fixture.OnCapture = _ => { using var session = fixture.Files.Open(); };
+            if (mode == "credential-locked") fixture.Credentials.Unavailable = true;
+            var proposed = mode == "same-content" ? fixture.Text : next;
+            var intent = fixture.Store.PrepareSave(old, proposed) ?? throw new InvalidOperationException("Controlled save intent missing");
+            TestAssert.That(fixture.Store.HasDesiredConsent(), "Signed human intent disappeared during autosave");
+            await FailsAsync(() => { fixture.Store.LoadCurrent(); return Task.CompletedTask; }, "Pending signed save became usable permission");
+            var intentText = File.ReadAllText(Path.Combine(fixture.Root, "consent", ".save-intent.json"));
+            if (mode == "duplicate-intent")
+            {
+                await FailsAsync(() => { fixture.Store.PrepareSave(old, proposed); return Task.CompletedTask; }, "Second writer replaced the pending intent");
+                TestAssert.That(File.ReadAllText(Path.Combine(fixture.Root, "consent", ".save-intent.json")) == intentText, "Rejected second preparation changed signed intent");
+            }
+            if (mode == "pending-no-permission") { Console.WriteLine("CONTACT SOURCE APPROVAL SAVE PASS " + mode); continue; }
+            if (mode != "unconfirmed" && mode != "old-outcome") fixture.Save(mode == "unknown-outcome" ? "{\"unrelated\":true}" : proposed);
+            if (mode == "new-owner-confirm") { fixture.Owner = new NativeBookOwnerScope(); fixture.Owner.SetReady(true); fixture.Save(proposed); }
+            var confirmed = fixture.Capture()!;
+            if (mode == "wrong-snapshot") confirmed = old;
+            if (mode == "wrong-store") intent = intent with { Store = fixture.NewStore() };
+            if (mode == "wrong-token") intent = intent with { Token = new string('a', 64) };
+            if (mode == "wrong-generation") intent = intent with { Generation = new string('a', 64) };
+            if (mode == "wrong-key") intent = intent with { KeyIdentity = new string('a', 64) };
+            if (mode == "wrong-next") intent = intent with { NextContent = new string('a', 64) };
+            if (mode == "revoked") fixture.Store.Revoke();
+            if (mode == "reapproved") await fixture.ApproveAsync();
+            if (mode == "changed-binding") fixture.Binding = "different-native-book";
+            if (mode == "tampered-intent")
+            {
+                var envelope = JsonNode.Parse(intentText)!; envelope["payload"]!["new"] = new string('a', 64);
+                fixture.Write(".save-intent.json", envelope.ToJsonString());
+            }
+            if (mode == "malformed-intent") fixture.Write(".save-intent.json", "{}");
+            if (mode is "advance-failure" or "no-rollback") { fixture.FailWrite = 1; fixture.Writes = 0; }
+            if (mode is "old-outcome" or "new-outcome" or "unknown-outcome")
+            {
+                if (mode == "unknown-outcome")
+                    await FailsAsync(() => { fixture.Store.RecoverSaved(confirmed); return Task.CompletedTask; }, "Recovery adopted unrelated unknown book");
+                else TestAssert.That(fixture.NewStore().RecoverSaved(confirmed) == NativeBookJson.Hash(JsonNode.Parse(fixture.Text)!), "Known saved outcome did not recover across store reconstruction");
+            }
+            else if (mode is "unconfirmed" or "wrong-snapshot" or "wrong-store" or "wrong-token" or "wrong-generation" or "wrong-key" or "wrong-next" or
+                "revoked" or "reapproved" or "changed-binding" or "tampered-intent" or "malformed-intent" or "advance-failure" or "no-rollback" or "new-owner-confirm")
+            {
+                if (mode == "no-rollback")
+                {
+                    // Preserve signed intent but install a confirmed new record,
+                    // simulating interruption between readback and intent delete.
+                    fixture.FailWrite = 0;
+                    fixture.Store.ConfirmSave(intent, confirmed);
+                    fixture.Write(".save-intent.json", intentText);
+                    fixture.Save(old.Text);
+                    await FailsAsync(() => { fixture.Store.RecoverSaved(fixture.Capture()!); return Task.CompletedTask; }, "Recovery rolled an advanced consent record back to old content");
+                }
+                else await FailsAsync(() => { fixture.Store.ConfirmSave(intent, confirmed); return Task.CompletedTask; }, "Unconfirmed/changed save advanced native consent");
+                if (mode == "advance-failure")
+                {
+                    fixture.FailWrite = 0;
+                    await FailsAsync(() => { fixture.Store.LoadCurrent(); return Task.CompletedTask; }, "Failed advance cleared the pending hold");
+                    fixture.Store.RecoverSaved(confirmed);
+                }
+            }
+            else
+            {
+                fixture.Store.ConfirmSave(intent, confirmed);
+                TestAssert.That(!File.Exists(Path.Combine(fixture.Root, "consent", ".save-intent.json")), "Confirmed native save retained its pending marker");
+                await FailsAsync(() => { fixture.Store.ConfirmSave(intent, confirmed); return Task.CompletedTask; }, "Consumed save token was reusable");
+                if (mode == "replayed-intent")
+                {
+                    fixture.Write(".save-intent.json", intentText);
+                    await FailsAsync(() => { fixture.Store.LoadCurrent(); return Task.CompletedTask; }, "Replayed save intent granted IO");
+                    fixture.Store.RecoverSaved(confirmed);
+                }
+                fixture.Credentials.Unavailable = false;
+                var current = fixture.Store.LoadCurrent();
+                TestAssert.That(current?.Generation == original.Generation && current.Sources.SequenceEqual(original.Sources), "Ordinary save changed human source selection or generation");
+                await Require(current!);
+                await FailsAsync(() => Require(original), "Old pre-save operation witness remained usable");
+            }
+            Console.WriteLine("CONTACT SOURCE APPROVAL SAVE PASS " + mode);
         }
     }
 }

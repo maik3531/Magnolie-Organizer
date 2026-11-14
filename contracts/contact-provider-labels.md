@@ -756,3 +756,23 @@ tracked in #623; no external Bridge/MCP/document route was established. The curr
 Linux controller forwards native scope captures unchanged. The Windows private
 decision witness above is the concrete reference for that later Linux hardening,
 not a claimed Linux fix. #621 remains active; #623 precedes provider expansion #622.
+
+### Windows signed save-chain helper (#621)
+
+`ContactSourceApprovalSave` adds a separate authenticated before-save intent and
+confirmed saved-content advancement without accessing account credentials. It
+preserves the existing human selection/key/generation. Pending intent grants no
+permission; confirmation requires a new actual saved-book witness from the same
+native owner and a later sequence, with matching signed old/new content and
+operation token. Recovery accepts only known old/new saved outcomes, never an
+unrelated edit or rollback of an already advanced record. The signed intent stays
+until the updated sealed record has been read back. Default-OFF creates no files
+and observes neither account nor book; all book callbacks stay outside file locks.
+
+Thirty additional controlled cases pass on both host and actual Windows,
+including token reuse, changed context/revocation, unavailable credentials,
+concurrent intent, failed prepare/advance, known-outcome recovery and rollback
+rejection. Existing core/file/account cases still pass; Core and actual BASE
+product builds are clean. These are overlapping native helper matrices, not an
+application save/restart acceptance. The real writer, authenticated primary
+observation, scope/SaveACK/frontend restoration and WLAN return remain unconnected.

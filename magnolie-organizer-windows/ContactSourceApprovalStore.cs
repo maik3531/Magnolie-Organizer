@@ -39,7 +39,7 @@ internal sealed class StoredContactSourceApproval
 
 // The persistent core only. No application constructor, writer advancement,
 // startup hydration, frontend grant or scheduler is implied by this helper.
-internal sealed class ContactSourceApprovalStore
+internal sealed partial class ContactSourceApprovalStore
 {
     private sealed class ConsentKeyProtector : ISecretProtector
     {
