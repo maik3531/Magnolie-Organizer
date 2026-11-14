@@ -734,6 +734,105 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine($"Notes reserved native FS1 transport: {modes.Length} synthetic authenticated-handler cases passed (no generic fallback or receipt settlement).");
     }
 
+    internal static async Task ExportBootstrapAsync(string root)
+    {
+        var modes = new[] { "success", "no-op", "missing-private", "bad-hash", "wrong-setup", "revoke", "missing-key", "unknown-primary", "wrong-uid",
+            "expired", "stop", "unsupported-postal", "discovery-reopen", "discovery-isolation", "late-duplicate" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode));
+            if (mode == "missing-private")
+            {
+                h.NoCallbacks = true;
+                TestAssert.That(h.Store.DiscoverySources() is null && !Directory.Exists(h.ConsentRoot), "Missing private discovery created state or read book");
+                var absent = h.RecoveryObservation; Hold(() => h.Store.ExportBootstrap(absent.Body, absent.Origin, absent.Transport));
+                TestAssert.That(!Directory.Exists(h.ConsentRoot), "Export schema created source consent"); continue;
+            }
+            var secondExport = h.Export.DeepClone().AsObject(); secondExport["share_id"] = "second-source-share"; secondExport["setup_id"] = "33333333-3333-4333-8333-333333333333";
+            if (mode is "discovery-isolation" or "late-duplicate")
+            {
+                var book = h.Book.DeepClone().AsObject(); var second = book["kontakte"]![0]!.DeepClone().AsObject(); second["id"] = "second-id"; second["uid"] = "second-uid";
+                book["kontakte"]!.AsArray().Add(second);
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", book))["ok"]!.GetValue<bool>(), "Two-source native fixture save failed");
+                h.Send(secondExport); var observation = h.RecoveryObservation;
+                var secondChoice = new NotesOriginalExportChoice(observation.Body, observation.Origin, observation.Transport, h.Host.Snapshot()!, h.Host.Snapshot, _ => "second-id", () => { });
+                h.Store.Approve([h.Choice, secondChoice]);
+            }
+            else h.Store.Approve([h.Choice]);
+            var keyBefore = System.IO.File.ReadAllText(h.File(".key.dpapi"));
+            if (mode is "unknown-primary" or "wrong-uid" or "unsupported-postal" or "discovery-isolation")
+            {
+                h.Host.NativeNotesChoices = mode == "unknown-primary" ? null : h.Store;
+                var changed = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); changed["unrelated-user-field"] = "preserve";
+                if (mode is "wrong-uid" or "discovery-isolation") changed["kontakte"]![0]!["uid"] = "changed-private-uid";
+                if (mode == "unsupported-postal") changed["kontakte"]![0]!["anschriften"] = new JsonArray(new JsonObject { ["typen"] = new JsonArray("HOME", "WORK"), ["strasse"] = "Unsupported exact synthetic value" });
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual native pre-bootstrap change failed");
+            }
+            await h.Coordinator.StopAsync(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
+            TestAssert.That(h.Host.Snapshot() is null, "Export bootstrap read fabricated saved scope");
+            var export = h.Export.DeepClone().AsObject();
+            if (mode == "no-op")
+            {
+                var before = export["kontakt"]!.AsObject(); var local = JsonNode.Parse(h.Host.CurrentNativeText!)!["kontakte"]![0]!.AsObject();
+                foreach (var field in NotesOriginalExportChoice.Project(local, before)) before[field.Key] = field.Value?.DeepClone();
+                export["content_sha256"] = NotesOriginalReturnHash.ContentHash(before);
+            }
+            if (mode == "bad-hash") export["content_sha256"] = new string('0', 64);
+            if (mode == "wrong-setup") export["setup_id"] = Guid.NewGuid().ToString();
+            h.Send(export); var observed = h.RecoveryObservation;
+            if (mode == "missing-key") System.IO.File.Delete(h.File(".key.dpapi"));
+            if (mode is "bad-hash" or "wrong-setup" or "missing-key" or "unknown-primary" or "wrong-uid" or "unsupported-postal")
+            {
+                Hold(() => h.Store.ExportBootstrap(observed.Body, observed.Origin, observed.Transport));
+                TestAssert.That(h.Host.Snapshot() is null && (mode != "missing-key" || !System.IO.File.Exists(h.File(".key.dpapi"))), "Rejected export minted scope or replacement key"); continue;
+            }
+            if (mode is "discovery-reopen" or "discovery-isolation")
+            {
+                h.CheckOutsideLock = true;
+                var found = h.Store.DiscoverySources() ?? throw new Exception("Known private discovery missing");
+                TestAssert.That(found.Binding == Path.GetFullPath(h.Host.DataPath) && found.Sources.Count == 1 &&
+                    found.Sources[0]["local_id"]!.GetValue<string>() == (mode == "discovery-isolation" ? "second-id" : "chosen-private-id"), "Private discovery lost isolation or exact ID/UID selection");
+                found.Sources[0]["local_id"] = "copied-hint-mutation";
+                TestAssert.That(h.Store.DiscoverySources()!.Value.Sources[0]["local_id"]!.GetValue<string>() != "copied-hint-mutation" && h.Host.Snapshot() is null,
+                    "Discovery hint alias or primary read became authority"); continue;
+            }
+            var context = h.Store.ExportBootstrap(observed.Body, observed.Origin, observed.Transport);
+            try { context.Restore(); throw new Exception("Export context fabricated saved snapshot"); }
+            catch (NotesOriginalChoiceStore.ExportNeedsRealSave needed) { TestAssert.That(ReferenceEquals(needed.Context, context), "Export lost exact private bootstrap context"); }
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode == "stop") await h.Coordinator.StopAsync();
+            if (mode == "expired")
+            {
+                var native = observed.Origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(observed.Origin)!;
+                native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+            }
+            if (mode is "revoke" or "stop" or "expired") { Hold(() => context.PrepareBootstrap()); TestAssert.That(h.Host.Snapshot() is null, "Stale export context performed bootstrap"); continue; }
+            NotesOriginalBootstrapSave? secondBootstrap = null;
+            NotesOriginalChoiceStore.ExportBootstrapContext? secondContext = null;
+            string? secondText = null;
+            if (mode == "late-duplicate")
+            {
+                h.Send(secondExport); var second = h.RecoveryObservation;
+                secondContext = h.Store.ExportBootstrap(second.Body, second.Origin, second.Transport); secondBootstrap = secondContext.PrepareBootstrap(); secondText = secondBootstrap.Text;
+            }
+            var bootstrap = context.PrepareBootstrap();
+            TestAssert.That((await h.Host.SaveNotesBootstrapAsync(bootstrap))["ok"]!.GetValue<bool>() && h.Host.Saved()!.Sequence == 1,
+                "Regular fresh export did not reach actual native first writer save"); bootstrap.RequireCompleted();
+            var restored = context.Restore(); var pending = restored.CreatePending();
+            TestAssert.That((pending is null) == (mode == "no-op") && h.Choices == 1 && System.IO.File.ReadAllText(h.File(".key.dpapi")) == keyBefore,
+                "Regular export fabricated request/no-op, repeated chooser or replaced durable consent key");
+            if (mode == "late-duplicate")
+            {
+                var raw = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                TestAssert.That(!(await h.Host.SaveNotesBootstrapAsync(secondBootstrap!, secondText))["ok"]!.GetValue<bool>() &&
+                    h.Host.Saved()!.Sequence == 1 && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(raw) && secondContext!.Restore().CreatePending() is not null,
+                    "Second source queued another full-book bootstrap instead of using real first save");
+            }
+            TestAssert.That(!Directory.Exists(Path.Combine(h.Root, "requests")), "Bootstrap fabricated unconfirmed request history");
+        }
+        Console.WriteLine($"Notes regular export bootstrap/private discovery: {modes.Length} synthetic native-writer cases passed (no fake recovered request or primary-read saved scope).");
+    }
+
     internal static async Task SavedAcksAsync(string root)
     {
         var modes = new[] { "success", "before-save", "failed-save", "missing-request", "tampered-history", "missing-history", "key-change", "request-tamper",

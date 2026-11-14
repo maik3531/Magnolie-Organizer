@@ -836,6 +836,17 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "export-and-recovery")
+            {
+                await NotesOriginalChoiceStoreTests.ExportBootstrapAsync(Path.Combine(root, "notes-export-bootstrap"));
+                await NotesOriginalChoiceStoreTests.VerifiedRecoveryAsync(Path.Combine(root, "notes-verified-recovery"));
+                return; // Both affected typed-bootstrap adapters, not a full native regression claim.
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "export-bootstrap-only")
+            {
+                await NotesOriginalChoiceStoreTests.ExportBootstrapAsync(Path.Combine(root, "notes-export-bootstrap"));
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "transport-only")
             {
                 await NotesOriginalChoiceStoreTests.ReservedTransportAsync(Path.Combine(root, "notes-reserved-transport"));
@@ -869,6 +880,7 @@ internal static class ContractGroupTests
             await NotesOriginalChoiceStoreTests.TerminalAsync(Path.Combine(root, "notes-terminal-retirement"));
             await NotesOriginalChoiceStoreTests.VerifiedRecoveryAsync(Path.Combine(root, "notes-verified-recovery"));
             await NotesOriginalChoiceStoreTests.ReservedTransportAsync(Path.Combine(root, "notes-reserved-transport"));
+            await NotesOriginalChoiceStoreTests.ExportBootstrapAsync(Path.Combine(root, "notes-export-bootstrap"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

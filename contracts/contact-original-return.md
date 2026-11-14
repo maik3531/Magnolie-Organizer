@@ -1337,6 +1337,39 @@ No controller, timer or sender is registered at startup; bounded discovery/owner
 dispatch/shared bootstrap scheduling, existing-key backend and actual setup remain
 outstanding. This is not installed-app/device/provider acceptance or publication.
 
+### Windows regular fresh-export bootstrap and bounded private source lookup (#633)
+
+An authenticated regular export now has its own private bootstrap context, distinct
+from unconfirmed VERIFIED recovery. It binds the existing exact private choice,
+key/generation/book/share/setup/pins, known authenticated primary, actual owned model
+and selected ID/UID. Schema validation alone grants nothing. Missing consent/key,
+unknown primary, wrong setup/ID/UID, expiry/Stop/revocation or unsupported chosen
+projection holds before bootstrapping; there is no chooser/name/default-book fallback.
+
+Without a real saved snapshot, restore reports a typed first-save requirement.
+Only an actual one-use native writer invocation creates the first real scope;
+afterwards the same export restores its existing private selection and plans an
+exact no-op or pending request without replacing the consent key or asking again.
+Bootstrap adapters accept only the private export or VERIFIED-recovery context,
+never fabricated request history or arbitrary callback authority. A second queued
+bootstrap cannot write again after the first actual save, while that second source
+can use the resulting real saved scope. Shared automatic scheduling remains separate.
+
+Bounded discovery exposes at most the 256 already-private selections and their
+native book binding, only after current known-primary/owned-model checks. ID/UID
+conflicts omit that source instead of blocking unrelated selections. Returned
+hints are clones, not mutation/ACK rights; no directory search/key/store creation
+or primary-read `RecordSaved` is involved.
+
+Fifteen new synthetic cases pass in the full managed group and a Windows slice that
+also reruns the 20 affected VERIFIED/bootstrap cases (overlapping prior evidence).
+They cover regular save/no-op, absent consent, hash/setup/key/primary/UID failures,
+revocation/Stop/expiry, unsupported postal projection, reopened read-only discovery,
+two-source UID isolation and late duplicate bootstrap denial. Reopened scopes stay
+absent until the actual writer. Release CoreTests and BASE builds are clean.
+No production controller/pump/common setup or existing-key backend is registered;
+automatic coalesced bootstrap dispatch is still missing and nothing is installed.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

@@ -34,13 +34,7 @@ internal sealed class NotesOriginalExportChoice
         ArgumentNullException.ThrowIfNull(chooseNative); ArgumentNullException.ThrowIfNull(requireNativeSelection);
         export = body.DeepClone().AsObject(); this.origin = origin; this.transport = transport;
         Pins = origin.RequireCurrent(export, transport);
-        NotesOriginalSchema.Fields(export, "art", "fassung", "share_id", "before_basis", "setup_id", "native_revision", "content_sha256", "kontakt");
-        if (NotesOriginalSchema.Text(export, "art") != "kontakt_original_export" || NotesOriginalSchema.Integer(export, "fassung") != 1 ||
-            !NotesOriginalSchema.Share(NotesOriginalSchema.Text(export, "share_id")) ||
-            !NotesOriginalSchema.Hex(NotesOriginalSchema.Text(export, "before_basis")) ||
-            !NotesOriginalSchema.Uuid(NotesOriginalSchema.Text(export, "setup_id")) || NotesOriginalSchema.Integer(export, "native_revision") < 0 ||
-            export["kontakt"] is not JsonObject contact || NotesOriginalReturnHash.ContentHash(contact) != NotesOriginalSchema.Text(export, "content_sha256"))
-            throw new InvalidDataException("notes_original_export_schema");
+        ValidateExport(export);
         this.capture = capture; this.requireNativeSelection = requireNativeSelection;
         bookSource = snapshot.SavedBook.BookSource;
         RequireSnapshot(snapshot);
@@ -51,6 +45,17 @@ internal sealed class NotesOriginalExportChoice
             throw new InvalidOperationException("notes_original_native_contact_choice_required");
         localId = selected; localUid = NotesOriginalSchema.Text(matches[0], "uid");
         RequireSnapshot(snapshot); RequireCurrent();
+    }
+
+    internal static void ValidateExport(JsonObject export)
+    {
+        NotesOriginalSchema.Fields(export, "art", "fassung", "share_id", "before_basis", "setup_id", "native_revision", "content_sha256", "kontakt");
+        if (NotesOriginalSchema.Text(export, "art") != "kontakt_original_export" || NotesOriginalSchema.Integer(export, "fassung") != 1 ||
+            !NotesOriginalSchema.Share(NotesOriginalSchema.Text(export, "share_id")) ||
+            !NotesOriginalSchema.Hex(NotesOriginalSchema.Text(export, "before_basis")) ||
+            !NotesOriginalSchema.Uuid(NotesOriginalSchema.Text(export, "setup_id")) || NotesOriginalSchema.Integer(export, "native_revision") < 0 ||
+            export["kontakt"] is not JsonObject contact || NotesOriginalReturnHash.ContentHash(contact) != NotesOriginalSchema.Text(export, "content_sha256"))
+            throw new InvalidDataException("notes_original_export_schema");
     }
 
     private void RequireSnapshot(NativeActorBookSnapshot expected)

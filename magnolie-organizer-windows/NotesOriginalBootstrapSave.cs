@@ -4,9 +4,27 @@ namespace MagnolieOrganizer.Windows;
 // renderer token, timer or queue is manufactured. Dispatch uses actual SaveAsync.
 internal sealed class NotesOriginalBootstrapSave(object proof)
 {
-    private sealed class Native(NotesOriginalRequestIntents.RecoveryContext context, string text)
+    private abstract class Authorized
     {
-        internal readonly NotesOriginalRequestIntents.RecoveryContext Context = context;
+        internal abstract void RequireCurrent();
+        internal abstract string BootstrapText();
+        internal abstract NativeActorBookSnapshot? CurrentSaved();
+    }
+    private sealed class Recovery(NotesOriginalRequestIntents.RecoveryContext context) : Authorized
+    {
+        internal override void RequireCurrent() => context.RequireCurrent();
+        internal override string BootstrapText() => context.BootstrapText();
+        internal override NativeActorBookSnapshot? CurrentSaved() => context.CurrentSaved();
+    }
+    private sealed class Export(NotesOriginalChoiceStore.ExportBootstrapContext context) : Authorized
+    {
+        internal override void RequireCurrent() => context.RequireCurrent();
+        internal override string BootstrapText() => context.BootstrapText();
+        internal override NativeActorBookSnapshot? CurrentSaved() => context.CurrentSaved();
+    }
+    private sealed class Native(Authorized context, string text)
+    {
+        internal readonly Authorized Context = context;
         internal readonly string Text = text;
         internal readonly object Gate = new();
         internal bool Started;
@@ -14,7 +32,9 @@ internal sealed class NotesOriginalBootstrapSave(object proof)
     }
     private Native Owned() => proof as Native ?? throw new InvalidOperationException("notes_bootstrap_native_context_required");
 
-    internal static NotesOriginalBootstrapSave ForRecovery(NotesOriginalRequestIntents.RecoveryContext context)
+    internal static NotesOriginalBootstrapSave ForRecovery(NotesOriginalRequestIntents.RecoveryContext context) => Create(new Recovery(context));
+    internal static NotesOriginalBootstrapSave ForExport(NotesOriginalChoiceStore.ExportBootstrapContext context) => Create(new Export(context));
+    private static NotesOriginalBootstrapSave Create(Authorized context)
     {
         context.RequireCurrent(); var text = context.BootstrapText(); context.RequireCurrent();
         return new(new Native(context, text));
