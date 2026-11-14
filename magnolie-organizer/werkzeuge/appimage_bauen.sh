@@ -158,6 +158,7 @@ install -m 0644 "$WURZEL/bin/magnolie_personal_actor_completion.py" "$APPDIR/usr
 install -m 0644 "$WURZEL/bin/magnolie_native_book_json.py" "$APPDIR/usr/bin/magnolie_native_book_json.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_source_book.py" "$APPDIR/usr/bin/magnolie_contact_source_book.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_source_dav.py" "$APPDIR/usr/bin/magnolie_contact_source_dav.py"
+install -m 0644 "$WURZEL/bin/magnolie_contact_source_authority.py" "$APPDIR/usr/bin/magnolie_contact_source_authority.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor_decision_review.py" "$APPDIR/usr/bin/magnolie_personal_actor_decision_review.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor_producer.py" "$APPDIR/usr/bin/magnolie_personal_actor_producer.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor_projection.py" "$APPDIR/usr/bin/magnolie_personal_actor_projection.py"

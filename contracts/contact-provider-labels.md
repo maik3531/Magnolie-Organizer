@@ -567,3 +567,27 @@ service installation was exercised, and no Windows credential-backend fix is
 claimed. This removes a dialog-capable background lookup, but does not by itself
 implement the still-pending durable native approval required for once-configured
 automation across application restarts.
+
+## Durable native approval core (#618, not yet application persistence)
+
+The Linux `magnolie_contact_source_authority.py` helper now seals an explicit
+typed native source decision in separate private files. It binds the known full
+book content and native book/account-slot identity, rotates its dedicated key on
+approval/revocation, refuses partial/insecure state and re-observes actual quiet
+credentials on use. Passwords and password-derived verifiers are never stored;
+normal credential renewal retains human intent but invalidates an old in-flight
+witness. Book/account callbacks run outside the file lock. Operation-local
+witnesses also reject a newer save, even when its content is unchanged.
+
+Eighty controlled core cases and 191 combined core/account/factory/manifest cases
+pass, including simulated fresh process revisions, lock/resume, record replay
+after key rotation and pre/post-replacement failures. The helper is listed in all
+four Linux manifests; no package was built or installed. Its key is a local
+private-file boundary, not protection against a hostile same-user process or a
+rollback of the entire private key/state directory. It must not be imported with
+document settings or archives.
+
+Application consent, ordinary-save advancement, authenticated primary read/crash
+recovery, scope hydration and SaveACK-correlated frontend restoration are not yet
+connected. Current product consent remains session-only, and no durable automatic
+operation or corresponding Windows implementation is claimed by this core.

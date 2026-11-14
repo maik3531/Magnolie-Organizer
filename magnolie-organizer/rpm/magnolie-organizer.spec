@@ -163,6 +163,7 @@ install -Dpm 0644 bin/magnolie_personal_actor_completion.py %{buildroot}%{_bindi
 install -Dpm 0644 bin/magnolie_native_book_json.py %{buildroot}%{_bindir}/magnolie_native_book_json.py
 install -Dpm 0644 bin/magnolie_contact_source_book.py %{buildroot}%{_bindir}/magnolie_contact_source_book.py
 install -Dpm 0644 bin/magnolie_contact_source_dav.py %{buildroot}%{_bindir}/magnolie_contact_source_dav.py
+install -Dpm 0644 bin/magnolie_contact_source_authority.py %{buildroot}%{_bindir}/magnolie_contact_source_authority.py
 install -Dpm 0644 bin/magnolie_personal_actor_decision_review.py %{buildroot}%{_bindir}/magnolie_personal_actor_decision_review.py
 install -Dpm 0644 bin/magnolie_personal_actor_producer.py %{buildroot}%{_bindir}/magnolie_personal_actor_producer.py
 install -Dpm 0644 bin/magnolie_personal_actor_projection.py %{buildroot}%{_bindir}/magnolie_personal_actor_projection.py
