@@ -71,3 +71,79 @@ class NativeContactSourceBook:
             return NativeProducerBookSnapshot.capture(
                 lambda: self.current(binding, available, data), lambda: data,
                 lambda: self._observed)
+
+
+class NativeContactSourceResultCommit:
+    """Exact one-use native proposal -> existing writer invocation.
+
+    Not an IPC type or a document permission. Native orchestration supplies the
+    proposal and current-book/session callbacks; any attempted invocation consumes
+    it, including denial or an unknown outcome. Ordinary saves keep their policy.
+    """
+    def __init__(self, snapshot, proposal, capture_current, require_session):
+        if (type(snapshot) is not NativeProducerBookSnapshot or not isinstance(proposal, dict) or
+                not callable(capture_current) or not callable(require_session)):
+            raise TypeError('contact_source_native_result_required')
+        self._lock = threading.RLock()
+        self._snapshot, self._capture, self._session = snapshot, capture_current, require_session
+        self._used, self._written, self._result = False, False, None
+        self.done = threading.Event()
+        self._text = json.dumps(proposal, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        self._hash = hashlib.sha256(self._text.encode('utf-8')).hexdigest()
+        original = snapshot.book()
+        if (hashlib.sha256(snapshot.text.encode('utf-8')).hexdigest() != snapshot.content_sha256 or
+                {k: v for k, v in proposal.items() if k != 'kontakte'} !=
+                {k: v for k, v in original.items() if k != 'kontakte'} or
+                not isinstance(proposal.get('kontakte'), list) or
+                [(item.get('id'), item.get('uid')) for item in proposal['kontakte']] !=
+                [(item.get('id'), item.get('uid')) for item in original.get('kontakte', [])]):
+            raise ValueError('contact_source_exact_result_scope_required')
+        self._require_current()
+
+    @property
+    def text(self):
+        return self._text
+
+    @property
+    def result(self):
+        with self._lock:
+            return dict(self._result) if self._result is not None else None
+
+    def _require_current(self):
+        self._session()
+        current = self._capture()
+        if type(current) is not NativeProducerBookSnapshot or current != self._snapshot:
+            raise PermissionError('contact_source_saved_book_changed')
+
+    def write(self, payload, native_write):
+        with self._lock:
+            if self._used:
+                raise PermissionError('contact_source_result_commit_consumed')
+            self._used = True
+            if payload != self._text or not callable(native_write):
+                raise PermissionError('contact_source_exact_result_required')
+            self._require_current()
+            native_write(payload)
+            self._written = True
+
+    def complete(self, acknowledgment):
+        """Existing writer only, after repair checks and new native observation."""
+        with self._lock:
+            if self.done.is_set():
+                return
+            self._used = True
+            confirmed = False
+            try:
+                current = self._capture()
+                confirmed = (self._written and acknowledgment.get('ok') is True and
+                    acknowledgment.get('committed') is True and acknowledgment.get('repairPending') is False and
+                    acknowledgment.get('standSha256') == self._hash and
+                    type(current) is NativeProducerBookSnapshot and current.book_source == self._snapshot.book_source and
+                    current.sequence == self._snapshot.sequence + 1 and current.saved_sha256 == self._hash and
+                    current.content_sha256 == self._hash and current.text == self._text)
+            except Exception:
+                pass
+            self._result = {'confirmed': bool(confirmed),
+                            'committed': acknowledgment.get('committed') is True,
+                            'repairPending': acknowledgment.get('repairPending') is True}
+            self.done.set()

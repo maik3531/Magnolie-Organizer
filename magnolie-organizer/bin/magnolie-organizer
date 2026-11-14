@@ -23597,10 +23597,15 @@ class Fenster(_FENSTER_BASIS):
             kennung, klartext, *nachweise = auftrag
             proof = nachweise[0] if nachweise else None
             historical = nachweise[1] if len(nachweise) > 1 else None
+            contact_result = nachweise[2] if len(nachweise) > 2 else None
             self._speicher_laeuft = True
             warnung = ""
             try:
                 with self._daten_sperre:
+                    from magnolie_contact_source_book import NativeContactSourceResultCommit
+                    if contact_result is not None and (type(contact_result) is not NativeContactSourceResultCommit or
+                            proof is not None or historical is not None):
+                        raise PermissionError('Invalid native contact result invocation')
                     if (getattr(self, "_gesperrt", False) or
                             getattr(self, "_ladefehler", "")):
                         raise RuntimeError(getattr(self, "_ladefehler", "") or _(
@@ -23661,6 +23666,8 @@ class Fenster(_FENSTER_BASIS):
                         if type(historical) is not NativeHistoricalWriterInvocation or proof is not None:
                             raise PermissionError("Invalid native historical writer invocation")
                         historical.write(klartext, native_write)
+                    elif contact_result is not None:
+                        contact_result.write(klartext, native_write)
                     else:
                         native_write(klartext)
                     if not warnung:
@@ -23687,6 +23694,8 @@ class Fenster(_FENSTER_BASIS):
                 ergebnis = {
                     "id": kennung, "ok": False,
                     "fehler": fehler_deutsch(fehler, _("Saving the data"))}
+            if type(contact_result) is NativeContactSourceResultCommit:
+                contact_result.complete(ergebnis)
             try:
                 self.antwort("App.gespeichert", ergebnis)
                 if warnung:
@@ -24831,6 +24840,20 @@ class Fenster(_FENSTER_BASIS):
                     self._kontakt_quellen_buchaufnahme() != snapshot):
                 raise RuntimeError('contact_source_exact_protection_required')
             return stand['snapshotId']
+
+    def _kontakt_quellen_ergebnis_speichern(self, snapshot, proposal, require_session):
+        """Native-only queue path; caller must await token.done and confirmed.
+
+        The random non-renderer ID cannot acknowledge a renderer save request.
+        This method is not registered as a bridge command.
+        """
+        from magnolie_contact_source_book import NativeContactSourceResultCommit
+        with self._daten_sperre:
+            invocation = NativeContactSourceResultCommit(snapshot, proposal,
+                self._kontakt_quellen_buchaufnahme, require_session)
+            self._speicher_auftraege.put(('contact-source-' + uuid.uuid4().hex,
+                                        invocation.text, None, None, invocation))
+            return invocation
 
     def _telefon_actor_buchbindung(self):
         # Native fields only: never call GTK/a main loop from a receiver/store callback.

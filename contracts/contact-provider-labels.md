@@ -387,3 +387,29 @@ write and actual encrypted/plain journal roundtrips. The combined affected run
 passes 193 tests plus the existing journal modules' import-time assertions. This
 is not installed UI acceptance: Linux consent UI/dispatcher/frontend, one-use
 result-save authorization and actual result commit remain to be connected.
+
+## Linux native one-use result writer (#618, intermediate)
+
+`NativeContactSourceResultCommit` now binds the exact proposed JSON to the current
+native saved snapshot and native run/session callback. It preserves contact
+identities and other book domains, consumes itself on any attempted invocation
+and cannot authorize a differently serialized payload, a stale/later-saved book,
+or a renderer-issued object. The native-only queue helper invokes the existing
+real serial save worker, encryption, atomic writer, reminders and saved witnesses.
+Its non-renderer request ID cannot acknowledge a renderer save request.
+
+Confirmation requires the actual writer ACK, no pending repairs, exact payload
+hash and the newly observed native book/save sequence. The existing general
+`committed=true, repairPending=true` behavior remains unchanged, but cannot confirm
+this contact result. Failed or uncertain attempts cannot reuse the invocation.
+The historical writer path and ordinary saves keep their separate fences.
+
+Twenty controlled cases pass, including a connected synthetic DAV plan/conditional
+PUT/readback -> exact encrypted recovery archive -> native-only queue -> actual
+encrypted result writer -> new native saved witness. Changed/revoked inputs,
+impostors, mixed proofs, payload mismatch, unknown outcome, repair states and reuse
+are held. The affected combined run passes 182 cases; its 12 historical GUI-source
+cases initially skipped for missing Node selection and then pass with the existing
+explicit Node/Python paths (no dependency installation). Native consent dialog,
+dispatcher/frontend SaveACK planning and safe result adoption are still unconnected;
+this is not installed UI or autonomous synchronization acceptance.
