@@ -352,3 +352,38 @@ failures while aborting globally on changed book/cancellation. Native consent UI
 dispatcher/frontend and durable result commit are still unconnected. EDS/Akonadi,
 broader accounts/providers and full Notes scalar/postal return are not granted or
 claimed by this DAV factory.
+
+## Linux saved-contact update planning and orchestration (#618, intermediate)
+
+The native `kontakt_quellen_update_bindungen` selector derives only dirty,
+sync-enabled, existing original mappings from an exact native saved snapshot.
+Timestamp-only/unknown baselines, unbound contacts and default-book exports are
+not admitted. Duplicate bindings remain ambiguous even if one copy disables sync.
+`kontakt_quellen_update_plan` runs the existing pure merge policy for exactly one
+bound native card, rejecting any create/delete, identity or source-mapping change.
+The outgoing UID comes from that original card, not the canonical contact UID.
+Changed content behind an unchanged ETag holds. Label/content-time/provider
+conflicts reuse existing policy rather than guessing a new last-write rule.
+
+`kontakt_quellen_updates_vorbereiten` connects that planner to native session
+approvals and the bound DAV factory. It rechecks the exact native snapshot and
+cancellation after source errors and between operations; unavailable/revoked or
+conflicting sources do not disable other original books. Only successful actual
+readback advances that source's proposed baseline; failures retain its old one.
+Source-specific conflicts stay on the canonical entry. All results remain an
+**unsaved proposal**, not an adoption/save ACK or renderer permission.
+
+The native protection callback `_kontakt_quellen_schutz` uses the existing journal
+writer and actual archive readback, verifying full exact current-book coverage.
+The journal writer's new opt-in `exakt=True` prevents content-only deduplication
+from reusing a snapshot with older metadata/settings. Existing periodic/manual
+journal behavior is unchanged by default. A changed book, failed protection or
+non-exact readback prevents delivery; archive migrations are not silently accepted
+as exact current-book coverage.
+
+Forty-one new controlled selector/planner/coordinator/protection cases pass,
+including two original books with isolated failure/revocation/conflict/uncertain
+write and actual encrypted/plain journal roundtrips. The combined affected run
+passes 193 tests plus the existing journal modules' import-time assertions. This
+is not installed UI acceptance: Linux consent UI/dispatcher/frontend, one-use
+result-save authorization and actual result commit remain to be connected.

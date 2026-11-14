@@ -1749,7 +1749,7 @@ def journal_snapshots_loeschen(snapshot_ids, basis=None, expected_revisions=None
 @_journal_exklusiv
 def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                                pinned=None, disk_usage=None, haken=None,
-                               maximum=None, tage=None):
+                               maximum=None, tage=None, exakt=False):
     if grund not in JOURNAL_GRUENDE or not isinstance(daten, dict):
         raise ValueError("snapshot")
     archiv_daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
@@ -1761,7 +1761,9 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     if alt and alt.get("integrity") == "ok":
         try:
             geprueft, gelesen = journal_snapshot_lesen(alt["snapshotId"], kennwort, basis)
-            if not journal_inhalt_geaendert(gelesen["daten"], archiv_daten):
+            if (not journal_inhalt_geaendert(gelesen["daten"], archiv_daten) and
+                    (not exakt or _gesamtarchiv_kanonisch(gelesen['daten']) ==
+                     _gesamtarchiv_kanonisch(archiv_daten))):
                 if (grund == "manual" if pinned is None else pinned) and not geprueft.get("pinned"):
                     manifest_pfad = os.path.join(geprueft["path"], "manifest.json")
                     with open(manifest_pfad, encoding="utf-8") as datei:
@@ -24811,6 +24813,25 @@ class Fenster(_FENSTER_BASIS):
         with self._daten_sperre:
             return self._kontakt_quellen_buch.capture(*self._kontakt_quellen_buchbindung(), self._aktuelle_daten)
 
+    def _kontakt_quellen_schutz(self, snapshot):
+        """Exact current saved-book recovery coverage, not periodic reuse."""
+        from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        from magnolie_native_book_json import book_hash
+        with self._daten_sperre:
+            if type(snapshot) is not NativeProducerBookSnapshot or self._kontakt_quellen_buchaufnahme() != snapshot:
+                raise RuntimeError('contact_source_saved_book_changed')
+            data = snapshot.book()
+            general = (data.get('einstellungen') or {}).get('allgemein') or {}
+            mode, maximum, days = _journal_aufbewahrung(general)
+            stand = journal_snapshot_erzeugen(data, 'pre-contact', self._kennwort,
+                maximum=maximum if mode == 'count' else None,
+                tage=days if mode == 'days' else None, exakt=True)
+            _, actual = journal_snapshot_lesen(stand['snapshotId'], self._kennwort)
+            if (book_hash(actual['daten']) != snapshot.content_sha256 or
+                    self._kontakt_quellen_buchaufnahme() != snapshot):
+                raise RuntimeError('contact_source_exact_protection_required')
+            return stand['snapshotId']
+
     def _telefon_actor_buchbindung(self):
         # Native fields only: never call GTK/a main loop from a receiver/store callback.
         data = self._aktuelle_daten
@@ -29399,6 +29420,162 @@ def sync_quellen_aufteilen(kalender_uids, adressbuch_uid):
         ("nextcloud-addressbook:", "generic-dav-addressbook:")) else "")
     return nextcloud_kalender, eds_kalender, nextcloud_buch, (
         "" if nextcloud_buch else adressbuch_uid)
+
+
+def kontakt_quellen_update_bindungen(snapshot, quelle):
+    """Native saved input only; mappings select targets, never grant writes."""
+    from magnolie_personal_actor_store import NativeProducerBookSnapshot
+    if type(snapshot) is not NativeProducerBookSnapshot or not isinstance(quelle, str) or not quelle.startswith((
+            'nextcloud-addressbook:', 'generic-dav-addressbook:')):
+        raise TypeError('contact_source_native_snapshot_required')
+    if hashlib.sha256(snapshot.text.encode('utf-8')).hexdigest() != snapshot.content_sha256:
+        raise ValueError('contact_source_snapshot_changed')
+    contacts = snapshot.book().get('kontakte')
+    if not isinstance(contacts, list) or any(not isinstance(item, dict) for item in contacts):
+        raise ValueError('contact_source_contacts_invalid')
+    selected, seen_hrefs, seen_ids, seen_uids = [], set(), set(), set()
+    for item in contacts:
+        mappings = item.get('syncQuellen') or {}
+        if not isinstance(mappings, dict):
+            raise ValueError('contact_source_mapping_invalid')
+        basis = mappings.get(quelle)
+        if basis is None:
+            continue
+        if not isinstance(basis, dict):
+            raise ValueError('contact_source_mapping_invalid')
+        href = basis.get('id')
+        if not href:
+            continue  # No canonical UID/default-book fallback.
+        if (not isinstance(href, str) or not isinstance(item.get('id'), str) or not item['id'] or
+                not isinstance(item.get('uid'), str) or not item['uid'] or href in seen_hrefs or
+                item['id'] in seen_ids or item['uid'] in seen_uids):
+            raise ValueError('contact_source_binding_ambiguous')
+        seen_hrefs.add(href); seen_ids.add(item['id']); seen_uids.add(item['uid'])
+        # Old timestamp-only mappings need a separate manual reconciliation.
+        known = (basis.get('inhaltFormat') == _sync_inhalt_format(KONTAKT_FELDER) and
+                 isinstance(basis.get('inhaltSha256'), str) and
+                 re.fullmatch('[0-9a-f]{64}', basis['inhaltSha256']) is not None)
+        if (item.get('sync') is True and known and
+                (_sync_inhalt_hash(item, KONTAKT_FELDER) != basis.get('lokalInhaltSha256', basis['inhaltSha256']) or
+                 basis.get('pruefungFreigegeben') or
+                 (item.get('kontaktProviderKonflikte') or {}).get(quelle))):
+            selected.append(item)
+    return tuple(selected)
+
+
+def kontakt_quellen_update_plan(item, quelle, original):
+    """One bound original through existing pure merge policy; no source/local IO.
+
+    Result is provisional. Neither its merged contact nor a new baseline may be
+    adopted before actual factory readback and a separately authorized native save.
+    """
+    from magnolie_contact_source_dav import BoundDavContact
+    if type(original) is not BoundDavContact:
+        raise TypeError('contact_source_native_original_required')
+    obj = json.loads(json.dumps(item, ensure_ascii=False, allow_nan=False))
+    basis = (obj.get('syncQuellen') or {}).get(quelle) or {}
+    if (obj.get('sync') is not True or not obj.get('id') or not obj.get('uid') or
+            basis.get('id') != original.href or not basis.get('etag') or
+            basis.get('inhaltFormat') != _sync_inhalt_format(KONTAKT_FELDER) or
+            not isinstance(basis.get('inhaltSha256'), str) or
+            re.fullmatch('[0-9a-f]{64}', basis['inhaltSha256']) is None):
+        raise ValueError('contact_source_known_original_binding_required')
+    if kontakt_original_vcard_beobachtung(original.wire) != (original.native_uid, original.content_sha256):
+        raise ValueError('contact_source_original_observation_changed')
+    if basis['etag'] == original.etag and basis['inhaltSha256'] != original.content_sha256:
+        raise ValueError('contact_source_content_changed_without_revision')
+    remote = vcf_lesen(original.wire)['kontakte'][0]
+    metadata = {original.native_uid: {'href': original.href, 'etag': original.etag}}
+    merged, creates, updates, deletes, counts = sync_merge(
+        [obj], {original.native_uid: remote}, [], 0, KONTAKT_FELDER,
+        dav=(quelle, {}, metadata))
+    if (creates or deletes or len(merged) != 1 or len(updates) > 1 or
+            merged[0].get('id') != item['id'] or merged[0].get('uid') != item['uid'] or
+            merged[0].get('syncQuellen') != item.get('syncQuellen') or
+            any(update is not merged[0] for update in updates)):
+        raise ValueError('contact_source_update_only_plan_required')
+    candidate = merged[0]
+    if counts['konflikte'] or (candidate.get('kontaktProviderKonflikte') or {}).get(quelle):
+        return {'status': 'conflict', 'contact': candidate, 'wire': None}
+    wire = vcard_text(dict(candidate, uid=original.native_uid)) if updates else None
+    if wire is not None and kontakt_original_vcard_beobachtung(wire)[0] != original.native_uid:
+        raise ValueError('contact_source_original_uid_required')
+    return {'status': 'update' if wire is not None else 'observed', 'contact': candidate, 'wire': wire}
+
+
+def kontakt_quellen_updates_vorbereiten(snapshot, capture_current, approvals, open_source, cancelled=None):
+    """Operation-local native DAV orchestration, NOT a result-save authority.
+
+    open_source is a trusted native factory builder (approval, bound hrefs,
+    require_current). Its protection callback must cover this exact saved input.
+    No renderer command or production consent UI is connected by this helper.
+    """
+    from magnolie_contact_source_dav import NativeDavSourceApproval, NativeBoundDavFactory
+    from magnolie_personal_actor_store import NativeProducerBookSnapshot
+    if (type(snapshot) is not NativeProducerBookSnapshot or not callable(capture_current) or
+            not callable(open_source) or cancelled is not None and not callable(cancelled)):
+        raise TypeError('contact_source_native_run_callbacks_required')
+    cancelled = cancelled or (lambda: False)
+
+    def require_current():
+        if cancelled():
+            raise InterruptedError('contact_source_cancelled')
+        current = capture_current()
+        if type(current) is not NativeProducerBookSnapshot or current != snapshot:
+            raise RuntimeError('contact_source_saved_book_changed')
+
+    require_current()
+    approvals = tuple(approvals)
+    if (any(type(value) is not NativeDavSourceApproval for value in approvals) or
+            len({value.source for value in approvals}) != len(approvals)):
+        raise ValueError('contact_source_native_approvals_required')
+    result, outcomes = snapshot.book(), []
+    for approval in approvals:
+        require_current()
+        factory = None
+        try:
+            approval.require_current()
+            selected = kontakt_quellen_update_bindungen(snapshot, approval.source)
+            if not selected:
+                continue
+            factory = open_source(approval, tuple(item['syncQuellen'][approval.source]['id']
+                                                  for item in selected), require_current)
+            if type(factory) is not NativeBoundDavFactory:
+                raise TypeError('contact_source_native_factory_required')
+            rows = {row.href: row for row in factory.read_bound()}
+            require_current()
+            for saved_item in selected:
+                require_current()
+                href = saved_item['syncQuellen'][approval.source]['id']
+                row = rows[href]
+                target = next(item for item in result['kontakte'] if item.get('id') == saved_item['id'])
+                plan = kontakt_quellen_update_plan(target, approval.source, row)
+                require_current()
+                if plan['status'] == 'conflict':
+                    target.setdefault('kontaktProviderKonflikte', {})[approval.source] = (
+                        plan['contact']['kontaktProviderKonflikte'][approval.source])
+                    outcomes.append({'source': approval.source, 'contactId': target['id'], 'status': 'conflict'})
+                    continue
+                actual = factory.update_existing(row, plan['wire']) if plan['wire'] is not None else row
+                require_current()
+                approval.require_current()
+                candidate = plan['contact']
+                basis = dict(candidate['syncQuellen'][approval.source])
+                basis.update(etag=actual.etag, inhaltFormat=_sync_inhalt_format(KONTAKT_FELDER),
+                             inhaltSha256=actual.content_sha256,
+                             lokalInhaltSha256=_sync_inhalt_hash(candidate, KONTAKT_FELDER))
+                candidate['syncQuellen'][approval.source] = basis
+                target.clear(); target.update(candidate)
+                outcomes.append({'source': approval.source, 'contactId': target['id'], 'status': plan['status']})
+        except Exception:
+            # Source-local errors cannot mask a global lock/book/save/abort change.
+            require_current()
+            outcomes.append({'source': approval.source, 'status': 'held'})
+        finally:
+            if factory is not None:
+                factory.close()
+        require_current()
+    return {'book': result, 'outcomes': outcomes}  # Unsaved proposal only.
 
 
 def _dav_syncquelle_setzen(item, quelle, remote_id, etag, eigen=True, baseline=None):
