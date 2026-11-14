@@ -5,8 +5,53 @@ existing KontaktSync projection/normalization before correlating a real pending
 desktop request. This module alone cannot grant sources or issue a SaveACK.
 """
 import hashlib
+import hmac
 import json
 import unicodedata
+from dataclasses import dataclass
+
+
+def _frame_bytes(value):
+    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('utf-8')
+
+
+@dataclass(frozen=True)
+class _FsOriginProof:
+    peer: tuple
+    own: tuple
+    body_hash: bytes
+    transport_id: str
+    current: object
+
+
+class NativeNotesFsOrigin:
+    """Process-local actual FS1 origin, never a JSON source grant or save ACK."""
+    def __init__(self, proof):
+        self._proof = proof
+
+    def _native(self):
+        if type(self._proof) is not _FsOriginProof:
+            raise PermissionError('notes_original_authenticated_origin_required')
+        return self._proof
+
+    def require_current(self, body, transport_id):
+        proof = self._native()
+        if (proof.current() is not True or transport_id != proof.transport_id or
+                not hmac.compare_digest(hashlib.sha256(_frame_bytes(body)).digest(), proof.body_hash)):
+            raise PermissionError('notes_original_authenticated_origin_changed')
+        return proof.peer, proof.own
+
+
+def _issue_notes_fs_origin(peer, own, body, transport_id, current):
+    """Native issuer used only immediately after actual FS1 authenticated open.
+
+    No bridge/deserializer calls this factory. The receive service supplies its
+    pinned handshake identities and native stop/expiry/current-state callback.
+    """
+    result = NativeNotesFsOrigin(_FsOriginProof(tuple(peer), tuple(own),
+        hashlib.sha256(_frame_bytes(body)).digest(), transport_id, current))
+    result.require_current(body, transport_id)
+    return result
 
 
 def _native_text(value):

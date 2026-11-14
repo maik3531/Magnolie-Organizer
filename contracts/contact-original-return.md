@@ -137,6 +137,28 @@ cases also pass; the eight subsequently added controller cases were run alone,
 retaining the earlier unchanged passing cases. No physical device/provider,
 AndroidKeyStore, installed notebook, package or publication acceptance is claimed.
 
+### Linux authenticated result-origin handoff (#628)
+
+The actual Linux FS1 receiver can now pass a private, immutable origin proof to
+an explicitly registered native full-result callback after authenticated open.
+It binds handshake peer/local pins, body hash, transport ID, expiry, native tree
+epoch and receiver-stop generation. A later saved-book action must recheck the
+proof under its real book mutation gate, not reinterpret the body under current
+keys. Copied JSON is not an origin or a saved-result acknowledgement.
+
+That callback is limited to the dedicated draft full-result kind; ordinary notes
+keep their existing inbox path. Without the native callback, a draft full result
+is rejected rather than forwarded to renderer/inbox as authority. Callbacks may
+schedule later book work but must not wait for the book data lock while holding
+the receive lock. Revalidation after callback rejects changed body/pins/lifetime
+before replay-state persistence and positive transport receipt. Session keys are
+cleared on these rejected paths as well.
+
+The changed-input Linux matrix passes 38 synthetic offline cases: 15 native
+origin/callback cases plus 23 affected FS1 identity/pairing/receiver regressions.
+This does not yet register a production result controller, save a result book,
+mint a desktop SaveACK or establish Windows/native Android result integration.
+
 | Counterpart | What the source establishes | What is still needed for this automatic path |
 | --- | --- | --- |
 | Notes Android | Authenticated full DTO; reviewed writer; resource19; new independent native original/decision/full-content core below | Join durable native approval, genuine setup and authenticated sender/receiver to the correlated durable result receipt; the new core is not advertised or automatically invoked |

@@ -15959,10 +15959,12 @@ class BaumDienst(object):
     def __init__(self, hole_zustand, sichere_zustand, bei_nachricht=None,
                  bei_paarung=None, port=BAUM_PORT, sperre=None,
                  http_zeitgrenze=BAUM_HTTP_GESAMT_SEKUNDEN,
-                 http_pro_adresse=BAUM_HTTP_PRO_ADRESSE_MAX, bei_weitergabe=None):
+                 http_pro_adresse=BAUM_HTTP_PRO_ADRESSE_MAX, bei_weitergabe=None,
+                 bei_sicherer_nachricht=None):
         self.hole_zustand = hole_zustand
         self.sichere_zustand = sichere_zustand
         self.bei_nachricht = bei_nachricht
+        self.bei_sicherer_nachricht = bei_sicherer_nachricht
         self.bei_weitergabe = bei_weitergabe
         self.bei_paarung = bei_paarung
         self.port = BAUM_PORT if port is None else int(port)
@@ -15982,6 +15984,7 @@ class BaumDienst(object):
         self._anfragen = {}
         self._paarungsanfragen = {}
         self._fs_sitzungen = {}
+        self._fs_empfang_generation = 0
 
     def _anfrage_erlaubt(self, adresse, paarung=False):
         import time
@@ -16083,6 +16086,9 @@ class BaumDienst(object):
                         "sitzung": sitzung, "partner": partner["kennung"],
                         "partnerSchluessel": partner["oeffentlich"],
                         "eigenerSchluessel": zustand["oeffentlich"],
+                        "empfangGeneration": self._fs_empfang_generation,
+                        "eigeneKennung": zustand["kennung"],
+                        "syncEpoch": zustand.get("syncEpoch"),
                         "adresse": baum_quelladresse_normieren(quelle),
                         "ablauf": jetzt_mono + BAUM_FS_SITZUNG_SEKUNDEN}
                     return 200, antwort
@@ -16149,7 +16155,32 @@ class BaumDienst(object):
                         baum_kontakt_nutzlast_pruefen((inhalt or {}).get("art"), inhalt)
                         gesehen = partner.setdefault("transportIds", [])
                         if transport_id not in gesehen:
-                            if self.bei_nachricht:
+                            if self.bei_sicherer_nachricht and inhalt.get("art") == "kontakt_original_ergebnis":
+                                from magnolie_contact_notes_return import _issue_notes_fs_origin
+                                # Schedule later saved-book work; never wait for
+                                # its data lock while holding the receive lock.
+                                # That writer rechecks this retained origin.
+                                def aktuell():
+                                    with self._sperre:
+                                        current = self.hole_zustand()
+                                        remote = baum_partner(current, offen["partner"])
+                                        return bool(current.get("an") and remote and remote.get("bestaetigt") and
+                                            remote.get("oeffentlich") == offen.get("partnerSchluessel") and
+                                            current.get("oeffentlich") == offen.get("eigenerSchluessel") and
+                                            current.get("kennung") == offen.get("eigeneKennung") and
+                                            current.get("syncEpoch") == offen.get("syncEpoch") and
+                                            self._fs_empfang_generation == offen.get("empfangGeneration") and
+                                            offen["ablauf"] > _zeit.monotonic())
+                                origin = _issue_notes_fs_origin(
+                                    (offen["partner"], offen["partnerSchluessel"]),
+                                    (offen["eigeneKennung"], offen["eigenerSchluessel"]),
+                                    inhalt, transport_id, aktuell)
+                                if self.bei_sicherer_nachricht(partner, inhalt, origin, transport_id) is False:
+                                    raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
+                                origin.require_current(inhalt, transport_id)
+                            elif inhalt.get("art") == "kontakt_original_ergebnis":
+                                raise RuntimeError(_("This type cannot be shared."))
+                            elif self.bei_nachricht:
                                 self.bei_nachricht(partner, inhalt)
                             gesehen.append(transport_id)
                             partner["transportIds"] = gesehen[-256:]
@@ -16431,6 +16462,8 @@ class BaumDienst(object):
                     self._such_ergebnisse = None
 
     def anhalten(self):
+        with self._sperre:
+            self._fs_empfang_generation += 1
         if self._bluetooth:
             self._bluetooth.anhalten()
             self._bluetooth = None
