@@ -23641,6 +23641,9 @@ class Fenster(_FENSTER_BASIS):
             contact_result = nachweise[2] if len(nachweise) > 2 else None
             self._speicher_laeuft = True
             warnung = ""
+            contact_approval_store = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+            contact_approval_intent = None
+            contact_approval_error = None
             try:
                 with self._daten_sperre:
                     from magnolie_contact_source_book import NativeContactSourceResultCommit
@@ -23665,7 +23668,21 @@ class Fenster(_FENSTER_BASIS):
                     changed = isinstance(previous, dict) and journal_inhalt_geaendert(previous, daten)
                     covered = lease.covers(previous, proof, time.monotonic())
                     def native_write(payload):
-                        nonlocal warnung
+                        nonlocal warnung, contact_approval_intent, contact_approval_error
+                        if contact_approval_store is not None:
+                            try:
+                                previous_contact_book = self._kontakt_quellen_buchaufnahme()
+                                if previous_contact_book is None:
+                                    previous_contact_book = self._kontakt_quellen_hauptdatei_aufnahme()
+                                    contact_approval_store.recover_primary(previous_contact_book)
+                                else:
+                                    contact_approval_store.recover_saved(previous_contact_book)
+                                contact_approval_intent = contact_approval_store.prepare_save(
+                                    previous_contact_book, payload)
+                            except Exception:
+                                # Consent-sidecar failures hold automatic source
+                                # authority, not the user's ordinary book save.
+                                contact_approval_error = 'contact_approval_save_preparation_failed'
                         contact_book = getattr(self, "_kontakt_quellen_buch", None)
                         if contact_book is not None:
                             contact_book.invalidate_saved()
@@ -23725,11 +23742,24 @@ class Fenster(_FENSTER_BASIS):
                             contact_book.invalidate_saved()
                         else:
                             contact_book.record_saved(*self._kontakt_quellen_buchbindung(), klartext)
+                            if contact_approval_intent is not None:
+                                try:
+                                    contact_approval_store.confirm_save(contact_approval_intent,
+                                        self._kontakt_quellen_buchaufnahme())
+                                except Exception:
+                                    contact_approval_error = 'contact_approval_save_confirmation_failed'
+                    if contact_approval_store is not None:
+                        # Native diagnostic only, never a renderer grant. Repair
+                        # or unknown saves leave the signed intent for recovery.
+                        self._kontakt_quellen_dauerfehler = contact_approval_error or (
+                            'contact_approval_save_repair_pending' if warnung else None)
                 ergebnis = {"id": kennung, "ok": True, "committed": True,
                             "repairPending": bool(warnung), "fehler": warnung,
                             "standSha256": lease.ack}
             except Exception as fehler:
                 sys.stderr.write(_("Saving failed: %s") % fehler + "\n")
+                if contact_approval_store is not None:
+                    self._kontakt_quellen_dauerfehler = contact_approval_error or 'contact_approval_save_unconfirmed'
                 self._beenden_angefragt = False
                 self._beenden_speicherfehler = True
                 ergebnis = {
@@ -24864,6 +24894,34 @@ class Fenster(_FENSTER_BASIS):
     def _kontakt_quellen_buchaufnahme(self):
         with self._daten_sperre:
             return self._kontakt_quellen_buch.capture(*self._kontakt_quellen_buchbindung(), self._aktuelle_daten)
+
+    def _kontakt_quellen_hauptdatei_aufnahme(self):
+        """Authenticate the primary, not memory or a saved-book substitute."""
+        from magnolie_contact_source_authority import NativeContactSourcePrimaryBook
+        from magnolie_native_book_json import book_hash
+        with self._daten_sperre:
+            if getattr(self, '_gesperrt', True) or getattr(self, '_ladefehler', ''):
+                raise PermissionError('contact_approval_primary_not_available')
+            binding = os.path.realpath(daten_datei())
+            raw, fingerprint = _erinnerungsprofil_lesen(dauerhaft=True)
+            if ist_verschluesselt(raw):
+                from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+                _envelope, _rounds, key_id, _salt, _nonce, _wrapped, nonce, secret = _daten_huelle_felder(raw)
+                dek, expected_id = self._daten_dek, self._daten_dek_kennung
+                if dek is None or key_id != expected_id:
+                    raise PermissionError('contact_approval_primary_key_not_available')
+                text = AESGCM(dek).decrypt(nonce, secret,
+                    DATEN_AAD + b'\0inhalt\0' + key_id).decode('utf-8')
+            else:
+                text = raw
+            data = json.loads(text)
+            if not isinstance(data, dict):
+                raise PermissionError('contact_approval_primary_invalid')
+            content = book_hash(data)
+            if (_erinnerungsprofil_lesen(dauerhaft=True)[1] != fingerprint or
+                    os.path.realpath(daten_datei()) != binding):
+                raise PermissionError('contact_approval_primary_changed')
+            return NativeContactSourcePrimaryBook(binding, fingerprint, content)
 
     def _kontakt_quellen_schutz(self, snapshot):
         """Exact current saved-book recovery coverage, not periodic reuse."""

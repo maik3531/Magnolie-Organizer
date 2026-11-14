@@ -587,7 +587,30 @@ private-file boundary, not protection against a hostile same-user process or a
 rollback of the entire private key/state directory. It must not be imported with
 document settings or archives.
 
-Application consent, ordinary-save advancement, authenticated primary read/crash
-recovery, scope hydration and SaveACK-correlated frontend restoration are not yet
-connected. Current product consent remains session-only, and no durable automatic
-operation or corresponding Windows implementation is claimed by this core.
+## Signed save advancement and primary recovery (#618)
+
+The core now records a separately signed native before-save intent, advances the
+known book hash only after a confirmed native save, and recovers only its known
+old/new outcome. An already advanced record cannot be recovered backwards. These
+operations retain the same approved sources/account identity and do not consult
+credentials. A pending or corrupt intent cannot release usable permission.
+
+The actual Linux serial writer has hooks for a native approval store: prepare
+before saved-witness invalidation, confirm after the actual write and all repair
+checks. Sidecar failures hold source authority without making an ordinary book
+save fail. Existing committed/repair-pending semantics remain unchanged.
+An authenticated primary-file observer reads/fsyncs/rechecks the actual primary
+and authenticates encrypted content with the cached DEK. It never constructs a
+saved witness from loaded JSON or grants source permission. Known primary
+recovery can precede the first real post-restart SaveACK.
+
+Fifty-four additional controlled save/primary/actual encrypted writer cases and
+352 combined cases pass, including the existing three frontend/native wires and
+12 actual historical-writer cases. Writer-store injection and restart outcomes
+are synthetic; no installed application or live provider was exercised.
+
+Application setup/consent persistence, native store construction, scope hydration,
+quiet permission-return monitoring and SaveACK-correlated frontend restoration
+are still not connected. Current product consent remains session-only; these
+helpers/hooks are not yet a user-visible durable automatic feature. No Windows
+implementation is claimed.
