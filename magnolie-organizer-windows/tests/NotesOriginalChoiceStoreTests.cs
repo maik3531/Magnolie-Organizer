@@ -55,6 +55,9 @@ internal static class NotesOriginalChoiceStoreTests
         private string transport = "";
         internal NotesOriginalPendingResult? PendingResult;
         internal NotesOriginalNegotiation? Protocol;
+        internal bool CaptureRecovery;
+        internal (JsonObject Body, MagnolienbaumCoordinator.NativeNotesOrigin Origin, string Transport) RecoveryObservation =>
+            (observed!.DeepClone().AsObject(), origin!, transport);
 
         internal Fixture(string root, bool nativeDefault = false)
         {
@@ -86,7 +89,7 @@ internal static class NotesOriginalChoiceStoreTests
                 {
                     if (body["art"]!.GetValue<string>() == "kontakt_original_aushandlung" && Protocol is not null)
                         Protocol.Accept(body, proof, mid);
-                    else if (body["art"]!.GetValue<string>() == "kontakt_original_ergebnis" && PendingResult is not null)
+                    else if (!CaptureRecovery && body["art"]!.GetValue<string>() == "kontakt_original_ergebnis" && PendingResult is not null)
                         PendingResult.StageResult(body, proof, mid);
                     else { observed = body.DeepClone().AsObject(); origin = proof; transport = mid; }
                     return true;
@@ -349,7 +352,9 @@ internal static class NotesOriginalChoiceStoreTests
     internal static async Task SavedAcksAsync(string root)
     {
         var modes = new[] { "success", "before-save", "failed-save", "missing-request", "tampered-history", "missing-history", "key-change", "request-tamper",
-            "revoke", "later-real-save", "stop", "history-written-crash", "readback-crash", "stop-during-seal", "reloaded-request-store", "unknown-ack-root", "revoke-during-seal" };
+            "revoke", "later-real-save", "stop", "history-written-crash", "readback-crash", "stop-during-seal", "reloaded-request-store", "unknown-ack-root", "revoke-during-seal",
+            "query-restart", "query-later-save", "query-revoked", "query-target-changed", "query-mapping-changed", "query-no-offer", "query-no-history", "query-stop",
+            "query-prepared", "query-settled", "query-wrong-receipt", "query-wrong-desktop", "query-copy-origin", "query-expire-origin", "query-no-reconstructed-ack" };
         foreach (var mode in modes)
         {
             using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
@@ -412,6 +417,67 @@ internal static class NotesOriginalChoiceStoreTests
             var loaded = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests).LoadHeld(historyKey)!;
             loaded["result"]!["receipt_id"] = Guid.NewGuid().ToString();
             TestAssert.That(!JsonNode.DeepEquals(loaded, outcomes.LoadHeld(historyKey)), "Loaded saved history alias changed private outcome");
+            if (mode.StartsWith("query-", StringComparison.Ordinal))
+            {
+                if (mode is "query-later-save" or "query-target-changed" or "query-mapping-changed")
+                {
+                    var later = JsonNode.Parse(commit.Text)!.AsObject(); later["independent-user-edit"] = "preserve";
+                    if (mode == "query-target-changed") later["kontakte"]![0]!["vorname"] = "New chosen target";
+                    if (mode == "query-mapping-changed") later["kontakte"]![0]!["notesOriginalBasis"]!["receipt_id"] = Guid.NewGuid().ToString();
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Known later save failed");
+                }
+                if (mode == "query-revoked") h.Store.Revoke();
+                if (mode == "query-no-history") System.IO.File.Delete(Directory.GetFiles(ackRoot, "a-*.json").Single());
+                requests.Stop(); outcomes.Stop();
+                h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+                TestAssert.That(h.Host.Snapshot() is null, "Restart read invented saved snapshot");
+                var reloadedRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+                var reloadedOutcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, reloadedRequests);
+                h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own);
+                if (mode != "query-no-offer") { var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer); }
+                if (mode is "query-revoked" or "query-target-changed" or "query-mapping-changed" or "query-no-offer" or "query-no-history")
+                    Hold(() => reloadedOutcomes.ReadOnlyQuery(historyKey, h.NewStore(), h.Protocol));
+                else
+                {
+                    var query = reloadedOutcomes.ReadOnlyQuery(historyKey, h.NewStore(), h.Protocol);
+                    var outgoing = query.Request(h.Protocol);
+                    TestAssert.That(outgoing.Count == 7 && outgoing["ziel"] is null && outgoing["desktop_sha256"] is null &&
+                        outgoing["request_sha256"]!.GetValue<string>() == historyKey, "Historical query supplied target or ACK authority");
+                    if (mode == "query-stop") { reloadedOutcomes.Stop(); Hold(() => query.Request(h.Protocol)); }
+                    else
+                    {
+                        var response = result.DeepClone().AsObject();
+                        if (mode is "query-prepared" or "query-settled" or "query-wrong-desktop" or "query-no-reconstructed-ack")
+                        {
+                            response["art"] = "kontakt_original_abschlussstatus"; response["phase"] = mode == "query-settled" ? "settled" : "prepared";
+                            response["desktop_sha256"] = mode == "query-wrong-desktop" ? new string('0', 64) : body["desktop_sha256"]!.DeepClone();
+                        }
+                        if (mode == "query-wrong-receipt") response["receipt_id"] = Guid.NewGuid().ToString();
+                        h.CaptureRecovery = true; h.Send(response); var observation = h.RecoveryObservation;
+                        if (mode == "query-no-reconstructed-ack") System.IO.File.Delete(Directory.GetFiles(ackRoot, "a-*.json").Single());
+                        if (mode is "query-wrong-receipt" or "query-wrong-desktop" or "query-copy-origin" or "query-no-reconstructed-ack")
+                            Hold(() => reloadedOutcomes.Reauthorize(query, observation.Body,
+                                mode == "query-copy-origin" ? new(new object()) : observation.Origin, observation.Transport, h.Protocol));
+                        else
+                        {
+                            var restored = reloadedOutcomes.Reauthorize(query, observation.Body, observation.Origin, observation.Transport, h.Protocol);
+                            TestAssert.That(JsonNode.DeepEquals(restored.Body(), body) && restored.TerminalConfirmed() == (mode == "query-settled"),
+                                "Fresh result did not reauthorize exact historical ACK/hash or falsely settled history");
+                            TestAssert.That(reloadedRequests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null,
+                                "Terminal observation released physical hold without exact installation");
+                            if (mode == "query-expire-origin")
+                            {
+                                var native = observation.Origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(observation.Origin)!;
+                                native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+                                Hold(() => restored.Body());
+                            }
+                            TestAssert.Throws<InvalidOperationException>(() => new NotesOriginalSavedAckIntents.RestoredAck(new object()).Body(), "Counterfeit restored ACK proof accepted");
+                        }
+                    }
+                }
+                TestAssert.That(h.Host.Snapshot() is null, "Query recovery called RecordSaved");
+                Hold(() => ack.Body()); continue;
+            }
             if (mode == "success") continue;
             if (mode == "tampered-history") System.IO.File.WriteAllText(Directory.GetFiles(ackRoot, "a-*.json").Single(), "{}");
             if (mode == "missing-history") System.IO.File.Delete(Directory.GetFiles(ackRoot, "a-*.json").Single());

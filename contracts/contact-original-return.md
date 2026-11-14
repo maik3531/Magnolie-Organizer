@@ -1159,6 +1159,40 @@ restart recovery, exact terminal/mapping installation and physical retirement,
 reserved sender/controller pump/bootstrap and common setup. None is inferred from
 the now-durable JSON; no production sender/key backend or installation is enabled.
 
+### Windows target-free historical queries and fresh ACK reauthorization (#633)
+
+After reopening, a private query proof requires the actual independently encrypted
+saved-ACK record, matching physical request history, current private source/key/
+generation/book/setup/pins, authenticated known primary and actually owned native
+model. The exact chosen ID/UID, modeled target and installed metadata must still
+match. An unrelated known book edit is preserved; changed chosen content or mapping
+holds that source. The native saved snapshot may remain absent: this correlation
+never calls `RecordSaved` or manufactures a new writer witness.
+
+The typed query carries seven fields and no target or desktop saved hash. Only a
+subsequent fresh actual-FS1 result, or exact prepared/settled status including the
+original genuine saved hash, can issue a private restored ACK proof. That proof
+keeps the actual origin/protocol/private-history lifetime and rechecks all current
+bindings when used. It returns the original historical ACK/hash, not a receipt for
+the current book. A terminal observation does not install mappings or release the
+physical slot. Without genuine local saved-ACK history, even an otherwise matching
+terminal hash cannot reconstruct ACK authority.
+
+Evidence: 15 additional query/reauthorization cases (32 saved-ACK cases including
+the retained 17) pass on managed host and existing noninteractive Windows. They
+cover restart with no saved observation, unrelated known save, revocation, changed
+target/mapping, no offer/history, Stop, exact prepared/settled result, wrong receipt/
+desktop hash, copied/expired origin and missing history after query. Reopened
+native snapshots stay absent throughout; physical holds stay intact. Release
+CoreTests and BASE builds are clean. One expanded Windows run hit its existing
+bounded deadline without a result; the unchanged assembly passed the separately
+bounded repeat. No product defect was inferred from the timed-out run.
+
+Unconfirmed (no genuine saved-ACK) recovery, exact terminal retirement, reserved
+Windows sending/controller/bootstrap/pump, key-backend selection and actual common
+setup remain outstanding. Production stays OFF; no installation/device acceptance
+or publication is implied.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

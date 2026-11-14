@@ -5,7 +5,7 @@ namespace MagnolieOrganizer.Windows;
 
 // Independent genuine saved history only. Loading JSON never issues an ACK proof.
 // No terminal retirement, restored reauthorization or production sender yet.
-internal sealed class NotesOriginalSavedAckIntents
+internal sealed partial class NotesOriginalSavedAckIntents
 {
     private const int Limit = 2 * 1024 * 1024;
     private readonly ContactSourcePrivateFiles files;
