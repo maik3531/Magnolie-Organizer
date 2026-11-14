@@ -429,6 +429,23 @@ native scalar ambiguity, oversized Parcel, stale basis, failed protection and
 an actual protected verified write. No authenticated full-return dispatcher is
 enabled by adding this native controller entry point.
 
+The automatic native postal planner explicitly supports `privat`, `arbeit` and
+`sonstige`; unknown or empty requested kinds are rejected before protection and
+reservation rather than silently written as `TYPE_OTHER` and rejected only by
+readback (#630). The before-fix actual synthetic FS1/controller/provider cases
+reached one unexpected batch for each unsupported kind on API28/API35. The
+corrected 104 source/writer plus 36 controller cases pass, including supported
+`sonstige` readback and an unrelated scalar edit preserving an unchanged custom
+postal label, PO box and native unmodeled column. Generic transport/manual-review
+DTOs are not restricted by this automatic writer limitation. Lossless editing of
+additional custom postal kinds is not claimed as implemented.
+
+The reviewed Linux DAV path writes an exact prepared vCard and checks native UID,
+ETag and returned content; Windows DAV delegates vCard writing to `ExchangeCodec`,
+not this Android enum fallback. No identical cross-platform fault was established
+from those source paths, and no live-provider or wider EDS/Akonadi acceptance is
+inferred. Their remaining authority/representation scope stays in #628.
+
 `KontaktOriginalSicherungen` now writes and rereads an actual pinned contact-only
 before-image through the existing snapshot store and AES-GCM journal cipher.
 It checks native identity, complete row membership, exact portable content and

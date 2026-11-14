@@ -253,4 +253,37 @@ class KontaktOriginalEmpfangTest {
         send(body)
         assertEquals(recovered, queued().last()); assertEquals(1, provider.batchCalls); assertEquals(1, rotations)
     }
+
+    @Test fun unsupportedCustomPostalKindStopsBeforeProtectionReservationAndProviderWrite() = unsupportedPostalKind("Native custom label")
+    @Test fun emptyPostalKindIsNotSilentlyTurnedIntoAnotherNativeType() = unsupportedPostalKind("")
+
+    private fun unsupportedPostalKind(kind: String) {
+        configure()
+        val target = binding.aktuell().daten.copy(anschriften = listOf(KontaktAnschrift(kind, "Synthetic street")))
+        val error = assertThrows(IllegalArgumentException::class.java) { send(request(target)) }
+        assertEquals("Unsupported postal kind reached the actual provider batch", 0, provider.batchCalls)
+        assertEquals("contact_original_postal_kind_not_supported", error.message)
+        assertNoMutation()
+    }
+
+    @Test fun explicitSupportedOtherPostalKindStillReachesVerifiedNativeReadback() {
+        configure()
+        val target = binding.aktuell().daten.copy(anschriften = listOf(KontaktAnschrift("sonstige", "Synthetic street")))
+        send(request(target))
+        assertEquals(target, binding.ruecklesenNachSchreiben().daten)
+        assertEquals(1, provider.batchCalls); assertEquals(1, queued().size)
+    }
+
+    @Test fun unrelatedScalarEditPreservesAnUnchangedCustomPostalLabelAndNativeColumns() {
+        val row = provider.postal("Existing synthetic street", ContactsContract.CommonDataKinds.StructuredPostal.TYPE_CUSTOM)
+        row[ContactsContract.CommonDataKinds.StructuredPostal.LABEL] = "Existing native label"
+        row[ContactsContract.CommonDataKinds.StructuredPostal.POBOX] = "Retained native box"
+        row[ContactsContract.Data.DATA11] = "Retained unmodeled native column"
+        val nativeId = row.getValue(ContactsContract.Data._ID); val before = row.toMap()
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        configure()
+        send(request(binding.aktuell().daten.copy(notiz = "Only the note changes")))
+        assertEquals(before, provider.rows.single { it[ContactsContract.Data._ID] == nativeId }.toMap())
+        assertEquals(1, provider.batchCalls); assertEquals(1, queued().size)
+    }
 }

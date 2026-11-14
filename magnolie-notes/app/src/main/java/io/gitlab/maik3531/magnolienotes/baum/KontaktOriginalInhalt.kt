@@ -148,6 +148,9 @@ internal class KontaktOriginalInhalt(private val freigabe: KontaktOriginalFreiga
     }
 
     private fun type(kind: String) = when (kind) {
-        "privat" -> StructuredPostal.TYPE_HOME; "arbeit" -> StructuredPostal.TYPE_WORK; else -> StructuredPostal.TYPE_OTHER
+        "privat" -> StructuredPostal.TYPE_HOME
+        "arbeit" -> StructuredPostal.TYPE_WORK
+        "sonstige" -> StructuredPostal.TYPE_OTHER
+        else -> throw IllegalArgumentException("contact_original_postal_kind_not_supported")
     }
 }
