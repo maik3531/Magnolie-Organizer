@@ -918,6 +918,21 @@ Windows pending/result/actual-writer/ACK-history/restart/pump and common native
 setup are still missing. These checks are an authenticated native origin boundary,
 not full Windows return synchronization or permission to activate production.
 
+Windows also now has a separate native `NotesOriginalNegotiation` with immutable
+paired pins and a fresh challenge. Only the exact five-field native draft offer,
+authenticated by the actual `NativeNotesOrigin`, establishes the protocol context.
+Copied proofs, wrong challenge/profile/pins/transport, Boolean/float versions and
+extra fields are rejected. A probe or transport receipt alone grants nothing;
+cancel, Stop, revocation and the original actual FS1 deadline remain effective.
+Private state locks never call native origin/book callbacks. This protocol context
+is not source consent, a durable request-send nonce, a writer witness or a sender.
+
+Evidence: 15 additional actual-FS1 negotiation scenarios pass on both the managed
+host and existing noninteractive Windows runner, together with the retained 22
+origin and five prior identity cases (one group, overlapping previous matrices).
+Release CoreTests and BASE product source builds pass with zero warnings/errors.
+No production controller, common setup UI or Windows sender is registered yet.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

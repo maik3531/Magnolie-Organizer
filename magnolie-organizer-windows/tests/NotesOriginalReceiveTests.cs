@@ -17,6 +17,14 @@ internal static class NotesOriginalReceiveTests
         Console.WriteLine("Notes native FS1 origin: 22 synthetic scenarios passed (no installed counterpart acceptance).");
     }
 
+    internal static void Negotiation(string root)
+    {
+        foreach (var mode in new[] { "success", "challenge", "profile", "bool-version", "float-version", "extra", "copy",
+            "peer", "own", "transport", "cancel-before", "cancel-after", "stop-after", "revoke-after", "expire-after" })
+            Scenario(Path.Combine(root, mode), "protocol-" + mode);
+        Console.WriteLine("Notes native protocol negotiation: 15 actual-FS1 synthetic scenarios passed (no source grant).");
+    }
+
     private static void Scenario(string root, string mode)
     {
         JsonObject State(string id)
@@ -42,6 +50,21 @@ internal static class NotesOriginalReceiveTests
             "request-denied" => "kontakt_original_anfrage", "ack-denied" => "kontakt_original_saveack", "query-denied" => "kontakt_original_statusanfrage",
             _ => "kontakt_original_aushandlung"
         };
+        var protocolMode = mode.StartsWith("protocol-", StringComparison.Ordinal);
+        NotesOriginalNegotiation? protocol = null;
+        if (protocolMode)
+        {
+            protocol = new(new(mode == "protocol-peer" ? "other-native-peer" : "synthetic-notes", remote["oeffentlich"]!.GetValue<string>()),
+                new(mode == "protocol-own" ? "other-native-desktop" : "synthetic-desktop", local["oeffentlich"]!.GetValue<string>()));
+            body = protocol.Probe(); body["antwort"] = true;
+            TestAssert.Throws<InvalidOperationException>(() => protocol.RequireCurrent(), "Transport/probe alone negotiated a native profile.");
+            if (mode == "protocol-challenge") body["challenge"] = Guid.NewGuid().ToString();
+            if (mode == "protocol-profile") body["profil"] = "not-this-native-draft";
+            if (mode == "protocol-bool-version") body["fassung"] = true;
+            if (mode == "protocol-float-version") body["fassung"] = JsonNode.Parse("1.0");
+            if (mode == "protocol-extra") body["confirmed"] = true;
+            if (mode == "protocol-cancel-before") protocol.Cancel();
+        }
         if (mode == "oversize") body["oversize"] = new string('x', 256 * 1024);
         MagnolienbaumCoordinator.NativeNotesOrigin? captured = null;
         string transport = ""; var received = 0;
@@ -52,6 +75,9 @@ internal static class NotesOriginalReceiveTests
             TestAssert.That(pins.Peer.Id == "synthetic-notes" && pins.Own.Id == "synthetic-desktop" &&
                 who["kennung"]!.GetValue<string>() == pins.Peer.Id, "Native origin relabeled genuine FS1 pins.");
             if (mode == "late-revoke") currentPeer["kontaktSync"] = false;
+            if (protocol is not null) protocol.Accept(content,
+                mode == "protocol-copy" ? new(new object()) : origin,
+                mode == "protocol-transport" ? "copied-transport" : mid);
             return mode != "refused";
         };
         using var start = MagnolienbaumFs1.BuildStart(remote, target);
@@ -62,6 +88,29 @@ internal static class NotesOriginalReceiveTests
         var envelope = MagnolienbaumFs1.BuildEnvelope(session, "synthetic-notes", "synthetic-desktop", body,
             Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)));
         var delivered = coordinator.HandleProtocolRequest("/magnolie/v2/nachricht", envelope, "127.0.0.1");
+        if (protocol is not null)
+        {
+            var accepted = mode is "protocol-success" or "protocol-cancel-after" or "protocol-stop-after" or "protocol-revoke-after" or "protocol-expire-after";
+            TestAssert.That(delivered.Status == (accepted ? 200 : 403) && received == 1 && storage.LoadInbox().Count == 0,
+                "Native protocol schema/pins/lifetime admission failed: " + mode);
+            if (!accepted)
+            {
+                TestAssert.Throws<InvalidOperationException>(() => protocol.RequireCurrent(), "Rejected offer remained negotiated.");
+                return;
+            }
+            TestAssert.That(protocol.RequireCurrent().Peer.Id == "synthetic-notes", "Native negotiation lost original pins.");
+            if (mode == "protocol-success") return;
+            if (mode == "protocol-cancel-after") protocol.Cancel();
+            if (mode == "protocol-stop-after") coordinator.StopAsync().GetAwaiter().GetResult();
+            if (mode == "protocol-revoke-after") currentPeer["kontaktSync"] = false;
+            if (mode == "protocol-expire-after")
+            {
+                var proof = captured!.GetType().GetFields(Private).Single().GetValue(captured)!;
+                proof.GetType().GetProperty("Expires")!.SetValue(proof, 0L);
+            }
+            TestAssert.Throws<InvalidOperationException>(() => protocol.RequireCurrent(), "Cancelled/stale negotiation remained usable.");
+            return;
+        }
         if (mode is "default-off" or "refused" or "late-revoke" or "oversize" or "stop-before-receive" or "request-denied" or "ack-denied" or "query-denied")
         {
             TestAssert.That(delivered.Status == 403 && received == (mode is "refused" or "late-revoke" ? 1 : 0), "Draft receive bypassed native admission.");
