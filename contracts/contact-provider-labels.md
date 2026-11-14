@@ -930,3 +930,31 @@ and continues in #625; #619 still owns exact original-book snapshot coverage.
 No installed app, live provider, device/VM, package installation or publication
 acceptance is claimed. After #621 source integration, #623 and #624 precede the
 broader Notes/provider return #622.
+
+## Linux exact native decision binding (#623)
+
+Linux `NativeDavSourceApproval` now carries an immutable private scope-minted
+decision witness binding exact source/href strings, current account revision and
+scope generation. A dataclass copy may wrap a genuine native lifetime/cancellation
+guard, but cannot retarget fields, remove/fake the witness or bypass revocation by
+replacing that callback. Persistent approval and the direct native DAV factory
+both require the witness independently before and after approval callbacks.
+Durable scope restoration mints fresh bound witnesses only after its existing
+current signed-store checks; a fake self-attesting store cannot supply a typed
+restored lease. Account inputs must be the actual native settings-store type.
+
+Twenty-nine new controlled cases pass, including copied same-origin targets,
+normalization tricks, missing/fake tokens, account/book changes, callback bypass,
+legitimate wrappers, restored decisions, immutable witnesses and forged store/
+account objects. The affected 401-case native application matrix passes, including
+the four existing frontend/native/DAV/encrypted-writer wires; six actual isolated
+GTK modal cases pass. The matrices overlap. The original native-only copy/retarget
+repro is now held without changing saved human intent or issuing provider IO.
+No external Bridge/MCP/document exploit was established, and this is not a sandbox
+against hostile Python code already executing in the same native process.
+
+Native original binding, UID/href/ETag/CAS/readback, update-only, protection,
+noninteractive credentials, save/restart semantics and Notes priority remain.
+No installed-app, live-provider, device/VM, installation or release acceptance is
+claimed. The separate Linux status/wait-return issue #624 is still open here;
+Windows native acceptance #625/#619 and broader return #622 remain separate.

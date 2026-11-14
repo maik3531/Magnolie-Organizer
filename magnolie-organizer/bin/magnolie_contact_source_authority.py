@@ -16,7 +16,7 @@ import os
 import re
 import stat
 
-from magnolie_contact_source_dav import NativeDavSourceApproval, _account, _source_matches
+from magnolie_contact_source_dav import NativeDavSourceApproval, _account, _source_matches, require_native_decision
 from magnolie_native_book_json import book_hash
 from magnolie_nextcloud import NextcloudSettingsStore
 from magnolie_personal_actor_store import NativeProducerBookSnapshot
@@ -51,6 +51,8 @@ class NativeStoredContactApproval:
     sources: tuple = field(repr=False)
 
     def require_current(self):
+        if type(self.store) is not NativeContactSourceApprovalStore:
+            raise TypeError('contact_approval_native_store_required')
         current = self.store.load_current()
         if (type(current) is not NativeStoredContactApproval or
                 current.key_fingerprint != self.key_fingerprint or
@@ -417,7 +419,9 @@ class NativeContactSourceApprovalStore:
             raise PermissionError('contact_approval_native_book_changed')
         settings, revision, identity = self._account()
         for item in approvals:
+            require_native_decision(item)
             item.require_current()
+            require_native_decision(item)
             if item.account_revision != revision or not _source_matches(settings, item.source, item.href):
                 raise PermissionError('contact_approval_native_decision_changed')
         sources = sorted(({'source': item.source, 'href': item.href} for item in approvals), key=lambda item: item['source'])
@@ -431,7 +435,10 @@ class NativeContactSourceApprovalStore:
         try:
             if self._saved() != (snapshot, binding) or self._account()[1] != revision:
                 raise PermissionError('contact_approval_native_context_changed')
-            for item in approvals: item.require_current()
+            for item in approvals:
+                require_native_decision(item)
+                item.require_current()
+                require_native_decision(item)
         except Exception:
             self.revoke_if_generation(generation)
             raise

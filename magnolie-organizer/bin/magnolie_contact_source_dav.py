@@ -11,7 +11,7 @@ import threading
 from types import MappingProxyType
 import urllib.parse
 
-from magnolie_nextcloud import NextcloudDav, source_id, validate_server
+from magnolie_nextcloud import NextcloudDav, NextcloudSettingsStore, source_id, validate_server
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,19 @@ class NativeDavSourceApproval:
     href: str
     account_revision: str = field(repr=False)
     require_current: object = field(repr=False)
+    _native_consent: object = field(default=None, repr=False, compare=False)
+
+
+def require_native_decision(approval):
+    """Exact native decision binding, independent of replaceable callbacks.
+
+    This is native API hardening, not protection against hostile Python code in
+    this same process. No document/bridge deserializer may mint this witness.
+    """
+    if (type(approval) is not NativeDavSourceApproval or
+            type(approval._native_consent) is not NativeDavApprovalScope._ConsentWitness):
+        raise TypeError('contact_source_native_decision_required')
+    approval._native_consent.require(approval)
 
 
 def _account(store):
@@ -58,12 +71,37 @@ class NativeDavApprovalScope:
     def __init__(self, current_saved_book, account_store):
         if not callable(current_saved_book):
             raise TypeError('Native saved-book observation required')
+        if type(account_store) is not NextcloudSettingsStore:
+            raise TypeError('contact_source_native_account_required')
         self._current_book, self._store = current_saved_book, account_store
         self._lock = threading.RLock()
         self._generation = 0
         self._grants = {}
         self._owner = self._revision = None
         self._durable_guard = None
+
+    class _ConsentWitness:
+        __slots__ = ('__scope', '__source', '__href', '__revision', '__generation')
+
+        def __init__(self, scope, source, href, revision, generation):
+            for name, value in (('scope', scope), ('source', source), ('href', href),
+                                ('revision', revision), ('generation', generation)):
+                object.__setattr__(self, '_ConsentWitness__' + name, value)
+
+        def __setattr__(self, _name, _value):
+            raise AttributeError('contact_source_native_decision_immutable')
+
+        def require(self, approval):
+            if (approval.source != self.__source or approval.href != self.__href or
+                    approval.account_revision != self.__revision):
+                raise PermissionError('contact_source_native_decision_retargeted')
+            self.__scope._require_decision(self.__generation, self.__source, self.__href, self.__revision)
+
+    def _require_decision(self, generation, source, href, revision):
+        with self._lock:
+            self._retain_current()
+            if (generation != self._generation or self._revision != revision or self._grants.get(source) != href):
+                raise PermissionError('contact_source_explicit_approval_withdrawn')
 
     def revoke(self):
         with self._lock:
@@ -163,13 +201,10 @@ class NativeDavApprovalScope:
         with self._lock:
             self._retain_current()
             generation = self._generation
-            def guard(source, href):
-                with self._lock:
-                    self._retain_current()
-                    if generation != self._generation or self._grants.get(source) != href:
-                        raise PermissionError('contact_source_explicit_approval_withdrawn')
-            return tuple(NativeDavSourceApproval(source, href, self._revision,
-                lambda source=source, href=href: guard(source, href)) for source, href in self._grants.items())
+            revision = self._revision
+            return tuple(NativeDavSourceApproval(source, href, revision,
+                lambda source=source, href=href: self._require_decision(generation, source, href, revision),
+                self._ConsentWitness(self, source, href, revision, generation)) for source, href in self._grants.items())
 
 
 @dataclass(frozen=True)
@@ -184,7 +219,9 @@ class BoundDavContact:
 class NativeBoundDavFactory:
     """One dedicated native connection; existing admitted bindings only."""
     def __init__(self, store, approval, bound_hrefs, require_book_current,
-                 protect_before_mutation, observe_card, cancelled=None, transport=None):
+                  protect_before_mutation, observe_card, cancelled=None, transport=None):
+        if type(store) is not NextcloudSettingsStore:
+            raise TypeError('contact_source_native_account_required')
         if (cancelled is not None and not callable(cancelled)) or type(approval) is not NativeDavSourceApproval or not all(callable(value) for value in
                 (approval.require_current, require_book_current, protect_before_mutation, observe_card)):
             raise TypeError('Native approval/book/protection/codec callbacks required')
@@ -216,7 +253,9 @@ class NativeBoundDavFactory:
         self._book()
         if self._cancelled():
             raise InterruptedError('contact_source_cancelled')
+        require_native_decision(self._approval)
         self._approval.require_current()
+        require_native_decision(self._approval)
         settings, revision = _account(self._store)
         if revision != self._approval.account_revision or not _source_matches(settings, self._approval.source, self._approval.href):
             raise PermissionError('contact_source_account_or_approval_changed')
