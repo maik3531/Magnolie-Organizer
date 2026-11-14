@@ -1181,6 +1181,7 @@ class Baumwerk private constructor(
         transportId: String?,
         umschlagHash: String?
     ): Boolean {
+        require(text(inhalt, "art") != KontaktOriginalEmpfang.ANFRAGE) { "contact_original_authenticated_origin_required" }
         val verarbeitet = verarbeiteEmpfang(vonKennung, inhalt, zaehler, transportId, umschlagHash)
         if (text(inhalt, "art") == "termin") {
             throw BaumFehler(zusammenhang.getString(R.string.baum_termin_nicht_unterstuetzt))
@@ -1188,7 +1189,19 @@ class Baumwerk private constructor(
         return verarbeitet
     }
 
+    // Intentionally absent in production until the negotiated desktop/save-ACK
+    // lifecycle and setup are complete. The isolated native tests inject it.
+    private var originalEmpfang: KontaktOriginalEmpfang? = null
+
     override fun verarbeiteSichereNachricht(ursprung: Server.FsEmpfang, inhalt: JsonObject, transportId: String): Boolean {
+        if (text(inhalt, "art") == KontaktOriginalEmpfang.ANFRAGE) {
+            val receiver = originalEmpfang ?: throw BaumFehler("contact_original_return_not_enabled")
+            return verarbeiteEmpfang(ursprung.partnerKennung(), inhalt, null, transportId, null,
+                ursprung = ursprung, empfang = {
+                    val result = receiver.empfangen(ursprung, inhalt, transportId)
+                    einreihen(ursprung.partnerKennung(), KontaktOriginalEmpfang.ERGEBNIS, result)
+                })
+        }
         val verarbeitet = verarbeiteEmpfang(ursprung.partnerKennung(), inhalt, null, transportId, null, ursprung = ursprung)
         if (text(inhalt, "art") == "termin") {
             throw BaumFehler(zusammenhang.getString(R.string.baum_termin_nicht_unterstuetzt))
@@ -1209,7 +1222,7 @@ class Baumwerk private constructor(
 
     private fun verarbeiteEmpfang(vonKennung: String, inhalt: JsonObject, zaehler: Long?, transportId: String?,
         umschlagHash: String?, receipt: String? = null, ursprung: Server.FsEmpfang? = null,
-        danach: () -> Unit = {}): Boolean = synchronized(Ablage.SCHREIBSPERRE) {
+        empfang: (() -> Unit)? = null, danach: () -> Unit = {}): Boolean = synchronized(Ablage.SCHREIBSPERRE) {
         fun pruefeUrsprung() {
             ursprung?.pruefen(eigen(), partner(vonKennung), inhalt, requireNotNull(transportId))
         }
@@ -1227,7 +1240,7 @@ class Baumwerk private constructor(
             val lauf = AktuellerSnapshot(gedeckt)
             aktuellerSnapshot.set(lauf)
             try {
-                nachricht(vonKennung, inhalt)
+                if (empfang != null) empfang() else nachricht(vonKennung, inhalt)
                 danach()
                 if (gueltig) neuerSnapshot = EmpfangSnapshot(vonKennung, run, ablage.bestand.value,
                     if (gedeckt) vorher!!.expires else jetzt + 600_000_000_000L, lauf.gesichert)
@@ -1524,6 +1537,10 @@ class Baumwerk private constructor(
 
         internal fun fuerTest(ablage: Ablage, zusammenhang: Context): Baumwerk =
             Baumwerk(ablage, zusammenhang.applicationContext)
+
+        internal fun fuerOriginalRueckwegTest(ablage: Ablage, zusammenhang: Context,
+            receiver: (Server.Handlung) -> KontaktOriginalEmpfang): Baumwerk =
+            Baumwerk(ablage, zusammenhang.applicationContext).also { it.originalEmpfang = receiver(it) }
 
         internal fun fuerFernAbgleichTest(ablage: Ablage, zusammenhang: Context, internet: () -> Boolean): Baumwerk =
             Baumwerk(ablage, zusammenhang.applicationContext, fernInternet = internet)

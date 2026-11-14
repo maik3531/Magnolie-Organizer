@@ -68,6 +68,45 @@ or advertising it. No new resource/version is allocated by this assessment.
 
 ## Existing provider boundaries
 
+### Notes controller integration, production still disabled (#628)
+
+`KontaktOriginalEmpfang` now joins actual FS1-origin admission, restored native
+consent, private canonical/raw observation, sender-quoted basis, the shared
+native plan, lazy actual original protection, atomic provider write/readback and
+the durable verified outgoing result. `Baumwerk` routes this through its actual
+receive transaction and persistent result outbox. The production controller is
+absent by default and can currently only be injected by isolated native tests;
+legacy/unproven-origin calls cannot enter it. No capability is advertised and
+no installed automatic feature is enabled.
+
+The dedicated draft request uses `kontakt_original_anfrage`, version 1, exact
+fields `request_id`, `share_id`, `before_basis`, `target_sha256`, `ziel`, plus
+`art`/`fassung`. `ziel` contains exactly the modeled names/raw N/FN, scalar and
+postal fields. Phone/email/photo/group edits are not accepted through it. The
+receiver verifies the desired full target hash while retaining those excluded
+native fields unchanged. Existing strict `kontakt_sync`/capability DTOs and
+resource19 remain unchanged. The draft result uses `kontakt_original_ergebnis`
+and the exact eight native result-correlation fields documented below. Desktop
+implementation and explicit negotiation remain outstanding; these draft kinds
+are not sent to existing peers as an assumed supported capability.
+
+An exact repeated request can load and enqueue the same verified receipt after
+a lost response or fresh native owner, without another setup or provider batch.
+A different request/hash/target cannot bypass the physical hold. Native
+connection policy and origin lifetime are rechecked around protection and apply.
+Missing consent rejects before provider observation or default private-state
+creation. Invalid scope/budget rejects before original protection/reservation.
+The generic FS1 receipt still does not settle the attempt or install its next map.
+
+Host evidence covers 28 controller API28/API35 cases, including actual FS1 crypto,
+real isolated `Baumwerk`/`Ablage` transaction/outbox, native synthetic provider,
+encrypted protection and source restoration. An interruption after the actual
+receive commit intent is recovered on restart and the exact result can be
+re-emitted with one provider batch. The affected 64 origin/transport regression
+cases also pass; the eight subsequently added controller cases were run alone,
+retaining the earlier unchanged passing cases. No physical device/provider,
+AndroidKeyStore, installed notebook, package or publication acceptance is claimed.
+
 | Counterpart | What the source establishes | What is still needed for this automatic path |
 | --- | --- | --- |
 | Notes Android | Authenticated full DTO; reviewed writer; resource19; new independent native original/decision/full-content core below | Join durable native approval, genuine setup and authenticated sender/receiver to the correlated durable result receipt; the new core is not advertised or automatically invoked |

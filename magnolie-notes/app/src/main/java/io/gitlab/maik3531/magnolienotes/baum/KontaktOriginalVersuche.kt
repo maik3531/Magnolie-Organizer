@@ -73,6 +73,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         private fun native(): Beleg = (beleg as? Beleg) ?: throw SecurityException("contact_original_native_attempt_required")
         fun pruefen() { native().let { it.store.pruefen(it) } }
         fun anfrageId(): String = native().also { pruefen() }.record.getValue("request_id").jsonPrimitive.content
+        fun anfrageHash(): String = native().also { pruefen() }.record.getValue("request_sha256").jsonPrimitive.content
         fun zielHash(): String = native().also { pruefen() }.record.getValue("target_sha256").jsonPrimitive.content
         fun freigabeId(): String? = native().also { pruefen() }.record["share_id"]?.jsonPrimitive?.contentOrNull
         fun basisHash(): String? = native().also { pruefen() }.record["mapping_sha256"]?.jsonPrimitive?.contentOrNull
