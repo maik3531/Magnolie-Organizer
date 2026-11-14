@@ -858,6 +858,31 @@ acceptance is claimed; Windows requires the corresponding stale-owner and histor
 ACK handling in its still-outstanding native integration. Common setup and Windows
 transport integration remain outstanding, with production controller creation OFF.
 
+### Expired native negotiation recovery (#634)
+
+Actual FS1 origins are deliberately short-lived. The Linux pump previously kept
+an expired offer and repeatedly planned request/ACK sends that the reserved sender
+safely refused. Two synthetic tests using real handshakes and a bounded monotonic
+clock advance reproduced that availability defect; no unauthorized write occurred.
+
+For still-recognized private sources and the same exact pins, the native worker
+now cancels the expired protocol and issues a new challenge. It invalidates old
+peer frames/export leases and pending local invocations, retires only their owned
+process send nonces, and retains all durable physical holds and independent history.
+Genuine saved ACK history takes precedence; other owners become read-only
+unconfirmed queries. No owner send is planned until the replacement's actual fresh
+authenticated offer has been processed. Neither old origins nor their TTLs are
+extended. Old challenges and queued old saves fail closed. Fresh VERIFIED results
+resume only the already checked local recovery path, never provider replay.
+
+Evidence: 209 affected controller/request/consent/reserved-send/probe cases pass,
+including pending, independent saved-history and old-save-queued expiry cases.
+They check a previously active fair-selection cursor, no send before the new offer,
+rejection of old challenges, invalidation of the queued writer, original saved hash
+reauthorization and retirement of process send stamps. Notes sources are unchanged.
+Windows must use the same refresh/demotion approach in its future integration;
+Windows and physical Android consequences remain unproved, not claimed fixed.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

@@ -271,6 +271,11 @@ class NativeNotesController:
                     if pins not in allowed:
                         continue
                     try:
+                        if protocol._offer is not None:
+                            try:
+                                protocol.require_current()
+                            except PermissionError:
+                                protocol = self._refresh_protocol(pins, protocol)
                         if protocol._offer is None:
                             protocol._native_probe()
                             plans.append((NativeNotesWork('probe', protocol), protocol))
@@ -279,7 +284,8 @@ class NativeNotesController:
                     except (PermissionError, ValueError, OSError, RuntimeError, InvalidTag):
                         continue
                 for owner in tuple(self._owners.values()):
-                    if owner.held or owner.pins not in allowed or owner.commit is not None and not owner.history:
+                    if (owner.held or owner.pins not in allowed or owner.protocol._offer is None or
+                            owner.commit is not None and not owner.history):
                         continue
                     try:
                         self._guard(owner)
@@ -319,6 +325,49 @@ class NativeNotesController:
                     self._send_cursor = index + 1
                     return work, protocol
                 return None
+
+    def _refresh_protocol(self, pins, old):
+        """Known private sources only; expire old invocations, not disk holds.
+
+        Called under the native book/work gates after recognizing the current
+        private selection. Never extend the lifetime of an old FS1 origin.
+        """
+        replacement = NativeNotesProtocolNegotiation(*pins)
+        with self._lock:
+            self._require_active()
+            if self._peers.get(pins) is not old:
+                raise PermissionError('notes_controller_owned_protocol_required')
+            old.cancel()
+            self._peers[pins] = replacement
+            self._send_due.pop((pins[0], pins[1], 'probe', ''), None)
+            for key in [key for key, frame in self._frames.items() if frame.pins == pins]:
+                del self._frames[key]
+            for identity in [key for key, lease in self._export_bootstraps.items() if lease.pins == pins]:
+                del self._export_bootstraps[identity]
+            owners = [owner for owner in self._owners.values() if owner.pins == pins and not owner.held]
+        for owner in owners:
+            try:
+                query = None
+                if owner.history:
+                    self._outcomes.readonly_query(owner.history, self._consent)
+                    if owner.pending is not None and getattr(owner.pending, '_request_intention', None) is not None:
+                        self._requests.forget_pending_send(owner.pending)
+                elif owner.unconfirmed is not None:
+                    owner.unconfirmed.request()
+                    query = owner.unconfirmed
+                elif owner.pending is not None:
+                    query = self._requests.demote_to_query(owner.pending, self._consent)
+                else:
+                    raise PermissionError('notes_controller_private_history_required')
+                self._guard(owner)
+                with self._lock:
+                    owner.protocol, owner.unconfirmed = replacement, query
+                    owner.pending, owner.commit, owner.ack, owner.bootstrap = None, None, None, None
+                    owner.ack_sent = False
+            except (PermissionError, ValueError, OSError, RuntimeError, InvalidTag):
+                with self._lock:
+                    owner.held = True
+        return replacement
 
     def transport_finished(self, work, protocol, delivered):
         """Transport delivery is not negotiation, a saved witness or settlement."""

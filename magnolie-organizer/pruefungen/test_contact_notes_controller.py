@@ -415,6 +415,54 @@ def test_multiple_sources_rebase_only_from_fresh_verified_history_and_preserve_p
         h.service.anhalten()
 
 
+@pytest.mark.parametrize('mode', ['pending', 'saved-history', 'queued-old-save'])
+def test_expired_real_fs1_offer_refreshes_negotiation_without_replaying_provider_or_losing_saved_history(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    try:
+        h.configure(); runtime = Runtime(h); c = runtime.controller
+        start = runtime.start(); request = start.intent.request(); old_protocol = runtime.protocol
+        old_offer = dict(old_protocol.request(), antwort=True)
+        old_hash = None
+        if mode in ('saved-history', 'queued-old-save'):
+            h.send(runtime.result(request)); save = c.process_one()
+            if mode == 'saved-history':
+                assert h.save(monkeypatch, invocation=save.intent)['ok']
+                old_hash = c.finish_save(save).intent.body()['desktop_sha256']
+        # Model a previously active pump cursor rather than always testing the
+        # first plan. No query/ACK may precede the replacement's genuine offer.
+        c._send_cursor = 1
+        real_monotonic = native.time.monotonic
+        with monkeypatch.context() as scoped:
+            scoped.setattr(native.time, 'monotonic', lambda: real_monotonic() + 120)
+            with pytest.raises(PermissionError): old_protocol.require_current()
+            work, protocol = c.next_transport(120)
+            assert work.kind == 'probe' and protocol is not old_protocol
+            assert protocol.request()['challenge'] != old_protocol._challenge
+            with pytest.raises(PermissionError): start.intent._for_negotiated_protocol(old_protocol)
+            assert c.counts()['owners'] == 1
+            assert c.next_transport(120.5) is None
+            runtime.rejected(old_offer)
+            if mode == 'queued-old-save':
+                before = Path(native.daten_datei()).read_bytes()
+                assert not h.save(monkeypatch, invocation=save.intent)['ok']
+                with pytest.raises(PermissionError): c.finish_save(save)
+                assert Path(native.daten_datei()).read_bytes() == before
+            h.send(dict(protocol.request(), antwort=True))
+            assert c.process_one().kind == 'negotiated'
+            query, negotiated = c.next_transport(121)
+            assert query.kind == 'query' and query.request_id == request['request_id']
+            assert 'ziel' not in query.intent._for_negotiated_protocol(negotiated)
+            h.send(runtime.result(request)); resumed = c.process_one()
+            if mode == 'saved-history':
+                assert resumed.kind == 'ack' and resumed.intent.body()['desktop_sha256'] == old_hash
+            else:
+                assert resumed.kind == 'save' and h.save(monkeypatch, invocation=resumed.intent)['ok']
+                assert c.finish_save(resumed).kind == 'ack'
+            assert c._requests._fresh == {}
+    finally:
+        h.service.anhalten()
+
+
 @pytest.mark.parametrize('mode', ['complete', 'prepared', 'duplicate', 'conflict', 'stop-before-worker',
     'stop-before-save', 'stop-after-save', 'expired-frame', 'unknown-result', 'early-save-boolean'])
 def test_registry_joins_actual_receive_worker_save_and_terminal_history_without_receive_io(native, monkeypatch, tmp_path, mode):
