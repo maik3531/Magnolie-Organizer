@@ -475,11 +475,42 @@ fresh-owner recovered ACKs are exercised; journal/book bytes remain unchanged.
 An initial send-test run incorrectly expected PermissionError from the existing
 generic RuntimeError blocker; only that fixture assertion changed.
 
-Still missing: native orchestration of initial probe delivery and its retained
-answer, reserved request sending/retry, genuine common setup UI, actual receiving
-workflow integration and Windows counterpart. The protocol does not make those
+Reserved request admission/retry is now checked below. Still missing: native
+orchestration of initial probe delivery and its retained answer, genuine common
+setup UI, actual receiving workflow integration and Windows counterpart. The protocol does not make those
 missing pieces available, and no production registration, install or release is
 included. Source consent remains independently mandatory at the native receiver.
+
+### Private-choice-owned request sending (#628)
+
+`baum_notes_anfrage_senden` shares the strict native FS1 transport gate with the
+reserved ACK lane, but admits only an exact `NativeNotesPendingResult` owned by
+a genuine authenticated `NativeNotesExportChoice` with a current private consent
+seal. A manually constructed pending object's arbitrary mapping callback alone
+is insufficient. The original recognized saved-book/source context and the
+negotiated peer/own pins must remain current. The complete owned original request
+is used unchanged: retry never substitutes a new UUID, basis or target.
+
+Once that pending owner has staged a result, it cannot submit another provider
+request through this lane. Changed books, missing private seals, lost choices,
+revocation, copied request JSON and mismatched profile pins deny before IO.
+Initially held native connection policy quietly leaves work waiting. The generic
+queue/send/direct-FS1 guards now reserve request JSON as well as ACK JSON, including
+messages disguised under a different outer kind. Neither transport delivery nor
+retry creates a book save, outcome journal or saved ACK.
+
+The affected Linux run passes 136 cases: 28 reserved ACK/request send cases,
+51 pending/save/route cases and 57 private consent/terminal recovery cases.
+The ten new request cases use actual private selection and real FS1 crypto with
+a synthetic responder. Disconnection followed by repeated delivery preserves the
+identical original request. No native Notes source changed for this slice, so its
+unchanged host evidence is retained. This still does not register a production
+scheduler or prove installed/native cross-language acceptance.
+
+Historical lost-receipt reconciliation must not force an already saved pending
+owner back through request submission. An explicitly read-only historical query
+and native orchestration of that query remain to be connected, along with the
+initial negotiation/send/receive setup lifecycle and Windows counterpart.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 

@@ -167,6 +167,24 @@ class NativeNotesPendingResult:
             self._require_before()
             return json.loads(self._request_text)
 
+    def _for_negotiated_protocol(self, negotiation):
+        if type(negotiation) is not NativeNotesProtocolNegotiation or type(self._source_choice) is not NativeNotesExportChoice:
+            raise PermissionError('notes_original_native_choice_pending_required')
+        from magnolie_contact_notes_consent import _NotesChoiceSeal
+        seal = getattr(self._source_choice, '_private_seal', None)
+        if type(seal) is not _NotesChoiceSeal:
+            raise PermissionError('notes_original_private_choice_seal_required')
+        with self._work_lock:
+            if negotiation.require_current() != (self._peer, self._own):
+                raise PermissionError('notes_original_protocol_request_pins_changed')
+            seal.record()
+            self._require_before()
+            with self._lock:
+                if self._result_text is not None:
+                    raise PermissionError('notes_original_result_already_received')
+            negotiation.require_current()
+            return json.loads(self._request_text)
+
     def _require_before(self):
         # The callback must check the genuine native source/mapping/setup grant.
         # Returning document flags or accepting renderer fields is not a caller.

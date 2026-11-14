@@ -13975,8 +13975,9 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
 
 def _baum_notes_saveack_sperren(art, inhalt):
     # Reserved native admission is separate and not registered in production.
-    # Copied ACK JSON must never enter generic renderer/outbox/FS1 send paths.
-    if art == "kontakt_original_saveack" or isinstance(inhalt, dict) and inhalt.get("art") == "kontakt_original_saveack":
+    # Copied request/ACK JSON must never enter generic renderer/outbox/FS1 paths.
+    reserved = ("kontakt_original_saveack", "kontakt_original_anfrage")
+    if art in reserved or isinstance(inhalt, dict) and inhalt.get("art") in reserved:
         raise RuntimeError(_("This type cannot be shared."))
 
 
@@ -15597,14 +15598,32 @@ def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
 
 def baum_notes_saveack_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben,
                              sender=None, zeitgrenze=6):
-    """Reserved native FS1 lane; no queue/renderer/dict admission or fallback.
+    """Reserved saved-ACK admission, never generic payload JSON."""
+    from magnolie_contact_notes_return import NativeNotesSavedAckIntent
+    if type(intent) is not NativeNotesSavedAckIntent:
+        raise PermissionError('notes_original_native_saved_ack_required')
+    return _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben, sender, zeitgrenze)
+
+
+def baum_notes_anfrage_senden(zustand_lesen, pending, negotiation, verbindung_freigegeben,
+                            sender=None, zeitgrenze=6):
+    """Only a genuine private-choice-owned pending request, never a new UUID retry."""
+    from magnolie_contact_notes_return import NativeNotesPendingResult
+    if type(pending) is not NativeNotesPendingResult:
+        raise PermissionError('notes_original_native_choice_pending_required')
+    return _baum_notes_original_senden(zustand_lesen, pending, negotiation, verbindung_freigegeben, sender, zeitgrenze)
+
+
+def _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben,
+                               sender=None, zeitgrenze=6):
+    """Typed native FS1 lane; no queue/renderer/dict admission or fallback.
 
     Not registered in production. A valid transport ACK is NOT native settlement;
     keep private outcome history until separately authenticated terminal status.
     Native caller owns current-state/network policy callbacks, never payload flags.
     """
-    from magnolie_contact_notes_return import NativeNotesSavedAckIntent, NativeNotesProtocolNegotiation
-    if (type(intent) is not NativeNotesSavedAckIntent or type(negotiation) is not NativeNotesProtocolNegotiation or
+    from magnolie_contact_notes_return import NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesProtocolNegotiation
+    if (type(intent) not in (NativeNotesSavedAckIntent, NativeNotesPendingResult) or type(negotiation) is not NativeNotesProtocolNegotiation or
             not callable(zustand_lesen) or not callable(verbindung_freigegeben)):
         raise PermissionError('notes_original_native_send_admission_required')
     if verbindung_freigegeben() is not True:

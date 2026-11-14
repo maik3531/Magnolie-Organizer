@@ -110,3 +110,70 @@ def test_reserved_send_requires_genuine_saved_intent_negotiated_pins_and_current
     finally:
         for session in responder_sessions: native.fs_sitzung_loeschen(session)
         h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['success', 'retry', 'copied-request', 'no-native-choice', 'no-private-seal',
+    'wrong-pins', 'revoked', 'result-staged', 'book-changed', 'connection-wait'])
+def test_reserved_request_keeps_same_owned_correlation_and_cannot_send_after_a_result(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    sessions, received = [], []
+    try:
+        h.configure(); pending = h.choice.pending(); request = pending.request()
+        peer = native.baum_partner(h.receiver, h.sender['kennung'])
+        peer.update(vertraut=True, kontaktSync=True, protokoll='baum-fs1')
+        negotiation = NativeNotesProtocolNegotiation((h.sender['kennung'], h.sender['oeffentlich']),
+            (h.receiver['kennung'], h.receiver['oeffentlich']))
+        h.send(dict(negotiation.request(), antwort=True)); negotiation.accept(*h.results.pop())
+        if mode == 'copied-request': pending = request
+        if mode == 'no-native-choice': pending._source_choice = None
+        if mode == 'no-private-seal': h.choice._private_seal = None
+        if mode == 'wrong-pins': pending._peer = ('other-peer', h.sender['oeffentlich'])
+        if mode == 'revoked': h.store.revoke()
+        if mode == 'result-staged':
+            result = {'art': 'kontakt_original_ergebnis', 'fassung': 1,
+                **{name: request[name] for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')},
+                'request_sha256': hashlib.sha256(_frame_bytes(request)).hexdigest(),
+                'receipt_id': '22222222-2222-4222-8222-222222222222', 'native_revision': 2, 'next_basis': 'd' * 64}
+            h.pending = pending; h.send(result); h.pending = None
+        if mode == 'book-changed':
+            import copy
+            edited = copy.deepcopy(h.probe._aktuelle_daten); edited['kontakte'][0]['notiz'] = 'Later native save'
+            assert h.save(monkeypatch, edited)['ok']
+        before_book = Path(native.daten_datei()).read_bytes()
+        calls = []
+        offline = [mode == 'retry']
+        def send(url, body):
+            calls.append(url)
+            if offline[0]: raise ConnectionRefusedError('Synthetic unavailable peer')
+            if url.endswith('/sitzung'):
+                answer, session = native.fs_antwort_bauen(h.sender,
+                    {'kennung': h.receiver['kennung'], 'oeffentlich': h.receiver['oeffentlich']}, body)
+                sessions.append(session); return answer
+            session = sessions[-1]
+            clear, _ = native.umschlag_oeffnen_fs(session, h.sender['kennung'], h.receiver['kennung'], body)
+            received.append(clear)
+            assert _frame_bytes(clear) == _frame_bytes(request)
+            return native.fs_ack_bauen(session, body)
+        def run():
+            return native.baum_notes_anfrage_senden(lambda: h.receiver, pending, negotiation,
+                lambda: mode != 'connection-wait', sender=send)
+        if mode in ('success', 'retry'):
+            if mode == 'retry':
+                assert run() is False and received == []
+                offline[0] = False
+            assert run() is True and run() is True
+            assert received == [request, request], 'Retry changed UUID, basis or target'
+            assert pending.request() == request
+        elif mode == 'connection-wait':
+            assert run() is False and not calls
+        else:
+            with pytest.raises(PermissionError): run()
+            assert not calls
+        assert Path(native.daten_datei()).read_bytes() == before_book
+        assert not (tmp_path / 'outcomes').exists(), 'Request delivery invented an outcome or saved ACK'
+        for art in ('kontakt_original_anfrage', 'notiz'):
+            with pytest.raises(RuntimeError): native.baum_einreihen([], peer['kennung'], art, request)
+            with pytest.raises(RuntimeError): native.baum_senden_fs(h.receiver, peer, art, request, '', sender=send)
+    finally:
+        for session in sessions: native.fs_sitzung_loeschen(session)
+        h.service.anhalten()
