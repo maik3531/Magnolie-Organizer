@@ -16,7 +16,8 @@ import pytest
 from test_contact_notes_fs_origin import fixture, frame
 from test_contact_source_saved_book import data
 from magnolie_contact_source_book import NativeContactSourceBook
-from magnolie_contact_notes_return import NativeNotesPendingResult, NativeNotesExportChoice, notes_content_hash, _frame_bytes
+from magnolie_contact_notes_return import (NativeNotesPendingResult, NativeNotesExportChoice, NativeNotesAckIntents,
+    NativeNotesSavedAckIntent, notes_content_hash, _frame_bytes)
 from test_startup_read_failure import native
 
 
@@ -52,8 +53,9 @@ def prepare_native_book(native):
 
 
 @pytest.mark.parametrize('mode', ['success', 'changed-book', 'later-save', 'revoked-before',
-    'revoked-after', 'stop-after', 'repair', 'failed-write', 'duplicate', 'later-save-after', 'owned-request', 'export-selected'])
-def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native, monkeypatch, mode):
+    'revoked-after', 'stop-after', 'repair', 'failed-write', 'duplicate', 'later-save-after', 'owned-request', 'export-selected',
+    'ack-intent', 'ack-before-crash', 'ack-after-durable-crash', 'ack-key-lost', 'ack-tampered', 'ack-later-save', 'ack-impostor', 'ack-revoked-during-seal'])
+def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native, monkeypatch, tmp_path, mode):
     probe, book, replies, snapshots, request, result = prepare_native_book(native)
     live, queued, received, mapping_checks = [True], [], [], []
     def require_mapping():
@@ -151,8 +153,82 @@ def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native,
         assert metadata['basis'] == result['next_basis'] and metadata['native_revision'] == str(2**60 + 1)
         assert stored == data() and snapshots == ['pre-change']
         assert len(replies) == 1
+        if mode.startswith('ack-'):
+            key = [b'J' * 32]
+            root = tmp_path / 'private-ack-intents'
+            def stage(name):
+                if mode == 'ack-before-crash' and name == 'before_write': raise OSError('Controlled pre-intent stop')
+                if mode == 'ack-after-durable-crash' and name == 'after_durable_write': raise OSError('Controlled post-intent stop')
+                if mode == 'ack-revoked-during-seal' and name == 'after_durable_write': live[0] = False
+            intents = NativeNotesAckIntents(root, lambda: key[0], stage=stage)
+            assert intents.load_held('0' * 64) is None and not root.exists()
+            if mode == 'ack-impostor':
+                with pytest.raises(PermissionError): intents.seal_after_save(confirmed)
+                with pytest.raises(PermissionError): NativeNotesSavedAckIntent(confirmed).body()
+                assert not root.exists()
+                return
+            if mode == 'ack-key-lost':
+                key[0] = None
+                with pytest.raises(PermissionError): intents.seal_after_save(pending)
+                assert not root.exists()
+                key[0] = b'J' * 32
+            if mode == 'ack-revoked-during-seal':
+                with pytest.raises(PermissionError): intents.seal_after_save(pending)
+                path, = root.glob('*.bin')
+                held = NativeNotesAckIntents(root, lambda: key[0]).load_held(path.stem)
+                assert held['state'] == 'saved_ack_intent'
+                with pytest.raises(PermissionError): NativeNotesSavedAckIntent(held).body()
+                return
+            if 'crash' in mode:
+                with pytest.raises(OSError): intents.seal_after_save(pending)
+                if mode == 'ack-before-crash':
+                    assert not root.exists()
+                else:
+                    path, = root.glob('*.bin')
+                    loaded = NativeNotesAckIntents(root, lambda: key[0]).load_held(path.stem)
+                    assert loaded['state'] == 'saved_ack_intent'
+                    with pytest.raises(PermissionError): NativeNotesSavedAckIntent(loaded).body()
+                intents = NativeNotesAckIntents(root, lambda: key[0])
+            intent = intents.seal_after_save(pending)
+            path, = root.glob('*.bin'); encrypted = path.read_bytes()
+            assert b'canonical-person' not in encrypted and b'saved_ack_intent' not in encrypted
+            body = intent.body()
+            assert body['art'] == 'kontakt_original_saveack' and body['desktop_sha256'] == current.saved_sha256
+            assert {name: body[name] for name in result if name not in ('art', 'fassung')} == {
+                name: value for name, value in result.items() if name not in ('art', 'fassung')}
+            assert intents.seal_after_save(pending).body() == body and path.read_bytes() == encrypted
+            held = NativeNotesAckIntents(root, lambda: key[0]).load_held(path.stem)
+            assert held['saved_book'][2] == current.saved_sha256
+            with pytest.raises(PermissionError): NativeNotesSavedAckIntent(held).body()
+            if mode == 'ack-key-lost':
+                key[0] = None
+                with pytest.raises(PermissionError): intent.body()
+                assert path.read_bytes() == encrypted
+            if mode == 'ack-later-save':
+                book.record_saved(*probe._kontakt_quellen_buchbindung(), invocation.text)
+                with pytest.raises(PermissionError): intent.body()
+            if mode == 'ack-tampered':
+                from cryptography.exceptions import InvalidTag
+                path.write_bytes(encrypted[:-1] + bytes([encrypted[-1] ^ 1]))
+                with pytest.raises(InvalidTag): intent.body()
+                path.write_bytes(encrypted)
+                assert intent.body() == body
     finally:
         native.fs_sitzung_loeschen(channel); service.anhalten()
+
+
+@pytest.mark.parametrize('route', ['queue', 'send', 'fs1'])
+@pytest.mark.parametrize('art', ['kontakt_original_saveack', 'notiz'])
+def test_copied_draft_saved_ack_cannot_enter_generic_senders(native, route, art):
+    body = {'art': 'kontakt_original_saveack', 'fassung': 1, 'saved': True}
+    post = []
+    def sender(*args):
+        pytest.fail('Generic copied-ACK route reached network/handshake')
+    with pytest.raises(RuntimeError):
+        if route == 'queue': native.baum_einreihen(post, 'peer', art, body)
+        if route == 'send': native.baum_senden({}, {}, art, body, sender=sender)
+        if route == 'fs1': native.baum_senden_fs({}, {}, art, body, '', sender=sender)
+    assert post == []
 
 
 @pytest.mark.parametrize('field,value', [('request_id', '33333333-3333-4333-8333-333333333333'),

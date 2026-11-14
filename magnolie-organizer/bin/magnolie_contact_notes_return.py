@@ -7,6 +7,7 @@ desktop request. This module alone cannot grant sources or issue a SaveACK.
 import hashlib
 import hmac
 import json
+import os
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ import threading
 import uuid
 
 from magnolie_contact_source_book import NativeContactSourceResultCommit
+from magnolie_contact_source_authority import NativeContactSourceApprovalStore as _PrivateFiles
 from magnolie_personal_actor_store import NativeProducerBookSnapshot
 
 
@@ -313,6 +315,146 @@ def _saved_mutable_projection(contact, before):
         postal.append(dict(art=kind, **fields))
     patch['anschriften'] = postal
     return patch
+
+
+@dataclass(frozen=True)
+class _SavedAckProof:
+    store: object
+    key: str
+    ciphertext_hash: bytes
+    pending: NativeNotesPendingResult
+    record_text: bytes
+
+
+class NativeNotesSavedAckIntent:
+    """Fresh native-only durable intent. There is no JSON deserializer/factory."""
+    def __init__(self, proof):
+        self._proof = proof
+
+    def body(self):
+        proof = self._proof
+        if type(proof) is not _SavedAckProof:
+            raise PermissionError('notes_original_native_saved_ack_required')
+        return proof.store._ack_body(proof)
+
+
+class NativeNotesAckIntents:
+    """Encrypted durable post-save intentions, independent of source consent.
+
+    The native caller supplies ONLY its existing journal-key accessor. This
+    store neither creates a replacement key nor reads a key/permission from a
+    document. Readback after restart is history, not a fresh send grant.
+    No production sender or restoration authority is wired by adding this store.
+    """
+    # Reuse the existing descriptor-relative private filesystem primitives only;
+    # no consent records, consent key creation or source-authority API is reused.
+    _private = staticmethod(_PrivateFiles._private)
+    _locked = _PrivateFiles._locked
+    _read = _PrivateFiles._read
+    _write = _PrivateFiles._write
+    _DOMAIN = b'Magnolie/notes-original-saved-ack-intent/v1\0'
+
+    def __init__(self, root, existing_journal_key, *, stage=lambda _: None):
+        if not callable(existing_journal_key) or not callable(stage):
+            raise TypeError('notes_original_existing_journal_key_required')
+        self.root, self._existing_key, self._stage = os.path.abspath(root), existing_journal_key, stage
+
+    def _cipher(self):
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        key = self._existing_key()
+        if type(key) is not bytes or len(key) != 32:
+            raise PermissionError('notes_original_journal_key_unavailable')
+        return AESGCM(key)
+
+    @staticmethod
+    def _key(record):
+        request = record['request']
+        # Same UUID on the same chosen source cannot bypass a conflicting
+        # earlier saved result merely by changing its body or receipt.
+        return hashlib.sha256(_frame_bytes({'peer': record['peer'], 'own': record['own'],
+            'share_id': request['share_id'], 'request_id': request['request_id']})).hexdigest()
+
+    @staticmethod
+    def _capture(pending):
+        if type(pending) is not NativeNotesPendingResult:
+            raise PermissionError('notes_original_native_pending_required')
+        confirmed = pending.confirmed_save()
+        request = json.loads(pending._request_text)
+        return {'format': 1, 'state': 'saved_ack_intent', 'peer': list(pending._peer), 'own': list(pending._own),
+            'local_id': pending._local_id, 'local_uid': pending._local_uid, 'request': request,
+            'result': confirmed['result'], 'saved_book': list(confirmed['saved_book'])}
+
+    def _decode(self, key, blob):
+        if len(blob) > 512 * 1024 or len(blob) < 29 or blob[:1] != b'\x01':
+            raise ValueError('notes_original_saved_intent_schema')
+        clear = self._cipher().decrypt(blob[1:13], blob[13:], self._DOMAIN + key.encode('ascii'))
+        record = json.loads(clear)
+        if (not isinstance(record, dict) or set(record) != {'format', 'state', 'peer', 'own', 'local_id', 'local_uid', 'request', 'result', 'saved_book'} or
+                record['format'] != 1 or type(record['format']) is not int or record['state'] != 'saved_ack_intent' or
+                _frame_bytes(record) != clear or self._key(record) != key):
+            raise ValueError('notes_original_saved_intent_schema')
+        return record
+
+    def seal_after_save(self, pending):
+        # All book/origin/mapping callbacks stay outside the private file lock.
+        record = self._capture(pending)
+        clear, key = _frame_bytes(record), self._key(record)
+        if len(clear) > 500 * 1024:
+            raise ValueError('notes_original_saved_intent_budget')
+        cipher = self._cipher()  # No empty state if the existing key is missing.
+        self._stage('before_write')
+        with self._locked(create=True) as directory:
+            name = key + '.bin'
+            try:
+                blob = self._read(directory, name, 512 * 1024)
+            except FileNotFoundError:
+                nonce = os.urandom(12)
+                blob = b'\x01' + nonce + cipher.encrypt(nonce, clear, self._DOMAIN + key.encode('ascii'))
+                self._write(directory, name, blob)
+            if self._decode(key, blob) != record:
+                raise PermissionError('notes_original_saved_intent_held')
+            # Exact readback and file+directory durability are required also for
+            # an existing identical intent after an interrupted previous call.
+            if self._read(directory, name, 512 * 1024) != blob:
+                raise PermissionError('notes_original_saved_intent_changed')
+            descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+            try:
+                self._private(os.fstat(descriptor)); os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+            os.fsync(directory)
+        self._stage('after_durable_write')
+        if _frame_bytes(self._capture(pending)) != clear:
+            raise PermissionError('notes_original_saved_frame_changed')
+        return NativeNotesSavedAckIntent(_SavedAckProof(self, key, hashlib.sha256(blob).digest(), pending, clear))
+
+    def load_held(self, key):
+        """Read-only history, deliberately no send proof or provider replay API."""
+        if not _digest(key):
+            raise ValueError('notes_original_saved_intent_key')
+        try:
+            with self._locked(create=False) as directory:
+                blob = self._read(directory, key + '.bin', 512 * 1024)
+                return self._decode(key, blob)
+        except FileNotFoundError:
+            return None
+
+    def _ack_body(self, proof):
+        if proof.store is not self:
+            raise PermissionError('notes_original_native_saved_ack_required')
+        with self._locked(create=False) as directory:
+            blob = self._read(directory, proof.key + '.bin', 512 * 1024)
+            record = self._decode(proof.key, blob)
+        if (not hmac.compare_digest(hashlib.sha256(blob).digest(), proof.ciphertext_hash) or
+                _frame_bytes(record) != proof.record_text or _frame_bytes(self._capture(proof.pending)) != proof.record_text):
+            raise PermissionError('notes_original_saved_intent_changed')
+        # Dedicated draft data only. The generic outbox must not send a copied
+        # dict; future reserved send admission must retain this native intent.
+        result = record['result']
+        return {'art': 'kontakt_original_saveack', 'fassung': 1,
+            **{name: result[name] for name in ('request_id', 'request_sha256', 'share_id', 'before_basis',
+                'target_sha256', 'receipt_id', 'native_revision', 'next_basis')},
+            'desktop_sha256': record['saved_book'][2]}
 
 
 def _native_text(value):

@@ -13959,6 +13959,7 @@ def baum_kontakt_import_pruefen(art, inhalt):
 
 
 def baum_kontakt_nutzlast_pruefen(art, inhalt):
+    _baum_notes_saveack_sperren(art, inhalt)
     if art == "kontakt_faehigkeiten":
         return baum_kontakt_faehigkeiten_pruefen(inhalt)
     if art in ("geraete_status_anfrage", "geraete_status"):
@@ -13970,6 +13971,13 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
     if art in ("kontakt_import_manifest", "kontakt_import_karte"):
         return baum_kontakt_import_pruefen(art, inhalt)
     return inhalt
+
+
+def _baum_notes_saveack_sperren(art, inhalt):
+    # Reserved native saved-witness route is not wired yet. Copied draft ACK
+    # JSON must never enter generic renderer/outbox/FS1 send paths meanwhile.
+    if art == "kontakt_original_saveack" or isinstance(inhalt, dict) and inhalt.get("art") == "kontakt_original_saveack":
+        raise RuntimeError(_("This type cannot be shared."))
 
 
 def baum_kontakt_faehigkeiten(antwort=False, maximum=2):
@@ -15548,6 +15556,7 @@ def baum_weitergabe_rpc(zustand, partner, anfrage, sender=None):
 
 def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
                     sender=None, zeitgrenze=6, probe=None):
+    _baum_notes_saveack_sperren(art, inhalt)
     from urllib.error import HTTPError
     sende = sender or (lambda adresse, nutzlast: _baum_http_json_senden(
         adresse, nutzlast, zeitgrenze))

@@ -259,6 +259,42 @@ Windows acceptance. Native selection remains bounded by its original authenticat
 session lifetime until genuine durable authority and fresh-session restoration
 are connected; it must not be reconstituted from the portable basis field.
 
+### Durable native saved-ACK intent, no production sending (#628)
+
+`NativeNotesAckIntents.seal_after_save()` now requires the actual pending
+controller's confirmed private writer witness before persisting an encrypted
+private intention. It uses a required existing independent journal-key accessor,
+never a source-consent key, imported key or silently created replacement key.
+The existing descriptor-relative private filesystem read/write/permission
+primitives are reused without reusing consent storage or its authority API.
+AES-GCM binds the private per-request identity; atomic write, exact readback and
+file/directory durability precede the fresh native intent. Book/origin/mapping
+callbacks run outside the private file lock and are rechecked after persistence.
+
+A fresh `NativeNotesSavedAckIntent` can read draft `kontakt_original_saveack`
+data only while its ciphertext and original confirmed pending/save context still
+match. It contains the exact eight result-correlation fields plus the actual
+desktop saved-payload hash. A conflicting outcome cannot overwrite an existing
+request intent. Exact repeats preserve the existing ciphertext. Missing keys,
+changed native saves, corrupted ciphertext, revocation and fabricated proofs
+cannot produce a positive ACK. A failure after the durable write leaves readable
+held history, not an inferred send success or reconstructed fresh grant.
+
+`load_held()` deliberately returns history only, with no send or provider replay
+authority. Restart-safe reauthorization from a genuine private mapping/primary
+book and fresh authenticated session is still missing. Generic Linux queue,
+send and direct FS1 paths reject both an ACK art argument and a disguised ACK
+body before any network call; no renderer/outbox route can send copied ACK JSON.
+No dedicated negotiated native sender or Notes ACK receiver is enabled yet.
+
+The changed Linux matrix passes 115 cases, including seven actual encrypted
+writer/intent scenarios and six reserved generic-send denials; one subsequently
+added actual post-durable-write revocation case passes separately. These counts
+overlap previous matrices. Synthetic independent keys and isolated private files
+are used; no installed journal key, original contact or real device is accessed.
+Terminal history, native mapping installation/slot release, native setup UI,
+Windows controller, negotiated sending and package/device acceptance remain open.
+
 | Counterpart | What the source establishes | What is still needed for this automatic path |
 | --- | --- | --- |
 | Notes Android | Authenticated full DTO; reviewed writer; resource19; new independent native original/decision/full-content core below | Join durable native approval, genuine setup and authenticated sender/receiver to the correlated durable result receipt; the new core is not advertised or automatically invoked |
