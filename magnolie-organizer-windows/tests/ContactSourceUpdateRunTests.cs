@@ -185,6 +185,7 @@ internal static class ContactSourceUpdateRunTests
         await SavedBookBoundaryAsync();
         await DavFactoryAsync();
         await ApprovalScopeAsync();
+        ContactSourceAccountTests.Run();
         await SavedDavOrchestrationAsync();
         await SavedResultCommitAsync();
         await NativeSessionAsync();

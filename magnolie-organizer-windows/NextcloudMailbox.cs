@@ -18,6 +18,9 @@ internal sealed record NextcloudMailboxSettings(bool DavActive, bool MailboxActi
 }
 internal sealed record NextcloudMailboxContext(NextcloudMailboxSettings Settings, AuthenticationHeaderValue? Authorization);
 internal sealed record NextcloudSettingsSnapshot(NextcloudMailboxSettings? Settings, bool CredentialPresent, string Revision);
+// Native durable-consent input: nonsecret slot identity plus a FRESH usable
+// credential-bound revision. Neither presence nor serialized settings is access.
+internal sealed record NativeContactSourceAccount(string Identity, NextcloudMailboxSettings Settings, string Revision);
 internal sealed record MailboxAccessResult(bool Ok, string Code, string? Revision = null, bool Passed = false, string ErrorCode = "none");
 
 internal static class NextcloudStatusText
@@ -159,6 +162,50 @@ internal sealed class NextcloudMailboxSettingsStore
             data["epoch"] = RevisionEpochs.GetOrAdd(RevisionScope, 0);
             var revision = Convert.ToHexString(HMACSHA256.HashData(RevisionKey, TelefonCrypto.Canonical(data))).ToLowerInvariant();
             return new(settings, protectedSecret is not null, revision);
+        }
+    }
+
+    internal NativeContactSourceAccount ReadContactSourceAccount()
+    {
+        lock (gate)
+        {
+            var before = ReadSnapshot();
+            var settings = before.Settings;
+            if (settings?.DavActive != true || !before.CredentialPresent ||
+                settings.AccountType is not ("nextcloud" or "generic-dav"))
+                throw new UnauthorizedAccessException("contact_source_account_not_available");
+            var encoded = new AtomicStore().Read(passwordPath, 64 * 1024)
+                ?? throw new UnauthorizedAccessException("contact_source_credential_not_available");
+            var protectedBytes = Convert.FromBase64String(encoded);
+            byte[]? plain = null;
+            try
+            {
+                // DPAPI CurrentUser (or the explicit controlled native adapter)
+                // must actually authenticate the CURRENT stored credential. Do
+                // not retain an Authorization header or persist a secret HMAC.
+                plain = protector.Unprotect(protectedBytes);
+                if (plain.Length is < 1 or > 16 * 1024)
+                    throw new CryptographicException("contact_source_credential_not_available");
+                if (ReadSnapshot() != before)
+                    throw new InvalidOperationException("contact_source_account_changed");
+                static string Slot(string path)
+                {
+                    var full = Path.GetFullPath(path);
+                    return OperatingSystem.IsWindows() ? full.ToUpperInvariant() : full;
+                }
+                var identity = new JsonObject
+                {
+                    ["format"] = "magnolie-native-contact-account-v1",
+                    ["settingsStore"] = Slot(settingsPath), ["credentialSlot"] = Slot(passwordPath),
+                    ["provider"] = settings.AccountType, ["server"] = settings.ServerBase, ["user"] = settings.User
+                };
+                return new(Encoding.UTF8.GetString(TelefonCrypto.Canonical(identity)), settings, before.Revision);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(protectedBytes);
+                if (plain is not null) CryptographicOperations.ZeroMemory(plain);
+            }
         }
     }
 

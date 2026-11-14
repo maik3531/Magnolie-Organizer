@@ -667,6 +667,25 @@ Credentials, provider transports, WLAN and decision observations remain
 synthetic, apart from the explicitly isolated native GTK dialog. No installed
 application, live provider, hardware, VM, package build, installation or public
 release acceptance is claimed. Windows durable consent/WLAN return and its
-interactive modal acceptance remain separate unfinished work, as do broader
-provider authority and complete Notes names/scalar/postal return beyond
-Resource19. Resource19 remains phone/email-only.
+interactive modal acceptance continue in #621. Broader provider authority and
+complete Notes names/scalar/postal return beyond Resource19 continue in #622.
+Resource19 remains phone/email-only. #618 was closed as a documented partial
+completion with these explicit linked remainders, not an all-platform completion.
+
+## Windows native account prerequisite (#621, not persistent approval)
+
+`NextcloudMailboxSettingsStore.ReadContactSourceAccount` now authenticates the
+actual current protected credential before returning a nonsecret native account/
+credential-slot identity and fresh operation revision. `ReadSnapshot` alone is
+still metadata, not proof that credential protection is available. Re-reading
+after unprotect rejects concurrent account changes; credential buffers are zeroed
+on both success and failure. Password renewal keeps stable human-account identity
+but changes the operation revision. No password, password verifier, Authorization
+header or process-local revision is included in the durable identity.
+
+Sixteen controlled native-account cases pass through the existing actual-source
+Core group, including absent/inactive/corrupt/unavailable credentials, slot/account
+changes, renewal, concurrent mutation and buffer cleanup. Core and actual Windows
+product BASE source builds pass without warnings. The test protector is explicitly
+synthetic; no Windows DPAPI-runtime or dialog acceptance is claimed. This helper
+is not yet connected to a durable Windows approval store, writer or restore path.
