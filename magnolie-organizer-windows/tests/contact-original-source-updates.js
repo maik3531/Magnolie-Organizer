@@ -1,7 +1,7 @@
 "use strict";
 const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
 const { createHash, webcrypto } = require("node:crypto"), { JSDOM } = require("jsdom");
-const web = path.resolve(__dirname, "../app/web");
+const web = process.env.MAGNOLIE_TEST_WEB ? path.resolve(process.env.MAGNOLIE_TEST_WEB) : path.resolve(__dirname, "../app/web");
 const sha = text => createHash("sha256").update(text).digest("hex");
 const copy = value => JSON.parse(JSON.stringify(value));
 const tick = () => new Promise(resolve => setImmediate(resolve));

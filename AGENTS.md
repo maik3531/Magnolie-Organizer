@@ -86,7 +86,20 @@ Abhängigkeit verwenden. Eine ältere Version nur als gezielten Fallback vorsehe
 wenn die neuere in der konkreten Distribution oder Umgebung nachweislich nicht
 funktioniert. Ein einzelner Kompatibilitätsfall rechtfertigt keine allgemeine
 Bindung aller Distributionen an eine alte Version. Das gilt insbesondere auch
-für WebKit und Java.
+für WebKit, Java sowie Python/Pillow (`python3-pil`) beim Handbuch. Der gemeldete
+Handbuch-2.0.30-Installationsfall auf Mate 21.3 ist gezielt zu prüfen: Unterstützung
+der dort vorhandenen älteren Pillow-Version darf aktuelle Versionen auf anderen
+Systemen nicht ausschließen oder einen pauschalen Downgrade erzwingen. Mindest-
+und Versionsgrenzen nur aus tatsächlich benötigten und geprüften Funktionen
+ableiten, nicht ohne Nachweis anheben oder auf eine alte Version festschreiben.
+
+Dasselbe gilt für Geräte-APIs, insbesondere Notes/Android in #558: aktuelles
+unterstütztes `compileSdk`/`targetSdk` und aktuelle APIs bevorzugen, ältere Geräte
+über geprüfte API-Level-/Fähigkeitsabfragen und gezielte Rückfallwege unterstützen.
+`minSdk` getrennt vom Ziel-SDK behandeln und nur bei eigenständig belegter
+technischer Notwendigkeit anheben; ein modernes Ziel-SDK ist allein kein Grund,
+die bisher unterstützten älteren Geräte auszuschließen. Kein pauschaler alter
+API-Pfad für alle Geräte. Bestehende Geräte-/Build-/Store-Pausen bleiben wirksam.
 
 Optionale Systemdienste oder Werkzeuge nur bei tatsächlicher Verfügbarkeit
 voraussetzen; andernfalls einen geeigneten geprüften Rückfallweg verwenden.

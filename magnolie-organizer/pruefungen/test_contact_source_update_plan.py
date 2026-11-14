@@ -13,11 +13,16 @@ from test_startup_read_failure import native
 import magnolie_nextcloud as nc
 
 
-@pytest.mark.parametrize('mode', ['fresh', 'encrypted', 'older-metadata', 'wrong-readback', 'book-changed', 'write-failed'])
+@pytest.mark.parametrize('mode', ['fresh', 'encrypted', 'older-metadata', 'wrong-readback', 'book-changed', 'write-failed',
+    'schema6', 'schema6-encrypted', 'legacy-task'])
 def test_exact_native_protection_uses_actual_journal_not_old_periodic_snapshot(native, tmp_path, monkeypatch, mode):
     monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path / 'config'))
     source, key, local, owner, data, row = fixture(native, tmp_path)
-    password = 'Synthetic-only-618' if mode == 'encrypted' else ''
+    if mode in ('schema6', 'schema6-encrypted', 'legacy-task'):
+        data['version'] = 6
+        if mode == 'legacy-task': data['aufgaben'] = [{'id': 'legacy', 'titel': 'Preserve unmigrated graph'}]
+        owner.record_saved('native-contact-fixture', True, json.dumps(data))
+    password = 'Synthetic-only-618' if mode in ('encrypted', 'schema6-encrypted') else ''
     current = lambda: owner.capture('native-contact-fixture', True, data)
     snapshot = current()
     probe = SimpleNamespace(_daten_sperre=threading.RLock(), _kennwort=password,
@@ -44,12 +49,17 @@ def test_exact_native_protection_uses_actual_journal_not_old_periodic_snapshot(n
             native.Fenster._kontakt_quellen_schutz(probe, snapshot)
     else:
         identity = native.Fenster._kontakt_quellen_schutz(probe, snapshot)
-        stand, actual = original_read(identity, password)
+        stand, actual = original_read(identity, password, exakt=True)
         assert actual['daten'] == snapshot.book() and current() == snapshot
         assert stand['reason'] == 'pre-contact'
         if older: assert identity != older['snapshotId']
         # Exact unchanged snapshots can be reused after actual content verification.
         assert native.Fenster._kontakt_quellen_schutz(probe, snapshot) == identity
+        if mode in ('schema6', 'schema6-encrypted', 'legacy-task'):
+            assert original_read(identity, password)[1]['daten']['version'] == 7, 'Normal restore migration was disabled'
+        if mode == 'schema6-encrypted':
+            assert native.journal_umschluesseln('New-synthetic-618', password)['geschafft'] >= 1
+            assert original_read(identity, 'New-synthetic-618', exakt=True)[1]['daten'] == snapshot.book()
 
 
 @pytest.mark.parametrize('mode', ['success', 'revoked', 'source-failed', 'book-during-read',

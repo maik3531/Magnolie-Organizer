@@ -1084,11 +1084,12 @@ def _gesamtarchiv_tokens_pruefen(wert):
 
 
 def gesamtarchiv_erzeugen(daten, plattform="linux", appversion=None,
-                           kennwort="", erstellt=None):
+                           kennwort="", erstellt=None, *, normalisieren=True):
     """Erzeugt den plattformneutralen, vollständigen Datencontainer."""
     if not isinstance(daten, dict):
         raise RuntimeError("Der Datenbestand muss ein JSON-Objekt sein.")
-    daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
+    daten = (_gesamtarchiv_wiederholungen_normalisieren(daten) if normalisieren else
+             json.loads(json.dumps(daten, ensure_ascii=False)))
     _gesamtarchiv_tokens_pruefen(daten)
     kanonisch = _gesamtarchiv_kanonisch(daten)
     wurzel = {
@@ -1201,7 +1202,7 @@ def _stabile_aufgaben_uid(kennung, salt=""):
     return "mag-task-%08x%08x@magnolie-organizer" % (a, b)
 
 
-def gesamtarchiv_lesen_text(text, kennwort=""):
+def gesamtarchiv_lesen_text(text, kennwort="", *, normalisieren=True):
     """Validiert und öffnet ein Archiv vollständig vor jeder Mutation."""
     verschluesselt = ist_verschluesselt(text)
     if verschluesselt and not kennwort:
@@ -1233,7 +1234,8 @@ def gesamtarchiv_lesen_text(text, kennwort=""):
     if len(soll_hash) != 64 or not hmac.compare_digest(ist_hash, soll_hash):
         raise RuntimeError("Die SHA-256-Prüfsumme des Gesamtarchivs stimmt nicht.")
     _gesamtarchiv_tokens_pruefen(daten)
-    daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
+    if normalisieren:
+        daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
     namen = ("termine", "aufgaben", "kontakte", "notizen", "notizgruppen",
              "notizbuecher", "jahrestage", "feiertage", "urlaube",
              "muelltermine", "personen", "schichten", "zyklusmarker",
@@ -1311,6 +1313,7 @@ def _journal_manifest_pruefen(manifest):
             or not isinstance(manifest.get("appVersion"), str)
             or not manifest.get("appVersion")
             or manifest.get("reason") not in JOURNAL_GRUENDE
+            or ('exactBook' in manifest and type(manifest['exactBook']) is not bool)
             or not isinstance(manifest.get("summary"), dict)
             or not isinstance(manifest.get("payload"), dict)):
         raise RuntimeError(_("The recovery snapshot manifest is invalid."))
@@ -1752,7 +1755,8 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                                maximum=None, tage=None, exakt=False):
     if grund not in JOURNAL_GRUENDE or not isinstance(daten, dict):
         raise ValueError("snapshot")
-    archiv_daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
+    archiv_daten = (_gesamtarchiv_wiederholungen_normalisieren(daten) if not exakt else
+                   json.loads(json.dumps(daten, ensure_ascii=False)))
     zeit = _journal_zeit(jetzt)
     erstellt = zeit.isoformat(timespec="microseconds").replace("+00:00", "Z")
     quellhash = hashlib.sha256(_gesamtarchiv_kanonisch(archiv_daten)).hexdigest()
@@ -1760,7 +1764,7 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     alt = staende[0] if staende else None
     if alt and alt.get("integrity") == "ok":
         try:
-            geprueft, gelesen = journal_snapshot_lesen(alt["snapshotId"], kennwort, basis)
+            geprueft, gelesen = journal_snapshot_lesen(alt["snapshotId"], kennwort, basis, exakt=exakt)
             if (not journal_inhalt_geaendert(gelesen["daten"], archiv_daten) and
                     (not exakt or _gesamtarchiv_kanonisch(gelesen['daten']) ==
                      _gesamtarchiv_kanonisch(archiv_daten))):
@@ -1778,7 +1782,7 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
         except (OSError, RuntimeError, ValueError, TypeError):
             pass
     text = gesamtarchiv_erzeugen(archiv_daten, "linux", PROGRAMM_FASSUNG,
-                                 kennwort=kennwort, erstellt=erstellt)
+                                 kennwort=kennwort, erstellt=erstellt, normalisieren=not exakt)
     payload = text.encode("utf-8")
     journal_komprimieren(basis, zeit)
     plan_maximum = None if maximum is None else max(0, _journal_anzahl(maximum) - 1)
@@ -1814,7 +1818,9 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                             "schema": JOURNAL_PAYLOAD_SCHEMA},
                 "summary": {name: len(daten.get(name) or [])
                             if isinstance(daten.get(name), list) else 0 for name in namen},
-                "syncEpoch": epoch}
+                 "syncEpoch": epoch}
+    if exakt:
+        manifest['exactBook'] = True
     stufe = os.path.join(wurzel, ".%s.partial" % snapshot_id)
     ziel = os.path.join(wurzel, snapshot_id)
     os.mkdir(stufe, 0o700)
@@ -1844,7 +1850,7 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
 
 
 @_journal_exklusiv
-def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None, expected_revision=None):
+def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None, expected_revision=None, *, exakt=False):
     if expected_revision is not None and (not isinstance(expected_revision, str) or
             not hmac.compare_digest(journal_snapshot_revision(snapshot_id, basis), expected_revision)):
         raise RuntimeError("snapshot_conflict")
@@ -1853,7 +1859,7 @@ def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None, expected_revisi
     if not stand or stand.get("integrity") != "ok":
         raise RuntimeError(_("The recovery snapshot is missing or damaged."))
     gelesen = gesamtarchiv_lesen_text(
-        _text_dekodieren(_journal_payload_lesen(stand)), kennwort)
+        _text_dekodieren(_journal_payload_lesen(stand)), kennwort, normalisieren=not exakt)
     if not hmac.compare_digest(
             gelesen["quellsha256"], stand["payload"]["sourceSha256"]):
         raise RuntimeError(_("The recovery snapshot payload does not match its manifest."))
@@ -1875,10 +1881,11 @@ def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
         alt = os.path.join(wurzel, ".%s.rewrite-old" % snapshot_id)
         try:
             _geprueft, gelesen = journal_snapshot_lesen(
-                snapshot_id, kennwort_alt, basis)
+                snapshot_id, kennwort_alt, basis, exakt=stand.get('exactBook') is True)
             text = gesamtarchiv_erzeugen(
                 gelesen["daten"], "linux", stand["appVersion"],
-                kennwort=kennwort_neu, erstellt=stand["createdAt"])
+                kennwort=kennwort_neu, erstellt=stand["createdAt"],
+                normalisieren=stand.get('exactBook') is not True)
             payload = text.encode("utf-8")
             manifest = json.loads(_text_dekodieren(datei_begrenzt_lesen(
                 os.path.join(ziel, "manifest.json"), 1024 * 1024,
@@ -23724,6 +23731,8 @@ class Fenster(_FENSTER_BASIS):
                     "fehler": fehler_deutsch(fehler, _("Saving the data"))}
             if type(contact_result) is NativeContactSourceResultCommit:
                 contact_result.complete(ergebnis)
+                if contact_result.result['confirmed'] and contact_result.offer_token is not None:
+                    ergebnis['kontaktOriginalGespeichert'] = contact_result.offer_token
             try:
                 self.antwort("App.gespeichert", ergebnis)
                 if warnung:
@@ -24863,7 +24872,7 @@ class Fenster(_FENSTER_BASIS):
             stand = journal_snapshot_erzeugen(data, 'pre-contact', self._kennwort,
                 maximum=maximum if mode == 'count' else None,
                 tage=days if mode == 'days' else None, exakt=True)
-            _, actual = journal_snapshot_lesen(stand['snapshotId'], self._kennwort)
+            _, actual = journal_snapshot_lesen(stand['snapshotId'], self._kennwort, exakt=True)
             if (book_hash(actual['daten']) != snapshot.content_sha256 or
                     self._kontakt_quellen_buchaufnahme() != snapshot):
                 raise RuntimeError('contact_source_exact_protection_required')
@@ -28035,6 +28044,9 @@ class Fenster(_FENSTER_BASIS):
         akonadi = akonadi_quellen_status()
         nutzlast["nextcloud"] = cloud
         nutzlast["akonadi"] = akonadi
+        scope = getattr(self, '_kontakt_quellen_freigaben', None)
+        nutzlast['originalKontaktUpdates'] = {'verfuegbar': True,
+            'freigaben': len(scope.capture()) if scope is not None else 0}
         nutzlast["alleKalender"] = [dict(item, quelle="eds") for item in
                                      nutzlast["kalender"]] + [
                                          dict(item, quelle="nextcloud") for item in

@@ -6878,7 +6878,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text,
           baumSyncLauf: baumSpeicherNachweis?.text === auftrag.text ? {run:baumSpeicherNachweis.proof.run,
             peer:baumSpeicherNachweis.proof.peer,
-            before:baumSpeicherNachweis.beforeText === letzterSpeicherText ? letzterSpeicherSha256 : ""} : null })) {
+            before:baumSpeicherNachweis.beforeText === letzterSpeicherText ? letzterSpeicherSha256 : ""} : null,
+          ...(originalKontaktSpeicher?.text === auftrag.text ? { kontaktOriginalLauf: originalKontaktSpeicher.token } : {}) })) {
         App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
       }
       return;
@@ -6918,6 +6919,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function verwerfeSpeichernNachRestore() {
+    originalKontaktGeneration++;
+    originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     letzterSpeicherSha256 = ""; baumSpeicherNachweis = baumPostVorSpeichern = null;
     clearTimeout(speicherTimer); clearTimeout(speicherAntwortTimer); clearTimeout(notizSnapshotTimer);
     speicherTimer = speicherAntwortTimer = notizSnapshotTimer = null;
@@ -25820,6 +25823,57 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let letzterEdsStatus = null;
   let edsAngefragt = false;
   let syncLaeuft = false;
+  let originalKontaktFreigaben = 0, originalKontaktLauf = null, originalKontaktSpeicher = null;
+  let originalKontaktGeneration = 0;
+  let originalKontaktFreigabeAnfrage = "";
+
+  function originalKontaktUpdatesWiderrufen() {
+    originalKontaktGeneration++;
+    originalKontaktFreigaben = 0;
+    originalKontaktFreigabeAnfrage = "";
+    originalKontaktSpeicher = null;
+    if (Bruecke.vorhanden) Bruecke.sende({ cmd: "kontakt_originalquellen_widerrufen" });
+  }
+
+  function starteOriginalKontaktUpdates() {
+    if (!Bruecke.vorhanden || !initialisiert || !antwortErhalten || gesperrt || originalKontaktFreigaben < 1 ||
+        originalKontaktLauf || originalKontaktSpeicher || syncLaeuft || aktiverEditor || mcpSyncAktiv() ||
+        laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null || !/^[0-9a-f]{64}$/.test(letzterSpeicherSha256)) return;
+    sichereNotizSnapshot();
+    if (JSON.stringify(DATEN) !== letzterSpeicherText || speicherTimer !== null) return;
+    const lauf = { requestId: crypto.randomUUID(), bestand: DATEN, text: letzterSpeicherText, sha256: letzterSpeicherSha256,
+      generation: originalKontaktGeneration };
+    originalKontaktLauf = lauf;
+    if (!Bruecke.sende({ cmd: "kontakt_originalquellen_update", requestId: lauf.requestId, standSha256: lauf.sha256 }))
+      originalKontaktLauf = null;
+    // A timeout is not evidence that a provider write failed. Only a terminal
+    // native reply releases this run; never blindly retry an unknown outcome.
+  }
+
+  function empfangeOriginalKontaktErgebnis(nutzlast) {
+    const lauf = originalKontaktLauf;
+    if (!lauf || nutzlast?.requestId !== lauf.requestId) return;
+    originalKontaktLauf = null;
+    if (lauf.generation !== originalKontaktGeneration) return;
+    if (Number.isSafeInteger(nutzlast.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
+    if (nutzlast.ok !== true) {
+      if (nutzlast.code === "wlan_required" && $("#sync-status")) $("#sync-status").textContent = _("Waiting for Wi-Fi.");
+      return;
+    }
+    if (nutzlast.fehlerQuellen > 0) zettel(_("Synchronization failed."));
+    if (!nutzlast.token) return;
+    sichereNotizSnapshot();
+    if (gesperrt || lauf.bestand !== DATEN || aktiverEditor || syncLaeuft || mcpSyncAktiv() ||
+        laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null || originalKontaktFreigaben < 1 ||
+        letzterSpeicherText !== lauf.text || letzterSpeicherSha256 !== lauf.sha256 ||
+        nutzlast.originalSha256 !== lauf.sha256 || JSON.stringify(DATEN) !== lauf.text ||
+        !/^[0-9a-f]{64}$/.test(nutzlast.token) || !Array.isArray(nutzlast.kontakte) ||
+        nutzlast.kontakte.length !== DATEN.kontakte.length || nutzlast.kontakte.some((kontakt, index) =>
+          !kontakt || kontakt.id !== DATEN.kontakte[index].id || kontakt.uid !== DATEN.kontakte[index].uid)) return;
+    DATEN.kontakte = JSON.parse(JSON.stringify(nutzlast.kontakte));
+    originalKontaktSpeicher = { token: nutzlast.token, text: JSON.stringify(DATEN) };
+    speichereJetzt();
+  }
   let updateLaeuft = false;
   let updateInstallationLaeuft = false;
   let handbuchInstalliert = false;
@@ -33349,6 +33403,23 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     wahl.append(kalListe);
 
+    if (nutzlast.originalKontaktUpdates?.verfuegbar === true) {
+      if (nutzlast.originalKontaktUpdates.freigaben === 0) {
+        if (originalKontaktFreigaben > 0) originalKontaktGeneration++;
+        originalKontaktFreigaben = 0; // Status/discovery never grants delivery.
+      }
+      const knoepfe = el("div", "knopfreihe");
+      knoepfe.append(knopf(_("Original contact sources"), "", () => {
+        if (originalKontaktFreigabeAnfrage || originalKontaktLauf || originalKontaktSpeicher) return;
+        nachDauerhaftemSpeichern(() => {
+          originalKontaktFreigabeAnfrage = crypto.randomUUID();
+          if (!Bruecke.sende({ cmd: "kontakt_originalquellen_freigabe", requestId: originalKontaktFreigabeAnfrage }))
+            originalKontaktFreigabeAnfrage = "";
+        });
+      }), knopf(_("Revoke"), "", originalKontaktUpdatesWiderrufen));
+      wahl.append(knoepfe);
+    }
+
     if (nutzlast.buchOk || adressbuecher.length) {
       const adrWahl = auswahlFeld(
         [["", _("— do not link —")]].concat(
@@ -33475,7 +33546,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function starteSync(stumm) {
     sichereNotizSnapshot();
-    if (!Bruecke.vorhanden || syncLaeuft) return;
+    if (!Bruecke.vorhanden || syncLaeuft || originalKontaktLauf || originalKontaktSpeicher) return;
     if (mcpSyncAktiv() && mcpSyncAktiv().phase !== "preparing") return;
     if (mcpSyncLauf?.native_dispatched && !mcpSyncLauf.provider_finished && mcpSyncLauf.phase === "failed") return;
     aktualisiereKontaktpersonen(DATEN);
@@ -34613,6 +34684,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let sperrZustand = { eingabe: "", wartet: 0, uhr: null, art: "pin" };
 
   function zeigeSperrbildschirm(wartet) {
+    if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher) originalKontaktUpdatesWiderrufen();
+    originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     kontaktFotoDialogSchliessen?.();
     kontaktDateiPruefungSchliessen?.();
     kontaktKartenAuswahlSchliessen?.();
@@ -36970,16 +37043,32 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     syncFehler(text) {
       zettel(merkeSyncFehler(text));
     },
+    originalKontaktFreigabe(nutzlast) {
+      if (!nutzlast?.requestId && nutzlast?.freigaben !== 0) return;
+      if (nutzlast?.requestId && nutzlast.requestId !== originalKontaktFreigabeAnfrage) return;
+      originalKontaktFreigabeAnfrage = "";
+      if (nutzlast?.freigaben === 0) { originalKontaktGeneration++; originalKontaktSpeicher = null; }
+      if (Number.isSafeInteger(nutzlast?.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
+      if (letzterEdsStatus?.originalKontaktUpdates) letzterEdsStatus.originalKontaktUpdates.freigaben = originalKontaktFreigaben;
+      if (nutzlast?.ok === true && nutzlast.changed === true && originalKontaktFreigaben > 0)
+        nachDauerhaftemSpeichern(starteOriginalKontaktUpdates);
+    },
+    originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};
       if (Bruecke.vorhanden && (!laufenderSpeicher || !Number.isSafeInteger(ergebnis.id) ||
           ergebnis.id !== laufenderSpeicher.id)) return;
       const erledigt = laufenderSpeicher;
+      const originalKontaktNachweis = originalKontaktSpeicher?.text === erledigt?.text ? originalKontaktSpeicher : null;
       clearTimeout(speicherAntwortTimer);
       speicherAntwortTimer = null;
       laufenderSpeicher = null;
       if (ergebnis.ok === true) {
+        if (originalKontaktNachweis) {
+          if (ergebnis.kontaktOriginalGespeichert === originalKontaktNachweis.token) originalKontaktSpeicher = null;
+          else originalKontaktUpdatesWiderrufen();
+        }
         if (ausstehendeAdressbuchBaseline && erledigt &&
           erledigt.text.includes('"adressbuecher"')) {
           ausstehendeAdressbuchBaseline = null;
@@ -36995,7 +37084,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }), true);
         pumpeSpeichern();
         zeitAbgleichAutomatisch();
+        if (!originalKontaktNachweis) starteOriginalKontaktUpdates();
       } else {
+        if (originalKontaktNachweis) originalKontaktUpdatesWiderrufen();
         speicherFehlgeschlagen(ergebnis.fehler, erledigt);
       }
     },

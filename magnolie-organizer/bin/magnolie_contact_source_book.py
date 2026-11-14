@@ -89,6 +89,7 @@ class NativeContactSourceResultCommit:
         self._lock = threading.RLock()
         self._snapshot, self._capture, self._session = snapshot, capture_current, require_session
         self._used, self._written, self._result = False, False, None
+        self.offer_token = None
         self.done = threading.Event()
         canonical = json.dumps(proposal, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
         self._content_hash = hashlib.sha256(canonical.encode('utf-8')).hexdigest()
@@ -185,5 +186,7 @@ class NativeContactSourceCommitOffer:
             self._used = True
             if not isinstance(token, str) or not hmac.compare_digest(token, self.token):
                 raise PermissionError('contact_source_result_offer_unknown')
-            return NativeContactSourceResultCommit(self._snapshot, json.loads(self._text),
+            invocation = NativeContactSourceResultCommit(self._snapshot, json.loads(self._text),
                 self._capture, self._session, serialized=payload)
+            invocation.offer_token = self.token
+            return invocation

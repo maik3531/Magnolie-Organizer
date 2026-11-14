@@ -479,3 +479,37 @@ tool installation or distribution-specific service requirement was introduced.
 The full frontend settings/SaveACK scheduler and result-adoption path are still
 not connected on Linux. Native-controller and bridge acceptance is not installed
 frontend, physical device, persistent-consent or autonomous retry acceptance.
+
+## Linux actual frontend/SaveACK connection (#618, intermediate)
+
+The Linux settings UI now exposes native source consent/revocation when the
+native status advertises support. Status counts, imported mappings and saved
+document flags cannot enable automatic delivery. After explicit native consent,
+planning starts only from an actual completed SaveACK with no unsaved edits,
+active editor, pending save or other synchronization. Newer edits, book reload,
+revocation, wrong replies/identities/hashes/tokens and unknown save outcomes hold.
+Only a native result-commit token confirmed by the real writer releases the
+frontend's result-save state; no automatic retry is inferred from a timeout.
+
+The full Linux wire exposed a real schema boundary missed by the earlier
+schema-7 component fixture: the frontend saves schema 6, while normal archives
+migrate to schema 7. Exact protection now preserves the original pre-migration
+book, and an explicitly exact read validates/returns that original. Normal
+export/restore migration remains enabled by default. Exact snapshots retain
+their original payload when rekeyed; existing ordinary/legacy snapshot rekey
+migration remains unchanged. Integrity/token/schema validation is not bypassed.
+Windows transferability is a separate unconfirmed check in #619, not a claimed
+Windows archive fix.
+
+The actual Linux frontend -> two actual encrypted source SaveACKs -> native
+consent/controller -> one synthetic original DAV conditional PUT/readback -> exact
+encrypted recovery readback -> native offer -> actual encrypted result save ->
+third native SaveACK wire passes. The native decision/WLAN/provider observations
+in this wire are controlled; actual GTK modal and kernel probes are separate.
+Fourteen full-frontend cases pass for each Linux and Windows source edition, and
+the affected native/journal/manifest run passes 265 cases without historical skips.
+
+This connects the session-local DAV path, not the full #618 remainder: persistent
+consent, autonomous WLAN-return retry, EDS/Akonadi/current provider authority,
+broader accounts and full Notes scalar/postal return remain. Installed WebKit/
+WebView, physical device/media and package/install acceptance are not claimed.
