@@ -1,5 +1,14 @@
 # Native contact provider labels (#576)
 
+Current #618 scope: Windows now connects an explicit native session-consent
+dialog, native WLAN-first update commands and SaveACK-gated frontend scheduling
+for eligible collections in its currently configured Nextcloud/generic-DAV
+account. Default is OFF; no imported list or discovery result grants access.
+Controlled full-frontend/native-controller/encrypted-save tests are distinct
+from installed native dialog, real WLAN detection and live-provider acceptance.
+Other provider types, additional account management, Linux and the full Notes
+scalar/postal return path remain outside this connected Windows path.
+
 Telephone, email and postal-address values are compared separately from their
 provider labels, types and roles. A metadata-only difference does not require a
 value-conflict decision. Existing exact source hashes and baseline formats are
@@ -76,10 +85,10 @@ Checked with real atomic synthetic file writes and the existing native save
 witness, controlled two-provider DAV adapters and original provider UIDs/ETags,
 including failed-after-replacement saves, lock/content/context changes, restore,
 and a document claiming additional source grants. These are not live-provider
-tests. The actual automatic frontend/native dispatcher caller, explicit native
-source-approval storage and provider factory still need integration; the Linux
-equivalent and full Notes scalar/postal return path remain open. This is not an
-automatic all-source delivery or installed-package acceptance claim.
+tests. This entry point alone did not connect the automatic caller or consent
+authority; subsequent Windows integration is described below. Linux and the full
+Notes scalar/postal return path remain open. This is not an all-provider delivery
+or installed-package acceptance claim.
 
 ## Native provider identity on readback (#617)
 
@@ -99,7 +108,7 @@ UIDs occur in its complete readback; separate changed/missing UID regression
 cases verify its failed-source baseline and independent second-source behavior.
 No new Linux product fix, generic DAV readback acceptance or live-provider
 delivery is claimed by that EDS check. The automatic multi-source integration
-under #582 remains open.
+continues under #618 after the partial scope of #582.
 
 ## Native DAV factory boundary (#582, intermediate)
 
@@ -126,9 +135,9 @@ denied/unknown privileges, wrong account/URI/provider, revocation, credential
 change, failed protection, cancellation, book invalidation and changes across
 an asynchronous protection callback. Successful delivery is read back and a
 second run is idempotent. These are synthetic transport tests, not live-provider
-or installed-package acceptance. Persistent native explicit-approval management,
-the automatic frontend/dispatcher caller and durable result integration remain
-unimplemented; this factory alone enables no automatic delivery or permission.
+or installed-package acceptance. This factory alone grants no permission;
+session consent and the Windows caller are described below. Persistent
+cross-session consent is not implemented.
 
 ## Native session approval authority (#582, intermediate)
 
@@ -144,9 +153,9 @@ same native book, but not across explicit revocation, locking, book identity
 change, account/credential revision change or account deactivation. Previously
 captured callbacks are fenced by an approval generation, including revocation
 and subsequent reapproval. This authority is intentionally session-local: it
-does not persist consent across application restarts or claim to implement a
-native dialog. A real native settings decision UI and automatic dispatcher
-caller still need connecting; discovery is never an affirmative decision.
+does not persist consent across application restarts. The authority itself does
+not implement a dialog; the Windows caller below supplies it. Discovery is never
+an affirmative decision.
 
 Sixteen controlled authority scenarios check these decisions and lifecycle
 boundaries. The factory scenarios additionally consume approvals captured from
@@ -180,9 +189,8 @@ no redundant discovery/content IO. Returning a result itself does not save any
 baseline or advance a cursor. One scenario additionally passes actual provider
 readback results through the native one-use result-save authority and actual
 `SaveAsync` source in the existing controlled encrypted native save host. This
-is not yet an automatic frontend/dispatcher or consent-dialog acceptance test;
-that product caller, Linux and the full Notes return path remain outstanding
-under #618.
+does not itself test the frontend or native dialog. Subsequent caller checks
+are described below; Linux and the full Notes return path remain outstanding.
 
 ## Exact native result-save authority (#618, intermediate)
 
@@ -204,4 +212,55 @@ atomic files: success/replay, forged token, mixed content/tree proof, changed or
 locked book, post-primary-replacement failure and an ordinary unclaimed save.
 The GUI/reminder/cloud endpoints of that existing save host are test endpoints;
 these checks do not claim installed GUI or automatic frontend delivery acceptance.
-The automatic native issuer and frontend adoption/commit caller remain to connect.
+This authority alone does not schedule updates; the connected caller follows.
+
+## Connected Windows session caller (#618)
+
+The synchronization settings expose **Original contact sources** and **Revoke**
+only when the native host advertises this command capability. Configuring sources
+first waits for the actual document SaveACK, then opens a native modal checklist.
+The dialog defaults to no new selections, shows the collection URI and explicitly
+limits consent to this session, existing contact bindings and WLAN-only automatic
+updates. Closing/cancelling is not affirmative consent. Unsupported provider types
+are not routed through the configured DAV account.
+
+`ContactSourceNativeSession` supplies the actual native command implementation:
+fresh account/discovery validation, exact saved-hash fencing, revocable approvals,
+WLAN checks around each provider admission and one mandatory native PreContact
+snapshot per original book/run under the existing mutation gate. Unknown network
+state holds the run. Native revocation invalidates pending result authority and
+cancels its own active run without waiting behind that network command. The
+production dispatcher uses its existing background/network lifecycle and sync
+lane; the dialog is marshalled to the native UI thread and is cancellable.
+
+Every subsequently acknowledged user save may plan dirty authorized original
+sources. Status/discovery and imported settings cannot enable this scheduler.
+An outstanding run is not retried on a timer or assumed failed after a timeout.
+The frontend accepts a result only for the unchanged book reference, exact
+acknowledged text/hash and request generation, with no newer edit/editor or
+pending save; original contact IDs/UIDs must match. Only the exact result candidate
+carries the native one-use save proof. A matching native result SaveACK completes
+that adoption without immediately retrying held sources. A failed/unknown result
+save revokes the automatic session and preserves user data instead of declaring
+delivery or blindly retrying. Stale/revoked/reloaded-book results cannot overwrite
+newer edits. Later ordinary saves remain available.
+
+Fifteen controlled native-session cases check consent, cancellation, restore and
+saved-book fences, WLAN loss and protection failure/revocation. Fourteen actual
+full-frontend cases check SaveACK gating, source-local failure preservation,
+stale/foreign/revoked results and failed/unknown result saves. A bounded host
+roundtrip connects the actual frontend through actual encrypted `SaveAsync`
+ACKs to the shared production native session/controller, two controlled original
+DAV collections with different native UIDs, provider PUT/readback, one pre-contact
+protection file and the actual encrypted result save/commit ACK. Those two
+collections share one configured account: this is not a two-account GUI test.
+
+The native dialog decision and WLAN predicate in controlled tests are synthetic
+native callbacks, not installed modal-UI or physical network acceptance. The
+product dialog/dispatcher are source-built; real dialog/queue/WLAN/device and
+live-provider acceptance are not claimed. Pending offline sources remain pending
+until another acknowledged edit or explicit configuration attempt; autonomous
+WLAN-return retry, broader providers/accounts, durable cross-session consent,
+Linux and full Notes scalar/postal return remain follow-up work under #618.
+New consent messages may fall back to English until their catalog integration;
+localized installed-dialog acceptance is not claimed by these source tests.

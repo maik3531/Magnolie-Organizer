@@ -17,6 +17,7 @@ internal sealed partial class PersonalActorNativeSaveHost
     private readonly BaumSyncSnapshot baumSyncSnapshot = new();
     private ContactSourceSavedCommit? contactSourceSavedCommit;
     private ContactSourceSavedCommit OriginalContactCommit => contactSourceSavedCommit ??= new(NativeActorSavedBook);
+    internal ContactSourceSavedCommit SourceResultCommit => OriginalContactCommit;
     private readonly CancellationTokenSource backgroundLifetime = new();
     private readonly Replies form = new();
     private string currentPlainText, currentEnvelope;
@@ -48,6 +49,12 @@ internal sealed partial class PersonalActorNativeSaveHost
     private NativeBookSaveState? NativeActorSavedBook() => Saved();
     internal ContactSourceCommitOffer StageOriginalContactResult(SavedContactSourceUpdateResult result) =>
         OriginalContactCommit.Stage(Snapshot()!, result);
+    internal async Task<JsonObject> SaveBridgeEnvelopeAsync(JsonObject message)
+    {
+        using var parsed = BridgeDispatcherContract.Parse(message.ToJsonString());
+        await SaveAsync(parsed.RootElement);
+        return form.Values.Last().Value;
+    }
     internal async Task<JsonObject> SaveOriginalContactResultAsync(string token, JsonObject candidate, bool mixedTree = false)
     {
         var message = new JsonObject { ["id"] = form.Values.Count + 1, ["text"] = candidate.ToJsonString(), ["kontaktOriginalLauf"] = token };

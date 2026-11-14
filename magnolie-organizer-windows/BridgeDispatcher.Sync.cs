@@ -184,6 +184,7 @@ internal sealed partial class BridgeDispatcher
             adressbuecher = addressBooks.ToArray(),
             graph = new { eingerichtet = clientId.Length > 0, angemeldet = signedIn },
             thunderbird = new { verbunden = thunderbirdConnected },
+            originalKontaktUpdates = new { verfuegbar = true, freigaben = originalContactSession?.GrantCount ?? 0 },
             nextcloud = new { eingerichtet = nextcloudConfigured, erreichbar = nextcloudConfigured && nextcloudError.Length == 0, kontoArt = accountType, fehler = nextcloudError }
         });
     }

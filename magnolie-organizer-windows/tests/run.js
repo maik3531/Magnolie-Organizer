@@ -33,6 +33,7 @@ for (const test of ["welcome-first-save.js", "time-zone-planning.js", "time-zone
    "contact-provider-bulk-review.js",
    "contact-label-content-time.js",
    "contact-source-writeback.js",
+   "contact-original-source-updates.js",
    "contact-group-title-write.js",
   "mcp-contact-group-diagnostics.js",
   "note-web-links.js",

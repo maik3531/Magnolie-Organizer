@@ -24,7 +24,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private string currentEnvelope = "";
     private readonly NativeBookOwnerScope actorBookOwner = new();
     private ContactSourceSavedCommit? contactSourceSavedCommit;
-    private ContactSourceSavedCommit OriginalContactCommit => contactSourceSavedCommit ??= new(NativeActorSavedBook);
+    private ContactSourceSavedCommit OriginalContactCommit => LazyInitializer.EnsureInitialized(ref contactSourceSavedCommit, () => new(NativeActorSavedBook));
     private bool plainTextAvailable;
     private bool currentPlainTextAvailable
     {
@@ -101,23 +101,27 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "baum_dav_pruefen" or "baum_mailbox_schreibpruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
                 "baum_ein" or "baum_mcp" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_mcp" or "kde_mcp" or "notiz_versand" or "telefon_ein" or "telefon_verbindung_ein" or
                 "telefon_status_anfordern" or "telefon_entwickler_diagnose" or "kde_dateisystem_stand" or "kde_dateisystem_oeffnen" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
-                "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
+                "sync" or "kontakt_originalquellen_freigabe" or "kontakt_originalquellen_update" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
                 "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "internet_konten_mcp" or "telefon_kontaktfotos" or "telefon_kontakte" or "telefon_kontaktgruppen" or "telefon_kontaktwerte" or "telefon_kontaktgruppentitel" or "zeitzone_erkennen")
             {
                 var owner = command is "telefon_kontaktfotos" or "telefon_kontakte" ? "kontaktfotos" :
-                    command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
+                    command is "sync" or "kontakt_originalquellen_freigabe" or "kontakt_originalquellen_update" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
                     command.StartsWith("personal_sync", StringComparison.Ordinal) || command.StartsWith("telefon", StringComparison.Ordinal) ? "phone" :
                     command.StartsWith("kde", StringComparison.Ordinal) ? "kde" : command.StartsWith("baum", StringComparison.Ordinal) ? "baum" :
                     command.StartsWith("update", StringComparison.Ordinal) || command == "handbuch_herunterladen" ? "update" : command;
                 var revision = Volatile.Read(ref graphRevision);
                 var syncReplyId = command == "sync" && Boolean(parsed.RootElement, "mcp") ? Text(parsed.RootElement, "transactionId") : "";
+                var originalContactReplyId = Text(parsed.RootElement, "requestId");
                 QueueNetworkCommand(() =>
                 {
                     if (command != "graph_anmelden") return HandleCoreAsync(rawMessage);
                     lock (serviceGate) return revision != graphRevision ? Task.CompletedTask : HandleCoreAsync(rawMessage);
-                }, owner, syncReplyId.Length == 0 ? null : code => form.SendAsync("App.syncMcpFehler", new { nativeId = syncReplyId, code }));
+                }, owner, command is "kontakt_originalquellen_freigabe" or "kontakt_originalquellen_update"
+                    ? code => form.SendAsync(command == "kontakt_originalquellen_freigabe" ? "App.originalKontaktFreigabe" : "App.originalKontaktErgebnis",
+                        new { requestId = originalContactReplyId, ok = false, code })
+                    : syncReplyId.Length == 0 ? null : code => form.SendAsync("App.syncMcpFehler", new { nativeId = syncReplyId, code }));
                 return;
             }
         }
@@ -281,6 +285,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         }
                         break;
                     case "sync": await SynchronizeContactsAsync(message); break;
+                    case "kontakt_originalquellen_freigabe": await ConfigureOriginalContactSourcesAsync(message); break;
+                    case "kontakt_originalquellen_widerrufen": await RevokeOriginalContactSourcesAsync(); break;
+                    case "kontakt_originalquellen_update": await UpdateOriginalContactSourcesAsync(message); break;
                     case "sync_commit":
                         if (Text(message, "requestId") is { Length: > 0 } commitRequest)
                         {

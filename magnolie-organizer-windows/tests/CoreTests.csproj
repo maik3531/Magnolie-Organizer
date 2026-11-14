@@ -69,6 +69,7 @@
     <Compile Include="..\ContactSourceApprovalScope.cs" Link="ContactSourceApprovalScope.cs" />
     <Compile Include="..\ContactSourceSavedDavRun.cs" Link="ContactSourceSavedDavRun.cs" />
     <Compile Include="..\ContactSourceSavedCommit.cs" Link="ContactSourceSavedCommit.cs" />
+    <Compile Include="..\ContactSourceNativeSession.cs" Link="ContactSourceNativeSession.cs" />
     <Compile Include="..\BackupDataValidation.cs" Link="BackupDataValidation.cs" />
     <Compile Include="..\PhoneCameraAudioSetup.cs" Link="PhoneCameraAudioSetup.cs" />
     <Compile Include="..\PhoneCameraAudioSetupPipe.cs" Link="PhoneCameraAudioSetupPipe.cs" />

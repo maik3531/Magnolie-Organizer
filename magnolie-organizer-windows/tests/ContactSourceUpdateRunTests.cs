@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Security;
+using System.Diagnostics;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
@@ -30,6 +31,10 @@ internal static class ContactSourceUpdateRunTests
         internal bool? Permission = true;
         internal bool FailWrite, FailDiscovery, BadReadback, RequireSaved, Saved;
         internal string ReadbackUidMode = "";
+        internal bool ExtraBook;
+        internal string ExtraWire = "", ExtraETag = "\"extra-v1\"";
+        internal NextcloudDavSource ExtraCatalog = null!;
+        internal int ExtraWrites;
         internal int Writes, Reads, Discoveries;
         internal Action? BeforeContentRead;
         internal Action? BeforeDiscovery;
@@ -40,6 +45,7 @@ internal static class ContactSourceUpdateRunTests
             var card = data.DeepClone().AsObject(); card["uid"] = WireUid;
             using var input = JsonDocument.Parse(new JsonArray(card).ToJsonString());
             Wire = ExchangeCodec.WriteVCard(input.RootElement).Text;
+            ExtraWire = Wire.Replace("UID:" + WireUid + "\r\n", "UID:other-original-" + name + "\r\n", StringComparison.Ordinal);
             var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "settings.json"), Path.Combine(root, "secret.dat"), new Protector());
             Settings = settings;
             settings.SaveConfiguration(new NextcloudMailboxSettings(true, false, origin + "/nc", "synthetic") { AccountType = accountType }, "synthetic-only", false);
@@ -56,14 +62,26 @@ internal static class ContactSourceUpdateRunTests
                 if (!request.Headers.TryGetValues("Depth", out var depths) || depths.Single() != "1")
                     return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/</d:href><d:propstat><d:prop><c:addressbook-home-set><d:href>/nc/books/</d:href></c:addressbook-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
                 var privilege = Permission is null ? "" : "<d:current-user-privilege-set><d:privilege><d:" + (Permission == true ? "write-content" : "read") + "/></d:privilege></d:current-user-privilege-set>";
-                return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/books/original/</d:href><d:propstat><d:prop><d:displayname>Original</d:displayname><d:resourcetype><c:addressbook/></d:resourcetype>" + privilege + "</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
+                var entry = "<d:response><d:href>/nc/books/original/</d:href><d:propstat><d:prop><d:displayname>Original</d:displayname><d:resourcetype><c:addressbook/></d:resourcetype>" + privilege + "</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>";
+                return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\">" + entry +
+                    (ExtraBook ? entry.Replace("/original/", "/secondary/", StringComparison.Ordinal) : "") + "</d:multistatus>");
             }
             TestAssert.That(!RequireSaved || Saved, "Provider IO preceded the original durable SaveACK");
             if (request.Method.Method == "REPORT")
             {
                 BeforeContentRead?.Invoke();
                 Reads++;
+                if (ExtraBook && request.RequestUri!.AbsolutePath.Contains("/secondary/", StringComparison.Ordinal))
+                    return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/books/secondary/person.vcf</d:href><d:propstat><d:prop><d:getetag>" + SecurityElement.Escape(ExtraETag) + "</d:getetag><c:address-data>" + SecurityElement.Escape(ExtraWire) + "</c:address-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
                 return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/books/original/person.vcf</d:href><d:propstat><d:prop><d:getetag>" + SecurityElement.Escape(ETag) + "</d:getetag><c:address-data>" + SecurityElement.Escape(Wire) + "</c:address-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
+            }
+            if (ExtraBook && request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == origin + "/nc/books/secondary/person.vcf")
+            {
+                TestAssert.That(request.Headers.IfMatch.Single().ToString() == ExtraETag, "Second original source revision lost");
+                ExtraWire = await request.Content!.ReadAsStringAsync();
+                TestAssert.That(ExtraWire.Contains("UID:other-original-", StringComparison.Ordinal) && !ExtraWire.Contains("UID:canonical-person", StringComparison.Ordinal), "Second native source UID was replaced");
+                ExtraWrites++; ExtraETag = "\"extra-write-" + ExtraWrites + "\"";
+                return new(HttpStatusCode.NoContent) { Headers = { ETag = new EntityTagHeaderValue(ExtraETag) } };
             }
             TestAssert.That(request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == origin + "/nc/books/original/person.vcf" &&
                 request.Headers.IfMatch.Single().ToString() == ETag, "Original provider resource/revision lost or create/delete attempted");
@@ -81,6 +99,12 @@ internal static class ContactSourceUpdateRunTests
         {
             Catalog = (await Client.ListSourcesAsync(default, calendars: false)).AddressBooks.Single();
             return (await new NextcloudCardDavRemote(Client, Catalog).ReadAsync(default)).Single();
+        }
+        internal async Task<RemoteContact> ExtraOriginalAsync()
+        {
+            ExtraBook = true;
+            ExtraCatalog = (await Client.ListSourcesAsync(default, calendars: false)).AddressBooks.Single(item => item.Href.AbsolutePath.EndsWith("/secondary/", StringComparison.Ordinal));
+            return (await new NextcloudCardDavRemote(Client, ExtraCatalog).ReadAsync(default)).Single();
         }
         internal ContactSourceAdmission Admit() => new(Catalog.Uid, new NextcloudCardDavRemote(Client, Catalog), Catalog.CanUpdate, async token => {
             var current = (await Client.ListSourcesAsync(token, calendars: false)).AddressBooks.SingleOrDefault(source => source.Uid == Catalog.Uid);
@@ -163,6 +187,206 @@ internal static class ContactSourceUpdateRunTests
         await ApprovalScopeAsync();
         await SavedDavOrchestrationAsync();
         await SavedResultCommitAsync();
+        await NativeSessionAsync();
+        if (!OperatingSystem.IsWindows()) await NativeFrontendWireAsync();
+    }
+
+    private static async Task NativeSessionAsync()
+    {
+        using (BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_freigabe\",\"requestId\":\"native-dialog\"}")) { }
+        using (BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_widerrufen\"}")) { }
+        using (BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_update\",\"requestId\":\"native-run\",\"standSha256\":\"context-not-grant\"}")) { }
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"kontakt_originalquellen_update\",\"requestId\":\"native-run\",\"standSha256\":\"context-not-grant\",\"sources\":[\"unapproved\"]}"),
+            "Native source command accepted renderer source grants");
+        foreach (var mode in new[] { "success", "no-grant", "cancel-dialog", "empty-selection", "no-wlan", "wlan-during-read",
+            "wlan-during-protect", "revoke-during-protect", "snapshot-failed", "changed-book", "restore", "forged-hash", "revoked", "stale-dialog", "cancel-run" })
+        {
+            var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
+                ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
+            using var source = new Source("session", "generic-dav", original);
+            var remote = await source.OriginalAsync(); var local = original.DeepClone().AsObject();
+            ContactFields.SetSource(local, source.Catalog.Uid, remote, remoteBaseline: true);
+            local["notiz"] = "Canonical note"; local["geaendert"] = 2000L;
+            var document = new JsonObject { ["kontakte"] = new JsonArray(local), ["syncEpoch"] = "native-session-epoch",
+                ["notizen"] = new JsonArray(new JsonObject { ["text"] = "Unchanged synthetic native session" }) };
+            if (mode == "restore") document["syncNachRestore"] = new JsonObject { ["loeschungsfrei"] = true };
+            var root = Path.Combine(Path.GetTempPath(), "magnolie-native-source-session-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var host = new PersonalActorNativeSaveHost(root, document.ToJsonString());
+                var wlan = true; var protections = 0; ContactSourceNativeSession? session = null;
+                session = new(host.Snapshot, host.Saved, source.Settings, host.SourceResultCommit, () => wlan, snapshot =>
+                {
+                    protections++;
+                    if (mode == "snapshot-failed") throw new IOException("Controlled actual native protection failure");
+                    new AtomicStore().WriteRecoverableJson(Path.Combine(root, "pre-contact.json"), snapshot.Text);
+                    if (mode == "wlan-during-protect") wlan = false;
+                    if (mode == "revoke-during-protect") session!.Revoke();
+                }, source.Transport);
+                TestAssert.That(session.GrantCount == 0, "New native source session was not default OFF");
+                var originalHash = host.Saved()!.Sha256;
+                if (mode is not ("no-grant" or "restore"))
+                {
+                    try
+                    {
+                        var changed = await session.ConfigureAsync(async (catalog, selected, token) =>
+                        {
+                            TestAssert.That(catalog.Count == 1 && selected.Count == 0, "Native session preselected a discovered source");
+                            if (mode == "stale-dialog")
+                            {
+                                var edited = document.DeepClone().AsObject(); edited["changedWhileDialogOpen"] = true;
+                                await host.SaveOriginalContactResultAsync("", edited);
+                            }
+                            return mode == "cancel-dialog" ? null : new[] { catalog.Single().Uid };
+                        });
+                        if (mode == "stale-dialog") throw new Exception("Stale native decision granted access");
+                        TestAssert.That(changed == (mode != "cancel-dialog") && session.GrantCount == (mode == "cancel-dialog" ? 0 : 1),
+                            "Native dialog cancel/affirmation had wrong grant result");
+                    }
+                    catch (InvalidOperationException error) when (mode == "stale-dialog" && error.Message == "contact_source_approval_context_changed")
+                    { TestAssert.That(session.GrantCount == 0 && source.Writes == 0, "Stale native dialog retained an approval"); continue; }
+                    if (mode == "empty-selection") await session.ConfigureAsync((_, _, _) => Task.FromResult<IReadOnlyList<string>?>(Array.Empty<string>()));
+                }
+                var reads = source.Reads; var discoveries = source.Discoveries;
+                if (mode == "no-wlan") wlan = false;
+                if (mode == "wlan-during-read") source.BeforeContentRead = () => wlan = false;
+                if (mode == "revoked") session.Revoke();
+                if (mode == "forged-hash") originalHash = new string('0', 64);
+                if (mode == "changed-book")
+                {
+                    var edited = document.DeepClone().AsObject(); edited["newUserData"] = true;
+                    await host.SaveOriginalContactResultAsync("", edited);
+                }
+                using var cancel = new CancellationTokenSource(); if (mode == "cancel-run") cancel.Cancel();
+                try
+                {
+                    var result = await session.RunAsync(originalHash, cancel.Token);
+                    if (mode is "no-wlan" or "changed-book" or "restore" or "forged-hash" or "cancel-run" or "revoke-during-protect")
+                        throw new Exception("Invalid native source session completed: " + mode);
+                    if (mode == "success")
+                    {
+                        TestAssert.That(source.Writes == 1 && protections == 1 && result.SourceErrors == 0 && result.Offer is not null,
+                            "Native session did not protect/write/readback/stage its source");
+                        document["kontakte"] = result.Offer!.Contacts.DeepClone();
+                        var saved = await host.SaveOriginalContactResultAsync(result.Offer.Token, document);
+                        TestAssert.That(saved["ok"]!.GetValue<bool>() && saved["kontaktOriginalGespeichert"]!.GetValue<string>() == result.Offer.Token,
+                            "Actual native session stage did not reach actual SaveAsync commit");
+                        var priorReads = source.Reads; var priorDiscovery = source.Discoveries;
+                        var repeated = await session.RunAsync(host.Saved()!.Sha256);
+                        TestAssert.That(repeated.Offer is null && repeated.SourceErrors == 0 && source.Reads == priorReads &&
+                            source.Discoveries == priorDiscovery && source.Writes == 1 && protections == 1, "Clean native session retried provider IO");
+                    }
+                    else if (mode is "no-grant" or "cancel-dialog" or "empty-selection" or "revoked")
+                        TestAssert.That(result.Offer is null && result.Grants == 0 && source.Writes == 0 && source.Reads == reads &&
+                            source.Discoveries == discoveries && protections == 0, "Native session IO occurred without actual approval");
+                    else TestAssert.That(result.SourceErrors == 1 && result.Offer is null && source.Writes == 0,
+                        "Native Wi-Fi/protection hold acquired a successful result: " + mode);
+                }
+                catch (InvalidOperationException error) when (mode is "no-wlan" or "changed-book" or "restore" or "forged-hash" &&
+                    error.Message is "contact_source_wlan_required" or "contact_source_saved_book_changed" or "contact_source_restore_pending")
+                {
+                    TestAssert.That(source.Writes == 0 && source.Reads == reads && source.Discoveries == discoveries && protections == 0,
+                        "Invalid native saved/Wi-Fi state reached provider IO");
+                }
+                catch (OperationCanceledException) when (mode is "cancel-run" or "revoke-during-protect")
+                {
+                    TestAssert.That(source.Writes == 0 && (mode != "cancel-run" || source.Discoveries == discoveries), "Cancelled native session wrote/discovered");
+                    if (mode == "revoke-during-protect") TestAssert.That(session.GrantCount == 0 && protections == 1, "Native revoke failed to stop its in-flight run");
+                }
+            }
+            finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
+        }
+    }
+
+    private static async Task NativeFrontendWireAsync()
+    {
+        // Host uses the existing Node runtime. Windows checks the same common
+        // native command/session and actual writer separately; no installed GUI
+        // or real modal-consent acceptance is inferred from this controlled UI.
+        var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
+            ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
+        using var source = new Source("wire", "generic-dav", original);
+        var remote = await source.OriginalAsync(); var local = original.DeepClone().AsObject();
+        ContactFields.SetSource(local, source.Catalog.Uid, remote, remoteBaseline: true);
+        var other = await source.ExtraOriginalAsync();
+        ContactFields.SetSource(local, source.ExtraCatalog.Uid, other, remoteBaseline: true);
+        var document = new JsonObject { ["kontakte"] = new JsonArray(local), ["syncEpoch"] = "native-frontend-wire-epoch",
+            ["notizen"] = new JsonArray(new JsonObject { ["id"] = "keep-note", ["titel"] = "Keep", ["text"] = "Other domains unchanged" }) };
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-frontend-native-source-wire-" + Guid.NewGuid().ToString("N"));
+        Process? process = null;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(55));
+        try
+        {
+            var host = new PersonalActorNativeSaveHost(root, document.ToJsonString()); var protections = 0;
+            var session = new ContactSourceNativeSession(host.Snapshot, host.Saved, source.Settings, host.SourceResultCommit,
+                () => true, snapshot => { protections++; new AtomicStore().WriteRecoverableJson(Path.Combine(root, "pre-contact.json"), snapshot.Text); }, source.Transport);
+            var repository = TestSource.Root("contracts/contact-provider-labels.md");
+            var windows = File.Exists(Path.Combine(repository, "MagnolieOrganizer.Windows.csproj")) ? repository : Path.Combine(repository, "magnolie-organizer-windows");
+            var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE") ?? "node") {
+                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+            start.ArgumentList.Add(Path.Combine(windows, "tests", "contact-original-source-updates.js")); start.ArgumentList.Add("--wire");
+            process = Process.Start(start) ?? throw new InvalidOperationException("Existing Node runtime required");
+            var errors = process.StandardError.ReadToEndAsync();
+            async Task Reply(string callback, object value) { await process.StandardInput.WriteLineAsync(System.Text.Json.JsonSerializer.Serialize(new { callback, value })); await process.StandardInput.FlushAsync(); }
+            await process.StandardInput.WriteLineAsync(new JsonObject { ["type"] = "init", ["daten"] = document }.ToJsonString()); await process.StandardInput.FlushAsync();
+            var completed = false; var saves = 0; var configured = 0; var updates = 0;
+            while (await process.StandardOutput.ReadLineAsync(timeout.Token) is { } line)
+            {
+                var packet = JsonNode.Parse(line)!.AsObject();
+                if (packet["type"]!.GetValue<string>() == "complete")
+                {
+                    TestAssert.That(saves >= 3 && configured == 1 && updates == 1 && source.Writes == 1 && source.ExtraWrites == 1 && protections == 1 &&
+                        host.Responses.Last().Value["kontaktOriginalGespeichert"]!.GetValue<string>() == packet["token"]!.GetValue<string>() &&
+                        new EncryptionService().Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password) == packet["text"]!.GetValue<string>(),
+                        "Actual frontend→native SaveACK→native session/provider→actual encrypted result SaveACK wire incomplete");
+                    var proofPath = Environment.GetEnvironmentVariable("MAGNOLIE_CONTACT_SOURCE_WIRE_PROOF");
+                    if (!string.IsNullOrEmpty(proofPath)) await File.WriteAllTextAsync(proofPath, new JsonObject {
+                        ["sourceCount"] = 2, ["providerWrites"] = source.Writes + source.ExtraWrites,
+                        ["nativeProtectionCalls"] = protections, ["actualNativeSaveCommands"] = saves,
+                        ["explicitSyntheticNativeDecisions"] = configured, ["nativeSourceRunCommands"] = updates,
+                        ["savedPayloadSha256"] = BaumSyncSnapshot.Hash(packet["text"]!.GetValue<string>()),
+                        ["frontendSourceSha256"] = BaumSyncSnapshot.Hash(File.ReadAllText(Path.Combine(windows, "app/web/anwendung.js"))),
+                        ["actualResultCommitAckVerified"] = true, ["actualEncryptedFileVerified"] = true,
+                        ["twoDistinctProviderAccounts"] = false, ["installedNativeDialogAcceptance"] = false,
+                        ["nativeWlanDetectionAcceptance"] = false, ["liveProviderOrPrivateInputs"] = false
+                    }.ToJsonString());
+                    completed = true; break;
+                }
+                var command = packet["value"]!.AsObject();
+                switch (command["cmd"]!.GetValue<string>())
+                {
+                    case "speichern":
+                        saves++; await Reply("gespeichert", await host.SaveBridgeEnvelopeAsync(command)); break;
+                    case "kontakt_originalquellen_freigabe":
+                    {
+                        using var consentEnvelope = BridgeDispatcherContract.Parse(command.ToJsonString());
+                        TestAssert.That(host.Snapshot() is not null && JsonNode.Parse(host.Snapshot()!.Text)!["kontakte"]![0]!["notiz"]!.GetValue<string>() == "Canonical note" &&
+                            session.GrantCount == 0, "Actual frontend requested source consent before its actual edited SaveACK");
+                        configured++;
+                        var changed = await session.ConfigureAsync((catalog, selected, token) => Task.FromResult<IReadOnlyList<string>?>(catalog.Select(item => item.Uid).ToArray()), timeout.Token);
+                        await Reply("originalKontaktFreigabe", new { requestId = command["requestId"]!.GetValue<string>(), ok = true, changed, freigaben = session.GrantCount }); break;
+                    }
+                    case "kontakt_originalquellen_update":
+                    {
+                        using var updateEnvelope = BridgeDispatcherContract.Parse(command.ToJsonString());
+                        updates++;
+                        var result = await session.RunAsync(command["standSha256"]!.GetValue<string>(), timeout.Token);
+                        TestAssert.That(result.SourceErrors == 0 && result.Offer is not null, "Actual frontend's native source run was held unexpectedly");
+                        await Reply("originalKontaktErgebnis", new { requestId = command["requestId"]!.GetValue<string>(), ok = true,
+                            token = result.Offer!.Token, originalSha256 = result.Offer.OriginalSha256, kontakte = result.Offer.Contacts,
+                            fehlerQuellen = result.SourceErrors, freigaben = result.Grants }); break;
+                    }
+                    case "kontakt_originalquellen_widerrufen": session.Revoke(); break;
+                }
+            }
+            await process.WaitForExitAsync(timeout.Token);
+            TestAssert.That(completed && process.ExitCode == 0, "Controlled actual frontend/native source wire failed: " + await errors);
+        }
+        finally
+        {
+            if (process is not null) { if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync(); } process.Dispose(); }
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
     }
 
     private static async Task SavedDavOrchestrationAsync()
