@@ -95,6 +95,29 @@ internal class KontaktOriginalBindung private constructor(
         fun erfassen(context: Context, lookupKey: String): KontaktOriginalBindung =
             KontaktOriginalBindung(context, beobachte(context, lookupKey))
 
+        /** Native raw-ID resolution only; callers must compare the captured
+         * database/account/source identity with their private mapping. This
+         * lookup grants no permission and never falls back to a name/book.
+         */
+        internal fun erfassenRaw(context: Context, rawContactId: Long): KontaktOriginalBindung {
+            berechtigt(context)
+            require(rawContactId > 0)
+            val resolver = context.contentResolver
+            val contactId = requireNotNull(resolver.query(ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawContactId),
+                arrayOf(RawContacts._ID, RawContacts.CONTACT_ID), null, null, null)).use { cursor ->
+                require(cursor.count == 1 && cursor.moveToFirst() && cursor.getLong(0) == rawContactId)
+                cursor.getLong(1).also { require(it > 0 && !ContactsContract.isProfileId(it)) }
+            }
+            val lookup = requireNotNull(resolver.query(ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId),
+                arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.LOOKUP_KEY), null, null, null)).use { cursor ->
+                require(cursor.count == 1 && cursor.moveToFirst() && cursor.getLong(0) == contactId)
+                requireNotNull(cursor.getString(1))
+            }
+            return erfassen(context, lookup).also {
+                require(it.rawContactId == rawContactId && it.contactId == contactId) { "contact_original_binding_changed" }
+            }
+        }
+
         private fun berechtigt(context: Context) {
             if (!listOf(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS).all {
                     context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED })

@@ -308,6 +308,17 @@ name list in its synthetic provider; only its fixture was corrected to include
 an explicit synthetic phone row. The two affected cases then passed in a
 targeted rerun; the other 106 passing cases were retained unchanged.
 
+Native automation can resolve a selected canonical original through the private
+mapping's raw ID, then capture and compare its current native database/account/
+source identity. It does not depend on imported `KontaktSpur` IDs or a stale
+lookup key after a local rename, and never searches by name or a default book.
+The resulting observation still requires a live source grant and matching setup
+UUID before refresh/export/apply; resolution alone grants no rights. Missing
+private mappings do not read providers or create state. Replaced native identities
+and ambiguous aggregates are held. The affected mapping/export/resolution matrix
+now passes 62 API28/API35 host cases, including fresh-owner export after a native
+rename with the canonical ID unchanged and no second setup decision.
+
 ### Pinned original protection and durable native outcomes
 
 Controller admission can now use `vorbereitenGeplant` to validate the request

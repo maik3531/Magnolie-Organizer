@@ -72,6 +72,24 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
         }
     }
 
+    /** Resolve automation from the private selected original, not portable
+     * KontaktSpur IDs or a possibly obsolete lookup key after a native edit.
+     * The resulting observation still requires a current source grant and
+     * matching setup UUID before export or apply; this is not write authority.
+     */
+    fun beobachten(context: Context, peer: KontaktOriginalFreigaben.Partner, freigabeId: String): KontaktOriginalBindung? {
+        val proof = findenBeleg(peer, freigabeId) ?: return null
+        val original = proof.record.getValue("original").jsonObject
+        val binding = KontaktOriginalBindung.erfassenRaw(context, original.getValue("raw_id").jsonPrimitive.long)
+        val observed = record(peer, freigabeId, binding, proof.record.getValue("decision_id").jsonPrimitive.content)
+        require(observed["original"] == original &&
+            observed.getValue("revision").jsonPrimitive.long >= proof.record.getValue("revision").jsonPrimitive.long) {
+            "contact_original_mapping_retargeted"
+        }
+        pruefen(proof)
+        return binding
+    }
+
     /** Run as an exact-original setup dependency before source publication. */
     fun speichern(decision: KontaktOriginalFreigaben.Entscheidung): List<Zuordnung> {
         decision.pruefen()

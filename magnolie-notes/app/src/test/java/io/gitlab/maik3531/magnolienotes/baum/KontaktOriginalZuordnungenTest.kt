@@ -382,4 +382,50 @@ class KontaktOriginalZuordnungenTest {
         assertEquals(expected, offer.lesen().daten)
         assertEquals(0, provider.writes)
     }
+
+    @Test fun missingPrivateOriginalResolutionDoesNotReadProvidersOrCreateDefaultState() {
+        val before = provider.queries
+        assertNull(maps().beobachten(context, peer, share))
+        assertEquals(before, provider.queries); assertFalse(mapRoot.exists()); assertEquals(0, rotations)
+    }
+
+    @Test fun privateCanonicalOriginalResolvesCurrentNativeLookupAfterRenameWithoutPortableMappings() {
+        approve()
+        val oldQuote = maps().finden(peer, share)!!.basisHash(scope.freigabe(binding))
+        provider.contact[ContactsContract.Contacts.LOOKUP_KEY] = "native-lookup-after-local-rename"
+        provider.raw[RawContacts.VERSION] = 4L
+        provider.row[ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME] = "Renamed on native device"
+        val actual = maps().beobachten(context, peer, share)!!
+        assertEquals("native-lookup-after-local-rename", actual.lookupKey)
+        assertEquals(7L, actual.rawContactId); assertEquals("original-server-id", actual.sourceId)
+        val fresh = freshScope(); assertTrue(fresh.wiederherstellen(sourceStore.laden()!!))
+        val export = KontaktOriginalExport.erfassen(fresh.freigabe(actual), share, maps(), attempts()).lesen()
+        assertEquals("Renamed on native device", export.daten.vorname)
+        assertNotEquals(oldQuote, export.basisHash); assertEquals(share, export.freigabeId)
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun selectedRawIdDoesNotResolveAReplacedAccountSourceDatabaseOrAmbiguousAggregate() {
+        approve()
+        provider.raw[RawContacts.SOURCE_ID] = "replacement-source"
+        assertThrows(IllegalArgumentException::class.java) { maps().beobachten(context, peer, share) }
+        provider.raw[RawContacts.SOURCE_ID] = "original-server-id"
+        provider.raw[RawContacts.ACCOUNT_NAME] = "other@example.invalid"
+        assertThrows(IllegalArgumentException::class.java) { maps().beobachten(context, peer, share) }
+        provider.raw[RawContacts.ACCOUNT_NAME] = "synthetic@example.invalid"
+        provider.status[ContactsContract.ProviderStatus.DATABASE_CREATION_TIMESTAMP] = 654321L
+        assertThrows(IllegalArgumentException::class.java) { maps().beobachten(context, peer, share) }
+        provider.status[ContactsContract.ProviderStatus.DATABASE_CREATION_TIMESTAMP] = 123456L
+        provider.aggregate = true
+        assertThrows(IllegalArgumentException::class.java) { maps().beobachten(context, peer, share) }
+        assertEquals(0, provider.writes); assertEquals(1, rotations)
+    }
+
+    @Test fun nativeResolutionDoesNotCreateAnAutomaticSourceGrant() {
+        approve()
+        val resolved = maps().beobachten(context, peer, share)!!
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { scope.freigabe(resolved) }
+        assertEquals(0, provider.writes)
+    }
 }
