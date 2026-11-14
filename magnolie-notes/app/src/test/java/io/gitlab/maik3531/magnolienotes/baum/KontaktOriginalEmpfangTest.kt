@@ -300,4 +300,86 @@ class KontaktOriginalEmpfangTest {
         assertEquals(JsonPrimitive(requestHash), queued().single()["request_sha256"])
         assertEquals(1, provider.batchCalls)
     }
+
+    private fun verifiedSaveAck(): JsonObject {
+        configure(); send(request())
+        return JsonObject(queued().single() + mapOf("art" to JsonPrimitive(KontaktOriginalEmpfang.BESTAETIGUNG),
+            "desktop_sha256" to JsonPrimitive("e".repeat(64))))
+    }
+
+    @Test fun actualAuthenticatedSaveAckPersistsCorrelationButDoesNotInstallMappingOrReleasePhysicalHold() {
+        val ack = verifiedSaveAck()
+        val mapFile = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }; val oldMap = mapFile.readBytes()
+        send(ack)
+        val actual = maps().beobachten(context, sourcePeer(), share)!!
+        assertEquals("e".repeat(64), attempts().laden(scope.freigabe(actual))!!.bestaetigung()!!.desktopHash())
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" }; val saved = file.readBytes()
+        send(ack)
+        assertArrayEquals(saved, file.readBytes())
+        server.anhalten(); store = Ablage.fuerTest(context) { dataKey }; consent = newConsent(); attach()
+        send(ack)
+        assertArrayEquals(saved, file.readBytes()); assertArrayEquals(oldMap, mapFile.readBytes())
+        val restoredScope = KontaktOriginalFreigaben(consent) { sourcePeer() }
+        assertTrue(restoredScope.wiederherstellen(consent.laden()!!))
+        assertThrows(IllegalStateException::class.java) { maps().aktualisieren(restoredScope.freigabe(actual), share, attempts()) }
+        assertEquals(1, provider.batchCalls); assertEquals(1, queued().size); assertEquals(1, rotations)
+    }
+
+    @Test fun mismatchedAuthenticatedSaveAckCannotChangeVerifiedHistoryOrCreateAnotherProviderWrite() {
+        val ack = verifiedSaveAck()
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" }; val saved = file.readBytes()
+        val variants = listOf(
+            JsonObject(ack + ("request_sha256" to JsonPrimitive("0".repeat(64)))),
+            JsonObject(ack + ("next_basis" to JsonPrimitive("0".repeat(64)))),
+            JsonObject(ack + ("native_revision" to JsonPrimitive(true))),
+            JsonObject(ack + ("desktop_sha256" to JsonPrimitive(true))),
+            JsonObject(ack + ("saved" to JsonPrimitive(true))))
+        for (body in variants) {
+            assertThrows(IllegalArgumentException::class.java) { send(body) }
+            assertArrayEquals(saved, file.readBytes())
+        }
+        send(ack)
+        val acknowledged = file.readBytes()
+        assertThrows(IllegalArgumentException::class.java) {
+            send(JsonObject(ack + ("desktop_sha256" to JsonPrimitive("f".repeat(64)))))
+        }
+        assertArrayEquals(acknowledged, file.readBytes()); assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun saveAckRequiresActualOriginAndRemainsOffInProduction() {
+        val ack = verifiedSaveAck()
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" }; val before = file.readBytes()
+        assertThrows(IllegalArgumentException::class.java) { handler.verarbeiteNachricht(sender.kennung, ack) }
+        assertThrows(BaumFehler::class.java) {
+            handler.verarbeiteSichereNachricht(Server.FsEmpfang(Any()), ack, Krypto.b64(ByteArray(16)))
+        }
+        server.anhalten(); attach(enabled = false)
+        assertThrows(BaumFehler::class.java) { send(ack) }
+        assertArrayEquals(before, file.readBytes()); assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun sourceRevocationCannotBeBypassedByAnOtherwiseMatchingDesktopSaveAck() {
+        val ack = verifiedSaveAck()
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" }; val before = file.readBytes()
+        scope.widerrufen()
+        assertThrows(SecurityException::class.java) { send(ack) }
+        assertArrayEquals(before, file.readBytes()); assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun interruptedActualSaveAckReceiveCommitRecoversWithoutProviderReplayOrPhysicalRelease() {
+        val ack = verifiedSaveAck()
+        val mapFile = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }; val oldMap = mapFile.readBytes()
+        server.anhalten()
+        store = Ablage.fuerTest(context, { dataKey }, { step ->
+            if (step == io.gitlab.maik3531.magnolienotes.daten.PaarCommitSchritt.ABSICHT_DAUERHAFT)
+                throw java.io.IOException("Controlled actual SaveACK receive commit interruption")
+        })
+        attach()
+        assertThrows(java.io.IOException::class.java) { send(ack) }
+        val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" }; val acknowledged = file.readBytes()
+        server.anhalten(); store = Ablage.fuerTest(context) { dataKey }; consent = newConsent(); attach()
+        send(ack)
+        assertArrayEquals(acknowledged, file.readBytes()); assertArrayEquals(oldMap, mapFile.readBytes())
+        assertEquals(1, provider.batchCalls); assertEquals(1, queued().size); assertEquals(1, rotations)
+    }
 }

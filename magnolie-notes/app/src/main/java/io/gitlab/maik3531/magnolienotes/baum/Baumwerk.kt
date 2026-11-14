@@ -1181,7 +1181,9 @@ class Baumwerk private constructor(
         transportId: String?,
         umschlagHash: String?
     ): Boolean {
-        require(text(inhalt, "art") != KontaktOriginalEmpfang.ANFRAGE) { "contact_original_authenticated_origin_required" }
+        require(text(inhalt, "art") !in setOf(KontaktOriginalEmpfang.ANFRAGE, KontaktOriginalEmpfang.BESTAETIGUNG)) {
+            "contact_original_authenticated_origin_required"
+        }
         val verarbeitet = verarbeiteEmpfang(vonKennung, inhalt, zaehler, transportId, umschlagHash)
         if (text(inhalt, "art") == "termin") {
             throw BaumFehler(zusammenhang.getString(R.string.baum_termin_nicht_unterstuetzt))
@@ -1194,12 +1196,16 @@ class Baumwerk private constructor(
     private var originalEmpfang: KontaktOriginalEmpfang? = null
 
     override fun verarbeiteSichereNachricht(ursprung: Server.FsEmpfang, inhalt: JsonObject, transportId: String): Boolean {
-        if (text(inhalt, "art") == KontaktOriginalEmpfang.ANFRAGE) {
+        if (text(inhalt, "art") in setOf(KontaktOriginalEmpfang.ANFRAGE, KontaktOriginalEmpfang.BESTAETIGUNG)) {
             val receiver = originalEmpfang ?: throw BaumFehler("contact_original_return_not_enabled")
             return verarbeiteEmpfang(ursprung.partnerKennung(), inhalt, null, transportId, null,
                 ursprung = ursprung, empfang = {
-                    val result = receiver.empfangen(ursprung, inhalt, transportId)
-                    einreihen(ursprung.partnerKennung(), KontaktOriginalEmpfang.ERGEBNIS, result)
+                    if (text(inhalt, "art") == KontaktOriginalEmpfang.BESTAETIGUNG) {
+                        receiver.bestaetigen(ursprung, inhalt, transportId)
+                    } else {
+                        val result = receiver.empfangen(ursprung, inhalt, transportId)
+                        einreihen(ursprung.partnerKennung(), KontaktOriginalEmpfang.ERGEBNIS, result)
+                    }
                 })
         }
         val verarbeitet = verarbeiteEmpfang(ursprung.partnerKennung(), inhalt, null, transportId, null, ursprung = ursprung)

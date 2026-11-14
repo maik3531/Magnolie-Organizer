@@ -295,6 +295,36 @@ are used; no installed journal key, original contact or real device is accessed.
 Terminal history, native mapping installation/slot release, native setup UI,
 Windows controller, negotiated sending and package/device acceptance remain open.
 
+### Notes authenticated desktop-ACK receive phase, still held (#628)
+
+The isolated native `Baumwerk` controller now admits the dedicated draft
+`kontakt_original_saveack` only through actual FS1 origin and its existing native
+receive transaction. Legacy/unproven calls reject it and the production
+controller remains absent. Current source consent, setup/private mapping context,
+exact verified native after-model and the complete eight result fields are
+rechecked; a valid desktop saved-payload digest is required.
+
+The existing encrypted VERIFIED record can then durably retain
+`desktop_saved_sha256`. Repeated identical ACKs preserve its ciphertext;
+conflicting correlation or a different desktop hash cannot replace it. Source
+revocation, fabricated origins, mismatched types/fields and production dispatch
+are negative cases. Legacy receipts remain readable and are not inferred to have
+been desktop-saved. No provider write is authorized by this acknowledgement.
+
+The affected host API28/API35 run passes 94 attempt, 46 controller and 28 native
+origin cases. A subsequently added two-case actual receive pair-commit
+interruption/restart test passes separately, giving 48 controller cases in the
+retained composite evidence. It recovers an already durable ACK phase and retries
+without another provider batch or changed receipt ciphertext.
+
+This phase deliberately does not install a mapping, remove protection, archive a
+terminal result or release the physical original slot. Tests assert that the old
+map bytes and physical hold survive ACK/restart. Crash-safe terminal history and
+idempotent installation of the already presealed next mapping are required next;
+the overall lifecycle, negotiated counterpart sender and native setup remain
+unfinished. A separate synthetic Linux sender-intent test and Notes receiver test
+are not a physical or installed cross-device end-to-end acceptance claim.
+
 | Counterpart | What the source establishes | What is still needed for this automatic path |
 | --- | --- | --- |
 | Notes Android | Authenticated full DTO; reviewed writer; resource19; new independent native original/decision/full-content core below | Join durable native approval, genuine setup and authenticated sender/receiver to the correlated durable result receipt; the new core is not advertised or automatically invoked |

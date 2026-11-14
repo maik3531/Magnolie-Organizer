@@ -19,6 +19,44 @@ internal class KontaktOriginalEmpfang(
     private val protection: () -> KontaktOriginalSicherungen,
     private val verbindungFreigegeben: () -> Boolean
 ) {
+    fun bestaetigen(origin: Server.FsEmpfang, body: JsonObject, transportId: String) =
+        synchronized(Ablage.SCHREIBSPERRE) {
+            val peerId = origin.partnerKennung()
+            fun lifetime() {
+                origin.pruefen(handlung.eigen(), handlung.partner(peerId), body, transportId)
+                val remote = handlung.partner(peerId)
+                require(handlung.istAn() && remote?.bestaetigt == true && remote.vertraut && remote.kontaktSync &&
+                    verbindungFreigegeben()) { "contact_original_receive_not_available" }
+                origin.pruefen(handlung.eigen(), handlung.partner(peerId), body, transportId)
+            }
+            lifetime()
+            require(body.keys == setOf("art", "fassung", "request_id", "request_sha256", "share_id", "before_basis",
+                "target_sha256", "receipt_id", "native_revision", "next_basis", "desktop_sha256") &&
+                body["art"] == JsonPrimitive(BESTAETIGUNG) && body["fassung"] == JsonPrimitive(1)) {
+                "contact_original_saveack_schema"
+            }
+            val share = (body["share_id"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            require(share != null && share.isNotBlank() && share.codePointCount(0, share.length) <= 128 &&
+                share.none(Char::isISOControl) && share.codePoints().noneMatch { it in 0xD800..0xDFFF })
+            val peer = KontaktOriginalFreigaben.Partner(peerId, origin.partnerSchluessel())
+            val scope = KontaktOriginalFreigaben(consent) {
+                lifetime()
+                handlung.partner(peerId)?.takeIf { it.bestaetigt && it.vertraut && it.kontaktSync }?.let {
+                    KontaktOriginalFreigaben.Partner(it.kennung, it.oeffentlich)
+                }
+            }
+            val stored = consent.laden() ?: throw SecurityException("contact_original_source_not_granted")
+            require(scope.wiederherstellen(stored)) { "contact_original_source_not_granted" }
+            lifetime()
+            val binding = mappings.beobachten(context, peer, share)
+                ?: throw SecurityException("contact_original_native_mapping_required")
+            val grant = scope.freigabe(binding)
+            val mapping = mappings.finden(peer, share) ?: throw SecurityException("contact_original_native_mapping_required")
+            val receipt = attempts.laden(grant)?.bestaetigung() ?: error("contact_original_verified_receipt_required")
+            receipt.bestaetigenDesktop(grant, mapping, body) { lifetime() }
+            lifetime()
+        }
+
     fun empfangen(origin: Server.FsEmpfang, body: JsonObject, transportId: String): JsonObject =
         synchronized(Ablage.SCHREIBSPERRE) {
             val peerId = origin.partnerKennung()
@@ -110,5 +148,6 @@ internal class KontaktOriginalEmpfang(
     companion object {
         const val ANFRAGE = "kontakt_original_anfrage"
         const val ERGEBNIS = "kontakt_original_ergebnis"
+        const val BESTAETIGUNG = "kontakt_original_saveack"
     }
 }

@@ -97,6 +97,15 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         fun folgebasisHash(): String? = native().also { pruefen() }.record["next_mapping"]?.jsonObject?.get("next_basis")?.jsonPrimitive?.content
         fun ausgang(grant: KontaktOriginalFreigaben.Freigabe, mapping: KontaktOriginalZuordnungen.Zuordnung): Ausgang =
             Ausgang(AusgangsBeleg(native(), grant, mapping)).also { it.lesen() }
+        fun desktopHash(): String? = native().also { pruefen() }.record["desktop_saved_sha256"]?.jsonPrimitive?.content
+
+        /** Only the authenticated native receive controller calls this phase.
+         * It durably records desktop SaveACK correlation, but does NOT install
+         * the next map, archive history or release the physical attempt slot.
+         */
+        internal fun bestaetigenDesktop(grant: KontaktOriginalFreigaben.Freigabe,
+            mapping: KontaktOriginalZuordnungen.Zuordnung, body: JsonObject, lifetime: () -> Unit): Verifiziert =
+            native().let { it.store.desktopBestaetigen(AusgangsBeleg(it, grant, mapping), body, lifetime) }
     }
 
     private fun ergebnis(proof: AusgangsBeleg): JsonObject {
@@ -127,6 +136,35 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
             put("receipt_id", receipt.getValue("id")); put("native_revision", receipt.getValue("revision"))
             put("next_basis", record.getValue("next_mapping").jsonObject.getValue("next_basis"))
         }
+    }
+
+    private fun desktopBestaetigen(proof: AusgangsBeleg, body: JsonObject, lifetime: () -> Unit): Verifiziert {
+        lifetime()
+        val result = ergebnis(proof)
+        require(body.keys == result.keys + setOf("art", "fassung", "desktop_sha256") &&
+            body["art"] == JsonPrimitive("kontakt_original_saveack") && body["fassung"] == JsonPrimitive(1) &&
+            result.all { (key, value) -> body[key] == value }) { "contact_original_saveack_correlation_changed" }
+        val desktop = (body["desktop_sha256"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        require(desktop != null && digest(desktop)) { "contact_original_desktop_save_hash_required" }
+        val previous = proof.result.record["desktop_saved_sha256"]
+        require(previous == null || previous == JsonPrimitive(desktop)) { "contact_original_desktop_save_already_held" }
+        lifetime(); ergebnis(proof)
+        if (previous != null) return Verifiziert(proof.result)
+        val record = JsonObject(proof.result.record + ("desktop_saved_sha256" to JsonPrimitive(desktop)))
+        val clear = record.toString().toByteArray(Charsets.UTF_8)
+        val encrypted = try { cipher.verschluesseln(clear, domain(proof.result.key)) } finally { clear.fill(0) }
+        val saved = requireNotNull(files.mitSperre(create = false) {
+            val current = requireNotNull(files.lesen("${proof.result.key}.bin"))
+            require(hash(current) == proof.result.hash && decode(proof.result.key, current) == proof.result.record) {
+                "contact_original_attempt_changed"
+            }
+            files.schreiben("${proof.result.key}.bin", encrypted)
+            val written = requireNotNull(files.lesen("${proof.result.key}.bin"))
+            require(written.contentEquals(encrypted) && decode(proof.result.key, written) == record)
+            Beleg(this, proof.result.key, hash(written), record)
+        })
+        lifetime(); ergebnis(AusgangsBeleg(saved, proof.grant, proof.mapping))
+        return Verifiziert(saved)
     }
 
     fun laden(grant: KontaktOriginalFreigaben.Freigabe): Offen? {
@@ -297,11 +335,13 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
             val hasMapping = "share_id" in value || "mapping_sha256" in value
             val hasNextMapping = "next_mapping" in value
             val hasExactTarget = "target_exact_sha256" in value
+            val hasDesktopSave = "desktop_saved_sha256" in value
             require(value.keys == setOf("format", "state", "attempt_id", "request_id", "request_sha256", "target_sha256",
                 "original", "before_revision", "before_sha256", "lookup", "contact_id", "protection") +
                 (if (verified) setOf("receipt") else emptySet()) +
                 (if (hasNextMapping && verified) setOf("next_mapping") else emptySet()) +
                 (if (hasExactTarget) setOf("target_exact_sha256") else emptySet()) +
+                (if (hasDesktopSave && verified) setOf("desktop_saved_sha256") else emptySet()) +
                 (if (hasMapping) setOf("share_id", "mapping_sha256") else emptySet()) &&
                 value["format"] == JsonPrimitive(1) && (verified || value["state"] == JsonPrimitive("held")))
             fun text(name: String) = (value[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: error("contact_original_attempt_text")
@@ -310,6 +350,8 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
                 val exact = value["target_exact_sha256"] as? JsonPrimitive
                 require(exact?.isString == true && digest(exact.content)) { "contact_original_exact_target_schema" }
             }
+            if (hasDesktopSave) require(verified && hasExactTarget && value["target_exact_sha256"] != JsonNull &&
+                hasNextMapping && digest(text("desktop_saved_sha256")))
             if (hasMapping && value["share_id"] != JsonNull) {
                 require(text("share_id").isNotBlank() && text("share_id").codePointCount(0, text("share_id").length) <= 128 && text("share_id").none(Char::isISOControl) &&
                     text("share_id").codePoints().noneMatch { it in 0xD800..0xDFFF } && digest(text("mapping_sha256")))
