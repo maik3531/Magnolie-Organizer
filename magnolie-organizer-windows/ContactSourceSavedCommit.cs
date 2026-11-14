@@ -15,10 +15,11 @@ internal sealed class ContactSourceSavedCommit(Func<NativeBookSaveState?> curren
     private SaveInvocation? confirmedInvocation;
     private long generation;
     internal sealed record Pending(string Token, NativeBookSaveState Original, JsonObject Expected)
-    { internal bool Writing; }
+    { internal bool Writing; internal Action? RequireNativeContext; }
 
-    internal ContactSourceCommitOffer Stage(NativeActorBookSnapshot snapshot, SavedContactSourceUpdateResult result)
+    internal ContactSourceCommitOffer Stage(NativeActorBookSnapshot snapshot, SavedContactSourceUpdateResult result, Action? requireNativeContext = null)
     {
+        requireNativeContext?.Invoke();
         lock (gate)
         {
             if (pending?.Writing == true || current() != snapshot.SavedBook || result.OriginalBook != snapshot.SavedBook)
@@ -32,7 +33,7 @@ internal sealed class ContactSourceSavedCommit(Func<NativeBookSaveState?> curren
                 throw new InvalidDataException("contact_source_update_identity_changed");
             expected["kontakte"] = result.Contacts.DeepClone();
             var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-            pending = new(token, snapshot.SavedBook, expected);
+            pending = new(token, snapshot.SavedBook, expected) { RequireNativeContext = requireNativeContext };
             return new(token, snapshot.SavedBook.Sha256, result.Contacts.DeepClone().AsArray());
         }
     }
@@ -51,9 +52,11 @@ internal sealed class ContactSourceSavedCommit(Func<NativeBookSaveState?> curren
 
     private void Require(Pending? claim, string token, JsonObject proposed)
     {
+        claim?.RequireNativeContext?.Invoke();
         if (claim is null || !ReferenceEquals(pending, claim) || claim.Writing || token != claim.Token ||
             current() != claim.Original || !JsonNode.DeepEquals(claim.Expected, proposed))
             throw new InvalidOperationException("contact_source_result_save_not_current");
+        claim.RequireNativeContext?.Invoke();
     }
 
     internal void Invalidate()
@@ -134,6 +137,7 @@ internal sealed class ContactSourceSavedCommit(Func<NativeBookSaveState?> curren
             try
             {
                 nativeWriter(payload); // Existing encryption/recovery/atomic writer ONLY.
+                claim.RequireNativeContext?.Invoke();
                 lock (owner.gate)
                 {
                     var saved = owner.current();

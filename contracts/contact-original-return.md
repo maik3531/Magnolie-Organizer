@@ -933,6 +933,55 @@ origin and five prior identity cases (one group, overlapping previous matrices).
 Release CoreTests and BASE product source builds pass with zero warnings/errors.
 No production controller, common setup UI or Windows sender is registered yet.
 
+### Windows authenticated choice, result and actual writer witness (#633)
+
+An authenticated eight-field export can now enter a native choice API over the
+actual saved book. The exact existing local ID/UID is selected by a native callback;
+current native selection lifetime, original export origin and book identity are
+rechecked. This is not an installed setup UI or durable source consent. Invalid
+setup/hash, cancellation and a book change during selection fail before any writer.
+
+The saved-book projection owns the nine modeled mutable fields, preserves omitted
+empty defaults and excludes phone/email/photo/group writes. Unknown birth year,
+literal N/FN rows and supported postal kinds are modeled; unsupported postal types
+or changed custom labels hold instead of being reduced. Exact planning, not semantic
+hash equality, distinguishes no-op from mutation. Only the choice's private pending
+proof can issue a pending result; copied JSON/seed objects cannot retarget it.
+
+Actual FS1 result staging checks the exact ten fields, full original request hash,
+pins/correlation/receipt, strict integer revision and next basis. Receive performs
+no book/selection callback or writer wait. Identical duplicates reuse the invocation;
+conflicting genuine results hold that pending and invalidate a queued invocation.
+The native worker prepares only the selected contact's passive `notesOriginalBasis`
+inside the exact whole-book proposal. Long revisions remain decimal strings.
+
+The existing `ContactSourceSavedCommit` can retain a native-only context guard before
+and after its real writer; existing DAV callers keep their unchanged null-guard path.
+The current actual generated `BridgeDispatcher.SaveAsync` supplies encryption, atomic
+storage, native save sequence and the private saved witness. A result, transport
+receipt, proposed payload or copied Boolean never supplies that witness. Native
+source/result lifetime remains checked around preparation, writing and witness use.
+No wire ACK or durable ACK intention is issued by these helpers.
+
+Evidence: 21 new actual-FS1/native-choice/result/writer scenarios and additional
+projection guards pass on the managed host and in the existing noninteractive
+Windows runner, alongside the 22 origin/15 negotiation/five identity cases. The
+actual encrypted primary preserves every selected-contact field except the intended
+metadata, other contacts/domains, canonical ID/UID and exact maximum Long revision.
+Cases include duplicate/conflict, type/correlation/revision errors, bad export/setup,
+selection cancellation/change, source/choice revocation, Stop, stale book, mixed
+proposal, post-primary write failure, counterfeit witness, exact no-op and a literal
+display change with identical semantic hash. The existing original-contact group
+also passes on both hosts after the shared writer change. Release CoreTests and
+BASE product source builds are clean. One managed regression launch lacked the
+documented Node path; rerunning with the existing canonical tools passed, with no
+product change attributed to that environment error.
+
+Still missing on Windows: durable Notes consent/known-book save chain, private
+request intentions/nonces, independently sealed ACK history, restart/bootstrap,
+reserved transport/pump and the common actual setup UI. No production registration,
+installed-app/device/provider acceptance or package publication is implied.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

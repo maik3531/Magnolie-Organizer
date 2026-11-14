@@ -831,7 +831,7 @@ internal static class ContractGroupTests
         return Task.CompletedTask;
     }
 
-    internal static Task TreeAsync()
+    internal static async Task TreeAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
@@ -839,6 +839,7 @@ internal static class ContractGroupTests
             MagnolienbaumPairingTests.SessionIdentityBinding(root);
             NotesOriginalReceiveTests.Run(Path.Combine(root, "notes-native-origin"));
             NotesOriginalReceiveTests.Negotiation(Path.Combine(root, "notes-native-negotiation"));
+            await NotesOriginalPendingTests.RunAsync(Path.Combine(root, "notes-native-pending"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");
@@ -846,7 +847,6 @@ internal static class ContractGroupTests
         TestAssert.That(Convert.ToHexString(MagnolienbaumCrypto.X25519(alicePrivate, bobPublic)).ToLowerInvariant() ==
             "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
             "Magnolienbaum X25519 wich vom RFC/Python-Golden ab.");
-        return Task.CompletedTask;
     }
 
     internal static Task TreeContactsAsync()
