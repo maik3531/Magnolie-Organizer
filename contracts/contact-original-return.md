@@ -883,6 +883,41 @@ reauthorization and retirement of process send stamps. Notes sources are unchang
 Windows must use the same refresh/demotion approach in its future integration;
 Windows and physical Android consequences remain unproved, not claimed fixed.
 
+### Windows native draft-origin boundary (#633)
+
+The actual Windows coordinator now has a separate, production-unregistered native
+draft receive callback. Only its real decrypted FS1 path can issue the private
+`NativeNotesOrigin`: exact handshake peer/desktop IDs and public keys, transport ID,
+canonical body hash, original 30-second monotonic deadline and native receive
+generation are retained. Stop invalidates the generation even without an active
+listener; disposal/quarantine/current native peer permissions also fail closed.
+Body/pins/transport/lifetime are checked before and after the staging-only callback.
+No book lock, file/key callback, writer wait, renderer dispatch or network work is
+allowed inside that callback. The bounded draft body limit is 256 KiB.
+
+Only offer/export/result/terminal-status directions can reach an explicitly
+injected native receiver. Request/SaveACK/query directions are not desktop receive
+capabilities. All seven reserved draft kinds are rejected by generic inbox/legacy
+receive, not stored as ordinary contact messages. No source grant, provider writer,
+SavedWitness, consent key, controller or advertised capability is created here.
+
+Evidence: 22 new synthetic actual-FS1 scenarios plus five existing identity cases
+pass both on the managed host and in the existing noninteractive Windows runner.
+Cases cover the four admitted directions, three rejected directions, default-OFF,
+refusal/revocation during callback, changed body/transport/peer/desktop identity,
+revocation, stop before/after receive, disposal, expired proof, size budget, fake
+proof and all seven draft kinds through actual legacy encrypted receive. The
+canonical Release CoreTests and BASE product source builds have zero warnings or
+errors. An initial native runner used an older Release test assembly while the
+new tests were built as Debug; that run is explicitly discarded as new evidence.
+The corrected Release-bound run includes the new 22-case marker and assembly hash
+binding. No installed Organizer, interactive Windows UI, live provider, Android
+device or package publication was exercised.
+
+Windows pending/result/actual-writer/ACK-history/restart/pump and common native
+setup are still missing. These checks are an authenticated native origin boundary,
+not full Windows return synchronization or permission to activate production.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

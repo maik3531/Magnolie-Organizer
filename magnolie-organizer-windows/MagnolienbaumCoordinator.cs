@@ -8,7 +8,7 @@ using System.Diagnostics;
 
 namespace MagnolieOrganizer.Windows;
 
-internal sealed class MagnolienbaumCoordinator : IDisposable
+internal sealed partial class MagnolienbaumCoordinator : IDisposable
 {
     private const int DefaultPort = 8737;
     internal const int MaxMessageBytes = 40 * 1024 * 1024;
@@ -523,7 +523,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         try
         {
         CancellationTokenSource? cancellation;
-        lock (gate) { cancellation = serviceCancellation; serviceCancellation = null; }
+        lock (gate) { notesReceiveGeneration++; cancellation = serviceCancellation; serviceCancellation = null; }
         if (cancellation is null) return;
         cancellation.Cancel();
         foreach (var listener in listeners) listener.Stop();
@@ -1272,7 +1272,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                     if (incomingFsSessions.ContainsKey(result.Session.Sid))
                     { result.Session.Dispose(); throw new InvalidOperationException("Diese sichere Sitzung existiert bereits."); }
                     incomingFsSessions[result.Session.Sid] = new IncomingFsSession(result.Session, String(partner, "kennung"),
-                        NormalizeSource(source), now + 30L * Stopwatch.Frequency, String(partner, "oeffentlich"), String(state, "oeffentlich"));
+                        NormalizeSource(source), now + 30L * Stopwatch.Frequency, String(partner, "oeffentlich"), String(state, "oeffentlich"),
+                        String(state, "kennung"), notesReceiveGeneration);
                     return new(200, result.Response);
                 }
                 if (path == "/magnolie/v2/nachricht") return HandleFsMessage(payload, source);
@@ -1412,7 +1413,10 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             var seen = partner["transportIds"] as JsonArray ?? new JsonArray();
             if (!seen.Any(item => item?.GetValue<string>() == opened.TransportId))
             {
-                StoreIncoming(partner, opened.Content);
+                if (IsNotesOriginalDraft(String(opened.Content.AsObject(), "art")))
+                    ReceiveNotesOriginal(partner, opened.Content.AsObject(), opened.TransportId, incoming);
+                else
+                    StoreIncoming(partner, opened.Content);
                 seen.Add(opened.TransportId);
                 while (seen.Count > 256) seen.RemoveAt(0);
                 partner["transportIds"] = seen;
@@ -1426,6 +1430,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     private JsonObject? StoreIncoming(JsonObject partner, JsonNode content, string briefTransportId = "", string directEnvelopeHash = "")
     {
         var kind = content["art"]?.GetValue<string>() ?? "aufgabe";
+        if (IsNotesOriginalDraft(kind))
+            throw new InvalidOperationException("notes_original_native_fs1_receive_required");
         if (kind == "kontakt_faehigkeiten")
         {
             if (!Boolean(partner, "bestaetigt") || !ReferenceEquals(Partner(String(partner, "kennung")), partner))
@@ -1870,5 +1876,5 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     private sealed record QueueReport(int Delivered, int Open);
     private sealed class InboxFullException(string message) : Exception(message);
     private sealed record IncomingFsSession(MagnolienbaumFsSession Session, string PartnerId, string Source, long Expires,
-        string PartnerPublicKey, string OwnPublicKey);
+        string PartnerPublicKey, string OwnPublicKey, string OwnId, long NotesGeneration);
 }

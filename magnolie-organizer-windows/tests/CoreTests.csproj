@@ -73,6 +73,7 @@
     <Compile Include="..\ContactSourcePrimaryBook.cs" Link="ContactSourcePrimaryBook.cs" />
     <Compile Include="..\ContactSourceSavedDavRun.cs" Link="ContactSourceSavedDavRun.cs" />
     <Compile Include="..\ContactSourceSavedCommit.cs" Link="ContactSourceSavedCommit.cs" />
+    <Compile Include="..\MagnolienbaumCoordinator.NotesOriginal.cs" Link="MagnolienbaumCoordinator.NotesOriginal.cs" />
     <Compile Include="..\NotesOriginalReturnHash.cs" Link="NotesOriginalReturnHash.cs" />
     <Compile Include="..\ContactSourceNativeSession.cs" Link="ContactSourceNativeSession.cs" />
     <Compile Include="..\ContactSourceAutomation.cs" Link="ContactSourceAutomation.cs" />
