@@ -36,7 +36,7 @@ or advertising it. No new resource/version is allocated by this assessment.
 
 | Counterpart | What the source establishes | What is still needed for this automatic path |
 | --- | --- | --- |
-| Notes Android | Authenticated full DTO; explicit reviewed full writer; targeted resource19 writer with native revision assertions | Native once-configured per-source consent, exact original/account binding, update-only full writer/readback and correlated durable result receipt |
+| Notes Android | Authenticated full DTO; reviewed writer; resource19; new independent native original/decision/full-content core below | Join durable native approval, genuine setup and authenticated sender/receiver to the correlated durable result receipt; the new core is not advertised or automatically invoked |
 | Stock KDE Connect / Android | Existing upstream read path | A genuinely supported counterpart write capability; do not invent a KDE write packet or use Notes capabilities for another peer |
 | Akonadi | The actual helper re-fetches the requested collection/item, checks `CanChangeItem`, collection ownership and exact revision/UID, disables automatic conflict handling, and reads the modified item back. Python requests bind collection generation/instance and native item ID/revision | Connect these native identities/rights to distinct durable approval and protected automatic result-save admission; helper existence/discovery labels alone do not grant it |
 | EDS | Existing `BookClient` connection and explicit ordinary modify/readback functions | Independently establish backend-specific guarded update semantics, current writable rights, exact source/revision and durable consent before adding automatic authority |
@@ -91,5 +91,58 @@ boundary cases: nine full-return-only fields are rejected at preparation, apply
 and report validation, and at the actual native value RPC before transport. A
 rejected widened apply leaves a genuine phone/email ticket usable. The affected
 56-case matrix passes. This protects resource19's existing scope; it does **not**
-implement the full return above. Notes effective inputs have not changed and no
-Notes rebuild or installation is warranted by these tests/documentation alone.
+implement the full return above. At that boundary-test checkpoint Notes inputs
+had not changed and no Notes rebuild was warranted by those tests alone.
+
+## Native Notes original/decision/content core (still not runtime activation)
+
+The subsequent source work adds three independent native components:
+
+- `KontaktOriginalBindung` can only be constructed by actual native observation.
+  It pins the original raw/contact IDs, lookup key, account/type/data set, source
+  ID, provider revision and database creation timestamp. It requires genuine
+  READ/WRITE_CONTACTS access and explicit native writable flags. Unknown/busy
+  providers, profile contacts, missing originals and ambiguous aggregates are
+  held. Even an empty linked raw contact counts as ambiguous. Native assertions
+  cover database generation, raw identity/revision/rights, lookup/profile status,
+  exact aggregate membership and row rights in the eventual mutation batch.
+- `KontaktOriginalFreigaben` is a **native session decision core**, not yet the
+  required durable setup feature. Its private exact-source/generation witness is
+  checked independently before and after additional lifetime callbacks. Fake
+  witnesses, another pinned peer, unoffered sources and stale/revoked decisions
+  cannot authorize the writer. Cancel leaves the previous decision untouched;
+  empty selection revokes it. A temporary peer wait retains intent and a fresh
+  provider revision does not require another source decision. Default-OFF observes
+  no peer. Returned mutable choice containers cannot expand the accepted selection.
+- `KontaktOriginalInhalt` requires that typed native approval. It updates only
+  names/raw N/FN, company, note, birthday, anniversary and modeled postal values.
+  It preserves unchanged row IDs and native columns, including custom postal
+  labels, PO boxes, company titles and unrelated event/application/phone/email
+  rows. Ambiguous row pairing is held before protection; deleting a postal row
+  containing unmodeled values is also held. Each actual attempt is consumed,
+  including failed or uncertain outcomes. Protection precedes the single guarded
+  provider batch; exact full readback is required, not a transport ACK. Operation
+  count and actual Parcel size are bounded before protection, without splitting
+  the transaction. A provider-issued lookup-key change can be read back only via
+  the same native contact/raw/account/source/database identity, never a fallback.
+
+The database generation uses `ProviderStatus.DATABASE_CREATION_TIMESTAMP`, an
+API available since **26**, matching the unchanged `minSdk=26`. Missing support
+holds this new path; it does not trigger an invented identity, new installation
+or SDK downgrade. Supported APIs remain unchanged. Targeted host Robolectric
+checks cover API28 and API35, not physical devices or minimum-API26 acceptance.
+
+The latest new-core matrix contains 54 passing cases across those two API levels.
+The affected existing reviewed-writer, provider/name, phone/email and resource19
+regressions also passed (26 cases; unchanged inputs reused after the later core
+edits). Synthetic providers/decision/protection callbacks are used throughout.
+No actual installed app, AndroidKeyStore, real contacts or device is accessed.
+These source changes now **do** change effective Notes inputs, but only targeted
+host compilation/unit tests have run; no APK package, installation or delivery
+is claimed.
+
+Next, connect protected nonportable durable approval and genuine native setup to
+the authenticated full receiver and actual journal/result-save boundaries. Do
+not enable the session core alone and advertise restart-safe automation. The
+full #622 acceptance transaction, Linux/Windows sender wiring and independently
+verified wider provider authority remain open; resource19 is still unchanged.

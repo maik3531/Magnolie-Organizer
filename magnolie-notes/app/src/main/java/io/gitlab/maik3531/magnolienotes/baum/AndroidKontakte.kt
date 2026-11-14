@@ -549,11 +549,11 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
     companion object {
         private val PROVIDER_SPERRE = Any()
         private const val OPERATION_MIME = "vnd.android.cursor.item/vnd.magnolie.operation"
-        private const val NAME_MIME = "vnd.android.cursor.item/vnd.magnolie.vcard-name"
-        private fun namenJson(k: KontaktDaten) = kotlinx.serialization.json.JsonObject(mapOf(
+        internal const val NAME_MIME = "vnd.android.cursor.item/vnd.magnolie.vcard-name"
+        internal fun namenJson(k: KontaktDaten) = kotlinx.serialization.json.JsonObject(mapOf(
             "anzeigename" to kotlinx.serialization.json.JsonPrimitive(k.anzeigename),
             "vcardName" to kotlinx.serialization.json.JsonArray(k.vcardName.map { kotlinx.serialization.json.JsonPrimitive(it) }))).toString()
-        private fun nameWerte(k: KontaktDaten): Map<String, Any> {
+        internal fun nameWerte(k: KontaktDaten): Map<String, Any> {
             val n = KontaktSync.nameTeile(k)
             return mapOf(StructuredName.FAMILY_NAME to k.nachname, StructuredName.GIVEN_NAME to k.vorname,
                 StructuredName.MIDDLE_NAME to n[2], StructuredName.PREFIX to n[3], StructuredName.SUFFIX to n[4],
