@@ -1181,7 +1181,8 @@ class Baumwerk private constructor(
         transportId: String?,
         umschlagHash: String?
     ): Boolean {
-        require(text(inhalt, "art") !in setOf(KontaktOriginalEmpfang.ANFRAGE, KontaktOriginalEmpfang.BESTAETIGUNG)) {
+        require(text(inhalt, "art") !in setOf(KontaktOriginalEmpfang.ANFRAGE, KontaktOriginalEmpfang.BESTAETIGUNG,
+            KontaktOriginalEmpfang.AUSHANDLUNG)) {
             "contact_original_authenticated_origin_required"
         }
         val verarbeitet = verarbeiteEmpfang(vonKennung, inhalt, zaehler, transportId, umschlagHash)
@@ -1196,11 +1197,15 @@ class Baumwerk private constructor(
     private var originalEmpfang: KontaktOriginalEmpfang? = null
 
     override fun verarbeiteSichereNachricht(ursprung: Server.FsEmpfang, inhalt: JsonObject, transportId: String): Boolean {
-        if (text(inhalt, "art") in setOf(KontaktOriginalEmpfang.ANFRAGE, KontaktOriginalEmpfang.BESTAETIGUNG)) {
+        if (text(inhalt, "art") in setOf(KontaktOriginalEmpfang.ANFRAGE, KontaktOriginalEmpfang.BESTAETIGUNG,
+            KontaktOriginalEmpfang.AUSHANDLUNG)) {
             val receiver = originalEmpfang ?: throw BaumFehler("contact_original_return_not_enabled")
             return verarbeiteEmpfang(ursprung.partnerKennung(), inhalt, null, transportId, null,
                 ursprung = ursprung, empfang = {
-                    if (text(inhalt, "art") == KontaktOriginalEmpfang.BESTAETIGUNG) {
+                    if (text(inhalt, "art") == KontaktOriginalEmpfang.AUSHANDLUNG) {
+                        einreihen(ursprung.partnerKennung(), KontaktOriginalEmpfang.AUSHANDLUNG,
+                            receiver.aushandeln(ursprung, inhalt, transportId))
+                    } else if (text(inhalt, "art") == KontaktOriginalEmpfang.BESTAETIGUNG) {
                         receiver.bestaetigen(ursprung, inhalt, transportId)
                     } else {
                         val result = receiver.empfangen(ursprung, inhalt, transportId)

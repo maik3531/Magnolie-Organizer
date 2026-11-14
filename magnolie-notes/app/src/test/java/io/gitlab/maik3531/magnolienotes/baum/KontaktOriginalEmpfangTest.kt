@@ -140,6 +140,40 @@ class KontaktOriginalEmpfangTest {
         assertFalse(File(parent, "attempts").exists()); assertFalse(File(parent, "protection").exists())
     }
 
+    private fun protocolProbe() = buildJsonObject {
+        put("art", KontaktOriginalEmpfang.AUSHANDLUNG); put("fassung", 1)
+        put("challenge", id); put("antwort", false); put("profil", "notes-original-return-draft1")
+    }
+
+    @Test fun protocolNegotiationEchoesFreshAuthenticatedChallengeWithoutOriginalAccessOrConsent() {
+        val queries = provider.queries
+        val probe = protocolProbe(); send(probe)
+        val offer = store.baum.value.postfach.single { it.art == KontaktOriginalEmpfang.AUSHANDLUNG }
+        assertEquals(JsonObject(probe + ("antwort" to JsonPrimitive(true))), Json.parseToJsonElement(offer.inhalt))
+        assertEquals(queries, provider.queries); assertEquals(0, rotations)
+        assertFalse(File(parent, "consent").exists()); assertFalse(File(parent, "maps").exists())
+        assertEquals(0, provider.batchCalls); assertEquals(0, provider.writes)
+        assertFalse(File(parent, "attempts").exists()); assertFalse(File(parent, "protection").exists())
+    }
+
+    @Test fun protocolNegotiationRejectsMalformedOrReflectedOffers() {
+        val probe = protocolProbe(); val queries = provider.queries
+        for (change in listOf("challenge" to JsonPrimitive("not-a-uuid"), "profil" to JsonPrimitive("contact-v2"),
+                "antwort" to JsonPrimitive(true), "fassung" to JsonPrimitive(true), "extra" to JsonPrimitive(true))) {
+            assertThrows(IllegalArgumentException::class.java) { send(JsonObject(probe + change)) }
+        }
+        assertEquals(queries, provider.queries); assertNoMutation()
+    }
+
+    @Test fun protocolNegotiationRemainsUnavailableInProductionAndWhenConnectionIsHeld() {
+        val queries = provider.queries
+        server.anhalten(); attach(false)
+        assertThrows(BaumFehler::class.java) { send(protocolProbe()) }
+        server.anhalten(); attach(); connection = false
+        assertThrows(IllegalArgumentException::class.java) { send(protocolProbe()) }
+        assertEquals(queries, provider.queries); assertNoMutation()
+    }
+
     @Test fun actualCryptoAndReceiveTransactionWriteOnlyTheSelectedOriginalAndQueueTheExactVerifiedResult() {
         configure(); val body = request(); val mapFile = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }
         val before = mapFile.readBytes()

@@ -62,6 +62,54 @@ def _issue_notes_fs_origin(peer, own, body, transport_id, current):
     return result
 
 
+class NativeNotesProtocolNegotiation:
+    """Fresh FS1 challenge echo, not consent, a saved ACK or a send permission.
+
+    Only native orchestration may retain this object. Ordinary contact version
+    flags and imported capability JSON cannot establish the full-return profile.
+    Nothing registers/advertises this draft profile in production by default.
+    """
+    KIND = 'kontakt_original_aushandlung'
+    PROFILE = 'notes-original-return-draft1'
+
+    def __init__(self, peer, own):
+        if any(not isinstance(pair, tuple) or len(pair) != 2 or
+                any(not isinstance(value, str) or not value for value in pair) for pair in (peer, own)):
+            raise TypeError('notes_original_native_protocol_pins_required')
+        self._peer, self._own = peer, own
+        self._challenge = str(uuid.uuid4())
+        self._offer = None
+        self._active = True
+
+    def request(self):
+        if not self._active:
+            raise PermissionError('notes_original_protocol_cancelled')
+        return {'art': self.KIND, 'fassung': 1, 'challenge': self._challenge,
+            'antwort': False, 'profil': self.PROFILE}
+
+    def accept(self, body, origin, transport_id):
+        if type(origin) is not NativeNotesFsOrigin:
+            raise PermissionError('notes_original_authenticated_origin_required')
+        expected = dict(self.request(), antwort=True)
+        peer, own = origin.require_current(body, transport_id)
+        if _frame_bytes(body) != _frame_bytes(expected) or peer != self._peer or own != self._own:
+            raise PermissionError('notes_original_protocol_offer_changed')
+        self._offer = (_frame_bytes(body), origin, transport_id)
+        self.require_current()
+
+    def require_current(self):
+        if not self._active or self._offer is None:
+            raise PermissionError('notes_original_protocol_not_negotiated')
+        clear, origin, transport = self._offer
+        if origin.require_current(json.loads(clear), transport) != (self._peer, self._own):
+            raise PermissionError('notes_original_protocol_offer_changed')
+        return self._peer, self._own
+
+    def cancel(self):
+        self._active = False
+        self._offer = None
+
+
 class NativeNotesPendingResult:
     """Native pending request -> authenticated result -> actual book invocation.
 
@@ -378,6 +426,23 @@ class NativeNotesSavedAckIntent:
         if type(proof) is not _SavedAckProof:
             raise PermissionError('notes_original_native_saved_ack_required')
         return proof.store._ack_body(proof)
+
+    def _for_negotiated_protocol(self, negotiation):
+        if type(negotiation) is not NativeNotesProtocolNegotiation:
+            raise PermissionError('notes_original_protocol_not_negotiated')
+        peer, own = negotiation.require_current()
+        body = self.body()
+        proof = self._proof
+        if type(proof) is _SavedAckProof:
+            record = json.loads(proof.record_text)
+        elif type(proof) is _RestoredAckProof:
+            record = proof.store._read_history_proof(proof.history)
+        else:
+            raise PermissionError('notes_original_native_saved_ack_required')
+        if record['peer'] != list(peer) or record['own'] != list(own):
+            raise PermissionError('notes_original_protocol_ack_pins_changed')
+        negotiation.require_current()
+        return body
 
     def terminal_confirmed(self):
         proof = self._proof

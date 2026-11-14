@@ -19,6 +19,27 @@ internal class KontaktOriginalEmpfang(
     private val protection: () -> KontaktOriginalSicherungen,
     private val verbindungFreigegeben: () -> Boolean
 ) {
+    /** Protocol support only; no source grant, book/provider access or SaveACK. */
+    fun aushandeln(origin: Server.FsEmpfang, body: JsonObject, transportId: String): JsonObject =
+        synchronized(Ablage.SCHREIBSPERRE) {
+            val peerId = origin.partnerKennung()
+            fun lifetime() {
+                origin.pruefen(handlung.eigen(), handlung.partner(peerId), body, transportId)
+                val peer = handlung.partner(peerId)
+                require(handlung.istAn() && peer?.bestaetigt == true && peer.vertraut && peer.kontaktSync &&
+                    verbindungFreigegeben()) { "contact_original_receive_not_available" }
+            }
+            lifetime()
+            val challenge = (body["challenge"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            require(body.keys == setOf("art", "fassung", "challenge", "antwort", "profil") &&
+                body["art"] == JsonPrimitive(AUSHANDLUNG) && body["fassung"] == JsonPrimitive(1) &&
+                body["antwort"] == JsonPrimitive(false) && body["profil"] == JsonPrimitive(PROFIL) &&
+                challenge != null && runCatching { UUID.fromString(challenge).toString() == challenge }.getOrDefault(false)) {
+                "contact_original_protocol_offer_schema"
+            }
+            JsonObject(body + ("antwort" to JsonPrimitive(true))).also { lifetime() }
+        }
+
     fun bestaetigen(origin: Server.FsEmpfang, body: JsonObject, transportId: String) =
         synchronized(Ablage.SCHREIBSPERRE) {
             val peerId = origin.partnerKennung()
@@ -153,5 +174,7 @@ internal class KontaktOriginalEmpfang(
         const val ERGEBNIS = "kontakt_original_ergebnis"
         const val BESTAETIGUNG = "kontakt_original_saveack"
         const val ABSCHLUSSSTATUS = "kontakt_original_abschlussstatus"
+        const val AUSHANDLUNG = "kontakt_original_aushandlung"
+        const val PROFIL = "notes-original-return-draft1"
     }
 }

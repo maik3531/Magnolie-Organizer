@@ -214,7 +214,7 @@ This is still production-unregistered. The initial tests supply a synthetic
 native mapping guard; the authenticated export/native-choice extension below
 provides a bounded process-local issuer, not by itself durable setup. The separate
 private choice/save-chain store below now supplies checked fresh-export restore.
-Outstanding-result/ACK recovery, actual request/ACK sending and the Windows
+Outstanding-result/ACK recovery, request sending/production ACK orchestration and the Windows
 counterpart remain unfinished; the native Notes terminal phase is described below. A subsequent actual common frontend
 init/normalize/save-message test confirms that `notesOriginalBasis` is already
 retained by the existing contact object copy, including exact decimal Long text.
@@ -339,7 +339,7 @@ source composition is not a package build, installation or native acceptance.
 
 Already saved ACK recovery from a repeated authenticated result is now provided
 by the separate historical context below. Native setup UI, actual default-off
-receiver orchestration, negotiated reserved sending and Windows counterpart
+receiver orchestration, request sending/production ACK orchestration and Windows counterpart
 remain unfinished. No installed end-to-end automation or other-platform
 restoration is claimed.
 
@@ -381,8 +381,9 @@ receipt, and book/journal ciphertext remains unchanged by recovery. Other
 unchanged source/writer/packaging evidence is retained rather than rerun.
 
 The read-only terminal-status reconciliation below now covers lost settlement
-receipts. Dedicated negotiation/send admission, controller orchestration, native
-setup UI and the Windows counterpart remain unfinished and production-disabled.
+receipts. The dedicated draft negotiation and reserved ACK admission below are
+checked but unregistered; controller orchestration, request sending, native setup
+UI and the Windows counterpart remain unfinished and production-disabled.
 
 ### Read-only terminal status after a lost settlement receipt (#628)
 
@@ -424,6 +425,61 @@ history while a newer physical hold is active. Linux covers both phases, marker
 write interruptions, stale proofs, exact encrypted readback/idempotence and fake
 JSON denial. These overlapping runs are not additional physical/native-device
 acceptance, packaging, installation or enabled production sending.
+
+### Challenge-bound draft negotiation and reserved native ACK send (#628)
+
+`NativeNotesProtocolNegotiation` owns a new random challenge for the exact paired
+native/desktop pins. Its five-field request is `art=kontakt_original_aushandlung`,
+`fassung=1`, `challenge` (canonical UUID), `antwort=false`, and
+`profil=notes-original-return-draft1`. The corresponding response changes only
+`antwort` to true. Only a fresh actual FS1 response with exact canonical body,
+same challenge and pins can establish protocol support. Copied capabilities,
+ordinary contact protocol versions, reflected requests, bool/numeric coercion,
+unknown profiles, extra fields and another process's challenge do not qualify.
+Expiry, native epoch changes or cancellation invalidate it. Protocol support
+is neither consent, mapping authority, a saved witness nor a completion receipt.
+
+The actual Notes authenticated receive transaction now answers this probe only
+when the isolated native return controller has explicitly been injected, and the
+peer is confirmed/trusted/contact-enabled with native connection policy open.
+It never queries an original/provider or creates source consent to answer. The
+ordinary production controller still rejects this draft; there is no startup
+advertisement. Linux admits its response only to the explicit native authenticated
+callback and has no default renderer fallback.
+
+`baum_notes_saveack_senden` is a separate, unregistered native-only ACK lane.
+It requires exact `NativeNotesSavedAckIntent` and negotiated-profile objects,
+correlates their private historical peer/own pins, and reads current native state
+and connection policy before network use. A connection initially held is quietly
+left waiting. It rechecks consent, saved-intent history, profile origin, pins,
+enabled/trusted/contact permission, FS1 protocol and native epoch around handshake,
+envelope creation and receipt processing. It never degrades to legacy transport
+or mailbox, and erases derived session keys even on rejection/failure. The real
+FS1 receipt can report transport delivery only; it does not mark private history
+settled. Lost connections or bad receipts retain the same durable intent.
+
+The generic queue/send/direct-FS1 JSON paths still reject the identical ACK body.
+Recovered historical intents can use this lane without inventing a new saved
+witness. Marked terminal history, mismatched intent/profile pins and copied
+objects are rejected before network access. Revocation/cancellation/epoch or
+connection changes during IO are rechecked rather than hidden as delivery.
+
+Evidence: all 80 actual Notes receive-controller host cases pass under API28/35,
+including six new probe cases (echo without source IO/consent, malformed/reflected
+probe rejection, default-off and held connection). Linux's affected run passes
+100 cases: 31 actual authenticated-origin/negotiation cases, 18 reserved send
+cases, and 51 existing pending/save/route cases. The sender tests use actual FS1
+handshake/encryption/receipts with an isolated synthetic responder, not a physical
+Notes counterpart or cross-language installed acceptance. Both original and
+fresh-owner recovered ACKs are exercised; journal/book bytes remain unchanged.
+An initial send-test run incorrectly expected PermissionError from the existing
+generic RuntimeError blocker; only that fixture assertion changed.
+
+Still missing: native orchestration of initial probe delivery and its retained
+answer, reserved request sending/retry, genuine common setup UI, actual receiving
+workflow integration and Windows counterpart. The protocol does not make those
+missing pieces available, and no production registration, install or release is
+included. Source consent remains independently mandatory at the native receiver.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 

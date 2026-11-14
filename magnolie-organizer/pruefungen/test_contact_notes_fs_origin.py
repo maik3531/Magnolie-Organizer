@@ -106,7 +106,7 @@ def test_changed_context_inside_actual_callback_prevents_replay_commit_and_ack(n
         native.fs_sitzung_loeschen(channel); service.anhalten()
 
 
-@pytest.mark.parametrize('art', ['kontakt_original_ergebnis', 'kontakt_original_export', 'kontakt_original_abschlussstatus'])
+@pytest.mark.parametrize('art', ['kontakt_original_ergebnis', 'kontakt_original_export', 'kontakt_original_abschlussstatus', 'kontakt_original_aushandlung'])
 def test_draft_full_result_has_no_default_renderer_or_inbox_fallback(native, art):
     sender, receiver, peer, saved, service = fixture(native, None)
     legacy = []
@@ -130,5 +130,53 @@ def test_native_result_callback_does_not_replace_the_existing_notes_inbox(native
         status, ack = service.behandeln('/magnolie/v2/nachricht', envelope, '127.0.0.1')
         assert status == 200 and native.fs_ack_pruefen(channel, envelope, ack)
         assert legacy == [body] and len(saved) == 1
+    finally:
+        native.fs_sitzung_loeschen(channel); service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['success', 'wrong-challenge', 'wrong-profile', 'wrong-pins', 'extra',
+    'bool-version', 'numeric-answer', 'not-an-answer', 'copied-origin', 'cancelled', 'expired', 'new-owner', 'new-epoch'])
+def test_full_return_profile_requires_own_challenge_echo_and_current_actual_fs1_origin(native, mode):
+    from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
+    captured = []
+    sender, receiver, peer, saved, service = fixture(native,
+        lambda peer, body, origin, transport: captured.append((body, origin, transport)) or True)
+    pins = (sender['kennung'], sender['oeffentlich']), (receiver['kennung'], receiver['oeffentlich'])
+    negotiation = NativeNotesProtocolNegotiation(*pins)
+    with pytest.raises(PermissionError): negotiation.require_current()
+    request = negotiation.request()
+    assert request == {'art': 'kontakt_original_aushandlung', 'fassung': 1, 'challenge': request['challenge'],
+        'antwort': False, 'profil': 'notes-original-return-draft1'}
+    body = dict(request, antwort=True)
+    if mode == 'wrong-challenge': body['challenge'] = '00000000-0000-4000-8000-000000000000'
+    if mode == 'wrong-profile': body['profil'] = 'contact-v2'
+    if mode == 'extra': body['native'] = True
+    if mode == 'bool-version': body['fassung'] = True
+    if mode == 'numeric-answer': body['antwort'] = 1
+    if mode == 'not-an-answer': body['antwort'] = False
+    if mode == 'wrong-pins': negotiation = NativeNotesProtocolNegotiation(('other-native-peer', pins[0][1]), pins[1])
+    channel, envelope, opened = frame(native, service, sender, receiver, body)
+    try:
+        assert service.behandeln('/magnolie/v2/nachricht', envelope, '127.0.0.1')[0] == 200
+        body, origin, transport = captured.pop()
+        if mode == 'copied-origin': origin = body
+        if mode == 'cancelled': negotiation.cancel()
+        if mode == 'new-owner': negotiation = NativeNotesProtocolNegotiation(*pins)
+        if mode in ('success', 'expired', 'new-epoch'):
+            negotiation.accept(body, origin, transport)
+            assert negotiation.require_current() == pins
+            # An offer is protocol support, never a source grant or SaveACK.
+            from magnolie_contact_notes_return import NativeNotesSavedAckIntent
+            with pytest.raises(PermissionError): NativeNotesSavedAckIntent(negotiation).body()
+            if mode == 'expired': opened['ablauf'] = 0
+            if mode == 'new-epoch': receiver['syncEpoch'] = 'different-native-epoch'
+            if mode != 'success':
+                with pytest.raises(PermissionError): negotiation.require_current()
+            negotiation.cancel()
+            with pytest.raises(PermissionError): negotiation.require_current()
+            with pytest.raises(PermissionError): negotiation.request()
+        else:
+            with pytest.raises(PermissionError): negotiation.accept(body, origin, transport)
+            with pytest.raises(PermissionError): negotiation.require_current()
     finally:
         native.fs_sitzung_loeschen(channel); service.anhalten()

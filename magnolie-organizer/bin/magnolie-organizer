@@ -13974,8 +13974,8 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
 
 
 def _baum_notes_saveack_sperren(art, inhalt):
-    # Reserved native saved-witness route is not wired yet. Copied draft ACK
-    # JSON must never enter generic renderer/outbox/FS1 send paths meanwhile.
+    # Reserved native admission is separate and not registered in production.
+    # Copied ACK JSON must never enter generic renderer/outbox/FS1 send paths.
     if art == "kontakt_original_saveack" or isinstance(inhalt, dict) and inhalt.get("art") == "kontakt_original_saveack":
         raise RuntimeError(_("This type cannot be shared."))
 
@@ -15595,6 +15595,71 @@ def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
     return False
 
 
+def baum_notes_saveack_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben,
+                             sender=None, zeitgrenze=6):
+    """Reserved native FS1 lane; no queue/renderer/dict admission or fallback.
+
+    Not registered in production. A valid transport ACK is NOT native settlement;
+    keep private outcome history until separately authenticated terminal status.
+    Native caller owns current-state/network policy callbacks, never payload flags.
+    """
+    from magnolie_contact_notes_return import NativeNotesSavedAckIntent, NativeNotesProtocolNegotiation
+    if (type(intent) is not NativeNotesSavedAckIntent or type(negotiation) is not NativeNotesProtocolNegotiation or
+            not callable(zustand_lesen) or not callable(verbindung_freigegeben)):
+        raise PermissionError('notes_original_native_send_admission_required')
+    if verbindung_freigegeben() is not True:
+        return False  # Quietly wait for the native WLAN/connection policy.
+    peer_pins, own_pins = negotiation.require_current()
+    initial = zustand_lesen()
+    epoch = initial.get('syncEpoch')
+    if not isinstance(epoch, str) or not epoch:
+        raise PermissionError('notes_original_native_send_epoch_required')
+
+    def current():
+        state = zustand_lesen()
+        peer = baum_partner(state, peer_pins[0])
+        if (state.get('an') is not True or state.get('syncEpoch') != epoch or
+                (state.get('kennung'), state.get('oeffentlich')) != own_pins or
+                not peer or (peer.get('kennung'), peer.get('oeffentlich')) != peer_pins or
+                peer.get('bestaetigt') is not True or peer.get('vertraut') is not True or
+                peer.get('kontaktSync') is not True or peer.get('protokoll') != 'baum-fs1' or
+                verbindung_freigegeben() is not True):
+            raise PermissionError('notes_original_native_send_context_changed')
+        body = intent._for_negotiated_protocol(negotiation)
+        return state, peer, body
+
+    _, peer, _ = current()
+    sende = sender or (lambda adresse, nutzlast: _baum_http_json_senden(adresse, nutzlast, zeitgrenze))
+    for host, port in baum_partner_endpunkte(peer):
+        session = None
+        secret = None
+        try:
+            state, remote, body = current()
+            start, secret = fs_start_bauen(state, remote)
+            basis = baum_url(host, port)
+            answer = sende(basis + '/magnolie/v2/sitzung', start)
+            current()
+            session = fs_antwort_oeffnen(state, remote, start, answer, secret)
+            _, _, confirmed_body = current()
+            if confirmed_body != body:
+                raise PermissionError('notes_original_native_send_intent_changed')
+            envelope = umschlag_bauen_fs(session, own_pins[0], peer_pins[0], body, _fs_b64(os.urandom(16)))
+            current()
+            receipt = sende(basis + '/magnolie/v2/nachricht', envelope)
+            current()
+            if fs_ack_pruefen(session, envelope, receipt):
+                return True
+        except PermissionError:
+            raise
+        except Exception:
+            current()  # Errors never hide revoked consent or changed pins/epoch.
+        finally:
+            if session:
+                fs_sitzung_loeschen(session)
+            secret = None
+    return False
+
+
 def baum_briefkasten_zustellen(mailbox, transport_id, eigene_kennung,
                                 partner_kennung, umschlag, schluessel):
     """Windows-kompatibler Store-and-forward-Schritt; Erfolg erst nach ACK."""
@@ -16164,7 +16229,7 @@ class BaumDienst(object):
                         baum_kontakt_nutzlast_pruefen((inhalt or {}).get("art"), inhalt)
                         gesehen = partner.setdefault("transportIds", [])
                         if transport_id not in gesehen:
-                            if self.bei_sicherer_nachricht and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus"):
+                            if self.bei_sicherer_nachricht and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung"):
                                 from magnolie_contact_notes_return import _issue_notes_fs_origin
                                 # Schedule later saved-book work; never wait for
                                 # its data lock while holding the receive lock.
@@ -16187,7 +16252,7 @@ class BaumDienst(object):
                                 if self.bei_sicherer_nachricht(partner, inhalt, origin, transport_id) is False:
                                     raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
                                 origin.require_current(inhalt, transport_id)
-                            elif inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus"):
+                            elif inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung"):
                                 raise RuntimeError(_("This type cannot be shared."))
                             elif self.bei_nachricht:
                                 self.bei_nachricht(partner, inhalt)
