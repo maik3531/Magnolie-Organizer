@@ -239,6 +239,16 @@ internal sealed partial class NotesOriginalChoiceStore
         return capture(); // Actual native scope only. Never reconstruct from primary/model.
     }
 
+    internal string OwnedBootstrapText(JsonObject history)
+    {
+        VerifyUnconfirmedHistory(history); var observed = Observe(requireSaved: false);
+        if (observed.Snapshot is not null) throw new InvalidOperationException("notes_bootstrap_real_save_already_exists");
+        var text = currentNativeData?.Invoke() ?? throw new InvalidOperationException("notes_bootstrap_owned_model_required");
+        if (BaumSyncSnapshot.Hash(text) != observed.Primary.PlainHash || !observed.Same(Observe(requireSaved: false)))
+            throw new InvalidOperationException("notes_bootstrap_owned_model_changed");
+        VerifyUnconfirmedHistory(history); return text;
+    }
+
     private Known? ReadKnown()
     {
         using var state = Read();

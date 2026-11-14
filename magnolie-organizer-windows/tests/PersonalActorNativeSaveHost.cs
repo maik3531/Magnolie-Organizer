@@ -83,6 +83,16 @@ internal sealed partial class PersonalActorNativeSaveHost
         await SaveAsync(parsed.RootElement);
         return form.Values.Last().Value;
     }
+    internal async Task<JsonObject> SaveNotesBootstrapAsync(NotesOriginalBootstrapSave bootstrap, string? proposedText = null, bool mixedTree = false)
+    {
+        var text = proposedText ?? bootstrap.Text;
+        var payload = new JsonObject { ["id"] = form.Values.Count + 1, ["text"] = text };
+        if (mixedTree) payload["baumSyncLauf"] = new JsonObject();
+        using var message = JsonDocument.Parse(payload.ToJsonString());
+        await SaveAsync(message.RootElement, notesBootstrap: bootstrap);
+        return form.Values.Last().Value;
+    }
+
     internal static async Task VerifyOriginalContactResultAsync(string beforeText)
     {
         foreach (var mode in new[] { "success", "forged", "mixed-content", "mixed-tree", "changed-book", "locked", "failed-primary", "ordinary-save" })

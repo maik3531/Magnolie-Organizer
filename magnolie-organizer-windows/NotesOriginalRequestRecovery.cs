@@ -21,6 +21,9 @@ internal sealed partial class NotesOriginalRequestIntents
             var native = Native(); var frame = RequireCurrent();
             return native.Query.Consent.CurrentSavedForRecovery(frame);
         }
+        internal string BootstrapText()
+        { var native = Native(); return native.Query.Consent.OwnedBootstrapText(RequireCurrent()); }
+        internal NotesOriginalBootstrapSave PrepareBootstrap() => NotesOriginalBootstrapSave.ForRecovery(this);
         internal (JsonObject Body, MagnolienbaumCoordinator.NativeNotesOrigin Origin, string Transport) Result()
         { var native = Native(); RequireCurrent(); return (native.Result.DeepClone().AsObject(), native.Origin, native.Transport); }
         internal NotesOriginalPendingResult Resume()

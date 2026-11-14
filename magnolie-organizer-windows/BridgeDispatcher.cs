@@ -902,7 +902,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         await form.SendAsync("App.contributorGeprueft", new { ok = valid });
     }
 
-    private async Task SaveAsync(JsonElement message, NativeHistoricalWriterInvocation? historical = null)
+    private async Task SaveAsync(JsonElement message, NativeHistoricalWriterInvocation? historical = null, NotesOriginalBootstrapSave? notesBootstrap = null)
     {
         var locked = false;
         var contactAckCommitted = false;
@@ -957,6 +957,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 throw new InvalidOperationException("actor_historical_mixed_save_not_ready");
             if (originalContactWrite is not null && (historical is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
                 throw new InvalidOperationException("contact_source_mixed_save_not_ready");
+            if (notesBootstrap is not null && (historical is not null || originalContactWrite is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
+                throw new InvalidOperationException("notes_bootstrap_mixed_save_not_ready");
             var historicalWriteStarted = false;
             ContactSourceApprovalStore? contactConsent = null;
             ContactSourceApprovalStore.SaveIntent? contactConsentWrite = null;
@@ -996,6 +998,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     catch (Exception) { notesConsentError = true; }
             }
             if (originalContactWrite is not null) originalContactWrite.Write(text, NativeWrite);
+            else if (notesBootstrap is not null) notesBootstrap.Write(text, NativeWrite);
             else if (historical is null) NativeWrite(text);
             else
             {

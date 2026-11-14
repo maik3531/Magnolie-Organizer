@@ -1281,6 +1281,33 @@ automatic bootstrap queueing is not implemented by this slice. Common setup,
 reserved transport/controller/pump and production existing-key backend selection
 remain outstanding; production remains OFF and nothing is installed/published.
 
+### Windows typed bootstrap invocation at the actual writer (#633)
+
+The first-save requirement now has an opaque one-use native bootstrap invocation,
+issued only from the current private fresh VERIFIED recovery context. It owns the
+actual loaded native text, checked against the authenticated known primary, and
+requires that no real saved scope exists yet. Payload/current model/permission/
+origin are rechecked before writing. The private optional native argument of the
+actual `BridgeDispatcher.SaveAsync` dispatches this object through the existing
+encrypted atomic writer and real `RecordSaved`; it is never deserialized from a
+renderer token or Boolean. Mixed historical/contact/tree/sync lanes are denied.
+
+Completion requires the actual current saved text/hash/scope after the write, not a
+receipt or primary observation. It reports bootstrap correlation only, not the
+subsequent metadata-saved witness or ACK authority. Stale/changed/mixed/forged,
+revoked, expired or already-used invocations fail before replacing user data.
+The normal no-bootstrap save path is unchanged and retains ordinary-save behavior.
+
+The existing recovery matrix now invokes this actual typed path, with eight added
+negative/bootstrap cases (20 overlapping recovery cases total). Full managed tests
+and the new-recovery-only Windows slice pass; original-contact regressions also
+pass on both hosts after the shared SaveAsync signature/dispatch change. Cases
+cover forged object, changed payload, intervening real save, revocation/expiry,
+post-primary failure, double invocation and mixed tree save. Release CoreTests and
+BASE builds are clean. This joins the real native write boundary, not an automatic
+queue: controller construction, shared bounded bootstrap scheduling, reserved
+transport/pump, key-backend selection and actual common setup remain outstanding.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

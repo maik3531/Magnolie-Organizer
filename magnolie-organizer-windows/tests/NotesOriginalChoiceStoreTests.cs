@@ -508,7 +508,8 @@ internal static class NotesOriginalChoiceStoreTests
 
     internal static async Task VerifiedRecoveryAsync(string root)
     {
-        var modes = new[] { "restart", "physical-only", "wrong-result", "prepared", "stale-revision", "bool-version", "revoke", "changed-target", "stop", "expired-queued-save", "fake-context", "unrelated-rebase" };
+        var modes = new[] { "restart", "physical-only", "wrong-result", "prepared", "stale-revision", "bool-version", "revoke", "changed-target", "stop", "expired-queued-save", "fake-context", "unrelated-rebase",
+            "bootstrap-forged", "bootstrap-mixed", "bootstrap-stale", "bootstrap-revoke", "bootstrap-expired", "bootstrap-failed-primary", "bootstrap-double", "bootstrap-mixed-tree" };
         foreach (var mode in modes)
         {
             using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]);
@@ -543,10 +544,40 @@ internal static class NotesOriginalChoiceStoreTests
             try { context.Resume(); throw new Exception("Recovery minted a primary-read snapshot"); }
             catch (NotesOriginalRequestIntents.RecoveryNeedsRealSave needed)
             { TestAssert.That(ReferenceEquals(needed.Context, context) && h.Host.Snapshot() is null, "Recovery lost owned native save requirement"); }
-            // Deliberate actual native ordinary save, not an automatic queue or
-            // a witness fabricated from a primary read. Controller wiring remains separate.
-            TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject()))["ok"]!.GetValue<bool>() &&
+            // Explicit typed invocation through actual SaveAsync; automatic
+            // queue/controller construction remains a separate integration.
+            var bootstrap = context.PrepareBootstrap(); var bootstrapText = bootstrap.Text;
+            Hold(bootstrap.RequireCompleted);
+            if (mode is "bootstrap-forged" or "bootstrap-mixed" or "bootstrap-stale" or "bootstrap-revoke" or "bootstrap-expired" or "bootstrap-failed-primary" or "bootstrap-mixed-tree")
+            {
+                if (mode == "bootstrap-forged") bootstrap = new(new object());
+                if (mode == "bootstrap-stale") TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", JsonNode.Parse(bootstrapText)!.AsObject()))["ok"]!.GetValue<bool>(), "Intervening real ordinary save failed");
+                if (mode == "bootstrap-revoke") h.Store.Revoke();
+                if (mode == "bootstrap-expired")
+                {
+                    var native = observed.Origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(observed.Origin)!;
+                    native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+                }
+                if (mode == "bootstrap-failed-primary") h.Host.FailAfterPrimary = true;
+                var beforeBootstrap = System.IO.File.ReadAllBytes(h.Host.DataPath); var beforeSaved = h.Host.Saved();
+                var proposed = bootstrapText;
+                if (mode == "bootstrap-mixed") { var modified = JsonNode.Parse(bootstrapText)!.AsObject(); modified["unowned-edit"] = "do not adopt"; proposed = modified.ToJsonString(); }
+                var rejected = await h.Host.SaveNotesBootstrapAsync(bootstrap, proposed, mode == "bootstrap-mixed-tree");
+                TestAssert.That(!rejected["ok"]!.GetValue<bool>(), "Invalid native bootstrap was acknowledged");
+                Hold(bootstrap.RequireCompleted);
+                if (mode != "bootstrap-failed-primary") TestAssert.That(System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(beforeBootstrap) && h.Host.Saved() == beforeSaved, "Rejected bootstrap changed primary or saved observation");
+                else TestAssert.That(h.Host.Saved() is null, "Failed primary bootstrap fabricated a real saved observation");
+                TestAssert.That(!Directory.Exists(ackRoot), "Rejected bootstrap fabricated an ACK history"); continue;
+            }
+            TestAssert.That((await h.Host.SaveNotesBootstrapAsync(bootstrap))["ok"]!.GetValue<bool>() &&
                 h.Host.Saved()!.Sequence == 1, "First actual bootstrap save did not create real native observation");
+            bootstrap.RequireCompleted();
+            if (mode == "bootstrap-double")
+            {
+                var beforeDouble = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                TestAssert.That(!(await h.Host.SaveNotesBootstrapAsync(bootstrap, bootstrapText))["ok"]!.GetValue<bool>() &&
+                    h.Host.Saved()!.Sequence == 1 && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(beforeDouble), "Bootstrap invocation was used twice");
+            }
             if (mode == "unrelated-rebase")
             {
                 var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["independent-user-edit"] = "preserve fresh whole-book state";
