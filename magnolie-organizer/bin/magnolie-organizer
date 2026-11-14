@@ -22405,6 +22405,7 @@ class Fenster(_FENSTER_BASIS):
             scope = getattr(self, '_kontakt_quellen_freigaben', None)
             if scope is not None:
                 scope.revoke()
+            self._kontakt_quellen_netz_stoppen()
             self.antwort('App.originalKontaktFreigabe', {'ok': True, 'changed': True, 'freigaben': 0})
 
         elif befehl == 'kontakt_originalquellen_update':
@@ -24925,8 +24926,13 @@ class Fenster(_FENSTER_BASIS):
 
         def report(ok, changed=False):
             self._kontakt_quellen_dialog_aktiv = False
+            count = len(scope.capture())
+            if count:
+                self._kontakt_quellen_netz_starten()
+            else:
+                self._kontakt_quellen_netz_stoppen()
             self.antwort('App.originalKontaktFreigabe', {'requestId': request_id,
-                'ok': ok, 'changed': changed, 'freigaben': len(scope.capture())})
+                'ok': ok, 'changed': changed, 'freigaben': count})
             return False
 
         def discover():
@@ -24959,6 +24965,71 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=discover, daemon=True).start()
         except Exception:
             report(False)
+
+    def _kontakt_quellen_netz_stoppen(self):
+        self._kontakt_quellen_netz_generation = getattr(self, '_kontakt_quellen_netz_generation', 0) + 1
+        timer = getattr(self, '_kontakt_quellen_netz_timer', None)
+        self._kontakt_quellen_netz_timer = None
+        self._kontakt_quellen_netz_letzter = None
+        if timer is not None and GLib is not None:
+            try:
+                GLib.source_remove(timer)
+            except Exception:
+                pass
+        return False
+
+    def _kontakt_quellen_netz_starten(self):
+        # GTK already requires GLib, but headless/native test hosts need not
+        # provide timers. No NetworkManager/Gio service is required here.
+        if (getattr(self, '_kontakt_quellen_netz_timer', None) is not None or GLib is None or
+                not callable(getattr(GLib, 'timeout_add_seconds', None))):
+            return
+        self._kontakt_quellen_netz_generation = getattr(self, '_kontakt_quellen_netz_generation', 0) + 1
+        self._kontakt_quellen_netz_letzter = None
+        self._kontakt_quellen_netz_timer = GLib.timeout_add_seconds(15, self._kontakt_quellen_netz_pruefen)
+        self._kontakt_quellen_netz_pruefen()
+
+    def _kontakt_quellen_netz_pruefen(self):
+        if getattr(self, '_kontakt_quellen_netz_timer', None) is None:
+            return False
+        if getattr(self, '_kontakt_quellen_netz_probe', False):
+            return True
+        self._kontakt_quellen_netz_probe = True
+        generation = self._kontakt_quellen_netz_generation
+        def probe():
+            try:
+                scope = getattr(self, '_kontakt_quellen_freigaben', None)
+                permitted = scope is not None and bool(scope.capture()) and not self._wirklich_beenden
+                wlan = permitted and kontakt_quellen_wlan_verfuegbar()
+                if permitted and (not scope.capture() or self._wirklich_beenden):
+                    permitted = False
+                if generation != self._kontakt_quellen_netz_generation:
+                    return
+                if not permitted:
+                    def stop():
+                        if generation == self._kontakt_quellen_netz_generation:
+                            self._kontakt_quellen_netz_stoppen()
+                        return False
+                    GLib.idle_add(stop)
+                    return
+                # Repeat known True so a frontend held by an editor/save can
+                # resume when idle. Its explicit WLAN-wait flag gates retries;
+                # a clean or nonterminal run never retries from topology alone.
+                if wlan or wlan != self._kontakt_quellen_netz_letzter:
+                    self._kontakt_quellen_netz_letzter = wlan
+                    self.antwort('App.originalKontaktNetz', {'wlan': bool(wlan)})
+            except Exception:
+                # Unknown is not evidence of return; allow a later fresh known
+                # observation to signal again rather than retaining stale True.
+                if generation == self._kontakt_quellen_netz_generation:
+                    self._kontakt_quellen_netz_letzter = None
+            finally:
+                self._kontakt_quellen_netz_probe = False
+        try:
+            threading.Thread(target=probe, daemon=True).start()
+        except Exception:
+            self._kontakt_quellen_netz_probe = False
+        return True
 
     def _kontakt_quellen_updates_starten(self, request_id, expected_saved_hash):
         """Native saved-book/DAV controller; returns a one-use result offer."""

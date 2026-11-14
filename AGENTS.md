@@ -109,6 +109,20 @@ Rückfallbedingungen, betroffene Umgebungen und Prüfnachweise konkret festhalte
 keine unbemerkten automatischen Downgrades, Installationen oder Erweiterungen
 bestehender Freigaben daraus ableiten.
 
+## Einfache, verlässliche Automatik
+
+Automatische Funktionen so einfach und benutzerfreundlich wie möglich gestalten:
+einmal bewusst einrichten und freigeben, anschließend ohne wiederkehrende
+Bestätigungsdialoge weiterarbeiten, auch nach Neustarts. Fehlende Verbindungen
+still abwarten und nach Rückkehr kontrolliert fortsetzen; einzelne Konflikte
+zurückstellen, statt alle übrigen freigegebenen Vorgänge zu blockieren.
+Notwendige System-/Quellenberechtigungen bei der Einrichtung einholen, nicht
+bei jedem automatischen Lauf erneut abfragen. Echte Rechte-, Konto- oder
+Identitätsänderungen weiterhin sicher erkennen; dann nur die konkret betroffene
+Funktion verständlich als wartend/klärungsbedürftig anzeigen. Keine Berechtigungen
+umgehen oder aus importierten Auto-/Profilfeldern erfinden. Dauerhafte Freigaben
+müssen an echte native Konto-/Buchidentitäten und Widerruf gebunden bleiben.
+
 ## Native Startprüfung vor jeder Veröffentlichung
 
 Jedes installierbare Release-Paket in einer passenden vorhandenen VM bzw. nativ

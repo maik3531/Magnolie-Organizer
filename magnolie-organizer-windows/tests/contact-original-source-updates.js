@@ -82,7 +82,7 @@ async function runWire() {
           } else if (input.value.kontaktOriginalGespeichert) {
             const save = b.commands("speichern").at(-1);
             assert.equal(input.value.kontaktOriginalGespeichert, save.kontaktOriginalLauf);
-            assert.equal(b.commands("kontakt_originalquellen_update").length, 1);
+            assert.equal(b.commands("kontakt_originalquellen_update").length, Number(process.env.MAGNOLIE_TEST_EXPECT_ORIGINAL_RUNS || 1));
             emit({ type: "complete", text: save.text, token: save.kontaktOriginalLauf });
             return;
           }

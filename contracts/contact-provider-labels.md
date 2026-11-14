@@ -510,6 +510,33 @@ Fourteen full-frontend cases pass for each Linux and Windows source edition, and
 the affected native/journal/manifest run passes 265 cases without historical skips.
 
 This connects the session-local DAV path, not the full #618 remainder: persistent
-consent, autonomous WLAN-return retry, EDS/Akonadi/current provider authority,
+consent, Windows WLAN-return retry, EDS/Akonadi/current provider authority,
 broader accounts and full Notes scalar/postal return remain. Installed WebKit/
 WebView, physical device/media and package/install acceptance are not claimed.
+
+## Linux authorized WLAN-return continuation (#618, intermediate)
+
+The Linux native session now starts a topology-only monitor after explicit source
+approval. A GLib timer schedules at most one bounded worker; route/account/book
+checks do not block GTK's main thread and never perform provider IO. Revocation,
+lock/book/account loss, shutdown and stale monitor generations stop or discard
+probes. Missing optional timer APIs in headless hosts do not become a service
+dependency. The monitor still requires neither NetworkManager nor Gio/D-Bus.
+
+Frontend continuation requires a prior terminal native `wlan_required` reply,
+existing explicit approval and all actual SaveACK/no-editor/no-pending-edit guards.
+Known positive topology can repeat so a previously busy frontend can resume once
+idle; it neither grants permission nor retries clean, active or unknown-outcome
+runs. Native fresh read/CAS/conflict checks remain mandatory on continuation.
+
+Thirteen controlled monitor lifecycle cases and nine full-frontend continuation
+cases pass. Three actual encrypted frontend/native wires pass: immediate WLAN,
+initial WLAN hold, and WLAN loss after the provider committed a PUT but before
+readback. The initial held attempt performs no provider request. In the uncertain
+post-write case, continuation performs a fresh source REPORT and recognizes the
+already committed value without issuing a second PUT. Each wire has exactly one
+PUT, exact encrypted protection and three actual encrypted SaveACKs. Revocation
+or lock during a topology probe is rechecked before any notification.
+The previous fourteen frontend cases still pass. Test timers/WLAN/provider
+observations are controlled and all owned workers are joined; this is not a
+physical network-return or Windows retry claim.

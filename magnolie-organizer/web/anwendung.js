@@ -6919,6 +6919,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function verwerfeSpeichernNachRestore() {
+    originalKontaktWlanWartet = false;
     originalKontaktGeneration++;
     originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     letzterSpeicherSha256 = ""; baumSpeicherNachweis = baumPostVorSpeichern = null;
@@ -25826,8 +25827,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let originalKontaktFreigaben = 0, originalKontaktLauf = null, originalKontaktSpeicher = null;
   let originalKontaktGeneration = 0;
   let originalKontaktFreigabeAnfrage = "";
+  let originalKontaktWlanWartet = false;
 
   function originalKontaktUpdatesWiderrufen() {
+    originalKontaktWlanWartet = false;
     originalKontaktGeneration++;
     originalKontaktFreigaben = 0;
     originalKontaktFreigabeAnfrage = "";
@@ -25837,13 +25840,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function starteOriginalKontaktUpdates() {
     if (!Bruecke.vorhanden || !initialisiert || !antwortErhalten || gesperrt || originalKontaktFreigaben < 1 ||
-        originalKontaktLauf || originalKontaktSpeicher || syncLaeuft || aktiverEditor || mcpSyncAktiv() ||
+        originalKontaktFreigabeAnfrage || originalKontaktLauf || originalKontaktSpeicher || syncLaeuft || aktiverEditor || mcpSyncAktiv() ||
         laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null || !/^[0-9a-f]{64}$/.test(letzterSpeicherSha256)) return;
     sichereNotizSnapshot();
     if (JSON.stringify(DATEN) !== letzterSpeicherText || speicherTimer !== null) return;
     const lauf = { requestId: crypto.randomUUID(), bestand: DATEN, text: letzterSpeicherText, sha256: letzterSpeicherSha256,
       generation: originalKontaktGeneration };
     originalKontaktLauf = lauf;
+    originalKontaktWlanWartet = false;
     if (!Bruecke.sende({ cmd: "kontakt_originalquellen_update", requestId: lauf.requestId, standSha256: lauf.sha256 }))
       originalKontaktLauf = null;
     // A timeout is not evidence that a provider write failed. Only a terminal
@@ -25857,6 +25861,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (lauf.generation !== originalKontaktGeneration) return;
     if (Number.isSafeInteger(nutzlast.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
     if (nutzlast.ok !== true) {
+      originalKontaktWlanWartet = nutzlast.code === "wlan_required";
       if (nutzlast.code === "wlan_required" && $("#sync-status")) $("#sync-status").textContent = _("Waiting for Wi-Fi.");
       return;
     }
@@ -34684,6 +34689,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let sperrZustand = { eingabe: "", wartet: 0, uhr: null, art: "pin" };
 
   function zeigeSperrbildschirm(wartet) {
+    originalKontaktWlanWartet = false;
     if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher) originalKontaktUpdatesWiderrufen();
     originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     kontaktFotoDialogSchliessen?.();
@@ -37050,8 +37056,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (nutzlast?.freigaben === 0) { originalKontaktGeneration++; originalKontaktSpeicher = null; }
       if (Number.isSafeInteger(nutzlast?.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
       if (letzterEdsStatus?.originalKontaktUpdates) letzterEdsStatus.originalKontaktUpdates.freigaben = originalKontaktFreigaben;
-      if (nutzlast?.ok === true && nutzlast.changed === true && originalKontaktFreigaben > 0)
+      if (nutzlast?.ok === true && (nutzlast.changed === true || originalKontaktWlanWartet) && originalKontaktFreigaben > 0)
         nachDauerhaftemSpeichern(starteOriginalKontaktUpdates);
+    },
+    originalKontaktNetz(nutzlast) {
+      if (nutzlast?.wlan === true && originalKontaktWlanWartet) starteOriginalKontaktUpdates();
     },
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
     gespeichert(ergebnis) {
