@@ -183,6 +183,41 @@ origin/callback cases plus 23 affected FS1 identity/pairing/receiver regressions
 This does not yet register a production result controller, save a result book,
 mint a desktop SaveACK or establish Windows/native Android result integration.
 
+### Linux pending/result to actual saved-book controller (#628)
+
+`NativeNotesPendingResult` now joins a native-owned pending request and exact
+saved-book/contact identity to actual authenticated FS1 result correlation and
+`NativeContactSourceResultCommit`. The receive callback only stages the owned
+result; later book work rechecks origin lifetime and native mapping guards under
+the book mutation gate. It never waits for book work under the receive lock.
+Request ID/body hash, share, before basis, target, native receipt/revision and
+next basis must match; conflicts cannot replace an accepted result. Exact
+duplicates retain the same one-use book invocation, not a second save.
+
+The real encrypted/atomic Linux writer stores the already selected next basis
+and result correlation on the same existing contact, retaining IDs/UIDs and all
+other domains. Native revision is stored as decimal text to avoid JavaScript
+precision loss. `confirmed_save()` requires that invocation's actual private
+saved witness and rechecks current book generation, mapping and retained origin;
+generic FS1 receipts and renderer booleans cannot substitute for it.
+
+Twenty-two new synthetic controller cases cover the actual FS1 crypto/receiver
+and real encrypted writer, including changed book/generation, revocation, stop,
+repair/failure, duplicate and mismatched result fields. The first test invocation
+had a fixture function named `setup` intercepted by pytest's legacy setup hook;
+this was a test setup error, not product evidence. Renamed fixture execution
+passed. The 53 affected origin/writer cases passed in that initial run and remain
+valid; 11 subsequently strengthened new cases additionally assert that receive
+does not invoke the native mapping/book guard.
+
+This is still production-unregistered. Tests supply a synthetic native mapping
+guard, not a completed authenticated export/private mapping setup. Native saved
+target projection/request issuance, durable private ACK intents/restart recovery,
+reserved authenticated ACK sending, terminal settlement and Windows counterpart
+remain unfinished. The provisional `notesOriginalBasis` metadata must be added to
+the common UI's preservation/validation path before enabling this controller.
+`confirmed_save()` exposes native correlation only, not a wire ACK or slot release.
+
 | Counterpart | What the source establishes | What is still needed for this automatic path |
 | --- | --- | --- |
 | Notes Android | Authenticated full DTO; reviewed writer; resource19; new independent native original/decision/full-content core below | Join durable native approval, genuine setup and authenticated sender/receiver to the correlated durable result receipt; the new core is not advertised or automatically invoked |

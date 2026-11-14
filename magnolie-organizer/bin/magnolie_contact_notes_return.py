@@ -9,6 +9,11 @@ import hmac
 import json
 import unicodedata
 from dataclasses import dataclass
+import threading
+import uuid
+
+from magnolie_contact_source_book import NativeContactSourceResultCommit
+from magnolie_personal_actor_store import NativeProducerBookSnapshot
 
 
 def _frame_bytes(value):
@@ -52,6 +57,145 @@ def _issue_notes_fs_origin(peer, own, body, transport_id, current):
         hashlib.sha256(_frame_bytes(body)).digest(), transport_id, current))
     result.require_current(body, transport_id)
     return result
+
+
+class NativeNotesPendingResult:
+    """Native pending request -> authenticated result -> actual book invocation.
+
+    No bridge registration or production factory exists yet. The native caller
+    must supply its private mapping/setup authority, not imported contact tags.
+    Receiving only stages work: prepare_commit/confirmed_save run later under
+    the existing book mutation gate, never inside the tree receive lock.
+    This joins the actual writer but does not yet issue/send a wire SaveACK.
+    """
+    def __init__(self, snapshot, request, local_id, local_uid, peer, own, capture_current, require_mapping):
+        if (type(snapshot) is not NativeProducerBookSnapshot or not callable(capture_current) or
+                not callable(require_mapping) or not isinstance(request, dict)):
+            raise TypeError('notes_original_native_pending_required')
+        self._lock = threading.RLock()
+        self._work_lock = threading.RLock()
+        self._snapshot, self._capture, self._mapping = snapshot, capture_current, require_mapping
+        self._peer, self._own = tuple(peer), tuple(own)
+        self._request_text = _frame_bytes(request)
+        self._request_hash = hashlib.sha256(self._request_text).hexdigest()
+        owned = json.loads(self._request_text)
+        fields = {'art', 'fassung', 'request_id', 'share_id', 'before_basis', 'target_sha256', 'ziel'}
+        patch_fields = {'vorname', 'nachname', 'anzeigename', 'vcardName', 'firma', 'notiz', 'geburtstag', 'jubilaeum', 'anschriften'}
+        if (set(owned) != fields or owned['art'] != 'kontakt_original_anfrage' or
+                type(owned['fassung']) is not int or owned['fassung'] != 1 or
+                not _request_uuid(owned['request_id']) or not _digest(owned['before_basis']) or
+                not _digest(owned['target_sha256']) or not isinstance(owned['share_id'], str) or
+                not owned['share_id'] or not isinstance(owned['ziel'], dict) or set(owned['ziel']) != patch_fields):
+            raise ValueError('notes_original_pending_request_schema')
+        contacts = snapshot.book().get('kontakte', [])
+        selected = [index for index, contact in enumerate(contacts) if contact.get('id') == local_id]
+        if len(selected) != 1 or contacts[selected[0]].get('uid') != local_uid or not local_id or not local_uid:
+            raise PermissionError('notes_original_pending_contact_required')
+        self._index, self._local_id, self._local_uid = selected[0], local_id, local_uid
+        self._result_text, self._origin, self._transport, self._commit = None, None, None, None
+        self._require_before()
+
+    def request(self):
+        with self._work_lock:
+            self._require_before()
+            return json.loads(self._request_text)
+
+    def _require_before(self):
+        # The callback must check the genuine native source/mapping/setup grant.
+        # Returning document flags or accepting renderer fields is not a caller.
+        self._mapping()
+        if self._capture() != self._snapshot:
+            raise PermissionError('notes_original_pending_book_changed')
+        self._mapping()
+
+    def stage_result(self, body, origin, transport_id):
+        """Actual receive callback may call this without acquiring the book lock.
+
+        No book access, private mapping callback, writer wait or ACK occurs here.
+        Exact repeats retain the same invocation; conflicts cannot replace it.
+        """
+        if type(origin) is not NativeNotesFsOrigin:
+            raise PermissionError('notes_original_authenticated_origin_required')
+        # Never call the origin (tree gate) while holding the pending-state
+        # lock: a book worker may be running concurrently with this callback.
+        identities = origin.require_current(body, transport_id)
+        if identities != (self._peer, self._own):
+            raise PermissionError('notes_original_pending_peer_changed')
+        owned = json.loads(_frame_bytes(body))
+        request = json.loads(self._request_text)
+        fields = {'art', 'fassung', 'request_id', 'request_sha256', 'share_id', 'before_basis',
+                  'target_sha256', 'receipt_id', 'native_revision', 'next_basis'}
+        if (set(owned) != fields or owned['art'] != 'kontakt_original_ergebnis' or
+                type(owned['fassung']) is not int or owned['fassung'] != 1 or
+                any(owned[name] != request[name] for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')) or
+                owned['request_sha256'] != self._request_hash or not _request_uuid(owned['receipt_id']) or
+                type(owned['native_revision']) is not int or not 0 < owned['native_revision'] <= 2**63 - 1 or
+                not _digest(owned['next_basis']) or owned['next_basis'] == request['before_basis']):
+            raise ValueError('notes_original_pending_result_changed')
+        text = _frame_bytes(owned)
+        origin.require_current(body, transport_id)
+        with self._lock:
+            if self._result_text is not None and self._result_text != text:
+                raise PermissionError('notes_original_pending_result_held')
+            if self._result_text is None:
+                self._result_text, self._origin, self._transport = text, origin, transport_id
+
+    def _require_origin(self):
+        self._mapping()
+        with self._lock:
+            text, origin, transport = self._result_text, self._origin, self._transport
+        if text is None:
+            raise PermissionError('notes_original_pending_result_required')
+        origin.require_current(json.loads(text), transport)
+        self._mapping()
+
+    def prepare_commit(self):
+        """Called under the actual native book gate, outside receive dispatch."""
+        with self._work_lock:
+            self._require_origin()
+            if self._commit is None:
+                self._require_before()
+                proposal = self._snapshot.book()
+                contact = proposal['kontakte'][self._index]
+                # Evidence only: never a portable source grant. The common UI
+                # must preserve this metadata before production can be enabled.
+                result = json.loads(self._result_text)
+                contact['notesOriginalBasis'] = {
+                    'fassung': 1, 'share_id': result['share_id'], 'basis': result['next_basis'],
+                    'native_revision': str(result['native_revision']),
+                    'request_id': result['request_id'], 'request_sha256': result['request_sha256'],
+                    'target_sha256': result['target_sha256'], 'receipt_id': result['receipt_id']}
+                self._commit = NativeContactSourceResultCommit(self._snapshot, proposal, self._capture, self._require_origin)
+            return self._commit
+
+    def confirmed_save(self):
+        """Actual confirmed-save correlation, NOT a wire ACK or release token.
+
+        Durable private ACK intent, restart restoration and negotiated sending
+        must be connected before this can become an enabled SaveACK producer.
+        """
+        with self._work_lock:
+            self._require_origin()
+            if self._commit is None:
+                raise PermissionError('notes_original_save_unconfirmed')
+            witness = self._commit.saved_witness()
+            saved = witness.require_current()
+            self._require_origin()
+            if witness.require_current() != saved:
+                raise PermissionError('notes_original_saved_frame_changed')
+            return {'result': json.loads(self._result_text), 'saved_book': saved}
+
+
+def _digest(value):
+    return isinstance(value, str) and len(value) == 64 and all(char in '0123456789abcdef' for char in value)
+
+
+def _request_uuid(value):
+    try:
+        parsed = uuid.UUID(value)
+        return isinstance(value, str) and parsed.version == 4 and str(parsed) == value
+    except (ValueError, TypeError, AttributeError):
+        return False
 
 
 def _native_text(value):
