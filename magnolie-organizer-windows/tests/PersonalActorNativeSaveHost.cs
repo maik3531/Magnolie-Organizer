@@ -15,6 +15,8 @@ internal sealed partial class PersonalActorNativeSaveHost
     private readonly ContactCleanupSnapshot contactCleanupSnapshot = new();
     private readonly SyncSnapshotHandoff syncSnapshotHandoff = new();
     private readonly BaumSyncSnapshot baumSyncSnapshot = new();
+    private ContactSourceSavedCommit? contactSourceSavedCommit;
+    private ContactSourceSavedCommit OriginalContactCommit => contactSourceSavedCommit ??= new(NativeActorSavedBook);
     private readonly CancellationTokenSource backgroundLifetime = new();
     private readonly Replies form = new();
     private string currentPlainText, currentEnvelope;
@@ -44,6 +46,60 @@ internal sealed partial class PersonalActorNativeSaveHost
     }
     internal NativeActorBookSnapshot? Snapshot() => NativeActorBookSnapshot.Capture(Saved, () => currentPlainTextAvailable ? currentPlainText : null);
     private NativeBookSaveState? NativeActorSavedBook() => Saved();
+    internal ContactSourceCommitOffer StageOriginalContactResult(SavedContactSourceUpdateResult result) =>
+        OriginalContactCommit.Stage(Snapshot()!, result);
+    internal async Task<JsonObject> SaveOriginalContactResultAsync(string token, JsonObject candidate, bool mixedTree = false)
+    {
+        var message = new JsonObject { ["id"] = form.Values.Count + 1, ["text"] = candidate.ToJsonString(), ["kontaktOriginalLauf"] = token };
+        if (mixedTree) message["baumSyncLauf"] = new JsonObject();
+        using var parsed = JsonDocument.Parse(message.ToJsonString());
+        await SaveAsync(parsed.RootElement);
+        return form.Values.Last().Value;
+    }
+    internal static async Task VerifyOriginalContactResultAsync(string beforeText)
+    {
+        foreach (var mode in new[] { "success", "forged", "mixed-content", "mixed-tree", "changed-book", "locked", "failed-primary", "ordinary-save" })
+        {
+            var root = Path.Combine(Path.GetTempPath(), "magnolie-actual-source-result-save-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var host = new PersonalActorNativeSaveHost(root, beforeText);
+                var original = host.Saved()!; var originalBytes = File.ReadAllBytes(host.DataPath);
+                var contacts = JsonNode.Parse(beforeText)!["kontakte"]!.DeepClone().AsArray(); contacts[0]!["notiz"] = "Native confirmed result";
+                var offer = host.StageOriginalContactResult(new(original, contacts, new Dictionary<string, ContactSyncCounts>()));
+                var proposed = JsonNode.Parse(beforeText)!.AsObject(); proposed["kontakte"] = offer.Contacts.DeepClone();
+                if (mode == "forged") offer = offer with { Token = new string('0', 64) };
+                if (mode == "mixed-content") proposed["unexpectedOtherDomain"] = "not part of native result";
+                if (mode == "changed-book") host.actorBookOwner.RecordSaved(Path.GetFullPath(host.paths.Data), true, BaumSyncSnapshot.Hash(beforeText));
+                if (mode == "locked") host.currentPlainTextAvailable = false;
+                if (mode == "failed-primary") host.FailAfterPrimary = true;
+                var response = await host.SaveOriginalContactResultAsync(mode == "ordinary-save" ? "" : offer.Token, proposed, mode == "mixed-tree");
+                if (mode is "success" or "ordinary-save")
+                {
+                    TestAssert.That(response["ok"]!.GetValue<bool>() && host.Saved()!.Sequence == original.Sequence + 1 && host.Snapshots == 1 &&
+                        new EncryptionService().Unlock(File.ReadAllText(host.DataPath), Password) == proposed.ToJsonString(),
+                        "Actual source result SaveAsync bypassed encrypted native writer/snapshot/witness");
+                    TestAssert.That(response["kontaktOriginalGespeichert"]!.GetValue<string>() == (mode == "success" ? offer.Token : ""),
+                        "Actual SaveAsync claimed result delivery without the native one-use proof");
+                    var bytes = File.ReadAllBytes(host.DataPath); var saved = host.Saved();
+                    var replay = await host.SaveOriginalContactResultAsync(offer.Token, proposed);
+                    TestAssert.That(!replay["ok"]!.GetValue<bool>() && saved == host.Saved() && host.Snapshots == 1 &&
+                        bytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)), "Result proof replay wrote/snapshotted again");
+                }
+                else
+                {
+                    TestAssert.That(!response["ok"]!.GetValue<bool>() && response["kontaktOriginalGespeichert"] is null,
+                        "Actual SaveAsync acknowledged stale/mixed/failed source result: " + mode);
+                    if (mode == "failed-primary") TestAssert.That(host.Saved() is null && host.Snapshots == 1 &&
+                        new EncryptionService().Unlock(File.ReadAllText(host.DataPath), Password) == proposed.ToJsonString(),
+                        "Failed-after-primary result acquired a native saved witness or lost controlled failure");
+                    else TestAssert.That(host.Snapshots == 0 && originalBytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)),
+                        "Rejected result mutated encrypted store/snapshot: " + mode);
+                }
+            }
+            finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
+        }
+    }
     internal static async Task VerifyOrdinaryAsync(string beforeText, string afterText)
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-actual-save-regression-" + Guid.NewGuid().ToString("N"));

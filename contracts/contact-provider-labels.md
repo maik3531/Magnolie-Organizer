@@ -154,3 +154,54 @@ this authority before actual controlled DAV IO. Native decision callbacks are
 synthetic test decisions, not acceptance of installed consent UI or automatic
 frontend-to-provider delivery. Linux and persistent cross-session approval
 management remain separate outstanding integration work.
+
+## Saved-book DAV orchestration (#618, intermediate)
+
+`ContactSourceSavedDavRun` connects native saved-book capture, separately captured
+native approvals, current-account resolution, the per-source DAV factory and the
+update-only coordinator. Invalid saved/restore state is rejected before discovery.
+Approvals alone do not trigger IO: a source must also have a dirty, existing
+original contact binding. Missing approvals, unbound contacts and already clean
+sources cause no provider IO. Duplicate source approvals reject the run.
+
+Unavailable/revoked/unknown/non-writable sources are held with source-local error
+counts while another independently admitted source may proceed. Cancellation or
+an exact native saved-book change still aborts globally. Each factory shares that
+native book/lifetime guard and must complete the mandatory protection callback
+before mutation. All opened factories are disposed, including failed runs.
+
+Nineteen controlled orchestration scenarios combine real atomic synthetic book
+writes/native save witnesses, two separate provider accounts and original UIDs,
+session-scope approvals, actual DAV adapters and synthetic pre-contact snapshot
+files. They check permission/discovery failures, revocation, account misrouting,
+restore/save/context fences, failed/revoked/cancelled protection and changed
+readback. A separately persisted synthetic result is clean on the next run with
+no redundant discovery/content IO. Returning a result itself does not save any
+baseline or advance a cursor. One scenario additionally passes actual provider
+readback results through the native one-use result-save authority and actual
+`SaveAsync` source in the existing controlled encrypted native save host. This
+is not yet an automatic frontend/dispatcher or consent-dialog acceptance test;
+that product caller, Linux and the full Notes return path remain outstanding
+under #618.
+
+## Exact native result-save authority (#618, intermediate)
+
+`ContactSourceSavedCommit` stages contacts only for the exact native original
+saved book and retains every other document domain unchanged. A one-use native
+token authorizes only that exact candidate under the existing native writer's
+mutation gate. The Windows `SaveAsync` path accepts the optional result token,
+rejects forged/stale/mixed-source saves and uses its existing snapshot,
+encryption, atomic writer and save-witness hooks. It does not add a second data
+writer or skip recovery/snapshot handling. Result completion is acknowledged
+only after the same native book has the next successful save sequence and the
+exact payload hash. Failure, an unconfirmed write or a reused token does not
+acknowledge delivery. Ordinary saves still work but do not claim a result commit.
+
+Fourteen controlled authority cases cover identity, exact candidate/context,
+proof reuse/replacement, failed writes and absent/wrong native witnesses. Eight
+additional cases execute the actual extracted `SaveAsync` source with encrypted
+atomic files: success/replay, forged token, mixed content/tree proof, changed or
+locked book, post-primary-replacement failure and an ordinary unclaimed save.
+The GUI/reminder/cloud endpoints of that existing save host are test endpoints;
+these checks do not claim installed GUI or automatic frontend delivery acceptance.
+The automatic native issuer and frontend adoption/commit caller remain to connect.

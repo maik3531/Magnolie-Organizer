@@ -23,6 +23,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private readonly BaumSyncSnapshot baumSyncSnapshot = new();
     private string currentEnvelope = "";
     private readonly NativeBookOwnerScope actorBookOwner = new();
+    private ContactSourceSavedCommit? contactSourceSavedCommit;
+    private ContactSourceSavedCommit OriginalContactCommit => contactSourceSavedCommit ??= new(NativeActorSavedBook);
     private bool plainTextAvailable;
     private bool currentPlainTextAvailable
     {
@@ -931,6 +933,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
             // The persisted restore epoch fences requests queued before or sent after restore.
             var previousData = JsonNode.Parse(currentPlainText) as JsonObject;
             var proposedData = JsonNode.Parse(text)!.AsObject();
+            var originalContactToken = Text(message, "kontaktOriginalLauf");
+            var originalContactWrite = originalContactToken.Length == 0 ? null : OriginalContactCommit.Prepare(originalContactToken, proposedData);
             var coveredBySync = previousData is not null && syncSnapshotHandoff.CoversSave(previousData, proposedData);
             var previousText = currentPlainText;
             var treeProof = message.TryGetProperty("baumSyncLauf", out var proof) && proof.ValueKind == JsonValueKind.Object
@@ -942,6 +946,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 throw new JsonException(T("The save request is invalid."));
             if (historical is not null && (contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
                 throw new InvalidOperationException("actor_historical_mixed_save_not_ready");
+            if (originalContactWrite is not null && (historical is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
+                throw new InvalidOperationException("contact_source_mixed_save_not_ready");
             var historicalWriteStarted = false;
             void NativeWrite(string payload)
             {
@@ -960,7 +966,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 currentPlainTextAvailable = true;
                 actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), !restoreInProgress && !disposed, BaumSyncSnapshot.Hash(payload));
             }
-            if (historical is null) NativeWrite(text);
+            if (originalContactWrite is not null) originalContactWrite.Write(text, NativeWrite);
+            else if (historical is null) NativeWrite(text);
             else
             {
                 try { await historical.WriteAsync(text, NativeWrite, backgroundLifetime.Token); }
@@ -980,7 +987,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
             RefreshReminderData(currentPlainText, encryption.Session is not null);
             UpdateReminderRuntime(currentPlainText);
             await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "", kontaktPruefung = contactPlan,
-                standSha256 = BaumSyncSnapshot.Hash(text) });
+                standSha256 = BaumSyncSnapshot.Hash(text),
+                kontaktOriginalGespeichert = originalContactWrite?.Completed == true ? originalContactWrite.Token : "" });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);
         }
         catch (Exception error)

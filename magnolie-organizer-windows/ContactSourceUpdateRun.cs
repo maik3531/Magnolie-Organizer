@@ -27,12 +27,7 @@ internal static class ContactSourceUpdateRun
     {
         cancellation.ThrowIfCancellationRequested();
         var snapshot = captureSavedBook() ?? throw new InvalidOperationException("contact_source_book_not_saved");
-        var data = JsonNode.Parse(snapshot.Text) as JsonObject ?? throw new InvalidDataException("contact_source_book_invalid");
-        if (data["kontakte"] is not JsonArray contacts) throw new InvalidDataException("contact_source_book_invalid");
-        if (data["syncNachRestore"]?["additiv"]?.GetValue<bool>() == true ||
-            data["syncNachRestore"]?["loeschungsfrei"]?.GetValue<bool>() == true ||
-            data["syncMetadaten"]?["ersteSyncLoeschungsfrei"]?.GetValue<bool>() == true)
-            throw new InvalidOperationException("contact_source_restore_pending");
+        var contacts = SavedContacts(snapshot);
         void RequireOriginal()
         {
             cancellation.ThrowIfCancellationRequested();
@@ -43,6 +38,17 @@ internal static class ContactSourceUpdateRun
         var result = await RunAsync(contacts, admissions, () => Task.CompletedTask, RequireOriginal, cancellation, homeCountry);
         RequireOriginal();
         return new(snapshot.SavedBook, result.Contacts, result.Sources);
+    }
+
+    internal static JsonArray SavedContacts(NativeActorBookSnapshot snapshot)
+    {
+        var data = JsonNode.Parse(snapshot.Text) as JsonObject ?? throw new InvalidDataException("contact_source_book_invalid");
+        if (data["kontakte"] is not JsonArray contacts) throw new InvalidDataException("contact_source_book_invalid");
+        if (data["syncNachRestore"]?["additiv"]?.GetValue<bool>() == true ||
+            data["syncNachRestore"]?["loeschungsfrei"]?.GetValue<bool>() == true ||
+            data["syncMetadaten"]?["ersteSyncLoeschungsfrei"]?.GetValue<bool>() == true)
+            throw new InvalidOperationException("contact_source_restore_pending");
+        return contacts;
     }
 
     internal static async Task<ContactSourceUpdateResult> RunAsync(JsonArray originalContacts,

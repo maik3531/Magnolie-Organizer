@@ -23,14 +23,16 @@ internal static class ContactSourceUpdateRunTests
         private readonly HttpClient http;
         internal NextcloudMailboxSettingsStore Settings = null!;
         internal readonly NextcloudDavClient Client;
+        internal HttpClient Transport => http;
         internal readonly string WireUid;
         internal NextcloudDavSource Catalog = null!;
         internal string Wire, ETag = "\"v1\"";
         internal bool? Permission = true;
-        internal bool FailWrite, BadReadback, RequireSaved, Saved;
+        internal bool FailWrite, FailDiscovery, BadReadback, RequireSaved, Saved;
         internal string ReadbackUidMode = "";
         internal int Writes, Reads, Discoveries;
         internal Action? BeforeContentRead;
+        internal Action? BeforeDiscovery;
         private readonly string origin;
         internal Source(string name, string accountType, JsonObject data)
         {
@@ -49,6 +51,8 @@ internal static class ContactSourceUpdateRunTests
             if (request.Method.Method == "PROPFIND")
             {
                 Discoveries++;
+                BeforeDiscovery?.Invoke();
+                if (FailDiscovery) throw new HttpRequestException("controlled discovery failure");
                 if (!request.Headers.TryGetValues("Depth", out var depths) || depths.Single() != "1")
                     return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/</d:href><d:propstat><d:prop><c:addressbook-home-set><d:href>/nc/books/</d:href></c:addressbook-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
                 var privilege = Permission is null ? "" : "<d:current-user-privilege-set><d:privilege><d:" + (Permission == true ? "write-content" : "read") + "/></d:privilege></d:current-user-privilege-set>";
@@ -157,6 +161,234 @@ internal static class ContactSourceUpdateRunTests
         await SavedBookBoundaryAsync();
         await DavFactoryAsync();
         await ApprovalScopeAsync();
+        await SavedDavOrchestrationAsync();
+        await SavedResultCommitAsync();
+    }
+
+    private static async Task SavedDavOrchestrationAsync()
+    {
+        foreach (var mode in new[] { "success", "no-grants", "unbound", "readonly", "unknown", "offline", "revoked",
+            "wrong-account", "restore", "not-saved", "book-during-discovery", "book-during-read", "snapshot-failed",
+            "revoke-during-snapshot", "cancel-during-snapshot", "bad-readback", "clean", "duplicate-approvals", "native-writer" })
+        {
+            var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
+                ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
+            using var first = new Source("first", "generic-dav", original);
+            using var second = new Source("second", "nextcloud", original);
+            var a = await first.OriginalAsync(); var b = await second.OriginalAsync();
+            var local = original.DeepClone().AsObject();
+            ContactFields.SetSource(local, first.Catalog.Uid, a, remoteBaseline: true);
+            ContactFields.SetSource(local, second.Catalog.Uid, b, remoteBaseline: true);
+            var baseline = ContactFields.Source(local, first.Catalog.Uid)!.ToJsonString();
+            local["notiz"] = "Canonical note"; local["geaendert"] = 2000L;
+            if (mode == "clean") { local["notiz"] = "Original"; local["geaendert"] = 1000L; }
+            if (mode == "unbound") local["syncQuellen"]!.AsObject().Remove(first.Catalog.Uid);
+            var document = new JsonObject { ["kontakte"] = new JsonArray(local,
+                new JsonObject { ["id"] = "unbound", ["uid"] = "unbound", ["sync"] = true, ["notiz"] = "Never export" }),
+                ["syncEpoch"] = "not-an-approval", ["notizen"] = new JsonArray(new JsonObject { ["text"] = "Unchanged synthetic note" }) };
+            if (mode == "restore") document["syncNachRestore"] = new JsonObject { ["additiv"] = true };
+            var root = Path.Combine(Path.GetTempPath(), "magnolie-saved-dav-run-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                var path = Path.Combine(root, "synthetic.json"); var snapshotPath = Path.Combine(root, "pre-contact.json");
+                var store = new AtomicStore(); var owner = new NativeBookOwnerScope(); owner.SetReady(true);
+                var text = document.ToJsonString(); store.WriteRecoverableJson(path, text);
+                owner.RecordSaved(path, true, BaumSyncSnapshot.Hash(text));
+                var nativeHost = mode == "native-writer" ? new PersonalActorNativeSaveHost(Path.Combine(root, "encrypted"), text) : null;
+                NativeBookSaveState? Current() => nativeHost is null ? owner.SaveState(path, true) : nativeHost.Saved();
+                NativeActorBookSnapshot? Capture() => nativeHost is null ? NativeActorBookSnapshot.Capture(Current, () => text) : nativeHost.Snapshot();
+                var firstScope = new ContactSourceApprovalScope(Current, first.Settings.ReadSnapshot);
+                var secondScope = new ContactSourceApprovalScope(Current, second.Settings.ReadSnapshot);
+                await firstScope.ConfigureAsync([first.Catalog], (_, _, _) => Task.FromResult<IReadOnlyList<string>?>([first.Catalog.Uid]));
+                await secondScope.ConfigureAsync([second.Catalog], (_, _, _) => Task.FromResult<IReadOnlyList<string>?>([second.Catalog.Uid]));
+                var approvals = firstScope.Capture().Concat(secondScope.Capture()).ToArray();
+                if (mode == "no-grants") approvals = [];
+                if (mode == "duplicate-approvals") approvals = [approvals[0], approvals[0], approvals[1]];
+                if (mode == "readonly") first.Permission = false;
+                if (mode == "unknown") first.Permission = null;
+                if (mode == "offline") first.FailDiscovery = true;
+                if (mode == "revoked") firstScope.Revoke();
+                if (mode == "not-saved") owner.InvalidateSaved();
+                if (mode == "book-during-discovery") first.BeforeDiscovery = owner.InvalidateSaved;
+                if (mode == "book-during-read") first.BeforeContentRead = owner.InvalidateSaved;
+                if (mode == "bad-readback") first.BadReadback = true;
+                first.RequireSaved = second.RequireSaved = first.Saved = second.Saved = true;
+                var reads = first.Reads + second.Reads; var discoveries = first.Discoveries + second.Discoveries;
+                using var cancel = new CancellationTokenSource(); var protections = 0;
+                async Task Protect(NativeActorBookSnapshot snapshot, CancellationToken token)
+                {
+                    token.ThrowIfCancellationRequested(); protections++;
+                    await Task.Yield();
+                    if (mode == "snapshot-failed" && protections == 1) throw new IOException("controlled snapshot failure");
+                    store.WriteRecoverableJson(snapshotPath, snapshot.Text);
+                    TestAssert.That(store.Read(snapshotPath) == text && snapshot.SavedBook == Current(), "Protection lost native original book");
+                    if (mode == "revoke-during-snapshot" && protections == 1) firstScope.Revoke();
+                    if (mode == "cancel-during-snapshot") cancel.Cancel();
+                }
+                NextcloudMailboxSettingsStore Account(NativeDavContactUpdateApproval approval) =>
+                    approval.Source == first.Catalog.Uid && mode != "wrong-account" ? first.Settings : second.Settings;
+                HttpClient Transport(NativeDavContactUpdateApproval approval) =>
+                    approval.Source == first.Catalog.Uid ? first.Transport : second.Transport;
+                try
+                {
+                    var result = await ContactSourceSavedDavRun.RunAsync(Capture, Current, approvals, Account, Protect,
+                        cancel.Token, transportForApproval: Transport);
+                    TestAssert.That(mode is not ("restore" or "not-saved" or "book-during-discovery" or "book-during-read" or "cancel-during-snapshot"),
+                        "Invalid native book/lifetime completed orchestration: " + mode);
+                    var firstWrites = mode is "success" or "native-writer" or "bad-readback" ? 1 : 0;
+                    TestAssert.That(first.Writes == firstWrites && second.Writes == (mode is "no-grants" or "clean" ? 0 : 1),
+                        "Saved DAV orchestration lost source failure isolation: " + mode);
+                    TestAssert.That(result.OriginalBook == Current() && result.Contacts.Count == 2 &&
+                        ContactFields.Text(result.Contacts[0]!.AsObject(), "uid") == "canonical-person" &&
+                        JsonNode.DeepEquals(result.Contacts[1], document["kontakte"]![1]), "Original identity/unbound contact changed");
+                    if (mode is "no-grants" or "unbound" or "clean")
+                    {
+                        TestAssert.That(!result.Sources.ContainsKey(first.Catalog.Uid), "Clean/unbound/unapproved source acquired a result");
+                        if (mode is "no-grants" or "clean") TestAssert.That(first.Reads + second.Reads == reads &&
+                            first.Discoveries + second.Discoveries == discoveries && protections == 0, "No grants caused provider IO/protection");
+                    }
+                    else if (mode is not ("success" or "native-writer")) TestAssert.That(result.Sources[first.Catalog.Uid].Errors > 0 &&
+                        ContactFields.Source(result.Contacts[0]!.AsObject(), first.Catalog.Uid)!.ToJsonString() == baseline,
+                        "Held original source acquired a baseline/success: " + mode);
+                    TestAssert.That(store.Read(path) == text, "Returning provider results silently persisted baselines");
+                    if (mode is "success" or "native-writer")
+                    {
+                        TestAssert.That(result.Sources.Values.All(count => count.Errors == 0) && protections == 2 &&
+                            store.Read(snapshotPath) == text, "Saved DAV run skipped actual synthetic protection/readback");
+                        if (nativeHost is not null)
+                        {
+                            var offer = nativeHost.StageOriginalContactResult(result);
+                            document["kontakte"] = offer.Contacts.DeepClone();
+                            var response = await nativeHost.SaveOriginalContactResultAsync(offer.Token, document);
+                            text = document.ToJsonString();
+                            TestAssert.That(response["ok"]!.GetValue<bool>() && response["kontaktOriginalGespeichert"]!.GetValue<string>() == offer.Token &&
+                                new EncryptionService().Unlock(File.ReadAllText(nativeHost.DataPath), PersonalActorNativeSaveHost.Password) == text,
+                                "Provider readback did not reach actual encrypted SaveAsync/result commit acknowledgment");
+                        }
+                        else
+                        {
+                            var commit = new ContactSourceSavedCommit(Current);
+                            var offer = commit.Stage(Capture()!, result);
+                            document["kontakte"] = offer.Contacts.DeepClone();
+                            var proposed = document.ToJsonString();
+                            var invocation = commit.Prepare(offer.Token, document);
+                            invocation.Write(proposed, payload =>
+                            {
+                                owner.InvalidateSaved(); store.WriteRecoverableJson(path, payload); text = payload;
+                                owner.RecordSaved(path, true, BaumSyncSnapshot.Hash(payload));
+                            });
+                            TestAssert.That(invocation.Completed && invocation.Token == offer.Token, "Native result-save invocation lacked a durable witness");
+                        }
+                        var beforeReads = first.Reads + second.Reads; var beforeDiscovery = first.Discoveries + second.Discoveries;
+                        var repeated = await ContactSourceSavedDavRun.RunAsync(Capture, Current,
+                            firstScope.Capture().Concat(secondScope.Capture()).ToArray(), Account, Protect,
+                            cancel.Token, transportForApproval: Transport);
+                        TestAssert.That(repeated.Sources.Count == 0 && first.Writes + second.Writes == 2 &&
+                            first.Reads + second.Reads == beforeReads && first.Discoveries + second.Discoveries == beforeDiscovery && protections == 2,
+                            "Durably saved clean result performed redundant provider IO");
+                    }
+                }
+                catch (InvalidOperationException error) when (mode is "restore" or "not-saved" or "book-during-discovery" or "book-during-read" &&
+                    error.Message is "contact_source_restore_pending" or "contact_source_book_not_saved" or "contact_source_saved_book_changed")
+                {
+                    TestAssert.That(first.Writes + second.Writes == 0 && protections == 0, "Invalid native context performed writes/protection");
+                    if (mode is "restore" or "not-saved") TestAssert.That(first.Reads + second.Reads == reads &&
+                        first.Discoveries + second.Discoveries == discoveries, "Invalid saved/restore state reached discovery");
+                }
+                catch (OperationCanceledException) when (mode == "cancel-during-snapshot")
+                { TestAssert.That(first.Writes + second.Writes == 0 && protections == 1, "Cancelled protection allowed writes/another source"); }
+                catch (InvalidDataException error) when (mode == "duplicate-approvals" && error.Message == "contact_source_admission_ambiguous")
+                {
+                    TestAssert.That(first.Writes + second.Writes == 0 && first.Reads + second.Reads == reads &&
+                        first.Discoveries + second.Discoveries == discoveries && protections == 0, "Ambiguous approval reached provider IO");
+                }
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+    }
+
+    private static async Task SavedResultCommitAsync()
+    {
+        using (BridgeDispatcherContract.Parse("{\"cmd\":\"speichern\",\"id\":1,\"text\":\"{}\"}")) { }
+        using (BridgeDispatcherContract.Parse("{\"cmd\":\"speichern\",\"id\":1,\"text\":\"{}\",\"kontaktOriginalLauf\":\"opaque-native-token\"}")) { }
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"speichern\",\"id\":1,\"text\":\"{}\",\"kontaktOriginalLauf\":{\"saved\":true}}"),
+            "A document-claimed saved flag was accepted as a native result token");
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"speichern\",\"id\":1,\"text\":\"{}\",\"sourceAdmissions\":[]}"),
+            "Save envelope accepted renderer source admissions");
+        foreach (var mode in new[] { "success", "forged-token", "mixed-content", "changed-before-prepare", "changed-before-write",
+            "replaced-offer", "invalid-identity", "failed-primary-write", "throw-after-confirm", "unconfirmed-write",
+            "wrong-hash", "extra-save", "other-book", "invalidated" })
+        {
+            var root = Path.Combine(Path.GetTempPath(), "magnolie-source-commit-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                var path = Path.Combine(root, "synthetic.json"); var store = new AtomicStore();
+                var document = new JsonObject { ["kontakte"] = new JsonArray(new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["notiz"] = "Original" }),
+                    ["notizen"] = new JsonArray(new JsonObject { ["text"] = "Never alter other domains" }) };
+                var text = document.ToJsonString(); var owner = new NativeBookOwnerScope(); owner.SetReady(true);
+                store.WriteRecoverableJson(path, text); owner.RecordSaved(path, true, BaumSyncSnapshot.Hash(text));
+                NativeBookSaveState? Current() => owner.SaveState(path, true);
+                var snapshot = NativeActorBookSnapshot.Capture(Current, () => text)!;
+                var contacts = document["kontakte"]!.DeepClone().AsArray(); contacts[0]!["notiz"] = "Confirmed source result";
+                if (mode == "invalid-identity") contacts[0]!["uid"] = "different-person";
+                var result = new SavedContactSourceUpdateResult(snapshot.SavedBook, contacts, new Dictionary<string, ContactSyncCounts>());
+                var commit = new ContactSourceSavedCommit(Current); var writes = 0;
+                ContactSourceSavedCommit.SaveInvocation? invocation = null;
+                try
+                {
+                    var offer = commit.Stage(snapshot, result);
+                    if (mode == "invalid-identity") throw new Exception("Commit staged changed canonical identity");
+                    document["kontakte"] = offer.Contacts.DeepClone();
+                    if (mode == "forged-token") offer = offer with { Token = new string('0', 64) };
+                    if (mode == "mixed-content") document["notizen"]![0]!["text"] = "Unexpected other-domain mutation";
+                    if (mode == "changed-before-prepare") owner.RecordSaved(path, true, BaumSyncSnapshot.Hash(text));
+                    if (mode == "replaced-offer") commit.Stage(snapshot, result);
+                    if (mode == "invalidated") commit.Invalidate();
+                    invocation = commit.Prepare(offer.Token, document);
+                    if (mode == "changed-before-write") owner.InvalidateSaved();
+                    var proposed = document.ToJsonString();
+                    invocation.Write(proposed, payload =>
+                    {
+                        writes++; owner.InvalidateSaved();
+                        if (mode == "failed-primary-write")
+                        {
+                            new AtomicStore(stage => { if (stage == AtomicStore.WriteStage.PrimaryReplaced) throw new IOException("controlled failed result write"); })
+                                .WriteRecoverableJson(path, payload);
+                            return;
+                        }
+                        store.WriteRecoverableJson(path, payload); text = payload;
+                        if (mode == "unconfirmed-write") return;
+                        if (mode == "other-book") owner.Invalidate();
+                        owner.RecordSaved(path, true, mode == "wrong-hash" ? new string('0', 64) : BaumSyncSnapshot.Hash(payload));
+                        if (mode == "extra-save") owner.RecordSaved(path, true, BaumSyncSnapshot.Hash(payload));
+                        if (mode == "throw-after-confirm") throw new IOException("controlled unknown terminal result");
+                    });
+                    TestAssert.That(mode == "success" && writes == 1 && invocation.Completed &&
+                        store.Read(path) == proposed && Current()!.Sequence == snapshot.SavedBook.Sequence + 1,
+                        "Unconfirmed/stale/mixed result acquired durable acknowledgment: " + mode);
+                    try { invocation.Write(proposed, _ => writes++); throw new Exception("Committed source result was replayed"); }
+                    catch (InvalidOperationException) { TestAssert.That(writes == 1, "Replayed result reached native writer"); }
+                }
+                catch (Exception error) when (mode != "success" && error is InvalidOperationException or InvalidDataException or IOException)
+                {
+                    var attempted = mode is "failed-primary-write" or "throw-after-confirm" or "unconfirmed-write" or "wrong-hash" or "extra-save" or "other-book";
+                    TestAssert.That(writes == (attempted ? 1 : 0) && invocation?.Completed != true, "Invalid result save was acknowledged/wrote prematurely: " + mode);
+                    if (invocation is not null)
+                    {
+                        try { invocation.Write(document.ToJsonString(), _ => writes++); throw new Exception("Failed/stale result was reused"); }
+                        catch (InvalidOperationException) { TestAssert.That(writes == (attempted ? 1 : 0), "Failed/stale result retry reached writer"); }
+                    }
+                }
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+        await PersonalActorNativeSaveHost.VerifyOriginalContactResultAsync(new JsonObject {
+            ["kontakte"] = new JsonArray(new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["notiz"] = "Original" }),
+            ["notizen"] = new JsonArray(new JsonObject { ["text"] = "Other domains remain unchanged" }),
+            ["syncEpoch"] = "native-source-result-save-epoch"
+        }.ToJsonString());
     }
 
     private static async Task ApprovalScopeAsync()
