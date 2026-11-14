@@ -318,4 +318,68 @@ class KontaktOriginalZuordnungenTest {
         assertArrayEquals(before, file.readBytes()); assertFalse(File(parent, "attempts").exists())
         assertEquals(1, rotations); assertEquals(0, provider.writes)
     }
+
+    @Test fun genuineNativeExportKeepsObservedContentRevisionCanonicalIdAndBasisTogether() {
+        approve()
+        val offer = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val stand = offer.lesen()
+        assertEquals(share, stand.freigabeId); assertEquals(binding.revision, stand.revision)
+        assertEquals(binding.aktuell().daten, stand.daten)
+        assertEquals(maps().finden(peer, share)!!.basisHash(scope.freigabe(binding)), stand.basisHash)
+        assertEquals(stand, offer.lesen()); assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun forgedOrCopiedExportValuesCannotBecomeANativeObservedOffer() {
+        val before = provider.queries
+        val copied = KontaktOriginalExport.Stand(share, "0".repeat(64), 3, KontaktDaten(vorname = "Imported"))
+        for (fake in listOf(Any(), copied)) {
+            assertThrows(SecurityException::class.java) { KontaktOriginalExport.Angebot(fake).lesen() }
+        }
+        assertEquals(before, provider.queries); assertFalse(mapRoot.exists()); assertEquals(0, rotations)
+    }
+
+    @Test fun freshExportAfterANativeEditRefreshesContentAndQuoteWithoutAnotherHumanDecision() {
+        approve()
+        val previous = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val old = previous.lesen()
+        provider.raw[RawContacts.VERSION] = 4L
+        provider.row[ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME] = "New genuine native content"
+        assertThrows(IllegalArgumentException::class.java) { previous.lesen() }
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        val current = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts()).lesen()
+        assertEquals("New genuine native content", current.daten.vorname)
+        assertEquals(4L, current.revision); assertEquals(old.freigabeId, current.freigabeId)
+        assertNotEquals(old.basisHash, current.basisHash); assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun retainedNativeExportCannotOutliveSourcePermissionOrItsExactStoredMapping() {
+        approve()
+        val offer = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }
+        val old = file.readBytes()
+        file.writeBytes(old.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() })
+        assertThrows(Exception::class.java) { offer.lesen() }
+        file.writeBytes(old); offer.lesen()
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { offer.lesen() }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun callersCannotMutateTheNativeExportSnapshotThroughReturnedListContainers() {
+        provider.rows += mutableMapOf<String, Any?>(
+            ContactsContract.Data._ID to 24L, ContactsContract.Data.RAW_CONTACT_ID to 7L,
+            ContactsContract.Data.MIMETYPE to ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
+            ContactsContract.CommonDataKinds.Phone.NUMBER to "+12025550101",
+            ContactsContract.CommonDataKinds.Phone.TYPE to ContactsContract.CommonDataKinds.Phone.TYPE_HOME,
+            ContactsContract.Data.IS_READ_ONLY to 0)
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        approve()
+        val offer = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val expected = binding.aktuell().daten
+        val returned = offer.lesen().daten
+        assertTrue(returned.telefone.isNotEmpty())
+        (returned.telefone as MutableList<KontaktWert>).clear()
+        assertEquals(expected, offer.lesen().daten)
+        assertEquals(0, provider.writes)
+    }
 }

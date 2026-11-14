@@ -392,6 +392,7 @@ class KontaktOriginalVersucheTest {
 
     private fun refreshHeld(verified: Boolean) {
         val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
+        val oldExport = KontaktOriginalExport.erfassen(grant(), "canonical-original-kept", maps, ledger())
         val mapFile = File(parent, "mapping").listFiles()!!.single { it.extension == "bin" }
         val before = mapFile.readBytes()
         if (verified) {
@@ -402,10 +403,14 @@ class KontaktOriginalVersucheTest {
             provider.raw[RawContacts.VERSION] = 4L
         }
         binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertThrows(Exception::class.java) { oldExport.lesen() }
         val error = assertThrows(IllegalStateException::class.java) {
             maps.aktualisieren(grant(), "canonical-original-kept", ledger())
         }
         assertEquals("contact_original_attempt_held", error.message)
+        assertThrows(IllegalStateException::class.java) {
+            KontaktOriginalExport.erfassen(grant(), "canonical-original-kept", maps, ledger())
+        }
         assertArrayEquals(before, mapFile.readBytes())
         assertEquals(verified, ledger().laden(grant())!!.bestaetigung() != null)
         assertEquals(if (verified) 1 else 0, provider.batchCalls)

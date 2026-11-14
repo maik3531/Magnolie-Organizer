@@ -292,6 +292,22 @@ an actual authenticated export packet or a baseline-save acknowledgement. The
 future sender must export the exact observed content with its quote, and must
 not fill a return's stale quote from this refreshed native state.
 
+`KontaktOriginalExport` now supplies that native observed-content boundary: a
+private offer carries the exact canonical ID, refreshed quote, native revision
+and an owned serialized snapshot of the observed contact together. Reading an
+offer rechecks the actual source grant, mapping continuity and absence of a
+physical attempt. A copied value cannot mint the private offer; returned list
+containers cannot mutate its retained snapshot. After a native edit, an old
+offer is held and a freshly captured offer contains both the new content and
+new quote without another setup decision. This object is not yet a negotiated
+wire envelope, queued send, desktop baseline SaveACK or permission to write.
+
+The export extension covers 54 mapping/export and 54 attempt host cases across
+API28/API35. One new container-isolation test initially assumed a nonempty raw
+name list in its synthetic provider; only its fixture was corrected to include
+an explicit synthetic phone row. The two affected cases then passed in a
+targeted rerun; the other 106 passing cases were retained unchanged.
+
 ### Pinned original protection and durable native outcomes
 
 `KontaktOriginalSicherungen` now writes and rereads an actual pinned contact-only
