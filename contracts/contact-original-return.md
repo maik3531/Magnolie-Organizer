@@ -209,6 +209,52 @@ existing shared-cipher cases also pass; earlier native matrices overlap these
 cases and must not be summed. Provider, decision, protection and keystore callbacks
 remain controlled; no physical Android device or real contacts/keyring are used.
 
+### Explicit canonical-share/native-original mapping
+
+`einrichtenOriginale` can collect source choices and exact original choices in
+one native setup decision. Each selected canonical share ID must belong to an
+offered actual native observation and to a selected source; reconstructed offers,
+unoffered native observations and mutated choice containers cannot add mappings.
+The source-only setup API deliberately selects **no** original mappings. Portable
+`KontaktSpur`/`baumKontakt` records may be suggestions for native review, never
+authority to register or retarget an original automatically.
+
+`KontaktOriginalZuordnungen` stores the exact canonical ID unchanged with native
+database/raw/account/source identity, contact/lookup observation, revision and
+before-content hash in private journal-key-encrypted files. It does not create
+missing keys, read providers on missing-state lookup, or infer source permission.
+A canonical share cannot silently move to another native original. The mapping
+and owned source approval bind the **same native setup UUID**. Thus a partially
+written mapping cannot be combined after restart with an older accepted source
+approval. Ordinary restoration retains that UUID and needs no second decision.
+After a failed setup, affected partial mappings may remain held for clarification;
+no all-or-nothing multi-file rollback is claimed.
+
+A fresh apply token now requires this current private mapping in addition to
+native source permission and pinned protection. It pins mapping-file continuity
+around lifetime callbacks, including after the provider revision advances. Loss
+of that mapping prevents a positive result even if the provider already wrote.
+The native reservation/verified receipt records the actual canonical share and
+mapping-baseline hash. Legacy records without those fields remain readable as
+history/negative holds, not newly reconstructed mapping permission.
+
+The return must also quote the baseline observed by its sender. The apply API has
+no default that fills the current native mapping hash behind the peer: a wrong or
+older quote is rejected before reservation/provider mutation. That hash is a
+revision quote, not consent. Genuine export and authenticated request/response
+transport still need to deliver it and bind it to the actual pending request.
+
+Host API28/API35 checks cover 28 mapping cases, 50 canonical-bound outcome cases,
+104 source-core cases and 20 protection cases in the final changed-input run.
+Canonical IDs retain the existing protocol's Unicode code-point limits without
+renaming or truncation, including through verified-receipt persistence. The
+matrices overlap earlier checkpoints.
+This is still a native API boundary, not an installed automatic feature. Actual
+combined setup UI, genuine native export/baseline advancement, authenticated full
+request/result/desktop-SaveACK handling and safe terminal-history release remain
+unconnected. In particular, no source change is handled by prompting again on
+every run or by secretly registering imported mappings.
+
 ### Pinned original protection and durable native outcomes
 
 `KontaktOriginalSicherungen` now writes and rereads an actual pinned contact-only
@@ -238,8 +284,9 @@ verified receipt can be loaded again without another provider write. If provider
 write succeeds but receipt storage fails, the outcome stays held, not saved or
 replayable. Revocation or failed exact readback cannot produce a positive receipt.
 
-The newest outcome matrix passes 36 API28/API35 host cases. The changed-input
-protection matrix passes 20 cases and the durable source core passes 98; earlier
+The earlier outcome checkpoint passed 36 API28/API35 host cases; its subsequent
+canonical-bound extension is recorded above. The changed-input protection matrix
+passes 20 cases and the durable source core passes 104; earlier
 overlapping matrices are not additional cases. Software keystore/peer/provider
 fixtures and private test files are used, not real contacts or installed apps.
 Native receipts are **not** desktop baseline SaveACKs. Verified records still

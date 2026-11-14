@@ -8,18 +8,30 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
                                       private val aktuellerPartner: () -> Partner?) {
     data class Partner(val kennung: String, val schluessel: String)
     data class Quelle(val datenbank: Long, val konto: KontaktOriginalBindung.Quelle)
+    /** Native setup offer only, never imported mapping authority. The combined
+     * setup chooser must explicitly select the exact canonical share/original.
+     */
+    class Original(val freigabeId: String, val bindung: KontaktOriginalBindung)
+    data class Auswahl(val quellen: Set<Quelle>, val originale: Set<Original>)
     private class Beleg(val scope: KontaktOriginalFreigaben, val generation: Long,
                         val bindung: KontaktOriginalBindung, val quelle: Quelle)
     private class SetupBeleg(val scope: KontaktOriginalFreigaben, val generation: Long,
-        val partner: Partner, val quellen: Set<Quelle>, val originale: List<KontaktOriginalBindung>)
+        val partner: Partner, val quellen: Set<Quelle>, val originale: List<KontaktOriginalBindung>,
+        val zuordnungen: List<Original>, val id: String = java.util.UUID.randomUUID().toString())
     class Entscheidung internal constructor(private val beleg: Any) {
         private fun native(): SetupBeleg = (beleg as? SetupBeleg)
             ?: throw SecurityException("contact_original_native_setup_required")
         fun pruefen() { native().let { it.scope.pruefen(it) } }
         fun partner(): Partner = native().also { pruefen() }.partner
         fun quellen(): Set<Quelle> = native().also { pruefen() }.quellen.toSet()
+        internal fun zuordnungen(): List<Original> = native().also { pruefen() }.zuordnungen.toList()
+        internal fun kennung(): String = native().also { pruefen() }.id
     }
     class Freigabe internal constructor(internal val bindung: KontaktOriginalBindung, private val beleg: Any) {
+        internal fun entscheidungId(): String {
+            pruefen()
+            return (beleg as Beleg).let { it.scope.entscheidungskennung(it) }
+        }
         internal fun partner(): Partner {
             pruefen()
             val native = beleg as Beleg
@@ -40,15 +52,33 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
     private var setup: SetupBeleg? = null
     private var dauer: KontaktOriginalDauerfreigaben.Gespeichert? = null
     private var blockiert = false
+    private var entscheidungId: String? = null
     val gewuenscht: Boolean get() = synchronized(lock) { quellen.isNotEmpty() }
 
     /** Explicit native setup entry, not called by deserialization or discovery.
      * Cancel preserves the previous decision; empty selection explicitly revokes.
      */
     fun einrichten(bindungen: List<KontaktOriginalBindung>, speichern: ((Entscheidung) -> Unit)? = null,
-                   waehlen: (List<Quelle>) -> Set<Quelle>?): Boolean {
+                   waehlen: (List<Quelle>) -> Set<Quelle>?): Boolean =
+        einrichtenOriginale(bindungen, emptyList(), speichern) { quellen, _ ->
+            waehlen(quellen)?.let { Auswahl(it, emptySet()) }
+        }
+
+    /** One native setup decision can cover source permission AND exact original
+     * mappings. Old source-only decisions deliberately contain no mapping grant.
+     */
+    fun einrichtenOriginale(bindungen: List<KontaktOriginalBindung>, originale: List<Original>,
+                           speichern: ((Entscheidung) -> Unit)? = null,
+                           waehlen: (List<Quelle>, List<Original>) -> Auswahl?): Boolean {
         val originals = bindungen.toList()
+        val mappingChoices = originale.toList()
         require(originals.size <= 1000)
+        require(mappingChoices.size <= 1000 && mappingChoices.map { it.freigabeId }.distinct().size == mappingChoices.size)
+        require(mappingChoices.all { offered -> originals.any { it === offered.bindung } &&
+            offered.freigabeId.isNotBlank() && offered.freigabeId.codePointCount(0, offered.freigabeId.length) <= 128 &&
+            offered.freigabeId.none(Char::isISOControl) && offered.freigabeId.codePoints().noneMatch { it in 0xD800..0xDFFF } }) {
+            "contact_original_native_mapping_offer_required"
+        }
         val expectedGeneration = synchronized(lock) {
             check(setup == null) { "contact_original_setup_busy" }
             generation
@@ -58,15 +88,20 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
         originals.forEach { it.aktuell() }
         val choices = originals.map(::quelle).distinct()
         require(choices.size <= 32)
-        val selected = waehlen(choices.toList())?.toSet() ?: return false
+        val selection = waehlen(choices.toList(), mappingChoices.toList()) ?: return false
+        val selected = selection.quellen.toSet()
+        val mappings = selection.originale.toList()
         require(selected.all { it in choices }) { "contact_original_source_not_offered" }
+        require(mappings.all { chosen -> mappingChoices.any { it === chosen } && quelle(chosen.bindung) in selected }) {
+            "contact_original_mapping_not_selected"
+        }
         require(aktuellerPartner() == peer) { "contact_original_peer_changed" }
         originals.filter { quelle(it) in selected }.forEach { it.aktuell() }
         require(aktuellerPartner() == peer) { "contact_original_peer_changed" }
         val pending = synchronized(lock) {
             check(generation == expectedGeneration && setup == null) { "contact_original_decision_changed" }
             generation++
-            SetupBeleg(this, generation, peer, selected.toSet(), originals.filter { quelle(it) in selected }).also { setup = it }
+            SetupBeleg(this, generation, peer, selected.toSet(), originals.filter { quelle(it) in selected }, mappings.toList()).also { setup = it }
         }
         val decision = Entscheidung(pending)
         var persisted: KontaktOriginalDauerfreigaben.Gespeichert? = null
@@ -91,7 +126,7 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
             // Hold volatile permission; this never deletes persistent human intent.
             synchronized(lock) {
                 if (generation == pending.generation && setup === pending) {
-                    generation++; quellen = emptySet(); partner = null; setup = null; dauer = null; blockiert = true
+                    generation++; quellen = emptySet(); partner = null; setup = null; dauer = null; blockiert = true; entscheidungId = null
                 }
             }
             throw error
@@ -99,16 +134,17 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
         synchronized(lock) {
             check(generation == pending.generation && setup === pending) { "contact_original_decision_changed" }
             partner = peer; quellen = selected.toSet(); generation++; setup = null; dauer = persisted
+            entscheidungId = pending.id
             blockiert = selected.isEmpty()
         }
         return true
     }
 
-    fun pausieren() = synchronized(lock) { generation++; quellen = emptySet(); partner = null; setup = null; dauer = null }
+    fun pausieren() = synchronized(lock) { generation++; quellen = emptySet(); partner = null; setup = null; dauer = null; entscheidungId = null }
 
     fun widerrufen() {
         synchronized(lock) {
-            generation++; quellen = emptySet(); partner = null; setup = null; dauer = null; blockiert = true
+            generation++; quellen = emptySet(); partner = null; setup = null; dauer = null; blockiert = true; entscheidungId = null
         }
         dauerStore?.widerrufen()
     }
@@ -123,12 +159,14 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
         require(stored.aus(owner)) { "contact_original_foreign_store" }
         stored.pruefen()
         val peer = stored.partner(); val sources = stored.quellen()
+        val decisionId = stored.entscheidungId()
         if (aktuellerPartner() != peer) throw SecurityException("contact_original_peer_unavailable")
         stored.pruefen()
         val restoredGeneration = synchronized(lock) {
             check(generation == expected && !blockiert && setup == null) { "contact_original_restore_context_changed" }
             if (dauer?.gleich(stored) != true || partner != peer || quellen != sources) {
                 generation++; partner = peer; quellen = sources.toSet(); dauer = stored
+                entscheidungId = decisionId
             }
             generation
         }
@@ -140,7 +178,7 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
         } catch (error: Exception) {
             synchronized(lock) {
                 if (generation == restoredGeneration) {
-                    generation++; partner = null; quellen = emptySet(); dauer = null
+                    generation++; partner = null; quellen = emptySet(); dauer = null; entscheidungId = null
                 }
             }
             throw error
@@ -186,6 +224,12 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
         if (blockiert || setup != null || generation != beleg.generation || beleg.quelle !in quellen)
             throw SecurityException("contact_original_source_not_granted")
         partner ?: throw SecurityException("contact_original_source_not_granted")
+    }
+
+    private fun entscheidungskennung(beleg: Beleg): String = synchronized(lock) {
+        if (blockiert || setup != null || generation != beleg.generation || beleg.quelle !in quellen)
+            throw SecurityException("contact_original_source_not_granted")
+        entscheidungId ?: throw SecurityException("contact_original_native_setup_required")
     }
 
     private fun quelle(bindung: KontaktOriginalBindung) = Quelle(bindung.datenbankErstellt, bindung.quelle)

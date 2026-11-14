@@ -26,6 +26,7 @@ internal class KontaktOriginalDauerfreigaben internal constructor(
         fun pruefen() { native().let { it.store.pruefen(it) } }
         fun partner(): KontaktOriginalFreigaben.Partner = native().also { pruefen() }.inhalt.partner
         fun quellen(): Set<KontaktOriginalFreigaben.Quelle> = native().also { pruefen() }.inhalt.quellen.toSet()
+        internal fun entscheidungId(): String = native().also { pruefen() }.inhalt.generation
         internal fun stammtVon(store: KontaktOriginalDauerfreigaben, hash: String?): Boolean = native().let {
             it.store === store && it.hash == hash
         }
@@ -51,7 +52,7 @@ internal class KontaktOriginalDauerfreigaben internal constructor(
             entscheidung.pruefen(); widerrufen(); entscheidung.pruefen()
             return null
         }
-        val record = Inhalt(UUID.randomUUID().toString(), peer, sources.toSet())
+        val record = Inhalt(entscheidung.kennung(), peer, sources.toSet())
         require(listOf(peer.kennung, peer.schluessel).all { it.isNotBlank() && gueltigerText(it) } &&
             sources.size in 1..32 && sources.all { source -> source.datenbank > 0 &&
                 listOf(source.konto.kontoName, source.konto.kontoTyp, source.konto.datenSatz).all(::gueltigerText) }) {

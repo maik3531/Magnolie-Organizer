@@ -23,7 +23,8 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
     private class Beleg(val store: KontaktOriginalVersuche, val key: String, val hash: String, val record: JsonObject)
     private class AnwendeBeleg(val store: KontaktOriginalVersuche, val key: String,
         val grant: KontaktOriginalFreigaben.Freigabe, val hold: Offen,
-        val protection: KontaktOriginalSicherungen.Sicherung, val targetHash: String) {
+        val protection: KontaktOriginalSicherungen.Sicherung, val targetHash: String,
+        val mapping: KontaktOriginalZuordnungen.Fortbestand) {
         var consumed = false
     }
     /** Only a freshly persisted reservation mints this one-use in-process token.
@@ -42,6 +43,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
             require(KontaktSync.hash(owned) == native.targetHash) { "contact_original_attempt_target_changed" }
             native.grant.pruefen()
             fun protected() {
+                native.mapping.pruefen(native.grant)
                 native.hold.pruefen()
                 native.protection.pruefen(native.grant.bindung)
             }
@@ -61,6 +63,8 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         fun pruefen() { native().let { it.store.pruefen(it) } }
         fun anfrageId(): String = native().also { pruefen() }.record.getValue("request_id").jsonPrimitive.content
         fun zielHash(): String = native().also { pruefen() }.record.getValue("target_sha256").jsonPrimitive.content
+        fun freigabeId(): String? = native().also { pruefen() }.record["share_id"]?.jsonPrimitive?.contentOrNull
+        fun basisHash(): String? = native().also { pruefen() }.record["mapping_sha256"]?.jsonPrimitive?.contentOrNull
         fun bestaetigung(): Verifiziert? = native().also { pruefen() }.let {
             if (it.record["state"] == JsonPrimitive("verified")) Verifiziert(it) else null
         }
@@ -75,6 +79,8 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         fun pruefen() { native().let { it.store.pruefen(it) } }
         fun anfrageId(): String = native().also { pruefen() }.record.getValue("request_id").jsonPrimitive.content
         fun zielHash(): String = native().also { pruefen() }.record.getValue("target_sha256").jsonPrimitive.content
+        fun freigabeId(): String? = native().also { pruefen() }.record["share_id"]?.jsonPrimitive?.contentOrNull
+        fun basisHash(): String? = native().also { pruefen() }.record["mapping_sha256"]?.jsonPrimitive?.contentOrNull
     }
 
     fun laden(grant: KontaktOriginalFreigaben.Freigabe): Offen? {
@@ -91,24 +97,32 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         return result
     }
 
-    fun vorbereiten(grant: KontaktOriginalFreigaben.Freigabe, requestId: String, requestHash: String,
+    fun vorbereiten(grant: KontaktOriginalFreigaben.Freigabe, mapping: KontaktOriginalZuordnungen.Zuordnung,
+                    expectedBasis: String, requestId: String, requestHash: String,
                     targetHash: String, sicherung: KontaktOriginalSicherungen.Sicherung): Vorbereitet {
         grant.pruefen()
         check(laden(grant) == null) { "contact_original_attempt_held" }
         require(KontaktSync.hash(grant.bindung.aktuell().daten) != targetHash) { "contact_original_no_mutation_required" }
-        val held = vormerken(grant, requestId, requestHash, targetHash, sicherung)
+        val pinnedMapping = mapping.festhalten(grant)
+        require(digest(expectedBasis) && pinnedMapping.hash(grant) == expectedBasis) { "contact_original_expected_baseline_changed" }
+        val held = vormerken(grant, requestId, requestHash, targetHash, sicherung, pinnedMapping)
         grant.pruefen(); held.pruefen(); sicherung.pruefen(grant.bindung)
-        return Vorbereitet(AnwendeBeleg(this, originalPlatz(identitaet(grant)), grant, held, sicherung, targetHash))
+        pinnedMapping.pruefen(grant)
+        return Vorbereitet(AnwendeBeleg(this, originalPlatz(identitaet(grant)), grant, held, sicherung, targetHash, pinnedMapping))
     }
 
     private fun bestaetigen(native: AnwendeBeleg, result: AndroidKontakt): Verifiziert {
         native.hold.pruefen(); native.protection.pruefen(native.grant.bindung)
+        native.mapping.pruefen(native.grant)
+        val shareId = native.mapping.freigabeId(native.grant)
+        val mappingHash = native.mapping.hash(native.grant)
         require(KontaktSync.hash(result.daten) == native.targetHash)
         val saved = requireNotNull(files.mitSperre(create = false) {
             val blob = requireNotNull(files.lesen("${native.key}.bin"))
             require(native.store === this && native.hold.passt(this, native.key, blob)) { "contact_original_attempt_changed" }
             val held = decode(native.key, blob)
             require(held["state"] == JsonPrimitive("held"))
+            require(held["share_id"] == JsonPrimitive(shareId) && held["mapping_sha256"] == JsonPrimitive(mappingHash))
             val beforeRevision = held.getValue("before_revision").jsonPrimitive.long
             val revision = result.rawVersionen.getValue(native.grant.bindung.rawContactId)
             require(revision > beforeRevision) { "contact_original_receipt_revision_required" }
@@ -128,9 +142,11 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
     }
 
     fun vormerken(grant: KontaktOriginalFreigaben.Freigabe, requestId: String, requestHash: String,
-                  targetHash: String, sicherung: KontaktOriginalSicherungen.Sicherung): Offen {
+                  targetHash: String, sicherung: KontaktOriginalSicherungen.Sicherung,
+                  mapping: KontaktOriginalZuordnungen.Fortbestand? = null): Offen {
         grant.pruefen()
         require(uuid(requestId) && digest(requestHash) && digest(targetHash))
+        mapping?.pruefen(grant)
         sicherung.pruefen(grant.bindung)
         val protection = sicherung.manifest(grant.bindung)
         require(protection.type == "magnolie-snapshot" && protection.version == 1 && protection.platform == "android" &&
@@ -145,6 +161,8 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         val record = buildJsonObject {
             put("format", 1); put("state", "held"); put("attempt_id", UUID.randomUUID().toString())
             put("request_id", requestId); put("request_sha256", requestHash); put("target_sha256", targetHash)
+            put("share_id", mapping?.freigabeId(grant)?.let(::JsonPrimitive) ?: JsonNull)
+            put("mapping_sha256", mapping?.hash(grant)?.let(::JsonPrimitive) ?: JsonNull)
             put("original", identity); put("before_revision", grant.bindung.revision)
             put("before_sha256", KontaktSync.hash(current.daten))
             put("lookup", grant.bindung.lookupKey); put("contact_id", grant.bindung.contactId)
@@ -153,7 +171,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         val clear = record.toString().toByteArray(Charsets.UTF_8)
         require(clear.size <= 256 * 1024)
         val blob = try { cipher.verschluesseln(clear, domain(key)) } finally { clear.fill(0) }
-        grant.pruefen(); sicherung.pruefen(grant.bindung)
+        grant.pruefen(); sicherung.pruefen(grant.bindung); mapping?.pruefen(grant)
         val result = requireNotNull(files.mitSperre(create = true) {
             // A new request ID cannot bypass an old unknown attempt on this original.
             check(files.lesen("$key.bin") == null) { "contact_original_attempt_held" }
@@ -162,7 +180,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
             require(saved.contentEquals(blob) && decode(key, saved) == record)
             Offen(Beleg(this, key, hash(saved), record))
         })
-        grant.pruefen(); sicherung.pruefen(grant.bindung)
+        grant.pruefen(); sicherung.pruefen(grant.bindung); mapping?.pruefen(grant)
         return result
     }
 
@@ -191,12 +209,18 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         try {
             val value = Json.parseToJsonElement(clear.decodeToString(throwOnInvalidSequence = true)) as? JsonObject ?: error("contact_original_attempt_schema")
             val verified = value["state"] == JsonPrimitive("verified")
+            val hasMapping = "share_id" in value || "mapping_sha256" in value
             require(value.keys == setOf("format", "state", "attempt_id", "request_id", "request_sha256", "target_sha256",
                 "original", "before_revision", "before_sha256", "lookup", "contact_id", "protection") +
-                (if (verified) setOf("receipt") else emptySet()) &&
+                (if (verified) setOf("receipt") else emptySet()) +
+                (if (hasMapping) setOf("share_id", "mapping_sha256") else emptySet()) &&
                 value["format"] == JsonPrimitive(1) && (verified || value["state"] == JsonPrimitive("held")))
             fun text(name: String) = (value[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: error("contact_original_attempt_text")
             require(uuid(text("attempt_id")) && uuid(text("request_id")) && listOf("request_sha256", "target_sha256", "before_sha256").all { digest(text(it)) })
+            if (hasMapping && value["share_id"] != JsonNull) {
+                require(text("share_id").isNotBlank() && text("share_id").codePointCount(0, text("share_id").length) <= 128 && text("share_id").none(Char::isISOControl) &&
+                    text("share_id").codePoints().noneMatch { it in 0xD800..0xDFFF } && digest(text("mapping_sha256")))
+            } else if (hasMapping) require(value["mapping_sha256"] == JsonNull)
             val original = value["original"] as? JsonObject ?: error("contact_original_attempt_original")
             require(original.keys == setOf("peer", "peer_key", "database", "raw_id", "source_id", "name", "type", "data_set"))
             require(originalPlatz(original) == key)

@@ -27,7 +27,7 @@ import java.util.UUID
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 
-/** Durable negative holds with actual encrypted pinned before-images; no apply receipt. */
+/** Actual private original mappings, protected holds, native apply and receipts. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28, 35], application = Application::class)
 class KontaktOriginalVersucheTest {
@@ -37,6 +37,8 @@ class KontaktOriginalVersucheTest {
     private lateinit var binding: KontaktOriginalBindung
     private lateinit var parent: File
     private lateinit var root: File
+    private lateinit var mapping: KontaktOriginalZuordnungen.Zuordnung
+    private lateinit var basis: String
     private var key: SecretKey? = null
     private var reads = 0
     private val request = "11111111-1111-4111-8111-111111111111"
@@ -57,11 +59,18 @@ class KontaktOriginalVersucheTest {
         provider.attachInfo(context, ProviderInfo().apply { authority = ContactsContract.AUTHORITY })
         ShadowContentResolver.registerProviderInternal(ContactsContract.AUTHORITY, provider)
         binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
-        scope = KontaktOriginalFreigaben { KontaktOriginalFreigaben.Partner("peer", "pinned-native-key") }
-        scope.einrichten(listOf(binding)) { it.toSet() }
         parent = java.nio.file.Files.createTempDirectory(context.cacheDir.toPath(), "contact-outcome-").toFile()
         root = File(parent, "holds")
         key = SecretKeySpec(ByteArray(32) { 71 }, "AES")
+        val peer = KontaktOriginalFreigaben.Partner("peer", "pinned-native-key")
+        scope = KontaktOriginalFreigaben { peer }
+        val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
+        val offer = KontaktOriginalFreigaben.Original("canonical-original-kept", binding)
+        scope.einrichtenOriginale(listOf(binding), listOf(offer), speichern = { maps.speichern(it) }) { sources, originals ->
+            KontaktOriginalFreigaben.Auswahl(sources.toSet(), originals.toSet())
+        }
+        mapping = maps.finden(peer, "canonical-original-kept")!!
+        basis = mapping.basisHash(grant())
     }
     @After fun cleanup() { parent.deleteRecursively() }
 
@@ -174,10 +183,12 @@ class KontaktOriginalVersucheTest {
     @Test fun onlyFreshPersistedReservationCanPerformOneProtectedNativeWrite() {
         val wanted = binding.aktuell().daten.copy(notiz = "Controlled protected return")
         val target = KontaktSync.hash(wanted)
-        val token = ledger().vorbereiten(grant(), request, requestHash, target, reference())
+        val token = ledger().vorbereiten(grant(), mapping, basis, request, requestHash, target, reference())
         assertEquals(0, provider.writes)
         val receipt = token.anwenden(wanted) {}
         assertEquals(target, receipt.zielHash()); assertEquals(request, receipt.anfrageId())
+        assertEquals("canonical-original-kept", receipt.freigabeId())
+        assertEquals(basis, receipt.basisHash())
         assertEquals(wanted, AndroidKontakte(context).liesRaw(binding.rawContactId)!!.daten)
         assertEquals(1, provider.batchCalls)
         assertThrows(IllegalStateException::class.java) { token.anwenden(wanted) {} }
@@ -185,8 +196,9 @@ class KontaktOriginalVersucheTest {
         assertEquals(request, ledger().laden(grant())!!.anfrageId())
         val restoredReceipt = ledger().laden(grant())!!.bestaetigung()!!
         assertEquals(target, restoredReceipt.zielHash()); assertEquals(request, restoredReceipt.anfrageId())
+        assertEquals("canonical-original-kept", restoredReceipt.freigabeId())
         val next = UUID.randomUUID().toString()
-        assertThrows(IllegalStateException::class.java) { ledger().vorbereiten(grant(), next, requestHash, target, reference(next)) }
+        assertThrows(IllegalStateException::class.java) { ledger().vorbereiten(grant(), mapping, basis, next, requestHash, target, reference(next)) }
         assertEquals(1, provider.batchCalls)
     }
 
@@ -201,7 +213,7 @@ class KontaktOriginalVersucheTest {
 
     @Test fun changedTargetConsumesTheTokenButKeepsThePersistentUnknownHold() {
         val target = binding.aktuell().daten.copy(notiz = "Bound target")
-        val token = ledger().vorbereiten(grant(), request, requestHash, KontaktSync.hash(target), reference())
+        val token = ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference())
         assertThrows(IllegalArgumentException::class.java) { token.anwenden(target.copy(notiz = "Changed target")) {} }
         assertThrows(IllegalStateException::class.java) { token.anwenden(target) {} }
         assertEquals(request, ledger().laden(grant())!!.anfrageId()); assertEquals(0, provider.writes)
@@ -209,7 +221,7 @@ class KontaktOriginalVersucheTest {
 
     @Test fun lostProtectionOrHistoryDuringLifetimeStopsBeforeProviderMutation() {
         val target = binding.aktuell().daten.copy(notiz = "Held on key loss")
-        val token = ledger().vorbereiten(grant(), request, requestHash, KontaktSync.hash(target), reference())
+        val token = ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference())
         val old = key
         assertThrows(IllegalStateException::class.java) { token.anwenden(target) { key = null } }
         key = old
@@ -224,7 +236,7 @@ class KontaktOriginalVersucheTest {
             if (failReceipt && it.endsWith(".bin:temporary_flushed")) throw java.io.IOException("Controlled receipt write failure")
         }) { key }
         val target = binding.aktuell().daten.copy(notiz = "Written but receipt not saved")
-        val token = store.vorbereiten(grant(), request, requestHash, KontaktSync.hash(target), reference())
+        val token = store.vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference())
         provider.afterWrite = { failReceipt = true }
         assertThrows(java.io.IOException::class.java) { token.anwenden(target) {} }
         assertEquals(1, provider.batchCalls)
@@ -242,7 +254,7 @@ class KontaktOriginalVersucheTest {
 
     @Test fun revocationAfterProviderWriteNeverProducesAReceiptOrAReplayGrant() {
         val target = binding.aktuell().daten.copy(notiz = "Changed before revoke")
-        val token = ledger().vorbereiten(grant(), request, requestHash, KontaktSync.hash(target), reference())
+        val token = ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference())
         provider.afterWrite = { scope.widerrufen() }
         assertThrows(SecurityException::class.java) { token.anwenden(target) {} }
         assertEquals(1, provider.batchCalls)
@@ -255,7 +267,7 @@ class KontaktOriginalVersucheTest {
 
     @Test fun rejectedExactNativeReadbackRetainsTheUnknownRecordWithoutASavedResult() {
         val target = binding.aktuell().daten.copy(notiz = "Provider silently drops this")
-        val token = ledger().vorbereiten(grant(), request, requestHash, KontaktSync.hash(target), reference())
+        val token = ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference())
         provider.dropUpdates = true
         assertThrows(IllegalArgumentException::class.java) { token.anwenden(target) {} }
         binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
@@ -268,12 +280,110 @@ class KontaktOriginalVersucheTest {
         val addresses = mutableListOf(KontaktAnschrift("privat", "Bound street"))
         val target = binding.aktuell().daten.copy(anschriften = addresses)
         val expectedHash = KontaktSync.hash(target)
-        val token = ledger().vorbereiten(grant(), request, requestHash, expectedHash, reference())
+        val token = ledger().vorbereiten(grant(), mapping, basis, request, requestHash, expectedHash, reference())
         val receipt = token.anwenden(target) {
             addresses.clear(); addresses += KontaktAnschrift("arbeit", "Injected street")
         }
         assertEquals(expectedHash, receipt.zielHash())
         assertEquals(listOf(KontaktAnschrift("privat", "Bound street")), AndroidKontakte(context).liesRaw(7L)!!.daten.anschriften)
+        assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun fakeOrSourceOnlyMappingCannotMintAFreshApplyToken() {
+        val target = binding.aktuell().daten.copy(notiz = "Requires an actual selected original")
+        assertThrows(SecurityException::class.java) {
+            ledger().vorbereiten(grant(), KontaktOriginalZuordnungen.Zuordnung(Any()), basis, request, requestHash, KontaktSync.hash(target), reference())
+        }
+        scope.einrichten(listOf(binding)) { it.toSet() } // A source-only decision is deliberately not a mapping approval.
+        assertThrows(IllegalArgumentException::class.java) {
+            ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference())
+        }
+        assertFalse(root.exists()); assertEquals(0, provider.writes); assertEquals(0, provider.batchCalls)
+    }
+
+    @Test fun mappingLossDuringLifetimeHoldsTheAttemptBeforeAnyProviderWrite() {
+        val target = binding.aktuell().daten.copy(notiz = "Must not outlive its canonical mapping")
+        val token = ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference())
+        val file = File(parent, "mapping").listFiles()!!.single { it.extension == "bin" }
+        assertThrows(SecurityException::class.java) { token.anwenden(target) {
+            file.writeBytes(file.readBytes().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() })
+        } }
+        assertNull(ledger().laden(grant())!!.bestaetigung())
+        assertThrows(IllegalStateException::class.java) { token.anwenden(target) {} }
+        assertEquals(0, provider.writes); assertEquals(0, provider.batchCalls)
+    }
+
+    @Test fun mappingLossAfterProviderWritePreventsAConfirmedReceiptAndReplay() {
+        val target = binding.aktuell().daten.copy(notiz = "Written before mapping loss")
+        val token = ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference())
+        val file = File(parent, "mapping").listFiles()!!.single { it.extension == "bin" }
+        provider.afterWrite = { file.writeBytes(file.readBytes().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }) }
+        assertThrows(SecurityException::class.java) { token.anwenden(target) {} }
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        val held = ledger().laden(grant())!!
+        assertEquals("canonical-original-kept", held.freigabeId()); assertNull(held.bestaetigung())
+        assertThrows(IllegalStateException::class.java) { token.anwenden(target) {} }
+        assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun olderUnmappedHeldRecordsRemainReadableButNeverGainCanonicalMappingAuthority() {
+        ledger().vormerken(grant(), request, requestHash, targetHash, reference())
+        val file = root.listFiles()!!.single { it.extension == "bin" }
+        val domain = "kontakt-original-versuch-v1:${file.nameWithoutExtension}"
+        val cipher = io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({ requireNotNull(key) })
+        val plain = cipher.entschluesseln(file.readBytes(), domain)
+        val current = kotlinx.serialization.json.Json.parseToJsonElement(plain.toString(Charsets.UTF_8)) as kotlinx.serialization.json.JsonObject
+        plain.fill(0)
+        val legacy = kotlinx.serialization.json.JsonObject(current - setOf("share_id", "mapping_sha256")).toString().toByteArray()
+        file.writeBytes(cipher.verschluesseln(legacy, domain)); legacy.fill(0)
+        val held = ledger().laden(grant())!!
+        assertNull(held.freigabeId()); assertNull(held.bestaetigung()); assertEquals(request, held.anfrageId())
+        val next = UUID.randomUUID().toString()
+        assertThrows(IllegalStateException::class.java) {
+            ledger().vorbereiten(grant(), mapping, basis, next, requestHash, targetHash, reference(next))
+        }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun wrongQuotedOriginalBaselineStopsBeforeReservationAndProviderMutation() {
+        val target = binding.aktuell().daten.copy(notiz = "Stale sender must not overwrite the original")
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            ledger().vorbereiten(grant(), mapping, "0".repeat(64), request, requestHash, KontaktSync.hash(target), reference())
+        }
+        assertEquals("contact_original_expected_baseline_changed", error.message)
+        assertFalse(root.exists()); assertEquals(0, provider.writes)
+    }
+
+    @Test fun anOlderQuotedBaselineCannotBeFilledFromANewerNativeMappingBehindTheSender() {
+        val previous = basis
+        val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
+        val offered = KontaktOriginalFreigaben.Original("canonical-original-kept", binding)
+        scope.einrichtenOriginale(listOf(binding), listOf(offered), speichern = { maps.speichern(it) }) { sources, originals ->
+            KontaktOriginalFreigaben.Auswahl(sources.toSet(), originals.toSet())
+        }
+        mapping = maps.finden(KontaktOriginalFreigaben.Partner("peer", "pinned-native-key"), "canonical-original-kept")!!
+        assertNotEquals(previous, mapping.basisHash(grant()))
+        val target = binding.aktuell().daten.copy(notiz = "Old sender still quotes its previous export")
+        assertThrows(IllegalArgumentException::class.java) {
+            ledger().vorbereiten(grant(), mapping, previous, request, requestHash, KontaktSync.hash(target), reference())
+        }
+        assertFalse(root.exists()); assertEquals(0, provider.writes)
+    }
+
+    @Test fun verifiedResultKeepsTheFullUnicodeCanonicalIdThroughPrivatePersistence() {
+        val id = "😀".repeat(128)
+        val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
+        val offered = KontaktOriginalFreigaben.Original(id, binding)
+        scope.einrichtenOriginale(listOf(binding), listOf(offered), speichern = { maps.speichern(it) }) { sources, originals ->
+            KontaktOriginalFreigaben.Auswahl(sources.toSet(), originals.toSet())
+        }
+        val actual = maps.finden(KontaktOriginalFreigaben.Partner("peer", "pinned-native-key"), id)!!
+        val quote = actual.basisHash(grant())
+        val target = binding.aktuell().daten.copy(notiz = "Exact canonical Unicode identity")
+        val receipt = ledger().vorbereiten(grant(), actual, quote, request, requestHash, KontaktSync.hash(target), reference()).anwenden(target) {}
+        assertEquals(id, receipt.freigabeId()); assertEquals(quote, receipt.basisHash())
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertEquals(id, ledger().laden(grant())!!.bestaetigung()!!.freigabeId())
         assertEquals(1, provider.batchCalls)
     }
 }
