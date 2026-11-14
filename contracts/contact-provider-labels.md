@@ -708,5 +708,51 @@ The first Windows run exposed a newly created lock whose default owner was not
 the required current user. The implementation now sets the owner only on its own
 new lock/replacement files; it does not relax owner checks or repair untrusted
 pre-existing files. Core and actual Windows BASE product builds remain clean.
-These private-file primitives still do not create durable approval authority;
-protected key/seal/revoke state and writer/restore integration remain #621 work.
+These private-file primitives alone do not create approval authority. The
+subsequent sealed core is described below; application integration remains #621.
+
+## Windows sealed native approval core (#621, not application integration)
+
+`ContactSourceApprovalStore` now persists a strict, MAC-sealed native source
+decision with its own independently DPAPI-protected random signing key and
+generation. Explicit approval/revocation rotates that key; old signed records
+cannot be replayed against the current key. A pending marker precedes publication,
+unknown/corrupt state holds, and no old backup is used as permission. The private
+state contains only selected source identity, native book binding/known complete
+content hash and nonsecret account-slot identity tag: no password verifier,
+process-local account revision, book owner or document admission flags.
+
+Approval requires the actual saved-book witness, fresh actual account access and
+a private concrete decision witness minted only by the native approval scope.
+That witness binds exact Source/Collection/OriginalString/account revision and
+scope generation. Cloning a record cannot retarget its fields, substitute a fake
+token or bypass revocation with a replacement callback; legitimate native
+cancellation/WLAN wrappers remain possible. Total state size is checked before
+any private file changes, preserving existing intent on oversized selections.
+Native book/account callbacks run outside persistent file locks. Load/use requires
+fresh actual native book and account observations plus a final sealed-state/key
+recheck; temporary credential failure does not erase existing human intent.
+
+Fifty-four controlled-host core cases and fifty-five actual Windows core cases
+pass (overlapping), including new native-owner restoration, changed book/account,
+renewal, revocation/replay, callback lock order, concurrent newer approval,
+unconfirmed writes, malformed signed JSON, pending save-intent holds and minted
+decision field binding. The additional Windows case uses actual DPAPI for both
+synthetic account and dedicated consent key; account ciphertext cannot substitute
+for the consent-key domain. The existing eighteen native private-file and
+seventeen native account cases continue passing, and Core/actual BASE product
+builds are clean. No live provider, real account, modal UI or installed app proof
+is claimed.
+
+Ordinary-save advancement/recovery, authenticated startup primary observation,
+scope restoration, actual writer/SaveACK/frontend and WLAN-return integration
+remain unconnected on Windows. Changed book content deliberately holds until that
+trusted chain exists. The Windows application remains session-only for now;
+this core is not a delivered persistent automatic feature. Whole private-key
+directory rollback or a hostile same-user/admin process is not defended here.
+
+A controlled native-only Linux record-copy retarget was separately confirmed and
+tracked in #623; no external Bridge/MCP/document route was established. The current
+Linux controller forwards native scope captures unchanged. The Windows private
+decision witness above is the concrete reference for that later Linux hardening,
+not a claimed Linux fix. #621 remains active; #623 precedes provider expansion #622.

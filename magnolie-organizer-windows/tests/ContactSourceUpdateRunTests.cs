@@ -187,6 +187,7 @@ internal static class ContactSourceUpdateRunTests
         await ApprovalScopeAsync();
         ContactSourceAccountTests.Run();
         ContactSourcePrivateFilesTests.Run();
+        await ContactSourceApprovalStoreTests.RunAsync();
         await SavedDavOrchestrationAsync();
         await SavedResultCommitAsync();
         await NativeSessionAsync();

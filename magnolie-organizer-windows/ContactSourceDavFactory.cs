@@ -3,7 +3,13 @@ namespace MagnolieOrganizer.Windows;
 // Native caller inputs only. A discovered collection or saved contact mapping
 // must never be converted to this approval without a separate explicit grant.
 internal sealed record NativeDavContactUpdateApproval(string Source, Uri Collection,
-    string AccountRevision, Func<CancellationToken, Task> RequireApproved);
+    string AccountRevision, Func<CancellationToken, Task> RequireApproved)
+{
+    // Only ContactSourceApprovalScope can mint the private concrete witness.
+    // A record clone may wrap cancellation/WLAN guards, but cannot retarget the
+    // human decision by replacing its Source/Collection/AccountRevision fields.
+    internal object? NativeConsent { get; init; }
+}
 
 // One connection per approved source: no shared mutable BeforeMutation callback
 // and no routing of Thunderbird/Graph/system books through a DAV account.

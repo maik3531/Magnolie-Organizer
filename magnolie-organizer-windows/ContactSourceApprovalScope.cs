@@ -12,6 +12,35 @@ internal sealed class ContactSourceApprovalScope
     private readonly Dictionary<string, Uri> approved = new(StringComparer.Ordinal);
     private string owner = "", revision = "";
     private long generation;
+    private sealed class ConsentWitness(ContactSourceApprovalScope owner, string source, Uri collection, string revision, long generation)
+    {
+        internal void Require(NativeDavContactUpdateApproval approval, CancellationToken cancellation)
+        {
+            if (approval.Source != source || approval.Collection != collection || approval.Collection.OriginalString != collection.OriginalString ||
+                approval.AccountRevision != revision)
+                throw new UnauthorizedAccessException("contact_source_native_decision_retargeted");
+            owner.Require(generation, source, collection, revision, cancellation);
+        }
+    }
+
+    internal static void RequireNativeDecision(NativeDavContactUpdateApproval approval, CancellationToken cancellation)
+    {
+        if (approval.NativeConsent is not ConsentWitness witness)
+            throw new UnauthorizedAccessException("contact_source_native_decision_required");
+        witness.Require(approval, cancellation);
+    }
+
+    private void Require(long capturedGeneration, string source, Uri collection, string capturedRevision, CancellationToken cancellation)
+    {
+        cancellation.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            InvalidateStale(currentBook(), currentAccount());
+            if (generation != capturedGeneration || revision != capturedRevision || !approved.TryGetValue(source, out var href) || href != collection)
+                throw new UnauthorizedAccessException("contact_source_explicit_approval_withdrawn");
+        }
+        cancellation.ThrowIfCancellationRequested();
+    }
 
     internal ContactSourceApprovalScope(Func<NativeBookSaveState?> currentBook,
         Func<NextcloudSettingsSnapshot> currentAccount)
@@ -69,19 +98,16 @@ internal sealed class ContactSourceApprovalScope
     {
         lock (gate)
         {
+            if (approved.Count == 0) return [];
             InvalidateStale(currentBook(), currentAccount());
             var capturedGeneration = generation;
-            return approved.Select(pair => new NativeDavContactUpdateApproval(pair.Key, pair.Value, revision, token =>
+            var capturedRevision = revision;
+            return approved.Select(pair =>
             {
-                token.ThrowIfCancellationRequested();
-                lock (gate)
-                {
-                    InvalidateStale(currentBook(), currentAccount());
-                    if (generation != capturedGeneration || !approved.TryGetValue(pair.Key, out var href) || href != pair.Value)
-                        throw new UnauthorizedAccessException("contact_source_explicit_approval_withdrawn");
-                }
-                return Task.CompletedTask;
-            })).ToArray();
+                var witness = new ConsentWitness(this, pair.Key, pair.Value, capturedRevision, capturedGeneration);
+                return new NativeDavContactUpdateApproval(pair.Key, pair.Value, capturedRevision, token =>
+                    { Require(capturedGeneration, pair.Key, pair.Value, capturedRevision, token); return Task.CompletedTask; }) { NativeConsent = witness };
+            }).ToArray();
         }
     }
 
