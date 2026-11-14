@@ -1246,6 +1246,41 @@ Fresh VERIFIED local recovery/bootstrap, reserved transport/controller/pump, the
 existing key-backend selection and common real setup remain unconnected; production
 stays OFF and no package/device acceptance or installation is implied.
 
+### Windows fresh VERIFIED local recovery through actual saves (#633)
+
+An unconfirmed query can now issue a separate opaque local-recovery context only
+after the actual fresh FS1 origin authenticates the exact ten-field VERIFIED result
+for the original request. Prepared/settled status, wrong request hash/revision/type,
+copied context or imported JSON cannot do this. Current query/private source/known
+primary/owned model/selected ID/UID/exact target and native protocol/origin remain
+checked throughout. The old export's expired origin is not resurrected.
+
+Resume requires a genuine current native saved snapshot; otherwise a typed
+`RecoveryNeedsRealSave` reports that requirement, without creating a snapshot or
+granting a write. After an actual ordinary native save, the recovered pending owns
+the same UUID/request/result and a fresh exact current saved-book proposal. Unrelated
+known edits are retained. This context can only perform the local metadata commit:
+provider-send intention capture always denies it. Its in-memory ownership is kept
+separate from fresh provider-send proofs and is cleared by Stop.
+
+Only the subsequent actual metadata writer witness can seal an independent ACK.
+For a physical-only crash, that step can repair the missing archive with the exact
+already authenticated physical ciphertext; it never mints a provider-send nonce.
+Queued recovery fails closed on revocation, Stop, chosen-target change or expiry,
+without overwriting the current native user data. Existing native writer/consent
+hooks supply both real saves; no primary read calls `RecordSaved`.
+
+Twelve new synthetic actual-FS1/writer cases pass on the full managed group and an
+explicit new-test-only noninteractive Windows slice: restart, physical-only, wrong
+result, prepared status, stale revision, Boolean version, revocation, changed target,
+Stop, expired queued invocation, counterfeit context and unrelated-edit rebase.
+The restart path observes real native sequence 1 after the deliberate ordinary save
+and sequence 2 after metadata save before ACK authority. Release CoreTests and BASE
+builds are clean. These tests explicitly invoke the native ordinary writer; actual
+automatic bootstrap queueing is not implemented by this slice. Common setup,
+reserved transport/controller/pump and production existing-key backend selection
+remain outstanding; production remains OFF and nothing is installed/published.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

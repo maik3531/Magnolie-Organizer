@@ -177,7 +177,8 @@ internal sealed class NotesOriginalExportChoice
 internal sealed class NotesOriginalPendingResult
 {
     private readonly object gate = new();
-    private readonly NotesOriginalExportChoice choice;
+    private readonly NotesOriginalExportChoice? choice;
+    private readonly NotesOriginalRequestIntents.RecoveryContext? recovery;
     private readonly NativeActorBookSnapshot snapshot;
     private readonly JsonObject request;
     private readonly string id, uid, requestHash;
@@ -198,11 +199,36 @@ internal sealed class NotesOriginalPendingResult
         requestHash = NotesOriginalSchema.Hash(request);
     }
 
+    private NotesOriginalPendingResult(NotesOriginalRequestIntents.RecoveryContext recovery, NativeActorBookSnapshot snapshot)
+    {
+        this.recovery = recovery; this.snapshot = snapshot;
+        var frame = recovery.RequireCurrent(); request = frame["request"]!.DeepClone().AsObject();
+        var source = frame["source"]!.AsObject(); id = NotesOriginalSchema.Text(source, "local_id"); uid = NotesOriginalSchema.Text(source, "local_uid");
+        beforeRevision = NotesOriginalSchema.Integer(frame["export"]!.AsObject(), "native_revision");
+        capture = recovery.CurrentSaved; requestHash = NotesOriginalSchema.Hash(request);
+        var native = recovery.Result(); result = new(native.Body, native.Origin, native.Transport);
+        var current = capture();
+        if (current?.SavedBook != snapshot.SavedBook || current.Text != snapshot.Text) throw new InvalidOperationException("notes_request_recovery_book_changed");
+    }
+    internal static NotesOriginalPendingResult FromRecovery(NotesOriginalRequestIntents.RecoveryContext recovery, NativeActorBookSnapshot snapshot) => new(recovery, snapshot);
+
+    private void RequireSelection()
+    { if (recovery is not null) recovery.RequireCurrent(); else choice!.RequireCurrent(); }
+
+    private (MagnolienbaumCoordinator.NotesPins Peer, MagnolienbaumCoordinator.NotesPins Own) Pins()
+    {
+        if (choice is not null) return choice.Pins;
+        var source = recovery!.RequireCurrent()["source"]!.AsObject();
+        return (new(source["peer"]![0]!.GetValue<string>(), source["peer"]![1]!.GetValue<string>()),
+            new(source["own"]![0]!.GetValue<string>(), source["own"]![1]!.GetValue<string>()));
+    }
+
     internal JsonObject Request() => request.DeepClone().AsObject(); // No provider-send admission is exposed.
 
     internal (string Binding, JsonObject Frame) CaptureRequestIntention()
     {
-        choice.RequireCurrent();
+        if (recovery is not null) throw new InvalidOperationException("notes_request_recovered_pending_is_not_provider_send_authority");
+        choice!.RequireCurrent();
         var current = capture();
         if (current?.SavedBook != snapshot.SavedBook || current.Text != snapshot.Text)
             throw new InvalidOperationException("notes_original_pending_book_changed");
@@ -220,14 +246,9 @@ internal sealed class NotesOriginalPendingResult
     {
         // Receive-only: no book/source callback, writer gate or IO.
         var owned = body.DeepClone().AsObject();
-        if (origin.RequireCurrent(owned, transport) != choice.Pins) throw new InvalidOperationException("notes_original_pending_peer_changed");
-        NotesOriginalSchema.Fields(owned, "art", "fassung", "request_id", "request_sha256", "share_id", "before_basis", "target_sha256", "receipt_id", "native_revision", "next_basis");
-        if (NotesOriginalSchema.Text(owned, "art") != "kontakt_original_ergebnis" || NotesOriginalSchema.Integer(owned, "fassung") != 1 ||
-            new[] { "request_id", "share_id", "before_basis", "target_sha256" }.Any(name => NotesOriginalSchema.Text(owned, name) != NotesOriginalSchema.Text(request, name)) ||
-            NotesOriginalSchema.Text(owned, "request_sha256") != requestHash || !NotesOriginalSchema.Uuid(NotesOriginalSchema.Text(owned, "receipt_id")) ||
-            NotesOriginalSchema.Integer(owned, "native_revision") <= beforeRevision || !NotesOriginalSchema.Hex(NotesOriginalSchema.Text(owned, "next_basis")) ||
-            NotesOriginalSchema.Text(owned, "next_basis") == NotesOriginalSchema.Text(request, "before_basis"))
-            throw new InvalidDataException("notes_original_pending_result_changed");
+        if (recovery is not null) throw new InvalidOperationException("notes_request_recovered_result_already_owned");
+        if (origin.RequireCurrent(owned, transport) != Pins()) throw new InvalidOperationException("notes_original_pending_peer_changed");
+        ValidateResult(request, requestHash, beforeRevision, owned);
         origin.RequireCurrent(owned, transport);
         lock (gate)
         {
@@ -240,15 +261,26 @@ internal sealed class NotesOriginalPendingResult
         }
     }
 
+    internal static void ValidateResult(JsonObject request, string requestHash, long beforeRevision, JsonObject owned)
+    {
+        NotesOriginalSchema.Fields(owned, "art", "fassung", "request_id", "request_sha256", "share_id", "before_basis", "target_sha256", "receipt_id", "native_revision", "next_basis");
+        if (NotesOriginalSchema.Text(owned, "art") != "kontakt_original_ergebnis" || NotesOriginalSchema.Integer(owned, "fassung") != 1 ||
+            new[] { "request_id", "share_id", "before_basis", "target_sha256" }.Any(name => NotesOriginalSchema.Text(owned, name) != NotesOriginalSchema.Text(request, name)) ||
+            NotesOriginalSchema.Text(owned, "request_sha256") != requestHash || !NotesOriginalSchema.Uuid(NotesOriginalSchema.Text(owned, "receipt_id")) ||
+            NotesOriginalSchema.Integer(owned, "native_revision") <= beforeRevision || !NotesOriginalSchema.Hex(NotesOriginalSchema.Text(owned, "next_basis")) ||
+            NotesOriginalSchema.Text(owned, "next_basis") == NotesOriginalSchema.Text(request, "before_basis"))
+            throw new InvalidDataException("notes_original_pending_result_changed");
+    }
+
     private Result RequireOrigin()
     {
-        choice.RequireCurrent(); Result current;
+        RequireSelection(); Result current;
         lock (gate)
         {
             if (held) throw new InvalidOperationException("notes_original_pending_result_held");
             current = result ?? throw new InvalidOperationException("notes_original_pending_result_required");
         }
-        current.Origin.RequireCurrent(current.Body, current.Transport); choice.RequireCurrent();
+        current.Origin.RequireCurrent(current.Body, current.Transport); RequireSelection();
         return current;
     }
 

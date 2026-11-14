@@ -233,6 +233,12 @@ internal sealed partial class NotesOriginalChoiceStore
         return observed.Binding;
     }
 
+    internal NativeActorBookSnapshot? CurrentSavedForRecovery(JsonObject history)
+    {
+        VerifyUnconfirmedHistory(history);
+        return capture(); // Actual native scope only. Never reconstruct from primary/model.
+    }
+
     private Known? ReadKnown()
     {
         using var state = Read();

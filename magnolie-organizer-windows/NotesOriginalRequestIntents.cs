@@ -6,13 +6,14 @@ namespace MagnolieOrganizer.Windows;
 // Native serial book-worker only; never receive. Physical reservation precedes
 // the independent archive. Loaded JSON is history only, not a fresh send proof.
 // No production key backend, sender, retirement or restart reauthorization here.
-internal sealed class NotesOriginalRequestIntents
+internal sealed partial class NotesOriginalRequestIntents
 {
     private const int Limit = 2 * 1024 * 1024;
     private readonly ContactSourcePrivateFiles files;
     private readonly Func<byte[]?> existingKey;
     private readonly Action<string> stage;
     private readonly Dictionary<string, FreshProof> fresh = new(StringComparer.Ordinal);
+    private readonly Dictionary<NotesOriginalPendingResult, RecoveryContext> recovered = new();
     private readonly object gate = new();
     private long generation;
     private sealed record FreshProof(NotesOriginalRequestIntents Store, NotesOriginalPendingResult Pending,
@@ -21,6 +22,11 @@ internal sealed class NotesOriginalRequestIntents
         string FrameHash, long Generation);
     internal sealed class UnconfirmedQuery(object proof)
     {
+        internal object RequireOwner(NotesOriginalRequestIntents store)
+        {
+            if (proof is not QueryProof native || !ReferenceEquals(native.Store, store)) throw new InvalidOperationException("notes_request_owned_query_required");
+            return native;
+        }
         internal JsonObject Request(NotesOriginalNegotiation protocol)
         {
             if (proof is not QueryProof native) throw new InvalidOperationException("notes_request_private_unconfirmed_query_required");
@@ -195,6 +201,9 @@ internal sealed class NotesOriginalRequestIntents
     internal (string Key, string KeyIdentity, JsonObject Frame) SavedRequest(NotesOriginalPendingResult pending)
     {
         pending.ConfirmedSave(); // Actual native callback before file/registry locks.
+        RecoveryContext? repair;
+        lock (gate) recovered.TryGetValue(pending, out repair);
+        if (repair is not null) return SavedRecovered(pending, repair);
         var context = Crypto(); JsonObject record; FreshProof proof;
         lock (gate)
         {
@@ -300,5 +309,5 @@ internal sealed class NotesOriginalRequestIntents
         return body;
     }
 
-    internal void Stop() { lock (gate) { generation++; fresh.Clear(); } } // Disk holds deliberately survive.
+    internal void Stop() { lock (gate) { generation++; fresh.Clear(); recovered.Clear(); } } // Disk holds deliberately survive.
 }

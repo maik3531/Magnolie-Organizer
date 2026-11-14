@@ -506,6 +506,87 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine($"Notes durable terminal retirement: {modes.Length} native-writer synthetic cases passed (settled history and matching installed mapping before physical reuse).");
     }
 
+    internal static async Task VerifiedRecoveryAsync(string root)
+    {
+        var modes = new[] { "restart", "physical-only", "wrong-result", "prepared", "stale-revision", "bool-version", "revoke", "changed-target", "stop", "expired-queued-save", "fake-context", "unrelated-rebase" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]);
+            var requestRoot = Path.Combine(h.Root, "requests"); var ackRoot = Path.Combine(h.Root, "acks");
+            ContactSourcePrivateFiles Boundary(string path) => new(path, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var oldStore = new NotesOriginalRequestIntents(Boundary(requestRoot), Key, phase =>
+            { if (mode == "physical-only" && phase == "physical-written") throw new IOException("synthetic-before-archive-crash"); });
+            var originalPending = h.Choice.CreatePending()!; var request = originalPending.Request();
+            if (mode == "physical-only") Hold(() => oldStore.Seal(originalPending)); else oldStore.Seal(originalPending);
+            oldStore.Stop(); await h.Coordinator.StopAsync(); // Old export origins really lose their native generation.
+            h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
+            var requests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+            h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own); var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+            var query = requests.ReadOnlyQuery(Path.GetFullPath(h.Host.DataPath), "chosen-private-id", h.Store, h.Protocol);
+            var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1,
+                ["request_sha256"] = NotesOriginalSchema.Hash(request), ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+            foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+            if (mode == "wrong-result") result["request_sha256"] = new string('0', 64);
+            if (mode == "stale-revision") result["native_revision"] = 1L;
+            if (mode == "bool-version") result["fassung"] = true;
+            if (mode == "prepared") { result["art"] = "kontakt_original_abschlussstatus"; result["phase"] = "prepared"; result["desktop_sha256"] = new string('f', 64); }
+            h.CaptureRecovery = true; h.Send(result); var observed = h.RecoveryObservation;
+            if (mode is "wrong-result" or "stale-revision" or "bool-version" or "prepared")
+            {
+                Hold(() => requests.Recover(query, observed.Body, observed.Origin, observed.Transport, h.Protocol));
+                TestAssert.That(h.Host.Snapshot() is null && !Directory.Exists(ackRoot), "Invalid/terminal result reconstructed native save or ACK"); continue;
+            }
+            if (mode == "fake-context")
+            { Hold(() => new NotesOriginalRequestIntents.RecoveryContext(new object()).Resume()); continue; }
+            var context = requests.Recover(query, observed.Body, observed.Origin, observed.Transport, h.Protocol);
+            try { context.Resume(); throw new Exception("Recovery minted a primary-read snapshot"); }
+            catch (NotesOriginalRequestIntents.RecoveryNeedsRealSave needed)
+            { TestAssert.That(ReferenceEquals(needed.Context, context) && h.Host.Snapshot() is null, "Recovery lost owned native save requirement"); }
+            // Deliberate actual native ordinary save, not an automatic queue or
+            // a witness fabricated from a primary read. Controller wiring remains separate.
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject()))["ok"]!.GetValue<bool>() &&
+                h.Host.Saved()!.Sequence == 1, "First actual bootstrap save did not create real native observation");
+            if (mode == "unrelated-rebase")
+            {
+                var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["independent-user-edit"] = "preserve fresh whole-book state";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Unrelated native edit failed");
+            }
+            var pending = context.Resume(); TestAssert.That(ReferenceEquals(context.Resume(), pending) && JsonNode.DeepEquals(pending.Request(), request), "Recovered request changed UUID/target or duplicated pending");
+            Hold(() => requests.Seal(pending)); // Local recovery is NEVER provider-send authority.
+            var commit = pending.PrepareCommit(h.Host.SourceResultCommit); var sequence = h.Host.Saved()!.Sequence;
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode == "stop") requests.Stop();
+            if (mode == "expired-queued-save")
+            {
+                var native = observed.Origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(observed.Origin)!;
+                native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+            }
+            if (mode == "changed-target")
+            {
+                var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["kontakte"]![0]!["vorname"] = "Do not overwrite new user choice";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Chosen target edit failed");
+            }
+            var before = System.IO.File.ReadAllBytes(h.Host.DataPath);
+            var saved = await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject());
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests);
+            if (mode is "revoke" or "stop" or "expired-queued-save" or "changed-target")
+            {
+                TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before), "Invalid queued recovery overwrote native data");
+                Hold(() => outcomes.Seal(pending)); continue;
+            }
+            TestAssert.That(saved["ok"]!.GetValue<bool>() && h.Host.Saved()!.Sequence == sequence + 1 && pending.ConfirmedSave().RequireCurrent() == h.Host.Saved(),
+                "Recovered metadata save did not supply genuine next writer witness");
+            var ack = outcomes.Seal(pending).Body();
+            TestAssert.That(ack["request_sha256"]!.GetValue<string>() == NotesOriginalSchema.Hash(request) && ack["desktop_sha256"]!.GetValue<string>() == h.Host.Saved()!.Sha256,
+                "Recovered actual write did not seal correlated independent ACK");
+            if (mode == "unrelated-rebase") TestAssert.That(JsonNode.Parse(h.Host.CurrentNativeText!)!["independent-user-edit"]!.GetValue<string>() == "preserve fresh whole-book state", "Recovery lost unrelated new edit");
+            if (mode == "physical-only") TestAssert.That(Directory.GetFiles(requestRoot, "r-*.json").Length == 1, "Post-save recovered archive was not made durable");
+            Hold(() => requests.Seal(pending));
+        }
+        Console.WriteLine($"Notes fresh VERIFIED local recovery: {modes.Length} synthetic actual-writer cases passed (real bootstrap then metadata save, no provider replay).");
+    }
+
     internal static async Task SavedAcksAsync(string root)
     {
         var modes = new[] { "success", "before-save", "failed-save", "missing-request", "tampered-history", "missing-history", "key-change", "request-tamper",
