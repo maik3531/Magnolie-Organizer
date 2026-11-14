@@ -106,8 +106,8 @@ The subsequent source work adds three independent native components:
   held. Even an empty linked raw contact counts as ambiguous. Native assertions
   cover database generation, raw identity/revision/rights, lookup/profile status,
   exact aggregate membership and row rights in the eventual mutation batch.
-- `KontaktOriginalFreigaben` is a **native session decision core**, not yet the
-  required durable setup feature. Its private exact-source/generation witness is
+- `KontaktOriginalFreigaben` is an **unconnected native decision core**, with an
+  optional owned durable store as described below. Its exact-source/generation witness is
   checked independently before and after additional lifetime callbacks. Fake
   witnesses, another pinned peer, unoffered sources and stale/revoked decisions
   cannot authorize the writer. Cancel leaves the previous decision untouched;
@@ -132,7 +132,7 @@ holds this new path; it does not trigger an invented identity, new installation
 or SDK downgrade. Supported APIs remain unchanged. Targeted host Robolectric
 checks cover API28 and API35, not physical devices or minimum-API26 acceptance.
 
-The latest new-core matrix contains 54 passing cases across those two API levels.
+The initial new-core matrix contained 54 passing cases across those two API levels.
 The affected existing reviewed-writer, provider/name, phone/email and resource19
 regressions also passed (26 cases; unchanged inputs reused after the later core
 edits). Synthetic providers/decision/protection callbacks are used throughout.
@@ -141,8 +141,52 @@ These source changes now **do** change effective Notes inputs, but only targeted
 host compilation/unit tests have run; no APK package, installation or delivery
 is claimed.
 
-Next, connect protected nonportable durable approval and genuine native setup to
-the authenticated full receiver and actual journal/result-save boundaries. Do
-not enable the session core alone and advertise restart-safe automation. The
-full #622 acceptance transaction, Linux/Windows sender wiring and independently
-verified wider provider authority remain open; resource19 is still unchanged.
+### Protected native intent and typed restoration
+
+`KontaktOriginalSchutz` now reuses the existing authenticated `DatenDateiKrypto`
+format with a dedicated AndroidKeyStore key/domain, not phone/tree/book keys.
+Construction creates nothing. Reads require an existing key; missing/temporarily
+unavailable keys never cause regeneration, plaintext fallback, migration or a
+prompt. Only explicit native setup rotates the consent key. Successful revoke
+and subsequent setup invalidate old ciphertext; no password-derived verifier is
+stored. Actual AndroidKeyStore behavior is still a separate native acceptance.
+
+`KontaktOriginalDauerfreigaben` requires the live scope-minted setup witness before
+and after persistence phases. The normal source scope is held during publication;
+no runtime permission precedes confirmation. Its private encrypted state binds
+the exact pinned peer and native database/account/data-set source identities.
+Its private files use no-follow reads, bounded sizes, owner-only permissions,
+cross-process file locking and the existing atomic-write/flush/directory-sync
+pattern. Native peer/provider callbacks run outside the private file lock.
+
+A persistent negative/pending marker is installed before changing keys/state and
+precedes explicit key revocation. Publication uncertainty, including failure
+immediately after pending-marker removal, is held instead of being acknowledged.
+An unsuccessful explicit setup can require clarification; it never silently
+repairs keys or claims success. This differs from ordinary temporary peer/key/
+permission loss, which must preserve the accepted encrypted human intent.
+
+When the scope owns this actual store, setup persists through that store before
+grant publication, every writer guard independently checks its current typed
+stored witness, and fresh-owner restoration accepts only a current witness from
+that same native store object. No JSON or self-attesting replacement can supply
+it. Volatile pause preserves persistent intent; explicit revoke is separate. A
+failed durable revoke stays blocked in that process, including after Cancel or
+pause, until a genuine new successful native setup. Repeated restoration of the
+same unchanged record does not invalidate an in-flight grant.
+
+The latest combined native original/decision/private-store/restore/write matrix
+passes **98 cases on host Robolectric API28/API35**. It includes fresh-owner return
+with no second human decision, old-cipher replay, source/key/peer waits, failed
+publication/revoke, fake or foreign typed records, native callback lock boundaries
+and strict canonical schema checks. Six dedicated protection cases and three
+existing shared-cipher cases also pass; earlier native matrices overlap these
+cases and must not be summed. Provider, decision, protection and keystore callbacks
+remain controlled; no physical Android device or real contacts/keyring are used.
+
+Next, connect genuine native setup to the authenticated full receiver and actual
+journal/result-save boundaries. The provider-attempt hold must also survive a
+restart; the writer's in-memory consumed flag alone is not that receipt journal.
+Do not opt the runtime into these APIs piecemeal and advertise complete automation.
+The full #622 transaction, Linux/Windows sender wiring and independently verified
+wider provider authority remain open; resource19 is still unchanged.

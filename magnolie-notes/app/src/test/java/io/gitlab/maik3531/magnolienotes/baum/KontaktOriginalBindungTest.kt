@@ -21,12 +21,16 @@ import android.provider.ContactsContract.CommonDataKinds.Email
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
+import java.io.File
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28, 35], application = Application::class)
@@ -36,6 +40,8 @@ class KontaktOriginalBindungTest {
     private lateinit var approvals: KontaktOriginalFreigaben
     private var peer: KontaktOriginalFreigaben.Partner? = null
     private var decisions = 0
+    private val directories = mutableListOf<File>()
+    @After fun cleanupPrivateStores() { directories.forEach { it.deleteRecursively() } }
     @Before fun setup() {
         context = ApplicationProvider.getApplicationContext()
         Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS)
@@ -50,6 +56,20 @@ class KontaktOriginalBindungTest {
     private fun writer(binding: KontaktOriginalBindung): KontaktOriginalInhalt {
         if (!approvals.gewuenscht) approvals.einrichten(listOf(binding)) { choices -> decisions++; choices.toSet() }
         return KontaktOriginalInhalt(approvals.freigabe(binding))
+    }
+    private class StoreFixture(val root: File) {
+        var key: SecretKey? = null
+        var reads = 0
+        var rotations = 0
+        val protection = KontaktOriginalSchutz.fuerTest({ reads++; key }, {
+            rotations++; key = SecretKeySpec(ByteArray(32) { rotations.toByte() }, "AES")
+        }, { key = null })
+        fun store(stage: (String) -> Unit = {}) = KontaktOriginalDauerfreigaben(root, protection, stage)
+    }
+    private fun storeFixture(): StoreFixture {
+        val parent = java.nio.file.Files.createTempDirectory(context.cacheDir.toPath(), "contact-native-consent-").toFile()
+        directories += parent
+        return StoreFixture(File(parent, "consent"))
     }
 
     @Test fun exactNativeOriginalIsObservedWithoutAnyProviderMutationOrConsent() {
@@ -427,6 +447,301 @@ class KontaktOriginalBindungTest {
         provider.raw[RawContacts.ACCOUNT_NAME] = "other@example.invalid"
         assertThrows(SecurityException::class.java) { scope.freigabe(capture()) }
         assertEquals(0, provider.writes)
+    }
+
+    @Test fun durableSetupHookReceivesOnlyAnExactLiveNativeDecisionBeforeRuntimePublication() {
+        val binding = capture(); var saved: KontaktOriginalFreigaben.Entscheidung? = null
+        assertTrue(approvals.einrichten(listOf(binding), speichern = { decision ->
+            decision.pruefen(); assertEquals(peer, decision.partner())
+            assertEquals(setOf(KontaktOriginalFreigaben.Quelle(binding.datenbankErstellt, binding.quelle)), decision.quellen())
+            assertThrows(SecurityException::class.java) { approvals.freigabe(binding) }
+            saved = decision
+        }) { it.toSet() })
+        approvals.freigabe(binding).pruefen()
+        assertThrows(SecurityException::class.java) { saved!!.pruefen() }
+        val fake = KontaktOriginalFreigaben.Entscheidung(Any())
+        val queries = provider.queries
+        assertThrows(SecurityException::class.java) { fake.partner() }
+        assertThrows(SecurityException::class.java) { fake.quellen() }
+        assertEquals(queries, provider.queries)
+    }
+
+    @Test fun cancelledSetupNeverInvokesPersistenceAndEmptySelectionPublishesOnlyAfterRevocationHook() {
+        val binding = capture(); writer(binding); val old = approvals.freigabe(binding)
+        var calls = 0
+        assertFalse(approvals.einrichten(listOf(binding), speichern = { calls++ }) { null })
+        assertEquals(0, calls); old.pruefen()
+        assertTrue(approvals.einrichten(listOf(binding), speichern = { decision ->
+            calls++; assertTrue(decision.quellen().isEmpty())
+            assertThrows(SecurityException::class.java) { old.pruefen() }
+            assertThrows(SecurityException::class.java) { approvals.freigabe(binding) }
+        }) { emptySet() })
+        assertEquals(1, calls); assertFalse(approvals.gewuenscht); assertEquals(0, provider.writes)
+    }
+
+    @Test fun failedPersistenceHoldsOldVolatilePermissionAndNeverPublishesTheNewSelection() {
+        val binding = capture(); writer(binding); val old = approvals.freigabe(binding)
+        var decision: KontaktOriginalFreigaben.Entscheidung? = null
+        assertThrows(java.io.IOException::class.java) {
+            approvals.einrichten(listOf(binding), speichern = {
+                decision = it; throw java.io.IOException("Controlled native store failure")
+            }) { it.toSet() }
+        }
+        assertFalse(approvals.gewuenscht)
+        assertThrows(SecurityException::class.java) { old.pruefen() }
+        assertThrows(SecurityException::class.java) { decision!!.pruefen() }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun revokeOrPeerChangeInsidePersistenceCannotPublishItsStaleNativeDecision() {
+        for (mode in listOf("revoke", "peer")) {
+            setup(); val binding = capture()
+            assertThrows(SecurityException::class.java) {
+                approvals.einrichten(listOf(binding), speichern = {
+                    if (mode == "revoke") approvals.widerrufen() else peer = peer!!.copy(schluessel = "Changed during storage")
+                }) { it.toSet() }
+            }
+            assertFalse(approvals.gewuenscht)
+            assertThrows(SecurityException::class.java) { approvals.freigabe(binding) }
+            assertEquals(0, provider.writes)
+        }
+    }
+
+    @Test fun nestedSetupCannotReplaceAnInProgressNativePersistenceDecision() {
+        val binding = capture()
+        assertTrue(approvals.einrichten(listOf(binding), speichern = { decision ->
+            assertThrows(IllegalStateException::class.java) {
+                approvals.einrichten(listOf(binding)) { fail("Nested setup reached its chooser"); emptySet() }
+            }
+            decision.pruefen()
+        }) { it.toSet() })
+        approvals.freigabe(binding).pruefen(); assertEquals(0, provider.writes)
+    }
+
+    @Test fun privateStoreDefaultOffAndFakeTypedDecisionsCreateNoFilesKeysOrPermissions() {
+        val fixture = storeFixture(); val store = fixture.store()
+        assertNull(store.laden()); assertFalse(fixture.root.exists()); assertEquals(0, fixture.reads)
+        assertThrows(SecurityException::class.java) { store.bewilligen(KontaktOriginalFreigaben.Entscheidung(Any())) }
+        assertThrows(SecurityException::class.java) { KontaktOriginalDauerfreigaben.Gespeichert(Any()).pruefen() }
+        assertFalse(fixture.root.exists()); assertEquals(0, fixture.rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun actualNativeDecisionPersistsOnlyEncryptedSourceIntentAndANewStoreOwnerCanVerifyIt() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        var saved: KontaktOriginalDauerfreigaben.Gespeichert? = null
+        assertTrue(approvals.einrichten(listOf(binding), speichern = { saved = store.bewilligen(it) }) { it.toSet() })
+        saved!!.pruefen()
+        assertEquals(peer, saved!!.partner()); assertEquals(1, fixture.rotations)
+        val bytes = File(fixture.root, "approval.bin").readBytes()
+        assertFalse(bytes.toString(Charsets.ISO_8859_1).contains("native-pinned-public-key"))
+        assertFalse(File(fixture.root, "hold").exists())
+        val fresh = fixture.store().laden()!!
+        assertEquals(peer, fresh.partner()); assertEquals(saved!!.quellen(), fresh.quellen())
+        assertEquals(1, fixture.rotations)
+        val unconfigured = KontaktOriginalFreigaben { peer }
+        assertFalse(unconfigured.gewuenscht)
+        assertThrows(SecurityException::class.java) { unconfigured.freigabe(binding) }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun successfulNativeReconfigurationAndRevocationRejectReplayedOldCiphertext() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        var old: KontaktOriginalDauerfreigaben.Gespeichert? = null
+        approvals.einrichten(listOf(binding), speichern = { old = store.bewilligen(it) }) { it.toSet() }
+        val file = File(fixture.root, "approval.bin"); val previous = file.readBytes()
+        approvals.einrichten(listOf(binding), speichern = { store.bewilligen(it) }) { it.toSet() }
+        val current = file.readBytes(); assertEquals(2, fixture.rotations)
+        assertThrows(SecurityException::class.java) { old!!.pruefen() }
+        file.writeBytes(previous)
+        assertThrows(Exception::class.java) { store.laden() }
+        assertEquals(2, fixture.rotations)
+        file.writeBytes(current); store.laden()!!.pruefen()
+        store.widerrufen(); assertNull(store.laden()); assertNull(fixture.key)
+        file.writeBytes(current)
+        assertNull(store.laden()) // Native negative state wins even before decryption.
+        assertEquals(2, fixture.rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun privateStoreAccessLossAndPartialWritesNeverRecreateKeysOrExposePartialApproval() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        approvals.einrichten(listOf(binding), speichern = { store.bewilligen(it) }) { it.toSet() }
+        val key = fixture.key; fixture.key = null
+        assertThrows(IllegalStateException::class.java) { store.laden() }
+        assertEquals(1, fixture.rotations)
+        fixture.key = key; store.laden()!!.pruefen()
+        val broken = fixture.store { if (it == "approval.bin:temporary_flushed") throw java.io.IOException("Controlled private write failure") }
+        assertThrows(java.io.IOException::class.java) {
+            approvals.einrichten(listOf(binding), speichern = { broken.bewilligen(it) }) { it.toSet() }
+        }
+        assertNull(store.laden()); assertFalse(approvals.gewuenscht)
+        assertTrue(fixture.root.listFiles()!!.none { it.name.endsWith(".pending") })
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun revocationAtPrivatePublicationLeavesADurableNegativeStateInsteadOfAStaleGrant() {
+        val fixture = storeFixture(); val binding = capture()
+        val store = fixture.store { if (it == "published") approvals.widerrufen() }
+        assertThrows(SecurityException::class.java) {
+            approvals.einrichten(listOf(binding), speichern = { store.bewilligen(it) }) { it.toSet() }
+        }
+        assertNull(fixture.store().laden()); assertNull(fixture.key)
+        assertFalse(approvals.gewuenscht); assertTrue(File(fixture.root, "hold").isFile)
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun privateStoreRejectsRootAndLockSymlinksWithoutReadingKeysOrModifyingTheirTargets() {
+        val fixture = storeFixture(); val target = File(fixture.root.parentFile, "outside-consent").apply { mkdir() }
+        java.nio.file.Files.createSymbolicLink(fixture.root.toPath(), target.toPath())
+        assertThrows(IllegalArgumentException::class.java) { fixture.store().laden() }
+        java.nio.file.Files.delete(fixture.root.toPath()); fixture.root.mkdir()
+        java.nio.file.Files.setPosixFilePermissions(fixture.root.toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"))
+        val outside = File(target, "original-lock").apply { writeText("Keep synthetic outside data") }
+        java.nio.file.Files.createSymbolicLink(File(fixture.root, "guard.lock").toPath(), outside.toPath())
+        assertThrows(IllegalArgumentException::class.java) { fixture.store().laden() }
+        assertEquals("Keep synthetic outside data", outside.readText()); assertEquals(0, fixture.reads)
+    }
+
+    @Test fun ownedDurableSetupAndFreshOwnerRestoreWriteWithoutASecondHumanDecision() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        val first = KontaktOriginalFreigaben(store) { peer }; var choices = 0
+        first.einrichten(listOf(binding)) { choices++; it.toSet() }
+        val one = binding.aktuell().daten.copy(notiz = "First durable return")
+        KontaktOriginalInhalt(first.freigabe(binding)).uebernehmen(one, {}, {})
+        val reopened = fixture.store()
+        val fresh = KontaktOriginalFreigaben(reopened) { peer }
+        assertFalse(fresh.gewuenscht)
+        assertTrue(fresh.wiederherstellen(reopened.laden()!!))
+        val current = capture(); val two = current.aktuell().daten.copy(notiz = "Return after new native owner")
+        assertEquals(two, KontaktOriginalInhalt(fresh.freigabe(current)).uebernehmen(two, {}, {}).daten)
+        assertEquals(1, choices); assertEquals(1, fixture.rotations); assertEquals(2, provider.batchCalls)
+    }
+
+    @Test fun volatilePauseKeepsSignedHumanIntentButDurableRevokeInvalidatesIt() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        val scope = KontaktOriginalFreigaben(store) { peer }
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        val old = scope.freigabe(binding); val saved = store.laden()!!
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { old.pruefen() }
+        saved.pruefen(); assertTrue(scope.wiederherstellen(saved))
+        scope.freigabe(binding).pruefen(); assertEquals(1, fixture.rotations)
+        scope.widerrufen()
+        assertNull(store.laden()); assertFalse(scope.gewuenscht); assertNull(fixture.key)
+        assertThrows(SecurityException::class.java) { scope.wiederherstellen(saved) }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun currentStoreRevocationIsCheckedIndependentlyBeforeProviderOrLifetimeCallbacks() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        val scope = KontaktOriginalFreigaben(store) { peer }
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        val grant = scope.freigabe(binding); val target = binding.aktuell().daten.copy(notiz = "Must not be written")
+        store.widerrufen()
+        val queries = provider.queries; var callbacks = 0
+        assertThrows(SecurityException::class.java) {
+            KontaktOriginalInhalt(grant).uebernehmen(target, { callbacks++ }, { fail("Revoked store reached protection") })
+        }
+        assertEquals(0, callbacks); assertEquals(queries, provider.queries); assertEquals(0, provider.writes)
+    }
+
+    @Test fun restoreRejectsFakeAndForeignStoreWitnessesRatherThanSelfAttestingObjects() {
+        val fixture = storeFixture(); val original = fixture.store(); val binding = capture()
+        val first = KontaktOriginalFreigaben(original) { peer }
+        first.einrichten(listOf(binding)) { it.toSet() }
+        val saved = original.laden()!!; val other = fixture.store()
+        val fresh = KontaktOriginalFreigaben(other) { peer }
+        assertThrows(IllegalArgumentException::class.java) { fresh.wiederherstellen(saved) }
+        assertThrows(SecurityException::class.java) { fresh.wiederherstellen(KontaktOriginalDauerfreigaben.Gespeichert(Any())) }
+        assertFalse(fresh.gewuenscht)
+        assertTrue(fresh.wiederherstellen(other.laden()!!))
+        assertThrows(SecurityException::class.java) { KontaktOriginalFreigaben { peer }.wiederherstellen(saved) }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun failedDurableRevokeRemainsBlockedAndNeitherCancelNorPauseCanUnblockIt() {
+        val fixture = storeFixture(); var failRevoke = false
+        val store = fixture.store { if (failRevoke && it == "hold:temporary_flushed") throw java.io.IOException("Controlled revoke persistence failure") }
+        val binding = capture(); val scope = KontaktOriginalFreigaben(store) { peer }
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        val saved = store.laden()!!
+        failRevoke = true
+        assertThrows(java.io.IOException::class.java) { scope.widerrufen() }
+        assertThrows(SecurityException::class.java) { scope.wiederherstellen(saved) }
+        assertFalse(scope.einrichten(listOf(binding)) { null })
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { scope.wiederherstellen(saved) }
+        assertFalse(scope.gewuenscht)
+        failRevoke = false
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        scope.freigabe(binding).pruefen(); assertEquals(0, provider.writes)
+    }
+
+    @Test fun offlinePeerAndUnavailableKeyWaitWithoutErasingTheDurableDecision() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        KontaktOriginalFreigaben(store) { peer }.einrichten(listOf(binding)) { it.toSet() }
+        val saved = store.laden()!!; val scope = KontaktOriginalFreigaben(store) { peer }
+        val originalPeer = peer; peer = null
+        assertThrows(SecurityException::class.java) { scope.wiederherstellen(saved) }
+        peer = originalPeer
+        val key = fixture.key; fixture.key = null
+        assertThrows(IllegalStateException::class.java) { scope.wiederherstellen(saved) }
+        fixture.key = key
+        assertTrue(scope.wiederherstellen(saved)); scope.freigabe(binding).pruefen()
+        assertEquals(1, fixture.rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun repeatedRestoreOfTheSameCurrentNativeRecordDoesNotInvalidateAnInFlightGrant() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        val scope = KontaktOriginalFreigaben(store) { peer }
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        val grant = scope.freigabe(binding)
+        repeat(3) { assertTrue(scope.wiederherstellen(store.laden()!!)); grant.pruefen() }
+        assertEquals(1, fixture.rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun failureImmediatelyAfterRemovingThePendingMarkerCannotExposeAnUnconfirmedApproval() {
+        val fixture = storeFixture(); val binding = capture()
+        val store = fixture.store { if (it == "hold:removed") throw java.io.IOException("Controlled publication durability failure") }
+        val scope = KontaktOriginalFreigaben(store) { peer }
+        assertThrows(java.io.IOException::class.java) { scope.einrichten(listOf(binding)) { it.toSet() } }
+        assertNull(fixture.store().laden()); assertNull(fixture.key)
+        assertTrue(File(fixture.root, "hold").isFile); assertFalse(scope.gewuenscht)
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun nativePeerObservationsRunOutsideThePrivateFileLock() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture(); var probes = 0
+        val scope = KontaktOriginalFreigaben(store) {
+            val guard = File(fixture.root, "guard.lock")
+            if (guard.isFile) java.nio.channels.FileChannel.open(guard.toPath(), java.nio.file.StandardOpenOption.WRITE).use { channel ->
+                requireNotNull(channel.tryLock()).use { probes++ }
+            }
+            peer
+        }
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        scope.freigabe(binding).pruefen()
+        assertTrue(probes > 0); assertEquals(0, provider.writes)
+    }
+
+    @Test fun unrepresentableNativeIdentityIsRejectedBeforeKeysOrApprovalFilesAreCreated() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        peer = peer!!.copy(schluessel = "Invalid\u0000key")
+        val scope = KontaktOriginalFreigaben(store) { peer }
+        assertThrows(IllegalArgumentException::class.java) { scope.einrichten(listOf(binding)) { it.toSet() } }
+        assertFalse(fixture.root.exists()); assertEquals(0, fixture.rotations); assertEquals(0, fixture.reads)
+        assertFalse(scope.gewuenscht); assertEquals(0, provider.writes)
+    }
+
+    @Test fun nonCanonicalOrDuplicateFieldRecordsCannotBecomeTypedStoredApprovalEvenWithValidEncryption() {
+        val fixture = storeFixture(); val store = fixture.store(); val binding = capture()
+        KontaktOriginalFreigaben(store) { peer }.einrichten(listOf(binding)) { it.toSet() }
+        val file = File(fixture.root, "approval.bin")
+        val clear = fixture.protection.oeffnen(file.readBytes())
+        val malformed = clear.toString(Charsets.UTF_8).replace("\"format\":1", "\"format\":1,\"format\":1").toByteArray()
+        clear.fill(0)
+        file.writeBytes(fixture.protection.verschliessen(malformed)); malformed.fill(0)
+        assertThrows(IllegalArgumentException::class.java) { store.laden() }
+        assertEquals(1, fixture.rotations); assertEquals(0, provider.writes)
     }
 
     private class OriginalProvider : ContentProvider() {
