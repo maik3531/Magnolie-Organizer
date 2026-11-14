@@ -614,3 +614,13 @@ quiet permission-return monitoring and SaveACK-correlated frontend restoration
 are still not connected. Current product consent remains session-only; these
 helpers/hooks are not yet a user-visible durable automatic feature. No Windows
 implementation is claimed.
+
+The native DAV scope can now restore only a current typed stored approval for its
+exact actual saved book and fresh account revision. Restored source guards retain
+the durable witness check; a new save, signed pending write, durable revocation or
+credential outage invalidates old in-flight scope grants. Volatile pause/revoke
+does not erase stored intent, and a fresh native witness can restore it without a
+new decision callback. Seventeen controlled scope cases and 135 affected cases
+pass, including actual bound DAV factory/CAS/readback with synthetic transport and
+revocation before mutation. This is a native API, not yet application startup or
+frontend wiring; the user-visible persistence limits above still apply.

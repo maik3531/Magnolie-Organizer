@@ -1,7 +1,8 @@
 """Native session approvals and bound-update DAV factory; not a sync scheduler.
 
-No document deserializer, create/delete/export, persistent consent or local
-baseline commit. Callers provide real native book/lifetime/codec/protection gates.
+No document deserializer, create/delete/export or local baseline commit. Native
+stored approval restoration requires its typed current witness, never JSON.
+Callers provide real native book/lifetime/codec/protection gates.
 """
 import copy
 from dataclasses import dataclass, field
@@ -62,11 +63,13 @@ class NativeDavApprovalScope:
         self._generation = 0
         self._grants = {}
         self._owner = self._revision = None
+        self._durable_guard = None
 
     def revoke(self):
         with self._lock:
             self._grants.clear()
             self._owner = self._revision = None
+            self._durable_guard = None
             self._generation += 1
 
     def _retain_current(self):
@@ -77,6 +80,8 @@ class NativeDavApprovalScope:
             self.revoke()
             return
         try:
+            if self._durable_guard is not None:
+                self._durable_guard()
             _, revision = _account(self._store)
         except Exception:
             revision = None
@@ -114,8 +119,39 @@ class NativeDavApprovalScope:
                 raise ValueError('contact_source_approval_selection_invalid')
             self._grants = {value: lookup[value] for value in ids}
             self._owner, self._revision = book['book_source'], revision
+            self._durable_guard = None
             self._generation += 1
             return True
+
+    def restore(self, stored):
+        """Native saved-book/current durable witness only; not setup or IPC.
+
+        Preserve durable human intent separately: a volatile revoke on a lock or
+        temporary credential outage never deletes the private stored decision.
+        """
+        from magnolie_contact_source_authority import NativeStoredContactApproval
+        if type(stored) is not NativeStoredContactApproval:
+            raise TypeError('contact_source_native_stored_approval_required')
+        with self._lock:
+            generation = self._generation
+        # Initial restoration checks run outside the scope lock. Subsequent
+        # capture guards keep the existing scope -> book lock order; the actual
+        # writer never acquires the scope lock.
+        stored.require_current()
+        book = copy.deepcopy(self._current_book())
+        settings, revision = _account(self._store)
+        if (not book or book != stored.snapshot.saved_book or revision != stored.account_revision or
+                any(not _source_matches(settings, source, href) for source, href in stored.sources)):
+            raise PermissionError('contact_source_stored_approval_context_changed')
+        stored.require_current()
+        with self._lock:
+            if self._generation != generation or self._current_book() != book:
+                raise PermissionError('contact_source_stored_approval_context_changed')
+            self._grants = dict(stored.sources)
+            self._owner, self._revision = book['book_source'], revision
+            self._durable_guard = stored.require_current
+            self._generation += 1
+        return True
 
     def capture(self):
         with self._lock:
