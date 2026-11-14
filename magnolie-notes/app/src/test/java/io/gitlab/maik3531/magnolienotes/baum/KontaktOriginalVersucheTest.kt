@@ -386,4 +386,28 @@ class KontaktOriginalVersucheTest {
         assertEquals(id, ledger().laden(grant())!!.bestaetigung()!!.freigabeId())
         assertEquals(1, provider.batchCalls)
     }
+
+    @Test fun unknownPhysicalOriginalAttemptBlocksNativeExportBasisRefresh() = refreshHeld(false)
+    @Test fun verifiedProviderResultStillBlocksExportUntilActualDesktopSaveLifecycleCompletes() = refreshHeld(true)
+
+    private fun refreshHeld(verified: Boolean) {
+        val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
+        val mapFile = File(parent, "mapping").listFiles()!!.single { it.extension == "bin" }
+        val before = mapFile.readBytes()
+        if (verified) {
+            val target = binding.aktuell().daten.copy(notiz = "Native provider saved, desktop save still unconfirmed")
+            ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference()).anwenden(target) {}
+        } else {
+            ledger().vormerken(grant(), request, requestHash, targetHash, reference())
+            provider.raw[RawContacts.VERSION] = 4L
+        }
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        val error = assertThrows(IllegalStateException::class.java) {
+            maps.aktualisieren(grant(), "canonical-original-kept", ledger())
+        }
+        assertEquals("contact_original_attempt_held", error.message)
+        assertArrayEquals(before, mapFile.readBytes())
+        assertEquals(verified, ledger().laden(grant())!!.bestaetigung() != null)
+        assertEquals(if (verified) 1 else 0, provider.batchCalls)
+    }
 }

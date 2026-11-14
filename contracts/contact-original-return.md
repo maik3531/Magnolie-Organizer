@@ -269,6 +269,29 @@ request/result/desktop-SaveACK handling and safe terminal-history release remain
 unconnected. In particular, no source change is handled by prompting again on
 every run or by secretly registering imported mappings.
 
+### Native basis refresh without another setup decision
+
+`KontaktOriginalZuordnungen.aktualisieren` can refresh an already explicitly
+selected original using its fresh native observation and restored source grant.
+The exact original identity, peer pin, canonical ID and setup UUID must still
+match. Missing mappings are never registered from imported metadata. Changed
+observations require an advanced provider revision; unchanged observations keep
+their exact existing encrypted record and quoted basis rather than churning it
+on every export. Key loss, identity changes and unversioned/regressed changes
+remain holds, not silent reapproval or new setup prompts.
+
+Refresh is serialized with reservation through the actual private physical-
+original ledger lock. Any existing unknown **or VERIFIED** attempt blocks it,
+irrespective of request/peer/source metadata. Source/provider callbacks are
+outside that private file lock. This deliberately does not release a verified
+attempt before the authenticated actual desktop-save lifecycle exists.
+
+Changed-input host checks cover 44 mapping/refresh cases and 54 attempt cases
+(API28/API35); prior matrices overlap. This is a native refresh API, not yet
+an actual authenticated export packet or a baseline-save acknowledgement. The
+future sender must export the exact observed content with its quote, and must
+not fill a return's stale quote from this refreshed native state.
+
 ### Pinned original protection and durable native outcomes
 
 `KontaktOriginalSicherungen` now writes and rereads an actual pinned contact-only

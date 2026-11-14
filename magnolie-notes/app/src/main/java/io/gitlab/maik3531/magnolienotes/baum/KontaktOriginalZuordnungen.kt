@@ -57,7 +57,10 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
     }
 
     /** No provider IO or source permission is inferred while reading history. */
-    fun finden(peer: KontaktOriginalFreigaben.Partner, freigabeId: String): Zuordnung? {
+    fun finden(peer: KontaktOriginalFreigaben.Partner, freigabeId: String): Zuordnung? =
+        findenBeleg(peer, freigabeId)?.let(::Zuordnung)
+
+    private fun findenBeleg(peer: KontaktOriginalFreigaben.Partner, freigabeId: String): Beleg? {
         require(text(peer.kennung) && peer.kennung.isNotBlank() && text(peer.schluessel) && peer.schluessel.isNotBlank())
         require(share(freigabeId))
         val key = slot(peer.kennung, freigabeId)
@@ -65,7 +68,7 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
             val bytes = files.lesen("$key.bin") ?: return@mitSperre null
             val value = decode(key, bytes)
             require(value["peer"] == peerJson(peer) && value["share"] == JsonPrimitive(freigabeId)) { "contact_original_mapping_peer_changed" }
-            Zuordnung(Beleg(this, key, hash(bytes), value))
+            Beleg(this, key, hash(bytes), value)
         }
     }
 
@@ -102,6 +105,47 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
         })
         decision.pruefen()
         result.forEach { it.freigabeId() } // Recheck files after the last native context callback.
+        return result
+    }
+
+    /** Refresh a previously explicitly selected original from a fresh native
+     * observation, without another human setup. Never register a missing map,
+     * change its source/peer/setup, or advance past an unknown/verified attempt.
+     * Actual authenticated export/desktop-save acknowledgement is separate.
+     */
+    fun aktualisieren(grant: KontaktOriginalFreigaben.Freigabe, freigabeId: String,
+                      versuche: KontaktOriginalVersuche): Zuordnung {
+        grant.pruefen()
+        val peer = grant.partner()
+        val proof = findenBeleg(peer, freigabeId)
+            ?: throw SecurityException("contact_original_native_mapping_required")
+        val observed = record(peer, freigabeId, grant.bindung, grant.entscheidungId())
+        require(listOf("original", "peer", "share", "decision_id").all { observed[it] == proof.record[it] }) {
+            "contact_original_mapping_retargeted"
+        }
+        require(observed == proof.record ||
+            observed.getValue("revision").jsonPrimitive.long > proof.record.getValue("revision").jsonPrimitive.long) {
+            "contact_original_mapping_revision_regressed"
+        }
+        val plain = observed.toString().toByteArray(Charsets.UTF_8)
+        val encrypted = try { cipher.verschluesseln(plain, domain(proof.key)) } finally { plain.fill(0) }
+        grant.pruefen()
+        val result = versuche.ohneOffenenVersuch(grant) {
+            requireNotNull(files.mitSperre(create = false) {
+                val bytes = files.lesen("${proof.key}.bin") ?: error("contact_original_mapping_unavailable")
+                require(hash(bytes) == proof.hash && decode(proof.key, bytes) == proof.record) {
+                    "contact_original_mapping_changed"
+                }
+                if (observed == proof.record) Zuordnung(proof) // Unchanged exports keep their exact quoted basis.
+                else {
+                    files.schreiben("${proof.key}.bin", encrypted)
+                    val saved = requireNotNull(files.lesen("${proof.key}.bin"))
+                    require(saved.contentEquals(encrypted) && decode(proof.key, saved) == observed)
+                    Zuordnung(Beleg(this, proof.key, hash(saved), observed))
+                }
+            })
+        }
+        result.pruefen(grant)
         return result
     }
 

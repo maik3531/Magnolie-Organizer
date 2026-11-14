@@ -184,6 +184,19 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         return result
     }
 
+    /** Serialize a native baseline refresh against reservations on the physical
+     * original, including holds from another peer/source identity. No provider
+     * or source-consent callbacks may run inside this private file lock.
+     */
+    internal fun <T> ohneOffenenVersuch(grant: KontaktOriginalFreigaben.Freigabe, refresh: () -> T): T {
+        grant.pruefen()
+        val key = originalPlatz(identitaet(grant))
+        return requireNotNull(files.mitSperre(create = true) {
+            check(files.lesen("$key.bin") == null) { "contact_original_attempt_held" }
+            refresh()
+        })
+    }
+
     private fun identitaet(grant: KontaktOriginalFreigaben.Freigabe): JsonObject {
         val peer = grant.partner(); val binding = grant.bindung
         return buildJsonObject {
