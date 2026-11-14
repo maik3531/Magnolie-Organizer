@@ -286,4 +286,18 @@ class KontaktOriginalEmpfangTest {
         assertEquals(before, provider.rows.single { it[ContactsContract.Data._ID] == nativeId }.toMap())
         assertEquals(1, provider.batchCalls); assertEquals(1, queued().size)
     }
+
+    @Test fun authenticatedRawFnOnlyChangeUsesExactPlanEvenWhenItsLegacyFingerprintMatchesBefore() {
+        configure()
+        val before = binding.aktuell().daten
+        val fn = listOf(before.vorname, before.nachname).filter { it.isNotEmpty() }.joinToString(" ")
+        val target = before.copy(vcardName = listOf("FN:$fn"))
+        assertNotEquals(before, target); assertEquals(KontaktSync.hash(before), KontaktSync.hash(target))
+        val body = request(target)
+        send(body)
+        assertEquals(target, binding.ruecklesenNachSchreiben().daten)
+        val requestHash = Krypto.sha256(Kanonisch.bytes(body)).joinToString("") { "%02x".format(it.toInt() and 255) }
+        assertEquals(JsonPrimitive(requestHash), queued().single()["request_sha256"])
+        assertEquals(1, provider.batchCalls)
+    }
 }

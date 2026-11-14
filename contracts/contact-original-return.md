@@ -100,6 +100,30 @@ These helpers alone grant no source rights, send no packets and issue no SaveACK
 
 ### Notes controller integration, production still disabled (#628)
 
+Fresh apply authority owns the complete cloned target model, not only its
+semantic `KontaktSync.hash` fingerprint (#631). Both planned and preprotected
+entry points require target data; there is no hash-only fresh apply overload.
+Structural retargeting with an identical legacy fingerprint is rejected before
+provider access, consumes the one-use token and leaves its physical hold intact.
+No-op detection uses the actual native plan, so a genuine Raw-FN-only change can
+proceed even when its semantic fingerprint equals the before-image fingerprint.
+Existing contact fingerprints and canonical request-body hashing are unchanged.
+
+New private holds and verified records retain `target_exact_sha256`, computed
+from the complete owned model. Receipt creation binds that evidence, and outgoing
+results require it to match the actual current native model as well as the
+existing revision/mapping/source checks. Legacy missing/null evidence remains
+readable and held but cannot authorize a positive result; it is never rebuilt
+from current provider data. Malformed evidence is rejected. The affected host
+API28/API35 matrix passes 94 attempt and 38 actual FS1/controller cases.
+
+Transfer assessment: Linux `NativeContactSourceResultCommit` owns and validates
+the entire serialized book proposal; Windows `ContactSourceSavedCommit` compares
+the actual proposal using `JsonNode.DeepEquals` and binds the saved payload.
+Neither substitutes the semantic Notes contact hash for proposal authority.
+This source assessment establishes no identical desktop fault or untested
+cross-platform fix, and does not complete the pending/save-ACK lifecycle in #628.
+
 `KontaktOriginalEmpfang` now joins actual FS1-origin admission, restored native
 consent, private canonical/raw observation, sender-quoted basis, the shared
 native plan, lazy actual original protection, atomic provider write/readback and
