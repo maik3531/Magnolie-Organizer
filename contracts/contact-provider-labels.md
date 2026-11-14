@@ -80,3 +80,23 @@ tests. The actual automatic frontend/native dispatcher caller, explicit native
 source-approval storage and provider factory still need integration; the Linux
 equivalent and full Notes scalar/postal return path remain open. This is not an
 automatic all-source delivery or installed-package acceptance claim.
+
+## Native provider identity on readback (#617)
+
+The Windows update-only coordinator separately verifies the native provider UID
+observed **before** writing against the actual source readback. Resource ID,
+ETag and content hash alone do not witness identity: contact content hashes
+intentionally exclude UID, and the adapter receipt may project the canonical
+local UID rather than the provider's original UID. Changed or missing native
+identity does not acknowledge that source's baseline; another independently
+admitted source may continue. Canonical local identity and original revisions
+remain unchanged, and unknown delivery is not blindly retried as a new create.
+
+Controlled native DAV tests reproduce the previous false acknowledgment with an
+unchanged resource/ETag/content but changed source UID and verify the correction.
+The existing complete Linux EDS handler already checks that original written
+UIDs occur in its complete readback; separate changed/missing UID regression
+cases verify its failed-source baseline and independent second-source behavior.
+No new Linux product fix, generic DAV readback acceptance or live-provider
+delivery is claimed by that EDS check. The automatic multi-source integration
+under #582 remains open.

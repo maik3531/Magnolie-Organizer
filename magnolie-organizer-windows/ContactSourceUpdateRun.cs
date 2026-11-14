@@ -141,6 +141,10 @@ internal static class ContactSourceUpdateRun
             if (!bindings.TryGetValue(remote.Id, out var originalUid) || uid != originalUid || ContactFields.Text(contact, "uid") != originalUid)
                 throw new InvalidDataException("contact_source_original_binding_required");
             await CheckAsync(cancellation);
+            // Receipt.Data deliberately projects the canonical local UID. Only
+            // the pre-write source UID can witness native provider identity;
+            // content hashes intentionally do not include it (#617).
+            var originalNativeUid = ContactFields.Text(remote.Data, "uid");
             var written = await admission.Remote.UpdateAsync(remote, uid, contact, cancellation);
             await CheckAsync(cancellation);
             if (written.Id != remote.Id || string.IsNullOrWhiteSpace(written.ETag) || written.ETag.Trim() == "*")
@@ -148,7 +152,9 @@ internal static class ContactSourceUpdateRun
             var readback = await admission.Remote.ReadAsync(cancellation);
             await CheckAsync(cancellation);
             var matches = readback.Where(item => item.Id == remote.Id).ToArray();
-            if (matches.Length != 1 || matches[0].ETag != written.ETag || ContactFields.ContentHash(matches[0].Data) != ContactFields.ContentHash(written.Data))
+            if (matches.Length != 1 || matches[0].ETag != written.ETag ||
+                ContactFields.Text(matches[0].Data, "uid") != originalNativeUid ||
+                ContactFields.ContentHash(matches[0].Data) != ContactFields.ContentHash(written.Data))
                 throw new InvalidDataException("contact_source_write_readback_changed");
             return written; // Keep adapter's canonical UID projection, verified against actual source readback.
         }

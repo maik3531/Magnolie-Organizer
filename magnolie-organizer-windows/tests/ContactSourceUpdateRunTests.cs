@@ -27,6 +27,7 @@ internal static class ContactSourceUpdateRunTests
         internal string Wire, ETag = "\"v1\"";
         internal bool? Permission = true;
         internal bool FailWrite, BadReadback, RequireSaved, Saved;
+        internal string ReadbackUidMode = "";
         internal int Writes, Reads;
         internal Action? BeforeContentRead;
         private readonly string origin;
@@ -64,6 +65,8 @@ internal static class ContactSourceUpdateRunTests
             TestAssert.That(text.Contains("UID:" + WireUid + "\r\n", StringComparison.Ordinal) && !text.Contains("UID:canonical-person", StringComparison.Ordinal),
                 "Provider's original vCard UID was overwritten by canonical UID");
             Wire = BadReadback ? text.Replace("Canonical note", "Independent change", StringComparison.Ordinal) : text;
+            if (ReadbackUidMode.Length > 0) Wire = Wire.Replace("UID:" + WireUid + "\r\n",
+                ReadbackUidMode == "missing" ? "" : "UID:unexpected-source-identity\r\n", StringComparison.Ordinal);
             Writes++; ETag = "\"write-" + Writes + "\"";
             return new(HttpStatusCode.NoContent) { Headers = { ETag = new EntityTagHeaderValue(ETag) } };
         }
@@ -81,7 +84,7 @@ internal static class ContactSourceUpdateRunTests
     }
     internal static async Task RunAsync()
     {
-        foreach (var mode in new[] { "success", "failure", "readback", "readonly", "unknown", "revoked", "conflict", "ambiguous", "save-failed", "book-changed" })
+        foreach (var mode in new[] { "success", "failure", "readback", "readonly", "unknown", "revoked", "conflict", "ambiguous", "save-failed", "book-changed", "readback-uid", "readback-uid-missing" })
         {
             var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
                 ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
@@ -103,6 +106,7 @@ internal static class ContactSourceUpdateRunTests
             var admission = first.Admit();
             if (mode is "readonly" or "unknown") admission = admission with { CanUpdate = mode == "readonly" ? false : null };
             first.FailWrite = mode == "failure"; first.BadReadback = mode == "readback";
+            if (mode is "readback-uid" or "readback-uid-missing") first.ReadbackUidMode = mode == "readback-uid" ? "changed" : "missing";
             if (mode == "revoked") first.Permission = false;
             if (mode == "conflict") { first.Wire = first.Wire.Replace("NOTE:Original", "NOTE:Concurrent source edit", StringComparison.Ordinal); first.ETag = "\"concurrent\""; }
             first.RequireSaved = second.RequireSaved = true;
