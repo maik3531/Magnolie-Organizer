@@ -508,9 +508,47 @@ unchanged host evidence is retained. This still does not register a production
 scheduler or prove installed/native cross-language acceptance.
 
 Historical lost-receipt reconciliation must not force an already saved pending
-owner back through request submission. An explicitly read-only historical query
-and native orchestration of that query remain to be connected, along with the
-initial negotiation/send/receive setup lifecycle and Windows counterpart.
+owner back through request submission. The explicitly read-only historical query
+below supplies separate admission; native orchestration, initial negotiation/
+send/receive setup lifecycle and Windows counterpart remain to be connected.
+
+### Explicit target-free historical inquiry (#628)
+
+`kontakt_original_statusanfrage` has exactly seven fields: `art`, `fassung=1`,
+`request_id`, `request_sha256`, `share_id`, `before_basis`, `target_sha256`.
+There is no `ziel`. The actual authenticated Notes controller validates the
+current native source/setup and complete historical correlation, then reads an
+existing prepared/settled archive or an existing VERIFIED attempt result. The
+query has no prepare/apply/reconstruction path. An unknown/missing/unverified
+attempt is held, never created or resumed merely because it was queried. Extra
+target fields are rejected. Production remains disabled, including this kind.
+
+`NativeNotesAckIntents.readonly_query` may create a distinct native-only
+`NativeNotesHistoryQuery` from an existing genuine encrypted saved-ACK record and
+its current independent private consent/recognized primary context. It does not
+require a fresh result just to ask for one, and it does not issue an ACK. Source
+choice seals, keys, selected identity and known complete primary/native-model
+contents remain mandatory; no saved-writer witness is fabricated on restart.
+The result/status subsequently received still needs the existing fresh native
+origin checks before reauthorizing an ACK or confirming settlement.
+
+The reserved query sender requires this exact type plus the fresh negotiated
+profile and current native transport policy. Query JSON is blocked from generic
+queue/send/direct-FS1 paths and has no default renderer fallback. It cannot be
+passed as a saved-ACK intent. Source revocation blocks retained queries before
+IO, and queries do not write the primary or independent journal.
+
+Evidence: all 84 affected actual Notes controller cases pass on API28/35; six
+focused cases with additional explicit-query setup/revocation/new-hold assertions
+also pass (overlapping, not 90 distinct cases). Existing archives remain byte-
+identical after inquiry, including later provider changes/new physical holds;
+missing attempts cause no provider batch or reservation. Linux passes 171
+affected cases: 31 reserved sends, 57 private consent/history, 51 pending/save,
+32 authenticated origin/protocol/default-fallback cases. Historical query sending
+works with a fresh owner and no current saved witness, using real FS1 crypto and
+a synthetic responder. Missing private context/keys, wrong seals/identities and
+unknown primary remain negative. No physical device or installed counterpart
+acceptance, production registration, package build or installation is claimed.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 

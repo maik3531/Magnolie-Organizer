@@ -14,7 +14,7 @@ from magnolie_contact_notes_return import NativeNotesAckIntents, NativeNotesProt
 @pytest.mark.parametrize('mode', ['success', 'connection-wait', 'copied-intent', 'copied-negotiation', 'unnegotiated',
     'untrusted', 'sync-off', 'legacy-protocol', 'changed-epoch', 'revoked-during-handshake',
     'cancel-during-handshake', 'connection-lost-during-handshake', 'bad-receipt', 'offline', 'wrong-intent-pins',
-    'recovered-intent', 'terminal-marked', 'revoked-after-send'])
+    'recovered-intent', 'terminal-marked', 'revoked-after-send', 'readonly-query', 'readonly-query-revoked', 'readonly-query-copied'])
 def test_reserved_send_requires_genuine_saved_intent_negotiated_pins_and_current_native_policy(native, monkeypatch, tmp_path, mode):
     h = Harness(native, tmp_path)
     responder_sessions, client_sessions, network = [], [], []
@@ -40,6 +40,16 @@ def test_reserved_send_requires_genuine_saved_intent_negotiated_pins_and_current
                 intents.confirm_terminal(intent)
                 intent = intents.reauthorize(journal.stem, h.store, body, origin, transport)
             assert h.probe._kontakt_quellen_buchaufnahme() is None
+        if mode.startswith('readonly-query'):
+            h.restart()
+            intent = intents.readonly_query(journal.stem, h.store)
+            expected = intent.request()
+            assert set(expected) == {'art', 'fassung', 'request_id', 'request_sha256', 'share_id', 'before_basis', 'target_sha256'}
+            assert h.probe._kontakt_quellen_buchaufnahme() is None
+            from magnolie_contact_notes_return import NativeNotesSavedAckIntent
+            with pytest.raises(PermissionError): NativeNotesSavedAckIntent(intent).body()
+            with pytest.raises(PermissionError):
+                native.baum_notes_saveack_senden(lambda: h.receiver, intent, None, lambda: True)
         before_journal, before_book = journal.read_bytes(), Path(native.daten_datei()).read_bytes()
         peer = native.baum_partner(h.receiver, h.sender['kennung'])
         peer.update(vertraut=True, kontaktSync=True, protokoll='baum-fs1')
@@ -60,6 +70,8 @@ def test_reserved_send_requires_genuine_saved_intent_negotiated_pins_and_current
         if mode == 'untrusted': peer['vertraut'] = False
         if mode == 'sync-off': peer['kontaktSync'] = False
         if mode == 'legacy-protocol': peer['protokoll'] = 'baum-1'
+        if mode == 'readonly-query-revoked': h.store.revoke()
+        if mode == 'readonly-query-copied': intent = expected
         actual_open = native.fs_antwort_oeffnen
         def client_open(*args):
             session = actual_open(*args); client_sessions.append(session); return session
@@ -84,16 +96,17 @@ def test_reserved_send_requires_genuine_saved_intent_negotiated_pins_and_current
             if mode == 'bad-receipt': receipt['mac'] = native._fs_b64(b'X' * 32)
             if mode == 'revoked-after-send': h.store.revoke()
             return receipt
-        if mode in ('success', 'recovered-intent', 'connection-wait', 'bad-receipt', 'offline'):
-            sent = native.baum_notes_saveack_senden(lambda: h.receiver, intent, negotiation, lambda: allowed[0], sender=send)
-            assert sent == (mode in ('success', 'recovered-intent'))
+        send_native = native.baum_notes_statusanfrage_senden if mode.startswith('readonly-query') else native.baum_notes_saveack_senden
+        if mode in ('success', 'recovered-intent', 'readonly-query', 'connection-wait', 'bad-receipt', 'offline'):
+            sent = send_native(lambda: h.receiver, intent, negotiation, lambda: allowed[0], sender=send)
+            assert sent == (mode in ('success', 'recovered-intent', 'readonly-query'))
             if mode == 'connection-wait': assert not network
-            if mode in ('success', 'recovered-intent'):
+            if mode in ('success', 'recovered-intent', 'readonly-query'):
                 assert len(network) == 2
                 assert 'native_terminal_sha256' not in intents.load_held(journal.stem), 'Transport receipt was confused with settlement'
         else:
             with pytest.raises(PermissionError):
-                native.baum_notes_saveack_senden(lambda: h.receiver, intent, negotiation, lambda: allowed[0], sender=send)
+                send_native(lambda: h.receiver, intent, negotiation, lambda: allowed[0], sender=send)
             if mode in ('changed-epoch', 'revoked-during-handshake', 'cancel-during-handshake', 'connection-lost-during-handshake'):
                 assert len(network) == 1
             elif mode == 'revoked-after-send': assert len(network) == 2

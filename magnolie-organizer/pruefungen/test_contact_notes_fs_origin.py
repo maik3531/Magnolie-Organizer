@@ -106,7 +106,7 @@ def test_changed_context_inside_actual_callback_prevents_replay_commit_and_ack(n
         native.fs_sitzung_loeschen(channel); service.anhalten()
 
 
-@pytest.mark.parametrize('art', ['kontakt_original_ergebnis', 'kontakt_original_export', 'kontakt_original_abschlussstatus', 'kontakt_original_aushandlung'])
+@pytest.mark.parametrize('art', ['kontakt_original_ergebnis', 'kontakt_original_export', 'kontakt_original_abschlussstatus', 'kontakt_original_aushandlung', 'kontakt_original_statusanfrage'])
 def test_draft_full_result_has_no_default_renderer_or_inbox_fallback(native, art):
     sender, receiver, peer, saved, service = fixture(native, None)
     legacy = []

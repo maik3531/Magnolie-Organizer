@@ -147,6 +147,57 @@ internal class KontaktOriginalEmpfang(
             }
         }
 
+    /** Explicit query without a target: even missing history cannot cause apply. */
+    fun statusabfragen(origin: Server.FsEmpfang, body: JsonObject, transportId: String): JsonObject =
+        synchronized(Ablage.SCHREIBSPERRE) {
+            val peerId = origin.partnerKennung()
+            fun lifetime() {
+                origin.pruefen(handlung.eigen(), handlung.partner(peerId), body, transportId)
+                val peer = handlung.partner(peerId)
+                require(handlung.istAn() && peer?.bestaetigt == true && peer.vertraut && peer.kontaktSync &&
+                    verbindungFreigegeben()) { "contact_original_receive_not_available" }
+            }
+            lifetime()
+            require(body.keys == setOf("art", "fassung", "request_id", "request_sha256", "share_id", "before_basis", "target_sha256") &&
+                body["art"] == JsonPrimitive(STATUSANFRAGE) && body["fassung"] == JsonPrimitive(1)) {
+                "contact_original_status_query_schema"
+            }
+            fun text(name: String) = (body[name] as? JsonPrimitive)?.takeIf { it.isString }?.content
+                ?: throw IllegalArgumentException("contact_original_status_query_text")
+            val id = text("request_id"); val share = text("share_id")
+            require(runCatching { UUID.fromString(id).let { it.version() == 4 && it.toString() == id } }.getOrDefault(false))
+            require(share.isNotBlank() && share.codePointCount(0, share.length) <= 128 &&
+                share.none(Char::isISOControl) && share.codePoints().noneMatch { it in 0xD800..0xDFFF })
+            val hash = text("request_sha256"); val basis = text("before_basis"); val target = text("target_sha256")
+            require(listOf(hash, basis, target).all { it.matches(Regex("[0-9a-f]{64}")) })
+            val peer = KontaktOriginalFreigaben.Partner(peerId, origin.partnerSchluessel())
+            val scope = KontaktOriginalFreigaben(consent) {
+                lifetime()
+                handlung.partner(peerId)?.takeIf { it.bestaetigt && it.vertraut && it.kontaktSync }?.let {
+                    KontaktOriginalFreigaben.Partner(it.kennung, it.oeffentlich)
+                }
+            }
+            val stored = consent.laden() ?: throw SecurityException("contact_original_source_not_granted")
+            require(scope.wiederherstellen(stored)) { "contact_original_source_not_granted" }
+            val binding = mappings.beobachten(context, peer, share)
+                ?: throw SecurityException("contact_original_native_mapping_required")
+            val grant = scope.freigabe(binding)
+            attempts.abschlussstatus(grant, mappings, id, hash, share, basis, target)?.let {
+                lifetime(); return@synchronized it
+            }
+            val previous = attempts.laden(grant) ?: error("contact_original_status_unknown")
+            require(previous.anfrageId() == id && previous.anfrageHash() == hash && previous.freigabeId() == share &&
+                previous.basisHash() == basis && previous.zielHash() == target) { "contact_original_status_query_changed" }
+            val verified = previous.bestaetigung() ?: error("contact_original_status_unknown")
+            val mapping = mappings.finden(peer, share) ?: error("contact_original_native_mapping_required")
+            val result = verified.ausgang(grant, mapping).lesen()
+            lifetime()
+            buildJsonObject {
+                put("art", ERGEBNIS); put("fassung", 1)
+                result.forEach { (key, value) -> put(key, value) }
+            }
+        }
+
     private data class Anfrage(val id: String, val share: String, val basis: String,
                                val targetHash: String, val patch: JsonObject)
 
@@ -176,5 +227,6 @@ internal class KontaktOriginalEmpfang(
         const val ABSCHLUSSSTATUS = "kontakt_original_abschlussstatus"
         const val AUSHANDLUNG = "kontakt_original_aushandlung"
         const val PROFIL = "notes-original-return-draft1"
+        const val STATUSANFRAGE = "kontakt_original_statusanfrage"
     }
 }

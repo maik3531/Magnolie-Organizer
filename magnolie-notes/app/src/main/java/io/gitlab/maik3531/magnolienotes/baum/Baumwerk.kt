@@ -1182,7 +1182,7 @@ class Baumwerk private constructor(
         umschlagHash: String?
     ): Boolean {
         require(text(inhalt, "art") !in setOf(KontaktOriginalEmpfang.ANFRAGE, KontaktOriginalEmpfang.BESTAETIGUNG,
-            KontaktOriginalEmpfang.AUSHANDLUNG)) {
+            KontaktOriginalEmpfang.AUSHANDLUNG, KontaktOriginalEmpfang.STATUSANFRAGE)) {
             "contact_original_authenticated_origin_required"
         }
         val verarbeitet = verarbeiteEmpfang(vonKennung, inhalt, zaehler, transportId, umschlagHash)
@@ -1198,7 +1198,7 @@ class Baumwerk private constructor(
 
     override fun verarbeiteSichereNachricht(ursprung: Server.FsEmpfang, inhalt: JsonObject, transportId: String): Boolean {
         if (text(inhalt, "art") in setOf(KontaktOriginalEmpfang.ANFRAGE, KontaktOriginalEmpfang.BESTAETIGUNG,
-            KontaktOriginalEmpfang.AUSHANDLUNG)) {
+            KontaktOriginalEmpfang.AUSHANDLUNG, KontaktOriginalEmpfang.STATUSANFRAGE)) {
             val receiver = originalEmpfang ?: throw BaumFehler("contact_original_return_not_enabled")
             return verarbeiteEmpfang(ursprung.partnerKennung(), inhalt, null, transportId, null,
                 ursprung = ursprung, empfang = {
@@ -1208,7 +1208,9 @@ class Baumwerk private constructor(
                     } else if (text(inhalt, "art") == KontaktOriginalEmpfang.BESTAETIGUNG) {
                         receiver.bestaetigen(ursprung, inhalt, transportId)
                     } else {
-                        val result = receiver.empfangen(ursprung, inhalt, transportId)
+                        val result = if (text(inhalt, "art") == KontaktOriginalEmpfang.STATUSANFRAGE)
+                            receiver.statusabfragen(ursprung, inhalt, transportId)
+                        else receiver.empfangen(ursprung, inhalt, transportId)
                         val kind = requireNotNull(text(result, "art"))
                         require(kind in setOf(KontaktOriginalEmpfang.ERGEBNIS, KontaktOriginalEmpfang.ABSCHLUSSSTATUS))
                         einreihen(ursprung.partnerKennung(), kind, result)

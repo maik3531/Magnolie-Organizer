@@ -432,6 +432,38 @@ class _RestoredAckProof:
     context: object
 
 
+@dataclass(frozen=True)
+class _HistoryQueryProof:
+    history: _AckHistoryProof
+    consent: object
+
+
+class NativeNotesHistoryQuery:
+    """Existing real saved history -> target-free query, NEVER ACK authority."""
+    def __init__(self, proof):
+        self._proof = proof
+
+    def request(self):
+        from magnolie_contact_notes_consent import NativeNotesChoiceStore
+        proof = self._proof
+        if type(proof) is not _HistoryQueryProof or type(proof.consent) is not NativeNotesChoiceStore:
+            raise PermissionError('notes_original_private_history_query_required')
+        history = proof.history.store._read_history_proof(proof.history)
+        proof.consent._verify_history_context(proof.history, (tuple(history['peer']), tuple(history['own'])))
+        return {'art': 'kontakt_original_statusanfrage', 'fassung': 1,
+            **{name: history['result'][name] for name in
+                ('request_id', 'request_sha256', 'share_id', 'before_basis', 'target_sha256')}}
+
+    def _for_negotiated_protocol(self, negotiation):
+        if type(negotiation) is not NativeNotesProtocolNegotiation:
+            raise PermissionError('notes_original_protocol_not_negotiated')
+        pins = negotiation.require_current()
+        body = self.request()
+        self._proof.consent._verify_history_context(self._proof.history, pins)
+        negotiation.require_current()
+        return body
+
+
 class NativeNotesSavedAckIntent:
     """Fresh native-only durable intent. There is no JSON deserializer/factory."""
     def __init__(self, proof):
@@ -670,6 +702,18 @@ class NativeNotesAckIntents:
         result = NativeNotesSavedAckIntent(_RestoredAckProof(self, history, context))
         context.require_current()
         return result
+
+    def readonly_query(self, key, consent):
+        from magnolie_contact_notes_consent import NativeNotesChoiceStore
+        if type(consent) is not NativeNotesChoiceStore or not _digest(key):
+            raise PermissionError('notes_original_private_history_query_required')
+        with self._locked(create=False) as directory:
+            blob = self._read(directory, key + '.bin', 512 * 1024)
+        history = _AckHistoryProof(self, key, hashlib.sha256(blob).digest())
+        self._read_history_proof(history)
+        query = NativeNotesHistoryQuery(_HistoryQueryProof(history, consent))
+        query.request()
+        return query
 
     def _restored_ack_body(self, proof):
         from magnolie_contact_notes_consent import _RecognizedNotesAckContext

@@ -344,6 +344,39 @@ class KontaktOriginalEmpfangTest {
             "desktop_sha256" to JsonPrimitive("e".repeat(64))))
     }
 
+    private fun statusQuery(result: JsonObject) = buildJsonObject {
+        put("art", KontaktOriginalEmpfang.STATUSANFRAGE); put("fassung", 1)
+        for (name in listOf("request_id", "request_sha256", "share_id", "before_basis", "target_sha256"))
+            put(name, result.getValue(name))
+    }
+
+    @Test fun explicitReadOnlyQueryReturnsAnExistingVerifiedResultWithoutAnotherProviderBatch() {
+        val ack = verifiedSaveAck(); val first = queued().single()
+        val files = listOf("maps", "attempts").flatMap { File(parent, it).listFiles()!!.filter { f -> f.extension == "bin" } }
+        val bytes = files.associateWith { it.readBytes() }
+        val query = statusQuery(ack); send(query)
+        assertEquals(first, queued().last()); assertEquals(1, provider.batchCalls)
+        assertThrows(IllegalArgumentException::class.java) { send(JsonObject(query + ("request_sha256" to JsonPrimitive("0".repeat(64))))) }
+        assertThrows(IllegalArgumentException::class.java) { send(JsonObject(query + ("ziel" to buildJsonObject {}))) }
+        bytes.forEach { (file, expected) -> assertArrayEquals(expected, file.readBytes()) }
+        assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun explicitReadOnlyUnknownQueryCannotCreateAnAttemptOrApplyEvenWithAValidMapping() {
+        configure(); val original = request()
+        val query = buildJsonObject {
+            put("art", KontaktOriginalEmpfang.STATUSANFRAGE); put("fassung", 1)
+            for (name in listOf("request_id", "share_id", "before_basis", "target_sha256")) put(name, original.getValue(name))
+            put("request_sha256", Krypto.sha256(Kanonisch.bytes(original)).joinToString("") { "%02x".format(it.toInt() and 255) })
+        }
+        val map = File(parent, "maps").listFiles()!!.single { it.extension == "bin" }; val before = map.readBytes()
+        assertThrows(IllegalStateException::class.java) { send(query) }
+        assertArrayEquals(before, map.readBytes()); assertNoMutation()
+        server.anhalten(); attach(false)
+        assertThrows(BaumFehler::class.java) { send(query) }
+        assertNoMutation()
+    }
+
     private fun expectedNextBytes(): ByteArray {
         val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }
         val cipher = io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({ journalKey })
@@ -494,6 +527,8 @@ class KontaktOriginalEmpfangTest {
         send(first)
         assertArrayEquals(held, file.readBytes()); assertEquals(2, provider.batchCalls)
         assertEquals(JsonPrimitive("settled"), queued().last()["phase"])
+        send(statusQuery(ack))
+        assertArrayEquals(held, file.readBytes()); assertEquals(2, provider.batchCalls)
         binding = maps().beobachten(context, sourcePeer(), share)!!
         assertEquals(secondId, attempts().laden(scope.freigabe(binding))!!.anfrageId())
         val secondAck = JsonObject(secondResult + mapOf("art" to JsonPrimitive(KontaktOriginalEmpfang.BESTAETIGUNG),
@@ -547,6 +582,8 @@ class KontaktOriginalEmpfangTest {
         assertEquals(JsonPrimitive(KontaktOriginalEmpfang.ABSCHLUSSSTATUS), status["art"])
         assertEquals(JsonPrimitive(if (settled) "settled" else "prepared"), status["phase"])
         assertEquals(JsonObject(ack + mapOf("art" to status.getValue("art"), "phase" to status.getValue("phase"))), status)
+        send(statusQuery(ack))
+        assertEquals(status, queued().last())
         for (name in listOf("before_basis", "target_sha256")) {
             assertThrows(IllegalArgumentException::class.java) { send(JsonObject(body + (name to JsonPrimitive("0".repeat(64))))) }
         }
@@ -557,8 +594,10 @@ class KontaktOriginalEmpfangTest {
         binding = maps().beobachten(context, sourcePeer(), share)!!
         configure() // New genuine setup must not lend authority to old history.
         assertThrows(IllegalArgumentException::class.java) { send(body) }
+        assertThrows(IllegalArgumentException::class.java) { send(statusQuery(ack)) }
         scope.widerrufen()
         assertThrows(SecurityException::class.java) { send(body) }
+        assertThrows(SecurityException::class.java) { send(statusQuery(ack)) }
         assertEquals(1, provider.batchCalls)
     }
 

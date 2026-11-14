@@ -13976,7 +13976,7 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
 def _baum_notes_saveack_sperren(art, inhalt):
     # Reserved native admission is separate and not registered in production.
     # Copied request/ACK JSON must never enter generic renderer/outbox/FS1 paths.
-    reserved = ("kontakt_original_saveack", "kontakt_original_anfrage")
+    reserved = ("kontakt_original_saveack", "kontakt_original_anfrage", "kontakt_original_statusanfrage")
     if art in reserved or isinstance(inhalt, dict) and inhalt.get("art") in reserved:
         raise RuntimeError(_("This type cannot be shared."))
 
@@ -15614,6 +15614,15 @@ def baum_notes_anfrage_senden(zustand_lesen, pending, negotiation, verbindung_fr
     return _baum_notes_original_senden(zustand_lesen, pending, negotiation, verbindung_freigegeben, sender, zeitgrenze)
 
 
+def baum_notes_statusanfrage_senden(zustand_lesen, query, negotiation, verbindung_freigegeben,
+                                  sender=None, zeitgrenze=6):
+    """Historical read-only inquiry: no target and no request/apply fallback."""
+    from magnolie_contact_notes_return import NativeNotesHistoryQuery
+    if type(query) is not NativeNotesHistoryQuery:
+        raise PermissionError('notes_original_private_history_query_required')
+    return _baum_notes_original_senden(zustand_lesen, query, negotiation, verbindung_freigegeben, sender, zeitgrenze)
+
+
 def _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben,
                                sender=None, zeitgrenze=6):
     """Typed native FS1 lane; no queue/renderer/dict admission or fallback.
@@ -15622,8 +15631,8 @@ def _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_f
     keep private outcome history until separately authenticated terminal status.
     Native caller owns current-state/network policy callbacks, never payload flags.
     """
-    from magnolie_contact_notes_return import NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesProtocolNegotiation
-    if (type(intent) not in (NativeNotesSavedAckIntent, NativeNotesPendingResult) or type(negotiation) is not NativeNotesProtocolNegotiation or
+    from magnolie_contact_notes_return import NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesProtocolNegotiation, NativeNotesHistoryQuery
+    if (type(intent) not in (NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesHistoryQuery) or type(negotiation) is not NativeNotesProtocolNegotiation or
             not callable(zustand_lesen) or not callable(verbindung_freigegeben)):
         raise PermissionError('notes_original_native_send_admission_required')
     if verbindung_freigegeben() is not True:
@@ -16248,7 +16257,7 @@ class BaumDienst(object):
                         baum_kontakt_nutzlast_pruefen((inhalt or {}).get("art"), inhalt)
                         gesehen = partner.setdefault("transportIds", [])
                         if transport_id not in gesehen:
-                            if self.bei_sicherer_nachricht and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung"):
+                            if self.bei_sicherer_nachricht and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
                                 from magnolie_contact_notes_return import _issue_notes_fs_origin
                                 # Schedule later saved-book work; never wait for
                                 # its data lock while holding the receive lock.
@@ -16271,7 +16280,7 @@ class BaumDienst(object):
                                 if self.bei_sicherer_nachricht(partner, inhalt, origin, transport_id) is False:
                                     raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
                                 origin.require_current(inhalt, transport_id)
-                            elif inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung"):
+                            elif inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
                                 raise RuntimeError(_("This type cannot be shared."))
                             elif self.bei_nachricht:
                                 self.bei_nachricht(partner, inhalt)

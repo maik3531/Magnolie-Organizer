@@ -378,6 +378,9 @@ def test_existing_saved_ack_recovers_only_with_private_primary_context_and_fresh
         if mode == 'expired-origin': origin, transport = old_origin
         if mode == 'copied-origin': origin = body
         before_book = Path(native.daten_datei()).read_bytes()
+        if mode in ('missing-native-data', 'unknown-primary', 'memory-impostor', 'revoked', 'reconfigured',
+                    'missing-journal-key', 'legacy-no-seal', 'wrong-book-seal', 'removed-contact', 'changed-uid'):
+            with pytest.raises(PermissionError): intents.readonly_query(path.stem, h.store)
         if mode in ('status-prepared', 'status-settled', 'status-write-failure', 'status-post-write-failure'):
             restored = intents.reauthorize(path.stem, h.store, body, origin, transport)
             assert restored.body() == expected
