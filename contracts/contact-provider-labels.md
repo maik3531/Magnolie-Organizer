@@ -268,3 +268,35 @@ An opt-in native modal probe uses only a blank owner and synthetic catalog, with
 no profiles or provider IO. The available noninteractive Windows runner refused
 `ShowDialog`; an approved interactive session is required. The production consent
 dialog is not relaxed into a service notification to work around that boundary.
+
+## Independent Linux contact saved-book witness (#618, intermediate)
+
+The Linux native save worker now records `NativeContactSourceBook` independently
+of the phone actor's owner. The existing GUI readiness/lock lifecycle controls its
+native identity. Before the actual writer touches snapshots, encryption or
+storage it clears the old contact witness without resetting the successful-save
+sequence. Only the existing writer's confirmed, unrepaired completion records a
+new witness. No document `saved` flag, source list or claimed revision can do so.
+
+Linux's raw-text SaveACK hash and the parsed native book's canonical fingerprint
+remain separate. Fresh capture checks both native observations and exact current
+content, including legitimate fractional drawing coordinates. Changed, locked,
+unavailable or unconfirmed books are held. Phone-actor sync/operation fences are
+not relaxed to make contact capture succeed.
+
+The general writer's existing post-rename readback and repair semantics are not
+changed: it may acknowledge a committed document with `repairPending`. Such a
+state still has no contact-update witness until a later unrepaired native save.
+An epoch rejection or rejected historical job never reaches the native writer
+and does not manufacture a new witness. Existing encryption, recovery snapshots,
+retention and reminder handling remain in the same writer.
+
+Twenty-four controlled cases include actual encrypted/atomic worker writes,
+pre-write invalidation, post-rename uncertainty/readback repair, reminder repair,
+lock/readiness/context changes and source manifest coverage. Ninety-two affected
+native save/restore/phone-actor regressions and thirty-two isolated source/runtime
+manifest tests pass. Debian, RPM, AppImage and Flatpak source manifests include
+the new helper; no package build, installation or live-provider test is implied.
+This is only the Linux saved-book boundary: no automatic source scheduler,
+source approval, update-only provider coordinator, result commit or full Notes
+return path has been connected on Linux by this step.
