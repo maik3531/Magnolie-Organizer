@@ -210,13 +210,54 @@ passed. The 53 affected origin/writer cases passed in that initial run and remai
 valid; 11 subsequently strengthened new cases additionally assert that receive
 does not invoke the native mapping/book guard.
 
-This is still production-unregistered. Tests supply a synthetic native mapping
-guard, not a completed authenticated export/private mapping setup. Native saved
-target projection/request issuance, durable private ACK intents/restart recovery,
-reserved authenticated ACK sending, terminal settlement and Windows counterpart
-remain unfinished. The provisional `notesOriginalBasis` metadata must be added to
-the common UI's preservation/validation path before enabling this controller.
+This is still production-unregistered. The initial tests supply a synthetic
+native mapping guard; the authenticated export/native-choice extension below
+provides a bounded process-local issuer, not durable setup. Durable private ACK
+intents/restart recovery, actual request/ACK sending, terminal settlement and
+Windows counterpart remain unfinished. A subsequent actual common frontend
+init/normalize/save-message test confirms that `notesOriginalBasis` is already
+retained by the existing contact object copy, including exact decimal Long text.
+Imported permission-looking metadata triggers no native operation; no frontend
+product change was needed for preservation. Strict protocol admission remains
+native, and portable metadata is never a permission or SaveACK witness.
 `confirmed_save()` exposes native correlation only, not a wire ACK or slot release.
+
+### Authenticated native export and explicit local choice (#628)
+
+The existing Notes native observed offer can now build a dedicated draft
+`kontakt_original_export` frame containing exactly `art`, `fassung`, `share_id`,
+`before_basis`, `native_revision`, `content_sha256`, and the full `kontakt` model.
+Content/revision/quote come from the same actual private grant/map observation;
+source revocation and fabricated offers cannot build that frame. No production
+sender or advertised capability is added by this method.
+
+Linux's same authenticated-origin route accepts the export only for an explicitly
+registered native callback; without it, exports and results both reject rather
+than falling back to the renderer. Later `NativeNotesExportChoice` validates the
+authenticated export and invokes a native choice callback over actual saved
+contacts. It binds the chosen local ID/UID and native book owner, not imported
+tags, names or a default contact. Native setup UI and restart-safe restoration
+are not yet implemented; tests use an explicit synthetic choice.
+
+The resulting pending request projects the selected saved contact's modeled
+name/raw-N/FN/scalar/postal fields onto the authenticated full native before-model.
+Native phone/email/photo/group content is retained, not reconstructed from the
+desktop renderer. Native HOME/WORK/OTHER postal types map explicitly; changed
+custom labels and unrepresented postal columns hold rather than silently map to
+another kind. An unchanged custom label may retain its exact native row. This
+bounded projection is not broader provider/custom-label support. Result revision
+must advance beyond the actual exported native revision.
+
+The extended Linux matrix passes 83 cases (30 pending/choice, 15 origin and 38
+actual writer regressions), with a subsequently added export default-rejection
+case passing alongside the existing result rejection. The common actual frontend
+has three passive metadata roundtrip cases. Notes passes 66 mapping/export cases
+on host API28/API35, including draft frame ownership and source revocation.
+The full common frontend source was used unchanged; neither these host checks
+nor synthetic counterpart frames are physical Android/libcore or installed
+Windows acceptance. Native selection remains bounded by its original authenticated
+session lifetime until genuine durable authority and fresh-session restoration
+are connected; it must not be reconstituted from the portable basis field.
 
 | Counterpart | What the source establishes | What is still needed for this automatic path |
 | --- | --- | --- |

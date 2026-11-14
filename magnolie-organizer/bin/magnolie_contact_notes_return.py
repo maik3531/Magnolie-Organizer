@@ -7,6 +7,7 @@ desktop request. This module alone cannot grant sources or issue a SaveACK.
 import hashlib
 import hmac
 import json
+import re
 import unicodedata
 from dataclasses import dataclass
 import threading
@@ -68,10 +69,13 @@ class NativeNotesPendingResult:
     the existing book mutation gate, never inside the tree receive lock.
     This joins the actual writer but does not yet issue/send a wire SaveACK.
     """
-    def __init__(self, snapshot, request, local_id, local_uid, peer, own, capture_current, require_mapping):
+    def __init__(self, snapshot, request, local_id, local_uid, peer, own, capture_current, require_mapping, *, before_revision=0):
         if (type(snapshot) is not NativeProducerBookSnapshot or not callable(capture_current) or
                 not callable(require_mapping) or not isinstance(request, dict)):
             raise TypeError('notes_original_native_pending_required')
+        if type(before_revision) is not int or not 0 <= before_revision <= 2**63 - 1:
+            raise ValueError('notes_original_pending_revision_required')
+        self._before_revision = before_revision
         self._lock = threading.RLock()
         self._work_lock = threading.RLock()
         self._snapshot, self._capture, self._mapping = snapshot, capture_current, require_mapping
@@ -129,7 +133,7 @@ class NativeNotesPendingResult:
                 type(owned['fassung']) is not int or owned['fassung'] != 1 or
                 any(owned[name] != request[name] for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')) or
                 owned['request_sha256'] != self._request_hash or not _request_uuid(owned['receipt_id']) or
-                type(owned['native_revision']) is not int or not 0 < owned['native_revision'] <= 2**63 - 1 or
+                type(owned['native_revision']) is not int or not self._before_revision < owned['native_revision'] <= 2**63 - 1 or
                 not _digest(owned['next_basis']) or owned['next_basis'] == request['before_basis']):
             raise ValueError('notes_original_pending_result_changed')
         text = _frame_bytes(owned)
@@ -196,6 +200,119 @@ def _request_uuid(value):
         return isinstance(value, str) and parsed.version == 4 and str(parsed) == value
     except (ValueError, TypeError, AttributeError):
         return False
+
+
+class NativeNotesExportChoice:
+    """Process-local native choice from an actual authenticated Notes export.
+
+    Invoke later under the native book gate, NOT from the tree receive callback.
+    This is not a portable tag loader or durable setup implementation. No UI or
+    production controller registers this factory until restart authority exists.
+    """
+    def __init__(self, body, origin, transport_id, snapshot, capture_current, choose_native):
+        if (type(origin) is not NativeNotesFsOrigin or type(snapshot) is not NativeProducerBookSnapshot or
+                not callable(capture_current) or not callable(choose_native)):
+            raise PermissionError('notes_original_native_export_choice_required')
+        self._body_text = _frame_bytes(body)
+        owned = json.loads(self._body_text)
+        self._origin, self._transport, self._capture = origin, transport_id, capture_current
+        self._peer, self._own = origin.require_current(owned, transport_id)
+        if (set(owned) != {'art', 'fassung', 'share_id', 'before_basis', 'native_revision', 'content_sha256', 'kontakt'} or
+                owned['art'] != 'kontakt_original_export' or type(owned['fassung']) is not int or owned['fassung'] != 1 or
+                not isinstance(owned['share_id'], str) or not 0 < len(owned['share_id']) <= 128 or
+                any(ord(char) < 32 or ord(char) == 127 or 0xD800 <= ord(char) <= 0xDFFF for char in owned['share_id']) or
+                not _digest(owned['before_basis']) or type(owned['native_revision']) is not int or
+                not 0 <= owned['native_revision'] <= 2**63 - 1 or not _digest(owned['content_sha256']) or
+                notes_content_hash(owned['kontakt']) != owned['content_sha256']):
+            raise ValueError('notes_original_export_schema')
+        if capture_current() != snapshot:
+            raise PermissionError('notes_original_export_book_changed')
+        contacts = snapshot.book().get('kontakte', [])
+        # Explicit native choice among actual saved contacts, never a lookup by
+        # imported share/source tags, matching display names or default book.
+        selected = choose_native(tuple(json.loads(json.dumps(contact, ensure_ascii=False)) for contact in contacts))
+        matches = [contact for contact in contacts if contact.get('id') == selected]
+        if (len(matches) != 1 or not isinstance(selected, str) or not selected or
+                not isinstance(matches[0].get('uid'), str) or not matches[0]['uid']):
+            raise PermissionError('notes_original_export_native_choice_required')
+        self._id, self._uid, self._book_source = selected, matches[0]['uid'], snapshot.book_source
+        if capture_current() != snapshot:
+            raise PermissionError('notes_original_export_book_changed')
+        self.require_current()
+
+    def require_current(self):
+        body = json.loads(self._body_text)
+        self._origin.require_current(body, self._transport)
+        current = self._capture()
+        if type(current) is not NativeProducerBookSnapshot or current.book_source != self._book_source:
+            raise PermissionError('notes_original_export_book_changed')
+        matches = [contact for contact in current.book().get('kontakte', []) if contact.get('id') == self._id]
+        if len(matches) != 1 or matches[0].get('uid') != self._uid:
+            raise PermissionError('notes_original_export_contact_changed')
+        self._origin.require_current(body, self._transport)
+
+    def pending(self):
+        self.require_current()
+        snapshot = self._capture()
+        local = next(contact for contact in snapshot.book()['kontakte'] if contact.get('id') == self._id)
+        exported = json.loads(self._body_text)
+        before = exported['kontakt']
+        patch = _saved_mutable_projection(local, before)
+        target = dict(before, **patch)
+        if target == before:
+            raise ValueError('notes_original_no_mutation_required')
+        request = {'art': 'kontakt_original_anfrage', 'fassung': 1, 'request_id': str(uuid.uuid4()),
+            'share_id': exported['share_id'], 'before_basis': exported['before_basis'],
+            'target_sha256': notes_content_hash(target), 'ziel': patch}
+        return NativeNotesPendingResult(snapshot, request, self._id, self._uid, self._peer, self._own,
+            self._capture, self.require_current, before_revision=exported['native_revision'])
+
+
+def _saved_mutable_projection(contact, before):
+    """Bounded native saved-book projection; no renderer-supplied target DTO.
+
+    Retain all excluded native phone/email/photo/group fields via the exported
+    before model. Unsupported local postal columns/changed custom labels hold
+    rather than pretending that the Android model represents them losslessly.
+    """
+    patch = {name: _native_text(contact.get(name, '')) for name in
+             ('vorname', 'nachname', 'firma', 'notiz', 'geburtstag', 'jubilaeum', 'anzeigename')}
+    if contact.get('geburtstagJahrUnbekannt') is True and re.fullmatch(r'\d{4}-\d{2}-\d{2}', patch['geburtstag']):
+        patch['geburtstag'] = '--' + patch['geburtstag'][5:]
+    raw_names = contact.get('vcardRoundtrip', [])
+    if not isinstance(raw_names, list):
+        raise ValueError('notes_original_saved_name_projection')
+    patch['vcardName'] = [line for line in map(_native_text, raw_names) if re.match(r'^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]', line, re.I)]
+    rows = contact.get('anschriften', [])
+    if not isinstance(rows, list):
+        raise ValueError('notes_original_saved_postal_projection')
+    if not rows and any(contact.get(name) for name in ('strasse', 'plz', 'ort')):
+        rows = [{name: contact.get(name, '') for name in ('strasse', 'plz', 'ort')}]
+    postal = []
+    for row in rows:
+        if not isinstance(row, dict) or any(row.get(name) for name in ('postfach', 'zusatz')):
+            raise ValueError('notes_original_saved_postal_projection')
+        fields = {name: _native_text(row.get(name, '')) for name in ('strasse', 'plz', 'ort', 'region', 'land')}
+        types, label = row.get('typen', []), _native_text(row.get('label', ''))
+        if not isinstance(types, list) or any(type(value) is not str for value in types):
+            raise ValueError('notes_original_saved_postal_projection')
+        if label:
+            same = [value for value in before.get('anschriften', []) if value['art'] == label and
+                    all(value[name] == fields[name] for name in fields)]
+            if len(same) != 1:
+                raise ValueError('notes_original_saved_postal_label_not_supported')
+            kind = same[0]['art']
+        elif types == ['HOME']:
+            kind = 'privat'
+        elif types == ['WORK']:
+            kind = 'arbeit'
+        elif types in ([], ['OTHER']):
+            kind = 'sonstige'
+        else:
+            raise ValueError('notes_original_saved_postal_kind_not_supported')
+        postal.append(dict(art=kind, **fields))
+    patch['anschriften'] = postal
+    return patch
 
 
 def _native_text(value):

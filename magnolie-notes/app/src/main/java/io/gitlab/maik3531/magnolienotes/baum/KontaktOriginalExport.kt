@@ -1,6 +1,6 @@
 package io.gitlab.maik3531.magnolienotes.baum
 
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.*
 
 /** Native observed export, not a portable mapping grant or a new wire DTO.
  * Pending transport must carry this content and quote together, then correlate
@@ -17,6 +17,20 @@ internal object KontaktOriginalExport {
         val revision: Long, val content: String)
 
     class Angebot internal constructor(private val beleg: Any) {
+        /** Dedicated draft only. No capability or production sender is enabled.
+         * Content and quote come from the same actual native observed proof.
+         */
+        fun nachricht(): JsonObject {
+            val current = lesen()
+            return buildJsonObject {
+                put("art", "kontakt_original_export"); put("fassung", 1)
+                put("share_id", current.freigabeId); put("before_basis", current.basisHash)
+                put("native_revision", current.revision)
+                put("content_sha256", KontaktSync.hash(current.daten))
+                put("kontakt", Json { encodeDefaults = true }.encodeToJsonElement(KontaktDaten.serializer(), current.daten))
+            }.also { lesen() }
+        }
+
         fun lesen(): Stand {
             val proof = beleg as? Beleg ?: throw SecurityException("contact_original_native_export_required")
             proof.mapping.pruefen(proof.grant)

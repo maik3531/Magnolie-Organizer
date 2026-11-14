@@ -16,7 +16,7 @@ import pytest
 from test_contact_notes_fs_origin import fixture, frame
 from test_contact_source_saved_book import data
 from magnolie_contact_source_book import NativeContactSourceBook
-from magnolie_contact_notes_return import NativeNotesPendingResult, _frame_bytes
+from magnolie_contact_notes_return import NativeNotesPendingResult, NativeNotesExportChoice, notes_content_hash, _frame_bytes
 from test_startup_read_failure import native
 
 
@@ -52,15 +52,18 @@ def prepare_native_book(native):
 
 
 @pytest.mark.parametrize('mode', ['success', 'changed-book', 'later-save', 'revoked-before',
-    'revoked-after', 'stop-after', 'repair', 'failed-write', 'duplicate', 'later-save-after', 'owned-request'])
+    'revoked-after', 'stop-after', 'repair', 'failed-write', 'duplicate', 'later-save-after', 'owned-request', 'export-selected'])
 def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native, monkeypatch, mode):
     probe, book, replies, snapshots, request, result = prepare_native_book(native)
     live, queued, received, mapping_checks = [True], [], [], []
     def require_mapping():
         mapping_checks.append('native check outside receive callback')
         if not live[0]: raise PermissionError('Synthetic native mapping revoked')
-    pending = None
+    pending, exports = None, []
     def accept(peer, body, origin, transport):
+        if body['art'] == 'kontakt_original_export':
+            exports.append((body, origin, transport))
+            return True
         checks_before = len(mapping_checks)
         pending.stage_result(body, origin, transport)
         assert len(mapping_checks) == checks_before, 'Receive waited for native book/mapping work'
@@ -68,9 +71,36 @@ def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native,
         queued.append('Schedule outside receive lock')
         return True
     sender, receiver, peer, saved, service = fixture(native, accept)
-    pending = NativeNotesPendingResult(probe._kontakt_quellen_buchaufnahme(), request, 'local', 'canonical-person',
-        (sender['kennung'], sender['oeffentlich']), (receiver['kennung'], receiver['oeffentlich']),
-        probe._kontakt_quellen_buchaufnahme, require_mapping)
+    if mode == 'export-selected':
+        native_before = {'notiz': 'Before native edit', 'telefone': [{'art': 'mobil', 'wert': '+123'}], 'gruppen': ['Native retained']}
+        export = {'art': 'kontakt_original_export', 'fassung': 1, 'share_id': 'native-canonical-share',
+            'before_basis': 'b' * 64, 'native_revision': 1, 'kontakt': native_before,
+            'content_sha256': notes_content_hash(native_before)}
+        export_channel, export_frame, _ = frame(native, service, sender, receiver, export, marker=b'E' * 16)
+        try:
+            status, ack = service.behandeln('/magnolie/v2/nachricht', export_frame, '127.0.0.1')
+            assert status == 200 and native.fs_ack_pruefen(export_channel, export_frame, ack)
+        finally:
+            native.fs_sitzung_loeschen(export_channel)
+        body, origin, transport = exports.pop()
+        choices = []
+        def choose(contacts):
+            choices.append(contacts)
+            return contacts[0]['id']
+        selection = NativeNotesExportChoice(body, origin, transport, probe._kontakt_quellen_buchaufnahme(),
+            probe._kontakt_quellen_buchaufnahme, choose)
+        pending = selection.pending()
+        request = pending.request()
+        target = dict(native_before, **request['ziel'])
+        assert target['telefone'] == native_before['telefone'] and target['gruppen'] == native_before['gruppen']
+        assert request['target_sha256'] == notes_content_hash(target)
+        assert len(choices) == 1
+        result.update({name: request[name] for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')})
+        result['request_sha256'] = hashlib.sha256(_frame_bytes(request)).hexdigest()
+    else:
+        pending = NativeNotesPendingResult(probe._kontakt_quellen_buchaufnahme(), request, 'local', 'canonical-person',
+            (sender['kennung'], sender['oeffentlich']), (receiver['kennung'], receiver['oeffentlich']),
+            probe._kontakt_quellen_buchaufnahme, require_mapping)
     if mode == 'owned-request':
         request['ziel']['notiz'] = 'Mutated caller object must not change owned request'
         assert pending.request()['ziel']['notiz'] == ''
@@ -145,5 +175,57 @@ def test_actual_authenticated_mismatched_result_cannot_stage_a_book_commit(nativ
         assert service.behandeln('/magnolie/v2/nachricht', envelope, '127.0.0.1')[0] != 200
         with pytest.raises(PermissionError): pending.prepare_commit()
         assert saved == [] and snapshots == [] and replies == []
+    finally:
+        native.fs_sitzung_loeschen(channel); service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['cancel', 'unknown-id', 'changed-during-choice', 'copied-origin',
+    'wrong-content', 'revoked-export', 'stale-result-revision'])
+def test_native_export_selection_never_uses_portable_tags_as_mapping_authority(native, mode):
+    probe, book, replies, snapshots, request, result = prepare_native_book(native)
+    captured = []
+    def accept(peer, body, origin, transport):
+        captured.append((body, origin, transport)); return True
+    sender, receiver, peer, saved, service = fixture(native, accept)
+    contact = {'notiz': 'Native before'}
+    body = {'art': 'kontakt_original_export', 'fassung': 1, 'share_id': 'native-canonical-share',
+        'before_basis': 'b' * 64, 'native_revision': 12, 'kontakt': contact,
+        'content_sha256': notes_content_hash(contact)}
+    if mode == 'wrong-content': body['content_sha256'] = '0' * 64
+    channel, envelope, opened = frame(native, service, sender, receiver, body)
+    try:
+        assert service.behandeln('/magnolie/v2/nachricht', envelope, '127.0.0.1')[0] == 200
+        body, origin, transport = captured.pop()
+        snapshot = probe._kontakt_quellen_buchaufnahme()
+        choices = []
+        def choose(contacts):
+            choices.append(contacts)
+            if mode == 'cancel': return None
+            if mode == 'unknown-id': return 'imported-share-is-not-a-contact-id'
+            if mode == 'changed-during-choice':
+                book.record_saved(*probe._kontakt_quellen_buchbindung(), json.dumps(probe._aktuelle_daten))
+            return 'local'
+        if mode in ('cancel', 'unknown-id', 'changed-during-choice', 'copied-origin', 'wrong-content'):
+            with pytest.raises((PermissionError, ValueError)):
+                NativeNotesExportChoice(body, body if mode == 'copied-origin' else origin, transport,
+                    snapshot, probe._kontakt_quellen_buchaufnahme, choose)
+            if mode in ('copied-origin', 'wrong-content'): assert not choices
+        else:
+            selection = NativeNotesExportChoice(body, origin, transport, snapshot, probe._kontakt_quellen_buchaufnahme, choose)
+            if mode == 'revoked-export':
+                service.anhalten()
+                with pytest.raises(PermissionError): selection.pending()
+            else:
+                pending = selection.pending(); owned = pending.request()
+                result.update({name: owned[name] for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')})
+                result.update(request_sha256=hashlib.sha256(_frame_bytes(owned)).hexdigest(), native_revision=12)
+                service.bei_sicherer_nachricht = lambda peer, body, origin, tid: pending.stage_result(body, origin, tid)
+                second, second_frame, _ = frame(native, service, sender, receiver, result, marker=b'V' * 16)
+                try:
+                    assert service.behandeln('/magnolie/v2/nachricht', second_frame, '127.0.0.1')[0] != 200
+                    with pytest.raises(PermissionError): pending.prepare_commit()
+                finally:
+                    native.fs_sitzung_loeschen(second)
+        assert not snapshots and not replies
     finally:
         native.fs_sitzung_loeschen(channel); service.anhalten()

@@ -106,11 +106,12 @@ def test_changed_context_inside_actual_callback_prevents_replay_commit_and_ack(n
         native.fs_sitzung_loeschen(channel); service.anhalten()
 
 
-def test_draft_full_result_has_no_default_renderer_or_inbox_fallback(native):
+@pytest.mark.parametrize('art', ['kontakt_original_ergebnis', 'kontakt_original_export'])
+def test_draft_full_result_has_no_default_renderer_or_inbox_fallback(native, art):
     sender, receiver, peer, saved, service = fixture(native, None)
     legacy = []
     service.bei_nachricht = lambda peer, body: legacy.append(body)
-    channel, envelope, opened = frame(native, service, sender, receiver, {'art': 'kontakt_original_ergebnis'})
+    channel, envelope, opened = frame(native, service, sender, receiver, {'art': art})
     try:
         assert service.behandeln('/magnolie/v2/nachricht', envelope, '127.0.0.1')[0] == 403
         assert legacy == [] and saved == [] and peer.get('transportIds', []) == []

@@ -7,6 +7,7 @@ import android.content.pm.ProviderInfo
 import android.provider.ContactsContract
 import android.provider.ContactsContract.RawContacts
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.serialization.json.*
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -327,6 +328,30 @@ class KontaktOriginalZuordnungenTest {
         assertEquals(binding.aktuell().daten, stand.daten)
         assertEquals(maps().finden(peer, share)!!.basisHash(scope.freigabe(binding)), stand.basisHash)
         assertEquals(stand, offer.lesen()); assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun draftExportFrameComesOnlyFromTheSameActualNativeContentAndQuotedBasis() {
+        approve()
+        val offer = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val current = offer.lesen()
+        val body = offer.nachricht()
+        assertEquals(setOf("art", "fassung", "share_id", "before_basis", "native_revision", "content_sha256", "kontakt"), body.keys)
+        assertEquals(JsonPrimitive("kontakt_original_export"), body["art"])
+        assertEquals(JsonPrimitive(share), body["share_id"])
+        assertEquals(JsonPrimitive(current.basisHash), body["before_basis"])
+        assertEquals(JsonPrimitive(current.revision), body["native_revision"])
+        assertEquals(JsonPrimitive(KontaktSync.hash(current.daten)), body["content_sha256"])
+        assertEquals(current.daten, Json.decodeFromJsonElement(KontaktDaten.serializer(), body.getValue("kontakt")))
+        assertTrue(body.getValue("kontakt").jsonObject.containsKey("gruppen"))
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { offer.nachricht() }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun copiedPortableExportDataCannotMintADraftNativeExportFrame() {
+        val queries = provider.queries
+        assertThrows(SecurityException::class.java) { KontaktOriginalExport.Angebot(Any()).nachricht() }
+        assertEquals(queries, provider.queries); assertFalse(mapRoot.exists())
     }
 
     @Test fun forgedOrCopiedExportValuesCannotBecomeANativeObservedOffer() {
