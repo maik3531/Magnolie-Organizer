@@ -129,3 +129,28 @@ second run is idempotent. These are synthetic transport tests, not live-provider
 or installed-package acceptance. Persistent native explicit-approval management,
 the automatic frontend/dispatcher caller and durable result integration remain
 unimplemented; this factory alone enables no automatic delivery or permission.
+
+## Native session approval authority (#582, intermediate)
+
+`ContactSourceApprovalScope` starts empty and has no document/JSON import path.
+It offers only eligible native DAV catalog entries to an explicit native
+user-decision callback. A cancelled decision retains existing approvals; an
+explicit empty selection revokes them. Duplicate, unknown or stale selections
+cannot grant access. Changing book/save/account context or revoking while the
+decision is pending prevents that pending answer from granting access.
+
+Captured factory approvals remain valid across ordinary durable saves of the
+same native book, but not across explicit revocation, locking, book identity
+change, account/credential revision change or account deactivation. Previously
+captured callbacks are fenced by an approval generation, including revocation
+and subsequent reapproval. This authority is intentionally session-local: it
+does not persist consent across application restarts or claim to implement a
+native dialog. A real native settings decision UI and automatic dispatcher
+caller still need connecting; discovery is never an affirmative decision.
+
+Sixteen controlled authority scenarios check these decisions and lifecycle
+boundaries. The factory scenarios additionally consume approvals captured from
+this authority before actual controlled DAV IO. Native decision callbacks are
+synthetic test decisions, not acceptance of installed consent UI or automatic
+frontend-to-provider delivery. Linux and persistent cross-session approval
+management remain separate outstanding integration work.

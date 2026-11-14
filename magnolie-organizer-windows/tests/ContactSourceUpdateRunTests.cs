@@ -156,6 +156,81 @@ internal static class ContactSourceUpdateRunTests
         }
         await SavedBookBoundaryAsync();
         await DavFactoryAsync();
+        await ApprovalScopeAsync();
+    }
+
+    private static async Task ApprovalScopeAsync()
+    {
+        foreach (var mode in new[] { "later-save", "cancel", "empty-selection", "invalid-selection", "duplicate-selection",
+            "revoke", "lock", "other-book", "account-change", "inactive", "missing-credential", "revoke-during-dialog",
+            "save-during-dialog", "account-during-dialog", "cancel-during-dialog", "reapprove" })
+        {
+            NativeBookSaveState? book = new("native-synthetic-book", 1, new string('a', 64));
+            var account = new NextcloudSettingsSnapshot(new NextcloudMailboxSettings(true, false, "https://first.invalid/nc", "synthetic")
+                { AccountType = "generic-dav" }, true, "native-account-revision");
+            var href = new Uri("https://first.invalid/nc/books/original/");
+            var source = new NextcloudDavSource(NextcloudDavClient.StableSourceId("addressbook", href, "generic-dav"),
+                "Synthetic source", "addressbook", href, false, false) { CanUpdate = true };
+            var scope = new ContactSourceApprovalScope(() => book, () => account);
+            TestAssert.That(scope.Capture().Count == 0, "New native approval scope was not default OFF");
+            await scope.ConfigureAsync([source, source with { ReadOnly = true }, source with { CanUpdate = null },
+                source with { Uid = "thunderbird-addressbook:unrelated" }], (choices, selected, _) =>
+            {
+                TestAssert.That(choices.Count == 1 && selected.Count == 0, "Discovery implicitly selected a source");
+                return Task.FromResult<IReadOnlyList<string>?>([source.Uid]);
+            });
+            var captured = scope.Capture().Single();
+            await captured.RequireApproved(default);
+            if (mode is "cancel" or "empty-selection" or "invalid-selection" or "duplicate-selection" || mode.EndsWith("during-dialog", StringComparison.Ordinal))
+            {
+                using var cancel = new CancellationTokenSource();
+                try
+                {
+                    var changed = await scope.ConfigureAsync([source], async (_, selected, token) =>
+                    {
+                        TestAssert.That(selected.SequenceEqual(new[] { source.Uid }), "Native dialog lost explicit current selection");
+                        await Task.Yield();
+                        if (mode == "revoke-during-dialog") scope.Revoke();
+                        if (mode == "save-during-dialog") book = book! with { Sequence = 2 };
+                        if (mode == "account-during-dialog") account = account with { Revision = "changed" };
+                        if (mode == "cancel-during-dialog") cancel.Cancel();
+                        return mode switch {
+                            "cancel" => null,
+                            "empty-selection" => Array.Empty<string>(),
+                            "invalid-selection" => new[] { "imported-not-approved-source" },
+                            "duplicate-selection" => new[] { source.Uid, source.Uid },
+                            _ => new[] { source.Uid }
+                        };
+                    }, cancel.Token);
+                    TestAssert.That(mode is "cancel" or "empty-selection" && changed == (mode == "empty-selection"), "Invalid/stale decision granted a source: " + mode);
+                }
+                catch (InvalidDataException) when (mode is "invalid-selection" or "duplicate-selection") { }
+                catch (InvalidOperationException error) when (mode is "revoke-during-dialog" or "save-during-dialog" or "account-during-dialog" &&
+                    error.Message == "contact_source_approval_context_changed") { }
+                catch (OperationCanceledException) when (mode == "cancel-during-dialog") { }
+            }
+            if (mode == "later-save") book = book! with { Sequence = 2, Sha256 = new string('b', 64) };
+            if (mode == "revoke") scope.Revoke();
+            if (mode == "lock") book = null;
+            if (mode == "other-book") book = book! with { BookSource = "different-native-book" };
+            if (mode == "account-change") account = account with { Revision = "changed" };
+            if (mode == "inactive") account = account with { Settings = account.Settings! with { DavActive = false } };
+            if (mode == "missing-credential") account = account with { CredentialPresent = false };
+            if (mode == "reapprove")
+            {
+                scope.Revoke();
+                await scope.ConfigureAsync([source], (_, _, _) => Task.FromResult<IReadOnlyList<string>?>([source.Uid]));
+                await scope.Capture().Single().RequireApproved(default);
+            }
+            var retained = mode is "later-save" or "cancel" or "invalid-selection" or "duplicate-selection" or "save-during-dialog" or "cancel-during-dialog";
+            TestAssert.That(scope.Capture().Count == (retained || mode == "reapprove" ? 1 : 0), "Native approval context/decision not fenced: " + mode);
+            try
+            {
+                await captured.RequireApproved(default);
+                TestAssert.That(retained, "Previously captured native approval survived revocation: " + mode);
+            }
+            catch (UnauthorizedAccessException) when (!retained) { }
+        }
     }
 
     private static async Task DavFactoryAsync()
@@ -177,8 +252,13 @@ internal static class ContactSourceUpdateRunTests
             var contacts = new JsonArray(local);
             var approved = mode != "no-grant"; var current = true; var snapshots = 0;
             var revision = first.Settings.ReadSnapshot().Revision;
+            var consentBook = new NativeBookSaveState("native-factory-consent-book", 1, new string('a', 64));
+            var scope = new ContactSourceApprovalScope(() => current ? consentBook : null, first.Settings.ReadSnapshot);
+            await scope.ConfigureAsync([first.Catalog], (_, _, _) =>
+                Task.FromResult<IReadOnlyList<string>?>(approved ? new[] { first.Catalog.Uid } : Array.Empty<string>()));
             var approval = new NativeDavContactUpdateApproval(first.Catalog.Uid, first.Catalog.Href, revision,
                 _ => approved ? Task.CompletedTask : Task.FromException(new UnauthorizedAccessException("explicit approval withdrawn")));
+            if (approved) approval = scope.Capture().Single();
             if (mode == "wrong-account") approval = approval with { AccountRevision = "unrelated-revision" };
             if (mode == "wrong-href") approval = approval with { Collection = new Uri("https://first.invalid/nc/books/other/") };
             if (mode == "thunderbird") approval = approval with { Source = "thunderbird-addressbook:unrelated" };
@@ -193,7 +273,7 @@ internal static class ContactSourceUpdateRunTests
                 token.ThrowIfCancellationRequested(); snapshots++;
                 await Task.Yield();
                 if (mode == "snapshot-failed") throw new IOException("controlled snapshot failure");
-                if (mode == "revoked-during-snapshot") approved = false;
+                if (mode == "revoked-during-snapshot") { approved = false; scope.Revoke(); }
                 if (mode == "privilege-during-snapshot") first.Permission = false;
                 if (mode == "account-during-snapshot") first.Settings.SaveConfiguration(first.Settings.Load()!, "changed-during-snapshot", false);
                 if (mode == "book-during-snapshot") current = false;
@@ -205,7 +285,7 @@ internal static class ContactSourceUpdateRunTests
                 factory = await first.OpenFactoryAsync(approval, Current, Protect, cancel.Token);
                 TestAssert.That(mode is not ("no-grant" or "wrong-account" or "wrong-href" or "thunderbird" or "readonly" or "unknown" or "cancelled"),
                     "Factory admitted an unapproved/misrouted/non-writable source: " + mode);
-                if (mode == "revoked-during-read") first.BeforeContentRead = () => approved = false;
+                if (mode == "revoked-during-read") first.BeforeContentRead = () => { approved = false; scope.Revoke(); };
                 if (mode == "account-changed") first.Settings.SaveConfiguration(first.Settings.Load()!, "changed-synthetic-secret", false);
                 var result = await ContactSourceUpdateRun.RunAsync(contacts, [factory.Admission, second.Admit()], () => Task.CompletedTask, Current);
                 TestAssert.That(first.Writes == (mode == "success" ? 1 : 0) && second.Writes == 1,
