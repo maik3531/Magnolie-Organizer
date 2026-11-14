@@ -10,17 +10,39 @@ internal sealed class ContactSourceNativeSession(
     Func<NativeActorBookSnapshot?> captureBook, Func<NativeBookSaveState?> currentBook,
     NextcloudMailboxSettingsStore settings, ContactSourceSavedCommit commit,
     Func<bool> wlanAvailable, Action<NativeActorBookSnapshot> protect,
-    HttpClient? transport = null)
+    HttpClient? transport = null, ContactSourceApprovalStore? durableStore = null)
 {
     private readonly ContactSourceApprovalScope approvals = new(currentBook, settings.ReadSnapshot);
     private readonly object gate = new();
     private CancellationTokenSource? active;
+    private long decisionGeneration;
     internal int GrantCount => approvals.Capture().Count;
 
     internal void Revoke()
     {
+        lock (gate) { decisionGeneration++; active?.Cancel(); }
         approvals.Revoke(); commit.Invalidate();
-        lock (gate) active?.Cancel();
+    }
+
+    internal void RevokeDurable()
+    {
+        Revoke();
+        (durableStore ?? throw new InvalidOperationException("contact_source_durable_store_required")).Revoke();
+    }
+
+    internal Task RestoreAsync(StoredContactSourceApproval stored, Action requireContext, CancellationToken cancellation = default)
+    {
+        ArgumentNullException.ThrowIfNull(requireContext);
+        if (durableStore is null || !ReferenceEquals(stored.Store, durableStore))
+            throw new InvalidOperationException("contact_source_native_stored_approval_required");
+        long expected;
+        lock (gate) expected = decisionGeneration;
+        return approvals.RestoreAsync(stored, () =>
+        {
+            lock (gate) if (decisionGeneration != expected) throw new InvalidOperationException("contact_source_approval_context_changed");
+            requireContext();
+            lock (gate) if (decisionGeneration != expected) throw new InvalidOperationException("contact_source_approval_context_changed");
+        }, cancellation);
     }
 
     internal async Task<bool> ConfigureAsync(
@@ -28,7 +50,8 @@ internal sealed class ContactSourceNativeSession(
             Task<IReadOnlyList<string>?>> askNativeUser,
         CancellationToken cancellation = default)
     {
-        lock (gate) { if (active is not null) throw new InvalidOperationException("native_busy"); }
+        long expected;
+        lock (gate) { if (active is not null) throw new InvalidOperationException("native_busy"); expected = decisionGeneration; }
         var snapshot = captureBook() ?? throw new InvalidOperationException("contact_source_book_not_saved");
         _ = ContactSourceUpdateRun.SavedContacts(snapshot);
         var account = settings.ReadSnapshot();
@@ -38,7 +61,48 @@ internal sealed class ContactSourceNativeSession(
         var catalog = await client.ListSourcesAsync(cancellation, calendars: false);
         if (currentBook() != snapshot.SavedBook || settings.ReadSnapshot().Revision != account.Revision)
             throw new InvalidOperationException("contact_source_approval_context_changed");
-        return await approvals.ConfigureAsync(catalog.AddressBooks, askNativeUser, cancellation);
+        string[]? selected = null;
+        var changed = await approvals.ConfigureAsync(catalog.AddressBooks, async (choices, previous, token) =>
+        {
+            lock (gate) if (decisionGeneration != expected) throw new InvalidOperationException("contact_source_approval_context_changed");
+            var answer = await askNativeUser(choices, previous, token);
+            lock (gate) if (decisionGeneration != expected) throw new InvalidOperationException("contact_source_approval_context_changed");
+            if (answer is not null) selected = answer.ToArray();
+            return selected;
+        }, cancellation);
+        if (!changed) return false;
+        lock (gate)
+        {
+            if (decisionGeneration != expected) throw new InvalidOperationException("contact_source_approval_context_changed");
+            expected = ++decisionGeneration;
+        }
+        if (durableStore is null) return true;
+        StoredContactSourceApproval? stored = null;
+        try
+        {
+            void RequireContext()
+            {
+                lock (gate) if (decisionGeneration != expected) throw new InvalidOperationException("contact_source_approval_context_changed");
+                if (currentBook() != snapshot.SavedBook) throw new InvalidOperationException("contact_source_saved_book_changed");
+            }
+            RequireContext();
+            var grants = approvals.Capture();
+            if (selected is null || !grants.Select(item => item.Source).Order(StringComparer.Ordinal).SequenceEqual(selected.Order(StringComparer.Ordinal)))
+                throw new InvalidOperationException("contact_source_native_selection_changed");
+            stored = await durableStore.ApproveAsync(snapshot, grants, cancellation);
+            RequireContext();
+            if (stored is not null) await RestoreAsync(stored, RequireContext, cancellation);
+            return true;
+        }
+        catch
+        {
+            // A stale worker must not clear a newer explicit decision/store.
+            bool stale;
+            lock (gate) stale = decisionGeneration != expected;
+            if (stale && stored is not null) durableStore.RevokeIfGeneration(stored.Generation);
+            if (!stale) approvals.Revoke();
+            throw;
+        }
     }
 
     internal async Task<ContactSourceNativeResult> RunAsync(string expectedSavedHash,

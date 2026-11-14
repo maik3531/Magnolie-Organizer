@@ -846,3 +846,24 @@ BASE product builds are clean; no package was installed or published.
 The real application still does not persist native setup decisions or restore
 the scope/frontend after SaveACK, and has no connected durable WLAN/account-return
 monitor yet. Consequently Windows once-configured automation is not complete.
+
+### Durable-capable native session API (#621)
+
+`ContactSourceNativeSession` can now receive the native durable store explicitly.
+Only a changed genuine native decision is persisted; Cancel preserves intent and
+an explicit empty choice revokes it. The exact captured source IDs must match the
+user selection, so lost runtime context cannot masquerade as an empty decision.
+Durable revoke is separate from volatile pause. Typed restore requires the same
+owned store and a current native application guard. Decision-generation checks
+before/after the native dialog and during publication reject stale setup workers.
+
+Fourteen controlled native session cases pass on both host and actual Windows.
+They connect actual native catalog/decision, durable store, typed restoration,
+original CAS/readback and actual encrypted writer/result SaveACK, including new
+native owners after restart and clean-result no-IO repetition. Provider transport
+and decision/protection callbacks remain synthetic; these are not interactive
+modal or live-provider proofs. Existing helper/writer matrices pass and Core/BASE
+product builds are clean. The real Bridge has not yet opted its session into this
+durable API: that must be connected together with SaveACK-correlated frontend
+restoration, explicit durable-revoke commands and quiet WLAN/account return, not
+activated piecemeal with stale session guards.

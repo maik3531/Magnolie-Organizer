@@ -306,7 +306,7 @@ internal sealed partial class ContactSourceApprovalStore
         using var session = files.Open(create: true) ?? throw new IOException("contact_source_private_store_missing");
         RevokeLocked(session);
     }
-    private void RevokeIfGeneration(string generation)
+    internal void RevokeIfGeneration(string generation)
     {
         using var session = files.Open() ?? throw new IOException("contact_source_private_store_missing");
         using var current = Read(session);

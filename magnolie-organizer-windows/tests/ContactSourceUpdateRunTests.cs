@@ -188,6 +188,7 @@ internal static class ContactSourceUpdateRunTests
         ContactSourceAccountTests.Run();
         ContactSourcePrivateFilesTests.Run();
         await ContactSourceApprovalStoreTests.RunAsync();
+        await DurableNativeSessionAsync();
         await SavedDavOrchestrationAsync();
         await SavedResultCommitAsync();
         await NativeSessionAsync();
@@ -300,6 +301,128 @@ internal static class ContactSourceUpdateRunTests
                 }
             }
             finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
+        }
+    }
+
+    private static async Task DurableNativeSessionAsync()
+    {
+        foreach (var mode in new[] { "success", "restart", "cancel", "empty", "volatile-pause", "durable-revoke", "restore-guard",
+            "foreign-store", "post-restore-revoke", "after-save", "persist-failed", "cancel-no-files", "revoke-during-persist", "revoke-before-native-dialog" })
+        {
+            var root = Path.Combine(Path.GetTempPath(), "magnolie-durable-native-session-" + Guid.NewGuid().ToString("N"));
+            var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
+                ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
+            using var source = new Source("durable-session", "generic-dav", original);
+            var remote = await source.OriginalAsync(); var local = original.DeepClone().AsObject();
+            ContactFields.SetSource(local, source.Catalog.Uid, remote, remoteBaseline: true);
+            local["notiz"] = "Canonical note"; local["geaendert"] = 2000L;
+            var document = new JsonObject { ["kontakte"] = new JsonArray(local), ["fraction"] = 1.25 };
+            try
+            {
+                var host = new PersonalActorNativeSaveHost(root, document.ToJsonString());
+                ContactSourceNativeSession? session = null; var writes = 0;
+                var privateFiles = new ContactSourcePrivateFiles(Path.Combine(root, "consent"), new AtomicStore(stage =>
+                {
+                    if (mode == "persist-failed" && stage == AtomicStore.WriteStage.TemporaryFlushed) throw new IOException("Controlled setup persistence failure");
+                    if (stage == AtomicStore.WriteStage.TemporaryFlushed) writes++;
+                    if (mode == "revoke-during-persist" && writes == 3 && stage == AtomicStore.WriteStage.TemporaryFlushed) session!.Revoke();
+                }), controlledUnix: !OperatingSystem.IsWindows());
+                ContactSourceApprovalStore NewStore() => new(privateFiles, source.Settings, () => host.Snapshot(), () => host.DataPath, new Protector(), () => host.Primary());
+                var store = NewStore(); host.ApprovalStore = store;
+                var protections = 0;
+                ContactSourceNativeSession NewSession(ContactSourceApprovalStore ownedStore) => new(host.Snapshot, host.Saved, source.Settings,
+                    host.SourceResultCommit, () => true, _ => protections++, source.Transport, ownedStore);
+                session = NewSession(store);
+                if (mode == "revoke-before-native-dialog") source.BeforeDiscovery = () => session.Revoke();
+                TestAssert.That(session.GrantCount == 0 && !Directory.Exists(Path.Combine(root, "consent")), "New durable-capable session was not default OFF");
+                Exception? failure = null;
+                try
+                {
+                    await session.ConfigureAsync((choices, selected, _) => Task.FromResult<IReadOnlyList<string>?>(mode == "cancel-no-files" ?
+                        null : [choices.Single().Uid]));
+                }
+                catch (Exception error) { failure = error; }
+                if (mode is "persist-failed" or "revoke-during-persist" or "revoke-before-native-dialog")
+                {
+                    TestAssert.That(failure is not null && session.GrantCount == 0 && source.Writes == 0,
+                        "Failed/revoked native persistence left an active session grant");
+                    Console.WriteLine("CONTACT SOURCE DURABLE NATIVE SESSION PASS " + mode); continue;
+                }
+                if (failure is not null) throw failure;
+                if (mode == "cancel-no-files")
+                {
+                    TestAssert.That(session.GrantCount == 0 && !Directory.Exists(Path.Combine(root, "consent")), "Native Cancel created consent files");
+                    Console.WriteLine("CONTACT SOURCE DURABLE NATIVE SESSION PASS " + mode); continue;
+                }
+                var approved = store.LoadCurrent() ?? throw new InvalidOperationException("Controlled durable session lease missing");
+                TestAssert.That(session.GrantCount == 1, "Explicit native session decision did not persist and bind a durable lease");
+                if (mode == "cancel")
+                {
+                    var changed = await session.ConfigureAsync((_, selected, _) =>
+                    {
+                        TestAssert.That(selected.SequenceEqual(new[] { source.Catalog.Uid }), "Native reconfiguration lost its existing explicit selection");
+                        return Task.FromResult<IReadOnlyList<string>?>(null);
+                    });
+                    TestAssert.That(!changed && store.LoadCurrent()?.Generation == approved.Generation, "Cancel replaced durable human intent");
+                }
+                if (mode == "empty") await session.ConfigureAsync((_, _, _) => Task.FromResult<IReadOnlyList<string>?>([]));
+                if (mode == "durable-revoke") session.RevokeDurable();
+                if (mode is "empty" or "durable-revoke")
+                {
+                    TestAssert.That(session.GrantCount == 0 && store.LoadCurrent() is null, "Native explicit empty/revoke retained durable permission");
+                    Console.WriteLine("CONTACT SOURCE DURABLE NATIVE SESSION PASS " + mode); continue;
+                }
+                if (mode == "volatile-pause")
+                {
+                    session.Revoke(); TestAssert.That(session.GrantCount == 0 && store.LoadCurrent()?.Generation == approved.Generation,
+                        "Volatile native pause erased durable human intent");
+                    await session.RestoreAsync(store.LoadCurrent()!, () => { });
+                }
+                if (mode is "restart" or "after-save")
+                {
+                    if (mode == "restart")
+                    {
+                        host = new PersonalActorNativeSaveHost(root, "not-a-saved-witness", reopen: true);
+                        store = NewStore(); host.ApprovalStore = store; session = NewSession(store);
+                        TestAssert.That(session.GrantCount == 0 && host.Snapshot() is null, "Restart restored permission without an actual save");
+                    }
+                    document["ordinaryEdit"] = true;
+                    var ack = await host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 81, ["text"] = document.ToJsonString() });
+                    TestAssert.That(ack["ok"]!.GetValue<bool>() && ack["kontaktQuellenDauerhaft"]!.GetValue<bool>(), "Actual native restart/ordinary SaveACK lost consent advancement");
+                    await session.RestoreAsync(store.LoadCurrent()!, () => { });
+                }
+                if (mode is "restore-guard" or "foreign-store")
+                {
+                    session.Revoke(); failure = null;
+                    try { await session.RestoreAsync(mode == "foreign-store" ? NewStore().LoadCurrent()! : store.LoadCurrent()!,
+                        () => throw new InvalidOperationException("Controlled stale native application generation")); }
+                    catch (Exception error) { failure = error; }
+                    TestAssert.That(failure is not null && session.GrantCount == 0, "Native session accepted foreign/stale restoration");
+                    Console.WriteLine("CONTACT SOURCE DURABLE NATIVE SESSION PASS " + mode); continue;
+                }
+                if (mode == "post-restore-revoke") store.Revoke();
+                var reads = source.Reads; var discoveries = source.Discoveries;
+                var result = await session.RunAsync(host.Saved()!.Sha256);
+                if (mode == "post-restore-revoke")
+                    TestAssert.That(result.Offer is null && source.Writes == 0 && source.Reads == reads && source.Discoveries == discoveries,
+                        "Durably revoked restored session reached provider content/discovery IO");
+                else
+                {
+                    TestAssert.That(result.SourceErrors == 0 && result.Offer is not null && source.Writes == 1 && protections == 1,
+                        "Durable native decision did not reach protected original CAS/readback");
+                    document["kontakte"] = result.Offer!.Contacts.DeepClone();
+                    var ack = await host.SaveOriginalContactResultAsync(result.Offer.Token, document);
+                    TestAssert.That(ack["ok"]!.GetValue<bool>() && ack["kontaktQuellenDauerhaft"]!.GetValue<bool>() &&
+                        ack["kontaktOriginalGespeichert"]!.GetValue<string>() == result.Offer.Token, "Durable native result did not reach actual encrypted result SaveACK");
+                    await session.RestoreAsync(store.LoadCurrent()!, () => { });
+                    reads = source.Reads; discoveries = source.Discoveries;
+                    var clean = await session.RunAsync(host.Saved()!.Sha256);
+                    TestAssert.That(clean.Offer is null && clean.SourceErrors == 0 && source.Writes == 1 && source.Reads == reads && source.Discoveries == discoveries,
+                        "Durable result scope restoration caused a clean provider retry loop");
+                }
+                Console.WriteLine("CONTACT SOURCE DURABLE NATIVE SESSION PASS " + mode);
+            }
+            finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
     }
 
