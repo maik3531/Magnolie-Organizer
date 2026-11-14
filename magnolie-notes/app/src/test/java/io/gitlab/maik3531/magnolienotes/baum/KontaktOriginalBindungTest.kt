@@ -744,7 +744,7 @@ class KontaktOriginalBindungTest {
         assertEquals(1, fixture.rotations); assertEquals(0, provider.writes)
     }
 
-    private class OriginalProvider : ContentProvider() {
+    internal class OriginalProvider : ContentProvider() {
         val status = mutableMapOf<String, Any?>(ProviderStatus.STATUS to ProviderStatus.STATUS_NORMAL,
             ProviderStatus.DATABASE_CREATION_TIMESTAMP to 123456L)
         val raw = mutableMapOf<String, Any?>(RawContacts._ID to 7L, RawContacts.CONTACT_ID to 11L,
@@ -761,6 +761,7 @@ class KontaktOriginalBindungTest {
         var batchCalls = 0
         var failAt = -1
         var dropUpdates = false
+        var nullJournalRows = false
         var lookupAfterWrite: String? = null
         var afterWrite: (() -> Unit)? = null
         var aggregate = false
@@ -772,8 +773,10 @@ class KontaktOriginalBindungTest {
         private var rawReads = 0
         override fun onCreate() = true
         override fun getType(uri: Uri): String? = null
-        override fun query(uri: Uri, projection: Array<out String>?, selection: String?, args: Array<out String>?, sort: String?): Cursor {
+        override fun query(uri: Uri, projection: Array<out String>?, selection: String?, args: Array<out String>?, sort: String?): Cursor? {
             queries++
+            if (nullJournalRows && uri.pathSegments.first() == "data" && projection?.firstOrNull() == Data.MIMETYPE)
+                return null
             onQuery?.also { onQuery = null }?.invoke()
             if (uri.pathSegments.first() == "raw_contacts" && uri.pathSegments.size > 1 && ++rawReads == 2)
                 beforeRawReread?.also { beforeRawReread = null }?.invoke()

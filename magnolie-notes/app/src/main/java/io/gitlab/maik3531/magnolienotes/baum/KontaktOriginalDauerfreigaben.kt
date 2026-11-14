@@ -4,19 +4,9 @@ import android.content.Context
 import io.gitlab.maik3531.magnolienotes.daten.synchronisiereOrdner
 import kotlinx.serialization.json.*
 import java.io.File
-import java.nio.ByteBuffer
-import java.nio.channels.FileChannel
 import java.nio.file.Files
-import java.nio.file.LinkOption.NOFOLLOW_LINKS
-import java.nio.file.StandardCopyOption.*
-import java.nio.file.StandardOpenOption.*
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 /** Dedicated nonportable native consent storage, not a document grant loader.
  * Native peer/provider callbacks always run OUTSIDE the private file lock.
@@ -27,6 +17,7 @@ internal class KontaktOriginalDauerfreigaben internal constructor(
     private val schutz: KontaktOriginalSchutz,
     private val stage: (String) -> Unit = {}
 ) {
+    private val dateien = KontaktOriginalDateien(root, stage = stage)
     private data class Inhalt(val generation: String, val partner: KontaktOriginalFreigaben.Partner,
                               val quellen: Set<KontaktOriginalFreigaben.Quelle>)
     private class Beleg(val store: KontaktOriginalDauerfreigaben, val inhalt: Inhalt, val hash: String)
@@ -133,74 +124,9 @@ internal class KontaktOriginalDauerfreigaben internal constructor(
         require(read("hold")?.contentEquals(expected) == true) { "contact_original_store_transaction_changed" }
     }
 
-    private fun <T> locked(create: Boolean, block: () -> T): T? {
-        val path = root.toPath().toAbsolutePath().normalize()
-        return locks.computeIfAbsent(path.toString()) { ReentrantLock() }.withLock {
-            if (!Files.exists(path, NOFOLLOW_LINKS)) {
-                if (!create) return@withLock null
-                Files.createDirectory(path, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")))
-                synchronisiereOrdner(requireNotNull(root.parentFile))
-            }
-            require(Files.isDirectory(path, NOFOLLOW_LINKS)) { "contact_original_private_directory_required" }
-            privatePermissions(path)
-            val guard = path.resolve("guard.lock")
-            if (create && !Files.exists(guard, NOFOLLOW_LINKS)) {
-                Files.createFile(guard, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
-                synchronisiereOrdner(root)
-            }
-            val before = Files.readAttributes(guard, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
-            require(before.isRegularFile && before.fileKey() != null)
-            privatePermissions(guard)
-            FileChannel.open(guard, WRITE, NOFOLLOW_LINKS).use { channel ->
-                channel.lock().use {
-                    val after = Files.readAttributes(guard, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
-                    require(after.isRegularFile && after.fileKey() == before.fileKey()) { "contact_original_private_lock_changed" }
-                    block()
-                }
-            }
-        }
-    }
-
-    private fun read(name: String): ByteArray? {
-        val path = root.toPath().resolve(name)
-        if (!Files.exists(path, NOFOLLOW_LINKS)) return null
-        val before = Files.readAttributes(path, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
-        require(before.isRegularFile && before.fileKey() != null && before.size() in 1..MAX_FILE.toLong()) { "contact_original_private_file_required" }
-        privatePermissions(path)
-        val bytes = FileChannel.open(path, READ, NOFOLLOW_LINKS).use { channel ->
-            val buffer = ByteBuffer.allocate(before.size().toInt() + 1)
-            while (buffer.hasRemaining() && channel.read(buffer) != -1) { }
-            require(buffer.position() == before.size().toInt()) { "contact_original_private_file_changed" }
-            buffer.flip(); ByteArray(buffer.remaining()).also { buffer.get(it) }
-        }
-        val after = Files.readAttributes(path, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
-        require(before.fileKey() == after.fileKey() && before.size() == after.size() && before.lastModifiedTime() == after.lastModifiedTime())
-        return bytes
-    }
-
-    private fun write(name: String, bytes: ByteArray) {
-        require(bytes.size in 1..MAX_FILE)
-        val target = root.toPath().resolve(name)
-        if (Files.exists(target, NOFOLLOW_LINKS)) read(name)
-        val temp = Files.createTempFile(root.toPath(), "consent-", ".pending",
-            PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
-        try {
-            FileChannel.open(temp, WRITE, NOFOLLOW_LINKS).use { channel ->
-                val buffer = ByteBuffer.wrap(bytes)
-                while (buffer.hasRemaining()) channel.write(buffer)
-                channel.force(true)
-            }
-            stage("$name:temporary_flushed")
-            Files.move(temp, target, ATOMIC_MOVE, REPLACE_EXISTING)
-            synchronisiereOrdner(root)
-            stage("$name:replaced")
-        } finally { Files.deleteIfExists(temp) }
-    }
-
-    private fun privatePermissions(path: java.nio.file.Path) {
-        require(Files.getPosixFilePermissions(path, NOFOLLOW_LINKS).intersect(
-            PosixFilePermissions.fromString("---rwxrwx")).isEmpty()) { "contact_original_private_permissions_required" }
-    }
+    private fun <T> locked(create: Boolean, block: () -> T): T? = dateien.mitSperre(create, block)
+    private fun read(name: String): ByteArray? = dateien.lesen(name)
+    private fun write(name: String, bytes: ByteArray) = dateien.schreiben(name, bytes)
 
     private fun gueltigerText(value: String?): Boolean = value == null || value.length <= 2048 &&
         value.none(Char::isISOControl) && value.codePoints().noneMatch { it in 0xD800..0xDFFF }
@@ -252,8 +178,6 @@ internal class KontaktOriginalDauerfreigaben internal constructor(
     }
 
     companion object {
-        private const val MAX_FILE = 257 * 1024
-        private val locks = ConcurrentHashMap<String, ReentrantLock>()
         private fun hash(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
         fun android(context: Context) = KontaktOriginalDauerfreigaben(File(context.filesDir, "kontakt-original-consent"), KontaktOriginalSchutz.android())
     }

@@ -195,9 +195,45 @@ existing shared-cipher cases also pass; earlier native matrices overlap these
 cases and must not be summed. Provider, decision, protection and keystore callbacks
 remain controlled; no physical Android device or real contacts/keyring are used.
 
-Next, connect genuine native setup to the authenticated full receiver and actual
-journal/result-save boundaries. The provider-attempt hold must also survive a
-restart; the writer's in-memory consumed flag alone is not that receipt journal.
+### Pinned original protection and durable native outcomes
+
+`KontaktOriginalSicherungen` now writes and rereads an actual pinned contact-only
+before-image through the existing snapshot store and AES-GCM journal cipher.
+It checks native identity, complete row membership, exact portable content and
+restore/Parcel budgets before encryption. Arbitrary application BLOBs without
+supported restore typing are held; the existing photo BLOB codec is retained.
+The private typed witness cannot be forged from a snapshot descriptor or retargeted
+to another preparation. No app/notebook snapshot is read by this producer.
+
+`KontaktOriginalVersuche` uses the existing **journal** key, never the revocable
+source-consent key. Default missing-state reads create nothing; reads do not
+regenerate unavailable keys. A durable hold is indexed by native database creation
+stamp and raw-contact ID. Its authenticated contents additionally bind the peer,
+account/source identity, request/hash, prior revision/content, target hash and
+verified pinned protection. Changing request ID, peer, account/source identity or
+provider revision cannot create an empty slot for the same unknown original.
+Other native originals remain independent.
+
+Only a fresh confirmed reservation mints a private one-use apply token. Reloaded
+holds never authorize replay. The token consumes itself before validation, owns
+a copy of the target and rechecks actual protection/history around external
+lifetime callbacks. The native writer supplies its atomic identity/revision
+assertions and exact readback. A second native readback and actual advanced
+revision precede the atomic encrypted `verified` receipt and its reread. A typed
+verified receipt can be loaded again without another provider write. If provider
+write succeeds but receipt storage fails, the outcome stays held, not saved or
+replayable. Revocation or failed exact readback cannot produce a positive receipt.
+
+The newest outcome matrix passes 36 API28/API35 host cases. The changed-input
+protection matrix passes 20 cases and the durable source core passes 98; earlier
+overlapping matrices are not additional cases. Software keystore/peer/provider
+fixtures and private test files are used, not real contacts or installed apps.
+Native receipts are **not** desktop baseline SaveACKs. Verified records still
+block the next write until that separately authenticated lifecycle is joined;
+automatic release/reconciliation is deliberately not invented here.
+
+Next, connect genuine native setup, authenticated full receiver/sender and the
+actual desktop baseline-save acknowledgement/reconciliation lifecycle.
 Do not opt the runtime into these APIs piecemeal and advertise complete automation.
 The full #622 transaction, Linux/Windows sender wiring and independently verified
 wider provider authority remain open; resource19 is still unchanged.

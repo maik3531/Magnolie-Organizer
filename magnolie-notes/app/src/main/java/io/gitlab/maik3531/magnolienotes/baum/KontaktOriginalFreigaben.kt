@@ -20,6 +20,11 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
         fun quellen(): Set<Quelle> = native().also { pruefen() }.quellen.toSet()
     }
     class Freigabe internal constructor(internal val bindung: KontaktOriginalBindung, private val beleg: Any) {
+        internal fun partner(): Partner {
+            pruefen()
+            val native = beleg as Beleg
+            return native.scope.partnerFuer(native)
+        }
         fun pruefen() = pruefen(versionPruefen = true)
         internal fun pruefenNachSchreiben() = pruefen(versionPruefen = false)
         private fun pruefen(versionPruefen: Boolean) {
@@ -171,6 +176,12 @@ internal class KontaktOriginalFreigaben(private val dauerStore: KontaktOriginalD
         beleg.originale.forEach { it.aktuell() }
         if (aktuellerPartner() != beleg.partner) throw SecurityException("contact_original_peer_changed")
         current()
+    }
+
+    private fun partnerFuer(beleg: Beleg): Partner = synchronized(lock) {
+        if (blockiert || setup != null || generation != beleg.generation || beleg.quelle !in quellen)
+            throw SecurityException("contact_original_source_not_granted")
+        partner ?: throw SecurityException("contact_original_source_not_granted")
     }
 
     private fun quelle(bindung: KontaktOriginalBindung) = Quelle(bindung.datenbankErstellt, bindung.quelle)

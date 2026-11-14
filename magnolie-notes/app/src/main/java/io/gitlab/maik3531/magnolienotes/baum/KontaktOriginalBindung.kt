@@ -29,6 +29,9 @@ internal class KontaktOriginalBindung private constructor(
     val lookupKey: String get() = original.kontakt.lookupKey
     val sourceId: String? get() = original.roh.sourceId
     val datenbankErstellt: Long get() = original.datenbank
+    val revision: Long get() = original.roh.version
+    val contactId: Long get() = original.roh.kontaktId
+    internal val zeilenIds: Set<Long> get() = original.zeilen.toSet()
 
     /** A fresh observation, not the privately retained preparation snapshot. */
     fun aktuell(): AndroidKontakt = beobachte(context, lookupKey).also {

@@ -564,6 +564,18 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         internal const val MAX_RESTORE_OPERATIONEN = 400
         internal const val MAX_RESTORE_NUTZLAST = 700 * 1024
 
+        /** Pure admission check; never performs a restore or provider operation. */
+        internal fun pruefeOriginalWiederherstellbar(stand: KontaktRohstand) {
+            require(!stand.generatedByMagnolie && stand.rawContactId > 0)
+            val parcel = android.os.Parcel.obtain()
+            try {
+                restoreOperationen(stand, vorhanden = true).forEach {
+                    it.writeToParcel(parcel, 0)
+                    require(parcel.dataSize() <= MAX_RESTORE_NUTZLAST) { "contact_original_restore_budget_required" }
+                }
+            } finally { parcel.recycle() }
+        }
+
         internal fun wiederherstellenMitGrenzen(
             stand: KontaktRohstand,
             konfliktBestaetigt: Boolean,
