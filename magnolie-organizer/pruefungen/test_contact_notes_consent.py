@@ -28,10 +28,12 @@ class Harness:
         self.probe, self.book, self.replies, self.snapshots, _, _ = prepare_native_book(native)
         self.probe._kontakt_quellen_hauptdatei_aufnahme = MethodType(native.Fenster._kontakt_quellen_hauptdatei_aufnahme, self.probe)
         self.root = str(tmp_path / 'notes-consent')
-        self.sequence, self.exports, self.pending, self.choices = 0, [], None, 0
+        self.sequence, self.exports, self.results, self.pending, self.choices = 0, [], [], None, 0
         def accept(peer, body, origin, transport):
             if body['art'] == 'kontakt_original_export': self.exports.append((body, origin, transport))
-            else: self.pending.stage_result(body, origin, transport)
+            else:
+                self.results.append((body, origin, transport))
+                if self.pending is not None: self.pending.stage_result(body, origin, transport)
             return True
         self.sender, self.receiver, _, _, self.service = fixture(native, accept)
         self.before = {'notiz': 'Native before', 'telefone': [{'art': 'mobil', 'wert': '+123'}]}
@@ -43,7 +45,8 @@ class Harness:
 
     def new_store(self):
         return NativeNotesChoiceStore(self.root, self.probe._kontakt_quellen_buchaufnahme,
-            lambda: os.path.realpath(self.native.daten_datei()), self.probe._kontakt_quellen_hauptdatei_aufnahme)
+            lambda: os.path.realpath(self.native.daten_datei()), self.probe._kontakt_quellen_hauptdatei_aufnahme,
+            current_native_data=lambda: self.probe._aktuelle_daten)
 
     def send(self, body):
         self.sequence += 1
@@ -290,5 +293,92 @@ def test_uncertain_consent_publication_quarantines_selected_ephemeral_choice(nat
         assert Path(h.root, '.transaction').read_bytes() == b'pending\n'
         with pytest.raises(PermissionError): h.choice.require_current()
         with pytest.raises(PermissionError): h.new_store().has_desired_consent()
+    finally:
+        h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['success', 'known-later-save', 'missing-native-data', 'unknown-primary', 'memory-impostor',
+    'revoked', 'reconfigured', 'missing-journal-key', 'changed-result', 'changed-receipt', 'legacy-no-seal',
+    'wrong-book-seal', 'removed-contact', 'changed-uid', 'expired-origin', 'copied-origin',
+    'boolean-result-version', 'float-result-revision', 'revoke-after-reauthorize', 'unknown-primary-after-reauthorize', 'other-authenticated-peer'])
+def test_existing_saved_ack_recovers_only_with_private_primary_context_and_fresh_exact_result(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    try:
+        h.configure(); h.pending = h.choice.pending(); request = h.pending.request()
+        result = {'art': 'kontakt_original_ergebnis', 'fassung': 1,
+            **{name: request[name] for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')},
+            'request_sha256': hashlib.sha256(_frame_bytes(request)).hexdigest(),
+            'receipt_id': '22222222-2222-4222-8222-222222222222', 'native_revision': 2, 'next_basis': 'd' * 64}
+        h.send(result)
+        with h.probe._daten_sperre: invocation = h.pending.prepare_commit()
+        assert h.save(monkeypatch, invocation=invocation)['ok']
+        journal_key = [b'J' * 32]
+        intents = NativeNotesAckIntents(tmp_path / 'outcomes', lambda: journal_key[0])
+        fresh = intents.seal_after_save(h.pending); expected = fresh.body()
+        path, = (tmp_path / 'outcomes').glob('*.bin')
+        original = path.read_bytes()
+        old_origin = h.results[-1][1:]
+        if mode == 'known-later-save':
+            edited = copy.deepcopy(h.probe._aktuelle_daten); edited['kontakte'][0]['notiz'] = 'Later known local edit'
+            assert h.save(monkeypatch, edited)['ok']
+        h.restart(); h.pending = None
+        assert h.probe._kontakt_quellen_buchaufnahme() is None
+        with pytest.raises(PermissionError): fresh.body()
+        if mode == 'missing-native-data': h.store._native_data = None
+        if mode == 'unknown-primary':
+            edited = copy.deepcopy(h.probe._aktuelle_daten); edited['kontakte'][0]['notiz'] = 'Unknown primary replacement'
+            native.speichere_text(h.probe._vielleicht_verschluesseln(json.dumps(edited)))
+            h.probe._aktuelle_daten = edited
+        if mode == 'memory-impostor': h.probe._aktuelle_daten['kontakte'][0]['notiz'] = 'Memory is not the authenticated primary'
+        if mode == 'revoked': h.store.revoke()
+        if mode == 'reconfigured':
+            assert h.save(monkeypatch)['ok']
+            chosen = h.restore(); h.store.configure([chosen])
+        if mode in ('removed-contact', 'changed-uid'):
+            edited = copy.deepcopy(h.probe._aktuelle_daten)
+            if mode == 'removed-contact': edited['kontakte'] = []
+            else: edited['kontakte'][0]['uid'] = 'Different canonical identity'
+            assert h.save(monkeypatch, edited)['ok']
+        if mode in ('legacy-no-seal', 'wrong-book-seal'):
+            record = intents.load_held(path.stem)
+            if mode == 'legacy-no-seal': record.pop('choice_seal')
+            else: record['choice_seal']['book'] = '0' * 64
+            nonce = b'R' * 12
+            path.write_bytes(b'\x01' + nonce + intents._cipher().encrypt(nonce, _frame_bytes(record),
+                intents._DOMAIN + path.stem.encode('ascii')))
+            original = path.read_bytes()
+        body = dict(result)
+        if mode == 'changed-result': body['target_sha256'] = '0' * 64
+        if mode == 'changed-receipt': body['receipt_id'] = '33333333-3333-4333-8333-333333333333'
+        if mode == 'boolean-result-version': body['fassung'] = True
+        if mode == 'float-result-revision': body['native_revision'] = 2.0
+        if mode == 'other-authenticated-peer':
+            h.sender = native.baum_schluessel_erzeugen('Other synthetic authenticated sender')
+            peer = native.baum_partner_aufnehmen(h.receiver, h.sender['name'], h.sender['kennung'], h.sender['oeffentlich'], '127.0.0.1')
+            peer['bestaetigt'] = True
+            h.store._capture_primary = lambda: pytest.fail('Wrong peer reached native primary inspection')
+        h.send(body); body, origin, transport = h.results.pop()
+        if mode == 'missing-journal-key': journal_key[0] = None
+        if mode == 'expired-origin': origin, transport = old_origin
+        if mode == 'copied-origin': origin = body
+        before_book = Path(native.daten_datei()).read_bytes()
+        if mode in ('success', 'known-later-save', 'revoke-after-reauthorize', 'unknown-primary-after-reauthorize'):
+            restored = intents.reauthorize(path.stem, h.store, body, origin, transport)
+            assert restored.body() == expected
+            assert h.probe._kontakt_quellen_buchaufnahme() is None, 'Primary read was laundered into a saved-writer witness'
+            assert h.choices == 1
+            if mode == 'revoke-after-reauthorize': h.store.revoke()
+            if mode == 'unknown-primary-after-reauthorize':
+                edited = copy.deepcopy(h.probe._aktuelle_daten); edited['kontakte'][0]['notiz'] = 'Late unknown primary'
+                native.speichere_text(h.probe._vielleicht_verschluesseln(json.dumps(edited)))
+                h.probe._aktuelle_daten = edited
+                before_book = Path(native.daten_datei()).read_bytes()
+            if mode in ('revoke-after-reauthorize', 'unknown-primary-after-reauthorize'):
+                with pytest.raises(PermissionError): restored.body()
+            h.service.anhalten()
+            with pytest.raises(PermissionError): restored.body()
+        else:
+            with pytest.raises(PermissionError): intents.reauthorize(path.stem, h.store, body, origin, transport)
+        assert path.read_bytes() == original and Path(native.daten_datei()).read_bytes() == before_book
     finally:
         h.service.anhalten()

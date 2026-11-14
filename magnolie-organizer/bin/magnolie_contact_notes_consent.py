@@ -9,10 +9,42 @@ import hashlib
 import hmac
 import json
 import os
+from dataclasses import dataclass
 
 from magnolie_contact_book_save_chain import NativeContactBookSaveChain
 from magnolie_contact_source_authority import NativeContactSourceApprovalStore as _PrivateFiles
-from magnolie_contact_notes_return import NativeNotesExportChoice, NativeNotesFsOrigin, _digest, _request_uuid, _frame_bytes
+from magnolie_contact_notes_return import NativeNotesExportChoice, NativeNotesFsOrigin, _AckHistoryProof, _digest, _request_uuid, _frame_bytes
+from magnolie_native_book_json import book_hash
+
+
+@dataclass(frozen=True)
+class _NotesChoiceSeal:
+    store: object
+    key_fingerprint: bytes
+    generation: str
+    book: str
+    source_text: bytes
+
+    def record(self):
+        if type(self.store) is not NativeNotesChoiceStore:
+            raise PermissionError('notes_choice_private_seal_required')
+        self.store._require_seal(self)
+        return {'key_sha256': self.key_fingerprint.hex(), 'generation': self.generation,
+            'book': self.book, 'source_sha256': hashlib.sha256(self.source_text).hexdigest()}
+
+
+@dataclass(frozen=True)
+class _RecognizedNotesAckContext:
+    store: object
+    history: _AckHistoryProof
+    result_text: bytes
+    origin: NativeNotesFsOrigin
+    transport: str
+
+    def require_current(self):
+        if type(self.store) is not NativeNotesChoiceStore:
+            raise PermissionError('notes_choice_native_ack_context_required')
+        self.store._verify_saved_ack(self)
 
 
 class NativeNotesChoiceStore(NativeContactBookSaveChain):
@@ -22,11 +54,14 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
     _write = _PrivateFiles._write
     _DOMAIN = b'Magnolie/native-notes-contact-choice/v1\0'
 
-    def __init__(self, root, capture_current, current_book_binding, capture_primary):
+    def __init__(self, root, capture_current, current_book_binding, capture_primary, *, current_native_data=None):
         if (not isinstance(root, str) or not os.path.isabs(root) or
                 not all(callable(value) for value in (capture_current, current_book_binding, capture_primary))):
             raise TypeError('notes_choice_native_book_callbacks_required')
+        if current_native_data is not None and not callable(current_native_data):
+            raise TypeError('notes_choice_native_book_callbacks_required')
         self.root, self._capture, self._binding, self._capture_primary = root, capture_current, current_book_binding, capture_primary
+        self._native_data = current_native_data
 
     def _tag(self, key, label, value):
         return hmac.new(key, self._DOMAIN + label + b'\0' + value, hashlib.sha256).hexdigest()
@@ -168,6 +203,58 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
                     active[1]['generation'] != generation or source not in active[1]['choices'] or not self.recognizes_saved()):
                 raise PermissionError('notes_choice_withdrawn_or_changed')
         choice._persistent_guard = current
+        choice._private_seal = _NotesChoiceSeal(self, fingerprint, generation, payload['book'], _frame_bytes(source))
+
+    def _require_seal(self, seal):
+        active = self._active_record()
+        if (type(seal) is not _NotesChoiceSeal or seal.store is not self or active is None or
+                not hmac.compare_digest(hashlib.sha256(active[0]).digest(), seal.key_fingerprint) or
+                active[1]['generation'] != seal.generation or active[1]['book'] != seal.book or
+                json.loads(seal.source_text) not in active[1]['choices'] or not self.recognizes_saved()):
+            raise PermissionError('notes_choice_private_seal_changed')
+
+    def _recognize_saved_ack(self, history, body, origin, transport):
+        if type(history) is not _AckHistoryProof or type(origin) is not NativeNotesFsOrigin:
+            raise PermissionError('notes_choice_private_ack_history_required')
+        proof = _RecognizedNotesAckContext(self, history, _frame_bytes(body), origin, transport)
+        proof.require_current()
+        return proof
+
+    def _verify_saved_ack(self, proof):
+        if type(proof) is not _RecognizedNotesAckContext or proof.store is not self:
+            raise PermissionError('notes_choice_native_ack_context_required')
+        body = json.loads(proof.result_text)
+        peer, own = proof.origin.require_current(body, proof.transport)
+        history = proof.history.store._read_history_proof(proof.history)
+        if _frame_bytes(body) != _frame_bytes(history['result']) or list(peer) != history['peer'] or list(own) != history['own']:
+            raise PermissionError('notes_choice_repeated_result_changed')
+        active = self._active_record()
+        if active is None or self._native_data is None:
+            raise PermissionError('notes_choice_recognized_primary_required')
+        key, payload = active
+        claim = history['choice_seal']
+        matches = [source for source in payload['choices'] if source['peer'] == history['peer'] and source['own'] == history['own'] and
+            source['setup_id'] == history['source_setup_id'] and source['share_id'] == body['share_id'] and
+            source['local_id'] == history['local_id'] and source['local_uid'] == history['local_uid']]
+        if (len(matches) != 1 or claim != {'key_sha256': hashlib.sha256(key).hexdigest(), 'generation': payload['generation'],
+                'book': payload['book'], 'source_sha256': hashlib.sha256(_frame_bytes(matches[0])).hexdigest()}):
+            raise PermissionError('notes_choice_ack_binding_changed')
+        primary, binding = self._primary()
+        if payload['book'] != self._tag(key, b'book', binding.encode('utf-8')) or payload['content'] != primary.content_sha256:
+            raise PermissionError('notes_choice_recognized_primary_required')
+        data = json.loads(_frame_bytes(self._native_data()))
+        if not isinstance(data, dict) or book_hash(data) != primary.content_sha256:
+            raise PermissionError('notes_choice_native_primary_changed')
+        contacts = [contact for contact in data.get('kontakte', []) if isinstance(contact, dict) and contact.get('id') == history['local_id']]
+        if len(contacts) != 1 or contacts[0].get('uid') != history['local_uid']:
+            raise PermissionError('notes_choice_ack_contact_changed')
+        with self._locked() as directory:
+            current_key, current = self._record(directory)
+            if current_key != key or current != payload or self._intent(directory, key, payload) is not None:
+                raise PermissionError('notes_choice_ack_context_changed')
+        if self._primary() != (primary, binding):
+            raise PermissionError('notes_choice_native_primary_changed')
+        proof.origin.require_current(body, proof.transport)
 
     def restore(self, body, origin, transport_id):
         if type(origin) is not NativeNotesFsOrigin:

@@ -337,12 +337,54 @@ correcting that callback selection fixed the test, not a product save failure.
 All keys, peers and encrypted primary files are synthetic and isolated. Runtime
 source composition is not a package build, installation or native acceptance.
 
-Still outstanding: recovery of an already saved ACK intention from a fresh
-authenticated repeated result when a native hold prevents a new export; that
-must not forge a saved witness from a primary read or replay provider mutation.
-Native setup UI, actual default-off receiver orchestration, negotiated reserved
-sending and Windows counterpart remain unfinished. No installed end-to-end
-automation or other-platform restoration is claimed.
+Already saved ACK recovery from a repeated authenticated result is now provided
+by the separate historical context below. Native setup UI, actual default-off
+receiver orchestration, negotiated reserved sending and Windows counterpart
+remain unfinished. No installed end-to-end automation or other-platform
+restoration is claimed.
+
+### Saved ACK recovery from a fresh repeated result (#628)
+
+A restart with a native VERIFIED hold cannot wait for a new export: Notes may
+correctly refuse to export until the old attempt settles. `reauthorize()` now
+re-emits only an **existing sealed historical SaveACK** after receiving a fresh
+actual FS1 result identical to the stored result. It does not create another
+request, apply a target or fabricate a saved-writer witness from a primary read.
+
+Positive recovery additionally requires the independent outcome journal key,
+current private source consent and a recognized authenticated primary whose
+complete content matches the native in-memory model and the private known-book
+chain. The chosen local ID/UID must still exist. The original saved intent must
+carry a private choice seal binding consent-key fingerprint/generation, native
+primary-binding tag and selected source fingerprint. This prevents accepting a
+different private book/decision merely because portable IDs match. Old intents
+missing setup or that seal remain readable as held history, not automatically
+upgraded from today's choice. A fresh ephemeral selection can still produce its
+live ACK, but cannot stand in for this durable cross-restart proof.
+
+The reconstructed native intent retains exactly the original ACK body and its
+actual historical desktop saved-payload hash, including after later known local
+saves. Primary observation does not call `record_saved`, advance a save sequence,
+write the book or rewrite the journal. Body reads recheck private consent, both
+key contexts, recognized primary content, selected identity and original native
+origin lifetime. Changed result values/types, another authenticated peer, changed
+UID, unknown primary/memory, revocation, key loss or a forged/copied context deny
+recovery. Result equality uses exact canonical bytes, not Python's coercive
+`True == 1` or `2.0 == 2` comparisons.
+
+The affected Linux run passes 93 cases, followed by one new other-authenticated-
+peer denial before primary inspection. Cases include actual encrypted book save,
+sealed private consent/journal, fresh owner with **no saved-writer witness**, fresh
+FS1 result, identical historical ACK, late revocation/unknown primary and explicit
+negative legacy/source-seal cases. No native primary is laundered into a write
+receipt, and book/journal ciphertext remains unchanged by recovery. Other
+unchanged source/writer/packaging evidence is retained rather than rerun.
+
+The case where Notes already completed settlement but its transport receipt was
+lost still needs a checked read-only terminal-status reconciliation path: an old
+request must not be replayed just to obtain a result. Dedicated negotiation/send
+admission, controller orchestration, native setup UI and the Windows counterpart
+also remain unfinished and production-disabled.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 
@@ -366,8 +408,9 @@ cannot produce a positive ACK. A failure after the durable write leaves readable
 held history, not an inferred send success or reconstructed fresh grant.
 
 `load_held()` deliberately returns history only, with no send or provider replay
-authority. Restart-safe reauthorization from a genuine private mapping/primary
-book and fresh authenticated session is still missing. Generic Linux queue,
+authority. Reauthorization from a fresh repeated result and genuine private
+mapping/primary is described above; terminal-status reconciliation remains
+missing. Generic Linux queue,
 send and direct FS1 paths reject both an ACK art argument and a disguised ACK
 body before any network call; no renderer/outbox route can send copied ACK JSON.
 No dedicated negotiated native sender or Notes ACK receiver is enabled yet.

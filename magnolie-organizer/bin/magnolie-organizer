@@ -25002,7 +25002,7 @@ class Fenster(_FENSTER_BASIS):
         if store is None:
             store = NativeNotesChoiceStore(os.path.join(daten_verzeichnis(), 'notes-original-choice'),
                 self._kontakt_quellen_buchaufnahme, lambda: os.path.realpath(daten_datei()),
-                self._kontakt_quellen_hauptdatei_aufnahme)
+                self._kontakt_quellen_hauptdatei_aufnahme, current_native_data=lambda: self._aktuelle_daten)
             self._notes_original_choice_store = store
         return store
 
