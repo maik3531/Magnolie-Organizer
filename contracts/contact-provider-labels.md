@@ -55,3 +55,28 @@ Windows CardDAV already preserves `remote.Data.uid` in its outgoing copy. That
 existing protection was not a new Windows bug. The new Linux correction is checked
 with controlled whole EDS/DAV handlers and planner guards, not live accounts or
 automatic permission to synchronize additional providers.
+
+## Saved-book boundary for original-source updates (#582)
+
+The Windows update-only coordinator now has a native saved-book entry point.
+It captures contacts from the existing `NativeActorBookSnapshot` durable-save
+witness, not contact JSON or a "saved" flag supplied by a renderer. The native
+book source, successful-save sequence and exact saved hash must still match
+before source IO and before returning the result. Locking, an unconfirmed save,
+changed content or an invalidated book stops execution. Pending initial/restore
+reconciliation also holds automatic updates.
+
+Source admissions remain a separate trusted native input: neither source
+mappings nor an imported source list grants access. Without admissions there is
+no provider content IO. This boundary does not create or delete contacts, enable
+accounts, add a default-addressbook fallback or advance a global success cursor.
+It returns a bound result; it does not silently persist returned baselines.
+
+Checked with real atomic synthetic file writes and the existing native save
+witness, controlled two-provider DAV adapters and original provider UIDs/ETags,
+including failed-after-replacement saves, lock/content/context changes, restore,
+and a document claiming additional source grants. These are not live-provider
+tests. The actual automatic frontend/native dispatcher caller, explicit native
+source-approval storage and provider factory still need integration; the Linux
+equivalent and full Notes scalar/postal return path remain open. This is not an
+automatic all-source delivery or installed-package acceptance claim.

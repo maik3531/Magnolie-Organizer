@@ -28,6 +28,7 @@ internal static class ContactSourceUpdateRunTests
         internal bool? Permission = true;
         internal bool FailWrite, BadReadback, RequireSaved, Saved;
         internal int Writes, Reads;
+        internal Action? BeforeContentRead;
         private readonly string origin;
         internal Source(string name, string accountType, JsonObject data)
         {
@@ -52,6 +53,7 @@ internal static class ContactSourceUpdateRunTests
             TestAssert.That(!RequireSaved || Saved, "Provider IO preceded the original durable SaveACK");
             if (request.Method.Method == "REPORT")
             {
+                BeforeContentRead?.Invoke();
                 Reads++;
                 return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/books/original/person.vcf</d:href><d:propstat><d:prop><d:getetag>" + SecurityElement.Escape(ETag) + "</d:getetag><c:address-data>" + SecurityElement.Escape(Wire) + "</c:address-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
             }
@@ -141,6 +143,77 @@ internal static class ContactSourceUpdateRunTests
                 await ContactSourceUpdateRun.RunAsync(result.Contacts, [first.Admit(), second.Admit()], () => Task.CompletedTask, () => { });
                 TestAssert.That(first.Writes + second.Writes == writes, "Already acknowledged sources were rewritten on repeat");
             }
+        }
+        await SavedBookBoundaryAsync();
+    }
+
+    private static async Task SavedBookBoundaryAsync()
+    {
+        foreach (var mode in new[] { "success", "not-saved", "locked", "hash-mismatch", "changed-before-io", "changed-during-read", "restore", "imported-grant", "failed-save" })
+        {
+            var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
+                ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
+            using var first = new Source("first", "generic-dav", original);
+            using var second = new Source("second", "nextcloud", original);
+            var a = await first.OriginalAsync(); var b = await second.OriginalAsync();
+            var local = original.DeepClone().AsObject();
+            ContactFields.SetSource(local, first.Catalog.Uid, a, remoteBaseline: true);
+            ContactFields.SetSource(local, second.Catalog.Uid, b, remoteBaseline: true);
+            local["notiz"] = "Canonical note"; local["geaendert"] = 2000L;
+            var document = new JsonObject { ["kontakte"] = new JsonArray(local), ["syncEpoch"] = "serialized-epoch-is-not-native-authority" };
+            if (mode == "restore") document["syncNachRestore"] = new JsonObject { ["additiv"] = true };
+            if (mode == "imported-grant") document["einstellungen"] = new JsonObject { ["sync"] = new JsonObject {
+                ["kontaktOriginalQuellen"] = new JsonArray(first.Catalog.Uid, second.Catalog.Uid) } };
+            var directory = Path.Combine(Path.GetTempPath(), "magnolie-contact-saved-book-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try
+            {
+                var path = Path.Combine(directory, "synthetic.json"); var store = new AtomicStore();
+                var owner = new NativeBookOwnerScope(); owner.SetReady(true);
+                var text = document.ToJsonString();
+                store.WriteRecoverableJson(path, text);
+                if (mode != "not-saved") owner.RecordSaved(path, true, BaumSyncSnapshot.Hash(text));
+                first.RequireSaved = second.RequireSaved = true; first.Saved = second.Saved = mode != "not-saved";
+                if (mode == "locked") owner.SetReady(false);
+                if (mode == "hash-mismatch") text = document.DeepClone().ToJsonString() + " ";
+                if (mode == "failed-save")
+                {
+                    owner.InvalidateSaved();
+                    try
+                    {
+                        new AtomicStore(stage => { if (stage == AtomicStore.WriteStage.PrimaryReplaced) throw new IOException("Controlled save failure after primary replacement"); })
+                            .WriteRecoverableJson(path, text + " ");
+                        throw new Exception("Controlled failed save did not fail");
+                    }
+                    catch (IOException) { }
+                }
+                NativeBookSaveState? Current() => owner.SaveState(path, true);
+                NativeActorBookSnapshot? Capture()
+                {
+                    var snapshot = NativeActorBookSnapshot.Capture(Current, () => text);
+                    if (mode == "changed-before-io") owner.Invalidate();
+                    return snapshot;
+                }
+                if (mode == "changed-during-read") first.BeforeContentRead = owner.InvalidateSaved;
+                var aReads = first.Reads; var bReads = second.Reads;
+                try
+                {
+                    var result = await ContactSourceUpdateRun.RunSavedAsync(Capture, Current,
+                        mode == "imported-grant" ? [] : [first.Admit(), second.Admit()]);
+                    TestAssert.That(mode is "success" or "imported-grant", "Unsaved/changed/restored native book reached source updates: " + mode);
+                    if (mode == "success") TestAssert.That(first.Writes == 1 && second.Writes == 1 && result.OriginalBook == Current() &&
+                        result.Sources.Values.All(count => count.Errors == 0), "Native saved-book boundary lost two-source update/readback");
+                    else TestAssert.That(first.Writes + second.Writes == 0 && first.Reads == aReads && second.Reads == bReads && result.Sources.Count == 0,
+                        "Serialized/imported source list was treated as native admission");
+                }
+                catch (InvalidOperationException error) when (mode is not ("success" or "imported-grant") &&
+                    error.Message is "contact_source_book_not_saved" or "contact_source_saved_book_changed" or "contact_source_restore_pending")
+                {
+                    TestAssert.That(first.Writes + second.Writes == 0 && second.Reads == bReads &&
+                        first.Reads == aReads + (mode == "changed-during-read" ? 1 : 0), "Invalid native saved witness performed provider writes/extra reads");
+                }
+            }
+            finally { Directory.Delete(directory, recursive: true); }
         }
     }
 }

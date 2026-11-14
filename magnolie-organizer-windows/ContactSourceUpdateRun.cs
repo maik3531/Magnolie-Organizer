@@ -9,11 +9,42 @@ internal sealed record ContactSourceAdmission(string Source, IContactRemote Remo
     Func<CancellationToken, Task> RequireCurrent);
 internal sealed record ContactSourceUpdateResult(JsonArray Contacts,
     IReadOnlyDictionary<string, ContactSyncCounts> Sources);
+internal sealed record SavedContactSourceUpdateResult(NativeBookSaveState OriginalBook,
+    JsonArray Contacts, IReadOnlyDictionary<string, ContactSyncCounts> Sources);
 
 // Update existing original bindings ONLY. No create/delete, default-addressbook
 // retarget, UID guess, new provider grant, or independent success cursor.
 internal static class ContactSourceUpdateRun
 {
+    // Automatic callers must use a native durable-save witness, not a renderer
+    // "saved" flag, an imported syncEpoch, or request-supplied contact JSON.
+    // Admissions are still produced separately from explicit native grants and
+    // fresh provider observations; no document field here can grant a source.
+    internal static async Task<SavedContactSourceUpdateResult> RunSavedAsync(
+        Func<NativeActorBookSnapshot?> captureSavedBook, Func<NativeBookSaveState?> currentSavedBook,
+        IReadOnlyList<ContactSourceAdmission> admissions, CancellationToken cancellation = default,
+        string homeCountry = "")
+    {
+        cancellation.ThrowIfCancellationRequested();
+        var snapshot = captureSavedBook() ?? throw new InvalidOperationException("contact_source_book_not_saved");
+        var data = JsonNode.Parse(snapshot.Text) as JsonObject ?? throw new InvalidDataException("contact_source_book_invalid");
+        if (data["kontakte"] is not JsonArray contacts) throw new InvalidDataException("contact_source_book_invalid");
+        if (data["syncNachRestore"]?["additiv"]?.GetValue<bool>() == true ||
+            data["syncNachRestore"]?["loeschungsfrei"]?.GetValue<bool>() == true ||
+            data["syncMetadaten"]?["ersteSyncLoeschungsfrei"]?.GetValue<bool>() == true)
+            throw new InvalidOperationException("contact_source_restore_pending");
+        void RequireOriginal()
+        {
+            cancellation.ThrowIfCancellationRequested();
+            if (currentSavedBook() != snapshot.SavedBook)
+                throw new InvalidOperationException("contact_source_saved_book_changed");
+        }
+        RequireOriginal();
+        var result = await RunAsync(contacts, admissions, () => Task.CompletedTask, RequireOriginal, cancellation, homeCountry);
+        RequireOriginal();
+        return new(snapshot.SavedBook, result.Contacts, result.Sources);
+    }
+
     internal static async Task<ContactSourceUpdateResult> RunAsync(JsonArray originalContacts,
         IReadOnlyList<ContactSourceAdmission> admissions, Func<Task> requireSaved,
         Action originalCurrent, CancellationToken cancellation = default, string homeCountry = "")
