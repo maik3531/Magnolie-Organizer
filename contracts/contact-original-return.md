@@ -1,7 +1,9 @@
-# Full original-contact return: open implementation scope (#622)
+# Full original-contact return: remaining lifecycle (#628, partial source work #622)
 
 This is a source-boundary assessment, not an implemented capability or a source
-grant. The completed DAV lifecycle work in #621/#623/#624 does not complete this
+grant. Issue #622 records the checked native partial source work; its actual
+functional remainder continues in #628, not as an enabled automatic feature.
+The completed DAV lifecycle work in #621/#623/#624 does not complete this
 scope. No installed-app, physical device or live-provider acceptance is claimed.
 
 ## Android contact-journal sync metadata (#626)
