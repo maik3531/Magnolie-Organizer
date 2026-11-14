@@ -403,6 +403,20 @@ actual desktop baseline SaveACK or terminal-history release.
 
 ### Desktop confirmed-save evidence for the result lifecycle
 
+The native outgoing-result boundary can now read a current or reloaded VERIFIED
+receipt with the same request ID/hash, canonical ID, before/next basis, target
+hash, native receipt ID and after-revision. It rechecks the actual native source
+grant, same private mapping/source/setup context and exact current native result
+on every read. The historical mapping check is explicitly read-only: its old
+provider revision is not reinterpreted as fresh apply permission. Lost-result
+re-emission does not invoke the provider writer again.
+
+Revoked permission, a new setup decision, changed native after-state, legacy
+missing-next-basis records or copied result objects cannot produce this outgoing
+result. The affected 82 API28/API35 attempt cases pass. This remains native
+result data, not an enabled negotiated wire frame or a desktop SaveACK. Real
+transport correlation and crash-safe terminal-history settlement remain open.
+
 The existing Linux contact-result commit and Windows `ContactSourceSavedCommit`
 now issue process-local saved witnesses only after their real native writer has
 confirmed the exact proposed book, original book identity, advanced save sequence

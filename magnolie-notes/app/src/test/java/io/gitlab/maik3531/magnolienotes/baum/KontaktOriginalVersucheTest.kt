@@ -549,6 +549,7 @@ class KontaktOriginalVersucheTest {
         binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
         val restored = ledger().laden(grant())!!
         assertNull(restored.folgebasisHash()); assertNull(restored.bestaetigung()!!.folgebasisHash())
+        assertThrows(IllegalArgumentException::class.java) { restored.bestaetigung()!!.ausgang(grant(), mapping) }
         assertEquals(request, restored.anfrageId())
         val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
         assertThrows(IllegalStateException::class.java) { maps.aktualisieren(grant(), "canonical-original-kept", ledger()) }
@@ -583,5 +584,62 @@ class KontaktOriginalVersucheTest {
         file.writeBytes(saved)
         assertNotNull(ledger().laden(grant())!!.bestaetigung()!!.folgebasisHash())
         assertEquals(1, provider.batchCalls)
+    }
+
+    private fun resultForOutgoing(): KontaktOriginalVersuche.Verifiziert {
+        val target = binding.aktuell().daten.copy(notiz = "Confirmed native result for outgoing correlation")
+        val result = ledger().vorbereitenGeplant(grant(), mapping, basis, request, requestHash, target) { reference() }.anwenden(target) {}
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        return result
+    }
+
+    @Test fun loadedVerifiedResultCanReemitItsExactCorrelationWithoutReplayingTheProviderWrite() {
+        val result = resultForOutgoing()
+        val outgoing = result.ausgang(grant(), mapping).lesen()
+        assertEquals(setOf("request_id", "request_sha256", "share_id", "before_basis", "target_sha256", "receipt_id", "native_revision", "next_basis"), outgoing.keys)
+        assertEquals(kotlinx.serialization.json.JsonPrimitive(request), outgoing["request_id"])
+        assertEquals(kotlinx.serialization.json.JsonPrimitive(requestHash), outgoing["request_sha256"])
+        assertEquals(kotlinx.serialization.json.JsonPrimitive(basis), outgoing["before_basis"])
+        assertEquals(kotlinx.serialization.json.JsonPrimitive(result.folgebasisHash()), outgoing["next_basis"])
+        assertEquals(kotlinx.serialization.json.JsonPrimitive(binding.revision), outgoing["native_revision"])
+        val restored = ledger().laden(grant())!!.bestaetigung()!!
+        assertEquals(outgoing, restored.ausgang(grant(), mapping).lesen())
+        assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun outgoingVerifiedResultCannotOutliveActualSourcePermission() {
+        val result = resultForOutgoing()
+        val outgoing = result.ausgang(grant(), mapping)
+        outgoing.lesen()
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { outgoing.lesen() }
+        assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun aNewSetupDecisionCannotReuseTheOldResultContextEvenForTheSameNativeSource() {
+        val result = resultForOutgoing()
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        assertThrows(IllegalArgumentException::class.java) { result.ausgang(grant(), mapping) }
+        assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun nativeEditAfterVerificationHoldsOutgoingResultRatherThanReportingItAsCurrent() {
+        val result = resultForOutgoing()
+        val old = result.ausgang(grant(), mapping)
+        provider.raw[RawContacts.VERSION] = binding.revision + 1
+        assertThrows(IllegalArgumentException::class.java) { old.lesen() }
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertThrows(IllegalArgumentException::class.java) { ledger().laden(grant())!!.bestaetigung()!!.ausgang(grant(), mapping) }
+        assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun copiedJsonOrUnknownOutcomesCannotMintOutgoingNativeProviderResults() {
+        val currentGrant = grant()
+        val before = provider.queries
+        assertThrows(SecurityException::class.java) { KontaktOriginalVersuche.Ausgang(Any()).lesen() }
+        assertThrows(SecurityException::class.java) { KontaktOriginalVersuche.Verifiziert(Any()).ausgang(currentGrant, mapping) }
+        // The fake native result is rejected before the grant/context is read.
+        assertEquals(before, provider.queries)
+        assertFalse(root.exists()); assertEquals(0, provider.batchCalls)
     }
 }

@@ -74,6 +74,23 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
             grant.pruefen()
             proof.store.pruefen(proof)
         }
+        /** Read-only result context after the native revision advanced. This
+         * deliberately does NOT mint fresh apply authority for the old baseline.
+         */
+        internal fun pruefeErgebniskontext(grant: KontaktOriginalFreigaben.Freigabe, shareId: String, beforeBasis: String) {
+            val proof = native()
+            grant.pruefen()
+            require(proof.hash == beforeBasis && proof.record["share"] == JsonPrimitive(shareId)) {
+                "contact_original_result_baseline_changed"
+            }
+            val observed = record(grant.partner(), shareId, grant.bindung, grant.entscheidungId())
+            require(listOf("original", "peer", "share", "decision_id").all { observed[it] == proof.record[it] }) {
+                "contact_original_result_context_changed"
+            }
+            proof.store.pruefen(proof)
+            grant.pruefen()
+            proof.store.pruefen(proof)
+        }
     }
 
     /** No provider IO or source permission is inferred while reading history. */

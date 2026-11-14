@@ -21,6 +21,17 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
     private val files = KontaktOriginalDateien(root, stage = stage)
     private val cipher = DatenDateiKrypto({ existingJournalKey() ?: error("contact_original_journal_key_unavailable") })
     private class Beleg(val store: KontaktOriginalVersuche, val key: String, val hash: String, val record: JsonObject)
+    private class AusgangsBeleg(val result: Beleg, val grant: KontaktOriginalFreigaben.Freigabe,
+                               val mapping: KontaktOriginalZuordnungen.Zuordnung)
+    /** Native outgoing result data only, not a negotiated wire frame or ACK.
+     * Every read rechecks actual consent, native result and private continuity.
+     */
+    class Ausgang internal constructor(private val beleg: Any) {
+        fun lesen(): JsonObject {
+            val proof = beleg as? AusgangsBeleg ?: throw SecurityException("contact_original_native_result_required")
+            return proof.result.store.ergebnis(proof)
+        }
+    }
     private class AnwendeBeleg(val store: KontaktOriginalVersuche, val key: String,
         val grant: KontaktOriginalFreigaben.Freigabe, val hold: Offen,
         val protection: KontaktOriginalSicherungen.Sicherung, val targetHash: String,
@@ -83,6 +94,36 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         fun freigabeId(): String? = native().also { pruefen() }.record["share_id"]?.jsonPrimitive?.contentOrNull
         fun basisHash(): String? = native().also { pruefen() }.record["mapping_sha256"]?.jsonPrimitive?.contentOrNull
         fun folgebasisHash(): String? = native().also { pruefen() }.record["next_mapping"]?.jsonObject?.get("next_basis")?.jsonPrimitive?.content
+        fun ausgang(grant: KontaktOriginalFreigaben.Freigabe, mapping: KontaktOriginalZuordnungen.Zuordnung): Ausgang =
+            Ausgang(AusgangsBeleg(native(), grant, mapping)).also { it.lesen() }
+    }
+
+    private fun ergebnis(proof: AusgangsBeleg): JsonObject {
+        val record = proof.result.record
+        require(record["state"] == JsonPrimitive("verified") && record["next_mapping"] is JsonObject) {
+            "contact_original_complete_verified_result_required"
+        }
+        proof.grant.pruefen()
+        require(record["original"] == identitaet(proof.grant)) { "contact_original_result_identity_changed" }
+        val shareId = record.getValue("share_id").jsonPrimitive.content
+        val beforeBasis = record.getValue("mapping_sha256").jsonPrimitive.content
+        proof.mapping.pruefeErgebniskontext(proof.grant, shareId, beforeBasis)
+        val receipt = record.getValue("receipt").jsonObject
+        val native = proof.grant.bindung.aktuell()
+        require(receipt["revision"] == JsonPrimitive(proof.grant.bindung.revision) &&
+            receipt["lookup"] == JsonPrimitive(native.lookupKey) && receipt["contact_id"] == JsonPrimitive(native.contactId) &&
+            record["target_sha256"] == JsonPrimitive(KontaktSync.hash(native.daten))) {
+            "contact_original_result_native_frame_changed"
+        }
+        pruefen(proof.result)
+        proof.mapping.pruefeErgebniskontext(proof.grant, shareId, beforeBasis)
+        pruefen(proof.result)
+        return buildJsonObject {
+            put("request_id", record.getValue("request_id")); put("request_sha256", record.getValue("request_sha256"))
+            put("share_id", shareId); put("before_basis", beforeBasis); put("target_sha256", record.getValue("target_sha256"))
+            put("receipt_id", receipt.getValue("id")); put("native_revision", receipt.getValue("revision"))
+            put("next_basis", record.getValue("next_mapping").jsonObject.getValue("next_basis"))
+        }
     }
 
     fun laden(grant: KontaktOriginalFreigaben.Freigabe): Offen? {
