@@ -208,6 +208,31 @@ internal sealed partial class NotesOriginalChoiceStore
         return observed.Binding;
     }
 
+    internal string VerifyUnconfirmedHistory(JsonObject history)
+    {
+        // Query correlation ONLY. Stored JSON cannot issue a pending mutation,
+        // saved witness or ACK; actual recovery must later require fresh VERIFIED.
+        using var state = Read() ?? throw new InvalidOperationException("notes_choice_private_source_missing");
+        var observed = Observe(requireSaved: false);
+        var source = history["source"]!.AsObject(); var seal = history["source_seal"]!.AsObject();
+        if (state.Identity != Text(seal, "key_sha256") || Text(state.Payload, "generation") != Text(seal, "generation") ||
+            Text(state.Payload, "book") != Text(seal, "book") || Text(state.Payload, "book") != Tag(state.Key, "book", observed.Binding) ||
+            !RecognizesContent(state, observed.Content) || state.Payload["choices"]!.AsArray().OfType<JsonObject>().Count(value =>
+                Canonical(value) == Canonical(source)) != 1)
+            throw new InvalidOperationException("notes_choice_unconfirmed_source_changed");
+        var model = observed.Snapshot?.Text ?? currentNativeData?.Invoke() ?? throw new InvalidOperationException("notes_choice_owned_native_model_required");
+        var contacts = JsonNode.Parse(model)!["kontakte"] as JsonArray ?? throw new InvalidDataException("notes_choice_native_contacts_required");
+        var selected = contacts.OfType<JsonObject>().Where(value => Text(value, "id") == Text(source, "local_id")).ToArray();
+        if (selected.Length != 1 || Text(selected[0], "uid") != Text(source, "local_uid") ||
+            !JsonNode.DeepEquals(NotesOriginalExportChoice.Project(selected[0], history["export"]!["kontakt"]!.AsObject()), history["request"]!["ziel"]))
+            throw new InvalidOperationException("notes_choice_unconfirmed_target_changed");
+        using var again = Read();
+        if (again is null || again.Identity != state.Identity || Canonical(again.Payload) != Canonical(state.Payload) ||
+            !observed.Same(Observe(requireSaved: observed.Snapshot is not null)))
+            throw new InvalidOperationException("notes_choice_unconfirmed_context_changed");
+        return observed.Binding;
+    }
+
     private Known? ReadKnown()
     {
         using var state = Read();

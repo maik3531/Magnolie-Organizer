@@ -17,6 +17,16 @@ internal sealed class NotesOriginalRequestIntents
     private long generation;
     private sealed record FreshProof(NotesOriginalRequestIntents Store, NotesOriginalPendingResult Pending,
         string Key, string Physical, string KeyIdentity, string FrameHash);
+    private sealed record QueryProof(NotesOriginalRequestIntents Store, NotesOriginalChoiceStore Consent, string Binding, string LocalId,
+        string FrameHash, long Generation);
+    internal sealed class UnconfirmedQuery(object proof)
+    {
+        internal JsonObject Request(NotesOriginalNegotiation protocol)
+        {
+            if (proof is not QueryProof native) throw new InvalidOperationException("notes_request_private_unconfirmed_query_required");
+            return native.Store.RequireQuery(native, protocol);
+        }
+    }
     internal sealed class FreshRequest(object proof)
     {
         internal JsonObject RequireFor(NotesOriginalPendingResult pending, NotesOriginalNegotiation protocol)
@@ -212,6 +222,32 @@ internal sealed class NotesOriginalRequestIntents
         using var directory = files.Open(); if (directory is null) return null;
         Identity(directory, context.Identity, initialize: false);
         return Physical(directory, context.Crypto, physical)?.Frame.DeepClone().AsObject(); // No fresh proof issued.
+    }
+
+    internal UnconfirmedQuery ReadOnlyQuery(string nativeBinding, string localId, NotesOriginalChoiceStore consent, NotesOriginalNegotiation protocol)
+    {
+        var frame = LoadPhysical(nativeBinding, localId) ?? throw new InvalidOperationException("notes_request_private_history_required");
+        long epoch; lock (gate) epoch = generation;
+        var proof = new QueryProof(this, consent, nativeBinding, localId, NotesOriginalSchema.Hash(frame), epoch);
+        RequireQuery(proof, protocol); return new(proof);
+    }
+
+    private JsonObject RequireQuery(QueryProof proof, NotesOriginalNegotiation protocol)
+    {
+        lock (gate) if (generation != proof.Generation) throw new InvalidOperationException("notes_request_query_process_expired");
+        var pins = protocol.RequireCurrent();
+        var frame = LoadPhysical(proof.Binding, proof.LocalId) ?? throw new InvalidOperationException("notes_request_private_history_required");
+        if (NotesOriginalSchema.Hash(frame) != proof.FrameHash || proof.Consent.VerifyUnconfirmedHistory(frame) != proof.Binding)
+            throw new InvalidOperationException("notes_request_unconfirmed_context_changed");
+        var source = frame["source"]!.AsObject();
+        if (source["peer"]![0]!.GetValue<string>() != pins.Peer.Id || source["peer"]![1]!.GetValue<string>() != pins.Peer.PublicKey ||
+            source["own"]![0]!.GetValue<string>() != pins.Own.Id || source["own"]![1]!.GetValue<string>() != pins.Own.PublicKey)
+            throw new InvalidOperationException("notes_request_query_protocol_pins_changed");
+        var body = new JsonObject { ["art"] = "kontakt_original_statusanfrage", ["fassung"] = 1, ["request_sha256"] = frame["request_sha256"]!.DeepClone() };
+        foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) body[name] = frame["request"]![name]!.DeepClone();
+        protocol.RequireCurrent();
+        lock (gate) if (generation != proof.Generation) throw new InvalidOperationException("notes_request_query_process_expired");
+        return body;
     }
 
     internal void Stop() { lock (gate) { generation++; fresh.Clear(); } } // Disk holds deliberately survive.

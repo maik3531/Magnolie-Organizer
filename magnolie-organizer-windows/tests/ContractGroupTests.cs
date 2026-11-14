@@ -836,6 +836,11 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "unconfirmed-only")
+            {
+                await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
+                return; // Explicit bounded test slice; not full-group regression evidence.
+            }
             MagnolienbaumPairingTests.SessionIdentityBinding(root);
             NotesOriginalReceiveTests.Run(Path.Combine(root, "notes-native-origin"));
             NotesOriginalReceiveTests.Negotiation(Path.Combine(root, "notes-native-negotiation"));
@@ -845,6 +850,7 @@ internal static class ContractGroupTests
             NotesOriginalJournalTests.Run(Path.Combine(root, "notes-independent-journal"));
             NotesOriginalChoiceStoreTests.Requests(Path.Combine(root, "notes-request-intentions"));
             await NotesOriginalChoiceStoreTests.SavedAcksAsync(Path.Combine(root, "notes-saved-ack-intentions"));
+            await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

@@ -349,6 +349,53 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine($"Notes physical-first request intentions: {modes.Length} synthetic cases passed (loaded history never restores send rights).");
     }
 
+    internal static async Task UnconfirmedQueriesAsync(string root)
+    {
+        var modes = new[] { "restart", "physical-only", "revoke", "target-change", "unrelated-save", "no-offer", "stop", "missing", "wrong-pins", "tampered-physical" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]);
+            var journalRoot = Path.Combine(h.Root, "request-history");
+            ContactSourcePrivateFiles Boundary() => new(journalRoot, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var store = new NotesOriginalRequestIntents(Boundary(), Key, stage =>
+            { if (mode == "physical-only" && stage == "physical-written") throw new IOException("synthetic-physical-only-request"); });
+            var pending = h.Choice.CreatePending()!; var expected = pending.Request();
+            if (mode == "physical-only") Hold(() => store.Seal(pending));
+            else if (mode != "missing") store.Seal(pending);
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode is "target-change" or "unrelated-save")
+            {
+                h.Host.NativeNotesChoices = h.Store;
+                var next = h.Book.DeepClone().AsObject(); next["new-independent-edit"] = "preserve";
+                if (mode == "target-change") next["kontakte"]![0]!["vorname"] = "Changed chosen target";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", next))["ok"]!.GetValue<bool>(), "Known intervening native save failed");
+            }
+            if (mode == "tampered-physical") System.IO.File.WriteAllText(Directory.GetFiles(journalRoot, "p-*.json").Single(), "{}");
+            store.Stop(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+            var reloaded = new NotesOriginalRequestIntents(Boundary(), Key);
+            var pins = h.Choice.Pins;
+            h.Protocol = new(mode == "wrong-pins" ? new("other-native-peer", pins.Peer.PublicKey) : pins.Peer, pins.Own);
+            if (mode != "no-offer" && mode != "wrong-pins") { var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer); }
+            var binding = Path.GetFullPath(h.Host.DataPath);
+            if (mode is "revoke" or "target-change" or "no-offer" or "missing" or "wrong-pins" or "tampered-physical")
+                Hold(() => reloaded.ReadOnlyQuery(binding, "chosen-private-id", h.NewStore(), h.Protocol));
+            else
+            {
+                var query = reloaded.ReadOnlyQuery(binding, "chosen-private-id", h.NewStore(), h.Protocol);
+                var body = query.Request(h.Protocol);
+                TestAssert.That(body.Count == 7 && body["ziel"] is null && body["desktop_sha256"] is null &&
+                    body["request_id"]!.GetValue<string>() == expected["request_id"]!.GetValue<string>(), "Loaded unconfirmed query changed UUID or supplied write/ACK data");
+                if (mode == "stop") { reloaded.Stop(); Hold(() => query.Request(h.Protocol)); }
+            }
+            TestAssert.That(h.Host.Snapshot() is null, "Unconfirmed query fabricated saved snapshot");
+            Hold(() => reloaded.Seal(pending));
+            TestAssert.Throws<InvalidOperationException>(() => new NotesOriginalRequestIntents.UnconfirmedQuery(new object()).Request(h.Protocol), "Fake unconfirmed query accepted");
+            if (mode == "missing") TestAssert.That(!Directory.Exists(journalRoot), "Query without record created history root");
+        }
+        Console.WriteLine($"Notes unconfirmed query-only restart: {modes.Length} synthetic cases passed (no replay, pending writer, saved witness or ACK).");
+    }
+
     internal static async Task SavedAcksAsync(string root)
     {
         var modes = new[] { "success", "before-save", "failed-save", "missing-request", "tampered-history", "missing-history", "key-change", "request-tamper",

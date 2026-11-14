@@ -1193,6 +1193,27 @@ Windows sending/controller/bootstrap/pump, key-backend selection and actual comm
 setup remain outstanding. Production stays OFF; no installation/device acceptance
 or publication is implied.
 
+### Windows unconfirmed query-only restart (#633)
+
+A separate opaque unconfirmed-query proof can now correlate the selected physical
+request record with current private source/key/generation/book/setup/pins, known
+authenticated primary and actually owned model. The chosen ID/UID and exact modeled
+target must still match; unrelated known edits are retained. A physical-only crash
+record is sufficient for this read-only question, not for request-send rights.
+The query has seven fields, the original UUID and no target/desktop hash. It does
+not create a pending writer, saved snapshot, witness or ACK. Stop and changed
+source/target/history/protocol fail closed; no missing store/key is created.
+
+Ten additional synthetic cases pass on the full managed group and a specifically
+selected new-test-only noninteractive Windows slice: restart, physical-only crash,
+revocation, changed target, unrelated native save, no offer, Stop, missing record,
+unnegotiated foreign pins and tampered physical record. Reopened snapshots remain
+absent. The explicit Windows slice is not represented as rerunning the entire
+group; unchanged earlier Windows history/reauthorization evidence is retained.
+Release CoreTests and BASE builds are clean. Fresh VERIFIED local recovery,
+bootstrap/writer scheduling, terminal retirement and the reserved controller/pump/
+setup are still missing; query support alone enables none of them.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
