@@ -168,7 +168,7 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
         if self._primary() != (primary, binding):
             raise PermissionError('notes_choice_native_primary_changed')
         return binding, [dict(source) for source in payload['choices']
-            if (tuple(source['peer']), tuple(source['own'])) == pins]
+            if pins is None or (tuple(source['peer']), tuple(source['own'])) == pins]
 
     def _publish(self, directory, key, payload):
         try:

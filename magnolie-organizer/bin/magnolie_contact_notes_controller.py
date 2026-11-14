@@ -10,6 +10,7 @@ from collections import OrderedDict, deque
 from dataclasses import dataclass
 import json
 import threading
+import math
 from cryptography.exceptions import InvalidTag
 
 from magnolie_contact_notes_consent import NativeNotesChoiceStore
@@ -38,6 +39,7 @@ class _Owner:
     ack: object = None
     unconfirmed: object = None
     bootstrap: object = None
+    ack_sent: bool = False
 
 
 @dataclass(frozen=True)
@@ -74,6 +76,8 @@ class NativeNotesController:
         self._export_bootstraps = {}
         self._frames = OrderedDict()
         self._held = deque(maxlen=max_peers * per_peer)
+        self._send_due = {}
+        self._send_cursor = 0
 
     def begin_peer(self, peer, own):
         protocol = NativeNotesProtocolNegotiation(peer, own)
@@ -217,6 +221,82 @@ class NativeNotesController:
                             self._held.append('discovery')
                 protocol.require_current()
             return tuple(works)
+
+    def next_transport(self, now):
+        """One rate-limited typed send plan; caller sends outside every gate."""
+        if type(now) not in (int, float) or not math.isfinite(now) or now < 0:
+            raise ValueError('notes_controller_monotonic_time_required')
+        with self._work:
+            with self._book_gate():
+                self._require_active()
+                selected = self._consent._discovery_sources(None)
+                if selected is None:
+                    return None
+                _, sources = selected
+                allowed = {(tuple(source['peer']), tuple(source['own'])) for source in sources}
+                for source in sources:
+                    pins = tuple(source['peer']), tuple(source['own'])
+                    if pins not in self._peers and len(self._peers) < self._max_peers:
+                        self.begin_peer(*pins)
+                plans = []
+                for pins, protocol in tuple(self._peers.items()):
+                    if pins not in allowed:
+                        continue
+                    try:
+                        if protocol._offer is None:
+                            protocol._native_probe()
+                            plans.append((NativeNotesWork('probe', protocol), protocol))
+                        else:
+                            self.discover(protocol)
+                    except (PermissionError, ValueError, OSError, RuntimeError, InvalidTag):
+                        continue
+                for owner in tuple(self._owners.values()):
+                    if owner.held or owner.pins not in allowed or owner.commit is not None and not owner.history:
+                        continue
+                    try:
+                        self._guard(owner)
+                        if owner.ack is not None and not owner.ack_sent:
+                            work = NativeNotesWork('ack', owner.ack, owner.request['request_id'])
+                        elif owner.history:
+                            work = NativeNotesWork('query', self._outcomes.readonly_query(owner.history, self._consent), owner.request['request_id'])
+                        elif owner.unconfirmed is not None:
+                            work = NativeNotesWork('query', owner.unconfirmed, owner.request['request_id'])
+                        elif owner.pending is not None:
+                            work = NativeNotesWork('request', owner.pending, owner.request['request_id'])
+                        else:
+                            continue
+                        plans.append((work, owner.protocol))
+                    except (PermissionError, ValueError, OSError, RuntimeError, InvalidTag):
+                        owner.held = True
+                live = {(pins[0], pins[1], 'probe', '') for pins in self._peers}
+                live.update((owner.pins[0], owner.pins[1], kind, owner.request['request_id'])
+                    for owner in self._owners.values() for kind in ('request', 'query', 'ack'))
+                self._send_due = {key: due for key, due in self._send_due.items() if key in live}
+                for offset in range(len(plans)):
+                    index = (self._send_cursor + offset) % len(plans)
+                    work, protocol = plans[index]
+                    key = protocol._peer, protocol._own, work.kind, work.request_id
+                    if self._send_due.get(key, 0) > now:
+                        continue
+                    self._send_due[key] = now + 30
+                    self._send_cursor = index + 1
+                    return work, protocol
+                return None
+
+    def transport_finished(self, work, protocol, delivered):
+        """Transport delivery is not negotiation, a saved witness or settlement."""
+        if type(work) is not NativeNotesWork or type(protocol) is not NativeNotesProtocolNegotiation or type(delivered) is not bool:
+            raise PermissionError('notes_controller_typed_transport_required')
+        with self._lock:
+            self._require_active()
+            if self._peers.get((protocol._peer, protocol._own)) is not protocol:
+                raise PermissionError('notes_controller_owned_protocol_required')
+            owner = self._owners.get(((protocol._peer, protocol._own), work.request_id))
+            if owner is not None and delivered:
+                if work.kind == 'ack' and owner.ack is work.intent:
+                    owner.ack_sent = True
+                elif work.kind == 'query' and owner.ack is not None:
+                    owner.ack_sent = False
 
     def receive(self, peer, body, origin, transport):
         """Actual native FS1 callback: no book/key/consent/journal/worker calls."""
@@ -456,6 +536,7 @@ class NativeNotesController:
                 protocol.cancel()
             self._frames.clear()
             self._export_bootstraps.clear()
+            self._send_due.clear()
             self._requests.forget_process_proofs()
 
     def counts(self):

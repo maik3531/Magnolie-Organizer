@@ -171,6 +171,16 @@ def test_private_discovery_budget_and_one_corrupt_physical_slot_do_not_admit_or_
         h.send(h.export); one = old.controller.process_one()
         h.send(export2); two = old.controller.process_one()
         assert one.kind == two.kind == 'request'
+        planned = [old.controller.next_transport(0), old.controller.next_transport(0)]
+        assert {work.request_id for work, _ in planned} == {one.request_id, two.request_id}
+        for work, protocol in planned:
+            assert work.kind == 'request'
+            assert work.intent._for_negotiated_protocol(protocol)['request_id'] == work.request_id
+            old.controller.transport_finished(work, protocol, True)
+        assert old.controller.next_transport(1) is None and old.controller.ready_acks() == ()
+        retry, protocol = old.controller.next_transport(30)
+        assert retry.request_id in (one.request_id, two.request_id) and retry.kind == 'request'
+        assert retry.intent._for_negotiated_protocol(protocol)['request_id'] == retry.request_id
         if mode == 'isolated-corrupt-slot':
             proof = one.intent._request_intention
             path = Path(old.controller._requests.root, 'p-' + proof.physical + '.bin')
@@ -184,6 +194,142 @@ def test_private_discovery_budget_and_one_corrupt_physical_slot_do_not_admit_or_
         assert c.discover(runtime.protocol) == ()
         assert c.counts()['owners'] == 1 and c._requests._fresh == {} and c.ready_acks() == ()
         assert h.probe._kontakt_quellen_buchaufnahme() is None
+    finally:
+        h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['complete', 'offline', 'lost-probe', 'stop-after-probe'])
+def test_actual_post_worker_pump_joins_real_fs1_discovery_query_two_native_saves_ack_and_terminal(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    sessions = []
+    try:
+        h.configure(); old = Runtime(h); initial = old.start(); request = initial.intent.request()
+        old.controller.stop(); h.restart()
+        runtime = Runtime(h); c = runtime.controller; probe = h.probe
+        probe._notes_original_controller = c
+        probe._notes_original_native_arbeit = MethodType(native.Fenster._notes_original_native_arbeit, probe)
+        probe._baum_sperre = threading.RLock(); probe._baum_post_stop = False
+        probe._baum_zustand = lambda: h.receiver
+        peer = native.baum_partner(h.receiver, h.sender['kennung'])
+        peer.update(vertraut=True, kontaktSync=True, protokoll='baum-fs1')
+        online = [mode != 'offline']
+        monkeypatch.setattr(native, 'kontakt_quellen_wlan_verfuegbar', lambda: online[0])
+        monkeypatch.setattr(native, 'erinnerungsdaten_schreiben', lambda **_: True)
+        calls, wire, remote_ack = [], [], []
+        def sender(url, body):
+            # Another thread can acquire both native gates during every network
+            # callback, including response receive. No reentrant-lock false pass.
+            acquired = []
+            def check_locks():
+                for gate in (probe._daten_sperre, probe._baum_sperre):
+                    ok = gate.acquire(timeout=1)
+                    acquired.append(ok)
+                    if ok: gate.release()
+            thread = threading.Thread(target=check_locks)
+            thread.start(); thread.join(3)
+            assert not thread.is_alive() and acquired == [True, True]
+            calls.append(url)
+            if mode == 'lost-probe' and len(calls) == 1:
+                raise OSError('synthetic temporarily unavailable peer')
+            if url.endswith('/sitzung'):
+                answer, session = native.fs_antwort_bauen(h.sender,
+                    {'kennung': h.receiver['kennung'], 'oeffentlich': h.receiver['oeffentlich']}, body)
+                sessions.append(session); return answer
+            session = sessions[-1]
+            clear, _ = native.umschlag_oeffnen_fs(session, h.sender['kennung'], h.receiver['kennung'], body)
+            wire.append(clear['art'])
+            if clear['art'] == 'kontakt_original_aushandlung':
+                h.send(dict(clear, antwort=True))
+            elif clear['art'] == 'kontakt_original_statusanfrage':
+                assert 'ziel' not in clear and clear['request_id'] == request['request_id']
+                result = runtime.result(request)
+                if remote_ack:
+                    result.update(art='kontakt_original_abschlussstatus', phase='settled',
+                        desktop_sha256=remote_ack[0]['desktop_sha256'])
+                h.send(result)
+            elif clear['art'] == 'kontakt_original_saveack':
+                remote_ack.append(clear)  # Deliberately lose the direct terminal response.
+            else:
+                pytest.fail('Restart recovery must never replay a provider request')
+            return native.fs_ack_bauen(session, body)
+        def pump(now):
+            return native.Fenster._notes_original_native_pump(probe, jetzt=now, sender=sender)
+        if mode == 'offline':
+            assert not pump(0) and calls == [] and c.counts()['owners'] == 0
+            online[0] = True
+        assert pump(0)
+        base = 0
+        if mode == 'lost-probe':
+            count = len(calls)
+            assert not pump(1) and len(calls) == count
+            assert pump(30); base = 30
+        assert wire == ['kontakt_original_aushandlung']
+        assert runtime.protocol._offer is None, 'Transport ACK negotiated the profile without processing the real offer'
+        if mode == 'stop-after-probe':
+            c.stop()
+            with pytest.raises(PermissionError): pump(base + 1)
+            assert not probe._speicher_auftraege.qsize() and c._requests._fresh == {}
+            return
+        assert pump(base + 1)
+        assert wire[-1] == 'kontakt_original_statusanfrage' and c.counts()['owners'] == 1
+        assert probe._kontakt_quellen_buchaufnahme() is None
+        assert pump(base + 2)
+        def write():
+            assert probe._speicher_auftraege.qsize() == 1
+            probe._speicher_auftraege.put(None)
+            thread = threading.Thread(target=native.Fenster._speicher_lauf, args=(probe,), daemon=True)
+            thread.start(); thread.join(15)
+            assert not thread.is_alive()
+        write()
+        assert probe._kontakt_quellen_buchaufnahme().sequence == 1 and c.ready_acks() == ()
+        assert pump(base + 3); write()
+        assert probe._kontakt_quellen_buchaufnahme().sequence == 2
+        assert pump(base + 4) and remote_ack
+        assert c.counts()['owners'] == 1, 'Transport ACK improperly settled native history'
+        assert not pump(base + 5), 'Successful ACK erased the prior query retry deadline'
+        assert pump(base + 31)
+        assert c.counts()['owners'] == 1
+        assert pump(base + 32) and c.counts()['owners'] == 0
+        assert c._requests.load_held(initial.intent._request_intention.key)['state'] == 'request_settled'
+        assert c._requests._fresh == {} and wire == ['kontakt_original_aushandlung',
+            'kontakt_original_statusanfrage', 'kontakt_original_saveack', 'kontakt_original_statusanfrage']
+    finally:
+        for session in sessions: native.fs_sitzung_loeschen(session)
+        h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['default-off', 'explicit-controller'])
+def test_existing_native_post_tick_runs_notes_pump_after_its_tree_work_without_new_timer_or_controller(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    try:
+        probe = h.probe; done = threading.Event(); calls = []
+        probe._baum_post_stop = False; probe._baum_post_laeuft = False
+        probe._baum_sperre = threading.RLock()
+        if mode == 'explicit-controller':
+            h.configure(); runtime = Runtime(h); probe._notes_original_controller = runtime.controller
+        probe._notes_original_native_arbeit = MethodType(native.Fenster._notes_original_native_arbeit, probe)
+        def ordinary():
+            with probe._baum_sperre:
+                calls.append('ordinary-tree-work')
+            return {'geaendert': False}
+        probe._baum_post_lauf = ordinary
+        probe._baum_paarungsanfragen_pruefen = lambda: False
+        probe._baum_briefkasten_poll = lambda: False
+        def pump():
+            calls.append('notes-pump')
+            return native.Fenster._notes_original_native_pump(probe)
+        probe._notes_original_native_pump = pump
+        monkeypatch.setattr(native, 'kontakt_quellen_wlan_verfuegbar', lambda: False)
+        def idle(callback):
+            try: return callback()
+            finally: done.set()
+        monkeypatch.setattr(native.GLib, 'idle_add', idle)
+        assert native.Fenster._baum_post_tick(probe)
+        assert done.wait(5) and not probe._baum_post_laeuft
+        assert calls == ['ordinary-tree-work', 'notes-pump']
+        assert getattr(probe, '_notes_original_controller', None) is (runtime.controller if mode == 'explicit-controller' else None)
+        assert not probe._speicher_auftraege.qsize() and not (tmp_path / 'outcomes').exists()
+        assert not hasattr(probe, '_notes_original_timer')
     finally:
         h.service.anhalten()
 

@@ -25179,6 +25179,36 @@ class Fenster(_FENSTER_BASIS):
                 work.intent.text, None, None, work.intent, work))
         return work
 
+    def _notes_original_native_pump(self, jetzt=None, sender=None):
+        """Existing post worker only; no startup controller or extra timer."""
+        from magnolie_contact_notes_controller import NativeNotesController
+        controller = getattr(self, '_notes_original_controller', None)
+        if (getattr(self, '_gesperrt', True) or getattr(self, '_baum_post_stop', True) or
+                type(controller) is not NativeNotesController):
+            return False
+        work = self._notes_original_native_arbeit()
+        def permitted():
+            return (not self._gesperrt and not self._baum_post_stop and
+                getattr(self, '_notes_original_controller', None) is controller and
+                kontakt_quellen_wlan_verfuegbar())
+        if not permitted():
+            return work is not None
+        plan = controller.next_transport(time.monotonic() if jetzt is None else jetzt)
+        if plan is None:
+            return work is not None
+        outgoing, protocol = plan
+        def state():
+            with self._baum_sperre:
+                return json.loads(json.dumps(self._baum_zustand()))
+        send = {'probe': baum_notes_protokollprobe_senden, 'query': baum_notes_statusanfrage_senden,
+            'request': baum_notes_anfrage_senden, 'ack': baum_notes_saveack_senden}[outgoing.kind]
+        if outgoing.kind == 'probe':
+            delivered = send(state, protocol, permitted, sender=sender)
+        else:
+            delivered = send(state, outgoing.intent, protocol, permitted, sender=sender)
+        controller.transport_finished(outgoing, protocol, delivered)
+        return True
+
     def _kontakt_quellen_dauerwiederherstellen(self, save_id, saved_sha256):
         """Worker-only restore after a real SaveACK, outside the writer lock."""
         from magnolie_contact_source_dav import NativeDavApprovalScope
@@ -27566,6 +27596,10 @@ class Fenster(_FENSTER_BASIS):
                 geaendert = bool(self._baum_post_lauf().get("geaendert"))
                 geaendert = self._baum_paarungsanfragen_pruefen() or geaendert
                 geaendert = self._baum_briefkasten_poll() or geaendert
+                try:
+                    self._notes_original_native_pump()
+                except (PermissionError, ValueError, OSError, RuntimeError):
+                    pass  # Private native source waits; no recurring dialog.
             except Exception as fehler:
                 debug_ausnahme("tree.outbox.failed", error=fehler)
             finally:

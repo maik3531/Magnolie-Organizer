@@ -797,6 +797,38 @@ unnegotiated/stopped owner, bounded two-source admission and isolated corruption
 Directory enumeration is explicitly forbidden in the focused tests. Automatic
 invocation/transport pumping, setup and Windows integration remain outstanding.
 
+### Existing native post-worker transport pump (#633)
+
+The existing native post tick now calls a bounded Notes pump after ordinary tree,
+pairing and mailbox work has released its gates. It does nothing unless an exact
+native controller has been explicitly injected and the window is unlocked. No
+startup controller, extra timer, background scheduler or capability advertisement
+is created. Native WLAN/connection policy gates all sends and is rechecked by the
+reserved sender. Current tree state is copied under its short gate; book/source
+checks and network calls run outside the tree gate. No native book gate is held
+across networking.
+
+The controller restores peers only from recognized private source consent, sends
+typed profile probes, discovers read-only recovery after the actual authenticated
+offer, and dispatches typed requests/queries/saved ACKs. One network plan is selected
+per tick with a 30-second per-plan retry deadline, bounded state and fair selection
+between active sources. A fresh pending request retains its exact UUID/body on
+retry; loaded intentions remain query-only. Actual queued book work still goes
+through the existing serial writer. Transport ACKs never establish negotiation,
+confirm a book save, retire a physical slot or settle history. After a delivered
+SaveACK, a target-free query can recover a lost terminal response; only the fresh
+authenticated matching terminal status drives the durable completion path.
+
+Evidence: 338 affected source/controller/requests/consent/reserved-send/probe/origin/
+runtime/startup-off cases passed. Four new actual FS1 pump cases cover full restart
+recovery, offline waiting, lost probe/retry deadline and stop. They use two actual
+writer saves and deliberately drop the direct terminal response. A separate thread
+can acquire both native gates during every network callback. Two existing-post-tick
+cases verify default-OFF/no extra timer and explicit-controller dispatch; two-source
+tests check fresh-request fairness and stable retry identities. No physical or
+installed counterpart acceptance is claimed. Common native setup, Windows transport
+integration and multi-source stale-book rebase remain outstanding.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
