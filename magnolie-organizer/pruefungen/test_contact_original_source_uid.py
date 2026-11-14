@@ -83,7 +83,7 @@ def test_actual_dav_handler_preserves_two_original_uids_and_source_etags(native,
         def delete(self, *_): pytest.fail('Unexpected deletion')
     dav = Dav()
     monkeypatch.setattr(native, 'NextcloudDav', lambda _: dav)
-    monkeypatch.setattr(native, 'configured_client', lambda _: object())
+    monkeypatch.setattr(native, 'configured_client', lambda _, **kwargs: object())
     monkeypatch.setattr(native, 'nextcloud_speicher', lambda: object())
     local = dict(copy.deepcopy(baseline), id='local', uid='canonical-person-uid', sync=True)
     for name, source in sources.items():

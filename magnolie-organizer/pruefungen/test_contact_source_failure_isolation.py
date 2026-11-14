@@ -131,7 +131,7 @@ def test_failed_dav_source_keeps_original_baseline_and_other_book_writable(nativ
         def delete(self, *_): pytest.fail('Unexpected deletion')
     dav = Dav()
     monkeypatch.setattr(native, 'NextcloudDav', lambda _: dav)
-    monkeypatch.setattr(native, 'configured_client', lambda _: object())
+    monkeypatch.setattr(native, 'configured_client', lambda _, **kwargs: object())
     monkeypatch.setattr(native, 'nextcloud_speicher', lambda: object())
     if not create:
         for name in dav.resources:

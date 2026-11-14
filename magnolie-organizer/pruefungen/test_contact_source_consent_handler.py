@@ -19,8 +19,8 @@ def test_bridge_requires_native_catalog_and_explicit_current_decision(native, tm
     store, source = account(tmp_path), Source(native)
     actual_checked = store.checked_client
     clients = []
-    def checked(revision, purpose='dav'):
-        client = actual_checked(revision, purpose=purpose, transport=source.transport)
+    def checked(revision, purpose='dav', transport=None, *, interactive=True):
+        client = actual_checked(revision, purpose=purpose, transport=source.transport, interactive=interactive)
         clients.append(client)
         return client
     monkeypatch.setattr(store, 'checked_client', checked)

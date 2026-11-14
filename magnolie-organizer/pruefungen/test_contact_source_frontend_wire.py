@@ -47,8 +47,8 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
         response = source.transport(*args)
         if return_wlan == 'after-write' and args[0] == 'PUT': wlan[0] = False
         return response
-    monkeypatch.setattr(store, 'checked_client', lambda revision, purpose='dav', transport=None:
-                        actual_client(revision, purpose=purpose, transport=provider_transport))
+    monkeypatch.setattr(store, 'checked_client', lambda revision, purpose='dav', transport=None, interactive=True:
+                        actual_client(revision, purpose=purpose, transport=provider_transport, interactive=interactive))
     monkeypatch.setattr(native, 'nextcloud_speicher', lambda: store)
     monkeypatch.setattr(native, 'kontakt_quellen_wlan_verfuegbar', lambda: wlan[0])
     monkeypatch.setattr(native, 'kontakt_quellen_freigabe_dialog', lambda parent, choices, selected:

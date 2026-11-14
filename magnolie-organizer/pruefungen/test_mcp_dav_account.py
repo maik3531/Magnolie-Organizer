@@ -30,6 +30,9 @@ class Vault:
             raise RuntimeError("owned-private-vault-error")
         return self.values.get(account)
 
+    def lookup_noninteractive(self, account):
+        return self.lookup(account)  # Synthetic RAM vault, no prompt capability.
+
     def clear(self, account):
         if self.drop_clear:
             return True
@@ -122,7 +125,7 @@ def test_actual_account_snapshot_revision_and_correlated_redacted_status(native,
     vault.fail = True
     host._nextcloud_status_melden("App.baumBriefkastenStatus", "owned-unavailable")
     unavailable = host.responses[-1][1]
-    assert unavailable["revision"] is None and unavailable["fehlerCode"] == "secret_service_unavailable"
+    assert unavailable["revision"] is None and unavailable["fehlerCode"] == "secret_read_unavailable"
     assert unavailable["url"] == "https://owned.example.test" and unavailable["benutzer"] == "owned-reader"
     assert "owned-private-vault-error" not in json.dumps(unavailable)
     vault.fail = False
@@ -211,7 +214,7 @@ def test_mailbox_write_reuses_real_probe_and_pins_account_across_remote_writes(n
         if method == "DELETE":
             return (507 if mode[0] == "delete_fail" else 204), {}, b""
         return 201, {}, b""
-    monkeypatch.setattr(store, "checked_client", lambda revision, purpose: original_checked_client(revision, purpose, transport))
+    monkeypatch.setattr(store, "checked_client", lambda revision, purpose, **kwargs: original_checked_client(revision, purpose, transport, **kwargs))
     revision = store.read_snapshot()[2]
     host._nextcloud_mailbox_schreibpruefen("owned-mailbox", revision)
     result = host.responses[-1][1]

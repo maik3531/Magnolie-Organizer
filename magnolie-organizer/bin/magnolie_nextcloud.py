@@ -140,10 +140,16 @@ def _atomic_bytes(path, value):
             os.unlink(temporary)
 
 
+def _secret_cancellable():
+    from gi.repository import Gio
+    return Gio.Cancellable()
+
+
 class SecretServiceStore:
     """App-Kennwort ausschliesslich im angemeldeten Secret Service."""
 
     SCHEMA_NAME = "io.gitlab.maik3531.MagnolieOrganizer.Nextcloud"
+    LOOKUP_TIMEOUT = 3.0
 
     def __init__(self, backend=None):
         self.backend = backend
@@ -197,13 +203,77 @@ class SecretServiceStore:
                 return backend.lookup(account)
             except Exception as error:
                 raise NextcloudError("Der Linux Secret Service ist nicht verfuegbar.",
-                                     "secret_service_unavailable") from error
+                                      "secret_service_unavailable") from error
         Secret, schema = backend
         try:
             return Secret.password_lookup_sync(schema, {"account": account}, None)
         except Exception as error:
             raise NextcloudError("Der Linux Secret Service ist nicht verfuegbar.",
                                  "secret_service_unavailable") from error
+
+    def lookup_noninteractive(self, account):
+        """Read only an already-unlocked credential; never request Unlock/Prompt.
+
+        Custom native backends must explicitly provide this capability. Falling
+        back to their interactive lookup would violate automatic-mode consent.
+        """
+        try:
+            backend = self._secret()
+        except Exception as error:
+            raise NextcloudError('Der Zugang ist momentan nicht automatisch lesbar.',
+                                 'secret_read_unavailable') from error
+        quiet = getattr(backend, 'lookup_noninteractive', None)
+        if callable(quiet):
+            try:
+                return quiet(account)
+            except Exception as error:
+                raise NextcloudError('Der Zugang ist momentan nicht automatisch lesbar.',
+                                     'secret_read_unavailable') from error
+        if hasattr(backend, 'lookup'):
+            raise NextcloudError('Der Zugang benoetigt eine bewusste Einrichtung.',
+                                 'secret_interaction_required')
+        Secret, schema = backend
+        try:
+            cancellation = _secret_cancellable()
+        except Exception as error:
+            raise NextcloudError('Der Zugang ist momentan nicht automatisch lesbar.',
+                                 'secret_read_unavailable') from error
+        timer = threading.Timer(self.LOOKUP_TIMEOUT, cancellation.cancel)
+        timer.name = 'magnolie-secret-noninteractive'
+        timer.daemon = True
+        timer.start()
+        try:
+            service = Secret.Service.get_sync(Secret.ServiceFlags.OPEN_SESSION, cancellation)
+            # ALL prevents silently choosing an ambiguous account. LOAD_SECRETS
+            # reads unlocked items only; deliberately NEVER add SearchFlags.UNLOCK.
+            items = service.search_sync(schema, {'account': account},
+                Secret.SearchFlags.ALL | Secret.SearchFlags.LOAD_SECRETS, cancellation)
+            if cancellation.is_cancelled():
+                raise TimeoutError('secret_lookup_timeout')
+            if not items:
+                return None
+            if len(items) != 1:
+                raise NextcloudError('Der gespeicherte Zugang ist nicht eindeutig.', 'secret_ambiguous')
+            item = items[0]
+            if item.get_locked() is not False:
+                raise NextcloudError('Der Schluesselbund ist gesperrt; die Automatik wartet.', 'secret_service_locked')
+            value = item.get_secret()
+            text = value.get_text() if value is not None else None
+            if cancellation.is_cancelled():
+                raise TimeoutError('secret_lookup_timeout')
+            if item.get_locked() is not False:
+                raise NextcloudError('Der Schluesselbund ist gesperrt; die Automatik wartet.', 'secret_service_locked')
+            if text is not None and not isinstance(text, str):
+                raise ValueError('secret_not_text')
+            return text
+        except NextcloudError:
+            raise
+        except Exception as error:
+            raise NextcloudError('Der Zugang ist momentan nicht automatisch lesbar.',
+                'secret_lookup_timeout' if cancellation.is_cancelled() else 'secret_read_unavailable') from error
+        finally:
+            timer.cancel()
+            timer.join(timeout=1)
 
     def clear(self, account):
         backend = self._secret()
@@ -322,20 +392,30 @@ class NextcloudSettingsStore:
                                  "invalid_config") from error
 
     @_account_access
-    def has_password(self, settings=None):
+    def has_password(self, settings=None, *, interactive=True):
         settings = settings or self.load()
         if not settings:
             return False
-        return bool(self.secrets.lookup(self.account(settings["server"], settings["benutzer"],
-                                                     settings.get("kontoArt"))))
+        return bool(self._lookup_credential(self.account(settings["server"], settings["benutzer"],
+                                                     settings.get("kontoArt")), interactive))
+
+    def _lookup_credential(self, account, interactive):
+        if interactive is True:
+            return self.secrets.lookup(account)
+        if interactive is not False:
+            raise ValueError('Explicit credential interaction mode required')
+        quiet = getattr(self.secrets, 'lookup_noninteractive', None)
+        if not callable(quiet):
+            raise NextcloudError('Der Zugang benoetigt eine bewusste Einrichtung.', 'secret_interaction_required')
+        return quiet(account)
 
     @_account_access
-    def read_snapshot(self):
+    def read_snapshot(self, *, interactive=True):
         """Return public settings/presence and an opaque keyed revision, never a secret."""
         with self._gate:
             settings = self.load()
             try:
-                secret = self.secrets.lookup(self.account(settings["server"], settings["benutzer"], settings.get("kontoArt"))) if settings else None
+                secret = self._lookup_credential(self.account(settings["server"], settings["benutzer"], settings.get("kontoArt")), interactive) if settings else None
                 if secret is not None and not isinstance(secret, str):
                     raise NextcloudError("Der gespeicherte Zugang ist nicht lesbar.", "secret_service_unavailable")
                 revision = self._snapshot_revision(settings, secret)
@@ -344,27 +424,29 @@ class NextcloudSettingsStore:
                 return settings, False, None, error
 
     @_account_access
-    def checked_client(self, expected_revision, purpose="dav", transport=None):
+    def checked_client(self, expected_revision, purpose="dav", transport=None, *, interactive=True):
         """Pin a verified account/credential context before starting remote operations."""
         with self._gate:
-            settings, present, revision, error = self.read_snapshot()
+            mode = {} if interactive is True else {'interactive': interactive}
+            settings, present, revision, error = self.read_snapshot(**mode)
             if error is not None:
                 raise error
             if revision != expected_revision:
                 raise NextcloudError("Die Kontoeinstellungen wurden geaendert.", "conflict")
-            client = configured_client(self, transport=transport, purpose=purpose)
+            client = configured_client(self, transport=transport, purpose=purpose, **mode)
             if self._snapshot_revision(settings, client.password) != revision:
                 raise NextcloudError("Der gespeicherte Zugang wurde geaendert.", "conflict")
             return client
 
     @_account_access
-    def configured_client(self, transport=None, purpose="dav"):
+    def configured_client(self, transport=None, purpose="dav", *, interactive=True):
         settings = self.load()
         active_key = "briefkastenAktiv" if purpose == "briefkasten" else "davAktiv"
         if not settings or not settings[active_key]:
             raise NextcloudError("Nextcloud ist nicht aktiviert.", "not_active")
+        mode = {} if interactive is True else {'interactive': interactive}
         client = DavHttpClient(settings["server"], settings["benutzer"],
-                               self.password(settings), transport=transport)
+                               self.password(settings, **mode), transport=transport)
         client.account_type = settings.get("kontoArt", "nextcloud")
         return client
 
@@ -403,12 +485,12 @@ class NextcloudSettingsStore:
             return actual, present, after_revision
 
     @_account_access
-    def password(self, settings=None):
+    def password(self, settings=None, *, interactive=True):
         settings = settings or self.load()
         if not settings:
             raise NextcloudError("Nextcloud ist nicht eingerichtet.", "not_configured")
-        password = self.secrets.lookup(self.account(settings["server"], settings["benutzer"],
-                                                    settings.get("kontoArt")))
+        password = self._lookup_credential(self.account(settings["server"], settings["benutzer"],
+                                                    settings.get("kontoArt")), interactive)
         if not password:
             raise NextcloudError("Das Nextcloud-App-Kennwort fehlt.", "app_password_missing")
         return password
@@ -1015,5 +1097,6 @@ class NextcloudMailbox:
         return data
 
 
-def configured_client(store, transport=None, purpose="dav"):
-    return store.configured_client(transport=transport, purpose=purpose)
+def configured_client(store, transport=None, purpose="dav", *, interactive=True):
+    mode = {} if interactive is True else {'interactive': interactive}
+    return store.configured_client(transport=transport, purpose=purpose, **mode)

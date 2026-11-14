@@ -22,7 +22,7 @@ class NativeDavSourceApproval:
 
 
 def _account(store):
-    settings, present, revision, error = store.read_snapshot()
+    settings, present, revision, error = store.read_snapshot(interactive=False)
     if error is not None:
         raise error
     if (not settings or settings.get('davAktiv') is not True or not present or not revision or
@@ -70,12 +70,17 @@ class NativeDavApprovalScope:
             self._generation += 1
 
     def _retain_current(self):
+        if not self._grants:
+            return
         book = self._current_book()
+        if not book or book.get('book_source') != self._owner:
+            self.revoke()
+            return
         try:
             _, revision = _account(self._store)
         except Exception:
             revision = None
-        if self._grants and (not book or book.get('book_source') != self._owner or revision != self._revision):
+        if self._grants and revision != self._revision:
             self.revoke()
 
     def configure(self, native_catalog, ask_native_user):
@@ -152,7 +157,7 @@ class NativeBoundDavFactory:
         if any(not _safe_path(value) or not value.startswith(approval.href.rstrip('/') + '/') for value in self._bound):
             raise ValueError('contact_source_original_binding_required')
         self._basic()
-        self._client = store.checked_client(approval.account_revision, purpose='dav', transport=transport)
+        self._client = store.checked_client(approval.account_revision, purpose='dav', transport=transport, interactive=False)
         try:
             if any(self._client.same_origin_url(value) != value for value in self._bound):
                 raise ValueError('contact_source_original_binding_required')

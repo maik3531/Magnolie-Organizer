@@ -19090,6 +19090,11 @@ def nextcloud_fehlertext(fehler):
             "The Linux Secret Service is unavailable. The app password was not stored."),
         "secret_store_failed": _(
             "The Linux Secret Service did not store the app password."),
+        "secret_read_unavailable": _("Account access is temporarily unavailable. Automatic updates will wait."),
+        "secret_lookup_timeout": _("Account access is temporarily unavailable. Automatic updates will wait."),
+        "secret_service_locked": _("Waiting for account access. Unlock the system keyring when convenient."),
+        "secret_interaction_required": _("Set up account access once in Settings. Automatic updates will wait."),
+        "secret_ambiguous": _("The saved account access is ambiguous. Check the account in Settings."),
         "app_password_missing": _("The Nextcloud app password is missing."),
         "invalid_config": _("The Nextcloud settings are invalid."),
         "account_busy": _("The Nextcloud account settings are being changed. Try again after the current operation finishes."),
@@ -19125,7 +19130,7 @@ def nextcloud_status(transport=None, discover=True, verified_snapshot=None):
               "fehler": "", "fehlerCode": "none", "kalender": [],
               "adressbuecher": []}
     try:
-        settings, password_present, revision, snapshot_error = verified_snapshot if verified_snapshot is not None else store.read_snapshot()
+        settings, password_present, revision, snapshot_error = verified_snapshot if verified_snapshot is not None else store.read_snapshot(interactive=False)
         result["revision"] = revision
         if not settings:
             return result
@@ -19150,7 +19155,7 @@ def nextcloud_status(transport=None, discover=True, verified_snapshot=None):
         if not discover:
             result["zustand"] = "bereit"
             return result
-        dav = NextcloudDav(configured_client(store, transport))
+        dav = NextcloudDav(configured_client(store, transport, interactive=False))
         result["kalender"] = dav.collections("calendar")
         result["adressbuecher"] = dav.collections("addressbook")
         result["zustand"] = "bereit"
@@ -24948,7 +24953,7 @@ class Fenster(_FENSTER_BASIS):
                     try:
                         if (self._kontakt_quellen_dialog_generation != generation or
                                 self._kontakt_quellen_buchaufnahme() != snapshot or
-                                store.read_snapshot()[2] != revision):
+                                store.read_snapshot(interactive=False)[2] != revision):
                             raise PermissionError('contact_source_approval_context_changed')
                         changed = scope.configure(catalog, lambda choices, selected:
                             kontakt_quellen_freigabe_dialog(self, choices, selected))
@@ -25043,8 +25048,7 @@ class Fenster(_FENSTER_BASIS):
             self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False, 'code': 'held'})
             return
         scope = getattr(self, '_kontakt_quellen_freigaben', None)
-        approvals = scope.capture() if scope is not None else ()
-        if not approvals:
+        if scope is None:
             self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': True,
                 'token': '', 'kontakte': None, 'freigaben': 0, 'originalSha256': expected_saved_hash, 'fehlerQuellen': 0})
             return
@@ -25068,6 +25072,15 @@ class Fenster(_FENSTER_BASIS):
 
         def run():
             try:
+                # Credential/authority observations may involve the system
+                # keyring. Keep even the initial capture off the GTK thread.
+                approvals = scope.capture()
+                require_session()
+                if not approvals:
+                    self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': True,
+                        'token': '', 'kontakte': None, 'freigaben': 0,
+                        'originalSha256': expected_saved_hash, 'fehlerQuellen': 0})
+                    return
                 protected = False
                 def protect():
                     nonlocal protected
@@ -27079,7 +27092,7 @@ class Fenster(_FENSTER_BASIS):
                 settings = nextcloud_speicher().load()
                 if settings and settings["briefkastenAktiv"]:
                     mailbox = NextcloudMailbox(configured_client(
-                        nextcloud_speicher(), purpose="briefkasten"))
+                        nextcloud_speicher(), purpose="briefkasten", interactive=False))
             except Exception as fehler:
                 self._baum_briefkasten_fehler = str(fehler)
                 self._baum_briefkasten_zustand = "fehler"
@@ -27153,7 +27166,7 @@ class Fenster(_FENSTER_BASIS):
         settings = store.load()
         if not settings or not settings["briefkastenAktiv"]:
             return False
-        mailbox = NextcloudMailbox(configured_client(store, purpose="briefkasten"))
+        mailbox = NextcloudMailbox(configured_client(store, purpose="briefkasten", interactive=False))
         with self._baum_sperre:
             zustand = self._baum_zustand()
             eigene = zustand.get("kennung") or ""
@@ -28141,7 +28154,7 @@ class Fenster(_FENSTER_BASIS):
                 result["code"] = "profile_locked"
                 return
             store = nextcloud_speicher()
-            settings, present, revision, error = store.read_snapshot()
+            settings, present, revision, error = store.read_snapshot(interactive=False)
             if error is not None or not revision:
                 return
             if revision != expected_revision:
@@ -28150,14 +28163,14 @@ class Fenster(_FENSTER_BASIS):
             if not settings or not settings["briefkastenAktiv"] or not present or settings["kontoArt"] != "nextcloud":
                 result["code"] = "not_active"
                 return
-            client = store.checked_client(expected_revision, purpose="briefkasten")
+            client = store.checked_client(expected_revision, purpose="briefkasten", interactive=False)
             passed, code = False, "none"
             try:
                 NextcloudMailbox(client).test_access((self._baum_zustand() or {}).get("kennung") or "")
                 passed = True
             except Exception as error:
                 code = nextcloud_fehlercode(error)
-            if store.read_snapshot()[2] != revision:
+            if store.read_snapshot(interactive=False)[2] != revision:
                 result["code"] = "conflict"
                 return
             result = {"requestId": request_id, "ok": True, "revision": revision,
@@ -28176,7 +28189,7 @@ class Fenster(_FENSTER_BASIS):
                 result["code"] = "profile_locked"
                 return
             store = nextcloud_speicher()
-            settings, present, revision, error = store.read_snapshot()
+            settings, present, revision, error = store.read_snapshot(interactive=False)
             if error is not None or not revision:
                 return
             if revision != expected_revision:
@@ -28186,7 +28199,7 @@ class Fenster(_FENSTER_BASIS):
                 result["code"] = "not_active"
                 return
             status = nextcloud_status()
-            if store.read_snapshot()[2] != revision:
+            if store.read_snapshot(interactive=False)[2] != revision:
                 result["code"] = "conflict"
                 return
             partial = bool(status["fehler"] and (status["kalender"] or status["adressbuecher"]))
@@ -28221,7 +28234,7 @@ class Fenster(_FENSTER_BASIS):
             if settings and settings["briefkastenAktiv"]:
                 try:
                     mailbox = NextcloudMailbox(configured_client(
-                        nextcloud_speicher(), purpose="briefkasten"))
+                        nextcloud_speicher(), purpose="briefkasten", interactive=False))
                     mailbox.test_access((self._baum_zustand() or {}).get("kennung") or "")
                 except Exception as fehler:
                     nutzlast["zustand"] = "fehler"
@@ -28327,7 +28340,7 @@ class Fenster(_FENSTER_BASIS):
         snapshot_funktion = getattr(self, "_journal_snapshot", None)
         if snapshot and snapshot_funktion:
             snapshot_funktion("pre-sync")
-        dav = NextcloudDav(configured_client(nextcloud_speicher()))
+        dav = NextcloudDav(configured_client(nextcloud_speicher(), interactive=False))
         termine = [dict(item) for item in (daten.get("termine") or [])]
         aufgaben = [dict(item) for item in (daten.get("aufgaben") or [])]
         _aufgaben_graph_normalisieren(aufgaben)

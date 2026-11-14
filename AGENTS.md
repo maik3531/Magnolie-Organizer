@@ -123,6 +123,15 @@ Funktion verständlich als wartend/klärungsbedürftig anzeigen. Keine Berechtig
 umgehen oder aus importierten Auto-/Profilfeldern erfinden. Dauerhafte Freigaben
 müssen an echte native Konto-/Buchidentitäten und Widerruf gebunden bleiben.
 
+Das gilt auch für Gerätefunktionen wie „Handy als Webcam“: Beim bewussten
+Aktivieren vorhandene, kompatible Treiber/Komponenten erkennen und erforderliche
+bereits installierte Module oder Dienste möglichst automatisch laden/starten und
+verwenden. Nicht bloß wegen eines noch nicht gestarteten vorhandenen Bestandteils
+an Bestätigungsdialogen scheitern. Laden/Starten vorhandener Komponenten von
+Download/Neuinstallation trennen; fehlende Installationen verständlich gezielt
+anbieten, nicht ungefragt ausführen. Erforderliche echte Systemberechtigungen
+nicht umgehen; bestehende Geräte-/VM-/Installationspausen bleiben wirksam.
+
 ## Native Startprüfung vor jeder Veröffentlichung
 
 Jedes installierbare Release-Paket in einer passenden vorhandenen VM bzw. nativ

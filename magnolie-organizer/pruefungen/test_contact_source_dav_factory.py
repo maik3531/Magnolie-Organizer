@@ -23,6 +23,7 @@ class Secrets:
     def __init__(self): self.values = {}
     def store(self, key, value): self.values[key] = value; return True
     def lookup(self, key): return self.values.get(key)
+    def lookup_noninteractive(self, key): return self.values.get(key)
     def clear(self, key): self.values.pop(key, None); return True
 
 

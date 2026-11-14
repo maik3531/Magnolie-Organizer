@@ -540,3 +540,30 @@ or lock during a topology probe is rechecked before any notification.
 The previous fourteen frontend cases still pass. Test timers/WLAN/provider
 observations are controlled and all owned workers are joined; this is not a
 physical network-return or Windows retry claim.
+
+## Non-interactive account access (#620 / #618 prerequisite)
+
+Automatic native DAV scope/factory access, read-only account status, selected DAV
+sync and background mailbox/outbox reads now explicitly request non-interactive
+credentials. The existing manual account-enrollment path remains separate.
+`SecretServiceStore.lookup_noninteractive` opens the existing service/session and
+searches with `ALL | LOAD_SECRETS`, never `UNLOCK`, Prompt or the interactive
+password-lookup helper. Only a unique already-unlocked item is accepted, with a
+lock recheck after reading. A three-second cancellable deadline and cleaned timer
+bound the normal SDK operation. Custom native backends must explicitly support
+quiet lookup; absence does not silently fall back to an interactive method.
+
+Locked, ambiguous or unavailable account access is held with a waiting/setup
+status instead of reporting that a stored password was lost. Empty approval
+scopes and unavailable books do not query credentials. Initial automatic scope
+capture runs in the native worker, not GTK's main thread. Existing account
+transactions, actual credential-bound opaque revisions and CAS/readback guards
+remain unchanged; no secret enters renderer/status output.
+
+Twenty-six controlled SDK/backend/native-entry cases and the affected 296-case
+native/account/DAV/manifest run pass. The three actual encrypted frontend/native
+wires still pass with controlled observations. No real keyring/OS dialog or
+service installation was exercised, and no Windows credential-backend fix is
+claimed. This removes a dialog-capable background lookup, but does not by itself
+implement the still-pending durable native approval required for once-configured
+automation across application restarts.

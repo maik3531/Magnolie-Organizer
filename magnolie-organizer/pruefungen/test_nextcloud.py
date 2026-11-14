@@ -54,6 +54,9 @@ class SecretBackend:
             raise RuntimeError("secret service unavailable")
         return self.values.get(account)
 
+    def lookup_noninteractive(self, account):
+        return self.lookup(account)  # Controlled in-memory backend; never a UI.
+
     def clear(self, account):
         self.values.pop(account, None)
         return True
@@ -957,7 +960,7 @@ def contact_vcf(uid="remote-contact", name="Example", rev="20260817T100000Z"):
 
 def run_sync(monkeypatch, dav, data, calendar=True, contacts=False, calendar_ids=None):
     monkeypatch.setattr(m, "NextcloudDav", lambda _client: dav)
-    monkeypatch.setattr(m, "configured_client", lambda _store: object())
+    monkeypatch.setattr(m, "configured_client", lambda _store, **kwargs: object())
     monkeypatch.setattr(m, "nextcloud_speicher", lambda: object())
     probe = SyncProbe()
     calendar_uid = dav.collections("calendar")[0]["uid"] if calendar else ""
@@ -1665,7 +1668,7 @@ def test_mixed_native_provider_preserves_dav_tasks_and_tombstones(monkeypatch, t
     dav = SyncDav({"calendar": [{"href": "https://cloud.example/calendar/task.ics",
         "etag": '"task"', "data": task_ics()}], "addressbook": []})
     monkeypatch.setattr(m, "NextcloudDav", lambda _client: dav)
-    monkeypatch.setattr(m, "configured_client", lambda _store: object())
+    monkeypatch.setattr(m, "configured_client", lambda _store, **kwargs: object())
     monkeypatch.setattr(m, "nextcloud_speicher", lambda: object())
     monkeypatch.setattr(m, "eds_laden", lambda: True)
     monkeypatch.setattr(m, "eds_registry", lambda: object())

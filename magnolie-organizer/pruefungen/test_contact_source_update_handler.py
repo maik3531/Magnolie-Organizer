@@ -43,8 +43,8 @@ def test_actual_native_update_command_has_wlan_book_and_phone_manual_fences(nati
         assert host._kontakt_quellen_buchaufnahme() is not None or mode == 'changed-book'
         native_requests.append(args[0])
         return source.transport(*args)
-    monkeypatch.setattr(store, 'checked_client', lambda revision, purpose='dav', transport=None:
-                        actual_client(revision, purpose=purpose, transport=provider_transport))
+    monkeypatch.setattr(store, 'checked_client', lambda revision, purpose='dav', transport=None, interactive=True:
+                        actual_client(revision, purpose=purpose, transport=provider_transport, interactive=interactive))
     monkeypatch.setattr(native, 'nextcloud_speicher', lambda: store)
     scope = host._kontakt_quellen_freigaben = NativeDavApprovalScope(host._kontakt_quellen_buchnachweis, store)
     catalog = [{'uid': key, 'href': source.href, 'art': 'addressbook', 'canUpdate': True, 'name': 'Synthetic original'}]
