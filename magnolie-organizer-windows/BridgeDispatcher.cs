@@ -956,8 +956,16 @@ internal sealed partial class BridgeDispatcher : IDisposable
             if (originalContactWrite is not null && (historical is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
                 throw new InvalidOperationException("contact_source_mixed_save_not_ready");
             var historicalWriteStarted = false;
+            ContactSourceApprovalStore? contactConsent = null;
+            ContactSourceApprovalStore.SaveIntent? contactConsentWrite = null;
+            var contactConsentError = false;
+            try { contactConsent = OriginalContactApprovals; }
+            catch (Exception) { contactConsentError = true; } // Consent storage cannot prevent an ordinary save.
             void NativeWrite(string payload)
             {
+                if (contactConsent is not null)
+                    try { contactConsentWrite = contactConsent.PrepareCurrentSave(payload); }
+                    catch (Exception) { contactConsentError = true; } // Unknown/pending state holds automatic delivery, not user edits.
                 actorBookOwner.InvalidateSaved();
                 historicalWriteStarted = historical is not null;
                 if (!coveredBySync && !coveredByTree && changed)
@@ -993,7 +1001,20 @@ internal sealed partial class BridgeDispatcher : IDisposable
             else contactCleanupSnapshot.Saved(text);
             RefreshReminderData(currentPlainText, encryption.Session is not null);
             UpdateReminderRuntime(currentPlainText);
+            var contactConsentRecognized = false;
+            if (contactConsent is not null && !contactConsentError)
+                try
+                {
+                    if (contactConsentWrite is not null)
+                        contactConsent.ConfirmSave(contactConsentWrite, NativeActorBook() ??
+                            throw new InvalidOperationException("contact_source_native_saved_book_required"));
+                    contactConsentRecognized = contactConsent.RecognizesSaved(); // Correlation marker only, NOT usable permission.
+                }
+                catch (Exception) { contactConsentError = true; }
             await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "", kontaktPruefung = contactPlan,
+                committed = true, repairPending = false,
+                kontaktQuellenDauerhaft = contactConsentRecognized && !contactConsentError,
+                kontaktQuellenFehler = contactConsentError,
                 standSha256 = BaumSyncSnapshot.Hash(text),
                 kontaktOriginalGespeichert = originalContactWrite?.Completed == true ? originalContactWrite.Token : "" });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);

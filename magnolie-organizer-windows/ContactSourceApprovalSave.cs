@@ -69,6 +69,33 @@ internal sealed partial class ContactSourceApprovalStore
         return ((JsonArray)state.Payload["sources"]!).Count > 0;
     }
 
+    internal bool RecognizesSaved()
+    {
+        using var before = Active();
+        if (before is null) return false;
+        var saved = Saved();
+        if (Text(before.Payload, "content") != saved.Content ||
+            Text(before.Payload, "book") != Tag(before.Key, "book", Encoding.UTF8.GetBytes(saved.Binding))) return false;
+        using var after = Active();
+        return after is not null && after.Key.AsSpan().SequenceEqual(before.Key) && NativeBookJson.Same(after.Payload, before.Payload);
+    }
+
+    // Actual serial writer boundary, before saved-witness invalidation. Recovery
+    // and preparation never observe credentials or manufacture usable permission.
+    internal SaveIntent? PrepareCurrentSave(string nextText)
+    {
+        if (!HasDesiredConsent()) return null;
+        var previous = captureBook();
+        if (previous is not null)
+        {
+            RecoverSaved(previous);
+            return PrepareSave(previous, nextText);
+        }
+        var primary = ObservePrimary().Primary!;
+        RecoverPrimary(primary);
+        return PreparePrimarySave(primary, nextText);
+    }
+
     internal SaveIntent? PrepareSave(NativeActorBookSnapshot previous, string nextText)
         => PrepareSaveCore(new SaveObservation("", "", previous, null), nextText, primary: false);
 

@@ -691,8 +691,8 @@ renews, corrupts and removes only a synthetic credential in its own temporary
 directory: mere file presence cannot survive authenticated DPAPI corruption as
 usable access. Core and actual Windows product BASE source builds pass without
 warnings. The seventeen Windows cases overlap the sixteen host cases; no real
-account, provider, OS dialog or installed app was exercised. This helper is not yet
-connected to a durable Windows approval store, writer or restore path.
+account, provider, OS dialog or installed app was exercised. Subsequent sealed
+store, saved-content and scope connections are described below.
 
 The dedicated `ContactSourcePrivateFiles` boundary is also prepared: private
 current-user-owned Windows directory/files, nonblocking exclusive native lock,
@@ -744,11 +744,10 @@ seventeen native account cases continue passing, and Core/actual BASE product
 builds are clean. No live provider, real account, modal UI or installed app proof
 is claimed.
 
-Ordinary-save advancement/recovery, authenticated startup primary observation,
-scope restoration, actual writer/SaveACK/frontend and WLAN-return integration
-remain unconnected on Windows. Changed book content deliberately holds until that
-trusted chain exists. The Windows application remains session-only for now;
-this core is not a delivered persistent automatic feature. Whole private-key
+The later save/primary/scope/writer checkpoints below extend this core. Actual
+setup, durable revocation, frontend restoration and WLAN-return integration are
+still pending. The Windows application remains session-only for now; these native
+components are not a delivered persistent automatic feature. Whole private-key
 directory rollback or a hostile same-user/admin process is not defended here.
 
 A controlled native-only Linux record-copy retarget was separately confirmed and
@@ -774,8 +773,7 @@ including token reuse, changed context/revocation, unavailable credentials,
 concurrent intent, failed prepare/advance, known-outcome recovery and rollback
 rejection. Existing core/file/account cases still pass; Core and actual BASE
 product builds are clean. These are overlapping native helper matrices, not an
-application save/restart acceptance. The real writer, application-level primary
-observation, scope/SaveACK/frontend restoration and WLAN return remain unconnected.
+application save/restart acceptance by themselves; subsequent connections follow.
 
 ### Windows authenticated primary observation (#621)
 
@@ -797,9 +795,8 @@ operation witness binding its exact previous saved/primary input, so record
 copies cannot substitute a primary observation to bypass the later-save rule;
 thirty-two save-chain cases pass on both systems. Existing core/file/account
 cases pass; Core and actual BASE product builds are clean. Matrices overlap.
-These helpers remain unconnected to the real application writer, durable scope
-restore, frontend SaveACK correlation or WLAN scheduler. No installed/live-provider
-or publication acceptance is implied.
+Subsequent scope/writer connections follow. No installed/live-provider or
+publication acceptance is implied.
 
 ### Windows typed durable scope restoration (#621)
 
@@ -817,4 +814,35 @@ including new native owners/saves, fresh versus stale credential renewal,
 concurrent/final-guard revocation, cancellation, book changes and subsequent
 durable revocation/access loss. Existing core/save/primary/file/account cases
 remain passing; Core and actual BASE product builds are clean. This is a native
-API, not yet actual application setup, writer, SaveACK/frontend or WLAN wiring.
+API, not yet actual application setup, frontend or WLAN wiring.
+
+### Windows actual writer connection (#621, remaining application work open)
+
+The actual `BridgeDispatcher.SaveAsync` now prepares the signed intent before
+invalidating the native saved witness and touching the primary file. After the
+existing encrypted/recoverable writer and derived updates succeed, it confirms
+the actual new native saved witness. The store is constructed lazily from native
+paths/account callbacks; default-OFF reads create no private files and observe no
+account credential or book. First-save preparation after restart uses the actual
+authenticated primary path, never loaded JSON as a saved witness.
+
+Private-consent failure does not prevent ordinary user-data saves. It holds
+automatic delivery instead, preserving pending/unknown state where applicable.
+The actual SaveACK marks committed/unrepaired success and recognized durable
+intent separately; that marker is NOT usable permission. A native scope restore
+and matching positive frontend notice are still required before automatic IO.
+Primary-write failure does not acknowledge successful consent or result delivery.
+
+Fourteen new actual-source writer cases pass on host and actual Windows: encrypted
+ordinary/same-content/restarted saves, credential loss without blocking autosave,
+corrupt/failed sidecar, primary failure, changed binding, known old/new recovery,
+unknown primary outcome and genuine one-use result-save confirmation/replay
+rejection. The existing native writer body is compiled directly from the current
+product source into the bounded test host; only GUI/derived notifications are
+controlled. Four affected actual historical/ordinary SaveAsync regression groups
+also pass on host. Existing native helper matrices remain passing. Core and actual
+BASE product builds are clean; no package was installed or published.
+
+The real application still does not persist native setup decisions or restore
+the scope/frontend after SaveACK, and has no connected durable WLAN/account-return
+monitor yet. Consequently Windows once-configured automation is not complete.

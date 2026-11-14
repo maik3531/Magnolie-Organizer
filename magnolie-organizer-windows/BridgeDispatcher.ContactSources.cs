@@ -5,6 +5,13 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class BridgeDispatcher
 {
     private ContactSourceNativeSession? originalContactSession;
+    private ContactSourceApprovalStore? originalContactApprovalStore;
+    private ContactSourceApprovalStore OriginalContactApprovals => LazyInitializer.EnsureInitialized(ref originalContactApprovalStore,
+        () => new(new ContactSourcePrivateFiles(Path.Combine(Path.GetFullPath(paths.Root), "kontakt-quellen-freigabe")),
+            NextcloudSettings, NativeActorBook, () => Path.GetFullPath(paths.Data), capturePrimary: () =>
+                ContactSourcePrimaryBook.Capture(Path.GetFullPath(paths.Data), store, encryption,
+                    () => currentPlainTextAvailable && !restoreInProgress && !disposed &&
+                        (string.IsNullOrEmpty(currentEnvelope) || encryption.Session is not null))));
     private ContactSourceNativeSession OriginalContactSession => LazyInitializer.EnsureInitialized(ref originalContactSession, () => new(
         NativeActorBook, NativeActorSavedBook, NextcloudSettings, OriginalContactCommit,
         OriginalContactWlanAvailable, _ => CreateSnapshot(SnapshotReason.PreContact)));

@@ -18,6 +18,8 @@ internal sealed partial class PersonalActorNativeSaveHost
     private ContactSourceSavedCommit? contactSourceSavedCommit;
     private ContactSourceSavedCommit OriginalContactCommit => contactSourceSavedCommit ??= new(NativeActorSavedBook);
     internal ContactSourceSavedCommit SourceResultCommit => OriginalContactCommit;
+    internal ContactSourceApprovalStore? ApprovalStore;
+    private ContactSourceApprovalStore? OriginalContactApprovals => ApprovalStore;
     private readonly CancellationTokenSource backgroundLifetime = new();
     private readonly Replies form = new();
     private string currentPlainText, currentEnvelope;
@@ -28,13 +30,19 @@ internal sealed partial class PersonalActorNativeSaveHost
     internal int Snapshots;
     internal readonly List<string> Errors = [];
     internal const string Password = "synthetic-only-native-bridge-save";
-    internal PersonalActorNativeSaveHost(string root, string before)
+    internal PersonalActorNativeSaveHost(string root, string before, bool reopen = false)
     {
         paths = new WindowsPaths(root); currentPlainText = before;
         store = new AtomicStore(stage => { if (FailAfterPrimary && stage == AtomicStore.WriteStage.PrimaryReplaced) throw new IOException("Synthetic post-rename failure"); });
-        currentEnvelope = encryption.Enable(before, Password); store.WriteRecoverableJson(paths.Data, currentEnvelope);
+        if (reopen)
+        {
+            currentEnvelope = store.Read(paths.Data) ?? throw new FileNotFoundException();
+            currentPlainText = encryption.Unlock(currentEnvelope, Password);
+        }
+        else
+        { currentEnvelope = encryption.Enable(before, Password); store.WriteRecoverableJson(paths.Data, currentEnvelope); }
         currentPlainTextAvailable = true;
-        actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), true, BaumSyncSnapshot.Hash(before));
+        if (!reopen) actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), true, BaumSyncSnapshot.Hash(before));
     }
     internal string DataPath => paths.Data;
     internal bool Available => currentPlainTextAvailable;
@@ -46,6 +54,9 @@ internal sealed partial class PersonalActorNativeSaveHost
         return saved is not null && saved.Sha256 == BaumSyncSnapshot.Hash(currentPlainText) ? saved : null;
     }
     internal NativeActorBookSnapshot? Snapshot() => NativeActorBookSnapshot.Capture(Saved, () => currentPlainTextAvailable ? currentPlainText : null);
+    private NativeActorBookSnapshot? NativeActorBook() => Snapshot();
+    internal ContactSourcePrimaryBook Primary() => ContactSourcePrimaryBook.Capture(paths.Data, store, encryption,
+        () => currentPlainTextAvailable && !restoreInProgress && !disposed);
     private NativeBookSaveState? NativeActorSavedBook() => Saved();
     internal ContactSourceCommitOffer StageOriginalContactResult(SavedContactSourceUpdateResult result) =>
         OriginalContactCommit.Stage(Snapshot()!, result);

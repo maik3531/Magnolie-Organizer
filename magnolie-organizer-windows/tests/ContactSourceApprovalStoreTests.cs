@@ -332,6 +332,7 @@ internal static class ContactSourceApprovalStoreTests
         await SaveChainAsync();
         await PrimaryChainAsync();
         await ScopeRestoreAsync();
+        await ActualWriterAsync();
         if (OperatingSystem.IsWindows())
         {
             using var fixture = new Fixture(actualDpapi: true);
@@ -642,6 +643,111 @@ internal static class ContactSourceApprovalStoreTests
                 }
             }
             Console.WriteLine("CONTACT SOURCE APPROVAL SCOPE RESTORE PASS " + mode);
+        }
+    }
+
+    private static async Task ActualWriterAsync()
+    {
+        foreach (var mode in new[] { "disabled", "ordinary", "same-content", "restart", "locked-credential", "corrupt-sidecar",
+            "prepare-failed", "advance-failed", "primary-failed", "changed-binding", "recover-old", "recover-new", "unknown-primary", "result-save" })
+        {
+            using var fixture = new Fixture();
+            if (mode == "result-save")
+            {
+                var seed = JsonNode.Parse(fixture.Text)!.AsObject();
+                seed["kontakte"] = new JsonArray(new JsonObject { ["id"] = "synthetic-local-person", ["uid"] = "synthetic-canonical-person", ["notiz"] = "before" });
+                fixture.Text = seed.ToJsonString();
+            }
+            var host = new PersonalActorNativeSaveHost(fixture.Root, fixture.Text);
+            var binding = host.DataPath; var captures = 0;
+            ContactSourceApprovalStore NewStore() => new(fixture.Files, fixture.Account, () => { captures++; return host.Snapshot(); },
+                () => binding, fixture.Keys, host.Primary);
+            host.ApprovalStore = NewStore();
+            var original = host.Snapshot()!;
+            StoredContactSourceApproval? approved = null;
+            if (mode != "disabled")
+            {
+                var scope = new ContactSourceApprovalScope(host.Saved, fixture.Account.ReadSnapshot);
+                await scope.ConfigureAsync([fixture.Source], (_, _, _) => Task.FromResult<IReadOnlyList<string>?>([fixture.Source.Uid]));
+                approved = await host.ApprovalStore.ApproveAsync(original, scope.Capture());
+            }
+            captures = 0;
+            var candidate = JsonNode.Parse(fixture.Text)!.AsObject();
+            if (mode is not ("same-content" or "result-save")) candidate["ordinaryWriterEdit"] = true;
+            ContactSourceCommitOffer? resultOffer = null;
+            if (mode == "result-save")
+            {
+                var contacts = candidate["kontakte"]!.DeepClone().AsArray(); contacts[0]!["notiz"] = "confirmed synthetic result";
+                resultOffer = host.StageOriginalContactResult(new(original.SavedBook, contacts, new Dictionary<string, ContactSyncCounts>()));
+                candidate["kontakte"] = resultOffer.Contacts.DeepClone();
+            }
+            if (mode is "recover-old" or "recover-new" or "unknown-primary")
+            {
+                host.ApprovalStore.PrepareSave(host.Snapshot()!, candidate.ToJsonString());
+                if (mode is "recover-new" or "unknown-primary")
+                {
+                    var encryption = new EncryptionService();
+                    try
+                    {
+                        encryption.Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password);
+                        new AtomicStore().WriteRecoverableJson(host.DataPath, encryption.EncryptData(mode == "recover-new" ?
+                            candidate.ToJsonString() : "{\"unrelatedPrimary\":true}"));
+                    }
+                    finally { encryption.Clear(); }
+                }
+            }
+            if (mode is "restart" or "recover-old" or "recover-new" or "unknown-primary")
+            {
+                host = new PersonalActorNativeSaveHost(fixture.Root, "not-a-saved-witness", reopen: true);
+                host.ApprovalStore = NewStore();
+                TestAssert.That(host.Snapshot() is null, "Restarted actual writer fabricated a native saved witness");
+            }
+            if (mode is "disabled" or "locked-credential") fixture.Credentials.Unavailable = true;
+            if (mode == "corrupt-sidecar") fixture.Write("approval.json", "{broken");
+            if (mode is "prepare-failed" or "advance-failed") { fixture.FailWrite = mode == "prepare-failed" ? 1 : 2; fixture.Writes = 0; }
+            if (mode == "primary-failed") host.FailAfterPrimary = true;
+            if (mode == "changed-binding") binding = "different-native-book";
+            var message = new JsonObject { ["cmd"] = "speichern", ["id"] = 71, ["text"] = candidate.ToJsonString() };
+            if (resultOffer is not null) message["kontaktOriginalLauf"] = resultOffer.Token;
+            var ack = await host.SaveBridgeEnvelopeAsync(message);
+            var held = mode is "corrupt-sidecar" or "prepare-failed" or "advance-failed" or "primary-failed" or "changed-binding" or "unknown-primary";
+            if (mode == "primary-failed")
+            {
+                TestAssert.That(ack["ok"]!.GetValue<bool>() == false && host.Snapshot() is null && ack["kontaktQuellenDauerhaft"] is null,
+                    "Failed actual primary save acknowledged contact delivery");
+            }
+            else
+            {
+                TestAssert.That(ack["ok"]!.GetValue<bool>() && ack["committed"]!.GetValue<bool>() && !ack["repairPending"]!.GetValue<bool>() &&
+                    ack["standSha256"]!.GetValue<string>() == BaumSyncSnapshot.Hash(candidate.ToJsonString()) &&
+                    host.Snapshot()?.Text == candidate.ToJsonString(), "Consent sidecar changed ordinary actual native save semantics");
+                TestAssert.That(ack["kontaktQuellenDauerhaft"]!.GetValue<bool>() == (!held && mode != "disabled") &&
+                    ack["kontaktQuellenFehler"]!.GetValue<bool>() == held, "Actual writer claimed unconfirmed native consent advancement");
+            }
+            var verification = new EncryptionService();
+            try { TestAssert.That(verification.Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password) == candidate.ToJsonString(),
+                "Actual encrypted writer did not persist the user candidate despite held consent"); }
+            finally { verification.Clear(); }
+            fixture.FailWrite = 0; fixture.Credentials.Unavailable = false;
+            if (mode == "disabled")
+                TestAssert.That(captures == 0 && !Directory.Exists(Path.Combine(fixture.Root, "consent")), "Disabled actual writer observed book/account or created private state");
+            else if (!held)
+            {
+                var restored = host.ApprovalStore.LoadCurrent();
+                TestAssert.That(restored is not null && restored.Generation == approved!.Generation && restored.Sources.SequenceEqual(approved.Sources),
+                    "Actual confirmed writer lost original durable selection across ordinary/restart save");
+                await Require(restored!);
+                await FailsAsync(() => Require(approved!), "Pre-save durable operation witness survived actual writer advancement");
+                if (resultOffer is not null)
+                {
+                    TestAssert.That(ack["kontaktOriginalGespeichert"]!.GetValue<string>() == resultOffer.Token, "Durable save advancement lost actual native result confirmation");
+                    var bytes = File.ReadAllBytes(host.DataPath); var saved = host.Saved();
+                    var replay = await host.SaveBridgeEnvelopeAsync(message);
+                    TestAssert.That(!replay["ok"]!.GetValue<bool>() && host.Saved() == saved && bytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)),
+                        "Durable result SaveACK permitted a consumed result token to write again");
+                }
+            }
+            Console.WriteLine("CONTACT SOURCE APPROVAL ACTUAL WRITER PASS " + mode);
         }
     }
 }
