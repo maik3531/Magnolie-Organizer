@@ -331,6 +331,7 @@ internal static class ContactSourceApprovalStoreTests
         }
         await SaveChainAsync();
         await PrimaryChainAsync();
+        await ScopeRestoreAsync();
         if (OperatingSystem.IsWindows())
         {
             using var fixture = new Fixture(actualDpapi: true);
@@ -576,6 +577,71 @@ internal static class ContactSourceApprovalStoreTests
                 Console.WriteLine("CONTACT SOURCE APPROVAL PRIMARY PASS " + mode);
             }
             finally { encryption.Clear(); }
+        }
+    }
+
+    private static async Task ScopeRestoreAsync()
+    {
+        foreach (var mode in new[] { "success", "new-owner", "new-save", "changed-book", "renewed-credential", "stale-credential",
+            "locked-credential", "durable-revoked", "volatile-revoked-during-restore", "final-guard-rejected", "final-guard-revokes",
+            "final-guard-changes-book", "canceled", "operation-revoke", "operation-book-change", "operation-new-save",
+            "operation-keyring-lock", "operation-guard-replaced", "explicit-reconfigure", "cancel-preserves-durable" })
+        {
+            using var fixture = new Fixture();
+            var lease = await fixture.ApproveAsync();
+            if (mode == "new-owner") { fixture.Owner = new NativeBookOwnerScope(); fixture.Owner.SetReady(true); fixture.Save(fixture.Text); lease = fixture.Store.LoadCurrent()!; }
+            if (mode == "new-save") { fixture.Save(fixture.Text); lease = fixture.Store.LoadCurrent()!; }
+            if (mode == "changed-book") fixture.Save("{\"different\":true}");
+            if (mode is "renewed-credential" or "stale-credential")
+            { fixture.Account.SetApplicationPassword("renewed-synthetic-restore-secret"); if (mode == "renewed-credential") lease = fixture.Store.LoadCurrent()!; }
+            if (mode == "locked-credential") fixture.Credentials.Unavailable = true;
+            if (mode == "durable-revoked") fixture.Store.Revoke();
+            var fresh = new ContactSourceApprovalScope(fixture.Current, fixture.Account.ReadSnapshot);
+            if (mode == "volatile-revoked-during-restore") fixture.Credentials.OnRead = () => fresh.Revoke();
+            Action? guard = mode switch
+            {
+                "final-guard-rejected" => () => throw new InvalidOperationException("Controlled native application generation changed"),
+                "final-guard-revokes" => () => fresh.Revoke(),
+                "final-guard-changes-book" => () => fixture.Save("{\"changedDuringFinalGuard\":true}"),
+                _ => null
+            };
+            using var cancel = new CancellationTokenSource(); if (mode == "canceled") cancel.Cancel();
+            if (mode is "changed-book" or "stale-credential" or "locked-credential" or "durable-revoked" or "volatile-revoked-during-restore" or
+                "final-guard-rejected" or "final-guard-revokes" or "final-guard-changes-book" or "canceled")
+            {
+                await FailsAsync(() => fresh.RestoreAsync(lease, guard, cancel.Token), "Stale/revoked/unavailable native durable lease restored a scope");
+                TestAssert.That(fresh.Capture().Count == 0, "Failed restore left a usable scope grant");
+            }
+            else
+            {
+                await fresh.RestoreAsync(lease, guard, cancel.Token);
+                var approved = fresh.Capture().Single();
+                ContactSourceApprovalScope.RequireNativeDecision(approved, CancellationToken.None);
+                await approved.RequireApproved(CancellationToken.None);
+                if (mode is "operation-revoke" or "operation-guard-replaced") fixture.Store.Revoke();
+                if (mode == "operation-book-change") fixture.Save("{\"laterEdit\":true}");
+                if (mode == "operation-new-save") fixture.Save(fixture.Text);
+                if (mode == "operation-keyring-lock") fixture.Credentials.Unavailable = true;
+                if (mode == "operation-guard-replaced") approved = approved with { RequireApproved = _ => Task.CompletedTask };
+                if (mode.StartsWith("operation-", StringComparison.Ordinal))
+                    await FailsAsync(() => { ContactSourceApprovalScope.RequireNativeDecision(approved, CancellationToken.None); return Task.CompletedTask; },
+                        "Restored native consent token survived durable revoke/new save/credential loss or callback replacement");
+                if (mode == "explicit-reconfigure")
+                {
+                    await fresh.ConfigureAsync([fixture.Source], (_, _, _) => Task.FromResult<IReadOnlyList<string>?>([fixture.Source.Uid]));
+                    var selected = fresh.Capture();
+                    var renewed = await fixture.Store.ApproveAsync(fixture.Capture()!, selected);
+                    TestAssert.That(renewed is not null && renewed.Generation != lease.Generation, "Genuine new decision retained the old durable scope dependency");
+                }
+                if (mode == "cancel-preserves-durable")
+                {
+                    var changed = await fresh.ConfigureAsync([fixture.Source], (_, _, _) => Task.FromResult<IReadOnlyList<string>?>(null));
+                    TestAssert.That(!changed, "Cancel was interpreted as a new decision");
+                    fixture.Store.Revoke();
+                    await FailsAsync(() => approved.RequireApproved(CancellationToken.None), "Cancel dropped the original durable revocation dependency");
+                }
+            }
+            Console.WriteLine("CONTACT SOURCE APPROVAL SCOPE RESTORE PASS " + mode);
         }
     }
 }

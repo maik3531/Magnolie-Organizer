@@ -800,3 +800,21 @@ cases pass; Core and actual BASE product builds are clean. Matrices overlap.
 These helpers remain unconnected to the real application writer, durable scope
 restore, frontend SaveACK correlation or WLAN scheduler. No installed/live-provider
 or publication acceptance is implied.
+
+### Windows typed durable scope restoration (#621)
+
+`ContactSourceApprovalScope.RestoreAsync` now accepts only a current typed native
+stored approval. It checks the actual saved-book/account revision, concurrent
+scope revocation and a final native application-context guard before assignment.
+Restored decisions retain the durable lease: each actual decision guard rechecks
+the current sealed store, actual book and credential access outside the scope
+gate. Replacing a callback cannot detach that dependency from the private minted
+decision witness. Cancel preserves it; a genuine new native selection replaces
+it. Persistent human intent remains distinct from a volatile scope pause.
+
+Twenty additional scope restoration cases pass on host and actual Windows,
+including new native owners/saves, fresh versus stale credential renewal,
+concurrent/final-guard revocation, cancellation, book changes and subsequent
+durable revocation/access loss. Existing core/save/primary/file/account cases
+remain passing; Core and actual BASE product builds are clean. This is a native
+API, not yet actual application setup, writer, SaveACK/frontend or WLAN wiring.

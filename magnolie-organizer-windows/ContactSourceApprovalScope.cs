@@ -2,8 +2,8 @@ namespace MagnolieOrganizer.Windows;
 
 // Session-local native consent authority. No JSON loader/setter and no implicit
 // grant from discovery, a mapping, account availability or renderer settings.
-// A native settings UI must supply the explicit decision callback. This is NOT
-// persistent consent: restarting/locking/changing account requires approval anew.
+// Explicit native decisions may also be restored from a current typed durable
+// store witness. Application wiring is separate; no JSON/status field grants.
 internal sealed class ContactSourceApprovalScope
 {
     private readonly object gate = new();
@@ -12,6 +12,7 @@ internal sealed class ContactSourceApprovalScope
     private readonly Dictionary<string, Uri> approved = new(StringComparer.Ordinal);
     private string owner = "", revision = "";
     private long generation;
+    private StoredContactSourceApproval? durable;
     private sealed class ConsentWitness(ContactSourceApprovalScope owner, string source, Uri collection, string revision, long generation)
     {
         internal void Require(NativeDavContactUpdateApproval approval, CancellationToken cancellation)
@@ -33,10 +34,21 @@ internal sealed class ContactSourceApprovalScope
     private void Require(long capturedGeneration, string source, Uri collection, string capturedRevision, CancellationToken cancellation)
     {
         cancellation.ThrowIfCancellationRequested();
+        StoredContactSourceApproval? lease;
         lock (gate)
         {
             InvalidateStale(currentBook(), currentAccount());
             if (generation != capturedGeneration || revision != capturedRevision || !approved.TryGetValue(source, out var href) || href != collection)
+                throw new UnauthorizedAccessException("contact_source_explicit_approval_withdrawn");
+            lease = durable;
+        }
+        // Actual account/book/private-file validation outside the scope gate.
+        // A retained scope/callback never substitutes for current durable intent.
+        if (lease is not null) lease.RequireCurrentAsync(cancellation).GetAwaiter().GetResult();
+        lock (gate)
+        {
+            InvalidateStale(currentBook(), currentAccount());
+            if (generation != capturedGeneration || !ReferenceEquals(durable, lease))
                 throw new UnauthorizedAccessException("contact_source_explicit_approval_withdrawn");
         }
         cancellation.ThrowIfCancellationRequested();
@@ -49,7 +61,7 @@ internal sealed class ContactSourceApprovalScope
     internal void Revoke()
     {
         lock (gate)
-        { approved.Clear(); owner = revision = ""; generation++; }
+        { approved.Clear(); durable = null; owner = revision = ""; generation++; }
     }
 
     // The callback is a native user-decision boundary, NOT a renderer answer or
@@ -88,9 +100,36 @@ internal sealed class ContactSourceApprovalScope
             if (ids.Distinct(StringComparer.Ordinal).Count() != ids.Length || ids.Any(id => !choices.Any(source => source.Uid == id)))
                 throw new InvalidDataException("contact_source_approval_selection_invalid");
             approved.Clear();
+            durable = null;
             foreach (var id in ids) approved.Add(id, choices.Single(source => source.Uid == id).Href);
             owner = book.BookSource; revision = account.Revision; generation++;
             return true;
+        }
+    }
+
+    internal async Task RestoreAsync(StoredContactSourceApproval stored, Action? requireContext = null,
+        CancellationToken cancellation = default)
+    {
+        ArgumentNullException.ThrowIfNull(stored);
+        cancellation.ThrowIfCancellationRequested();
+        long originalGeneration;
+        lock (gate) originalGeneration = generation;
+        await stored.RequireCurrentAsync(cancellation).ConfigureAwait(false);
+        var book = currentBook(); var account = currentAccount();
+        if (book is null || book != stored.Snapshot.SavedBook || account.Revision != stored.AccountRevision ||
+            account.Settings?.DavActive != true || !account.CredentialPresent)
+            throw new InvalidOperationException("contact_source_stored_approval_context_changed");
+        lock (gate)
+        {
+            if (generation != originalGeneration || currentBook() != book || currentAccount().Revision != account.Revision)
+                throw new InvalidOperationException("contact_source_stored_approval_context_changed");
+            requireContext?.Invoke(); // Native application generation guard, never a renderer predicate.
+            cancellation.ThrowIfCancellationRequested();
+            if (generation != originalGeneration || currentBook() != book || currentAccount().Revision != account.Revision)
+                throw new InvalidOperationException("contact_source_stored_approval_context_changed");
+            approved.Clear();
+            foreach (var source in stored.Sources) approved.Add(source.Source, source.Collection);
+            owner = book.BookSource; revision = account.Revision; durable = stored; generation++;
         }
     }
 
@@ -115,6 +154,6 @@ internal sealed class ContactSourceApprovalScope
     {
         if (approved.Count > 0 && (book?.BookSource != owner || account.Revision != revision ||
             account.Settings?.DavActive != true || !account.CredentialPresent))
-        { approved.Clear(); owner = revision = ""; generation++; }
+        { approved.Clear(); durable = null; owner = revision = ""; generation++; }
     }
 }
