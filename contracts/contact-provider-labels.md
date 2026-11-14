@@ -693,3 +693,20 @@ usable access. Core and actual Windows product BASE source builds pass without
 warnings. The seventeen Windows cases overlap the sixteen host cases; no real
 account, provider, OS dialog or installed app was exercised. This helper is not yet
 connected to a durable Windows approval store, writer or restore path.
+
+The dedicated `ContactSourcePrivateFiles` boundary is also prepared: private
+current-user-owned Windows directory/files, nonblocking exclusive native lock,
+fixed leaf names, bounded strict UTF-8 and existing atomic writes. It rejects
+reparse roots/ancestors, shared-access state, directory impostors and hardlinked
+key/state/lock files. No account/book callbacks run in this boundary, and default
+reads create nothing, including an empty existing root. Unix execution requires
+an explicit controlled-test switch; there is no Unix production fallback.
+
+Seventeen controlled-host file cases and eighteen actual Windows file cases pass
+(overlapping matrices), including native ACL/junction/hardlink counterexamples.
+The first Windows run exposed a newly created lock whose default owner was not
+the required current user. The implementation now sets the owner only on its own
+new lock/replacement files; it does not relax owner checks or repair untrusted
+pre-existing files. Core and actual Windows BASE product builds remain clean.
+These private-file primitives still do not create durable approval authority;
+protected key/seal/revoke state and writer/restore integration remain #621 work.
