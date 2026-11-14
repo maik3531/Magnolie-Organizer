@@ -73,6 +73,15 @@ internal sealed class NotesOriginalExportChoice
             ["local_id"] = localId, ["local_uid"] = localUid };
     }
 
+    internal (string Binding, JsonObject Seal, JsonObject Export) RequestBinding()
+    {
+        RequireCurrent();
+        var sealedSource = consent ?? throw new InvalidOperationException("notes_original_private_consent_required");
+        var context = sealedSource.RequestBinding(this);
+        RequireCurrent();
+        return (context.Binding, context.Seal, export.DeepClone().AsObject());
+    }
+
     internal void RequireCurrent()
     {
         if (!active) throw new InvalidOperationException("notes_original_native_choice_revoked");
@@ -190,6 +199,22 @@ internal sealed class NotesOriginalPendingResult
     }
 
     internal JsonObject Request() => request.DeepClone().AsObject(); // No provider-send admission is exposed.
+
+    internal (string Binding, JsonObject Frame) CaptureRequestIntention()
+    {
+        choice.RequireCurrent();
+        var current = capture();
+        if (current?.SavedBook != snapshot.SavedBook || current.Text != snapshot.Text)
+            throw new InvalidOperationException("notes_original_pending_book_changed");
+        lock (gate)
+            if (result is not null || held) throw new InvalidOperationException("notes_original_pending_already_received");
+        var context = choice.RequestBinding();
+        var source = choice.PrivateSourceBinding();
+        var before = ContactSourceUpdateRun.SavedContacts(snapshot).OfType<JsonObject>().Single(value => NotesOriginalSchema.Text(value, "id") == id);
+        return (context.Binding, new JsonObject { ["version"] = 1, ["state"] = "request_pending", ["request"] = Request(),
+            ["request_sha256"] = requestHash, ["source"] = source, ["source_seal"] = context.Seal, ["export"] = context.Export,
+            ["local_before"] = before.DeepClone(), ["book_before"] = new JsonArray(snapshot.SavedBook.Sha256, NativeBookJson.Hash(JsonNode.Parse(snapshot.Text)!)) });
+    }
 
     internal void StageResult(JsonObject body, MagnolienbaumCoordinator.NativeNotesOrigin origin, string transport)
     {

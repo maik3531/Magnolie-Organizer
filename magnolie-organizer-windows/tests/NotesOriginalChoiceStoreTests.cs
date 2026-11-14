@@ -54,6 +54,7 @@ internal static class NotesOriginalChoiceStoreTests
         private MagnolienbaumCoordinator.NativeNotesOrigin? origin;
         private string transport = "";
         internal NotesOriginalPendingResult? PendingResult;
+        internal NotesOriginalNegotiation? Protocol;
 
         internal Fixture(string root, bool nativeDefault = false)
         {
@@ -83,7 +84,9 @@ internal static class NotesOriginalChoiceStoreTests
                 receiving = true;
                 try
                 {
-                    if (body["art"]!.GetValue<string>() == "kontakt_original_ergebnis" && PendingResult is not null)
+                    if (body["art"]!.GetValue<string>() == "kontakt_original_aushandlung" && Protocol is not null)
+                        Protocol.Accept(body, proof, mid);
+                    else if (body["art"]!.GetValue<string>() == "kontakt_original_ergebnis" && PendingResult is not null)
                         PendingResult.StageResult(body, proof, mid);
                     else { observed = body.DeepClone().AsObject(); origin = proof; transport = mid; }
                     return true;
@@ -246,6 +249,101 @@ internal static class NotesOriginalChoiceStoreTests
             h.Send(h.Export); h.Restore(h.NewStore()).RequireCurrent();
         }
         Console.WriteLine("Notes private save-chain interruption: 5 signed-intent/content/readback/delete boundary scenarios passed.");
+    }
+
+    internal static void Requests(string root)
+    {
+        var modes = new[] { "fresh", "physical-crash", "archive-crash", "readback-crash", "stop", "stop-during-seal", "revoke",
+            "key-change", "missing-identity", "unknown-existing-root", "tampered-archive", "different-uuid", "different-setup", "foreign-proof", "no-consent", "missing-store",
+            "result-arrived", "cancelled-protocol", "changed-book", "tampered-physical" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode));
+            var journalRoot = Path.Combine(h.Root, "independent-requests");
+            byte keyByte = 42;
+            var copies = new List<byte[]>();
+            byte[] Key() { var key = Enumerable.Repeat(keyByte, 32).ToArray(); copies.Add(key); return key; }
+            ContactSourcePrivateFiles Boundary() => new(journalRoot, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            NotesOriginalRequestIntents? requests = null;
+            requests = new(Boundary(), Key, phase =>
+            {
+                if (mode == "physical-crash" && phase == "physical-written" || mode == "archive-crash" && phase == "archive-written" || mode == "readback-crash" && phase == "after-readback")
+                    throw new IOException("synthetic-request-crash");
+                if (mode == "stop-during-seal" && phase == "after-readback") requests!.Stop();
+            });
+            var binding = Path.GetFullPath(h.Host.DataPath);
+            if (mode == "missing-store")
+            {
+                TestAssert.That(requests.LoadPhysical(binding, "chosen-private-id") is null && !Directory.Exists(journalRoot), "Read-only request discovery created store"); continue;
+            }
+            if (mode != "no-consent") h.Store.Approve([h.Choice]);
+            var pending = h.Choice.CreatePending()!;
+            if (mode == "no-consent") { Hold(() => requests.Seal(pending)); TestAssert.That(!Directory.Exists(journalRoot), "Request without private consent reserved a slot"); continue; }
+            h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own);
+            var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+            if (mode == "unknown-existing-root")
+            {
+                using (Boundary().Open(create: true)) { }
+                Hold(() => requests.Seal(pending));
+                TestAssert.That(!System.IO.File.Exists(Path.Combine(journalRoot, ".journal-key")), "Unknown root was silently initialized"); continue;
+            }
+            if (mode is "physical-crash" or "archive-crash" or "readback-crash" or "stop-during-seal")
+            {
+                Hold(() => requests.Seal(pending));
+                var restarted = new NotesOriginalRequestIntents(Boundary(), Key);
+                TestAssert.That(restarted.LoadPhysical(binding, "chosen-private-id") is not null, "Physical-first crash intention lost");
+                Hold(() => restarted.Seal(pending));
+                if (mode == "physical-crash") TestAssert.That(!Directory.EnumerateFiles(journalRoot, "r-*.json").Any(), "Physical-only crash unexpectedly had archive");
+                continue;
+            }
+            var fresh = requests.Seal(pending);
+            TestAssert.That(JsonNode.DeepEquals(fresh.RequireFor(pending, h.Protocol), pending.Request()), "Fresh owned intention did not correlate request");
+            TestAssert.That(JsonNode.DeepEquals(requests.Seal(pending).RequireFor(pending, h.Protocol), pending.Request()), "Owned repeated seal changed request");
+            var loaded = new NotesOriginalRequestIntents(Boundary(), Key).LoadPhysical(binding, "chosen-private-id")!;
+            loaded["request"]!["request_id"] = Guid.NewGuid().ToString();
+            TestAssert.That(!JsonNode.DeepEquals(loaded, requests.LoadPhysical(binding, "chosen-private-id")), "Loaded history mutation altered native state");
+            var another = h.Choice.CreatePending()!;
+            Hold(() => fresh.RequireFor(another, h.Protocol));
+            Hold(() => new NotesOriginalRequestIntents.FreshRequest(new object()).RequireFor(pending, h.Protocol));
+            Hold(() => new NotesOriginalRequestIntents(Boundary(), Key).Seal(pending)); // Loaded intention never restores nonce.
+            if (mode == "fresh") continue;
+            if (mode == "stop") requests.Stop();
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode == "key-change") keyByte = 43;
+            if (mode == "missing-identity") System.IO.File.Delete(Path.Combine(journalRoot, ".journal-key"));
+            if (mode == "tampered-archive") System.IO.File.WriteAllText(Directory.GetFiles(journalRoot, "r-*.json").Single(), "{}");
+            if (mode == "tampered-physical")
+            {
+                System.IO.File.WriteAllText(Directory.GetFiles(journalRoot, "p-*.json").Single(), "{}");
+                Hold(() => requests.LoadPhysical(binding, "chosen-private-id"));
+            }
+            if (mode == "cancelled-protocol") h.Protocol.Cancel();
+            if (mode == "changed-book")
+            {
+                h.Host.NativeNotesChoices = h.Store;
+                var changed = h.Book.DeepClone().AsObject(); changed["unrelated-edit"] = "preserve";
+                TestAssert.That(h.Host.SaveOriginalContactResultAsync("", changed).GetAwaiter().GetResult()["ok"]!.GetValue<bool>(), "Intervening native save failed");
+            }
+            if (mode == "result-arrived")
+            {
+                h.PendingResult = pending; var request = pending.Request();
+                var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                    ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+                h.Send(result);
+            }
+            if (mode == "different-uuid") { Hold(() => requests.Seal(another)); continue; }
+            if (mode == "different-setup")
+            {
+                var export = h.Export.DeepClone().AsObject(); export["setup_id"] = Guid.NewGuid().ToString(); h.Send(export);
+                var reconfigured = h.MakeChoice(); h.Store.Approve([reconfigured]);
+                Hold(() => requests.Seal(reconfigured.CreatePending()!));
+            }
+            if (mode == "foreign-proof") { Hold(() => fresh.RequireFor(another, h.Protocol)); continue; }
+            Hold(() => fresh.RequireFor(pending, h.Protocol));
+            TestAssert.That(copies.All(key => key.All(value => value == 0)), "Request journal retained a key copy");
+        }
+        Console.WriteLine($"Notes physical-first request intentions: {modes.Length} synthetic cases passed (loaded history never restores send rights).");
     }
 
     private static async Task ScenarioAsync(string root, string mode)

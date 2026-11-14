@@ -37,6 +37,14 @@ internal sealed partial class NotesOriginalChoiceStore
             var native = Native();
             native.Store.RequireRecord(native.KeyIdentity, native.Generation, native.Book, native.Source);
         }
+        internal (string Binding, JsonObject Seal) RequestBinding(NotesOriginalExportChoice choice)
+        {
+            RequireOwner(choice); RequireCurrent(); var native = Native();
+            var path = native.Store.binding();
+            RequireCurrent();
+            return (path, new JsonObject { ["key_sha256"] = native.KeyIdentity, ["generation"] = native.Generation,
+                ["book"] = native.Book, ["source_sha256"] = NotesOriginalSchema.Hash(Parse(native.Source)) });
+        }
     }
 
     private sealed class State(byte[] key, JsonObject payload) : IDisposable

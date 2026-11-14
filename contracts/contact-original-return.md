@@ -1100,6 +1100,36 @@ Release CoreTests/BASE builds have zero warnings/errors. These primitives issue 
 source permission, send nonce, saved witness or ACK. Actual request/outcome stores,
 recovery/pump/setup and key-backend selection remain outstanding.
 
+### Windows physical-first request intentions (#633)
+
+The native serial worker can now seal a request only from an exactly owned pending,
+current real saved snapshot and dedicated durable source seal. The encrypted record
+binds the complete modeled request/target, authenticated export, selected ID/UID,
+private source/key/generation/book seals, chosen before contact and whole-book
+hashes. It does not copy the entire book into each intention. The existing independent
+journal key is pinned for every operation; no replacement/backend is supplied.
+
+A physical book/contact HMAC slot is reserved before writing the independent UUID
+archive. Both are read back before issuing the private in-process proof. Unknown
+existing roots without journal identity hold rather than initialize. A physical-only
+crash record remains discoverable, and another UUID/setup cannot bypass its hold.
+Loaded records are cloned read-only data and never recreate a process proof.
+The typed fresh proof requires the same pending and fresh negotiated pins, current
+source/book/complete frame and unchanged independent physical/archive history.
+Result arrival, Stop, revocation, key/identity changes or tampering deny its use.
+Native source/book/protocol callbacks run outside registry/private file sessions.
+
+Evidence: 20 new synthetic request cases pass on managed host and the existing
+noninteractive Windows runner, retaining the previous actual-writer/consent/crypto
+group. Cases cover physical/archive/readback interruption, Stop during sealing,
+loaded-history denial, unknown root, key/identity loss, archive/physical tampering,
+different UUID/setup, counterfeit/foreign proof, missing private consent, missing
+store, result arrival, cancelled protocol and intervening actual native save.
+Release CoreTests and BASE builds have zero warnings/errors. No Windows sender is
+registered. Terminal retirement, query recovery, independent saved-ACK history,
+controller/pump/setup and production key-backend selection remain outstanding;
+physical holds are deliberately not released by this slice.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

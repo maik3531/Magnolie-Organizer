@@ -843,6 +843,7 @@ internal static class ContractGroupTests
             await NotesOriginalChoiceStoreTests.RunAsync(Path.Combine(root, "notes-private-choice"));
             await NotesOriginalChoiceStoreTests.SaveChainAsync(Path.Combine(root, "notes-private-save-chain"));
             NotesOriginalJournalTests.Run(Path.Combine(root, "notes-independent-journal"));
+            NotesOriginalChoiceStoreTests.Requests(Path.Combine(root, "notes-request-intentions"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

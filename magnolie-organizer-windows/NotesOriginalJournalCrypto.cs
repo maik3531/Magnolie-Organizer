@@ -88,7 +88,7 @@ internal sealed class NotesOriginalJournalCrypto
         finally { CryptographicOperations.ZeroMemory(key); CryptographicOperations.ZeroMemory(clear); }
     }
 
-    private static JsonObject Parse(string text)
+    internal static JsonObject Parse(string text)
     {
         using var document = JsonDocument.Parse(text, new JsonDocumentOptions { MaxDepth = 32 });
         static void Unique(JsonElement value)
