@@ -481,6 +481,34 @@ setup UI, actual receiving workflow integration and Windows counterpart. The pro
 missing pieces available, and no production registration, install or release is
 included. Source consent remains independently mandatory at the native receiver.
 
+### Initial typed protocol-probe delivery (#628)
+
+`baum_notes_protokollprobe_senden` can deliver the native challenge before any
+received profile exists. Only the exact owning `NativeNotesProtocolNegotiation`
+object enters this reserved lane; current paired pins, trust/contact permission,
+epoch, FS1 and native connection policy remain mandatory. Cancellation or native
+context changes during the handshake deny payload transmission. Offline/held
+connections retain the same challenge. Successful transport delivery is not a
+negotiated profile: only the subsequent exact authenticated echo can establish
+support, and no source consent is created in either step.
+
+Generic send/queue/direct-FS1 helpers now reject probe JSON as well. A test exposed
+that the generic send guard was also called by the actual FS1 receiver, blocking
+the genuine echo. Probe/query receive admission is therefore separated only
+after authenticated open and restricted to the existing explicit native callback;
+absent that callback it still rejects without renderer fallback. Request/ACK
+receive/send blockers and legacy transport remain unchanged. This does not enable
+a generic receive bypass or claim a Windows receiver correction.
+
+Evidence: 183 affected Linux cases pass (11 initial probe, 31 reserved request/
+ACK/query, 33 authenticated origin/negotiation, 51 pending/save, 57 consent/history).
+Probe tests include explicit transport-success-without-negotiation, later real
+FS1 echo, copied/cancelled objects, current policy/pins, bad receipt and offline
+waiting. An additional actual-origin query test checks the separated native
+receive path. No native Notes sources changed here; unchanged host proofs are
+retained. Native scheduling/retained-offer registry, setup UI and Windows workflow
+remain unconnected and production-disabled.
+
 ### Private-choice-owned request sending (#628)
 
 `baum_notes_anfrage_senden` shares the strict native FS1 transport gate with the

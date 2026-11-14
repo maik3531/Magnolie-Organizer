@@ -13976,7 +13976,7 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
 def _baum_notes_saveack_sperren(art, inhalt):
     # Reserved native admission is separate and not registered in production.
     # Copied request/ACK JSON must never enter generic renderer/outbox/FS1 paths.
-    reserved = ("kontakt_original_saveack", "kontakt_original_anfrage", "kontakt_original_statusanfrage")
+    reserved = ("kontakt_original_saveack", "kontakt_original_anfrage", "kontakt_original_statusanfrage", "kontakt_original_aushandlung")
     if art in reserved or isinstance(inhalt, dict) and inhalt.get("art") in reserved:
         raise RuntimeError(_("This type cannot be shared."))
 
@@ -15623,6 +15623,15 @@ def baum_notes_statusanfrage_senden(zustand_lesen, query, negotiation, verbindun
     return _baum_notes_original_senden(zustand_lesen, query, negotiation, verbindung_freigegeben, sender, zeitgrenze)
 
 
+def baum_notes_protokollprobe_senden(zustand_lesen, negotiation, verbindung_freigegeben,
+                                   sender=None, zeitgrenze=6):
+    """Initial native challenge only; delivery does not negotiate the profile."""
+    from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
+    if type(negotiation) is not NativeNotesProtocolNegotiation:
+        raise PermissionError('notes_original_native_protocol_probe_required')
+    return _baum_notes_original_senden(zustand_lesen, negotiation, negotiation, verbindung_freigegeben, sender, zeitgrenze)
+
+
 def _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben,
                                sender=None, zeitgrenze=6):
     """Typed native FS1 lane; no queue/renderer/dict admission or fallback.
@@ -15632,12 +15641,15 @@ def _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_f
     Native caller owns current-state/network policy callbacks, never payload flags.
     """
     from magnolie_contact_notes_return import NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesProtocolNegotiation, NativeNotesHistoryQuery
-    if (type(intent) not in (NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesHistoryQuery) or type(negotiation) is not NativeNotesProtocolNegotiation or
+    if (type(intent) not in (NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesHistoryQuery, NativeNotesProtocolNegotiation) or type(negotiation) is not NativeNotesProtocolNegotiation or
             not callable(zustand_lesen) or not callable(verbindung_freigegeben)):
         raise PermissionError('notes_original_native_send_admission_required')
+    probe = type(intent) is NativeNotesProtocolNegotiation
+    if probe and intent is not negotiation:
+        raise PermissionError('notes_original_native_protocol_probe_required')
     if verbindung_freigegeben() is not True:
         return False  # Quietly wait for the native WLAN/connection policy.
-    peer_pins, own_pins = negotiation.require_current()
+    peer_pins, own_pins = negotiation._native_probe()[0] if probe else negotiation.require_current()
     initial = zustand_lesen()
     epoch = initial.get('syncEpoch')
     if not isinstance(epoch, str) or not epoch:
@@ -15653,7 +15665,12 @@ def _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_f
                 peer.get('kontaktSync') is not True or peer.get('protokoll') != 'baum-fs1' or
                 verbindung_freigegeben() is not True):
             raise PermissionError('notes_original_native_send_context_changed')
-        body = intent._for_negotiated_protocol(negotiation)
+        if probe:
+            pins, body = negotiation._native_probe()
+            if pins != (peer_pins, own_pins):
+                raise PermissionError('notes_original_protocol_probe_pins_changed')
+        else:
+            body = intent._for_negotiated_protocol(negotiation)
         return state, peer, body
 
     _, peer, _ = current()
@@ -16254,7 +16271,11 @@ class BaumDienst(object):
                         inhalt, transport_id = umschlag_oeffnen_fs(
                             sitzung, zustand["kennung"], partner["kennung"],
                             nachricht)
-                        baum_kontakt_nutzlast_pruefen((inhalt or {}).get("art"), inhalt)
+                        # Probe/query receive admission belongs only to the
+                        # authenticated native callback below. Their generic
+                        # SEND blockers must not suppress a genuine native echo.
+                        if inhalt.get("art") not in ("kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
+                            baum_kontakt_nutzlast_pruefen(inhalt.get("art"), inhalt)
                         gesehen = partner.setdefault("transportIds", [])
                         if transport_id not in gesehen:
                             if self.bei_sicherer_nachricht and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung", "kontakt_original_statusanfrage"):

@@ -97,6 +97,11 @@ class NativeNotesProtocolNegotiation:
         self._offer = (_frame_bytes(body), origin, transport_id)
         self.require_current()
 
+    def _native_probe(self):
+        # No received offer exists yet. Only the reserved probe sender may use
+        # these native-paired pins; this grants no request/ACK send permission.
+        return (self._peer, self._own), self.request()
+
     def require_current(self):
         if not self._active or self._offer is None:
             raise PermissionError('notes_original_protocol_not_negotiated')

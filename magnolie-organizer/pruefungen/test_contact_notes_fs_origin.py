@@ -32,9 +32,10 @@ def fixture(native, callback):
     return sender, receiver, peer, saved, service
 
 
-def test_actual_fs1_mints_body_transport_and_pinned_identity_not_copied_json(native):
+@pytest.mark.parametrize('art', ['kontakt_original_ergebnis', 'kontakt_original_statusanfrage'])
+def test_actual_fs1_mints_body_transport_and_pinned_identity_not_copied_json(native, art):
     captured = []
-    body = {'art': 'kontakt_original_ergebnis', 'synthetic': 'No original/provider IO'}
+    body = {'art': art, 'synthetic': 'No original/provider IO'}
     def accept(peer, received, origin, transport):
         identities = origin.require_current(received, transport)
         captured.append((origin, transport, identities))
