@@ -126,12 +126,15 @@ def test_reserved_send_requires_genuine_saved_intent_negotiated_pins_and_current
 
 
 @pytest.mark.parametrize('mode', ['success', 'retry', 'copied-request', 'no-native-choice', 'no-private-seal',
-    'wrong-pins', 'revoked', 'result-staged', 'book-changed', 'connection-wait'])
+    'wrong-pins', 'revoked', 'result-staged', 'book-changed', 'connection-wait', 'missing-durable-intention'])
 def test_reserved_request_keeps_same_owned_correlation_and_cannot_send_after_a_result(native, monkeypatch, tmp_path, mode):
     h = Harness(native, tmp_path)
     sessions, received = [], []
     try:
         h.configure(); pending = h.choice.pending(); request = pending.request()
+        from magnolie_contact_notes_requests import NativeNotesRequestIntents
+        if mode != 'missing-durable-intention':
+            NativeNotesRequestIntents(tmp_path / 'requests', lambda: b'J' * 32).seal(pending)
         peer = native.baum_partner(h.receiver, h.sender['kennung'])
         peer.update(vertraut=True, kontaktSync=True, protokoll='baum-fs1')
         negotiation = NativeNotesProtocolNegotiation((h.sender['kennung'], h.sender['oeffentlich']),

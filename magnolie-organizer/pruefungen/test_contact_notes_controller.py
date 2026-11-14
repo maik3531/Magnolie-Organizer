@@ -4,6 +4,7 @@ All primary files/peers/keys are synthetic. No production registration or socket
 """
 from contextlib import contextmanager
 import copy
+import json
 from pathlib import Path
 import threading
 from types import MethodType
@@ -410,5 +411,42 @@ def test_private_cipher_failure_holds_work_without_rewriting_unknown_records_or_
             path.write_bytes(original)  # Explicit repair in isolated fixture, not automatic adoption.
             h.send(h.export)
             assert c.process_one().kind == 'request' and h.choices == 1
+    finally:
+        h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['exact-noop', 'missing-defaults-noop', 'semantic-collision-change'])
+def test_noop_export_creates_no_request_hold_but_semantic_hash_collision_is_not_exact_authority(native, monkeypatch, tmp_path, mode):
+    from magnolie_contact_notes_return import notes_content_hash
+    h = Harness(native, tmp_path)
+    try:
+        saved = copy.deepcopy(h.probe._aktuelle_daten)
+        saved['kontakte'][0].update(vorname='Ada', nachname='Test', anzeigename='Ada Test', vcardRoundtrip=[])
+        assert h.save(monkeypatch, saved)['ok']
+        h.configure()
+        exact_change = mode == 'semantic-collision-change'
+        patch = h.choice.pending().request()['ziel']
+        before = dict(h.before, **patch)
+        if exact_change: before['anzeigename'] = ''
+        if mode == 'missing-defaults-noop':
+            for name in patch:
+                if before.get(name) in ('', []): before.pop(name, None)
+        assert notes_content_hash(before) == notes_content_hash(dict(before, **patch))
+        export = dict(h.export, before_basis='c' * 64, native_revision=2, kontakt=before,
+            content_sha256=notes_content_hash(before))
+        runtime = Runtime(h); runtime.negotiate()
+        book = Path(native.daten_datei()).read_bytes()
+        h.send(export)
+        if not exact_change:
+            queued = next(iter(runtime.controller._frames.values()))
+            with h.probe._daten_sperre:
+                unchanged_choice = h.store.restore(json.loads(queued.text), queued.origin, queued.transport)
+                with pytest.raises(ValueError): runtime.controller._requests.seal(unchanged_choice.pending())
+                with pytest.raises(ValueError): runtime.controller.register_pending(unchanged_choice.pending(), runtime.protocol)
+        action = runtime.controller.process_one()
+        assert action.kind == ('request' if exact_change else 'unchanged')
+        assert runtime.controller.counts()['owners'] == int(exact_change)
+        assert Path(runtime.controller._requests.root).exists() is exact_change
+        assert Path(native.daten_datei()).read_bytes() == book
     finally:
         h.service.anhalten()

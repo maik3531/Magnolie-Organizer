@@ -14,7 +14,8 @@ from cryptography.exceptions import InvalidTag
 
 from magnolie_contact_notes_consent import NativeNotesChoiceStore
 from magnolie_contact_notes_return import (NativeNotesAckIntents, NativeNotesFsOrigin,
-    NativeNotesPendingResult, NativeNotesProtocolNegotiation, _frame_bytes)
+    NativeNotesPendingResult, NativeNotesProtocolNegotiation, NativeNotesExportChoice, NativeNotesNoMutationRequired, _frame_bytes)
+from magnolie_contact_notes_requests import NativeNotesRequestIntents
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,7 @@ class NativeNotesController:
                 type(frame_budget) is not int or not 1024 <= frame_budget <= 1024 * 1024):
             raise TypeError('notes_controller_native_dependencies_required')
         self._consent, self._outcomes, self._book_gate = consent, outcomes, book_gate
+        self._requests = NativeNotesRequestIntents(outcomes.root + '-pending', outcomes._existing_key)
         self._max_peers, self._per_peer, self._budget = max_peers, per_peer, frame_budget
         self._lock, self._work = threading.RLock(), threading.RLock()
         self._active = True
@@ -100,15 +102,28 @@ class NativeNotesController:
         if type(pending) is not NativeNotesPendingResult:
             raise PermissionError('notes_controller_native_pending_required')
         with self._work:
-            request = pending._for_negotiated_protocol(protocol)
             choice = pending._source_choice
-            if choice._private_seal.store is not self._consent or getattr(pending, '_controller_guard', None) is not None:
+            if (type(protocol) is not NativeNotesProtocolNegotiation or type(choice) is not NativeNotesExportChoice or
+                    getattr(getattr(choice, '_private_seal', None), 'store', None) is not self._consent or
+                    getattr(pending, '_controller_guard', None) is not None):
                 raise PermissionError('notes_controller_foreign_pending')
             pins = protocol.require_current()
+            if pins != (pending._peer, pending._own):
+                raise PermissionError('notes_controller_foreign_pending')
+            request = pending.request()
+            if self._requests.target_unchanged(request['ziel'], json.loads(choice._body_text)['kontakt']):
+                raise ValueError('notes_controller_no_target_change')
             owner = _Owner(pins, (self._consent.root, choice._id), request, protocol, pending=pending)
             self._register(owner)
             pending._controller_guard = lambda: self._guard(owner)
-            self._guard(owner)
+            try:
+                self._requests.seal(pending)
+                pending._for_negotiated_protocol(protocol)
+                self._guard(owner)
+            except Exception:
+                with self._lock:
+                    owner.held = True
+                raise
             return NativeNotesWork('request', pending, request['request_id'])
 
     def register_history(self, key, protocol):
@@ -194,7 +209,16 @@ class NativeNotesController:
                     elif frame.kind == 'kontakt_original_export':
                         protocol.require_current()
                         choice = self._consent.restore(body, frame.origin, frame.transport)
-                        result = self.register_pending(choice.pending(), protocol)
+                        try:
+                            pending = choice.pending()
+                        except NativeNotesNoMutationRequired:
+                            result = NativeNotesWork('unchanged')
+                        else:
+                            patch = pending.request()['ziel']
+                            # Semantic hashes deliberately omit some legacy name
+                            # representations; compare exact modeled fields.
+                            unchanged = self._requests.target_unchanged(patch, body['kontakt'])
+                            result = NativeNotesWork('unchanged') if unchanged else self.register_pending(pending, protocol)
                     else:
                         owner = frame.owner
                         self._guard(owner)
@@ -202,6 +226,8 @@ class NativeNotesController:
                             intent = self._outcomes.reauthorize(owner.history, self._consent, body, frame.origin, frame.transport)
                             if intent.terminal_confirmed():
                                 self._outcomes.confirm_terminal(intent)
+                                confirmed = self._outcomes.reauthorize(owner.history, self._consent, body, frame.origin, frame.transport)
+                                self._requests.retire_from_terminal(confirmed)
                                 self._guard(owner)
                                 with self._lock:
                                     del self._owners[(owner.pins, owner.request['request_id'])]
@@ -274,6 +300,7 @@ class NativeNotesController:
             for protocol in self._peers.values():
                 protocol.cancel()
             self._frames.clear()
+            self._requests.forget_process_proofs()
 
     def counts(self):
         with self._lock:

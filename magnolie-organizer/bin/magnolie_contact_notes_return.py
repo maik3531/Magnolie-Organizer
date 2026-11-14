@@ -187,6 +187,12 @@ class NativeNotesPendingResult:
             with self._lock:
                 if self._result_text is not None:
                     raise PermissionError('notes_original_result_already_received')
+            from magnolie_contact_notes_requests import _FreshRequestIntention
+            intention = getattr(self, '_request_intention', None)
+            if type(intention) is not _FreshRequestIntention:
+                raise PermissionError('notes_original_durable_request_intention_required')
+            intention.link(self)
+            self._require_before()
             negotiation.require_current()
             return json.loads(self._request_text)
 
@@ -298,6 +304,10 @@ def _request_uuid(value):
         return False
 
 
+class NativeNotesNoMutationRequired(ValueError):
+    """Successful native planning found no modeled target mutation."""
+
+
 class NativeNotesExportChoice:
     """Process-local native choice from an actual authenticated Notes export.
 
@@ -369,7 +379,7 @@ class NativeNotesExportChoice:
         patch = _saved_mutable_projection(local, before)
         target = dict(before, **patch)
         if target == before:
-            raise ValueError('notes_original_no_mutation_required')
+            raise NativeNotesNoMutationRequired('notes_original_no_mutation_required')
         request = {'art': 'kontakt_original_anfrage', 'fassung': 1, 'request_id': str(uuid.uuid4()),
             'share_id': exported['share_id'], 'before_basis': exported['before_basis'],
             'target_sha256': notes_content_hash(target), 'ziel': patch}
@@ -579,6 +589,12 @@ class NativeNotesAckIntents:
             if type(seal) is not _NotesChoiceSeal:
                 raise PermissionError('notes_original_private_choice_seal_required')
             record['choice_seal'] = seal.record()
+        intention = getattr(pending, '_request_intention', None)
+        if intention is not None:
+            from magnolie_contact_notes_requests import _FreshRequestIntention
+            if type(intention) is not _FreshRequestIntention:
+                raise PermissionError('notes_original_durable_request_intention_required')
+            record['request_intention'] = intention.link(pending)
         return record
 
     def _decode(self, key, blob):
@@ -587,8 +603,10 @@ class NativeNotesAckIntents:
         clear = self._cipher().decrypt(blob[1:13], blob[13:], self._DOMAIN + key.encode('ascii'))
         record = json.loads(clear)
         fields = {'format', 'state', 'peer', 'own', 'local_id', 'local_uid', 'request', 'result', 'saved_book'}
+        private = fields | {'source_setup_id', 'choice_seal'}
         if (not isinstance(record, dict) or set(record) not in (fields, fields | {'source_setup_id'},
-                fields | {'source_setup_id', 'choice_seal'}, fields | {'source_setup_id', 'choice_seal', 'native_terminal_sha256'}) or
+                private, private | {'native_terminal_sha256'}, private | {'request_intention'},
+                private | {'request_intention', 'native_terminal_sha256'}) or
                 record['format'] != 1 or type(record['format']) is not int or record['state'] != 'saved_ack_intent' or
                 _frame_bytes(record) != clear or self._key(record) != key):
             raise ValueError('notes_original_saved_intent_schema')
@@ -600,6 +618,8 @@ class NativeNotesAckIntents:
             raise ValueError('notes_original_private_choice_seal_required')
         if 'native_terminal_sha256' in record and not _digest(record['native_terminal_sha256']):
             raise ValueError('notes_original_terminal_history_required')
+        if 'request_intention' in record and not _digest(record['request_intention']):
+            raise ValueError('notes_original_durable_request_intention_required')
         return record
 
     def seal_after_save(self, pending):

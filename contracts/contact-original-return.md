@@ -630,13 +630,80 @@ ordering, corrupt private records and fresh-owner saved-history recovery. All
 files, contacts, keys and peers are isolated synthetic fixtures; no sockets,
 physical provider, package build/install or private original was used.
 
-Important remaining boundary: this registry's **pre-save pending ownership is
-process-local**. A crash after native VERIFIED but before durable desktop SaveACK
-still needs a distinct encrypted pre-save pending intention and safe restoration
-of its genuine private book/source authority. Saved-ACK history must not be relabeled
-as that intention or a primary read converted to a saved witness. The automatic
+Important remaining boundary: the registry itself is process-local. The separate
+durable pre-save intentions below now retain request/hold evidence, but a crash
+after native VERIFIED and before durable desktop SaveACK still needs the full
+safe restoration of that genuine private book/source authority. Saved-ACK history
+must not be relabeled as an unconfirmed intention, nor a primary read converted
+to a saved witness. The automatic
 transport/worker pump, full native setup UI and Windows counterpart also remain
 unconnected. Production stays default-OFF until those lifecycle pieces are checked.
+
+### Distinct durable unconfirmed request intention (#628)
+
+`NativeNotesRequestIntents` uses a separate AES-GCM domain/state and the existing
+independent journal key, not a saved-ACK format or consent-key generator. Its
+private record binds the full original export/request/hash, pins, local ID/UID,
+private choice seal and before-book fingerprints; it does not store a whole book.
+States are `request_pending` and `request_settled`. The actual authenticated
+primary content must match the real saved snapshot before sealing and current
+known saved content when the proof is used. Encrypted-envelope and clear saved-
+payload hash domains are not confused.
+
+A desktop physical slot is HMAC-bound to the stable native book binding and local
+contact ID using the independent journal key, not the peer/setup/request UUID.
+The complete physical reservation is written first, then an independent request
+archive; both must read back before a fresh process-memory nonce can issue send
+authority. Interruption at any phase retains a hold. A populated root missing its
+journal identity or a changed/missing existing key is not adopted as empty state.
+The native original-provider physical hold remains independently authoritative.
+
+The reserved provider-request lane now requires that exact fresh durable proof,
+its pending-owner identity, current private consent/book and negotiated pins.
+Readback via `load_held` is history only: a reloaded store, copied stamp, same old
+UUID, different UUID or another source decision cannot mint a fresh send proof
+over a pending physical slot. Same-owner in-process retry remains byte-identical.
+Controller ownership/stop guards are installed before sealing so cancellation
+during disk IO cannot leave a new uncancelled mutation token. Forgetting process
+proofs does not erase disk holds; late memory revocation is rechecked after IO.
+
+Only an actual confirmed desktop save may add its intention link to the private
+saved-ACK record. That optional private digest changes no wire ACK fields. Retiring
+the lease requires a fresh authenticated settled status and an already durably
+marked genuine saved-ACK record with exact request/source correlation. The settled
+request archive precedes its released physical marker, with exact readback;
+interrupted retirement resumes only from that real terminal proof. A duplicate
+old terminal record cannot release a newer UUID's physical slot. Per-request
+history remains after slot reuse.
+
+Evidence: 327 affected Linux pipeline/consent/origin/transport/startup/source-runtime
+cases passed; follow-up cancellation/retirement and exact-planning runs retain
+unchanged evidence. The final affected request/controller/send/pending/consent run
+passes 185 cases. Matrices overlap. Request coverage is 19 cases, including
+missing/changing keys/root identity, actual primary
+changes, GCM-domain separation from saved ACKs, fresh-vs-reloaded authority,
+physical/archive/readback interruptions and genuine terminal release/slot reuse.
+All use isolated synthetic data. No Notes source changed for this slice, so its
+unchanged host evidence is retained; no package/device/install claim is made.
+
+The source-only No-op finding #632 is also corrected here: a genuine unchanged
+export is a typed successful planning outcome, not a generic held ValueError.
+Both complete and omitted-empty-field DTOs are compared by their exact modeled
+values before any owner/request reservation. Equal semantic hashes alone do not
+skip literal changes: the display-name legacy-hash collision is a negative
+counterexample. Three focused cases and the final affected run cover this. An
+initial new test exposed the old No-op exception being classified as held; the
+explicit successful type and controller handling correct that source behavior.
+This is a Linux native-controller correction, not installed/device acceptance
+or a claimed Windows counterpart fix; the exact-plan invariant must carry across
+future platform implementations.
+
+Remaining: loading this unconfirmed evidence into an explicitly read-only native
+query and then, from a fresh VERIFIED result, a genuine resumed local book commit.
+The normal actual writer must still supply the saved witness afterwards; a loaded
+primary or returned terminal hash is not a replacement. These safe resume/worker
+pieces, automatic scheduling, common native setup and Windows counterpart remain
+unfinished and production-disabled.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 
