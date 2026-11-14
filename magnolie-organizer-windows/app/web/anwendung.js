@@ -3324,6 +3324,59 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return aus;
   }
 
+  function webLinkZiel(wert) {
+    const text = String(wert || "");
+    if (text.length > 4096 || !/^https?:\/\/[^/]/i.test(text) ||
+      /[\s\\\u0000-\u001f\u007f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u.test(text)) return "";
+    try {
+      const url = new URL(text);
+      return ["http:", "https:"].includes(url.protocol) && url.hostname && !url.username && !url.password ? url.href : "";
+    } catch (_fehler) { return ""; }
+  }
+
+  function webLinksImText(text) {
+    text = String(text || "");
+    const aus = [];
+    for (const match of text.matchAll(/https?:\/\/[^\s<>"'\u0000-\u001f\u007f]+/giu)) {
+      if (match[0].length > 4096) continue;
+      if (match.index && /[\p{L}\p{N}_@%:/\\.-]/u.test(text[match.index - 1])) continue;
+      let kandidat = match[0];
+      // Sentence punctuation and unmatched enclosing brackets are not a URL.
+      // Balanced path parentheses and IPv6 host brackets remain part of it.
+      const ueberhang = {};
+      for (const [auf, zu] of [["(", ")"], ["[", "]"], ["{", "}"]])
+        ueberhang[zu] = Math.max(0, kandidat.split(zu).length - kandidat.split(auf).length);
+      let ende = kandidat.length;
+      while (ende && (".,;:!?".includes(kandidat[ende - 1]) || ueberhang[kandidat[ende - 1]] > 0)) {
+        if (ueberhang[kandidat[ende - 1]] > 0) ueberhang[kandidat[ende - 1]]--;
+        ende--;
+      }
+      kandidat = kandidat.slice(0, ende);
+      const ziel = webLinkZiel(kandidat);
+      if (ziel) aus.push({ text: kandidat, ziel });
+      if (aus.length >= 32) break;
+    }
+    return aus;
+  }
+
+  function notizWebLinks(flaeche) {
+    const aus = [], gesehen = new Set();
+    const aufnehmen = (text, ziel) => {
+      if (!ziel || gesehen.has(ziel) || aus.length >= 32) return;
+      gesehen.add(ziel); aus.push({ text, ziel });
+    };
+    for (const link of flaeche.querySelectorAll("a[href]")) {
+      const text = link.getAttribute("href");
+      aufnehmen(text, webLinkZiel(text));
+    }
+    // Inspect only a detached copy: neither link recognition nor its action
+    // changes the editor DOM, stored HTML/text, revision or undo history.
+    const kopie = flaeche.cloneNode(true);
+    for (const link of kopie.querySelectorAll("a")) link.replaceWith(document.createTextNode(" "));
+    for (const treffer of webLinksImText(htmlZuText(kopie))) aufnehmen(treffer.text, treffer.ziel);
+    return aus;
+  }
+
   function emailTextElement(klasse, text) {
     text = String(text || "");
     const ziel = el("div", klasse);
@@ -22804,6 +22857,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     aktualisiereEmailAktionen();
     flaeche.addEventListener("input", aktualisiereEmailAktionen);
 
+    const webAktionen = el("div", "notiz-web-aktionen");
+    const aktualisiereWebAktionen = () => {
+      webAktionen.replaceChildren();
+      for (const treffer of notizWebLinks(flaeche)) {
+        const link = el("a", "knopf klein", treffer.text);
+        link.href = treffer.ziel; link.rel = "noopener noreferrer";
+        link.title = _("Open in browser") + ": " + treffer.ziel;
+        webAktionen.append(link);
+      }
+      webAktionen.hidden = !webAktionen.childElementCount;
+    };
+    aktualisiereWebAktionen();
+    flaeche.addEventListener("input", aktualisiereWebAktionen);
+
     const geaendert = () => {
       notizAenderungMerken(notiz);
       if (notizRefs.obm) notizRefs.obm.textContent = notizAnzeigeTitel(notiz);
@@ -22935,7 +23002,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       for (const taste of [...einfuegen.querySelectorAll("button"),
         ...leiste.querySelectorAll("button")]) taste.disabled = true;
     }
-    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, emailAktionen, rahmen,
+    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, emailAktionen, webAktionen, rahmen,
       bindeSchreibTab(flaeche));
     if (notiz.anhaenge.length) {
       const anhaenge = el("div", "notiz-anhaenge");

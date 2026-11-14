@@ -1818,6 +1818,9 @@ body[data-hilfsrahmen="an"] .kontakt-form-inhalt :focus-visible {
 }
 
 .notiz-ordnung-pfeil { white-space: nowrap; }
+.notiz-web-aktionen { display: flex; flex-wrap: wrap; gap: .35rem; }
+.notiz-web-aktionen[hidden] { display: none; }
+.notiz-web-aktionen a { max-width: 100%; overflow-wrap: anywhere; }
 
 #notiz-titel {
   flex: none;
