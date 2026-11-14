@@ -846,6 +846,7 @@ internal static class ContractGroupTests
 
     internal static Task TreeContactsAsync()
     {
+        NotesOriginalReturnHashTests.Run();
         var contractPath = Path.Combine(AppContext.BaseDirectory, "resources", "kontakt-sync-contract.json");
         TestAssert.That(File.Exists(contractPath), "Gemeinsamer Kontaktvertrag fehlt im Testlauf.");
         var vectors = JsonNode.Parse(File.ReadAllText(contractPath))!.AsObject();

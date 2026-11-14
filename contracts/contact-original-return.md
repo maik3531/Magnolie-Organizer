@@ -68,6 +68,36 @@ or advertising it. No new resource/version is allocated by this assessment.
 
 ## Existing provider boundaries
 
+### Shared target-fingerprint interoperability (#629)
+
+The new desktop adapters use the existing `KontaktSync.hash` projection, not a
+sorted document/renderer hash. Shared synthetic vectors check legacy/V2/group
+selection, fixed serializer field order, raw Unicode/control escapes, first-row
+normalization, BMP decimal digits, NFC groups and UTF-16 ordering. String ROOT
+casing also matters: .NET invariant simple lowercasing and Python Unicode
+lowercasing are not interchangeable with the JVM ROOT word/cased context used
+by the current Notes host oracle. Dotted I, final sigma, other-cased context,
+number/punctuation boundaries and ignored format characters have explicit tests.
+The desktop adapters implement that context locally without changing the
+existing Notes hash or downgrading dependencies.
+
+Sixteen shared vectors pass against the unchanged actual Notes hash source,
+Linux and Windows; Linux also rejects eight malformed projections and Windows
+checks its strict projection errors. Windows is checked both on the managed
+host and with the existing bounded noninteractive Windows runner, alongside the
+existing contact-contract group. Native Android runtime/device casing remains
+an acceptance point in #628 under the existing device pauses: a JVM oracle is
+not a physical Android/libcore acceptance claim. Other editions/renderers are
+not presumed compatible merely because they calculate a SHA-256 value.
+
+The external shared vector file is declared as a Gradle test input. A prior
+UP-TO-DATE invocation after only editing that file was explicitly discarded as
+new-case evidence; actual native re-execution exposed the Python cased-context
+difference, and the corrected adapters were checked against the native result.
+An initial Windows native probe lacked its fixture resources; only the existing
+runner's opt-in resource bundle was corrected, then the actual group passed.
+These helpers alone grant no source rights, send no packets and issue no SaveACK.
+
 ### Notes controller integration, production still disabled (#628)
 
 `KontaktOriginalEmpfang` now joins actual FS1-origin admission, restored native

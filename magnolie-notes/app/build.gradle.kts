@@ -184,6 +184,11 @@ tasks.configureEach {
 // dafür laufen die Einheitstests im Projektstammverzeichnis.
 tasks.withType<Test>().configureEach {
     workingDir = rootDir
+    // The shared native-hash oracle is outside the Kotlin source/resource tree.
+    // Changing its vectors must invalidate the test result, not reuse an older
+    // successful run as evidence for newly added interoperability cases.
+    inputs.file(rootDir.resolve("../contracts/contact-original-return-hash-v1-vectors.json"))
+        .withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE)
     // Robolectric/Compose retain SDK sandboxes across classes. Bound the
     // serial worker lifetime instead of accumulating them for the whole gate.
     maxParallelForks = 1

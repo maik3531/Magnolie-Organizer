@@ -73,6 +73,7 @@
     <Compile Include="..\ContactSourcePrimaryBook.cs" Link="ContactSourcePrimaryBook.cs" />
     <Compile Include="..\ContactSourceSavedDavRun.cs" Link="ContactSourceSavedDavRun.cs" />
     <Compile Include="..\ContactSourceSavedCommit.cs" Link="ContactSourceSavedCommit.cs" />
+    <Compile Include="..\NotesOriginalReturnHash.cs" Link="NotesOriginalReturnHash.cs" />
     <Compile Include="..\ContactSourceNativeSession.cs" Link="ContactSourceNativeSession.cs" />
     <Compile Include="..\ContactSourceAutomation.cs" Link="ContactSourceAutomation.cs" />
     <Compile Include="..\BackupDataValidation.cs" Link="BackupDataValidation.cs" />
@@ -334,6 +335,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\contracts\diagnostics-redaction-v1.json" Link="resources\diagnostics-redaction-v1.json" Condition="!Exists('..\..\contracts\diagnostics-redaction-v1.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\contracts\contact-original-return-hash-v1-vectors.json" Link="resources\contact-original-return-hash-v1-vectors.json" Condition="Exists('..\..\contracts\contact-original-return-hash-v1-vectors.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\contracts\contact-original-return-hash-v1-vectors.json" Link="resources\contact-original-return-hash-v1-vectors.json" Condition="!Exists('..\..\contracts\contact-original-return-hash-v1-vectors.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\..\contracts\kontakt-sync-contract.json" Link="resources\kontakt-sync-contract.json" Condition="Exists('..\..\contracts\kontakt-sync-contract.json')">
