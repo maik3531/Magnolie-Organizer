@@ -65,6 +65,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         fun zielHash(): String = native().also { pruefen() }.record.getValue("target_sha256").jsonPrimitive.content
         fun freigabeId(): String? = native().also { pruefen() }.record["share_id"]?.jsonPrimitive?.contentOrNull
         fun basisHash(): String? = native().also { pruefen() }.record["mapping_sha256"]?.jsonPrimitive?.contentOrNull
+        fun folgebasisHash(): String? = native().also { pruefen() }.record["next_mapping"]?.jsonObject?.get("next_basis")?.jsonPrimitive?.content
         fun bestaetigung(): Verifiziert? = native().also { pruefen() }.let {
             if (it.record["state"] == JsonPrimitive("verified")) Verifiziert(it) else null
         }
@@ -81,6 +82,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         fun zielHash(): String = native().also { pruefen() }.record.getValue("target_sha256").jsonPrimitive.content
         fun freigabeId(): String? = native().also { pruefen() }.record["share_id"]?.jsonPrimitive?.contentOrNull
         fun basisHash(): String? = native().also { pruefen() }.record["mapping_sha256"]?.jsonPrimitive?.contentOrNull
+        fun folgebasisHash(): String? = native().also { pruefen() }.record["next_mapping"]?.jsonObject?.get("next_basis")?.jsonPrimitive?.content
     }
 
     fun laden(grant: KontaktOriginalFreigaben.Freigabe): Offen? {
@@ -133,6 +135,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         native.mapping.pruefen(native.grant)
         val shareId = native.mapping.freigabeId(native.grant)
         val mappingHash = native.mapping.hash(native.grant)
+        val nextMapping = native.mapping.naechste(native.grant, result).manifest()
         require(KontaktSync.hash(result.daten) == native.targetHash)
         val saved = requireNotNull(files.mitSperre(create = false) {
             val blob = requireNotNull(files.lesen("${native.key}.bin"))
@@ -143,7 +146,7 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
             val beforeRevision = held.getValue("before_revision").jsonPrimitive.long
             val revision = result.rawVersionen.getValue(native.grant.bindung.rawContactId)
             require(revision > beforeRevision) { "contact_original_receipt_revision_required" }
-            val receipt = JsonObject(held + mapOf("state" to JsonPrimitive("verified"), "receipt" to buildJsonObject {
+            val receipt = JsonObject(held + mapOf("state" to JsonPrimitive("verified"), "next_mapping" to nextMapping, "receipt" to buildJsonObject {
                 put("id", UUID.randomUUID().toString()); put("revision", revision)
                 put("lookup", result.lookupKey); put("contact_id", result.contactId)
                 put("content_sha256", native.targetHash)
@@ -240,9 +243,11 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
             val value = Json.parseToJsonElement(clear.decodeToString(throwOnInvalidSequence = true)) as? JsonObject ?: error("contact_original_attempt_schema")
             val verified = value["state"] == JsonPrimitive("verified")
             val hasMapping = "share_id" in value || "mapping_sha256" in value
+            val hasNextMapping = "next_mapping" in value
             require(value.keys == setOf("format", "state", "attempt_id", "request_id", "request_sha256", "target_sha256",
                 "original", "before_revision", "before_sha256", "lookup", "contact_id", "protection") +
                 (if (verified) setOf("receipt") else emptySet()) +
+                (if (hasNextMapping && verified) setOf("next_mapping") else emptySet()) +
                 (if (hasMapping) setOf("share_id", "mapping_sha256") else emptySet()) &&
                 value["format"] == JsonPrimitive(1) && (verified || value["state"] == JsonPrimitive("held")))
             fun text(name: String) = (value[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: error("contact_original_attempt_text")
@@ -266,6 +271,19 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
                 (protection["id"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.let(::uuid) == true &&
                 (protection["sha256"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.let(::digest) == true)
             if (verified) {
+                if (hasNextMapping) {
+                    val pending = value["next_mapping"] as? JsonObject ?: error("contact_original_next_mapping_schema")
+                    require(pending.keys == setOf("before_basis", "next_basis", "ciphertext") &&
+                        pending["before_basis"] == value["mapping_sha256"])
+                    fun pendingText(name: String) = (pending[name] as? JsonPrimitive)?.takeIf { it.isString }?.content
+                        ?: error("contact_original_next_mapping_text")
+                    require(hasMapping && value["share_id"] != JsonNull && digest(pendingText("before_basis")) &&
+                        digest(pendingText("next_basis")) && pending["next_basis"] != pending["before_basis"])
+                    require(pendingText("ciphertext").length <= 350_000)
+                    val encrypted = requireNotNull(Krypto.b64Roh(pendingText("ciphertext")))
+                    require(encrypted.size in 1..256 * 1024 && hash(encrypted) == pendingText("next_basis") &&
+                        Krypto.b64(encrypted) == pendingText("ciphertext"))
+                }
                 val receipt = value["receipt"] as? JsonObject ?: error("contact_original_receipt_schema")
                 require(receipt.keys == setOf("id", "revision", "lookup", "contact_id", "content_sha256"))
                 require((receipt["id"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.let(::uuid) == true)

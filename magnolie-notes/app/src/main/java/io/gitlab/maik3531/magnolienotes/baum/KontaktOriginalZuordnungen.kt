@@ -18,6 +18,24 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
     private val cipher = DatenDateiKrypto({ existingKey() ?: error("contact_original_journal_key_unavailable") })
     private class Beleg(val store: KontaktOriginalZuordnungen, val key: String, val hash: String, val record: JsonObject)
     private class FolgeBeleg(val original: Beleg, val grant: KontaktOriginalFreigaben.Freigabe)
+    private class NaechsterBeleg(val original: FolgeBeleg, val result: AndroidKontakt,
+        val record: JsonObject, val encrypted: ByteArray)
+    /** Provisional future map only. Creating/reading it NEVER installs a new
+     * baseline or settles the physical attempt. Actual desktop SaveACK is absent.
+     */
+    class NaechsteZuordnung internal constructor(private val beleg: Any) {
+        private fun native(): NaechsterBeleg = beleg as? NaechsterBeleg
+            ?: throw SecurityException("contact_original_native_next_mapping_required")
+        internal fun manifest(): JsonObject {
+            val proof = native()
+            proof.original.original.store.pruefenFolge(proof)
+            return buildJsonObject {
+                put("before_basis", proof.original.original.hash)
+                put("next_basis", hash(proof.encrypted))
+                put("ciphertext", Krypto.b64(proof.encrypted))
+            }
+        }
+    }
     /** Mapping-file continuity only, not fresh provider/source permission. This
      * remains checkable after the guarded provider revision has advanced.
      */
@@ -30,6 +48,8 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
         fun pruefen(grant: KontaktOriginalFreigaben.Freigabe) { native(grant).original.let { it.store.pruefen(it) } }
         internal fun freigabeId(grant: KontaktOriginalFreigaben.Freigabe): String = native(grant).also { pruefen(grant) }.original.record.getValue("share").jsonPrimitive.content
         internal fun hash(grant: KontaktOriginalFreigaben.Freigabe): String = native(grant).also { pruefen(grant) }.original.hash
+        internal fun naechste(grant: KontaktOriginalFreigaben.Freigabe, result: AndroidKontakt): NaechsteZuordnung =
+            native(grant).let { it.original.store.vorbereitenFolge(it, result) }
     }
     class Zuordnung internal constructor(private val beleg: Any) {
         private fun native(): Beleg = (beleg as? Beleg) ?: throw SecurityException("contact_original_native_mapping_required")
@@ -165,6 +185,36 @@ internal class KontaktOriginalZuordnungen private constructor(root: File, existi
         }
         result.pruefen(grant)
         return result
+    }
+
+    private fun vorbereitenFolge(previous: FolgeBeleg, result: AndroidKontakt): NaechsteZuordnung {
+        previous.grant.pruefenNachSchreiben()
+        pruefen(previous.original)
+        require(previous.grant.bindung.ruecklesenNachSchreiben() == result &&
+            result.rawVersionen.getValue(previous.grant.bindung.rawContactId) > previous.grant.bindung.revision) {
+            "contact_original_next_mapping_readback_required"
+        }
+        val next = JsonObject(previous.original.record + mapOf(
+            "lookup" to JsonPrimitive(result.lookupKey), "contact_id" to JsonPrimitive(result.contactId),
+            "revision" to JsonPrimitive(result.rawVersionen.getValue(previous.grant.bindung.rawContactId)),
+            "before_sha256" to JsonPrimitive(KontaktSync.hash(result.daten))))
+        val clear = next.toString().toByteArray(Charsets.UTF_8)
+        val encrypted = try { cipher.verschluesseln(clear, domain(previous.original.key)) } finally { clear.fill(0) }
+        return NaechsteZuordnung(NaechsterBeleg(previous, result, next, encrypted)).also { it.manifest() }
+    }
+
+    private fun pruefenFolge(proof: NaechsterBeleg) {
+        val previous = proof.original
+        previous.grant.pruefenNachSchreiben()
+        pruefen(previous.original)
+        val current = previous.grant.bindung.ruecklesenNachSchreiben()
+        require(decode(previous.original.key, proof.encrypted) == proof.record && current == proof.result &&
+            proof.record["before_sha256"] == JsonPrimitive(KontaktSync.hash(current.daten)) &&
+            proof.record["revision"] == JsonPrimitive(current.rawVersionen.getValue(previous.grant.bindung.rawContactId))) {
+            "contact_original_next_mapping_readback_required"
+        }
+        previous.grant.pruefenNachSchreiben()
+        pruefen(previous.original)
     }
 
     private fun pruefen(proof: Beleg) {

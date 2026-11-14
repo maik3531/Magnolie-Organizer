@@ -377,6 +377,30 @@ automatic release/reconciliation is deliberately not invented here.
 Next, connect genuine native setup, authenticated full receiver/sender and the
 actual desktop baseline-save acknowledgement/reconciliation lifecycle.
 
+### Provisional next basis bound to the actual verified provider result (#628)
+
+New native VERIFIED records also retain an encrypted **provisional** next mapping
+prepared only after actual provider readback and an advanced native revision.
+It retains the same canonical original, peer/source/setup identity and carries
+the exact resulting revision/content. The next basis hash is the hash of those
+exact presealed bytes, stable when the verified record is reloaded. The current
+mapping remains byte-for-byte unchanged and the physical attempt stays held.
+
+This ordering lets a future desktop result save include the actual next basis
+before issuing its authenticated SaveACK. Generating a different basis only
+after that ACK would leave the desktop's saved baseline behind again. No code
+currently installs the provisional map or releases history. Unknown outcomes
+cannot mint it; legacy VERIFIED records without it stay readable but do not gain
+an invented next basis. Copied provisional objects, malformed Base64/hash pairs,
+unmapped records and pending-map fields on an unknown hold are rejected.
+
+The affected 72 API28/API35 attempt cases pass, including decrypting the actual
+provisional map under its own mapping domain, checking exact native result and
+unchanged installed map, restart-stable quote, legacy hold and malformed-history
+rejection. Existing mapping/source/protection evidence is retained where its
+behavior did not change. This is still not an authenticated result dispatcher,
+actual desktop baseline SaveACK or terminal-history release.
+
 ### Desktop confirmed-save evidence for the result lifecycle
 
 The existing Linux contact-result commit and Windows `ContactSourceSavedCommit`

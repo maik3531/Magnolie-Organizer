@@ -495,4 +495,93 @@ class KontaktOriginalVersucheTest {
         assertEquals("canonical-original-kept", receipt.freigabeId()); assertEquals(basis, receipt.basisHash())
         assertEquals(1, provider.batchCalls)
     }
+
+    @Test fun verifiedResultDurablyPresealsItsNextBasisWithoutInstallingOrReleasingIt() {
+        val mapFile = File(parent, "mapping").listFiles()!!.single { it.extension == "bin" }
+        val oldMap = mapFile.readBytes()
+        val target = binding.aktuell().daten.copy(notiz = "Provider verified, future basis not installed")
+        val result = ledger().vorbereitenGeplant(grant(), mapping, basis, request, requestHash, target) { reference() }.anwenden(target) {}
+        val next = requireNotNull(result.folgebasisHash())
+        assertTrue(next.matches(Regex("[0-9a-f]{64}"))); assertNotEquals(basis, next)
+        assertArrayEquals(oldMap, mapFile.readBytes())
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        val restored = ledger().laden(grant())!!
+        assertEquals(next, restored.folgebasisHash()); assertEquals(next, restored.bestaetigung()!!.folgebasisHash())
+        val file = root.listFiles()!!.single { it.extension == "bin" }
+        val cipher = io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({ requireNotNull(key) })
+        val clear = cipher.entschluesseln(file.readBytes(), "kontakt-original-versuch-v1:${file.nameWithoutExtension}")
+        val record = kotlinx.serialization.json.Json.parseToJsonElement(clear.toString(Charsets.UTF_8)) as kotlinx.serialization.json.JsonObject
+        clear.fill(0)
+        val pending = record.getValue("next_mapping") as kotlinx.serialization.json.JsonObject
+        val blob = requireNotNull(Krypto.b64Roh((pending.getValue("ciphertext") as kotlinx.serialization.json.JsonPrimitive).content))
+        assertEquals(next, java.security.MessageDigest.getInstance("SHA-256").digest(blob).joinToString("") { "%02x".format(it.toInt() and 255) })
+        val mapClear = cipher.entschluesseln(blob, "kontakt-original-zuordnung-v1:${mapFile.nameWithoutExtension}")
+        val proposed = kotlinx.serialization.json.Json.parseToJsonElement(mapClear.toString(Charsets.UTF_8)) as kotlinx.serialization.json.JsonObject
+        mapClear.fill(0)
+        assertEquals(kotlinx.serialization.json.JsonPrimitive(KontaktSync.hash(target)), proposed["before_sha256"])
+        assertEquals(kotlinx.serialization.json.JsonPrimitive(binding.revision), proposed["revision"])
+        assertEquals(kotlinx.serialization.json.JsonPrimitive("canonical-original-kept"), proposed["share"])
+        val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
+        assertThrows(IllegalStateException::class.java) { maps.aktualisieren(grant(), "canonical-original-kept", ledger()) }
+        assertArrayEquals(oldMap, mapFile.readBytes()); assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun noMutationOrForgedNextMapCannotMintAProvisionalNativeBasis() {
+        val currentGrant = grant()
+        val continuity = mapping.festhalten(currentGrant)
+        assertThrows(IllegalArgumentException::class.java) { continuity.naechste(currentGrant, binding.aktuell()) }
+        val before = provider.queries
+        assertThrows(SecurityException::class.java) { KontaktOriginalZuordnungen.NaechsteZuordnung(Any()).manifest() }
+        assertEquals(before, provider.queries); assertFalse(root.exists()); assertEquals(0, provider.batchCalls)
+    }
+
+    @Test fun olderVerifiedRecordsWithoutAProvisionalBasisRemainHeldNotReconstructed() {
+        val target = binding.aktuell().daten.copy(notiz = "Legacy verified history")
+        ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference()).anwenden(target) {}
+        val file = root.listFiles()!!.single { it.extension == "bin" }
+        val domain = "kontakt-original-versuch-v1:${file.nameWithoutExtension}"
+        val cipher = io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({ requireNotNull(key) })
+        val clear = cipher.entschluesseln(file.readBytes(), domain)
+        val record = kotlinx.serialization.json.Json.parseToJsonElement(clear.toString(Charsets.UTF_8)) as kotlinx.serialization.json.JsonObject
+        clear.fill(0)
+        val legacy = kotlinx.serialization.json.JsonObject(record - "next_mapping").toString().toByteArray()
+        file.writeBytes(cipher.verschluesseln(legacy, domain)); legacy.fill(0)
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        val restored = ledger().laden(grant())!!
+        assertNull(restored.folgebasisHash()); assertNull(restored.bestaetigung()!!.folgebasisHash())
+        assertEquals(request, restored.anfrageId())
+        val maps = KontaktOriginalZuordnungen.fuerTest(File(parent, "mapping")) { key }
+        assertThrows(IllegalStateException::class.java) { maps.aktualisieren(grant(), "canonical-original-kept", ledger()) }
+        assertEquals(1, provider.batchCalls)
+    }
+
+    @Test fun malformedProvisionalBasisCannotBePromotedEvenInsideValidEncryptedHistory() {
+        val target = binding.aktuell().daten.copy(notiz = "Validate provisional history strictly")
+        ledger().vorbereiten(grant(), mapping, basis, request, requestHash, KontaktSync.hash(target), reference()).anwenden(target) {}
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        val file = root.listFiles()!!.single { it.extension == "bin" }; val saved = file.readBytes()
+        val domain = "kontakt-original-versuch-v1:${file.nameWithoutExtension}"
+        val cipher = io.gitlab.maik3531.magnolienotes.daten.DatenDateiKrypto({ requireNotNull(key) })
+        val clear = cipher.entschluesseln(saved, domain)
+        val original = kotlinx.serialization.json.Json.parseToJsonElement(clear.toString(Charsets.UTF_8)) as kotlinx.serialization.json.JsonObject
+        clear.fill(0)
+        val pending = original.getValue("next_mapping") as kotlinx.serialization.json.JsonObject
+        val variants = listOf(
+            kotlinx.serialization.json.JsonObject(original + ("next_mapping" to kotlinx.serialization.json.JsonObject(pending +
+                ("next_basis" to kotlinx.serialization.json.JsonPrimitive("0".repeat(64)))))),
+            kotlinx.serialization.json.JsonObject(original + ("next_mapping" to kotlinx.serialization.json.JsonObject(pending +
+                ("ciphertext" to kotlinx.serialization.json.JsonPrimitive("not canonical ciphertext!"))))),
+            kotlinx.serialization.json.JsonObject(original + mapOf(
+                "share_id" to kotlinx.serialization.json.JsonNull, "mapping_sha256" to kotlinx.serialization.json.JsonNull,
+                "next_mapping" to kotlinx.serialization.json.JsonObject(pending + ("before_basis" to kotlinx.serialization.json.JsonNull)))),
+            kotlinx.serialization.json.JsonObject((original - "receipt") + ("state" to kotlinx.serialization.json.JsonPrimitive("held"))))
+        for (record in variants) {
+            val changed = record.toString().toByteArray()
+            file.writeBytes(cipher.verschluesseln(changed, domain)); changed.fill(0)
+            assertThrows(IllegalArgumentException::class.java) { ledger().laden(grant()) }
+        }
+        file.writeBytes(saved)
+        assertNotNull(ledger().laden(grant())!!.bestaetigung()!!.folgebasisHash())
+        assertEquals(1, provider.batchCalls)
+    }
 }
