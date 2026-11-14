@@ -100,3 +100,32 @@ cases verify its failed-source baseline and independent second-source behavior.
 No new Linux product fix, generic DAV readback acceptance or live-provider
 delivery is claimed by that EDS check. The automatic multi-source integration
 under #582 remains open.
+
+## Native DAV factory boundary (#582, intermediate)
+
+`ContactSourceDavFactory` opens one dedicated client for one separately approved
+original source. Its native input binds the exact source ID, collection URI and
+current account/credential revision to a revocable approval callback. Discovery,
+contact mappings and imported settings do not produce that approval. Only
+Nextcloud and generic DAV account types are admitted; Thunderbird and unrelated
+account/source combinations are rejected rather than routed to a default book.
+
+The factory rechecks native approval and book context around fresh discovery,
+requires the exact collection with explicit `CanUpdate == true`, and installs
+an obligatory pre-mutation protection callback. After that asynchronous callback
+it checks approval, account revision, book and actual privilege again before PUT.
+Protection failure prevents writing. The update-only coordinator retains its
+original-resource/CAS/readback guards. A caller must isolate failure to open one
+source from other sources, but propagate cancellation and invalidated book
+context globally. The factory and run must share the caller's cancellation
+lifetime. Disposing a factory does not dispose an injected shared HTTP transport.
+
+Sixteen controlled factory scenarios run through actual DAV discovery/adapters
+and the update-only coordinator, including independent-source continuation,
+denied/unknown privileges, wrong account/URI/provider, revocation, credential
+change, failed protection, cancellation, book invalidation and changes across
+an asynchronous protection callback. Successful delivery is read back and a
+second run is idempotent. These are synthetic transport tests, not live-provider
+or installed-package acceptance. Persistent native explicit-approval management,
+the automatic frontend/dispatcher caller and durable result integration remain
+unimplemented; this factory alone enables no automatic delivery or permission.

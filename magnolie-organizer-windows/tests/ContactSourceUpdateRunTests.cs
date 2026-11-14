@@ -21,6 +21,7 @@ internal static class ContactSourceUpdateRunTests
     {
         private readonly string root = Path.Combine(Path.GetTempPath(), "magnolie-contact-source-" + Guid.NewGuid().ToString("N"));
         private readonly HttpClient http;
+        internal NextcloudMailboxSettingsStore Settings = null!;
         internal readonly NextcloudDavClient Client;
         internal readonly string WireUid;
         internal NextcloudDavSource Catalog = null!;
@@ -28,7 +29,7 @@ internal static class ContactSourceUpdateRunTests
         internal bool? Permission = true;
         internal bool FailWrite, BadReadback, RequireSaved, Saved;
         internal string ReadbackUidMode = "";
-        internal int Writes, Reads;
+        internal int Writes, Reads, Discoveries;
         internal Action? BeforeContentRead;
         private readonly string origin;
         internal Source(string name, string accountType, JsonObject data)
@@ -38,6 +39,7 @@ internal static class ContactSourceUpdateRunTests
             using var input = JsonDocument.Parse(new JsonArray(card).ToJsonString());
             Wire = ExchangeCodec.WriteVCard(input.RootElement).Text;
             var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "settings.json"), Path.Combine(root, "secret.dat"), new Protector());
+            Settings = settings;
             settings.SaveConfiguration(new NextcloudMailboxSettings(true, false, origin + "/nc", "synthetic") { AccountType = accountType }, "synthetic-only", false);
             http = new HttpClient(new Handler(Handle)); Client = new NextcloudDavClient(settings, http);
         }
@@ -46,6 +48,7 @@ internal static class ContactSourceUpdateRunTests
         {
             if (request.Method.Method == "PROPFIND")
             {
+                Discoveries++;
                 if (!request.Headers.TryGetValues("Depth", out var depths) || depths.Single() != "1")
                     return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/</d:href><d:propstat><d:prop><c:addressbook-home-set><d:href>/nc/books/</d:href></c:addressbook-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
                 var privilege = Permission is null ? "" : "<d:current-user-privilege-set><d:privilege><d:" + (Permission == true ? "write-content" : "read") + "/></d:privilege></d:current-user-privilege-set>";
@@ -79,6 +82,9 @@ internal static class ContactSourceUpdateRunTests
             var current = (await Client.ListSourcesAsync(token, calendars: false)).AddressBooks.SingleOrDefault(source => source.Uid == Catalog.Uid);
             if (current?.CanUpdate != true || current.Href != Catalog.Href) throw new UnauthorizedAccessException("Original source permission withdrawn");
         });
+        internal Task<ContactSourceDavFactory> OpenFactoryAsync(NativeDavContactUpdateApproval approval,
+            Action current, Func<CancellationToken, Task> protect, CancellationToken cancellation = default) =>
+            ContactSourceDavFactory.OpenAsync(Settings, approval, current, protect, cancellation, http);
         public void Dispose()
         { Client.Dispose(); http.Dispose(); Directory.Delete(root, recursive: true); }
     }
@@ -149,6 +155,86 @@ internal static class ContactSourceUpdateRunTests
             }
         }
         await SavedBookBoundaryAsync();
+        await DavFactoryAsync();
+    }
+
+    private static async Task DavFactoryAsync()
+    {
+        foreach (var mode in new[] { "success", "no-grant", "wrong-account", "wrong-href", "thunderbird",
+            "readonly", "unknown", "revoked-during-read", "account-changed", "snapshot-failed",
+            "revoked-during-snapshot", "privilege-during-snapshot", "account-during-snapshot", "book-during-snapshot", "cancelled", "cancel-during-snapshot" })
+        {
+            var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
+                ["vorname"] = "Alex", ["nachname"] = "Fixture", ["notiz"] = "Original", ["geaendert"] = 1000L };
+            using var first = new Source("first", "generic-dav", original);
+            using var second = new Source("second", "nextcloud", original);
+            var a = await first.OriginalAsync(); var b = await second.OriginalAsync();
+            var local = original.DeepClone().AsObject();
+            ContactFields.SetSource(local, first.Catalog.Uid, a, remoteBaseline: true);
+            ContactFields.SetSource(local, second.Catalog.Uid, b, remoteBaseline: true);
+            var baseline = ContactFields.Source(local, first.Catalog.Uid)!.ToJsonString();
+            local["notiz"] = "Canonical note"; local["geaendert"] = 2000L;
+            var contacts = new JsonArray(local);
+            var approved = mode != "no-grant"; var current = true; var snapshots = 0;
+            var revision = first.Settings.ReadSnapshot().Revision;
+            var approval = new NativeDavContactUpdateApproval(first.Catalog.Uid, first.Catalog.Href, revision,
+                _ => approved ? Task.CompletedTask : Task.FromException(new UnauthorizedAccessException("explicit approval withdrawn")));
+            if (mode == "wrong-account") approval = approval with { AccountRevision = "unrelated-revision" };
+            if (mode == "wrong-href") approval = approval with { Collection = new Uri("https://first.invalid/nc/books/other/") };
+            if (mode == "thunderbird") approval = approval with { Source = "thunderbird-addressbook:unrelated" };
+            if (mode == "readonly") first.Permission = false;
+            if (mode == "unknown") first.Permission = null;
+            var reads = first.Reads; var discoveries = first.Discoveries;
+            using var cancel = new CancellationTokenSource();
+            if (mode == "cancelled") cancel.Cancel();
+            void Current() { if (!current) throw new InvalidOperationException("factory book changed"); }
+            async Task Protect(CancellationToken token)
+            {
+                token.ThrowIfCancellationRequested(); snapshots++;
+                await Task.Yield();
+                if (mode == "snapshot-failed") throw new IOException("controlled snapshot failure");
+                if (mode == "revoked-during-snapshot") approved = false;
+                if (mode == "privilege-during-snapshot") first.Permission = false;
+                if (mode == "account-during-snapshot") first.Settings.SaveConfiguration(first.Settings.Load()!, "changed-during-snapshot", false);
+                if (mode == "book-during-snapshot") current = false;
+                if (mode == "cancel-during-snapshot") cancel.Cancel();
+            }
+            ContactSourceDavFactory? factory = null;
+            try
+            {
+                factory = await first.OpenFactoryAsync(approval, Current, Protect, cancel.Token);
+                TestAssert.That(mode is not ("no-grant" or "wrong-account" or "wrong-href" or "thunderbird" or "readonly" or "unknown" or "cancelled"),
+                    "Factory admitted an unapproved/misrouted/non-writable source: " + mode);
+                if (mode == "revoked-during-read") first.BeforeContentRead = () => approved = false;
+                if (mode == "account-changed") first.Settings.SaveConfiguration(first.Settings.Load()!, "changed-synthetic-secret", false);
+                var result = await ContactSourceUpdateRun.RunAsync(contacts, [factory.Admission, second.Admit()], () => Task.CompletedTask, Current);
+                TestAssert.That(first.Writes == (mode == "success" ? 1 : 0) && second.Writes == 1,
+                    "Factory failed to isolate source authorization/snapshot failure: " + mode);
+                if (mode == "success")
+                {
+                    TestAssert.That(snapshots == 1 && result.Sources.Values.All(count => count.Errors == 0), "Factory skipped protection/readback");
+                    await ContactSourceUpdateRun.RunAsync(result.Contacts, [factory.Admission, second.Admit()], () => Task.CompletedTask, Current);
+                    TestAssert.That(first.Writes == 1 && second.Writes == 1 && snapshots == 1, "Factory run was not idempotent");
+                }
+                else TestAssert.That(ContactFields.Source(result.Contacts[0]!.AsObject(), first.Catalog.Uid)!.ToJsonString() == baseline,
+                    "Held factory source advanced its baseline: " + mode);
+            }
+            catch (UnauthorizedAccessException) when (mode is "no-grant" or "wrong-account" or "wrong-href" or "thunderbird" or "readonly" or "unknown")
+            {
+                TestAssert.That(first.Writes == 0 && first.Reads == reads, "Rejected factory source performed content IO");
+                if (mode is not ("readonly" or "unknown")) TestAssert.That(first.Discoveries == discoveries, "Unapproved source performed discovery");
+                await ContactSourceUpdateRun.RunAsync(contacts, [second.Admit()], () => Task.CompletedTask, Current);
+                TestAssert.That(second.Writes == 1, "Rejected factory source blocked an independent source");
+            }
+            catch (InvalidOperationException error) when (mode == "book-during-snapshot" && error.Message == "factory book changed")
+            { TestAssert.That(first.Writes + second.Writes == 0 && snapshots == 1, "Book invalidation failed to stop the entire run"); }
+            catch (OperationCanceledException) when (mode is "cancelled" or "cancel-during-snapshot")
+            {
+                TestAssert.That(first.Writes + second.Writes == 0, "Cancelled factory performed writes");
+                if (mode == "cancelled") TestAssert.That(first.Discoveries == discoveries, "Cancelled factory performed discovery");
+            }
+            finally { factory?.Dispose(); }
+        }
     }
 
     private static async Task SavedBookBoundaryAsync()
