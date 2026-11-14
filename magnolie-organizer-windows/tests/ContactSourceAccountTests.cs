@@ -4,7 +4,8 @@ using System.Text;
 namespace MagnolieOrganizer.Windows.Tests;
 
 // Native-account prerequisite for #621 only. Synthetic local files and an
-// explicit controlled protector; no DPAPI/OS dialog/provider operation claimed.
+// explicit controlled protector. The Windows-only case uses DPAPI solely for a
+// synthetic credential under its own temporary directory, never a real account.
 internal static class ContactSourceAccountTests
 {
     private sealed class Protector : ISecretProtector
@@ -98,5 +99,40 @@ internal static class ContactSourceAccountTests
             }
             finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
+        if (OperatingSystem.IsWindows()) NativeDpapi();
+    }
+
+    private static void NativeDpapi()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-contact-native-dpapi-" + Guid.NewGuid().ToString("N"));
+        var settingsPath = Path.Combine(root, "settings.json"); var passwordPath = Path.Combine(root, "credential.dpapi");
+        try
+        {
+            var store = new NextcloudMailboxSettingsStore(settingsPath, passwordPath);
+            store.Save(new(true, false, "https://source.invalid/nc", "synthetic") { AccountType = "generic-dav" });
+            store.SetApplicationPassword("synthetic-only-native-dpapi");
+            var before = store.ReadContactSourceAccount();
+            TestAssert.That(before.Revision == store.ReadSnapshot().Revision &&
+                !before.Identity.Contains("synthetic-only-native-dpapi", StringComparison.Ordinal),
+                "Actual DPAPI credential access did not produce a nonsecret native current account witness");
+            store.SetApplicationPassword("synthetic-only-native-dpapi-renewal");
+            var after = store.ReadContactSourceAccount();
+            TestAssert.That(after.Identity == before.Identity && after.Revision != before.Revision,
+                "Actual DPAPI renewal changed stable identity or reused the old operation revision");
+            var corrupted = Convert.FromBase64String(File.ReadAllText(passwordPath));
+            try
+            {
+                corrupted[^1] ^= 1;
+                new AtomicStore().Write(passwordPath, Convert.ToBase64String(corrupted));
+            }
+            finally { CryptographicOperations.ZeroMemory(corrupted); }
+            TestAssert.That(store.ReadSnapshot().CredentialPresent, "Corrupt DPAPI fixture no longer exercised the metadata-only presence boundary");
+            TestAssert.Throws<CryptographicException>(() => store.ReadContactSourceAccount(),
+                "Actual DPAPI tampering was accepted as usable native account access");
+            store.ClearApplicationPassword();
+            TestAssert.Throws<UnauthorizedAccessException>(() => store.ReadContactSourceAccount(), "Removed actual DPAPI fixture still granted access");
+            Console.WriteLine("CONTACT SOURCE NATIVE ACCOUNT PASS actual-windows-dpapi-synthetic-only");
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 }

@@ -685,7 +685,11 @@ header or process-local revision is included in the durable identity.
 
 Sixteen controlled native-account cases pass through the existing actual-source
 Core group, including absent/inactive/corrupt/unavailable credentials, slot/account
-changes, renewal, concurrent mutation and buffer cleanup. Core and actual Windows
-product BASE source builds pass without warnings. The test protector is explicitly
-synthetic; no Windows DPAPI-runtime or dialog acceptance is claimed. This helper
-is not yet connected to a durable Windows approval store, writer or restore path.
+changes, renewal, concurrent mutation and buffer cleanup. They also pass on the
+actual Windows runner. One additional actual Windows DPAPI case protects, reads,
+renews, corrupts and removes only a synthetic credential in its own temporary
+directory: mere file presence cannot survive authenticated DPAPI corruption as
+usable access. Core and actual Windows product BASE source builds pass without
+warnings. The seventeen Windows cases overlap the sixteen host cases; no real
+account, provider, OS dialog or installed app was exercised. This helper is not yet
+connected to a durable Windows approval store, writer or restore path.
