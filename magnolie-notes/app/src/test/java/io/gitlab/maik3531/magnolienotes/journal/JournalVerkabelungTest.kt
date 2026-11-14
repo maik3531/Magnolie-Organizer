@@ -34,7 +34,7 @@ class JournalVerkabelungTest {
     @Test fun `Kontaktserialisierung Restore Epoch und UI Vertrag sind verdrahtet`() {
         val contacts = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/AndroidKontakte.kt").readText()
         listOf("ACCOUNT_NAME", "ACCOUNT_TYPE", "DATA_SET", "SOURCE_ID", "AGGREGATION_MODE",
-            "(1..15)", "(1..4)", "IS_PRIMARY", "IS_SUPER_PRIMARY").forEach { assertTrue(it, contacts.contains(it)) }
+            "(1..15)", "Data.SYNC1", "Data.SYNC2", "Data.SYNC3", "Data.SYNC4", "IS_PRIMARY", "IS_SUPER_PRIMARY").forEach { assertTrue(it, contacts.contains(it)) }
         val ablage = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/daten/Ablage.kt").readText()
         listOf("wiederherstellung-${'$'}operationId.ok", "syncEpoch = neueEpoch",
             "additiveBaselineAusstehend = true", "quarantiniertesPostfach").forEach { assertTrue(it, ablage.contains(it)) }

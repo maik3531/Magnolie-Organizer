@@ -46,6 +46,26 @@ class KontaktGruppenProviderTest {
     }
     @After fun cleanup() { provider.shutdown() }
 
+    @Test fun journalDataSyncRoundtripUsesStrictNativeSqlColumnsAndPreservesForeignRows() {
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic journal"))
+        val unrelated = contacts.anlegen(KontaktDaten(vorname = "Unrelated"))
+        val columns = listOf(Data.SYNC1, Data.SYNC2, Data.SYNC3, Data.SYNC4)
+        val expected = listOf("one", "", null, "four")
+        context.contentResolver.insert(Data.CONTENT_URI, ContentValues().apply {
+            put(Data.RAW_CONTACT_ID, saved.rawContactId); put(Data.MIMETYPE, "vnd.synthetic.foreign")
+            put(Data.DATA1, "Foreign value"); put(Data.IS_PRIMARY, 1); put(Data.IS_SUPER_PRIMARY, 1)
+            columns.forEachIndexed { i, column -> put(column, expected[i]) }
+        })
+        val frame = contacts.journalStaende(listOf(saved.rawContactId), "test").single()
+        assertEquals(1, frame.syncSpaltenVersion)
+        assertEquals(expected, frame.rows.single { it.mime == "vnd.synthetic.foreign" }.sync)
+        assertEquals(AndroidKontakte.RestoreErgebnis.WIEDERHERGESTELLT, contacts.wiederherstellen(frame, false))
+        val after = contacts.journalStaende(listOf(saved.rawContactId), "test").single()
+        assertEquals(frame.rows, after.rows)
+        assertEquals(frame.accountName, after.accountName); assertEquals(frame.sourceId, after.sourceId)
+        assertEquals(unrelated.daten, contacts.liesRaw(unrelated.rawContactId)!!.daten)
+    }
+
     @Test fun addRemoveAndRepeatedSyncWriteActualMembershipsWithoutResurrectingOldGroups() {
         val colleague = provider.group("Kollegen")
         val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic"))
@@ -387,7 +407,7 @@ class KontaktGruppenProviderTest {
             db.execSQL("CREATE TABLE contacts (_id INTEGER PRIMARY KEY, lookup TEXT, is_user_profile INTEGER DEFAULT 0, contact_last_updated_timestamp INTEGER DEFAULT 1000)")
             db.execSQL("CREATE TABLE contact_groups (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, account_name TEXT, account_type TEXT, data_set TEXT, sourceid TEXT, deleted INTEGER DEFAULT 0, auto_add INTEGER DEFAULT 0, favorites INTEGER DEFAULT 0, group_is_read_only INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE data (_id INTEGER PRIMARY KEY AUTOINCREMENT, raw_contact_id INTEGER, mimetype TEXT, " +
-                (1..14).joinToString { "data$it TEXT" } + ", data15 BLOB, " + (1..4).joinToString { "sync$it TEXT" } + ", " +
+                (1..14).joinToString { "data$it TEXT" } + ", data15 BLOB, " +
                 listOf(Data.SYNC1, Data.SYNC2, Data.SYNC3, Data.SYNC4).joinToString { "$it TEXT" } +
                 ", is_primary INTEGER DEFAULT 0, is_super_primary INTEGER DEFAULT 0)")
             return true

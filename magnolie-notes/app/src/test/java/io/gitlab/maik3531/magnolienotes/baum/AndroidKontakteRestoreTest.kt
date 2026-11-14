@@ -23,7 +23,7 @@ class AndroidKontakteRestoreTest {
 
     private fun stand(rows: List<KontaktZeile> = listOf(KontaktZeile(Note.CONTENT_ITEM_TYPE,
         data = listOf("Notiz")))) = KontaktRohstand(rawContactId = 42, rows = rows,
-        beforeHash = KontaktSync.hash(alt))
+        beforeHash = KontaktSync.hash(alt), syncSpaltenVersion = 1)
 
     private fun restore(
         snapshot: KontaktRohstand = stand(),

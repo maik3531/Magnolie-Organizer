@@ -4,6 +4,17 @@ This is a source-boundary assessment, not an implemented capability or a source
 grant. The completed DAV lifecycle work in #621/#623/#624 does not complete this
 scope. No installed-app, physical device or live-provider acceptance is claimed.
 
+## Android contact-journal sync metadata (#626)
+
+New native captures use `Data.SYNC1` through `Data.SYNC4` (`data_sync1` through
+`data_sync4`) for capture and restore, retaining four nullable slots. They record
+`syncSpaltenVersion=1`. Older snapshots remain decodable with version 0, but their
+native destructive restore is held even after conflict confirmation: omitted or
+misidentified metadata cannot be recovered by inventing null values. Existing
+encrypted snapshots are not rewritten. This is not a Linux/Windows provider fix.
+Host synthetic-provider and strict SQLite roundtrips do not establish physical
+device acceptance or previously observed user-data corruption.
+
 ## Notes: two different existing paths
 
 - `magnolie-notes/.../telefon/ContactValueWrite.kt` resource **19** accepts only

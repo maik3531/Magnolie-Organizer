@@ -172,8 +172,9 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                     c.getString(3), c.getInt(4), c.getLong(5))
             } ?: return@mapNotNull null
             val columns = arrayOf(Data.MIMETYPE) + (1..15).map { "data$it" } +
-                (1..4).map { "sync$it" } + arrayOf(Data.IS_PRIMARY, Data.IS_SUPER_PRIMARY)
+                arrayOf(Data.SYNC1, Data.SYNC2, Data.SYNC3, Data.SYNC4) + arrayOf(Data.IS_PRIMARY, Data.IS_SUPER_PRIMARY)
             val rows = mutableListOf<KontaktZeile>()
+            var syncErfasst = false
             resolver.query(Data.CONTENT_URI, columns, "${Data.RAW_CONTACT_ID}=?",
                 arrayOf(rawId.toString()), null)?.use { c -> while (c.moveToNext()) rows += KontaktZeile(
                 mime = c.getString(0).orEmpty(),
@@ -181,12 +182,12 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                     android.util.Base64.encodeToString(c.getBlob(i), android.util.Base64.NO_WRAP) else c.getString(i) },
                 sync = (16..19).map(c::getString), primary = c.getInt(20) != 0,
                 superPrimary = c.getInt(21) != 0
-            ) }
+            ); syncErfasst = true }
             val portable = runCatching { liesRaw(rawId)?.daten }.getOrNull() ?: KontaktDaten()
             @Suppress("UNCHECKED_CAST")
             KontaktRohstand(rawId, runCatching { liesRaw(rawId)?.lookupKey }.getOrNull().orEmpty(),
                 meta[0] as String?, meta[1] as String?, meta[2] as String?, meta[3] as String?,
-                meta[4] as Int, rows, portable, KontaktSync.hash(portable), action)
+                meta[4] as Int, rows, portable, KontaktSync.hash(portable), action, syncSpaltenVersion = if (syncErfasst) 1 else 0)
         }
 
     fun geplanterStand(k: KontaktDaten, action: String, operationId: String = "") = KontaktRohstand(
@@ -585,6 +586,8 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         }
 
         private fun restoreOperationen(stand: KontaktRohstand, vorhanden: Boolean): ArrayList<ContentProviderOperation> {
+            // Old captures cannot prove which metadata populated the four slots.
+            require(stand.generatedByMagnolie || stand.syncSpaltenVersion == 1) { "contact_journal_sync_provenance_required" }
             require(stand.rows.size + 1 <= MAX_RESTORE_OPERATIONEN)
             require(stand.rows.all { it.mime.isNotBlank() && it.data.size <= 15 && it.sync.size <= 4 })
             var groesse = 512L + listOf(stand.accountName, stand.accountType, stand.dataSet, stand.sourceId)
@@ -624,7 +627,8 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                     bau.withValue("data${i + 1}", if (row.mime == Photo.CONTENT_ITEM_TYPE && i == 14)
                         dekodierteFotos.getValue(index) else value)
                 } }
-                row.sync.forEachIndexed { i, value -> bau.withValue("sync${i + 1}", value) }
+                val syncSpalten = arrayOf(Data.SYNC1, Data.SYNC2, Data.SYNC3, Data.SYNC4)
+                row.sync.forEachIndexed { i, value -> bau.withValue(syncSpalten[i], value) }
                 bau.withValue(Data.IS_PRIMARY, if (row.primary) 1 else 0)
                 bau.withValue(Data.IS_SUPER_PRIMARY, if (row.superPrimary) 1 else 0)
                 ops += bau.build()
