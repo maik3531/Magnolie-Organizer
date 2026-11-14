@@ -300,3 +300,55 @@ the new helper; no package build, installation or live-provider test is implied.
 This is only the Linux saved-book boundary: no automatic source scheduler,
 source approval, update-only provider coordinator, result commit or full Notes
 return path has been connected on Linux by this step.
+
+## Linux native DAV approval/factory boundary (#618, intermediate)
+
+`NativeDavApprovalScope` starts empty and accepts only an explicit native
+user-decision callback over a native catalog. Imported source lists, `eigen`, a
+document `saved` flag and current capability discovery do not grant updates.
+Consent binds the native book identity and current opaque account/credential
+revision; cancellation retains existing consent, an explicit empty selection
+revokes it. Unknown/duplicate selections and decisions overtaken by book/account
+change or revocation cannot grant access. Captured approvals are generation-bound
+and cannot revive after revocation/reapproval. This is session-local, not a
+persistent grant store or an implemented Linux consent dialog.
+
+`NativeBoundDavFactory` uses `NextcloudSettingsStore.checked_client` to pin the
+actual account/credential context. It requires an exact native approval and
+native-bound original resource set, current book/lifetime callbacks, strict native
+codec observation and an obligatory pre-mutation protection callback. It matches
+the account type, source ID, origin and exact collection and discovers explicit
+`canUpdate is True` afresh. Unknown/non-writable sources hold. It rechecks after
+protection and at each credentialed request, including same-origin redirects.
+The new optional native request hook defaults to `None` for existing manual DAV
+clients and is not populated by configuration or IPC JSON.
+
+Only a freshly read, existing bound resource can enter the factory's update
+phase. That phase requires its exact strong ETag in `If-Match`; create/delete,
+unbound/retargeted requests, ambiguous bindings and unsafe path aliases are held.
+The outgoing native UID must equal the pre-write observed UID. Actual readback
+must have the same original resource/UID, receipt ETag and desired content hash;
+missing/changed identity cannot be hidden by a content hash that excludes UID.
+Failed reads or uncertain attempts invalidate cached writable receipts. Returning
+verified native source data does not save a local contact baseline or cursor.
+
+The strict automatic-update vCard observer reuses the existing native lexer/parser
+and contact hash but rejects multiple/missing/padded native UIDs or multiple cards.
+It does not change the tolerant manual-import parser or normalize stored contact
+identities. Mandatory native callbacks are not renderer flags.
+
+Fifty-three controlled factory/approval cases use actual native account snapshots,
+DAV discovery/conditional PUT/readback, native vCard codec/hash and atomic synthetic
+book/protection files. They cover both DAV account types, denial/unknown rights,
+revocation/credential changes across redirects or protection, malformed identities,
+strong revision guards, request routing and non-reusable failed reads. The 111
+existing Nextcloud regressions and 32 isolated runtime/source manifest cases pass;
+source manifests include the helper without building or installing packages.
+
+This remains a native component boundary, not a Linux all-source scheduler:
+the coordinator must derive dirty bindings from the exact saved snapshot, apply
+source-local revision/conflict/Notes-priority decisions and isolate provider
+failures while aborting globally on changed book/cancellation. Native consent UI,
+dispatcher/frontend and durable result commit are still unconnected. EDS/Akonadi,
+broader accounts/providers and full Notes scalar/postal return are not granted or
+claimed by this DAV factory.

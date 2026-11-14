@@ -537,6 +537,9 @@ class DavHttpClient:
         self.ssl_context = ssl_context or ssl.create_default_context()
         parsed = urllib.parse.urlsplit(self.server)
         self.origin = (parsed.scheme, parsed.hostname.lower(), parsed.port or 443)
+        # Optional trusted native guard. Never populated from settings/IPC JSON.
+        # Kept at the request boundary so same-origin redirects recheck it too.
+        self.before_request = None
 
     def same_origin_url(self, value, base=None):
         url = urllib.parse.urljoin(base or self.server + "/", str(value or ""))
@@ -556,6 +559,8 @@ class DavHttpClient:
                 expected=None, redirects=1):
         url = self.same_origin_url(url)
         headers = dict(headers or {})
+        if self.before_request is not None:
+            self.before_request(method, url, dict(headers))
         token = base64.b64encode((self.user + ":" + self.password).encode("utf-8")).decode("ascii")
         headers["Authorization"] = "Basic " + token
         headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.18")

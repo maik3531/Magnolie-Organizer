@@ -5686,6 +5686,29 @@ def _vcard_escape_text(text):
     return result
 
 
+def kontakt_original_vcard_beobachtung(text):
+    """Strict automatic-update observation, not tolerant import identity repair."""
+    if not isinstance(text, str) or len(text.encode('utf-8')) > IMPORT_DATEI_MAX:
+        raise ValueError('contact_source_card_invalid')
+    cards = _vcard_karten(text)
+    if len(cards) != 1 or not text.lstrip().upper().startswith('BEGIN:VCARD') or not text.rstrip().upper().endswith('END:VCARD'):
+        raise ValueError('contact_source_card_invalid')
+    properties = [value for value in (_prop_zerlegen(line) for line in cards[0]) if value]
+    identities = [value for value in properties if value[0] == 'UID']
+    if len(identities) != 1 or any(value[0] in ('BEGIN', 'END') for value in properties):
+        raise ValueError('contact_source_native_uid_ambiguous')
+    _, parameters, raw = identities[0]
+    exact_uid = _ical_unescape(_vcard_wert(raw, parameters) if parameters else raw)
+    parsed = vcf_lesen(text)
+    if parsed['uebersprungen'] or len(parsed['kontakte']) != 1:
+        raise ValueError('contact_source_card_invalid')
+    contact = parsed['kontakte'][0]
+    uid = contact.get('uid')
+    if not uid or uid != exact_uid or any(ord(value) < 32 or ord(value) == 127 for value in uid):
+        raise ValueError('contact_source_native_uid_missing_or_changed')
+    return uid, _sync_inhalt_hash(contact, KONTAKT_FELDER)
+
+
 def vcard_text(k):
     # RFC 2426 has no partial BDAY; ANNIVERSARY and partial dates need RFC 6350.
     v4 = str(k.get("geburtstag") or "").startswith("--") or bool(k.get("jubilaeum"))
