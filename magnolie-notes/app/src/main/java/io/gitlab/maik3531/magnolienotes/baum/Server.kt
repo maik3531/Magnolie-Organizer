@@ -30,12 +30,40 @@ import kotlin.concurrent.thread
  * jede Antwort schließt die Verbindung.
  */
 class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.PORT,
-             private val requestTimeoutMs: Long = 10_000) {
+             private val requestTimeoutMs: Long = 10_000,
+             private val clockSeconds: () -> Long = { System.currentTimeMillis() / 1000 }) {
+
+    private class EmpfangsBeleg(val partner: String, val partnerSchluessel: String,
+        val eigen: String, val eigenerSchluessel: String, val sid: String,
+        val transport: String, val inhaltHash: ByteArray, val ablauf: Long, val jetzt: () -> Long,
+        val gueltig: () -> Boolean)
+
+    /** Authenticated native origin, not source consent or a saved-result ACK.
+     * Only the real decrypted FS1 path can mint the private proof. A current
+     * peer lookup must not relabel this message as belonging to a later pin.
+     */
+    class FsEmpfang internal constructor(private val beleg: Any) {
+        private fun native(): EmpfangsBeleg = (beleg as? EmpfangsBeleg)
+            ?: throw BaumFehler("Die sichere Sitzung ist unbekannt oder abgelaufen.")
+        fun partnerKennung(): String = native().partner
+        fun partnerSchluessel(): String = native().partnerSchluessel
+        fun sitzungId(): String = native().sid
+        fun pruefen(eigen: EigeneIdentitaet?, partner: io.gitlab.maik3531.magnolienotes.daten.Partner?,
+                    inhalt: JsonObject, transportId: String) {
+            val proof = native()
+            if (proof.ablauf <= proof.jetzt() || !proof.gueltig() || eigen?.kennung != proof.eigen || eigen.oeffentlich != proof.eigenerSchluessel ||
+                partner?.bestaetigt != true || partner.kennung != proof.partner || partner.oeffentlich != proof.partnerSchluessel ||
+                transportId != proof.transport || !Krypto.gleich(Krypto.sha256(Kanonisch.bytes(inhalt)), proof.inhaltHash))
+                throw BaumFehler("Die sichere Sitzung ist unbekannt oder abgelaufen.")
+        }
+    }
 
     /** Was der Dienst an die Anwendung zurückmeldet. */
     interface Handlung {
         fun eigen(): EigeneIdentitaet?
         fun istAn(): Boolean
+        /** Capture the native receive lifetime at handshake, not after decryption. */
+        fun empfangLebensdauer(): () -> Boolean = { true }
         fun partner(kennung: String): io.gitlab.maik3531.magnolienotes.daten.Partner?
         fun einladungen(): List<Einladung>
         /** Eine erfolgreiche Paarung nach Datei; der Partner gilt als bestätigt. */
@@ -61,6 +89,12 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             if (transportId != null) merkeTransportId(vonKennung, transportId)
             return true
         }
+        /** Production handlers recheck under their actual native mutation gate. */
+        fun verarbeiteSichereNachricht(ursprung: FsEmpfang, inhalt: JsonObject, transportId: String): Boolean {
+            val von = ursprung.partnerKennung()
+            ursprung.pruefen(eigen(), partner(von), inhalt, transportId)
+            return verarbeiteNachricht(von, inhalt, transportId = transportId)
+        }
         fun adresseGesehen(vonKennung: String, adresse: String)
         /** Only a handler with atomic durable acceptance may issue a legacy receipt. */
         fun legacyNachricht(umschlag: JsonObject, quelle: String): JsonObject =
@@ -85,7 +119,8 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         val ablauf: Long,
         val partnerSchluessel: String,
         val eigeneKennung: String,
-        val eigenerSchluessel: String
+        val eigenerSchluessel: String,
+        val gueltig: () -> Boolean
     )
 
     private class Lauf(val buchse: ServerSocket, val arbeiter: ThreadPoolExecutor) {
@@ -98,6 +133,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     }
 
     private val sitzungen = ConcurrentHashMap<String, OffeneSitzung>()
+    private val empfangGeneration = java.util.concurrent.atomic.AtomicLong()
     private val bodyBudget = java.util.concurrent.Semaphore(NACHRICHT_MAX)
     @Volatile private var lauf: Lauf? = null
 
@@ -125,6 +161,9 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
 
     @Synchronized
     fun anhalten() {
+        empfangGeneration.incrementAndGet()
+        sitzungen.values.forEach { it.sitzung.loeschen() }
+        sitzungen.clear()
         val alterLauf = lauf ?: return
         lauf = null
         alterLauf.aktiv.set(false)
@@ -133,8 +172,6 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         alterLauf.verbindungen.forEach { runCatching { it.close() } }
         alterLauf.arbeiter.shutdownNow()
         alterLauf.fristen.shutdownNow()
-        sitzungen.values.forEach { it.sitzung.loeschen() }
-        sitzungen.clear()
     }
 
     private fun neuerArbeiter() = ThreadPoolExecutor(
@@ -293,10 +330,13 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     }
 
     private fun sitzungAufbauen(eigen: EigeneIdentitaet, start: JsonObject, quelle: String): JsonObject {
+        val generation = empfangGeneration.get()
+        val nativeLebensdauer = handlung.empfangLebensdauer()
+        val gueltig = { empfangGeneration.get() == generation && nativeLebensdauer() }
         val von = text(start, "von")
         val partner = handlung.partner(von) ?: throw BaumFehler("Dieser Zweig ist unbekannt.")
         if (!partner.bestaetigt) throw BaumFehler("Dieser Zweig ist noch nicht bestätigt.")
-        val jetzt = System.currentTimeMillis() / 1000
+        val jetzt = clockSeconds()
         sitzungen.entries.removeIf { eintrag ->
             (eintrag.value.ablauf <= jetzt).also { if (it) eintrag.value.sitzung.loeschen() }
         }
@@ -308,7 +348,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         }
         sitzungen[antwort.sitzung.sid] = OffeneSitzung(
             antwort.sitzung, partner.kennung, quelle, jetzt + SITZUNG_SEKUNDEN,
-            partner.oeffentlich, eigen.kennung, eigen.oeffentlich
+            partner.oeffentlich, eigen.kennung, eigen.oeffentlich, gueltig
         )
         return antwort.nachricht
     }
@@ -316,7 +356,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     private fun sichereNachricht(eigen: EigeneIdentitaet, umschlag: JsonObject, quelle: String): JsonObject {
         val sid = text(umschlag, "sid")
         val offen = sitzungen.remove(sid) ?: throw BaumFehler("Die sichere Sitzung ist unbekannt oder abgelaufen.")
-        val jetzt = System.currentTimeMillis() / 1000
+        val jetzt = clockSeconds()
         if (offen.ablauf <= jetzt || offen.adresse != quelle) {
             offen.sitzung.loeschen()
             throw BaumFehler("Die sichere Sitzung ist unbekannt oder abgelaufen.")
@@ -328,7 +368,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             fun identitaetPruefen() {
                 val aktuell = handlung.partner(offen.partner)
                 val selbst = handlung.eigen()
-                if (aktuell?.bestaetigt != true || aktuell.oeffentlich != offen.partnerSchluessel ||
+                if (!offen.gueltig() || aktuell?.bestaetigt != true || aktuell.oeffentlich != offen.partnerSchluessel ||
                     eigen.kennung != offen.eigeneKennung || eigen.oeffentlich != offen.eigenerSchluessel ||
                     selbst?.kennung != offen.eigeneKennung || selbst.oeffentlich != offen.eigenerSchluessel)
                     throw BaumFehler("Die sichere Sitzung ist unbekannt oder abgelaufen.")
@@ -338,7 +378,10 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                 offen.sitzung, eigen.kennung, partner.kennung, umschlag
             )
             identitaetPruefen()
-            handlung.verarbeiteNachricht(partner.kennung, inhalt, transportId = transportId)
+            val ursprung = FsEmpfang(EmpfangsBeleg(offen.partner, offen.partnerSchluessel,
+                offen.eigeneKennung, offen.eigenerSchluessel, offen.sitzung.sid, transportId,
+                Krypto.sha256(Kanonisch.bytes(inhalt)), offen.ablauf, clockSeconds, offen.gueltig))
+            handlung.verarbeiteSichereNachricht(ursprung, inhalt, transportId)
             handlung.adresseGesehen(partner.kennung, quelle)
             return Sitzung.baueQuittung(offen.sitzung, umschlag)
         } finally {

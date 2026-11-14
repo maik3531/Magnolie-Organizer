@@ -1188,10 +1188,35 @@ class Baumwerk private constructor(
         return verarbeitet
     }
 
+    override fun verarbeiteSichereNachricht(ursprung: Server.FsEmpfang, inhalt: JsonObject, transportId: String): Boolean {
+        val verarbeitet = verarbeiteEmpfang(ursprung.partnerKennung(), inhalt, null, transportId, null, ursprung = ursprung)
+        if (text(inhalt, "art") == "termin") {
+            throw BaumFehler(zusammenhang.getString(R.string.baum_termin_nicht_unterstuetzt))
+        }
+        return verarbeitet
+    }
+
+    override fun empfangLebensdauer(): () -> Boolean = synchronized(Ablage.SCHREIBSPERRE) {
+        val generation = ablage.baumVersandGeneration()
+        val epoch = ablage.baum.value.syncEpoch
+        val pruefen = {
+            synchronized(Ablage.SCHREIBSPERRE) {
+                generation == ablage.baumVersandGeneration() && epoch == ablage.baum.value.syncEpoch
+            }
+        }
+        pruefen
+    }
+
     private fun verarbeiteEmpfang(vonKennung: String, inhalt: JsonObject, zaehler: Long?, transportId: String?,
-        umschlagHash: String?, receipt: String? = null, danach: () -> Unit = {}): Boolean = synchronized(Ablage.SCHREIBSPERRE) {
+        umschlagHash: String?, receipt: String? = null, ursprung: Server.FsEmpfang? = null,
+        danach: () -> Unit = {}): Boolean = synchronized(Ablage.SCHREIBSPERRE) {
+        fun pruefeUrsprung() {
+            ursprung?.pruefen(eigen(), partner(vonKennung), inhalt, requireNotNull(transportId))
+        }
+        pruefeUrsprung()
         var neuerSnapshot: EmpfangSnapshot? = null
         val verarbeitet = ablage.verarbeiteBaumNachricht(vonKennung, zaehler, transportId, umschlagHash, receipt) {
+            pruefeUrsprung()
             val run = text(inhalt, "syncLauf")
             val gueltig = runCatching { UUID.fromString(run).toString() == run }.getOrDefault(false) &&
                 text(inhalt, "art") in setOf("notiz", "notiz_sync", "aufgabe")

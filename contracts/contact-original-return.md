@@ -24,6 +24,20 @@ branch ID. Changed pins are rejected before dispatch, consuming/clearing the
 session. Unchanged pins and cosmetic name changes still work. This channel check
 does not itself grant source rights or supply a provider/baseline SaveACK.
 
+For the pending Notes return lifecycle, the actual FS1 dispatch additionally
+mints a private process-local origin proof after authenticated decryption. It
+binds handshake peer/local pins, session ID, transport ID, canonical body hash
+and session expiry. `Baumwerk` checks it under `Ablage.SCHREIBSPERRE` before
+the real receive transaction and again inside its mutation. Reconstructed
+proofs or changed payload/transport identities cannot pass that gate.
+The handshake also captures server-stop and native transport/restore lifetime;
+an already decrypted message waiting for native admission cannot acquire a new
+lifetime after cancellation or restore, even with unchanged keys. This remains
+a Notes-specific native admission seam, not an implemented Linux/Windows full
+return counterpart or a new wire capability. Generic transport ACKs still do
+not prove provider write or desktop baseline save. Unsupported appointments
+retain their existing staged-but-unacknowledged behavior.
+
 - `magnolie-notes/.../telefon/ContactValueWrite.kt` resource **19** accepts only
   `telefone` and `emailEintraege`. Preparation and apply receipts carry the exact
   selected field set and account tuple. `ContactValueWriteAndroid.kt` binds a
