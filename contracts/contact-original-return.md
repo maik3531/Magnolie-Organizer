@@ -1078,6 +1078,28 @@ send nonces, exact restart recovery, reserved Windows transport/controller pump,
 automatic bootstrap scheduling and genuine common setup. No installed-app/UI/live
 provider/device acceptance, production registration or package delivery is implied.
 
+### Windows independent journal primitives (#633)
+
+The Windows history crypto accepts only a mandatory accessor returning an owned
+copy of an already existing independent 32-byte journal key. No backend is chosen
+or registered and no key is created/replaced. Request and saved-ACK envelopes use
+separate AES-GCM purposes bound to exact record IDs; physical book/contact slots
+use a separate HMAC domain. Decoding rejects duplicate fields, noncanonical clear
+JSON, tampering and over-budget input. Owned key/plain buffers are cleared.
+
+The existing private filesystem boundary now offers an explicit journal layout,
+not arbitrary filenames: only `.journal-key` and `p-`/`r-`/`a-` plus 64 lowercase
+hex digits and `.json`. Only that layout permits up to 2 MiB; consent names and
+256 KiB limits remain unchanged. New journal roots are published by no-replace
+directory rename so a concurrently existing root cannot be reported as newly
+created for identity initialization. A missing-store read creates nothing.
+
+Focused crypto/layout checks and existing original-contact/private-file regressions
+pass on the controlled managed host and existing noninteractive Windows runner;
+Release CoreTests/BASE builds have zero warnings/errors. These primitives issue no
+source permission, send nonce, saved witness or ACK. Actual request/outcome stores,
+recovery/pump/setup and key-backend selection remain outstanding.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
