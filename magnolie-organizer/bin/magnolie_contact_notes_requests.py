@@ -463,6 +463,17 @@ class NativeNotesRequestIntents:
         result.request()
         return result
 
+    def demote_to_query(self, pending, consent):
+        """Retire this process's send nonce, never replace a stale snapshot."""
+        if type(pending) is not NativeNotesPendingResult:
+            raise PermissionError('notes_request_owned_pending_required')
+        proof = getattr(pending, '_request_intention', None)
+        if type(proof) is not _FreshRequestIntention or proof.store is not self or proof.pending is not pending:
+            raise PermissionError('notes_request_owned_pending_required')
+        with self._memory_lock:
+            self._fresh.pop(proof.key, None)
+        return self.readonly_query(proof.key, consent, physical=proof.physical)
+
     def resume_verified(self, query, body, origin, transport):
         """Local metadata commit only, NEVER a fresh provider request or ACK."""
         if (type(query) is not NativeNotesUnconfirmedQuery or query._proof.history.store is not self or

@@ -829,6 +829,35 @@ tests check fresh-request fairness and stable retry identities. No physical or
 installed counterpart acceptance is claimed. Common native setup, Windows transport
 integration and multi-source stale-book rebase remain outstanding.
 
+### Multi-source stale-book recovery (#633)
+
+A later real book save no longer strands unrelated pending sources on an old
+whole-book snapshot. The exact owned stale pending retires only its in-memory
+provider-send nonce and becomes an independently authenticated unconfirmed query.
+The old pending object loses ownership; no snapshot is silently replaced and no
+new provider request is issued. Only a fresh exact VERIFIED result can create a
+new local commit using the existing recovery context and unchanged chosen target.
+Known unrelated edits and the first source's metadata survive that commit.
+
+The short local metadata-save lane waits until the preceding actual writer witness
+has been independently sealed into ACK history, not merely until the write returns.
+Other read-only/provider slots remain independent. A failed completed save holds
+only its owner while retaining its durable physical request hold. Once another
+real book save invalidates an earlier live witness, that owner queries its already
+sealed genuine ACK history and obtains fresh authenticated reauthorization of the
+original saved hash; it never fabricates a current witness or redoes provider work.
+
+Evidence: the final 106 controller/request cases pass, including four new two-source
+cases (queued results, query-before-result, changed chosen target, failed first save).
+Unchanged consent/pending/reserved-send cases from the broader 246-case matrix are
+retained. That initial matrix exposed one regression: a same-snapshot prepared
+status prematurely invalidated the still-current original live ACK. The correction
+invalidates that witness only after an actual later snapshot, outside registry
+locks; the final full controller matrix passes. No Windows fix or physical/provider
+acceptance is claimed; Windows requires the corresponding stale-owner and historical
+ACK handling in its still-outstanding native integration. Common setup and Windows
+transport integration remain outstanding, with production controller creation OFF.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

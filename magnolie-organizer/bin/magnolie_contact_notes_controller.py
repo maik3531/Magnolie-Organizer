@@ -110,6 +110,34 @@ class NativeNotesController:
                 raise PermissionError('notes_controller_export_bootstrap_replaced')
         owner.protocol.require_current()
 
+    def _guard_pending(self, owner, pending):
+        self._guard(owner)
+        with self._lock:
+            if owner.pending is not pending:
+                raise PermissionError('notes_controller_pending_replaced')
+
+    def _demote_stale(self, owner):
+        pending = owner.pending
+        if (pending is not None and owner.commit is None and owner.unconfirmed is None and
+                pending._capture() != pending._snapshot):
+            self._guard(owner)
+            query = self._requests.demote_to_query(pending, self._consent)
+            self._guard(owner)
+            with self._lock:
+                owner.unconfirmed, owner.pending = query, None
+
+    def _book_save_busy(self):
+        # Serialize book metadata saves until their genuine ACK history is
+        # sealed, not merely until native_write returned. Other provider slots
+        # and read-only queries are independent of this short local-save lane.
+        for owner in self._owners.values():
+            if owner.commit is not None and not owner.history and not owner.held:
+                if owner.commit.done.is_set() and owner.commit.result.get('confirmed') is not True:
+                    owner.held = True
+                else:
+                    return True
+        return False
+
     def _bootstrap_busy(self):
         with self._lock:
             saves = [owner.bootstrap for owner in self._owners.values()]
@@ -143,7 +171,7 @@ class NativeNotesController:
                 raise ValueError('notes_controller_no_target_change')
             owner = _Owner(pins, (self._consent.root, choice._id), request, protocol, pending=pending)
             self._register(owner)
-            pending._controller_guard = lambda: self._guard(owner)
+            pending._controller_guard = lambda: self._guard_pending(owner, pending)
             try:
                 self._requests.seal(pending)
                 pending._for_negotiated_protocol(protocol)
@@ -255,6 +283,15 @@ class NativeNotesController:
                         continue
                     try:
                         self._guard(owner)
+                        self._demote_stale(owner)
+                        if (owner.history and owner.pending is not None and owner.commit is not None and
+                                self._consent._capture() != owner.commit._confirmed_snapshot):
+                            # A later real book save invalidates the old live
+                            # witness, not its independent sealed ACK history.
+                            # Query for a fresh native proof before reauthorizing.
+                            with self._lock:
+                                owner.pending, owner.commit, owner.ack = None, None, None
+                                owner.ack_sent = False
                         if owner.ack is not None and not owner.ack_sent:
                             work = NativeNotesWork('ack', owner.ack, owner.request['request_id'])
                         elif owner.history:
@@ -428,11 +465,26 @@ class NativeNotesController:
                                 result = NativeNotesWork('settled', request_id=owner.request['request_id'])
                             else:
                                 self._guard(owner)
+                                stale_witness = (owner.commit is not None and
+                                    self._consent._capture() != owner.commit._confirmed_snapshot)
                                 with self._lock:
                                     self._require_active()
                                     owner.ack = intent
+                                    if stale_witness:
+                                        owner.pending, owner.commit = None, None
                                 result = NativeNotesWork('ack', intent, owner.request['request_id'])
                         else:
+                            if owner.commit is None and self._book_save_busy():
+                                with self._lock:
+                                    self._require_active()
+                                    key = frame.pins, frame.kind, body['request_id']
+                                    existing = self._frames.get(key)
+                                    if existing is not None and existing.text != frame.text:
+                                        raise PermissionError('notes_controller_conflicting_deferred_result')
+                                    if existing is None and sum(item.pins == frame.pins for item in self._frames.values()) < self._per_peer:
+                                        self._frames[key] = frame
+                                return NativeNotesWork('waiting', request_id=owner.request['request_id'])
+                            self._demote_stale(owner)
                             if owner.pending is None and owner.unconfirmed is not None:
                                 try:
                                     pending = self._requests.resume_verified(owner.unconfirmed, body, frame.origin, frame.transport)
@@ -450,7 +502,7 @@ class NativeNotesController:
                                         return NativeNotesWork('needs-real-save', owner.bootstrap, owner.request['request_id'])
                                     return NativeNotesWork('waiting', request_id=owner.request['request_id'])
                                 owner.pending = pending
-                                pending._controller_guard = lambda owner=owner: self._guard(owner)
+                                pending._controller_guard = lambda owner=owner, pending=pending: self._guard_pending(owner, pending)
                             owner.pending.stage_result(body, frame.origin, frame.transport)
                             commit = owner.pending.prepare_commit()
                             if owner.commit is None:
@@ -497,7 +549,13 @@ class NativeNotesController:
                     if owner.request['request_id'] == work.request_id and owner.commit is work.intent]
             if len(matches) != 1:
                 raise PermissionError('notes_controller_owned_save_work_required')
-            return self.after_saved(work.request_id, matches[0].protocol)
+            try:
+                return self.after_saved(work.request_id, matches[0].protocol)
+            except (PermissionError, ValueError, OSError, RuntimeError, InvalidTag):
+                if work.intent.done.is_set():
+                    with self._lock:
+                        matches[0].held = True
+                raise
 
     def finish_bootstrap(self, work):
         if type(work) is not NativeNotesWork or work.kind != 'needs-real-save' or type(work.intent) is not NativeNotesBootstrapSave:

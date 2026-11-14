@@ -334,6 +334,87 @@ def test_existing_native_post_tick_runs_notes_pump_after_its_tree_work_without_n
         h.service.anhalten()
 
 
+@pytest.mark.parametrize('mode', ['queued-results', 'query-before-result', 'changed-target', 'failed-first-save'])
+def test_multiple_sources_rebase_only_from_fresh_verified_history_and_preserve_prior_metadata_and_saved_ack(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    try:
+        data = copy.deepcopy(h.probe._aktuelle_daten)
+        second = copy.deepcopy(data['kontakte'][0]); second.update(id='second-id', uid='second-uid')
+        data['kontakte'].append(second); data['independent-native-field'] = 'preserve'
+        assert h.save(monkeypatch, data)['ok']
+        h.configure()
+        export2 = dict(h.export, share_id='second-private-share', setup_id='55555555-5555-4555-8555-555555555555')
+        body, origin, transport = h.observed(export2)
+        choice2 = NativeNotesExportChoice(body, origin, transport, h.probe._kontakt_quellen_buchaufnahme(),
+            h.probe._kontakt_quellen_buchaufnahme, lambda _: 'second-id')
+        h.store.configure([h.choice, choice2])
+        runtime = Runtime(h); runtime.negotiate(); c = runtime.controller
+        h.send(h.export); one = c.process_one()
+        h.send(export2); two = c.process_one()
+        request1, request2 = one.intent.request(), two.intent.request()
+        h.send(runtime.result(request1)); save1 = c.process_one()
+        if mode == 'failed-first-save':
+            save1.intent.complete({'ok': False, 'committed': False, 'repairPending': False})
+            with pytest.raises(PermissionError): c.finish_save(save1)
+            h.send(runtime.result(request2)); save2 = c.process_one()
+            assert save2.kind == 'save' and h.save(monkeypatch, invocation=save2.intent)['ok']
+            assert c.finish_save(save2).kind == 'ack'
+            with pytest.raises(PermissionError): one.intent._for_negotiated_protocol(runtime.protocol)
+            assert c.counts()['owners'] == 2
+            assert c._requests.load_held(one.intent._request_intention.key)['state'] == 'request_pending'
+            assert 'notesOriginalBasis' not in h.probe._aktuelle_daten['kontakte'][0]
+            assert h.probe._aktuelle_daten['kontakte'][1]['notesOriginalBasis']['request_id'] == two.request_id
+            return
+        if mode == 'queued-results':
+            h.send(runtime.result(request2))
+            assert c.process_one().kind == 'waiting', 'Two whole-book metadata commits were prepared concurrently'
+        assert h.save(monkeypatch, invocation=save1.intent)['ok']
+        if mode == 'queued-results':
+            assert c.process_one().kind == 'waiting', 'Second save bypassed sealing the first genuine witness'
+        ack1 = c.finish_save(save1); old_hash = ack1.intent.body()['desktop_sha256']
+        if mode == 'changed-target':
+            changed = copy.deepcopy(h.probe._aktuelle_daten)
+            changed['kontakte'][1]['notiz'] = 'New independent user choice must not be overwritten'
+            assert h.save(monkeypatch, changed)['ok']
+        if mode == 'query-before-result':
+            plans = [c.next_transport(0), c.next_transport(0)]
+            work, protocol = next(plan for plan in plans if plan[0].request_id == two.request_id)
+            assert work.kind == 'query' and 'ziel' not in work.intent._for_negotiated_protocol(protocol)
+        if mode != 'queued-results': h.send(runtime.result(request2))
+        save2 = c.process_one()
+        with pytest.raises(PermissionError): two.intent._for_negotiated_protocol(runtime.protocol)
+        assert two.intent._request_intention.key not in c._requests._fresh
+        if mode == 'changed-target':
+            assert save2.kind == 'held'
+            assert h.probe._aktuelle_daten['kontakte'][1]['notiz'] == changed['kontakte'][1]['notiz']
+            assert c.counts()['owners'] == 2
+            return
+        assert save2.kind == 'save' and save2.request_id == two.request_id
+        assert h.save(monkeypatch, invocation=save2.intent)['ok']
+        ack2 = c.finish_save(save2)
+        actual = h.probe._aktuelle_daten
+        assert actual['independent-native-field'] == 'preserve'
+        assert [item['notesOriginalBasis']['request_id'] for item in actual['kontakte']] == [one.request_id, two.request_id]
+        # A second real book save invalidated the first live witness. Query its
+        # independently sealed history, do not manufacture a current witness.
+        plan = c.next_transport(31)
+        if plan[0].request_id != one.request_id: plan = c.next_transport(31)
+        work, protocol = plan
+        assert work.request_id == one.request_id and work.kind == 'query'
+        assert work.intent._for_negotiated_protocol(protocol)['request_id'] == one.request_id
+        before = Path(native.daten_datei()).read_bytes()
+        h.send(runtime.result(request1)); recovered = c.process_one()
+        assert recovered.kind == 'ack' and recovered.intent.body()['desktop_sha256'] == old_hash
+        assert Path(native.daten_datei()).read_bytes() == before
+        for request, ack in ((request1, recovered), (request2, ack2)):
+            h.send(dict(runtime.result(request), art='kontakt_original_abschlussstatus', phase='settled',
+                desktop_sha256=ack.intent.body()['desktop_sha256']))
+            assert c.process_one().kind == 'settled'
+        assert c.counts()['owners'] == 0 and c._requests._fresh == {}
+    finally:
+        h.service.anhalten()
+
+
 @pytest.mark.parametrize('mode', ['complete', 'prepared', 'duplicate', 'conflict', 'stop-before-worker',
     'stop-before-save', 'stop-after-save', 'expired-frame', 'unknown-result', 'early-save-boolean'])
 def test_registry_joins_actual_receive_worker_save_and_terminal_history_without_receive_io(native, monkeypatch, tmp_path, mode):
