@@ -578,6 +578,66 @@ a synthetic responder. Missing private context/keys, wrong seals/identities and
 unknown primary remain negative. No physical device or installed counterpart
 acceptance, production registration, package build or installation is claimed.
 
+### Bounded native owner registry and actual receive/writer hooks (#628)
+
+`NativeNotesController` now joins the individually checked native pieces without
+performing book/consent/journal IO inside FS1 receive. The callback retains only
+an immutable authenticated frame/origin/transport reference for a registered
+paired context. Defaults bound the registry to eight peers, eight queued frames
+per peer and 256 KiB per frame. Unknown requests and unrelated pins are rejected;
+exact queued duplicates do not consume additional slots or replace correlation.
+An export arriving before its offer waits boundedly, rather than prompting or
+creating a source grant. Ownership is exclusive for the private book/local ID.
+
+The separate native worker enters the actual book gate only after leaving receive.
+It accepts the owned offer, restores an existing private choice from a genuine
+export, stages results only for an existing pending owner, and returns its exact
+real writer invocation once. Conflicts hold that owner without replacing its
+accepted result. Private cipher failures are held without rewriting unknown
+records. Another independently selected source in the same book can still reach
+its real save and ACK. The registry lock is never held across tree callbacks or
+book/consent/journal IO. Concurrent real receive while the native book worker
+waits for tree context is tested, not just sequential fake callbacks.
+
+Native pending guards invalidate retained writer invocations after controller
+stop or owner hold. `after_saved`/`finish_save` require the exact owned commit and
+protocol plus its actual confirmed saved witness. A guessed request ID, copied
+work/Boolean or uncompleted writer cannot issue an ACK. Fresh historical result/
+status recovery retains its new checked ACK proof; settled history is durably
+marked before the physical desktop owner is released. Restart recovery here is
+only from an already genuine independently sealed SaveACK, never from a fabricated
+saved witness or a portable tag.
+
+The actual `Fenster` tree-service constructor registers a fail-closed native
+callback: without an exact explicitly injected controller, or while locked/stopped,
+it rejects draft traffic. Startup does not construct a controller or grant sources.
+The native-only factory has no renderer/document switch. Its explicit worker step
+queues the existing real commit in the actual serial writer; after actual writer
+completion the private work/commit identity is checked before sealing an ACK.
+Sidecar failure holds automation, not a successfully saved ordinary book. These
+hooks do not start a scheduler, create keys, advertise a capability or enable
+production. The helper is in the four existing Linux source manifests.
+
+Evidence: the affected pipeline/startup/runtime run passes 230 cases; follow-up
+transport/origin/controller and private-cipher/lock-order runs retain unchanged
+passing matrices rather than rerunning them indiscriminately. Final controller
+coverage is 23 cases, with 36 source-runtime composition cases also checked.
+Tests use actual encrypted book writing and actual authenticated FS1 receive,
+including the real window factory, callback, queue and save-completion hook.
+They cover two private sources, pre-offer waiting, queue limits, duplicates,
+conflicts, stopped/expired contexts, same-thread receive-IO spies, concurrent lock
+ordering, corrupt private records and fresh-owner saved-history recovery. All
+files, contacts, keys and peers are isolated synthetic fixtures; no sockets,
+physical provider, package build/install or private original was used.
+
+Important remaining boundary: this registry's **pre-save pending ownership is
+process-local**. A crash after native VERIFIED but before durable desktop SaveACK
+still needs a distinct encrypted pre-save pending intention and safe restoration
+of its genuine private book/source authority. Saved-ACK history must not be relabeled
+as that intention or a primary read converted to a saved witness. The automatic
+transport/worker pump, full native setup UI and Windows counterpart also remain
+unconnected. Production stays default-OFF until those lifecycle pieces are checked.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

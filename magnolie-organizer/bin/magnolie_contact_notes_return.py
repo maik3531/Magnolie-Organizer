@@ -193,10 +193,15 @@ class NativeNotesPendingResult:
     def _require_before(self):
         # The callback must check the genuine native source/mapping/setup grant.
         # Returning document flags or accepting renderer fields is not a caller.
+        guard = getattr(self, '_controller_guard', None)
+        if guard is not None:
+            guard()
         self._mapping()
         if self._capture() != self._snapshot:
             raise PermissionError('notes_original_pending_book_changed')
         self._mapping()
+        if guard is not None:
+            guard()
 
     def stage_result(self, body, origin, transport_id):
         """Actual receive callback may call this without acquiring the book lock.
@@ -231,6 +236,9 @@ class NativeNotesPendingResult:
                 self._result_text, self._origin, self._transport = text, origin, transport_id
 
     def _require_origin(self):
+        guard = getattr(self, '_controller_guard', None)
+        if guard is not None:
+            guard()
         self._mapping()
         with self._lock:
             text, origin, transport = self._result_text, self._origin, self._transport
@@ -238,6 +246,8 @@ class NativeNotesPendingResult:
             raise PermissionError('notes_original_pending_result_required')
         origin.require_current(json.loads(text), transport)
         self._mapping()
+        if guard is not None:
+            guard()
 
     def prepare_commit(self):
         """Called under the actual native book gate, outside receive dispatch."""

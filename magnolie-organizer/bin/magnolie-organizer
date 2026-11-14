@@ -23814,6 +23814,7 @@ class Fenster(_FENSTER_BASIS):
             proof = nachweise[0] if nachweise else None
             historical = nachweise[1] if len(nachweise) > 1 else None
             contact_result = nachweise[2] if len(nachweise) > 2 else None
+            notes_work = nachweise[3] if len(nachweise) > 3 else None
             self._speicher_laeuft = True
             warnung = ""
             contact_approval_store = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
@@ -23971,6 +23972,19 @@ class Fenster(_FENSTER_BASIS):
                     "fehler": fehler_deutsch(fehler, _("Saving the data"))}
             if type(contact_result) is NativeContactSourceResultCommit:
                 contact_result.complete(ergebnis)
+                if notes_work is not None:
+                    try:
+                        from magnolie_contact_notes_controller import NativeNotesController, NativeNotesWork
+                        controller = getattr(self, '_notes_original_controller', None)
+                        if (type(controller) is not NativeNotesController or type(notes_work) is not NativeNotesWork or
+                                notes_work.intent is not contact_result):
+                            raise PermissionError('notes_controller_owned_save_work_required')
+                        controller.finish_save(notes_work)
+                        self._notes_original_work_error = None
+                    except Exception:
+                        # Real book save success is not undone by held native
+                        # automation. No Boolean/transport receipt issues an ACK.
+                        self._notes_original_work_error = 'notes_controller_save_ack_held'
                 if contact_result.result['confirmed'] and contact_result.offer_token is not None:
                     ergebnis['kontaktOriginalGespeichert'] = contact_result.offer_token
             try:
@@ -25119,6 +25133,36 @@ class Fenster(_FENSTER_BASIS):
                 self._kontakt_quellen_hauptdatei_aufnahme, current_native_data=lambda: self._aktuelle_daten)
             self._notes_original_choice_store = store
         return store
+
+    def _notes_original_native_controller(self, outcomes):
+        """Native factory only, not startup registration or a document switch."""
+        from magnolie_contact_notes_controller import NativeNotesController
+        with self._daten_sperre:
+            return NativeNotesController(self._notes_original_choice_store_hole(), outcomes,
+                lambda: self._daten_sperre)
+
+    def _baum_notes_native_empfangen(self, peer, body, origin, transport):
+        """Stage only; never wait for book/consent IO inside the tree gate."""
+        from magnolie_contact_notes_controller import NativeNotesController
+        controller = getattr(self, '_notes_original_controller', None)
+        if getattr(self, '_gesperrt', True) or type(controller) is not NativeNotesController:
+            return False
+        try:
+            return controller.receive(peer, body, origin, transport)
+        except PermissionError:
+            return False
+
+    def _notes_original_native_arbeit(self):
+        """Explicit native worker step, never called by receive or a renderer."""
+        from magnolie_contact_notes_controller import NativeNotesController
+        controller = getattr(self, '_notes_original_controller', None)
+        if getattr(self, '_gesperrt', True) or type(controller) is not NativeNotesController:
+            return None
+        work = controller.process_one()
+        if work is not None and work.kind == 'save':
+            self._speicher_auftraege.put(('notes-original-' + uuid.uuid4().hex,
+                work.intent.text, None, None, work.intent, work))
+        return work
 
     def _kontakt_quellen_dauerwiederherstellen(self, save_id, saved_sha256):
         """Worker-only restore after a real SaveACK, outside the writer lock."""
@@ -27439,6 +27483,7 @@ class Fenster(_FENSTER_BASIS):
                 bei_nachricht=self._baum_empfangen,
                 bei_weitergabe=self._baum_stand_melden,
                 bei_paarung=lambda *_: self._baum_kontakt_faehigkeiten_anmelden(),
+                bei_sicherer_nachricht=self._baum_notes_native_empfangen,
                 port=int(zustand.get("port") or BAUM_PORT),
                 sperre=self._baum_sperre)
             if neuer_dienst.starten():
