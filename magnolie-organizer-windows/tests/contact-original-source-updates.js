@@ -59,13 +59,15 @@ async function runWire() {
   const readline = require("node:readline");
   const lines = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
   const emit = value => process.stdout.write(JSON.stringify(value) + "\n");
-  let b = null, step = 0;
+  let b = null, step = 0, pendingComplete = null;
+  const durableRestart = process.env.MAGNOLIE_TEST_DURABLE_RESTART === "1";
   const timeout = setTimeout(() => { console.error("Bounded native/frontend wire did not complete"); process.exit(1); }, 50000);
   try {
     for await (const line of lines) {
       const input = JSON.parse(line);
       if (input.type === "init") {
         b = await boot({ data: input.daten, wire: true, emit: value => emit({ type: "command", value }) });
+        if (durableRestart) b.t.daten().kontakte[0].notiz = "Canonical note";
         b.t.speichereJetzt();
       } else {
         assert.ok(b && typeof b.w.App[input.callback] === "function", "Unknown native callback");
@@ -74,6 +76,7 @@ async function runWire() {
           assert.equal(input.value.ok, true, "Actual native SaveAsync rejected the wire candidate");
           if (step === 0) {
             step = 1;
+            if (durableRestart) continue; // Wait for actual SaveACK-correlated native restoration, no new setup.
             b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sync").click();
             b.w.App.edsStatus({ verfuegbar: true, buchOk: true, windows: true, kalender: [], adressbuecher: [],
               originalKontaktUpdates: { verfuegbar: true, freigaben: 0 } });
@@ -83,9 +86,16 @@ async function runWire() {
             const save = b.commands("speichern").at(-1);
             assert.equal(input.value.kontaktOriginalGespeichert, save.kontaktOriginalLauf);
             assert.equal(b.commands("kontakt_originalquellen_update").length, Number(process.env.MAGNOLIE_TEST_EXPECT_ORIGINAL_RUNS || 1));
-            emit({ type: "complete", text: save.text, token: save.kontaktOriginalLauf });
-            return;
+            if (input.value.kontaktQuellenDauerhaft === true) pendingComplete = save;
+            else { emit({ type: "complete", text: save.text, token: save.kontaktOriginalLauf }); return; }
           }
+        }
+        if (input.callback === "originalKontaktDauerfreigabe" && pendingComplete && input.value.id === pendingComplete.id) {
+          assert.equal(input.value.ok, true, "Durable result authority did not restore after its actual SaveACK");
+          assert.equal(input.value.standSha256, sha(pendingComplete.text));
+          assert.equal(b.commands("kontakt_originalquellen_update").length, Number(process.env.MAGNOLIE_TEST_EXPECT_ORIGINAL_RUNS || 1),
+            "Result authority restoration caused another provider run");
+          emit({ type: "complete", text: pendingComplete.text, token: pendingComplete.kontaktOriginalLauf }); return;
         }
       }
     }

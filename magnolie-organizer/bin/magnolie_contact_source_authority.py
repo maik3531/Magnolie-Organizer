@@ -248,6 +248,28 @@ class NativeContactSourceApprovalStore:
             key, payload = self._record(directory)
         return (key, payload) if payload['sources'] else None
 
+    def has_desired_consent(self):
+        """Sealed human intent only, no book/credentials and never permission."""
+        return self._active_record() is not None
+
+    def recognizes_saved(self):
+        """Native monitor eligibility without touching credentials."""
+        active = self._active_record()
+        if active is None:
+            return False
+        key, payload = active
+        try:
+            snapshot, binding = self._saved()
+        except PermissionError:
+            return False
+        if payload['content'] != snapshot.content_sha256 or not hmac.compare_digest(
+                payload['book'], self._tag(key, b'book', binding.encode('utf-8'))):
+            return False
+        with self._locked() as directory:
+            after_key, after = self._record(directory)
+            pending = self._intent(directory, after_key, after)
+        return after_key == key and after == payload and pending is None
+
     def prepare_save(self, previous, next_text):
         """Native writer BEFORE invalidation/write; never observes credentials.
 

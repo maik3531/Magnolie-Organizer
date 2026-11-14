@@ -6919,6 +6919,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function verwerfeSpeichernNachRestore() {
+    originalKontaktDauerNachweis = null;
+    originalKontaktLetzterAck = null;
     originalKontaktWlanWartet = false;
     originalKontaktGeneration++;
     originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
@@ -25828,14 +25830,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let originalKontaktGeneration = 0;
   let originalKontaktFreigabeAnfrage = "";
   let originalKontaktWlanWartet = false;
+  let originalKontaktDauerNachweis = null;
+  let originalKontaktLetzterAck = null;
 
-  function originalKontaktUpdatesWiderrufen() {
+  function originalKontaktUpdatesWiderrufen(dauerhaft = false) {
     originalKontaktWlanWartet = false;
     originalKontaktGeneration++;
     originalKontaktFreigaben = 0;
     originalKontaktFreigabeAnfrage = "";
     originalKontaktSpeicher = null;
-    if (Bruecke.vorhanden) Bruecke.sende({ cmd: "kontakt_originalquellen_widerrufen" });
+    originalKontaktDauerNachweis = null;
+    originalKontaktLetzterAck = null;
+    if (Bruecke.vorhanden) Bruecke.sende({ cmd: "kontakt_originalquellen_widerrufen", dauerhaft: dauerhaft === true });
   }
 
   function starteOriginalKontaktUpdates() {
@@ -25848,10 +25854,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       generation: originalKontaktGeneration };
     originalKontaktLauf = lauf;
     originalKontaktWlanWartet = false;
-    if (!Bruecke.sende({ cmd: "kontakt_originalquellen_update", requestId: lauf.requestId, standSha256: lauf.sha256 }))
+    if (!Bruecke.sende({ cmd: "kontakt_originalquellen_update", requestId: lauf.requestId, standSha256: lauf.sha256 })) {
       originalKontaktLauf = null;
+      return false;
+    }
     // A timeout is not evidence that a provider write failed. Only a terminal
     // native reply releases this run; never blindly retry an unknown outcome.
+    return true;
   }
 
   function empfangeOriginalKontaktErgebnis(nutzlast) {
@@ -25861,6 +25870,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (lauf.generation !== originalKontaktGeneration) return;
     if (Number.isSafeInteger(nutzlast.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
     if (nutzlast.ok !== true) {
+      if (nutzlast.code === "account_access_wait" && originalKontaktDauerNachweis) originalKontaktDauerNachweis.starten = true;
       originalKontaktWlanWartet = nutzlast.code === "wlan_required";
       if (nutzlast.code === "wlan_required" && $("#sync-status")) $("#sync-status").textContent = _("Waiting for Wi-Fi.");
       return;
@@ -33421,7 +33431,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (!Bruecke.sende({ cmd: "kontakt_originalquellen_freigabe", requestId: originalKontaktFreigabeAnfrage }))
             originalKontaktFreigabeAnfrage = "";
         });
-      }), knopf(_("Revoke"), "", originalKontaktUpdatesWiderrufen));
+      }), knopf(_("Revoke"), "", () => originalKontaktUpdatesWiderrufen(true)));
       wahl.append(knoepfe);
     }
 
@@ -34690,7 +34700,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function zeigeSperrbildschirm(wartet) {
     originalKontaktWlanWartet = false;
-    if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher) originalKontaktUpdatesWiderrufen();
+    if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher || originalKontaktDauerNachweis) originalKontaktUpdatesWiderrufen();
     originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     kontaktFotoDialogSchliessen?.();
     kontaktDateiPruefungSchliessen?.();
@@ -37056,11 +37066,36 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (nutzlast?.freigaben === 0) { originalKontaktGeneration++; originalKontaktSpeicher = null; }
       if (Number.isSafeInteger(nutzlast?.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
       if (letzterEdsStatus?.originalKontaktUpdates) letzterEdsStatus.originalKontaktUpdates.freigaben = originalKontaktFreigaben;
+      const ack = originalKontaktLetzterAck;
+      if (nutzlast?.ok === true && nutzlast.dauerhaft === true && ack && nutzlast.id === ack.id &&
+          nutzlast.standSha256 === ack.sha256 && (ack.generation === originalKontaktGeneration || nutzlast.wartet === true) &&
+          letzterSpeicherText === ack.text && letzterSpeicherSha256 === ack.sha256)
+        originalKontaktDauerNachweis = { ...ack, generation: originalKontaktGeneration, starten: nutzlast.wartet === true };
+      if (nutzlast?.ok === false && $("#sync-status"))
+        $("#sync-status").textContent = _("The contact source permission could not be saved. Automatic updates are paused.");
       if (nutzlast?.ok === true && (nutzlast.changed === true || originalKontaktWlanWartet) && originalKontaktFreigaben > 0)
         nachDauerhaftemSpeichern(starteOriginalKontaktUpdates);
     },
+    originalKontaktDauerfreigabe(nutzlast) {
+      const nachweis = originalKontaktDauerNachweis;
+      if (!nachweis || nutzlast?.id !== nachweis.id || nutzlast?.standSha256 !== nachweis.sha256 ||
+          nachweis.generation !== originalKontaktGeneration || gesperrt || originalKontaktFreigabeAnfrage ||
+          letzterSpeicherSha256 !== nachweis.sha256 || letzterSpeicherText !== nachweis.text ||
+          JSON.stringify(DATEN) !== nachweis.text || laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null) return;
+      if (nutzlast.ok !== true) {
+        originalKontaktFreigaben = 0;
+        if ($("#sync-status")) $("#sync-status").textContent = _("Waiting for account access. Automatic contact updates will resume when available.");
+        return;
+      }
+      if (!Number.isSafeInteger(nutzlast.freigaben) || nutzlast.freigaben < 1) return;
+      originalKontaktFreigaben = nutzlast.freigaben;
+      if (nachweis.starten && starteOriginalKontaktUpdates()) nachweis.starten = false;
+    },
     originalKontaktNetz(nutzlast) {
-      if (nutzlast?.wlan === true && originalKontaktWlanWartet) starteOriginalKontaktUpdates();
+      if (nutzlast?.wlan === true) {
+        if (originalKontaktWlanWartet) starteOriginalKontaktUpdates();
+        else if (originalKontaktDauerNachweis?.starten && starteOriginalKontaktUpdates()) originalKontaktDauerNachweis.starten = false;
+      }
     },
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
     gespeichert(ergebnis) {
@@ -37085,6 +37120,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (erledigt) {
           letzterSpeicherText = erledigt.text;
           letzterSpeicherSha256 = typeof ergebnis.standSha256 === "string" ? ergebnis.standSha256 : "";
+          originalKontaktLetzterAck = ergebnis.committed === true &&
+            ergebnis.repairPending !== true && /^[0-9a-f]{64}$/.test(letzterSpeicherSha256) ? {
+              id: ergebnis.id, sha256: letzterSpeicherSha256, text: erledigt.text,
+              generation: originalKontaktGeneration, starten: !originalKontaktNachweis } : null;
+          originalKontaktDauerNachweis = ergebnis.kontaktQuellenDauerhaft === true ? originalKontaktLetzterAck : null;
+          if (originalKontaktDauerNachweis) originalKontaktFreigaben = 0;
           if (baumSpeicherNachweis?.text === erledigt.text) baumSpeicherNachweis = null;
         }
         const d = organizerDatumzeitTeile(new Date());
@@ -37093,7 +37134,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }), true);
         pumpeSpeichern();
         zeitAbgleichAutomatisch();
-        if (!originalKontaktNachweis) starteOriginalKontaktUpdates();
+        if (!originalKontaktNachweis && !originalKontaktDauerNachweis) starteOriginalKontaktUpdates();
       } else {
         if (originalKontaktNachweis) originalKontaktUpdatesWiderrufen();
         speicherFehlgeschlagen(ergebnis.fehler, erledigt);

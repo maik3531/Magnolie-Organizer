@@ -123,7 +123,7 @@ class NativeDavApprovalScope:
             self._generation += 1
             return True
 
-    def restore(self, stored):
+    def restore(self, stored, require_context=None):
         """Native saved-book/current durable witness only; not setup or IPC.
 
         Preserve durable human intent separately: a volatile revoke on a lock or
@@ -132,6 +132,8 @@ class NativeDavApprovalScope:
         from magnolie_contact_source_authority import NativeStoredContactApproval
         if type(stored) is not NativeStoredContactApproval:
             raise TypeError('contact_source_native_stored_approval_required')
+        if require_context is not None and not callable(require_context):
+            raise TypeError('contact_source_native_restore_guard_required')
         with self._lock:
             generation = self._generation
         # Initial restoration checks run outside the scope lock. Subsequent
@@ -147,6 +149,10 @@ class NativeDavApprovalScope:
         with self._lock:
             if self._generation != generation or self._current_book() != book:
                 raise PermissionError('contact_source_stored_approval_context_changed')
+            if require_context is not None:
+                require_context()
+                if self._generation != generation:
+                    raise PermissionError('contact_source_stored_approval_context_changed')
             self._grants = dict(stored.sources)
             self._owner, self._revision = book['book_source'], revision
             self._durable_guard = stored.require_current

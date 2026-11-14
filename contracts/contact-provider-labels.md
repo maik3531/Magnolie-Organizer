@@ -568,7 +568,7 @@ claimed. This removes a dialog-capable background lookup, but does not by itself
 implement the still-pending durable native approval required for once-configured
 automation across application restarts.
 
-## Durable native approval core (#618, not yet application persistence)
+## Durable native approval core (#618)
 
 The Linux `magnolie_contact_source_authority.py` helper now seals an explicit
 typed native source decision in separate private files. It binds the known full
@@ -609,11 +609,10 @@ Fifty-four additional controlled save/primary/actual encrypted writer cases and
 12 actual historical-writer cases. Writer-store injection and restart outcomes
 are synthetic; no installed application or live provider was exercised.
 
-Application setup/consent persistence, native store construction, scope hydration,
-quiet permission-return monitoring and SaveACK-correlated frontend restoration
-are still not connected. Current product consent remains session-only; these
-helpers/hooks are not yet a user-visible durable automatic feature. No Windows
-implementation is claimed.
+The initial 352-case checkpoint used injected writer stores. Application
+integration was completed subsequently on Linux as described below; this
+checkpoint alone was not a user-visible persistent feature. No corresponding
+Windows persistence is claimed.
 
 The native DAV scope can now restore only a current typed stored approval for its
 exact actual saved book and fresh account revision. Restored source guards retain
@@ -622,5 +621,52 @@ credential outage invalidates old in-flight scope grants. Volatile pause/revoke
 does not erase stored intent, and a fresh native witness can restore it without a
 new decision callback. Seventeen controlled scope cases and 135 affected cases
 pass, including actual bound DAV factory/CAS/readback with synthetic transport and
-revocation before mutation. This is a native API, not yet application startup or
-frontend wiring; the user-visible persistence limits above still apply.
+revocation before mutation. Application integration follows below.
+
+## Linux once-configured application integration (#618)
+
+The actual window now constructs the native private store without creating files
+or accessing credentials by default. Only the genuine native catalog/dialog
+decision is persisted, on a worker. Cancel preserves existing intent; an explicit
+empty selection or Settings revoke rotates the native key. Losing the account
+context after a nonempty selection is never mistaken for an explicit empty
+selection. Volatile pause/lock/result uncertainty remains separate from durable
+revocation. Failed durable revocation is reported as failure and holds the current
+process; it is not advertised as a successfully persisted revoke.
+
+The writer advances signed intent across ordinary saves and the first actual
+post-restart save, including frontend normalization. Restoration runs outside the
+writer data lock with fresh quiet credentials and a current typed saved witness.
+A separate native positive notice carries the actual SaveACK ID/raw hash. The
+frontend requires that same accepted committed/unrepaired SaveACK, exact current
+book and local generation before scheduling. Discovery counts and imported flags
+cannot substitute. Pending/newer edits, reload, lock and revoke reject stale
+notices; result-save restoration does not create an automatic retry loop.
+
+The native monitor retains recognized signed human intent while quiet account
+access is unavailable and restores usable permission after access returns, with
+no new dialog. Setup that was already persisted can report waiting without
+erasing the decision. Genuine book/account identity changes, corrupt/unknown
+state and rights/conflicts still hold; original-source update-only, UID/href/ETag,
+CAS/readback, protection, WLAN-first and Notes priority are unchanged.
+
+Evidence: 18 new actual bridge/encrypted-writer/native lifecycle cases, 17 new
+full-frontend cases, three additional final-context scope guards, and a new
+restarted full frontend/native/DAV/encrypted protection/result-save wire. The
+restarted wire uses a new native book owner, fresh process-style credential
+revision and a new frontend process: one original PUT, no second setup request,
+two actual encrypted saves, exact protection, original UID and baseline readback.
+The three earlier immediate/WLAN-return/uncertain-PUT wires remain passing.
+The broad affected run passed 386 cases; subsequent final-context changes passed
+155 affected cases, and the final application race/failure pass has 18 cases.
+Six actual isolated GTK modal cases verify the durable wording/default-OFF and
+explicit selection. Linux original frontend14/WLAN9 and unchanged Windows
+frontend14 plus desktop/MCP/custom-save regressions pass. These matrices overlap.
+
+Credentials, provider transports, WLAN and decision observations remain
+synthetic, apart from the explicitly isolated native GTK dialog. No installed
+application, live provider, hardware, VM, package build, installation or public
+release acceptance is claimed. Windows durable consent/WLAN return and its
+interactive modal acceptance remain separate unfinished work, as do broader
+provider authority and complete Notes names/scalar/postal return beyond
+Resource19. Resource19 remains phone/email-only.

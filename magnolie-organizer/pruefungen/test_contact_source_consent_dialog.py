@@ -16,7 +16,7 @@ from modul_laden import quellmodul_laden
                     reason='Explicit isolated native GTK modal probe only')
 @pytest.mark.parametrize('mode', ['default-cancel', 'apply-empty', 'apply-one',
     'preselected-cancel', 'preselected-change', 'close'])
-def test_actual_native_gtk_decision_is_explicit_default_off_and_session_bound(tmp_path, monkeypatch, mode):
+def test_actual_native_gtk_decision_is_explicit_default_off_without_silent_grants(tmp_path, monkeypatch, mode):
     for key in ('HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_RUNTIME_DIR'):
         directory = tmp_path / key; directory.mkdir(mode=0o700)
         monkeypatch.setenv(key, str(directory))
@@ -53,6 +53,8 @@ def test_actual_native_gtk_decision_is_explicit_default_off_and_session_bound(tm
         dialog, = dialogs
         try:
             buttons = [widget for widget in descendants(dialog) if isinstance(widget, native.Gtk.CheckButton)]
+            labels = [widget.get_text() for widget in descendants(dialog) if isinstance(widget, native.Gtk.Label)]
+            assert any('including after restarting' in text and 'revoke this permission' in text for text in labels)
             assert len(buttons) == 2
             assert [button.get_active() for button in buttons] == expected_initial
             assert dialog.get_default_widget() == dialog.get_widget_for_response(native.Gtk.ResponseType.CANCEL)

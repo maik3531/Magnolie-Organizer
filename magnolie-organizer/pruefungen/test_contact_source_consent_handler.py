@@ -62,6 +62,10 @@ def test_bridge_requires_native_catalog_and_explicit_current_decision(native, tm
     if mode == 'account-before-dialog': store.save(True, False, 'https://source.invalid/nc', 'synthetic', 'changed', account_type='generic-dav')
     if mode == 'revoke-before-dialog': host.bei_nachricht(json.dumps({'cmd': 'kontakt_originalquellen_widerrufen'}))
     for callback, args in idles: assert callback(*args) is False
+    # An explicit GTK decision now persists in a second bounded native worker.
+    for thread in threads:
+        thread.join(timeout=15)
+        assert not thread.is_alive(), 'Bounded native consent persistence did not finish'
     callback, response = host.responses[-1]
     assert callback == 'App.originalKontaktFreigabe' and response['requestId'] == 'probe'
     success = mode in ('allow', 'cancel', 'empty', 'renderer-catalog')

@@ -20884,6 +20884,7 @@ class Fenster(_FENSTER_BASIS):
         self._notes_actor_book_owner = NativeBookOwnerScope()
         from magnolie_contact_source_book import NativeContactSourceBook
         self._kontakt_quellen_buch = NativeContactSourceBook()
+        self._kontakt_quellen_dauerstore()
         self._zeit_abgleich_ausgang = queue.Queue()
         self._zeit_abgleich_ausgang_sperre = threading.Lock()
         self._zeit_abgleich_ausgang_aktiv = False
@@ -22411,7 +22412,19 @@ class Fenster(_FENSTER_BASIS):
             if scope is not None:
                 scope.revoke()
             self._kontakt_quellen_netz_stoppen()
-            self.antwort('App.originalKontaktFreigabe', {'ok': True, 'changed': True, 'freigaben': 0})
+            self._kontakt_quellen_letzter_save = None
+            if nachricht.get('dauerhaft') is True:
+                self._kontakt_quellen_dauerhaft_gesperrt = True
+                def revoke_durable():
+                    try:
+                        self._kontakt_quellen_dauerstore().revoke()
+                        ok = True
+                    except Exception:
+                        ok = False
+                    self.antwort('App.originalKontaktFreigabe', {'ok': ok, 'changed': True, 'freigaben': 0})
+                threading.Thread(target=revoke_durable, daemon=True).start()
+            else:
+                self.antwort('App.originalKontaktFreigabe', {'ok': True, 'changed': True, 'freigaben': 0})
 
         elif befehl == 'kontakt_originalquellen_update':
             self._kontakt_quellen_updates_starten(nachricht.get('requestId'), nachricht.get('standSha256'))
@@ -23671,14 +23684,15 @@ class Fenster(_FENSTER_BASIS):
                         nonlocal warnung, contact_approval_intent, contact_approval_error
                         if contact_approval_store is not None:
                             try:
-                                previous_contact_book = self._kontakt_quellen_buchaufnahme()
-                                if previous_contact_book is None:
-                                    previous_contact_book = self._kontakt_quellen_hauptdatei_aufnahme()
-                                    contact_approval_store.recover_primary(previous_contact_book)
-                                else:
-                                    contact_approval_store.recover_saved(previous_contact_book)
-                                contact_approval_intent = contact_approval_store.prepare_save(
-                                    previous_contact_book, payload)
+                                if contact_approval_store.has_desired_consent():
+                                    previous_contact_book = self._kontakt_quellen_buchaufnahme()
+                                    if previous_contact_book is None:
+                                        previous_contact_book = self._kontakt_quellen_hauptdatei_aufnahme()
+                                        contact_approval_store.recover_primary(previous_contact_book)
+                                    else:
+                                        contact_approval_store.recover_saved(previous_contact_book)
+                                    contact_approval_intent = contact_approval_store.prepare_save(
+                                        previous_contact_book, payload)
                             except Exception:
                                 # Consent-sidecar failures hold automatic source
                                 # authority, not the user's ordinary book save.
@@ -23756,6 +23770,13 @@ class Fenster(_FENSTER_BASIS):
                 ergebnis = {"id": kennung, "ok": True, "committed": True,
                             "repairPending": bool(warnung), "fehler": warnung,
                             "standSha256": lease.ack}
+                if (contact_approval_store is not None and not warnung and not contact_approval_error and
+                        not getattr(self, '_kontakt_quellen_dauerhaft_gesperrt', False)):
+                    try:
+                        if contact_approval_store.recognizes_saved():
+                            ergebnis['kontaktQuellenDauerhaft'] = True  # Correlation marker, NOT a source grant.
+                    except Exception:
+                        pass
             except Exception as fehler:
                 sys.stderr.write(_("Saving failed: %s") % fehler + "\n")
                 if contact_approval_store is not None:
@@ -23771,6 +23792,12 @@ class Fenster(_FENSTER_BASIS):
                     ergebnis['kontaktOriginalGespeichert'] = contact_result.offer_token
             try:
                 self.antwort("App.gespeichert", ergebnis)
+                if (contact_approval_store is not None and ergebnis.get('ok') is True and
+                        ergebnis.get('committed') is True and not ergebnis.get('repairPending')):
+                    self._kontakt_quellen_letzter_save = (kennung, lease.ack)
+                if ergebnis.get('kontaktQuellenDauerhaft') is True:
+                    self._kontakt_quellen_dauerwiederherstellen(kennung, lease.ack)
+                    self._kontakt_quellen_netz_starten()
                 if warnung:
                     self.antwort("App.erinnerungStand", {"ok": False, "fehler": warnung})
                 if ergebnis["ok"]:
@@ -24887,6 +24914,58 @@ class Fenster(_FENSTER_BASIS):
             str(data.get("syncEpoch", "")) if isinstance(data, dict) else ""], ensure_ascii=False)
         return binding, available
 
+    def _kontakt_quellen_dauerstore(self):
+        """Native construction is default-no-files/no-keyring; no JSON grant."""
+        from magnolie_contact_source_authority import NativeContactSourceApprovalStore
+        store = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+        if store is None:
+            store = NativeContactSourceApprovalStore(
+                os.path.join(daten_verzeichnis(), 'kontakt-quellen-freigabe'), nextcloud_speicher(),
+                self._kontakt_quellen_buchaufnahme, lambda: os.path.realpath(daten_datei()),
+                capture_primary=self._kontakt_quellen_hauptdatei_aufnahme)
+            self._kontakt_quellen_dauerfreigabe = store
+        return store
+
+    def _kontakt_quellen_dauerwiederherstellen(self, save_id, saved_sha256):
+        """Worker-only restore after a real SaveACK, outside the writer lock."""
+        from magnolie_contact_source_dav import NativeDavApprovalScope
+        correlation = (save_id, saved_sha256)
+        generation = getattr(self, '_kontakt_quellen_dialog_generation', 0)
+        def current():
+            snapshot = self._kontakt_quellen_buchaufnahme()
+            return (snapshot is not None and snapshot.saved_sha256 == saved_sha256 and
+                getattr(self, '_kontakt_quellen_letzter_save', None) == correlation and
+                getattr(self, '_kontakt_quellen_dialog_generation', 0) == generation and
+                not getattr(self, '_kontakt_quellen_dauerhaft_gesperrt', False) and
+                not getattr(self, '_wirklich_beenden', False))
+        if not current():
+            return False
+        scope = getattr(self, '_kontakt_quellen_freigaben', None)
+        try:
+            persistent = self._kontakt_quellen_dauerstore()
+            stored = persistent.load_current()
+            if stored is None or not current():
+                return False
+            if scope is None:
+                scope = self._kontakt_quellen_freigaben = NativeDavApprovalScope(
+                    self._kontakt_quellen_buchnachweis, persistent._account_store)
+            def require_context():
+                if not current():
+                    raise PermissionError('contact_source_restore_context_changed')
+            scope.restore(stored, require_context)
+            if not current():
+                return False
+            count = len(scope.capture())
+            ok = count > 0
+        except Exception:
+            if scope is not None and current():
+                scope.revoke()
+            count, ok = 0, False
+        if current():
+            self.antwort('App.originalKontaktDauerfreigabe', {'id': save_id, 'standSha256': saved_sha256,
+                'ok': ok, 'freigaben': count})
+        return ok
+
     def _kontakt_quellen_buchnachweis(self):
         with self._daten_sperre:
             return self._kontakt_quellen_buch.current(*self._kontakt_quellen_buchbindung(), self._aktuelle_daten)
@@ -24990,12 +25069,17 @@ class Fenster(_FENSTER_BASIS):
         def report(ok, changed=False):
             self._kontakt_quellen_dialog_aktiv = False
             count = len(scope.capture())
-            if count:
+            persistent = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+            desired = ok and persistent is not None and persistent.recognizes_saved()
+            if count or desired:
                 self._kontakt_quellen_netz_starten()
             else:
                 self._kontakt_quellen_netz_stoppen()
-            self.antwort('App.originalKontaktFreigabe', {'requestId': request_id,
-                'ok': ok, 'changed': changed, 'freigaben': count})
+            response = {'requestId': request_id, 'ok': ok, 'changed': changed, 'freigaben': count}
+            correlation = getattr(self, '_kontakt_quellen_letzter_save', None)
+            if ok and desired and correlation is not None and correlation[1] == snapshot.saved_sha256:
+                response.update(dauerhaft=True, wartet=not bool(count), id=correlation[0], standSha256=correlation[1])
+            self.antwort('App.originalKontaktFreigabe', response)
             return False
 
         def discover():
@@ -25013,9 +25097,45 @@ class Fenster(_FENSTER_BASIS):
                                 self._kontakt_quellen_buchaufnahme() != snapshot or
                                 store.read_snapshot(interactive=False)[2] != revision):
                             raise PermissionError('contact_source_approval_context_changed')
-                        changed = scope.configure(catalog, lambda choices, selected:
-                            kontakt_quellen_freigabe_dialog(self, choices, selected))
-                        return report(True, changed)
+                        selection = None
+                        def ask(choices, selected):
+                            nonlocal selection
+                            answer = kontakt_quellen_freigabe_dialog(self, choices, selected)
+                            if answer is not None:
+                                selection = tuple(answer)
+                            return answer
+                        changed = scope.configure(catalog, ask)
+                        if not changed:
+                            return report(True, False)
+                        def persist():
+                            try:
+                                if (self._kontakt_quellen_dialog_generation != generation or
+                                        self._kontakt_quellen_buchaufnahme() != snapshot):
+                                    raise PermissionError('contact_source_approval_context_changed')
+                                persistent = self._kontakt_quellen_dauerstore()
+                                approvals = scope.capture()
+                                if tuple(item.source for item in approvals) != selection:
+                                    raise PermissionError('contact_source_approval_context_changed')
+                                stored = persistent.approve(snapshot, approvals)
+                                if self._kontakt_quellen_dialog_generation != generation:
+                                    if stored is not None:
+                                        persistent.revoke_if_generation(stored.generation)
+                                    raise PermissionError('contact_source_approval_context_changed')
+                                if stored is not None:
+                                    def require_context():
+                                        if (self._kontakt_quellen_dialog_generation != generation or
+                                                self._kontakt_quellen_buchaufnahme() != snapshot):
+                                            raise PermissionError('contact_source_approval_context_changed')
+                                    scope.restore(stored, require_context)
+                                self._kontakt_quellen_dauerhaft_gesperrt = False
+                                report(True, True)
+                            except Exception:
+                                if self._kontakt_quellen_dialog_generation == generation:
+                                    self._kontakt_quellen_dauerhaft_gesperrt = True
+                                    scope.revoke()
+                                report(False)
+                        threading.Thread(target=persist, daemon=True).start()
+                        return False
                     except Exception:
                         return report(False)
                 GLib.idle_add(decide)
@@ -25062,6 +25182,14 @@ class Fenster(_FENSTER_BASIS):
         def probe():
             try:
                 scope = getattr(self, '_kontakt_quellen_freigaben', None)
+                persistent = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+                desired = (persistent is not None and not getattr(self, '_kontakt_quellen_dauerhaft_gesperrt', False)
+                    and persistent.recognizes_saved() and not self._wirklich_beenden)
+                if desired and (scope is None or not scope.capture()):
+                    correlation = getattr(self, '_kontakt_quellen_letzter_save', None)
+                    if correlation is not None and generation == self._kontakt_quellen_netz_generation:
+                        self._kontakt_quellen_dauerwiederherstellen(*correlation)
+                    scope = getattr(self, '_kontakt_quellen_freigaben', None)
                 permitted = scope is not None and bool(scope.capture()) and not self._wirklich_beenden
                 wlan = permitted and kontakt_quellen_wlan_verfuegbar()
                 if permitted and (not scope.capture() or self._wirklich_beenden):
@@ -25069,6 +25197,8 @@ class Fenster(_FENSTER_BASIS):
                 if generation != self._kontakt_quellen_netz_generation:
                     return
                 if not permitted:
+                    if desired:
+                        return  # Keep human intent while quiet account access waits.
                     def stop():
                         if generation == self._kontakt_quellen_netz_generation:
                             self._kontakt_quellen_netz_stoppen()
@@ -25135,6 +25265,12 @@ class Fenster(_FENSTER_BASIS):
                 approvals = scope.capture()
                 require_session()
                 if not approvals:
+                    persistent = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+                    if (persistent is not None and not getattr(self, '_kontakt_quellen_dauerhaft_gesperrt', False)
+                            and persistent.recognizes_saved()):
+                        self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False,
+                            'code': 'account_access_wait', 'freigaben': 0})
+                        return
                     self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': True,
                         'token': '', 'kontakte': None, 'freigaben': 0,
                         'originalSha256': expected_saved_hash, 'fehlerQuellen': 0})
@@ -29864,9 +30000,10 @@ def kontakt_quellen_freigabe_dialog(parent, choices, selected):
         content.set_spacing(12)
         content.set_border_width(12)
         explanation = Gtk.Label(label=_(
-            "Allow automatic updates only to the selected original address books for this session. "
+            "Allow automatic updates only to the selected original address books, including after restarting. "
             "Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. "
-            "Nothing is selected by default. An empty selection revokes all approvals."))
+            "Nothing is selected by default. An empty selection revokes all approvals. "
+            "You can revoke this permission at any time in Settings."))
         explanation.set_line_wrap(True)
         explanation.set_max_width_chars(70)
         explanation.set_xalign(0)

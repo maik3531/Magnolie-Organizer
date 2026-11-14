@@ -52,6 +52,10 @@ def test_actual_encrypted_writer_tracks_only_confirmed_unrepaired_approved_book(
         capture_primary=host._kontakt_quellen_hauptdatei_aufnahme)
     witness = store.approve(host._kontakt_quellen_buchaufnahme(), scope.capture())
     host._kontakt_quellen_dauerfreigabe = store
+    # This fixture isolates the serial storage hooks; full authority restoration
+    # is exercised separately through the real Host/bridge lifecycle.
+    host._kontakt_quellen_dauerwiederherstellen = lambda *args: None
+    host._kontakt_quellen_netz_starten = lambda: None
     if mode in ('restart-pending-new', 'restart-pending-old'):
         store.prepare_save(host._kontakt_quellen_buchaufnahme(), text)
         if mode == 'restart-pending-new':

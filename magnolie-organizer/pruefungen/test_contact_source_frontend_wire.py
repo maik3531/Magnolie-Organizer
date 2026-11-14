@@ -20,8 +20,8 @@ from magnolie_contact_source_book import NativeContactSourceBook
 import magnolie_nextcloud as nc
 
 
-@pytest.mark.parametrize('return_wlan', [False, True, 'after-write'])
-def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(native, tmp_path, monkeypatch, return_wlan):
+@pytest.mark.parametrize('return_wlan,durable_restart', [(False, False), (True, False), ('after-write', False), (False, True)])
+def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(native, tmp_path, monkeypatch, return_wlan, durable_restart):
     node = os.environ.get('NODE') or shutil.which('node')
     if not node: pytest.skip('Explicit existing Node runtime required for actual frontend wire')
     root = Path(__file__).resolve().parents[2]
@@ -77,6 +77,7 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
         return identity
     host._kontakt_quellen_schutz = protect
     environment = dict(os.environ, MAGNOLIE_TEST_WEB=str(root / 'magnolie-organizer/web'),
+                       MAGNOLIE_TEST_DURABLE_RESTART='1' if durable_restart else '0',
                        MAGNOLIE_TEST_EXPECT_ORIGINAL_RUNS='2' if return_wlan else '1')
     saves, forwarded, complete = 0, 0, None
     planner_observations = []
@@ -102,6 +103,25 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
             for fn, args in pending: fn(*args)
             if not threads and not idles: return
         raise AssertionError('Native wire callbacks did not settle')
+    if durable_restart:
+        host._kontakt_quellen_freigabe_starten('previous-session-native-setup'); settle()
+        assert host.responses[-1][1]['freigaben'] == 1
+        previous = host._kontakt_quellen_dauerfreigabe.load_current()
+        password = host._kennwort
+        host = Host(native); host._gesperrt = False; host._wirklich_beenden = False; host._kennwort = password
+        stored_text, host._daten_dek, host._daten_dek_kennung, host._daten_umschlag = native.daten_entschluesseln(
+            Path(native.daten_datei()).read_text(), password, mit_schluessel=True)
+        host._aktuelle_daten = json.loads(stored_text)
+        host._kontakt_quellen_buch = NativeContactSourceBook(); host._kontakt_quellen_buch.set_ready(True)
+        assert host._kontakt_quellen_buchaufnahme() is None
+        store._revision_key = os.urandom(32)  # Fresh interpreter credential-revision identity.
+        host._kontakt_quellen_dauerstore()
+        actual_protect = host._kontakt_quellen_schutz
+        host._kontakt_quellen_schutz = protect
+        assert not hasattr(host, '_kontakt_quellen_freigaben')
+        # No new discovery/UI decision may be used by the restarted wire.
+        monkeypatch.setattr(native, 'kontakt_quellen_freigabe_dialog', lambda *args:
+            pytest.fail('Restarted frontend asked for consent again'))
     stderr_path = tmp_path / 'frontend-wire-stderr.log'
     with stderr_path.open('w') as errors:
         process = subprocess.Popen([node, str(root / 'magnolie-organizer-windows/tests/contact-original-source-updates.js'), '--wire'],
@@ -121,7 +141,7 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
                     continue  # No real account/phone/discovery/background command.
                 if command['cmd'] == 'kontakt_originalquellen_freigabe': assert saves == 2 and source.writes == 0
                 if command['cmd'] == 'kontakt_originalquellen_update':
-                    assert saves == 2
+                    assert saves == (1 if durable_restart else 2)
                     if return_wlan and not wlan_returns: requests_before_update = len(source.records)
                 host.bei_nachricht(json.dumps(command, ensure_ascii=False))
                 settle()
@@ -131,7 +151,7 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
                     native.Fenster._speicher_lauf(host)
                 while forwarded < len(host.responses):
                     callback, response = host.responses[forwarded]; forwarded += 1
-                    if callback not in ('App.gespeichert', 'App.originalKontaktFreigabe', 'App.originalKontaktErgebnis', 'App.originalKontaktNetz'):
+                    if callback not in ('App.gespeichert', 'App.originalKontaktFreigabe', 'App.originalKontaktErgebnis', 'App.originalKontaktNetz', 'App.originalKontaktDauerfreigabe'):
                         continue
                     if callback == 'App.originalKontaktNetz':
                         send({'callback': 'originalKontaktNetz', 'value': response}); continue
@@ -171,7 +191,10 @@ def test_actual_linux_frontend_saveack_consent_plan_readback_and_result_writer(n
                 try: process.wait(timeout=5)
                 except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=5)
             process.stdin.close(); process.stdout.close()
-    assert saves == 3 and source.writes == 1 and len(protected) == 1
+    assert saves == (2 if durable_restart else 3) and source.writes == 1 and len(protected) == 1
+    if durable_restart:
+        assert 'kontakt_originalquellen_freigabe' not in wire_commands
+        assert host._kontakt_quellen_dauerfreigabe.load_current().generation == previous.generation
     methods = [method for method, *_ in source.records]
     assert methods.count('PUT') == 1
     if return_wlan == 'after-write':

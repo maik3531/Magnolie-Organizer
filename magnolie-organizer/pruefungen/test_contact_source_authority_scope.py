@@ -96,6 +96,19 @@ def test_concurrent_volatile_revoke_during_restore_cannot_be_undone(context, mon
     assert fresh.capture() == ()
 
 
+@pytest.mark.parametrize('mode', ['rejected-context', 'context-revokes', 'invalid-context'])
+def test_final_native_application_guard_cannot_be_skipped_or_regrant_after_revoke(context, mode):
+    stored = approve(context)
+    store, root, accounts, owner, data, *_ = context
+    fresh = NativeDavApprovalScope(lambda: owner.current('native-contact-fixture', True, data), accounts)
+    def require_context():
+        if mode == 'rejected-context': raise PermissionError('Controlled application generation changed')
+        fresh.revoke()
+    with pytest.raises((PermissionError, TypeError)):
+        fresh.restore(stored, {'saved': True} if mode == 'invalid-context' else require_context)
+    assert fresh.capture() == ()
+
+
 def test_signed_ordinary_save_needs_fresh_scope_hydration_not_old_lease(context):
     fresh, original = restored(context)
     store, root, accounts, owner, data, text, capture, binding, scope = context
