@@ -139,3 +139,43 @@ def test_transport_acceptance_alone_never_confirms_a_value_save(private):
     channel.ack_only = True
     with pytest.raises(TimeoutError): service.contact_values(peer["device_id"], fingerprint, messages()[0])
     assert not service.contact_group_preparations
+
+
+# #622's full original return needs its own explicitly negotiated admission.
+# Neither full v2 tree cards nor general contact-write consent widen resource19.
+FULL_RETURN_FIELDS = {
+    "vorname": "Alex", "nachname": "Synthetic", "anzeigename": "Synthetic display",
+    "vcardName": ["Synthetic", "Alex", "", "", ""], "firma": "Synthetic company",
+    "notiz": "Synthetic note", "geburtstag": "2000-01-02", "jubilaeum": "2020-02-03",
+    "anschriften": [{"art": "privat", "strasse": "Synthetic street", "plz": "00000",
+                     "ort": "Synthetic town", "region": "", "land": ""}],
+}
+
+
+@pytest.mark.parametrize("field", FULL_RETURN_FIELDS)
+@pytest.mark.parametrize("surface", ["prepare", "apply", "report"])
+def test_resource19_never_claims_full_original_return_fields(field, surface):
+    prepare, apply, report = messages()
+    if surface == "prepare":
+        prepare["field_names"].append(field)
+        validate, value = contract.validate_value_request_shape, prepare
+    else:
+        value = apply if surface == "apply" else report
+        value["fields"][field] = copy.deepcopy(FULL_RETURN_FIELDS[field])
+        validate = contract.validate_value_request_shape if surface == "apply" else contract.validate_value_report_shape
+    with pytest.raises(ValueError): validate(value)
+
+
+@pytest.mark.parametrize("field", FULL_RETURN_FIELDS)
+def test_full_field_is_rejected_before_transport_without_consuming_a_real_value_ticket(private, field):
+    service, peer, channel, fingerprint = value_fixture(private)
+    prepare, apply, _ = messages()
+    prepared = service.contact_values(peer["device_id"], fingerprint, prepare)
+    apply["token"] = prepared["token"]
+    invalid = copy.deepcopy(apply)
+    invalid["fields"][field] = copy.deepcopy(FULL_RETURN_FIELDS[field])
+    before = copy.deepcopy(channel.sent)
+    with pytest.raises(ValueError): service.contact_values(peer["device_id"], fingerprint, invalid)
+    assert channel.sent == before, "Unnegotiated full-contact field reached the authenticated transport"
+    saved = service.contact_values(peer["device_id"], fingerprint, apply)
+    assert saved["state"] == "saved" and saved["fields"] == apply["fields"]

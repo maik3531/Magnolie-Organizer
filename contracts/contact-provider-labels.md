@@ -1,5 +1,9 @@
 # Native contact provider labels (#576)
 
+For the current full Notes and broader provider return boundary assessment and
+still-open transaction requirements, see [#622 original return](contact-original-return.md).
+Resource19 remains phone/email-only; that assessment is not a full-return grant.
+
 Current #618 scope: Windows now connects an explicit native session-consent
 dialog, native WLAN-first update commands and SaveACK-gated frontend scheduling
 for eligible collections in its currently configured Nextcloud/generic-DAV
