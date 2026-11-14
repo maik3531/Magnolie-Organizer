@@ -970,6 +970,7 @@ internal static class ContactSourceUpdateRunTests
                     if (mode == "replaced-offer") commit.Stage(snapshot, result);
                     if (mode == "invalidated") commit.Invalidate();
                     invocation = commit.Prepare(offer.Token, document);
+                    TestAssert.Throws<InvalidOperationException>(() => invocation.ConfirmedSave(), "Unwritten invocation supplied native save evidence");
                     if (mode == "changed-before-write") owner.InvalidateSaved();
                     var proposed = document.ToJsonString();
                     invocation.Write(proposed, payload =>
@@ -991,6 +992,12 @@ internal static class ContactSourceUpdateRunTests
                     TestAssert.That(mode == "success" && writes == 1 && invocation.Completed &&
                         store.Read(path) == proposed && Current()!.Sequence == snapshot.SavedBook.Sequence + 1,
                         "Unconfirmed/stale/mixed result acquired durable acknowledgment: " + mode);
+                    var witness = invocation.ConfirmedSave();
+                    TestAssert.That(witness.RequireCurrent() == Current() && ReferenceEquals(commit.ConfirmedSave(offer.Token), witness),
+                        "Actual native result write did not supply exact process-local saved evidence");
+                    TestAssert.Throws<InvalidOperationException>(() => new ContactSourceSavedCommit.SavedWitness(new object()).RequireCurrent(),
+                        "An imported result object supplied native save evidence");
+                    TestAssert.Throws<InvalidOperationException>(() => commit.ConfirmedSave(new string('0', 64)), "Another offer claimed saved evidence");
                     try { invocation.Write(proposed, _ => writes++); throw new Exception("Committed source result was replayed"); }
                     catch (InvalidOperationException) { TestAssert.That(writes == 1, "Replayed result reached native writer"); }
                 }
@@ -1000,12 +1007,38 @@ internal static class ContactSourceUpdateRunTests
                     TestAssert.That(writes == (attempted ? 1 : 0) && invocation?.Completed != true, "Invalid result save was acknowledged/wrote prematurely: " + mode);
                     if (invocation is not null)
                     {
+                        TestAssert.Throws<InvalidOperationException>(() => invocation.ConfirmedSave(), "Failed save supplied positive native evidence");
                         try { invocation.Write(document.ToJsonString(), _ => writes++); throw new Exception("Failed/stale result was reused"); }
                         catch (InvalidOperationException) { TestAssert.That(writes == (attempted ? 1 : 0), "Failed/stale result retry reached writer"); }
                     }
                 }
             }
             finally { Directory.Delete(root, recursive: true); }
+        }
+        foreach (var change in new[] { "later-save", "unavailable", "revoked", "during-capture" })
+        {
+            var owner = new NativeBookOwnerScope(); owner.SetReady(true);
+            var text = "{\"kontakte\":[{\"id\":\"local\",\"uid\":\"canonical\"}]}";
+            owner.RecordSaved("synthetic-witness-book", true, BaumSyncSnapshot.Hash(text));
+            Action? duringCapture = null;
+            NativeBookSaveState? Current()
+            {
+                var result = owner.SaveState("synthetic-witness-book", true);
+                duringCapture?.Invoke(); return result;
+            }
+            var snapshot = NativeActorBookSnapshot.Capture(Current, () => text)!;
+            var commit = new ContactSourceSavedCommit(Current);
+            var contacts = JsonNode.Parse(text)!["kontakte"]!.DeepClone().AsArray(); contacts[0]!["notiz"] = "Saved";
+            var offer = commit.Stage(snapshot, new(snapshot.SavedBook, contacts, new Dictionary<string, ContactSyncCounts>()));
+            var proposed = JsonNode.Parse(text)!.AsObject(); proposed["kontakte"] = contacts;
+            var invocation = commit.Prepare(offer.Token, proposed);
+            invocation.Write(proposed.ToJsonString(), payload => { text = payload; owner.RecordSaved("synthetic-witness-book", true, BaumSyncSnapshot.Hash(payload)); });
+            var witness = invocation.ConfirmedSave();
+            if (change == "later-save") owner.RecordSaved("synthetic-witness-book", true, BaumSyncSnapshot.Hash(text));
+            if (change == "unavailable") owner.SetReady(false);
+            if (change == "revoked") commit.Invalidate();
+            if (change == "during-capture") duringCapture = commit.Invalidate;
+            TestAssert.Throws<InvalidOperationException>(() => witness.RequireCurrent(), "Stale/revoked native save witness remained usable: " + change);
         }
         await PersonalActorNativeSaveHost.VerifyOriginalContactResultAsync(new JsonObject {
             ["kontakte"] = new JsonArray(new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["notiz"] = "Original" }),

@@ -12,6 +12,8 @@ internal sealed class ContactSourceSavedCommit(Func<NativeBookSaveState?> curren
     private readonly object gate = new();
     private readonly Func<NativeBookSaveState?> current = currentSavedBook;
     private Pending? pending;
+    private SaveInvocation? confirmedInvocation;
+    private long generation;
     internal sealed record Pending(string Token, NativeBookSaveState Original, JsonObject Expected)
     { internal bool Writing; }
 
@@ -55,16 +57,71 @@ internal sealed class ContactSourceSavedCommit(Func<NativeBookSaveState?> curren
     }
 
     internal void Invalidate()
-    { lock (gate) pending = null; }
+    { lock (gate) { pending = null; confirmedInvocation = null; generation++; } }
+
+    // Native-only evidence for a later authenticated baseline ACK, not a
+    // renderer Boolean or a source permission. Always checked again by consumer.
+    internal SavedWitness ConfirmedSave(string token)
+    {
+        SavedWitness witness;
+        lock (gate)
+        {
+            var invocation = confirmedInvocation;
+            if (invocation is null || invocation.Token != token)
+                throw new InvalidOperationException("contact_source_save_unconfirmed");
+            witness = invocation.ConfirmedSave();
+        }
+        witness.RequireCurrent();
+        return witness;
+    }
+
+    private sealed record SavedProof(SaveInvocation Invocation);
+    internal sealed class SavedWitness(object proof)
+    {
+        internal NativeBookSaveState RequireCurrent()
+        {
+            if (proof is not SavedProof native)
+                throw new InvalidOperationException("contact_source_native_saved_witness_required");
+            return native.Invocation.RequireWitness(this);
+        }
+    }
 
     internal sealed class SaveInvocation
     {
         private readonly ContactSourceSavedCommit owner;
         private readonly Pending claim;
+        private readonly long generation;
+        private NativeBookSaveState? confirmed;
+        private SavedWitness? witness;
         internal string Token => claim.Token;
         internal bool Completed { get; private set; }
         internal SaveInvocation(ContactSourceSavedCommit owner, Pending claim)
-        { this.owner = owner; this.claim = claim; }
+        { this.owner = owner; this.claim = claim; generation = owner.generation; }
+
+        internal SavedWitness ConfirmedSave()
+        {
+            lock (owner.gate)
+            {
+                if (witness is null) throw new InvalidOperationException("contact_source_save_unconfirmed");
+                witness.RequireCurrent();
+                return witness;
+            }
+        }
+
+        internal NativeBookSaveState RequireWitness(SavedWitness candidate)
+        {
+            lock (owner.gate)
+            {
+                if (!ReferenceEquals(witness, candidate) || !ReferenceEquals(owner.confirmedInvocation, this) ||
+                    !Completed || confirmed is null || owner.generation != generation)
+                    throw new InvalidOperationException("contact_source_saved_witness_stale");
+                var current = owner.current();
+                if (!ReferenceEquals(witness, candidate) || !ReferenceEquals(owner.confirmedInvocation, this) ||
+                    owner.generation != generation || current != confirmed)
+                    throw new InvalidOperationException("contact_source_saved_witness_stale");
+                return confirmed;
+            }
+        }
 
         internal void Write(string payload, Action<string> nativeWriter)
         {
@@ -84,6 +141,9 @@ internal sealed class ContactSourceSavedCommit(Func<NativeBookSaveState?> curren
                         saved.Sequence != claim.Original.Sequence + 1 || saved.Sha256 != BaumSyncSnapshot.Hash(payload))
                         throw new InvalidOperationException("contact_source_result_save_unconfirmed");
                     owner.pending = null; Completed = true;
+                    confirmed = saved;
+                    witness = new SavedWitness(new SavedProof(this));
+                    owner.confirmedInvocation = this;
                 }
             }
             catch

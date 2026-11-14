@@ -106,6 +106,11 @@ internal sealed partial class PersonalActorNativeSaveHost
                         "Actual source result SaveAsync bypassed encrypted native writer/snapshot/witness");
                     TestAssert.That(response["kontaktOriginalGespeichert"]!.GetValue<string>() == (mode == "success" ? offer.Token : ""),
                         "Actual SaveAsync claimed result delivery without the native one-use proof");
+                    if (mode == "success")
+                        TestAssert.That(host.SourceResultCommit.ConfirmedSave(offer.Token).RequireCurrent() == host.Saved(),
+                            "Actual encrypted SaveAsync did not issue current private native save evidence");
+                    else TestAssert.Throws<InvalidOperationException>(() => host.SourceResultCommit.ConfirmedSave(offer.Token),
+                        "Ordinary SaveAsync impersonated a specific contact-result save");
                     var bytes = File.ReadAllBytes(host.DataPath); var saved = host.Saved();
                     var replay = await host.SaveOriginalContactResultAsync(offer.Token, proposed);
                     TestAssert.That(!replay["ok"]!.GetValue<bool>() && saved == host.Saved() && host.Snapshots == 1 &&
@@ -113,6 +118,8 @@ internal sealed partial class PersonalActorNativeSaveHost
                 }
                 else
                 {
+                    TestAssert.Throws<InvalidOperationException>(() => host.SourceResultCommit.ConfirmedSave(offer.Token),
+                        "Rejected/unknown actual SaveAsync issued positive native evidence");
                     TestAssert.That(!response["ok"]!.GetValue<bool>() && response["kontaktOriginalGespeichert"] is null,
                         "Actual SaveAsync acknowledged stale/mixed/failed source result: " + mode);
                     if (mode == "failed-primary") TestAssert.That(host.Saved() is null && host.Snapshots == 1 &&

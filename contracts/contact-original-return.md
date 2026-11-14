@@ -234,6 +234,24 @@ automatic release/reconciliation is deliberately not invented here.
 
 Next, connect genuine native setup, authenticated full receiver/sender and the
 actual desktop baseline-save acknowledgement/reconciliation lifecycle.
+
+### Desktop confirmed-save evidence for the result lifecycle
+
+The existing Linux contact-result commit and Windows `ContactSourceSavedCommit`
+now issue process-local saved witnesses only after their real native writer has
+confirmed the exact proposed book, original book identity, advanced save sequence
+and exact persisted hash. A copied `confirmed` result, renderer ACK, ordinary save,
+another offer or reconstructed witness cannot supply that evidence. Consumers
+must recheck the current saved generation and native lifetime immediately before
+using it to construct an authenticated baseline acknowledgement. Later saves,
+unsaved edits, unavailable books or revoked lifetime invalidate its usability.
+
+Linux checks exercise the actual isolated plain/encrypted writer. Windows checks
+exercise the actual generated `SaveAsync` body and encrypted atomic store, both
+as managed host tests and with the existing bounded noninteractive Windows probe.
+This is not the paused interactive Windows UI acceptance (#625), installation,
+or full Notes result transport. No new bridge command or wire capability is
+enabled by exposing this native-only evidence.
 Do not opt the runtime into these APIs piecemeal and advertise complete automation.
 The full #622 transaction, Linux/Windows sender wiring and independently verified
 wider provider authority remain open; resource19 is still unchanged.

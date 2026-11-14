@@ -10,7 +10,8 @@ from types import MethodType, SimpleNamespace
 import pytest
 
 from test_contact_source_saved_book import data
-from magnolie_contact_source_book import NativeContactSourceBook, NativeContactSourceResultCommit
+from magnolie_contact_source_book import (NativeContactSourceBook, NativeContactSourceResultCommit,
+    NativeContactSourceSavedWitness)
 from test_startup_read_failure import native
 
 
@@ -141,6 +142,7 @@ def test_exact_one_use_contact_commit_runs_actual_native_writer(native, monkeypa
                  snapshot, proposed, probe._kontakt_quellen_buchaufnahme, require_session))
     text = token.text
     assert token.result is None and not token.done.is_set()
+    with pytest.raises(PermissionError): token.saved_witness()
     monkeypatch.setattr(native, 'erinnerungsdaten_schreiben', lambda **_: mode != 'reminder-repair')
     actual_write = native.speichere_text
     def checked_write(payload):
@@ -176,6 +178,11 @@ def test_exact_one_use_contact_commit_runs_actual_native_writer(native, monkeypa
         assert current.sequence == original_state['sequence'] + 1 and current.book() == proposed
         assert current.saved_sha256 == hashlib.sha256(token.text.encode()).hexdigest()
         assert len(writes) == 1
+        witness = token.saved_witness()
+        assert witness.require_current() == (current.book_source, current.sequence,
+            current.saved_sha256, current.content_sha256)
+        assert token.saved_witness() is witness
+        with pytest.raises(PermissionError): NativeContactSourceSavedWitness(token).require_current()
         if mode == 'reuse': assert responses[1]['ok'] is False and token.result['confirmed'] is True
     elif mode in ('repair-after-rename', 'reminder-repair'):
         assert response['ok'] and response['committed'] and response['repairPending']
@@ -191,6 +198,8 @@ def test_exact_one_use_contact_commit_runs_actual_native_writer(native, monkeypa
         assert stored == token.text
     if mode != 'impostor':
         with pytest.raises(PermissionError): token.write(token.text, lambda _: pytest.fail('Consumed result wrote again'))
+    if not successful:
+        with pytest.raises(PermissionError): token.saved_witness()
 
 
 @pytest.mark.parametrize('mode', ['other-domain', 'removed-contact', 'changed-uid', 'changed-id', 'forged-snapshot'])
@@ -210,3 +219,38 @@ def test_native_contact_result_cannot_replace_other_domains_or_identities(native
     with pytest.raises(ValueError):
         NativeContactSourceResultCommit(snapshot, proposed,
             lambda: book.capture('synthetic-native-result', True, before), lambda: None)
+
+
+@pytest.mark.parametrize('change', ['unsaved', 'later-save', 'locked', 'session', 'during-capture'])
+def test_confirmed_native_witness_rechecks_the_exact_saved_generation_and_live_session(change):
+    book = NativeContactSourceBook(); book.set_ready(True)
+    current = [data()]; live = [True]; callback = [None]
+    book.record_saved('native-book', True, json.dumps(current[0]))
+    def capture():
+        result = book.capture('native-book', True, current[0])
+        if callback[0] is not None: callback[0]()
+        return result
+    def guard():
+        if not live[0]: raise PermissionError('Controlled revoked sender')
+    proposal = copy.deepcopy(current[0]); proposal['kontakte'][0]['notiz'] = 'Native saved result'
+    token = NativeContactSourceResultCommit(capture(), proposal, capture, guard)
+    def writer(payload):
+        current[0] = json.loads(payload); book.record_saved('native-book', True, payload)
+    token.write(token.text, writer)
+    token.complete({'ok': True, 'committed': True, 'repairPending': False,
+                    'standSha256': hashlib.sha256(token.text.encode()).hexdigest()})
+    witness = token.saved_witness(); witness.require_current()
+    if change == 'unsaved': current[0]['kontakte'][0]['notiz'] = 'Later edit'
+    if change == 'later-save': book.record_saved('native-book', True, token.text)
+    if change == 'locked': book.set_ready(False)
+    if change == 'session': live[0] = False
+    if change == 'during-capture': callback[0] = lambda: live.__setitem__(0, False)
+    with pytest.raises(PermissionError): witness.require_current()
+    with pytest.raises(PermissionError): token.saved_witness()
+
+
+def test_json_results_or_impostor_owners_cannot_issue_a_native_saved_witness():
+    class Impostor:
+        def _require_saved_witness(self, _): pytest.fail('An impostor may not attest itself')
+    for owner in ({'confirmed': True}, Impostor(), None):
+        with pytest.raises(PermissionError): NativeContactSourceSavedWitness(owner).require_current()

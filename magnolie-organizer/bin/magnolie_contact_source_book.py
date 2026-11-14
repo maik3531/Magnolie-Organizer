@@ -75,6 +75,23 @@ class NativeContactSourceBook:
                 lambda: self._observed)
 
 
+class NativeContactSourceSavedWitness:
+    """Process-local confirmed-writer evidence, never a JSON/transport grant.
+
+    Only the exact completed invocation retains this witness. A copied result
+    Boolean, a look-alike owner or a reconstructed object cannot attest itself.
+    Consumers must recheck immediately before generating an authenticated ACK.
+    """
+    def __init__(self, owner):
+        self._owner = owner
+
+    def require_current(self):
+        owner = self._owner
+        if type(owner) is not NativeContactSourceResultCommit:
+            raise PermissionError('contact_source_native_saved_witness_required')
+        return NativeContactSourceResultCommit._require_saved_witness(owner, self)
+
+
 class NativeContactSourceResultCommit:
     """Exact one-use native proposal -> existing writer invocation.
 
@@ -89,6 +106,7 @@ class NativeContactSourceResultCommit:
         self._lock = threading.RLock()
         self._snapshot, self._capture, self._session = snapshot, capture_current, require_session
         self._used, self._written, self._result = False, False, None
+        self._saved_witness, self._confirmed_snapshot = None, None
         self.offer_token = None
         self.done = threading.Event()
         canonical = json.dumps(proposal, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
@@ -117,6 +135,28 @@ class NativeContactSourceResultCommit:
     def result(self):
         with self._lock:
             return dict(self._result) if self._result is not None else None
+
+    def saved_witness(self):
+        with self._lock:
+            witness = self._saved_witness
+            if type(witness) is not NativeContactSourceSavedWitness:
+                raise PermissionError('contact_source_save_unconfirmed')
+        witness.require_current()
+        return witness
+
+    def _require_saved_witness(self, witness):
+        with self._lock:
+            expected = self._confirmed_snapshot
+            if (type(witness) is not NativeContactSourceSavedWitness or self._saved_witness is not witness or
+                    expected is None or not self.done.is_set() or self._result is None or
+                    self._result['confirmed'] is not True):
+                raise PermissionError('contact_source_native_saved_witness_required')
+            self._session()
+            current = self._capture()
+            self._session()
+            if type(current) is not NativeProducerBookSnapshot or current != expected:
+                raise PermissionError('contact_source_saved_witness_stale')
+            return (current.book_source, current.sequence, current.saved_sha256, current.content_sha256)
 
     def _require_current(self):
         self._session()
@@ -154,7 +194,10 @@ class NativeContactSourceResultCommit:
                 pass
             self._result = {'confirmed': bool(confirmed),
                             'committed': acknowledgment.get('committed') is True,
-                            'repairPending': acknowledgment.get('repairPending') is True}
+                             'repairPending': acknowledgment.get('repairPending') is True}
+            if confirmed:
+                self._confirmed_snapshot = current
+                self._saved_witness = NativeContactSourceSavedWitness(self)
             self.done.set()
 
 
