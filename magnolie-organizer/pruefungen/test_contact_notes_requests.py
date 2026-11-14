@@ -180,3 +180,146 @@ def test_controller_stop_during_sealing_retains_the_disk_hold_but_mints_no_fresh
         with pytest.raises(PermissionError): fresh_store.seal(h.choice.pending())
     finally:
         h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['success', 'physical-only', 'revoked', 'changed-key', 'unknown-primary',
+    'memory-impostor', 'missing-data', 'wrong-pins', 'copied-query', 'late-revoke', 'changed-request-record'])
+def test_unconfirmed_reload_can_query_readonly_without_a_saved_witness_but_never_replay_or_ack(native, tmp_path, mode):
+    from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
+    h = Harness(native, tmp_path)
+    sessions = []
+    try:
+        h.configure(); pending = h.choice.pending(); request = pending.request()
+        key = [b'J' * 32]
+        root = tmp_path / 'requests'
+        store = NativeNotesRequestIntents(root, lambda: key[0])
+        proof = store.seal(pending)
+        if mode == 'physical-only': (root / ('r-' + proof.key + '.bin')).unlink()  # Own synthetic crash state.
+        h.restart()
+        assert h.probe._kontakt_quellen_buchaufnahme() is None
+        reloaded = NativeNotesRequestIntents(root, lambda: key[0])
+        if mode == 'revoked': h.store.revoke()
+        if mode == 'changed-key': key[0] = b'K' * 32
+        if mode == 'missing-data': h.store._native_data = None
+        if mode in ('unknown-primary', 'memory-impostor'):
+            changed = copy.deepcopy(h.probe._aktuelle_daten); changed['kontakte'][0]['notiz'] = 'Unrecognized current contents'
+            if mode == 'unknown-primary': native.speichere_text(h.probe._vielleicht_verschluesseln(json.dumps(changed)))
+            h.probe._aktuelle_daten = changed
+        before = {p.name: p.read_bytes() for p in root.iterdir() if p.name != '.lock'}
+        before_book = Path(native.daten_datei()).read_bytes()
+        if mode in ('revoked', 'changed-key', 'missing-data', 'unknown-primary', 'memory-impostor'):
+            with pytest.raises(PermissionError): reloaded.readonly_query(proof.key, h.store, physical=proof.physical)
+        else:
+            query = reloaded.readonly_query(proof.key, h.store, physical=proof.physical)
+            payload = query.request()
+            assert set(payload) == {'art', 'fassung', 'request_id', 'request_sha256', 'share_id', 'before_basis', 'target_sha256'}
+            assert payload['request_id'] == request['request_id'] and 'ziel' not in payload
+            with pytest.raises(PermissionError): NativeNotesSavedAckIntent(query).body()
+            with pytest.raises(PermissionError): native.baum_notes_anfrage_senden(lambda: h.receiver, query, None, lambda: True)
+            peer = native.baum_partner(h.receiver, h.sender['kennung'])
+            peer.update(vertraut=True, kontaktSync=True, protokoll='baum-fs1')
+            protocol = NativeNotesProtocolNegotiation((h.sender['kennung'], h.sender['oeffentlich']),
+                (h.receiver['kennung'], h.receiver['oeffentlich']))
+            h.send(dict(protocol.request(), antwort=True)); protocol.accept(*h.results.pop())
+            if mode == 'wrong-pins':
+                protocol._peer = ('another-native-peer', h.sender['oeffentlich'])
+            if mode == 'copied-query': query = payload
+            if mode == 'late-revoke': h.store.revoke()
+            if mode == 'changed-request-record':
+                physical = root / ('p-' + proof.physical + '.bin')
+                blob = physical.read_bytes(); physical.write_bytes(blob[:-1] + bytes([blob[-1] ^ 1]))
+                before[physical.name] = physical.read_bytes()
+            calls = []
+            def send(url, body):
+                calls.append(url)
+                if url.endswith('/sitzung'):
+                    answer, session = native.fs_antwort_bauen(h.sender,
+                        {'kennung': h.receiver['kennung'], 'oeffentlich': h.receiver['oeffentlich']}, body)
+                    sessions.append(session); return answer
+                session = sessions[-1]
+                clear, _ = native.umschlag_oeffnen_fs(session, h.sender['kennung'], h.receiver['kennung'], body)
+                assert clear == payload and clear['art'] == 'kontakt_original_statusanfrage'
+                return native.fs_ack_bauen(session, body)
+            if mode in ('success', 'physical-only'):
+                assert native.baum_notes_statusanfrage_senden(lambda: h.receiver, query, protocol, lambda: True, sender=send)
+                assert len(calls) == 2
+            else:
+                with pytest.raises((PermissionError, InvalidTag)):
+                    native.baum_notes_statusanfrage_senden(lambda: h.receiver, query, protocol, lambda: True, sender=send)
+                assert calls == []
+        assert h.probe._kontakt_quellen_buchaufnahme() is None
+        assert Path(native.daten_datei()).read_bytes() == before_book
+        assert {p.name: p.read_bytes() for p in root.iterdir() if p.name != '.lock'} == before
+        assert reloaded._fresh == {} and not (tmp_path / 'outcomes').exists()
+    finally:
+        for session in sessions: native.fs_sitzung_loeschen(session)
+        h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['success', 'physical-only', 'no-bootstrap', 'wrong-result', 'bool-version',
+    'status-without-saved-history', 'changed-local-target', 'known-unrelated-save', 'late-revoke', 'expired-origin', 'metadata-written-before-crash'])
+def test_resumed_unconfirmed_request_requires_fresh_verified_result_and_real_native_saves_before_ack(native, monkeypatch, tmp_path, mode):
+    from magnolie_contact_notes_requests import NativeNotesRecoveryNeedsSave
+    from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
+    h = Harness(native, tmp_path)
+    try:
+        h.configure(); original = h.choice.pending()
+        store = NativeNotesRequestIntents(tmp_path / 'requests', lambda: b'J' * 32)
+        proof = store.seal(original); request = original.request()
+        if mode == 'metadata-written-before-crash':
+            h.pending = original
+            h.send(Runtime.result(request))
+            with h.probe._daten_sperre: old_commit = original.prepare_commit()
+            assert h.save(monkeypatch, invocation=old_commit)['ok']
+            h.pending = None
+            assert not (tmp_path / 'outcomes').exists(), 'Fixture accidentally sealed the old ACK'
+        if mode == 'physical-only': (tmp_path / 'requests' / ('r-' + proof.key + '.bin')).unlink()
+        h.restart()
+        store = NativeNotesRequestIntents(tmp_path / 'requests', lambda: b'J' * 32)
+        query = store.readonly_query(proof.key, h.store, physical=proof.physical)
+        body = Runtime.result(request)
+        if mode == 'wrong-result': body['target_sha256'] = '0' * 64
+        if mode == 'bool-version': body['fassung'] = True
+        if mode == 'status-without-saved-history':
+            body.update(art='kontakt_original_abschlussstatus', phase='settled', desktop_sha256='e' * 64)
+        h.send(body); body, origin, transport = h.results.pop()
+        assert h.probe._kontakt_quellen_buchaufnahme() is None
+        if mode in ('wrong-result', 'bool-version', 'status-without-saved-history'):
+            with pytest.raises(PermissionError): store.resume_verified(query, body, origin, transport)
+            assert h.probe._kontakt_quellen_buchaufnahme() is None and not (tmp_path / 'outcomes').exists()
+            return
+        with pytest.raises(NativeNotesRecoveryNeedsSave): store.resume_verified(query, body, origin, transport)
+        if mode == 'no-bootstrap':
+            assert h.probe._kontakt_quellen_buchaufnahme() is None and store._fresh == {}
+            return
+        if mode == 'expired-origin': h.service.anhalten()
+        proposed = copy.deepcopy(h.probe._aktuelle_daten)
+        if mode == 'changed-local-target': proposed['kontakte'][0]['notiz'] = 'Different actual later edit'
+        if mode == 'known-unrelated-save': proposed['known-native-later-value'] = 'must survive'
+        assert h.save(monkeypatch, proposed)['ok'], 'Bootstrap must use the real ordinary encrypted writer'
+        if mode in ('changed-local-target', 'expired-origin'):
+            before = Path(native.daten_datei()).read_bytes()
+            with pytest.raises(PermissionError): store.resume_verified(query, body, origin, transport)
+            assert Path(native.daten_datei()).read_bytes() == before and not (tmp_path / 'outcomes').exists()
+            return
+        with h.probe._daten_sperre: pending = store.resume_verified(query, body, origin, transport)
+        assert pending.request() == request and pending._source_choice is None
+        assert store._fresh == {}, 'Reload minted a fresh provider mutation stamp'
+        protocol = NativeNotesProtocolNegotiation(tuple(pending._peer), tuple(pending._own))
+        with pytest.raises(PermissionError): pending._for_negotiated_protocol(protocol)
+        if mode == 'late-revoke':
+            h.store.revoke()
+            with pytest.raises(PermissionError): pending.prepare_commit()
+            return
+        outcomes = NativeNotesAckIntents(tmp_path / 'outcomes', lambda: b'J' * 32)
+        with pytest.raises(PermissionError): outcomes.seal_after_save(pending)
+        with h.probe._daten_sperre: commit = pending.prepare_commit()
+        assert h.save(monkeypatch, invocation=commit)['ok']
+        ack = outcomes.seal_after_save(pending).body()
+        assert ack['request_id'] == request['request_id'] and ack['request_sha256'] == body['request_sha256']
+        path, = (tmp_path / 'outcomes').glob('*.bin')
+        assert outcomes.load_held(path.stem)['request_intention'] == proof.key
+        assert h.probe._kontakt_quellen_buchaufnahme().sequence == 2, 'No writer witness may be fabricated from the initial primary read'
+        if mode == 'known-unrelated-save': assert h.probe._aktuelle_daten['known-native-later-value'] == 'must survive'
+    finally:
+        h.service.anhalten()

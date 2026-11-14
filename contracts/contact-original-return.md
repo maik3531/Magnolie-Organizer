@@ -698,12 +698,60 @@ This is a Linux native-controller correction, not installed/device acceptance
 or a claimed Windows counterpart fix; the exact-plan invariant must carry across
 future platform implementations.
 
-Remaining: loading this unconfirmed evidence into an explicitly read-only native
-query and then, from a fresh VERIFIED result, a genuine resumed local book commit.
-The normal actual writer must still supply the saved witness afterwards; a loaded
-primary or returned terminal hash is not a replacement. These safe resume/worker
-pieces, automatic scheduling, common native setup and Windows counterpart remain
+The explicit query and resumed local commit are now joined below. Automatic
+scheduling/discovery, common native setup and Windows counterpart remain
 unfinished and production-disabled.
+
+### Unconfirmed query, real-save bootstrap and local commit resume (#628)
+
+`NativeNotesUnconfirmedQuery` is a distinct native type backed by the private
+pending-intention ciphertext/hash, current private consent and recognized actual
+primary/native model. It can also read the authenticated physical-only record
+left by a crash before the archive. Its seven-field target-free status inquiry
+uses the already checked native query route, never provider-request replay. The
+sender still requires fresh negotiated pins and current native transport policy.
+No fresh send stamp, saved witness or ACK is minted by loading/querying history.
+
+Only a new actual authenticated VERIFIED result with exact original request
+correlation, strict types/receipt/revision and unchanged chosen mutable target can
+resume a local metadata commit. Current known unrelated book edits are preserved;
+changed targets, unknown primary/model, revocation or stale origin are held.
+An explicit private recovered context supplies original source/setup authority,
+not a counterfeit fresh export choice. The resulting pending object cannot enter
+the provider-request sender. If the independent archive is missing after a
+physical-first crash, recovery copies only the exact already authenticated
+intention ciphertext, without issuing a mutation nonce.
+
+A fresh owner with no native saved snapshot receives a typed real-save requirement.
+The actual window worker now queues a one-use `NativeNotesBootstrapSave` through
+the actual encrypted/atomic serial writer. It binds the complete known native
+model, actual primary, source/owner lifetime and exact payload/hash; it cannot
+silently adopt newer unsaved model data. Only the actual unrepaired writer and
+new native saved observation confirm this bootstrap. No ACK exists at that point.
+The next deferred worker step creates the normal real metadata commit from that
+genuine snapshot; its actual second save supplies the saved witness before ACK
+sealing. The first primary read never calls `record_saved` to fabricate evidence,
+and no manual user save is required for this unconfirmed recovery path.
+
+This also handles a crash after metadata reached the primary but before saved-ACK
+sealing: existing metadata is not itself a witness; actual saves are performed
+again without replaying provider mutation. Conversely, prepared/settled native
+status with missing genuine local saved-ACK history is held, not converted into
+a fabricated historical receipt/hash or saved witness.
+
+Evidence: 361 affected Linux cases pass, including 41 intention/query/resume,
+33 controller, 32 reserved send, 51 pending, 57 consent, 33 origin, 11 probe,
+36 source-runtime and 67 startup/off-state cases. New cases exercise fresh owners
+without saved observations, physical-only crashes, changed targets/models,
+known later edits, stale/revoked proofs, actual window bootstrap/metadata queues,
+fake completion Booleans, stop before write and metadata-already-written crashes.
+All peers, keys and books are synthetic; no physical/installed counterpart or
+package/device acceptance is claimed. Native Notes sources are unchanged.
+
+Still outstanding: bounded automatic discovery/transport/worker pumping and the
+regular fresh-export first-save path outside unconfirmed recovery, genuine common
+setup UI and Windows counterpart. The window hooks remain unregistered as an
+active production controller; no source capability or scheduler is enabled.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 

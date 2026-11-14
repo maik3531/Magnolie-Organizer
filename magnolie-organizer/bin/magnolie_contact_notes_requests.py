@@ -12,7 +12,8 @@ import os
 import threading
 
 from magnolie_contact_notes_return import (NativeNotesAckIntents, NativeNotesPendingResult,
-    NativeNotesExportChoice, _frame_bytes, _digest, _request_uuid, notes_content_hash)
+    NativeNotesExportChoice, NativeNotesFsOrigin, NativeNotesProtocolNegotiation,
+    _frame_bytes, _digest, _request_uuid, notes_content_hash, _saved_mutable_projection)
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,166 @@ class _FreshRequestIntention:
             raise PermissionError('notes_request_native_intention_store_required')
         return self.store._require_fresh(self, pending)
 
+
+@dataclass(frozen=True)
+class _RequestHistory:
+    store: object
+    key: str
+    physical: str
+    ciphertext_hash: bytes
+
+
+@dataclass(frozen=True)
+class _UnconfirmedQueryProof:
+    history: _RequestHistory
+    consent: object
+
+
+class NativeNotesUnconfirmedQuery:
+    """Read-only inquiry from genuine unconfirmed history, not replay/ACK rights."""
+    def __init__(self, proof):
+        self._proof = proof
+
+    def request(self):
+        from magnolie_contact_notes_consent import NativeNotesChoiceStore
+        proof = self._proof
+        if (type(proof) is not _UnconfirmedQueryProof or type(proof.consent) is not NativeNotesChoiceStore or
+                type(proof.history) is not _RequestHistory or type(proof.history.store) is not NativeNotesRequestIntents):
+            raise PermissionError('notes_request_private_query_required')
+        history = proof.history.store._read_query_proof(proof.history)
+        proof.consent._verify_history_context(proof.history, (tuple(history['peer']), tuple(history['own'])))
+        return {'art': 'kontakt_original_statusanfrage', 'fassung': 1,
+            **{name: history['request'][name] for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')},
+            'request_sha256': history['request_sha256']}
+
+    def _for_negotiated_protocol(self, protocol):
+        if type(protocol) is not NativeNotesProtocolNegotiation:
+            raise PermissionError('notes_request_negotiated_query_required')
+        pins = protocol.require_current()
+        body = self.request()
+        self._proof.consent._verify_history_context(self._proof.history, pins)
+        protocol.require_current()
+        return body
+
+
+class NativeNotesRecoveryNeedsSave(PermissionError):
+    """Known primary is readable, but no real current native save exists yet."""
+    def __init__(self, context):
+        super().__init__('notes_request_real_native_save_required')
+        self.context = context
+
+
+@dataclass
+class _RecoveredRequestContext:
+    history: _RequestHistory
+    consent: object
+    result_text: bytes
+    origin: NativeNotesFsOrigin
+    transport: str
+    pending: object = None
+
+    def require_current(self):
+        from magnolie_contact_notes_consent import NativeNotesChoiceStore
+        if (type(self.history) is not _RequestHistory or type(self.history.store) is not NativeNotesRequestIntents or
+                type(self.consent) is not NativeNotesChoiceStore or type(self.origin) is not NativeNotesFsOrigin):
+            raise PermissionError('notes_request_private_recovery_required')
+        body = json.loads(self.result_text)
+        pins = self.origin.require_current(body, self.transport)
+        record = self.history.store._read_query_proof(self.history)
+        request = record['request']
+        fields = {'art', 'fassung', 'request_id', 'request_sha256', 'share_id', 'before_basis',
+            'target_sha256', 'receipt_id', 'native_revision', 'next_basis'}
+        if (set(body) != fields or body['art'] != 'kontakt_original_ergebnis' or type(body['fassung']) is not int or body['fassung'] != 1 or
+                any(_frame_bytes(body[name]) != _frame_bytes(request[name]) for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')) or
+                body['request_sha256'] != record['request_sha256'] or not _request_uuid(body['receipt_id']) or
+                type(body['native_revision']) is not int or not record['export']['native_revision'] < body['native_revision'] <= 2**63 - 1 or
+                not _digest(body['next_basis']) or body['next_basis'] == request['before_basis']):
+            raise PermissionError('notes_request_fresh_verified_result_required')
+        self.consent._verify_history_context(self.history, pins)
+        data = json.loads(_frame_bytes(self.consent._native_data()))
+        contacts = [item for item in data.get('kontakte', []) if isinstance(item, dict) and item.get('id') == record['local_id']]
+        if (len(contacts) != 1 or contacts[0].get('uid') != record['local_uid'] or
+                _frame_bytes(_saved_mutable_projection(contacts[0], record['export']['kontakt'])) != _frame_bytes(request['ziel'])):
+            raise PermissionError('notes_request_saved_target_changed')
+        self.consent._verify_history_context(self.history, pins)
+        self.origin.require_current(body, self.transport)
+        return record
+
+
+    def ack_source(self, pending):
+        if self.pending is not pending:
+            raise PermissionError('notes_request_owned_recovered_pending_required')
+        record = self.require_current()
+        if (_frame_bytes(record['request']) != pending._request_text or
+                pending._result_text != self.result_text or record['peer'] != list(pending._peer) or
+                record['own'] != list(pending._own) or record['local_id'] != pending._local_id or record['local_uid'] != pending._local_uid):
+            raise PermissionError('notes_request_recovered_correlation_changed')
+        return record
+
+
+class NativeNotesBootstrapSave:
+    """Exact known current model -> real ordinary writer, never a primary witness."""
+    def __init__(self, context, guard):
+        if type(context) is not _RecoveredRequestContext or not callable(guard):
+            raise PermissionError('notes_request_native_bootstrap_required')
+        self._context, self._guard = context, guard
+        guard(); context.require_current()
+        self._primary = context.consent._primary()
+        self._text = json.dumps(context.consent._native_data(), ensure_ascii=False, sort_keys=True,
+            separators=(',', ':'), allow_nan=False)
+        from magnolie_native_book_json import book_hash
+        self._content = book_hash(json.loads(self.text))
+        self._hash = hashlib.sha256(self.text.encode('utf-8')).hexdigest()
+        self._lock, self.done = threading.RLock(), threading.Event()
+        self._used, self._written, self._result = False, False, None
+        self._require_before()
+
+    @property
+    def text(self):
+        return self._text
+
+    @property
+    def result(self):
+        with self._lock:
+            return dict(self._result) if self._result is not None else None
+
+    def _require_before(self):
+        self._guard(); self._context.require_current()
+        from magnolie_native_book_json import book_hash
+        if (self._context.consent._primary() != self._primary or
+                self._primary[0].content_sha256 != self._content or
+                book_hash(self._context.consent._native_data()) != self._content):
+            raise PermissionError('notes_request_bootstrap_model_changed')
+        self._guard()
+
+    def write(self, payload, native_write):
+        with self._lock:
+            if (self._used or payload != self.text or not callable(native_write) or
+                    hashlib.sha256(payload.encode('utf-8')).hexdigest() != self._hash):
+                raise PermissionError('notes_request_bootstrap_consumed_or_changed')
+            self._used = True
+            self._require_before()
+            native_write(payload)
+            self._written = True
+
+    def complete(self, acknowledgment):
+        from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        with self._lock:
+            if self.done.is_set():
+                return
+            self._used = True
+            confirmed = False
+            try:
+                self._guard(); self._context.require_current()
+                saved = self._context.consent._capture()
+                confirmed = (self._written and acknowledgment.get('ok') is True and
+                    acknowledgment.get('committed') is True and acknowledgment.get('repairPending') is False and
+                    acknowledgment.get('standSha256') == self._hash and type(saved) is NativeProducerBookSnapshot and
+                    saved.saved_sha256 == self._hash and saved.content_sha256 == self._content and saved.text == self.text)
+            except Exception:
+                pass
+            self._result = {'confirmed': bool(confirmed)}
+            self.done.set()
 
 class NativeNotesRequestIntents:
     _private = staticmethod(NativeNotesAckIntents._private)
@@ -242,6 +403,77 @@ class NativeNotesRequestIntents:
         with self._locked() as directory:
             self._identity(directory)
             return self._decode(key, self._read(directory, 'r-' + key + '.bin', self._LIMIT))
+
+    def _read_query_proof(self, proof):
+        if type(proof) is not _RequestHistory or proof.store is not self or not _digest(proof.key) or not _digest(proof.physical):
+            raise PermissionError('notes_request_private_query_required')
+        with self._locked() as directory:
+            self._identity(directory)
+            key, blob, record = self._physical(directory, proof.physical)
+            if (key != proof.key or record['state'] != 'request_pending' or
+                    hashlib.sha256(blob).digest() != proof.ciphertext_hash):
+                raise PermissionError('notes_request_query_history_changed')
+            try:
+                archive = self._read(directory, 'r-' + key + '.bin', self._LIMIT)
+            except FileNotFoundError:
+                archive = None  # Physical-first crash: query only, never recreate send authority.
+            if archive is not None and archive != blob:
+                raise PermissionError('notes_request_query_history_changed')
+        return record
+
+    def readonly_query(self, key, consent, *, physical=None):
+        from magnolie_contact_notes_consent import NativeNotesChoiceStore
+        if type(consent) is not NativeNotesChoiceStore or not _digest(key) or physical is not None and not _digest(physical):
+            raise PermissionError('notes_request_private_query_required')
+        with self._locked() as directory:
+            self._identity(directory)
+            if physical is None:
+                blob = self._read(directory, 'r-' + key + '.bin', self._LIMIT)
+                physical = self._decode(key, blob)['physical']
+            actual_key, blob, _ = self._physical(directory, physical)
+            if actual_key != key:
+                raise PermissionError('notes_request_query_history_changed')
+        history = _RequestHistory(self, key, physical, hashlib.sha256(blob).digest())
+        result = NativeNotesUnconfirmedQuery(_UnconfirmedQueryProof(history, consent))
+        result.request()
+        return result
+
+    def resume_verified(self, query, body, origin, transport):
+        """Local metadata commit only, NEVER a fresh provider request or ACK."""
+        if (type(query) is not NativeNotesUnconfirmedQuery or query._proof.history.store is not self or
+                type(origin) is not NativeNotesFsOrigin):
+            raise PermissionError('notes_request_private_recovery_required')
+        context = _RecoveredRequestContext(query._proof.history, query._proof.consent, _frame_bytes(body), origin, transport)
+        record = context.require_current()
+        snapshot = context.consent._capture()
+        if snapshot is None:
+            raise NativeNotesRecoveryNeedsSave(context)
+        snapshot, binding = context.consent._saved()
+        primary, actual_binding = context.consent._primary()
+        if binding != actual_binding or snapshot.content_sha256 != primary.content_sha256:
+            raise PermissionError('notes_request_actual_primary_changed')
+        # Physical-first crash recovery copies only the already authenticated
+        # request ciphertext. It issues no fresh mutation stamp or saved witness.
+        with self._locked() as directory:
+            self._identity(directory)
+            key, blob, _ = self._physical(directory, context.history.physical)
+            if key != context.history.key or hashlib.sha256(blob).digest() != context.history.ciphertext_hash:
+                raise PermissionError('notes_request_query_history_changed')
+            try:
+                archive = self._read(directory, 'r-' + key + '.bin', self._LIMIT)
+            except FileNotFoundError:
+                self._write(directory, 'r-' + key + '.bin', blob)
+                archive = self._read(directory, 'r-' + key + '.bin', self._LIMIT)
+            if archive != blob:
+                raise PermissionError('notes_request_query_history_changed')
+        context.require_current()
+        pending = NativeNotesPendingResult(snapshot, record['request'], record['local_id'], record['local_uid'],
+            tuple(record['peer']), tuple(record['own']), context.consent._capture, context.require_current,
+            before_revision=record['export']['native_revision'])
+        context.pending = pending
+        pending._recovered_request_context = context
+        pending.stage_result(body, origin, transport)
+        return pending
 
     def forget_process_proofs(self):
         with self._memory_lock:

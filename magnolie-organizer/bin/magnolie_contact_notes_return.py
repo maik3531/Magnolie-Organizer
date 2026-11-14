@@ -575,20 +575,31 @@ class NativeNotesAckIntents:
             raise PermissionError('notes_original_native_pending_required')
         confirmed = pending.confirmed_save()
         choice = pending._source_choice
-        if type(choice) is not NativeNotesExportChoice:
-            raise PermissionError('notes_original_native_export_choice_required')
-        choice.require_current()
+        recovered = None
+        if type(choice) is NativeNotesExportChoice:
+            choice.require_current()
+            setup = json.loads(choice._body_text)['setup_id']
+        else:
+            from magnolie_contact_notes_requests import _RecoveredRequestContext
+            context = getattr(pending, '_recovered_request_context', None)
+            if type(context) is not _RecoveredRequestContext:
+                raise PermissionError('notes_original_native_export_choice_required')
+            recovered = context.ack_source(pending)
+            setup = recovered['export']['setup_id']
         request = json.loads(pending._request_text)
         record = {'format': 1, 'state': 'saved_ack_intent', 'peer': list(pending._peer), 'own': list(pending._own),
             'local_id': pending._local_id, 'local_uid': pending._local_uid, 'request': request,
             'result': confirmed['result'], 'saved_book': list(confirmed['saved_book']),
-            'source_setup_id': json.loads(choice._body_text)['setup_id']}
+            'source_setup_id': setup}
         seal = getattr(choice, '_private_seal', None)
         if seal is not None:
             from magnolie_contact_notes_consent import _NotesChoiceSeal
             if type(seal) is not _NotesChoiceSeal:
                 raise PermissionError('notes_original_private_choice_seal_required')
             record['choice_seal'] = seal.record()
+        if recovered is not None:
+            record['choice_seal'] = recovered['choice_seal']
+            record['request_intention'] = pending._recovered_request_context.history.key
         intention = getattr(pending, '_request_intention', None)
         if intention is not None:
             from magnolie_contact_notes_requests import _FreshRequestIntention

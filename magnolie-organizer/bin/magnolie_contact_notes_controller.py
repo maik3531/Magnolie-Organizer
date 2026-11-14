@@ -15,7 +15,7 @@ from cryptography.exceptions import InvalidTag
 from magnolie_contact_notes_consent import NativeNotesChoiceStore
 from magnolie_contact_notes_return import (NativeNotesAckIntents, NativeNotesFsOrigin,
     NativeNotesPendingResult, NativeNotesProtocolNegotiation, NativeNotesExportChoice, NativeNotesNoMutationRequired, _frame_bytes)
-from magnolie_contact_notes_requests import NativeNotesRequestIntents
+from magnolie_contact_notes_requests import NativeNotesRequestIntents, NativeNotesRecoveryNeedsSave, NativeNotesBootstrapSave
 
 
 @dataclass(frozen=True)
@@ -36,6 +36,8 @@ class _Owner:
     commit: object = None
     held: bool = False
     ack: object = None
+    unconfirmed: object = None
+    bootstrap: object = None
 
 
 @dataclass(frozen=True)
@@ -136,6 +138,16 @@ class NativeNotesController:
             self._register(owner)
             return NativeNotesWork('query', query, request['request_id'])
 
+    def register_unconfirmed(self, key, protocol, *, physical=None):
+        with self._work:
+            query = self._requests.readonly_query(key, self._consent, physical=physical)
+            request = query._for_negotiated_protocol(protocol)
+            record = self._requests._read_query_proof(query._proof.history)
+            owner = _Owner(protocol.require_current(), (self._consent.root, record['local_id']), request,
+                protocol, unconfirmed=query)
+            self._register(owner)
+            return NativeNotesWork('query', query, request['request_id'])
+
     def receive(self, peer, body, origin, transport):
         """Actual native FS1 callback: no book/key/consent/journal/worker calls."""
         if type(origin) is not NativeNotesFsOrigin or not isinstance(body, dict):
@@ -168,7 +180,7 @@ class NativeNotesController:
                 if not isinstance(identity, str):
                     return False
                 owner = self._owners.get((pins, identity))
-                if owner is None or owner.held or (kind == 'kontakt_original_abschlussstatus' and not owner.history):
+                if owner is None or owner.held or (kind == 'kontakt_original_abschlussstatus' and not owner.history and owner.unconfirmed is None):
                     return False
                 for name in ('request_id', 'share_id', 'before_basis', 'target_sha256'):
                     if _frame_bytes(body.get(name)) != _frame_bytes(owner.request[name]):
@@ -240,6 +252,24 @@ class NativeNotesController:
                                     owner.ack = intent
                                 result = NativeNotesWork('ack', intent, owner.request['request_id'])
                         else:
+                            if owner.pending is None and owner.unconfirmed is not None:
+                                try:
+                                    pending = self._requests.resume_verified(owner.unconfirmed, body, frame.origin, frame.transport)
+                                except NativeNotesRecoveryNeedsSave as needed:
+                                    with self._lock:
+                                        self._require_active()
+                                        key = frame.pins, frame.kind, body['request_id']
+                                        queued = self._frames.get(key)
+                                        if queued is not None and queued.text != frame.text:
+                                            raise PermissionError('notes_controller_conflicting_recovery_result')
+                                        if queued is None and sum(item.pins == frame.pins for item in self._frames.values()) < self._per_peer:
+                                            self._frames[key] = frame
+                                    if owner.bootstrap is None:
+                                        owner.bootstrap = NativeNotesBootstrapSave(needed.context, lambda owner=owner: self._guard(owner))
+                                        return NativeNotesWork('needs-real-save', owner.bootstrap, owner.request['request_id'])
+                                    return NativeNotesWork('waiting', request_id=owner.request['request_id'])
+                                owner.pending = pending
+                                pending._controller_guard = lambda owner=owner: self._guard(owner)
                             owner.pending.stage_result(body, frame.origin, frame.transport)
                             commit = owner.pending.prepare_commit()
                             if owner.commit is None:
@@ -287,6 +317,18 @@ class NativeNotesController:
             if len(matches) != 1:
                 raise PermissionError('notes_controller_owned_save_work_required')
             return self.after_saved(work.request_id, matches[0].protocol)
+
+    def finish_bootstrap(self, work):
+        if type(work) is not NativeNotesWork or work.kind != 'needs-real-save' or type(work.intent) is not NativeNotesBootstrapSave:
+            raise PermissionError('notes_controller_owned_bootstrap_required')
+        with self._work:
+            with self._lock:
+                matches = [owner for owner in self._owners.values()
+                    if owner.request['request_id'] == work.request_id and owner.bootstrap is work.intent]
+            if len(matches) != 1 or work.intent.result != {'confirmed': True}:
+                raise PermissionError('notes_controller_bootstrap_unconfirmed')
+            self._guard(matches[0])
+            return NativeNotesWork('bootstrap-saved', request_id=work.request_id)
 
     def ready_acks(self):
         with self._lock:

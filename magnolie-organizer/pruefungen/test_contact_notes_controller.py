@@ -450,3 +450,96 @@ def test_noop_export_creates_no_request_hold_but_semantic_hash_collision_is_not_
         assert Path(native.daten_datei()).read_bytes() == book
     finally:
         h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['verified', 'physical-only', 'missing-outcome-status'])
+def test_controller_restarts_unconfirmed_owner_by_readonly_query_then_real_save_not_provider_replay(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    try:
+        h.configure(); old = Runtime(h); work = old.start(); request = work.intent.request()
+        proof = work.intent._request_intention
+        if mode == 'physical-only':
+            Path(old.controller._requests.root, 'r-' + proof.key + '.bin').unlink()
+        old.controller.stop(); h.restart()
+        runtime = Runtime(h); runtime.negotiate(); c = runtime.controller
+        query = c.register_unconfirmed(proof.key, runtime.protocol, physical=proof.physical)
+        assert query.kind == 'query' and 'ziel' not in query.intent.request()
+        assert h.probe._kontakt_quellen_buchaufnahme() is None
+        result = runtime.result(request)
+        if mode == 'missing-outcome-status':
+            result.update(art='kontakt_original_abschlussstatus', phase='settled', desktop_sha256='e' * 64)
+        h.send(result)
+        action = c.process_one()
+        if mode == 'missing-outcome-status':
+            assert action.kind == 'held' and c.ready_acks() == ()
+            assert h.probe._kontakt_quellen_buchaufnahme() is None and not (tmp_path / 'outcomes').exists()
+            return
+        assert action.kind == 'needs-real-save' and c.counts()['queued'] == 1
+        assert h.probe._kontakt_quellen_buchaufnahme() is None and c._requests._fresh == {}
+        assert h.save(monkeypatch)['ok']
+        save = c.process_one()
+        assert save.kind == 'save' and save.request_id == request['request_id']
+        assert h.save(monkeypatch, invocation=save.intent)['ok']
+        ack = c.finish_save(save)
+        assert ack.intent.body()['request_id'] == request['request_id']
+        assert c._requests._fresh == {} and h.probe._kontakt_quellen_buchaufnahme().sequence == 2
+        with pytest.raises(PermissionError): c._owners[(runtime.protocol.require_current(), request['request_id'])].pending._for_negotiated_protocol(runtime.protocol)
+        status = dict(result, art='kontakt_original_abschlussstatus', phase='settled', desktop_sha256=ack.intent.body()['desktop_sha256'])
+        h.send(status)
+        assert c.process_one().kind == 'settled' and c.counts()['owners'] == 0
+        assert c._requests.load_held(proof.key)['state'] == 'request_settled'
+    finally:
+        h.service.anhalten()
+
+
+@pytest.mark.parametrize('mode', ['complete', 'stop-before-bootstrap', 'changed-model', 'fake-complete'])
+def test_actual_window_automatically_queues_a_real_known_primary_bootstrap_before_resumed_metadata(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    try:
+        h.configure(); old = Runtime(h); request_work = old.start(); request = request_work.intent.request()
+        proof = request_work.intent._request_intention
+        old.controller.stop(); h.restart()
+        runtime = Runtime(h); probe = h.probe
+        probe._notes_original_choice_store_hole = MethodType(native.Fenster._notes_original_choice_store_hole, probe)
+        c = native.Fenster._notes_original_native_controller(probe, runtime.outcomes)
+        probe._notes_original_controller = c; runtime.controller = c
+        runtime.protocol = c.begin_peer((h.sender['kennung'], h.sender['oeffentlich']), (h.receiver['kennung'], h.receiver['oeffentlich']))
+        h.service.bei_sicherer_nachricht = runtime.receive
+        runtime.negotiate(); c.register_unconfirmed(proof.key, runtime.protocol, physical=proof.physical)
+        h.send(runtime.result(request))
+        bootstrap = native.Fenster._notes_original_native_arbeit(probe)
+        assert bootstrap.kind == 'needs-real-save' and probe._speicher_auftraege.qsize() == 1
+        assert probe._kontakt_quellen_buchaufnahme() is None and c.ready_acks() == ()
+        if mode == 'fake-complete':
+            bootstrap.intent.complete({'ok': True, 'committed': True, 'repairPending': False, 'standSha256': bootstrap.intent._hash})
+            assert bootstrap.intent.result == {'confirmed': False}
+            with pytest.raises(PermissionError): c.finish_bootstrap(bootstrap)
+            assert probe._kontakt_quellen_buchaufnahme() is None and not (tmp_path / 'outcomes').exists()
+            return
+        before = Path(native.daten_datei()).read_bytes()
+        if mode == 'stop-before-bootstrap': c.stop()
+        if mode == 'changed-model': probe._aktuelle_daten['kontakte'][0]['notiz'] = 'Unsaved newer user edit'
+        monkeypatch.setattr(native, 'erinnerungsdaten_schreiben', lambda **_: True)
+        def writer():
+            probe._speicher_auftraege.put(None)
+            thread = threading.Thread(target=native.Fenster._speicher_lauf, args=(probe,), daemon=True)
+            thread.start(); thread.join(15)
+            assert not thread.is_alive()
+        writer()
+        if mode != 'complete':
+            assert bootstrap.intent.result == {'confirmed': False}
+            assert Path(native.daten_datei()).read_bytes() == before
+            assert probe._kontakt_quellen_buchaufnahme() is None and not (tmp_path / 'outcomes').exists()
+            return
+        assert bootstrap.intent.result == {'confirmed': True}
+        assert probe._kontakt_quellen_buchaufnahme().sequence == 1
+        assert c.ready_acks() == () and not (tmp_path / 'outcomes').exists()
+        metadata = native.Fenster._notes_original_native_arbeit(probe)
+        assert metadata.kind == 'save' and probe._speicher_auftraege.qsize() == 1
+        writer()
+        ack, = c.ready_acks()
+        assert ack.intent.body()['request_id'] == request['request_id']
+        assert probe._kontakt_quellen_buchaufnahme().sequence == 2 and c._requests._fresh == {}
+        assert probe._notes_original_work_error is None
+    finally:
+        h.service.anhalten()

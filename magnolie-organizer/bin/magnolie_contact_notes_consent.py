@@ -239,9 +239,15 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
         # Independent private observation permits a read-only inquiry, NOT an
         # ACK. A fresh native result/status remains mandatory for ACK recovery.
         from magnolie_contact_notes_return import NativeNotesAckIntents
-        if type(history_proof) is not _AckHistoryProof or type(history_proof.store) is not NativeNotesAckIntents:
+        from magnolie_contact_notes_requests import _RequestHistory, NativeNotesRequestIntents
+        if type(history_proof) is _AckHistoryProof and type(history_proof.store) is NativeNotesAckIntents:
+            history = history_proof.store._read_history_proof(history_proof)
+        elif type(history_proof) is _RequestHistory and type(history_proof.store) is NativeNotesRequestIntents:
+            unconfirmed = history_proof.store._read_query_proof(history_proof)
+            history = {name: unconfirmed[name] for name in ('peer', 'own', 'choice_seal', 'local_id', 'local_uid')}
+            history.update(source_setup_id=unconfirmed['export']['setup_id'], result={'share_id': unconfirmed['request']['share_id']})
+        else:
             raise PermissionError('notes_choice_private_ack_history_required')
-        history = history_proof.store._read_history_proof(history_proof)
         if pins != (tuple(history['peer']), tuple(history['own'])):
             raise PermissionError('notes_choice_repeated_result_changed')
         active = self._active_record()

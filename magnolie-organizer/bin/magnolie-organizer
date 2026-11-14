@@ -15618,7 +15618,8 @@ def baum_notes_statusanfrage_senden(zustand_lesen, query, negotiation, verbindun
                                   sender=None, zeitgrenze=6):
     """Historical read-only inquiry: no target and no request/apply fallback."""
     from magnolie_contact_notes_return import NativeNotesHistoryQuery
-    if type(query) is not NativeNotesHistoryQuery:
+    from magnolie_contact_notes_requests import NativeNotesUnconfirmedQuery
+    if type(query) not in (NativeNotesHistoryQuery, NativeNotesUnconfirmedQuery):
         raise PermissionError('notes_original_private_history_query_required')
     return _baum_notes_original_senden(zustand_lesen, query, negotiation, verbindung_freigegeben, sender, zeitgrenze)
 
@@ -15641,7 +15642,8 @@ def _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_f
     Native caller owns current-state/network policy callbacks, never payload flags.
     """
     from magnolie_contact_notes_return import NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesProtocolNegotiation, NativeNotesHistoryQuery
-    if (type(intent) not in (NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesHistoryQuery, NativeNotesProtocolNegotiation) or type(negotiation) is not NativeNotesProtocolNegotiation or
+    from magnolie_contact_notes_requests import NativeNotesUnconfirmedQuery
+    if (type(intent) not in (NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesHistoryQuery, NativeNotesUnconfirmedQuery, NativeNotesProtocolNegotiation) or type(negotiation) is not NativeNotesProtocolNegotiation or
             not callable(zustand_lesen) or not callable(verbindung_freigegeben)):
         raise PermissionError('notes_original_native_send_admission_required')
     probe = type(intent) is NativeNotesProtocolNegotiation
@@ -23826,7 +23828,8 @@ class Fenster(_FENSTER_BASIS):
             try:
                 with self._daten_sperre:
                     from magnolie_contact_source_book import NativeContactSourceResultCommit
-                    if contact_result is not None and (type(contact_result) is not NativeContactSourceResultCommit or
+                    from magnolie_contact_notes_requests import NativeNotesBootstrapSave
+                    if contact_result is not None and (type(contact_result) not in (NativeContactSourceResultCommit, NativeNotesBootstrapSave) or
                             proof is not None or historical is not None):
                         raise PermissionError('Invalid native contact result invocation')
                     if (getattr(self, "_gesperrt", False) or
@@ -23987,6 +23990,18 @@ class Fenster(_FENSTER_BASIS):
                         self._notes_original_work_error = 'notes_controller_save_ack_held'
                 if contact_result.result['confirmed'] and contact_result.offer_token is not None:
                     ergebnis['kontaktOriginalGespeichert'] = contact_result.offer_token
+            elif type(contact_result) is NativeNotesBootstrapSave:
+                contact_result.complete(ergebnis)
+                try:
+                    from magnolie_contact_notes_controller import NativeNotesController, NativeNotesWork
+                    controller = getattr(self, '_notes_original_controller', None)
+                    if (type(controller) is not NativeNotesController or type(notes_work) is not NativeNotesWork or
+                            notes_work.intent is not contact_result):
+                        raise PermissionError('notes_controller_owned_bootstrap_required')
+                    controller.finish_bootstrap(notes_work)
+                    self._notes_original_work_error = None
+                except Exception:
+                    self._notes_original_work_error = 'notes_controller_bootstrap_held'
             try:
                 self.antwort("App.gespeichert", ergebnis)
                 if (contact_approval_store is not None and ergebnis.get('ok') is True and
@@ -25159,7 +25174,7 @@ class Fenster(_FENSTER_BASIS):
         if getattr(self, '_gesperrt', True) or type(controller) is not NativeNotesController:
             return None
         work = controller.process_one()
-        if work is not None and work.kind == 'save':
+        if work is not None and work.kind in ('save', 'needs-real-save'):
             self._speicher_auftraege.put(('notes-original-' + uuid.uuid4().hex,
                 work.intent.text, None, None, work.intent, work))
         return work
