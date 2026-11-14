@@ -774,5 +774,29 @@ including token reuse, changed context/revocation, unavailable credentials,
 concurrent intent, failed prepare/advance, known-outcome recovery and rollback
 rejection. Existing core/file/account cases still pass; Core and actual BASE
 product builds are clean. These are overlapping native helper matrices, not an
-application save/restart acceptance. The real writer, authenticated primary
+application save/restart acceptance. The real writer, application-level primary
 observation, scope/SaveACK/frontend restoration and WLAN return remain unconnected.
+
+### Windows authenticated primary observation (#621)
+
+`ContactSourcePrimaryBook` now provides a private-constructor observation from
+the actual bounded native primary path, never from supplied document JSON.
+Encrypted files must authenticate with the already unlocked native session; no
+prompt/unlock fallback. Active encrypted sessions reject substituted plaintext.
+Reparse paths, missing files, changed readiness/session and changed disk content
+hold. This observation is deliberately not a `NativeActorBookSnapshot` and cannot
+grant permission. It enables known old/new signed-intent recovery and preparation
+for the first post-restart save while no actual saved witness exists. Only that
+later separately confirmed native save can restore usable authority.
+
+Nineteen new primary-path cases pass on host and actual Windows, including actual
+synthetic encrypted-file reads, wrong keys/tampering, locked/missing/substituted
+files, changed observations, known/unknown outcomes, plaintext compatibility and
+callback lock order. The save helper now also requires a privately minted
+operation witness binding its exact previous saved/primary input, so record
+copies cannot substitute a primary observation to bypass the later-save rule;
+thirty-two save-chain cases pass on both systems. Existing core/file/account
+cases pass; Core and actual BASE product builds are clean. Matrices overlap.
+These helpers remain unconnected to the real application writer, durable scope
+restore, frontend SaveACK correlation or WLAN scheduler. No installed/live-provider
+or publication acceptance is implied.

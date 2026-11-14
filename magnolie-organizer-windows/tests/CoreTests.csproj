@@ -70,6 +70,7 @@
     <Compile Include="..\ContactSourcePrivateFiles.cs" Link="ContactSourcePrivateFiles.cs" />
     <Compile Include="..\ContactSourceApprovalStore.cs" Link="ContactSourceApprovalStore.cs" />
     <Compile Include="..\ContactSourceApprovalSave.cs" Link="ContactSourceApprovalSave.cs" />
+    <Compile Include="..\ContactSourcePrimaryBook.cs" Link="ContactSourcePrimaryBook.cs" />
     <Compile Include="..\ContactSourceSavedDavRun.cs" Link="ContactSourceSavedDavRun.cs" />
     <Compile Include="..\ContactSourceSavedCommit.cs" Link="ContactSourceSavedCommit.cs" />
     <Compile Include="..\ContactSourceNativeSession.cs" Link="ContactSourceNativeSession.cs" />

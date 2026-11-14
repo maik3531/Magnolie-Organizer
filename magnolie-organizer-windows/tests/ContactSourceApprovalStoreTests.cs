@@ -52,6 +52,7 @@ internal static class ContactSourceApprovalStoreTests
         internal readonly ContactSourceApprovalStore Store;
         internal readonly NextcloudDavSource Source;
         internal readonly bool ActualDpapi;
+        internal Func<ContactSourcePrimaryBook?>? PrimaryCapture;
         internal Fixture(bool actualDpapi = false)
         {
             ActualDpapi = actualDpapi;
@@ -79,7 +80,8 @@ internal static class ContactSourceApprovalStoreTests
         }
         internal void Save(string text)
         { Text = text; Owner.RecordSaved("native-actual-session-binding", true, BaumSyncSnapshot.Hash(text)); }
-        internal ContactSourceApprovalStore NewStore() => new(Files, Account, Capture, () => Binding, ActualDpapi ? null : Keys);
+        internal ContactSourceApprovalStore NewStore() => new(Files, Account, Capture, () => Binding, ActualDpapi ? null : Keys,
+            () => PrimaryCapture?.Invoke());
         internal async Task<(NativeActorBookSnapshot Book, NativeDavContactUpdateApproval[] Approvals)> DecisionAsync()
         {
             await Scope.ConfigureAsync([Source], (_, _, _) => Task.FromResult<IReadOnlyList<string>?>([Source.Uid]));
@@ -328,6 +330,7 @@ internal static class ContactSourceApprovalStoreTests
             Console.WriteLine("CONTACT SOURCE APPROVAL STORE PASS " + mode);
         }
         await SaveChainAsync();
+        await PrimaryChainAsync();
         if (OperatingSystem.IsWindows())
         {
             using var fixture = new Fixture(actualDpapi: true);
@@ -352,7 +355,7 @@ internal static class ContactSourceApprovalStoreTests
             "pending-no-permission", "unconfirmed", "wrong-snapshot", "wrong-store", "wrong-token", "wrong-generation", "wrong-key",
             "wrong-next", "revoked", "reapproved", "credential-locked", "changed-binding", "replayed-intent", "tampered-intent",
             "malformed-intent", "prepare-failure", "advance-failure", "no-rollback", "callbacks-outside-lock", "new-owner-confirm",
-            "changed-before-intent", "changed-after-intent", "duplicate-intent", "no-intent-recovery" })
+            "changed-before-intent", "changed-after-intent", "duplicate-intent", "no-intent-recovery", "fake-save-witness", "unminted-save" })
         {
             using var fixture = new Fixture();
             if (mode == "disabled-no-io")
@@ -407,6 +410,8 @@ internal static class ContactSourceApprovalStoreTests
             if (mode == "wrong-generation") intent = intent with { Generation = new string('a', 64) };
             if (mode == "wrong-key") intent = intent with { KeyIdentity = new string('a', 64) };
             if (mode == "wrong-next") intent = intent with { NextContent = new string('a', 64) };
+            if (mode == "fake-save-witness") intent = intent with { NativeWitness = new object() };
+            if (mode == "unminted-save") intent = new(fixture.Store, intent.KeyIdentity, intent.Generation, intent.Token, intent.Previous, intent.NextContent);
             if (mode == "revoked") fixture.Store.Revoke();
             if (mode == "reapproved") await fixture.ApproveAsync();
             if (mode == "changed-binding") fixture.Binding = "different-native-book";
@@ -424,7 +429,7 @@ internal static class ContactSourceApprovalStoreTests
                 else TestAssert.That(fixture.NewStore().RecoverSaved(confirmed) == NativeBookJson.Hash(JsonNode.Parse(fixture.Text)!), "Known saved outcome did not recover across store reconstruction");
             }
             else if (mode is "unconfirmed" or "wrong-snapshot" or "wrong-store" or "wrong-token" or "wrong-generation" or "wrong-key" or "wrong-next" or
-                "revoked" or "reapproved" or "changed-binding" or "tampered-intent" or "malformed-intent" or "advance-failure" or "no-rollback" or "new-owner-confirm")
+                "revoked" or "reapproved" or "changed-binding" or "tampered-intent" or "malformed-intent" or "advance-failure" or "no-rollback" or "new-owner-confirm" or "fake-save-witness" or "unminted-save")
             {
                 if (mode == "no-rollback")
                 {
@@ -462,6 +467,115 @@ internal static class ContactSourceApprovalStoreTests
                 await FailsAsync(() => Require(original), "Old pre-save operation witness remained usable");
             }
             Console.WriteLine("CONTACT SOURCE APPROVAL SAVE PASS " + mode);
+        }
+    }
+
+    private static async Task PrimaryChainAsync()
+    {
+        const string next = "{\"version\":6,\"kontakte\":[],\"fraction\":1.25,\"restartNormalized\":true}";
+        foreach (var mode in new[] { "encrypted-restart", "plaintext-restart", "locked", "corrupt-cipher", "other-key", "missing-primary",
+            "substituted-clear", "changed-during-read", "unavailable", "wrong-binding", "no-primary-callback", "still-saved-owner",
+            "known-old", "known-new", "unknown-outcome", "stale-observation", "no-saved-witness-from-primary", "callbacks-outside-lock", "retarget-save-witness" })
+        {
+            using var fixture = new Fixture();
+            var path = Path.Combine(fixture.Root, "actual-primary.json"); fixture.Binding = path;
+            var atomic = new AtomicStore(); var encryption = new EncryptionService();
+            try
+            {
+                var raw = mode == "plaintext-restart" ? fixture.Text : encryption.Enable(fixture.Text, "synthetic-primary-password");
+                atomic.Write(path, raw);
+                var available = true;
+                fixture.PrimaryCapture = () => ContactSourcePrimaryBook.Capture(path, atomic, encryption, () => available);
+                var original = await fixture.ApproveAsync();
+                if (mode == "retarget-save-witness")
+                {
+                    var saved = fixture.Capture()!;
+                    var primary = fixture.PrimaryCapture()!;
+                    var token = fixture.Store.PrepareSave(saved, fixture.Text)!;
+                    var copied = token with { Previous = null, PreviousPrimary = primary };
+                    await FailsAsync(() => { fixture.Store.ConfirmSave(copied, saved); return Task.CompletedTask; },
+                        "Copied saved intent substituted a primary observation to bypass later native save sequence");
+                    Console.WriteLine("CONTACT SOURCE APPROVAL PRIMARY PASS " + mode); continue;
+                }
+                if (mode is "known-old" or "known-new" or "unknown-outcome") fixture.Store.PrepareSave(fixture.Capture()!, next);
+                if (mode != "still-saved-owner") { fixture.Owner = new NativeBookOwnerScope(); fixture.Owner.SetReady(true); }
+                if (mode == "callbacks-outside-lock")
+                {
+                    fixture.PrimaryCapture = () =>
+                    {
+                        using (fixture.Files.Open()) { }
+                        return ContactSourcePrimaryBook.Capture(path, atomic, encryption, () => available);
+                    };
+                }
+                if (mode == "locked") encryption.Clear();
+                if (mode == "unavailable") available = false;
+                if (mode == "missing-primary") File.Delete(path);
+                if (mode == "substituted-clear") atomic.Write(path, fixture.Text);
+                if (mode == "corrupt-cipher")
+                {
+                    var envelope = JsonNode.Parse(raw)!; var cipher = Convert.FromBase64String(envelope["daten"]!.GetValue<string>());
+                    cipher[^1] ^= 1; envelope["daten"] = Convert.ToBase64String(cipher); CryptographicOperations.ZeroMemory(cipher);
+                    atomic.Write(path, envelope.ToJsonString());
+                }
+                if (mode == "other-key")
+                {
+                    var other = new EncryptionService();
+                    try { atomic.Write(path, other.Enable(fixture.Text, "different-synthetic-primary-password")); }
+                    finally { other.Clear(); }
+                }
+                if (mode == "changed-during-read")
+                {
+                    var calls = 0;
+                    fixture.PrimaryCapture = () => ContactSourcePrimaryBook.Capture(path, atomic, encryption, () =>
+                    {
+                        if (++calls == 2) atomic.Write(path, encryption.EncryptData(next));
+                        return true;
+                    });
+                }
+                if (mode is "locked" or "corrupt-cipher" or "other-key" or "missing-primary" or "substituted-clear" or "changed-during-read" or "unavailable")
+                {
+                    await FailsAsync(() => { fixture.PrimaryCapture(); return Task.CompletedTask; }, "Unauthenticated/unavailable native primary produced an observation");
+                }
+                else
+                {
+                    if (mode is "known-new" or "unknown-outcome") atomic.Write(path, encryption.EncryptData(mode == "known-new" ? next : "{\"foreign\":true}"));
+                    var observed = fixture.PrimaryCapture()!;
+                    if (mode == "wrong-binding") fixture.Binding = "another-native-book";
+                    if (mode == "no-primary-callback") fixture.PrimaryCapture = null;
+                    if (mode == "stale-observation") atomic.Write(path, encryption.EncryptData(next));
+                    if (mode is "wrong-binding" or "no-primary-callback" or "stale-observation" or "still-saved-owner")
+                    {
+                        await FailsAsync(() => { fixture.Store.PreparePrimarySave(observed, next); return Task.CompletedTask; }, "Stale/incorrect primary context prepared native restart save");
+                    }
+                    else if (mode is "known-old" or "known-new" or "unknown-outcome")
+                    {
+                        if (mode == "unknown-outcome") await FailsAsync(() => { fixture.Store.RecoverPrimary(observed); return Task.CompletedTask; }, "Primary recovery adopted an unrelated book");
+                        else TestAssert.That(fixture.Store.RecoverPrimary(observed) == observed.Content, "Authenticated known primary outcome did not recover");
+                        TestAssert.That(fixture.Capture() is null, "Primary recovery manufactured a native saved-book witness");
+                        await FailsAsync(() => { fixture.Store.LoadCurrent(); return Task.CompletedTask; }, "Primary recovery granted IO before actual save");
+                    }
+                    else
+                    {
+                        if (mode == "no-saved-witness-from-primary")
+                        {
+                            TestAssert.That(fixture.Store.RecoverPrimary(observed) is null && fixture.Capture() is null,
+                                "Primary no-intent recovery fabricated a saved witness");
+                            await FailsAsync(() => { fixture.Store.LoadCurrent(); return Task.CompletedTask; }, "Primary observation alone granted IO");
+                        }
+                        var intent = fixture.Store.PreparePrimarySave(observed, next) ?? throw new InvalidOperationException("Controlled primary intent missing");
+                        await FailsAsync(() => { fixture.Store.LoadCurrent(); return Task.CompletedTask; }, "Primary prepare released usable authority");
+                        atomic.Write(path, mode == "plaintext-restart" ? next : encryption.EncryptData(next));
+                        fixture.Save(next); // Actual native saved witness is separate from the primary observation.
+                        fixture.Store.ConfirmSave(intent, fixture.Capture()!);
+                        var restored = fixture.Store.LoadCurrent();
+                        TestAssert.That(restored is not null && restored.Generation == original.Generation && restored.Sources.SequenceEqual(original.Sources),
+                            "First confirmed save after authenticated primary recovery lost native consent");
+                        await Require(restored!);
+                    }
+                }
+                Console.WriteLine("CONTACT SOURCE APPROVAL PRIMARY PASS " + mode);
+            }
+            finally { encryption.Clear(); }
         }
     }
 }

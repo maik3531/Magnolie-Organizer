@@ -68,18 +68,21 @@ internal sealed partial class ContactSourceApprovalStore
     private readonly NextcloudMailboxSettingsStore account;
     private readonly Func<NativeActorBookSnapshot?> captureBook;
     private readonly Func<string> bookBinding;
+    private readonly Func<ContactSourcePrimaryBook?>? capturePrimary;
     private readonly ISecretProtector keyProtector;
     private static readonly byte[] Domain = "Magnolie/native-original-contact-consent/windows/v1\0"u8.ToArray();
     private const int StateLimit = 128 * 1024;
 
     internal ContactSourceApprovalStore(ContactSourcePrivateFiles files, NextcloudMailboxSettingsStore account,
-        Func<NativeActorBookSnapshot?> captureBook, Func<string> bookBinding, ISecretProtector? keyProtector = null)
+        Func<NativeActorBookSnapshot?> captureBook, Func<string> bookBinding, ISecretProtector? keyProtector = null,
+        Func<ContactSourcePrimaryBook?>? capturePrimary = null)
     {
         this.files = files ?? throw new ArgumentNullException(nameof(files));
         this.account = account ?? throw new ArgumentNullException(nameof(account));
         this.captureBook = captureBook ?? throw new ArgumentNullException(nameof(captureBook));
         this.bookBinding = bookBinding ?? throw new ArgumentNullException(nameof(bookBinding));
         this.keyProtector = keyProtector ?? new ConsentKeyProtector();
+        this.capturePrimary = capturePrimary;
     }
 
     private static string Hex(byte[] value) => Convert.ToHexString(value).ToLowerInvariant();
