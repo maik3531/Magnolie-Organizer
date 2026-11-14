@@ -226,7 +226,7 @@ native, and portable metadata is never a permission or SaveACK witness.
 
 The existing Notes native observed offer can now build a dedicated draft
 `kontakt_original_export` frame containing exactly `art`, `fassung`, `share_id`,
-`before_basis`, `native_revision`, `content_sha256`, and the full `kontakt` model.
+`before_basis`, `setup_id`, `native_revision`, `content_sha256`, and the full `kontakt` model.
 Content/revision/quote come from the same actual private grant/map observation;
 source revocation and fabricated offers cannot build that frame. No production
 sender or advertised capability is added by this method.
@@ -258,6 +258,32 @@ nor synthetic counterpart frames are physical Android/libcore or installed
 Windows acceptance. Native selection remains bounded by its original authenticated
 session lifetime until genuine durable authority and fresh-session restoration
 are connected; it must not be reconstituted from the portable basis field.
+
+The draft export now also carries the opaque UUID of the actual native setup
+decision. It comes from the same checked source grant, not a renderer field or
+portable permission. This is an explicitly unreleased draft-schema refinement,
+not an advertised installed capability change. Linux rejects missing, malformed
+or boolean setup IDs before invoking a native choice. Existing semantic contact
+hashes and the exact request/result/ACK schemas are unchanged.
+
+A fresh reserved ACK intent now additionally requires the genuine process-local
+`NativeNotesExportChoice`, rather than merely an arbitrary native guard callback.
+That proof binds peer/local pins, saved book owner, local ID/UID, quoted export,
+native setup/revision and the full saved mutable target projection. A same-hash
+but structurally changed target cannot be substituted. The authenticated setup
+UUID is retained in the encrypted private ACK intent, not inferred from contact
+metadata. Old intents missing it remain readable only as held history and cannot
+be silently upgraded into fresh ACK authority. Native choice-owner cancellation
+invalidates fresh requests and intents; it is not a portable restore API.
+
+The changed Linux matrix passes 103 cases, followed by two new source-choice
+retargeting cases. They include actual authenticated export/explicit selection
+before the real encrypted writer and durable ACK intent, missing choice despite
+a confirmed save, legacy missing-setup history, invalid setup values and native
+choice revocation after durable intent. Notes' 66 affected host mapping/export
+cases pass with the actual source decision UUID in the frame. Durable private
+choice persistence/primary-book adoption and native setup UI are still missing;
+none of these checks authorizes a restart from portable IDs or history alone.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 

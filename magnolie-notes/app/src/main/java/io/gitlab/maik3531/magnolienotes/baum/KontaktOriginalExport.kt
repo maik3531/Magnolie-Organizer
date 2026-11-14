@@ -21,10 +21,12 @@ internal object KontaktOriginalExport {
          * Content and quote come from the same actual native observed proof.
          */
         fun nachricht(): JsonObject {
+            val proof = beleg as? Beleg ?: throw SecurityException("contact_original_native_export_required")
             val current = lesen()
             return buildJsonObject {
                 put("art", "kontakt_original_export"); put("fassung", 1)
                 put("share_id", current.freigabeId); put("before_basis", current.basisHash)
+                put("setup_id", proof.grant.entscheidungId())
                 put("native_revision", current.revision)
                 put("content_sha256", KontaktSync.hash(current.daten))
                 put("kontakt", Json { encodeDefaults = true }.encodeToJsonElement(KontaktDaten.serializer(), current.daten))

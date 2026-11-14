@@ -54,14 +54,15 @@ def prepare_native_book(native):
 
 @pytest.mark.parametrize('mode', ['success', 'changed-book', 'later-save', 'revoked-before',
     'revoked-after', 'stop-after', 'repair', 'failed-write', 'duplicate', 'later-save-after', 'owned-request', 'export-selected',
-    'ack-intent', 'ack-before-crash', 'ack-after-durable-crash', 'ack-key-lost', 'ack-tampered', 'ack-later-save', 'ack-impostor', 'ack-revoked-during-seal'])
+    'ack-intent', 'ack-before-crash', 'ack-after-durable-crash', 'ack-key-lost', 'ack-tampered', 'ack-later-save', 'ack-impostor',
+    'ack-revoked-during-seal', 'ack-no-native-choice', 'ack-legacy-without-setup'])
 def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native, monkeypatch, tmp_path, mode):
     probe, book, replies, snapshots, request, result = prepare_native_book(native)
     live, queued, received, mapping_checks = [True], [], [], []
     def require_mapping():
         mapping_checks.append('native check outside receive callback')
         if not live[0]: raise PermissionError('Synthetic native mapping revoked')
-    pending, exports = None, []
+    pending, selection, exports = None, None, []
     def accept(peer, body, origin, transport):
         if body['art'] == 'kontakt_original_export':
             exports.append((body, origin, transport))
@@ -73,9 +74,10 @@ def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native,
         queued.append('Schedule outside receive lock')
         return True
     sender, receiver, peer, saved, service = fixture(native, accept)
-    if mode == 'export-selected':
+    if mode == 'export-selected' or mode.startswith('ack-') and mode != 'ack-no-native-choice':
         native_before = {'notiz': 'Before native edit', 'telefone': [{'art': 'mobil', 'wert': '+123'}], 'gruppen': ['Native retained']}
         export = {'art': 'kontakt_original_export', 'fassung': 1, 'share_id': 'native-canonical-share',
+            'setup_id': '44444444-4444-4444-8444-444444444444',
             'before_basis': 'b' * 64, 'native_revision': 1, 'kontakt': native_before,
             'content_sha256': notes_content_hash(native_before)}
         export_channel, export_frame, _ = frame(native, service, sender, receiver, export, marker=b'E' * 16)
@@ -159,13 +161,17 @@ def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native,
             def stage(name):
                 if mode == 'ack-before-crash' and name == 'before_write': raise OSError('Controlled pre-intent stop')
                 if mode == 'ack-after-durable-crash' and name == 'after_durable_write': raise OSError('Controlled post-intent stop')
-                if mode == 'ack-revoked-during-seal' and name == 'after_durable_write': live[0] = False
+                if mode == 'ack-revoked-during-seal' and name == 'after_durable_write': selection.revoke()
             intents = NativeNotesAckIntents(root, lambda: key[0], stage=stage)
             assert intents.load_held('0' * 64) is None and not root.exists()
             if mode == 'ack-impostor':
                 with pytest.raises(PermissionError): intents.seal_after_save(confirmed)
                 with pytest.raises(PermissionError): NativeNotesSavedAckIntent(confirmed).body()
                 assert not root.exists()
+                return
+            if mode == 'ack-no-native-choice':
+                with pytest.raises(PermissionError): intents.seal_after_save(pending)
+                assert not root.exists(), 'A callback alone created durable ACK authority without authenticated choice'
                 return
             if mode == 'ack-key-lost':
                 key[0] = None
@@ -199,7 +205,18 @@ def test_actual_fs1_pending_result_runs_only_the_exact_saved_book_writer(native,
             assert intents.seal_after_save(pending).body() == body and path.read_bytes() == encrypted
             held = NativeNotesAckIntents(root, lambda: key[0]).load_held(path.stem)
             assert held['saved_book'][2] == current.saved_sha256
+            assert held['source_setup_id'] == '44444444-4444-4444-8444-444444444444'
             with pytest.raises(PermissionError): NativeNotesSavedAckIntent(held).body()
+            if mode == 'ack-legacy-without-setup':
+                legacy = dict(held); legacy.pop('source_setup_id')
+                nonce = b'L' * 12
+                blob = b'\x01' + nonce + intents._cipher().encrypt(nonce, _frame_bytes(legacy),
+                    intents._DOMAIN + path.stem.encode('ascii'))
+                path.write_bytes(blob)
+                assert intents.load_held(path.stem) == legacy
+                with pytest.raises(PermissionError): intent.body()
+                with pytest.raises(PermissionError): intents.seal_after_save(pending)
+                assert path.read_bytes() == blob, 'Legacy intent gained reconstructed setup authority'
             if mode == 'ack-key-lost':
                 key[0] = None
                 with pytest.raises(PermissionError): intent.body()
@@ -256,7 +273,8 @@ def test_actual_authenticated_mismatched_result_cannot_stage_a_book_commit(nativ
 
 
 @pytest.mark.parametrize('mode', ['cancel', 'unknown-id', 'changed-during-choice', 'copied-origin',
-    'wrong-content', 'revoked-export', 'stale-result-revision'])
+    'wrong-content', 'revoked-export', 'stale-result-revision', 'missing-setup', 'invalid-setup', 'boolean-setup',
+    'retarget-choice-model', 'retarget-choice-peer'])
 def test_native_export_selection_never_uses_portable_tags_as_mapping_authority(native, mode):
     probe, book, replies, snapshots, request, result = prepare_native_book(native)
     captured = []
@@ -265,9 +283,13 @@ def test_native_export_selection_never_uses_portable_tags_as_mapping_authority(n
     sender, receiver, peer, saved, service = fixture(native, accept)
     contact = {'notiz': 'Native before'}
     body = {'art': 'kontakt_original_export', 'fassung': 1, 'share_id': 'native-canonical-share',
+        'setup_id': '44444444-4444-4444-8444-444444444444',
         'before_basis': 'b' * 64, 'native_revision': 12, 'kontakt': contact,
         'content_sha256': notes_content_hash(contact)}
     if mode == 'wrong-content': body['content_sha256'] = '0' * 64
+    if mode == 'missing-setup': body.pop('setup_id')
+    if mode == 'invalid-setup': body['setup_id'] = 'imported-setup-claim'
+    if mode == 'boolean-setup': body['setup_id'] = True
     channel, envelope, opened = frame(native, service, sender, receiver, body)
     try:
         assert service.behandeln('/magnolie/v2/nachricht', envelope, '127.0.0.1')[0] == 200
@@ -281,16 +303,28 @@ def test_native_export_selection_never_uses_portable_tags_as_mapping_authority(n
             if mode == 'changed-during-choice':
                 book.record_saved(*probe._kontakt_quellen_buchbindung(), json.dumps(probe._aktuelle_daten))
             return 'local'
-        if mode in ('cancel', 'unknown-id', 'changed-during-choice', 'copied-origin', 'wrong-content'):
+        if mode in ('cancel', 'unknown-id', 'changed-during-choice', 'copied-origin', 'wrong-content', 'missing-setup', 'invalid-setup', 'boolean-setup'):
             with pytest.raises((PermissionError, ValueError)):
                 NativeNotesExportChoice(body, body if mode == 'copied-origin' else origin, transport,
                     snapshot, probe._kontakt_quellen_buchaufnahme, choose)
-            if mode in ('copied-origin', 'wrong-content'): assert not choices
+            if mode in ('copied-origin', 'wrong-content', 'missing-setup', 'invalid-setup', 'boolean-setup'): assert not choices
         else:
             selection = NativeNotesExportChoice(body, origin, transport, snapshot, probe._kontakt_quellen_buchaufnahme, choose)
             if mode == 'revoked-export':
                 service.anhalten()
                 with pytest.raises(PermissionError): selection.pending()
+            elif mode in ('retarget-choice-model', 'retarget-choice-peer'):
+                owned = selection.pending().request()
+                pins = (sender['kennung'], sender['oeffentlich'])
+                if mode == 'retarget-choice-model':
+                    owned['ziel']['vcardName'] = ['FN:']
+                    assert notes_content_hash(dict(contact, **owned['ziel'])) == owned['target_sha256'], 'Fixture lost its same-fingerprint distinction'
+                else:
+                    pins = ('other-peer', sender['oeffentlich'])
+                with pytest.raises(PermissionError):
+                    NativeNotesPendingResult(snapshot, owned, 'local', 'canonical-person', pins,
+                        (receiver['kennung'], receiver['oeffentlich']), probe._kontakt_quellen_buchaufnahme,
+                        selection.require_current, before_revision=12, source_choice=selection)
             else:
                 pending = selection.pending(); owned = pending.request()
                 result.update({name: owned[name] for name in ('request_id', 'share_id', 'before_basis', 'target_sha256')})

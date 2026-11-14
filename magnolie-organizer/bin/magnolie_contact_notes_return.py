@@ -71,13 +71,16 @@ class NativeNotesPendingResult:
     the existing book mutation gate, never inside the tree receive lock.
     This joins the actual writer but does not yet issue/send a wire SaveACK.
     """
-    def __init__(self, snapshot, request, local_id, local_uid, peer, own, capture_current, require_mapping, *, before_revision=0):
+    def __init__(self, snapshot, request, local_id, local_uid, peer, own, capture_current, require_mapping, *, before_revision=0, source_choice=None):
         if (type(snapshot) is not NativeProducerBookSnapshot or not callable(capture_current) or
                 not callable(require_mapping) or not isinstance(request, dict)):
             raise TypeError('notes_original_native_pending_required')
         if type(before_revision) is not int or not 0 <= before_revision <= 2**63 - 1:
             raise ValueError('notes_original_pending_revision_required')
         self._before_revision = before_revision
+        if source_choice is not None and type(source_choice) is not NativeNotesExportChoice:
+            raise PermissionError('notes_original_native_export_choice_required')
+        self._source_choice = source_choice
         self._lock = threading.RLock()
         self._work_lock = threading.RLock()
         self._snapshot, self._capture, self._mapping = snapshot, capture_current, require_mapping
@@ -98,6 +101,16 @@ class NativeNotesPendingResult:
         if len(selected) != 1 or contacts[selected[0]].get('uid') != local_uid or not local_id or not local_uid:
             raise PermissionError('notes_original_pending_contact_required')
         self._index, self._local_id, self._local_uid = selected[0], local_id, local_uid
+        if source_choice is not None:
+            source_choice.require_current()
+            exported = json.loads(source_choice._body_text)
+            patch = _saved_mutable_projection(contacts[self._index], exported['kontakt'])
+            if (source_choice._id != local_id or source_choice._uid != local_uid or source_choice._peer != self._peer or
+                    source_choice._own != self._own or source_choice._book_source != snapshot.book_source or
+                    owned['share_id'] != exported['share_id'] or owned['before_basis'] != exported['before_basis'] or
+                    owned['ziel'] != patch or owned['target_sha256'] != notes_content_hash(dict(exported['kontakt'], **patch)) or
+                    before_revision != exported['native_revision']):
+                raise PermissionError('notes_original_native_choice_retargeted')
         self._result_text, self._origin, self._transport, self._commit = None, None, None, None
         self._require_before()
 
@@ -219,11 +232,11 @@ class NativeNotesExportChoice:
         owned = json.loads(self._body_text)
         self._origin, self._transport, self._capture = origin, transport_id, capture_current
         self._peer, self._own = origin.require_current(owned, transport_id)
-        if (set(owned) != {'art', 'fassung', 'share_id', 'before_basis', 'native_revision', 'content_sha256', 'kontakt'} or
+        if (set(owned) != {'art', 'fassung', 'share_id', 'before_basis', 'setup_id', 'native_revision', 'content_sha256', 'kontakt'} or
                 owned['art'] != 'kontakt_original_export' or type(owned['fassung']) is not int or owned['fassung'] != 1 or
                 not isinstance(owned['share_id'], str) or not 0 < len(owned['share_id']) <= 128 or
                 any(ord(char) < 32 or ord(char) == 127 or 0xD800 <= ord(char) <= 0xDFFF for char in owned['share_id']) or
-                not _digest(owned['before_basis']) or type(owned['native_revision']) is not int or
+                not _digest(owned['before_basis']) or not _request_uuid(owned['setup_id']) or type(owned['native_revision']) is not int or
                 not 0 <= owned['native_revision'] <= 2**63 - 1 or not _digest(owned['content_sha256']) or
                 notes_content_hash(owned['kontakt']) != owned['content_sha256']):
             raise ValueError('notes_original_export_schema')
@@ -238,13 +251,17 @@ class NativeNotesExportChoice:
                 not isinstance(matches[0].get('uid'), str) or not matches[0]['uid']):
             raise PermissionError('notes_original_export_native_choice_required')
         self._id, self._uid, self._book_source = selected, matches[0]['uid'], snapshot.book_source
+        self._active = True
         if capture_current() != snapshot:
             raise PermissionError('notes_original_export_book_changed')
         self.require_current()
 
     def require_current(self):
+        if not self._active:
+            raise PermissionError('notes_original_native_choice_revoked')
         body = json.loads(self._body_text)
         self._origin.require_current(body, self._transport)
+
         current = self._capture()
         if type(current) is not NativeProducerBookSnapshot or current.book_source != self._book_source:
             raise PermissionError('notes_original_export_book_changed')
@@ -252,6 +269,10 @@ class NativeNotesExportChoice:
         if len(matches) != 1 or matches[0].get('uid') != self._uid:
             raise PermissionError('notes_original_export_contact_changed')
         self._origin.require_current(body, self._transport)
+
+    def revoke(self):
+        """Native choice-owner cancellation; no renderer/document restore path."""
+        self._active = False
 
     def pending(self):
         self.require_current()
@@ -267,7 +288,7 @@ class NativeNotesExportChoice:
             'share_id': exported['share_id'], 'before_basis': exported['before_basis'],
             'target_sha256': notes_content_hash(target), 'ziel': patch}
         return NativeNotesPendingResult(snapshot, request, self._id, self._uid, self._peer, self._own,
-            self._capture, self.require_current, before_revision=exported['native_revision'])
+            self._capture, self.require_current, before_revision=exported['native_revision'], source_choice=self)
 
 
 def _saved_mutable_projection(contact, before):
@@ -379,20 +400,28 @@ class NativeNotesAckIntents:
         if type(pending) is not NativeNotesPendingResult:
             raise PermissionError('notes_original_native_pending_required')
         confirmed = pending.confirmed_save()
+        choice = pending._source_choice
+        if type(choice) is not NativeNotesExportChoice:
+            raise PermissionError('notes_original_native_export_choice_required')
+        choice.require_current()
         request = json.loads(pending._request_text)
         return {'format': 1, 'state': 'saved_ack_intent', 'peer': list(pending._peer), 'own': list(pending._own),
             'local_id': pending._local_id, 'local_uid': pending._local_uid, 'request': request,
-            'result': confirmed['result'], 'saved_book': list(confirmed['saved_book'])}
+            'result': confirmed['result'], 'saved_book': list(confirmed['saved_book']),
+            'source_setup_id': json.loads(choice._body_text)['setup_id']}
 
     def _decode(self, key, blob):
         if len(blob) > 512 * 1024 or len(blob) < 29 or blob[:1] != b'\x01':
             raise ValueError('notes_original_saved_intent_schema')
         clear = self._cipher().decrypt(blob[1:13], blob[13:], self._DOMAIN + key.encode('ascii'))
         record = json.loads(clear)
-        if (not isinstance(record, dict) or set(record) != {'format', 'state', 'peer', 'own', 'local_id', 'local_uid', 'request', 'result', 'saved_book'} or
+        fields = {'format', 'state', 'peer', 'own', 'local_id', 'local_uid', 'request', 'result', 'saved_book'}
+        if (not isinstance(record, dict) or set(record) not in (fields, fields | {'source_setup_id'}) or
                 record['format'] != 1 or type(record['format']) is not int or record['state'] != 'saved_ack_intent' or
                 _frame_bytes(record) != clear or self._key(record) != key):
             raise ValueError('notes_original_saved_intent_schema')
+        if 'source_setup_id' in record and not _request_uuid(record['source_setup_id']):
+            raise ValueError('notes_original_saved_intent_setup_required')
         return record
 
     def seal_after_save(self, pending):
