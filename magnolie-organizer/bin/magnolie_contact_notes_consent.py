@@ -226,7 +226,11 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
         body = json.loads(proof.result_text)
         peer, own = proof.origin.require_current(body, proof.transport)
         history = proof.history.store._read_history_proof(proof.history)
-        if _frame_bytes(body) != _frame_bytes(history['result']) or list(peer) != history['peer'] or list(own) != history['own']:
+        result_bytes = _frame_bytes(history['result'])
+        status_bytes = [_frame_bytes(dict(history['result'], art='kontakt_original_abschlussstatus', phase=phase,
+            desktop_sha256=history['saved_book'][2])) for phase in ('prepared', 'settled')]
+        if (_frame_bytes(body) not in [result_bytes, *status_bytes] or
+                list(peer) != history['peer'] or list(own) != history['own']):
             raise PermissionError('notes_choice_repeated_result_changed')
         active = self._active_record()
         if active is None or self._native_data is None:

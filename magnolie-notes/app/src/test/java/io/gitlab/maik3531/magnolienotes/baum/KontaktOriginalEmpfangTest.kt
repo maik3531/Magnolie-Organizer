@@ -131,7 +131,8 @@ class KontaktOriginalEmpfangTest {
             assertTrue(Sitzung.pruefeQuittung(channel, envelope, call("sichereNachricht", envelope)))
         } finally { channel.loeschen(); start.ephemerGeheim.fill(0) }
     }
-    private fun queued() = store.baum.value.postfach.filter { it.art == KontaktOriginalEmpfang.ERGEBNIS }
+    private fun queued() = store.baum.value.postfach.filter {
+        it.art in setOf(KontaktOriginalEmpfang.ERGEBNIS, KontaktOriginalEmpfang.ABSCHLUSSSTATUS) }
         .map { Json.parseToJsonElement(it.inhalt) as JsonObject }
     private fun assertNoMutation() {
         assertEquals(0, provider.batchCalls); assertEquals(0, provider.writes)
@@ -443,25 +444,33 @@ class KontaktOriginalEmpfangTest {
         send(ack)
         binding = maps().beobachten(context, sourcePeer(), share)!!
         quote = maps().finden(sourcePeer(), share)!!.basisHash(scope.freigabe(binding))
-        assertThrows(IllegalStateException::class.java) { send(first) }
+        send(first)
+        assertEquals(JsonPrimitive(KontaktOriginalEmpfang.ABSCHLUSSSTATUS), queued().last()["art"])
+        assertEquals(JsonPrimitive("settled"), queued().last()["phase"])
+        assertEquals(1, provider.batchCalls)
         val secondId = UUID.randomUUID().toString()
         val second = JsonObject(request(binding.aktuell().daten.copy(notiz = "Next actual saved edit")) +
             ("request_id" to JsonPrimitive(secondId)))
-        assertThrows(IllegalStateException::class.java) { send(JsonObject(second + ("request_id" to JsonPrimitive(id)))) }
+        assertThrows(IllegalArgumentException::class.java) { send(JsonObject(second + ("request_id" to JsonPrimitive(id)))) }
         send(second)
         val file = File(parent, "attempts").listFiles()!!.single { it.extension == "bin" && !it.name.startsWith("r-") }
         val held = file.readBytes(); send(ack)
         assertArrayEquals(held, file.readBytes()); assertEquals(2, provider.batchCalls)
+        val secondResult = queued().last()
+        send(first)
+        assertArrayEquals(held, file.readBytes()); assertEquals(2, provider.batchCalls)
+        assertEquals(JsonPrimitive("settled"), queued().last()["phase"])
         binding = maps().beobachten(context, sourcePeer(), share)!!
         assertEquals(secondId, attempts().laden(scope.freigabe(binding))!!.anfrageId())
-        val secondAck = JsonObject(queued().last() + mapOf("art" to JsonPrimitive(KontaktOriginalEmpfang.BESTAETIGUNG),
+        val secondAck = JsonObject(secondResult + mapOf("art" to JsonPrimitive(KontaktOriginalEmpfang.BESTAETIGUNG),
             "desktop_sha256" to JsonPrimitive("f".repeat(64))))
         val next = expectedNextBytes(); send(secondAck); send(ack)
         assertEquals(2, File(parent, "attempts").listFiles()!!.count { it.name.startsWith("r-") })
         assertArrayEquals(next, File(parent, "maps").listFiles()!!.single { it.extension == "bin" }.readBytes())
         binding = maps().beobachten(context, sourcePeer(), share)!!
         assertNull(attempts().laden(scope.freigabe(binding)))
-        assertThrows(IllegalStateException::class.java) { send(first) }
+        send(first)
+        assertEquals(JsonPrimitive("settled"), queued().last()["phase"])
         assertEquals(2, provider.batchCalls)
     }
 
@@ -474,6 +483,49 @@ class KontaktOriginalEmpfangTest {
         attemptStage = {}
         server.anhalten(); store = Ablage.fuerTest(context) { dataKey }; consent = newConsent(); attach()
         return ack
+    }
+
+    @Test fun preparedStatusIsReadOnlyDespiteLaterProviderEdits() = historicalStatus(false)
+    @Test fun settledStatusIsReadOnlyDespiteLaterProviderEdits() = historicalStatus(true)
+
+    private fun historicalStatus(settled: Boolean) {
+        // Preserve the exact original body rather than reconstructing a target
+        // from newer provider state or the next mapping basis.
+        configure(); val body = request(); send(body)
+        val ack = JsonObject(queued().single() + mapOf("art" to JsonPrimitive(KontaktOriginalEmpfang.BESTAETIGUNG),
+            "desktop_sha256" to JsonPrimitive("e".repeat(64))))
+        if (settled) send(ack) else {
+            attemptStage = { if (it.startsWith("r-") && it.endsWith(":replaced"))
+                throw java.io.IOException("Controlled persisted prepared history") }
+            server.anhalten(); attach()
+            assertThrows(java.io.IOException::class.java) { send(ack) }
+            attemptStage = {}
+            server.anhalten(); store = Ablage.fuerTest(context) { dataKey }; consent = newConsent(); attach()
+        }
+        provider.add(ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE, mapOf(
+            ContactsContract.CommonDataKinds.Email.ADDRESS to "newer@example.invalid",
+            ContactsContract.CommonDataKinds.Email.TYPE to ContactsContract.CommonDataKinds.Email.TYPE_WORK))
+        provider.raw[ContactsContract.RawContacts.VERSION] = (provider.raw[ContactsContract.RawContacts.VERSION] as Number).toLong() + 1
+        val files = listOf("maps", "attempts").flatMap { File(parent, it).listFiles()!!.filter { f -> f.extension == "bin" } }
+        val bytes = files.associateWith { it.readBytes() }
+        send(body)
+        val status = queued().last()
+        assertEquals(JsonPrimitive(KontaktOriginalEmpfang.ABSCHLUSSSTATUS), status["art"])
+        assertEquals(JsonPrimitive(if (settled) "settled" else "prepared"), status["phase"])
+        assertEquals(JsonObject(ack + mapOf("art" to status.getValue("art"), "phase" to status.getValue("phase"))), status)
+        for (name in listOf("before_basis", "target_sha256")) {
+            assertThrows(IllegalArgumentException::class.java) { send(JsonObject(body + (name to JsonPrimitive("0".repeat(64))))) }
+        }
+        val changedTarget = JsonObject(body.getValue("ziel").jsonObject + ("notiz" to JsonPrimitive("Changed request with old UUID")))
+        assertThrows(IllegalArgumentException::class.java) { send(JsonObject(body + ("ziel" to changedTarget))) }
+        bytes.forEach { (file, expected) -> assertArrayEquals(expected, file.readBytes()) }
+        assertEquals(1, provider.batchCalls)
+        binding = maps().beobachten(context, sourcePeer(), share)!!
+        configure() // New genuine setup must not lend authority to old history.
+        assertThrows(IllegalArgumentException::class.java) { send(body) }
+        scope.widerrufen()
+        assertThrows(SecurityException::class.java) { send(body) }
+        assertEquals(1, provider.batchCalls)
     }
 
     @Test fun preparedHistoryCannotInstallItsOldMapAfterAnotherNativeProviderEdit() {

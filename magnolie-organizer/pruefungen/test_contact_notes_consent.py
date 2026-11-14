@@ -300,7 +300,10 @@ def test_uncertain_consent_publication_quarantines_selected_ephemeral_choice(nat
 @pytest.mark.parametrize('mode', ['success', 'known-later-save', 'missing-native-data', 'unknown-primary', 'memory-impostor',
     'revoked', 'reconfigured', 'missing-journal-key', 'changed-result', 'changed-receipt', 'legacy-no-seal',
     'wrong-book-seal', 'removed-contact', 'changed-uid', 'expired-origin', 'copied-origin',
-    'boolean-result-version', 'float-result-revision', 'revoke-after-reauthorize', 'unknown-primary-after-reauthorize', 'other-authenticated-peer'])
+    'boolean-result-version', 'float-result-revision', 'revoke-after-reauthorize', 'unknown-primary-after-reauthorize', 'other-authenticated-peer',
+    'status-prepared', 'status-settled', 'status-wrong-desktop', 'status-unknown-phase', 'status-extra-field',
+    'status-bool-version', 'status-float-revision', 'status-write-failure', 'status-post-write-failure',
+    'status-revoked', 'status-wrong-request-sha', 'status-wrong-basis', 'status-wrong-target', 'status-expired-origin'])
 def test_existing_saved_ack_recovers_only_with_private_primary_context_and_fresh_exact_result(native, monkeypatch, tmp_path, mode):
     h = Harness(native, tmp_path)
     try:
@@ -348,6 +351,18 @@ def test_existing_saved_ack_recovers_only_with_private_primary_context_and_fresh
                 intents._DOMAIN + path.stem.encode('ascii')))
             original = path.read_bytes()
         body = dict(result)
+        if mode.startswith('status-'):
+            body.update(art='kontakt_original_abschlussstatus', phase='settled', desktop_sha256=expected['desktop_sha256'])
+            if mode == 'status-prepared': body['phase'] = 'prepared'
+            if mode == 'status-wrong-desktop': body['desktop_sha256'] = '0' * 64
+            if mode == 'status-unknown-phase': body['phase'] = 'complete'
+            if mode == 'status-extra-field': body['saved'] = True
+            if mode == 'status-bool-version': body['fassung'] = True
+            if mode == 'status-float-revision': body['native_revision'] = 2.0
+            if mode == 'status-wrong-request-sha': body['request_sha256'] = '0' * 64
+            if mode == 'status-wrong-basis': body['before_basis'] = '0' * 64
+            if mode == 'status-wrong-target': body['target_sha256'] = '0' * 64
+            if mode == 'status-revoked': h.store.revoke()
         if mode == 'changed-result': body['target_sha256'] = '0' * 64
         if mode == 'changed-receipt': body['receipt_id'] = '33333333-3333-4333-8333-333333333333'
         if mode == 'boolean-result-version': body['fassung'] = True
@@ -358,11 +373,52 @@ def test_existing_saved_ack_recovers_only_with_private_primary_context_and_fresh
             peer['bestaetigt'] = True
             h.store._capture_primary = lambda: pytest.fail('Wrong peer reached native primary inspection')
         h.send(body); body, origin, transport = h.results.pop()
+        if mode == 'status-expired-origin': h.service.anhalten()
         if mode == 'missing-journal-key': journal_key[0] = None
         if mode == 'expired-origin': origin, transport = old_origin
         if mode == 'copied-origin': origin = body
         before_book = Path(native.daten_datei()).read_bytes()
-        if mode in ('success', 'known-later-save', 'revoke-after-reauthorize', 'unknown-primary-after-reauthorize'):
+        if mode in ('status-prepared', 'status-settled', 'status-write-failure', 'status-post-write-failure'):
+            restored = intents.reauthorize(path.stem, h.store, body, origin, transport)
+            assert restored.body() == expected
+            assert restored.terminal_confirmed() == (mode != 'status-prepared')
+            if mode == 'status-prepared':
+                with pytest.raises(PermissionError): intents.confirm_terminal(restored)
+            else:
+                actual_write = intents._write
+                def write(directory, name, value):
+                    if mode == 'status-write-failure': raise OSError('Controlled before terminal marker write')
+                    actual_write(directory, name, value)
+                    if mode == 'status-post-write-failure': raise OSError('Controlled after terminal marker write')
+                if mode != 'status-settled':
+                    intents._write = write
+                    with pytest.raises(OSError): intents.confirm_terminal(restored)
+                    intents._write = actual_write
+                    if mode == 'status-write-failure':
+                        assert path.read_bytes() == original
+                        assert restored.body() == expected
+                    else:
+                        with pytest.raises(PermissionError): restored.body()
+                    restored = intents.reauthorize(path.stem, h.store, body, origin, transport)
+                complete = intents.confirm_terminal(restored)
+                assert complete['native_terminal_sha256'] == hashlib.sha256(_frame_bytes(body)).hexdigest()
+                with pytest.raises(PermissionError): restored.body()
+                if mode == 'status-post-write-failure':
+                    assert intents.confirm_terminal(restored) == complete
+                else:
+                    with pytest.raises(PermissionError): intents.confirm_terminal(restored)
+                original = path.read_bytes()
+                assert b'native_terminal_sha256' not in original
+                again = intents.reauthorize(path.stem, h.store, body, origin, transport)
+                assert again.terminal_confirmed()
+                assert intents.confirm_terminal(again) == complete
+                with pytest.raises(PermissionError): again.body()
+                from magnolie_contact_notes_return import NativeNotesSavedAckIntent
+                for fake in (body, NativeNotesSavedAckIntent(body)):
+                    with pytest.raises(PermissionError): intents.confirm_terminal(fake)
+                with pytest.raises(PermissionError): NativeNotesSavedAckIntent(body).terminal_confirmed()
+            assert h.probe._kontakt_quellen_buchaufnahme() is None
+        elif mode in ('success', 'known-later-save', 'revoke-after-reauthorize', 'unknown-primary-after-reauthorize'):
             restored = intents.reauthorize(path.stem, h.store, body, origin, transport)
             assert restored.body() == expected
             assert h.probe._kontakt_quellen_buchaufnahme() is None, 'Primary read was laundered into a saved-writer witness'

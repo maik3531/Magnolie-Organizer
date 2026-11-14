@@ -395,6 +395,33 @@ internal class KontaktOriginalVersuche private constructor(root: File, existingJ
         grant.pruefen()
     }
 
+    /** Read-only historical correlation; never resumes settlement or releases a slot. */
+    internal fun abschlussstatus(grant: KontaktOriginalFreigaben.Freigabe, mappings: KontaktOriginalZuordnungen,
+        requestId: String, requestHash: String, shareId: String, beforeBasis: String, targetHash: String): JsonObject? {
+        grant.pruefen()
+        require(uuid(requestId) && digest(requestHash))
+        val proof = archive(grant, requestId) ?: return null
+        val record = proof.record
+        require(record["request_sha256"] == JsonPrimitive(requestHash) && record["share_id"] == JsonPrimitive(shareId) &&
+            record["mapping_sha256"] == JsonPrimitive(beforeBasis) && record["target_sha256"] == JsonPrimitive(targetHash)) {
+            "contact_original_terminal_request_changed"
+        }
+        // Historical truth only, never a fresh apply/installation grant. In
+        // particular, do not resume a prepared settlement from a status read.
+        mappings.pruefeAbschlussKontext(grant, Abschluss(proof))
+        val receipt = record.getValue("receipt").jsonObject
+        return buildJsonObject {
+            put("art", KontaktOriginalEmpfang.ABSCHLUSSSTATUS); put("fassung", 1)
+            put("phase", record.getValue("settlement"))
+            put("request_id", record.getValue("request_id")); put("request_sha256", record.getValue("request_sha256"))
+            put("share_id", record.getValue("share_id")); put("before_basis", record.getValue("mapping_sha256"))
+            put("target_sha256", record.getValue("target_sha256")); put("receipt_id", receipt.getValue("id"))
+            put("native_revision", receipt.getValue("revision"))
+            put("next_basis", record.getValue("next_mapping").jsonObject.getValue("next_basis"))
+            put("desktop_sha256", record.getValue("desktop_saved_sha256"))
+        }.also { mappings.pruefeAbschlussKontext(grant, Abschluss(proof)) }
+    }
+
     /** ACK -> prepared history -> exact map CAS -> complete history -> slot marker.
      * No deletion is needed: a released marker may be replaced by a NEW UUID,
      * while its independent per-request terminal history remains durable.

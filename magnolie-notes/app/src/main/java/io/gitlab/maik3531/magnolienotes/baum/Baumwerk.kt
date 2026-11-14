@@ -1204,7 +1204,9 @@ class Baumwerk private constructor(
                         receiver.bestaetigen(ursprung, inhalt, transportId)
                     } else {
                         val result = receiver.empfangen(ursprung, inhalt, transportId)
-                        einreihen(ursprung.partnerKennung(), KontaktOriginalEmpfang.ERGEBNIS, result)
+                        val kind = requireNotNull(text(result, "art"))
+                        require(kind in setOf(KontaktOriginalEmpfang.ERGEBNIS, KontaktOriginalEmpfang.ABSCHLUSSSTATUS))
+                        einreihen(ursprung.partnerKennung(), kind, result)
                     }
                 })
         }

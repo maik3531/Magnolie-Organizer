@@ -83,6 +83,11 @@ internal class KontaktOriginalEmpfang(
             val grant = scope.freigabe(binding)
             val mapping = mappings.finden(peer, request.share)
                 ?: throw SecurityException("contact_original_native_mapping_required")
+            val requestHash = Krypto.sha256(Kanonisch.bytes(body)).joinToString("") { "%02x".format(it.toInt() and 255) }
+            attempts.abschlussstatus(grant, mappings, request.id, requestHash, request.share, request.basis, request.targetHash)?.let {
+                lifetime()
+                return@synchronized it
+            }
             attempts.pruefeNeueAnfrage(grant, request.id)
             val before = binding.aktuell().daten
             // Only the explicitly modeled full-content fields are a patch.
@@ -94,7 +99,6 @@ internal class KontaktOriginalEmpfang(
                 "contact_original_content_invalid"
             }.kontakt.copy(gruppen = before.gruppen)
             require(KontaktSync.hash(target) == request.targetHash) { "contact_original_requested_target_changed" }
-            val requestHash = Krypto.sha256(Kanonisch.bytes(body)).joinToString("") { "%02x".format(it.toInt() and 255) }
             val previous = attempts.laden(grant)
             val verified = if (previous != null) {
                 require(previous.anfrageId() == request.id && previous.anfrageHash() == requestHash &&
@@ -148,5 +152,6 @@ internal class KontaktOriginalEmpfang(
         const val ANFRAGE = "kontakt_original_anfrage"
         const val ERGEBNIS = "kontakt_original_ergebnis"
         const val BESTAETIGUNG = "kontakt_original_saveack"
+        const val ABSCHLUSSSTATUS = "kontakt_original_abschlussstatus"
     }
 }

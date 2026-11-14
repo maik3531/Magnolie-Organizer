@@ -16164,7 +16164,7 @@ class BaumDienst(object):
                         baum_kontakt_nutzlast_pruefen((inhalt or {}).get("art"), inhalt)
                         gesehen = partner.setdefault("transportIds", [])
                         if transport_id not in gesehen:
-                            if self.bei_sicherer_nachricht and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export"):
+                            if self.bei_sicherer_nachricht and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus"):
                                 from magnolie_contact_notes_return import _issue_notes_fs_origin
                                 # Schedule later saved-book work; never wait for
                                 # its data lock while holding the receive lock.
@@ -16187,7 +16187,7 @@ class BaumDienst(object):
                                 if self.bei_sicherer_nachricht(partner, inhalt, origin, transport_id) is False:
                                     raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
                                 origin.require_current(inhalt, transport_id)
-                            elif inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export"):
+                            elif inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus"):
                                 raise RuntimeError(_("This type cannot be shared."))
                             elif self.bei_nachricht:
                                 self.bei_nachricht(partner, inhalt)

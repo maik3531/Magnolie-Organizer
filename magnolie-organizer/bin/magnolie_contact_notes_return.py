@@ -379,6 +379,19 @@ class NativeNotesSavedAckIntent:
             raise PermissionError('notes_original_native_saved_ack_required')
         return proof.store._ack_body(proof)
 
+    def terminal_confirmed(self):
+        proof = self._proof
+        if type(proof) is _RestoredAckProof:
+            from magnolie_contact_notes_consent import _RecognizedNotesAckContext
+            if (type(proof.context) is not _RecognizedNotesAckContext or type(proof.store) is not NativeNotesAckIntents or
+                    proof.context.history != proof.history or proof.history.store is not proof.store):
+                raise PermissionError('notes_original_native_ack_recovery_required')
+            proof.context.require_current()
+            body = json.loads(proof.context.result_text)
+            return body.get('art') == 'kontakt_original_abschlussstatus' and body.get('phase') == 'settled'
+        self.body()  # Reject copied JSON/fake native objects, never coerce them to a Boolean grant.
+        return False
+
 
 class NativeNotesAckIntents:
     """Encrypted durable post-save intentions, independent of source consent.
@@ -444,7 +457,8 @@ class NativeNotesAckIntents:
         clear = self._cipher().decrypt(blob[1:13], blob[13:], self._DOMAIN + key.encode('ascii'))
         record = json.loads(clear)
         fields = {'format', 'state', 'peer', 'own', 'local_id', 'local_uid', 'request', 'result', 'saved_book'}
-        if (not isinstance(record, dict) or set(record) not in (fields, fields | {'source_setup_id'}, fields | {'source_setup_id', 'choice_seal'}) or
+        if (not isinstance(record, dict) or set(record) not in (fields, fields | {'source_setup_id'},
+                fields | {'source_setup_id', 'choice_seal'}, fields | {'source_setup_id', 'choice_seal', 'native_terminal_sha256'}) or
                 record['format'] != 1 or type(record['format']) is not int or record['state'] != 'saved_ack_intent' or
                 _frame_bytes(record) != clear or self._key(record) != key):
             raise ValueError('notes_original_saved_intent_schema')
@@ -454,6 +468,8 @@ class NativeNotesAckIntents:
                 set(record['choice_seal']) != {'key_sha256', 'generation', 'book', 'source_sha256'} or
                 not all(_digest(value) for value in record['choice_seal'].values())):
             raise ValueError('notes_original_private_choice_seal_required')
+        if 'native_terminal_sha256' in record and not _digest(record['native_terminal_sha256']):
+            raise ValueError('notes_original_terminal_history_required')
         return record
 
     def seal_after_save(self, pending):
@@ -553,9 +569,10 @@ class NativeNotesAckIntents:
         return record
 
     def reauthorize(self, key, consent, body, origin, transport_id):
-        """Re-emit ONLY a previously sealed real SaveACK after fresh native proof.
+        """Recover ONLY a previously sealed real SaveACK after fresh native proof.
 
         No new pending request, provider apply or saved-writer witness is minted.
+        An exact result or historical status needs independent private consent.
         A loaded dict, primary observation or transport receipt alone is not enough.
         """
         from magnolie_contact_notes_consent import NativeNotesChoiceStore
@@ -568,7 +585,7 @@ class NativeNotesAckIntents:
         self._read_history_proof(history)
         context = consent._recognize_saved_ack(history, body, origin, transport_id)
         result = NativeNotesSavedAckIntent(_RestoredAckProof(self, history, context))
-        result.body()
+        context.require_current()
         return result
 
     def _restored_ack_body(self, proof):
@@ -577,6 +594,8 @@ class NativeNotesAckIntents:
             raise PermissionError('notes_original_native_ack_recovery_required')
         proof.context.require_current()
         record = self._read_history_proof(proof.history)
+        if 'native_terminal_sha256' in record:
+            raise PermissionError('notes_original_terminal_already_confirmed')
         if proof.context.history != proof.history:
             raise PermissionError('notes_original_private_ack_history_required')
         result = record['result']
@@ -584,6 +603,39 @@ class NativeNotesAckIntents:
         return {'art': 'kontakt_original_saveack', 'fassung': 1,
             **{name: result[name] for name in ('request_id', 'request_sha256', 'share_id', 'before_basis',
                 'target_sha256', 'receipt_id', 'native_revision', 'next_basis')}, 'desktop_sha256': record['saved_book'][2]}
+
+    def confirm_terminal(self, intent):
+        if type(intent) is not NativeNotesSavedAckIntent or type(intent._proof) is not _RestoredAckProof or intent._proof.store is not self:
+            raise PermissionError('notes_original_authenticated_terminal_status_required')
+        proof = intent._proof
+        if not intent.terminal_confirmed():
+            raise PermissionError('notes_original_terminal_status_not_settled')
+        record = self._read_history_proof(proof.history)
+        digest = hashlib.sha256(proof.context.result_text).hexdigest()
+        if 'native_terminal_sha256' in record:
+            if record['native_terminal_sha256'] != digest:
+                raise PermissionError('notes_original_terminal_history_changed')
+            return record
+        complete = dict(record, native_terminal_sha256=digest)
+        clear = _frame_bytes(complete)
+        cipher = self._cipher()
+        nonce = os.urandom(12)
+        encrypted = b'\x01' + nonce + cipher.encrypt(nonce, clear, self._DOMAIN + proof.history.key.encode('ascii'))
+        proof.context.require_current()
+        with self._locked(create=False) as directory:
+            previous = self._read(directory, proof.history.key + '.bin', 512 * 1024)
+            if hashlib.sha256(previous).digest() != proof.history.ciphertext_hash or self._decode(proof.history.key, previous) != record:
+                raise PermissionError('notes_original_saved_intent_changed')
+            self._write(directory, proof.history.key + '.bin', encrypted)
+            saved = self._read(directory, proof.history.key + '.bin', 512 * 1024)
+            if saved != encrypted or self._decode(proof.history.key, saved) != complete:
+                raise PermissionError('notes_original_terminal_history_changed')
+        # The old send proof is now stale. Recheck the new private record against
+        # the SAME authenticated status before reporting completed local history.
+        updated = _AckHistoryProof(self, proof.history.key, hashlib.sha256(saved).digest())
+        proof.context.store._recognize_saved_ack(updated, json.loads(proof.context.result_text),
+            proof.context.origin, proof.context.transport).require_current()
+        return complete  # History only, never a new send/apply permission.
 
 
 def _native_text(value):

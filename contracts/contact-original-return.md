@@ -380,11 +380,50 @@ negative legacy/source-seal cases. No native primary is laundered into a write
 receipt, and book/journal ciphertext remains unchanged by recovery. Other
 unchanged source/writer/packaging evidence is retained rather than rerun.
 
-The case where Notes already completed settlement but its transport receipt was
-lost still needs a checked read-only terminal-status reconciliation path: an old
-request must not be replayed just to obtain a result. Dedicated negotiation/send
-admission, controller orchestration, native setup UI and the Windows counterpart
-also remain unfinished and production-disabled.
+The read-only terminal-status reconciliation below now covers lost settlement
+receipts. Dedicated negotiation/send admission, controller orchestration, native
+setup UI and the Windows counterpart remain unfinished and production-disabled.
+
+### Read-only terminal status after a lost settlement receipt (#628)
+
+An exact repeated original request may now return the private historical
+`kontakt_original_abschlussstatus` instead of trying to reconstruct or reapply
+its target against newer provider data. This unadvertised draft has exactly 12
+fields: `art`, `fassung=1`, `phase`, the eight existing result correlation fields,
+and `desktop_sha256`. `phase` is precisely `prepared` or `settled`, reflecting the
+durable native archive, not a transport receipt. The original request hash,
+UUID/share/before-basis/target and current genuine source/setup context must match.
+The ordinary low-level old-UUID apply guard remains intact.
+
+This query does not continue a prepared settlement, install mappings, mutate the
+provider or release a physical slot. It remains historical truth after newer
+provider edits or another request occupying the same physical slot. New native
+setup or consent revocation cannot borrow old history. Actual Notes outbox kind
+matches the result/status body. Linux routes status only to its explicit native
+authenticated callback; absent that callback, no renderer/inbox fallback exists.
+
+Desktop historical ACK recovery accepts only the exact canonical status echo
+matching the existing independent sealed SaveACK and private choice/primary
+context. Unknown phases, wrong desktop hash, extra fields and coerced numeric
+types deny recovery. Prepared status can reauthorize that existing ACK but cannot
+mark the outcome settled. A fresh settled status may atomically persist an
+encrypted `native_terminal_sha256` marker with readback. This marker does not
+write the primary book or create a saved witness. Its write makes the old proof
+stale; a fresh checked reauthorization can idempotently confirm the same marker.
+Marked history cannot emit another ACK body. Missing or uncertain writes remain
+recoverable by a fresh authenticated status, never by inventing completion.
+
+Evidence: 120 affected Linux cases passed, followed by 14 focused status cases
+including five additional negative cases. Native API-28/API-35 run passed 230
+cases and initially failed four new cases in fixture reconstruction of the old
+request from an already changed binding. Keeping the actual original body fixed
+the fixture; all four focused cases then passed. The product logic was unchanged
+between those native runs. Native coverage includes unchanged map/journal bytes,
+newer provider edits, new setup/revocation, changed request correlation, and old
+history while a newer physical hold is active. Linux covers both phases, marker
+write interruptions, stale proofs, exact encrypted readback/idempotence and fake
+JSON denial. These overlapping runs are not additional physical/native-device
+acceptance, packaging, installation or enabled production sending.
 
 ### Durable native saved-ACK intent, no production sending (#628)
 
@@ -409,8 +448,8 @@ held history, not an inferred send success or reconstructed fresh grant.
 
 `load_held()` deliberately returns history only, with no send or provider replay
 authority. Reauthorization from a fresh repeated result and genuine private
-mapping/primary is described above; terminal-status reconciliation remains
-missing. Generic Linux queue,
+mapping/primary and read-only terminal-status reconciliation are described above.
+Generic Linux queue,
 send and direct FS1 paths reject both an ACK art argument and a disguised ACK
 body before any network call; no renderer/outbox route can send copied ACK JSON.
 No dedicated negotiated native sender or Notes ACK receiver is enabled yet.
