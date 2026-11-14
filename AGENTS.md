@@ -79,6 +79,23 @@ Prüfstand dokumentieren. Auch bei späteren Fixes diese Hinweise im Issue ergä
 eine Mac-/Tablet-Korrektur nicht als bereits geprüften Linux-/Windows-Fix ausgeben.
 Diese Regel gilt dauerhaft, nicht nur für die aktuell bearbeitete Portierung.
 
+## Aktuelle Abhängigkeiten und gezielte Rückfallwege
+
+Grundsätzlich die aktuellste unterstützte, funktionierende Version einer
+Abhängigkeit verwenden. Eine ältere Version nur als gezielten Fallback vorsehen,
+wenn die neuere in der konkreten Distribution oder Umgebung nachweislich nicht
+funktioniert. Ein einzelner Kompatibilitätsfall rechtfertigt keine allgemeine
+Bindung aller Distributionen an eine alte Version. Das gilt insbesondere auch
+für WebKit und Java.
+
+Optionale Systemdienste oder Werkzeuge nur bei tatsächlicher Verfügbarkeit
+voraussetzen; andernfalls einen geeigneten geprüften Rückfallweg verwenden.
+Beispielsweise darf NetworkManager nicht vorausgesetzt werden, wenn dieselbe
+Funktion unabhängig vom verwendeten Netzwerkdienst sicher umgesetzt werden kann.
+Rückfallbedingungen, betroffene Umgebungen und Prüfnachweise konkret festhalten;
+keine unbemerkten automatischen Downgrades, Installationen oder Erweiterungen
+bestehender Freigaben daraus ableiten.
+
 ## Native Startprüfung vor jeder Veröffentlichung
 
 Jedes installierbare Release-Paket in einer passenden vorhandenen VM bzw. nativ

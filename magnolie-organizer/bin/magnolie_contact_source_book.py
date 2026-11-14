@@ -5,7 +5,9 @@ and phone-actor ownership are not substitutes for this independent observation.
 Callers hold the native data lock while observing/replacing the current book.
 """
 import hashlib
+import hmac
 import json
+import os
 import threading
 
 from magnolie_native_book_json import book_hash
@@ -80,7 +82,7 @@ class NativeContactSourceResultCommit:
     proposal and current-book/session callbacks; any attempted invocation consumes
     it, including denial or an unknown outcome. Ordinary saves keep their policy.
     """
-    def __init__(self, snapshot, proposal, capture_current, require_session):
+    def __init__(self, snapshot, proposal, capture_current, require_session, *, serialized=None):
         if (type(snapshot) is not NativeProducerBookSnapshot or not isinstance(proposal, dict) or
                 not callable(capture_current) or not callable(require_session)):
             raise TypeError('contact_source_native_result_required')
@@ -88,7 +90,13 @@ class NativeContactSourceResultCommit:
         self._snapshot, self._capture, self._session = snapshot, capture_current, require_session
         self._used, self._written, self._result = False, False, None
         self.done = threading.Event()
-        self._text = json.dumps(proposal, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        canonical = json.dumps(proposal, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        self._content_hash = hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+        if serialized is not None and (not isinstance(serialized, str) or
+                book_hash(json.loads(serialized)) != self._content_hash):
+            raise ValueError('contact_source_exact_result_required')
+        self._text = canonical if serialized is None else serialized
+        self._canonical = canonical
         self._hash = hashlib.sha256(self._text.encode('utf-8')).hexdigest()
         original = snapshot.book()
         if (hashlib.sha256(snapshot.text.encode('utf-8')).hexdigest() != snapshot.content_sha256 or
@@ -140,10 +148,42 @@ class NativeContactSourceResultCommit:
                     acknowledgment.get('standSha256') == self._hash and
                     type(current) is NativeProducerBookSnapshot and current.book_source == self._snapshot.book_source and
                     current.sequence == self._snapshot.sequence + 1 and current.saved_sha256 == self._hash and
-                    current.content_sha256 == self._hash and current.text == self._text)
+                    current.content_sha256 == self._content_hash and current.text == self._canonical)
             except Exception:
                 pass
             self._result = {'confirmed': bool(confirmed),
                             'committed': acknowledgment.get('committed') is True,
                             'repairPending': acknowledgment.get('repairPending') is True}
             self.done.set()
+
+
+class NativeContactSourceCommitOffer:
+    """Opaque one-use offer, never reconstructible from renderer JSON.
+
+    Renderer serialization may differ in property order/whitespace, but must
+    match the entire exact native proposal structure (including number types).
+    The resulting invocation then binds THAT exact raw text to the real writer.
+    """
+    def __init__(self, snapshot, proposal, capture_current, require_session):
+        validated = NativeContactSourceResultCommit(snapshot, proposal, capture_current, require_session)
+        self._snapshot, self._text = snapshot, validated.text
+        self._capture, self._session = capture_current, require_session
+        self._lock, self._used = threading.RLock(), False
+        self.token = os.urandom(32).hex()
+
+    def offer(self):
+        with self._lock:
+            if self._used:
+                raise PermissionError('contact_source_result_offer_consumed')
+            return {'token': self.token, 'originalSha256': self._snapshot.saved_sha256,
+                    'kontakte': json.loads(self._text)['kontakte']}
+
+    def claim(self, token, payload):
+        with self._lock:
+            if self._used:
+                raise PermissionError('contact_source_result_offer_consumed')
+            self._used = True
+            if not isinstance(token, str) or not hmac.compare_digest(token, self.token):
+                raise PermissionError('contact_source_result_offer_unknown')
+            return NativeContactSourceResultCommit(self._snapshot, json.loads(self._text),
+                self._capture, self._session, serialized=payload)

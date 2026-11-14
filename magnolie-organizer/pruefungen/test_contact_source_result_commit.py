@@ -14,6 +14,67 @@ from magnolie_contact_source_book import NativeContactSourceBook, NativeContactS
 from test_startup_read_failure import native
 
 
+@pytest.mark.parametrize('mode', ['serialized-order', 'unknown-token', 'no-offer', 'other-domain',
+    'changed-uid', 'changed-contact', 'later-save-before', 'later-save-after', 'revoke-before',
+    'session-after', 'mixed-proof', 'reused-offer'])
+def test_actual_bridge_only_claims_an_exact_native_offer_for_the_existing_writer(native, monkeypatch, mode):
+    from test_startup_read_failure import Host
+    host = Host(native)
+    host._gesperrt = False
+    host._aktuelle_daten = data()
+    host._wirklich_beenden = False
+    host._daten_dek_kennung = None
+    host._kontakt_quellen_buch = NativeContactSourceBook()
+    host._kontakt_quellen_buch.set_ready(True)
+    host._journal_snapshot = lambda _: None
+    original = json.dumps(host._aktuelle_daten)
+    native.speichere_text(original)
+    host._kontakt_quellen_buch.record_saved(*host._kontakt_quellen_buchbindung(), original)
+    snapshot = host._kontakt_quellen_buchaufnahme()
+    proposed = copy.deepcopy(host._aktuelle_daten)
+    proposed['kontakte'][0]['notiz'] = 'Verified native proposed result'
+    live = [True]
+    def require_session():
+        if not live[0]: raise PermissionError('Controlled revoked native session')
+    offered = host._kontakt_quellen_ergebnis_anbieten(snapshot, proposed, require_session)
+    # Actual frontend JSON serialization need not share Python key order/spacing.
+    payload = dict(reversed(list(proposed.items())))
+    if mode == 'other-domain': payload['notizen'] = []
+    if mode == 'changed-uid': payload['kontakte'][0]['uid'] = 'replacement'
+    if mode == 'changed-contact': payload['kontakte'][0]['notiz'] = 'Unapproved renderer replacement'
+    serialized = json.dumps(payload, ensure_ascii=False, indent=2)
+    if mode == 'later-save-before': host._kontakt_quellen_buch.record_saved(*host._kontakt_quellen_buchbindung(), original)
+    if mode == 'revoke-before': host.bei_nachricht(json.dumps({'cmd': 'kontakt_originalquellen_widerrufen'}))
+    if mode == 'no-offer': host._kontakt_quellen_commit_angebot = None
+    message = {'cmd': 'speichern', 'id': 31, 'text': serialized,
+               'kontaktOriginalLauf': '0' * 64 if mode == 'unknown-token' else offered['token']}
+    if mode == 'mixed-proof': message['baumSyncLauf'] = {'forged': True}
+    host.bei_nachricht(json.dumps(message))
+    queued = mode in ('serialized-order', 'later-save-after', 'session-after', 'reused-offer')
+    assert host._speicher_auftraege.qsize() == int(queued)
+    if mode == 'later-save-after': host._kontakt_quellen_buch.record_saved(*host._kontakt_quellen_buchbindung(), original)
+    if mode == 'session-after': live[0] = False
+    if mode == 'reused-offer':
+        host.bei_nachricht(json.dumps(dict(message, id=32)))
+        assert host._speicher_auftraege.qsize() == 1
+        assert host.responses[-1][1]['ok'] is False
+    monkeypatch.setattr(native, 'erinnerungsdaten_schreiben', lambda **_: True)
+    host._speicher_auftraege.put(None)
+    worker = threading.Thread(target=native.Fenster._speicher_lauf, args=(host,), daemon=True)
+    worker.start(); worker.join(timeout=15)
+    assert not worker.is_alive()
+    responses = [value for callback, value in host.responses if callback == 'App.gespeichert' and value['id'] == 31]
+    response, = responses
+    assert response['ok'] is (mode in ('serialized-order', 'reused-offer'))
+    if response['ok']:
+        assert not response['repairPending']
+        assert Path(native.daten_datei()).read_text() == serialized
+        assert response['standSha256'] == hashlib.sha256(serialized.encode()).hexdigest()
+        assert host._kontakt_quellen_buchaufnahme().book() == proposed
+    else:
+        assert Path(native.daten_datei()).read_text() == original
+
+
 @pytest.mark.parametrize('mode', ['plain', 'encrypted', 'changed-book', 'later-save', 'revoked',
     'wrong-payload', 'impostor', 'mixed-proof', 'mixed-historical', 'failure-before-write',
     'failure-after-unknown', 'repair-after-rename', 'reminder-repair', 'reuse', 'wire-encrypted'])

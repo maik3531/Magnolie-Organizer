@@ -22025,6 +22025,20 @@ class Fenster(_FENSTER_BASIS):
                     "id": kennung, "ok": False,
                     "fehler": _("The save request is invalid.")})
                 return
+            if 'kontaktOriginalLauf' in nachricht:
+                try:
+                    from magnolie_contact_source_book import NativeContactSourceCommitOffer
+                    with self._daten_sperre:
+                        offer = getattr(self, '_kontakt_quellen_commit_angebot', None)
+                        self._kontakt_quellen_commit_angebot = None
+                        if type(offer) is not NativeContactSourceCommitOffer or nachricht.get('baumSyncLauf') is not None:
+                            raise PermissionError('contact_source_native_offer_required')
+                        invocation = offer.claim(nachricht['kontaktOriginalLauf'], klartext)
+                        self._speicher_auftraege.put((kennung, klartext, None, None, invocation))
+                except Exception:
+                    self.antwort('App.gespeichert', {'id': kennung, 'ok': False,
+                        'fehler': _('The save request is invalid.')})
+                return
             self._speicher_auftraege.put((kennung, klartext, nachricht.get("baumSyncLauf")))
 
         elif befehl == "cloud_sicherung_status":
@@ -22380,10 +22394,14 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == 'kontakt_originalquellen_widerrufen':
             self._kontakt_quellen_dialog_generation = getattr(self, '_kontakt_quellen_dialog_generation', 0) + 1
+            self._kontakt_quellen_commit_angebot = None
             scope = getattr(self, '_kontakt_quellen_freigaben', None)
             if scope is not None:
                 scope.revoke()
             self.antwort('App.originalKontaktFreigabe', {'ok': True, 'changed': True, 'freigaben': 0})
+
+        elif befehl == 'kontakt_originalquellen_update':
+            self._kontakt_quellen_updates_starten(nachricht.get('requestId'), nachricht.get('standSha256'))
 
         elif befehl == "internet_konten_mcp":
             self.antwort("App.internetKontenMcp", {"requestId": nachricht.get("requestId"), "ok": False,
@@ -23046,7 +23064,7 @@ class Fenster(_FENSTER_BASIS):
             if nachricht.get("mcp") is True and self._gesperrt:
                 self.antwort("App.syncMcpFehler", {"nativeId": nachricht.get("requestId"), "code": "profile_locked"})
                 return
-            if self._sync_laeuft or self._operation_laeuft:
+            if self._sync_laeuft or self._operation_laeuft or getattr(self, '_kontakt_quellen_update_aktiv', False):
                 if nachricht.get("mcp") is True:
                     self.antwort("App.syncMcpFehler", {"nativeId": nachricht.get("requestId"), "code": "native_busy"})
                 else:
@@ -24865,10 +24883,20 @@ class Fenster(_FENSTER_BASIS):
                                         invocation.text, None, None, invocation))
             return invocation
 
+    def _kontakt_quellen_ergebnis_anbieten(self, snapshot, proposal, require_session):
+        """Native-only creation; bridge Save can consume but never create an offer."""
+        from magnolie_contact_source_book import NativeContactSourceCommitOffer
+        with self._daten_sperre:
+            offer = NativeContactSourceCommitOffer(snapshot, proposal,
+                self._kontakt_quellen_buchaufnahme, require_session)
+            self._kontakt_quellen_commit_angebot = offer
+            return offer.offer()
+
     def _kontakt_quellen_freigabe_starten(self, request_id):
         """Native discovery -> GTK decision; IPC supplies no catalog or grants."""
         from magnolie_contact_source_dav import NativeDavApprovalScope
-        if getattr(self, '_kontakt_quellen_dialog_aktiv', False):
+        if (getattr(self, '_kontakt_quellen_dialog_aktiv', False) or
+                getattr(self, '_kontakt_quellen_update_aktiv', False)):
             self.antwort('App.originalKontaktFreigabe', {'requestId': request_id, 'ok': False,
                                                        'code': 'native_busy'})
             return
@@ -24923,11 +24951,79 @@ class Fenster(_FENSTER_BASIS):
         except Exception:
             report(False)
 
+    def _kontakt_quellen_updates_starten(self, request_id, expected_saved_hash):
+        """Native saved-book/DAV controller; returns a one-use result offer."""
+        from magnolie_contact_source_dav import NativeBoundDavFactory
+        if (getattr(self, '_kontakt_quellen_update_aktiv', False) or
+                getattr(self, '_kontakt_quellen_dialog_aktiv', False)):
+            self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False, 'code': 'native_busy'})
+            return
+        snapshot = self._kontakt_quellen_buchaufnahme()
+        if snapshot is None or not isinstance(expected_saved_hash, str) or snapshot.saved_sha256 != expected_saved_hash:
+            self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False, 'code': 'held'})
+            return
+        scope = getattr(self, '_kontakt_quellen_freigaben', None)
+        approvals = scope.capture() if scope is not None else ()
+        if not approvals:
+            self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': True,
+                'token': '', 'kontakte': None, 'freigaben': 0, 'originalSha256': expected_saved_hash, 'fehlerQuellen': 0})
+            return
+        self._kontakt_quellen_commit_angebot = None
+        self._kontakt_quellen_update_aktiv = True
+        generation = getattr(self, '_kontakt_quellen_dialog_generation', 0)
+        deadline = time.monotonic() + 120
+        store = nextcloud_speicher()
+
+        def require_session():
+            if getattr(self, '_kontakt_quellen_dialog_generation', 0) != generation:
+                raise InterruptedError('contact_source_cancelled')
+
+        def capture_for_run():
+            require_session()
+            if time.monotonic() > deadline:
+                raise InterruptedError('contact_source_cancelled')
+            if not kontakt_quellen_wlan_verfuegbar():
+                raise RuntimeError('contact_source_wlan_required')
+            return self._kontakt_quellen_buchaufnahme()
+
+        def run():
+            try:
+                protected = False
+                def protect():
+                    nonlocal protected
+                    if not protected:
+                        self._kontakt_quellen_schutz(snapshot)
+                        protected = True
+                def open_source(approval, hrefs, require_current):
+                    return NativeBoundDavFactory(store, approval, hrefs, require_current,
+                        protect, kontakt_original_vcard_beobachtung)
+                result = kontakt_quellen_updates_vorbereiten(snapshot, capture_for_run, approvals, open_source)
+                require_session()
+                offered = (self._kontakt_quellen_ergebnis_anbieten(snapshot, result['book'], require_session)
+                           if result['book'] != snapshot.book() else
+                           {'token': '', 'originalSha256': expected_saved_hash, 'kontakte': None})
+                self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': True,
+                    **offered, 'freigaben': len(scope.capture()), 'fehlerQuellen': sum(
+                        item['status'] in ('held', 'conflict') for item in result['outcomes'])})
+            except Exception as error:
+                self._kontakt_quellen_commit_angebot = None
+                self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False,
+                    'code': 'wlan_required' if str(error) == 'contact_source_wlan_required' else 'held',
+                    'freigaben': len(scope.capture())})
+            finally:
+                self._kontakt_quellen_update_aktiv = False
+        try:
+            threading.Thread(target=run, daemon=True).start()
+        except Exception:
+            self._kontakt_quellen_update_aktiv = False
+            self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False, 'code': 'held'})
+
     def _telefon_actor_buchbindung(self):
         # Native fields only: never call GTK/a main loop from a receiver/store callback.
         data = self._aktuelle_daten
         available = (not self._gesperrt and isinstance(data, dict) and
-            not self._operation_laeuft and not self._sync_laeuft and not self._wirklich_beenden)
+            not self._operation_laeuft and not self._sync_laeuft and not self._wirklich_beenden and
+            not getattr(self, '_kontakt_quellen_update_aktiv', False))
         binding = json.dumps([os.path.realpath(daten_datei()), str(self._daten_dek_kennung or ""),
             str(data.get("syncEpoch", "")) if isinstance(data, dict) else ""], ensure_ascii=False)
         return binding, available
@@ -29511,6 +29607,88 @@ def sync_quellen_aufteilen(kalender_uids, adressbuch_uid):
         ("nextcloud-addressbook:", "generic-dav-addressbook:")) else "")
     return nextcloud_kalender, eds_kalender, nextcloud_buch, (
         "" if nextcloud_buch else adressbuch_uid)
+
+
+def _kontakt_quellen_kernel_route(family):
+    """Read-only kernel route lookup; sends ONLY to local NETLINK_ROUTE pid 0.
+
+    Documentation addresses are lookup keys, never network packet destinations.
+    Policy routing is resolved by the kernel, without any network-manager daemon
+    or external executable. Unavailable address families return no route.
+    """
+    import socket
+    import struct
+    import errno
+    target = {socket.AF_INET: '192.0.2.1', socket.AF_INET6: '2001:db8::1'}[family]
+    address = socket.inet_pton(family, target)
+    attribute = struct.pack('=HH', 4 + len(address), 1) + address  # RTA_DST
+    route = struct.pack('=BBBBBBBBI', family, len(address) * 8, 0, 0, 0, 0, 0, 0, 0) + attribute
+    sequence = int.from_bytes(os.urandom(4), 'little') or 1
+    request = struct.pack('=IHHII', 16 + len(route), 26, 1, sequence, 0) + route  # RTM_GETROUTE
+    with socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, socket.NETLINK_ROUTE) as channel:
+        channel.settimeout(0.5)
+        channel.bind((0, 0))
+        channel.sendto(request, (0, 0))
+        payload, sender = channel.recvfrom(8192)
+    if sender[0] != 0 or len(payload) < 16:
+        raise ValueError('contact_source_route_unknown')
+    size, kind, flags, reply_sequence, _ = struct.unpack_from('=IHHII', payload)
+    if reply_sequence != sequence or size > len(payload) or size < 16 or flags & 16:
+        raise ValueError('contact_source_route_unknown')
+    if kind == 2 and size >= 20:  # NLMSG_ERROR
+        error = -struct.unpack_from('=i', payload, 16)[0]
+        if error in (errno.ENETUNREACH, errno.EHOSTUNREACH, errno.EAFNOSUPPORT):
+            return None
+        raise OSError(error, 'contact_source_route_unknown')
+    if kind != 24 or size < 28:  # RTM_NEWROUTE
+        raise ValueError('contact_source_route_unknown')
+    fields = struct.unpack_from('=BBBBBBBBI', payload, 16)
+    if fields[0] != family or fields[7] != 1:  # RTN_UNICAST only
+        raise ValueError('contact_source_route_unknown')
+    interface, offset = None, 28
+    while offset < size:
+        if offset + 4 > size:
+            raise ValueError('contact_source_route_unknown')
+        length, attribute_kind = struct.unpack_from('=HH', payload, offset)
+        if length < 4 or offset + length > size:
+            raise ValueError('contact_source_route_unknown')
+        if attribute_kind == 4:  # RTA_OIF
+            if interface is not None or length != 8:
+                raise ValueError('contact_source_route_unknown')
+            interface = struct.unpack_from('=I', payload, offset + 4)[0]
+        offset += (length + 3) & ~3
+    if not interface:
+        raise ValueError('contact_source_route_unknown')
+    return socket.if_indextoname(interface)
+
+
+def kontakt_quellen_wlan_verfuegbar():
+    """Daemon-independent kernel egress + sysfs WLAN/link observation.
+
+    Both routable families must use WLAN. Ethernet/mobile/tunnel/unknown paths
+    hold, even if another wireless interface is UP. No connectivity is changed.
+    """
+    import socket
+    try:
+        families = (socket.AF_INET, socket.AF_INET6)
+        before = tuple(_kontakt_quellen_kernel_route(family) for family in families)
+        if not any(before):
+            return False
+        for interface in set(before) - {None}:
+            if not isinstance(interface, str) or re.fullmatch(r'[A-Za-z0-9_.:-]{1,15}', interface) is None:
+                return False
+            root = '/sys/class/net/' + interface
+            if not (os.path.isdir(root + '/wireless') or os.path.exists(root + '/phy80211')):
+                return False
+            with open(root + '/operstate', encoding='ascii') as state:
+                if state.read(32).strip() != 'up':
+                    return False
+            with open(root + '/carrier', encoding='ascii') as carrier:
+                if carrier.read(8).strip() != '1':
+                    return False
+        return tuple(_kontakt_quellen_kernel_route(family) for family in families) == before
+    except Exception:
+        return False
 
 
 def kontakt_quellen_freigabe_dialog(parent, choices, selected):

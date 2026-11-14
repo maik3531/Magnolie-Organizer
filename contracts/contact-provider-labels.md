@@ -439,3 +439,43 @@ The settings button/frontend SaveACK scheduling, Linux update command/controller
 WLAN lifecycle and safe frontend result adoption remain unconnected. This native
 consent command alone neither starts source updates nor grants EDS/Akonadi or
 persistent consent. New consent strings currently use normal catalog fallback.
+
+The native WLAN observation is independent of NetworkManager, D-Bus, Gio and
+external commands. Read-only local `NETLINK_ROUTE` lookups resolve representative
+IPv4/IPv6 routes through the kernel (no network packets to the lookup addresses).
+Every routable family must resolve to a sysfs-observed WLAN interface with an UP
+link and carrier; routes are rechecked after link inspection. An UP but unused
+wireless adapter does not authorize Ethernet/mobile/tunnel egress. Unknown states
+hold. Thirty-three controlled gate/netlink-parser cases cover daemonless operation,
+dual stack, route changes and malformed/error replies; this is not physical
+network-manager or device acceptance.
+
+## Linux native update command and frontend-save offer (#618, intermediate)
+
+The Linux native update command now captures the actual saved book, requires its
+expected raw SaveACK hash and explicit native session approvals, and connects the
+WLAN/book/deadline guards to every bound factory request. It owns a separate
+operation flag: manual sync and phone-actor delivery hold during the run without
+invalidating the contact operation's own saved snapshot. Recovery protection uses
+the exact existing journal once per run; source errors remain isolated, while
+book change, cancellation and loss of WLAN abort the operation.
+
+Results are opaque, one-use native offers, not immediate writes to local data.
+The ordinary save bridge can consume such an offer but cannot create one. It must
+submit the entire exact native proposal: serialization order/whitespace may vary,
+but extra edits, identity/domain changes, stale books, unknown/reused tokens and
+mixed proofs hold. After validation, the invocation binds that exact submitted
+raw text to the actual writer; confirmation still distinguishes raw SaveACK hash
+from canonical book-content hash. Revocation clears pending offers.
+
+Fifty-five additional controlled cases cover the daemon-independent WLAN gate,
+actual native update command and actual save-bridge offer claims. The final
+affected run passes 255 cases, including all twelve historical actual GUI-source
+writer regressions with existing explicit Node paths (no skips). A separate
+isolated read-only host kernel-route probe works with Gio/GLib absent; it changes
+no network settings and sends no remote traffic. No old runtime, network manager,
+tool installation or distribution-specific service requirement was introduced.
+
+The full frontend settings/SaveACK scheduler and result-adoption path are still
+not connected on Linux. Native-controller and bridge acceptance is not installed
+frontend, physical device, persistent-consent or autonomous retry acceptance.
