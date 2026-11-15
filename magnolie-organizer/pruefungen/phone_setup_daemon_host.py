@@ -94,9 +94,22 @@ def serve(bluetooth_port=None):
     import threading
     from types import SimpleNamespace
     import magnolie_hintergrund as background
+    import magnolie_telefon as phone_module
     from magnolie_setup_state import write_state
     from magnolie_telefon import PhoneService
     from gi.repository import GLib
+    class FixturePhoneService(PhoneService):
+        def start(self):
+            # Refs #669: Bluetooth's synthetic radio does not require the
+            # protocol-fixed WLAN port. Keep real WLAN invitation semantics;
+            # that acceptance needs an environment where port 8741 is free.
+            if bluetooth_port is None:
+                return super().start()
+            phone_module.PORT = 0
+            result = super().start()
+            if self.server is not None:
+                phone_module.PORT = self.server.getsockname()[1]
+            return result
     write_state("complete")
     settings = background.normalize_settings({"enabled": True, "permissions": {"phone_monitor": True}})
     if not os.path.exists(background.settings_path()): background.write_settings(settings, update_autostart=False)
@@ -139,7 +152,7 @@ def serve(bluetooth_port=None):
         def show(self, *_args): return False
         def open_organizer(self): raise AssertionError("Fixture must not open an application")
     def factory(root, name, callback):
-        phone = PhoneService(root, name, callback, bluetooth_backend=radio)
+        phone = FixturePhoneService(root, name, callback, bluetooth_backend=radio)
         phone._publish = lambda: None
         if not os.path.exists(phone.store.settings_path): phone.store.save_settings(True)
         phone.enabled = phone.store.settings()["enabled"]
