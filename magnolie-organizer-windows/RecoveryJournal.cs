@@ -32,15 +32,17 @@ internal sealed class RecoveryJournal
     private readonly string settingsPath;
     private readonly AtomicStore store;
     private readonly Func<DateTimeOffset> clock;
+    private readonly Action<string, string[]> runTar;
     private readonly object gate = new();
 
     internal RecoveryJournal(string root, string settingsPath, AtomicStore? store = null,
-        Func<DateTimeOffset>? clock = null)
+        Func<DateTimeOffset>? clock = null, Action<string, string[]>? runTar = null)
     {
         this.root = Path.GetFullPath(root);
         this.settingsPath = settingsPath;
         this.store = store ?? new AtomicStore();
         this.clock = clock ?? (() => DateTimeOffset.UtcNow);
+        this.runTar = runTar ?? RunTar;
     }
 
     internal SnapshotInfo Create(JsonObject data, SnapshotReason reason, string appVersion,
@@ -598,6 +600,12 @@ internal sealed class RecoveryJournal
                 Directory.Delete(previous, true);
                 changed++;
             }
+            catch (XzUnavailableException)
+            {
+                // Compression is optional. No replacement has been committed:
+                // retain the original snapshot and retry on a later run.
+                break;
+            }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or
                                            JsonException or CryptographicException or System.ComponentModel.Win32Exception)
             {
@@ -726,7 +734,7 @@ internal sealed class RecoveryJournal
         if (compressed)
         {
             storedPath = Path.Combine(directory, CompressedPayloadFile);
-            RunTar(directory, "-cJf", storedPath, "-C", directory, "--", PayloadFile);
+            runTar(directory, new[] { "-cJf", storedPath, "-C", directory, "--", PayloadFile });
             File.Delete(plainPath);
             payload["file"] = CompressedPayloadFile;
             payload["compression"] = "xz";
@@ -792,8 +800,17 @@ internal sealed class RecoveryJournal
         using var process = Process.Start(start) ?? throw new IOException("XZ-Komprimierung konnte nicht gestartet werden.");
         var error = process.StandardError.ReadToEnd();
         process.WaitForExit();
+        if (OperatingSystem.IsWindows() && IsUnsupportedXz(process.ExitCode, error))
+            throw new XzUnavailableException();
         if (process.ExitCode != 0) throw new IOException("XZ-Komprimierung ist fehlgeschlagen: " + error.Trim());
     }
+    internal sealed class XzUnavailableException : IOException
+    {
+        internal XzUnavailableException() : base("Das System-tar unterstützt keine XZ-Komprimierung.") { }
+    }
+
+    internal static bool IsUnsupportedXz(int exitCode, string error) => exitCode != 0 &&
+        error.Trim() == "tar.exe: Unsupported compression option --xz";
     private static string Mode(JsonObject settings) => settings["mode"] is JsonValue value &&
         value.TryGetValue<string>(out var mode) && mode == "count" ? "count" : "days";
     private static int Maximum(JsonObject settings) => settings["maximum"] is JsonValue value &&

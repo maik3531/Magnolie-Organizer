@@ -72,10 +72,18 @@ internal static class ThunderbirdSchema23Tests
             var removedStart = LocalUtc(10, 9);
             var movedStart = LocalUtc(10, 11);
             var addedStart = LocalUtc(24, 15);
-            TestAssert.That(master["wiederholung"]!["art"]!.GetValue<string>() == "weekly" &&
-                master["icsAusnahmeTermine"]!.AsArray().Select(node => node!["datum"]!.GetValue<string>()).ToHashSet()
+            var masterStart = LocalUtc(3, 9);
+            // If UTC Monday becomes local Sunday, a simple local Monday rule
+            // would be wrong. The codec intentionally preserves the complex
+            // original rule instead of inventing a local weekly projection.
+            var expectedProjection = masterStart.DayOfWeek == DayOfWeek.Monday ? "weekly" : "none";
+            TestAssert.That(master["wiederholung"]!["art"]!.GetValue<string>() == expectedProjection &&
+                master["icsKomplex"]!.GetValue<bool>() &&
+                master["icsRoundtrip"]!.AsArray().Any(line => line!.GetValue<string>() == "RRULE:FREQ=WEEKLY;BYDAY=MO"),
+                "Thunderbird-Master verlor seine ursprüngliche Wochenregel oder projizierte einen falschen lokalen Wochentag.");
+            TestAssert.That(master["icsAusnahmeTermine"]!.AsArray().Select(node => node!["datum"]!.GetValue<string>()).ToHashSet()
                     .SetEquals([DateText(removedStart), DateText(LocalUtc(17, 9))]),
-                "Thunderbird-Master verlor seine strukturierte Wiederholung oder EXDATE-Verknüpfung.");
+                "Thunderbird-Master verlor seine strukturierte EXDATE-Verknüpfung.");
             var additional = master["icsZusatzTermine"]!.AsArray().Single()!;
             TestAssert.That(additional["datum"]!.GetValue<string>() == DateText(addedStart) && additional["zeit"]!.GetValue<string>() == TimeText(addedStart),
                 $"Thunderbird-RDATE wurde nicht in die lokale Zeitzone {TimeZoneInfo.Local.Id} umgerechnet.");
@@ -91,7 +99,6 @@ internal static class ThunderbirdSchema23Tests
                 ["termine"] = parsed.Termine.DeepClone()
             }.ToJsonString();
             var biweekly = ReminderScheduler.DueAppointments(reminderData, new DateTime(2026, 9, 7, 8, 45, 0));
-            var masterStart = LocalUtc(3, 9);
             var control = ReminderScheduler.DueAppointments(reminderData, masterStart.AddMinutes(-15));
             var deleted = ReminderScheduler.DueAppointments(reminderData, removedStart.AddMinutes(-15));
             var moved = ReminderScheduler.DueAppointments(reminderData, movedStart.AddMinutes(-15));
