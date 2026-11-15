@@ -836,6 +836,17 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "controller-base-only")
+            {
+                await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"), completionOnly: false);
+                await NotesOriginalChoiceStoreTests.ControllerSourcesAsync(Path.Combine(root, "notes-controller-sources"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "controller-completion-only")
+            {
+                await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"), completionOnly: true);
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "controller-only")
             {
                 await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"));

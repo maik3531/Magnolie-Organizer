@@ -622,10 +622,11 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine($"Notes fresh VERIFIED local recovery: {modes.Length} synthetic actual-writer cases passed (real bootstrap then metadata save, no provider replay).");
     }
 
-    internal static async Task ControllerAsync(string root)
+    internal static async Task ControllerAsync(string root, bool? completionOnly = null)
     {
         var modes = new[] { "fresh", "bootstrap", "unconfirmed", "physical-only", "history", "corrupt-history", "stop-save", "duplicate", "readiness", "stale-snapshot",
-            "retry", "renew-save", "next-uuid", "failed-save", "counterfeit-plan" };
+            "retry", "renew-save", "next-uuid", "failed-save", "counterfeit-plan", "inline-history-fail", "inline-forged", "inline-payload", "inline-readiness", "inline-no-writer" };
+        if (completionOnly is not null) modes = modes.Where(mode => mode.StartsWith("inline-", StringComparison.Ordinal) == completionOnly.Value).ToArray();
         foreach (var mode in modes)
         {
             using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
@@ -702,8 +703,8 @@ internal static class NotesOriginalChoiceStoreTests
             if (work.Kind == "bootstrap")
             {
                 TestAssert.That(h.Host.Snapshot() is null, "Controller bootstrap manufactured saved observation");
-                TestAssert.That((await h.Host.SaveNotesBootstrapAsync((NotesOriginalBootstrapSave)work.Invocation!))["ok"]!.GetValue<bool>(), "Controller typed bootstrap native save failed");
-                controller.AfterNativeSave(work); work = await controller.ProcessOneAsync();
+                TestAssert.That((await h.Host.SaveNotesWorkAsync(controller, work))["ok"]!.GetValue<bool>(), "Controller typed bootstrap native save failed");
+                work = await controller.ProcessOneAsync();
             }
             if (original is null)
             {
@@ -749,9 +750,22 @@ internal static class NotesOriginalChoiceStoreTests
                 commit = (NotesOriginalPendingResult.NativeCommit)work.Invocation!;
             }
             var before = System.IO.File.ReadAllBytes(h.Host.DataPath);
+            var completion = controller.PrepareSaveCompletion(work);
+            if (mode == "inline-no-writer")
+            {
+                completion.Begin(commit.Text, commit.Offer.Token, null);
+                Hold(completion.Complete);
+                TestAssert.That(System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before) && !Directory.Exists(ackRoot),
+                    "Native completion without actual writer manufactured independent ACK history"); controller.Stop(); continue;
+            }
             if (mode == "stop-save") controller.Stop();
             if (mode == "failed-save") h.Host.FailAfterPrimary = true;
-            var saved = await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject());
+            if (mode == "inline-history-fail") { using var unknown = Boundary(ackRoot).Open(create: true); }
+            if (mode == "inline-readiness") ready = false;
+            var proposedText = commit.Text;
+            if (mode == "inline-payload") { var mixed = JsonNode.Parse(proposedText)!.AsObject(); mixed["unowned-edit"] = true; proposedText = mixed.ToJsonString(); }
+            if (mode == "inline-forged") completion = new(new object());
+            var saved = await h.Host.SaveNotesWorkAsync(controller, work, proposedText, completion);
             if (mode == "stop-save")
             {
                 TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before), "Stop did not revoke queued controller save");
@@ -760,12 +774,22 @@ internal static class NotesOriginalChoiceStoreTests
             if (mode == "failed-save")
             {
                 TestAssert.That(!saved["ok"]!.GetValue<bool>(), "Synthetic writer failure unexpectedly succeeded");
-                Hold(() => controller.AfterNativeSave(work));
                 TestAssert.That(controller.Counts.Owners == 0 && requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null,
                     "Failed writer retained memory save lane or released durable slot"); controller.Stop(); continue;
             }
+            if (mode is "inline-forged" or "inline-payload" or "inline-readiness")
+            {
+                TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before) && !Directory.Exists(ackRoot),
+                    "Invalid native completion wrote data or invented ACK history"); controller.Stop(); continue;
+            }
             TestAssert.That(saved["ok"]!.GetValue<bool>(), "Actual controller metadata writer failed");
-            controller.AfterNativeSave(work);
+            if (mode == "inline-history-fail")
+            {
+                TestAssert.That(saved["notesOriginalFehler"]!.GetValue<bool>() && controller.Counts.Owners == 0 && h.Host.Saved() is not null &&
+                    requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null, "Independent journal failure rejected actual user save or released durable hold");
+                controller.Stop(); continue;
+            }
+            TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(original)) is not null, "Inline writer completion did not seal history before SaveAsync returned");
             TestAssert.That((await controller.NextTransportAsync())?.Kind == "ack", "Actual newly saved authority did not permit prompt typed ACK");
             TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(original)) is not null, "Controller lacked genuine independent post-save ACK history");
             if (mode == "stale-snapshot") TestAssert.That(JsonNode.Parse(h.Host.CurrentNativeText!)!["unrelated-later-edit"]!.GetValue<string>() == "preserve", "Controller stale rebase lost unrelated edit");
@@ -829,14 +853,12 @@ internal static class NotesOriginalChoiceStoreTests
             else
             {
                 var save = await controller.ProcessOneAsync(); var native = (NotesOriginalPendingResult.NativeCommit)save.Invocation!;
-                TestAssert.That((await h.Host.SaveOriginalContactResultAsync(native.Offer.Token, JsonNode.Parse(native.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "First source actual metadata save failed");
-                controller.AfterNativeSave(save);
+                TestAssert.That((await h.Host.SaveNotesWorkAsync(controller, save))["ok"]!.GetValue<bool>(), "First source actual metadata save failed");
             }
             h.Send(Result(last)); var next = await controller.ProcessOneAsync();
             TestAssert.That(next.Kind == "save", "One held/conflicting source blocked another valid source");
             var commit = (NotesOriginalPendingResult.NativeCommit)next.Invocation!;
-            TestAssert.That((await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "Second stale-source rebase failed");
-            controller.AfterNativeSave(next);
+            TestAssert.That((await h.Host.SaveNotesWorkAsync(controller, next))["ok"]!.GetValue<bool>(), "Second stale-source rebase failed");
             TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(last)) is not null, "Second source did not seal genuine ACK after isolated conflict/stale whole-book rebase");
             if (!conflict) TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(first)) is not null &&
                 JsonNode.Parse(h.Host.CurrentNativeText!)!["kontakte"]!.AsArray().OfType<JsonObject>().All(value => value["notesOriginalBasis"]?["receipt_id"] is not null),

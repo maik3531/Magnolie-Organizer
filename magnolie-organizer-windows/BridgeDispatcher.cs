@@ -902,26 +902,31 @@ internal sealed partial class BridgeDispatcher : IDisposable
         await form.SendAsync("App.contributorGeprueft", new { ok = valid });
     }
 
-    private async Task SaveAsync(JsonElement message, NativeHistoricalWriterInvocation? historical = null, NotesOriginalBootstrapSave? notesBootstrap = null)
+    private async Task SaveAsync(JsonElement message, NativeHistoricalWriterInvocation? historical = null, NotesOriginalBootstrapSave? notesBootstrap = null,
+        NotesOriginalController.SaveCompletion? notesCompletion = null)
     {
         var locked = false;
         var contactAckCommitted = false;
         var contactAckRecognized = false;
+        void FailNotesCompletion() { try { notesCompletion?.Failed(); } catch (Exception) { } } // Never block native failure reporting.
         var id = Integer(message, "id");
         var text = Text(message, "text");
         if (!currentPlainTextAvailable)
         {
+            FailNotesCompletion();
             await form.SendAsync("App.gespeichert", new { id, ok = false,
                 fehler = T("The save request is invalid.") });
             return;
         }
         if (id < 1 || string.IsNullOrWhiteSpace(text))
         {
+            FailNotesCompletion();
             await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = T("The save request is invalid.") });
             return;
         }
         if (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)
         {
+            FailNotesCompletion();
             await form.SendAsync("App.gespeichert", new
             {
                 id, ok = false, fehler = T("Save rejected: The data is encrypted and has not been unlocked yet.")
@@ -959,6 +964,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 throw new InvalidOperationException("contact_source_mixed_save_not_ready");
             if (notesBootstrap is not null && (historical is not null || originalContactWrite is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
                 throw new InvalidOperationException("notes_bootstrap_mixed_save_not_ready");
+            if (notesCompletion is not null && (historical is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
+                throw new InvalidOperationException("notes_controller_mixed_save_not_ready");
+            notesCompletion?.Begin(text, originalContactToken, notesBootstrap);
             var historicalWriteStarted = false;
             ContactSourceApprovalStore? contactConsent = null;
             ContactSourceApprovalStore.SaveIntent? contactConsentWrite = null;
@@ -1012,6 +1020,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     throw;
                 }
             }
+            var notesCompletionError = false;
+            if (notesCompletion is not null)
+                try { notesCompletion.Complete(); }
+                catch (Exception) { notesCompletionError = true; FailNotesCompletion(); } // Actual user save succeeded; missing journal authority holds Notes only.
             baumSyncSnapshot.Saved(previousText, text, treeProof, changed, coveredByTree);
             if (coveredBySync) syncSnapshotHandoff.Saved();
             if (contactPlan is not null) contactCleanupSnapshot.Planned(contactPlan);
@@ -1037,7 +1049,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 kontaktQuellenDauerhaft = contactConsentRecognized && !contactConsentError,
                 kontaktQuellenFehler = contactConsentError,
                 notesOriginalDauerhaft = notesConsentRecognized && !notesConsentError,
-                notesOriginalFehler = notesConsentError,
+                notesOriginalFehler = notesConsentError || notesCompletionError,
                 standSha256 = BaumSyncSnapshot.Hash(text),
                 kontaktOriginalGespeichert = originalContactWrite?.Completed == true ? originalContactWrite.Token : "" });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);
@@ -1046,6 +1058,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error)
         {
+            FailNotesCompletion();
             await ReportErrorAsync("speichern", error.ToString());
             await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = T("Warning: The data could not be saved.") });
         }

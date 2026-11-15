@@ -87,6 +87,7 @@
     <Compile Include="..\NotesOriginalController.cs" Link="NotesOriginalController.cs" />
     <Compile Include="..\NotesOriginalController.Discovery.cs" Link="NotesOriginalController.Discovery.cs" />
     <Compile Include="..\NotesOriginalController.Transport.cs" Link="NotesOriginalController.Transport.cs" />
+    <Compile Include="..\NotesOriginalController.SaveCompletion.cs" Link="NotesOriginalController.SaveCompletion.cs" />
     <Compile Include="..\NotesOriginalSavedAckIntents.cs" Link="NotesOriginalSavedAckIntents.cs" />
     <Compile Include="..\NotesOriginalSavedAckRecovery.cs" Link="NotesOriginalSavedAckRecovery.cs" />
     <Compile Include="..\NotesOriginalTerminalHistory.cs" Link="NotesOriginalTerminalHistory.cs" />

@@ -93,6 +93,19 @@ internal sealed partial class PersonalActorNativeSaveHost
         return form.Values.Last().Value;
     }
 
+    internal async Task<JsonObject> SaveNotesWorkAsync(NotesOriginalController controller, NotesOriginalController.Work work,
+        string? proposedText = null, NotesOriginalController.SaveCompletion? completion = null)
+    {
+        completion ??= controller.PrepareSaveCompletion(work);
+        var bootstrap = work.Invocation as NotesOriginalBootstrapSave;
+        var native = work.Invocation as NotesOriginalPendingResult.NativeCommit;
+        var text = proposedText ?? native?.Text ?? bootstrap?.Text ?? throw new InvalidOperationException("Synthetic native work required");
+        using var message = JsonDocument.Parse(new JsonObject { ["id"] = form.Values.Count + 1, ["text"] = text,
+            ["kontaktOriginalLauf"] = native?.Offer.Token ?? "" }.ToJsonString());
+        await SaveAsync(message.RootElement, notesBootstrap: bootstrap, notesCompletion: completion);
+        return form.Values.Last().Value;
+    }
+
     internal static async Task VerifyOriginalContactResultAsync(string beforeText)
     {
         foreach (var mode in new[] { "success", "forged", "mixed-content", "mixed-tree", "changed-book", "locked", "failed-primary", "ordinary-save" })

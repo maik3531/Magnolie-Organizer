@@ -1437,6 +1437,31 @@ maintenance pump, UI/SavedBook dispatch or inline writer-completion callback is
 registered by this layer. Tests explicitly dispatch the actual native writer; this
 is not yet automatic installed operation or device/provider acceptance.
 
+### Windows inline native save completion (#633)
+
+The controller now issues an opaque one-use completion bound to its exact owned
+native work, text/token/bootstrap and current readiness restriction. The private
+optional `SaveAsync` argument accepts this native object, not renderer JSON or a
+saved Boolean. It checks before writing and seals the genuine independent ACK
+immediately after the actual writer returns, before releasing the serial book gate
+or acknowledging the renderer. Bootstrap completion is similarly correlated there.
+Calling completion without a real writer witness cannot create ACK history.
+
+If only independent journal sealing fails after the actual book save, the save
+remains successful with a Notes error marker; Notes memory ownership is dropped
+while the durable request hold remains. Early rejection, failed write or stale
+readiness likewise releases no disk authority. Ordinary saves without a native
+completion retain their existing behavior; the shared original-contact path was
+regression-tested on both hosts after this dispatch change.
+
+The 17 controller scenarios now use inline completion and pass again on host and
+Windows. Five additional cases cover unknown journal identity after genuine save,
+forged completion, altered payload, readiness loss and completion without a writer.
+Windows runs are explicit bounded slices, not a claim that the full native group
+was repeated; the full managed group and original-contact group also pass. Release
+CoreTests and BASE builds are clean. No production factory/backend, UI/SavedBook
+CAS dispatch, maintenance/event pump or real common setup is enabled by this hook.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
