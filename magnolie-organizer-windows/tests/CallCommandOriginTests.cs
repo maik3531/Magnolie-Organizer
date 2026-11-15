@@ -16,9 +16,10 @@ internal static class CallCommandOriginTests
     internal static async Task RunAsync()
     {
         foreach (var action in new[] { "dial", "answer", "end" }) foreach (var origin in new[] { "gui", "mcp" }) await Route(action, origin);
+        foreach (var action in new[] { "dial", "answer", "end" }) foreach (var origin in new[] { "gui", "mcp" }) await Route(action, origin, tickBoundary: true);
         await PrivateRevocation(); Migration();
     }
-    private static async Task Route(string action, string origin)
+    private static async Task Route(string action, string origin, bool tickBoundary = false)
     {
         using var f = new OutgoingDialTests.Fixture(foregroundEnabled: origin == "mcp");
         foreach (var name in new[] { "incoming_call_state", "incoming_call_number", "answer_call", "end_call" }) { f.Peer.Grants[name] = true; f.Store.SetLocalGrant(name, true); }
@@ -49,8 +50,25 @@ internal static class CallCommandOriginTests
         var result = new JsonObject { ["state"] = "submitted", ["error"] = "none", ["occurred_ms"] = Now() };
         if (action == "dial") result["client_ref"] = reference;
         else { result["command_ref"] = reference; result["call_ref"] = callRef; }
-        await f.Receive(resultKind, result);
-        TestAssert.That(State(f.Store, f.Peer.Id, reference) == "submitted", "Native call result did not update its existing command receipt.");
+        var firstTick = Now(); var clockReads = 0;
+        if (tickBoundary)
+        {
+            // The real validator must still reject a one-millisecond excess;
+            // only fixture construction changes, never the protocol TTL limit.
+            await f.Receive(new JsonObject { ["type"] = "message", ["v"] = 1,
+                ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = resultKind,
+                ["created_ms"] = firstTick, ["expires_ms"] = firstTick + 60_001, ["body"] = result.DeepClone() });
+            var rejection = f.WireMessages().Last();
+            TestAssert.That(rejection["status"]?.GetValue<string>() == "rejected" && rejection["error"]?.GetValue<string>() == "invalid_schema" &&
+                State(f.Store, f.Peer.Id, reference) == "queued" && f.Results.Count == 0 && observed.Count == 0,
+                "Overlong call result was accepted, changed a receipt or leaked into either reply route.");
+        }
+        Func<long>? clock = tickBoundary ? () => firstTick + Interlocked.Increment(ref clockReads) - 1 : null;
+        await f.Receive(resultKind, result, clock);
+        var state = State(f.Store, f.Peer.Id, reference);
+        TestAssert.That(state == "submitted", "Native call result did not update its existing command receipt; action=" + action +
+            "; origin=" + origin + "; tickBoundary=" + tickBoundary + "; state=" + state + "; last native packet=" + f.WireMessages().LastOrDefault()?.ToJsonString());
+        if (tickBoundary) TestAssert.That(clockReads == 1, "A synthetic result envelope sampled separate creation/expiry clocks.");
         if (origin == "gui") TestAssert.That(f.Results.Count == 1 && observed.Count == 0, "Ordinary GUI reply was rerouted.");
         else TestAssert.That(f.Results.Count == 0 && observed.Count == 1 && observed[0].Connection == f.Connection && observed[0].Peer.Id == f.Peer.Id &&
             observed[0].Kind == resultKind && JsonNode.DeepEquals(observed[0].Body, result), "Private result lost its actual source or entered GUI status.");
