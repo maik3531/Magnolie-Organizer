@@ -836,6 +836,13 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-peer-only")
+            {
+                await NotesOriginalChoiceStoreTests.SetupPeerAsync(Path.Combine(root, "notes-native-peer"));
+                await NotesOriginalChoiceStoreTests.SetupCollectorAsync(Path.Combine(root, "notes-setup-collector"));
+                await NotesOriginalChoiceStoreTests.SetupBeforePeerAsync(Path.Combine(root, "notes-before-peer"));
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-before-peer")
             {
                 await NotesOriginalChoiceStoreTests.SetupBeforePeerAsync(Path.Combine(root, "notes-before-peer"));
@@ -996,6 +1003,7 @@ internal static class ContractGroupTests
             await NotesOriginalChoiceStoreTests.SetupCollectorAsync(Path.Combine(root, "notes-setup-collector"));
             await NotesOriginalChoiceStoreTests.SetupFlowAsync(Path.Combine(root, "notes-setup-flow"));
             await NotesOriginalChoiceStoreTests.SetupBeforePeerAsync(Path.Combine(root, "notes-before-peer"));
+            await NotesOriginalChoiceStoreTests.SetupPeerAsync(Path.Combine(root, "notes-native-peer"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

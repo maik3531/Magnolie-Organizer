@@ -2,7 +2,7 @@ namespace MagnolieOrganizer.Windows;
 
 internal static class NotesOriginalSetupDialog
 {
-    private static string Display(string value) => new(value.Where(character => !char.IsControl(character) &&
+    internal static string Display(string value) => new(value.Where(character => !char.IsControl(character) &&
         character is not ('\u061c' or '\u200e' or '\u200f' or >= '\u202a' and <= '\u202e' or >= '\u2066' and <= '\u2069')).ToArray());
 
     internal static Task<string?> ChooseAsync(Form owner, NotesOriginalSetupFlow.View view,

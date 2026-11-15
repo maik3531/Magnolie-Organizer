@@ -15,6 +15,7 @@ internal sealed class NotesOriginalSetupFlow(NotesOriginalChoiceStore choices, F
         try { return choices.BeginSetupDecision(); }
         finally { MutationGate.Global.Release(); }
     }
+    internal void RequireDecision(NotesOriginalChoiceStore.SetupDecision decision) => decision.RequireCurrent(choices); // Caller holds book gate.
 
     internal async Task<bool> ConfigureAsync(NotesOriginalSetupCollector.Candidate candidate,
         Func<View, CancellationToken, Task<string?>> chooseNative, CancellationToken cancellation = default,

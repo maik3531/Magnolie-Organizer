@@ -1963,6 +1963,40 @@ not an interactive modal or provider/device/package acceptance. Windows native
 peer selection/acquisition UI composition and the final application action/worker
 dispatch/startup registration remain open; production stays OFF/unadvertised.
 
+### Windows native peer/acquisition composition (#636, partial)
+
+Windows now composes a coordinator-owned opaque peer selection with bounded
+authenticated export acquisition and the original before-peer decision. The
+catalog reads only an existing loaded active coordinator and returns detached
+public identity views, never private keys or a new service/identity. Exact owner,
+pins, generation, epoch, own-identity digest and current native opt-outs are
+rechecked. Cosmetic labels/protocol-discovery metadata are not treated as identity
+changes. Display-array replacement cannot alter the retained native selection.
+
+The same decision reaches the actual contact publication; no post-revoke decision
+is substituted. Probe/choosers/network callbacks run outside book/tree gates;
+additional candidate guards are deferred only and never run on receive. Native
+busy/WLAN restrictions quietly hold the probe. Cancelled waits, stale context,
+service Stop and completion release only the owned acquisition/memory proof,
+not another receiver or durable consent/history. Bridge begin/complete entries
+require the existing coordinator, live native book/store, one prompt and exact
+acquisition ownership; profile shutdown cancels owned acquisition as well.
+
+Twenty-five real FS1/native peer/acquisition cases, 19 collector cases and 13
+before-peer cases pass on host AND noninteractive Windows (57 each). This includes
+display aliases, foreign/fake inputs, addition, private/native edits, handshake
+revocation, cancelled waits, Stop during contact choice and opt-out. The full
+managed group with all four DOM/native wire modes passes; Release CoreTests/BASE
+build without warnings/errors. The actual new Windows peer dialog is compiled
+only, not opened. Existing Linux/original-contact evidence is retained. One new
+addition fixture initially reused the original share and was correctly rejected;
+only its second share/setup was corrected, not the native collision check.
+
+Final application action/worker dispatch, waiting/cancel status and conditional
+resume/startup registration remain unconnected. No production capability is
+advertised or activated, and installed/native GUI/provider/device/package gates
+remain open. This source composition is not permission to run those acceptances.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

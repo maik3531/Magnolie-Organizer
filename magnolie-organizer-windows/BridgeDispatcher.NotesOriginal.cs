@@ -8,11 +8,67 @@ internal sealed partial class BridgeDispatcher
     internal Action? NativeNotesWake { get; set; }
     private NotesOriginalNativeSession? nativeNotesSession;
     private int notesSetupPrompt;
+    private NotesOriginalSetupAcquisition? nativeNotesSetupAcquisition;
 
     private NotesOriginalChoiceStore NativeNotesChoiceStore() => NativeNotesChoices ??= new NotesOriginalChoiceStore(
         new ContactSourcePrivateFiles(Path.Combine(Path.GetFullPath(paths.Root), "notes-original-choices")), NativeActorBook,
         () => ContactSourcePrimaryBook.Capture(Path.GetFullPath(paths.Data), store, encryption, () => currentPlainTextAvailable && !restoreInProgress && !disposed),
         () => Path.GetFullPath(paths.Data), currentNativeData: () => currentPlainTextAvailable && !restoreInProgress && !disposed ? currentPlainText : null);
+
+    // Explicit native main-thread UI entry, not a renderer/startup command. Never
+    // instantiate a coordinator/service/identity to make an unavailable peer appear.
+    internal async Task<NotesOriginalSetupAcquisition?> BeginNotesSetupAsync(CancellationToken cancellation = default)
+    {
+        if (!OperatingSystem.IsWindows() || baumInstance is null || disposed || restoreInProgress || !currentPlainTextAvailable ||
+            Interlocked.CompareExchange(ref notesSetupPrompt, 1, 0) != 0)
+            throw new InvalidOperationException("notes_setup_native_context_required");
+        NotesOriginalSetupAcquisition? acquisition = null;
+        try
+        {
+            if (nativeNotesSetupAcquisition?.IsActive == true) throw new InvalidOperationException("notes_setup_acquisition_busy");
+            Interlocked.Exchange(ref nativeNotesSetupAcquisition, null)?.Stop();
+            var coordinator = baumInstance; var choices = NativeNotesChoiceStore();
+            void Usable()
+            {
+                if (disposed || restoreInProgress || !currentPlainTextAvailable || !ReferenceEquals(baumInstance, coordinator) ||
+                    !ReferenceEquals(NativeNotesChoices, choices)) throw new InvalidOperationException("notes_setup_native_context_changed");
+            }
+            using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellation, backgroundLifetime.Token);
+            acquisition = await NotesOriginalSetupAcquisition.BeginAsync(new(choices, NativeActorBook), coordinator,
+                (peers, token) => NotesOriginalPeerDialog.ChooseAsync(form, peers, T, token), Usable, OriginalContactWlanAvailable, operation.Token);
+            nativeNotesSetupAcquisition = acquisition;
+            Usable(); operation.Token.ThrowIfCancellationRequested();
+            return acquisition;
+        }
+        catch
+        {
+            if (acquisition is not null) Interlocked.CompareExchange(ref nativeNotesSetupAcquisition, null, acquisition);
+            acquisition?.Stop(); throw;
+        }
+        finally { Volatile.Write(ref notesSetupPrompt, 0); }
+    }
+    internal async Task<bool> CompleteNotesSetupAsync(NotesOriginalSetupAcquisition acquisition,
+        NotesOriginalSetupCollector.Candidate candidate, CancellationToken cancellation = default)
+    {
+        ArgumentNullException.ThrowIfNull(acquisition); ArgumentNullException.ThrowIfNull(candidate);
+        if (!ReferenceEquals(nativeNotesSetupAcquisition, acquisition) || disposed || restoreInProgress || !currentPlainTextAvailable ||
+            Interlocked.CompareExchange(ref notesSetupPrompt, 1, 0) != 0)
+            throw new InvalidOperationException("notes_setup_owned_acquisition_required");
+        try
+        {
+            using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellation, backgroundLifetime.Token);
+            var configured = await acquisition.ConfigureAsync(candidate,
+                (view, token) => NotesOriginalSetupDialog.ChooseAsync(form, view, T, token), operation.Token);
+            if (configured) NativeNotesWake?.Invoke();
+            return configured;
+        }
+        finally
+        {
+            Interlocked.CompareExchange(ref nativeNotesSetupAcquisition, null, acquisition);
+            try { acquisition.Stop(); }
+            finally { Volatile.Write(ref notesSetupPrompt, 0); }
+        }
+    }
 
     // Native candidate only. No renderer/startup entry or acquisition registration.
     internal async Task<bool> ConfigureNotesCandidateAsync(NotesOriginalSetupCollector.Candidate candidate, CancellationToken cancellation = default)
@@ -65,6 +121,7 @@ internal sealed partial class BridgeDispatcher
     }
     private async Task StopNativeNotesSessionAsync()
     {
+        Interlocked.Exchange(ref nativeNotesSetupAcquisition, null)?.Stop();
         var session = Interlocked.Exchange(ref nativeNotesSession, null); if (session is null) return;
         await session.StopAsync();
         ClearNativeNotesHooks(session);

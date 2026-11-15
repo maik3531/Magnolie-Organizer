@@ -88,6 +88,8 @@
     <Compile Include="..\NotesOriginalNativeSession.cs" Link="NotesOriginalNativeSession.cs" />
     <Compile Include="..\NotesOriginalSetupCollector.cs" Link="NotesOriginalSetupCollector.cs" />
     <Compile Include="..\MagnolienbaumCoordinator.NotesSetup.cs" Link="MagnolienbaumCoordinator.NotesSetup.cs" />
+    <Compile Include="..\MagnolienbaumCoordinator.NotesSetupPeers.cs" Link="MagnolienbaumCoordinator.NotesSetupPeers.cs" />
+    <Compile Include="..\NotesOriginalSetupAcquisition.cs" Link="NotesOriginalSetupAcquisition.cs" />
     <Compile Include="..\NotesOriginalRequestIntents.cs" Link="NotesOriginalRequestIntents.cs" />
     <Compile Include="..\NotesOriginalRequestRecovery.cs" Link="NotesOriginalRequestRecovery.cs" />
     <Compile Include="..\NotesOriginalBootstrapSave.cs" Link="NotesOriginalBootstrapSave.cs" />
