@@ -69,11 +69,12 @@ TCP-Rohrregistrierung; Fehler beim Abmelden verhindern nicht das Socket-Close.
   diesem lokalen LAN-Stand.
 - Release-Lint besteht ohne Fehler; **100 Warnungen und sieben Hinweise** bleiben.
   Die API-Grenzen der Galerie-Helfer wurden separat in #668 geprüft.
-- Cross-Nachweise umfassen Receipt (4/4), Bluetooth (18/18) und beide tatsächlichen
-  Actor-Transporthosts (2/2; #669/#670). Das vollständige Cross-Gate bleibt offen:
-  Vier WLAN-Setupfälle benötigen eine geeignete Prüfumgebung mit freiem,
-  protokollfestem Port 8741 (#671). Kein Benutzerdienst wurde dafür verändert und
-  der Einladungsvertrag wurde nicht auf beliebige Ports gelockert.
+- Vollständiges Cross-Gate: **57/57 Tests**, keine Skips, nach den getrennten
+  Fixturekorrekturen #669/#670/#673. Die tatsächlichen Python-/C#-Transporthosts
+  laufen mit Notes im isolierten Netzwerk (#671), bei unverändertem protokollfestem
+  Port 8741. Hostnetz und bestehender Benutzerdienst bleiben unverändert; der
+  Einladungsvertrag wurde nicht auf beliebige Ports gelockert. Dies ist keine
+  native Windows-GUI- oder physische Android-Geräteabnahme.
 - Der unsignierte Release-APK-Bau ist bestanden. ZIP-Integrität, Paketkennung,
   Version 1.0.21 / Code 21, minSdk 26 / targetSdk 35 und das Fehlen der neuen
   LAN-Manifestberechtigung sind am tatsächlichen Paket geprüft. Die APK ist
@@ -87,8 +88,8 @@ Manifestberechtigung. Eine Gradle-Prüfung blockiert targetSdk ab 37, bis die
   zusammengehörige Werkzeug-/Manifestmigration aus #558/#672 geprüft wird; keine
 Eigenschaft umgeht diesen Halt.
 
-Kompilierung, vollständiges Unitgate, Lint und unsignierter APK-Bau sind
-nachgewiesen, ein vollständiges Cross-/Nativ-Gate noch nicht. Hostprüfungen belegen keine echte Bedienung
+Kompilierung, vollständiges Unit- und Cross-Gate, Lint und unsignierter APK-Bau
+sind nachgewiesen, native Paketabnahmen noch nicht. Hostprüfungen belegen keine echte Bedienung
 von Compose, Foreground Services, NSD, Berechtigungsgruppen oder nativen
 Socket-/Lifecycle-Rennen.
 
@@ -102,8 +103,8 @@ Bestände verwenden; gespeicherte Rechte und Daten erhalten.
 Diese Prüfergebnisse sind keine native Paket- oder Veröffentlichungsabnahme.
 Bestehende tatsächliche Geräte-/Signier-/Store-Pausen bleiben wirksam; daraus
 folgt kein pauschales Verbot einer geprüften Quellstandsicherung. Der offene
-Migrations- und native Abnahmeumfang aus #648 wird in #672 fortgeführt, die
-protokollgebundene WLAN-Cross-Abnahme in #671. Die positive Samsung- /
+Migrations- und native Abnahmeumfang aus #648 wird in #672 fortgeführt. Die
+isolierte WLAN-Cross-Abnahme aus #671/#673 ist abgeschlossen. Die positive Samsung- /
 Android-17-Rückmeldung zur bestehenden Notes-APK wird nicht in Frage gestellt.
 
 Offizielle Grundlage: https://developer.android.com/privacy-and-security/local-network-permission
