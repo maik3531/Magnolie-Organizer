@@ -120,6 +120,12 @@ internal sealed class PhoneCameraSession
     }
     private void Fail(Exception failure)
     { Interlocked.CompareExchange(ref error, failure, null); Stop(); }
+    // Stop retires authority before cancellation callbacks run. Expected owned
+    // IO/readiness teardown can therefore race the token notification; classify
+    // it by this owner's actual stop state, never by a replacement-ready flag.
+    // Already recorded failures and unexpected exception types remain failures.
+    private bool IsExpectedOwnedStop(Exception failure) => Volatile.Read(ref stopping) != 0 &&
+        failure is OperationCanceledException or IOException or SocketException or ObjectDisposedException;
     private void RequireOutputAuthority(OutputAuthority original, bool sending)
     {
         if (!ReferenceEquals(outputAuthority, original)) throw new InvalidOperationException("webcam_original_output_authority_required");
@@ -140,7 +146,11 @@ internal sealed class PhoneCameraSession
     private void RequireSending()
     {
         RequireMediaContext();
-        if (!IsSending) throw new InvalidOperationException("webcam_actual_send_required");
+        if (!IsSending)
+        {
+            if (Volatile.Read(ref stopping) != 0) throw new ObjectDisposedException("webcam_original_output_owner_retired");
+            throw new InvalidOperationException("webcam_actual_send_required");
+        }
     }
     private static JsonObject Report(JsonObject probe, string op, string session)
     {
@@ -168,7 +178,7 @@ internal sealed class PhoneCameraSession
                 }
             }
         }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+        catch (Exception failure) when (IsExpectedOwnedStop(failure)) { }
         catch (Exception failure) { Fail(failure); }
     }
     private async Task MonitorAsync()
@@ -193,7 +203,7 @@ internal sealed class PhoneCameraSession
                 await Task.Delay(50, stop.Token);
             }
         }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+        catch (Exception failure) when (IsExpectedOwnedStop(failure)) { }
         catch (Exception failure) { Fail(failure); }
     }
     private async Task ReceiveAsync()
@@ -271,8 +281,7 @@ internal sealed class PhoneCameraSession
             Volatile.Write(ref sentAt, Stopwatch.GetTimestamp()); Volatile.Write(ref sending, 1);
             await ReceiveAsync();
         }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
-        catch (Exception failure) when (stop.IsCancellationRequested && failure is IOException or SocketException or ObjectDisposedException) { }
+        catch (Exception failure) when (IsExpectedOwnedStop(failure)) { }
         catch (Exception failure) { Fail(failure); }
         finally
         {

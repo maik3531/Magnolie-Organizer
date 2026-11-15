@@ -19,6 +19,7 @@ internal static class PhoneCameraSessionTests
         internal bool HoldPreparation, MissingMicrophone, FailCleanup, HoldWrite;
         internal int Prepared, MicrophoneChecks, Stopped, Disposed;
         internal PhoneCameraSession.OutputAuthority? Authority;
+        internal Action? BeforeVideoReadyReturn;
         internal readonly SemaphoreSlim Writes = new(0);
         public async Task PrepareAsync(PhoneCameraSession.OutputAuthority original, CancellationToken cancellation)
         {
@@ -27,7 +28,11 @@ internal static class PhoneCameraSessionTests
             Interlocked.Increment(ref Prepared); Preparing.TrySetResult();
             if (HoldPreparation) await ContinuePreparation.Task.WaitAsync(cancellation);
         }
-        public void RequireVideoReady() { if (Prepared != 1 || Stopped != 0) throw new IOException("controlled video not ready"); }
+        public void RequireVideoReady()
+        {
+            if (Prepared != 1 || Stopped != 0) throw new IOException("controlled video not ready");
+            Interlocked.Exchange(ref BeforeVideoReadyReturn, null)?.Invoke();
+        }
         public void RequireMicrophoneReady()
         { Interlocked.Increment(ref MicrophoneChecks); if (MissingMicrophone) throw new IOException("controlled required microphone missing"); }
         public void Write(PhoneCameraMediaFrame frame)
@@ -317,7 +322,46 @@ internal static class PhoneCameraSessionTests
         f.Output.ContinuePreparation.TrySetResult(); await f.ReadSendOrStopAsync();
         await f.SendFrame(false, 0, 0); await f.WaitWrites(1); original.RequireSending();
         f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
-        TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped, "Genuine typed SEND failed after rejected substitutions");
+        TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped,
+            "Genuine typed SEND failed after rejected substitutions; session error: " + f.Session.Error +
+            "; cleanup error: " + f.Session.CleanupError + "; stopped: " + f.Session.IsCompletelyStopped);
+        await StopDuringActualReadinessCheckAsync();
+        await ActualReadinessFailureIsNotMaskedAsync(stopFirst: false);
+        await ActualReadinessFailureIsNotMaskedAsync(stopFirst: true);
+    }
+    private static async Task StopDuringActualReadinessCheckAsync()
+    {
+        await using var f = new Fixture(); await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
+        await f.SendFrame(false, 0, 0); await f.WaitWrites(1);
+        var stoppedInReady = 0;
+        f.Output.BeforeVideoReadyReturn = () => { Interlocked.Increment(ref stoppedInReady); f.Session.Stop(); };
+        // Exercise the actual monitor at the exact controlled readiness return,
+        // not a timer/sleep or replacement monitor implementation. The original
+        // running receive/monitor tasks are still joined through f.Run.
+        var method = typeof(PhoneCameraSession).GetMethod("MonitorAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var monitor = (Task)method.Invoke(f.Session, null)!;
+        await monitor.WaitAsync(f.Deadline.Token); await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.That(stoppedInReady == 1 && f.Session.Error is null && f.Session.IsCompletelyStopped &&
+            f.Output.Stopped == 1 && f.Output.Disposed == 1,
+            "Owned stop during genuine readiness became a false session failure; session error: " + f.Session.Error +
+            "; cleanup error: " + f.Session.CleanupError);
+        TestAssert.Throws<ObjectDisposedException>(f.Output.Authority!.RequireSending, "Normal stop restored retired SEND authority");
+        f.Parent.NoPersistentControls();
+    }
+    private static async Task ActualReadinessFailureIsNotMaskedAsync(bool stopFirst)
+    {
+        await using var f = new Fixture(); await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
+        await f.SendFrame(false, 0, 0); await f.WaitWrites(1);
+        Exception failure = stopFirst ? new InvalidOperationException("controlled unexpected failure after stop") :
+            new IOException("controlled genuine readiness failure before stop");
+        f.Output.BeforeVideoReadyReturn = () => { if (stopFirst) f.Session.Stop(); throw failure; };
+        var method = typeof(PhoneCameraSession).GetMethod("MonitorAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var monitor = (Task)method.Invoke(f.Session, null)!;
+        await monitor.WaitAsync(f.Deadline.Token); await f.Run.WaitAsync(f.Deadline.Token);
+        TestAssert.That(ReferenceEquals(f.Session.Error, failure) && f.Session.IsCompletelyStopped &&
+            f.Output.Stopped == 1 && f.Output.Disposed == 1,
+            "Genuine readiness/unexpected failure was hidden by owned stop classification: " + f.Session.Error);
+        f.Parent.NoPersistentControls();
     }
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     internal static async Task LoaderRequiresOriginalCurrentAsync()
