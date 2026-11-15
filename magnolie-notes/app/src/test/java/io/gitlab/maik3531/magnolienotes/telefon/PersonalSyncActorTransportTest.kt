@@ -65,7 +65,7 @@ class PersonalSyncActorTransportTest {
         val identity = storage.identity("Owned actor phone"); identity.second.fill(0)
         storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
         val command = if (windows) listOf(requireNotNull(System.getenv("MAGNOLIE_DOTNET")),
-            File("../magnolie-organizer-windows/tests/bin/Debug/net8.0/CoreTests.dll").canonicalPath,
+            File(requireNotNull(System.getenv("PHONE_TEST_WINDOWS_DLL"))).canonicalPath,
             "--personal-actor-host", identity.first.device_id, identity.first.static_public)
         else listOf(System.getenv("MAGNOLIE_PYTHON") ?: "python3",
             "../magnolie-organizer/pruefungen/personal_actor_transport_host.py", identity.first.device_id, identity.first.static_public)

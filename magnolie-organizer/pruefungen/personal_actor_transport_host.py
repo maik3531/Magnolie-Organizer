@@ -141,7 +141,7 @@ def main():
                             reply_digest = hashlib.sha256(reply_bytes).hexdigest()
                             reply_record["value"]["attachments"][0]["sha256"] = reply_digest
                             reply_record["hash"] = phone.personal_sync_contract.projection_hash(reply_record["value"])
-                            reply_body = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()),
+                            reply_body = {"format": batches[0]["messages"][-1]["body"]["format"], "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()),
                                 "sequence": 0, "last": True, "reply": True, "records": [reply_record],
                                 "records_hash": phone.personal_sync_contract.records_hash([reply_record])}
                             with service.lock: registry.require_current(handle)
@@ -176,7 +176,7 @@ def main():
                                         break
                             else: raise AssertionError("Native desktop reply attachment result missing")
                             report_time = phone.now_ms()
-                            completion = {"format": 3, "run_id": handle.actor_id, "state": "complete", "trigger": "manual", "transport": "wifi",
+                            completion = {"format": reply_body["format"], "run_id": handle.actor_id, "state": "complete", "trigger": "manual", "transport": "wifi",
                                 "sent": {"notes": 1, "tasks": 0, "notebooks": 0}, "received": {"notes": 1, "tasks": 1, "notebooks": 0},
                                 "conflicts": 0, "attachments_omitted": 0, "oversized_skipped": 0, "started_ms": report_time, "finished_ms": report_time, "error": "none",
                                 "attachments": {"declared": 1, "requested": 1, "sent": 1, "received": 1, "reused": 0, "preserved": 1, "failed": 0, "bytes": len(reply_bytes)},
