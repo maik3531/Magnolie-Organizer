@@ -78,30 +78,9 @@ $checksumName = "Magnolie-Organizer-Windows-$version-PRUEFSUMMEN.sha256"
 $checksumStage = Join-Path $publicationStage $checksumName
 $lock = $null
 
-function Assert-Signature([string] $Path) {
-    $signature = Get-AuthenticodeSignature -LiteralPath $Path
-    if ($signature.Status -ne "Valid" -or -not $signature.SignerCertificate) { throw "Authenticode-Prüfung fehlgeschlagen: $Path ($($signature.Status))" }
-    if (-not [string]::Equals($signature.SignerCertificate.Subject, $script:signingConfiguration["MAGNOLIE_SIGN_PUBLISHER"], [StringComparison]::Ordinal)) {
-        throw "Unerwarteter Authenticode-Herausgeber: $($signature.SignerCertificate.Subject)"
-    }
-    if (-not $signature.TimeStamperCertificate) { throw "Gültiger RFC3161-Zeitstempel fehlt: $Path" }
-    Invoke-NativeCommand $script:signingConfiguration["MAGNOLIE_SIGNTOOL"] @("verify", "/pa", "/all", "/tw", $Path)
-}
-
-function Sign-Official([string] $Path) {
-    if (-not $official) { return }
-    foreach ($name in "MAGNOLIE_SIGNTOOL", "MAGNOLIE_SIGN_CERTIFICATE", "MAGNOLIE_SIGN_PASSWORD", "MAGNOLIE_SIGN_PUBLISHER", "MAGNOLIE_TIMESTAMP_URL") {
-        if (-not $script:signingConfiguration[$name]) { throw "Offizielle Ausgabe benötigt $name." }
-    }
-    if (-not (Test-Path -LiteralPath $script:signingConfiguration["MAGNOLIE_SIGNTOOL"] -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $script:signingConfiguration["MAGNOLIE_SIGN_CERTIFICATE"] -PathType Leaf)) {
-        throw "Signaturwerkzeug oder Zertifikat fehlt."
-    }
-    Invoke-NativeCommand $script:signingConfiguration["MAGNOLIE_SIGNTOOL"] @("sign", "/fd", "SHA256", "/td", "SHA256", "/tr",
-        $script:signingConfiguration["MAGNOLIE_TIMESTAMP_URL"], "/f", $script:signingConfiguration["MAGNOLIE_SIGN_CERTIFICATE"],
-        "/p", $script:signingConfiguration["MAGNOLIE_SIGN_PASSWORD"], $Path)
-    Assert-Signature $Path
-}
+. (Join-Path $PSScriptRoot "Signing.Common.ps1")
+. (Join-Path $PSScriptRoot 'PhonePayloadSigning.Common.ps1')
+. (Join-Path $PSScriptRoot 'PhonePayloadResources.Common.ps1')
 
 function Update-WebCatalogs([string] $Root, [string] $Python) {
     Invoke-NativeCommand $Python @((Join-Path $Root "werkzeuge/pot_erzeugen.py"))
@@ -171,6 +150,15 @@ try {
         Initialize-StandaloneWebCatalogs $buildRoot $python.Source
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/release-source-context.ps1')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/release-packaging.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/source-build-context.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/authenticode-policy.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/authenticode-inventory.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/nsis-signing-hook.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/phone-camera-signing-boundary.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/phone-camera-signed-inputs.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/phone-camera-signed-resources.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/phone-camera-input-signatures.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/phone-camera-authenticode-envelope.ps1')
         Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
         Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")
         Invoke-NativeCommand "dotnet" @("restore", "MagnolieOrganizer.Windows.csproj", "--locked-mode")
@@ -183,7 +171,58 @@ try {
             $env:MAGNOLIE_RELEASE_BUILD_TEST = $previousReleaseBuildTest
         }
         Invoke-NativeCommand "bun" @("run", "test")
-        Invoke-NativeCommand "dotnet" @("publish", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "-r", "win-x64", "--self-contained", "true", "--no-restore", "-p:Version=$version", "-o", $publish)
+        $publishArguments = @("publish", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "-r", "win-x64", "--self-contained", "true", "--no-restore", "-p:Version=$version", "-o", $publish)
+        $preparedPhoneInputs = $null
+        if ($official) {
+            $phoneInputs = @{}
+            foreach ($spec in @(Get-PhonePayloadSigningSpecifications)) {
+                $inputDirectory = [Environment]::GetEnvironmentVariable($spec.Property)
+                if ($inputDirectory) { $phoneInputs[$spec.Property] = $inputDirectory }
+            }
+            # The callbacks are native-build owned; no original input is signed.
+            # The MSBuild boundary independently verifies these actual prepared
+            # directories again; a receipt alone never grants embedding authority.
+            $preparedPhoneInputs = New-VerifiedSignedPhoneInputs -BuildRoot $buildRoot `
+                -Stage (Join-Path $stage 'signed-phone-inputs') -Inputs $phoneInputs `
+                -SnapshotRunner { param($Arguments) Invoke-NativeCommand 'dotnet' $Arguments } `
+                -SignSnapshot { param($Path) Sign-Official $Path }
+            $phoneReceipt = Join-Path $stage 'prepared-phone-inputs.json'
+            [pscustomobject]@{ Schema = 'magnolie-prepared-phone-inputs-v1'; Stage = $preparedPhoneInputs.Stage;
+                Inputs = $preparedPhoneInputs.Inputs; Payloads = @($preparedPhoneInputs.Payloads) } |
+                ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $phoneReceipt -Encoding UTF8
+            $verifyPhoneInputs = @{}
+            foreach ($spec in @(Get-PhonePayloadSigningSpecifications)) {
+                $verifyPhoneInputs[$spec.Property] = if ($preparedPhoneInputs.Inputs.ContainsKey($spec.Property)) { $preparedPhoneInputs.Inputs[$spec.Property] } else { '' }
+            }
+            & (Join-Path $PSScriptRoot 'Verify-PhonePayloadInputs.ps1') -Receipt $phoneReceipt `
+                -Publisher $script:signingConfiguration['MAGNOLIE_SIGN_PUBLISHER'] `
+                -SignTool $script:signingConfiguration['MAGNOLIE_SIGNTOOL'] @verifyPhoneInputs
+            $publishArguments += @(Get-PreparedPhonePublishArguments $preparedPhoneInputs)
+        }
+        $verificationEnvironment = @{}
+        try {
+            if ($official) {
+                $publicVerification = @{
+                    MAGNOLIE_PHONE_VERIFY_RECEIPT = $phoneReceipt
+                    MAGNOLIE_PHONE_VERIFY_PUBLISHER = $script:signingConfiguration['MAGNOLIE_SIGN_PUBLISHER']
+                    MAGNOLIE_PHONE_VERIFY_TOOL = $script:signingConfiguration['MAGNOLIE_SIGNTOOL']
+                    MAGNOLIE_PHONE_VERIFY_HOST = (Get-Process -Id $PID).Path
+                }
+                foreach ($name in $publicVerification.Keys) {
+                    $verificationEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
+                    [Environment]::SetEnvironmentVariable($name, $publicVerification[$name], [EnvironmentVariableTarget]::Process)
+                }
+            }
+            Invoke-NativeCommand "dotnet" $publishArguments
+        } finally {
+            foreach ($name in $verificationEnvironment.Keys) {
+                [Environment]::SetEnvironmentVariable($name, $verificationEnvironment[$name], [EnvironmentVariableTarget]::Process)
+            }
+        }
+        if ($official) {
+            $null = Assert-PreparedPhonePayloadResources -AssemblyPath (Join-Path $publish 'Magnolie Organizer.dll') `
+                -PublishRoot $publish -Prepared $preparedPhoneInputs
+        }
         Invoke-NativeCommand $python.Source @((Join-Path $buildRoot "werkzeuge/account_runtime.py"), "--output", (Join-Path $publish "account-runtime"))
         Invoke-NativeCommand $python.Source @((Join-Path $buildRoot "werkzeuge/filesystem_runtime.py"), "--output", (Join-Path $publish "filesystem-runtime"))
         Invoke-NativeCommand "bun" @((Join-Path $buildRoot "build/PortHandbook.js"), $handbookWeb, $version, $installerName, (Join-Path $publish "handbuch"))
@@ -205,7 +244,21 @@ try {
     Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/VerifyBuildConfig.js"), (Join-Path $publish "build-config.json"))
 
     $app = Join-Path $publish "Magnolie Organizer.exe"
-    Sign-Official $app
+    if ($official) {
+        # Only explicitly owned outputs are signed. Never replace vendor signatures.
+        # Native phone sidecars have already been signed BEFORE embedding.
+        # Signing them again here would invalidate the pinned resource identity.
+        foreach ($name in @('Magnolie Organizer.exe', 'Magnolie Organizer.dll')) {
+            $owned = Join-Path $publish $name
+            if (Test-Path -LiteralPath $owned -PathType Leaf) { Sign-Official $owned }
+        }
+        $null = Assert-PreparedPhonePayloadResources -AssemblyPath (Join-Path $publish 'Magnolie Organizer.dll') `
+            -PublishRoot $publish -Prepared $preparedPhoneInputs
+        & (Join-Path $PSScriptRoot 'Verify-AuthenticodePayload.ps1') -Root $publish `
+            -Publisher $script:signingConfiguration['MAGNOLIE_SIGN_PUBLISHER'] `
+            -SignTool $script:signingConfiguration['MAGNOLIE_SIGNTOOL'] `
+            -Report (Join-Path $publicationStage 'payload-signatures.json')
+    }
     if ($CrossCompile) {
         $marker = @(
             "windowsRuntimeVerified=false"
@@ -239,14 +292,53 @@ try {
             if ($makensisCommand) { $makensis = $makensisCommand.Source }
         }
         if (-not $makensis) { throw "Installer angefordert, aber makensis beziehungsweise makensis.exe fehlt." }
+        if ($runningOnWindows) {
+            Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File',
+                (Join-Path $buildRoot 'tests/nsis-signing-compiler.ps1'), '-Compiler', $makensis)
+        }
         $installerManifestDir = Join-Path $stage "installer-manifests"
         Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/GenerateInstallManifests.js"), $publish, $installerManifestDir)
-        Invoke-NativeCommand $makensis @("-WX", "-DPRODUCT_VERSION=$version", "-DPUBLISH_DIR=$publish", "-DCORE_MANIFEST=$(Join-Path $installerManifestDir 'core.manifest')", "-DHANDBOOK_MANIFEST=$(Join-Path $installerManifestDir 'handbook.manifest')", "-DOUTPUT_FILE=$unsignedSetupStage", "-DINSTALLER_FILENAME=$canonicalInstallerName", (Join-Path $buildRoot "installer/MagnolieOrganizer.nsi"))
+        $hookArguments = @()
+        $hookConfig = Join-Path $stage 'signing.clixml'
+        $hookReceipt = Join-Path $stage 'uninstaller-signature.json'
+        $previousConfig = $env:MAGNOLIE_NSIS_SIGN_CONFIG
+        $previousReceipt = $env:MAGNOLIE_NSIS_SIGN_RECEIPT
+        try {
+            if ($official) {
+                # DPAPI, current Windows user: no plaintext password in scripts or NSIS arguments.
+                ($script:signingConfiguration | ConvertTo-Json -Compress | ConvertTo-SecureString -AsPlainText -Force) |
+                    Export-Clixml -LiteralPath $hookConfig
+                $env:MAGNOLIE_NSIS_SIGN_CONFIG = $hookConfig
+                $env:MAGNOLIE_NSIS_SIGN_RECEIPT = $hookReceipt
+                $hostPath = (Get-Process -Id $PID).Path
+                $hookPath = Join-Path $PSScriptRoot 'Sign-NsisUninstaller.ps1'
+                foreach ($value in @($hostPath, $hookPath, $stage)) {
+                    if ($value -match '[%$"\r\n]') { throw 'Unsupported NSIS signing command path.' }
+                }
+                $hookArguments = @('-DOFFICIAL_RELEASE', "-DSIGNING_HOST=$hostPath", "-DSIGNING_SCRIPT=$hookPath")
+            }
+            Invoke-NativeCommand $makensis ($hookArguments + @("-WX", "-DPRODUCT_VERSION=$version", "-DPUBLISH_DIR=$publish", "-DCORE_MANIFEST=$(Join-Path $installerManifestDir 'core.manifest')", "-DHANDBOOK_MANIFEST=$(Join-Path $installerManifestDir 'handbook.manifest')", "-DOUTPUT_FILE=$unsignedSetupStage", "-DINSTALLER_FILENAME=$canonicalInstallerName", (Join-Path $buildRoot "installer/MagnolieOrganizer.nsi")))
+            if ($official -and -not (Test-Path -LiteralPath $hookReceipt -PathType Leaf)) {
+                throw 'NSIS uninstaller signing receipt missing.'
+            }
+        } finally {
+            $env:MAGNOLIE_NSIS_SIGN_CONFIG = $previousConfig
+            $env:MAGNOLIE_NSIS_SIGN_RECEIPT = $previousReceipt
+            Remove-Item -LiteralPath $hookConfig -Force -ErrorAction SilentlyContinue
+        }
         if (-not (Test-Path $unsignedSetupStage -PathType Leaf)) { throw "NSIS-Bau erzeugte keinen Installer." }
         Sign-Official $unsignedSetupStage
         if ($official) { Move-Item -LiteralPath $unsignedSetupStage -Destination $setupStage }
         Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/CreateInstallerBuildRecord.js"), $setupStage, $installerRecordStage, $canonicalInstallerName)
-        Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/AuditInstaller.js"), $setupStage, $publish, $canonicalInstallerName, $installerRecordStage)
+        $signatureAuditArguments = @()
+        if ($official) {
+            $signatureAuditArguments = @('--authenticode', (Get-Process -Id $PID).Path,
+                (Join-Path $PSScriptRoot 'Verify-AuthenticodePayload.ps1'),
+                $script:signingConfiguration['MAGNOLIE_SIGN_PUBLISHER'],
+                $script:signingConfiguration['MAGNOLIE_SIGNTOOL'],
+                (Join-Path $publicationStage 'installer-signatures.json'), $hookReceipt)
+        }
+        Invoke-NativeCommand "bun" (@((Join-Path $buildRoot "installer/AuditInstaller.js"), $setupStage, $publish, $canonicalInstallerName, $installerRecordStage) + $signatureAuditArguments)
         Write-WindowsCandidateRecord $root $publicationStage $version
     }
 
@@ -260,6 +352,11 @@ try {
         $provenanceName = "Magnolie-Organizer-Windows-$version-provenance.json"
         $checksumArtifacts += [pscustomobject]@{ Source = (Join-Path $publicationStage $provenanceName); DisplayPath = $provenanceName }
     }
+    if ($official) {
+        foreach ($reportName in @('payload-signatures.json', 'installer-signatures.json')) {
+            $checksumArtifacts += [pscustomobject]@{ Source = (Join-Path $publicationStage $reportName); DisplayPath = $reportName }
+        }
+    }
     Write-ReleaseChecksums $root $version $checksumStage $checksumArtifacts
     $changes = @(
         ,@($publish, (Join-Path $outputRoot "Ausgabe"))
@@ -270,6 +367,11 @@ try {
     if (Test-Path $installerRecordStage) { $changes += ,@($installerRecordStage, (Join-Path $outputRoot $installerRecordName)) }
     if ($BuildInstaller -or $official -or $CrossCompile) {
         $changes += ,@((Join-Path $publicationStage $provenanceName), (Join-Path $outputRoot $provenanceName))
+    }
+    if ($official) {
+        foreach ($reportName in @('payload-signatures.json', 'installer-signatures.json')) {
+            $changes += ,@((Join-Path $publicationStage $reportName), (Join-Path $outputRoot $reportName))
+        }
     }
     $changes += ,@($checksumStage, (Join-Path $outputRoot $checksumName))
     foreach ($stale in Get-ChildItem -LiteralPath $outputRoot -File -Force | Where-Object {

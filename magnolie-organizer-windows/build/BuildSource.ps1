@@ -39,7 +39,14 @@ try {
     [IO.Compression.ZipFile]::ExtractToDirectory($stagedArchive, $extract)
     $standalone = Join-Path $extract $name
     $handbookOverrides = @{}
-    foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT', 'MAGNOLIE_TEST_PWSH', 'DOTNET_HOST_PATH') {
+    # This is a source-only syntax/test gate, not the later official publish.
+    # Do not inherit the caller's external native payloads or verification
+    # identity before those inputs have been prepared. Restore every value even
+    # after failure; the real official publish still enforces its signature gate.
+    foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT', 'MAGNOLIE_TEST_PWSH', 'DOTNET_HOST_PATH',
+        'MAGNOLIE_OFFICIAL_RELEASE', 'MagnoliePhoneCameraHelperDirectory', 'MagnoliePhoneCameraRuntimeDirectory',
+        'MagnoliePhoneCameraParentDirectory', 'MagnoliePhoneCameraSourceDirectory', 'MAGNOLIE_PHONE_VERIFY_RECEIPT',
+        'MAGNOLIE_PHONE_VERIFY_PUBLISHER', 'MAGNOLIE_PHONE_VERIFY_TOOL', 'MAGNOLIE_PHONE_VERIFY_HOST') {
         $handbookOverrides[$variable] = [Environment]::GetEnvironmentVariable($variable)
         [Environment]::SetEnvironmentVariable($variable, $null)
     }
@@ -53,6 +60,7 @@ try {
         $env:MAGNOLIE_TEST_PWSH = (Get-Process -Id $PID).Path
         $python = if ($env:MAGNOLIE_PYTHON) { Get-Command $env:MAGNOLIE_PYTHON -ErrorAction Stop } else { Get-Command python3 -ErrorAction SilentlyContinue }
         if (-not $python) { $python = Get-Command python -ErrorAction Stop }
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/source-build-context.ps1')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/release-source-context.ps1')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/standalone-web-catalogs.ps1')
         Initialize-StandaloneWebCatalogs $standalone $python.Source
