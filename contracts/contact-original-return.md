@@ -1793,6 +1793,32 @@ consent/return source inputs are unchanged. Actual peer/acquisition UI ingress,
 existing-key session composition/startup recovery and installed/provider/device/
 package acceptance remain open; production stays OFF/unadvertised.
 
+### Linux read-only existing independent journal key (#636, partial)
+
+The explicit native-root adapter reads only an already existing private
+`telefon/storage.key` in its exact native 32-byte format. It never constructs
+`PhoneStore`/`PhoneService`, looks up a keyring/consent/book key, repairs permissions
+or creates a root, lock, identity, database or replacement secret. HKDF-SHA256 uses
+a fixed Linux-specific journal domain, separate from raw phone storage and the
+Windows journal domain. Missing material returns unavailable; unsafe or changing
+material holds.
+
+Descriptor-relative no-follow/nonblocking read checks private owner/mode, regular
+single-link leaf and exact length. Two reads and final path/descriptor correlation
+check root/leaf identity and key contents. Owned mutable raw buffers are cleared
+on success/failure, descriptors are closed and the separate derived copy belongs
+to its journal consumer. No renderer/imported path or default profile guessing is
+accepted by the adapter.
+
+Twenty-two owned-fixture cases pass, including independent derivation vectors,
+raw-buffer cleanup, missing/unsafe/short/long/link/FIFO inputs, owner mismatches,
+key/root changes during reading, descriptor closure and real existing physical
+journal holds after loss/replacement. Existing Linux source manifests include the
+helper and their syntax checks pass, without package builds/installation. The
+backend is not registered or read against actual user keys. Native session/UI
+composition and startup recovery, installed profile/permission and provider/
+device/package acceptance remain open; prior unchanged platform evidence is kept.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
