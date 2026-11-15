@@ -68,6 +68,11 @@ class NativeContactSourceBook:
             except (TypeError, ValueError, UnicodeError, OverflowError, RuntimeError):
                 return None
 
+    def source(self, binding, available):
+        """Existing native owner identity only; NOT a saved observation."""
+        with self._lock:
+            return self._owner.current(binding, available)
+
     def capture(self, binding, available, data):
         with self._lock:
             return NativeProducerBookSnapshot.capture(

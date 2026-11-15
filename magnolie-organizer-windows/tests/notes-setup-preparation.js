@@ -2,7 +2,7 @@
 // Actual DOM endpoint; --wire receives only the real native writer's SaveACKs.
 const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
 const { webcrypto } = require("node:crypto"), { JSDOM } = require("jsdom");
-const web = path.resolve(__dirname, "../app/web");
+const web = process.env.MAGNOLIE_TEST_WEB ? path.resolve(process.env.MAGNOLIE_TEST_WEB) : path.resolve(__dirname, "../app/web");
 async function boot(data, emit) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
     runScripts: "outside-only", url: "https://setup-preparation.test.invalid/", pretendToBeVisual: true });

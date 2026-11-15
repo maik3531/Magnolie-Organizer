@@ -22264,6 +22264,9 @@ class Fenster(_FENSTER_BASIS):
             if type(session) is NativeNotesUiSaveSession:
                 session.cancel(nachricht.get('token'))
 
+        elif befehl == 'notes_setup_prepared':
+            Fenster._notes_original_native_setup_prepared(self, nachricht)
+
         elif befehl == "cloud_sicherung_status":
             if nachricht.get("requestId"):
                 threading.Thread(target=self._cloud_sicherung_status,
@@ -25258,12 +25261,72 @@ class Fenster(_FENSTER_BASIS):
         return session.try_attach_known()
 
     def _notes_original_native_stop_session(self):
+        Fenster._notes_original_native_setup_preparation_stop(self)
         from magnolie_contact_notes_session import NativeNotesNativeSession
         session = getattr(self, '_notes_original_session', None)
         if type(session) is NativeNotesNativeSession:
             session.stop()  # Native caller must be outside book/tree locks.
 
-    def _notes_original_native_setup_acquire(self, choose_peer=None, sender=None):
+    def _notes_original_native_setup_preparation_stop(self):
+        pending = getattr(self, '_notes_original_setup_preparation', None)
+        self._notes_original_setup_preparation = None
+        timer = getattr(self, '_notes_original_setup_preparation_timer', None)
+        self._notes_original_setup_preparation_timer = None
+        if timer is not None:
+            GLib.source_remove(timer)
+        if pending is not None:
+            pending[0].stop()
+
+    def _notes_original_native_setup_prepare(self, on_acquired, choose_peer=None, sender=None):
+        """Explicit native UI entry; flush asynchronously, never wait on the UI."""
+        from magnolie_contact_notes_setup import NativeNotesSetupPreparation
+        if (threading.current_thread() is not threading.main_thread() or not callable(on_acquired) or
+                getattr(self, '_notes_original_setup_preparation', None) is not None or
+                getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False)):
+            raise PermissionError('notes_setup_native_context_required')
+        with self._daten_sperre:
+            preparation = NativeNotesSetupPreparation(
+                lambda: self._kontakt_quellen_buch.source(*self._kontakt_quellen_buchbindung()),
+                self._kontakt_quellen_buchaufnahme)
+        self._notes_original_setup_preparation = preparation, on_acquired, choose_peer, sender
+        def expired():
+            if getattr(self, '_notes_original_setup_preparation', None) is not None and self._notes_original_setup_preparation[0] is preparation:
+                self._notes_original_setup_preparation_timer = None
+                Fenster._notes_original_native_setup_preparation_stop(self)
+                on_acquired(None)
+            return False
+        try:
+            self._notes_original_setup_preparation_timer = GLib.timeout_add_seconds(40, expired)
+            self.antwort('App.notesSetupVorbereiten', {'token': preparation.token})
+        except Exception:
+            Fenster._notes_original_native_setup_preparation_stop(self)
+            raise
+        return preparation
+
+    def _notes_original_native_setup_prepared(self, message):
+        from magnolie_contact_notes_setup import NativeNotesSetupPreparation
+        pending = getattr(self, '_notes_original_setup_preparation', None)
+        if (threading.current_thread() is not threading.main_thread() or pending is None or
+                type(pending[0]) is not NativeNotesSetupPreparation or type(message) is not dict or
+                set(message) != {'cmd', 'token', 'bereit', 'standSha256'} or type(message.get('bereit')) is not bool or
+                type(message.get('standSha256')) is not str or message.get('token') != pending[0].token):
+            return
+        preparation, on_acquired, choose_peer, sender = pending
+        try:
+            with self._daten_sperre:
+                prepared = preparation.accept(message)
+        finally:
+            Fenster._notes_original_native_setup_preparation_stop(self)
+        acquisition = None
+        if prepared is not None:
+            acquisition = Fenster._notes_original_native_setup_acquire(self, choose_peer, sender, prepared=prepared)
+        try:
+            on_acquired(acquisition)  # Native UI callback only; no data/tree gates held.
+        except Exception:
+            if acquisition is not None: acquisition.stop()
+            raise
+
+    def _notes_original_native_setup_acquire(self, choose_peer=None, sender=None, *, prepared=None):
         """Native main-thread action, no IPC/startup entry or lazy tree/service creation."""
         from magnolie_contact_notes_setup import NativeNotesSetupFlow, NativeNotesSetupCollector, NativeNotesSetupAcquisition
         from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
@@ -25275,6 +25338,12 @@ class Fenster(_FENSTER_BASIS):
             if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
                     getattr(self, '_notes_original_choice_store', None) is not store):
                 raise PermissionError('notes_setup_native_context_changed')
+            if prepared is not None:
+                from magnolie_personal_actor_store import NativeProducerBookSnapshot
+                current = self._kontakt_quellen_buchaufnahme()
+                if (type(prepared) is not NativeProducerBookSnapshot or type(current) is not NativeProducerBookSnapshot or
+                        current.saved_book != prepared.saved_book):
+                    raise PermissionError('notes_setup_prepared_book_changed')
         flow = NativeNotesSetupFlow(store, self._kontakt_quellen_buchaufnahme, lambda: self._daten_sperre, usable)
         decision = flow.begin()  # BEFORE the first native peer dialog, not after acquisition.
         collector = None

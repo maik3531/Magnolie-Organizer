@@ -2092,6 +2092,39 @@ Application action registration, joined setup worker/status/cancel host lifecycl
 conditional startup and native capability/profile acceptance remain open there.
 Production stays OFF/unadvertised and all physical acceptance pauses remain.
 
+### Linux asynchronous pre-peer editor/saveflush connection (#640, partial)
+
+The explicit native `_notes_original_native_setup_prepare` entry now posts the
+same preparation callback to the actual Linux renderer without waiting on GTK's
+main thread. Only a strict reply to its native-owned token can resume native peer
+acquisition. One owned 40-second UI timeout, explicit stop and reply completion
+release the pending callback; foreign/malformed replies do not consume it. The
+existing book-owner accessor exposes identity only, never a saved observation.
+
+The renderer snapshots Notes text and drains the normal numeric save queue before
+replying. Native preparation independently requires a successful current native
+saved snapshot, unchanged owner, expiry and raw saved-byte hash. Linux's canonical
+model comparison remains separate from that raw-byte ACK hash. The saved snapshot
+is retained as a restriction through the original acquisition/decision; no new
+post-dialog decision is substituted. Preparation still grants no source.
+
+Twenty-three Linux preparation cases pass: nine native guards, five owned
+timeout/stop/busy/strict-reply cases and nine actual DOM/IPC/encrypted-writer/peer
+choice cases. They cover fresh load without a witness, two pending serial saves,
+real pending Notes editor text, ignored string ACK, replay, repair-pending writer,
+lock, contact draft and modal. Ninety-nine affected setup/collector/peer cases,
+23 worker/UI cases and seven existing joined writer cases also pass (152 total).
+The shared synthetic DOM driver additionally passes the existing Windows
+preparation slice with its default source path. Windows product inputs remain
+unchanged; no native Windows rerun or package build is inferred from this Linux
+change. No installed GTK/provider/device/user keys are used.
+
+These remain explicit internal entries, not registered application actions or
+startup features. Complete host-owned worker/status/cancel/lifecycle assembly,
+conditional restart recovery and native counterpart/system-rights acceptance
+remain open in #640. Full write stays unadvertised/production OFF, Resource19 stays
+phone/email-only, and no physical, installation or publication pause is lifted.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

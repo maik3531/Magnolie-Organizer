@@ -25877,6 +25877,32 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       wartenderSpeicherText === null && speicherTimer === null && !ausstehenderNotizSnapshot && notizSnapshotTimer === null &&
       !originalKontaktLauf && !originalKontaktSpeicher;
   }
+  const notesSetupVorbereitungen = new Set();
+  let notesSetupVorbereitung = null;
+  function empfangeNotesSetupVorbereiten(nutzlast) {
+    const token = nutzlast?.token;
+    if (!Bruecke.vorhanden || typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token) || notesSetupVorbereitungen.has(token)) return;
+    const antwort = bereit => Bruecke.sende({ cmd: "notes_setup_prepared", token, bereit,
+      standSha256: bereit ? letzterSpeicherSha256 : "" });
+    if (notesSetupVorbereitungen.size >= 64) { antwort(false); return; }
+    notesSetupVorbereitungen.add(token);
+    const modalOffen = () => modalStapel.some(eintrag => eintrag.schleier.isConnected);
+    if (notesSetupVorbereitung || !initialisiert || !antwortErhalten || gesperrt || aktiverEditor || modalOffen() || syncLaeuft ||
+        mcpSyncAktiv() || originalKontaktLauf || originalKontaktSpeicher || baumSpeicherNachweis ||
+        baumPostVorSpeichern || ausstehendeAdressbuchBaseline) { antwort(false); return; }
+    notesSetupVorbereitung = token;
+    const ende = bereit => {
+      if (notesSetupVorbereitung !== token) return;
+      notesSetupVorbereitung = null; antwort(bereit);
+    };
+    // Ordinary numeric writer queue includes the actual pending Notes snapshot.
+    // Linux compares canonical content, while the ACK hash retains raw-save bytes.
+    nachDauerhaftemSpeichern(() => {
+      let gleich = false;
+      try { gleich = !!letzterSpeicherText && notesOriginalModell(JSON.stringify(DATEN)) === notesOriginalModell(letzterSpeicherText); } catch (_) { }
+      ende(!modalOffen() && notesOriginalUiFrei() && gleich && /^[a-f0-9]{64}$/.test(letzterSpeicherSha256));
+    }, () => ende(false));
+  }
   function empfangeNotesOriginalSpeichern(nutzlast) {
     const token = nutzlast?.token;
     if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) return;
@@ -37153,6 +37179,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
     notesOriginalSpeichern(nutzlast) { empfangeNotesOriginalSpeichern(nutzlast); },
+    notesSetupVorbereiten(nutzlast) { empfangeNotesSetupVorbereiten(nutzlast); },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};

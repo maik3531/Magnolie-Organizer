@@ -7,9 +7,51 @@ from dataclasses import dataclass
 import json
 import threading
 import time
+import secrets
+
+from magnolie_personal_actor_store import NativeProducerBookSnapshot
 
 from magnolie_contact_notes_return import (NativeNotesFsOrigin, NativeNotesProtocolNegotiation,
     NativeNotesExportChoice, _validate_notes_export, _frame_bytes)
+
+
+class NativeNotesSetupPreparation:
+    """One-use native rendezvous; renderer idle/hash never supplies a SavedBook."""
+    def __init__(self, native_source, capture, *, clock=time.monotonic):
+        if not all(callable(value) for value in (native_source, capture, clock)):
+            raise TypeError('notes_setup_native_preparation_required')
+        self._source, self._capture, self._clock = native_source, capture, clock
+        self._owner = native_source()
+        if type(self._owner) is not str or not self._owner:
+            raise PermissionError('notes_setup_native_book_required')
+        self.token, self._deadline = secrets.token_hex(32), clock() + 40
+        self._lock, self._used = threading.RLock(), False
+
+    def accept(self, message):
+        if (type(message) is not dict or set(message) != {'cmd', 'token', 'bereit', 'standSha256'} or
+                message.get('cmd') != 'notes_setup_prepared' or type(message.get('bereit')) is not bool or
+                type(message.get('standSha256')) is not str):
+            return None
+        with self._lock:
+            if self._used or message.get('token') != self.token:
+                return None
+            self._used = True
+        if not message['bereit'] or self._clock() >= self._deadline or self._source() != self._owner:
+            return None
+        actual = self._capture()
+        if (type(actual) is not NativeProducerBookSnapshot or actual.book_source != self._owner or
+                actual.saved_sha256 != message['standSha256'] or self._source() != self._owner or
+                self._clock() >= self._deadline):
+            return None
+        current = self._capture()
+        with self._lock:
+            if self._used is not True:  # stop() invalidates an in-progress acceptance.
+                return None
+        return actual if type(current) is NativeProducerBookSnapshot and current.saved_book == actual.saved_book else None
+
+    def stop(self):
+        with self._lock:
+            self._used = 'stopped'
 
 
 @dataclass(frozen=True)
