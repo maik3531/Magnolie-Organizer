@@ -9,6 +9,7 @@
     <Compile Include="$(SourceRoot)/ExchangeCodec.cs" />
     <Compile Include="$(SourceRoot)/ThunderbirdCalendarImporter.cs" />
     <Compile Include="$(SourceRoot)/CalendarRecurrence.cs" />
+    <Compile Include="$(SourceRoot)/NormativeTimezones.cs" />
     <Compile Include="$(SourceRoot)/NativeLocalization.cs" />
     <Compile Include="$(SourceRoot)/RegionalSettings.cs" />
     <Compile Include="$(SourceRoot)/WindowsPaths.cs" />
@@ -25,4 +26,5 @@
     <Reference Include="$(SourceRoot)/tests/bin/Debug/net8.0/PhoneNumbers.dll" />
     <None Include="$(SourceRoot)/tests/bin/Debug/net8.0/runtimes/linux-x64/native/libe_sqlite3.so" CopyToOutputDirectory="PreserveNewest" Link="libe_sqlite3.so" />
   </ItemGroup>
+  <Import Project="$(SourceRoot)/NormativeTimezones.targets" />
 </Project>

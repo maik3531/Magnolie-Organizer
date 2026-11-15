@@ -95,6 +95,7 @@
       <Reference Remove="@(Reference)" Condition="'%(Reference.Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
     </ItemGroup>
   </Target>
+  <Import Project="NormativeTimezones.targets" />
   <Import Project="PhoneCameraAudioHelper.targets" />
   <Import Project="PhoneCameraAudioRuntime.targets" />
   <Import Project="PhoneCameraAudioParent.targets" />
