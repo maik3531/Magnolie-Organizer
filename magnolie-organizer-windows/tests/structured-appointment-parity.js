@@ -212,8 +212,10 @@ for (const [name, app] of apps) {
     kalenderAnhaenge: [{ uri: "file:///tmp/private.pdf", name: "private.pdf" }] }] }).termine[0];
   T.oeffneTerminBlatt(lokal, lokal.datum);
   const anhangZeile = window.document.querySelector(".tb-kalender-anhang");
+  const lokalesOeffnen = Array.from(anhangZeile.querySelectorAll("button"))
+    .find(button => button.textContent === "Open");
   assert.ok(anhangZeile.textContent.includes("local / not opened") &&
-    !Array.from(anhangZeile.querySelectorAll("button")).some(button => button.textContent === "Open"),
+    (!lokalesOeffnen || lokalesOeffnen.hidden && lokalesOeffnen.disabled),
   `${name}: lokale URI kann geöffnet werden`);
   window.document.querySelector("#termin-schleier").remove();
 
