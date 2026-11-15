@@ -18,6 +18,8 @@ internal sealed class NotesOriginalSetupRun : IDisposable
     private bool lifetimeDisposed;
     private readonly CancellationToken token;
     private readonly TaskCompletionSource done = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource quiesced = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int activeWork;
     private NotesOriginalSetupAcquisition? acquisition;
     private IReadOnlyList<NotesOriginalSetupCollector.Candidate> candidates = [];
     private readonly Dictionary<object, IUiRequest> requests = [];
@@ -39,6 +41,7 @@ internal sealed class NotesOriginalSetupRun : IDisposable
     }
     internal string Phase { get { lock (gate) return phase; } }
     internal Task Done => done.Task;
+    internal Task Quiesced => quiesced.Task; // Terminal cleanup AND all started worker/UI callbacks returned.
     internal bool RetainsPendingData { get { lock (gate) return acquisition is not null || candidates.Count != 0 || requests.Count != 0; } }
 
     internal async Task RunAsync()
@@ -47,7 +50,7 @@ internal sealed class NotesOriginalSetupRun : IDisposable
         lock (gate)
         {
             if (phase != "created") return;
-            phase = "probing"; current = acquisition!;
+            phase = "probing"; current = acquisition!; activeWork++;
         }
         try
         {
@@ -64,6 +67,7 @@ internal sealed class NotesOriginalSetupRun : IDisposable
             if (!postUi(() => ChooseUiAsync(owner))) Finish("held"); // Queued closure retains no candidate snapshots.
         }
         catch { Finish("held"); }
+        finally { ExitWork(); }
     }
 
     private async Task ChooseUiAsync(object owner)
@@ -72,7 +76,7 @@ internal sealed class NotesOriginalSetupRun : IDisposable
         lock (gate)
         {
             if (pending != owner || phase != "offering") return;
-            current = acquisition!; found = candidates; candidates = []; pending = null; phase = "choosing";
+            current = acquisition!; found = candidates; candidates = []; pending = null; phase = "choosing"; activeWork++;
         }
         try
         {
@@ -93,6 +97,7 @@ internal sealed class NotesOriginalSetupRun : IDisposable
             Finish(configured ? "configured" : "cancelled");
         }
         catch { Finish("held"); }
+        finally { ExitWork(); }
     }
 
     private interface IUiRequest
@@ -137,10 +142,18 @@ internal sealed class NotesOriginalSetupRun : IDisposable
         lock (gate)
         {
             if (Terminal(phase) || !requests.TryGetValue(owner, out request) || !dispatchedRequests.Add(owner)) return;
+            activeWork++;
         }
-        if (!isUiThread()) { Finish("held"); return; }
-        try { await request.ExecuteAsync(); }
-        finally { lock (gate) { requests.Remove(owner); dispatchedRequests.Remove(owner); } }
+        try
+        {
+            if (!isUiThread()) { Finish("held"); return; }
+            await request.ExecuteAsync();
+        }
+        finally
+        {
+            lock (gate) { requests.Remove(owner); dispatchedRequests.Remove(owner); }
+            ExitWork();
+        }
     }
 
     internal void Cancel() => Finish("cancelled");
@@ -159,7 +172,7 @@ internal sealed class NotesOriginalSetupRun : IDisposable
             foreach (var request in queued) request.Cancel();
             current?.Stop(); // No callbacks/IO under the run lock, no disk/history release.
         }
-        finally { done.TrySetResult(); }
+        finally { done.TrySetResult(); TryQuiesce(); }
         try
         {
             postUi(() =>
@@ -170,6 +183,18 @@ internal sealed class NotesOriginalSetupRun : IDisposable
             });
         }
         catch { } // A closed UI cannot retain candidate authority or snapshots.
+    }
+    private void ExitWork()
+    {
+        lock (gate) activeWork--;
+        TryQuiesce();
+    }
+    private void TryQuiesce()
+    {
+        lock (gate)
+        {
+            if (done.Task.IsCompleted && activeWork == 0) quiesced.TrySetResult();
+        }
     }
     private void CancelLifetime(bool dispose)
     {

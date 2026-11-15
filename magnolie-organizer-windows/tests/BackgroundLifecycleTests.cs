@@ -112,6 +112,7 @@ internal static class BackgroundLifecycleTests
         var form = File.ReadAllText(Path.Combine(root, "MainForm.cs"));
         var bridge = File.ReadAllText(Path.Combine(root, "BridgeDispatcher.cs"));
         var background = File.ReadAllText(Path.Combine(root, "BridgeDispatcher.Background.cs"));
+        var notes = File.ReadAllText(Path.Combine(root, "BridgeDispatcher.NotesOriginal.cs"));
         var setup = File.ReadAllText(Path.Combine(root, "Program.cs"));
         var installer = File.ReadAllText(Path.Combine(root, "installer", "MagnolieOrganizer.nsi"));
         TestAssert.That(form.Contains("traySettings.Aktiv && traySettings.Autostart,") && !form.Contains("reminderAutostart || traySettings"), "Reminder bypassed startup consent");
@@ -119,6 +120,15 @@ internal static class BackgroundLifecycleTests
         TestAssert.That(bridge.Contains("var autostartError = form.SetReminderAutostart(active)") && bridge.Contains("fehler = autostartError"), "Autostart error discarded");
         TestAssert.That(background.Contains("predecessor.WaitAsync") && background.Contains("await bridgeCommands.WaitAsync") && bridge.Contains("_ = QueueBackground(ResumeOptionalServicesAsync)"), "Unlock replay blocks its commit lane");
         TestAssert.That(bridge.Split("await FencePhoneRestoreAsync();").Length == 4, "Not all restore routes fence phone work");
+        TestAssert.That(notes.Contains("work => QueueBackground(work, ownsBridgeLane: true)") &&
+            background.Contains("await CancelNotesSetupAsync().ConfigureAwait(false); // Before any book gate"),
+            "Notes restore join would wait for a worker blocked by the restore command's bridge lane");
+        var initialize = bridge[bridge.IndexOf("private async Task InitializeAsync()", StringComparison.Ordinal)..];
+        var cancelInitialize = initialize.IndexOf("await CancelNotesSetupAsync();", StringComparison.Ordinal);
+        TestAssert.That(cancelInitialize >= 0 && cancelInitialize <
+            initialize.IndexOf("currentPlainTextAvailable = false;", StringComparison.Ordinal) &&
+            notes.Contains("await CancelNotesSetupAsync().ConfigureAwait(false);"),
+            "Notes setup is not joined before native profile initialization/shutdown");
         TestAssert.That(!bridge.Contains("kdeConnectSms = new KdeConnectSms(paths)") && !bridge.Contains("telefon = new TelefonCoordinator"), "Optional integration still owns app startup");
         TestAssert.That(setup.Contains("ProfileLease.Acquire(paths.Root)") && installer.Contains("DeleteRegValue HKCU \"Software\\Microsoft\\Windows\\CurrentVersion\\Run\" \"Magnolie Organizer\""), "Profile ownership/uninstall startup cleanup missing");
         TestAssert.That(installer.Contains("MagnolieOrganizer.Windows.Exit") && form.Contains("NativeMethods.ExitMessage"), "Installer cannot request terminal saved exit");

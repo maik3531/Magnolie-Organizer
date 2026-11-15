@@ -13,7 +13,7 @@ internal static partial class NotesOriginalChoiceStoreTests
         var modes = new[] { "complete", "alias", "source-cancel", "contact-cancel", "bad-index", "source-error",
             "contact-error", "replay", "cancel-queued", "revoke-queued", "save-queued", "cancel-contact",
             "cancel-before", "offline", "reject", "post-error", "wrong-ui", "foreground", "notice-error", "dispose",
-            "cancel-wait", "cancel-contact-post", "stop-contact" };
+            "cancel-wait", "cancel-contact-post", "stop-contact", "cancel-active-contact", "cancel-active-probe" };
         foreach (var mode in modes)
         {
             using var h = new Fixture(Path.Combine(root, mode));
@@ -22,12 +22,19 @@ internal static partial class NotesOriginalChoiceStoreTests
             var active = new List<Task>(); var notices = new List<string>();
             var calls = 0; var sources = 0; var contacts = 0;
             var arrived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseActive = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var before = File.ReadAllBytes(h.Host.DataPath);
             var receiver = h.Coordinator.NotesOriginalReceive;
             using var handler = new NotesHandler(async (message, cancellation) =>
             {
                 TestAssert.That(!setupRunUi, "Setup network ran on UI thread");
                 calls++;
+                if (mode == "cancel-active-probe")
+                {
+                    arrived.TrySetResult();
+                    await releaseActive.Task; // Explicit fixture hold, not a real blocked socket.
+                    cancellation.ThrowIfCancellationRequested();
+                }
                 var body = JsonNode.Parse(await message.Content!.ReadAsStringAsync(cancellation))!.AsObject(); JsonObject response;
                 if (message.RequestUri!.AbsolutePath.EndsWith("/sitzung", StringComparison.Ordinal))
                 { var answer = MagnolienbaumFs1.BuildResponse(h.RemoteState, h.RemotePeer, body); sessions.Add(answer.Session); response = answer.Response; }
@@ -75,6 +82,8 @@ internal static partial class NotesOriginalChoiceStoreTests
                     if (mode == "stop-contact") await h.Coordinator.StopAsync();
                     if (mode == "contact-error") throw new InvalidOperationException("synthetic contact error");
                     token.ThrowIfCancellationRequested();
+                    if (mode == "cancel-active-contact") await releaseActive.Task;
+                    token.ThrowIfCancellationRequested();
                     await Task.Delay(2, token); // Replay must not remove ownership of an active UI request.
                     return mode == "contact-cancel" ? null : view.Contacts[0]["id"]!.GetValue<string>();
                 }, result =>
@@ -91,7 +100,15 @@ internal static partial class NotesOriginalChoiceStoreTests
                 else
                 {
                     var worker = Task.Run(run.RunAsync);
-                    if (mode == "cancel-wait") { await arrived.Task.WaitAsync(TimeSpan.FromSeconds(5)); run.Cancel(); }
+                    if (mode is "cancel-wait" or "cancel-active-probe")
+                    {
+                        await arrived.Task.WaitAsync(TimeSpan.FromSeconds(5)); run.Cancel();
+                        if (mode == "cancel-active-probe")
+                        {
+                            TestAssert.That(run.Done.IsCompleted && !run.Quiesced.IsCompleted, "Terminal status incorrectly claimed running probe joined");
+                            releaseActive.TrySetResult();
+                        }
+                    }
                     await worker.WaitAsync(TimeSpan.FromSeconds(10));
                 }
                 if (mode == "cancel-queued") run.Cancel();
@@ -115,11 +132,18 @@ internal static partial class NotesOriginalChoiceStoreTests
                         try { active.Add(callback()); if (mode == "replay") active.Add(callback()); }
                         finally { setupRunUi = false; }
                     }
+                    if (mode == "cancel-active-contact" && contacts > 0 && !releaseActive.Task.IsCompleted)
+                    {
+                        run.Cancel();
+                        TestAssert.That(run.Done.IsCompleted && !run.Quiesced.IsCompleted, "Terminal status incorrectly claimed active contact callback returned");
+                        releaseActive.TrySetResult();
+                    }
                     await Task.Delay(1);
                 }
                 await Task.WhenAll(active);
+                await run.Quiesced.WaitAsync(TimeSpan.FromSeconds(5));
                 var granted = mode is "complete" or "alias" or "replay" or "notice-error";
-                var expected = granted ? "configured" : mode is "cancel-before" or "cancel-queued" or "cancel-contact" or "source-cancel" or "contact-cancel" or "dispose" or "cancel-wait" or "cancel-contact-post" ? "cancelled" : mode == "offline" ? "waiting-network" : "held";
+                var expected = granted ? "configured" : mode is "cancel-before" or "cancel-queued" or "cancel-contact" or "source-cancel" or "contact-cancel" or "dispose" or "cancel-wait" or "cancel-contact-post" or "cancel-active-contact" or "cancel-active-probe" ? "cancelled" : mode == "offline" ? "waiting-network" : "held";
                 TestAssert.That(run.Phase == expected && h.Store.HasDesiredConsent() == granted, $"Dispatcher result/consent mismatch: {mode}/{run.Phase}");
                 TestAssert.That(!run.RetainsPendingData && !acquisition!.IsActive, "Terminal dispatcher retained native snapshots");
                 TestAssert.That(File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before), "Dispatcher overwrote native book");
@@ -131,6 +155,7 @@ internal static partial class NotesOriginalChoiceStoreTests
             finally
             {
                 run.Dispose(); acquisition!.Stop();
+                releaseActive.TrySetResult();
                 foreach (var session in sessions) session.Dispose();
             }
         }

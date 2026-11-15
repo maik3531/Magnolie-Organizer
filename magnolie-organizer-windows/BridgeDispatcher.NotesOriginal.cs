@@ -10,6 +10,68 @@ internal sealed partial class BridgeDispatcher
     private int notesSetupPrompt;
     private NotesOriginalSetupAcquisition? nativeNotesSetupAcquisition;
     private NotesOriginalSetupPreparation? nativeNotesSetupPreparation;
+    private NotesOriginalSetupHost? nativeNotesSetupHost;
+    private long nativeNotesSetupVersion;
+
+    private bool NotesSetupUiThread() => !disposed && !form.IsDisposed && !form.Disposing && form.IsHandleCreated && !form.InvokeRequired;
+    private bool PostNotesSetupUi(Func<Task> callback)
+    {
+        if (disposed || form.IsDisposed || form.Disposing || !form.IsHandleCreated) return false;
+        try
+        {
+            form.BeginInvoke((Action)(async () => { try { await callback(); } catch { } }));
+            return true;
+        }
+        catch (InvalidOperationException) { return false; }
+    }
+
+    // Explicit native application entry ONLY, outside bridgeCommands/book gates.
+    // No renderer command/button/startup/capability registration here.
+    internal async Task<string> RunNotesSetupAsync(Action<string> status, CancellationToken cancellation = default)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+        cancellation.ThrowIfCancellationRequested();
+        if (!NotesSetupUiThread() || restoreInProgress) throw new InvalidOperationException("notes_setup_native_context_required");
+        var bookSource = NativeActorBookSource() ?? throw new InvalidOperationException("notes_setup_native_book_required");
+        NotesOriginalSetupAcquisition? owned = null;
+        NotesOriginalSetupHost? host = null;
+        var version = 0L;
+        host = new(async token => owned = await BeginNotesSetupAsync(token, host),
+            // A restore command may own bridgeCommands while cancelling/joining
+            // setup. Its worker must not first wait for that same bridge lane.
+            work => QueueBackground(work, ownsBridgeLane: true), PostNotesSetupUi, NotesSetupUiThread,
+            (views, token) => NotesOriginalSourceDialog.ChooseAsync(form, views, T, token),
+            (view, token) => NotesOriginalSetupDialog.ChooseAsync(form, view, T, token),
+            phase => { if (!disposed && !restoreInProgress && currentPlainTextAvailable && NativeActorBookSource() == bookSource &&
+                Volatile.Read(ref nativeNotesSetupVersion) == version) status(phase); });
+        if (Interlocked.CompareExchange(ref nativeNotesSetupHost, host, null) is not null)
+        { await host.DisposeAsync(); throw new InvalidOperationException("notes_setup_host_busy"); }
+        version = Interlocked.Increment(ref nativeNotesSetupVersion);
+        try
+        {
+            var running = host.StartAsync(cancellation);
+            var result = await running;
+            if (result == "configured" && !disposed && !restoreInProgress && currentPlainTextAvailable && NativeActorBookSource() == bookSource &&
+                Volatile.Read(ref nativeNotesSetupVersion) == version)
+                NativeNotesWake?.Invoke();
+            return result;
+        }
+        finally
+        {
+            await host.DisposeAsync(); // Quiescence, not merely terminal status, before releasing native ownership.
+            Interlocked.CompareExchange(ref nativeNotesSetupHost, null, host);
+            if (owned is not null) Interlocked.CompareExchange(ref nativeNotesSetupAcquisition, null, owned);
+            owned = null;
+        }
+    }
+
+    internal Task CancelNotesSetupAsync()
+    {
+        Interlocked.Increment(ref nativeNotesSetupVersion); // Suppress stale informational UI notices.
+        Interlocked.Exchange(ref nativeNotesSetupPreparation, null)?.Dispose();
+        Interlocked.Exchange(ref nativeNotesSetupAcquisition, null)?.Stop();
+        return Volatile.Read(ref nativeNotesSetupHost)?.StopAsync() ?? Task.CompletedTask;
+    }
 
     private async Task AcceptNotesSetupPreparationAsync(string token, bool idle, string savedHash)
     {
@@ -25,9 +87,9 @@ internal sealed partial class BridgeDispatcher
 
     // Explicit native main-thread UI entry, not a renderer/startup command. Never
     // instantiate a coordinator/service/identity to make an unavailable peer appear.
-    internal async Task<NotesOriginalSetupAcquisition?> BeginNotesSetupAsync(CancellationToken cancellation = default)
+    internal async Task<NotesOriginalSetupAcquisition?> BeginNotesSetupAsync(CancellationToken cancellation = default, NotesOriginalSetupHost? hostOwner = null)
     {
-        if (!OperatingSystem.IsWindows() || baumInstance is null || disposed || restoreInProgress || !currentPlainTextAvailable ||
+        if (!ReferenceEquals(nativeNotesSetupHost, hostOwner) || !OperatingSystem.IsWindows() || baumInstance is null || disposed || restoreInProgress || !currentPlainTextAvailable ||
             Interlocked.CompareExchange(ref notesSetupPrompt, 1, 0) != 0)
             throw new InvalidOperationException("notes_setup_native_context_required");
         NotesOriginalSetupAcquisition? acquisition = null;
@@ -76,7 +138,7 @@ internal sealed partial class BridgeDispatcher
         NotesOriginalSetupCollector.Candidate candidate, CancellationToken cancellation = default)
     {
         ArgumentNullException.ThrowIfNull(acquisition); ArgumentNullException.ThrowIfNull(candidate);
-        if (!ReferenceEquals(nativeNotesSetupAcquisition, acquisition) || disposed || restoreInProgress || !currentPlainTextAvailable ||
+        if (nativeNotesSetupHost is not null || !ReferenceEquals(nativeNotesSetupAcquisition, acquisition) || disposed || restoreInProgress || !currentPlainTextAvailable ||
             Interlocked.CompareExchange(ref notesSetupPrompt, 1, 0) != 0)
             throw new InvalidOperationException("notes_setup_owned_acquisition_required");
         try
@@ -98,7 +160,7 @@ internal sealed partial class BridgeDispatcher
     // Native candidate only. No renderer/startup entry or acquisition registration.
     internal async Task<bool> ConfigureNotesCandidateAsync(NotesOriginalSetupCollector.Candidate candidate, CancellationToken cancellation = default)
     {
-        if (!OperatingSystem.IsWindows() || disposed || restoreInProgress || !currentPlainTextAvailable ||
+        if (nativeNotesSetupHost is not null || !OperatingSystem.IsWindows() || disposed || restoreInProgress || !currentPlainTextAvailable ||
             Interlocked.CompareExchange(ref notesSetupPrompt, 1, 0) != 0)
             throw new InvalidOperationException("notes_setup_native_context_required");
         try
@@ -146,6 +208,7 @@ internal sealed partial class BridgeDispatcher
     }
     private async Task StopNativeNotesSessionAsync()
     {
+        await CancelNotesSetupAsync().ConfigureAwait(false);
         Interlocked.Exchange(ref nativeNotesSetupPreparation, null)?.Dispose();
         Interlocked.Exchange(ref nativeNotesSetupAcquisition, null)?.Stop();
         var session = Interlocked.Exchange(ref nativeNotesSession, null); if (session is null) return;

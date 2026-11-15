@@ -27,6 +27,7 @@ class NativeNotesSetupRun:
         self._acquisition, self._post, self._choose, self._finished = acquisition, post_ui, choose_source, finished
         self._contact = choose_contact
         self._lock, self.done = threading.RLock(), threading.Event()
+        self.quiesced, self._active_work = threading.Event(), 0
         self._phase, self._pending, self._notice, self._candidates = 'created', None, None, ()
 
     @property
@@ -41,10 +42,11 @@ class NativeNotesSetupRun:
                 return
             self._phase = 'probing'
             acquisition = self._acquisition
-        if threading.current_thread() is threading.main_thread():
-            self._finish('held')
-            return  # Never perform network/event waits on the native UI thread.
+            self._active_work += 1
         try:
+            if threading.current_thread() is threading.main_thread():
+                self._finish('held')
+                return  # Never perform network/event waits on the native UI thread.
             if not acquisition.probe():
                 self._finish('waiting-network')
                 return
@@ -62,6 +64,8 @@ class NativeNotesSetupRun:
                 self._finish('held')
         except Exception:
             self._finish('held')
+        finally:
+            self._exit_work()
 
     def _choose_ui(self, token):
         with self._lock:
@@ -70,10 +74,11 @@ class NativeNotesSetupRun:
             acquisition, candidates = self._acquisition, self._candidates
             self._candidates = ()
             self._pending, self._phase = None, 'choosing'
-        if threading.current_thread() is not threading.main_thread():
-            self._finish('held')
-            return False
+            self._active_work += 1
         try:
+            if threading.current_thread() is not threading.main_thread():
+                self._finish('held')
+                return False
             acquisition.candidates()  # Recheck original private/native context BEFORE another dialog.
             valid, views = [], []
             for candidate in candidates:
@@ -95,6 +100,8 @@ class NativeNotesSetupRun:
             self._finish('configured' if configured else 'cancelled')
         except Exception:
             self._finish('held')
+        finally:
+            self._exit_work()
         return False  # One-shot native UI dispatch, not a polling callback.
 
     def cancel(self):
@@ -111,6 +118,7 @@ class NativeNotesSetupRun:
             acquisition.stop()  # No callbacks under the run lock; only owned memory lanes.
         finally:
             self.done.set()
+            self._try_quiesce()
         def notify():
             with self._lock:
                 if self._notice is not notice:
@@ -127,3 +135,13 @@ class NativeNotesSetupRun:
             self._post(notify)
         except Exception:
             pass  # A closed UI cannot keep worker/candidate authority alive.
+
+    def _exit_work(self):
+        with self._lock:
+            self._active_work -= 1
+        self._try_quiesce()
+
+    def _try_quiesce(self):
+        with self._lock:
+            if self.done.is_set() and self._active_work == 0:
+                self.quiesced.set()  # Started worker/dialog callbacks returned; not a UI-thread join.

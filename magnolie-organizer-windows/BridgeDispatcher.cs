@@ -670,6 +670,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     }
     private async Task InitializeAsync()
     {
+        await CancelNotesSetupAsync(); // Join explicit setup before replacing/locking the current native profile.
         currentPlainTextAvailable = false;
         var text = store.ReadRecoverableJson(paths.Data);
         recovery.ReleaseAbandonedRestoreLeases();

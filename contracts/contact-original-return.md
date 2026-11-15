@@ -2125,6 +2125,46 @@ conditional restart recovery and native counterpart/system-rights acceptance
 remain open in #640. Full write stays unadvertised/production OFF, Resource19 stays
 phone/email-only, and no physical, installation or publication pause is lifted.
 
+### Owned setup-host quiescence and Windows native lifecycle (#640, partial)
+
+Linux `NativeNotesSetupRun.quiesced` and Windows `NotesOriginalSetupRun.Quiesced`
+now distinguish terminal cleanup from the return of started worker/chooser
+callbacks. Held synthetic probes and active contact callbacks demonstrate that
+Done can be true while quiescence is still false. Ownership claims and finally
+cleanup count active work; replayed/late queued callbacks cannot acquire new work.
+The native host must still join its actual thread/task rather than blocking UI.
+
+The explicit Windows `RunNotesSetupAsync` application entry now composes ordinary
+editor/save preparation, the before-peer native acquisition, a caller-owned tracked
+worker, original-index source selection, native contact selection and joined host
+completion. `NotesOriginalSetupHost` starts nothing in its constructor and owns
+late preparation, worker scheduling, cancellation and active asynchronous UI calls.
+Rejected schedulers/UI, busy reuse, cancellation and replay do not grant sources.
+Final status is one-use/informational, after quiescence, and restricted by native
+book owner/version; it is not a permission, saved witness or ACK.
+
+Windows initialization/profile replacement, restore fencing and shutdown cancel
+and await the setup host outside book/service locks. A restore may itself own the
+bridge lane, so the existing tracked setup-worker scheduler deliberately skips
+that lane's admission wait; the restore does not join a worker waiting for its own
+command lane. Manual acquisition-completion entries cannot steal a host-owned run.
+The native source dialog has no default and returns only an index into original
+candidates; public pins/share/setup display text is sanitized, never matched by
+name. This actual Form/Bridge composition is compiled only, not a modal acceptance.
+
+Sixteen real FS1/native host/scheduler/lifecycle cases and 25 dispatcher cases pass
+on host and noninteractive Windows (41 each). Linux's affected dispatcher group
+passes 24 cases. Full managed tests, four existing DOM/native wire modes and the
+host background-lifecycle group pass; Core/BASE compile with zero warnings/errors.
+No live installed GUI, provider, device, user keys or package installation is used.
+
+No application button/renderer setup-start/startup/capability registration is
+introduced. Linux's full native setup-host/lifecycle composition, deliberate
+application action and conditional restart recovery still remain in #640, with
+separate native profile/system-rights/counterpart and package gates unchanged.
+The productive full-write draft stays OFF/unadvertised and Resource19 remains
+phone/email-only; no pause or new device/install/publication permission is inferred.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

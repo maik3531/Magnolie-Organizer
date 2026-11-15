@@ -15,13 +15,14 @@ from magnolie_contact_notes_setup_run import NativeNotesSetupRun
 @pytest.mark.parametrize('mode', ['configured', 'second-source', 'display-alias', 'source-cancel', 'contact-cancel',
     'bad-index', 'replay-ui', 'cancel-queued', 'revoke-queued', 'save-queued', 'cancel-contact', 'cancel-wait',
     'offline', 'dispatch-rejected', 'inline-dispatch', 'foreground-run', 'notice-error', 'bad-range', 'chooser-error',
-    'post-error', 'cancel-before-run'])
+    'post-error', 'cancel-before-run', 'cancel-active-probe'])
 def test_owned_native_worker_and_one_use_ui_callbacks_never_become_permission(native, monkeypatch, tmp_path, mode):
     h = Harness(native, tmp_path)
     acquisition = run = worker = None
     sessions = []
     events = queue.Queue()
     arrived = threading.Event()
+    release_active = threading.Event()
     calls, notices, source_dialogs, contact_dialogs = [], [], [], []
     try:
         probe = h.probe
@@ -34,6 +35,10 @@ def test_owned_native_worker_and_one_use_ui_callbacks_never_become_permission(na
             assert threading.current_thread() is not threading.main_thread()
             assert not probe._daten_sperre._is_owned() and not probe._baum_sperre._is_owned()
             calls.append(url)
+            if mode == 'cancel-active-probe':
+                arrived.set()
+                assert release_active.wait(5), 'Fixture did not release explicitly held probe'
+                raise PermissionError('synthetic cancelled active probe')
             if url.endswith('/sitzung'):
                 answer, session = native.fs_antwort_bauen(h.sender,
                     {'kennung': h.receiver['kennung'], 'oeffentlich': h.receiver['oeffentlich']}, body)
@@ -67,7 +72,9 @@ def test_owned_native_worker_and_one_use_ui_callbacks_never_become_permission(na
             assert threading.current_thread() is threading.main_thread()
             assert not probe._daten_sperre._is_owned() and not probe._baum_sperre._is_owned()
             contact_dialogs.append(view)
-            if mode == 'cancel-contact': run.cancel()
+            if mode == 'cancel-contact':
+                run.cancel()
+                assert run.done.is_set() and not run.quiesced.is_set(), 'Terminal status claimed active contact callback returned'
             return None if mode == 'contact-cancel' else view.contacts[0]['id']
         def finished(phase):
             assert threading.current_thread() is threading.main_thread()
@@ -81,9 +88,12 @@ def test_owned_native_worker_and_one_use_ui_callbacks_never_become_permission(na
         else:
             worker = threading.Thread(target=run.run)
             worker.start()
-            if mode == 'cancel-wait':
+            if mode in ('cancel-wait', 'cancel-active-probe'):
                 assert arrived.wait(5)
                 run.cancel()
+                if mode == 'cancel-active-probe':
+                    assert run.done.is_set() and not run.quiesced.is_set(), 'Terminal status claimed active probe joined'
+                    release_active.set()
             worker.join(10)
             assert not worker.is_alive(), 'Explicit setup worker did not join after cancellation/bounded work'
         if mode == 'cancel-queued': run.cancel()
@@ -101,9 +111,10 @@ def test_owned_native_worker_and_one_use_ui_callbacks_never_become_permission(na
             assert callback() is False
             if mode == 'replay-ui': assert callback() is False
         assert run.done.is_set() and h.service._notes_setup_collector is None
+        assert run.quiesced.is_set(), 'Terminal setup retained a started worker/dialog callback'
         assert run._acquisition is None and run._candidates == (), 'Finished/late UI dispatch retained acquisition/candidate snapshots'
         granted = mode in ('configured', 'second-source', 'display-alias', 'replay-ui', 'notice-error')
-        expected = 'configured' if granted else 'cancelled' if mode in ('source-cancel', 'contact-cancel', 'cancel-queued', 'cancel-contact', 'cancel-wait', 'cancel-before-run') else 'waiting-network' if mode == 'offline' else 'held'
+        expected = 'configured' if granted else 'cancelled' if mode in ('source-cancel', 'contact-cancel', 'cancel-queued', 'cancel-contact', 'cancel-wait', 'cancel-before-run', 'cancel-active-probe') else 'waiting-network' if mode == 'offline' else 'held'
         assert run.phase == expected and h.store.has_desired_consent() == granted
         if granted:
             active = h.store._active_record()[1]['choices']
@@ -114,12 +125,13 @@ def test_owned_native_worker_and_one_use_ui_callbacks_never_become_permission(na
         assert Path(native.daten_datei()).read_bytes() == before
         if mode in ('dispatch-rejected', 'inline-dispatch', 'post-error'): assert notices == []
         else: assert notices == [expected]
-        if mode in ('cancel-queued', 'revoke-queued', 'save-queued', 'cancel-wait', 'offline', 'dispatch-rejected', 'inline-dispatch', 'foreground-run', 'post-error', 'cancel-before-run'):
+        if mode in ('cancel-queued', 'revoke-queued', 'save-queued', 'cancel-wait', 'offline', 'dispatch-rejected', 'inline-dispatch', 'foreground-run', 'post-error', 'cancel-before-run', 'cancel-active-probe'):
             assert not source_dialogs and not contact_dialogs
         run.run()  # Worker replay is a no-op, never another source attempt.
         assert run.phase == expected
     finally:
         if run is not None: run.cancel()
+        release_active.set()
         if acquisition is not None: acquisition.stop()
         if worker is not None: worker.join(5)
         for session in sessions: native.fs_sitzung_loeschen(session)
