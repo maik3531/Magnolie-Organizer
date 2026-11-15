@@ -18,6 +18,24 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
 "n%100==4) ? 2 : 3);\n"
 
+msgid "Original contact sources"
+msgstr "Prěnjotne kontaktowe žórła"
+
+msgid "Revoke"
+msgstr "Wotwołać"
+
+msgid "The backup does not contain a complete data set."
+msgstr "Zawěsćenje dospołnu datowu sadźbu njewobsahuje."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Dowolnosć za kontaktowe žórło njeda so składować. Awtomatiske aktualizacije su zastajene."
+
+msgid "Waiting for Wi-Fi."
+msgstr "Čaka so na WLAN."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Čaka so na přistup ke kontu. Awtomatiske aktualizacije kontaktow so pokročuja, hdyž je přistup k dispoziciji."
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "Zo byš swój telefon jako systemowy mikrofon wužiwał, trjeba Magnolie ćěrjak VB-CABLE wot VB-Audio."
 

@@ -36,6 +36,10 @@ try {
         Write-Fixture (Join-Path $root $relative)
     }
     Write-Fixture (Join-Path $root 'Directory.Build.props') "<Project><PropertyGroup><Version>$version</Version></PropertyGroup></Project>"
+    Write-Fixture (Join-Path $root 'shared/magnolie-organizer/po/LINGUAS') "de`ntr`n"
+    foreach ($language in 'de', 'tr') { Write-Fixture (Join-Path $root "shared/magnolie-organizer/po/$language.po") }
+    Write-Fixture (Join-Path $root 'shared/magnolie-organizer/werkzeuge/po_zu_js.py') '# Synthetic recipe input; not executed by source-inventory tests.'
+    Write-Fixture (Join-Path $root 'shared/magnolie-organizer/web/i18n/stale-generated.js') '// Must not influence source inventory.'
     foreach ($name in 'phone-personal-status-ui.cjs', 'appointment-occurrence-delete.cjs', 'appointment-replacement.cjs', 'waste-holiday-authority.cjs', 'media-trash-ui.cjs', 'task-context-sort-ui.cjs') {
         Write-Fixture (Join-Path $root "shared/magnolie-organizer/pruefungen/$name") '// Synthetic shared regression'
     }
@@ -73,7 +77,9 @@ try {
         'tests/mcp-notes-historical-source-fixture.js',
         'shared/magnolie-organizer/web/index.html', 'shared/magnolie-organizer/web/anwendung.js',
         'shared/magnolie-organizer/web/zeichenblatt.js', 'shared/magnolie-organizer/web/i18n.js',
-        'shared/magnolie-organizer/web/country-flags.png', 'shared/magnolie-organizer/web/country-flags-LICENSE.txt') {
+        'shared/magnolie-organizer/web/country-flags.png', 'shared/magnolie-organizer/web/country-flags-LICENSE.txt',
+        'shared/magnolie-organizer/po/LINGUAS', 'shared/magnolie-organizer/po/de.po',
+        'shared/magnolie-organizer/po/tr.po', 'shared/magnolie-organizer/werkzeuge/po_zu_js.py') {
         if ($names -notcontains $name) { throw "Current feature source missing from standalone archive: $name" }
     }
     if ($names -notcontains 'contracts/thunderbird-addressbook-fixture.json' -or
@@ -83,6 +89,7 @@ try {
         $names -notcontains 'contracts/new-reviewed-contract.json' -or
         $names -notcontains 'tests/fixtures/new-schema.sql') { throw 'Standalone source dependencies were dropped.' }
     if (@($names | Where-Object { Test-PrivateReleasePath $_ }).Count) { throw 'Private file entered source enumeration.' }
+    if (@($names | Where-Object { $_.StartsWith('shared/magnolie-organizer/web/i18n/', [StringComparison]::Ordinal) }).Count) { throw 'Locally generated Linux catalogues entered source enumeration.' }
     $tree = Join-Path $temp 'archive-tree'
     foreach ($file in $files) {
         $target = Join-Path $tree $file.Relative

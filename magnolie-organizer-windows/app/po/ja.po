@@ -17,6 +17,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "Original contact sources"
+msgstr "元の連絡先ソース"
+
+msgid "Revoke"
+msgstr "許可を取り消す"
+
+msgid "The backup does not contain a complete data set."
+msgstr "バックアップに完全なデータセットが含まれていません。"
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "連絡先ソースの許可を保存できませんでした。自動更新は一時停止されています。"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Wi-Fi 接続を待っています。"
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "アカウントへのアクセスを待っています。アクセス可能になると連絡先の自動更新を再開します。"
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "電話をシステムのマイクとして使用するには、Magnolie に VB-Audio 製の VB-CABLE ドライバーが必要です。"
 

@@ -18,6 +18,24 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+msgid "Original contact sources"
+msgstr "Исходные источники контактов"
+
+msgid "Revoke"
+msgstr "Отозвать"
+
+msgid "The backup does not contain a complete data set."
+msgstr "Резервная копия не содержит полного набора данных."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Не удалось сохранить разрешение для источника контактов. Автоматические обновления приостановлены."
+
+msgid "Waiting for Wi-Fi."
+msgstr "Ожидание Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Ожидание доступа к учётной записи. Автоматические обновления контактов возобновятся, когда доступ станет доступен."
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "Чтобы использовать телефон как системный микрофон, Magnolie нужен драйвер VB-CABLE от VB-Audio."
 

@@ -39,30 +39,38 @@ try {
     [IO.Compression.ZipFile]::ExtractToDirectory($stagedArchive, $extract)
     $standalone = Join-Path $extract $name
     $handbookOverrides = @{}
-    foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT') {
+    foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT', 'MAGNOLIE_TEST_PWSH', 'DOTNET_HOST_PATH') {
         $handbookOverrides[$variable] = [Environment]::GetEnvironmentVariable($variable)
         [Environment]::SetEnvironmentVariable($variable, $null)
     }
     Push-Location $standalone
     try {
+        # Reuse the actual native tools already running this source gate.
+        # Child JS runtimes must not guess bare command names or private
+        # temporary installations; restore the caller's values in finally.
+        $dotnet = Get-Command dotnet -CommandType Application -ErrorAction Stop
+        $env:DOTNET_HOST_PATH = $dotnet.Source
+        $env:MAGNOLIE_TEST_PWSH = (Get-Process -Id $PID).Path
         $python = if ($env:MAGNOLIE_PYTHON) { Get-Command $env:MAGNOLIE_PYTHON -ErrorAction Stop } else { Get-Command python3 -ErrorAction SilentlyContinue }
         if (-not $python) { $python = Get-Command python -ErrorAction Stop }
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/standalone-web-catalogs.ps1')
+        Initialize-StandaloneWebCatalogs $standalone $python.Source
         Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/release-packaging.ps1')
         # Core historical-restore tests execute the actual jsdom GUI fixture.
         # Install its locked dependencies before, not after, that native gate.
         Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")
-        Invoke-NativeCommand "dotnet" @("restore", "tests/CoreTests.csproj", "--locked-mode")
+        Invoke-NativeCommand $dotnet.Source @("restore", "tests/CoreTests.csproj", "--locked-mode")
         $previousSourceArchiveTest = $env:MAGNOLIE_SOURCE_ARCHIVE_TEST
         try {
             $env:MAGNOLIE_SOURCE_ARCHIVE_TEST = "1"
-            Invoke-NativeCommand "dotnet" @("run", "--project", "tests/CoreTests.csproj", "-c", "Release", "--no-restore")
+            Invoke-NativeCommand $dotnet.Source @("run", "--project", "tests/CoreTests.csproj", "-c", "Release", "--no-restore")
         } finally {
             $env:MAGNOLIE_SOURCE_ARCHIVE_TEST = $previousSourceArchiveTest
         }
-        Invoke-NativeCommand "dotnet" @("restore", "MagnolieOrganizer.Windows.csproj", "--locked-mode")
+        Invoke-NativeCommand $dotnet.Source @("restore", "MagnolieOrganizer.Windows.csproj", "--locked-mode")
         Invoke-NativeCommand "bun" @("run", "test")
-        Invoke-NativeCommand "dotnet" @("build", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "--no-restore")
+        Invoke-NativeCommand $dotnet.Source @("build", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "--no-restore")
     } finally {
         Pop-Location
         foreach ($variable in $handbookOverrides.Keys) {

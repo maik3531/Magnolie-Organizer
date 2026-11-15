@@ -75,6 +75,14 @@ function sendObjects(source) {
       const property = /^\s*(?:([A-Za-z_$][\w$]*)|"([^"]+)"|'([^']+)')\s*:\s*([\s\S]*)$/.exec(part);
       const shorthand = /^\s*([A-Za-z_$][\w$]*)\s*$/.exec(part);
       const spread = /^\s*\.\.\.([A-Za-z_$][\w$]*)\s*$/.exec(part);
+      if (/^\s*\.\.\.\(originalKontaktSpeicher\?\.text === auftrag\.text \? \{ kontaktOriginalLauf: originalKontaktSpeicher\.token \} : \{\}\)\s*$/.test(part)) {
+        const key = '...(originalKontaktSpeicher)';
+        if (properties.has(key)) throw new Error('Doppelte Bruecke.sende-Eigenschaft: optionale Kontakt-Ursprungskennung');
+        // An optional witness is not proof of a mandatory payload field. Keep
+        // the complete guarded expression explicit, as with the MCP marker.
+        properties.set(key, 'originalKontaktSpeicher?.text === auftrag.text ? { kontaktOriginalLauf: originalKontaktSpeicher.token } : {}');
+        continue;
+      }
       if (/^\s*\.\.\.\(mcp \? \{ mcp: true \} : \{\}\)\s*$/.test(part)) {
         const key = "...(mcp)";
         if (properties.has(key)) throw new Error("Doppelte Bruecke.sende-Eigenschaft: optionale MCP-Markierung");
@@ -115,6 +123,14 @@ require("node:assert/strict").equal(spreadProbe.has("unknown_property"), false);
 require("node:assert/strict").equal(sendObjects('Bruecke.sende({ cmd: "example", ...(mcp ? { mcp: true } : {}) });')[0].has("mcp"), false);
 require("node:assert/strict").throws(() => sendObjects('Bruecke.sende({ cmd: "example", cmd: "other" });'), /Doppelte/);
 require("node:assert/strict").throws(() => sendObjects('Bruecke.sende({ ...makeArguments() });'), /nicht gelesen/);
+const originalWitness = '...(originalKontaktSpeicher?.text === auftrag.text ? { kontaktOriginalLauf: originalKontaktSpeicher.token } : {})';
+const witnessProbe = sendObjects('Bruecke.sende({ cmd: "speichern", ' + originalWitness + ' });')[0];
+require('node:assert/strict').equal(witnessProbe.has('kontaktOriginalLauf'), false);
+require('node:assert/strict').equal(witnessProbe.has('...(originalKontaktSpeicher)'), true);
+require('node:assert/strict').throws(() => sendObjects('Bruecke.sende({ ' + originalWitness + ', ' + originalWitness + ' });'), /Doppelte/);
+for (const altered of [originalWitness.replace('===', '!=='), originalWitness.replace('.token', '.other'), originalWitness.replace('kontaktOriginalLauf:', 'trigger:')]) {
+  require('node:assert/strict').throws(() => sendObjects('Bruecke.sende({ ' + altered + ' });'), /nicht gelesen/);
+}
 
 const literal = value => {
   const match = /^(?:"([^"]*)"|'([^']*)')$/.exec(value || "");

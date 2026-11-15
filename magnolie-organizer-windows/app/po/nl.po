@@ -17,6 +17,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Original contact sources"
+msgstr "Oorspronkelijke contactbronnen"
+
+msgid "Revoke"
+msgstr "Intrekken"
+
+msgid "The backup does not contain a complete data set."
+msgstr "De back-up bevat geen volledige gegevensset."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "De toestemming voor de contactbron kon niet worden opgeslagen. Automatische updates zijn gepauzeerd."
+
+msgid "Waiting for Wi-Fi."
+msgstr "Wachten op wifi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Wachten op accounttoegang. Automatische contactupdates worden hervat zodra toegang beschikbaar is."
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "Om je telefoon als systeemmicrofoon te gebruiken, heeft Magnolie het VB-CABLE-stuurprogramma van VB-Audio nodig."
 

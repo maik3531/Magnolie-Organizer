@@ -72,6 +72,30 @@ function Get-ReleaseSourceFiles([string] $Root) {
     } | Sort-Object { [IO.Path]::GetRelativePath($Root, $_.FullName).Replace('\', '/') }
 }
 
+function Get-ReleaseCatalogLanguages([string] $PoDirectory) {
+    $linguas = Get-Item -LiteralPath (Join-Path $PoDirectory 'LINGUAS') -ErrorAction Stop
+    Assert-SourceFileSafe $linguas
+    $languages = @([IO.File]::ReadAllText($linguas.FullName) -split '\s+' | Where-Object { $_ })
+    if (-not $languages.Count -or @($languages | Sort-Object -Unique).Count -ne $languages.Count -or
+        @($languages | Where-Object { $_ -cnotmatch '^[A-Za-z][A-Za-z0-9_@-]*$' }).Count) { throw 'Invalid or repeated source catalogue language.' }
+    foreach ($language in $languages) {
+        $file = Get-Item -LiteralPath (Join-Path $PoDirectory ($language + '.po')) -ErrorAction Stop
+        Assert-SourceFileSafe $file
+    }
+    return $languages
+}
+
+function Get-SharedLinuxLocaleInputs([string] $LinuxRoot) {
+    $po = Join-Path $LinuxRoot 'po'
+    $languages = @(Get-ReleaseCatalogLanguages $po)
+    if ($languages -cnotcontains 'de' -or $languages -cnotcontains 'tr') { throw 'Independent GUI locale regression inputs de/tr are required.' }
+    foreach ($relative in @('po/LINGUAS', 'werkzeuge/po_zu_js.py') + @($languages | ForEach-Object { 'po/' + $_ + '.po' })) {
+        $file = Get-Item -LiteralPath (Join-Path $LinuxRoot $relative) -ErrorAction Stop
+        Assert-SourceFileSafe $file
+        [pscustomobject]@{ Source = $file.FullName; Relative = 'shared/magnolie-organizer/' + $relative }
+    }
+}
+
 function Get-ReleaseArchiveSources([string] $Root) {
     $oracleRelative = 'tests/fixtures/recurrence-rfc-oracle.json'
     foreach ($file in Get-ReleaseSourceFiles $Root) {
@@ -116,11 +140,15 @@ function Get-ReleaseArchiveSources([string] $Root) {
     foreach ($file in Get-ChildItem -LiteralPath $linuxWeb -Recurse -File -Force |
         Sort-Object { [IO.Path]::GetRelativePath($linuxWeb, $_.FullName).Replace('\', '/') }) {
         $relative = [IO.Path]::GetRelativePath($linuxWeb, $file.FullName).Replace('\', '/')
+        # These ignored generator outputs must not make a source archive depend
+        # on whether a developer happened to generate catalogues beforehand.
+        if ($relative.StartsWith('i18n/', [StringComparison]::Ordinal)) { continue }
         if (Test-PrivateReleasePath $relative) { continue }
         if (($relative -split '/') | Where-Object { $_ -in @('.git', 'node_modules', '__pycache__') }) { continue }
         Assert-SourceFileSafe $file
         [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/web/$relative" }
     }
+    Get-SharedLinuxLocaleInputs (Split-Path -Parent $linuxWeb)
     # These reviewed shared regressions are part of tests/run.js. Standalone
     # source archives must carry them instead of reaching outside the archive.
     $sharedTests = Join-Path (Split-Path -Parent $Root) 'magnolie-organizer/pruefungen'
@@ -169,6 +197,33 @@ function Invoke-NativeCommand([string] $FilePath, [object[]] $ArgumentList = @()
         $error.Data["Command"] = $FilePath
         $error.Data["ExitCode"] = $exitCode
         throw $error
+    }
+}
+
+function Initialize-StandaloneWebCatalogs([string] $Root, [string] $Python) {
+    $comparison = if ([Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+    if ([IO.Path]::GetFullPath($Root).Equals([IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot)), $comparison)) {
+        throw 'Standalone catalogue generation must not modify the caller source tree.'
+    }
+    $linux = Join-Path $Root 'shared/magnolie-organizer'
+    # Validate all included recipe inputs BEFORE changing any derived data.
+    $null = @(Get-SharedLinuxLocaleInputs $linux)
+    $po = Join-Path $Root 'app/po'
+    $languages = @(Get-ReleaseCatalogLanguages $po)
+    foreach ($relative in 'werkzeuge/pot_erzeugen.py', 'werkzeuge/po_zu_js.py', 'werkzeuge/po_zu_native.py') {
+        Assert-SourceFileSafe (Get-Item -LiteralPath (Join-Path $Root $relative) -ErrorAction Stop)
+    }
+    Invoke-NativeCommand $Python @('-B', (Join-Path $Root 'werkzeuge/pot_erzeugen.py'), '--output', (Join-Path $po 'magnolie-organizer.pot'))
+    $nativeArguments = @('-B', (Join-Path $Root 'werkzeuge/po_zu_native.py'), (Join-Path $Root 'app/native-i18n.json'))
+    foreach ($language in $languages) {
+        $inputFile = Join-Path $po ($language + '.po')
+        Invoke-NativeCommand $Python @('-B', (Join-Path $Root 'werkzeuge/po_zu_js.py'), $language, $inputFile, (Join-Path $Root ('app/web/i18n/' + $language + '.js')))
+        $nativeArguments += @($language, $inputFile)
+    }
+    Invoke-NativeCommand $Python $nativeArguments
+    foreach ($language in @(Get-ReleaseCatalogLanguages (Join-Path $linux 'po'))) {
+        Invoke-NativeCommand $Python @('-B', (Join-Path $linux 'werkzeuge/po_zu_js.py'), $language,
+            (Join-Path $linux ('po/' + $language + '.po')), (Join-Path $linux ('web/i18n/' + $language + '.js')))
     }
 }
 
@@ -322,6 +377,10 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "shared/magnolie-organizer/web/i18n.js",
         "shared/magnolie-organizer/web/country-flags.png",
         "shared/magnolie-organizer/web/country-flags-LICENSE.txt",
+        "shared/magnolie-organizer/po/LINGUAS",
+        "shared/magnolie-organizer/po/de.po",
+        "shared/magnolie-organizer/po/tr.po",
+        "shared/magnolie-organizer/werkzeuge/po_zu_js.py",
         "shared/magnolie-handbuch/web/index.html",
         "shared/magnolie-handbuch/web/inhalt.js",
         "shared/magnolie-handbuch/web/i18n/en.js",
