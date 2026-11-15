@@ -150,6 +150,10 @@ internal static partial class NotesOriginalChoiceStoreTests
                         default: throw new InvalidOperationException("Unexpected frontend packet");
                     }
                 }
+                // The retirement fault-injection event fires while its private
+                // session is still locked. Join the owned turn before reading
+                // final disk evidence; do not race the writer's lock release.
+                await worker!.StopAsync();
                 TestAssert.That(initialized && requestCount == 1 && ackCount >= 1 && uiSaves == (mode == "restart" ? 2 : 1) &&
                     requestHash is not null && savedHash is not null && outcomes.LoadHeld(requestHash)!["saved_book"]![2]!.GetValue<string>() == savedHash &&
                     h.Host.CurrentNativeText == frontendText && new EncryptionService().Unlock(File.ReadAllText(h.Host.DataPath), PersonalActorNativeSaveHost.Password) == frontendText &&

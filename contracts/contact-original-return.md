@@ -1614,6 +1614,46 @@ Common conscious first-setup UI, automatic startup registration and real provide
 device acceptance remain open. The full draft remains unadvertised and production
 OFF; composition alone enables none of those missing release gates.
 
+### Monotone native source addition (#637)
+
+Windows `NotesOriginalChoiceStore.AddSources` and Linux
+`NativeNotesChoiceStore.add_sources` are separate native addition operations, not
+aliases for a full replacement decision. They require an authenticated existing
+private grant, recognized actual saved/primary book and current genuine native
+choices. They retain the exact existing consent key/epoch, book/content binding
+and unchanged source records, and merge only independent additional sources.
+Existing local IDs and peer/own/share bindings may not be changed or collide.
+Identical additions are idempotent without key/approval rewriting or journal
+intention creation. Empty addition does not revoke or initialize a missing grant.
+
+Native book observations and choice origins/guards are checked outside private
+file sessions; private-state CAS rejects concurrent revoke/full replacement and
+prevents lost updates. Pending book intents and missing/corrupt/unknown private
+state hold rather than being cleared. Failed publication or changed post-save
+context leaves its own record pending, without overwriting a newer decision.
+Full `Approve`/`configure` and `Revoke`/`revoke` retain their stronger epoch
+boundary. Historical/unconfirmed source-seal, exact-target, independent journal
+and actual writer checks have not been relaxed. Loaded request history still
+grants queries only, never provider replay.
+
+The availability gap was reproduced separately with real synthetic native saves
+on Windows-source host and Linux: full replacement with fresh A+B choices strands
+old A history by design. Both platforms now test that this replacement boundary
+remains, while addition preserves genuine saved history through reauthorization
+and exact terminal retirement. Sixteen cases per platform cover that history,
+idempotence, fresh/loaded intentions and closed admission/collision/unknown-book/
+concurrent-decision paths. All 16 Windows cases also pass noninteractively on
+Windows. The full managed group (including joined DOM/native wire), 309 selected
+Linux cases and original-contact/private-file regressions pass; the latter also
+passes on Windows. Release CoreTests/BASE builds are clean. A test-only wire
+final-observation race was corrected by joining its owned worker turn before
+reading the released private journal, without changing production behavior.
+
+These APIs are not yet connected to common setup or startup. #636 retains that
+work and the installed GUI/provider/device/package acceptance gates. The draft
+remains unadvertised and production OFF; no user original, notebook, actual phone
+key, device, installed application or package was accessed or activated here.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

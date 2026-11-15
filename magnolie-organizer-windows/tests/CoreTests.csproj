@@ -78,6 +78,7 @@
     <Compile Include="..\NotesOriginalNegotiation.cs" Link="NotesOriginalNegotiation.cs" />
     <Compile Include="..\NotesOriginalPendingResult.cs" Link="NotesOriginalPendingResult.cs" />
     <Compile Include="..\NotesOriginalChoiceStore.cs" Link="NotesOriginalChoiceStore.cs" />
+    <Compile Include="..\NotesOriginalChoiceStore.Add.cs" Link="NotesOriginalChoiceStore.Add.cs" />
     <Compile Include="..\NotesOriginalChoiceSave.cs" Link="NotesOriginalChoiceSave.cs" />
     <Compile Include="..\NotesOriginalExportBootstrap.cs" Link="NotesOriginalExportBootstrap.cs" />
     <Compile Include="..\NotesOriginalJournalCrypto.cs" Link="NotesOriginalJournalCrypto.cs" />

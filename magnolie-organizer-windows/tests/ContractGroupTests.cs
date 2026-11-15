@@ -836,6 +836,16 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "source-addition-only")
+            {
+                await NotesOriginalChoiceStoreTests.SetupAdditionAsync(Path.Combine(root, "notes-source-addition"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-change-repro")
+            {
+                await NotesOriginalChoiceStoreTests.SetupHistoryReproductionAsync(Path.Combine(root, "notes-setup-change-repro"));
+                return; // Explicit pre-UI reproduction, not part of a checked default regression group until resolved.
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "native-session-and-worker")
             {
                 await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
@@ -948,6 +958,7 @@ internal static class ContractGroupTests
             await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
             await NotesOriginalChoiceStoreTests.FrontendWireAsync(Path.Combine(root, "notes-dom-native-wire"));
             await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
+            await NotesOriginalChoiceStoreTests.SetupAdditionAsync(Path.Combine(root, "notes-source-addition"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

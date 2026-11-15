@@ -217,6 +217,69 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
         for choice in selected:
             choice.require_current()
 
+    def add_sources(self, choices):
+        """Strict monotone native addition; configure/revoke still rotate epochs.
+
+        Caller holds the native book lock, as with configure. Private record CAS
+        also rejects concurrent decisions by another store instance/process.
+        """
+        selected = tuple(choices)
+        if not selected or len(selected) > 256:
+            raise ValueError('notes_choice_addition_budget')
+        active = self._active_record()
+        if active is None or not self.recognizes_saved():
+            raise PermissionError('notes_choice_existing_decision_required')
+        key, previous = active
+        saved, binding = self._saved()
+        primary, primary_binding = self._primary()
+        if (primary_binding != binding or primary.content_sha256 != saved.content_sha256 or
+                previous['content'] != saved.content_sha256 or
+                previous['book'] != self._tag(key, b'book', binding.encode('utf-8')) or
+                any(type(choice) is not NativeNotesExportChoice or choice._book_source != saved.book_source for choice in selected)):
+            raise PermissionError('notes_choice_native_book_changed')
+        sources = [self._source(choice) for choice in selected]
+        merged = list(previous['choices'])
+        for source in sources:
+            if source not in merged:
+                merged.append(source)
+        self._unique(merged)
+        if len(merged) > 256:
+            raise ValueError('notes_choice_selection_budget')
+        payload = dict(previous, choices=merged)
+        changed = payload != previous
+        for choice in selected:
+            choice.require_current()
+        if self._saved() != (saved, binding) or self._primary() != (primary, primary_binding):
+            raise PermissionError('notes_choice_native_book_changed')
+        for choice, source in zip(selected, sources):
+            self._attach(choice, key, payload, source)
+        with self._locked() as directory:
+            if self._record(directory) != active or self._intent(directory, key, previous) is not None:
+                raise PermissionError('notes_choice_newer_private_decision')
+            if changed:
+                try:
+                    self._write(directory, '.transaction', b'pending\n')
+                    # Preserve key, generation, book and content. Never remove a
+                    # pending native save intent or mint a new consent epoch.
+                    self._write_chain_record(directory, key, payload)
+                    self._write(directory, '.transaction', b'clean\n')
+                    if self._record(directory) != (key, payload):
+                        raise PermissionError('notes_choice_write_unconfirmed')
+                except Exception:
+                    self._write(directory, '.transaction', b'pending\n')
+                    raise
+        try:
+            if self._saved() != (saved, binding) or self._primary() != (primary, primary_binding):
+                raise PermissionError('notes_choice_native_book_changed')
+            for choice in selected:
+                choice.require_current()
+        except Exception:
+            if changed:
+                with self._locked() as directory:
+                    if self._record(directory) == (key, payload):
+                        self._write(directory, '.transaction', b'pending\n')
+            raise
+
     def recognizes_saved(self):
         active = self._active_record()
         if active is None:
