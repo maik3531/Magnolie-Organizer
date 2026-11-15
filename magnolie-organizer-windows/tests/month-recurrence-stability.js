@@ -1,24 +1,25 @@
 "use strict";
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path");
-const { Worker } = require("node:worker_threads");
+const { WorkerFileFixture, linuxWeb } = require("./worker-file-fixture");
 const { JSDOM } = require("jsdom");
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 (async () => {
   const roots = process.argv.includes('--windows') ? [path.resolve(__dirname, '../app/web')] :
-    [path.resolve(__dirname, "../../magnolie-organizer/web"), path.resolve(__dirname, "../app/web")];
+    [linuxWeb(), path.resolve(__dirname, "../app/web")];
   for (const web of roots.filter(root => fs.existsSync(root))) {
     const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"),
       { runScripts: "outside-only", url: "https://month-recurrence.test/", pretendToBeVisual: true });
     const w = dom.window, blobs = new Map(), workers = [], submissions = new Map();
+    const workerFiles = new WorkerFileFixture();
     let sent = 0, duplicates = 0, workerError;
     w.Blob = class { constructor(parts) { this.source = parts.join(""); } };
     w.URL.createObjectURL = blob => { const key = "blob:" + blobs.size; blobs.set(key, blob.source); return key; };
     w.URL.revokeObjectURL = key => blobs.delete(key);
     w.Worker = class {
       constructor(url) {
-        this.worker = new Worker('const { parentPort } = require("node:worker_threads"); globalThis.self = globalThis; self.postMessage = value => parentPort.postMessage(value); parentPort.on("message", data => self.onmessage({ data }));\n' + blobs.get(url), { eval: true });
+        this.worker = workerFiles.start(blobs.get(url));
         workers.push(this.worker);
         this.worker.on("message", data => this.onmessage?.({ data }));
         this.worker.on("error", error => { workerError = error; this.onerror?.(error); });
@@ -106,8 +107,7 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
       assert.equal(T.zustand().sektion, "notizen");
       console.log('MONTH RECURRENCE SEMANTICS PASSED: all-day, multi-day, month/week/day navigation and stored data: ' + web);
     } finally {
-      await Promise.all(workers.map(worker => worker.terminate()));
-      dom.window.close();
+      try { await workerFiles.close(); } finally { dom.window.close(); }
     }
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

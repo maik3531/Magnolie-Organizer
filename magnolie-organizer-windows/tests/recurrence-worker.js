@@ -1,28 +1,30 @@
 "use strict";
 const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
-const { Worker } = require("node:worker_threads");
+const { WorkerFileFixture, linuxWeb } = require("./worker-file-fixture");
 const { JSDOM } = require("jsdom");
 
 (async () => {
-  const linuxWeb = path.join(process.env.MAGNOLIE_LINUX_SOURCE || path.resolve(__dirname, "../../magnolie-organizer"), "web");
+  const linuxRoot = linuxWeb();
   const webRoots = [path.resolve(__dirname, "../app/web")];
-  if (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linuxWeb)) webRoots.unshift(linuxWeb);
+  if (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linuxRoot)) webRoots.unshift(linuxRoot);
   for (const web of webRoots) {
     const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), { runScripts: "outside-only", url: "https://recurrence.test/", pretendToBeVisual: true });
     const w = dom.window, blobs = new Map(), workers = [];
+    const workerFiles = new WorkerFileFixture();
     w.Blob = class { constructor(parts) { this.source = parts.join(""); } };
     w.URL.createObjectURL = blob => { const id = "blob:" + blobs.size; blobs.set(id, blob.source); return id; };
     w.URL.revokeObjectURL = id => blobs.delete(id);
     w.Worker = class {
       constructor(url) {
-        this.worker = new Worker('const { parentPort } = require("node:worker_threads"); globalThis.self = globalThis; self.postMessage = value => parentPort.postMessage(value); parentPort.on("message", data => self.onmessage({ data }));\n' + blobs.get(url), { eval: true });
+        this.worker = workerFiles.start(blobs.get(url));
         workers.push(this.worker);
         this.worker.on("message", data => this.onmessage?.({ data }));
         this.worker.on("error", error => this.onerror?.(error));
       }
       postMessage(value) { this.worker.postMessage(value); }
-      terminate() { this.worker.terminate(); }
+      terminate() { return this.worker.terminate(); }
     };
+    try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
@@ -52,7 +54,6 @@ const { JSDOM } = require("jsdom");
         return result;
       } finally { clearInterval(clock); }
     }
-    try {
       const item = { uid: "dense-old", datum: "2021-03-01", zeit: "09:00", icsRoundtrip: ["DTSTART;TZID=Europe/Berlin:20210301T090000", "DURATION:PT1S", "RRULE:FREQ=MINUTELY;INTERVAL=10;COUNT=400000"] };
       const result = await query("expand", item, [Date.parse("2026-09-07T07:00:00Z"), Date.parse("2026-09-07T07:20:00Z")]);
       assert.deepEqual(result.map(v => new Date(v.icsStartUtc).toISOString()), ["2026-09-07T07:00:00.000Z", "2026-09-07T07:10:00.000Z", "2026-09-07T07:20:00.000Z"]);
@@ -172,7 +173,7 @@ const { JSDOM } = require("jsdom");
       assert.equal(w.document.body.getAttribute("aria-busy"), "false");
       assert.equal(JSON.stringify(T.daten()), stored);
       w.Worker = originalWorker;
-    } finally { for (const worker of workers) await worker.terminate(); dom.window.close(); }
+    } finally { try { await workerFiles.close(); } finally { dom.window.close(); } }
   }
   process.stdout.write(`RECURRENCE WORKERS PASSED (${webRoots.length} packaged/source web roots)\n`);
 })().catch(error => { console.error(error); process.exitCode = 1; });
