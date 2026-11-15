@@ -18,6 +18,7 @@ async function check(web) {
     if (m.cmd === "mutations_snapshot") queueMicrotask(() => w.App.mutationsSnapshot({ token: m.token, ok: snapshotOk }));
   } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
   const T = w.OrganizerTest;
   const options = () => [...w.document.querySelectorAll(".kontakt-foto-option")];

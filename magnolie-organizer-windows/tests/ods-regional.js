@@ -23,6 +23,7 @@ for (const web of roots) {
   };
   const locales = fs.readdirSync(path.join(web, "i18n")).filter(name => name.endsWith(".js"));
   for (const locale of locales) w.eval(fs.readFileSync(path.join(web, "i18n", locale), "utf8"));
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
   w.App.init({ daten: {}, neu: false, regional: { language: "en", formatLocale: "en-US" } });
   const t = w.OrganizerTest;

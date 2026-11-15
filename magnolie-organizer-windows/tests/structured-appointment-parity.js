@@ -15,6 +15,7 @@ function lade(web) {
   const window = dom.window;
   window.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
   window.MagnolieI18n.setLocale("en");
+  window.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   window.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
   window.document.dispatchEvent(new window.Event("DOMContentLoaded", { bubbles: true }));
   window.App.init({ daten: {}, neu: true, regional: { language: "en" } });

@@ -158,6 +158,7 @@ window.eval(i18n);
 for (const catalog of catalogs) {
   window.eval(fs.readFileSync(path.join(web, "i18n", catalog), "utf8"));
 }
+window.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
 window.eval(application);
 await new Promise(resolve => window.document.readyState === "loading"
   ? window.document.addEventListener("DOMContentLoaded", resolve, { once: true }) : resolve());

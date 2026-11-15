@@ -84,6 +84,7 @@ if (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linuxRoot)) {
       sent.push(typeof value === 'string' ? JSON.parse(value) : value);
     } } } };
     w.eval(fs.readFileSync(path.join(web, 'i18n.js'), 'utf8')); w.MagnolieI18n.setLocale('en');
+    w.eval(fs.readFileSync(path.join(web, 'normative-timezones.js'), 'utf8'));
     w.eval(source); w.document.dispatchEvent(new w.Event('DOMContentLoaded')); w.App.init({ daten: {}, neu: false });
     w.App.telefonStand({ peers: [configured] });
     w.OrganizerTest.oeffneEinstellungen(); w.document.querySelector('#einst-tab-baum').click();

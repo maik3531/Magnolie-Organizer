@@ -24,6 +24,7 @@ assert.equal(locales.length, 20);
       w.webkit = { messageHandlers: { startupTest: { postMessage: text => sent.push(JSON.parse(text)) } } };
       w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
       if (locale !== "en.js") w.eval(fs.readFileSync(path.join(web, "i18n", locale), "utf8"));
+      w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
       w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
       await tick();
       const regional = { language: locale.slice(0, -3), timeZone: "UTC" };

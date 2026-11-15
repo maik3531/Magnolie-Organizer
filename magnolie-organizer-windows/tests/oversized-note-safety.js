@@ -23,6 +23,7 @@ const { JSDOM } = require("jsdom");
   window.TextEncoder = TextEncoder;
   window.TextDecoder = TextDecoder;
   window.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+  window.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   window.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
   window.document.dispatchEvent(new window.Event("DOMContentLoaded", { bubbles: true }));
 

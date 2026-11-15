@@ -13,6 +13,7 @@ for (const web of [path.resolve(__dirname, "../../magnolie-organizer/web"), path
     const w = dom.window;
     Object.defineProperty(w, "crypto", { value: webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     if (w.document.readyState === "loading") await new Promise(resolve => w.document.addEventListener("DOMContentLoaded", resolve, { once: true }));
     await new Promise(resolve => w.setTimeout(resolve, 0));

@@ -13,6 +13,7 @@ function boot(web) {
     messages.push(typeof value === "string" ? JSON.parse(value) : plain(value));
   } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
   w.App.init({ daten: {}, neu: false });
   return { w, t: w.OrganizerTest, messages, last: () => messages.filter(value => value.cmd === "telefon_kontaktgruppentitel").at(-1) };

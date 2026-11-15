@@ -30,6 +30,7 @@ for (const web of roots) {
   const locales = fs.readdirSync(path.join(web, "i18n")).filter(name => name.endsWith(".js"));
   assert.equal(locales.length, 19, "19 translated locales plus English source");
   for (const locale of locales) w.eval(fs.readFileSync(path.join(web, "i18n", locale), "utf8"));
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(source.replace("window.OrganizerTest = {", "window.OrganizerTest = { oeffneCustomEintrag, bindeZeitRad, eingabe, beendeModal,"));
   w.App.init({ daten: {}, neu: false, regional: { language: "de", timeZone: "UTC" } });
   const t = w.OrganizerTest;

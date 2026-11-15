@@ -11,6 +11,7 @@ async function check(web) {
     w.setTimeout = w.setInterval = () => 0;
     w.__MAGNOLIE_BRUECKE__ = "test"; w.webkit = { messageHandlers: { test: { postMessage() {} } } };
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     w.App.init({ neu: false, daten: {
       notizen: [{ id: "local-note", titel: "Mobile", text: "Original", notizbuchId: "shared-book" },

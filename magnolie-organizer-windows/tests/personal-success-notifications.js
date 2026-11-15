@@ -25,6 +25,7 @@ async function check(web) {
   } } } };
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     const peer = { device_id: "33333333-3333-4333-8333-333333333333", own_device: true, remote_own_device: true,

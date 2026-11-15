@@ -11,7 +11,7 @@ async function boot(data) {
   w.HTMLElement.prototype.scrollIntoView = () => {}; w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   Object.defineProperty(w, "crypto", { value: webcrypto }); w.__MAGNOLIE_BRUECKE__ = "test";
   w.webkit = { messageHandlers: { test: { postMessage: raw => commands.push(JSON.parse(raw)) } } };
-  for (const name of ["i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
+  for (const name of ["normative-timezones.js", "i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
   await new Promise(resolve => setImmediate(resolve));
   w.App.init({ neu: false, regional: { language: "en", timeZone: "UTC" }, daten: data });
   return { dom, w, commands };

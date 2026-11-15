@@ -15,7 +15,7 @@ async function boot() {
   w.HTMLElement.prototype.scrollIntoView = () => {};
   w.__MAGNOLIE_BRUECKE__ = "source";
   w.webkit = { messageHandlers: { source: { postMessage: text => messages.push(JSON.parse(text)) } } };
-  for (const file of ["i18n.js", "zeichenblatt.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, file), "utf8"));
+  for (const file of ["normative-timezones.js", "i18n.js", "zeichenblatt.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, file), "utf8"));
   await tick(); w.App.init({ daten: {}, neu: false, regional: { language: "en", timeZone: "UTC" } });
   w.OrganizerTest.oeffneEinstellungen();
   [...w.document.querySelectorAll(".einst-reiter-knopf")].find(b => b.textContent === "Magnolia tree").click();

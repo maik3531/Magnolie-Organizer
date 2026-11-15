@@ -1439,7 +1439,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       let entscheidung = ungewoehnlich ? null : gemerkt;
       if (!entscheidung) {
         const loeschen = await frage((vorschlag.label || vorschlag.id) + "\n" +
-          new Date(vorschlag.deleted_ms).toLocaleString() + "\n" + (vorschlag.source_name || vorschlag.source_device),
+          /*TZ_PORT:system-timestamp-0:BEGIN*/MagnolieTime.localeString(new Date(vorschlag.deleted_ms),/*TZ_PORT:system-timestamp-0:END*/) + "\n" + (vorschlag.source_name || vorschlag.source_device),
           _("Delete"), _("Restore"));
         if (loeschen) entscheidung = "delete";
         else if (await frage(_("Restore"), _("Restore"), _("Cancel"))) entscheidung = "restore";
@@ -1711,7 +1711,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       try {
         const configured = organizerZeitzone();
         if (configured && !/^[A-Za-z][A-Za-z0-9_+.-]*(?:\/[A-Za-z0-9_+.-]+)*$/.test(configured)) throw new RangeError();
-        timezone = new Intl.DateTimeFormat("en", { timeZone: configured }).resolvedOptions().timeZone;
+/*TZ_PORT:personal-zone-identity:BEGIN*/        timezone = MagnolieTime.zoneId(configured);/*TZ_PORT:personal-zone-identity:END*/
       } catch (error) {
         // Only "system" may choose the host zone. Never export an invalid explicit zone.
         App.personalSyncFehler({ fehler: _("Personal synchronization failed.") + " " + _("Time zone") + ": " + organizerZeitzone() });
@@ -2280,12 +2280,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   const personalSyncNoteReady = new Map();
   const personalSyncAutoHash = new Map();
 
-  function geraeteZeit(wert) {
+/*TZ_PORT:device-time:BEGIN*/  function geraeteZeit(wert) {
     if (!wert) return "–";
     const datum = new Date(wert);
-    return Number.isNaN(datum.getTime()) ? "–" : datum.toLocaleString();
+    return Number.isNaN(datum.getTime()) ? "–" : MagnolieTime.localeString(datum);
   }
-
+/*TZ_PORT:device-time:END*/
   function geraeteGroesse(wert) {
     const bytes = Number(wert);
     if (!Number.isFinite(bytes) || bytes < 0) return "–";
@@ -3426,20 +3426,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   // zone for every cached recurrence result needlessly constructs thousands of
   // formatters on the UI thread. Never cache the changeable system-zone lookup.
   const ianaZonenPruefungen = new Map();
-  function gueltigeIanaZeitzone(value, system = false) {
-    let zone = String(value || "").trim();
+/*TZ_PORT:validate-zone:BEGIN*/  function gueltigeIanaZeitzone(value, system = false) {
+    const zone = String(value || "").trim();
     if (system && zone === "system") return zone;
-    if (["GMT", "Etc/UTC", "Etc/GMT", "Z"].includes(zone)) zone = "UTC";
-    if (zone !== "UTC" && !/^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(zone) || zone.includes("..") || zone.length > 128) return "";
-    if (ianaZonenPruefungen.has(zone)) return ianaZonenPruefungen.get(zone);
-    let result = "";
-    try { result = new Intl.DateTimeFormat("en", { timeZone: zone }).resolvedOptions().timeZone; }
-    catch (_) { /* Unsupported named zones remain invalid. */ }
-    if (ianaZonenPruefungen.size >= 128) ianaZonenPruefungen.delete(ianaZonenPruefungen.keys().next().value);
-    ianaZonenPruefungen.set(zone, result);
-    return result;
+    return MagnolieTime.has(zone) ? zone : "";
   }
-  function kontaktZeitzone(kontakt) {
+/*TZ_PORT:validate-zone:END*/  function kontaktZeitzone(kontakt) {
     const zones = [...new Set((kontakt?.vcardRoundtrip || []).flatMap(line => {
       const match = /^(?:[A-Za-z0-9-]+\.)?TZ(?:;[^:]*)?:(.*)$/i.exec(line);
       return match ? [gueltigeIanaZeitzone(match[1])] : [];
@@ -3453,12 +3445,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     kontakt.vcardRoundtrip = (kontakt.vcardRoundtrip || []).filter(line => !/^(?:[A-Za-z0-9-]+\.)?TZ[;:]/i.test(line));
     if (zone) kontakt.vcardRoundtrip.push("TZ:" + zone);
   }
-  function eigeneIanaZeitzone(regional = DATEN.einstellungen.regional) {
-    const saved = gueltigeIanaZeitzone(regional.timeZone);
-    if (saved) return saved;
-    try { return gueltigeIanaZeitzone(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch (_) { return ""; }
+/*TZ_PORT:own-zone:BEGIN*/  function eigeneIanaZeitzone(regional = DATEN.einstellungen.regional) {
+    if (regional.timeZone === undefined || regional.timeZone === "system") return MagnolieTime.systemIdentifier();
+    return gueltigeIanaZeitzone(regional.timeZone);
   }
-  const automatischeZonenPruefungen = new WeakMap();
+/*TZ_PORT:own-zone:END*/  const automatischeZonenPruefungen = new WeakMap();
   async function aktualisiereAutomatischeZeitzone() {
     if (!initialisiert || !antwortErhalten || gesperrt || !Bruecke.vorhanden || !window.MagnolieMcp || document.hidden ||
         DATEN.einstellungen.regional.timeZoneManagement !== "automatic") return;
@@ -3500,16 +3491,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     if (changed) planeSpeichern();
   }
-  function kontaktOrtszeit(zone, jetzt = new Date(), regional = DATEN.einstellungen.regional) {
+/*TZ_PORT:contact-clock:BEGIN*/  function kontaktOrtszeit(zone, jetzt = new Date(), regional = DATEN.einstellungen.regional) {
     if (!["manual", "automatic"].includes(regional.timeZoneManagement)) return null;
     zone = gueltigeIanaZeitzone(zone);
-    const own = gueltigeIanaZeitzone(regional.timeZone === "system" ? new Intl.DateTimeFormat().resolvedOptions().timeZone : regional.timeZone);
+    const own = eigeneIanaZeitzone(regional);
     if (!zone || !own || zone === own) return null;
     const options = { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZoneName: "short" };
     if (["h12", "h23"].includes(regional.hourCycle)) options.hourCycle = regional.hourCycle;
     return { zone, own_zone: own, captured_ms: +jetzt, text: datumText(jetzt, options, false) };
   }
-  function aktualisiereKontaktOrtszeiten() {
+/*TZ_PORT:contact-clock:END*/  function aktualisiereKontaktOrtszeiten() {
     for (const node of document.querySelectorAll(".kontakt-ortszeit")) {
       const clock = kontaktOrtszeit(node.dataset.timeZone);
       node.hidden = !clock; node.textContent = clock ? _("Local time") + " · " + clock.text : "";
@@ -4021,13 +4012,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return "◷";
   }
 
-  function smsZeitText(zeit, voll) {
-    const datum = new Date(zeit);
-    return new Intl.DateTimeFormat(undefined, voll ? {
-      dateStyle: "full", timeStyle: "medium"
-    } : { hour: "2-digit", minute: "2-digit" }).format(datum);
+/*TZ_PORT:sms-time:BEGIN*/  function smsZeitText(zeit, voll) {
+    return MagnolieTime.format(new Date(zeit), undefined, voll ? { dateStyle: "full", timeStyle: "medium" } : { hour: "2-digit", minute: "2-digit" }, "system");
   }
-
+/*TZ_PORT:sms-time:END*/
   function oeffneSmsDetail(nachricht) {
     const schleier = el("div", "eingabe-schleier sms-detail-schleier");
     const dialog = el("div", "eingabe-dialog sms-detail-dialog");
@@ -4055,7 +4043,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       telefonSchluessel(eintrag.nummer, eintrag.land ?? telefonHeimatland()) === schluessel).sort((a, b) => a.zeit - b.zeit);
     let letzterTag = "";
     for (const nachricht of nachrichten) {
-      const tag = new Date(nachricht.zeit).toLocaleDateString(undefined, {
+      const tag = /*TZ_PORT:system-timestamp-1:BEGIN*/MagnolieTime.localeDate(new Date(nachricht.zeit),/*TZ_PORT:system-timestamp-1:END*/undefined, {
         year: "numeric", month: "long", day: "numeric" });
       if (tag !== letzterTag) {
         const trenner = el("div", "sms-tag", tag); trenner.setAttribute("role", "separator");
@@ -4216,8 +4204,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         zustimmung = angebot;
         box.replaceChildren(el("strong", null, _("Review the exact SMS text for every recipient before confirming.")));
         for (const sms of batch) box.append(el("p", null, sms.nummer + " · " + sms.land + " · " +
-          new Date(sms.zeit).toLocaleString()), el("pre", "sms-anpassung-text", sms.text));
-        if (einzeln) box.append(el("p", "einst-hinweis", _("Enabling this plan allows its overdue SMS to be sent while scheduling is on.")));
+/*TZ_PORT:system-timestamp-2:BEGIN*/          MagnolieTime.localeString(new Date(sms.zeit),)), el("pre", "sms-anpassung-text", sms.text));
+/*TZ_PORT:system-timestamp-2:END*/        if (einzeln) box.append(el("p", "einst-hinweis", _("Enabling this plan allows its overdue SMS to be sent while scheduling is on.")));
         const bestaetigen = knopf(einzeln ? _("Enable this SMS plan") : _("Confirm SMS plans"), "hauptknopf", () => {
           const token = zustimmung;
           if (token !== angebot || lauf !== generation || token.hash !== hash || token.daten !== DATEN || gesperrt || !dialog.isConnected ||
@@ -4273,8 +4261,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const statusText = { paused: _("Paused — review required"), planned: _("Scheduled"), submitting: _("Submitting"),
         queued: _("Queued"), submitted: _("Submitted"), uncertain: _("Delivery status uncertain"), failed: _("Failed") };
       for (const sms of liste) { const karte = el("div", "sms-planung-eintrag");
-        karte.append(el("strong", null, new Date(sms.zeit).toLocaleString()),
-          el("span", null, " · " + statusText[sms.status]), el("p", null, sms.text),
+/*TZ_PORT:system-timestamp-3:BEGIN*/        karte.append(el("strong", null, MagnolieTime.localeString(new Date(sms.zeit),)),
+/*TZ_PORT:system-timestamp-3:END*/          el("span", null, " · " + statusText[sms.status]), el("p", null, sms.text),
           knopf(_("Delete"), "", () => { vorschau.verwerfen(); DATEN.smsPlanung = DATEN.smsPlanung.filter((wert) => wert.id !== sms.id);
             planeSpeichern(); zeichneGespeichert(); }));
         if (!kontakt) karte.prepend(el("p", null, sms.nummer));
@@ -4649,17 +4637,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       _("Contact") + ": " + name,
       anruf.number_status === "available" ? _("Phone") + ": " + anruf.number : "",
       _("Phone") + ": " + (anruf.display_name || _("Unknown phone")),
-      _("Call started") + ": " + new Date(anruf.started_ms).toLocaleString(),
-      anruf.offhook_ms ? _("Connected") + ": " + new Date(anruf.offhook_ms).toLocaleString() : "",
-      _("Call ended") + ": " + new Date(anruf.ended_ms).toLocaleString(),
+      _("Call started") + ": " + /*TZ_PORT:system-timestamp-4:BEGIN*/MagnolieTime.localeString(new Date(anruf.started_ms),/*TZ_PORT:system-timestamp-4:END*/),
+      anruf.offhook_ms ? _("Connected") + ": " + /*TZ_PORT:system-timestamp-5:BEGIN*/MagnolieTime.localeString(new Date(anruf.offhook_ms),/*TZ_PORT:system-timestamp-5:END*/) : "",
+      _("Call ended") + ": " + /*TZ_PORT:system-timestamp-6:BEGIN*/MagnolieTime.localeString(new Date(anruf.ended_ms),/*TZ_PORT:system-timestamp-6:END*/),
       _("Duration") + ": " + anrufDauer(anruf.offhook_ms ? anruf.ended_ms - anruf.offhook_ms : 0),
       _("Spam check") + ": " + (anruf.spam_status === "suspected" ? _("Possible spam") : _("No spam check available")),
       anruf.battery_percent >= 0 ? _("Phone battery") + ": " + anruf.battery_percent + "%" : "",
-      anruf.battery_captured_ms ? _("Battery snapshot") + ": " + new Date(anruf.battery_captured_ms).toLocaleString() : "",
+      anruf.battery_captured_ms ? _("Battery snapshot") + ": " + /*TZ_PORT:system-timestamp-7:BEGIN*/MagnolieTime.localeString(new Date(anruf.battery_captured_ms),/*TZ_PORT:system-timestamp-7:END*/) : "",
       _("Call reference") + ": " + anruf.call_ref
     ].filter(Boolean).concat("", eigenerText);
     DATEN.notizen.push({ id: id, titel: uebersetzt("Call with %(name)s · %(date)s", {
-      name: name, date: new Date(anruf.started_ms).toLocaleDateString() }), text: zeilen.join("\n"), html: "",
+      name: name, date: /*TZ_PORT:system-timestamp-8:BEGIN*/MagnolieTime.localeDate(new Date(anruf.started_ms),/*TZ_PORT:system-timestamp-8:END*/) }), text: zeilen.join("\n"), html: "",
       notizbuchId: DATEN.notizbuecher.some((buch) => buch.id === zustand.notizen.notizbuchId)
         ? zustand.notizen.notizbuchId : DATEN.notizbuecher[0].id, anhaenge: [], geaendert: isoHeute() });
     speichereJetzt();
@@ -4718,8 +4706,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       [_("Phone number"), nummer || aktiverAnruf.number_status],
       [_("Spam check"), aktiverAnruf.spam_status === "suspected" ? _("Possible spam") : _("No spam check available")],
       [_("Phone battery"), aktiverAnruf.battery_percent >= 0 ? aktiverAnruf.battery_percent + "% · " +
-        new Date(aktiverAnruf.battery_captured_ms).toLocaleTimeString() : _("Unavailable")],
-      [_("Call started"), new Date(aktiverAnruf.started_ms).toLocaleString()]].forEach(([a, b]) => meta.append(el("dt", null, a), el("dd", null, b)));
+        /*TZ_PORT:system-timestamp-9:BEGIN*/MagnolieTime.localeTime(new Date(aktiverAnruf.battery_captured_ms),/*TZ_PORT:system-timestamp-9:END*/) : _("Unavailable")],
+      [_("Call started"), /*TZ_PORT:system-timestamp-10:BEGIN*/MagnolieTime.localeString(new Date(aktiverAnruf.started_ms),/*TZ_PORT:system-timestamp-10:END*/)]].forEach(([a, b]) => meta.append(el("dt", null, a), el("dd", null, b)));
     const notiz = document.createElement("textarea"); notiz.id = "anruf-notiz"; notiz.maxLength = 10000;
     notiz.placeholder = _("Call notes"); notiz.value = aktiverAnruf.note || "";
     notiz.addEventListener("input", () => { if (aktiverAnruf) aktiverAnruf.note = notiz.value; });
@@ -5868,37 +5856,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
   }
 
-  function organizerZeitzone() {
+/*TZ_PORT:organizer-zone:BEGIN*/  function organizerZeitzone() {
     const regional = DATEN && DATEN.einstellungen && DATEN.einstellungen.regional;
-    const zone = regional && regional.timeZone;
-    return zone && zone !== "system" ? zone : undefined;
+    return MagnolieTime.zoneId(regional && regional.timeZone !== undefined ? regional.timeZone : "system");
   }
-
+/*TZ_PORT:organizer-zone:END*/
   const ZEITZONEN_FORMATIERER = new Map();
 
-  function organizerDatumzeitTeile(datum) {
-    const zone = organizerZeitzone();
-    if (zone) {
-      try {
-        if (!ZEITZONEN_FORMATIERER.has(zone)) {
-          ZEITZONEN_FORMATIERER.set(zone, new Intl.DateTimeFormat("en-CA", {
-            timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
-            hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
-          }));
-        }
-        const teile = {};
-        for (const teil of ZEITZONEN_FORMATIERER.get(zone).formatToParts(datum)) {
-          if (teil.type !== "literal") teile[teil.type] = Number(teil.value);
-        }
-        return { jahr: teile.year, monat: teile.month, tag: teile.day,
-          stunde: teile.hour, minute: teile.minute, sekunde: teile.second };
-      } catch (_fehler) { /* ungültige Zone: Systemzeit als sicherer Rückfall */ }
-    }
-    return { jahr: datum.getFullYear(), monat: datum.getMonth() + 1,
-      tag: datum.getDate(), stunde: datum.getHours(), minute: datum.getMinutes(),
-      sekunde: datum.getSeconds() };
+/*TZ_PORT:organizer-parts:BEGIN*/  function organizerDatumzeitTeile(datum) {
+    const p = MagnolieTime.wallParts(organizerZeitzone(), datum);
+    return { jahr: p.year, monat: p.month, tag: p.day, stunde: p.hour, minute: p.minute, sekunde: p.second };
   }
-
+/*TZ_PORT:organizer-parts:END*/
   function aktuelleGesundheitsZeit(datum) {
     const teile = organizerDatumzeitTeile(datum || new Date());
     return pad2(teile.stunde) + ":" + pad2(teile.minute);
@@ -5909,21 +5878,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return teile.jahr + "-" + pad2(teile.monat) + "-" + pad2(teile.tag);
   }
 
-  function organizerZeitpunkt(jahr, monat, tag, stunde, minute) {
-    const zone = organizerZeitzone();
-    if (!zone) return new Date(jahr, monat - 1, tag, stunde, minute);
-    const ziel = Date.UTC(jahr, monat - 1, tag, stunde, minute);
-    let wert = ziel;
-    for (let i = 0; i < 3; i++) {
-      const teile = organizerDatumzeitTeile(new Date(wert));
-      const abweichung = Date.UTC(teile.jahr, teile.monat - 1, teile.tag,
-        teile.stunde, teile.minute) - ziel;
-      if (!abweichung) break;
-      wert -= abweichung;
-    }
-    return new Date(wert);
+/*TZ_PORT:organizer-point:BEGIN*/  function organizerZeitpunkt(jahr, monat, tag, stunde, minute) {
+    const civil = new Date(0); civil.setUTCFullYear(jahr, monat - 1, tag); civil.setUTCHours(stunde, minute, 0, 0);
+    return new Date(MagnolieTime.resolveWall(organizerZeitzone(), {
+      year: civil.getUTCFullYear(), month: civil.getUTCMonth() + 1, day: civil.getUTCDate(),
+      hour: civil.getUTCHours(), minute: civil.getUTCMinutes(), second: 0
+    }, { gap: "forward", fold: "earlier" }));
   }
-
+/*TZ_PORT:organizer-point:END*/
   function ausISO(iso) {
     const [j, m, t] = iso.split("-").map(Number);
     return new Date(j, m - 1, t);
@@ -6008,23 +5970,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   const DATUM_FORMATIERER = new Map();
 
-  function datumText(datum, optionen, absolut) {
-    const gebiet = formatGebiet();
-    const zone = absolut ? organizerZeitzone() : undefined;
-    const wirksameOptionen = zone
-      ? Object.assign({}, optionen, { timeZone: zone }) : optionen;
-    const schluessel = JSON.stringify([gebiet || "", wirksameOptionen]);
-    try {
-      if (!DATUM_FORMATIERER.has(schluessel)) {
-        DATUM_FORMATIERER.set(schluessel,
-          new Intl.DateTimeFormat(gebiet, wirksameOptionen));
-      }
-      return DATUM_FORMATIERER.get(schluessel).format(datum);
-    } catch (_fehler) {
-      return new Intl.DateTimeFormat(undefined, optionen).format(datum);
-    }
+/*TZ_PORT:date-format:BEGIN*/  function datumText(datum, optionen, absolut) {
+    const options = optionen === undefined ? {} : optionen, locale = formatGebiet();
+    if (absolut || options.timeZone !== undefined) return MagnolieTime.format(datum, locale, options, organizerZeitzone());
+    return MagnolieTime.formatCivil({ year: datum.getFullYear(), month: datum.getMonth() + 1, day: datum.getDate(),
+      hour: datum.getHours(), minute: datum.getMinutes(), second: datum.getSeconds(), millisecond: datum.getMilliseconds() }, locale, options);
   }
-
+/*TZ_PORT:date-format:END*/
   function monatsName(monat, kurz) {
     return datumText(new Date(2024, monat, 1), { month: kurz ? "short" : "long" });
   }
@@ -6087,17 +6039,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     });
   }
 
-  function zeitText(iso, hhmm) {
-    const fund = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(hhmm || ""));
+/*TZ_PORT:clock-format:BEGIN*/  function zeitText(iso, hhmm) {
+    const fund = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(String(hhmm || ""));
     if (!fund) return String(hhmm || "");
-    const datum = gueltigesISO(iso) ? ausISO(iso) : new Date(2000, 0, 1);
-    datum.setHours(Number(fund[1]), Number(fund[2]), 0, 0);
-    const optionen = { hour: "2-digit", minute: "2-digit" };
-    const stunden = DATEN.einstellungen.regional.hourCycle;
-    if (stunden && stunden !== "system") optionen.hourCycle = stunden;
-    return datumText(datum, optionen);
+    const [year, month, day] = (gueltigesISO(iso) ? iso : "2000-01-01").split("-").map(Number);
+    const options = { hour: "2-digit", minute: "2-digit" };
+    if (fund[3] !== undefined) options.second = "2-digit";
+    const cycle = DATEN.einstellungen.regional.hourCycle;
+    if (cycle && cycle !== "system") options.hourCycle = cycle;
+    return MagnolieTime.formatCivil({ year, month, day, hour: +fund[1], minute: +fund[2], second: +(fund[3] || 0) }, formatGebiet(), options);
   }
-
+/*TZ_PORT:clock-format:END*/
   function zeitspanneText(termin) {
     if (!termin || !termin.zeit) return "";
     const anfang = zeitText(termin.datum, termin.zeit);
@@ -7566,27 +7518,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   const ZEIT_ERFASSUNG_FORMATIERER = new Map();
   const ZEIT_ERFASSUNG_OFFSETS = new Map();
 
-  function zeitDatumTeile(minute, zone) {
+/*TZ_PORT:tracking-parts:BEGIN*/  function zeitDatumTeile(minute, zone) {
     const offset = zeitFesterOffset(zone);
     if (offset !== null) {
-      const datum = new Date((minute + offset) * 60000);
-      return { year: datum.getUTCFullYear(), month: datum.getUTCMonth() + 1, day: datum.getUTCDate(),
-        hour: datum.getUTCHours(), minute: datum.getUTCMinutes(), second: datum.getUTCSeconds() };
+      const d = new Date((minute + offset) * 60000);
+      return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), minute: d.getUTCMinutes(), second: d.getUTCSeconds() };
     }
-    if (!ZEIT_ERFASSUNG_FORMATIERER.has(zone)) {
-      if (ZEIT_ERFASSUNG_FORMATIERER.size >= 128) ZEIT_ERFASSUNG_FORMATIERER.clear();
-      ZEIT_ERFASSUNG_FORMATIERER.set(zone, new Intl.DateTimeFormat("en-CA-u-ca-gregory-nu-latn", {
-        timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
-        hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
-      }));
-    }
-    const teile = {};
-    for (const teil of ZEIT_ERFASSUNG_FORMATIERER.get(zone).formatToParts(new Date(minute * 60000))) {
-      if (teil.type !== "literal") teile[teil.type] = Number(teil.value);
-    }
-    return teile;
+    const p = MagnolieTime.wallParts(zone, Math.round(minute * 60000));
+    return { year: p.year, month: p.month, day: p.day, hour: p.hour, minute: p.minute, second: p.second };
   }
-
+/*TZ_PORT:tracking-parts:END*/
   function zeitZivilMillis(teile) {
     const datum = new Date(0);
     datum.setUTCFullYear(teile.year, teile.month - 1, teile.day);
@@ -7594,54 +7535,40 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return +datum;
   }
 
-  function zeitLokaleMinute(teile, zone, referenz = null, lueckeVerschieben = false) {
-    const ziel = zeitZivilMillis(teile), datum = new Date(ziel);
-    zeitPruefen(Number.isFinite(ziel) && datum.getUTCFullYear() === teile.year &&
-      datum.getUTCMonth() + 1 === teile.month && datum.getUTCDate() === teile.day &&
-      datum.getUTCHours() === (teile.hour || 0) && datum.getUTCMinutes() === (teile.minute || 0));
-    const fest = zeitFesterOffset(zone);
-    if (fest !== null) return Math.floor(ziel / 60000 - fest);
-    const schluessel = zone + "|" + teile.year + "-" + teile.month + "-" + teile.day;
-    if (!ZEIT_ERFASSUNG_OFFSETS.has(schluessel)) {
-      const mitte = zeitZivilMillis({ year: teile.year, month: teile.month, day: teile.day });
-      const offsets = new Set();
-      for (let tag = -3; tag <= 3; tag++) {
-        const zeit = mitte + tag * 86400000;
-        offsets.add(zeitZivilMillis(zeitDatumTeile(zeit / 60000, zone)) - zeit);
-      }
-      if (ZEIT_ERFASSUNG_OFFSETS.size >= 4096) ZEIT_ERFASSUNG_OFFSETS.clear();
-      ZEIT_ERFASSUNG_OFFSETS.set(schluessel, Array.from(offsets));
+/*TZ_PORT:tracking-minute:BEGIN*/  function zeitLokaleMinute(teile, zone, referenz = null, lueckeVerschieben = false) {
+    const ziel = zeitZivilMillis(teile), d = new Date(ziel);
+    zeitPruefen(Number.isFinite(ziel) && d.getUTCFullYear() === teile.year && d.getUTCMonth() + 1 === teile.month &&
+      d.getUTCDate() === teile.day && d.getUTCHours() === (teile.hour || 0) && d.getUTCMinutes() === (teile.minute || 0));
+    const fixed = zeitFesterOffset(zone);
+    if (fixed !== null) return Math.floor(ziel / 60000 - fixed);
+    const candidates = MagnolieTime.candidates(zone, teile);
+    let selected;
+    if (candidates.length) {
+      const offset = referenz === null ? null : MagnolieTime.offsetAt(zone, Math.round(referenz * 60000));
+      selected = candidates.find(value => MagnolieTime.offsetAt(zone, value) === offset) ?? candidates[0];
+    } else {
+      zeitPruefen(lueckeVerschieben);
+      selected = MagnolieTime.resolveWall(zone, teile, { gap: "forward", fold: "earlier" });
     }
-    const kandidaten = ZEIT_ERFASSUNG_OFFSETS.get(schluessel).map(offset => ({
-      offset, zeit: ziel - offset, lokal: zeitZivilMillis(zeitDatumTeile((ziel - offset) / 60000, zone))
-    }));
-    const genau = kandidaten.filter(wert => wert.lokal === ziel).sort((a, b) => a.zeit - b.zeit);
-    if (genau.length) {
-      const offset = referenz === null ? null : zeitZivilMillis(zeitDatumTeile(referenz, zone)) - referenz * 60000;
-      return Math.floor((genau.find(wert => wert.offset === offset) || genau[0]).zeit / 60000);
+    if (!lueckeVerschieben && selected % 60000 !== 0) {
+      const error = new RangeError("This historical time cannot be stored in whole minutes."); error.code = "unsupported-time-tracking-precision"; throw error;
     }
-    zeitPruefen(lueckeVerschieben);
-    const danach = kandidaten.filter(wert => wert.lokal > ziel).sort((a, b) => a.lokal - b.lokal || a.zeit - b.zeit);
-    zeitPruefen(danach.length > 0);
-    return Math.floor(danach[0].zeit / 60000);
+    return Math.floor(selected / 60000);
   }
-
+/*TZ_PORT:tracking-minute:END*/
   // Calendar planning reuses the domain's gap/fold resolver, retaining seconds.
   // A reference instant selects the original offset when a clock hour repeats.
-  function zeitOrtszeitpunkt(datum, uhrzeit, zone, referenz = null) {
+/*TZ_PORT:planning-point:BEGIN*/  function zeitOrtszeitpunkt(datum, uhrzeit, zone, referenz = null) {
     zone = gueltigeIanaZeitzone(zone);
     const clock = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(uhrzeit || ""));
     zeitPruefen(!!zone && gueltigesISO(datum) && !!clock && +clock[1] < 24 && +clock[2] < 60 && +(clock[3] || 0) < 60);
     const [year, month, day] = datum.split("-").map(Number);
-    const wall = { year, month, day, hour: +clock[1], minute: +clock[2], second: +(clock[3] || 0) };
-    const minute = zeitLokaleMinute(wall, zone, referenz === null ? null : referenz / 60000);
-    const base = zeitDatumTeile(minute, zone);
-    const instant = minute * 60000 + ((wall.second - base.second + 60) % 60) * 1000;
-    const actual = zeitDatumTeile(instant / 60000, zone);
-    zeitPruefen(Object.keys(wall).every(key => wall[key] === actual[key]));
-    return instant;
+    const parts = { year, month, day, hour: +clock[1], minute: +clock[2], second: +(clock[3] || 0) };
+    const candidates = MagnolieTime.candidates(zone, parts); zeitPruefen(candidates.length > 0);
+    const offset = referenz === null ? null : MagnolieTime.offsetAt(zone, referenz);
+    return candidates.find(value => MagnolieTime.offsetAt(zone, value) === offset) ?? candidates[0];
   }
-
+/*TZ_PORT:planning-point:END*/
   function zeitOrtsanzeige(instant, zone) {
     zone = gueltigeIanaZeitzone(zone);
     zeitPruefen(!!zone && Number.isFinite(instant));
@@ -7712,24 +7639,20 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       return value;
     } catch (_) { throw zeitzonenPlanFehler("unsupported_feature", "The original calendar time cannot be resolved without guessing."); }
   }
-  function eindeutigerOrtszeitpunkt(date, clock, zone, fold = "reject", reference = null) {
+/*TZ_PORT:strict-planning-point:BEGIN*/  function eindeutigerOrtszeitpunkt(date, clock, zone, fold = "reject", reference = null) {
     try {
-      const first = zeitOrtszeitpunkt(date, clock, zone), [year, month, day] = date.split("-").map(Number);
-      if (year < 1 || year > 9999) throw new Error("invalid_year");
-      const [hour, minute, second = 0] = clock.split(":").map(Number), wall = zeitZivilMillis({ year, month, day, hour, minute, second });
-      const offsets = ZEIT_ERFASSUNG_OFFSETS.get(zone + "|" + year + "-" + month + "-" + day) || [0];
-      const wanted = clock.length === 5 ? clock + ":00" : clock;
-      const values = [...new Set([first, ...offsets.map(offset => wall - offset)])].filter(value => {
-        const actual = zeitOrtsanzeige(value, zone); return actual.datum === date && (actual.zeit.length === 5 ? actual.zeit + ":00" : actual.zeit) === wanted;
-      }).sort((a, b) => a - b);
-      if (values.length === 1) return values[0];
-      if (fold === "earlier") return values[0];
+      const valid = gueltigeIanaZeitzone(zone), match = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(clock || ""));
+      if (!valid || !gueltigesISO(date) || !match) throw new Error("invalid_local_time");
+      const [year, month, day] = date.split("-").map(Number);
+      const values = MagnolieTime.candidates(valid, { year, month, day, hour: +match[1], minute: +match[2], second: +(match[3] || 0) });
+      if (!values.length) throw new Error("missing_local_time");
+      if (values.length === 1 || fold === "earlier") return values[0];
       if (fold === "later") return values[values.length - 1];
       if (reference !== null && values.includes(reference)) return reference;
       throw new Error("ambiguous_time");
     } catch (_) { throw zeitzonenPlanFehler("invalid_settings", "The selected local time does not exist or is ambiguous."); }
   }
-  function zeitzonenEintragPlan(entry, task, args) {
+/*TZ_PORT:strict-planning-point:END*/  function zeitzonenEintragPlan(entry, task, args) {
     const zone = gueltigeIanaZeitzone(args.time_zone), mode = args.mode;
     if (!zone || !["display", "plan"].includes(mode)) throw zeitzonenPlanFehler("invalid_time_zone", "The selected time zone is unavailable.");
     let source = kopie(entry), properties = kalenderKernEigenschaften(source.icsRoundtrip), get = name => properties.find(value => value.name === name);
@@ -10404,7 +10327,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const defined = new Map((t.icsTimezones || []).map(lines => [lines.find(v => /^TZID:/i.test(v))?.slice(5), lines]));
     if (String(t.icsStatus || get("STATUS")?.value).toUpperCase() === "CANCELLED") return [];
     if (get("RECURRENCE-ID")?.params.RANGE && get("RECURRENCE-ID").params.RANGE !== "THISANDFUTURE") fail("unsupported-range");
-    const ownTarget = (typeof eigeneIanaZeitzone === "function" ? eigeneIanaZeitzone() : "") || organizerZeitzone() || Intl.DateTimeFormat().resolvedOptions().timeZone;
+/*TZ_PORT:ics-own-target:BEGIN*/    const ownTarget = organizerZeitzone();/*TZ_PORT:ics-own-target:END*/
     const requestedTarget = typeof t.icsDisplayTarget === "string" ? t.icsDisplayTarget : typeof eintragsAnzeigeZone === "function" ? eintragsAnzeigeZone(t, task) : ownTarget;
     const origin = get("DTSTART") || (task ? get("DUE") : null);
     let target = requestedTarget && requestedTarget !== "source" ? requestedTarget : ownTarget;
@@ -10415,9 +10338,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const id = origin.params.TZID;
       target = id ? defined.has(id) ? { id, definition: defined.get(id) } : id : /Z$/i.test(origin.value) ? "UTC" : ownTarget;
       const planned = get("X-MAGNOLIE-PLANNING-TZID")?.value;
-      if (planned && planned.length <= 128 && /^(?:UTC|[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+)$/.test(planned) && !planned.includes("..")) {
-        try { new Intl.DateTimeFormat("en", { timeZone: planned }); target = planned; } catch (_) { /* Preserve unknown planning metadata without guessing its zone. */ }
-      }
+/*TZ_PORT:ics-planned-target:BEGIN*/      if (planned && defined.has(planned)) target = { id: planned, definition: defined.get(planned) };
+      else if (planned && MagnolieTime.has(planned)) target = planned;/*TZ_PORT:ics-planned-target:END*/
     }
     const cache = icsExpansion.cache || (icsExpansion.cache = { formats: new Map(), offsets: new Map(), rules: new Map() });
     const embedded = (zone, year) => {
@@ -10463,13 +10385,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const wall = (instant, zone) => {
       if (!Number.isFinite(instant)) return instant;
       if (typeof zone === "object") return instant + offsetAt(instant, zone);
-      if (!zone || zone === "UTC") return instant;
-      let fmt = cache.formats.get(zone);
-      if (!fmt) { try { fmt = new Intl.DateTimeFormat("en-GB-u-ca-gregory-nu-latn", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }); } catch (_) { fail("unresolved-tzid:" + zone); } cache.formats.set(zone, fmt); }
-      const v = Object.fromEntries(fmt.formatToParts(new Date(instant)).map(x => [x.type, x.value]));
-      return utc(+v.year, +v.month - 1, +v.day) + ((+v.hour % 24) * 3600 + +v.minute * 60 + +v.second) * 1000;
+/*TZ_PORT:ics-wall-tail:BEGIN*/      if (zone === "UTC") return instant;
+      return MagnolieTime.wallMillis(zone, instant);
     };
-    const instant = (value, zone, generated = false) => {
+/*TZ_PORT:ics-wall-tail:END*/    const instant = (value, zone, generated = false) => {
       if (typeof zone === "object") {
         const state = embedded(zone, new Date(value).getUTCFullYear());
         const valid = state.offsets.map(o => value - o).filter(v => wall(v, zone) === value);
@@ -10478,13 +10397,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const gap = state.transitions.find(t => t.after > t.before && value >= t.at + t.before && value < t.at + t.after);
         if (!gap) fail("unresolved-timezone-wall"); return value - gap.before;
       }
-      if (!zone || zone === "UTC") return value;
-      const key = zone + ":" + Math.floor(value / DAY); let offsets = cache.offsets.get(key);
-      if (!offsets) { const noon = Math.floor(value / DAY) * DAY + DAY / 2; offsets = [...new Set([-2, -1, 0, 1, 2].map(d => wall(noon + d * DAY, zone) - noon - d * DAY))]; if (cache.offsets.size >= 2048) cache.offsets.clear(); cache.offsets.set(key, offsets); }
-      const valid = offsets.map(o => value - o).filter(v => wall(v, zone) === value);
-      return valid.length ? Math.min(...valid) : generated ? null : value - Math.min(...offsets);
+/*TZ_PORT:ics-instant-tail:BEGIN*/      if (zone === "UTC") return value;
+      const p = new Date(value);
+      return MagnolieTime.resolveWall(zone, { year: p.getUTCFullYear(), month: p.getUTCMonth() + 1, day: p.getUTCDate(),
+        hour: p.getUTCHours(), minute: p.getUTCMinutes(), second: p.getUTCSeconds(), millisecond: p.getUTCMilliseconds() },
+        { gap: generated ? "omit" : "forward", fold: "earlier" });
     };
-    const stamp = v => {
+/*TZ_PORT:ics-instant-tail:END*/    const stamp = v => {
       const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/.exec(v.value); if (!m) fail("invalid-stamp");
       const value = utc(+m[1], +m[2] - 1, +m[3]) + ((+m[4] || 0) * 3600 + (+m[5] || 0) * 60 + (+m[6] || 0)) * 1000;
       if (new Date(value).getUTCDate() !== +m[3] || +m[4] > 23 || +m[5] > 59 || +m[6] > 59) fail("invalid-stamp");
@@ -10578,11 +10497,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         return result.filter(v => v >= first.wall);
       };
       const sourceLo = first.date ? lo : wall(lo, first.zone), sourceHi = first.date ? hi : wall(hi, first.zone);
-      const offsets = first.date ? [0] : typeof first.zone === "object" ? embedded(first.zone, new Date(sourceHi).getUTCFullYear()).offsets :
-        [...new Set([-2, -1, 0, 1, 2].map(d => wall(hi + d * DAY, first.zone) - hi - d * DAY))];
-      const valid = first.date ? [0] : offsets.filter(offset => wall(sourceHi - offset, first.zone) === sourceHi);
-      const fold = first.date || valid.length < 2 ? 0 : Math.max(...valid) - Math.min(...valid);
-      const startIndex = Math.max(0, index(Math.min(sourceLo, sourceHi)) - 1), endIndex = index(sourceHi + fold) + 1;
+/*TZ_PORT:ics-fold-bound:BEGIN*/      let fold = 0;
+      if (!first.date && Number.isFinite(sourceHi)) {
+        if (typeof first.zone === "object") {
+          const offsets = embedded(first.zone, new Date(sourceHi).getUTCFullYear()).offsets;
+          const valid = offsets.filter(offset => wall(sourceHi - offset, first.zone) === sourceHi);
+          fold = valid.length < 2 ? 0 : Math.max(...valid) - Math.min(...valid);
+        } else {
+          const candidates = MagnolieTime.candidates(first.zone, sourceHi);
+          fold = candidates.length < 2 ? 0 : candidates[candidates.length - 1] - candidates[0];
+        }
+      }
+/*TZ_PORT:ics-fold-bound:END*/      const startIndex = Math.max(0, index(Math.min(sourceLo, sourceHi)) - 1), endIndex = index(sourceHi + fold) + 1;
       let seen = 0;
       if (count !== Infinity && startIndex) {
         if ((first.date || first.zone === "UTC") && units[freq] && Object.keys(fields).every(k => ["FREQ", "INTERVAL", "COUNT", "WKST"].includes(k))) seen = startIndex;
@@ -10672,14 +10598,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   /* Fällt ein bestimmter Tag auf eine Wiederholung dieses Termins? */
-  function icsRuntimeVorbereitung(mode, item, args) {
+/*TZ_PORT:runtime-prepare:BEGIN*/  function icsRuntimeVorbereitung(mode, item, args) {
     const task = mode === "next" || args[2] === true;
     const prepare = value => ({ ...value, icsDisplayTarget: eintragsAnzeigeZone(value, task) });
     item = Array.isArray(item) ? item.map(prepare) : prepare(item);
-    const zone = eigeneIanaZeitzone() || organizerZeitzone();
-    return { item, zone, key: JSON.stringify([mode, item, args, zone]) };
+    const zone = eigeneIanaZeitzone() || organizerZeitzone(), timeZoneIdentity = MagnolieTime.identity.payloadSHA256;
+    return { item, zone, timeZoneIdentity, key: JSON.stringify([timeZoneIdentity, mode, item, args, zone]) };
   }
-  function icsRuntime(mode, item, args, planerFeiertag = false) {
+/*TZ_PORT:runtime-prepare:END*/  function icsRuntime(mode, item, args, planerFeiertag = false) {
     const state = icsRuntime.state || (icsRuntime.state = { jobs: new Map(), worker: null, paint: 0 });
     const prepared = icsRuntimeVorbereitung(mode, item, args), zone = prepared.zone, key = prepared.key; item = prepared.item;
     const warn = code => { icsRuntime.lastError = code; zettel(_("Some recurrence rules cannot be expanded. Their original calendar data was preserved.") + " [" + code + "]"); };
@@ -10713,20 +10639,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (state.jobs.size >= 1024) { if (icsRuntime.lastError !== "recurrence-queue-limit") warn("recurrence-queue-limit"); return null; }
     if (!state.worker) {
       // Only fixed product functions become code. Calendar content is structured-cloned data.
-      const source = 'const _ = v => v, zettel = () => {}; const ICS_WOCHENTAGE = ' + JSON.stringify(ICS_WOCHENTAGE) + '; const ZEITZONEN_FORMATIERER = new Map(); let zone; function organizerZeitzone() { return zone; }\n' +
-        [icsWert, organizerDatumzeitTeile, organizerZeitpunkt, icsQuelle, icsExpansion, icsBasisExpansion, icsNaechsteAufgabe].map(fn => fn.toString()).join("\n") +
+/*TZ_PORT:worker-bootstrap:BEGIN*/      const source = MagnolieTime.workerPrelude() + 'const _ = v => v, zettel = () => {}; const ICS_WOCHENTAGE = ' + JSON.stringify(ICS_WOCHENTAGE) + '; const ZEITZONEN_FORMATIERER = new Map(); let zone; function organizerZeitzone() { return zone; }\n' +
+/*TZ_PORT:worker-bootstrap:END*/        [icsWert, organizerDatumzeitTeile, organizerZeitpunkt, icsQuelle, icsExpansion, icsBasisExpansion, icsNaechsteAufgabe].map(fn => fn.toString()).join("\n") +
         `
-        self.onmessage = ({ data }) => {
-          const started = performance.now(); let turns = 0;
+/*TZ_PORT:worker-request-identity:BEGIN*/        self.onmessage = ({ data }) => {
+          if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) { self.postMessage({ key: data.key, timeZoneIdentity: MagnolieTime.identity.payloadSHA256, error: "timezone-provider-identity" }); return; }
+/*TZ_PORT:worker-request-identity:END*/          const started = performance.now(); let turns = 0;
           const run = () => {
             zone = data.zone;
             try {
-              if (data.mode === "base") { self.postMessage({ key: data.key, ...icsBasisExpansion(data.item, data.args) }); return; }
-              const result = data.mode === "next" ? icsNaechsteAufgabe(data.item, ...data.args) : icsExpansion(data.item, ...data.args); self.postMessage({ key: data.key, result });
+              if (data.mode === "base") { /*TZ_PORT:worker-base-response:BEGIN*/self.postMessage({ timeZoneIdentity: MagnolieTime.identity.payloadSHA256, key: data.key, ...icsBasisExpansion(data.item, data.args) })/*TZ_PORT:worker-base-response:END*/; return; }
+              const result = data.mode === "next" ? icsNaechsteAufgabe(data.item, ...data.args) : icsExpansion(data.item, ...data.args); /*TZ_PORT:worker-event-response:BEGIN*/self.postMessage({ timeZoneIdentity: MagnolieTime.identity.payloadSHA256, key: data.key, result })/*TZ_PORT:worker-event-response:END*/;
             }
             catch (error) {
               if (error.retryable && ++turns < 4096 && performance.now() - started < 30000) { setTimeout(run, 0); return; }
-              self.postMessage({ key: data.key, error: error.code || "recurrence-worker-error" });
+              /*TZ_PORT:worker-error-response:BEGIN*/self.postMessage({ timeZoneIdentity: MagnolieTime.identity.payloadSHA256, key: data.key, error: error.code || "recurrence-worker-error" })/*TZ_PORT:worker-error-response:END*/;
             }
           };
           run();
@@ -10740,8 +10667,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       } catch (error) { return fail("recurrence-worker-unavailable"); }
       finally { if (url) window.addEventListener("unload", () => URL.revokeObjectURL(url), { once: true }); }
       state.worker.onmessage = ({ data }) => {
-        const job = state.jobs.get(data.key); if (!job) return;
-        Object.assign(job, data.error ? { status: "error", error: data.error, result: data.result } : { status: "ready", result: data.result });
+/*TZ_PORT:worker-response-identity:BEGIN*/        const job = state.jobs.get(data.key); if (!job) return;
+        if (data.timeZoneIdentity !== MagnolieTime.identity.payloadSHA256) {
+          for (const value of state.jobs.values()) if (value.status === "pending") Object.assign(value, { status: "error", error: "timezone-provider-identity", result: null });
+          state.worker.terminate(); state.worker = null; publish(); warn("timezone-provider-identity"); return;
+        }
+/*TZ_PORT:worker-response-identity:END*/        Object.assign(job, data.error ? { status: "error", error: data.error, result: data.result } : { status: "ready", result: data.result });
         if (job.index) terminIndexVeraltet = true;
         if (data.error) warn(data.error);
         let rows = 0;
@@ -10771,7 +10702,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     document.body.setAttribute("aria-busy", "true"); document.body.dataset.recurrenceState = "pending";
     if (!state.progress) { state.progress = document.createElement("progress"); state.progress.setAttribute("aria-label", _("Calendar")); Object.assign(state.progress.style, { position: "fixed", bottom: "1rem", right: "1rem", width: "10rem", height: "0.4rem", zIndex: "10001", accentColor: "currentColor" }); document.body.append(state.progress); }
     state.progress.hidden = false;
-    try { state.worker.postMessage({ key, mode, item, args, zone }); }
+    try { /*TZ_PORT:worker-send-identity:BEGIN*/state.worker.postMessage({ timeZoneIdentity: MagnolieTime.identity.payloadSHA256, key, mode, item, args, zone })/*TZ_PORT:worker-send-identity:END*/; }
     catch (error) { return fail("recurrence-worker-error"); }
     return null;
   }
@@ -11818,7 +11749,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (id && !original) return;
       const kennung = original?.id || anrufClientRef();
       const texte = zeitErfassungTexte(), jetzt = Math.floor(Date.now() / 60000);
-      const zone = original?.zone || organizerZeitzone() || new Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const zone = /*TZ_PORT:tracking-default-zone:BEGIN*/original?.zone || organizerZeitzone()/*TZ_PORT:tracking-default-zone:END*/;
       const aktuell = zeitDatumTeile(jetzt, zone), datum = vorgabe.split("-").map(Number);
       const anfang = original?.startMinute ?? zeitLokaleMinute({ year: datum[0], month: datum[1], day: datum[2], hour: aktuell.hour, minute: aktuell.minute }, zone);
       const ende = original ? original.endMinute : anfang;
@@ -22332,8 +22263,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return fmtPunkt(value);
       const timestamp = typeof value === "number" ? value : Date.parse(String(value || ""));
       if (!Number.isFinite(timestamp) || timestamp <= 0 || timestamp > 253402300799999) return _("No date recorded");
-      return new Intl.DateTimeFormat((document.documentElement.lang || "en").replace(/_/g, "-"),
-        { dateStyle: "long", timeStyle: "medium" }).format(new Date(timestamp));
+/*TZ_PORT:note-timestamp:BEGIN*/      return MagnolieTime.format(new Date(timestamp), (document.documentElement.lang || "en").replace(/_/g, "-"), { dateStyle: "long", timeStyle: "medium" }, "system");/*TZ_PORT:note-timestamp:END*/
     };
     const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog notiz-eigenschaften");
     const close = () => { beendeModal(overlay); overlay.remove(); };
@@ -22404,18 +22334,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
   }
 
-  function notizTagesname(key) {
+/*TZ_PORT:note-day-name:BEGIN*/  function notizTagesname(key) {
     if (!key) return _("Undated");
-    const date = ausISO(key), now = new Date();
-    const ordinal = d => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
-    const age = ordinal(now) - ordinal(date);
+    const [year, month, day] = key.split("-").map(Number), today = MagnolieTime.wallParts("system", Date.now());
+    const at = MagnolieTime.resolveWall("UTC", { year, month, day });
+    const now = MagnolieTime.resolveWall("UTC", { year: today.year, month: today.month, day: today.day });
+    const age = (now - at) / 86400000;
     if (age === 0) return _("Today");
     if (age === 1) return _("Yesterday");
     const locale = (document.documentElement.lang || "en").replace(/_/g, "-");
-    return new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long",
-      ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}) }).format(date);
+    return MagnolieTime.formatCivil({ year, month, day }, locale, { weekday: "long", day: "numeric", month: "long", ...(year !== today.year ? { year: "numeric" } : {}) });
   }
-
+/*TZ_PORT:note-day-name:END*/
   function notizAnsichtsMenue(event, redraw) {
     event.preventDefault(); event.stopPropagation(); schliesseVorschlaege();
     const menu = el("div", "vorschlags-menue bearbeiten-menue"); menu.id = "vorschlags-menue"; menu.setAttribute("role", "menu");
@@ -23585,7 +23515,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function bindeZeiteingabe(feld, gesundheitsZeit = false) {
     const zyklus = DATEN.einstellungen.regional.hourCycle;
-    const format = new Intl.DateTimeFormat(formatGebiet(), { hour: "2-digit", minute: "2-digit",
+    /*TZ_PORT:clock-input-utc:BEGIN*/const format = new Intl.DateTimeFormat(formatGebiet(), { timeZone: "UTC", hour: "2-digit", minute: "2-digit",/*TZ_PORT:clock-input-utc:END*/
       ...(zyklus && zyklus !== "system" ? { hourCycle: zyklus } : {}) });
     if (format.resolvedOptions().hour12) return bindeRegionaleZeiteingabe(feld, format, gesundheitsZeit);
     feld.type = "text";
@@ -23698,7 +23628,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     feld.removeAttribute("pattern");
     feld.maxLength = 40;
     feld.style.minWidth = "12ch";
-    const datum = minute => new Date(2000, 0, 1, Math.floor(minute / 60), minute % 60);
+    /*TZ_PORT:clock-input-civil:BEGIN*/const datum = minute => new Date(Date.UTC(2000, 0, 1, Math.floor(minute / 60), minute % 60));/*TZ_PORT:clock-input-civil:END*/
     feld.placeholder = format.format(datum(14 * 60 + 35));
     const nummern = new Intl.NumberFormat(format.resolvedOptions().locale, { useGrouping: false });
     const ziffern = Array.from({ length: 10 }, (_, i) => [nummern.format(i), String(i)]);
@@ -26645,12 +26575,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     wurzel.append(ab);
   }
 
-  function journalDatum(wert) {
+/*TZ_PORT:journal-time:BEGIN*/  function journalDatum(wert) {
     if (!wert) return _("Never");
     const datum = new Date(wert);
-    return Number.isNaN(datum.getTime()) ? _("Unknown") : datum.toLocaleString();
+    return Number.isNaN(datum.getTime()) ? _("Unknown") : MagnolieTime.localeString(datum);
   }
-
+/*TZ_PORT:journal-time:END*/
   function journalGrund(grund) {
     return ({ weekly: _("Scheduled"), startup: _("Every program start"),
       manual: pgettext("recovery snapshot reason", "Manual"), "pre-change": _("Before synchronization"),
@@ -28197,8 +28127,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (!schleier.isConnected || DATEN !== bestand || ziel !== ausgewaehlt || folge !== zeitPruefung ||
             kanonischerEntwurf(ziel) !== stand) return;
         neuerKnopf.disabled = !modus;
-        if (modus) neuerKnopf.title = _("Saved") + ": " + new Date(ziel.kontaktZeit.zeit).toLocaleString(formatGebiet()) +
-          " · " + _("Incoming") + ": " + new Date(stueck.inhalt.inhaltGeaendert).toLocaleString(formatGebiet());
+        if (modus) neuerKnopf.title = _("Saved") + ": " + /*TZ_PORT:system-timestamp-11:BEGIN*/MagnolieTime.localeString(new Date(ziel.kontaktZeit.zeit),/*TZ_PORT:system-timestamp-11:END*/formatGebiet()) +
+          " · " + _("Incoming") + ": " + /*TZ_PORT:system-timestamp-12:BEGIN*/MagnolieTime.localeString(new Date(stueck.inhalt.inhaltGeaendert),/*TZ_PORT:system-timestamp-12:END*/formatGebiet());
       }).catch(() => {});
     };
     const alle = document.createElement("input"); alle.type = "checkbox"; alle.dataset.kontaktRest = "true";
@@ -30073,7 +30003,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       updateStand.textContent = uebersetzt(
         "Version %(version)s is up to date. Last checked: %(date)s.", {
           version: FASSUNG,
-          date: new Date(update.letztePruefung).toLocaleString(formatGebiet())
+          date: /*TZ_PORT:system-timestamp-13:BEGIN*/MagnolieTime.localeString(new Date(update.letztePruefung),/*TZ_PORT:system-timestamp-13:END*/formatGebiet())
         });
     } else {
       updateStand.textContent = _("No update check has been performed yet.");
@@ -30880,7 +30810,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const zeile = el("div", "pk-zeile");
           const wann = new Date(s.geloescht);
           zeile.append(el("span", "pk-name", s.name));
-          zeile.append(el("span", "pk-wann", wann.toLocaleDateString(formatGebiet())));
+          zeile.append(el("span", "pk-wann", /*TZ_PORT:system-timestamp-14:BEGIN*/MagnolieTime.localeDate(wann,/*TZ_PORT:system-timestamp-14:END*/formatGebiet())));
           zeile.append(knopf(_("Restore"), "klein", () => {
             if (ausDemPapierkorb(s)) {
               planeSpeichern();
@@ -31866,31 +31796,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (wasOpen && !interacted && DATEN === book && !gesperrt && !editorIstGeaendert() && !modalStapel.some(entry => entry.schleier.isConnected)) oeffneEinstellungen();
     }
   }
-  function zeitzonenName(value) {
+/*TZ_PORT:zone-name:BEGIN*/  function zeitzonenName(value) {
     if (value === "system") return _("System setting");
-    const zone = gueltigeIanaZeitzone(value);
-    if (!zone) return _("Unavailable") + " (" + String(value || "") + ")";
-    const language = (window.MagnolieI18n?.locale() || "en").replace(/_/g, "-"), key = language + "|" + value;
-    if (zeitzonenNamen.has(key)) return zeitzonenNamen.get(key);
-    let longName = "";
-    for (const style of ["longGeneric", "long"]) {
-      try { longName = new Intl.DateTimeFormat(language, { timeZone: zone, timeZoneName: style }).formatToParts(new Date()).find(part => part.type === "timeZoneName")?.value || ""; break; } catch (_) { /* Older engines may lack generic names. */ }
-    }
-    const city = String(value).split("/").pop().replace(/_/g, " ");
-    const label = city + (longName ? " — " + longName : "") + " (" + value + ")";
-    if (zeitzonenNamen.size >= 1024) zeitzonenNamen.clear();
-    zeitzonenNamen.set(key, label); return label;
+    const id = String(value || "");
+    if (!id) return _("Unavailable");
+    // No instant was supplied: retain the original identity without implying
+    // today's offset, a seasonal name, or named authority over source VTIMEZONE.
+    return id.split("/").pop().replace(/_/g, " ") + " (" + id + ")";
   }
-  function zeitzonenAuswahl(value, system = true, empty = false) {
-    let available = [];
-    try { available = Intl.supportedValuesOf("timeZone"); } catch (_) { available = ["Europe/Berlin", "Europe/London", "America/New_York", "Asia/Tokyo"]; }
-    const ids = [...new Set(["UTC", ...available, ...(value && value !== "system" ? [value] : [])])];
+/*TZ_PORT:zone-name:END*//*TZ_PORT:zone-list:BEGIN*/  function zeitzonenAuswahl(value, system = true, empty = false) {
+    const ids = [...new Set(["UTC", ...MagnolieTime.identifiers, ...(value && value !== "system" ? [value] : [])])];
     const options = ids.map(zone => [zone, zeitzonenName(zone)]).sort((a, b) => vergleicheStandardText(a[1], b[1]));
     if (system) options.unshift(["system", _("System setting")]);
     if (empty) options.unshift(["", _("— not specified —")]);
     return auswahlFeld(options, value || (empty ? "" : "system"));
   }
-  function oeffneZeitzonenManagement() {
+/*TZ_PORT:zone-list:END*/  function oeffneZeitzonenManagement() {
     if (zeitzonenDialogLaedt || zeitzonenAktionLaeuft || !Bruecke.vorhanden) return;
     return navigiereMitGuard(async () => {
       zeitzonenDialogLaedt = true;

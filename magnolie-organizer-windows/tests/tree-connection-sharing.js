@@ -16,6 +16,7 @@ async function check(web) {
         standSha256: createHash("sha256").update(command.text).digest("hex") }));
     } } } };
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     for (const validSource of [true, false]) {
       w.App.init({ neu: false, daten: {

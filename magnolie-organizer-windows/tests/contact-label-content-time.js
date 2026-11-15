@@ -16,6 +16,7 @@ async function check(web, field, order, route) {
   } } } };
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     const local = { id: "local", uid: "fixture", vorname: "Alex", nachname: "Fixture",
       emailEintraege: [{ wert: "alex@example.test", label: "HOME" }] };

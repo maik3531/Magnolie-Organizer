@@ -64,6 +64,17 @@ def timezone_assets(snapshot):
     return result
 
 
+def strip_canonical_timezone_bootstrap(html):
+    tag = '<script src="normative-timezones.js"></script>'
+    app = '<script src="anwendung.js"></script>'
+    if "normative-timezones.js" not in html:
+        return html
+    if (html.count("normative-timezones.js") != 1 or html.count(tag) != 1 or
+            html.count(app) != 1 or html.index(tag) > html.index(app)):
+        raise ValueError("Timezone bootstrap script changed")
+    return html.replace(tag, "", 1)
+
+
 def apply_timezone_patches(source, snapshot):
     prefix = "port-adapters/timezones/"
     patches = json.loads(snapshot[prefix + "projection-patches.json"])
@@ -405,7 +416,7 @@ def project(snapshot, target):
     (target / "web/macos-beta.css").write_bytes(snapshot[str((BETA / "Projection/macos-beta.css").relative_to(REPO))] +
                                               b"\n" + snapshot["port-adapters/legacy-display.css"])
     index = target / "web/index.html"
-    html = replace_once(index.read_text(), "<title>Magnolie Organizer</title>",
+    html = replace_once(strip_canonical_timezone_bootstrap(index.read_text()), "<title>Magnolie Organizer</title>",
                         "<title>Magnolie Organizer macOS Beta</title>\n<link rel=\"stylesheet\" href=\"macos-beta.css\">")
     # All existing catalogs are copied and registered; locale selection still belongs to the canonical UI.
     catalogs = sorted((target / "web/i18n").glob("*.js"))

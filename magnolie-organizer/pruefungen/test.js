@@ -80,6 +80,7 @@ function ladeAnwendung(fenster, sprache = "de") {
   fenster.eval(i18nJs);
   fenster.eval(deJs);
   fenster.MagnolieI18n.setLocale(sprache);
+  fenster.eval(fs.readFileSync(path.join(WEB, "normative-timezones.js"), "utf8"));
   fenster.eval(js);
 }
 
@@ -8840,6 +8841,7 @@ function knopfMit(text, wurzel) {
   for (const name of katalogDateien) {
     sprachenDom.window.eval(fs.readFileSync(path.join(WEB, "i18n", name), "utf8"));
   }
+  sprachenDom.window.eval(fs.readFileSync(path.join(WEB, "normative-timezones.js"), "utf8"));
   sprachenDom.window.eval(js);
   sprachenDom.window.document.dispatchEvent(new sprachenDom.window.Event(
     "DOMContentLoaded", { bubbles: true }));

@@ -15,6 +15,7 @@ const watchdog = setTimeout(() => { console.error("Note web-link test stalled af
       w.__MAGNOLIE_BRUECKE__ = "test";
       w.webkit = { messageHandlers: { test: { postMessage(raw) { sent.push(JSON.parse(raw)); } } } };
       w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+      w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
       w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("window.OrganizerTest = {", "window.OrganizerTest = { webLinkZiel, webLinksImText, notizWebLinks,"));
       if (w.document.readyState === "loading") await new Promise(resolve => w.document.addEventListener("DOMContentLoaded", resolve, { once: true }));
       await new Promise(resolve => setTimeout(resolve, 0));

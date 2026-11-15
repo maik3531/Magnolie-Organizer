@@ -17,6 +17,7 @@ async function check(web, route, field, mode) {
   } } } };
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     const T = w.OrganizerTest, provider = "thunderbird-addressbook:fixture:book";
     const card = newer => ({ id: "local", uid: "fixture", vorname: "Alex", nachname: "Fixture", sync: true,

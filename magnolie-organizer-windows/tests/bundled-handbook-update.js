@@ -10,6 +10,7 @@ async function check(installed){
  w.__MAGNOLIE_BRUECKE__="test";
  w.webkit={messageHandlers:{test:{postMessage:raw=>{const m=JSON.parse(raw);messages.push(m);if(m.cmd==="speichern")queueMicrotask(()=>w.App.gespeichert({id:m.id,ok:true}));}}}};
  w.eval(fs.readFileSync(path.join(web,"i18n.js"),"utf8"));w.MagnolieI18n.setLocale("en");
+ w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
  w.eval(fs.readFileSync(path.join(web,"anwendung.js"),"utf8"));d.dispatchEvent(new w.Event("DOMContentLoaded"));
  try{
   w.App.init({daten:{},neu:false,regional:{language:"en"},handbuchInstalliert:installed,handbuchVersion:installed?"2.0.21":""});

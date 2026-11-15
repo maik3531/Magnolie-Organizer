@@ -14,6 +14,7 @@ const web = path.resolve(__dirname, "../app/web");
     w.__MAGNOLIE_BRUECKE__ = "fixture";
     w.webkit = { messageHandlers: { fixture: { postMessage: value => sent.push(JSON.parse(value)) } } };
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     await new Promise(resolve => w.document.readyState === "loading" ?
       w.document.addEventListener("DOMContentLoaded", resolve, { once: true }) : resolve());

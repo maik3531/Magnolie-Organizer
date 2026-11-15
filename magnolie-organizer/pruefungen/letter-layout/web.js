@@ -18,6 +18,7 @@ const bridgeCases = {};
       w.__MAGNOLIE_BRUECKE__ = "nativeBridge";
       w.webkit = { messageHandlers: { nativeBridge: { postMessage: value => messages.push(JSON.parse(value)) } } };
       w.eval(fs.readFileSync(path.join(root, web, "i18n.js"), "utf8"));
+      w.eval(fs.readFileSync(path.join(root, web, "normative-timezones.js"), "utf8"));
       w.eval(fs.readFileSync(path.join(root, web, "anwendung.js"), "utf8"));
       w.App.init({ daten: { kontakte: [{ id: "test", nachname: "Example", strasse: "Testweg 1", ort: "Teststadt" }],
         einstellungen: { adressen: { brief: true, briefLayout: saved, briefLayoutVoreinstellung: 2 } } },
@@ -59,6 +60,7 @@ const bridgeCases = {};
       w.__MAGNOLIE_BRUECKE__ = "nativeBridge";
       w.webkit = { messageHandlers: { nativeBridge: { postMessage: value => messages.push(JSON.parse(value)) } } };
       w.eval(fs.readFileSync(path.join(root, web, "i18n.js"), "utf8"));
+      w.eval(fs.readFileSync(path.join(root, web, "normative-timezones.js"), "utf8"));
       w.eval(fs.readFileSync(path.join(root, web, "anwendung.js"), "utf8"));
       w.App.init({ daten: { kontakte: [
         { id: "decoy", nachname: "Decoy", strasse: "Otherway 99", ort: "Elsewhere" },

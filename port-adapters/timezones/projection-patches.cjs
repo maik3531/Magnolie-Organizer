@@ -42,3 +42,12 @@ module.exports=function timezonePatches(source,read,undo=false,canonical=source)
   }
   return source;
 };
+
+module.exports.stripCanonicalBootstrap=function(html) {
+  const tag='<script src="normative-timezones.js"></script>',app='<script src="anwendung.js"></script>';
+  if(!html.includes('normative-timezones.js'))return html;
+  if(html.split('normative-timezones.js').length!==2 || html.split(tag).length!==2 ||
+     html.split(app).length!==2 || html.indexOf(tag)>html.indexOf(app))throw Error('Timezone bootstrap script changed');
+  // Each port installs its own already-verified ordered bootstrap exactly once.
+  return html.replace(tag,'');
+};

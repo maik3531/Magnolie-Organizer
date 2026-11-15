@@ -82,6 +82,7 @@ for (const file of frontends) {
     const sent = [];
     w.__MAGNOLIE_BRUECKE__ = 'test'; w.webkit = { messageHandlers: { test: { postMessage(m) { sent.push(JSON.parse(m)); } } } };
     w.eval(fs.readFileSync(path.join(web, 'i18n.js'), 'utf8')); w.MagnolieI18n.setLocale('en');
+    w.eval(fs.readFileSync(path.join(web, 'normative-timezones.js'), 'utf8'));
     w.eval(source.replace('  function oeffneKommunikationsBelegung(typ) {',
       '  window.openCallSettings = oeffneKommunikationsBelegung; window.callOptions = () => DATEN.einstellungen.adressen.kommunikation.anruf;\n  function oeffneKommunikationsBelegung(typ) {'));
     w.document.dispatchEvent(new w.Event('DOMContentLoaded')); w.App.init({ daten: {}, neu: false });

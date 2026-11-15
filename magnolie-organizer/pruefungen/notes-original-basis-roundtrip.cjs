@@ -17,7 +17,7 @@ async function run() {
       w.HTMLElement.prototype.scrollIntoView = () => {}; w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
       Object.defineProperty(w, "crypto", { value: webcrypto }); w.__MAGNOLIE_BRUECKE__ = "test";
       w.webkit = { messageHandlers: { test: { postMessage: raw => messages.push(JSON.parse(raw)) } } };
-      for (const name of ["i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
+      for (const name of ["normative-timezones.js", "i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
       await new Promise(resolve => setImmediate(resolve));
       const metadata = structuredClone(basis);
       if (mode === "max-long") metadata.native_revision = "9223372036854775807";

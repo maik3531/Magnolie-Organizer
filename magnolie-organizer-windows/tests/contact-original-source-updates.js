@@ -17,7 +17,7 @@ async function boot(options = {}) {
   w.webkit = { messageHandlers: { test: { postMessage: raw => {
     const value = JSON.parse(raw); messages.push(value); options.emit?.(value);
   } } } };
-  for (const name of ["i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
+  for (const name of ["normative-timezones.js", "i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
   await tick();
   w.App.init({ neu: false, regional: { language: "en", timeZone: "UTC" }, daten: options.data || {
     kontakte: [{ id: "local-person", uid: "canonical-person", vorname: "Alex", nachname: "Synthetic", sync: true, notiz: "Original",

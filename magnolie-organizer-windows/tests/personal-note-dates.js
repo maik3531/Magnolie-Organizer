@@ -9,6 +9,7 @@ async function check(web) {
   Object.defineProperty(w, "crypto", { value: webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   w.__MAGNOLIE_BRUECKE__ = "test"; w.webkit = { messageHandlers: { test: { postMessage() {} } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
   const T = w.OrganizerTest, clean = v => JSON.parse(JSON.stringify(v));
   const actor = "11111111-1111-4111-8111-111111111111", remoteActor = "22222222-2222-4222-8222-222222222222";

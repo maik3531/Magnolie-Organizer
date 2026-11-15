@@ -23,6 +23,7 @@ function boot(web, data = {}, setup, language = "en") {
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
   if (language !== "en") w.eval(fs.readFileSync(path.join(web, "i18n", language + ".js"), "utf8"));
   w.MagnolieI18n.setLocale(language);
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
   w.App.init({ daten: data, neu: false, setupSelections: setup, regional: { language, timeZone: "UTC" } });
   const t = w.OrganizerTest;

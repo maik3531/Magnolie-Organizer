@@ -35,6 +35,7 @@ async function boot(web) {
     messages.push(message);
   } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,",
     "nachDauerhaftemSpeichern, personalCustomSenden, personalCustomBestaetigt, personalSyncSenden, speichereJetzt: speichereJetzt,"));
   await tick();

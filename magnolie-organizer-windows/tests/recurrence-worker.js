@@ -24,6 +24,7 @@ const { JSDOM } = require("jsdom");
       terminate() { this.worker.terminate(); }
     };
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     w.document.dispatchEvent(new w.Event("DOMContentLoaded", { bubbles: true }));
     await new Promise(resolve => setImmediate(resolve));

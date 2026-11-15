@@ -28,6 +28,7 @@ for (const web of sources) {
   const messages = [];
   w.webkit = { messageHandlers: { timeTest: { postMessage(value) { messages.push(JSON.parse(value)); } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
   w.App.init({ daten: {}, neu: false, regional: { language: "en", formatLocale: "en-US", hourCycle: "h12", timeZone: "UTC" } });
   const t = w.OrganizerTest, d = t.daten();

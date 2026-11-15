@@ -23,7 +23,9 @@ for (const file of sources) {
   const canonical = source.slice(source.indexOf("  function personalSyncKanonisch("), source.indexOf("  async function personalSyncHash("));
   const api = { kopie: clone, _: value => value, pgettext: (_context, value) => value,
     anrufClientRef: () => "33333333-3333-4333-8333-333333333333" };
-  vm.createContext(api); vm.runInContext(canonical + core, api);
+  vm.createContext(api);
+  vm.runInContext(fs.readFileSync(path.join(path.dirname(file), "normative-timezones.js"), "utf8"), api);
+  vm.runInContext(canonical + core, api);
   assert.deepEqual(clone(api.normalisiereZeiterfassung()), { enabled: false, actor: "", counter: 0, entries: [], conflicts: {}, reportName: "" });
   const state = api.normalisiereZeiterfassung({ enabled: true, actor, counter: 1, entries: [record] });
   assert.deepEqual(clone(state.entries), [record]);
@@ -49,7 +51,10 @@ for (const file of sources) {
   assert.equal(api.zeitLokaleMinute(civil(2026, 10, 25, 2, 30), "Europe/Berlin", minute("2026-10-25T01:15:00Z")), minute("2026-10-25T01:30:00Z"));
   assert.equal(api.zeitLokaleMinute(civil(2026, 10, 4, 2, 15), "Australia/Lord_Howe", null, true), minute("2026-10-03T15:45:00Z"));
   assert.equal(api.zeitLokaleMinute(civil(2011, 12, 30, 12, 0), "Pacific/Apia", null, true), minute("2011-12-30T22:00:00Z"));
-  assert.equal(api.zeitLokaleMinute(civil(1970, 1, 1, 2, 0), "Africa/Monrovia"), minute("1970-01-01T02:44:30Z"));
+  assert.throws(() => api.zeitLokaleMinute(civil(1970, 1, 1, 2, 0), "Africa/Monrovia"),
+    error => error.code === "unsupported-time-tracking-precision", "A whole-minute field must not silently truncate historical seconds");
+  assert.equal(api.zeitLokaleMinute(civil(1970, 1, 1, 2, 0), "Africa/Monrovia", null, true), minute("1970-01-01T02:44:30Z"),
+    "The explicit rounding path remains available without pretending whole-minute precision");
   const start = minute("2026-10-04T08:00:00Z"), finish = minute("2026-10-04T17:00:00Z");
   const live = { ...record, startMinute: start, endMinute: null, pauseMinutes: 0, zone: "UTC",
     pausePlan: { fixed: [{ start: 720, end: 750 }], manual: [], replaced: [], fixedEnds: {}, baseMinutes: 0 } };

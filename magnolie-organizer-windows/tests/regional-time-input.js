@@ -18,6 +18,7 @@ for (const web of roots) {
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
   for (const file of fs.readdirSync(path.join(web, "i18n")).filter(name => name.endsWith(".js")))
     w.eval(fs.readFileSync(path.join(web, "i18n", file), "utf8"));
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")
     .replace("window.OrganizerTest = {", "window.OrganizerTest = { eingabe, oeffneCustomEintrag,"));
   w.App.init({ daten: {}, neu: false, regional: { language: "en", formatLocale: "en-US", hourCycle: "h12" } });

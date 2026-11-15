@@ -41,6 +41,7 @@ async function check(mode) {
   }}}};
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     const card = {id: "tree", uid: "mag-tree@magnolie-organizer", vorname: "Mia", nachname: "Müller",
       telefone: [{wert: "+49305550123", typen: ["CELL", "VOICE"], label: "Mobile"}],
