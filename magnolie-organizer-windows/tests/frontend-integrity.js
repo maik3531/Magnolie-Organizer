@@ -207,12 +207,25 @@ async function check(web) {
     reset();
     T.daten().gesundheit.vitalwerte = w.JSON.parse(JSON.stringify(Array.from({ length: 1000 }, (_, i) => ({ id: "v" + i, datum: "2026-09-07", seite: i, temperatur: "36.5" }))));
     T.zustand().gesundheit.ansicht = "vital";
-    let sorts = 0;
+    const history = T.daten().gesundheit.vitalwerte;
+    const historyEntries = new Set(history);
+    const historyBefore = JSON.stringify(history);
+    let historySorts = 0;
     const sort = w.Array.prototype.sort;
-    w.Array.prototype.sort = function (...args) { sorts++; return sort.apply(this, args); };
-    assert.equal(T.suchTrefferFuer("gesundheit", ["not-present"], 100).length, 0);
-    w.Array.prototype.sort = sort;
-    assert.equal(sorts, 0, "F49: unsuccessful health search sorts history");
+    w.Array.prototype.sort = function (...args) {
+      // The time provider legitimately orders small numeric offset candidates.
+      // F49 concerns health history, including copies containing its real rows.
+      if (this.some(value => historyEntries.has(value))) historySorts++;
+      return sort.apply(this, args);
+    };
+    try {
+      history.slice().sort((a, b) => b.seite - a.seite);
+      assert.equal(historySorts, 1, "F49: guard failed to detect sorting a history copy");
+      historySorts = 0;
+      assert.equal(T.suchTrefferFuer("gesundheit", ["not-present"], 100).length, 0);
+      assert.equal(historySorts, 0, "F49: unsuccessful health search sorts history");
+      assert.equal(JSON.stringify(history), historyBefore, "F49: search changed health history");
+    } finally { w.Array.prototype.sort = sort; }
     T.daten().notizen = [{ id: "body", titel: "Old", text: "old", html: "<p>old</p>", anhaenge: [], notizbuchId: T.daten().notizbuecher[0].id }];
     T.zustand().notizen.auswahlId = "body";
     T.wechsel("notizen");
