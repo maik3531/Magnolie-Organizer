@@ -2124,6 +2124,9 @@ msgstr "Continuação"
 msgid "Contributor Key"
 msgstr "Chave Contributor"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Só é possível abrir anexos HTTPS. Pode copiar os outros endereços."
+
 msgid "Copy"
 msgstr "Copiar"
 

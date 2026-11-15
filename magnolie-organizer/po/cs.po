@@ -2120,6 +2120,9 @@ msgstr "Pokračování"
 msgid "Contributor Key"
 msgstr "Klíč Contributor"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Otevřít lze pouze přílohy HTTPS. Ostatní adresy můžete zkopírovat."
+
 msgid "Copy"
 msgstr "Kopírovat"
 

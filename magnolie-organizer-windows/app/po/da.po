@@ -1772,6 +1772,9 @@ msgstr "Fortsat"
 msgid "Contributor key"
 msgstr "Bidragyder nøgle"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Kun HTTPS-vedhæftninger kan åbnes. Andre adresser kan kopieres."
+
 msgid "Copy"
 msgstr "Kopiér"
 

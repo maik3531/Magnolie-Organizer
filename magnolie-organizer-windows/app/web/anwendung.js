@@ -16776,9 +16776,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return aus;
   }
 
-  function oeffneKalenderAnhang(anhang) {
+  function kalenderAnhangOeffnenErlaubt(anhang) {
     const uri = saubereTerminUri(anhang && anhang.uri);
-    if (!uri || !/^https?:\/\//i.test(uri) || anbieterAusUri(uri) === "unbekannt") return false;
+    if (!uri || anhang.localOnly || !/^https:\/\//.test(uri) ||
+      !["Web", "Google Drive", "OneDrive", "Dropbox"].includes(anbieterAusUri(uri))) return false;
+    try {
+      const url = new URL(uri);
+      return url.protocol === "https:" && !!url.hostname && !url.username && !url.password;
+    } catch (_fehler) { return false; }
+  }
+
+  function oeffneKalenderAnhang(anhang) {
+    if (!kalenderAnhangOeffnenErlaubt(anhang)) return false;
+    const uri = saubereTerminUri(anhang.uri);
     return oeffneSozial({ dienst: "custom", wert: uri, aktionArt: "url", aktionZiel: uri });
   }
 
@@ -17457,14 +17467,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const uri = eingabe("text", anhang.uri), name = eingabe("text", anhang.name);
         const mime = eingabe("text", anhang.mimeType), groesse = eingabe("number", String(anhang.groesse || 0));
         const marke = el("span", "stempel", anhang.localOnly ? _("local / not opened") : anhang.anbieter);
+        const oeffnen = knopf(_("Open"), "klein", () => oeffneKalenderAnhang(anhang));
+        const kopieren = knopf(_("Copy"), "klein", () => inAblage(anhang.uri));
+        const hinweis = el("span", "tb-kalender-anhang-hinweis",
+          _("Only HTTPS attachments can be opened. You can copy other addresses."));
+        const aktualisiereAktionen = () => {
+          const erlaubt = kalenderAnhangOeffnenErlaubt(anhang);
+          oeffnen.hidden = !erlaubt; oeffnen.disabled = !erlaubt;
+          kopieren.disabled = !saubereTerminUri(anhang.uri);
+          hinweis.hidden = !/^http:\/\//i.test(saubereTerminUri(anhang.uri));
+          zeile.classList.toggle("einst-warnung", !erlaubt);
+        };
         const setzen = () => { anhang.uri = uri.value; anhang.name = name.value;
           anhang.mimeType = mime.value; anhang.groesse = Number(groesse.value) || 0;
           anhang.anbieter = anbieterAusUri(anhang.uri); anhang.localOnly = anhang.anbieter === "lokal";
-          marke.textContent = anhang.localOnly ? _("local / not opened") : anhang.anbieter; };
+          marke.textContent = anhang.localOnly ? _("local / not opened") : anhang.anbieter;
+          aktualisiereAktionen(); };
         for (const feld of [uri, name, mime, groesse]) feld.addEventListener("change", setzen);
         zeile.append(uri, name, mime, groesse, marke);
-        if (!anhang.localOnly && ["Web", "Google Drive", "OneDrive", "Dropbox"]
-          .includes(anhang.anbieter)) zeile.append(knopf(_("Open"), "klein", () => oeffneKalenderAnhang(anhang)));
+        zeile.append(oeffnen, kopieren, hinweis);
+        aktualisiereAktionen();
         zeile.append(knopf(_("Remove"), "klein", () => { anhangWerte.splice(
           anhangWerte.indexOf(anhang), 1); zeichneAnhaenge(); }));
         anhangListe.append(zeile);

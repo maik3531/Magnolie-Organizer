@@ -1791,6 +1791,9 @@ msgstr "Vervolg"
 msgid "Contributor key"
 msgstr "Sleutel van bijdrager"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Alleen HTTPS-bijlagen kunnen worden geopend. Andere adressen kun je kopiëren."
+
 msgid "Copy"
 msgstr "Kopiëren"
 

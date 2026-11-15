@@ -2146,6 +2146,9 @@ msgstr "Suite"
 msgid "Contributor Key"
 msgstr "Clé Contributor"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Seules les pièces jointes HTTPS peuvent être ouvertes. Vous pouvez copier les autres adresses."
+
 msgid "Copy"
 msgstr "Copier"
 

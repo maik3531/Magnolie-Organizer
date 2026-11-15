@@ -1766,6 +1766,9 @@ msgstr "Devamı"
 msgid "Contributor key"
 msgstr "Katkıda bulunan anahtarı"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Yalnızca HTTPS ekleri açılabilir. Diğer adresleri kopyalayabilirsiniz."
+
 msgid "Copy"
 msgstr "Kopyala"
 

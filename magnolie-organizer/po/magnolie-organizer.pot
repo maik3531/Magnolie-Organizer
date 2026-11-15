@@ -4651,6 +4651,9 @@ msgid ""
 "Your account password is never used."
 msgstr ""
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr ""
+
 msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr ""
 

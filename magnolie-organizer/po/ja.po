@@ -2055,6 +2055,9 @@ msgstr "続き"
 msgid "Contributor Key"
 msgstr "貢献者キー"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "開けるのは HTTPS の添付ファイルだけです。他のアドレスはコピーできます。"
+
 msgid "Copy"
 msgstr "コピー"
 

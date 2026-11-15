@@ -1977,6 +1977,9 @@ msgstr "续页"
 msgid "Contributor Key"
 msgstr "贡献者密钥"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "只能打开 HTTPS 附件。其他地址可以复制。"
+
 msgid "Copy"
 msgstr "复制"
 

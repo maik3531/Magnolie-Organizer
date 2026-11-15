@@ -2130,6 +2130,9 @@ msgstr "Працяг"
 msgid "Contributor Key"
 msgstr "Ключ Contributor"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Можна адкрываць толькі ўкладанні HTTPS. Іншыя адрасы можна скапіяваць."
+
 msgid "Copy"
 msgstr "Капіяваць"
 

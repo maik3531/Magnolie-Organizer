@@ -2216,6 +2216,9 @@ msgstr "تابع"
 msgid "Contributor Key"
 msgstr "Contributor Key"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "يمكن فتح مرفقات HTTPS فقط. يمكنك نسخ العناوين الأخرى."
+
 msgid "Copy"
 msgstr "نسخ"
 

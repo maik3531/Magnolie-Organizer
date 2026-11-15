@@ -2053,6 +2053,9 @@ msgstr "जारी"
 msgid "Contributor Key"
 msgstr "योगदानकर्ता कुंजी"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "केवल HTTPS अनुलग्नक खोले जा सकते हैं। अन्य पते कॉपी किए जा सकते हैं।"
+
 msgid "Copy"
 msgstr "कॉपी करें"
 

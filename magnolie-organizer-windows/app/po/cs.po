@@ -1788,6 +1788,9 @@ msgstr "Pokračování"
 msgid "Contributor key"
 msgstr "Klíč přispěvatele"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Otevřít lze pouze přílohy HTTPS. Ostatní adresy můžete zkopírovat."
+
 msgid "Copy"
 msgstr "Kopírovat"
 

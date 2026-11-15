@@ -1859,6 +1859,9 @@ msgstr "تابع"
 msgid "Contributor key"
 msgstr "مفتاح المساهم"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "يمكن فتح مرفقات HTTPS فقط. يمكنك نسخ العناوين الأخرى."
+
 msgid "Copy"
 msgstr "نسخ"
 

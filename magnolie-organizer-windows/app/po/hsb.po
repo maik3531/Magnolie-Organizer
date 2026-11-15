@@ -1835,6 +1835,9 @@ msgstr "Pokročowanje"
 msgid "Contributor key"
 msgstr "Sobuskutkowarski kluč"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Jenož HTTPS-přiwěški hodźa so wočinić. Druhe adresy móžeš kopěrować."
+
 msgid "Copy"
 msgstr "Kopěrować"
 

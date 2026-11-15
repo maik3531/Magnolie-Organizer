@@ -1805,6 +1805,9 @@ msgstr "Продолжение"
 msgid "Contributor key"
 msgstr "Ключ участника"
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Можно открывать только вложения HTTPS. Другие адреса можно скопировать."
+
 msgid "Copy"
 msgstr "Копировать"
 
