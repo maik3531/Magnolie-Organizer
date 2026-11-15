@@ -1,4 +1,5 @@
 'use strict';
+require('./promoted-hooks.test.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{createRequire}=require('node:module'),{Worker}=require('node:worker_threads'),{webcrypto}=require('node:crypto');
 const repo=path.resolve(__dirname,'../..'),tablet=path.join(repo,'Magnolie-Organizer-Android-Tablet-Beta'),deps=createRequire(path.join(tablet,'package.json')),{JSDOM,VirtualConsole}=deps('jsdom'),web=path.join(tablet,'app/build/generated/projection/assets/web');
 const apply=require('./projection-patches.cjs'),read=name=>fs.readFileSync(path.join(__dirname,name)),canonical=fs.readFileSync(path.join(repo,'magnolie-organizer/web/anwendung.js'),'utf8'),patched=apply(canonical,read);

@@ -11,6 +11,8 @@ export SOURCE_DATE_EPOCH
 # Kataloge erzeugen und die Python-Syntax prüfen.
 override_dh_auto_build:
 	python3 werkzeuge/release_sources.py contracts .
+	python3 -I -B werkzeuge/zeitzonen_erzeugen.py
+	python3 -B -m pytest -q -p no:cacheprovider pruefungen/test_normative_timezone_recipe.py
 	python3 werkzeuge/klang.py klang/erinnerung.wav
 	mkdir -p web/i18n
 	set -e; while read sprache; do \
@@ -78,4 +80,5 @@ override_dh_builddeb:
 
 override_dh_auto_clean:
 	python3 werkzeuge/release_sources.py contracts .
+	rm -f web/normative-timezones.js web/timezones/tzdb-2026egtz.json web/timezones/provenance.json web/timezones/LICENSE-tzdb.txt
 	rm -rf .flatpak-builder bin/__pycache__ debian/tests/__pycache__ pruefungen/__pycache__ werkzeuge/__pycache__ klang locale web/i18n/*.js debian/test-data debian/test-config bau

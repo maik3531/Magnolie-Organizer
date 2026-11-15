@@ -79,6 +79,10 @@ web/qr-decoder.js                     usr/share/magnolie-organizer/web
 web/qr-decoder-LICENSE.txt            usr/share/magnolie-organizer/web
 web/kaffee-qr.mga                     usr/share/magnolie-organizer/web
 web/anwendung.js                      usr/share/magnolie-organizer/web
+web/normative-timezones.js            usr/share/magnolie-organizer/web
+web/timezones/tzdb-2026egtz.json       usr/share/magnolie-organizer/web/timezones
+web/timezones/provenance.json         usr/share/magnolie-organizer/web/timezones
+web/timezones/LICENSE-tzdb.txt        usr/share/magnolie-organizer/web/timezones
 web/zeichenblatt.js                    usr/share/magnolie-organizer/web
 web/mcp-protocol.js                    usr/share/magnolie-organizer/web
 web/phone-metadata-LICENSE.txt        usr/share/magnolie-organizer/web

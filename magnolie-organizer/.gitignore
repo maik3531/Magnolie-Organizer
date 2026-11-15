@@ -1,4 +1,8 @@
 # Generated build output
+/web/normative-timezones.js
+/web/timezones/tzdb-2026egtz.json
+/web/timezones/provenance.json
+/web/timezones/LICENSE-tzdb.txt
 /bau/
 /debian/.debhelper/
 /debian/debhelper-build-stamp

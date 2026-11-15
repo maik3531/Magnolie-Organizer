@@ -26,6 +26,7 @@
       "name": "magnolie-organizer",
       "buildsystem": "simple",
       "build-commands": [
+        "python3 -I -B werkzeuge/zeitzonen_erzeugen.py",
         "python3 werkzeuge/klang.py klang/erinnerung.wav",
         "mkdir -p web/i18n /app/bin /app/lib/magnolie-organizer /app/share/doc/magnolie-organizer /app/share/magnolie-organizer/web/i18n /app/share/magnolie-organizer/klang /app/share/magnolie-organizer/werkzeuge /app/share/locale /app/share/applications /app/share/metainfo /app/share/icons/hicolor/scalable/apps /app/share/icons/hicolor/256x256/apps",
         "while read -r language; do mkdir -p locale/$language/LC_MESSAGES /app/share/locale/$language/LC_MESSAGES; msgfmt --check --check-format -o locale/$language/LC_MESSAGES/magnolie-organizer.mo po/$language.po; python3 werkzeuge/po_zu_js.py $language po/$language.po web/i18n/$language.js; install -m 0644 locale/$language/LC_MESSAGES/magnolie-organizer.mo /app/share/locale/$language/LC_MESSAGES/magnolie-organizer.mo; done < po/LINGUAS",

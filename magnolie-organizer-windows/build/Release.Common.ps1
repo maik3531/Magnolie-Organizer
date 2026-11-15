@@ -61,6 +61,7 @@ function Get-ReleaseSourceFiles([string] $Root) {
             $_.Name -notmatch $internalNotePattern -and
             $_.Name -notlike "*~" -and
             -not (Test-PrivateReleasePath $relative) -and
+            -not ($relative.Replace('\', '/') -match '^app/web/(?:normative-timezones\.js$|timezones/)') -and
             $_.Extension -ine ".pyc" -and
             $_.Extension -notin @(".iso", ".qcow2", ".vdi", ".vhd", ".vhdx", ".img", ".raw", ".ppm", ".pdb") -and
             $_.Extension -notin @(".pfx", ".p12", ".pem", ".key") -and
@@ -93,6 +94,19 @@ function Get-SharedLinuxLocaleInputs([string] $LinuxRoot) {
         $file = Get-Item -LiteralPath (Join-Path $LinuxRoot $relative) -ErrorAction Stop
         Assert-SourceFileSafe $file
         [pscustomobject]@{ Source = $file.FullName; Relative = 'shared/magnolie-organizer/' + $relative }
+    }
+}
+
+function Get-SharedLinuxTimezoneInputs([string] $LinuxRoot) {
+    $generator = Get-Item -LiteralPath (Join-Path $LinuxRoot 'werkzeuge/zeitzonen_erzeugen.py') -ErrorAction Stop
+    Assert-SourceFileSafe $generator
+    [pscustomobject]@{ Source = $generator.FullName; Relative = 'shared/magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py' }
+    $source = Join-Path (Split-Path -Parent $LinuxRoot) 'port-adapters/timezones'
+    if (-not (Test-Path -LiteralPath $source)) { $source = Join-Path $LinuxRoot 'werkzeuge/timezones' }
+    foreach ($name in 'resolver.js', 'port-runtime.js', 'bootstrap.template.js', 'provenance.json', 'tzdb-2026egtz.json', 'LICENSE-tzdb.txt') {
+        $file = Get-Item -LiteralPath (Join-Path $source $name) -ErrorAction Stop
+        Assert-SourceFileSafe $file
+        [pscustomobject]@{ Source = $file.FullName; Relative = 'shared/magnolie-organizer/werkzeuge/timezones/' + $name }
     }
 }
 
@@ -143,12 +157,14 @@ function Get-ReleaseArchiveSources([string] $Root) {
         # These ignored generator outputs must not make a source archive depend
         # on whether a developer happened to generate catalogues beforehand.
         if ($relative.StartsWith('i18n/', [StringComparison]::Ordinal)) { continue }
+        if ($relative -ceq 'normative-timezones.js' -or $relative.StartsWith('timezones/', [StringComparison]::Ordinal)) { continue }
         if (Test-PrivateReleasePath $relative) { continue }
         if (($relative -split '/') | Where-Object { $_ -in @('.git', 'node_modules', '__pycache__') }) { continue }
         Assert-SourceFileSafe $file
         [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/web/$relative" }
     }
     Get-SharedLinuxLocaleInputs (Split-Path -Parent $linuxWeb)
+    Get-SharedLinuxTimezoneInputs (Split-Path -Parent $linuxWeb)
     # These reviewed shared regressions are part of tests/run.js. Standalone
     # source archives must carry them instead of reaching outside the archive.
     $sharedTests = Join-Path (Split-Path -Parent $Root) 'magnolie-organizer/pruefungen'
@@ -208,11 +224,17 @@ function Initialize-StandaloneWebCatalogs([string] $Root, [string] $Python) {
     $linux = Join-Path $Root 'shared/magnolie-organizer'
     # Validate all included recipe inputs BEFORE changing any derived data.
     $null = @(Get-SharedLinuxLocaleInputs $linux)
+    $null = @(Get-SharedLinuxTimezoneInputs $linux)
     $po = Join-Path $Root 'app/po'
     $languages = @(Get-ReleaseCatalogLanguages $po)
     foreach ($relative in 'werkzeuge/pot_erzeugen.py', 'werkzeuge/po_zu_js.py', 'werkzeuge/po_zu_native.py') {
         Assert-SourceFileSafe (Get-Item -LiteralPath (Join-Path $Root $relative) -ErrorAction Stop)
     }
+    $timezoneGenerator = Join-Path $linux 'werkzeuge/zeitzonen_erzeugen.py'
+    $timezoneSource = Join-Path $linux 'werkzeuge/timezones'
+    # This check precedes ALL locale/asset writes. Missing or changed normative
+    # inputs cannot leave apparently refreshed catalogues beside stale rules.
+    Invoke-NativeCommand $Python @('-B', $timezoneGenerator, '--source', $timezoneSource, '--check')
     Invoke-NativeCommand $Python @('-B', (Join-Path $Root 'werkzeuge/pot_erzeugen.py'), '--output', (Join-Path $po 'magnolie-organizer.pot'))
     $nativeArguments = @('-B', (Join-Path $Root 'werkzeuge/po_zu_native.py'), (Join-Path $Root 'app/native-i18n.json'))
     foreach ($language in $languages) {
@@ -224,6 +246,9 @@ function Initialize-StandaloneWebCatalogs([string] $Root, [string] $Python) {
     foreach ($language in @(Get-ReleaseCatalogLanguages (Join-Path $linux 'po'))) {
         Invoke-NativeCommand $Python @('-B', (Join-Path $linux 'werkzeuge/po_zu_js.py'), $language,
             (Join-Path $linux ('po/' + $language + '.po')), (Join-Path $linux ('web/i18n/' + $language + '.js')))
+    }
+    foreach ($web in @((Join-Path $Root 'app/web'), (Join-Path $linux 'web'))) {
+        Invoke-NativeCommand $Python @('-B', $timezoneGenerator, '--source', $timezoneSource, '--output', $web)
     }
 }
 

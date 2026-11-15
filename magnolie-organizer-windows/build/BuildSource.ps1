@@ -63,6 +63,7 @@ try {
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/source-build-context.ps1')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/release-source-context.ps1')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/standalone-web-catalogs.ps1')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/standalone-timezones.ps1', '-Python', $python.Source)
         Initialize-StandaloneWebCatalogs $standalone $python.Source
         Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/release-packaging.ps1')

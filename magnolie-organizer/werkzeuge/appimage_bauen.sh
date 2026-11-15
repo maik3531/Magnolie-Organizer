@@ -310,6 +310,7 @@ EOF
     cp -a /usr/lib/$MULTIARCH/webkit2gtk-4.0 "$APPDIR/usr/lib/"
 
 cp -a "$WURZEL/web/." "$APPDIR/usr/share/magnolie-organizer/web/"
+python3 -I -B "$WURZEL/werkzeuge/zeitzonen_erzeugen.py" --output "$APPDIR/usr/share/magnolie-organizer/web"
 HANDBUCH=${MAGNOLIE_HANDBUCH_SOURCE:-"$(dirname "$WURZEL")/magnolie-handbuch"}
 python3 "$WURZEL/werkzeuge/appimage_handbook.py" "$APPDIR" "$HANDBUCH" "$FASSUNG" --cache "$WERKZEUGE"
 printf '{"version":"%s"}\n' "$FASSUNG" > "$APPDIR/usr/share/magnolie-organizer/version.json"

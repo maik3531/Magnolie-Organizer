@@ -68,6 +68,24 @@ def apply_timezone_patches(source, snapshot):
     prefix = "port-adapters/timezones/"
     patches = json.loads(snapshot[prefix + "projection-patches.json"])
     hooks = snapshot[prefix + "app-hooks.snippets"].decode()
+    def replacement(patch):
+        if not patch.get("hook"):
+            return patch["replacement"]
+        begin = "/*TZ_HOOK:" + patch["hook"] + "*/\n"
+        finish = "/*TZ_HOOK_END:" + patch["hook"] + "*/"
+        if hooks.count(begin) != 1 or hooks.count(finish) != 1:
+            raise ValueError("Timezone hook changed: " + patch["id"])
+        return hooks.split(begin)[1].split(finish)[0]
+
+    if "/*TZ_PORT:" in source:
+        if source.count("/*TZ_PORT:") != len(patches) * 2:
+            raise ValueError("Timezone projection match changed: marker inventory")
+        for patch in patches:
+            begin = "/*TZ_PORT:" + patch["id"] + ":BEGIN*/"
+            end = "/*TZ_PORT:" + patch["id"] + ":END*/"
+            if source.count(begin) != 1 or source.count(end) != 1 or source.count(begin + replacement(patch) + end) != 1:
+                raise ValueError("Timezone projection match changed: " + patch["id"])
+        return source
     canonical = source
     for patch in patches:
         if canonical.count(patch["start"]) != 1:
@@ -82,14 +100,7 @@ def apply_timezone_patches(source, snapshot):
         allowed = [patch["sha256"]] + [variant["sha256"] for variant in patch.get("reviewedVariants", [])]
         if digest(before.encode()) not in allowed:
             raise ValueError("Timezone canonical block changed: " + patch["id"])
-        if patch.get("hook"):
-            begin = "/*TZ_HOOK:" + patch["hook"] + "*/\n"
-            finish = "/*TZ_HOOK_END:" + patch["hook"] + "*/"
-            if hooks.count(begin) != 1 or hooks.count(finish) != 1:
-                raise ValueError("Timezone hook changed: " + patch["id"])
-            after = hooks.split(begin)[1].split(finish)[0]
-        else:
-            after = patch["replacement"]
+        after = replacement(patch)
         if source.count(before) != 1:
             raise ValueError("Timezone projection match changed: " + patch["id"])
         source = source.replace(before, "/*TZ_PORT:" + patch["id"] + ":BEGIN*/" + after + "/*TZ_PORT:" + patch["id"] + ":END*/", 1)
