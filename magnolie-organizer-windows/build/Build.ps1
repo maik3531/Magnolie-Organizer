@@ -153,7 +153,7 @@ try {
     $buildRoot = Join-Path $sourceProjection "Magnolie-Organizer-Windows-$version"
     $handbookWeb = Join-Path $buildRoot 'shared/magnolie-handbuch/web'
     $testEnvironment = @{}
-    foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT') {
+    foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT', 'DOTNET_HOST_PATH', 'MAGNOLIE_TEST_PWSH') {
         $testEnvironment[$variable] = [Environment]::GetEnvironmentVariable($variable)
     }
     $env:MAGNOLIE_HANDBOOK_WEB = $handbookWeb
@@ -164,6 +164,12 @@ try {
     $env:MAGNOLIE_LINUX_SOURCE = $linuxSource
     Push-Location $buildRoot
     try {
+        # The archive intentionally contains locale recipes, not ignored Linux
+        # generator outputs. Prepare this second, source-bound projection too.
+        $env:DOTNET_HOST_PATH = (Get-Command dotnet -CommandType Application -ErrorAction Stop).Source
+        $env:MAGNOLIE_TEST_PWSH = (Get-Process -Id $PID).Path
+        Initialize-StandaloneWebCatalogs $buildRoot $python.Source
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/release-source-context.ps1')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/release-packaging.ps1')
         Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
         Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")

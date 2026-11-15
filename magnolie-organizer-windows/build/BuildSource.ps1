@@ -53,6 +53,7 @@ try {
         $env:MAGNOLIE_TEST_PWSH = (Get-Process -Id $PID).Path
         $python = if ($env:MAGNOLIE_PYTHON) { Get-Command $env:MAGNOLIE_PYTHON -ErrorAction Stop } else { Get-Command python3 -ErrorAction SilentlyContinue }
         if (-not $python) { $python = Get-Command python -ErrorAction Stop }
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/release-source-context.ps1')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-NonInteractive', '-File', 'tests/standalone-web-catalogs.ps1')
         Initialize-StandaloneWebCatalogs $standalone $python.Source
         Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
