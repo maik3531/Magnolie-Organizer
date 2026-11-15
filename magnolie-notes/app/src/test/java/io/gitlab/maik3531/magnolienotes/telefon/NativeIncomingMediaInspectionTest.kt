@@ -38,7 +38,7 @@ class NativeIncomingMediaInspectionTest {
      * fixture. Supply actual host fixture attributes ONLY for registered FDs;
      * this is not physical Android syscall acceptance or a product bypass. */
     @Implements(className = "libcore.io.Linux", isInAndroidSdk = false)
-    open class FixtureLinux : ShadowLinux() {
+    class FixtureLinux : ShadowLinux() {
         @Implementation override fun fstat(fd: FileDescriptor): StructStat {
             val file = files[fd] ?: return super.fstat(fd)
             val a = Files.readAttributes(file.toPath(), "unix:dev,ino,mode,size,nlink,uid,gid,rdev,lastAccessTime,lastModifiedTime,ctime")
@@ -54,11 +54,19 @@ class NativeIncomingMediaInspectionTest {
             check(whence == android.system.OsConstants.SEEK_SET && files.containsKey(fd))
             return streams.getOrPut(fd) { FileInputStream(fd) }.channel.position(offset).position()
         }
+        // Keep one Linux shadow for read and write fixtures (Refs #666).
+        // Switching to a subclass after a method-scoped Config can retain a
+        // base-shadow instance in Robolectric and fail before the real assertion.
+        @Implementation fun fcntlInt(fd: FileDescriptor, command: Int, argument: Int): Int {
+            check(command == android.system.OsConstants.F_GETFL && argument == 0)
+            return access[fd] ?: android.system.OsConstants.O_RDONLY
+        }
         companion object {
             val files = java.util.concurrent.ConcurrentHashMap<FileDescriptor, File>()
+            val access = java.util.IdentityHashMap<FileDescriptor, Int>()
             private val streams = java.util.concurrent.ConcurrentHashMap<FileDescriptor, FileInputStream>()
             @JvmStatic @Resetter fun reset() {
-                streams.values.forEach { it.close() }; streams.clear(); files.clear()
+                streams.values.forEach { it.close() }; streams.clear(); files.clear(); access.clear()
             }
         }
     }

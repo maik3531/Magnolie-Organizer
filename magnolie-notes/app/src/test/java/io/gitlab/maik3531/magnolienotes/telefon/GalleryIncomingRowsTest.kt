@@ -33,7 +33,7 @@ import org.robolectric.shadows.StorageVolumeBuilder
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class, shadows = [GalleryIncomingRowsTest.WriteTargetLinux::class,
+@Config(sdk = [35], application = Application::class, shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class,
     GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GalleryIncomingRowsTest {
@@ -52,24 +52,13 @@ class GalleryIncomingRowsTest {
                         .getDeclaredMethod("dup", java.io.FileDescriptor::class.java).apply { isAccessible = true }
                     return original.invoke(null, fd) as ParcelFileDescriptor
                 }
-                val access = WriteTargetLinux.access[fd] ?: android.system.OsConstants.O_RDONLY
+                val access = NativeIncomingMediaInspectionTest.FixtureLinux.access[fd] ?: android.system.OsConstants.O_RDONLY
                 return ParcelFileDescriptor.open(file, if (access == android.system.OsConstants.O_RDWR)
                     ParcelFileDescriptor.MODE_READ_WRITE else ParcelFileDescriptor.MODE_READ_ONLY).also {
                     NativeIncomingMediaInspectionTest.FixtureLinux.files[it.fileDescriptor] = file
-                    WriteTargetLinux.access[it.fileDescriptor] = access
+                    NativeIncomingMediaInspectionTest.FixtureLinux.access[it.fileDescriptor] = access
                 }
             }
-        }
-    }
-    @org.robolectric.annotation.Implements(className = "libcore.io.Linux", isInAndroidSdk = false)
-    class WriteTargetLinux : NativeIncomingMediaInspectionTest.FixtureLinux() {
-        @org.robolectric.annotation.Implementation fun fcntlInt(fd: java.io.FileDescriptor, command: Int, argument: Int): Int {
-            check(command == android.system.OsConstants.F_GETFL && argument == 0)
-            return access[fd] ?: android.system.OsConstants.O_RDONLY
-        }
-        companion object {
-            val access = java.util.IdentityHashMap<java.io.FileDescriptor, Int>()
-            @JvmStatic @org.robolectric.annotation.Resetter fun resetTarget() { access.clear(); NativeIncomingMediaInspectionTest.FixtureLinux.reset() }
         }
     }
     @Before fun mountedPrimaryVolume() {
@@ -174,7 +163,7 @@ class GalleryIncomingRowsTest {
                 val file = rwFileOverride ?: payload!!
                 return ParcelFileDescriptor.open(file, if (rwReadOnly) ParcelFileDescriptor.MODE_READ_ONLY else ParcelFileDescriptor.MODE_READ_WRITE).also {
                     NativeIncomingMediaInspectionTest.FixtureLinux.files[it.fileDescriptor] = file
-                    WriteTargetLinux.access[it.fileDescriptor] = if (rwReadOnly) android.system.OsConstants.O_RDONLY else android.system.OsConstants.O_RDWR
+                    NativeIncomingMediaInspectionTest.FixtureLinux.access[it.fileDescriptor] = if (rwReadOnly) android.system.OsConstants.O_RDONLY else android.system.OsConstants.O_RDWR
                     lastRwDescriptor = it.fileDescriptor
                     try { afterRwOpen() } catch (error: Throwable) { it.close(); throw error }
                 }
@@ -1586,7 +1575,7 @@ class GalleryIncomingRowsTest {
             assertEquals(h.bytes.size.toLong(), observation.descriptor.long("size"))
             assertFalse(observation.grantsWriteAuthority); assertFalse(observation.isSavedReceipt)
             assertFalse(h.provider.lastRwDescriptor!!.valid()); assertEquals(reads, h.provider.readOpens)
-            assertTrue(WriteTargetLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.none { it.valid() })
+            assertTrue(NativeIncomingMediaInspectionTest.FixtureLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.none { it.valid() })
             assertEquals(retained, h.f.rows()); assertEquals("write_started", h.f.index.pcBeforeWrite(h.plan.id)!!.state)
             h.assertOldArchive(); h.assertLineage()
             assertThrows(PhotoFolderScopeError::class.java) { h.f.io { NativeGalleryTrashArchive(h.archiveRoot, h.f.protection, allowCreate = false).use { archive ->
@@ -1631,13 +1620,13 @@ class GalleryIncomingRowsTest {
         try {
             assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
             assertArrayEquals(h.bytes.copyOf(DeviceFileManifest.CHUNK_BYTES), h.originalFile.readBytes())
-            assertEquals(2, WriteTargetLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.count { it.valid() })
+            assertEquals(2, NativeIncomingMediaInspectionTest.FixtureLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.count { it.valid() })
             transfer.close(); assertTrue(worker.isAlive); assertTrue(h.provider.lastRwDescriptor!!.valid()); assertFalse(transfer.awaitIoEnded(0))
             val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
         } finally { release.countDown(); worker.join(7000) }
         assertFalse(worker.isAlive); assertTrue(failure.get() is PhotoFolderScopeError)
         assertFalse(h.provider.lastRwDescriptor!!.valid()); assertTrue(transfer.awaitIoEnded(0))
-        assertTrue(WriteTargetLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.none { it.valid() })
+        assertTrue(NativeIncomingMediaInspectionTest.FixtureLinux.access.filterValues { it == android.system.OsConstants.O_RDWR }.keys.none { it.valid() })
         assertEquals(retained, h.f.rows()); h.assertLineage()
         // The original admission is intentionally retired. Independently fresh
         // local recovery ownership, not the dead write grant, reads the archive.
