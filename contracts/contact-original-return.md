@@ -1715,6 +1715,31 @@ startup recovery registration, installed permissions/ACL and provider/device/
 package acceptance remain open. No renderer field, general contact-sync flag or
 transport delivery becomes consent, and production remains OFF/unadvertised.
 
+### Linux before-dialog native setup decision (#636, partial)
+
+Linux now has the corresponding one-use `NativeNotesSetupDecision`. Before any
+chooser, it authenticates private state/no pending intent, captures actual saved/
+primary observations and distinguishes initial consent from monotone addition.
+Only a digest of exact bounded private files, not the raw consent key, is retained
+by the decision. Native book context is checked outside private locks; the
+BEFORE-dialog digest is checked under the actual publication lock. The selected
+genuine native choice, book and original private decision must still match.
+
+Same-owner full decisions/revocation invalidate pending in-process setup, including
+an empty revoke without creating a key. Persistent decisions by another store
+instance are rejected by private-state CAS. Closing/cancelling a chooser requires
+no commit; wrong types, reused decisions, unknown/pending private state and actual
+saves during selection cannot grant a source. Changed post-publication context
+holds only that own published record, without discarding a newer decision.
+Existing public replacement/revoke, monotone addition and strict historical/
+unconfirmed/writer/journal semantics remain intact.
+
+Eighteen new actual synthetic encrypted-writer/native-choice cases and the 309
+affected Linux regression cases pass. These tests do not open GTK, a listener,
+installed profiles/keyrings or private originals. Linux setup acquisition/GTK
+entry and automatic recovery registration are still missing; the Windows modal
+and physical provider/device/package acceptance gates also remain open in #636.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import json
 import os
+import threading
 from dataclasses import dataclass
 
 from magnolie_contact_book_save_chain import NativeContactBookSaveChain
@@ -63,6 +64,46 @@ class _NotesExportBootstrapContext:
         self.origin.require_current(body, self.transport)
 
 
+@dataclass
+class _NotesSetupProof:
+    store: object
+    stamp: bytes
+    saved: object
+    primary: object
+    binding: str
+    addition: bool
+    version: int
+    used: bool = False
+
+
+class NativeNotesSetupDecision:
+    """Opaque one-use BEFORE-dialog native context, never serialized permission."""
+    def __init__(self, proof):
+        self.__proof = proof
+
+    def _native(self):
+        proof = self.__proof
+        if type(proof) is not _NotesSetupProof or type(proof.store) is not NativeNotesChoiceStore:
+            raise PermissionError('notes_setup_native_decision_required')
+        return proof
+
+    @property
+    def snapshot(self):
+        return self._native().saved
+
+    @property
+    def is_addition(self):
+        return self._native().addition
+
+    def commit(self, choice):
+        proof = self._native()
+        with proof.store._setup_lock:
+            if proof.used:
+                raise PermissionError('notes_setup_decision_already_used')
+            proof.used = True
+        proof.store._commit_setup(proof, choice)
+
+
 class NativeNotesChoiceStore(NativeContactBookSaveChain):
     _private = staticmethod(_PrivateFiles._private)
     _locked = _PrivateFiles._locked
@@ -78,6 +119,7 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
             raise TypeError('notes_choice_native_book_callbacks_required')
         self.root, self._capture, self._binding, self._capture_primary = root, capture_current, current_book_binding, capture_primary
         self._native_data = current_native_data
+        self._setup_lock, self._setup_version = threading.RLock(), 0
 
     def _tag(self, key, label, value):
         return hmac.new(key, self._DOMAIN + label + b'\0' + value, hashlib.sha256).hexdigest()
@@ -187,6 +229,11 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
             raise
 
     def configure(self, choices):
+        with self._setup_lock:
+            self._setup_version += 1
+        return self._configure(choices)
+
+    def _configure(self, choices, setup=None):
         selected = tuple(choices)
         if not selected:
             self.revoke()
@@ -210,14 +257,30 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
         # not leave the newly selected ephemeral object usable without it.
         for choice, source in zip(selected, sources):
             self._attach(choice, key, payload, source)
+        if setup is not None:
+            self._require_setup_context(setup)
         with self._locked(create=True) as directory:
+            if setup is not None and self._setup_stamp(directory) != setup.stamp:
+                raise PermissionError('notes_setup_newer_private_decision')
             self._publish(directory, key, payload)
-        if self._saved() != (saved, binding) or self._primary() != (primary, primary_binding):
-            raise PermissionError('notes_choice_native_book_changed')
-        for choice in selected:
-            choice.require_current()
+        try:
+            if setup is not None:
+                self._require_setup_context(setup)
+            if self._saved() != (saved, binding) or self._primary() != (primary, primary_binding):
+                raise PermissionError('notes_choice_native_book_changed')
+            for choice in selected:
+                choice.require_current()
+        except Exception:
+            if setup is not None:
+                with self._locked() as directory:
+                    if self._record(directory) == (key, payload):
+                        self._write(directory, '.transaction', b'pending\n')
+            raise
 
     def add_sources(self, choices):
+        return self._add_sources(choices)
+
+    def _add_sources(self, choices, setup=None):
         """Strict monotone native addition; configure/revoke still rotate epochs.
 
         Caller holds the native book lock, as with configure. Private record CAS
@@ -253,8 +316,11 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
             raise PermissionError('notes_choice_native_book_changed')
         for choice, source in zip(selected, sources):
             self._attach(choice, key, payload, source)
+        if setup is not None:
+            self._require_setup_context(setup)
         with self._locked() as directory:
-            if self._record(directory) != active or self._intent(directory, key, previous) is not None:
+            if (self._record(directory) != active or self._intent(directory, key, previous) is not None or
+                    setup is not None and self._setup_stamp(directory) != setup.stamp):
                 raise PermissionError('notes_choice_newer_private_decision')
             if changed:
                 try:
@@ -269,6 +335,8 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
                     self._write(directory, '.transaction', b'pending\n')
                     raise
         try:
+            if setup is not None:
+                self._require_setup_context(setup)
             if self._saved() != (saved, binding) or self._primary() != (primary, primary_binding):
                 raise PermissionError('notes_choice_native_book_changed')
             for choice in selected:
@@ -279,6 +347,62 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
                     if self._record(directory) == (key, payload):
                         self._write(directory, '.transaction', b'pending\n')
             raise
+
+    def _setup_stamp(self, directory):
+        digest = hashlib.sha256(b'Magnolie/notes/setup/private-state/v1\0')
+        for name, limit in (('.transaction', 32), ('.key', 32), ('choices.aes', 512 * 1024), ('.book-intent.json', 4096)):
+            try:
+                value = self._read(directory, name, limit) if directory is not None else None
+            except FileNotFoundError:
+                value = None
+            digest.update(name.encode('ascii') + b'\0')
+            digest.update(b'\0' if value is None else b'\1' + len(value).to_bytes(8, 'big') + value)
+        return digest.digest()  # No raw consent secret is retained by a dialog token.
+
+    def _setup_observe(self):
+        try:
+            self._private(os.lstat(self.root), directory=True)
+        except FileNotFoundError:
+            return self._setup_stamp(None), False
+        with self._locked() as directory:
+            stamp = self._setup_stamp(directory)
+            if stamp == self._setup_stamp(None):
+                return stamp, False
+            key, payload = self._record(directory)
+            if self._intent(directory, key, payload) is not None:
+                raise PermissionError('notes_setup_pending_book_intent')
+            return stamp, bool(payload['choices'])
+
+    def begin_setup_decision(self):
+        """Native book lock required; authenticate before opening any dialog."""
+        with self._setup_lock:
+            version = self._setup_version
+        stamp, addition = self._setup_observe()
+        saved, binding = self._saved()
+        primary, primary_binding = self._primary()
+        if primary_binding != binding or primary.content_sha256 != saved.content_sha256 or addition and not self.recognizes_saved():
+            raise PermissionError('notes_setup_recognized_native_book_required')
+        proof = _NotesSetupProof(self, stamp, saved, primary, binding, addition, version)
+        self._require_setup_context(proof)
+        if self._setup_observe() != (stamp, addition):
+            raise PermissionError('notes_setup_context_changed')
+        return NativeNotesSetupDecision(proof)
+
+    def _require_setup_context(self, proof):
+        with self._setup_lock:
+            if proof.store is not self or self._setup_version != proof.version:
+                raise PermissionError('notes_setup_context_changed')
+        if self._saved() != (proof.saved, proof.binding) or self._primary() != (proof.primary, proof.binding):
+            raise PermissionError('notes_setup_context_changed')
+
+    def _commit_setup(self, proof, choice):
+        if type(choice) is not NativeNotesExportChoice or self._setup_observe() != (proof.stamp, proof.addition):
+            raise PermissionError('notes_setup_context_changed')
+        self._require_setup_context(proof)
+        if proof.addition:
+            self._add_sources([choice], setup=proof)
+        else:
+            self._configure([choice], setup=proof)
 
     def recognizes_saved(self):
         active = self._active_record()
@@ -443,6 +567,8 @@ class NativeNotesChoiceStore(NativeContactBookSaveChain):
         return self.prepare_save(current, text)
 
     def revoke(self):
+        with self._setup_lock:
+            self._setup_version += 1  # Invalidate same-owner open FIRST setup even when no key exists.
         active = self._active_record()
         if active is None:
             return
