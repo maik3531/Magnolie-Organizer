@@ -109,6 +109,7 @@
     <Compile Include="..\NotesOriginalTerminalHistory.cs" Link="NotesOriginalTerminalHistory.cs" />
     <Compile Include="..\NotesOriginalReturnHash.cs" Link="NotesOriginalReturnHash.cs" />
     <Compile Include="..\ContactSourceNativeSession.cs" Link="ContactSourceNativeSession.cs" />
+    <Compile Include="..\ContactSourceExactProtection.cs" Link="ContactSourceExactProtection.cs" />
     <Compile Include="..\ContactSourceAutomation.cs" Link="ContactSourceAutomation.cs" />
     <Compile Include="..\BackupDataValidation.cs" Link="BackupDataValidation.cs" />
     <Compile Include="..\PhoneCameraAudioSetup.cs" Link="PhoneCameraAudioSetup.cs" />

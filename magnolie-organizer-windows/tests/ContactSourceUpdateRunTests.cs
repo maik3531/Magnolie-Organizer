@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
-internal static class ContactSourceUpdateRunTests
+internal static partial class ContactSourceUpdateRunTests
 {
     private sealed class Protector : ISecretProtector
     {
@@ -128,6 +128,11 @@ internal static class ContactSourceUpdateRunTests
     }
     internal static async Task RunAsync()
     {
+        if (Environment.GetEnvironmentVariable("MAGNOLIE_CONTACT_TEST_SLICE") == "exact-protection")
+        {
+            await ExactProtectionAsync();
+            return;
+        }
         foreach (var mode in new[] { "success", "failure", "readback", "readonly", "unknown", "revoked", "conflict", "ambiguous", "save-failed", "book-changed", "readback-uid", "readback-uid-missing" })
         {
             var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
@@ -203,6 +208,7 @@ internal static class ContactSourceUpdateRunTests
         await SavedDavOrchestrationAsync();
         await SavedResultCommitAsync();
         await NativeSessionAsync();
+        await ExactProtectionAsync();
         var dialogProduct = Environment.GetEnvironmentVariable("MAGNOLIE_CONTACT_DIALOG_PRODUCT");
         if (OperatingSystem.IsWindows() && !string.IsNullOrEmpty(dialogProduct)) await ContactSourceNativeDialogTests.RunAsync(dialogProduct);
         if (!OperatingSystem.IsWindows())

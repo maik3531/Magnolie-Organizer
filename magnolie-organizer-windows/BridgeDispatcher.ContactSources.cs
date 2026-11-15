@@ -19,7 +19,14 @@ internal sealed partial class BridgeDispatcher
                         (string.IsNullOrEmpty(currentEnvelope) || encryption.Session is not null))));
     private ContactSourceNativeSession OriginalContactSession => LazyInitializer.EnsureInitialized(ref originalContactSession, () => new(
         NativeActorBook, NativeActorSavedBook, NextcloudSettings, OriginalContactCommit,
-        OriginalContactWlanAvailable, _ => CreateSnapshot(SnapshotReason.PreContact), durableStore: OriginalContactApprovals));
+        OriginalContactWlanAvailable, ProtectOriginalContactBook, durableStore: OriginalContactApprovals));
+
+    private void ProtectOriginalContactBook(NativeActorBookSnapshot original) =>
+        new ContactSourceExactProtection(recovery, Path.GetFullPath(paths.Data), NativeActorBook,
+            () => ContactSourcePrimaryBook.Capture(Path.GetFullPath(paths.Data), store, encryption,
+                () => currentPlainTextAvailable && !restoreInProgress && !disposed), AppVersion,
+            encryption.Session is null ? null : archive => encryption.EncryptData(archive),
+            text => EncryptionService.IsEncrypted(text) ? encryption.DecryptDataWithSession(text) : text).Protect(original);
     private ContactSourceAutomation OriginalContactAutomation => LazyInitializer.EnsureInitialized(ref originalContactAutomation,
         () => new(OriginalContactApprovals, OriginalContactSession, NativeActorBook,
             () => currentPlainTextAvailable && !restoreInProgress && !disposed, notice =>

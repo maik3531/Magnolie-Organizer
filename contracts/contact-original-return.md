@@ -2263,6 +2263,49 @@ conditional known-source resume and separate native counterpart/system-rights/
 profile/package gates remain in #640. Full write remains OFF/unadvertised and all
 existing pauses remain effective.
 
+### Windows exact original-book protection before DAV writes (#619)
+
+The production `BridgeDispatcher.ContactSources` protection callback now passes
+the supplied native snapshot to `ContactSourceExactProtection`, rather than
+discarding it through ordinary `CreateSnapshot`. The helper requires the actual
+current saved observation and independently authenticated primary binding,
+plaintext hash, complete book-content hash and encryption state. It reads the
+published recovery payload back, authenticates/decrypts it with the existing
+session, checks the full original content, then rechecks primary and saved state
+before returning to provider IO. Archive equality never creates saved authority.
+
+`RecoveryJournal.CreateExactBook` bypasses periodic reuse. Deduplication requires
+complete original book equality and matching actual encryption, not merely
+recoverable-domain equality. `GesamtarchivService.CreateExactBook` preserves the
+original schema, settings, mappings and fractional local JSON values, using the
+local `NativeBookJson` checksum domain and a typed `exactBook` marker.
+`ReadOriginalBook` validates the archive before migration; ordinary `Create` and
+default `Read` retain their existing creation/import/restore normalization.
+Encryption rewriting retains exact payload contents. No provider create/delete,
+default-book fallback, new identity, key or consent path is added.
+
+The pre-fix reproduction reached one synthetic DAV PUT in each of six cases
+without full original coverage: schema-6 migration, recent-old reuse and
+metadata-only deduplication, each plain/encrypted. Two exact controls passed.
+After the fix, ten actual generated native writer/journal/DAV success cases and
+eight held-write cases pass on both the managed host and the existing bounded
+noninteractive Windows runner. Held cases cover stale saved authority, wrong
+binding, encryption downgrade/plaintext callback, wrong or tampered readback and
+primary replacement before/during protection; all produce zero PUTs and no offer,
+without overwriting external primary edits. Archive checks cover fractions,
+normal migration, typed markers/checksums, encryption-aware deduplication and
+password/encryption rewriting. Recovery retention/scheduler/tamper, archive,
+allocation, native sync, localization and contact regressions pass, including
+five existing DOM/native contact wire modes. The full managed Notes/FS1 group
+also passes; CoreTests and BASE builds have zero warnings/errors.
+
+This is a checked source correction, not installed GUI/ACL/live-provider or
+package acceptance. Existing #625 gates and all device/install/publication pauses
+remain. The separate productive Notes activation/application-action/startup rest
+is tracked in #641 after the explicit #640 source-partial closure; full return
+remains OFF/unadvertised. The Linux exact-protection reference is retained, not
+re-certified by these Windows results.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

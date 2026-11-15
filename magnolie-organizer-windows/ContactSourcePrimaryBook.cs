@@ -11,8 +11,9 @@ internal sealed class ContactSourcePrimaryBook
     internal string RawHash { get; }
     internal string PlainHash { get; }
     internal string Content { get; }
-    private ContactSourcePrimaryBook(string binding, string rawHash, string plainHash, string content)
-    { Binding = binding; RawHash = rawHash; PlainHash = plainHash; Content = content; }
+    internal bool Encrypted { get; }
+    private ContactSourcePrimaryBook(string binding, string rawHash, string plainHash, string content, bool encrypted)
+    { Binding = binding; RawHash = rawHash; PlainHash = plainHash; Content = content; Encrypted = encrypted; }
 
     internal static ContactSourcePrimaryBook Capture(string nativePath, AtomicStore files, EncryptionService encryption, Func<bool> available)
     {
@@ -38,7 +39,7 @@ internal sealed class ContactSourcePrimaryBook
         RequirePath(path);
         if (!available() || !ReferenceEquals(session, encryption.Session) || files.Read(path) != raw)
             throw new InvalidOperationException("contact_source_primary_changed");
-        return new(path, BaumSyncSnapshot.Hash(raw), BaumSyncSnapshot.Hash(plain), NativeBookJson.Hash(book));
+        return new(path, BaumSyncSnapshot.Hash(raw), BaumSyncSnapshot.Hash(plain), NativeBookJson.Hash(book), encrypted);
     }
 
     internal bool Same(ContactSourcePrimaryBook other) => Binding == other.Binding && RawHash == other.RawHash &&

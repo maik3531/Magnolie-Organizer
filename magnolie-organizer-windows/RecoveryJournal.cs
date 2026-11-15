@@ -49,6 +49,13 @@ internal sealed class RecoveryJournal
         lock (gate) return Create(data, reason, appVersion, protect, syncEpoch, unprotect, restoreLease: false);
     }
 
+    internal SnapshotInfo CreateExactBook(JsonObject data, string appVersion,
+        Func<string, string>? protect = null, Func<string, string>? unprotect = null)
+    {
+        lock (gate) return Create(data, SnapshotReason.PreContact, appVersion, protect, null, unprotect,
+            restoreLease: false, exactBook: true);
+    }
+
     internal static string CreationMode(JsonObject data) => data["einstellungen"]?["allgemein"]?["wiederherstellungsmodus"]?.GetValue<string>() switch
     {
         "change" => "change", "daily" => "daily", "weekly" => "weekly", "startup" => "startup", "interval" => "interval", _ => "weekly"
@@ -134,20 +141,21 @@ internal sealed class RecoveryJournal
     }
 
     private SnapshotInfo Create(JsonObject data, SnapshotReason reason, string appVersion,
-        Func<string, string>? protect, string? syncEpoch, Func<string, string>? unprotect, bool restoreLease)
+        Func<string, string>? protect, string? syncEpoch, Func<string, string>? unprotect, bool restoreLease, bool exactBook = false)
     {
         EnsureSafeRoot();
         var now = clock().ToUniversalTime();
         var reasonText = ReasonText(reason);
         var latest = List().FirstOrDefault();
         var mode = CreationMode(data); var period = CreationPeriod(data);
-        if (reasonText.StartsWith("pre-", StringComparison.Ordinal) && reason != SnapshotReason.PreRestore && latest is { Integrity: "ok" } &&
+        if (!exactBook && reasonText.StartsWith("pre-", StringComparison.Ordinal) && reason != SnapshotReason.PreRestore && latest is { Integrity: "ok" } &&
             (mode == "startup" || period is not null && now - latest.CreatedUtc < period.Value))
         {
             return Verify(latest.Id);
         }
         var snapshotData = data.DeepClone().AsObject();
-        var archive = GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
+        var archive = exactBook ? GesamtarchivService.CreateExactBook(snapshotData, "windows", appVersion, created: now)
+            : GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
         // Hash the normalized content, not the archive envelope's changing timestamp.
         var sourceHash = JsonNode.Parse(archive)!["sha256"]!.GetValue<string>();
         SnapshotInfo? duplicate = null;
@@ -156,8 +164,12 @@ internal sealed class RecoveryJournal
             try
             {
                 var previous = ReadPayload(latest.Id);
+                var sameEncryption = EncryptionService.IsEncrypted(previous) == (protect is not null);
                 if (EncryptionService.IsEncrypted(previous) && unprotect is not null) previous = unprotect(previous);
-                if (!HasRecoverableChanges(GesamtarchivService.Read(previous).Daten, GesamtarchivService.Read(archive).Daten)) duplicate = Verify(latest.Id);
+                if (exactBook
+                    ? sameEncryption && NativeBookJson.Same(GesamtarchivService.ReadOriginalBook(previous).Daten, snapshotData)
+                    : !HasRecoverableChanges(GesamtarchivService.Read(previous).Daten, GesamtarchivService.Read(archive).Daten))
+                    duplicate = Verify(latest.Id);
             }
             catch (Exception error) when (error is IOException or InvalidDataException or JsonException or CryptographicException or InvalidOperationException) { }
         }
@@ -180,6 +192,8 @@ internal sealed class RecoveryJournal
         }
 
         var payload = protect is null ? archive : protect(archive);
+        if (exactBook && EncryptionService.IsEncrypted(payload) != (protect is not null))
+            throw new InvalidDataException("contact_source_protection_encryption_changed");
         var payloadBytes = Encoding.UTF8.GetBytes(payload);
         var drive = new DriveInfo(Path.GetPathRoot(root)!);
         var protectedBytes = List().Where(item => item.Pinned || item.Integrity != "ok").Sum(item => item.Size);
