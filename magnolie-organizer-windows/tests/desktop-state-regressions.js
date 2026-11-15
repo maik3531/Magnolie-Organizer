@@ -367,15 +367,35 @@ async function run(web) {
   });
 
   await test("late calendar worker does not rebuild contact", async b => {
-    let worker, frame;
-    b.w.Worker = class { constructor() { worker = this; } postMessage(job) { this.job = job; } };
+    let worker, frame, terminations = 0;
+    b.w.Worker = class {
+      constructor() { worker = this; }
+      postMessage(job) { this.job = job; }
+      terminate() { terminations++; }
+    };
     b.w.URL.createObjectURL = () => "blob:regression"; b.w.URL.revokeObjectURL = () => {};
     b.w.requestAnimationFrame = fn => { frame = fn; return 1; };
     b.t.icsRuntime("expand", { icsRoundtrip: ["DTSTART:20260908T120000Z", "RRULE:FREQ=DAILY"] }, [0, 1]);
     await b.t.wechsel("adressen");
     [...b.w.document.querySelectorAll("#kopf-links button")].find(button => button.textContent === "New").click();
     const field = b.input("#kontakt-nachname", "Keep draft"); field.focus();
-    worker.onmessage({ data: { key: worker.job.key, result: [] } }); frame();
+    const identity = b.w.MagnolieTime.identity.payloadSHA256;
+    assert.equal(worker.job.timeZoneIdentity, identity);
+    const before = JSON.stringify(b.t.daten());
+    worker.onmessage({ data: { key: worker.job.key, timeZoneIdentity: identity, result: [] } }); frame();
+    assert.equal(terminations, 0);
+    assert.equal(b.t.icsRuntime.state.jobs.get(worker.job.key).status, "ready");
+    assert.equal(field.isConnected, true); assert.equal(field.value, "Keep draft");
+    assert.equal(b.w.document.activeElement, field);
+    // A separate malformed response must still fail closed without losing the
+    // contact draft; supplying a no-op terminate alone would hide this branch.
+    b.t.icsRuntime("expand", { uid: "synthetic-wrong-provider", icsRoundtrip: ["DTSTART:20260908T120000Z", "RRULE:FREQ=DAILY"] }, [0, 1]);
+    const key = worker.job.key;
+    worker.onmessage({ data: { key, timeZoneIdentity: "0".repeat(64), result: [] } }); frame();
+    assert.equal(terminations, 1);
+    assert.equal(b.t.icsRuntime.state.worker, null);
+    assert.equal(b.t.icsRuntime.state.jobs.get(key).error, "timezone-provider-identity");
+    assert.equal(JSON.stringify(b.t.daten()), before);
     assert.equal(field.isConnected, true); assert.equal(field.value, "Keep draft");
     assert.equal(b.w.document.activeElement, field);
   });
@@ -711,11 +731,15 @@ async function run(web) {
     const turns = [], results = [], sandbox = { self: { postMessage: value => results.push(value) }, setTimeout: fn => turns.push(fn), Date, performance };
     vm.createContext(sandbox);
     vm.runInContext(source + '\nlet probes = 0; icsExpansion = () => { if (++probes <= 20) { const error = new Error("continue"); error.retryable = true; error.code = "recurrence-work-limit"; throw error; } return [probes]; };', sandbox);
-    sandbox.self.onmessage({ data: { key: "job", zone: "UTC", mode: "expand", item: {}, args: [] } });
+    const identity = b.w.MagnolieTime.identity.payloadSHA256;
+    sandbox.self.onmessage({ data: { key: "job", timeZoneIdentity: identity, zone: "UTC", mode: "expand", item: {}, args: [] } });
     assert.equal(results.length, 0); assert.equal(turns.length, 1);
     let count = 0;
     while (turns.length) { assert.ok(++count < 30); turns.shift()(); }
-    assert.equal(count, 20); assert.deepEqual(plain(results), [{ key: "job", result: [21] }]);
+    assert.equal(count, 20); assert.deepEqual(plain(results), [{ key: "job", timeZoneIdentity: identity, result: [21] }]);
+    sandbox.self.onmessage({ data: { key: "wrong-provider", timeZoneIdentity: "0".repeat(64), zone: "UTC", mode: "expand", item: {}, args: [] } });
+    assert.deepEqual(plain(results[1]), { key: "wrong-provider", timeZoneIdentity: identity, error: "timezone-provider-identity" });
+    assert.equal(turns.length, 0); assert.equal(vm.runInContext("probes", sandbox), 21);
   });
 
   await test("disabled reminder remains disabled after native response", async b => {
