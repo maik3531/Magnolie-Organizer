@@ -37,6 +37,7 @@
         "install -m 0644 bin/magnolie_timezone.py /app/bin/",
         "install -m 0644 bin/magnolie_contact_notes_ui.py /app/bin/",
         "install -m 0644 bin/magnolie_contact_notes_session.py /app/bin/",
+        "install -m 0644 bin/magnolie_contact_notes_setup_run.py /app/bin/",
         "install -m 0644 bin/magnolie_kde_transfer.py /app/bin/",
         "install -m 0644 bin/magnolie_optional_phone.py /app/bin/",
         "install -m 0644 bin/magnolie_appimage_lifecycle.py /app/bin/",

@@ -1997,6 +1997,35 @@ resume/startup registration remain unconnected. No production capability is
 advertised or activated, and installed/native GUI/provider/device/package gates
 remain open. This source composition is not permission to run those acceptances.
 
+### Scope transfer and explicit Linux setup worker/UI dispatcher (#640, partial)
+
+#636 is closed as a checked SOURCE PARTIAL, not as a finished productive return
+path. The concrete remaining application action, UI/worker/lifecycle dispatch,
+conditional resume/startup and separate native/provider/device/package gates are
+transferred to #640, with #625/#619/#560/#558 still effective. No pause is lifted.
+
+The explicit Linux `NativeNotesSetupRun` now consumes an already genuine native
+acquisition without creating a thread/service or registering an action itself.
+The host owns its worker and main-thread dispatcher. Network/event waits are
+rejected on the main thread; source/contact dialogs are rejected off that thread.
+Queued UI work and status notifications are one-use/owner-bound. Before any
+dialog, original native/private context is rechecked; stale frames are isolated,
+display copies cannot replace source identity and an integer selection addresses
+only the original native candidate list. Status is informational, never consent,
+a saved witness or a SaveACK.
+
+Cancellation before/during waiting, a queued/native edit/revoke, replayed worker/UI
+callbacks, dispatch failure and late UI completion cannot grant a source. Cleanup
+closes only the owned acquisition; notification failure does not undo an actual
+explicitly committed source decision. Twenty-three owned-fixture cases pass:
+real FS1 acquisition, explicit worker/main-thread queue, selection/cancellation/
+replay/error and manifest/type-admission checks. No installed GUI, live socket,
+actual user profile or device is opened. Existing source inputs and their passing
+evidence remain unchanged. The helper is shipped in existing manifests; no package
+build/install is claimed.
+Actual application registration/saveflush, detailed waiting-status integration,
+Windows dispatch counterpart and production/native acceptance remain open in #640.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
