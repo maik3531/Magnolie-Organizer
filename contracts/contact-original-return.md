@@ -2185,6 +2185,48 @@ This is a prerequisite for the still-open Linux setup-host/lifecycle connection,
 not a claim that it is already registered. Windows host/quiescence inputs and
 proofs remain unchanged. All productive/native/profile/package pauses remain.
 
+### Explicit Linux setup-host composition and nonblocking close (#640, partial)
+
+`_notes_original_native_setup_run` now composes the actual asynchronous renderer
+preparation, before-peer native acquisition, owned started worker, source/contact
+choices and final informational status. `NativeNotesSetupHost` creates no thread
+or service in its constructor. Its UI poll requires the worker to have returned,
+performs only a nonblocking actual thread join, and additionally requires both run
+quiescence and return from the native peer/contact dialog scope. An empty pending
+preparation slot is not evidence that a nested peer dialog has returned.
+
+One owned cancellation event can close exactly the own GTK peer/source/contact
+dialogs. Late acquisition after cancellation is stopped, duplicate callbacks do
+not relaunch work, and failed native preparation/acquisition reports held instead
+of stranding the host. Native owner references prevent manual prepare/acquire/
+candidate entry from stealing the host. Status is restricted by native book owner
+and version, never supplies consent/SavedWitness/ACK, and callback failure cannot
+undo a real explicit source commit. Terminal cleanup drops own acquisition,
+worker, run and preparation callback references.
+
+The actual Linux final-close path now cancels and retries until this host is
+quiet before destroying the UI; it never joins live network or GTK work on main.
+An exit-pending guard prevents reentrant setup starts during that close. Lock or
+native model replacement holds/cancels the current setup through its native UI
+poll and the unchanged saved/primary/private CAS checks. Deferring/joining before
+all synchronous profile/restore operations remains a separate open connection.
+
+Twenty-seven host cases pass: 21 actual native preparation/FS1/worker/UI/close/
+ownership cases, four constructor/scheduler/native-quietness negatives, and two
+fully joined actual DOM/numeric encrypted-writer/FS1/source-publication cases.
+The affected setup, collector, peer, dispatcher, preparation, controlled-widget,
+existing writer-wire and close regression groups all pass (205 total). The first
+DOM invocation lacked the known Node path; reusing the existing runtime fixed the
+test invocation without installation or a product-policy change. No installed
+GTK/provider/device/user keys are used. Windows inputs/proofs are unchanged.
+
+This is still an explicit native internal entry, not a registered application
+button/renderer setup-start/startup/capability. Remaining profile-operation fences,
+deliberate application action, conditional restart and native counterpart/rights/
+profile/package acceptances remain in #640. Production stays OFF/unadvertised,
+Resource19 remains phone/email-only and all physical/install/publication pauses
+remain effective.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

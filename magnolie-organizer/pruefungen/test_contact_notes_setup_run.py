@@ -1,5 +1,6 @@
 """#640 actual acquisition/FS1 -> owned worker/UI dispatch, no real GUI or socket."""
 import copy
+import ast
 import json
 from pathlib import Path
 import queue
@@ -144,7 +145,9 @@ def test_setup_run_is_shipped_without_registering_an_action_or_startup_factory()
             'flatpak/io.gitlab.maik3531.MagnolieOrganizer.json'):
         assert 'magnolie_contact_notes_setup_run.py' in (root / name).read_text()
     json.loads((root / 'flatpak/io.gitlab.maik3531.MagnolieOrganizer.json').read_text())
-    assert 'magnolie_contact_notes_setup_run' not in (root / 'bin/magnolie-organizer').read_text()
+    application = ast.parse((root / 'bin/magnolie-organizer').read_text())
+    assert not any(isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and
+        node.func.attr == '_notes_original_native_setup_run' for node in ast.walk(application)), 'Native host was registered as an application/startup action'
 
 
 def test_serialized_or_fake_acquisition_cannot_construct_a_native_setup_run():

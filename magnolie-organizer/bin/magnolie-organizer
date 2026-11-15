@@ -21409,6 +21409,11 @@ class Fenster(_FENSTER_BASIS):
         if (getattr(self, "_speicher_laeuft", False) or
                 getattr(getattr(self, "_speicher_auftraege", None), "unfinished_tasks", 0)):
             return True
+        host = getattr(self, '_notes_original_setup_host', None)
+        if host is not None:
+            self._notes_original_setup_exit_pending = True
+            host.stop()
+            if host.poll(): return True  # Existing close timer retries; never join a live network/GTK callback here.
         self._wirklich_beenden = True
         if getattr(self, '_tray_test_timer', 0):
             GLib.source_remove(self._tray_test_timer)
@@ -25261,6 +25266,9 @@ class Fenster(_FENSTER_BASIS):
         return session.try_attach_known()
 
     def _notes_original_native_stop_session(self):
+        host = getattr(self, '_notes_original_setup_host', None)
+        if host is not None:
+            host.stop()  # UI poll joins asynchronously, never under a book/tree gate.
         Fenster._notes_original_native_setup_preparation_stop(self)
         from magnolie_contact_notes_session import NativeNotesNativeSession
         session = getattr(self, '_notes_original_session', None)
@@ -25277,10 +25285,77 @@ class Fenster(_FENSTER_BASIS):
         if pending is not None:
             pending[0].stop()
 
-    def _notes_original_native_setup_prepare(self, on_acquired, choose_peer=None, sender=None):
+    def _notes_original_native_setup_run(self, status, choose_source=None, choose_peer=None, choose_contact=None, sender=None):
+        """Explicit native UI action only; no renderer/startup/capability registration."""
+        from magnolie_contact_notes_setup_run import NativeNotesSetupHost
+        if (threading.current_thread() is not threading.main_thread() or not callable(status) or
+                getattr(self, '_notes_original_setup_host', None) is not None or
+                getattr(self, '_notes_original_setup_preparation', None) is not None or
+                getattr(self, '_notes_original_peer_prompt', False) or getattr(self, '_notes_original_setup_active', False) or
+                getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False)):
+            raise PermissionError('notes_setup_native_context_required')
+        with self._daten_sperre:
+            source = self._kontakt_quellen_buch.source(*self._kontakt_quellen_buchbindung())
+        if type(source) is not str or not source:
+            raise PermissionError('notes_setup_native_book_required')
+        version = getattr(self, '_notes_original_setup_version', 0) + 1
+        request, context = [None], {'model': None}
+        host = None
+        def begin(acquired):
+            def ready(acquisition):
+                if acquisition is not None: context['model'] = self._aktuelle_daten
+                acquired(acquisition)
+            peer = choose_peer or (lambda values: notes_original_peer_dialog(self, values, cancelled=host.cancelled.is_set))
+            request[0] = Fenster._notes_original_native_setup_prepare(self, ready, peer, sender, on_failed=host.fail, host_owner=host)
+        def cancel_prepare():
+            pending = getattr(self, '_notes_original_setup_preparation', None)
+            if pending is not None and pending[0] is request[0]:
+                Fenster._notes_original_native_setup_preparation_stop(self)
+        def launch(work):
+            worker = threading.Thread(target=work, name='notes-native-setup', daemon=True)
+            worker.start(); return worker
+        def post(callback):
+            return bool(GLib.idle_add(callback))
+        def finished(phase):
+            if getattr(self, '_notes_original_setup_host', None) is not host: return
+            self._notes_original_setup_host = None
+            with self._daten_sperre:
+                current = self._kontakt_quellen_buch.source(*self._kontakt_quellen_buchbindung())
+            if (not getattr(self, '_gesperrt', True) and not getattr(self, '_wirklich_beenden', False) and
+                    getattr(self, '_notes_original_setup_version', None) == version and current == source):
+                status(phase)
+        host = NativeNotesSetupHost(begin, cancel_prepare, launch, post,
+            choose_source or (lambda values: notes_original_source_dialog(self, values, cancelled=host.cancelled.is_set)),
+            choose_contact or (lambda view: notes_original_freigabe_dialog(self, view, cancelled=host.cancelled.is_set)),
+            finished, lambda: not getattr(self, '_notes_original_peer_prompt', False) and not getattr(self, '_notes_original_setup_active', False))
+        self._notes_original_setup_host, self._notes_original_setup_version = host, version
+        def poll():
+            if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    context['model'] is not None and self._aktuelle_daten is not context['model']):
+                host.stop()  # Native profile/model replacement invalidates this explicit setup only.
+            active = host.poll()
+            if not active:
+                timer = getattr(self, '_notes_original_setup_host_timer', None)
+                if timer is not None and timer[0] is host: self._notes_original_setup_host_timer = None
+            return active
+        try:
+            self._notes_original_setup_host_timer = host, GLib.timeout_add(25, poll)
+            host.start()
+        except Exception:
+            host.fail(); host.poll()
+            timer = getattr(self, '_notes_original_setup_host_timer', None)
+            if timer is not None and timer[0] is host:
+                self._notes_original_setup_host_timer = None; GLib.source_remove(timer[1])
+            raise
+        return host
+
+    def _notes_original_native_setup_prepare(self, on_acquired, choose_peer=None, sender=None, *, on_failed=None, host_owner=None):
         """Explicit native UI entry; flush asynchronously, never wait on the UI."""
         from magnolie_contact_notes_setup import NativeNotesSetupPreparation
         if (threading.current_thread() is not threading.main_thread() or not callable(on_acquired) or
+                getattr(self, '_notes_original_setup_host', None) is not host_owner or
+                on_failed is not None and not callable(on_failed) or
                 getattr(self, '_notes_original_setup_preparation', None) is not None or
                 getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False)):
             raise PermissionError('notes_setup_native_context_required')
@@ -25288,7 +25363,7 @@ class Fenster(_FENSTER_BASIS):
             preparation = NativeNotesSetupPreparation(
                 lambda: self._kontakt_quellen_buch.source(*self._kontakt_quellen_buchbindung()),
                 self._kontakt_quellen_buchaufnahme)
-        self._notes_original_setup_preparation = preparation, on_acquired, choose_peer, sender
+        self._notes_original_setup_preparation = preparation, on_acquired, choose_peer, sender, on_failed, host_owner
         def expired():
             if getattr(self, '_notes_original_setup_preparation', None) is not None and self._notes_original_setup_preparation[0] is preparation:
                 self._notes_original_setup_preparation_timer = None
@@ -25311,26 +25386,32 @@ class Fenster(_FENSTER_BASIS):
                 set(message) != {'cmd', 'token', 'bereit', 'standSha256'} or type(message.get('bereit')) is not bool or
                 type(message.get('standSha256')) is not str or message.get('token') != pending[0].token):
             return
-        preparation, on_acquired, choose_peer, sender = pending
-        try:
-            with self._daten_sperre:
-                prepared = preparation.accept(message)
-        finally:
-            Fenster._notes_original_native_setup_preparation_stop(self)
+        preparation, on_acquired, choose_peer, sender, on_failed, host_owner = pending
         acquisition = None
-        if prepared is not None:
-            acquisition = Fenster._notes_original_native_setup_acquire(self, choose_peer, sender, prepared=prepared)
+        try:
+            try:
+                with self._daten_sperre:
+                    prepared = preparation.accept(message)
+            finally:
+                Fenster._notes_original_native_setup_preparation_stop(self)
+            if prepared is not None:
+                acquisition = Fenster._notes_original_native_setup_acquire(self, choose_peer, sender, prepared=prepared, host_owner=host_owner)
+        except Exception:
+            if on_failed is None: raise
+            on_failed()
+            return
         try:
             on_acquired(acquisition)  # Native UI callback only; no data/tree gates held.
         except Exception:
             if acquisition is not None: acquisition.stop()
             raise
 
-    def _notes_original_native_setup_acquire(self, choose_peer=None, sender=None, *, prepared=None):
+    def _notes_original_native_setup_acquire(self, choose_peer=None, sender=None, *, prepared=None, host_owner=None):
         """Native main-thread action, no IPC/startup entry or lazy tree/service creation."""
         from magnolie_contact_notes_setup import NativeNotesSetupFlow, NativeNotesSetupCollector, NativeNotesSetupAcquisition
         from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
         if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_setup_host', None) is not host_owner or
                 getattr(self, '_notes_original_peer_prompt', False)):
             raise PermissionError('notes_setup_native_context_required')
         store = self._notes_original_choice_store_hole()
@@ -25418,6 +25499,7 @@ class Fenster(_FENSTER_BASIS):
         """Explicit native-only entry; no IPC/startup/acquisition registration."""
         from magnolie_contact_notes_setup import NativeNotesSetupFlow
         if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_setup_host', None) is not None or
                 getattr(self, '_notes_original_setup_active', False)):
             raise PermissionError('notes_setup_native_context_required')
         store = self._notes_original_choice_store_hole()
