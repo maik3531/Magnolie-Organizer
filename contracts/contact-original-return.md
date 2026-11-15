@@ -1525,6 +1525,34 @@ remains explicit: no startup factory, existing-key backend or common setup is
 registered. Combined frontend/native wire and installed/device acceptance are not
 claimed by these separate synthetic checks.
 
+### Combined actual frontend/native worker wire (#633)
+
+Three controlled host cases now join the actual application DOM to the native
+command parser, explicit event worker, one-use UI lease, actual encrypted SaveAsync,
+inline saved-ACK journal and terminal retirement. The synthetic counterpart uses
+real FS1 framing/authentication through the existing HTTP-handler test boundary;
+no listener, real device or provider writer is started. Frontend SaveACKs in this
+wire come only from the actual native writer, not synthetic success Booleans.
+
+The cases cover ordinary operation, reopening with no saved scope (requiring an
+actual unchanged bootstrap before metadata save) and an ordinary local edit after
+the genuine metadata SaveACK. The last case preserves that real later saved edit
+while reusing the original historical saved hash for terminal handling. Exactly
+one provider-request UUID is used; the unrelated synthetic note and actual
+encrypted/native/frontend final book agree after retirement. Serialized process
+messages and bounded event waits replace polling or a new test server.
+
+The test harness binds its controller to the post-reopen native writer. Its
+concurrent-worker gate check uses a bounded acquisition rather than assuming that
+no independent actor could acquire an already released gate; existing single-actor
+regressions keep their immediate release assertion. These were test-harness fixes,
+not inferred product defects. The three joined cases, full managed group, 16 DOM
+cases and existing original-contact regression pass. Product inputs did not change
+in this test-only slice; prior clean BASE/native Windows checks are retained, not
+represented as a new joint Windows/installed GUI acceptance. Windows joint DOM and
+physical Android/provider acceptance, common setup and production key-backend
+registration remain open; no installation/publication is implied.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

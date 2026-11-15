@@ -4,7 +4,7 @@ const { createHash, webcrypto } = require("node:crypto"), { JSDOM } = require("j
 const web = process.env.MAGNOLIE_TEST_WEB ? path.resolve(process.env.MAGNOLIE_TEST_WEB) : path.resolve(__dirname, "../app/web");
 const sha = text => createHash("sha256").update(text).digest("hex");
 const copy = value => JSON.parse(JSON.stringify(value));
-async function boot() {
+async function boot(options = {}) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
     runScripts: "outside-only", url: "https://notes-ui.test.invalid/", pretendToBeVisual: true });
   const w = dom.window, messages = [];
@@ -12,15 +12,15 @@ async function boot() {
   w.setInterval = () => 0; w.requestAnimationFrame = () => 0;
   w.HTMLElement.prototype.scrollIntoView = () => {}; w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   Object.defineProperty(w, "crypto", { value: webcrypto }); w.__MAGNOLIE_BRUECKE__ = "test";
-  w.webkit = { messageHandlers: { test: { postMessage: raw => messages.push(JSON.parse(raw)) } } };
+  w.webkit = { messageHandlers: { test: { postMessage: raw => { const value = JSON.parse(raw); messages.push(value); options.emit?.(value); } } } };
   for (const name of ["i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
   await new Promise(resolve => setImmediate(resolve));
-  w.App.init({ neu: false, regional: { language: "en", timeZone: "UTC" }, daten: {
+  w.App.init({ neu: false, regional: { language: "en", timeZone: "UTC" }, daten: options.data || {
     kontakte: [{ id: "synthetic-id", uid: "synthetic-uid", vorname: "Synthetic", notiz: "Keep", notesOriginalBasis: { old: true } }],
     notizen: [{ id: "synthetic-note", titel: "Keep", text: "Unrelated synthetic note" }] } });
   const commands = cmd => messages.filter(value => value.cmd === cmd);
   const ack = () => { const save = commands("speichern").at(-1); w.App.gespeichert({ id: save.id, ok: true, standSha256: sha(save.text) }); };
-  w.OrganizerTest.speichereJetzt(); ack();
+  if (!options.wire) { w.OrganizerTest.speichereJetzt(); ack(); }
   return { w, t: w.OrganizerTest, commands, ack, close: () => w.close() };
 }
 async function run() {
@@ -75,4 +75,42 @@ async function run() {
   }
   console.log(`Notes UI native-save CAS: ${modes.length} synthetic DOM cases passed (no native authority from renderer).`);
 }
-run().catch(error => { console.error(error); process.exitCode = 1; });
+async function wire() {
+  const lines = require("node:readline").createInterface({ input: process.stdin, crlfDelay: Infinity });
+  const emit = value => process.stdout.write(JSON.stringify(value) + "\n");
+  const deadline = setTimeout(() => { console.error("Bounded Notes native/frontend wire deadline"); process.exit(1); }, 50000);
+  let b, initialized = false, metadataSaved = false, lateSaved = false, mode = "";
+  const kinds = new Map();
+  try {
+    for await (const line of lines) {
+      const packet = JSON.parse(line);
+      if (packet.type === "init") {
+        mode = packet.mode;
+        b = await boot({ data: packet.daten, wire: true, emit: value => emit({ type: "command", value }) });
+        b.t.speichereJetzt(); continue;
+      }
+      assert.ok(b);
+      if (packet.type === "finish") { emit({ type: "finished" }); return; }
+      assert.ok(["gespeichert", "notesOriginalSpeichern", "notesOriginalBereit"].includes(packet.callback));
+      if (packet.callback === "notesOriginalSpeichern") kinds.set(packet.value.token, packet.value.kind);
+      b.w.App[packet.callback](packet.value);
+      if (packet.callback !== "gespeichert") continue;
+      assert.equal(packet.value.ok, true, "Actual native writer rejected frontend wire save");
+      const saved = b.commands("speichern").find(value => value.id === packet.value.id); assert.ok(saved);
+      assert.equal(packet.value.standSha256, sha(saved.text));
+      if (!initialized) { initialized = true; emit({ type: "initialized" }); continue; }
+      const kind = kinds.get(saved.notesOriginalLauf);
+      if (kind === "bootstrap") { assert.equal(metadataSaved, false); continue; }
+      if (kind === "save") {
+        metadataSaved = true;
+        if (mode === "late-edit") {
+          b.t.daten().kontakte[0].notiz = "Later local edit after genuine metadata SaveACK";
+          b.t.speichereJetzt(); continue;
+        }
+      } else if (metadataSaved && mode === "late-edit") lateSaved = true;
+      if (metadataSaved && (mode !== "late-edit" || lateSaved)) emit({ type: "frontend-complete", text: saved.text,
+        contact: b.t.daten().kontakte[0], notes: b.t.daten().notizen });
+    }
+  } finally { clearTimeout(deadline); b?.close(); lines.close(); }
+}
+(process.argv.includes("--wire") ? wire() : run()).catch(error => { console.error(error); process.exitCode = 1; });

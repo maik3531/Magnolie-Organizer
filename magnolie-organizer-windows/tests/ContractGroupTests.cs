@@ -836,6 +836,11 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "dom-native-wire-only")
+            {
+                await NotesOriginalChoiceStoreTests.FrontendWireAsync(Path.Combine(root, "notes-dom-native-wire"));
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "worker-only")
             {
                 await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
@@ -923,6 +928,7 @@ internal static class ContractGroupTests
             await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"));
             await NotesOriginalChoiceStoreTests.ControllerSourcesAsync(Path.Combine(root, "notes-controller-sources"));
             await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
+            await NotesOriginalChoiceStoreTests.FrontendWireAsync(Path.Combine(root, "notes-dom-native-wire"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

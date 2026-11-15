@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
-internal static class NotesOriginalChoiceStoreTests
+internal static partial class NotesOriginalChoiceStoreTests
 {
     private sealed class CallbackViolation : Exception { }
     private sealed class Protector : ISecretProtector, IDisposable

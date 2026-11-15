@@ -22,10 +22,17 @@ internal sealed partial class PersonalActorNativeSaveHost
     internal NotesOriginalChoiceStore? NativeNotesChoices { get; set; }
     internal string? CurrentNativeText => currentPlainTextAvailable ? currentPlainText : null;
     internal Func<int, string, bool, Task>? SaveAckObserver;
+    internal bool ConcurrentNativeWorker;
     private ContactSourceApprovalStore? OriginalContactApprovals => ApprovalStore;
     private async Task OriginalContactSaveAcknowledgedAsync(int id, string hash, bool recognized)
     {
-        TestAssert.That(MutationGate.Global.Wait(0), "Actual contact restore continuation still held the writer mutation gate");
+        // A real deferred worker may acquire the released gate before this
+        // continuation runs. The concurrent wire opts into a bounded acquire;
+        // existing single-actor regressions retain the immediate release check.
+        var released = ConcurrentNativeWorker
+            ? await MutationGate.Global.WaitAsync(TimeSpan.FromSeconds(5))
+            : MutationGate.Global.Wait(0);
+        TestAssert.That(released, "Actual contact restore continuation still held the writer mutation gate");
         MutationGate.Global.Release();
         if (SaveAckObserver is not null) await SaveAckObserver(id, hash, recognized);
     }
