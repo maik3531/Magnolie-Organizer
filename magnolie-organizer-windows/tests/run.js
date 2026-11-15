@@ -4,6 +4,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { runBoundedProgram } = require("./native-test-process");
 
 const root = path.resolve(__dirname, "..");
 const props = fs.readFileSync(path.join(root, "Directory.Build.props"), "utf8");
@@ -11,7 +12,7 @@ const version = /<Version>([^<]+)<\/Version>/.exec(props)?.[1];
 if (!/^\d+\.\d+\.\d+$/.test(version || "")) throw new Error("Kanonische Version fehlt.");
 const installerName = `Magnolie-Organizer-Windows-${version}-Setup-x64.exe`;
 const python = process.env.MAGNOLIE_PYTHON || ["python3", "python"].find((candidate) =>
-  spawnSync(candidate, ["--version"], { encoding: "utf8" }).status === 0);
+  spawnSync(candidate, ["--version"], { encoding: "utf8", timeout: 10000 }).status === 0);
 if (!python) throw new Error("Python 3 for localization tests is missing");
 process.env.MAGNOLIE_PYTHON = python;
 
@@ -52,14 +53,14 @@ for (const test of ["welcome-first-save.js", "time-zone-planning.js", "time-zone
     const canonicalTest = path.join(__dirname, test);
     const testPath = test.startsWith("../../magnolie-organizer/pruefungen/") && !fs.existsSync(canonicalTest)
       ? path.join(root, "shared/magnolie-organizer/pruefungen", path.basename(test)) : canonicalTest;
-    const result = spawnSync(process.execPath, [testPath,
+     const result = runBoundedProgram(process.execPath, [testPath,
     ...(test === "aur-sms-regressions.js" ? [] : [version, installerName])], {
-    stdio: "inherit",
+     label: test,
     env: { ...process.env, MAGNOLIE_PYTHON: python }
   });
   if (result.error) { console.error(result.error); failed = true; }
-  else if (result.status !== 0) failed = true;
-  results.push([test, !result.error && result.status === 0]);
+   else if (result.status !== 0 || result.signal) failed = true;
+   results.push([test, !result.error && result.status === 0 && !result.signal]);
 }
 console.log("\nComplete Windows web test results:");
 for (const [test, passed] of results) console.log(`${passed ? "PASS" : "FAIL"} ${test}`);

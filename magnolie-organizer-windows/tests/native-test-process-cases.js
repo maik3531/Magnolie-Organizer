@@ -1,6 +1,6 @@
 "use strict";
 const assert = require("node:assert/strict");
-const { findExecutable, assertSpawned } = require("./native-test-process");
+const { findExecutable, assertSpawned, runBoundedProgram } = require("./native-test-process");
 const missing = Object.assign(new Error("Synthetic executable missing"), { code: "ENOENT" });
 const fixtures = [
   [{ status: 0, signal: null, stdout: "8.0.428\r\n" }, true],
@@ -29,4 +29,29 @@ assert.throws(() => assertSpawned({ status: null, stdout: null, stderr: null, er
 assert.throws(() => assertSpawned({ status: null, stdout: null, stderr: null }, "policy"));
 assert.throws(() => assertSpawned({ status: 1, signal: "SIGTERM" }, "policy"));
 assert.equal(assertSpawned({ status: 1, signal: null }, "actual expected rejection").status, 1);
+const progress = [];
+const environment = { SYNTHETIC_FIXTURE: "1" };
+const bounded = runBoundedProgram("owned-tool", ["owned-case"], {
+  label: "synthetic bounded launch", env: environment, write: line => progress.push(line),
+  spawn(command, args, options) {
+    assert.equal(command, "owned-tool"); assert.deepEqual(args, ["owned-case"]);
+    assert.equal(options.timeout, 300000); assert.equal(options.killSignal, "SIGKILL");
+    assert.equal(options.env, environment); assert.equal(options.stdio, "inherit");
+    return { status: 0, signal: null };
+  }
+});
+assert.equal(bounded.status, 0);
+assert.match(progress[0], /TEST START synthetic bounded launch/);
+assert.match(progress[1], /TEST END synthetic bounded launch: status=0/);
+const startupFailure = runBoundedProgram("owned-tool", [], {
+  label: "synthetic failed launch", write: () => {}, spawn: () => { throw missing; }
+});
+assert.equal(startupFailure.error, missing); assert.equal(startupFailure.status, null);
+const timeoutProgress = [];
+const expired = runBoundedProgram(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+  label: "synthetic hanging child", timeoutMs: 500, write: line => timeoutProgress.push(line)
+});
+assert.notEqual(expired.status, 0);
+assert.equal(expired.error?.code, "ETIMEDOUT");
+assert.match(timeoutProgress[1], /TEST END synthetic hanging child/);
 console.log("Native test-process cases passed: real startup/status, supported newer SDKs and no false policy rejection from null results.");

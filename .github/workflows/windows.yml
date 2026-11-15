@@ -71,6 +71,7 @@ jobs:
           & $env:MAGNOLIE_PYTHON ../magnolie-handbuch/werkzeuge/kataloge_bauen.py
           if ($LASTEXITCODE -ne 0) { throw 'Canonical handbook catalog preparation failed.' }
       - name: Standalone-Quellarchiv bauen und aus dem Archiv testen
+        timeout-minutes: 90
         shell: pwsh
         run: ./build/BuildSource.ps1
       - name: Unsigniertes ZIP bauen und testen

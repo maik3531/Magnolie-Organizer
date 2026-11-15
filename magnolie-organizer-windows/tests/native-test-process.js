@@ -29,4 +29,24 @@ function assertSpawned(result, label) {
   return result;
 }
 
-module.exports = { findExecutable, assertSpawned };
+// A PASS line inside a child does not prove that the child actually exited.
+// Keep web-gate hangs attributable and bounded rather than waiting for the
+// six-hour CI job limit (Refs #674). This does not change product deadlines.
+function runBoundedProgram(command, args, {
+  label, env = process.env, timeoutMs = 300000, spawn = spawnSync, write = console.log
+} = {}) {
+  assert.ok(typeof label === "string" && label.length > 0);
+  assert.ok(Number.isInteger(timeoutMs) && timeoutMs > 0);
+  const started = Date.now();
+  write(`TEST START ${label}`);
+  let result;
+  try {
+    result = spawn(command, args, { stdio: "inherit", env, timeout: timeoutMs, killSignal: "SIGKILL" });
+  } catch (error) {
+    result = { error, status: null, signal: null };
+  }
+  write(`TEST END ${label}: status=${result.status}, signal=${result.signal || "none"}, error=${result.error?.code || result.error?.message || "none"}, elapsedMs=${Date.now() - started}`);
+  return result;
+}
+
+module.exports = { findExecutable, assertSpawned, runBoundedProgram };
