@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.baum
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -81,6 +83,8 @@ class BaumDienst : Service() {
                 taktGestartet = true
                 takt.scheduleWithFixedDelay({
                     runCatching {
+                        werk.lanAbgleichen()
+                        vordergrund()
                         werk.postfachAbarbeiten()
                         werk.automatischSynchronisierenWennFaellig(istAktivesWlan())
                     }
@@ -112,7 +116,7 @@ class BaumDienst : Service() {
         )
         val hinweis = Notification.Builder(this, KANAL)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(R.string.baum_dienst_laeuft))
+            .setContentText(if (LanFreigabe.erlaubt()) getString(R.string.baum_dienst_laeuft) else LanFreigabe.WARTET)
             .setSmallIcon(R.drawable.ic_baum)
             .setContentIntent(oeffnen)
             .setOngoing(true)

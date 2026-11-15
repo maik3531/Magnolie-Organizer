@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">Lokalt netværk afventer tilladelse i Androids appindstillinger.</string>
     <string name="webcam_kanal">Telefonwebkamera</string>
     <string name="webcam_startet">Starter telefonwebkamera…</string>
     <string name="webcam_aktiv">Kamera og mikrofon er aktive</string>

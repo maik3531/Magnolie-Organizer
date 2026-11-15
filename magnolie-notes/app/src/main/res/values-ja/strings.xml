@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">ローカルネットワークはAndroidのアプリ設定での権限付与を待っています。</string>
     <string name="webcam_kanal">スマートフォンのウェブカメラ</string>
     <string name="webcam_startet">スマートフォンのウェブカメラを起動中…</string>
     <string name="webcam_aktiv">カメラとマイクが動作中です</string>

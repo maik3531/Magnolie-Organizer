@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">Локальна мережа очікує дозволу в налаштуваннях застосунку Android.</string>
     <string name="webcam_kanal">Вебкамера телефона</string>
     <string name="webcam_startet">Запуск вебкамери телефона…</string>
     <string name="webcam_aktiv">Камера й мікрофон активні</string>

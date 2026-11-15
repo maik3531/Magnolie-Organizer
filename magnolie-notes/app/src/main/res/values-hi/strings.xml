@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">स्थानीय नेटवर्क Android ऐप सेटिंग में अनुमति की प्रतीक्षा कर रहा है।</string>
     <string name="webcam_kanal">फ़ोन वेबकैम</string>
     <string name="webcam_startet">फ़ोन वेबकैम शुरू हो रहा है…</string>
     <string name="webcam_aktiv">कैमरा और माइक्रोफ़ोन सक्रिय हैं</string>

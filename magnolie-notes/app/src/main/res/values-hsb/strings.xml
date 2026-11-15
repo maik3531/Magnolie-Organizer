@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">Lokalna syć čaka na dowolnosć w nastajenjach nałoženja Android.</string>
     <string name="webcam_kanal">Webkamera telefona</string>
     <string name="webcam_startet">Webkamera telefona so startuje…</string>
     <string name="webcam_aktiv">Kamera a mikrofon stej aktiwnej</string>

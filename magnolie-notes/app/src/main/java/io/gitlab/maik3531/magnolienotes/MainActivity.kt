@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.Manifest
 import android.content.ClipData
 import android.content.Intent
@@ -651,6 +653,24 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         }
     }
 
+    var lanDialogOffen by remember { mutableStateOf(false) }
+    val lanFreigabe = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        lanDialogOffen = false
+        // Never trust result maps or replay a captured peer/source action.
+        if (!LanFreigabe.erlaubt()) sage(LanFreigabe.WARTET)
+    }
+    fun lanEinrichten(): Boolean {
+        if (LanFreigabe.erlaubt()) return true
+        if (!lanDialogOffen && LanFreigabe.erforderlich()) {
+            lanDialogOffen = true
+            lanFreigabe.launch(LanFreigabe.RECHT)
+        }
+        sage(LanFreigabe.WARTET)
+        return false
+    }
+
     fun bluetoothErlaubt(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
         zusammenhang.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
         PackageManager.PERMISSION_GRANTED
@@ -1226,8 +1246,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     meldungen = meldungen,
                     telefon = telefonZustand,
                     telefonHandlungen = Telefonhandlungen(
-                        beiDienst = { enabled -> if (enabled) TelefonDienst.start(zusammenhang) else TelefonDienst.stop(zusammenhang) },
-                        beiSuchen = { faden.launch(Dispatchers.IO) { runCatching { telefonWerk.discover() } } },
+                        beiDienst = { enabled -> if (enabled) { lanEinrichten(); TelefonDienst.start(zusammenhang) } else TelefonDienst.stop(zusammenhang) },
+                        beiSuchen = { if (lanEinrichten()) faden.launch(Dispatchers.IO) { runCatching { telefonWerk.discover() } } },
                         beiVerbinden = { desktop -> faden.launch(Dispatchers.IO) { runCatching { telefonWerk.beginPairing(desktop) } } },
                         beiCode = { matches -> faden.launch(Dispatchers.IO) { runCatching { telefonWerk.confirmPairing(matches) } } },
                         beiEntkoppeln = telefonWerk::unpairComputer,
@@ -1387,7 +1407,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     handlungen = Baumhandlungen(
                         beiName = { werk.benenne(it) },
                         beiDienst = { an ->
-                            if (an) BaumDienst.starten(zusammenhang)
+                            if (an) { lanEinrichten(); BaumDienst.starten(zusammenhang) }
                             else BaumDienst.anhalten(zusammenhang)
                         },
                         beiBluetooth = { an ->
@@ -1521,10 +1541,13 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             }
                         },
                         beiSuchen = {
+                            if (lanEinrichten()) {
                             sucheLaeuft = true
                             faden.launch {
-                                gefunden = withContext(Dispatchers.IO) { werk.suchen(zusammenhang) }
+                                val ergebnis = withContext(Dispatchers.IO) { runCatching { werk.suchen(zusammenhang) } }
+                                gefunden = ergebnis.getOrElse { sage(it.message.orEmpty()); emptyList() }
                                 sucheLaeuft = false
+                            }
                             }
                         },
                         beiAnfragen = { zweig ->

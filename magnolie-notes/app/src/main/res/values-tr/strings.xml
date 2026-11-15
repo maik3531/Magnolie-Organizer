@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">Yerel ağ, Android uygulama ayarlarında izin bekliyor.</string>
     <string name="webcam_kanal">Telefon web kamerası</string>
     <string name="webcam_startet">Telefon web kamerası başlatılıyor…</string>
     <string name="webcam_aktiv">Kamera ve mikrofon etkin</string>

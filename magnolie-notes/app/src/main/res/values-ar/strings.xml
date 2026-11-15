@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">الشبكة المحلية تنتظر منح الإذن في إعدادات التطبيق على Android.</string>
     <string name="webcam_kanal">كاميرا الهاتف ككاميرا ويب</string>
     <string name="webcam_startet">جارٍ تشغيل كاميرا الهاتف…</string>
     <string name="webcam_aktiv">الكاميرا والميكروفون نشطان</string>

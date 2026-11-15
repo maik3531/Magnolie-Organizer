@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">Local network is waiting for permission in Android app settings.</string>
     <string name="webcam_kanal">Phone webcam</string>
     <string name="webcam_startet">Starting phone webcam…</string>
     <string name="webcam_aktiv">Camera and microphone are active</string>

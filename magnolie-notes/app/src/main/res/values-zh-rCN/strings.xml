@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">本地网络正在等待 Android 应用设置中的权限授权。</string>
     <string name="webcam_kanal">手机网络摄像头</string>
     <string name="webcam_startet">正在启动手机网络摄像头…</string>
     <string name="webcam_aktiv">摄像头和麦克风正在使用</string>

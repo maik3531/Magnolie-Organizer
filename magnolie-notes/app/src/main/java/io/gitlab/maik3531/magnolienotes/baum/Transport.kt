@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.baum
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothSocket
 import kotlinx.serialization.json.JsonObject
@@ -54,9 +56,13 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
         }.apply { removeOnCancelPolicy = true }
     }
 
+    fun wartetAufLan(): Boolean = !LanFreigabe.erlaubt() && runCatching { LanFreigabe.ziel(host) }.isFailure
+
     override val bezeichnung: String get() = Netz.hostPortAnzeigen(host, port)
 
     override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
+        val ziel = LanFreigabe.ziel(host)
+        val lanMarke = if (LanFreigabe.lokal(ziel)) LanFreigabe.marke() else null
         val roh = Kanonisch.json.encodeToString(JsonObject.serializer(), nutzlast)
             .toByteArray(Charsets.UTF_8)
         return Socket().use { verbindung ->
@@ -65,11 +71,17 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
                 check(buchse == null)
                 buchse = verbindung
             }
-            val frist = FRISTEN.schedule({ runCatching { verbindung.close() } },
+            var lanWache: AutoCloseable? = null
+            var frist: java.util.concurrent.ScheduledFuture<*>? = null
+            try {
+            // All fallible setup after publishing buchse belongs to this owner.
+            // A denied watcher registration must not poison later reuse.
+            lanWache = if (lanMarke != null) LanFreigabe.beobachten(verbindung) else null
+            frist = FRISTEN.schedule({ runCatching { verbindung.close() } },
                 zeitgrenzeMs.coerceAtLeast(1).toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
             try {
-            try {
-                verbindung.connect(InetSocketAddress(host, port), zeitgrenzeMs)
+                if (lanMarke != null) LanFreigabe.pruefen()
+                verbindung.connect(InetSocketAddress(ziel, port), zeitgrenzeMs)
             } catch (error: java.net.UnknownHostException) {
                 throw KeineVerbindung(error)
             } catch (error: java.net.ConnectException) {
@@ -106,10 +118,14 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
                 throw BaumFehler(Netz.fehlertext(nummer, antwort), httpStatus = nummer)
             }
             if (antwort.isBlank()) throw BaumFehler("Die Gegenstelle hat nichts geantwortet.")
+            check(lanMarke == null || LanFreigabe.aktuell(lanMarke)) { LanFreigabe.WARTET }
             Kanonisch.json.parseToJsonElement(antwort).jsonObject
             } finally {
-                frist.cancel(false)
-                synchronized(sperre) { if (buchse === verbindung) buchse = null }
+                try { lanWache?.close() } finally {
+                    try { frist?.cancel(false) } finally {
+                        synchronized(sperre) { if (buchse === verbindung) buchse = null }
+                    }
+                }
             }
         }
     }

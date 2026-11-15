@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.baum
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
@@ -15,13 +17,14 @@ object Entdeckung {
 
     private const val ART = "_magnolie._tcp"
 
+    private var lanWache: AutoCloseable? = null
     private var verwalter: NsdManager? = null
     private var anmeldung: NsdManager.RegistrationListener? = null
     private var letzteIdentitaet: EigeneIdentitaet? = null
     private var letzterPort: Int = Netz.PORT
 
     fun veroeffentlichen(zusammenhang: Context, eigen: EigeneIdentitaet?, port: Int) {
-        if (eigen == null) return
+        if (eigen == null || !LanFreigabe.erlaubt()) return
         letzteIdentitaet = eigen
         letzterPort = port
         val nsd = zusammenhang.applicationContext
@@ -40,15 +43,23 @@ object Entdeckung {
         val horcher = object : NsdManager.RegistrationListener {
             override fun onRegistrationFailed(dienst: NsdServiceInfo?, fehler: Int) {}
             override fun onUnregistrationFailed(dienst: NsdServiceInfo?, fehler: Int) {}
-            override fun onServiceRegistered(dienst: NsdServiceInfo?) {}
+            override fun onServiceRegistered(dienst: NsdServiceInfo?) {
+                if (anmeldung !== this || !LanFreigabe.erlaubt()) runCatching { nsd.unregisterService(this) }
+            }
             override fun onServiceUnregistered(dienst: NsdServiceInfo?) {}
         }
         anmeldung = horcher
-        runCatching { nsd.registerService(angaben, NsdManager.PROTOCOL_DNS_SD, horcher) }
+        runCatching {
+            lanWache?.close()
+            lanWache = LanFreigabe.beobachten(AutoCloseable { beenden() })
+            LanFreigabe.pruefen()
+            nsd.registerService(angaben, NsdManager.PROTOCOL_DNS_SD, horcher)
+        }.onFailure { beenden() }
     }
 
     /** Nach einer Namensänderung muss die Ankündigung neu heraus. */
     fun neuVeroeffentlichen(eigen: EigeneIdentitaet?, port: Int) {
+        if (!LanFreigabe.erlaubt()) { beenden(); return }
         val nsd = verwalter ?: return
         val alt = anmeldung
         if (alt != null) runCatching { nsd.unregisterService(alt) }
@@ -68,14 +79,23 @@ object Entdeckung {
         val horcher = object : NsdManager.RegistrationListener {
             override fun onRegistrationFailed(dienst: NsdServiceInfo?, fehler: Int) {}
             override fun onUnregistrationFailed(dienst: NsdServiceInfo?, fehler: Int) {}
-            override fun onServiceRegistered(dienst: NsdServiceInfo?) {}
+            override fun onServiceRegistered(dienst: NsdServiceInfo?) {
+                if (anmeldung !== this || !LanFreigabe.erlaubt()) runCatching { nsd.unregisterService(this) }
+            }
             override fun onServiceUnregistered(dienst: NsdServiceInfo?) {}
         }
         anmeldung = horcher
-        runCatching { nsd.registerService(angaben, NsdManager.PROTOCOL_DNS_SD, horcher) }
+        runCatching {
+            lanWache?.close()
+            lanWache = LanFreigabe.beobachten(AutoCloseable { beenden() })
+            LanFreigabe.pruefen()
+            nsd.registerService(angaben, NsdManager.PROTOCOL_DNS_SD, horcher)
+        }.onFailure { beenden() }
     }
 
     fun beenden() {
+        lanWache?.close()
+        lanWache = null
         val nsd = verwalter
         val horcher = anmeldung
         if (nsd != null && horcher != null) runCatching { nsd.unregisterService(horcher) }
@@ -91,6 +111,9 @@ object Entdeckung {
         eigeneKennung: String,
         wartezeitMs: Long = 3000
     ): List<Gefunden> {
+        LanFreigabe.pruefen()
+        val lanMarke = LanFreigabe.marke()
+        val aktiv = java.util.concurrent.atomic.AtomicBoolean(true)
         val nsd = zusammenhang.applicationContext
             .getSystemService(Context.NSD_SERVICE) as? NsdManager ?: return emptyList()
         val gefunden = java.util.Collections.synchronizedList(mutableListOf<Gefunden>())
@@ -100,20 +123,24 @@ object Entdeckung {
         val suche = object : NsdManager.DiscoveryListener {
             override fun onStartDiscoveryFailed(art: String?, fehler: Int) = fertig.countDown()
             override fun onStopDiscoveryFailed(art: String?, fehler: Int) = fertig.countDown()
-            override fun onDiscoveryStarted(art: String?) {}
+            override fun onDiscoveryStarted(art: String?) {
+                if (!aktiv.get() || !LanFreigabe.aktuell(lanMarke)) runCatching { nsd.stopServiceDiscovery(this) }
+            }
             override fun onDiscoveryStopped(art: String?) = fertig.countDown()
 
             override fun onServiceFound(dienst: NsdServiceInfo?) {
+                if (!aktiv.get() || !LanFreigabe.aktuell(lanMarke)) return
                 val angaben = dienst ?: return
                 if (angaben.serviceName == eigeneKennung) return
                 offen.incrementAndGet()
-                nsd.resolveService(angaben, object : NsdManager.ResolveListener {
+                runCatching { nsd.resolveService(angaben, object : NsdManager.ResolveListener {
                     override fun onResolveFailed(dienst: NsdServiceInfo?, fehler: Int) {
                         offen.decrementAndGet()
                     }
 
                     override fun onServiceResolved(dienst: NsdServiceInfo?) {
                         offen.decrementAndGet()
+                        if (!aktiv.get() || !LanFreigabe.aktuell(lanMarke)) return
                         val geloest = dienst ?: return
                         val merkmale = geloest.attributes ?: emptyMap()
                         fun merkmal(name: String) =
@@ -129,14 +156,21 @@ object Entdeckung {
                             port = geloest.port.takeIf { it > 0 } ?: Netz.PORT
                         )
                     }
-                })
+                }) }.onFailure { fertig.countDown() }
             }
 
             override fun onServiceLost(dienst: NsdServiceInfo?) {}
         }
 
         var gestartet = false
+        var lanWache: AutoCloseable? = null
         return try {
+            lanWache = LanFreigabe.beobachten(AutoCloseable {
+                aktiv.set(false)
+                fertig.countDown()
+                runCatching { nsd.stopServiceDiscovery(suche) }
+            })
+            LanFreigabe.pruefen()
             nsd.discoverServices(ART, NsdManager.PROTOCOL_DNS_SD, suche)
             gestartet = true
             fertig.await(wartezeitMs, TimeUnit.MILLISECONDS)
@@ -146,12 +180,12 @@ object Entdeckung {
                 Thread.sleep(100)
                 warten += 100
             }
-            synchronized(gefunden) { gefunden.toList() }
+            synchronized(gefunden) { if (!LanFreigabe.aktuell(lanMarke)) throw java.io.IOException(LanFreigabe.WARTET); gefunden.toList() }
         } catch (_: InterruptedException) {
             Thread.currentThread().interrupt()
-            synchronized(gefunden) { gefunden.toList() }
+            synchronized(gefunden) { if (!LanFreigabe.aktuell(lanMarke)) throw java.io.IOException(LanFreigabe.WARTET); gefunden.toList() }
         } catch (fehler: Exception) {
-            synchronized(gefunden) { gefunden.toList() }
-        } finally { if (gestartet) runCatching { nsd.stopServiceDiscovery(suche) } }
+            synchronized(gefunden) { if (!LanFreigabe.aktuell(lanMarke)) throw java.io.IOException(LanFreigabe.WARTET); gefunden.toList() }
+        } finally { aktiv.set(false); lanWache?.close(); if (gestartet) runCatching { nsd.stopServiceDiscovery(suche) } }
     }
 }

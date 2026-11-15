@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">A rede local aguarda permissão nas definições da aplicação Android.</string>
     <string name="webcam_kanal">Webcam do telemóvel</string>
     <string name="webcam_startet">A iniciar a webcam do telemóvel…</string>
     <string name="webcam_aktiv">Câmara e microfone ativos</string>

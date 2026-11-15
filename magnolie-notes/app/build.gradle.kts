@@ -54,6 +54,9 @@ android {
         applicationId = "io.gitlab.maik3531.magnolienotes"
         minSdk = 26
         targetSdk = 35
+        check(requireNotNull(targetSdk) < 37) {
+            "#648/#558: API 37 requires reviewed toolchain, LAN manifest and native acceptance; guards alone are not migration approval."
+        }
         versionCode = 21
         versionName = "1.0.21"
         buildConfigField("boolean", "FDROID_DISTRIBUTION", fdroidBau.toString())
