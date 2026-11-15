@@ -163,3 +163,46 @@ class NativeNotesSetupCollector:
         self._changed.set()
         self.protocol.cancel()
         self._service._notes_setup_detach(self)  # Outside acquisition lock, owned detach only.
+
+
+@dataclass(frozen=True)
+class NativeNotesSetupView:
+    addition: bool
+    export: dict
+    peer: tuple
+    contacts: tuple
+
+
+class NativeNotesSetupFlow:
+    """Explicit native candidate -> conscious chooser -> before-dialog CAS.
+
+    The native caller runs GTK on its main thread; no book/private/tree lock is
+    held while the chooser runs. This class creates no UI thread or registration.
+    """
+    def __init__(self, consent, capture_current, book_gate, require_usable=lambda: None):
+        from magnolie_contact_notes_consent import NativeNotesChoiceStore
+        if (type(consent) is not NativeNotesChoiceStore or
+                not all(callable(value) for value in (capture_current, book_gate, require_usable))):
+            raise TypeError('notes_setup_native_dependencies_required')
+        self._consent, self._capture, self._book_gate, self._usable = consent, capture_current, book_gate, require_usable
+
+    def configure(self, candidate, choose_native):
+        if type(candidate) is not NativeNotesSetupCandidate or not callable(choose_native):
+            raise PermissionError('notes_setup_native_candidate_and_chooser_required')
+        with self._book_gate():
+            self._usable()
+            export = candidate.display()
+            decision = self._consent.begin_setup_decision()
+            peer = candidate.peer
+        contacts = tuple(json.loads(json.dumps(contact, ensure_ascii=False))
+            for contact in decision.snapshot.book().get('kontakte', []))
+        selected = choose_native(NativeNotesSetupView(decision.is_addition, export, peer, contacts))
+        self._usable()
+        if selected is None:
+            return False
+        with self._book_gate():
+            self._usable()
+            choice = candidate.choose(decision.snapshot, self._capture, lambda _: selected)
+            self._usable()
+            decision.commit(choice)
+        return True

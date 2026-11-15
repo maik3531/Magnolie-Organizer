@@ -1766,6 +1766,33 @@ are unchanged and prior Windows checks are retained. No Linux GTK dialog, actual
 peer/acquisition UI ingress or startup registration is enabled yet. Installed
 permissions/keyring, native GUI/provider/device and package acceptance remain open.
 
+### Linux native candidate flow and GTK dialog adapter (#636, partial)
+
+The Linux native-only candidate entry now connects the real GTK dialog source to
+the same before-dialog decision flow. It requires the main thread, one prompt,
+an unlocked/nonclosing native context and the same genuine store. It is not an IPC
+factory or startup/acquisition registration. The dialog has no preselected contact,
+defaults to Cancel and enables updates only after explicit selection. Native peer
+ID/key, exact share/setup and local ID/UID are shown as sanitized literal text,
+not markup or identity/name matching.
+
+Chooser callbacks receive detached views outside book/private/tree gates. After
+return, usable context, exact candidate/current origin, saved snapshot/primary and
+native ID/UID are rechecked before the one-use initial/addition decision commits.
+Cancellation, source/permission changes, a real save during selection, stopped
+acquisition and display aliases cannot grant or replace an original implicitly.
+
+Nineteen actual-flow/window-entry cases pass using synthetic native choosers and
+real encrypted saves/FS1. Six additional cases execute the actual GTK adapter with
+controlled widgets for Cancel, unselected Apply, explicit IDs, literal/bidi-safe
+display and guaranteed dialog cleanup on error. No real GTK display is opened;
+this is not installed GUI acceptance. Existing 309 Notes and 57 acquisition/
+decision/identity/opt-out results are retained: comparison confirms that only new
+native flow/dialog definitions were added and all previously tested module ASTs,
+consent/return source inputs are unchanged. Actual peer/acquisition UI ingress,
+existing-key session composition/startup recovery and installed/provider/device/
+package acceptance remain open; production stays OFF/unadvertised.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

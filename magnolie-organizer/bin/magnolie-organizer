@@ -25180,6 +25180,26 @@ class Fenster(_FENSTER_BASIS):
             return NativeNotesController(self._notes_original_choice_store_hole(), outcomes,
                 lambda: self._daten_sperre)
 
+    def _notes_original_native_setup_candidate(self, candidate, choose_native=None):
+        """Explicit native-only entry; no IPC/startup/acquisition registration."""
+        from magnolie_contact_notes_setup import NativeNotesSetupFlow
+        if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_setup_active', False)):
+            raise PermissionError('notes_setup_native_context_required')
+        store = self._notes_original_choice_store_hole()
+        def usable():
+            if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    getattr(self, '_notes_original_choice_store', None) is not store):
+                raise PermissionError('notes_setup_native_context_changed')
+        usable()
+        self._notes_original_setup_active = True
+        try:
+            choose = (lambda view: notes_original_freigabe_dialog(self, view)) if choose_native is None else choose_native
+            flow = NativeNotesSetupFlow(store, self._kontakt_quellen_buchaufnahme, lambda: self._daten_sperre, usable)
+            return flow.configure(candidate, choose)
+        finally:
+            self._notes_original_setup_active = False
+
     def _baum_notes_native_empfangen(self, peer, body, origin, transport):
         """Stage only; never wait for book/consent IO inside the tree gate."""
         from magnolie_contact_notes_controller import NativeNotesController
@@ -30291,6 +30311,46 @@ def kontakt_quellen_wlan_verfuegbar():
         return tuple(_kontakt_quellen_kernel_route(family) for family in families) == before
     except Exception:
         return False
+
+
+def notes_original_freigabe_dialog(parent, view):
+    """GTK main-thread native choice only, no default contact or name matching."""
+    from magnolie_contact_notes_setup import NativeNotesSetupView
+    if Gtk is None or threading.current_thread() is not threading.main_thread() or type(view) is not NativeNotesSetupView:
+        raise RuntimeError('notes_setup_native_dialog_unavailable')
+    def display(value):
+        return ''.join(character for character in str(value) if character.isprintable() and character not in
+            '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
+    dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    try:
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        accept = dialog.add_button(_("Allow updates"), Gtk.ResponseType.APPLY)
+        accept.set_sensitive(False)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL)
+        dialog.set_default_size(720, 380)
+        content = dialog.get_content_area(); content.set_spacing(12); content.set_border_width(12)
+        text = (_("Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi.")
+            if view.addition else
+            _("Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."))
+        explanation = Gtk.Label(label=text)
+        explanation.set_line_wrap(True); explanation.set_max_width_chars(80); explanation.set_xalign(0)
+        content.pack_start(explanation, False, False, 0)
+        source = Gtk.Label(label='\n'.join(display(value) for value in (*view.peer, view.export['share_id'], view.export['setup_id'])))
+        source.set_line_wrap(True); source.set_max_width_chars(80); source.set_xalign(0); source.set_selectable(True)
+        content.pack_start(source, False, False, 0)
+        contacts = Gtk.ComboBoxText()
+        for contact in view.contacts:
+            label = ' '.join(str(contact.get(field) or '') for field in ('vorname', 'nachname', 'firma'))
+            contacts.append_text(display(label) + ' — ' + display(contact.get('id', '')) + ' — ' + display(contact.get('uid', '')))
+        contacts.set_active(-1)
+        contacts.connect('changed', lambda selection: accept.set_sensitive(selection.get_active() >= 0))
+        content.pack_start(contacts, False, False, 0)
+        dialog.show_all()
+        if dialog.run() != Gtk.ResponseType.APPLY or contacts.get_active() < 0:
+            return None
+        return view.contacts[contacts.get_active()].get('id')
+    finally:
+        dialog.destroy()
 
 
 def kontakt_quellen_freigabe_dialog(parent, choices, selected):
