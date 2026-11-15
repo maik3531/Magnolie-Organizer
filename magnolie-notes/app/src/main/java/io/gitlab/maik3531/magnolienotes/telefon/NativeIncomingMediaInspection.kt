@@ -5,6 +5,7 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.os.Looper
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.system.Os
 import android.system.OsConstants
@@ -46,6 +47,7 @@ internal object NativeIncomingMediaInspection {
 
     internal fun inspect(descriptor: FileDescriptor, bytes: Long, kind: GalleryMediaType, mimeType: String,
         photosOnly: Boolean = false, ensureNative: () -> Unit): NativeIncomingMediaObservation {
+        if (Build.VERSION.SDK_INT < 27) fail("gallery_incoming_media_api27_required")
         if (Looper.myLooper() == Looper.getMainLooper() || bytes !in 1..DeviceFileManifest.MAX_FILE_BYTES)
             fail("gallery_incoming_media_io_required")
         ensureNative()

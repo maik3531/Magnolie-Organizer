@@ -298,6 +298,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
     }
 
     private fun originalStream(uri: Uri, cancellation: CancellationSignal): InputStream {
+        if (Build.VERSION.SDK_INT < 29) fail("gallery_archive_native_origin_required")
         val requested = MediaStore.setRequireOriginal(uri)
         return if (Build.VERSION.SDK_INT >= 31) {
             val options = Bundle().apply { putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true) }

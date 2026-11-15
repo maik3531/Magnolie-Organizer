@@ -205,6 +205,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         cancellation: CancellationSignal) = verifyOriginalBytes(uri, size, hash, cancellation, owner::requireCurrent)
 
     private fun verifyOriginalBytes(uri: Uri, size: Long, hash: String, cancellation: CancellationSignal, ensureCurrent: () -> Unit) {
+        if (Build.VERSION.SDK_INT < 30) fail("gallery_incoming_io_android30_required")
         fun current() { cancellation.throwIfCanceled(); ensureCurrent() }
         current(); val original = MediaStore.setRequireOriginal(uri)
         val stream = if (Build.VERSION.SDK_INT >= 31) {
@@ -235,7 +236,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
      * head; retries verify the exact visible row without another update/copy. */
     internal fun publish(owner: NativeGalleryIncomingOwner, selected: GalleryIncomingPublication,
         cancellation: CancellationSignal = CancellationSignal()): GalleryIncomingPublication {
-        if (Looper.myLooper() == Looper.getMainLooper()) fail("gallery_incoming_io_android30_required")
+        if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30) fail("gallery_incoming_io_android30_required")
         fun current() { cancellation.throwIfCanceled(); owner.requireCurrent() }
         current()
         val body = selected.body; val savedRow = selected.row ?: fail("gallery_incoming_verified_copy_required")
@@ -494,6 +495,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
 
     internal fun readVerifiedPcArchiveChunks(archive: NativeGalleryTrashArchive, owner: NativeGalleryPublishedInspection,
         permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal, consume: (ByteArray) -> Unit) {
+        if (Build.VERSION.SDK_INT < 30) fail("gallery_incoming_io_android30_required")
         fun current() { cancellation.throwIfCanceled(); requireVerifiedArchive(archive, owner, permit) }
         current(); val publication = owner.selected; val row = publication.row!!; val size = publication.body.long("size")
         val uri = Uri.parse(row.string("uri")); val mime = publication.body.string("mime_type")
@@ -718,6 +720,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
 
     private fun observeRow(kind: GalleryMediaType, current: () -> Unit, uri: Uri, mimeType: String, bytes: LongRange,
         pending: Long?): NativeRow {
+        if (Build.VERSION.SDK_INT < 30) fail("gallery_incoming_io_android30_required")
         current()
         val volume = MediaStore.VOLUME_EXTERNAL_PRIMARY
         val id = uri.lastPathSegment?.toLongOrNull()?.takeIf { it > 0 } ?: fail("gallery_incoming_insert_invalid")

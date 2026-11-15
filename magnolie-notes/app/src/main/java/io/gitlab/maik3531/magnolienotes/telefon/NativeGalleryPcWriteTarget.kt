@@ -1,6 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.os.CancellationSignal
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.system.Os
 import android.system.OsConstants
@@ -55,6 +56,7 @@ internal class NativeGalleryPcWriteTarget internal constructor(private val descr
         requireCurrent()
     }
     internal fun requireCurrent() {
+        if (Build.VERSION.SDK_INT < 30) fail()
         deadline.requireCurrent()
         if (closed.get() || !NativeGalleryMediaIoLane.isOwnedBy(lane)) fail()
         cancellation.throwIfCanceled()
@@ -227,6 +229,7 @@ internal class NativeGalleryPcWriteTarget internal constructor(private val descr
     internal fun remainingWrittenMs(): Long = minOf(deadline.remainingMs(), grant.request.admission.remainingMs())
     companion object {
         internal fun witness(descriptor: ParcelFileDescriptor): JsonObject {
+            if (Build.VERSION.SDK_INT < 27) fail()
             val stat = Os.fstat(descriptor.fileDescriptor)
             return buildJsonObject {
                 put("device", stat.st_dev); put("inode", stat.st_ino); put("mode", stat.st_mode); put("links", stat.st_nlink)

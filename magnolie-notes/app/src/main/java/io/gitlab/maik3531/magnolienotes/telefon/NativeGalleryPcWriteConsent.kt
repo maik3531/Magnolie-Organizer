@@ -126,6 +126,7 @@ internal class NativeGalleryPcWriteRequest private constructor(internal val admi
         internal fun prepare(context: android.content.Context, rows: NativeGalleryIncomingRows, owner: NativeGalleryPublishedInspection,
             archive: NativeGalleryTrashArchive, permit: NativeGalleryTrashBookPermit, entry: NativeGalleryArchiveEntry,
             admission: NativeGalleryPcWriteAdmission): NativeGalleryPcWriteRequest {
+            if (Build.VERSION.SDK_INT < 30) fail()
             rows.requireVerifiedArchive(archive, owner, permit)
             admission.requireOwner(owner, permit)
             val origin = archive.verifiedOrigin(entry, permit)
