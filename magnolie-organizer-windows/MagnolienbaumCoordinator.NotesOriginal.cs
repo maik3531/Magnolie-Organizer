@@ -49,7 +49,8 @@ internal sealed partial class MagnolienbaumCoordinator
         // The explicitly injected native callback MUST stage only: no book lock,
         // file/key access, writer waits, renderer dispatch or networking here.
         var receive = NotesOriginalReceive;
-        if (receive is null || String(body, "art") is not ("kontakt_original_aushandlung" or
+        var setup = notesSetupReceive;
+        if (receive is null && setup is null || String(body, "art") is not ("kontakt_original_aushandlung" or
                 "kontakt_original_export" or "kontakt_original_ergebnis" or "kontakt_original_abschlussstatus"))
             throw new InvalidOperationException("notes_original_native_receiver_required");
         var canonical = MagnolienbaumCrypto.Canonical(body);
@@ -59,7 +60,13 @@ internal sealed partial class MagnolienbaumCoordinator
             new(incoming.OwnId, incoming.OwnPublicKey), transport, SHA256.HashData(canonical), incoming.Expires, incoming.NotesGeneration);
         var origin = new NativeNotesOrigin(proof);
         origin.RequireCurrent(body, transport);
-        if (!receive(peer.DeepClone().AsObject(), body.DeepClone().AsObject(), origin, transport))
+        var setupStaged = String(body, "art") is ("kontakt_original_aushandlung" or "kontakt_original_export") &&
+            setup?.Invoke(body.DeepClone().AsObject(), origin, transport) == true;
+        // Our setup challenge is exclusive. Exports may also reach an already
+        // granted worker; results/terminal history never go through setup.
+        var exclusive = setupStaged && String(body, "art") == "kontakt_original_aushandlung";
+        var workerStaged = !exclusive && receive?.Invoke(peer.DeepClone().AsObject(), body.DeepClone().AsObject(), origin, transport) == true;
+        if (!setupStaged && !workerStaged)
             throw new InvalidOperationException("notes_original_receive_held");
         origin.RequireCurrent(body, transport);
         WakeNotesMaintenance(); // Bounded semaphore release only, no native/file/network work here.

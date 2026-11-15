@@ -1654,6 +1654,35 @@ work and the installed GUI/provider/device/package acceptance gates. The draft
 remains unadvertised and production OFF; no user original, notebook, actual phone
 key, device, installed application or package was accessed or activated here.
 
+### Windows bounded setup export acquisition (#636, partial)
+
+An explicitly created native setup collector can now share authenticated receive
+with an existing controller without replacing its callback/owner. It uses a
+separate exclusive setup slot, one exact native protocol challenge, a two-minute
+lifetime and at most eight exports. Receive does no book/key IO, chooser, source
+publication or writer work. A matching setup negotiation is not passed into an
+ongoing worker negotiation; exports can still reach already authorized workers.
+Results and terminal frames are not even presented to the setup observer.
+
+Deferred opaque candidates require genuine current offer/export origins, exact
+pins/frame identity and current acquisition ownership. Display returns copies.
+The existing native choice constructor still needs a conscious existing-contact
+selection and exact current native snapshot. Collection/contact choice alone
+cannot produce durable consent. Conflicts hold their bounded source slot;
+duplicates invalidate stale candidate references. Export-before-offer waits for
+the genuine negotiation. Cancel, expiry, Stop, foreign slot or an intervening
+book save cannot become permission; owned detach retains the existing worker.
+
+Eighteen acquisition cases plus one shared-receiver result/terminal-isolation
+case pass on host and noninteractive Windows. Eleven affected readiness/worker
+cases, full managed group with joined DOM/native wire and original-contact/private
+file regressions pass, the latter also on Windows. Release CoreTests/BASE are
+clean. No setup collector is registered by startup or renderer command, no modal
+dialog is opened and no grant is published by this component. Actual native
+dialog/decision publication, setup-time decision CAS, restart registration and
+Linux counterpart remain open in #636. This Windows step is not Linux or installed
+GUI/device/provider acceptance; all existing pauses remain effective.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

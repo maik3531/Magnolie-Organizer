@@ -84,6 +84,8 @@
     <Compile Include="..\NotesOriginalJournalCrypto.cs" Link="NotesOriginalJournalCrypto.cs" />
     <Compile Include="..\NotesOriginalExistingJournalKey.cs" Link="NotesOriginalExistingJournalKey.cs" />
     <Compile Include="..\NotesOriginalNativeSession.cs" Link="NotesOriginalNativeSession.cs" />
+    <Compile Include="..\NotesOriginalSetupCollector.cs" Link="NotesOriginalSetupCollector.cs" />
+    <Compile Include="..\MagnolienbaumCoordinator.NotesSetup.cs" Link="MagnolienbaumCoordinator.NotesSetup.cs" />
     <Compile Include="..\NotesOriginalRequestIntents.cs" Link="NotesOriginalRequestIntents.cs" />
     <Compile Include="..\NotesOriginalRequestRecovery.cs" Link="NotesOriginalRequestRecovery.cs" />
     <Compile Include="..\NotesOriginalBootstrapSave.cs" Link="NotesOriginalBootstrapSave.cs" />

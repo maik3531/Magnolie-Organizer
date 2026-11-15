@@ -525,6 +525,7 @@ internal sealed partial class MagnolienbaumCoordinator : IDisposable
         CancellationTokenSource? cancellation;
         lock (gate) { notesReceiveGeneration++; cancellation = serviceCancellation; serviceCancellation = null; }
         StopNotesOriginalPipeline();
+        StopNotesSetup();
         if (cancellation is null) return;
         cancellation.Cancel();
         foreach (var listener in listeners) listener.Stop();
