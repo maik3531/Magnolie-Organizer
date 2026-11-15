@@ -1403,6 +1403,40 @@ Linux already separates these authorities in `_verify_history_context` versus
 ported without changing Linux/Notes inputs or claiming new Linux/physical Android
 acceptance. Production registration, setup and device/package pauses are unchanged.
 
+### Windows bounded owner controller and deferred plans (#633)
+
+The explicitly injected controller now stages only bounded authenticated FS1 frames
+at receive time; it performs no book/key/readiness callbacks there. Duplicates replace
+their queue entry rather than growing it. A separate serial deferred turn uses the
+existing native book gate for private source refresh, exact owner correlation and
+at most one rotating physical-source lookup. Genuine saved-ACK history has priority;
+corrupt or mismatched ACK history never downgrades to unconfirmed recovery. Peer,
+queue and owner budgets and isolated holds prevent one source from blocking others.
+
+Native work offers carry only the existing typed bootstrap or metadata invocations.
+Owner guards add restrictions to queued writes, not permissions. Actual completion
+requires the real native writer witness before independent ACK sealing. A failed
+save drops only memory ownership; its durable physical hold survives. Stale whole-
+book snapshots demote to same-UUID local recovery and preserve other source saves.
+Exact independent terminal proof remains mandatory for retirement and next-UUID
+slot reuse; old completion cannot overwrite a new request.
+
+Opaque transport plans use only the reserved typed FS1 lanes, rotate among owners
+and bound retries to 30 seconds. A new genuine save can promptly schedule its ACK.
+Expired offers renew the challenge and cancel old queued writer/bootstrap/process
+proofs without releasing disk holds. Restored work queries first and never recreates
+provider-send authority. Cached native readiness is only an additional restriction.
+
+Seventeen synthetic receive/deferred/actual-writer cases pass on the host (including
+the full managed group) and an explicit controller-only noninteractive Windows
+slice: fresh/reopened/physical-only/history discovery, corrupt-history hold, bounded
+duplicate staging, readiness, Stop/failure, stale rebase, retry bounds, counterfeit
+plan, expired-offer renewal, exact next UUID and two-source fairness/conflict isolation.
+Release CoreTests and BASE builds are clean. No production factory, key backend,
+maintenance pump, UI/SavedBook dispatch or inline writer-completion callback is
+registered by this layer. Tests explicitly dispatch the actual native writer; this
+is not yet automatic installed operation or device/provider acceptance.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

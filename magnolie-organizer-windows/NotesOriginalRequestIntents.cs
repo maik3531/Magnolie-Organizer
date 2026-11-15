@@ -291,6 +291,15 @@ internal sealed partial class NotesOriginalRequestIntents
             directory.Read("r-" + key + ".json", Limit) == stored.Value.Encrypted;
     }
 
+    internal void ForgetLocalOwnership(NotesOriginalPendingResult pending)
+    {
+        lock (gate)
+        {
+            foreach (var key in fresh.Where(pair => ReferenceEquals(pair.Value.Pending, pending)).Select(pair => pair.Key).ToArray()) fresh.Remove(key);
+            recovered.Remove(pending);
+        }
+    } // In-memory nonce/context retirement only. Durable physical/archive holds remain.
+
     private JsonObject RequireQuery(QueryProof proof, NotesOriginalNegotiation protocol)
     {
         lock (gate) if (generation != proof.Generation) throw new InvalidOperationException("notes_request_query_process_expired");

@@ -193,6 +193,14 @@ internal sealed class NotesOriginalPendingResult
     private bool held;
     private ContactSourceSavedCommit? commitOwner;
     private NativeCommit? commit;
+    private Action? ownerGuard;
+    internal void AttachOwnerGuard(Action guard)
+    {
+        ArgumentNullException.ThrowIfNull(guard);
+        if (Interlocked.CompareExchange(ref ownerGuard, guard, null) is not null) throw new InvalidOperationException("notes_pending_owner_already_bound");
+    } // Additional native restriction only; never a source grant.
+    internal bool BeforeSnapshotCurrent()
+    { var current = capture(); return current?.SavedBook == snapshot.SavedBook && current.Text == snapshot.Text; }
     private sealed record Result(JsonObject Body, MagnolienbaumCoordinator.NativeNotesOrigin Origin, string Transport);
     internal sealed record NativeCommit(ContactSourceCommitOffer Offer, string Text, ContactSourceSavedCommit.SaveInvocation Invocation);
 
@@ -218,7 +226,11 @@ internal sealed class NotesOriginalPendingResult
     internal static NotesOriginalPendingResult FromRecovery(NotesOriginalRequestIntents.RecoveryContext recovery, NativeActorBookSnapshot snapshot) => new(recovery, snapshot);
 
     private void RequireSelection()
-    { if (recovery is not null) recovery.RequireCurrent(); else choice!.RequireCurrent(); }
+    {
+        ownerGuard?.Invoke();
+        if (recovery is not null) recovery.RequireCurrent(); else choice!.RequireCurrent();
+        ownerGuard?.Invoke();
+    }
 
     private (MagnolienbaumCoordinator.NotesPins Peer, MagnolienbaumCoordinator.NotesPins Own) Pins()
     {
@@ -233,6 +245,7 @@ internal sealed class NotesOriginalPendingResult
     internal (string Binding, JsonObject Frame) CaptureRequestIntention()
     {
         if (recovery is not null) throw new InvalidOperationException("notes_request_recovered_pending_is_not_provider_send_authority");
+        ownerGuard?.Invoke();
         choice!.RequireCurrent();
         var current = capture();
         if (current?.SavedBook != snapshot.SavedBook || current.Text != snapshot.Text)
@@ -242,6 +255,7 @@ internal sealed class NotesOriginalPendingResult
         var context = choice.RequestBinding();
         var source = choice.PrivateSourceBinding();
         var before = ContactSourceUpdateRun.SavedContacts(snapshot).OfType<JsonObject>().Single(value => NotesOriginalSchema.Text(value, "id") == id);
+        ownerGuard?.Invoke();
         return (context.Binding, new JsonObject { ["version"] = 1, ["state"] = "request_pending", ["request"] = Request(),
             ["request_sha256"] = requestHash, ["source"] = source, ["source_seal"] = context.Seal, ["export"] = context.Export,
             ["local_before"] = before.DeepClone(), ["book_before"] = new JsonArray(snapshot.SavedBook.Sha256, NativeBookJson.Hash(JsonNode.Parse(snapshot.Text)!)) });

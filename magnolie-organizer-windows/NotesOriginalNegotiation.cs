@@ -11,6 +11,7 @@ internal sealed class NotesOriginalNegotiation
     private readonly string challenge = Guid.NewGuid().ToString();
     private bool active = true;
     private Offer? offer;
+    internal bool HasOffer { get { lock (gate) return active && offer is not null; } }
     private sealed record Offer(JsonObject Body, MagnolienbaumCoordinator.NativeNotesOrigin Origin, string Transport);
 
     internal NotesOriginalNegotiation(MagnolienbaumCoordinator.NotesPins peer, MagnolienbaumCoordinator.NotesPins own)

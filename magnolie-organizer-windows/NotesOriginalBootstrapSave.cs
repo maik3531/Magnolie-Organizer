@@ -55,6 +55,7 @@ internal sealed class NotesOriginalBootstrapSave(object proof)
         native.Context.RequireCurrent();
         if (native.Context.CurrentSaved() is not null || native.Context.BootstrapText() != native.Text)
             throw new InvalidOperationException("notes_bootstrap_exact_current_model_required");
+        native.Context.RequireCurrent();
     }
 
     internal void Write(string payload, Action<string> actualNativeWriter)

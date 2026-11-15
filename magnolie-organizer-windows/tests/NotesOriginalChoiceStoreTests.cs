@@ -55,6 +55,7 @@ internal static class NotesOriginalChoiceStoreTests
         private string transport = "";
         internal NotesOriginalPendingResult? PendingResult;
         internal NotesOriginalNegotiation? Protocol;
+        internal NotesOriginalController? Controller;
         internal JsonObject RemoteState => sender;
         internal JsonObject RemotePeer => target;
         internal bool CaptureRecovery;
@@ -89,6 +90,7 @@ internal static class NotesOriginalChoiceStoreTests
                 receiving = true;
                 try
                 {
+                    if (Controller is not null) return Controller.Stage(new JsonObject(), body, proof, mid);
                     if (body["art"]!.GetValue<string>() == "kontakt_original_aushandlung" && Protocol is not null)
                         Protocol.Accept(body, proof, mid);
                     else if (!CaptureRecovery && body["art"]!.GetValue<string>() == "kontakt_original_ergebnis" && PendingResult is not null)
@@ -618,6 +620,231 @@ internal static class NotesOriginalChoiceStoreTests
             Hold(() => requests.Seal(pending));
         }
         Console.WriteLine($"Notes fresh VERIFIED local recovery: {modes.Length} synthetic actual-writer cases passed (real bootstrap then metadata save, no provider replay).");
+    }
+
+    internal static async Task ControllerAsync(string root)
+    {
+        var modes = new[] { "fresh", "bootstrap", "unconfirmed", "physical-only", "history", "corrupt-history", "stop-save", "duplicate", "readiness", "stale-snapshot",
+            "retry", "renew-save", "next-uuid", "failed-save", "counterfeit-plan" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            var requestRoot = Path.Combine(h.Root, "requests"); var ackRoot = Path.Combine(h.Root, "acks");
+            ContactSourcePrivateFiles Boundary(string path) => new(path, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            JsonObject Result(JsonObject request) {
+                var value = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                    ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) value[name] = request[name]!.DeepClone();
+                return value;
+            }
+            JsonObject? original = null;
+            if (mode is "unconfirmed" or "physical-only" or "history" or "corrupt-history")
+            {
+                var oldRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key, phase =>
+                { if (mode == "physical-only" && phase == "physical-written") throw new IOException("synthetic-physical-crash"); });
+                var oldPending = h.Choice.CreatePending()!; original = oldPending.Request();
+                if (mode == "physical-only") Hold(() => oldRequests.Seal(oldPending)); else oldRequests.Seal(oldPending);
+                if (mode is "history" or "corrupt-history")
+                {
+                    h.PendingResult = oldPending; h.Send(Result(original));
+                    var native = oldPending.PrepareCommit(h.Host.SourceResultCommit);
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync(native.Offer.Token, JsonNode.Parse(native.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "Controller historical fixture actual save failed");
+                    new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, oldRequests).Seal(oldPending);
+                    if (mode == "corrupt-history") System.IO.File.WriteAllText(Directory.GetFiles(ackRoot, "a-*.json").Single(), "{}");
+                }
+                oldRequests.Stop();
+            }
+            if (mode is "bootstrap" or "unconfirmed" or "physical-only" or "history" or "corrupt-history")
+            {
+                await h.Coordinator.StopAsync(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
+            }
+            var requests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests);
+            var ready = mode != "readiness";
+            long now = 0;
+            h.Controller = new(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => { h.Primary(); return ready; }, perPeer: 2, monotonicMilliseconds: () => now);
+            var controller = h.Controller;
+            TestAssert.That((await controller.ProcessOneAsync()).Kind == "waiting" && controller.Counts.Peers == 1, "Controller failed bounded private peer refresh");
+            var protocol = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!;
+            var offer = protocol.Probe(); offer["antwort"] = true;
+            h.NoCallbacks = true; h.Send(offer); h.NoCallbacks = false;
+            TestAssert.That((await controller.ProcessOneAsync()).Kind == "negotiated", "Deferred native negotiation failed");
+            NotesOriginalController.Work work;
+            if (original is not null)
+            {
+                work = await controller.ProcessOneAsync();
+                if (mode == "corrupt-history")
+                { TestAssert.That(work.Kind == "held" && controller.Counts.Owners == 0, "Corrupt genuine ACK downgraded into unconfirmed recovery"); controller.Stop(); continue; }
+                TestAssert.That(work.Kind == "query" && work.RequestId == original["request_id"]!.GetValue<string>() &&
+                    (work.Invocation is NotesOriginalSavedAckIntents.HistoryQuery) == (mode == "history"), "Discovery lost UUID or genuine saved-history preference");
+                if (mode == "history")
+                {
+                    var status = Result(original); status["art"] = "kontakt_original_abschlussstatus"; status["phase"] = "settled";
+                    status["desktop_sha256"] = outcomes.LoadHeld(NotesOriginalSchema.Hash(original))!["saved_book"]![2]!.DeepClone();
+                    h.NoCallbacks = true; h.Send(status); h.NoCallbacks = false;
+                    TestAssert.That((await controller.ProcessOneAsync()).Kind == "settled" && controller.Counts.Owners == 0 && h.Host.Snapshot() is null,
+                        "Historical controller settlement manufactured a writer or failed retirement"); controller.Stop(); continue;
+                }
+                h.NoCallbacks = true; h.Send(Result(original)); h.NoCallbacks = false;
+                work = await controller.ProcessOneAsync();
+            }
+            else
+            {
+                h.NoCallbacks = true;
+                for (var n = 0; n < (mode == "duplicate" ? 50 : 1); n++) h.Send(h.Export);
+                h.NoCallbacks = false;
+                TestAssert.That(controller.Counts.Queued == 1, "Duplicate authenticated staging grew the bounded queue");
+                work = await controller.ProcessOneAsync();
+                if (mode == "readiness")
+                { TestAssert.That(work.Kind == "waiting" && !Directory.Exists(requestRoot), "Readiness manufactured request or bypassed UI restriction"); ready = true; work = await controller.ProcessOneAsync(); }
+            }
+            if (work.Kind == "bootstrap")
+            {
+                TestAssert.That(h.Host.Snapshot() is null, "Controller bootstrap manufactured saved observation");
+                TestAssert.That((await h.Host.SaveNotesBootstrapAsync((NotesOriginalBootstrapSave)work.Invocation!))["ok"]!.GetValue<bool>(), "Controller typed bootstrap native save failed");
+                controller.AfterNativeSave(work); work = await controller.ProcessOneAsync();
+            }
+            if (original is null)
+            {
+                TestAssert.That(work.Kind == "request", "Export controller did not seal fresh native request");
+                original = ((NotesOriginalPendingResult)work.Invocation!).Request();
+                if (mode is "retry" or "counterfeit-plan")
+                {
+                    var plan = await controller.NextTransportAsync();
+                    TestAssert.That(plan?.Kind == "request" && await controller.NextTransportAsync() is null, "Controller did not enforce bounded owner retry");
+                    TestAssert.That(!await plan!.SendAsync(h.Coordinator, () => false), "Offline controller planned delivery or fabricated authority");
+                    now = 29_999; TestAssert.That(await controller.NextTransportAsync() is null, "Controller retry occurred before 30 seconds");
+                    now = 30_000; TestAssert.That((await controller.NextTransportAsync())?.Kind == "request", "Controller failed bounded request retry");
+                    if (mode == "counterfeit-plan") await TestAssert.ThrowsAsync<InvalidOperationException>(async () =>
+                        { _ = await new NotesOriginalController.TransportPlan(new object()).SendAsync(h.Coordinator, () => true); }, "Counterfeit transport plan accepted");
+                }
+                if (mode == "stale-snapshot")
+                {
+                    var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["unrelated-later-edit"] = "preserve";
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Controller stale fixture real edit failed");
+                }
+                h.NoCallbacks = true; h.Send(Result(original)); h.NoCallbacks = false;
+                work = await controller.ProcessOneAsync();
+            }
+            TestAssert.That(work.Kind == "save", "Controller did not offer deferred exact native metadata save");
+            var commit = (NotesOriginalPendingResult.NativeCommit)work.Invocation!;
+            if (mode == "renew-save")
+            {
+                var offered = typeof(NotesOriginalNegotiation).GetField("offer", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(protocol)!;
+                var origin = (MagnolienbaumCoordinator.NativeNotesOrigin)offered.GetType().GetProperty("Origin")!.GetValue(offered)!;
+                var native = origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(origin)!;
+                native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+                TestAssert.That((await controller.NextTransportAsync())?.Kind == "probe", "Expired offer did not renew typed probe");
+                var replacement = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!;
+                TestAssert.That(replacement.Probe()["challenge"]!.GetValue<string>() != offer["challenge"]!.GetValue<string>(), "Renewal reused old challenge");
+                var oldBytes = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                TestAssert.That(!(await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject()))["ok"]!.GetValue<bool>() &&
+                    System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(oldBytes), "Renewal did not revoke old queued writer");
+                offer = replacement.Probe(); offer["antwort"] = true; h.Send(offer);
+                TestAssert.That((await controller.ProcessOneAsync()).Kind == "negotiated" && (await controller.NextTransportAsync())?.Kind == "query",
+                    "Renewed owner recreated provider-send proof instead of query");
+                h.Send(Result(original)); work = await controller.ProcessOneAsync();
+                TestAssert.That(work.Kind == "save" && work.RequestId == original["request_id"]!.GetValue<string>(), "Fresh renewed result lost same UUID local recovery");
+                commit = (NotesOriginalPendingResult.NativeCommit)work.Invocation!;
+            }
+            var before = System.IO.File.ReadAllBytes(h.Host.DataPath);
+            if (mode == "stop-save") controller.Stop();
+            if (mode == "failed-save") h.Host.FailAfterPrimary = true;
+            var saved = await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject());
+            if (mode == "stop-save")
+            {
+                TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before), "Stop did not revoke queued controller save");
+                Hold(() => controller.AfterNativeSave(work)); continue;
+            }
+            if (mode == "failed-save")
+            {
+                TestAssert.That(!saved["ok"]!.GetValue<bool>(), "Synthetic writer failure unexpectedly succeeded");
+                Hold(() => controller.AfterNativeSave(work));
+                TestAssert.That(controller.Counts.Owners == 0 && requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null,
+                    "Failed writer retained memory save lane or released durable slot"); controller.Stop(); continue;
+            }
+            TestAssert.That(saved["ok"]!.GetValue<bool>(), "Actual controller metadata writer failed");
+            controller.AfterNativeSave(work);
+            TestAssert.That((await controller.NextTransportAsync())?.Kind == "ack", "Actual newly saved authority did not permit prompt typed ACK");
+            TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(original)) is not null, "Controller lacked genuine independent post-save ACK history");
+            if (mode == "stale-snapshot") TestAssert.That(JsonNode.Parse(h.Host.CurrentNativeText!)!["unrelated-later-edit"]!.GetValue<string>() == "preserve", "Controller stale rebase lost unrelated edit");
+            var terminal = Result(original); terminal["art"] = "kontakt_original_abschlussstatus"; terminal["phase"] = "settled"; terminal["desktop_sha256"] = h.Host.Saved()!.Sha256;
+            h.NoCallbacks = true; h.Send(terminal); h.NoCallbacks = false;
+            TestAssert.That((await controller.ProcessOneAsync()).Kind == "settled" && controller.Counts.Owners == 0 && controller.Counts.Queued == 0,
+                "Controller actual-save terminal lifecycle did not retire owner");
+            if (mode == "next-uuid")
+            {
+                var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["kontakte"]![0]!["vorname"] = "Next deliberate local value";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Next local contact save failed");
+                var export = h.Export.DeepClone().AsObject(); var provider = export["kontakt"]!.AsObject();
+                foreach (var pair in original["ziel"]!.AsObject()) provider[pair.Key] = pair.Value?.DeepClone();
+                export["native_revision"] = 2L; export["before_basis"] = new string('d', 64); export["content_sha256"] = NotesOriginalReturnHash.ContentHash(provider);
+                h.Send(export); var next = await controller.ProcessOneAsync();
+                TestAssert.That(next.Kind == "request" && next.RequestId != original["request_id"]!.GetValue<string>(), "Controller failed exact terminal-proven next UUID reuse");
+            }
+            controller.Stop();
+        }
+        Console.WriteLine($"Notes bounded native controller: {modes.Length} synthetic receive/deferred/actual-writer cases passed (no registered pump or UI dispatch).");
+    }
+
+    internal static async Task ControllerSourcesAsync(string root)
+    {
+        foreach (var conflict in new[] { false, true })
+        {
+            using var h = new Fixture(Path.Combine(root, conflict ? "conflict" : "fairness"));
+            var book = h.Book.DeepClone().AsObject(); var second = book["kontakte"]![0]!.DeepClone().AsObject(); second["id"] = "second-id"; second["uid"] = "second-uid";
+            book["kontakte"]!.AsArray().Add(second);
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", book))["ok"]!.GetValue<bool>(), "Controller multi-source fixture save failed");
+            var export = h.Export.DeepClone().AsObject(); export["share_id"] = "second-source-share"; export["setup_id"] = "33333333-3333-4333-8333-333333333333";
+            h.Send(export); var observed = h.RecoveryObservation;
+            var secondChoice = new NotesOriginalExportChoice(observed.Body, observed.Origin, observed.Transport, h.Host.Snapshot()!, h.Host.Snapshot, _ => "second-id", () => { });
+            h.Store.Approve([h.Choice, secondChoice]); h.Host.NativeNotesChoices = h.Store;
+            ContactSourcePrivateFiles Boundary(string path) => new(Path.Combine(h.Root, path), controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var requests = new NotesOriginalRequestIntents(Boundary("requests"), Key); var outcomes = new NotesOriginalSavedAckIntents(Boundary("acks"), Key, requests);
+            long now = 0;
+            h.Controller = new(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => true, perPeer: 2, monotonicMilliseconds: () => now);
+            var controller = h.Controller; await controller.ProcessOneAsync();
+            var protocol = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!; var offer = protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+            await controller.ProcessOneAsync(); h.NoCallbacks = true; h.Send(h.Export); h.Send(export); h.NoCallbacks = false;
+            var firstWork = await controller.ProcessOneAsync(); var secondWork = await controller.ProcessOneAsync();
+            TestAssert.That(firstWork.Kind == "request" && secondWork.Kind == "request" && firstWork.RequestId != secondWork.RequestId && controller.Counts.Owners == 2,
+                "Controller lost isolated native source owners");
+            var first = ((NotesOriginalPendingResult)firstWork.Invocation!).Request(); var last = ((NotesOriginalPendingResult)secondWork.Invocation!).Request();
+            TestAssert.That((await controller.NextTransportAsync())?.Kind == "request" && (await controller.NextTransportAsync())?.Kind == "request" &&
+                await controller.NextTransportAsync() is null, "Due owner retry blocked another source or escaped bounded retry");
+            JsonObject Result(JsonObject request) {
+                var body = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                    ["receipt_id"] = Guid.NewGuid().ToString(), ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) body[name] = request[name]!.DeepClone(); return body;
+            }
+            var result = Result(first); h.Send(result);
+            if (conflict)
+            {
+                var changed = result.DeepClone().AsObject(); changed["receipt_id"] = Guid.NewGuid().ToString();
+                Hold(() => h.Send(changed));
+                TestAssert.That((await controller.ProcessOneAsync()).Kind == "held", "Conflicting same-request result was not isolated");
+            }
+            else
+            {
+                var save = await controller.ProcessOneAsync(); var native = (NotesOriginalPendingResult.NativeCommit)save.Invocation!;
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync(native.Offer.Token, JsonNode.Parse(native.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "First source actual metadata save failed");
+                controller.AfterNativeSave(save);
+            }
+            h.Send(Result(last)); var next = await controller.ProcessOneAsync();
+            TestAssert.That(next.Kind == "save", "One held/conflicting source blocked another valid source");
+            var commit = (NotesOriginalPendingResult.NativeCommit)next.Invocation!;
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "Second stale-source rebase failed");
+            controller.AfterNativeSave(next);
+            TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(last)) is not null, "Second source did not seal genuine ACK after isolated conflict/stale whole-book rebase");
+            if (!conflict) TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(first)) is not null &&
+                JsonNode.Parse(h.Host.CurrentNativeText!)!["kontakte"]!.AsArray().OfType<JsonObject>().All(value => value["notesOriginalBasis"]?["receipt_id"] is not null),
+                "Sequential source saves overwrote earlier metadata");
+            now = 30_000; TestAssert.That(await controller.NextTransportAsync() is not null, "Remaining valid source was stranded by fairness scheduling");
+            controller.Stop();
+        }
+        Console.WriteLine("Notes controller multi-source: 2 fairness/conflict/stale-whole-book actual-writer cases passed.");
     }
 
     private sealed class NotesHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler) : HttpMessageHandler

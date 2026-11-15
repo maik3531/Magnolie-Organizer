@@ -13,9 +13,15 @@ internal sealed partial class NotesOriginalRequestIntents
 
     internal sealed class RecoveryContext(object proof)
     {
+        private Action? ownerGuard;
+        internal void AttachOwnerGuard(Action guard)
+        {
+            ArgumentNullException.ThrowIfNull(guard);
+            if (Interlocked.CompareExchange(ref ownerGuard, guard, null) is not null) throw new InvalidOperationException("notes_recovery_owner_already_bound");
+        }
         private RecoveryNative Native() => proof as RecoveryNative ?? throw new InvalidOperationException("notes_request_private_verified_recovery_required");
         internal JsonObject RequireCurrent()
-        { var native = Native(); return native.Query.Store.RequireRecovery(native); }
+        { ownerGuard?.Invoke(); var native = Native(); var frame = native.Query.Store.RequireRecovery(native); ownerGuard?.Invoke(); return frame; }
         internal NativeActorBookSnapshot? CurrentSaved()
         {
             var native = Native(); var frame = RequireCurrent();

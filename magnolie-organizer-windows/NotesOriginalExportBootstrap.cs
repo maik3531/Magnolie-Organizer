@@ -10,8 +10,14 @@ internal sealed partial class NotesOriginalChoiceStore
     { internal ExportBootstrapContext Context { get; } = context; }
     internal sealed class ExportBootstrapContext(object proof)
     {
+        private Action? ownerGuard;
+        internal void AttachOwnerGuard(Action guard)
+        {
+            ArgumentNullException.ThrowIfNull(guard);
+            if (Interlocked.CompareExchange(ref ownerGuard, guard, null) is not null) throw new InvalidOperationException("notes_export_owner_already_bound");
+        }
         private ExportProof Native() => proof as ExportProof ?? throw new InvalidOperationException("notes_export_private_context_required");
-        internal void RequireCurrent() { var native = Native(); native.Store.RequireExport(native); }
+        internal void RequireCurrent() { ownerGuard?.Invoke(); var native = Native(); native.Store.RequireExport(native); ownerGuard?.Invoke(); }
         internal NativeActorBookSnapshot? CurrentSaved() { var native = Native(); return native.Store.RequireExport(native).Snapshot; }
         internal string BootstrapText()
         {
@@ -25,6 +31,7 @@ internal sealed partial class NotesOriginalChoiceStore
         internal NotesOriginalBootstrapSave PrepareBootstrap() => NotesOriginalBootstrapSave.ForExport(this);
         internal NotesOriginalExportChoice Restore()
         {
+            RequireCurrent();
             var native = Native();
             if (native.Store.RequireExport(native).Snapshot is null) throw new ExportNeedsRealSave(this);
             return native.Store.Restore(native.Body, native.Origin, native.Transport);
