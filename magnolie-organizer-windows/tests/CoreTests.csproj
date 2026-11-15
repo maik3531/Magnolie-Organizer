@@ -81,6 +81,7 @@
     <Compile Include="..\NotesOriginalChoiceSave.cs" Link="NotesOriginalChoiceSave.cs" />
     <Compile Include="..\NotesOriginalExportBootstrap.cs" Link="NotesOriginalExportBootstrap.cs" />
     <Compile Include="..\NotesOriginalJournalCrypto.cs" Link="NotesOriginalJournalCrypto.cs" />
+    <Compile Include="..\NotesOriginalExistingJournalKey.cs" Link="NotesOriginalExistingJournalKey.cs" />
     <Compile Include="..\NotesOriginalRequestIntents.cs" Link="NotesOriginalRequestIntents.cs" />
     <Compile Include="..\NotesOriginalRequestRecovery.cs" Link="NotesOriginalRequestRecovery.cs" />
     <Compile Include="..\NotesOriginalBootstrapSave.cs" Link="NotesOriginalBootstrapSave.cs" />

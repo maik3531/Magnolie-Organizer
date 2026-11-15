@@ -13,7 +13,7 @@ namespace MagnolieOrganizer.Windows;
 // available solely through the explicit controlled-test constructor switch.
 internal sealed class ContactSourcePrivateFiles
 {
-    internal enum Layout { Consent, NotesReturnJournal }
+    internal enum Layout { Consent, NotesReturnJournal, ExistingPhoneStorageKey }
     private readonly string root;
     private readonly AtomicStore files;
     private readonly Layout layout;
@@ -26,12 +26,13 @@ internal sealed class ContactSourcePrivateFiles
         if (!Path.IsPathFullyQualified(nativeRoot)) throw new ArgumentException("contact_approval_native_root_required");
         root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(nativeRoot));
         this.files = files ?? new AtomicStore();
-        if (layout is not (Layout.Consent or Layout.NotesReturnJournal)) throw new ArgumentOutOfRangeException(nameof(layout));
+        if (layout is not (Layout.Consent or Layout.NotesReturnJournal or Layout.ExistingPhoneStorageKey)) throw new ArgumentOutOfRangeException(nameof(layout));
         this.layout = layout;
     }
 
     internal Session? Open(bool create = false)
     {
+        if (create && layout == Layout.ExistingPhoneStorageKey) throw new InvalidOperationException("notes_existing_key_read_only");
         CheckDirectories(root);
         var created = !Directory.Exists(root);
         if (created)
@@ -44,7 +45,8 @@ internal sealed class ContactSourcePrivateFiles
         RequirePrivate(new DirectoryInfo(root));
         var lockPath = Path.Combine(root, ".lock");
         var existed = CheckLeaf(lockPath);
-        if (!create && !existed && !(layout == Layout.Consent ? Names : new HashSet<string>(StringComparer.Ordinal) { ".journal-key" })
+        if (!create && !existed && !(layout == Layout.Consent ? Names : new HashSet<string>(StringComparer.Ordinal) {
+                    layout == Layout.ExistingPhoneStorageKey ? "storage.key" : ".journal-key" })
                 .Any(name => CheckLeaf(Path.Combine(root, name)))) return null;
         FileStream? locked = null;
         try
@@ -177,12 +179,12 @@ internal sealed class ContactSourcePrivateFiles
         private readonly AtomicStore files;
         private readonly Layout layout;
         internal bool RootCreated { get; }
-        private int Maximum => layout == Layout.NotesReturnJournal ? 2 * 1024 * 1024 : 256 * 1024;
+        private int Maximum => layout == Layout.NotesReturnJournal ? 2 * 1024 * 1024 : layout == Layout.ExistingPhoneStorageKey ? 4096 : 256 * 1024;
         private bool disposed;
         internal Session(string root, FileStream locked, AtomicStore files, Layout layout = Layout.Consent, bool rootCreated = false)
         { this.root = root; this.locked = locked; this.files = files; this.layout = layout; RootCreated = rootCreated; }
 
-        private bool Allowed(string name) => layout == Layout.Consent ? Names.Contains(name) : name == ".journal-key" ||
+        private bool Allowed(string name) => layout == Layout.ExistingPhoneStorageKey ? name == "storage.key" : layout == Layout.Consent ? Names.Contains(name) : name == ".journal-key" ||
             name.Length == 71 && (name[0] is 'p' or 'r' or 'a') && name[1] == '-' && name[66..] == ".json" &&
             name[2..66].All(value => value is >= '0' and <= '9' or >= 'a' and <= 'f');
 
@@ -221,6 +223,7 @@ internal sealed class ContactSourcePrivateFiles
 
         internal void Write(string name, string value, int limit)
         {
+            if (layout == Layout.ExistingPhoneStorageKey) throw new InvalidOperationException("notes_existing_key_read_only");
             if (limit < 1 || limit > Maximum) throw new ArgumentOutOfRangeException(nameof(limit));
             var path = Child(name);
             if (CheckLeaf(path))
@@ -237,6 +240,7 @@ internal sealed class ContactSourcePrivateFiles
 
         internal void Delete(string name)
         {
+            if (layout == Layout.ExistingPhoneStorageKey) throw new InvalidOperationException("notes_existing_key_read_only");
             var path = Child(name);
             if (!CheckLeaf(path)) return;
             using (var existing = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) CheckOpenedFile(path, existing);

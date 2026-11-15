@@ -1553,6 +1553,37 @@ represented as a new joint Windows/installed GUI acceptance. Windows joint DOM a
 physical Android/provider acceptance, common setup and production key-backend
 registration remain open; no installation/publication is implied.
 
+### Read-only existing Windows journal-key backend (#633)
+
+The new explicit native-path adapter reads only an already existing phone
+`storage.key` with its exact current-user DPAPI purpose. It never constructs
+`TelefonStore`, invokes its create-if-missing loader, creates a database or obtains
+a consent/book-encryption key. A fixed HKDF-SHA256 domain derives a separate stable
+32-byte Notes journal key from that existing independent secret. Missing, replaced,
+malformed or unavailable material holds; an existing journal identity is never
+adopted under a replacement key. Relative/current-directory profile guessing and
+Unix production fallback are rejected.
+
+The private filesystem boundary has a separate read-only existing-key layout:
+only `storage.key`, at most 4 KiB, no root creation, write or delete. Consent names/
+256-KiB limits and the exact journal names/2-MiB limit remain unchanged. The standard
+private lock may be created only in an already existing key directory; no key or
+history state is initialized by reading. Ownership/ACL/reparse/link checks remain
+mandatory. The envelope is read again after decoding, outside the private session,
+to reject a changed key. Owned raw/decoded buffers are cleared; the derived copy
+belongs to its journal consumer and is cleared there.
+
+Twelve additional synthetic cases pass on host and Windows, including actual
+current-user DPAPI on owned Windows fixtures: absence, stable/domain-separated
+owned derivation, loss/replacement with an existing physical hold, malformed/
+noncanonical/incorrect-length data, decoding failure, change during decode, narrow
+read-only layouts and symbolic/hard-link rejection. Prior journal primitives and
+original-contact/private-file regressions also pass on both hosts; the full
+managed group and clean Release CoreTests/BASE builds are retained. No actual user
+phone key, database or Android keystore was read. This supplies a backend, not
+startup registration/common setup; installed-root availability/ACL and interactive
+setup/device acceptance remain open and nothing is installed or published.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

@@ -836,6 +836,12 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "existing-key-only")
+            {
+                NotesOriginalChoiceStoreTests.ExistingJournalKey(Path.Combine(root, "notes-existing-key"));
+                NotesOriginalJournalTests.Run(Path.Combine(root, "notes-journal-layout"));
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "dom-native-wire-only")
             {
                 await NotesOriginalChoiceStoreTests.FrontendWireAsync(Path.Combine(root, "notes-dom-native-wire"));
@@ -918,6 +924,7 @@ internal static class ContractGroupTests
             await NotesOriginalChoiceStoreTests.RunAsync(Path.Combine(root, "notes-private-choice"));
             await NotesOriginalChoiceStoreTests.SaveChainAsync(Path.Combine(root, "notes-private-save-chain"));
             NotesOriginalJournalTests.Run(Path.Combine(root, "notes-independent-journal"));
+            NotesOriginalChoiceStoreTests.ExistingJournalKey(Path.Combine(root, "notes-existing-key"));
             NotesOriginalChoiceStoreTests.Requests(Path.Combine(root, "notes-request-intentions"));
             await NotesOriginalChoiceStoreTests.SavedAcksAsync(Path.Combine(root, "notes-saved-ack-intentions"));
             await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
