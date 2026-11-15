@@ -1943,6 +1943,26 @@ exact source/AST comparison. Windows before-peer decision/peer UI composition,
 final application action/worker dispatch and conditional startup registration
 remain open; no installed/provider/device/package acceptance follows from this.
 
+### Windows before-peer decision handoff (#636, partial)
+
+Windows now exposes the equivalent native `BeginAsync` capture and optional
+before-peer decision handoff through the existing contact chooser flow. Exact
+native owner, unused proof, saved/primary context and original private CAS are
+checked before displaying the contact dialog and again before committing. Cancel
+or a chooser/cancellation error consumes only the memory proof, without creating
+an empty key or new permission. No later decision is silently captured in place
+of one invalidated during peer selection/acquisition. Existing commit, first
+approval, monotone addition and historical checks remain unchanged.
+
+Thirteen new before-peer cases, the 19 existing setup-flow cases and 16 addition
+cases pass on the host AND noninteractive Windows (48 cases each). The full
+managed group including all four joined DOM/native wire modes passes, and Release
+CoreTests/BASE build without warnings/errors. Unchanged original-contact, Linux
+and installed/native-boundary evidence is retained rather than repeated. This is
+not an interactive modal or provider/device/package acceptance. Windows native
+peer selection/acquisition UI composition and the final application action/worker
+dispatch/startup registration remain open; production stays OFF/unadvertised.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
