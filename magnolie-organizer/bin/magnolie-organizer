@@ -3957,6 +3957,25 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
                 if name in ("DTSTART", "DTEND", "DUE") and "T" in value and getattr(zone, "key", None):
                     zeilen[index] = _ics_prop_roh(name, dict(params, TZID=zone.key), value.rstrip("Z"))
     eigene = {"SUMMARY", "DESCRIPTION", "CATEGORIES", "PRIORITY", "X-MAGNOLIE-ACCENT-COLOR"}
+    # A parameterized colour property is not ours to rewrite. Preserve it
+    # exactly when unchanged, or refuse an edit rather than dropping parameters.
+    geschuetzte_farbe, tiefe = False, 0
+    for zeile in rohzeilen:
+        name, params, wert = _prop_zerlegen(zeile)
+        if name == "BEGIN":
+            tiefe += 1
+        if not tiefe and name == "X-MAGNOLIE-ACCENT-COLOR" and params:
+            if eintrag is not None and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
+                # Do not let the generic invalid-record skip path silently
+                # turn this protected edit into a partial calendar export.
+                raise RuntimeError(_("The content is unreadable."))
+            geschuetzte_farbe = True
+        if name == "END":
+            tiefe = max(0, tiefe - 1)
+    if geschuetzte_farbe:
+        eigene.discard("X-MAGNOLIE-ACCENT-COLOR")
+        zeilen[:] = [line for line in zeilen if
+                     (_prop_zerlegen(line) or ("",))[0] != "X-MAGNOLIE-ACCENT-COLOR"]
     if jahrestag:
         # The annual projection owns its anchor and rule, not nested alarm fields.
         eigene.update(("DTSTART", "DTEND", "DUE", "DURATION", "RRULE",
@@ -6637,6 +6656,43 @@ def _sync_inhalt_hash(obj, felder):
         separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
+def _sync_dav_inhalt_hash(obj, felder):
+    # Keep the shipped linux-1/linux-calendar-2 functions and vectors intact.
+    # Only the separately versioned calendar/task DAV projection owns colour.
+    if felder != TERMIN_FELDER and felder != AUFGABE_FELDER:
+        return _sync_inhalt_hash(obj, felder)
+    inhalt = _sync_inhalt(obj, felder)
+    inhalt["akzentFarbe"] = _kalender_akzentfarbe(obj.get("akzentFarbe"))
+    if felder == TERMIN_FELDER:
+        for name in ("icsAusnahmen", "icsEndeFehlt", "icsNullDauer"):
+            inhalt[name] = obj.get(name) or None
+    else:
+        inhalt["kategorien"] = obj.get("kategorien") or ""
+        inhalt["icsElternUid"] = obj.get("icsElternUid", obj.get("elternUid")) or ""
+    # An imported generated colour line must not pin the old colour or create
+    # a second dirty edit after our own confirmed export is read back.
+    roh, tiefe = [], 0
+    for line in inhalt.get("icsRoundtrip") or []:
+        prop = _prop_zerlegen(line) if isinstance(line, str) else None
+        if prop and prop[0] == "BEGIN":
+            tiefe += 1
+        if not (prop and not tiefe and prop[0] == "X-MAGNOLIE-ACCENT-COLOR" and not prop[1]):
+            roh.append(line)
+        if prop and prop[0] == "END":
+            tiefe = max(0, tiefe - 1)
+    inhalt["icsRoundtrip"] = roh or None
+    return hashlib.sha256(json.dumps(inhalt, ensure_ascii=False, sort_keys=True,
+                                    separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _sync_dav_inhalt_format(felder):
+    if felder == TERMIN_FELDER:
+        return "linux-calendar-3"
+    if felder == AUFGABE_FELDER:
+        return "linux-task-2"
+    return _sync_inhalt_format(felder)
+
+
 def _kontakt_konflikt_inhalt(obj):
     """Compare contact information, never photo choices or serialization dates."""
     inhalt = _sync_inhalt(obj, KONTAKT_FELDER)
@@ -6911,6 +6967,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     Liefert (neue_lokal, anlegen, aendern, loeschen_uids, zaehler).
     Bei gleichem Eintrag gewinnt die zuletzt geänderte Seite.
     """
+    inhalt_hash = _sync_dav_inhalt_hash if dav is not None else _sync_inhalt_hash
+    inhalt_format = _sync_dav_inhalt_format if dav is not None else _sync_inhalt_format
     if felder == KONTAKT_FELDER:
         for obj in lokal:
             _kontakt_emails_klein(obj)
@@ -6956,7 +7014,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         fern = entfernt.get(u)
         # Compatible provider additions can normalize phone/email structures.
         # Compare the persisted DAV baseline with the user's pre-merge state.
-        kontakt_lokal_hash = (_sync_inhalt_hash(obj, felder)
+        kontakt_lokal_hash = (inhalt_hash(obj, felder)
                               if dav is not None and felder == KONTAKT_FELDER else None)
         # Membership changes are authoritative sets, not additive provider fields.
         # Resolve them against the existing source baseline before any union;
@@ -6972,9 +7030,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
             quelle = kontakt_quelle or (dav[0] if dav else None)
             basis = (obj.get("syncQuellen") or {}).get(quelle) or {}
             if kontakt_quelle:
-                remote_neu = (basis.get("inhaltFormat") == _sync_inhalt_format(felder) and
+                remote_neu = (basis.get("inhaltFormat") == inhalt_format(felder) and
                               bool(basis.get("inhaltSha256")) and
-                              basis["inhaltSha256"] != _sync_inhalt_hash(fern, felder))
+                              basis["inhaltSha256"] != inhalt_hash(fern, felder))
             else:
                 meta = ((dav[2] or {}).get(u) or {}) if dav else {}
                 remote_neu = bool(basis.get("etag") and meta.get("etag") and
@@ -7033,8 +7091,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 continue
             if obj.get("sync"):
                 basis = ((obj.get("syncQuellen") or {}).get(dav[0] if dav else kontakt_quelle) or {})
-                lokal_neu = (basis.get("inhaltFormat") != _sync_inhalt_format(felder) or
-                              _sync_inhalt_hash(obj, felder) != basis.get("lokalInhaltSha256", basis.get("inhaltSha256")) or
+                lokal_neu = (basis.get("inhaltFormat") != inhalt_format(felder) or
+                              inhalt_hash(obj, felder) != basis.get("lokalInhaltSha256", basis.get("inhaltSha256")) or
                               bool(basis.get("pruefungFreigegeben"))
                               if dav or kontakt_quelle else (obj.get("geaendert") or 0) > letzter_sync)
                 if kontakt_quelle and not basis.get("inhaltSha256") and not basis.get("pruefungFreigegeben"):
@@ -7057,9 +7115,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
             dav_entscheidung = None
             if kontakt_quelle:
                 basis = (obj.get("syncQuellen") or {}).get(kontakt_quelle) or {}
-                lokal_hash = _sync_inhalt_hash(obj, felder)
-                remote_hash = _sync_inhalt_hash(fern, felder)
-                bekannt = basis.get("inhaltFormat") == _sync_inhalt_format(felder) and bool(basis.get("inhaltSha256"))
+                lokal_hash = inhalt_hash(obj, felder)
+                remote_hash = inhalt_hash(fern, felder)
+                bekannt = basis.get("inhaltFormat") == inhalt_format(felder) and bool(basis.get("inhaltSha256"))
                 lokal_neu = lokal_hash != basis.get("lokalInhaltSha256", basis.get("inhaltSha256"))
                 remote_neu = remote_hash != basis.get("inhaltSha256")
                 freigegeben = bool(basis.get("pruefungFreigegeben")) and not remote_neu
@@ -7081,15 +7139,18 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 if alt.get("etag") and aktuell.get("etag"):
                     remote_neu = alt["etag"] != aktuell["etag"]
                     # Migrate shipped timestamp-only mappings conservatively.
-                    lokal_hash = kontakt_lokal_hash or _sync_inhalt_hash(obj, felder)
+                    lokal_hash = kontakt_lokal_hash or inhalt_hash(obj, felder)
+                    bekannt = (zuordnung.get("inhaltFormat") == inhalt_format(felder) and
+                               bool(zuordnung.get("inhaltSha256")))
+                    legacy_konflikt = (felder in (TERMIN_FELDER, AUFGABE_FELDER) and not bekannt and
+                                       lokal_hash != inhalt_hash(fern, felder))
                     lokal_neu = (lokal_hash != zuordnung["inhaltSha256"] if
-                                  zuordnung.get("inhaltFormat") == _sync_inhalt_format(felder) and zuordnung.get("inhaltSha256") else remote_neu or
-                                  lokal_hash != _sync_inhalt_hash(fern, felder))
+                                  bekannt else remote_neu or lokal_hash != inhalt_hash(fern, felder))
                     vergleich_fern = fern
                     if "foto" in felder and obj.get("fotoManuell") is True:
                         vergleich_fern = dict(fern, foto=obj.get("foto") or "")
-                    if remote_neu and lokal_neu and not kontakt_identisch and (
-                            _sync_inhalt_hash(obj, felder) != _sync_inhalt_hash(vergleich_fern, felder)):
+                    if (remote_neu and lokal_neu or legacy_konflikt) and not kontakt_identisch and (
+                            inhalt_hash(obj, felder) != inhalt_hash(vergleich_fern, felder)):
                         if felder == KONTAKT_FELDER:
                             _kontakt_provider_pruefung(obj, fern, quelle, aktuell, baseline=alt)
                             neue_lokal.append(obj)
@@ -7097,7 +7158,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                             continue
                         kopie = json.loads(json.dumps(obj))
                         kennung = uuid.uuid5(uuid.NAMESPACE_URL, "\n".join((
-                            quelle, u, alt["etag"], _sync_inhalt_hash(obj, felder)))).hex
+                            quelle, u, alt["etag"], inhalt_hash(obj, felder)))).hex
                         kopie.update(id=kennung, uid="mag-" + kennung + "@magnolie-organizer",
                                      sync=False)
                         for name in ("syncQuellen", "davHref", "davEtag", "icsSerienUid"):
@@ -7105,7 +7166,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                         konflikt_kopien.append(kopie)
                         konflikt_uids[u] = kopie["uid"]
                         zaehler["konflikte"] += 1
-                    dav_entscheidung = "remote" if remote_neu else "lokal" if lokal_neu else "gleich"
+                    dav_entscheidung = "remote" if remote_neu or legacy_konflikt else "lokal" if lokal_neu else "gleich"
             ergaenzung_hochladen = False
             if "foto" in felder:
                 lokal_foto = obj.get("foto") or ""
@@ -7173,8 +7234,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 obj["sozialeMedien"] = _soziale_medien_vereinigen(obj, fern)
             ist_termin = felder is TERMIN_FELDER or felder == TERMIN_FELDER
             inhalt_gleich = (not ist_termin or
-                             _sync_inhalt_hash(obj, felder) ==
-                             _sync_inhalt_hash(fern, felder))
+                              inhalt_hash(obj, felder) ==
+                              inhalt_hash(fern, felder))
             lokal_sequence = _sync_sequence(obj) if ist_termin else 0
             fern_sequence = _sync_sequence(fern) if ist_termin else 0
             if dav_entscheidung is not None:
@@ -7226,6 +7287,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                     if f in fern:
                         obj[f] = fern[f]
                 if felder == TERMIN_FELDER or felder == AUFGABE_FELDER:
+                    if dav is not None:
+                        obj["akzentFarbe"] = _kalender_akzentfarbe(fern.get("akzentFarbe"))
                     for f in ICS_BEGLEITFELDER:
                         if f in fern:
                             obj[f] = fern[f]
@@ -29653,11 +29716,11 @@ class Fenster(_FENSTER_BASIS):
             saubere_baselines = [(item, zuordnung) for item in aufgaben
                 for quelle, zuordnung in (item.get("syncQuellen") or {}).items()
                 if quelle in ausgewaehlt and isinstance(zuordnung, dict) and
-                zuordnung.get("inhaltSha256") == _sync_inhalt_hash(item, AUFGABE_FELDER)]
+                zuordnung.get("inhaltSha256") == _sync_dav_inhalt_hash(item, AUFGABE_FELDER)]
             _aufgaben_graph_normalisieren(aufgaben)
             # Internal sibling renumbering is not a new user edit.
             for item, zuordnung in saubere_baselines:
-                zuordnung["inhaltSha256"] = _sync_inhalt_hash(item, AUFGABE_FELDER)
+                zuordnung["inhaltSha256"] = _sync_dav_inhalt_hash(item, AUFGABE_FELDER)
 
         if buch_uid:
             quelle = _nextcloud_quelle(dav, "addressbook", buch_uid)
@@ -31064,7 +31127,7 @@ def _dav_syncquelle_setzen(item, quelle, remote_id, etag, eigen=True, baseline=N
               else AUFGABE_FELDER if "faellig" in item or "elternUid" in item else TERMIN_FELDER)
     alle[quelle] = {"id": remote_id, "etag": etag,
                      "geaendert": int(item.get("geaendert") or 0),
-                    "inhaltFormat": _sync_inhalt_format(felder), "inhaltSha256": _sync_inhalt_hash(item if baseline is None else baseline, felder),
+                    "inhaltFormat": _sync_dav_inhalt_format(felder), "inhaltSha256": _sync_dav_inhalt_hash(item if baseline is None else baseline, felder),
                     "eigen": bool(eigen)}
     item["syncQuellen"] = alle
     item["sync"] = True

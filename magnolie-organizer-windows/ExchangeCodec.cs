@@ -301,6 +301,9 @@ internal static partial class ExchangeCodec
             FehlerhafteTermine: invalidEvents, FehlerhafteAufgaben: invalidTasks) { BirthdayRepairs = birthdayRepairs };
     }
 
+    private sealed class ProtectedCalendarPropertyException() : InvalidOperationException(
+        NativeLocalization.Gettext("The content is unreadable.")) { }
+
     internal static ExchangeExportResult WriteIcs(string art, JsonElement data)
     {
         using var culture = new CalendarRecurrence.WireCulture();
@@ -332,7 +335,7 @@ internal static partial class ExchangeCodec
                 calendarComponents.Add((generated.ToArray(), definitions));
                 count++;
             }
-            catch (Exception) { skipped++; }
+            catch (Exception error) when (error is not ProtectedCalendarPropertyException) { skipped++; }
         }
         lines.AddRange(CalendarRecurrence.ExportCalendar(calendarComponents));
         lines.Add("END:VCALENDAR");
@@ -1533,12 +1536,17 @@ internal static partial class ExchangeCodec
         }
         var replace = topLevel.Select(property => property.Name).Where(name => name is "DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or "EXRULE" or "RECURRENCE-ID" or "STATUS").ToHashSet();
         lines.RemoveAll(line => replace.Contains(PropertyName(line)));
+        var protectedColours = topLevel.Where(property => property.Name == "X-MAGNOLIE-ACCENT-COLOR" && property.Parameters.Length > 0).ToArray();
+        if (protectedColours.Any(property => AccentColor(property.Value) != AccentColor(J(item, "akzentFarbe"))))
+            throw new ProtectedCalendarPropertyException();
+        if (protectedColours.Length > 0) lines.RemoveAll(line => PropertyName(line) == "X-MAGNOLIE-ACCENT-COLOR");
         var rawDepth = 0;
         foreach (var line in raw)
         {
             var name = PropertyName(line);
             if (name == "BEGIN") rawDepth++;
-            if (rawDepth > 0 || name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR")) lines.Add(line);
+            if (rawDepth > 0 || name == "X-MAGNOLIE-ACCENT-COLOR" && protectedColours.Length > 0 ||
+                name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR")) lines.Add(line);
             if (name == "END") rawDepth = Math.Max(0, rawDepth - 1);
         }
         var duration = topLevel.Any(property => property.Name == "DURATION");

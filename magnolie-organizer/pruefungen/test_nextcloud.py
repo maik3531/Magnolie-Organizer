@@ -1142,6 +1142,11 @@ def test_nextcloud_etag_conflict_keeps_old_cursor(monkeypatch):
     data["termine"] = [{"uid": "remote", "datum": "2026-08-13", "zeit": "",
                         "titel": "New local", "geaendert": 2_000_000_000_000,
                         "sync": True, "syncKalenderUid": uid}]
+    # Exercise rejection of a conditional write from a known content baseline.
+    # Unknown legacy projections now preserve a conflict copy instead of
+    # treating their timestamp-only mapping as proof of a clean remote state.
+    remote = m.ics_lesen(dav.resources["calendar"][0]["data"])["termine"][0]
+    m._dav_syncquelle_setzen(data["termine"][0], uid, href, '"one"', baseline=remote)
     probe = run_sync(monkeypatch, dav, data)
     assert dav.puts and probe.payload["letzteSyncs"]["kalender"][uid] == 100
     assert probe.payload["syncMetadaten"]["nextcloud"]["kalender"][uid] == old

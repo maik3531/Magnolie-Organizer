@@ -180,6 +180,7 @@ internal static class NextcloudDavTests
 
     internal static async Task RunAsync()
     {
+        await CalendarAccentSyncTests.RunAsync();
         foreach (var (fields, display, first, last) in new[] {
             ("N:Mustermann;Erika;;;", "Erika Mustermann", "Erika", "Mustermann"),
             ("N:Van Dame;;;;", "Van Dame", "", "Van Dame"),

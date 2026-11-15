@@ -610,6 +610,63 @@ internal static class ContactCleanupPlan
     }
 }
 
+// A separate format, never a redefinition of the shipped windows-1 hash.
+// Contacts continue to use SyncBaseline unchanged.
+internal static class CalendarSyncBaseline
+{
+    internal static string Format(bool tasks = false) => tasks ? "windows-task-2" : "windows-calendar-2";
+    internal static bool Current(JsonObject? mapping, bool tasks = false) =>
+        mapping is not null && ContactFields.Text(mapping, "inhaltFormat") == Format(tasks) &&
+        ContactFields.Text(mapping, "inhaltSha256").Length > 0;
+
+    internal static string Hash(JsonObject value, IEnumerable<string> fields, bool tasks = false)
+    {
+        var projection = value.DeepClone().AsObject();
+        var colour = value["akzentFarbe"]?.GetValue<string>() ?? "";
+        projection["akzentFarbe"] = System.Text.RegularExpressions.Regex.IsMatch(colour, "^#[0-9a-fA-F]{6}$") ? colour.ToLowerInvariant() : "";
+        if (value["icsRoundtrip"] is JsonArray raw)
+        {
+            var kept = new JsonArray(); var depth = 0;
+            foreach (var node in raw)
+            {
+                var line = node?.GetValue<string>() ?? "";
+                if (line.StartsWith("BEGIN:", StringComparison.OrdinalIgnoreCase)) depth++;
+                if (depth != 0 || !line.StartsWith("X-MAGNOLIE-ACCENT-COLOR:", StringComparison.OrdinalIgnoreCase)) kept.Add(node?.DeepClone());
+                if (line.StartsWith("END:", StringComparison.OrdinalIgnoreCase)) depth = Math.Max(0, depth - 1);
+            }
+            projection["icsRoundtrip"] = kept;
+        }
+        if (tasks) projection["icsElternUid"] = value.ContainsKey("icsElternUid") ? value["icsElternUid"]?.DeepClone() : value["elternUid"]?.DeepClone();
+        return SyncBaseline.Hash(projection, fields.Concat(tasks ? new[] { "akzentFarbe", "kategorien", "icsElternUid" } : new[] { "akzentFarbe" }).Distinct(StringComparer.Ordinal));
+    }
+
+    internal static bool Dirty(JsonObject value, JsonObject? mapping, IEnumerable<string> fields,
+        JsonObject? unchangedRemote = null, bool tasks = false, JsonObject? observedRemote = null)
+    {
+        var names = fields as string[] ?? fields.ToArray();
+        var hash = Hash(value, names, tasks);
+        if (Current(mapping, tasks) && hash == ContactFields.Text(mapping!, "inhaltSha256")) return false;
+        if (LegacyCoversDifference(value, mapping, observedRemote ?? unchangedRemote, tasks))
+            return SyncBaseline.Dirty(value, mapping, names, unchangedRemote);
+        // Unknown/legacy hashes do not cover colour. Only current content
+        // equality with the observed remote can establish a clean baseline.
+        return unchangedRemote is null || hash != Hash(unchangedRemote, names, tasks);
+    }
+
+    internal static bool LegacyCoversDifference(JsonObject value, JsonObject? mapping,
+        JsonObject? remote, bool tasks = false)
+    {
+        // Preserve the already supported location-only legacy normalization,
+        // but never extend its authority to a field absent from windows-1.
+        // Equality of *all* added fields is independent evidence, not an old
+        // hash's claim that colour/category/parent differences are clean.
+        return remote is not null && mapping is not null &&
+            ContactFields.Text(mapping, "inhaltFormat") == "windows-1" &&
+            ContactFields.Text(mapping, "inhaltSha256").Length == 64 &&
+            Hash(value, Array.Empty<string>(), tasks) == Hash(remote, Array.Empty<string>(), tasks);
+    }
+}
+
 internal static class SyncBaseline
 {
     internal static string Hash(JsonObject value, IEnumerable<string> fields)
