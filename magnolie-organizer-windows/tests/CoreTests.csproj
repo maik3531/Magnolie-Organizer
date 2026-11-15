@@ -90,6 +90,7 @@
     <Compile Include="..\MagnolienbaumCoordinator.NotesSetup.cs" Link="MagnolienbaumCoordinator.NotesSetup.cs" />
     <Compile Include="..\MagnolienbaumCoordinator.NotesSetupPeers.cs" Link="MagnolienbaumCoordinator.NotesSetupPeers.cs" />
     <Compile Include="..\NotesOriginalSetupAcquisition.cs" Link="NotesOriginalSetupAcquisition.cs" />
+    <Compile Include="..\NotesOriginalSetupRun.cs" Link="NotesOriginalSetupRun.cs" />
     <Compile Include="..\NotesOriginalRequestIntents.cs" Link="NotesOriginalRequestIntents.cs" />
     <Compile Include="..\NotesOriginalRequestRecovery.cs" Link="NotesOriginalRequestRecovery.cs" />
     <Compile Include="..\NotesOriginalBootstrapSave.cs" Link="NotesOriginalBootstrapSave.cs" />

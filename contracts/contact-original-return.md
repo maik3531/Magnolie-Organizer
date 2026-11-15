@@ -2026,6 +2026,35 @@ build/install is claimed.
 Actual application registration/saveflush, detailed waiting-status integration,
 Windows dispatch counterpart and production/native acceptance remain open in #640.
 
+### Explicit Windows setup worker/UI dispatcher (#640, partial)
+
+`NotesOriginalSetupRun` now owns a genuine acquisition and its queued candidate
+references without starting a thread/service or registering an application action.
+The caller owns the worker and native UI dispatcher. UI-thread predicates restrict
+execution only; they do not establish source permission or a saved witness.
+Probe/wait is rejected on UI, chooser callbacks are explicitly marshalled back to
+UI even after asynchronous flow continuations. The original acquisition context
+is revalidated before source choice; detached displays cannot replace candidates.
+
+One-use selection/notice/request ownership protects delayed and replayed posts.
+An already dispatched asynchronous request remains cancellation-owned until it
+returns; replay cannot remove it. Terminal cleanup cancels only owned work and
+clears queued candidate/acquisition references. Status failure cannot undo an
+actual native source commit; status never supplies consent, SavedWitness or ACK.
+Cancellation/disposal is serialized, and an active host callback still must honor
+its cancellation token and return; terminal Done is not a claim of host join.
+
+Twenty-three actual FS1/worker/nested synthetic UI queue cases pass on host and
+noninteractive Windows: explicit choice, display alias, cancellation before work,
+during export wait, queued source/contact, contact cancellation/Stop, stale native
+save/revoke, wrong thread, replay, disposal and dispatcher/chooser/status failure.
+Full managed tests and all four DOM/native wire modes pass; Core and BASE compile
+with zero warnings/errors. No installed modal, live provider, device or user keys
+are exercised. Linux inputs/evidence remain unchanged. Actual application action,
+saveflush/editor snapshot, host status/cancel/lifecycle and conditional startup
+remain unconnected; production stays OFF/unadvertised and all acceptance pauses
+remain effective.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

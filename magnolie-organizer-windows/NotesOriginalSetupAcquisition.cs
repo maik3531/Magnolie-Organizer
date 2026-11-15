@@ -56,6 +56,7 @@ internal sealed class NotesOriginalSetupAcquisition
         try { flow.RequireDecision(decision); current(); }
         finally { MutationGate.Global.Release(); }
     }
+    internal Task ValidateAsync(CancellationToken cancellation) => CheckAsync(cancellation); // Read guard only, no grant.
     internal async Task<bool> ProbeAsync(CancellationToken cancellation = default)
     {
         try
