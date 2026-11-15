@@ -20,9 +20,21 @@ internal static class WindowsUpdateTests
         TestAssert.Throws<InvalidDataException>(() => WindowsUpdateService.ValidateManifest(
             signed.Replace($"<version>{parsed.Windows.Version}</version>", "<version>9.9.9</version>", StringComparison.Ordinal)),
             "Ein nach der Signatur verändertes Manifest wurde angenommen.");
-        TestAssert.Throws<InvalidDataException>(() => WindowsUpdateService.ValidateManifest(
-            signed.Replace("<windows>\n    <version>", "<windows><version>1.0.0</version>\n    <version>", StringComparison.Ordinal)),
-            "Ein doppeltes Windows-Versionsfeld wurde angenommen.");
+        foreach (var newline in new[] { "\n", "\r\n" })
+        {
+            var fixture = signed.ReplaceLineEndings(newline);
+            _ = WindowsUpdateService.ValidateManifest(fixture);
+            var document = System.Xml.Linq.XDocument.Parse(fixture);
+            var windows = document.Root!.Element("windows")!;
+            // Duplicate the same value so rejection proves structural validation,
+            // rather than merely a changed version or invalid signature.
+            windows.Add(new System.Xml.Linq.XElement(windows.Element("version")!));
+            TestAssert.That(windows.Elements("version").Count() == 2,
+                "Die negative Manifest-Fixture enthält kein doppeltes Versionsfeld.");
+            TestAssert.Throws<InvalidDataException>(() => WindowsUpdateService.ValidateManifest(
+                document.ToString(System.Xml.Linq.SaveOptions.DisableFormatting)),
+                "Ein doppeltes Windows-Versionsfeld wurde angenommen.");
+        }
         TestAssert.Throws<InvalidDataException>(() => WindowsUpdateService.ValidateManifest(
             signed.Replace("<update>", "<!DOCTYPE update [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]><update>", StringComparison.Ordinal)),
             "Eine DTD-/ENTITY-Deklaration wurde angenommen.");

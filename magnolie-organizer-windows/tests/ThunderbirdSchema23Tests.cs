@@ -66,12 +66,21 @@ internal static class ThunderbirdSchema23Tests
                 roundtrip.Contains("X-OPAQUE:eins") && roundtrip.Contains("X-OPAQUE:zwei") &&
                 roundtrip.Contains("ATTACH;FMTTYPE=application/pdf:https://example.org/a.pdf"),
                 "Thunderbird Schema 23 verlor cal_id, Mehrfachwerte, parameterlose Properties, Parameter, Alarm, Teilnehmer oder Anhang.");
+            DateTime LocalUtc(int day, int hour) => TimeZoneInfo.ConvertTimeFromUtc(new DateTime(2026, 8, day, hour, 0, 0, DateTimeKind.Utc), TimeZoneInfo.Local);
+            string DateText(DateTime value) => value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            string TimeText(DateTime value) => value.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            var removedStart = LocalUtc(10, 9);
+            var movedStart = LocalUtc(10, 11);
+            var addedStart = LocalUtc(24, 15);
             TestAssert.That(master["wiederholung"]!["art"]!.GetValue<string>() == "weekly" &&
-                master["icsAusnahmeTermine"]!.AsArray().Select(node => node!["datum"]!.GetValue<string>()).ToHashSet().SetEquals(["2026-08-10", "2026-08-17"]) &&
-                master["icsZusatzTermine"]!.AsArray().Single()!["datum"]!.GetValue<string>() == "2026-08-24" &&
-                master["icsZusatzTermine"]!.AsArray().Single()!["zeit"]!.GetValue<string>() == "17:00" &&
-                exception["datum"]!.GetValue<string>() == "2026-08-10" && exception["zeit"]!.GetValue<string>() == "13:00",
-                "Thunderbird-Override oder strukturierte EXDATE/RDATE wurden nicht mit dem Master verknüpft.");
+                master["icsAusnahmeTermine"]!.AsArray().Select(node => node!["datum"]!.GetValue<string>()).ToHashSet()
+                    .SetEquals([DateText(removedStart), DateText(LocalUtc(17, 9))]),
+                "Thunderbird-Master verlor seine strukturierte Wiederholung oder EXDATE-Verknüpfung.");
+            var additional = master["icsZusatzTermine"]!.AsArray().Single()!;
+            TestAssert.That(additional["datum"]!.GetValue<string>() == DateText(addedStart) && additional["zeit"]!.GetValue<string>() == TimeText(addedStart),
+                $"Thunderbird-RDATE wurde nicht in die lokale Zeitzone {TimeZoneInfo.Local.Id} umgerechnet.");
+            TestAssert.That(exception["datum"]!.GetValue<string>() == DateText(movedStart) && exception["zeit"]!.GetValue<string>() == TimeText(movedStart),
+                $"Thunderbird-Override wurde nicht in die lokale Zeitzone {TimeZoneInfo.Local.Id} umgerechnet.");
             TestAssert.That(eiermann["datum"]!.GetValue<string>() == "1998-01-05" &&
                 eiermann["wiederholung"]!["art"]!.GetValue<string>() == "weekly" &&
                 eiermann["wiederholung"]!["intervall"]!.GetValue<int>() == 2,
@@ -82,14 +91,21 @@ internal static class ThunderbirdSchema23Tests
                 ["termine"] = parsed.Termine.DeepClone()
             }.ToJsonString();
             var biweekly = ReminderScheduler.DueAppointments(reminderData, new DateTime(2026, 9, 7, 8, 45, 0));
-            var deleted = ReminderScheduler.DueAppointments(reminderData, new DateTime(2026, 8, 10, 10, 45, 0));
-            var moved = ReminderScheduler.DueAppointments(reminderData, new DateTime(2026, 8, 10, 12, 45, 0));
-            var added = ReminderScheduler.DueAppointments(reminderData, new DateTime(2026, 8, 24, 16, 45, 0));
-            TestAssert.That(biweekly.Any(item => item.Key.Contains("eiermann-1998@202609070900", StringComparison.Ordinal)) &&
-                !deleted.Any(item => item.Start == new DateTime(2026, 8, 10, 11, 0, 0)) &&
-                moved.Any(item => item.Start == new DateTime(2026, 8, 10, 13, 0, 0)) &&
-                added.Any(item => item.Start == new DateTime(2026, 8, 24, 17, 0, 0)),
-                "Native Erinnerungen expandieren Thunderbird-Serie, Override oder RDATE nicht korrekt.");
+            var masterStart = LocalUtc(3, 9);
+            var control = ReminderScheduler.DueAppointments(reminderData, masterStart.AddMinutes(-15));
+            var deleted = ReminderScheduler.DueAppointments(reminderData, removedStart.AddMinutes(-15));
+            var moved = ReminderScheduler.DueAppointments(reminderData, movedStart.AddMinutes(-15));
+            var added = ReminderScheduler.DueAppointments(reminderData, addedStart.AddMinutes(-15));
+            TestAssert.That(biweekly.Any(item => item.Key.Contains("eiermann-1998@202609070900", StringComparison.Ordinal)),
+                "Native Erinnerungen verloren die lokale floating-14-Tage-Serie.");
+            TestAssert.That(control.Any(item => item.Key.Contains("serie@", StringComparison.Ordinal) && item.Start == masterStart),
+                "Native Erinnerungen verloren das unveränderte Thunderbird-Mastervorkommen.");
+            // The independent floating series can legitimately have this same
+            // local clock in UTC. Check exclusion of this master, not all sources.
+            TestAssert.That(!deleted.Any(item => item.Key.Contains("serie@", StringComparison.Ordinal) && item.Start == removedStart),
+                "Native Erinnerungen haben das ausgeschlossene Thunderbird-Vorkommen wiederhergestellt.");
+            TestAssert.That(moved.Any(item => item.Start == movedStart), "Native Erinnerungen verloren den lokalen Thunderbird-Override.");
+            TestAssert.That(added.Any(item => item.Start == addedStart), "Native Erinnerungen verloren den lokalen Thunderbird-RDATE.");
             var broken = Path.Combine(root, "broken.sqlite"); File.WriteAllText(broken, "kein sqlite");
             var allProfiles = ThunderbirdCalendarImporter.ParseProfiles(new[] { broken, path }, out var read);
             TestAssert.That(read == 1 && allProfiles.Termine.Count == 3 && allProfiles.Aufgaben.Count == 1 && allProfiles.Uebersprungen == 3,

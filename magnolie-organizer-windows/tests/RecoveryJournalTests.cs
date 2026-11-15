@@ -258,11 +258,21 @@ internal static class RecoveryJournalTests
             var oldPoint = compressionJournal.Create(compressionData, SnapshotReason.Manual, "2.0.2");
             compressionNow = compressionNow.AddDays(366);
             var compressed = compressionJournal.CompressOld();
-            TestAssert.That(compressed == (1, 0) &&
-                File.Exists(Path.Combine(oldPoint.Directory, "payload.magnolie.tar.xz")) &&
-                !File.Exists(Path.Combine(oldPoint.Directory, "payload.magnolie")) &&
-                GesamtarchivService.Read(compressionJournal.ReadPayload(oldPoint.Id)).Daten["notizen"]!.AsArray().Count == 200,
-                "Ein mehr als ein Jahr alter Einzelstand wurde nicht verlustfrei als XZ komprimiert.");
+            TestAssert.That(compressed == (1, 0),
+                $"XZ-Snapshot-Ergebnis Changed={compressed.Changed}, Failed={compressed.Failed}, OriginalBytes={oldPoint.Size}. " +
+                (compressed == (1, 0) ? "" : DiagnoseXz(compressionRoot, oldPoint.Directory)));
+            TestAssert.That(File.Exists(Path.Combine(oldPoint.Directory, "payload.magnolie.tar.xz")) &&
+                !File.Exists(Path.Combine(oldPoint.Directory, "payload.magnolie")), "XZ-Snapshot wurde nicht atomar auf den komprimierten Payload umgestellt.");
+            try
+            {
+                TestAssert.That(GesamtarchivService.Read(compressionJournal.ReadPayload(oldPoint.Id)).Daten["notizen"]!.AsArray().Count == 200,
+                    "XZ-Snapshot-Readback verlor synthetische Notizen.");
+            }
+            catch (Exception error)
+            {
+                throw new InvalidOperationException("XZ-Snapshot-Readback nach erfolgreicher Komprimierung fehlgeschlagen. " +
+                    DiagnoseXz(compressionRoot, oldPoint.Directory), error);
+            }
             using (var retentionCommand = BridgeDispatcherContract.Parse(
                 "{\"cmd\":\"journal_aufbewahrung\",\"modus\":\"days\",\"maximum\":20,\"tage\":14}")) { }
             using (var legacyCountCommand = BridgeDispatcherContract.Parse(
@@ -385,6 +395,56 @@ internal static class RecoveryJournalTests
             }
         }
         finally { try { Directory.Delete(root, true); } catch { } }
+    }
+
+    private static string DiagnoseXz(string root, string originalDirectory)
+    {
+        // Failure-only diagnostic of the same system tool/arguments on generated
+        // fixture data. Never replace the required compression/readback assertions.
+        var temporary = Path.Combine(root, "xz-diagnostic-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temporary);
+        try
+        {
+            var tool = OperatingSystem.IsWindows() ? Path.Combine(Environment.SystemDirectory, "tar.exe") : "/usr/bin/tar";
+            (int Exit, byte[] Output, string Error) Run(params string[] arguments)
+            {
+                var start = new System.Diagnostics.ProcessStartInfo(tool) { WorkingDirectory = temporary,
+                    UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+                foreach (var argument in arguments) start.ArgumentList.Add(argument);
+                using var process = System.Diagnostics.Process.Start(start) ?? throw new IOException("Diagnostic tar start failed.");
+                using var output = new MemoryStream();
+                var copy = process.StandardOutput.BaseStream.CopyToAsync(output);
+                var error = process.StandardError.ReadToEndAsync();
+                if (!process.WaitForExit(15_000))
+                {
+                    process.Kill(entireProcessTree: true); process.WaitForExit();
+                    copy.GetAwaiter().GetResult(); _ = error.GetAwaiter().GetResult();
+                    throw new TimeoutException("Owned diagnostic tar exceeded 15 seconds.");
+                }
+                copy.GetAwaiter().GetResult();
+                return (process.ExitCode, output.ToArray(), error.GetAwaiter().GetResult().Trim());
+            }
+            var version = Run("--version");
+            var original = Path.Combine(originalDirectory, "payload.magnolie");
+            var payload = Path.Combine(temporary, "payload.magnolie");
+            // A successful journal rewrite has already removed the original;
+            // use another bounded, explicitly synthetic payload in that case.
+            if (File.Exists(original)) File.Copy(original, payload);
+            else File.WriteAllText(payload, new string('M', 40_000));
+            var archive = Path.Combine(temporary, "payload.magnolie.tar.xz");
+            var create = Run("-cJf", archive, "-C", temporary, "--", "payload.magnolie");
+            var detail = $"Tool={tool}; VersionExit={version.Exit}; Version={System.Text.Encoding.UTF8.GetString(version.Output).Trim()}; " +
+                $"CreateExit={create.Exit}; CreateError={create.Error}; OriginalProbeBytes={new FileInfo(payload).Length}; " +
+                $"ArchiveBytes={(File.Exists(archive) ? new FileInfo(archive).Length : -1)}";
+            if (create.Exit == 0)
+            {
+                var extract = Run("-xJOf", archive, "--", "payload.magnolie");
+                detail += $"; ExtractExit={extract.Exit}; ExtractError={extract.Error}; ReadbackEqual={File.ReadAllBytes(payload).AsSpan().SequenceEqual(extract.Output)}";
+            }
+            return detail;
+        }
+        catch (Exception error) { return $"XZ diagnostic failed: {error.GetType().Name}: {error.Message}"; }
+        finally { if (Directory.Exists(temporary)) Directory.Delete(temporary, true); }
     }
 
     private static void TestUnchangedContents(string root)
