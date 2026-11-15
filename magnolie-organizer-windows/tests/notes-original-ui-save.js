@@ -84,10 +84,15 @@ async function wire() {
   try {
     for await (const line of lines) {
       const packet = JSON.parse(line);
-      if (packet.type === "init") {
+      if (packet.type === "init" || packet.type === "reopen") {
         mode = packet.mode;
+        b?.close();
         b = await boot({ data: packet.daten, wire: true, emit: value => emit({ type: "command", value }) });
-        b.t.speichereJetzt(); continue;
+        if (packet.type === "reopen") {
+          assert.equal(b.commands("speichern").length, 0);
+          emit({ type: "reopened" });
+        } else b.t.speichereJetzt();
+        continue;
       }
       assert.ok(b);
       if (packet.type === "finish") { emit({ type: "finished" }); return; }

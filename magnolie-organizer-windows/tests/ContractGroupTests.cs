@@ -836,6 +836,11 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "fresh-dom-wire-only")
+            {
+                await NotesOriginalChoiceStoreTests.FrontendWireAsync(Path.Combine(root, "notes-fresh-dom-wire"));
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-flow-and-addition")
             {
                 await NotesOriginalChoiceStoreTests.SetupFlowAsync(Path.Combine(root, "notes-setup-flow"));

@@ -1887,6 +1887,32 @@ manifests include the helper; no package was built or installed. Actual peer/
 acquisition UI ingress and startup registration are still absent/unadvertised,
 and Windows follow-up #639 and installed/provider/device/package gates stay open.
 
+### Windows fresh-DOM bootstrap readiness (#639)
+
+The follow-up reproduced a separate UI restriction: a fresh matching Windows DOM
+before its first real save returned readiness=false, so an unchanged necessary
+bootstrap could not enter. The old restart wire reopened the native writer but
+kept its already-saved DOM; those passing checks did not cover a fresh window.
+The reproduction issues no fake SaveACK and claims neither data loss nor an
+unauthorized provider write.
+
+Windows now retains a separate exact loaded-model comparison captured before
+normalization and cleared on init/restore. Readiness may compare that model, but
+only an unchanged bootstrap may use it in the save path. Normal metadata saves
+still need the real prior UI save. This does not set lastSavedText or produce a
+native saved witness: existing native source/primary/lease/writer/journal checks
+remain unchanged and the actual serial writer must complete the bootstrap.
+
+Six new fresh-DOM policy cases and the 16 existing UI cases pass. The actual
+combined managed/native-writer/FS1/DOM wire now includes a fresh DOM after native
+reopen with no ordinary save beforehand, then real bootstrap, metadata save,
+journal and terminal completion. All four combined modes and the full managed
+group pass; the original-contact/private-file group also passes. CoreTests builds
+without warnings/errors. These are Windows-source tests on the existing host,
+not an interactive/installed Windows or package acceptance claim. Linux inputs
+and native Windows backend code are unchanged; existing appropriate evidence is
+retained, and #636 production/startup/device/installed acceptance gates stay open.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

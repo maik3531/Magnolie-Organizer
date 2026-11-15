@@ -6600,6 +6600,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let contributorAktiv = false;
   let contributorPruefungLaeuft = false;
   let letzterSpeicherText = null;
+  let notesOriginalGeladenText = null; // UI comparison only, never a saved witness.
   let letzterSpeicherSha256 = "", baumSpeicherNachweis = null;
   let naechsteSpeicherId = 1;
   let naechsteAnhangDateiId = 1;
@@ -6725,6 +6726,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function verwerfeSpeichernNachRestore() {
+    notesOriginalGeladenText = null;
     originalKontaktDauerNachweis = originalKontaktLetzterAck = null;
     originalKontaktWlanWartet = false;
     originalKontaktGeneration++;
@@ -25631,15 +25633,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       wartenderSpeicherText === null && speicherTimer === null && !ausstehenderNotizSnapshot && notizSnapshotTimer === null &&
       !originalKontaktLauf && !originalKontaktSpeicher;
   }
-  function notesOriginalUiStand(beforeText) {
+  function notesOriginalUiStand(beforeText, geladen = false) {
     try {
       const normal = JSON.stringify(JSON.parse(beforeText));
-      return JSON.stringify(DATEN) === normal && !!letzterSpeicherText && JSON.stringify(JSON.parse(letzterSpeicherText)) === normal;
+      const vergleich = letzterSpeicherText || (geladen ? notesOriginalGeladenText : null);
+      return JSON.stringify(DATEN) === normal && !!vergleich && JSON.stringify(JSON.parse(vergleich)) === normal;
     } catch (_) { return false; }
   }
   function empfangeNotesOriginalBereit(nutzlast) {
     if (typeof nutzlast?.token !== "string" || !/^[a-f0-9]{64}$/.test(nutzlast.token) || !Bruecke.vorhanden) return;
-    Bruecke.sende({ cmd: "notes_original_ready", token: nutzlast.token, bereit: notesOriginalUiFrei() && notesOriginalUiStand(nutzlast.beforeText) });
+    Bruecke.sende({ cmd: "notes_original_ready", token: nutzlast.token, bereit: notesOriginalUiFrei() && notesOriginalUiStand(nutzlast.beforeText, true) });
   }
   function empfangeNotesOriginalSpeichern(nutzlast) {
     // This idle/CAS check protects unsent edits, never grants source/ACK rights.
@@ -25653,7 +25656,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     let vorher, danach;
     try {
       vorher = JSON.parse(nutzlast.beforeText); danach = JSON.parse(nutzlast.text);
-      if (!notesOriginalUiStand(nutzlast.beforeText)) { ablehnen(); return; }
+      if (!notesOriginalUiStand(nutzlast.beforeText, nutzlast.kind === "bootstrap")) { ablehnen(); return; }
       if (nutzlast.kind === "bootstrap") {
         if (nutzlast.text !== nutzlast.beforeText) { ablehnen(); return; }
       } else {
@@ -34338,6 +34341,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
     trayDarstellungTestStand(value) { window.MagnolieAppearance?.nativeResult(value); },
     init(nutzlast) {
+      notesOriginalGeladenText = null;
       if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher || originalKontaktDauerNachweis) originalKontaktUpdatesWiderrufen();
       originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
       window.MagnolieAppearance?.update({ today: "", developer: false, locked: true });
@@ -34387,6 +34391,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       unterWayland = !!nutzlast.wayland;
       const edsZeigerBereinigt = Array.isArray(nutzlast.daten && nutzlast.daten.kontakte) &&
         nutzlast.daten.kontakte.some(kontaktHatEdsZeigerwert);
+      if (Bruecke.vorhanden && nutzlast.daten && typeof nutzlast.daten === "object")
+        notesOriginalGeladenText = JSON.stringify(nutzlast.daten);
       DATEN = normalisiere(nutzlast.daten);
       if (nutzlast.regional && typeof nutzlast.regional === "object") {
         DATEN.einstellungen.regional = Object.assign(
