@@ -212,7 +212,9 @@ class NativeNotesSetupHost:
 
     def fail(self):
         self._ui()
-        self._result, self._preparing = 'held', False
+        if self._result is None:
+            self._result = 'cancelled' if self.cancelled.is_set() else 'held'
+        self._preparing = False
         self.stop()
 
     def stop(self):

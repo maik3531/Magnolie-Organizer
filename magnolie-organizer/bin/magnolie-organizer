@@ -22127,6 +22127,11 @@ class Fenster(_FENSTER_BASIS):
         if not isinstance(befehl, str) or not befehl:
             return
 
+        if befehl in ('bereit', 'entsperren', 'kennwort_setzen', 'kennwort_entfernen',
+                'journal_wiederherstellen', 'sicherung_wiederherstellen', 'gesamtarchiv_importieren'):
+            if Fenster._notes_original_native_setup_defer_profile(self, befehl, roh, nachricht):
+                return  # Normal saves/replies remain dispatchable while the owned setup is being joined.
+
         if (str(befehl or "").startswith("baum_") or
                 str(befehl or "").startswith("telefon_") or befehl == "kde_mcp") and self._gesperrt:
             if befehl == "kde_mcp":
@@ -25275,6 +25280,64 @@ class Fenster(_FENSTER_BASIS):
         if type(session) is NativeNotesNativeSession:
             session.stop()  # Native caller must be outside book/tree locks.
 
+    def _notes_original_native_setup_defer_profile(self, command, raw, message):
+        """Fence one actual profile command until own setup AND ordinary saves returned."""
+        callbacks = {'journal_wiederherstellen': 'App.journalWiederhergestellt',
+            'sicherung_wiederherstellen': 'App.sicherungWiederhergestellt',
+            'gesamtarchiv_importieren': 'App.gesamtarchivImportiert',
+            'kennwort_setzen': 'App.kennwortStand', 'kennwort_entfernen': 'App.kennwortStand'}
+        pending = getattr(self, '_notes_original_setup_profile_fence', None)
+        host = getattr(self, '_notes_original_setup_host', None)
+        if pending is None and host is None:
+            return False  # Existing no-feature profile behavior remains unchanged.
+        def reject(code, *, dispatched=False):
+            callback = callbacks.get(command)
+            if callback is not None:
+                result = {'requestId': message.get('requestId'), 'ok': False, 'code': code,
+                    'fehler': _("Synchronization failed.") if dispatched else _("Another data operation is still running.")}
+                if dispatched: result['outcomeUnknown'] = True
+                else: result['committed'] = False
+                self.antwort(callback, result)
+            else:
+                self.antwort('App.syncFehler', _("Synchronization failed.") if dispatched else _("Another data operation is still running."))
+        from magnolie_contact_notes_setup_run import NativeNotesSetupHost
+        if (threading.current_thread() is not threading.main_thread() or pending is not None or
+                type(host) is not NativeNotesSetupHost or getattr(self, '_wirklich_beenden', False) or
+                getattr(self, '_notes_original_setup_exit_pending', False)):
+            reject('busy')
+            return True
+        pending = {'raw': raw}
+        self._notes_original_setup_profile_fence = pending
+        self._notes_original_setup_version = getattr(self, '_notes_original_setup_version', 0) + 1
+        host.stop()  # No book/tree gate. The existing owned UI poll can close own GTK dialogs.
+        def resume():
+            if getattr(self, '_notes_original_setup_profile_fence', None) is not pending:
+                return False
+            if getattr(self, '_wirklich_beenden', False) or getattr(self, '_notes_original_setup_exit_pending', False):
+                self._notes_original_setup_profile_fence = None; pending.clear()
+                return False  # Do not replay a restore/password operation after final close.
+            if host.poll():
+                return True
+            current_host = getattr(self, '_notes_original_setup_host', None)
+            if (current_host is not None and current_host is not host or
+                    getattr(self, '_speicher_laeuft', False) or
+                    getattr(getattr(self, '_speicher_auftraege', None), 'unfinished_tasks', 0)):
+                return True  # No stale queued save may run behind a restored profile.
+            original = pending.pop('raw')
+            self._notes_original_setup_profile_fence = None
+            try:
+                Fenster.bei_nachricht(self, original)  # One use; recheck current UI trust and ALL original route validations.
+            except Exception as error:
+                debug_notiz('notes.profile-fence-failed', error=type(error).__name__)
+                reject('native_outcome_unknown', dispatched=True)  # The original transaction may already have committed.
+            return False
+        try:
+            GLib.timeout_add(25, resume)
+        except Exception:
+            self._notes_original_setup_profile_fence = None; pending.clear()
+            reject('native_operation_failed')
+        return True
+
     def _notes_original_native_setup_preparation_stop(self):
         pending = getattr(self, '_notes_original_setup_preparation', None)
         self._notes_original_setup_preparation = None
@@ -25293,6 +25356,8 @@ class Fenster(_FENSTER_BASIS):
                 getattr(self, '_notes_original_setup_preparation', None) is not None or
                 getattr(self, '_notes_original_peer_prompt', False) or getattr(self, '_notes_original_setup_active', False) or
                 getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_notes_original_setup_profile_fence', None) is not None or
+                getattr(self, '_operation_laeuft', False) or getattr(self, '_sync_laeuft', False) or
                 getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False)):
             raise PermissionError('notes_setup_native_context_required')
         with self._daten_sperre:
@@ -25354,6 +25419,8 @@ class Fenster(_FENSTER_BASIS):
         """Explicit native UI entry; flush asynchronously, never wait on the UI."""
         from magnolie_contact_notes_setup import NativeNotesSetupPreparation
         if (threading.current_thread() is not threading.main_thread() or not callable(on_acquired) or
+                getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_notes_original_setup_profile_fence', None) is not None or
                 getattr(self, '_notes_original_setup_host', None) is not host_owner or
                 on_failed is not None and not callable(on_failed) or
                 getattr(self, '_notes_original_setup_preparation', None) is not None or
@@ -25411,12 +25478,16 @@ class Fenster(_FENSTER_BASIS):
         from magnolie_contact_notes_setup import NativeNotesSetupFlow, NativeNotesSetupCollector, NativeNotesSetupAcquisition
         from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
         if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_notes_original_setup_profile_fence', None) is not None or
                 getattr(self, '_notes_original_setup_host', None) is not host_owner or
                 getattr(self, '_notes_original_peer_prompt', False)):
             raise PermissionError('notes_setup_native_context_required')
         store = self._notes_original_choice_store_hole()
         def usable():
             if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    getattr(self, '_notes_original_setup_exit_pending', False) or
+                    getattr(self, '_notes_original_setup_profile_fence', None) is not None or
                     getattr(self, '_notes_original_choice_store', None) is not store):
                 raise PermissionError('notes_setup_native_context_changed')
             if prepared is not None:
@@ -25499,6 +25570,8 @@ class Fenster(_FENSTER_BASIS):
         """Explicit native-only entry; no IPC/startup/acquisition registration."""
         from magnolie_contact_notes_setup import NativeNotesSetupFlow
         if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_notes_original_setup_profile_fence', None) is not None or
                 getattr(self, '_notes_original_setup_host', None) is not None or
                 getattr(self, '_notes_original_setup_active', False)):
             raise PermissionError('notes_setup_native_context_required')

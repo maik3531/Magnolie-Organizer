@@ -2227,6 +2227,42 @@ profile/package acceptances remain in #640. Production stays OFF/unadvertised,
 Resource19 remains phone/email-only and all physical/install/publication pauses
 remain effective.
 
+### Linux profile-command fence around owned setup (#640, partial)
+
+While an owned setup is active, normal ready/unlock, password-change/removal,
+journal/backup restore and archive-import commands now defer through one native
+UI continuation. The fence cancels and joins only that owned setup, waits for
+ordinary queued/running saves to drain, then re-dispatches the exact original
+message through current UI-trust checks and all unchanged transaction validation.
+It holds no book/tree gate while waiting; ordinary numeric saves and replies stay
+dispatchable. With no setup/fence, the existing profile routes are unchanged.
+
+A second profile intent reports busy without replacing the first. Native setup
+entry/continuation cannot restart inside the fence or an existing native data/sync
+operation. Unknown foreign owners are held, not stopped or overwritten. Final
+close drops only the owned deferred payload instead of replaying a password or
+restore operation after UI destruction. Failed scheduling never falls through to
+an unfenced transaction. Failure before dispatch reports uncommitted; an exception
+after entering the original route instead reports `native_outcome_unknown` and
+does not falsely assert rollback or `committed=false`.
+
+The targeted host/dispatcher/preparation/flow/peer/close groups pass 153 cases.
+After the post-dispatch outcome review, all 19 fence cases pass again, including
+the additional unknown-outcome negative; unchanged paths/evidence are retained.
+Seven command routes are covered, along with two real ordinary queued-writer
+saves before continuation, duplicate intents, trust loss, scheduler failure, final
+close, no-feature behavior and foreign-owner preservation. Restore/password body
+spies verify original IDs/revisions/arguments; those actual transaction bodies are
+unchanged, not re-certified here. Ready re-dispatch uses a neutral test endpoint
+to avoid starting unrelated native services. No installed GTK/provider/device/user
+keys, profile installation or publication is involved; Windows inputs are unchanged.
+
+This fences the owned setup lifetime, not a new productive automatic session or
+startup registration. Deliberate application action/capability admission,
+conditional known-source resume and separate native counterpart/system-rights/
+profile/package gates remain in #640. Full write remains OFF/unadvertised and all
+existing pauses remain effective.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
