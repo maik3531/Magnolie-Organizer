@@ -1858,6 +1858,35 @@ availability or unauthorized provider writes. Windows product inputs are unchang
 the fresh-loaded-model bootstrap detail is not claimed tested/fixed there.
 Production registration and all #636 setup/installed/device/package gates remain.
 
+### Linux explicit known-choice/existing-key session composition (#636, partial)
+
+An explicit native session now composes the checked private choice reader,
+read-only existing `telefon/storage.key` adapter, independent outcome/request
+journals, controller and joined UI save lane. Admission first authenticates native
+known choices/no pending intent, exact primary binding and current native model,
+then checks existing key availability and rechecks the choice/context before
+claiming an empty native host slot. Constructors/admission do not create journal
+roots, a phone store/database/key/identity, a service/listener or a source grant.
+
+The internal window entry does not replace another controller/UI owner. Stop is
+owned/idempotent and clears only its in-memory slot; independent physical holds
+and journal history remain. The key callback rechecks usable native context and
+reads existing material afresh per operation, rather than caching authority after
+key loss/replacement. A separate short state lock avoids taking the session
+lifecycle lock from a journal callback under work/book locks. Native lifecycle
+entries must be called outside book/tree gates.
+
+Twenty-six owned-fixture cases cover admission, cancellation/lifecycle and real
+FS1 -> numeric IPC -> encrypted writer -> independent journal completion, including
+Stop/lock/key loss/replacement. Replacement may reject with the authenticated
+cipher's InvalidTag; this is a hold, not history adoption. No actual user key,
+PhoneService, installed GTK or provider/device is opened. The 309 Notes and 75
+joined native/UI/original-contact checks are retained: existing app AST excluding
+only the new entries and all involved existing module bytes are unchanged. Source
+manifests include the helper; no package was built or installed. Actual peer/
+acquisition UI ingress and startup registration are still absent/unadvertised,
+and Windows follow-up #639 and installed/provider/device/package gates stay open.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

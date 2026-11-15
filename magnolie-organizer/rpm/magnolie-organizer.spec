@@ -171,6 +171,7 @@ install -Dpm 0644 bin/magnolie_contact_notes_controller.py %{buildroot}%{_bindir
 install -Dpm 0644 bin/magnolie_contact_notes_setup.py %{buildroot}%{_bindir}/magnolie_contact_notes_setup.py
 install -Dpm 0644 bin/magnolie_contact_notes_key.py %{buildroot}%{_bindir}/magnolie_contact_notes_key.py
 install -Dpm 0644 bin/magnolie_contact_notes_ui.py %{buildroot}%{_bindir}/magnolie_contact_notes_ui.py
+install -Dpm 0644 bin/magnolie_contact_notes_session.py %{buildroot}%{_bindir}/magnolie_contact_notes_session.py
 install -Dpm 0644 bin/magnolie_contact_notes_requests.py %{buildroot}%{_bindir}/magnolie_contact_notes_requests.py
 install -Dpm 0644 bin/magnolie_personal_actor_decision_review.py %{buildroot}%{_bindir}/magnolie_personal_actor_decision_review.py
 install -Dpm 0644 bin/magnolie_personal_actor_producer.py %{buildroot}%{_bindir}/magnolie_personal_actor_producer.py

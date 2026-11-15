@@ -25220,6 +25220,49 @@ class Fenster(_FENSTER_BASIS):
             return NativeNotesController(self._notes_original_choice_store_hole(), outcomes,
                 lambda: self._daten_sperre)
 
+    def _notes_original_native_resume_known(self):
+        """Explicit future native resume entry; NOT called by startup/IPC."""
+        from magnolie_contact_notes_session import NativeNotesNativeSession
+        current = getattr(self, '_notes_original_session', None)
+        if (type(current) is NativeNotesNativeSession and current.is_active and
+                not getattr(self, '_gesperrt', True) and not getattr(self, '_wirklich_beenden', False) and
+                current.choices is getattr(self, '_notes_original_choice_store', None)):
+            return 'attached'
+        if type(current) is NativeNotesNativeSession:
+            current.stop()  # No book/tree gate held at this explicit entry.
+        store = self._notes_original_choice_store_hole()
+        def usable():
+            if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    getattr(self, '_notes_original_choice_store', None) is not store):
+                raise PermissionError('notes_session_native_context_unavailable')
+        def attach(owner, controller, ui):
+            usable()
+            if (getattr(self, '_notes_original_controller', None) is not None or
+                    getattr(self, '_notes_original_ui', None) is not None or
+                    getattr(self, '_notes_original_session', None) not in (None, current)):
+                return False
+            self._notes_original_controller, self._notes_original_ui, self._notes_original_session = controller, ui, owner
+            return True
+        def detach(owner, controller, ui):
+            if getattr(self, '_notes_original_session', None) is not owner:
+                return
+            if getattr(self, '_notes_original_controller', None) is controller:
+                self._notes_original_controller = None
+            if getattr(self, '_notes_original_ui', None) is ui:
+                self._notes_original_ui = None
+            self._notes_original_session = None
+        session = NativeNotesNativeSession(os.path.realpath(daten_verzeichnis()), os.path.realpath(daten_datei()),
+            store, lambda: json.dumps(self._aktuelle_daten, ensure_ascii=False, sort_keys=True,
+                separators=(',', ':'), allow_nan=False) if not self._gesperrt else None,
+            lambda: self._daten_sperre, attach, detach, usable)
+        return session.try_attach_known()
+
+    def _notes_original_native_stop_session(self):
+        from magnolie_contact_notes_session import NativeNotesNativeSession
+        session = getattr(self, '_notes_original_session', None)
+        if type(session) is NativeNotesNativeSession:
+            session.stop()  # Native caller must be outside book/tree locks.
+
     def _notes_original_native_setup_candidate(self, candidate, choose_native=None):
         """Explicit native-only entry; no IPC/startup/acquisition registration."""
         from magnolie_contact_notes_setup import NativeNotesSetupFlow
