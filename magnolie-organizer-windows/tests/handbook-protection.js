@@ -5,7 +5,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const { canonicalPageIds, selectHandbookWeb } = require("./handbook-source");
+const { canonicalPageIds, pageIds, selectHandbookWeb } = require("./handbook-source");
 
 const root = path.resolve(__dirname, "..");
 const handbookSource = selectHandbookWeb(root, ["inhalt.js", "i18n/de.js"]);
@@ -162,7 +162,7 @@ const books = Object.fromEntries(Object.entries(directories)
   .map(([name, directory]) => [name, pages(directory)]));
 const reference = books.shared;
 const expectedIds = canonicalPageIds(handbook);
-assert.deepStrictEqual(reference.map((page) => page.id), expectedIds,
+assert.deepStrictEqual(pageIds(reference), expectedIds,
   "Geladene Seiten entsprechen nicht der ausgewählten kanonischen Quelle");
 for (const id of requiredIds) assert.ok(expectedIds.includes(id), `Gemeinsame Seite fehlt: ${id}`);
 const projects = source(reference.find((page) => page.id === "my-projects"));
