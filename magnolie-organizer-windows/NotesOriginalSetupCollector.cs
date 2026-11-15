@@ -16,6 +16,10 @@ internal sealed class NotesOriginalSetupCollector
             var native = Native(); native.Owner.RequireCandidate(native.Key, native.Frame);
             return native.Frame.Body.DeepClone().AsObject(); // Untrusted display data only.
         }
+        internal MagnolienbaumCoordinator.NotesPins Peer
+        {
+            get { var native = Native(); native.Owner.RequireCandidate(native.Key, native.Frame); return native.Owner.pins.Peer; }
+        }
         internal NotesOriginalExportChoice Choose(NativeActorBookSnapshot snapshot, Func<NativeActorBookSnapshot?> capture,
             Func<IReadOnlyList<JsonObject>, string?> chooseNative)
         {

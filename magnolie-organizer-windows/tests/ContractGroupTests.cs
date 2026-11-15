@@ -836,6 +836,17 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-flow-and-addition")
+            {
+                await NotesOriginalChoiceStoreTests.SetupFlowAsync(Path.Combine(root, "notes-setup-flow"));
+                await NotesOriginalChoiceStoreTests.SetupAdditionAsync(Path.Combine(root, "notes-source-addition"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-flow-only")
+            {
+                await NotesOriginalChoiceStoreTests.SetupFlowAsync(Path.Combine(root, "notes-setup-flow"));
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-collector-and-worker")
             {
                 await NotesOriginalChoiceStoreTests.SetupCollectorAsync(Path.Combine(root, "notes-setup-collector"));
@@ -971,6 +982,7 @@ internal static class ContractGroupTests
             await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
             await NotesOriginalChoiceStoreTests.SetupAdditionAsync(Path.Combine(root, "notes-source-addition"));
             await NotesOriginalChoiceStoreTests.SetupCollectorAsync(Path.Combine(root, "notes-setup-collector"));
+            await NotesOriginalChoiceStoreTests.SetupFlowAsync(Path.Combine(root, "notes-setup-flow"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

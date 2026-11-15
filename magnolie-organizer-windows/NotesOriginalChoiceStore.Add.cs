@@ -8,11 +8,14 @@ internal sealed partial class NotesOriginalChoiceStore
     // Caller uses the native book mutation lane, as for Approve; raw-state CAS
     // additionally rejects concurrent private decisions across store instances.
     internal void AddSources(IReadOnlyList<NotesOriginalExportChoice> selections)
+        => AddSourcesCore(selections, null);
+
+    private void AddSourcesCore(IReadOnlyList<NotesOriginalExportChoice> selections, RawState? setupExpected, Action? setupCurrent = null)
     {
         var choices = selections.ToArray();
         if (choices.Length == 0 || choices.Length > 256) throw new InvalidDataException("notes_choice_addition_budget");
         if (choices.Any(choice => choice is null)) throw new InvalidOperationException("notes_choice_native_selection_required");
-        var expected = ReadRaw();
+        var expected = setupExpected ?? ReadRaw();
         using var state = Read();
         var known = ReadKnown();
         if (state is null || known is null || state.Intent is not null || state.Identity != known.Identity ||
@@ -37,6 +40,7 @@ internal sealed partial class NotesOriginalChoiceStore
         for (var index = 0; index < choices.Length; index++) choices[index].AttachConsent(new(new SealProof(this, choices[index], state.Identity,
             Text(payload, "generation"), Text(payload, "book"), Canonical(sources[index]))));
         RawState published;
+        setupCurrent?.Invoke();
         using (var directory = files.Open() ?? throw new InvalidOperationException("notes_choice_existing_decision_required"))
         {
             if (Raw(directory) != expected) throw new InvalidOperationException("notes_choice_newer_private_decision");
@@ -56,6 +60,7 @@ internal sealed partial class NotesOriginalChoiceStore
         }
         try
         {
+            setupCurrent?.Invoke();
             if (capture()?.SavedBook != known.Snapshot.SavedBook || !actual.Same(primary()))
                 throw new InvalidOperationException("notes_choice_native_book_changed");
             foreach (var choice in choices) choice.RequireCurrent();

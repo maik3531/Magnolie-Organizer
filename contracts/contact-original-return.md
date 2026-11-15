@@ -1683,6 +1683,38 @@ dialog/decision publication, setup-time decision CAS, restart registration and
 Linux counterpart remain open in #636. This Windows step is not Linux or installed
 GUI/device/provider acceptance; all existing pauses remain effective.
 
+### Windows native setup dialog and before-dialog decision CAS (#636, partial)
+
+The native candidate entry now connects a real Windows dialog implementation to
+a bounded decision flow, still without startup/renderer registration. The dialog
+shows the native peer ID/key, exact share/setup and existing local IDs/UIDs. No
+contact is preselected; Cancel has initial focus and only an explicit selection
+enables persistent updates. Display text is sanitized in native controls, not used
+for identity matching. The modal implementation is compiled but not interactively
+executed under the existing GUI pause.
+
+Before the dialog, an opaque one-use native decision captures authenticated private
+state plus the actual saved snapshot/primary. The dialog runs outside book/tree/
+private file locks with detached display copies. On return, cancellation, genuine
+candidate/current origin, exact snapshot/primary and selected native ID/UID are
+rechecked. The BEFORE-dialog private-state CAS reaches the actual publication,
+not a precheck followed by a fresh decision. Initial/revoked setup uses a full
+decision; existing sources use only monotone addition. A same-owner empty revoke
+also invalidates open in-process setup decisions without creating a key or grant;
+persistent decisions from other store instances are still caught by private CAS.
+
+Nineteen synthetic native dialog-boundary cases pass on host and noninteractive
+Windows, including initial/addition, cancellation, concurrent revoke/replace,
+actual save during selection, stopped acquisition, forged selection/proof,
+display aliases, one-use commit and revocation during key protection/publication.
+The 16 addition cases pass again on Windows; full managed (including joined wire)
+and original-contact/private-file regressions pass, the latter also on Windows.
+Release CoreTests/BASE are clean. Callback tests are not an interactive modal
+acceptance claim. Actual peer/acquisition UI ingress, Linux setup counterpart,
+startup recovery registration, installed permissions/ACL and provider/device/
+package acceptance remain open. No renderer field, general contact-sync flag or
+transport delivery becomes consent, and production remains OFF/unadvertised.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

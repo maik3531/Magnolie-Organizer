@@ -282,7 +282,7 @@ internal sealed partial class NotesOriginalChoiceStore
             throw new InvalidOperationException("notes_choice_native_contact_changed");
     }
 
-    private RawState Publish(byte[] key, JsonObject payload, RawState expected)
+    private RawState Publish(byte[] key, JsonObject payload, RawState expected, Action? setupCurrent = null)
     {
         var encoded = EncodePayload(key, payload);
         var protectedKey = keyProtector.Protect(key);
@@ -295,6 +295,7 @@ internal sealed partial class NotesOriginalChoiceStore
                 if (!CryptographicOperations.FixedTimeEquals(roundtrip, key)) throw new CryptographicException("notes_choice_key_readback_changed");
             }
             finally { CryptographicOperations.ZeroMemory(roundtrip); }
+            setupCurrent?.Invoke(); // Outside private-file lock, after key-protector callbacks.
             using var directory = files.Open(create: true) ?? throw new IOException("notes_choice_private_root_required");
             if (Raw(directory) != expected) throw new InvalidOperationException("notes_choice_newer_private_decision");
             try
@@ -312,11 +313,15 @@ internal sealed partial class NotesOriginalChoiceStore
     }
 
     internal void Approve(IReadOnlyList<NotesOriginalExportChoice> selections)
+    { Interlocked.Increment(ref setupVersion); ApproveCore(selections, null); }
+
+    private void ApproveCore(IReadOnlyList<NotesOriginalExportChoice> selections, RawState? setupExpected, Action? setupCurrent = null)
     {
         var choices = selections.ToArray();
         if (choices.Length == 0) { Revoke(); return; }
         if (choices.Length > 256) throw new InvalidDataException("notes_choice_selection_budget");
-        var expected = ReadRaw();
+        var expected = setupExpected ?? ReadRaw();
+        if (setupExpected is not null && ReadRaw() != expected) throw new InvalidOperationException("notes_choice_newer_private_decision");
         var snapshot = capture() ?? throw new InvalidOperationException("notes_choice_real_saved_book_required");
         var actual = primary(); var nativeBinding = binding();
         if (!Path.IsPathFullyQualified(nativeBinding) || actual.Binding != Path.GetFullPath(nativeBinding) || actual.PlainHash != snapshot.SavedBook.Sha256 ||
@@ -334,9 +339,10 @@ internal sealed partial class NotesOriginalChoiceStore
             var identity = Convert.ToHexString(SHA256.HashData(key)).ToLowerInvariant();
             for (var index = 0; index < choices.Length; index++) choices[index].AttachConsent(new(new SealProof(this, choices[index], identity,
                 Text(payload, "generation"), Text(payload, "book"), Canonical(sources[index]))));
-            var published = Publish(key, payload, expected);
+            var published = Publish(key, payload, expected, setupCurrent);
             try
             {
+                setupCurrent?.Invoke();
                 if (capture()?.SavedBook != snapshot.SavedBook || !actual.Same(primary())) throw new InvalidOperationException("notes_choice_native_book_changed");
                 foreach (var choice in choices) choice.RequireCurrent();
             }
@@ -369,6 +375,7 @@ internal sealed partial class NotesOriginalChoiceStore
 
     internal void Revoke()
     {
+        Interlocked.Increment(ref setupVersion); // Also cancel this owner's uncommitted first-setup decision; no empty key creation.
         var expected = ReadRaw();
         using var current = Read();
         if (current is null || current.Payload["choices"]!.AsArray().Count == 0) return;

@@ -7,6 +7,29 @@ internal sealed partial class BridgeDispatcher
     internal NotesOriginalUiReadiness? NativeNotesReadiness { get; set; }
     internal Action? NativeNotesWake { get; set; }
     private NotesOriginalNativeSession? nativeNotesSession;
+    private int notesSetupPrompt;
+
+    private NotesOriginalChoiceStore NativeNotesChoiceStore() => NativeNotesChoices ??= new NotesOriginalChoiceStore(
+        new ContactSourcePrivateFiles(Path.Combine(Path.GetFullPath(paths.Root), "notes-original-choices")), NativeActorBook,
+        () => ContactSourcePrimaryBook.Capture(Path.GetFullPath(paths.Data), store, encryption, () => currentPlainTextAvailable && !restoreInProgress && !disposed),
+        () => Path.GetFullPath(paths.Data), currentNativeData: () => currentPlainTextAvailable && !restoreInProgress && !disposed ? currentPlainText : null);
+
+    // Native candidate only. No renderer/startup entry or acquisition registration.
+    internal async Task<bool> ConfigureNotesCandidateAsync(NotesOriginalSetupCollector.Candidate candidate, CancellationToken cancellation = default)
+    {
+        if (!OperatingSystem.IsWindows() || disposed || restoreInProgress || !currentPlainTextAvailable ||
+            Interlocked.CompareExchange(ref notesSetupPrompt, 1, 0) != 0)
+            throw new InvalidOperationException("notes_setup_native_context_required");
+        try
+        {
+            using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellation, backgroundLifetime.Token);
+            var flow = new NotesOriginalSetupFlow(NativeNotesChoiceStore(), NativeActorBook);
+            var configured = await flow.ConfigureAsync(candidate, (view, token) => NotesOriginalSetupDialog.ChooseAsync(form, view, T, token), operation.Token);
+            if (configured) NativeNotesWake?.Invoke();
+            return configured;
+        }
+        finally { Volatile.Write(ref notesSetupPrompt, 0); }
+    }
 
     // Explicit future setup/resume entry, NOT called by startup/renderer commands.
     // Existing private native choices and an existing coordinator/key are required.
@@ -18,10 +41,7 @@ internal sealed partial class BridgeDispatcher
             return NotesOriginalNativeSession.Admission.Held;
         if (NativeNotesUi is not null || NativeNotesReadiness is not null || NativeNotesWake is not null)
             return NotesOriginalNativeSession.Admission.Held; // Never replace a foreign native injection.
-        var choices = NativeNotesChoices ?? new NotesOriginalChoiceStore(
-            new ContactSourcePrivateFiles(Path.Combine(Path.GetFullPath(paths.Root), "notes-original-choices")), NativeActorBook,
-            () => ContactSourcePrimaryBook.Capture(Path.GetFullPath(paths.Data), store, encryption, () => currentPlainTextAvailable && !restoreInProgress && !disposed),
-            () => Path.GetFullPath(paths.Data), currentNativeData: () => currentPlainTextAvailable && !restoreInProgress && !disposed ? currentPlainText : null);
+        var choices = NativeNotesChoiceStore();
         var session = new NotesOriginalNativeSession(paths, choices, OriginalContactCommit,
             () => currentPlainTextAvailable && !restoreInProgress && !disposed ? currentPlainText : null,
             baumInstance, OfferNotesWorkAsync, OfferNotesReadinessAsync, OriginalContactWlanAvailable);
