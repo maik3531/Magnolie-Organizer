@@ -25625,22 +25625,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     originalKontaktSpeicher = { token: nutzlast.token, text: JSON.stringify(DATEN) };
     speichereJetzt();
   }
+  function notesOriginalUiFrei() {
+    return Bruecke.vorhanden && initialisiert && antwortErhalten && !gesperrt && !aktiverEditor && !syncLaeuft && !kontaktSyncPruefungLauf &&
+      !mcpSyncAktiv() && !baumSpeicherNachweis && !baumPostVorSpeichern && !ausstehendeAdressbuchBaseline && !laufenderSpeicher &&
+      wartenderSpeicherText === null && speicherTimer === null && !ausstehenderNotizSnapshot && notizSnapshotTimer === null &&
+      !originalKontaktLauf && !originalKontaktSpeicher;
+  }
+  function notesOriginalUiStand(beforeText) {
+    try {
+      const normal = JSON.stringify(JSON.parse(beforeText));
+      return JSON.stringify(DATEN) === normal && !!letzterSpeicherText && JSON.stringify(JSON.parse(letzterSpeicherText)) === normal;
+    } catch (_) { return false; }
+  }
+  function empfangeNotesOriginalBereit(nutzlast) {
+    if (typeof nutzlast?.token !== "string" || !/^[a-f0-9]{64}$/.test(nutzlast.token) || !Bruecke.vorhanden) return;
+    Bruecke.sende({ cmd: "notes_original_ready", token: nutzlast.token, bereit: notesOriginalUiFrei() && notesOriginalUiStand(nutzlast.beforeText) });
+  }
   function empfangeNotesOriginalSpeichern(nutzlast) {
     // This idle/CAS check protects unsent edits, never grants source/ACK rights.
     const token = nutzlast?.token;
     if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) return;
     const ablehnen = () => Bruecke.vorhanden && Bruecke.sende({ cmd: "notes_original_save_cancel", token });
-    if (!Bruecke.vorhanden || !initialisiert || !antwortErhalten || gesperrt || aktiverEditor || syncLaeuft || kontaktSyncPruefungLauf ||
-        mcpSyncAktiv() || baumSpeicherNachweis || baumPostVorSpeichern || ausstehendeAdressbuchBaseline || laufenderSpeicher || wartenderSpeicherText !== null ||
-        speicherTimer !== null || ausstehenderNotizSnapshot || notizSnapshotTimer !== null || originalKontaktLauf || originalKontaktSpeicher ||
+    if (!notesOriginalUiFrei() ||
         !["bootstrap", "save"].includes(nutzlast.kind) || typeof nutzlast.beforeText !== "string" || typeof nutzlast.text !== "string") {
       ablehnen(); return;
     }
     let vorher, danach;
     try {
       vorher = JSON.parse(nutzlast.beforeText); danach = JSON.parse(nutzlast.text);
-      const normal = JSON.stringify(vorher);
-      if (JSON.stringify(DATEN) !== normal || !letzterSpeicherText || JSON.stringify(JSON.parse(letzterSpeicherText)) !== normal) { ablehnen(); return; }
+      if (!notesOriginalUiStand(nutzlast.beforeText)) { ablehnen(); return; }
       if (nutzlast.kind === "bootstrap") {
         if (nutzlast.text !== nutzlast.beforeText) { ablehnen(); return; }
       } else {
@@ -36113,6 +36126,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
     notesOriginalSpeichern(nutzlast) { empfangeNotesOriginalSpeichern(nutzlast); },
+    notesOriginalBereit(nutzlast) { empfangeNotesOriginalBereit(nutzlast); },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};

@@ -47,6 +47,7 @@ internal sealed partial class NotesOriginalController
             return new(new CompletionNative(this, work, commit.Text, commit.Offer.Token));
         throw new InvalidOperationException("notes_controller_native_save_work_required");
     }
+    internal void RejectSaveWork(Work work) => FailSaveWork(work); // No disk authority released on a failed UI handoff.
 
     private void RequireSaveWork(Work work)
     {

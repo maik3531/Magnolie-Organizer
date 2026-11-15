@@ -289,6 +289,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kontakt_originalquellen_widerrufen": await RevokeOriginalContactSourcesAsync(message); break;
                     case "kontakt_originalquellen_update": await UpdateOriginalContactSourcesAsync(message); break;
                     case "notes_original_save_cancel": NativeNotesUi?.Cancel(Text(message, "token")); break;
+                    case "notes_original_ready": await AcceptNotesReadinessAsync(Text(message, "token"), Boolean(message, "bereit")); break;
                     case "sync_commit":
                         if (Text(message, "requestId") is { Length: > 0 } commitRequest)
                         {
@@ -1072,7 +1073,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
             await ReportErrorAsync("speichern", error.ToString());
             await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = T("Warning: The data could not be saved.") });
         }
-        finally { if (locked) MutationGate.Global.Release(); }
+        finally
+        {
+            if (locked) MutationGate.Global.Release();
+            if (notesCompletion is not null)
+                try { NativeNotesWake?.Invoke(); } catch (Exception) { } // Deferred wake cannot turn a genuine user save into failure.
+        }
         if (contactAckCommitted) await OriginalContactSaveAcknowledgedAsync(id, BaumSyncSnapshot.Hash(text), contactAckRecognized);
     }
 

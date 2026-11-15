@@ -1494,6 +1494,37 @@ shared dispatcher/contract/frontend change. Release CoreTests and BASE are clean
 Automatic event/maintenance pumping, prompt readiness negotiation, shared bootstrap
 coalescing and actual common setup/backend registration remain outstanding.
 
+### Windows explicit event/maintenance worker and UI restriction (#633)
+
+An explicitly injected worker can now attach to the existing coordinator maintenance
+loop. Receive and native SaveACK completion only release a single coalesced wake;
+book/source work, UI publication and typed networking remain deferred. The existing
+30-second periodic loop also waits for that wake without creating another timer,
+listener or server. Event wakes do not accelerate generic outbox/mailbox polling.
+Turns serialize, process at most four staged items and offer at most one UI save or
+one reserved network operation. A failed UI handoff drops only its exact memory
+lane; durable physical history remains held. Backlogs can wake another bounded turn.
+
+Readiness uses a five-second native before-model probe and short cached restriction.
+The frontend reports idle/current/last-saved equality without saving anything. Native
+probe identity, model, expiry, one-use reply and Stop are checked; this Boolean is
+never consent, a writer witness or ACK authority. The final UI lease CAS and native
+writer checks still apply. Stop detaches only the explicitly attached pipeline,
+cancels its controller/UI/readiness state outside the tree gate, and retains disk
+holds. Foreign explicit receive callbacks are not overwritten or detached.
+
+Eight readiness and three worker scenarios pass on host and noninteractive Windows:
+stale/foreign/expired/model-changed/replayed probes, cache expiry/Stop, overlapping
+turn coalescing, actual existing-loop receive wake through UI lease/native writer/
+inline ACK, and Stop of pending work. The loop test never calls service StartAsync
+or opens listeners; a bounded event completion proves dispatch before the periodic
+tick, and writer wake is observed outside the book gate. The full managed group,
+16 frontend DOM cases and original-contact regression pass; the latter also passes
+on Windows. Release CoreTests and BASE builds are clean. All pipeline construction
+remains explicit: no startup factory, existing-key backend or common setup is
+registered. Combined frontend/native wire and installed/device acceptance are not
+claimed by these separate synthetic checks.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

@@ -62,5 +62,6 @@ internal sealed partial class MagnolienbaumCoordinator
         if (!receive(peer.DeepClone().AsObject(), body.DeepClone().AsObject(), origin, transport))
             throw new InvalidOperationException("notes_original_receive_held");
         origin.RequireCurrent(body, transport);
+        WakeNotesMaintenance(); // Bounded semaphore release only, no native/file/network work here.
     }
 }

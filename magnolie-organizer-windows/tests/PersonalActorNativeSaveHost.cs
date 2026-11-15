@@ -37,6 +37,7 @@ internal sealed partial class PersonalActorNativeSaveHost
     private bool restoreInProgress = false, disposed = false;
     internal bool FailAfterPrimary;
     internal NotesOriginalUiSaveSession? NativeNotesUi { get; set; }
+    internal Action? NativeNotesWake { get; set; }
     internal int Snapshots;
     internal readonly List<string> Errors = [];
     internal const string Password = "synthetic-only-native-bridge-save";

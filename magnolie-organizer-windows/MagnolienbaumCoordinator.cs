@@ -524,6 +524,7 @@ internal sealed partial class MagnolienbaumCoordinator : IDisposable
         {
         CancellationTokenSource? cancellation;
         lock (gate) { notesReceiveGeneration++; cancellation = serviceCancellation; serviceCancellation = null; }
+        StopNotesOriginalPipeline();
         if (cancellation is null) return;
         cancellation.Cancel();
         foreach (var listener in listeners) listener.Stop();
@@ -1532,12 +1533,24 @@ internal sealed partial class MagnolienbaumCoordinator : IDisposable
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
         try
         {
-            while (await timer.WaitForNextTickAsync(cancellation).ConfigureAwait(false))
+            var tick = timer.WaitForNextTickAsync(cancellation).AsTask();
+            var wake = notesMaintenanceWake.WaitAsync(cancellation);
+            while (true)
             {
-                try { await MaintainOutboxAsync(1, cancellation).ConfigureAwait(false); await ProbePairingRequestsAsync(cancellation).ConfigureAwait(false); }
-                catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
-                catch (Exception error) { serviceError = error.Message; }
-                await PollMailboxSafeAsync(cancellation).ConfigureAwait(false);
+                await Task.WhenAny(tick, wake).ConfigureAwait(false);
+                cancellation.ThrowIfCancellationRequested();
+                if (wake.IsCompleted) { await wake.ConfigureAwait(false); wake = notesMaintenanceWake.WaitAsync(cancellation); }
+                if (tick.IsCompleted)
+                {
+                    if (!await tick.ConfigureAwait(false)) break;
+                    try { await MaintainOutboxAsync(1, cancellation).ConfigureAwait(false); await ProbePairingRequestsAsync(cancellation).ConfigureAwait(false); }
+                    catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
+                    catch (Exception error) { serviceError = error.Message; }
+                    await PollMailboxSafeAsync(cancellation).ConfigureAwait(false);
+                    tick = timer.WaitForNextTickAsync(cancellation).AsTask();
+                }
+                // Event wakes do not accelerate generic outbox/mailbox polling.
+                await MaintainNotesOriginalAsync(cancellation).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }

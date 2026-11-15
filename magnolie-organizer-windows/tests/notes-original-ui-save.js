@@ -25,7 +25,7 @@ async function boot() {
 }
 async function run() {
   const modes = ["metadata", "bootstrap", "unsaved-contact", "unsaved-note", "pending-save", "save-timer", "wrong-before", "wrong-uid", "noncontact",
-    "bad-bootstrap", "malformed-token", "late-user-edit", "duplicate"];
+    "bad-bootstrap", "malformed-token", "late-user-edit", "duplicate", "readiness", "readiness-unsaved", "readiness-pending"];
   for (const mode of modes) {
     const b = await boot();
     try {
@@ -41,6 +41,15 @@ async function run() {
       if (mode === "wrong-uid") { candidate.kontakte[0].uid = "different-uid"; offer.text = JSON.stringify(candidate); }
       if (mode === "noncontact") { candidate.notizen[0].text = "Must not change"; offer.text = JSON.stringify(candidate); }
       if (mode === "malformed-token") offer.token = "not-a-native-token";
+      if (mode.startsWith("readiness")) {
+        if (mode === "readiness-unsaved") b.t.daten().kontakte[0].notiz = "Unsent readiness edit";
+        if (mode === "readiness-pending") { b.t.daten().kontakte[0].notiz = "Pending readiness edit"; b.t.speichereJetzt(); }
+        const saves = b.commands("speichern").length, current = copy(b.t.daten());
+        b.w.App.notesOriginalBereit({ token: offer.token, beforeText: before });
+        assert.equal(b.commands("notes_original_ready").at(-1)?.bereit, mode === "readiness");
+        assert.equal(b.commands("speichern").length, saves, "Readiness request started a save");
+        assert.deepEqual(copy(b.t.daten()), current); continue;
+      }
       const unchanged = copy(b.t.daten()), saves = b.commands("speichern").length;
       b.w.App.notesOriginalSpeichern(offer);
       if (["metadata", "bootstrap", "late-user-edit", "duplicate"].includes(mode)) {

@@ -908,6 +908,101 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine("Notes controller multi-source: 2 fairness/conflict/stale-whole-book actual-writer cases passed.");
     }
 
+    internal static async Task WorkerAsync(string root)
+    {
+        foreach (var mode in new[] { "valid", "not-idle", "foreign-token", "expired-probe", "changed-book", "replay", "cache-expiry", "stopped" })
+        {
+            long now = 0; var text = "synthetic-owned-book";
+            var readiness = new NotesOriginalUiReadiness(() => text, () => now); var probe = readiness.Request();
+            TestAssert.That(!readiness.IsReady && readiness.Request() == probe, "Readiness probe itself granted permission or grew pending probes");
+            if (mode == "expired-probe") now = 5_000;
+            if (mode == "changed-book") text += "-new";
+            if (mode == "stopped") readiness.Stop();
+            var allowed = readiness.Accept(mode == "foreign-token" ? new string('0', 64) : probe.Token, mode != "not-idle");
+            TestAssert.That(allowed == (mode is "valid" or "replay" or "cache-expiry"), "Readiness restriction accepted stale/foreign/unsent native state");
+            if (mode == "replay") TestAssert.That(!readiness.Accept(probe.Token, true), "Readiness token was replayed");
+            if (mode == "cache-expiry") { now = 5_000; TestAssert.That(!readiness.IsReady, "Cached readiness never expired"); }
+            readiness.Stop();
+        }
+        foreach (var mode in new[] { "event-save", "coalesced-turn", "stop-pending" })
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            ContactSourcePrivateFiles Boundary(string path) => new(Path.Combine(h.Root, path), controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var readiness = new NotesOriginalUiReadiness(() => h.Host.CurrentNativeText);
+            var requests = new NotesOriginalRequestIntents(Boundary("requests"), Key);
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary("acks"), Key, requests);
+            var controller = new NotesOriginalController(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => readiness.IsReady);
+            var ui = new NotesOriginalUiSaveSession(controller, () => h.Host.CurrentNativeText); h.Host.NativeNotesUi = ui;
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var savedEvent = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var asks = 0; var offers = 0; var wakeOutsideBook = false;
+            var worker = new NotesOriginalWorker(controller, ui, readiness, h.Coordinator, async work =>
+            {
+                var outside = await Task.Run(() => { var taken = MutationGate.Global.Wait(0); if (taken) MutationGate.Global.Release(); return taken; });
+                TestAssert.That(outside, "Deferred UI dispatch held native book gate");
+                NotesOriginalUiSaveSession.Offer offer;
+                await MutationGate.Global.WaitAsync();
+                try { offer = ui.Publish(work); }
+                finally { MutationGate.Global.Release(); }
+                offers++;
+                var saved = await h.Host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 700 + offers, ["text"] = offer.Text, ["notesOriginalLauf"] = offer.Token });
+                savedEvent.TrySetResult(saved);
+            }, async () =>
+            {
+                asks++; entered.TrySetResult();
+                if (mode == "coalesced-turn") await release.Task;
+                var probe = readiness.Request(); readiness.Accept(probe.Token, true);
+            }, () => false);
+            h.Host.NativeNotesWake = () =>
+            {
+                wakeOutsideBook = MutationGate.Global.Wait(0); if (wakeOutsideBook) MutationGate.Global.Release();
+                worker.Wake();
+            };
+            h.Coordinator.NotesOriginalReceive = null; worker.Attach();
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            if (mode == "coalesced-turn")
+            {
+                var first = worker.PulseAsync(deadline.Token); await entered.Task.WaitAsync(deadline.Token);
+                await worker.PulseAsync(deadline.Token);
+                TestAssert.That(asks == 1 && offers == 0, "Overlapping deferred turns did not coalesce");
+                release.TrySetResult(); await first; await worker.StopAsync(); continue;
+            }
+            await worker.PulseAsync(deadline.Token);
+            var protocol = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!; var offerBody = protocol.Probe(); offerBody["antwort"] = true;
+            h.NoCallbacks = true; h.Send(offerBody); h.NoCallbacks = false; await worker.PulseAsync(deadline.Token);
+            h.NoCallbacks = true; h.Send(h.Export); h.NoCallbacks = false; await worker.PulseAsync(deadline.Token);
+            var request = requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id")!["request"]!.AsObject();
+            var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+            foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+            h.NoCallbacks = true; h.Send(result); h.NoCallbacks = false;
+            if (mode == "stop-pending")
+            {
+                var before = System.IO.File.ReadAllBytes(h.Host.DataPath); await h.Coordinator.StopAsync(); await worker.PulseAsync();
+                TestAssert.That(!readiness.IsReady && offers == 0 && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before) &&
+                    requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null, "Coordinator Stop left a live queued writer or released durable hold");
+                await worker.StopAsync(); continue;
+            }
+            // Run the actual existing maintenance loop privately, without StartAsync,
+            // listeners, devices or a test server. Its staged receive wake must
+            // dispatch before the 30-second periodic tick.
+            using var loopStop = new CancellationTokenSource();
+            var loop = (Task)typeof(MagnolienbaumCoordinator).GetMethod("MaintenanceLoopAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(h.Coordinator, [loopStop.Token])!;
+            try
+            {
+                var saved = await savedEvent.Task.WaitAsync(deadline.Token);
+                TestAssert.That(saved["ok"]!.GetValue<bool>() && offers == 1 && wakeOutsideBook && outcomes.LoadHeld(NotesOriginalSchema.Hash(request)) is not null,
+                    "Actual event-driven maintenance/UI/native-writer/inline ACK chain failed or ran under receive/book gate");
+            }
+            finally { loopStop.Cancel(); await loop; await worker.StopAsync(); }
+            TestAssert.That(requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null, "Worker Stop freed a disk hold");
+        }
+        Console.WriteLine("Notes native readiness/worker: 8 cached-restriction and 3 coalesced/event/Stop synthetic cases passed (no listener or startup factory).");
+    }
+
     private sealed class NotesHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler) : HttpMessageHandler
     { protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellation) => handler(request, cancellation); }
 
