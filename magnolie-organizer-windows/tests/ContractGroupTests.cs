@@ -836,6 +836,17 @@ internal static class ContractGroupTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
         try
         {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "native-session-and-worker")
+            {
+                await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
+                await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "native-session-only")
+            {
+                await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
+                return;
+            }
             if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "existing-key-only")
             {
                 NotesOriginalChoiceStoreTests.ExistingJournalKey(Path.Combine(root, "notes-existing-key"));
@@ -936,6 +947,7 @@ internal static class ContractGroupTests
             await NotesOriginalChoiceStoreTests.ControllerSourcesAsync(Path.Combine(root, "notes-controller-sources"));
             await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
             await NotesOriginalChoiceStoreTests.FrontendWireAsync(Path.Combine(root, "notes-dom-native-wire"));
+            await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");

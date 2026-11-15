@@ -7,6 +7,7 @@ internal sealed partial class MagnolienbaumCoordinator
     private readonly SemaphoreSlim notesMaintenanceWake = new(0, 1);
     private Func<CancellationToken, Task>? notesMaintenanceTurn;
     private Action? notesPipelineStop;
+    private Func<JsonObject, JsonObject, NativeNotesOrigin, string, bool>? notesPipelineReceive;
     internal void AttachNotesOriginalPipeline(Func<JsonObject, JsonObject, NativeNotesOrigin, string, bool> receive,
         Func<CancellationToken, Task> maintenanceTurn, Action stop)
     {
@@ -15,7 +16,7 @@ internal sealed partial class MagnolienbaumCoordinator
         {
             if (disposed || NotesOriginalReceive is not null || notesMaintenanceTurn is not null || notesPipelineStop is not null)
                 throw new InvalidOperationException("notes_native_pipeline_already_bound");
-            NotesOriginalReceive = receive; notesMaintenanceTurn = maintenanceTurn; notesPipelineStop = stop;
+            NotesOriginalReceive = receive; notesPipelineReceive = receive; notesMaintenanceTurn = maintenanceTurn; notesPipelineStop = stop;
         }
         WakeNotesMaintenance();
     }
@@ -30,15 +31,24 @@ internal sealed partial class MagnolienbaumCoordinator
         var operation = Volatile.Read(ref notesMaintenanceTurn);
         if (operation is not null) await operation(cancellation).ConfigureAwait(false);
     }
-    private void StopNotesOriginalPipeline()
+    private void StopNotesOriginalPipeline() => DetachNotesPipeline(null);
+    internal bool DetachNotesOriginalPipeline(Action expectedStop)
+    {
+        ArgumentNullException.ThrowIfNull(expectedStop);
+        return DetachNotesPipeline(expectedStop);
+    }
+    private bool DetachNotesPipeline(Action? expectedStop)
     {
         Action? stop;
         lock (gate)
         {
             stop = notesPipelineStop;
-            if (stop is null) return; // Preserve foreign/existing explicit receive callbacks.
-            notesPipelineStop = null; notesMaintenanceTurn = null; NotesOriginalReceive = null;
+            if (stop is null || expectedStop is not null && stop != expectedStop) return false;
+            notesPipelineStop = null; notesMaintenanceTurn = null;
+            if (NotesOriginalReceive == notesPipelineReceive) NotesOriginalReceive = null;
+            notesPipelineReceive = null; // Preserve a foreign callback installed after our attachment too.
         }
         stop(); // Outside tree gate; never wait on a book/native callback under receive's gate.
+        return true;
     }
 }

@@ -2038,6 +2038,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     {
         lock (serviceGate) { if (disposed) return; disposed = true; }
         currentPlainTextAvailable = false;
+        await StopNativeNotesSessionAsync().ConfigureAwait(false);
         StopOriginalContactMonitor(); originalContactAutomation?.Dispose();
         noteSendJobs?.Dispose();
         backgroundLifetime.Cancel();

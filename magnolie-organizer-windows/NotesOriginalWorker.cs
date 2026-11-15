@@ -12,6 +12,7 @@ internal sealed class NotesOriginalWorker(NotesOriginalController controller, No
     private readonly Func<long> clock = monotonicMilliseconds ?? (() => Environment.TickCount64);
     private long nextReadyAsk;
     private int active = 1;
+    internal bool IsActive => Volatile.Read(ref active) != 0;
     internal void Attach()
     {
         if (Volatile.Read(ref active) == 0) throw new InvalidOperationException("notes_worker_stopped");
@@ -55,6 +56,7 @@ internal sealed class NotesOriginalWorker(NotesOriginalController controller, No
     internal void Stop()
     {
         if (Interlocked.Exchange(ref active, 0) == 0) return;
+        coordinator.DetachNotesOriginalPipeline(Stop); // Detach only our native delegate; recursive Stop is idempotent.
         stopped.Cancel(); controller.Stop(); ui.Stop(); readiness.Stop();
     }
     internal async Task StopAsync()

@@ -1584,6 +1584,36 @@ phone key, database or Android keystore was read. This supplies a backend, not
 startup registration/common setup; installed-root availability/ACL and interactive
 setup/device acceptance remain open and nothing is installed or published.
 
+### Explicit Windows native session composition (#633)
+
+The concrete session now composes the existing-key reader, fixed private request/
+outcome roots, genuine choice store, controller, UI readiness/lease and deferred
+worker. Admission requires current authenticated private choices, the exact native
+profile book binding and an existing independent key. Without genuine choices,
+even an existing phone key or portable auto fields trigger no phone-key lookup,
+journal creation, prompt or receiver attachment. Missing keys, unknown books and
+foreign callbacks remain held; no identity, key, database or service is created.
+
+The bridge has an explicit internal known-choice resume entry using only its
+already existing coordinator and actual writer/model/primary callbacks. It is not
+called by startup or a renderer command. Failure, cancellation and shutdown clean
+up only owned hooks. Notes-only Stop detaches its own maintenance/receive binding,
+preserves tree identity/private consent/durable holds, and does not remove a foreign
+receiver installed before or after attachment. A stopped instance cannot restart
+its old proofs; a new explicit session must revalidate current known state.
+
+Ten composition cases and the 11 affected readiness/worker cases pass on host and
+noninteractive Windows, alongside original-contact/private-file regressions and
+the full managed group. Cases cover default OFF/no key lookup without consent,
+missing key, wrong profile/unknown primary, foreign receivers, idempotent admission,
+reopening without a saved scope then real bootstrap/metadata saves/independent ACK,
+owned detach and key loss after attachment. The bridge entry is compiled, not a
+claim of modal/installed GUI acceptance. Release CoreTests and BASE are clean;
+the product build precedes only later test additions, not product changes.
+Common conscious first-setup UI, automatic startup registration and real provider/
+device acceptance remain open. The full draft remains unadvertised and production
+OFF; composition alone enables none of those missing release gates.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

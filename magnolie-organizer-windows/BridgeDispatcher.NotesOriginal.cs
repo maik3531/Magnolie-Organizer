@@ -6,6 +6,55 @@ internal sealed partial class BridgeDispatcher
     internal NotesOriginalUiSaveSession? NativeNotesUi { get; set; }
     internal NotesOriginalUiReadiness? NativeNotesReadiness { get; set; }
     internal Action? NativeNotesWake { get; set; }
+    private NotesOriginalNativeSession? nativeNotesSession;
+
+    // Explicit future setup/resume entry, NOT called by startup/renderer commands.
+    // Existing private native choices and an existing coordinator/key are required.
+    internal async Task<NotesOriginalNativeSession.Admission> TryResumeKnownNotesAsync()
+    {
+        if (nativeNotesSession?.IsActive == true) return NotesOriginalNativeSession.Admission.Attached;
+        if (nativeNotesSession is not null) await StopNativeNotesSessionAsync();
+        if (!OperatingSystem.IsWindows() || baumInstance is null || disposed || restoreInProgress || !currentPlainTextAvailable)
+            return NotesOriginalNativeSession.Admission.Held;
+        if (NativeNotesUi is not null || NativeNotesReadiness is not null || NativeNotesWake is not null)
+            return NotesOriginalNativeSession.Admission.Held; // Never replace a foreign native injection.
+        var choices = NativeNotesChoices ?? new NotesOriginalChoiceStore(
+            new ContactSourcePrivateFiles(Path.Combine(Path.GetFullPath(paths.Root), "notes-original-choices")), NativeActorBook,
+            () => ContactSourcePrimaryBook.Capture(Path.GetFullPath(paths.Data), store, encryption, () => currentPlainTextAvailable && !restoreInProgress && !disposed),
+            () => Path.GetFullPath(paths.Data), currentNativeData: () => currentPlainTextAvailable && !restoreInProgress && !disposed ? currentPlainText : null);
+        var session = new NotesOriginalNativeSession(paths, choices, OriginalContactCommit,
+            () => currentPlainTextAvailable && !restoreInProgress && !disposed ? currentPlainText : null,
+            baumInstance, OfferNotesWorkAsync, OfferNotesReadinessAsync, OriginalContactWlanAvailable);
+        NativeNotesChoices = choices; NativeNotesUi = session.Ui; NativeNotesReadiness = session.Readiness; NativeNotesWake = session.Worker.Wake;
+        try
+        {
+            var admission = await session.TryAttachKnownAsync(backgroundLifetime.Token);
+            if (admission == NotesOriginalNativeSession.Admission.Attached && !disposed && !restoreInProgress && currentPlainTextAvailable)
+                nativeNotesSession = session;
+            else if (admission == NotesOriginalNativeSession.Admission.Attached) admission = NotesOriginalNativeSession.Admission.Held;
+            return admission;
+        }
+        finally
+        {
+            if (!ReferenceEquals(nativeNotesSession, session))
+            {
+                await session.StopAsync();
+                ClearNativeNotesHooks(session);
+            }
+        }
+    }
+    private async Task StopNativeNotesSessionAsync()
+    {
+        var session = Interlocked.Exchange(ref nativeNotesSession, null); if (session is null) return;
+        await session.StopAsync();
+        ClearNativeNotesHooks(session);
+    }
+    private void ClearNativeNotesHooks(NotesOriginalNativeSession session)
+    {
+        if (ReferenceEquals(NativeNotesUi, session.Ui)) NativeNotesUi = null;
+        if (ReferenceEquals(NativeNotesReadiness, session.Readiness)) NativeNotesReadiness = null;
+        if (NativeNotesWake == session.Worker.Wake) NativeNotesWake = null;
+    }
 
     internal async Task OfferNotesReadinessAsync()
     {
