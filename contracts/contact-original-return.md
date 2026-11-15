@@ -1740,6 +1740,32 @@ installed profiles/keyrings or private originals. Linux setup acquisition/GTK
 entry and automatic recovery registration are still missing; the Windows modal
 and physical provider/device/package acceptance gates also remain open in #636.
 
+### Linux bounded setup acquisition alongside the existing receiver (#636, partial)
+
+Linux now has the equivalent explicit collector and a separate native `BaumDienst`
+setup slot. Its presence can admit genuine authenticated setup exports before a
+normal controller exists, but never grants a source. It does not replace the
+secure callback. Only its exact protocol reply is exclusive; exports can reach
+already authorized workers, while result/status/terminal lanes never reach setup.
+Service Stop cancels the owned acquisition outside the receive/tree lock.
+
+The collector retains at most eight exports for two minutes. Candidate/frame/pin/
+origin checks, duplicate invalidation, isolated conflict slots, current actual
+saved contact choice and owned cancellation mirror the Windows boundary. Waiting
+is a bounded event wait in a deferred native caller, not polling or a collector-
+created thread/timer/listener. An independent optional native-selection guard is
+kept separate from the durable consent guard: consent attachment cannot overwrite
+acquisition checks. Closing acquisition invalidates old ephemeral choices; a
+genuine committed source remains recoverable only through a fresh real export.
+
+Twenty acquisition/isolation cases, the 18 setup-decision cases, FS1 identity and
+tree opt-out regressions (57 cases together), and the 309 affected Notes cases pass.
+The new helper is in the existing DEB/RPM/Flatpak/AppImage source manifests; manifest
+and shell-syntax checks pass without building/installing packages. Windows inputs
+are unchanged and prior Windows checks are retained. No Linux GTK dialog, actual
+peer/acquisition UI ingress or startup registration is enabled yet. Installed
+permissions/keyring, native GUI/provider/device and package acceptance remain open.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

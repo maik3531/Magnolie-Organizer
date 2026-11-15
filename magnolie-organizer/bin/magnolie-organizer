@@ -16106,6 +16106,21 @@ class BaumDienst(object):
         self._paarungsanfragen = {}
         self._fs_sitzungen = {}
         self._fs_empfang_generation = 0
+        self._notes_setup_collector = None  # Explicit native acquisition only, never a source grant.
+
+    def _notes_setup_attach(self, collector):
+        from magnolie_contact_notes_setup import NativeNotesSetupCollector
+        if type(collector) is not NativeNotesSetupCollector:
+            raise PermissionError('notes_setup_native_collector_required')
+        with self._sperre:
+            if self._notes_setup_collector is not None:
+                raise PermissionError('notes_setup_slot_unavailable')
+            self._notes_setup_collector = collector
+
+    def _notes_setup_detach(self, collector):
+        with self._sperre:
+            if self._notes_setup_collector is collector:
+                self._notes_setup_collector = None
 
     def _anfrage_erlaubt(self, adresse, paarung=False):
         import time
@@ -16280,7 +16295,7 @@ class BaumDienst(object):
                             baum_kontakt_nutzlast_pruefen(inhalt.get("art"), inhalt)
                         gesehen = partner.setdefault("transportIds", [])
                         if transport_id not in gesehen:
-                            if self.bei_sicherer_nachricht and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
+                            if (self.bei_sicherer_nachricht or self._notes_setup_collector is not None) and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
                                 from magnolie_contact_notes_return import _issue_notes_fs_origin
                                 # Schedule later saved-book work; never wait for
                                 # its data lock while holding the receive lock.
@@ -16300,7 +16315,13 @@ class BaumDienst(object):
                                     (offen["partner"], offen["partnerSchluessel"]),
                                     (offen["eigeneKennung"], offen["eigenerSchluessel"]),
                                     inhalt, transport_id, aktuell)
-                                if self.bei_sicherer_nachricht(partner, inhalt, origin, transport_id) is False:
+                                setup = self._notes_setup_collector
+                                setup_staged = (inhalt.get('art') in ('kontakt_original_aushandlung', 'kontakt_original_export') and
+                                    setup is not None and setup.receive(inhalt, origin, transport_id))
+                                exclusive = setup_staged and inhalt.get('art') == 'kontakt_original_aushandlung'
+                                normal_staged = (not exclusive and self.bei_sicherer_nachricht is not None and
+                                    self.bei_sicherer_nachricht(partner, inhalt, origin, transport_id) is not False)
+                                if not setup_staged and not normal_staged:
                                     raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
                                 origin.require_current(inhalt, transport_id)
                             elif inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
@@ -16589,6 +16610,9 @@ class BaumDienst(object):
     def anhalten(self):
         with self._sperre:
             self._fs_empfang_generation += 1
+            setup, self._notes_setup_collector = self._notes_setup_collector, None
+        if setup is not None:
+            setup.stop()  # Native cancellation only, outside tree/receive lock.
         if self._bluetooth:
             self._bluetooth.anhalten()
             self._bluetooth = None

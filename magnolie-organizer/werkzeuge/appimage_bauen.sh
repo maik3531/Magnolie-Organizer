@@ -163,6 +163,7 @@ install -m 0644 "$WURZEL/bin/magnolie_contact_book_save_chain.py" "$APPDIR/usr/b
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_return.py" "$APPDIR/usr/bin/magnolie_contact_notes_return.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_consent.py" "$APPDIR/usr/bin/magnolie_contact_notes_consent.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_controller.py" "$APPDIR/usr/bin/magnolie_contact_notes_controller.py"
+install -m 0644 "$WURZEL/bin/magnolie_contact_notes_setup.py" "$APPDIR/usr/bin/magnolie_contact_notes_setup.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_requests.py" "$APPDIR/usr/bin/magnolie_contact_notes_requests.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor_decision_review.py" "$APPDIR/usr/bin/magnolie_personal_actor_decision_review.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor_producer.py" "$APPDIR/usr/bin/magnolie_personal_actor_producer.py"

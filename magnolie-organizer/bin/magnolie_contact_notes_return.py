@@ -327,13 +327,15 @@ class NativeNotesExportChoice:
     This is not a portable tag loader or durable setup implementation. No UI or
     production controller registers this factory until restart authority exists.
     """
-    def __init__(self, body, origin, transport_id, snapshot, capture_current, choose_native):
+    def __init__(self, body, origin, transport_id, snapshot, capture_current, choose_native, *, require_native_selection=None):
         if (type(origin) is not NativeNotesFsOrigin or type(snapshot) is not NativeProducerBookSnapshot or
-                not callable(capture_current) or not callable(choose_native)):
+                not callable(capture_current) or not callable(choose_native) or
+                require_native_selection is not None and not callable(require_native_selection)):
             raise PermissionError('notes_original_native_export_choice_required')
         self._body_text = _frame_bytes(body)
         owned = json.loads(self._body_text)
         self._origin, self._transport, self._capture = origin, transport_id, capture_current
+        self._native_selection_guard = require_native_selection
         self._peer, self._own = origin.require_current(owned, transport_id)
         _validate_notes_export(owned)
         if capture_current() != snapshot:
@@ -355,6 +357,9 @@ class NativeNotesExportChoice:
     def require_current(self):
         if not self._active:
             raise PermissionError('notes_original_native_choice_revoked')
+        native_selection = getattr(self, '_native_selection_guard', None)
+        if native_selection is not None:
+            native_selection()
         persistent = getattr(self, '_persistent_guard', None)
         if persistent is not None:
             persistent()
@@ -370,6 +375,9 @@ class NativeNotesExportChoice:
         self._origin.require_current(body, self._transport)
         if persistent is not None:
             persistent()
+
+        if native_selection is not None:
+            native_selection()
 
     def revoke(self):
         """Native choice-owner cancellation; no renderer/document restore path."""
