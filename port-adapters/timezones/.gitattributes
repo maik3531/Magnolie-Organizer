@@ -1,0 +1,8 @@
+# These six reviewed inputs are byte-bound, including on Windows checkouts.
+# Do not normalize their contents or relax the portable recipe's digests.
+resolver.js -text
+port-runtime.js -text
+bootstrap.template.js -text
+provenance.json -text
+tzdb-2026egtz.json -text
+LICENSE-tzdb.txt -text

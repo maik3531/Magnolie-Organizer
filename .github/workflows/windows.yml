@@ -15,6 +15,8 @@ on:
       - "contracts/**"
       - "magnolie-organizer/pruefungen/fixtures/recurrence-rfc-oracle.json"
       - "magnolie-organizer/bin/magnolie_recurrence.py"
+      - "magnolie-organizer/werkzeuge/zeitzonen_erzeugen.py"
+      - "port-adapters/timezones/**"
       - ".github/workflows/windows.yml"
 
 permissions:
@@ -58,6 +60,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Pinned pytest installation failed.' }
           "$env:RUNNER_TEMP\magnolie-python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "MAGNOLIE_PYTHON=$env:RUNNER_TEMP\magnolie-python\Scripts\python.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Bytegebundene Zeitzonen-Eingaben im Git-Checkout prüfen
+        shell: pwsh
+        run: |
+          & $env:MAGNOLIE_PYTHON -I -B ../port-adapters/timezones/checkout-inputs.test.py
+          if ($LASTEXITCODE -ne 0) { throw 'Byte-bound timezone checkout regression failed.' }
       - name: Gemeinsame Handbuchkataloge vor der Quellarchivprüfung erzeugen
         shell: pwsh
         run: |
