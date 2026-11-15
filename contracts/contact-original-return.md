@@ -1913,6 +1913,36 @@ not an interactive/installed Windows or package acceptance claim. Linux inputs
 and native Windows backend code are unchanged; existing appropriate evidence is
 retained, and #636 production/startup/device/installed acceptance gates stay open.
 
+### Linux native peer/acquisition ingress with one before-peer decision (#636, partial)
+
+The explicit main-thread native entry selects a real existing peer before bounded
+export acquisition. It uses only the cached native tree and an existing active
+service, never the lazy getter, a new identity or service constructor. Only
+confirmed/trusted/contact-enabled FS1 partners are offered; exact pinned IDs/keys
+are retained independently of detached display copies. The actual GTK peer
+adapter has no preselection, defaults to Cancel and uses literal sanitized text.
+It is not registered as a renderer/startup command or advertised as production.
+
+A single native decision is captured BEFORE peer selection and carried through
+the WLAN-first typed probe, acquisition and contact dialog to the publication CAS.
+Revoke, replacement, a real save, foreign/fake decision, pin/epoch/tree/service
+change, opt-out and Stop cannot be bypassed by recapturing a later decision. Read
+guards/cancellation do not create a key/file or source decision. Exact candidate
+ownership is required; completion/cancellation stops only its own acquisition.
+Native context callbacks run only in deferred candidate/choice work, never under
+the receive/tree gate. Network callbacks and choosers run outside book/tree/private
+gates. Existing source permissions are not inferred from contact-sync flags.
+
+Ninety-nine cases pass: 13 before-peer CAS cases, 19 actual native-entry/real FS1
+acquisition cases, three controlled-widget peer-adapter cases and 64 existing
+setup/collector/manifest cases. GTK itself is not opened. One new addition fixture
+initially collided on the same local contact and was corrected to use distinct
+native IDs/UIDs; the ambiguity rejection was not weakened. Unchanged Notes309,
+joined/native/original-contact75, session26 and Windows evidence are retained by
+exact source/AST comparison. Windows before-peer decision/peer UI composition,
+final application action/worker dispatch and conditional startup registration
+remain open; no installed/provider/device/package acceptance follows from this.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

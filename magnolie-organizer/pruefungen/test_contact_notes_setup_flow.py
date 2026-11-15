@@ -10,6 +10,7 @@ from test_contact_notes_consent import Harness, native
 from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
 from magnolie_contact_notes_setup import NativeNotesSetupCollector, NativeNotesSetupFlow
 from magnolie_contact_notes_setup import NativeNotesSetupView
+from magnolie_contact_notes_consent import NativeNotesSetupDecision
 
 
 @pytest.mark.parametrize('mode', ['initial', 'addition', 'cancel', 'wrong-id', 'unavailable-after-dialog', 'revoke', 'replace',
@@ -154,3 +155,71 @@ def test_actual_gtk_adapter_has_no_default_contact_and_always_destroys_without_o
             if mode == 'literal-display': assert any('<literal-peer>' in text for text in labels) and '<literal-name>' in combos[0].items[0]
     finally:
         assert len(dialogs) == 1 and dialogs[0].destroyed
+
+
+@pytest.mark.parametrize('mode', ['initial', 'addition', 'empty-revoke', 'revoke', 'other-store-revoke', 'replace',
+    'native-save', 'foreign-decision', 'forged-decision', 'cancel-before-contact', 'cancel-contact', 'chooser-error', 'replay'])
+def test_before_peer_decision_is_carried_through_acquisition_without_recapturing_permission(native, monkeypatch, tmp_path, mode):
+    h = Harness(native, tmp_path)
+    collector = None
+    try:
+        adding = mode in ('addition', 'revoke', 'other-store-revoke', 'replace')
+        if adding:
+            book = copy.deepcopy(h.probe._aktuelle_daten)
+            other = copy.deepcopy(book['kontakte'][0]); other.update(id='second-peer-id', uid='second-peer-uid')
+            book['kontakte'].append(other)
+            assert h.save(monkeypatch, book)['ok']
+            h.configure()
+        flow = NativeNotesSetupFlow(h.store, h.probe._kontakt_quellen_buchaufnahme, lambda: h.probe._daten_sperre)
+        decision = flow.begin()  # Before the future peer dialog and any export.
+        assert decision.is_addition == adding
+        if mode == 'foreign-decision':
+            with h.probe._daten_sperre: decision = h.new_store().begin_setup_decision()
+        if mode == 'forged-decision': decision = NativeNotesSetupDecision(object())
+        if mode in ('empty-revoke', 'revoke'): h.store.revoke()
+        if mode == 'other-store-revoke': h.new_store().revoke()
+        if mode == 'replace': h.store.configure([h.choice])
+        if mode == 'cancel-before-contact': decision.cancel()
+        if mode == 'native-save':
+            edit = copy.deepcopy(h.probe._aktuelle_daten); edit['between-dialogs'] = 'preserve'
+            assert h.save(monkeypatch, edit)['ok']
+        protocol = NativeNotesProtocolNegotiation((h.sender['kennung'], h.sender['oeffentlich']),
+            (h.receiver['kennung'], h.receiver['oeffentlich']))
+        collector = NativeNotesSetupCollector(h.service, protocol); collector.attach()
+        h.send(dict(protocol.request(), antwort=True))
+        h.send(dict(h.export, share_id='before-peer-source', setup_id='55555555-5555-4555-8555-555555555555'))
+        candidate, = collector.candidates()
+        dialogs = []
+        before = Path(native.daten_datei()).read_bytes()
+        def choose(view):
+            assert not h.probe._daten_sperre._is_owned()
+            assert view.addition == adding
+            h.store.has_desired_consent()
+            dialogs.append(view)
+            if mode == 'chooser-error': raise RuntimeError('synthetic dialog failure')
+            return None if mode == 'cancel-contact' else view.contacts[1 if adding else 0]['id']
+        if mode in ('initial', 'addition', 'replay'):
+            assert flow.configure(candidate, choose, decision=decision)
+            assert any(source['share_id'] == 'before-peer-source' for source in h.store._active_record()[1]['choices'])
+            if mode == 'replay':
+                with pytest.raises(PermissionError): flow.configure(candidate, choose, decision=decision)
+            assert len(dialogs) == 1
+        elif mode in ('cancel-contact', 'chooser-error'):
+            if mode == 'cancel-contact': assert flow.configure(candidate, choose, decision=decision) is False
+            else:
+                with pytest.raises(RuntimeError): flow.configure(candidate, choose, decision=decision)
+            with pytest.raises(PermissionError):
+                with h.probe._daten_sperre: decision.require_current(h.store)
+            with pytest.raises(PermissionError): flow.configure(candidate, choose, decision=decision)
+            assert len(dialogs) == 1 and not h.store.has_desired_consent()
+        else:
+            with pytest.raises(PermissionError): flow.configure(candidate, choose, decision=decision)
+            assert dialogs == []
+        assert Path(native.daten_datei()).read_bytes() == before
+        if mode in ('empty-revoke', 'cancel-before-contact', 'cancel-contact', 'chooser-error', 'native-save',
+                'foreign-decision', 'forged-decision'):
+            assert not Path(h.root, '.key').exists()
+        if mode in ('revoke', 'other-store-revoke'): assert not h.store.has_desired_consent()
+    finally:
+        if collector is not None: collector.stop()
+        h.service.anhalten()

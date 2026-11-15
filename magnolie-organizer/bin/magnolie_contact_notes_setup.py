@@ -53,11 +53,12 @@ class NativeNotesSetupCandidate:
 
 
 class NativeNotesSetupCollector:
-    def __init__(self, service, protocol, *, clock=time.monotonic, budget=8):
+    def __init__(self, service, protocol, *, clock=time.monotonic, budget=8, require_native_context=lambda: None):
         if (type(protocol) is not NativeNotesProtocolNegotiation or not callable(clock) or
-                type(budget) is not int or not 1 <= budget <= 32):
+                type(budget) is not int or not 1 <= budget <= 32 or not callable(require_native_context)):
             raise TypeError('notes_setup_native_dependencies_required')
         self._service, self.protocol, self._clock, self._budget = service, protocol, clock, budget
+        self._native_context = require_native_context
         self._pins, probe = protocol._native_probe()
         self._expected_offer = _frame_bytes(dict(probe, antwort=True))
         self._deadline = clock() + 120
@@ -139,11 +140,13 @@ class NativeNotesSetupCollector:
                 self._require_active()
                 if not self._attached or self._exports.get(key) is not frame or key in self._conflicts:
                     raise PermissionError('notes_setup_candidate_changed')
+        self._native_context()  # Deferred only, NEVER called by receive.
         current()
         self.protocol.require_current()
         if frame.origin.require_current(json.loads(frame.text), frame.transport) != self._pins:
             raise PermissionError('notes_setup_peer_changed')
         current()
+        self._native_context()
 
     def wait(self):
         """Deferred native worker only; stop cancels promptly without polling."""
@@ -173,6 +176,72 @@ class NativeNotesSetupView:
     contacts: tuple
 
 
+class NativeNotesSetupAcquisition:
+    """Native peer choice + bounded receive + the SAME before-peer decision."""
+    def __init__(self, collector, flow, decision, probe, require_native_context, choose_native=None):
+        from magnolie_contact_notes_consent import NativeNotesSetupDecision
+        if (type(collector) is not NativeNotesSetupCollector or type(flow) is not NativeNotesSetupFlow or
+                type(decision) is not NativeNotesSetupDecision or not callable(probe) or not callable(require_native_context) or
+                choose_native is not None and not callable(choose_native)):
+            raise TypeError('notes_setup_native_acquisition_required')
+        if decision._native().store is not flow._consent:
+            raise PermissionError('notes_setup_decision_owner_changed')
+        self._collector, self._flow, self._decision = collector, flow, decision
+        self._probe, self._current = probe, require_native_context
+        self._choose = choose_native
+
+    def probe(self):
+        with self._collector._lock:
+            self._collector._require_active()
+        try:
+            self._current_decision()
+            return self._probe()
+        except Exception:
+            self.stop()
+            raise
+
+    def _current_decision(self):
+        with self._flow._book_gate():
+            self._flow._usable()
+            self._decision.require_current(self._flow._consent)
+            self._current()
+
+    def wait(self):
+        try:
+            result = self._collector.wait()  # No book/private gate across the bounded event wait.
+            self._current_decision()
+            return result
+        except Exception:
+            self.stop()
+            raise
+
+    def candidates(self):
+        try:
+            self._current_decision()
+            return self._collector.candidates()
+        except Exception:
+            self.stop()
+            raise
+
+    def configure(self, candidate, choose_native=None):
+        try:
+            self._current_decision()
+        except Exception:
+            self.stop()
+            raise
+        if type(candidate) is not NativeNotesSetupCandidate or candidate._native().owner is not self._collector:
+            raise PermissionError('notes_setup_owned_candidate_required')
+        try:
+            choose = self._choose if choose_native is None else choose_native
+            return self._flow.configure(candidate, choose, decision=self._decision)
+        finally:
+            self.stop()
+
+    def stop(self):
+        self._collector.stop()
+        self._decision.cancel()  # Memory only, also closes unused first-setup proof.
+
+
 class NativeNotesSetupFlow:
     """Explicit native candidate -> conscious chooser -> before-dialog CAS.
 
@@ -186,23 +255,40 @@ class NativeNotesSetupFlow:
             raise TypeError('notes_setup_native_dependencies_required')
         self._consent, self._capture, self._book_gate, self._usable = consent, capture_current, book_gate, require_usable
 
-    def configure(self, candidate, choose_native):
+    def begin(self):
+        """Capture once BEFORE peer/acquisition/contact dialogs, never after revoke."""
+        with self._book_gate():
+            self._usable()
+            return self._consent.begin_setup_decision()
+
+    def configure(self, candidate, choose_native, *, decision=None):
+        from magnolie_contact_notes_consent import NativeNotesSetupDecision
         if type(candidate) is not NativeNotesSetupCandidate or not callable(choose_native):
             raise PermissionError('notes_setup_native_candidate_and_chooser_required')
         with self._book_gate():
             self._usable()
             export = candidate.display()
-            decision = self._consent.begin_setup_decision()
+            if decision is None:
+                decision = self._consent.begin_setup_decision()
+            if type(decision) is not NativeNotesSetupDecision:
+                raise PermissionError('notes_setup_native_decision_required')
+            decision.require_current(self._consent)
             peer = candidate.peer
         contacts = tuple(json.loads(json.dumps(contact, ensure_ascii=False))
             for contact in decision.snapshot.book().get('kontakte', []))
-        selected = choose_native(NativeNotesSetupView(decision.is_addition, export, peer, contacts))
-        self._usable()
-        if selected is None:
-            return False
-        with self._book_gate():
+        try:
+            selected = choose_native(NativeNotesSetupView(decision.is_addition, export, peer, contacts))
             self._usable()
-            choice = candidate.choose(decision.snapshot, self._capture, lambda _: selected)
-            self._usable()
-            decision.commit(choice)
+            if selected is None:
+                decision.cancel()
+                return False
+            with self._book_gate():
+                self._usable()
+                decision.require_current(self._consent)
+                choice = candidate.choose(decision.snapshot, self._capture, lambda _: selected)
+                self._usable()
+                decision.commit(choice)
+        except Exception:
+            decision.cancel()
+            raise
         return True

@@ -95,6 +95,24 @@ class NativeNotesSetupDecision:
     def is_addition(self):
         return self._native().addition
 
+    def require_current(self, store):
+        """Native book gate required; a read check is not publication authority."""
+        proof = self._native()
+        if proof.store is not store:
+            raise PermissionError('notes_setup_decision_owner_changed')
+        with store._setup_lock:
+            if proof.used:
+                raise PermissionError('notes_setup_decision_already_used')
+        store._require_setup_context(proof)
+        if store._setup_observe() != (proof.stamp, proof.addition):
+            raise PermissionError('notes_setup_context_changed')
+        store._require_setup_context(proof)
+
+    def cancel(self):
+        proof = self._native()
+        with proof.store._setup_lock:
+            proof.used = True  # Memory only; no key, file or source decision created.
+
     def commit(self, choice):
         proof = self._native()
         with proof.store._setup_lock:

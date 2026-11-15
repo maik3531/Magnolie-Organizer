@@ -25263,6 +25263,88 @@ class Fenster(_FENSTER_BASIS):
         if type(session) is NativeNotesNativeSession:
             session.stop()  # Native caller must be outside book/tree locks.
 
+    def _notes_original_native_setup_acquire(self, choose_peer=None, sender=None):
+        """Native main-thread action, no IPC/startup entry or lazy tree/service creation."""
+        from magnolie_contact_notes_setup import NativeNotesSetupFlow, NativeNotesSetupCollector, NativeNotesSetupAcquisition
+        from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
+        if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_peer_prompt', False)):
+            raise PermissionError('notes_setup_native_context_required')
+        store = self._notes_original_choice_store_hole()
+        def usable():
+            if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    getattr(self, '_notes_original_choice_store', None) is not store):
+                raise PermissionError('notes_setup_native_context_changed')
+        flow = NativeNotesSetupFlow(store, self._kontakt_quellen_buchaufnahme, lambda: self._daten_sperre, usable)
+        decision = flow.begin()  # BEFORE the first native peer dialog, not after acquisition.
+        collector = None
+        self._notes_original_peer_prompt = True
+        try:
+            with self._baum_sperre:
+                service, tree = getattr(self, '_baumdienst', None), getattr(self, '_baum', None)
+                if (type(service) is not BaumDienst or not isinstance(tree, dict) or tree.get('an') is not True or
+                        service._notes_setup_collector is not None or not isinstance(tree.get('syncEpoch'), str) or not tree['syncEpoch']):
+                    raise PermissionError('notes_setup_existing_active_tree_required')
+                generation, epoch = service._fs_empfang_generation, tree['syncEpoch']
+                own = tree.get('kennung'), tree.get('oeffentlich')
+                peers = tuple(dict(id=peer['kennung'], publicKey=peer['oeffentlich'], label=str(peer.get('name') or ''))
+                    for peer in tree.get('partner', []) if isinstance(peer, dict) and
+                    peer.get('bestaetigt') is True and peer.get('vertraut') is True and peer.get('kontaktSync') is True and
+                    peer.get('protokoll') == 'baum-fs1')
+                if not peers or len(peers) > 32 or len({peer['id'] for peer in peers}) != len(peers):
+                    raise PermissionError('notes_setup_native_peer_catalog_unavailable')
+            choose = (lambda values: notes_original_peer_dialog(self, values)) if choose_peer is None else choose_peer
+            selected = choose(tuple(dict(peer) for peer in peers))  # Detached display only; no gates held.
+            if selected is None:
+                decision.cancel()
+                return None
+            matches = [peer for peer in peers if type(selected) is str and peer['id'] == selected]
+            if len(matches) != 1:
+                raise PermissionError('notes_setup_explicit_native_peer_required')
+            pins = matches[0]['id'], matches[0]['publicKey']
+            def current():
+                usable()
+                with self._baum_sperre:
+                    peer = baum_partner(tree, pins[0])
+                    if (getattr(self, '_baumdienst', None) is not service or getattr(self, '_baum', None) is not tree or
+                            service._fs_empfang_generation != generation or tree.get('an') is not True or tree.get('syncEpoch') != epoch or
+                            (tree.get('kennung'), tree.get('oeffentlich')) != own or not peer or
+                            (peer.get('kennung'), peer.get('oeffentlich')) != pins or peer.get('bestaetigt') is not True or
+                            peer.get('vertraut') is not True or peer.get('kontaktSync') is not True or peer.get('protokoll') != 'baum-fs1'):
+                        raise PermissionError('notes_setup_native_peer_context_changed')
+            with self._daten_sperre:
+                decision.require_current(store)
+                current()
+                protocol = NativeNotesProtocolNegotiation(pins, own)
+                collector = NativeNotesSetupCollector(service, protocol, require_native_context=current)
+                collector.attach()
+            def state():
+                current()
+                with self._baum_sperre:
+                    return json.loads(json.dumps(tree))  # Existing cached native state, never _baum_zustand().
+            def permitted():
+                with self._daten_sperre:
+                    decision.require_current(store)
+                current()
+                return kontakt_quellen_wlan_verfuegbar()
+            def contact(view):
+                if (threading.current_thread() is not threading.main_thread() or
+                        getattr(self, '_notes_original_setup_active', False)):
+                    raise PermissionError('notes_setup_native_context_required')
+                self._notes_original_setup_active = True
+                try:
+                    return notes_original_freigabe_dialog(self, view)
+                finally:
+                    self._notes_original_setup_active = False
+            return NativeNotesSetupAcquisition(collector, flow, decision,
+                lambda: baum_notes_protokollprobe_senden(state, protocol, permitted, sender=sender), current, contact)
+        except Exception:
+            decision.cancel()
+            if collector is not None: collector.stop()
+            raise
+        finally:
+            self._notes_original_peer_prompt = False
+
     def _notes_original_native_setup_candidate(self, candidate, choose_native=None):
         """Explicit native-only entry; no IPC/startup/acquisition registration."""
         from magnolie_contact_notes_setup import NativeNotesSetupFlow
@@ -30410,6 +30492,34 @@ def kontakt_quellen_wlan_verfuegbar():
         return tuple(_kontakt_quellen_kernel_route(family) for family in families) == before
     except Exception:
         return False
+
+
+def notes_original_peer_dialog(parent, peers):
+    """Explicit native peer identity selection, never a source/contact grant."""
+    if Gtk is None or threading.current_thread() is not threading.main_thread():
+        raise RuntimeError('notes_setup_native_dialog_unavailable')
+    def display(value):
+        return ''.join(character for character in str(value) if character.isprintable() and character not in
+            '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
+    dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    try:
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        accept = dialog.add_button(_("Select"), Gtk.ResponseType.APPLY); accept.set_sensitive(False)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL)
+        dialog.set_default_size(720, 300)
+        content = dialog.get_content_area(); content.set_spacing(12); content.set_border_width(12)
+        selection = Gtk.ComboBoxText()
+        for peer in peers:
+            selection.append_text(' — '.join(display(peer[field]) for field in ('label', 'id', 'publicKey')))
+        selection.set_active(-1)
+        selection.connect('changed', lambda widget: accept.set_sensitive(widget.get_active() >= 0))
+        content.pack_start(selection, False, False, 0)
+        dialog.show_all()
+        if dialog.run() != Gtk.ResponseType.APPLY or selection.get_active() < 0:
+            return None
+        return peers[selection.get_active()]['id']
+    finally:
+        dialog.destroy()
 
 
 def notes_original_freigabe_dialog(parent, view):
