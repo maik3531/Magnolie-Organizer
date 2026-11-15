@@ -1462,6 +1462,38 @@ was repeated; the full managed group and original-contact group also pass. Relea
 CoreTests and BASE builds are clean. No production factory/backend, UI/SavedBook
 CAS dispatch, maintenance/event pump or real common setup is enabled by this hook.
 
+### Windows single-use UI/SavedBook handoff (#633)
+
+An explicitly injected native UI session can now publish one bounded eight-second
+lease for exact controller-owned save work. It retains the native before text and
+real completion object; renderer token echo can select only that existing work,
+never construct source permission, a pending writer or ACK proof. Under the actual
+book gate, `SaveAsync` consumes the lease once, rechecks current native before/text
+and derives bootstrap/completion/contact invocation internally. Cancellation,
+expiry, Stop, replay, unknown tokens or changed text cannot replace user data or
+release a physical hold. There is no startup factory or key-backend selection.
+
+The actual frontend callback independently requires idle editor/sync/save/note-
+snapshot/tree/contact lanes and equality of both current `DATEN` and its last saved
+model with the native before model. Metadata proposals may change only Notes basis
+metadata, not IDs/content or unrelated domains. A required unchanged bootstrap is
+deliberately sent through the existing serial SaveACK machinery. The exact native
+payload and opaque lease accompany the save; a later queued user edit is preserved
+and does not reuse that lease. Rejected offers cancel quietly rather than writing
+behind unsaved renderer state.
+
+Eight native UI-lease/actual-writer cases pass on host and noninteractive Windows,
+including bootstrap, metadata/replay, cancel, expiry, counterfeit token, mixed text,
+intervening native save and session Stop. Thirteen actual application DOM cases
+separately pass for accepted metadata/bootstrap, unsent edits, pending/timed saves,
+wrong before/UID/noncontact data, malformed token, duplicate offer and later queued
+user edit. These are separate synthetic native-command and frontend checks, not an
+interactive installed-UI or combined live-device acceptance claim. Full managed
+and original-contact regressions pass; the latter also passes on Windows after the
+shared dispatcher/contract/frontend change. Release CoreTests and BASE are clean.
+Automatic event/maintenance pumping, prompt readiness negotiation, shared bootstrap
+coalescing and actual common setup/backend registration remain outstanding.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

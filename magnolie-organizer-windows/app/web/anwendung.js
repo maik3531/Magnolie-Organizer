@@ -25625,6 +25625,45 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     originalKontaktSpeicher = { token: nutzlast.token, text: JSON.stringify(DATEN) };
     speichereJetzt();
   }
+  function empfangeNotesOriginalSpeichern(nutzlast) {
+    // This idle/CAS check protects unsent edits, never grants source/ACK rights.
+    const token = nutzlast?.token;
+    if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) return;
+    const ablehnen = () => Bruecke.vorhanden && Bruecke.sende({ cmd: "notes_original_save_cancel", token });
+    if (!Bruecke.vorhanden || !initialisiert || !antwortErhalten || gesperrt || aktiverEditor || syncLaeuft || kontaktSyncPruefungLauf ||
+        mcpSyncAktiv() || baumSpeicherNachweis || baumPostVorSpeichern || ausstehendeAdressbuchBaseline || laufenderSpeicher || wartenderSpeicherText !== null ||
+        speicherTimer !== null || ausstehenderNotizSnapshot || notizSnapshotTimer !== null || originalKontaktLauf || originalKontaktSpeicher ||
+        !["bootstrap", "save"].includes(nutzlast.kind) || typeof nutzlast.beforeText !== "string" || typeof nutzlast.text !== "string") {
+      ablehnen(); return;
+    }
+    let vorher, danach;
+    try {
+      vorher = JSON.parse(nutzlast.beforeText); danach = JSON.parse(nutzlast.text);
+      const normal = JSON.stringify(vorher);
+      if (JSON.stringify(DATEN) !== normal || !letzterSpeicherText || JSON.stringify(JSON.parse(letzterSpeicherText)) !== normal) { ablehnen(); return; }
+      if (nutzlast.kind === "bootstrap") {
+        if (nutzlast.text !== nutzlast.beforeText) { ablehnen(); return; }
+      } else {
+        if (!Array.isArray(vorher.kontakte) || !Array.isArray(danach.kontakte)) { ablehnen(); return; }
+        const ohneBasis = buch => {
+          const kopie = JSON.parse(JSON.stringify(buch));
+          kopie.kontakte.forEach(kontakt => { delete kontakt.notesOriginalBasis; });
+          return JSON.stringify(kopie);
+        };
+        if (ohneBasis(vorher) !== ohneBasis(danach)) { ablehnen(); return; }
+      }
+    } catch (_) { ablehnen(); return; }
+    // Exact native payload, including a deliberately unchanged first save.
+    // Uses the ordinary serial SaveACK lane rather than writing behind DATEN.
+    if (nutzlast.kind === "save") DATEN.kontakte = danach.kontakte;
+    const auftrag = { id: naechsteSpeicherId++, text: nutzlast.text };
+    laufenderSpeicher = auftrag;
+    setzeSpeicherStatus(_("Saving …"), false);
+    speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: auftrag.id, ok: false }), 30000);
+    if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text, notesOriginalLauf: token })) {
+      App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
+    }
+  }
   let kontaktSyncPruefungMoeglich = false;
   let kontaktSyncPruefungLauf = null;
   let kontaktSyncPruefungStand = null;
@@ -36073,6 +36112,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     },
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
+    notesOriginalSpeichern(nutzlast) { empfangeNotesOriginalSpeichern(nutzlast); },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};

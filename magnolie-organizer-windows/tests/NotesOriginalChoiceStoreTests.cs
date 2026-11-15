@@ -622,11 +622,13 @@ internal static class NotesOriginalChoiceStoreTests
         Console.WriteLine($"Notes fresh VERIFIED local recovery: {modes.Length} synthetic actual-writer cases passed (real bootstrap then metadata save, no provider replay).");
     }
 
-    internal static async Task ControllerAsync(string root, bool? completionOnly = null)
+    internal static async Task ControllerAsync(string root, bool? completionOnly = null, bool uiOnly = false)
     {
         var modes = new[] { "fresh", "bootstrap", "unconfirmed", "physical-only", "history", "corrupt-history", "stop-save", "duplicate", "readiness", "stale-snapshot",
-            "retry", "renew-save", "next-uuid", "failed-save", "counterfeit-plan", "inline-history-fail", "inline-forged", "inline-payload", "inline-readiness", "inline-no-writer" };
-        if (completionOnly is not null) modes = modes.Where(mode => mode.StartsWith("inline-", StringComparison.Ordinal) == completionOnly.Value).ToArray();
+            "retry", "renew-save", "next-uuid", "failed-save", "counterfeit-plan", "inline-history-fail", "inline-forged", "inline-payload", "inline-readiness", "inline-no-writer",
+            "ui-success", "ui-bootstrap", "ui-cancel", "ui-expire", "ui-forged", "ui-mixed", "ui-native-change", "ui-stop" };
+        if (completionOnly is not null) modes = modes.Where(mode => mode.StartsWith("inline-", StringComparison.Ordinal) == completionOnly.Value && !mode.StartsWith("ui-", StringComparison.Ordinal)).ToArray();
+        if (uiOnly) modes = modes.Where(mode => mode.StartsWith("ui-", StringComparison.Ordinal)).ToArray();
         foreach (var mode in modes)
         {
             using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
@@ -656,7 +658,7 @@ internal static class NotesOriginalChoiceStoreTests
                 }
                 oldRequests.Stop();
             }
-            if (mode is "bootstrap" or "unconfirmed" or "physical-only" or "history" or "corrupt-history")
+            if (mode is "bootstrap" or "unconfirmed" or "physical-only" or "history" or "corrupt-history" or "ui-bootstrap")
             {
                 await h.Coordinator.StopAsync(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
             }
@@ -666,6 +668,8 @@ internal static class NotesOriginalChoiceStoreTests
             long now = 0;
             h.Controller = new(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => { h.Primary(); return ready; }, perPeer: 2, monotonicMilliseconds: () => now);
             var controller = h.Controller;
+            var ui = new NotesOriginalUiSaveSession(controller, () => h.Host.CurrentNativeText, () => now);
+            h.Host.NativeNotesUi = ui;
             TestAssert.That((await controller.ProcessOneAsync()).Kind == "waiting" && controller.Counts.Peers == 1, "Controller failed bounded private peer refresh");
             var protocol = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!;
             var offer = protocol.Probe(); offer["antwort"] = true;
@@ -703,7 +707,11 @@ internal static class NotesOriginalChoiceStoreTests
             if (work.Kind == "bootstrap")
             {
                 TestAssert.That(h.Host.Snapshot() is null, "Controller bootstrap manufactured saved observation");
-                TestAssert.That((await h.Host.SaveNotesWorkAsync(controller, work))["ok"]!.GetValue<bool>(), "Controller typed bootstrap native save failed");
+                var bootstrapSave = mode == "ui-bootstrap"
+                    ? await h.Host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 500, ["text"] = ((NotesOriginalBootstrapSave)work.Invocation!).Text,
+                        ["notesOriginalLauf"] = ui.Publish(work).Token })
+                    : await h.Host.SaveNotesWorkAsync(controller, work);
+                TestAssert.That(bootstrapSave["ok"]!.GetValue<bool>(), "Controller typed bootstrap native save failed");
                 work = await controller.ProcessOneAsync();
             }
             if (original is null)
@@ -765,7 +773,38 @@ internal static class NotesOriginalChoiceStoreTests
             var proposedText = commit.Text;
             if (mode == "inline-payload") { var mixed = JsonNode.Parse(proposedText)!.AsObject(); mixed["unowned-edit"] = true; proposedText = mixed.ToJsonString(); }
             if (mode == "inline-forged") completion = new(new object());
-            var saved = await h.Host.SaveNotesWorkAsync(controller, work, proposedText, completion);
+            JsonObject saved;
+            if (mode.StartsWith("ui-", StringComparison.Ordinal))
+            {
+                var offerUi = ui.Publish(work);
+                if (mode == "ui-cancel") ui.Cancel(offerUi.Token);
+                if (mode == "ui-stop") ui.Stop();
+                if (mode == "ui-expire") { now += 8_000; ui.Expire(); }
+                if (mode == "ui-mixed") { var changed = JsonNode.Parse(proposedText)!.AsObject(); changed["unowned-edit"] = true; proposedText = changed.ToJsonString(); }
+                if (mode == "ui-native-change")
+                {
+                    var changed = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); changed["new-native-edit"] = "preserve";
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual native edit before UI claim failed");
+                    before = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                }
+                saved = await h.Host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 501, ["text"] = proposedText,
+                    ["notesOriginalLauf"] = mode == "ui-forged" ? new string('0', 64) : offerUi.Token });
+                if (mode is not ("ui-success" or "ui-bootstrap"))
+                {
+                    TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before) && !Directory.Exists(ackRoot),
+                        "Invalid/expired renderer lease wrote a book or invented ACK history");
+                    controller.Stop(); continue;
+                }
+                if (mode == "ui-success")
+                {
+                    var committedBytes = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                    var replay = await h.Host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 502,
+                        ["text"] = proposedText, ["notesOriginalLauf"] = offerUi.Token });
+                    TestAssert.That(!replay["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(committedBytes) &&
+                        outcomes.LoadHeld(NotesOriginalSchema.Hash(original)) is not null, "Renderer lease replay wrote again or destroyed genuine ACK history");
+                }
+            }
+            else saved = await h.Host.SaveNotesWorkAsync(controller, work, proposedText, completion);
             if (mode == "stop-save")
             {
                 TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before), "Stop did not revoke queued controller save");

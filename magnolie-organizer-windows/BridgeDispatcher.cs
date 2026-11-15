@@ -288,6 +288,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kontakt_originalquellen_freigabe": await ConfigureOriginalContactSourcesAsync(message); break;
                     case "kontakt_originalquellen_widerrufen": await RevokeOriginalContactSourcesAsync(message); break;
                     case "kontakt_originalquellen_update": await UpdateOriginalContactSourcesAsync(message); break;
+                    case "notes_original_save_cancel": NativeNotesUi?.Cancel(Text(message, "token")); break;
                     case "sync_commit":
                         if (Text(message, "requestId") is { Length: > 0 } commitRequest)
                         {
@@ -938,6 +939,15 @@ internal sealed partial class BridgeDispatcher : IDisposable
             await RetryRestoreRepairAsync();
             if (restoreInProgress) throw new InvalidOperationException(T("Synchronization failed."));
             await MutationGate.Global.WaitAsync(); locked = true;
+            string? notesContactToken = null;
+            var notesUiToken = Text(message, "notesOriginalLauf");
+            if (notesUiToken.Length != 0)
+            {
+                if (notesCompletion is not null || notesBootstrap is not null || historical is not null || Text(message, "kontaktOriginalLauf").Length != 0)
+                    throw new InvalidOperationException("notes_ui_mixed_native_save_not_ready");
+                var claimed = (NativeNotesUi ?? throw new InvalidOperationException("notes_ui_native_session_required")).Claim(notesUiToken, text);
+                notesCompletion = claimed.Completion; notesBootstrap = claimed.Bootstrap; notesContactToken = claimed.ContactToken;
+            }
             using var document = JsonDocument.Parse(text);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
                 throw new JsonException(T("The data is not a JSON object."));
@@ -947,7 +957,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             // The persisted restore epoch fences requests queued before or sent after restore.
             var previousData = JsonNode.Parse(currentPlainText) as JsonObject;
             var proposedData = JsonNode.Parse(text)!.AsObject();
-            var originalContactToken = Text(message, "kontaktOriginalLauf");
+            var originalContactToken = notesContactToken ?? Text(message, "kontaktOriginalLauf");
             var originalContactWrite = originalContactToken.Length == 0 ? null : OriginalContactCommit.Prepare(originalContactToken, proposedData);
             var coveredBySync = previousData is not null && syncSnapshotHandoff.CoversSave(previousData, proposedData);
             var previousText = currentPlainText;
