@@ -2165,6 +2165,26 @@ separate native profile/system-rights/counterpart and package gates unchanged.
 The productive full-write draft stays OFF/unadvertised and Resource19 remains
 phone/email-only; no pause or new device/install/publication permission is inferred.
 
+### Linux owned dialog cancellation prerequisite (#640, partial)
+
+Linux now also has an explicit native source picker returning only the original
+candidate index, with no default/name matching and sanitized public pins/share/
+setup display. Peer, source and contact adapters accept an optional native
+cancellation predicate. A short-lived GTK timeout responds CANCEL only to that
+adapter's own dialog; it never looks up or closes another modal/window. Timer
+ownership is released after cancellation, normal return or failure, and the own
+dialog is always destroyed. Cancellation before construction or after a stale
+APPLY cannot select a source. With no cancellation predicate the existing adapters
+create no timer and preserve their prior behavior.
+
+Twenty-four controlled-widget cases cover the three dialog kinds, cancellation
+before/during/after selection, same-label second choices, no selection, timer/
+dialog errors and a failing ownership predicate. Sixty affected existing native
+flow/peer cases also pass (84 total). No real GTK dialog/provider/device is opened.
+This is a prerequisite for the still-open Linux setup-host/lifecycle connection,
+not a claim that it is already registered. Windows host/quiescence inputs and
+proofs remain unchanged. All productive/native/profile/package pauses remain.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

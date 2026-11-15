@@ -30563,14 +30563,73 @@ def kontakt_quellen_wlan_verfuegbar():
         return False
 
 
-def notes_original_peer_dialog(parent, peers):
-    """Explicit native peer identity selection, never a source/contact grant."""
+def notes_original_dialog_cancel_timer(dialog, cancelled):
+    """Cancel only this owned GTK dialog; no global modal/window lookup."""
+    if cancelled is None:
+        return lambda: None
+    if not callable(cancelled):
+        raise TypeError('notes_setup_native_cancel_required')
+    source = [None]
+    def poll():
+        try:
+            cancel = cancelled() is not False
+        except Exception:
+            cancel = True  # Failed ownership/lifecycle predicate cannot allow a source.
+        if cancel:
+            source[0] = None  # GLib removes this one-shot source after False.
+            dialog.response(Gtk.ResponseType.CANCEL)
+            return False
+        return True
+    source[0] = GLib.timeout_add(50, poll)
+    def stop():
+        if source[0] is not None:
+            GLib.source_remove(source[0]); source[0] = None
+    return stop
+
+
+def notes_original_source_dialog(parent, sources, *, cancelled=None):
+    """Native original-index choice, never name matching or a default source."""
     if Gtk is None or threading.current_thread() is not threading.main_thread():
         raise RuntimeError('notes_setup_native_dialog_unavailable')
+    if cancelled is not None and cancelled() is not False:
+        return None
     def display(value):
         return ''.join(character for character in str(value) if character.isprintable() and character not in
             '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
     dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    stop_cancel = lambda: None
+    try:
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        accept = dialog.add_button(_("Select"), Gtk.ResponseType.APPLY); accept.set_sensitive(False)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL); dialog.set_default_size(720, 300)
+        content = dialog.get_content_area(); content.set_spacing(12); content.set_border_width(12)
+        selection = Gtk.ComboBoxText()
+        for source in sources:
+            selection.append_text(' — '.join(display(value) for value in (*source.peer, source.export['share_id'], source.export['setup_id'])))
+        selection.set_active(-1)
+        selection.connect('changed', lambda widget: accept.set_sensitive(widget.get_active() >= 0))
+        content.pack_start(selection, False, False, 0)
+        stop_cancel = notes_original_dialog_cancel_timer(dialog, cancelled)
+        dialog.show_all()
+        if dialog.run() != Gtk.ResponseType.APPLY or (cancelled is not None and cancelled() is not False) or selection.get_active() < 0:
+            return None
+        return selection.get_active()
+    finally:
+        try: stop_cancel()
+        finally: dialog.destroy()
+
+
+def notes_original_peer_dialog(parent, peers, *, cancelled=None):
+    """Explicit native peer identity selection, never a source/contact grant."""
+    if Gtk is None or threading.current_thread() is not threading.main_thread():
+        raise RuntimeError('notes_setup_native_dialog_unavailable')
+    if cancelled is not None and cancelled() is not False:
+        return None
+    def display(value):
+        return ''.join(character for character in str(value) if character.isprintable() and character not in
+            '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
+    dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    stop_cancel = lambda: None
     try:
         dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
         accept = dialog.add_button(_("Select"), Gtk.ResponseType.APPLY); accept.set_sensitive(False)
@@ -30583,23 +30642,28 @@ def notes_original_peer_dialog(parent, peers):
         selection.set_active(-1)
         selection.connect('changed', lambda widget: accept.set_sensitive(widget.get_active() >= 0))
         content.pack_start(selection, False, False, 0)
+        stop_cancel = notes_original_dialog_cancel_timer(dialog, cancelled)
         dialog.show_all()
-        if dialog.run() != Gtk.ResponseType.APPLY or selection.get_active() < 0:
+        if dialog.run() != Gtk.ResponseType.APPLY or (cancelled is not None and cancelled() is not False) or selection.get_active() < 0:
             return None
         return peers[selection.get_active()]['id']
     finally:
-        dialog.destroy()
+        try: stop_cancel()
+        finally: dialog.destroy()
 
 
-def notes_original_freigabe_dialog(parent, view):
+def notes_original_freigabe_dialog(parent, view, *, cancelled=None):
     """GTK main-thread native choice only, no default contact or name matching."""
     from magnolie_contact_notes_setup import NativeNotesSetupView
     if Gtk is None or threading.current_thread() is not threading.main_thread() or type(view) is not NativeNotesSetupView:
         raise RuntimeError('notes_setup_native_dialog_unavailable')
+    if cancelled is not None and cancelled() is not False:
+        return None
     def display(value):
         return ''.join(character for character in str(value) if character.isprintable() and character not in
             '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
     dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    stop_cancel = lambda: None
     try:
         dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
         accept = dialog.add_button(_("Allow updates"), Gtk.ResponseType.APPLY)
@@ -30623,12 +30687,14 @@ def notes_original_freigabe_dialog(parent, view):
         contacts.set_active(-1)
         contacts.connect('changed', lambda selection: accept.set_sensitive(selection.get_active() >= 0))
         content.pack_start(contacts, False, False, 0)
+        stop_cancel = notes_original_dialog_cancel_timer(dialog, cancelled)
         dialog.show_all()
-        if dialog.run() != Gtk.ResponseType.APPLY or contacts.get_active() < 0:
+        if dialog.run() != Gtk.ResponseType.APPLY or (cancelled is not None and cancelled() is not False) or contacts.get_active() < 0:
             return None
         return view.contacts[contacts.get_active()].get('id')
     finally:
-        dialog.destroy()
+        try: stop_cancel()
+        finally: dialog.destroy()
 
 
 def kontakt_quellen_freigabe_dialog(parent, choices, selected):
