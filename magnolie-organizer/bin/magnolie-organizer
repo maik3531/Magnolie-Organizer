@@ -22226,6 +22226,22 @@ class Fenster(_FENSTER_BASIS):
                     "id": kennung, "ok": False,
                     "fehler": _("The save request is invalid.")})
                 return
+            if 'notesOriginalLauf' in nachricht:
+                try:
+                    from magnolie_contact_notes_ui import NativeNotesUiSaveSession
+                    with self._daten_sperre:
+                        session = getattr(self, '_notes_original_ui', None)
+                        if (type(session) is not NativeNotesUiSaveSession or
+                                session.controller is not getattr(self, '_notes_original_controller', None) or
+                                'kontaktOriginalLauf' in nachricht or nachricht.get('baumSyncLauf') is not None):
+                            raise PermissionError('notes_ui_native_session_required')
+                        completion = session.claim(nachricht['notesOriginalLauf'], klartext)
+                        self._speicher_auftraege.put((kennung, klartext, None, None,
+                            completion.work.intent, completion))
+                except Exception:
+                    self.antwort('App.gespeichert', {'id': kennung, 'ok': False,
+                        'fehler': _('The save request is invalid.')})
+                return
             if 'kontaktOriginalLauf' in nachricht:
                 try:
                     from magnolie_contact_source_book import NativeContactSourceCommitOffer
@@ -22241,6 +22257,12 @@ class Fenster(_FENSTER_BASIS):
                         'fehler': _('The save request is invalid.')})
                 return
             self._speicher_auftraege.put((kennung, klartext, nachricht.get("baumSyncLauf")))
+
+        elif befehl == 'notes_original_save_cancel':
+            from magnolie_contact_notes_ui import NativeNotesUiSaveSession
+            session = getattr(self, '_notes_original_ui', None)
+            if type(session) is NativeNotesUiSaveSession:
+                session.cancel(nachricht.get('token'))
 
         elif befehl == "cloud_sicherung_status":
             if nachricht.get("requestId"):
@@ -23841,6 +23863,8 @@ class Fenster(_FENSTER_BASIS):
             historical = nachweise[1] if len(nachweise) > 1 else None
             contact_result = nachweise[2] if len(nachweise) > 2 else None
             notes_work = nachweise[3] if len(nachweise) > 3 else None
+            from magnolie_contact_notes_ui import _SaveProof
+            notes_completion = notes_work if type(notes_work) is _SaveProof else None
             self._speicher_laeuft = True
             warnung = ""
             contact_approval_store = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
@@ -23939,6 +23963,8 @@ class Fenster(_FENSTER_BASIS):
                             raise PermissionError("Invalid native historical writer invocation")
                         historical.write(klartext, native_write)
                     elif contact_result is not None:
+                        if notes_completion is not None and notes_completion.controller is not getattr(self, '_notes_original_controller', None):
+                            raise PermissionError('notes_ui_native_controller_changed')
                         contact_result.write(klartext, native_write)
                     else:
                         native_write(klartext)
@@ -23976,6 +24002,16 @@ class Fenster(_FENSTER_BASIS):
                     if notes_choice_store is not None:
                         self._notes_original_choice_error = notes_choice_error or (
                             'notes_choice_save_repair_pending' if warnung else None)
+                    if notes_completion is not None:
+                        try:
+                            # Still inside the serial book gate: seal against the
+                            # real saved witness before a later user save can run.
+                            notes_completion.complete({'id': kennung, 'ok': True, 'committed': True,
+                                'repairPending': bool(warnung), 'standSha256': lease.ack})
+                            self._notes_original_work_error = None
+                        except Exception:
+                            notes_completion.failed()
+                            self._notes_original_work_error = 'notes_ui_save_ack_held'
                 ergebnis = {"id": kennung, "ok": True, "committed": True,
                             "repairPending": bool(warnung), "fehler": warnung,
                             "standSha256": lease.ack}
@@ -23997,7 +24033,11 @@ class Fenster(_FENSTER_BASIS):
                 ergebnis = {
                     "id": kennung, "ok": False,
                     "fehler": fehler_deutsch(fehler, _("Saving the data"))}
-            if type(contact_result) is NativeContactSourceResultCommit:
+            if notes_completion is not None:
+                if ergebnis.get('ok') is not True:
+                    contact_result.complete(ergebnis)
+                    notes_completion.failed()
+            elif type(contact_result) is NativeContactSourceResultCommit:
                 contact_result.complete(ergebnis)
                 if notes_work is not None:
                     try:
@@ -25214,13 +25254,29 @@ class Fenster(_FENSTER_BASIS):
     def _notes_original_native_arbeit(self):
         """Explicit native worker step, never called by receive or a renderer."""
         from magnolie_contact_notes_controller import NativeNotesController
+        from magnolie_contact_notes_ui import NativeNotesUiSaveSession
         controller = getattr(self, '_notes_original_controller', None)
+        session = getattr(self, '_notes_original_ui', None)
+        if type(session) is NativeNotesUiSaveSession:
+            if getattr(self, '_gesperrt', True) or session.controller is not controller:
+                session.stop()
+            else:
+                session.expire()  # Existing worker tick only; lost UI handoff cannot own the lane forever.
         if getattr(self, '_gesperrt', True) or type(controller) is not NativeNotesController:
             return None
         work = controller.process_one()
         if work is not None and work.kind in ('save', 'needs-real-save'):
-            self._speicher_auftraege.put(('notes-original-' + uuid.uuid4().hex,
-                work.intent.text, None, None, work.intent, work))
+            with self._daten_sperre:
+                session = getattr(self, '_notes_original_ui', None)
+                if type(session) is not NativeNotesUiSaveSession or session.controller is not controller:
+                    if type(session) is NativeNotesUiSaveSession:
+                        session.stop()
+                    session = NativeNotesUiSaveSession(controller, lambda: json.dumps(self._aktuelle_daten,
+                        ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+                        if not self._gesperrt else None)
+                    self._notes_original_ui = session
+                offer = session.publish(work)
+            self.antwort('App.notesOriginalSpeichern', offer)
         return work
 
     def _notes_original_native_pump(self, jetzt=None, sender=None):

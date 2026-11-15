@@ -1819,6 +1819,45 @@ backend is not registered or read against actual user keys. Native session/UI
 composition and startup recovery, installed profile/permission and provider/
 device/package acceptance remain open; prior unchanged platform evidence is kept.
 
+### Linux joined native work/UI/numeric writer completion (#638)
+
+Native Notes work no longer writes behind the renderer with a private string
+SaveID. An explicit controller's worker offers an eight-second one-use native
+lease. The actual DOM requires an idle save/editor/snapshot lane and matching
+current AND previously saved JSON models (object-key order is insignificant,
+arrays/values are not). Only Notes-basis metadata deltas or an unchanged bootstrap
+are admitted. The exact native text then uses the ordinary numeric save IPC/queue;
+unknown string SaveACKs remain ignored. Neither the UI comparison nor a token is
+source permission or a saved witness.
+
+A freshly reopened DOM may compare an unchanged bootstrap against its separately
+retained exact loaded model, never a synthesized saved ACK. This baseline is
+captured before normalization, cleared on init/restore, and cannot admit a normal
+metadata save without a preceding real save. Unsent edits or normalization changes
+fail the model comparison. Native source/primary/origin/owner/writer checks still
+govern every mutation and the real writer must establish the saved witness.
+
+Claiming requires exact native ownership/current text/payload and consumes the
+lease once. Expiry, cancellation, lock or owner replacement holds only its memory
+lane, without releasing physical request reservations. The existing worker tick
+expires lost UI offers; no new thread/timer/startup registration is introduced.
+Real completion and independent journal sealing run inside the serial book gate
+before another save, without acquiring controller._work in reverse lock order.
+Journal failure holds Notes but does not falsify an already successful user save.
+
+Twenty-five native lease/completion/manifest cases and seven actual DOM/native
+wire cases pass, including reopening, unchanged bootstrap, later and unsent edits,
+unknown ACKs, invalid tokens/types/owners, revoke/Stop/expiry, journal failure and
+the controller-work-lock inversion check. With actual joined original-contact
+wire/result regressions, the final focused run passes 75 cases. The 309 affected
+Notes regressions also pass; old native-worker fixtures now explicitly claim
+numeric UI offers rather than expecting a behind-DOM string save. These are
+bounded synthetic encrypted/FS1 fixtures, not GTK/installed/provider/device proof.
+The original red reproduction showed metadata loss, NOT lost historical-query
+availability or unauthorized provider writes. Windows product inputs are unchanged;
+the fresh-loaded-model bootstrap detail is not claimed tested/fixed there.
+Production registration and all #636 setup/installed/device/package gates remain.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

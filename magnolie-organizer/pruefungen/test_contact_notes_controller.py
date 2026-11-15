@@ -17,6 +17,18 @@ from magnolie_contact_notes_controller import NativeNotesController
 from magnolie_contact_notes_return import NativeNotesAckIntents, NativeNotesExportChoice
 
 
+def admit_window_offer(h):
+    """Controlled numeric IPC admission; DOM CAS has its own joined wire tests."""
+    probe = h.probe
+    assert probe._speicher_auftraege.qsize() == 0
+    offer = [value for callback, value in h.replies if callback == 'App.notesOriginalSpeichern'][-1]
+    probe._organizer_vertraut = lambda: True
+    probe._darf_schreiben = lambda: True
+    h.native.Fenster.bei_nachricht(probe, json.dumps({'cmd': 'speichern', 'id': len(h.replies) + 1,
+        'text': offer['text'], 'notesOriginalLauf': offer['token']}))
+    assert probe._speicher_auftraege.qsize() == 1
+
+
 class Runtime:
     def __init__(self, h, *, per_peer=8):
         self._receive_scope = threading.local()
@@ -275,6 +287,14 @@ def test_actual_post_worker_pump_joins_real_fs1_discovery_query_two_native_saves
         assert probe._kontakt_quellen_buchaufnahme() is None
         assert pump(base + 2)
         def write():
+            # Controlled UI admission only; actual DOM CAS is tested separately
+            # in test_contact_notes_ui_wire, never manufacture a string SaveACK.
+            assert probe._speicher_auftraege.qsize() == 0
+            offer = [value for callback, value in h.replies if callback == 'App.notesOriginalSpeichern'][-1]
+            probe._organizer_vertraut = lambda: True
+            probe._darf_schreiben = lambda: True
+            native.Fenster.bei_nachricht(probe, json.dumps({'cmd': 'speichern', 'id': len(h.replies) + 1,
+                'text': offer['text'], 'notesOriginalLauf': offer['token']}))
             assert probe._speicher_auftraege.qsize() == 1
             probe._speicher_auftraege.put(None)
             thread = threading.Thread(target=native.Fenster._speicher_lauf, args=(probe,), daemon=True)
@@ -665,6 +685,7 @@ def test_actual_window_native_factory_receive_worker_queue_and_real_save_callbac
         original_request = pending.intent.request()
         h.send(runtime.result(original_request))
         save = native.Fenster._notes_original_native_arbeit(probe)
+        admit_window_offer(h)
         assert save.kind == 'save' and probe._speicher_auftraege.qsize() == 1
         monkeypatch.setattr(native, 'erinnerungsdaten_schreiben', lambda **_: True)
         probe._speicher_auftraege.put(None)
@@ -886,6 +907,7 @@ def test_actual_window_automatically_queues_a_real_known_primary_bootstrap_befor
         runtime.negotiate(); c.register_unconfirmed(proof.key, runtime.protocol, physical=proof.physical)
         h.send(runtime.result(request))
         bootstrap = native.Fenster._notes_original_native_arbeit(probe)
+        admit_window_offer(h)
         assert bootstrap.kind == 'needs-real-save' and probe._speicher_auftraege.qsize() == 1
         assert probe._kontakt_quellen_buchaufnahme() is None and c.ready_acks() == ()
         if mode == 'fake-complete':
@@ -913,6 +935,7 @@ def test_actual_window_automatically_queues_a_real_known_primary_bootstrap_befor
         assert probe._kontakt_quellen_buchaufnahme().sequence == 1
         assert c.ready_acks() == () and not (tmp_path / 'outcomes').exists()
         metadata = native.Fenster._notes_original_native_arbeit(probe)
+        admit_window_offer(h)
         assert metadata.kind == 'save' and probe._speicher_auftraege.qsize() == 1
         writer()
         ack, = c.ready_acks()
@@ -952,6 +975,7 @@ def test_regular_fresh_export_after_restart_bootstraps_only_its_existing_private
             assert c._export_bootstraps == {}
             return
         assert work.kind == 'needs-real-save' and not work.request_id
+        admit_window_offer(h)
         assert c.counts()['owners'] == 0 and not Path(c._requests.root).exists()
         assert h.probe._kontakt_quellen_buchaufnahme() is None
         assert native.Fenster._notes_original_native_arbeit(h.probe).kind == 'waiting'
@@ -996,6 +1020,7 @@ def test_multiple_approved_exports_share_one_actual_book_bootstrap_not_full_book
         h.send(h.export); h.send(export2)
         bootstrap = native.Fenster._notes_original_native_arbeit(h.probe)
         assert bootstrap.kind == 'needs-real-save'
+        admit_window_offer(h)
         assert native.Fenster._notes_original_native_arbeit(h.probe).kind == 'waiting'
         assert h.probe._speicher_auftraege.qsize() == 1 and len(c._export_bootstraps) == 1
         monkeypatch.setattr(native, 'erinnerungsdaten_schreiben', lambda **_: True)
@@ -1013,6 +1038,7 @@ def test_multiple_approved_exports_share_one_actual_book_bootstrap_not_full_book
             assert h.probe._kontakt_quellen_buchaufnahme() is None
             other = native.Fenster._notes_original_native_arbeit(h.probe)
             assert other.kind == 'needs-real-save'
+            admit_window_offer(h)
             h.probe._speicher_auftraege.put(None)
             thread = threading.Thread(target=native.Fenster._speicher_lauf, args=(h.probe,), daemon=True)
             thread.start(); thread.join(15)

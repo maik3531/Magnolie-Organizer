@@ -6794,6 +6794,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   let contributorAktiv = false;
   let contributorPruefungLaeuft = false;
   let letzterSpeicherText = null;
+  let notesOriginalGeladenText = null; // Loaded model only, NEVER a native saved witness.
   let letzterSpeicherSha256 = "", baumSpeicherNachweis = null;
   let naechsteSpeicherId = 1;
   let naechsteAnhangDateiId = 1;
@@ -6919,6 +6920,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function verwerfeSpeichernNachRestore() {
+    notesOriginalGeladenText = null;
     originalKontaktDauerNachweis = null;
     originalKontaktLetzterAck = null;
     originalKontaktWlanWartet = false;
@@ -25863,6 +25865,53 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return true;
   }
 
+  // Python snapshots sort keys. Compare exact JSON models, not insertion order.
+  function notesOriginalModell(text) {
+    const ordnen = wert => Array.isArray(wert) ? wert.map(ordnen) :
+      wert && typeof wert === "object" ? Object.fromEntries(Object.keys(wert).sort().map(key => [key, ordnen(wert[key])])) : wert;
+    return JSON.stringify(ordnen(JSON.parse(text)));
+  }
+  function notesOriginalUiFrei() {
+    return Bruecke.vorhanden && initialisiert && antwortErhalten && !gesperrt && !aktiverEditor && !syncLaeuft &&
+      !mcpSyncAktiv() && !baumSpeicherNachweis && !baumPostVorSpeichern && !ausstehendeAdressbuchBaseline && !laufenderSpeicher &&
+      wartenderSpeicherText === null && speicherTimer === null && !ausstehenderNotizSnapshot && notizSnapshotTimer === null &&
+      !originalKontaktLauf && !originalKontaktSpeicher;
+  }
+  function empfangeNotesOriginalSpeichern(nutzlast) {
+    const token = nutzlast?.token;
+    if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) return;
+    const ablehnen = () => Bruecke.vorhanden && Bruecke.sende({ cmd: "notes_original_save_cancel", token });
+    if (!notesOriginalUiFrei() || !["save", "bootstrap"].includes(nutzlast.kind) ||
+        typeof nutzlast.beforeText !== "string" || typeof nutzlast.text !== "string") { ablehnen(); return; }
+    let vorher, danach;
+    try {
+      const basis = notesOriginalModell(nutzlast.beforeText);
+      const vergleich = letzterSpeicherText || (nutzlast.kind === "bootstrap" ? notesOriginalGeladenText : null);
+      if (!vergleich || notesOriginalModell(JSON.stringify(DATEN)) !== basis ||
+          notesOriginalModell(vergleich) !== basis) { ablehnen(); return; }
+      vorher = JSON.parse(nutzlast.beforeText); danach = JSON.parse(nutzlast.text);
+      if (nutzlast.kind === "bootstrap") {
+        if (notesOriginalModell(nutzlast.text) !== basis) { ablehnen(); return; }
+      } else {
+        if (!Array.isArray(vorher.kontakte) || !Array.isArray(danach.kontakte)) { ablehnen(); return; }
+        const ohneBasis = buch => {
+          const kopie = JSON.parse(JSON.stringify(buch));
+          kopie.kontakte.forEach(kontakt => { delete kontakt.notesOriginalBasis; });
+          return notesOriginalModell(JSON.stringify(kopie));
+        };
+        if (ohneBasis(vorher) !== ohneBasis(danach)) { ablehnen(); return; }
+      }
+    } catch (_) { ablehnen(); return; }
+    // Exact native payload through the ordinary numeric SaveACK lane.
+    if (nutzlast.kind === "save") DATEN.kontakte = danach.kontakte;
+    const auftrag = { id: naechsteSpeicherId++, text: nutzlast.text };
+    laufenderSpeicher = auftrag;
+    setzeSpeicherStatus(_("Saving …"), false);
+    speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: auftrag.id, ok: false }), 30000);
+    if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text, notesOriginalLauf: token })) {
+      App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
+    }
+  }
   function empfangeOriginalKontaktErgebnis(nutzlast) {
     const lauf = originalKontaktLauf;
     if (!lauf || nutzlast?.requestId !== lauf.requestId) return;
@@ -35273,6 +35322,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     trayDarstellungTestStand(value) { window.MagnolieAppearance?.nativeResult(value); },
     init(nutzlast) {
+      notesOriginalGeladenText = null;
       window.MagnolieAppearance?.update({ today: "", developer: false, locked: true });
       verwerfeMedienPapierkorb();
       verwerfeMedienBackupWiederherstellung();
@@ -35332,6 +35382,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       unterWayland = !!nutzlast.wayland;
       const edsZeigerBereinigt = Array.isArray(nutzlast.daten && nutzlast.daten.kontakte) &&
         nutzlast.daten.kontakte.some(kontaktHatEdsZeigerwert);
+      if (Bruecke.vorhanden && nutzlast.daten && typeof nutzlast.daten === "object")
+        notesOriginalGeladenText = JSON.stringify(nutzlast.daten);
       DATEN = normalisiere(nutzlast.daten);
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "background_settings_get" });
       const nachNormalisierung = performance.now();
@@ -37100,6 +37152,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     },
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
+    notesOriginalSpeichern(nutzlast) { empfangeNotesOriginalSpeichern(nutzlast); },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};
