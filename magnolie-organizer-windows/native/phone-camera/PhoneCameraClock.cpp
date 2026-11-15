@@ -44,8 +44,9 @@ namespace Magnolie::PhoneCamera
         if (retired_.load()) return MF_E_SHUTDOWN;
         if (!owner_.current || !owner_.sending || !owner_.retired) return Retire(E_INVALIDARG);
         HRESULT hr = owner_.current(owner_.context);
-        if (SUCCEEDED(hr)) hr = owner_.sending(owner_.context);
-        if (FAILED(hr)) return Retire(hr);
+        if (hr != S_OK) return Retire(FAILED(hr) ? hr : E_ACCESSDENIED);
+        hr = owner_.sending(owner_.context);
+        if (hr != S_OK) return Retire(FAILED(hr) ? hr : E_ACCESSDENIED);
         return retired_.load() ? MF_E_SHUTDOWN : S_OK;
     }
     HRESULT PresentationClock::Map(LONGLONG pts, LONGLONG* result) noexcept

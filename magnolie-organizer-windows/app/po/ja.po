@@ -2971,8 +2971,8 @@ msgstr "ごみ収集を含める"
 msgid "Incoming"
 msgstr "着信"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "受信する KDE Connect ファイル（常に確認）"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "受信する KDE Connect ファイル（常に確認）"
 
 msgid "Incoming call"
 msgstr "着信"
@@ -8620,3 +8620,20 @@ msgstr "システムトレイアイコン（60秒）"
 
 msgid "Saved developer mode is required."
 msgstr "開発者モードを保存する必要があります。"
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "PC の同期元フォルダーを追加 …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "PC の同期元フォルダーと受信先は別々です。"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "写真のみ"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "選択した PC の同期元フォルダー"

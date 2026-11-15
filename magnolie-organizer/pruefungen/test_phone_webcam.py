@@ -285,3 +285,60 @@ def test_native_readiness_wait_never_refreshes_original_callers_permission_deadl
         webcam.NativeWebcamSession('/dev/video42', original,
             video_factory=output, audio_factory=output, clock=lambda: now[0])
     assert len(outputs) == 2 and all(value.closed for value in outputs)
+
+
+def test_preparation_keeps_original_guard_without_consuming_first_media_deadline():
+    now = [0.0]; checks = []
+    value = session(lambda: checks.append(now[0]), clock=lambda: now[0], prepare_only=True)
+    try:
+        now[0] = 3.0
+        value.check_lifetime()
+        assert checks and value.started is None and not value.closed
+        assert not value.positions and value.presentation.anchor is None
+        value.arm_media_deadline()
+        assert value.started == 3.0 and value.presentation.anchor is None
+        now[0] = 5.1
+        with pytest.raises(webcam.WebcamUnavailable, match='stream_timeout'):
+            value.check_lifetime()
+        assert value.closed and value.video.closed and value.audio.closed
+    finally:
+        value.close(); value.monitor.join(1)
+
+
+def test_prepared_outputs_reject_early_frames_without_creating_a_pts_epoch():
+    value = session(prepare_only=True)
+    try:
+        with pytest.raises(webcam.WebcamUnavailable, match='actual_sending_not_admitted'):
+            value.write('video', 0, 0, bytes(webcam.VIDEO_BYTES))
+        assert value.closed and not value.video.frames and value.presentation.anchor is None
+    finally:
+        value.close(); value.monitor.join(1)
+
+
+def test_media_deadline_is_one_shot_and_cannot_refresh_the_original_window():
+    now = [0.0]
+    value = session(clock=lambda: now[0], prepare_only=True)
+    try:
+        value.arm_media_deadline(); now[0] = 1.5
+        with pytest.raises(webcam.WebcamUnavailable, match='already_armed'):
+            value.arm_media_deadline()
+        assert value.started == 0 and value.closed and value.presentation.anchor is None
+    finally:
+        value.close(); value.monitor.join(1)
+
+
+def test_preparation_still_expires_original_consent_and_cannot_rearm_after_return():
+    now = [0.0]
+    def original():
+        if now[0] >= 2: raise PermissionError('original permission expired')
+    value = session(original, clock=lambda: now[0], prepare_only=True)
+    try:
+        now[0] = 3
+        with pytest.raises(PermissionError, match='original permission expired'):
+            value.arm_media_deadline()
+        now[0] = 0
+        with pytest.raises(webcam.WebcamUnavailable, match='retired'):
+            value.arm_media_deadline()
+        assert value.closed and value.started is None and not value.positions
+    finally:
+        value.close(); value.monitor.join(1)

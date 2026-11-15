@@ -23,6 +23,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private readonly BaumSyncSnapshot baumSyncSnapshot = new();
     private string currentEnvelope = "";
     private readonly NativeBookOwnerScope actorBookOwner = new();
+    private ContactSourceSavedCommit? contactSourceSavedCommit;
+    private ContactSourceSavedCommit OriginalContactCommit => LazyInitializer.EnsureInitialized(ref contactSourceSavedCommit, () => new(NativeActorSavedBook));
     private bool plainTextAvailable;
     private bool currentPlainTextAvailable
     {
@@ -99,23 +101,27 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "baum_dav_pruefen" or "baum_mailbox_schreibpruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
                 "baum_ein" or "baum_mcp" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_mcp" or "kde_mcp" or "notiz_versand" or "telefon_ein" or "telefon_verbindung_ein" or
                 "telefon_status_anfordern" or "telefon_entwickler_diagnose" or "kde_dateisystem_stand" or "kde_dateisystem_oeffnen" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
-                "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
+                "sync" or "kontakt_originalquellen_freigabe" or "kontakt_originalquellen_update" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
                 "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "internet_konten_mcp" or "telefon_kontaktfotos" or "telefon_kontakte" or "telefon_kontaktgruppen" or "telefon_kontaktwerte" or "telefon_kontaktgruppentitel" or "zeitzone_erkennen")
             {
                 var owner = command is "telefon_kontaktfotos" or "telefon_kontakte" ? "kontaktfotos" :
-                    command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
+                    command is "sync" or "kontakt_originalquellen_freigabe" or "kontakt_originalquellen_update" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
                     command.StartsWith("personal_sync", StringComparison.Ordinal) || command.StartsWith("telefon", StringComparison.Ordinal) ? "phone" :
                     command.StartsWith("kde", StringComparison.Ordinal) ? "kde" : command.StartsWith("baum", StringComparison.Ordinal) ? "baum" :
                     command.StartsWith("update", StringComparison.Ordinal) || command == "handbuch_herunterladen" ? "update" : command;
                 var revision = Volatile.Read(ref graphRevision);
                 var syncReplyId = command == "sync" && Boolean(parsed.RootElement, "mcp") ? Text(parsed.RootElement, "transactionId") : "";
+                var originalContactReplyId = Text(parsed.RootElement, "requestId");
                 QueueNetworkCommand(() =>
                 {
                     if (command != "graph_anmelden") return HandleCoreAsync(rawMessage);
                     lock (serviceGate) return revision != graphRevision ? Task.CompletedTask : HandleCoreAsync(rawMessage);
-                }, owner, syncReplyId.Length == 0 ? null : code => form.SendAsync("App.syncMcpFehler", new { nativeId = syncReplyId, code }));
+                }, owner, command is "kontakt_originalquellen_freigabe" or "kontakt_originalquellen_update"
+                    ? code => form.SendAsync(command == "kontakt_originalquellen_freigabe" ? "App.originalKontaktFreigabe" : "App.originalKontaktErgebnis",
+                        new { requestId = originalContactReplyId, ok = false, code })
+                    : syncReplyId.Length == 0 ? null : code => form.SendAsync("App.syncMcpFehler", new { nativeId = syncReplyId, code }));
                 return;
             }
         }
@@ -279,6 +285,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         }
                         break;
                     case "sync": await SynchronizeContactsAsync(message); break;
+                    case "kontakt_originalquellen_freigabe": await ConfigureOriginalContactSourcesAsync(message); break;
+                    case "kontakt_originalquellen_widerrufen": await RevokeOriginalContactSourcesAsync(message); break;
+                    case "kontakt_originalquellen_update": await UpdateOriginalContactSourcesAsync(message); break;
+                    case "notes_original_save_cancel": NativeNotesUi?.Cancel(Text(message, "token")); break;
+                    case "notes_original_ready": await AcceptNotesReadinessAsync(Text(message, "token"), Boolean(message, "bereit")); break;
                     case "sync_commit":
                         if (Text(message, "requestId") is { Length: > 0 } commitRequest)
                         {
@@ -893,24 +904,31 @@ internal sealed partial class BridgeDispatcher : IDisposable
         await form.SendAsync("App.contributorGeprueft", new { ok = valid });
     }
 
-    private async Task SaveAsync(JsonElement message, NativeHistoricalWriterInvocation? historical = null)
+    private async Task SaveAsync(JsonElement message, NativeHistoricalWriterInvocation? historical = null, NotesOriginalBootstrapSave? notesBootstrap = null,
+        NotesOriginalController.SaveCompletion? notesCompletion = null)
     {
         var locked = false;
+        var contactAckCommitted = false;
+        var contactAckRecognized = false;
+        void FailNotesCompletion() { try { notesCompletion?.Failed(); } catch (Exception) { } } // Never block native failure reporting.
         var id = Integer(message, "id");
         var text = Text(message, "text");
         if (!currentPlainTextAvailable)
         {
+            FailNotesCompletion();
             await form.SendAsync("App.gespeichert", new { id, ok = false,
                 fehler = T("The save request is invalid.") });
             return;
         }
         if (id < 1 || string.IsNullOrWhiteSpace(text))
         {
+            FailNotesCompletion();
             await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = T("The save request is invalid.") });
             return;
         }
         if (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)
         {
+            FailNotesCompletion();
             await form.SendAsync("App.gespeichert", new
             {
                 id, ok = false, fehler = T("Save rejected: The data is encrypted and has not been unlocked yet.")
@@ -922,6 +940,15 @@ internal sealed partial class BridgeDispatcher : IDisposable
             await RetryRestoreRepairAsync();
             if (restoreInProgress) throw new InvalidOperationException(T("Synchronization failed."));
             await MutationGate.Global.WaitAsync(); locked = true;
+            string? notesContactToken = null;
+            var notesUiToken = Text(message, "notesOriginalLauf");
+            if (notesUiToken.Length != 0)
+            {
+                if (notesCompletion is not null || notesBootstrap is not null || historical is not null || Text(message, "kontaktOriginalLauf").Length != 0)
+                    throw new InvalidOperationException("notes_ui_mixed_native_save_not_ready");
+                var claimed = (NativeNotesUi ?? throw new InvalidOperationException("notes_ui_native_session_required")).Claim(notesUiToken, text);
+                notesCompletion = claimed.Completion; notesBootstrap = claimed.Bootstrap; notesContactToken = claimed.ContactToken;
+            }
             using var document = JsonDocument.Parse(text);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
                 throw new JsonException(T("The data is not a JSON object."));
@@ -931,6 +958,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
             // The persisted restore epoch fences requests queued before or sent after restore.
             var previousData = JsonNode.Parse(currentPlainText) as JsonObject;
             var proposedData = JsonNode.Parse(text)!.AsObject();
+            var originalContactToken = notesContactToken ?? Text(message, "kontaktOriginalLauf");
+            var originalContactWrite = originalContactToken.Length == 0 ? null : OriginalContactCommit.Prepare(originalContactToken, proposedData);
             var coveredBySync = previousData is not null && syncSnapshotHandoff.CoversSave(previousData, proposedData);
             var previousText = currentPlainText;
             var treeProof = message.TryGetProperty("baumSyncLauf", out var proof) && proof.ValueKind == JsonValueKind.Object
@@ -942,9 +971,30 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 throw new JsonException(T("The save request is invalid."));
             if (historical is not null && (contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
                 throw new InvalidOperationException("actor_historical_mixed_save_not_ready");
+            if (originalContactWrite is not null && (historical is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
+                throw new InvalidOperationException("contact_source_mixed_save_not_ready");
+            if (notesBootstrap is not null && (historical is not null || originalContactWrite is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
+                throw new InvalidOperationException("notes_bootstrap_mixed_save_not_ready");
+            if (notesCompletion is not null && (historical is not null || contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
+                throw new InvalidOperationException("notes_controller_mixed_save_not_ready");
+            notesCompletion?.Begin(text, originalContactToken, notesBootstrap);
             var historicalWriteStarted = false;
+            ContactSourceApprovalStore? contactConsent = null;
+            ContactSourceApprovalStore.SaveIntent? contactConsentWrite = null;
+            var contactConsentError = false;
+            var notesConsent = NativeNotesChoices;
+            NotesOriginalChoiceStore.SaveIntent? notesConsentWrite = null;
+            var notesConsentError = false;
+            try { contactConsent = OriginalContactApprovals; }
+            catch (Exception) { contactConsentError = true; } // Consent storage cannot prevent an ordinary save.
             void NativeWrite(string payload)
             {
+                if (contactConsent is not null)
+                    try { contactConsentWrite = contactConsent.PrepareCurrentSave(payload); }
+                    catch (Exception) { contactConsentError = true; } // Unknown/pending state holds automatic delivery, not user edits.
+                if (notesConsent is not null)
+                    try { notesConsentWrite = notesConsent.PrepareCurrentSave(payload); }
+                    catch (Exception) { notesConsentError = true; } // No unknown-book adoption and no blocked ordinary user save.
                 actorBookOwner.InvalidateSaved();
                 historicalWriteStarted = historical is not null;
                 if (!coveredBySync && !coveredByTree && changed)
@@ -959,8 +1009,16 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 currentPlainText = payload;
                 currentPlainTextAvailable = true;
                 actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), !restoreInProgress && !disposed, BaumSyncSnapshot.Hash(payload));
+                // Complete the private known-book chain before a source result's
+                // post-writer guard. This is not a wire ACK or a saved-witness issuer.
+                if (notesConsent is not null && notesConsentWrite is not null && !notesConsentError)
+                    try { notesConsent.ConfirmSave(notesConsentWrite, NativeActorBook() ??
+                        throw new InvalidOperationException("notes_choice_real_saved_book_required")); }
+                    catch (Exception) { notesConsentError = true; }
             }
-            if (historical is null) NativeWrite(text);
+            if (originalContactWrite is not null) originalContactWrite.Write(text, NativeWrite);
+            else if (notesBootstrap is not null) notesBootstrap.Write(text, NativeWrite);
+            else if (historical is null) NativeWrite(text);
             else
             {
                 try { await historical.WriteAsync(text, NativeWrite, backgroundLifetime.Token); }
@@ -973,22 +1031,55 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     throw;
                 }
             }
+            var notesCompletionError = false;
+            if (notesCompletion is not null)
+                try { notesCompletion.Complete(); }
+                catch (Exception) { notesCompletionError = true; FailNotesCompletion(); } // Actual user save succeeded; missing journal authority holds Notes only.
             baumSyncSnapshot.Saved(previousText, text, treeProof, changed, coveredByTree);
             if (coveredBySync) syncSnapshotHandoff.Saved();
             if (contactPlan is not null) contactCleanupSnapshot.Planned(contactPlan);
             else contactCleanupSnapshot.Saved(text);
             RefreshReminderData(currentPlainText, encryption.Session is not null);
             UpdateReminderRuntime(currentPlainText);
+            var contactConsentRecognized = false;
+            if (contactConsent is not null && !contactConsentError)
+                try
+                {
+                    if (contactConsentWrite is not null)
+                        contactConsent.ConfirmSave(contactConsentWrite, NativeActorBook() ??
+                            throw new InvalidOperationException("contact_source_native_saved_book_required"));
+                    contactConsentRecognized = contactConsent.RecognizesSaved(); // Correlation marker only, NOT usable permission.
+                }
+                catch (Exception) { contactConsentError = true; }
+            var notesConsentRecognized = false;
+            if (notesConsent is not null && !notesConsentError)
+                try { notesConsentRecognized = notesConsent.RecognizesSaved(); }
+                catch (Exception) { notesConsentError = true; }
             await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "", kontaktPruefung = contactPlan,
-                standSha256 = BaumSyncSnapshot.Hash(text) });
+                committed = true, repairPending = false,
+                kontaktQuellenDauerhaft = contactConsentRecognized && !contactConsentError,
+                kontaktQuellenFehler = contactConsentError,
+                notesOriginalDauerhaft = notesConsentRecognized && !notesConsentError,
+                notesOriginalFehler = notesConsentError || notesCompletionError,
+                standSha256 = BaumSyncSnapshot.Hash(text),
+                kontaktOriginalGespeichert = originalContactWrite?.Completed == true ? originalContactWrite.Token : "" });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);
+            contactAckCommitted = true;
+            contactAckRecognized = contactConsentRecognized && !contactConsentError;
         }
         catch (Exception error)
         {
+            FailNotesCompletion();
             await ReportErrorAsync("speichern", error.ToString());
             await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = T("Warning: The data could not be saved.") });
         }
-        finally { if (locked) MutationGate.Global.Release(); }
+        finally
+        {
+            if (locked) MutationGate.Global.Release();
+            if (notesCompletion is not null)
+                try { NativeNotesWake?.Invoke(); } catch (Exception) { } // Deferred wake cannot turn a genuine user save into failure.
+        }
+        if (contactAckCommitted) await OriginalContactSaveAcknowledgedAsync(id, BaumSyncSnapshot.Hash(text), contactAckRecognized);
     }
 
     // Private native issuer, never an ExecuteMcp/request action. The frontend
@@ -1315,6 +1406,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var plain = encrypted ? decoder.Unlock(text, Text(message, "kennwort")) : text;
             decoder.Clear();
             var data = JsonNode.Parse(plain) as JsonObject ?? throw new InvalidDataException("Invalid backup.");
+            BackupDataValidation.Validate(data);
             var counts = new[] { "notizen", "aufgaben", "termine", "kontakte", "jahrestage" }
                 .ToDictionary(key => key, key => (data[key] as JsonArray)?.Count ?? 0);
             await form.SendAsync("App.sicherungAusgewaehlt", new { ok = true, requestId, pfad = Path.GetFullPath(source),
@@ -1355,6 +1447,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             }
             RequireJsonObject(plainText);
             var restoredData = JsonNode.Parse(plainText)!.AsObject();
+            BackupDataValidation.Validate(restoredData);
             await FencePhoneRestoreAsync();
             await MutationGate.Global.WaitAsync(); locked = true;
             restorePoint = CreateRestorePoint();
@@ -1945,6 +2038,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
     {
         lock (serviceGate) { if (disposed) return; disposed = true; }
         currentPlainTextAvailable = false;
+        await StopNativeNotesSessionAsync().ConfigureAwait(false);
+        StopOriginalContactMonitor(); originalContactAutomation?.Dispose();
         noteSendJobs?.Dispose();
         backgroundLifetime.Cancel();
         ClearPersonalSyncRuntime();

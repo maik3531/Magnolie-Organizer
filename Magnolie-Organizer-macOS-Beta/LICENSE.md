@@ -2,7 +2,7 @@
 
 New source and documentation in this macOS Beta are licensed under the GNU
 General Public License, version 3 or (at your option) any later version, following
-the parent repository's [licensing notice](../LICENSE.md).
+the parent repository's [licensing notice](../LICENSING.md).
 
 The complete GPL-3.0 text is available in the shared workspace at
 [`../magnolie-organizer-windows/LICENSE`](../magnolie-organizer-windows/LICENSE).

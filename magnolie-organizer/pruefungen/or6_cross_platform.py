@@ -17,12 +17,33 @@ from magnolie_or6 import read_or6
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--dotnet", required=True)
 parser.add_argument("--core", required=True)
-parser.add_argument("--extensions-only", action="store_true")
+scope = parser.add_mutually_exclusive_group()
+scope.add_argument("--extensions-only", action="store_true")
+scope.add_argument("--planner-only", action="store_true")
+scope.add_argument("--planner-boundaries-only", action="store_true")
+scope.add_argument("--task-scopes-only", action="store_true")
+scope.add_argument("--task-bindings-only", action="store_true")
+scope.add_argument("--section-removal-only", action="store_true")
+scope.add_argument("--appointment-categories-only", action="store_true")
+scope.add_argument("--appointment-overrides-only", action="store_true")
+scope.add_argument("--calendar-history-only", action="store_true")
 args = parser.parse_args()
 files = {}
-contracts = ["or6-native-extensions.json"] if args.extensions_only else ["or6-native-fixtures.json", "or6-native-extensions.json"]
-for name in contracts:
-    files.update(json.loads((root / "contracts" / name).read_text())["files"])
+contracts = (["or6-native-calendar-history.json"] if args.calendar_history_only else
+             ["or6-native-appointment-overrides.json"] if args.appointment_overrides_only else
+             ["or6-native-appointment-categories.json"] if args.appointment_categories_only else
+             ["or6-native-section-removal.json"] if args.section_removal_only else
+             ["or6-native-task-bindings.json"] if args.task_bindings_only else
+             ["or6-native-task-scopes.json"] if args.task_scopes_only else
+             ["or6-native-extensions.json"] if args.extensions_only else
+             ["or6-native-fixtures.json", "or6-native-extensions.json"])
+if args.planner_only or args.planner_boundaries_only:
+    name = "or6-native-planner-boundaries.json" if args.planner_boundaries_only else "or6-native-planner.json"
+    item = json.loads((root / "contracts" / name).read_text())["file"]
+    files[item["name"]] = item
+else:
+    for name in contracts:
+        files.update(json.loads((root / "contracts" / name).read_text())["files"])
 with tempfile.TemporaryDirectory(prefix="magnolie-or6-parity-", dir="/tmp/opencode") as directory:
     for name, item in files.items():
         assert Path(name).name == name

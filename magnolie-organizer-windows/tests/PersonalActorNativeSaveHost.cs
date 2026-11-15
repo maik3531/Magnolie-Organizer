@@ -15,6 +15,27 @@ internal sealed partial class PersonalActorNativeSaveHost
     private readonly ContactCleanupSnapshot contactCleanupSnapshot = new();
     private readonly SyncSnapshotHandoff syncSnapshotHandoff = new();
     private readonly BaumSyncSnapshot baumSyncSnapshot = new();
+    private ContactSourceSavedCommit? contactSourceSavedCommit;
+    private ContactSourceSavedCommit OriginalContactCommit => contactSourceSavedCommit ??= new(NativeActorSavedBook);
+    internal ContactSourceSavedCommit SourceResultCommit => OriginalContactCommit;
+    internal ContactSourceApprovalStore? ApprovalStore;
+    internal NotesOriginalChoiceStore? NativeNotesChoices { get; set; }
+    internal string? CurrentNativeText => currentPlainTextAvailable ? currentPlainText : null;
+    internal Func<int, string, bool, Task>? SaveAckObserver;
+    internal bool ConcurrentNativeWorker;
+    private ContactSourceApprovalStore? OriginalContactApprovals => ApprovalStore;
+    private async Task OriginalContactSaveAcknowledgedAsync(int id, string hash, bool recognized)
+    {
+        // A real deferred worker may acquire the released gate before this
+        // continuation runs. The concurrent wire opts into a bounded acquire;
+        // existing single-actor regressions retain the immediate release check.
+        var released = ConcurrentNativeWorker
+            ? await MutationGate.Global.WaitAsync(TimeSpan.FromSeconds(5))
+            : MutationGate.Global.Wait(0);
+        TestAssert.That(released, "Actual contact restore continuation still held the writer mutation gate");
+        MutationGate.Global.Release();
+        if (SaveAckObserver is not null) await SaveAckObserver(id, hash, recognized);
+    }
     private readonly CancellationTokenSource backgroundLifetime = new();
     private readonly Replies form = new();
     private string currentPlainText, currentEnvelope;
@@ -22,16 +43,24 @@ internal sealed partial class PersonalActorNativeSaveHost
     private bool currentPlainTextAvailable { get => plainTextAvailable; set { actorBookOwner.SetReady(value); plainTextAvailable = value; } }
     private bool restoreInProgress = false, disposed = false;
     internal bool FailAfterPrimary;
+    internal NotesOriginalUiSaveSession? NativeNotesUi { get; set; }
+    internal Action? NativeNotesWake { get; set; }
     internal int Snapshots;
     internal readonly List<string> Errors = [];
     internal const string Password = "synthetic-only-native-bridge-save";
-    internal PersonalActorNativeSaveHost(string root, string before)
+    internal PersonalActorNativeSaveHost(string root, string before, bool reopen = false)
     {
         paths = new WindowsPaths(root); currentPlainText = before;
         store = new AtomicStore(stage => { if (FailAfterPrimary && stage == AtomicStore.WriteStage.PrimaryReplaced) throw new IOException("Synthetic post-rename failure"); });
-        currentEnvelope = encryption.Enable(before, Password); store.WriteRecoverableJson(paths.Data, currentEnvelope);
+        if (reopen)
+        {
+            currentEnvelope = store.Read(paths.Data) ?? throw new FileNotFoundException();
+            currentPlainText = encryption.Unlock(currentEnvelope, Password);
+        }
+        else
+        { currentEnvelope = encryption.Enable(before, Password); store.WriteRecoverableJson(paths.Data, currentEnvelope); }
         currentPlainTextAvailable = true;
-        actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), true, BaumSyncSnapshot.Hash(before));
+        if (!reopen) actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), true, BaumSyncSnapshot.Hash(before));
     }
     internal string DataPath => paths.Data;
     internal bool Available => currentPlainTextAvailable;
@@ -43,7 +72,100 @@ internal sealed partial class PersonalActorNativeSaveHost
         return saved is not null && saved.Sha256 == BaumSyncSnapshot.Hash(currentPlainText) ? saved : null;
     }
     internal NativeActorBookSnapshot? Snapshot() => NativeActorBookSnapshot.Capture(Saved, () => currentPlainTextAvailable ? currentPlainText : null);
+    private NativeActorBookSnapshot? NativeActorBook() => Snapshot();
+    internal ContactSourcePrimaryBook Primary() => ContactSourcePrimaryBook.Capture(paths.Data, store, encryption,
+        () => currentPlainTextAvailable && !restoreInProgress && !disposed);
     private NativeBookSaveState? NativeActorSavedBook() => Saved();
+    internal ContactSourceCommitOffer StageOriginalContactResult(SavedContactSourceUpdateResult result) =>
+        OriginalContactCommit.Stage(Snapshot()!, result);
+    internal async Task<JsonObject> SaveBridgeEnvelopeAsync(JsonObject message)
+    {
+        using var parsed = BridgeDispatcherContract.Parse(message.ToJsonString());
+        await SaveAsync(parsed.RootElement);
+        return form.Values.Last().Value;
+    }
+    internal async Task<JsonObject> SaveOriginalContactResultAsync(string token, JsonObject candidate, bool mixedTree = false)
+    {
+        var message = new JsonObject { ["id"] = form.Values.Count + 1, ["text"] = candidate.ToJsonString(), ["kontaktOriginalLauf"] = token };
+        if (mixedTree) message["baumSyncLauf"] = new JsonObject();
+        using var parsed = JsonDocument.Parse(message.ToJsonString());
+        await SaveAsync(parsed.RootElement);
+        return form.Values.Last().Value;
+    }
+    internal async Task<JsonObject> SaveNotesBootstrapAsync(NotesOriginalBootstrapSave bootstrap, string? proposedText = null, bool mixedTree = false)
+    {
+        var text = proposedText ?? bootstrap.Text;
+        var payload = new JsonObject { ["id"] = form.Values.Count + 1, ["text"] = text };
+        if (mixedTree) payload["baumSyncLauf"] = new JsonObject();
+        using var message = JsonDocument.Parse(payload.ToJsonString());
+        await SaveAsync(message.RootElement, notesBootstrap: bootstrap);
+        return form.Values.Last().Value;
+    }
+
+    internal async Task<JsonObject> SaveNotesWorkAsync(NotesOriginalController controller, NotesOriginalController.Work work,
+        string? proposedText = null, NotesOriginalController.SaveCompletion? completion = null)
+    {
+        completion ??= controller.PrepareSaveCompletion(work);
+        var bootstrap = work.Invocation as NotesOriginalBootstrapSave;
+        var native = work.Invocation as NotesOriginalPendingResult.NativeCommit;
+        var text = proposedText ?? native?.Text ?? bootstrap?.Text ?? throw new InvalidOperationException("Synthetic native work required");
+        using var message = JsonDocument.Parse(new JsonObject { ["id"] = form.Values.Count + 1, ["text"] = text,
+            ["kontaktOriginalLauf"] = native?.Offer.Token ?? "" }.ToJsonString());
+        await SaveAsync(message.RootElement, notesBootstrap: bootstrap, notesCompletion: completion);
+        return form.Values.Last().Value;
+    }
+
+    internal static async Task VerifyOriginalContactResultAsync(string beforeText)
+    {
+        foreach (var mode in new[] { "success", "forged", "mixed-content", "mixed-tree", "changed-book", "locked", "failed-primary", "ordinary-save" })
+        {
+            var root = Path.Combine(Path.GetTempPath(), "magnolie-actual-source-result-save-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var host = new PersonalActorNativeSaveHost(root, beforeText);
+                var original = host.Saved()!; var originalBytes = File.ReadAllBytes(host.DataPath);
+                var contacts = JsonNode.Parse(beforeText)!["kontakte"]!.DeepClone().AsArray(); contacts[0]!["notiz"] = "Native confirmed result";
+                var offer = host.StageOriginalContactResult(new(original, contacts, new Dictionary<string, ContactSyncCounts>()));
+                var proposed = JsonNode.Parse(beforeText)!.AsObject(); proposed["kontakte"] = offer.Contacts.DeepClone();
+                if (mode == "forged") offer = offer with { Token = new string('0', 64) };
+                if (mode == "mixed-content") proposed["unexpectedOtherDomain"] = "not part of native result";
+                if (mode == "changed-book") host.actorBookOwner.RecordSaved(Path.GetFullPath(host.paths.Data), true, BaumSyncSnapshot.Hash(beforeText));
+                if (mode == "locked") host.currentPlainTextAvailable = false;
+                if (mode == "failed-primary") host.FailAfterPrimary = true;
+                var response = await host.SaveOriginalContactResultAsync(mode == "ordinary-save" ? "" : offer.Token, proposed, mode == "mixed-tree");
+                if (mode is "success" or "ordinary-save")
+                {
+                    TestAssert.That(response["ok"]!.GetValue<bool>() && host.Saved()!.Sequence == original.Sequence + 1 && host.Snapshots == 1 &&
+                        new EncryptionService().Unlock(File.ReadAllText(host.DataPath), Password) == proposed.ToJsonString(),
+                        "Actual source result SaveAsync bypassed encrypted native writer/snapshot/witness");
+                    TestAssert.That(response["kontaktOriginalGespeichert"]!.GetValue<string>() == (mode == "success" ? offer.Token : ""),
+                        "Actual SaveAsync claimed result delivery without the native one-use proof");
+                    if (mode == "success")
+                        TestAssert.That(host.SourceResultCommit.ConfirmedSave(offer.Token).RequireCurrent() == host.Saved(),
+                            "Actual encrypted SaveAsync did not issue current private native save evidence");
+                    else TestAssert.Throws<InvalidOperationException>(() => host.SourceResultCommit.ConfirmedSave(offer.Token),
+                        "Ordinary SaveAsync impersonated a specific contact-result save");
+                    var bytes = File.ReadAllBytes(host.DataPath); var saved = host.Saved();
+                    var replay = await host.SaveOriginalContactResultAsync(offer.Token, proposed);
+                    TestAssert.That(!replay["ok"]!.GetValue<bool>() && saved == host.Saved() && host.Snapshots == 1 &&
+                        bytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)), "Result proof replay wrote/snapshotted again");
+                }
+                else
+                {
+                    TestAssert.Throws<InvalidOperationException>(() => host.SourceResultCommit.ConfirmedSave(offer.Token),
+                        "Rejected/unknown actual SaveAsync issued positive native evidence");
+                    TestAssert.That(!response["ok"]!.GetValue<bool>() && response["kontaktOriginalGespeichert"] is null,
+                        "Actual SaveAsync acknowledged stale/mixed/failed source result: " + mode);
+                    if (mode == "failed-primary") TestAssert.That(host.Saved() is null && host.Snapshots == 1 &&
+                        new EncryptionService().Unlock(File.ReadAllText(host.DataPath), Password) == proposed.ToJsonString(),
+                        "Failed-after-primary result acquired a native saved witness or lost controlled failure");
+                    else TestAssert.That(host.Snapshots == 0 && originalBytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)),
+                        "Rejected result mutated encrypted store/snapshot: " + mode);
+                }
+            }
+            finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
+        }
+    }
     internal static async Task VerifyOrdinaryAsync(string beforeText, string afterText)
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-actual-save-regression-" + Guid.NewGuid().ToString("N"));

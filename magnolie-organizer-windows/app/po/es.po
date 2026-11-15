@@ -3052,8 +3052,8 @@ msgstr "Incluir recogidas de residuos"
 msgid "Incoming"
 msgstr "Entrante"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Archivos entrantes de KDE Connect (confirmar siempre)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Archivos entrantes de KDE Connect (confirmar siempre)"
 
 msgid "Incoming call"
 msgstr "Llamada entrante"
@@ -8835,3 +8835,20 @@ msgstr "Icono de la bandeja del sistema (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "El modo de desarrollador debe estar guardado."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Añadir carpeta de origen del PC …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Las carpetas de origen del PC son independientes de los destinos de recepción."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Solo fotos"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Carpetas de origen del PC seleccionadas"

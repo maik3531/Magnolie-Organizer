@@ -98,7 +98,9 @@ internal sealed partial class PhoneCameraAudioParentModule : IDisposable
         catch { result.Dispose(); throw; }
     }
     private static readonly string[] Exports = ["MagnoliePhoneAudioCreate", "MagnoliePhoneAudioPrepare", "MagnoliePhoneAudioRequireReady",
-        "MagnoliePhoneAudioObserveVideo", "MagnoliePhoneAudioWrite", "MagnoliePhoneAudioExportAnchor", "MagnoliePhoneAudioStop", "MagnoliePhoneAudioClose"];
+        "MagnoliePhoneAudioObserveVideo", "MagnoliePhoneAudioWrite", "MagnoliePhoneAudioExportAnchor", "MagnoliePhoneAudioStop", "MagnoliePhoneAudioClose",
+        "MagnoliePhoneVideoVersion", "MagnoliePhoneVideoCreate", "MagnoliePhoneVideoPrepare", "MagnoliePhoneVideoRequireReady",
+        "MagnoliePhoneVideoWrite", "MagnoliePhoneVideoStop", "MagnoliePhoneVideoClose"];
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate uint VersionFunction();
     internal T Export<T>(string name) where T : Delegate => Marshal.GetDelegateForFunctionPointer<T>(Address(name));

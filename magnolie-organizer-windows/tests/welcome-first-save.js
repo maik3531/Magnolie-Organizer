@@ -32,7 +32,7 @@ function saveAndClose(web, profile, first) {
   } finally { dom.window.close(); }
 }
 
-for (const web of [path.resolve(__dirname, "../../magnolie-organizer/web"), path.resolve(__dirname, "../app/web")]) {
+for (const web of require("./web-test-roots")) {
   try {
     const first = saveAndClose(web, {}, true);
     const second = saveAndClose(web, first, false);

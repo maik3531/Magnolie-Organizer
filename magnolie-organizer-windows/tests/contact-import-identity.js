@@ -36,6 +36,44 @@ for (const web of require("./web-test-roots")) {
     T.mergeKontakte([{ vorname: "Alex", nachname: "Person", emailEintraege: a.emailEintraege, telefone: a.telefone, notiz: "Unambiguous" }]);
     assert.equal(T.daten().kontakte.length, 2);
     assert.equal(T.daten().kontakte[0].notiz, "Unambiguous");
+    // #602: exercise actual import matching in both full frontends.
+    for (const [country, national, international] of [
+      ["DE", "0123456", "+49123456"], ["DE", "030 123456", "+4930123456"],
+      ["GB", "07700 900123", "+447700900123"], ["IT", "02 12345678", "+390212345678"],
+      ["DE", "0123456 ext 1", "+49123456 ext 1"]]) {
+      const alternatives = international.includes("ext") ? [national, international] : [national, "00" + international.slice(1), international];
+      for (const number of alternatives) {
+        const saved = { id: "country-person", vorname: "Country", nachname: "Fixture", telefone: [{ wert: national }] };
+        w.App.init({ neu: false, regional: { homeCountry: country }, daten: {
+          einstellungen: { regional: { homeCountry: country } }, kontakte: [saved] } });
+        T.mergeKontakte([{ vorname: "Country", nachname: "Fixture", telefone: [{ wert: number }], notiz: "Matched" }]);
+        assert.equal(T.daten().kontakte.length, 1, country + " import created duplicate " + number);
+        assert.equal(T.daten().kontakte[0].notiz, "Matched");
+        assert.equal(T.daten().kontakte[0].telefone[0].wert, national, "Original spelling changed");
+      }
+    }
+    for (const [country, number] of [["ZZ", "+49123456"], ["GB", "+49123456"],
+      ["DE", "+49123457"], ["DE", "+49123456 ext 2"]]) {
+      w.App.init({ neu: false, regional: { homeCountry: country }, daten: {
+        einstellungen: { regional: { homeCountry: country } }, kontakte: [
+          { id: "different", vorname: "Country", nachname: "Fixture", telefone: [{ wert: number.includes("ext") ? "0123456 ext 1" : "0123456" }] }] } });
+      const before = JSON.stringify(T.daten().kontakte[0]);
+      T.mergeKontakte([{ vorname: "Country", nachname: "Fixture", telefone: [{ wert: number }] }]);
+      assert.equal(T.daten().kontakte.length, 2, "Different country/number/extension was silently merged");
+      assert.equal(JSON.stringify(T.daten().kontakte[0]), before);
+    }
+    for (const field of ["email", "emails", "emailEintraege"]) {
+      const address = value => field === "email" ? value : field === "emails" ? [value] : [{ wert: value }];
+      const original = "Alex.Example+tag@Example.Test";
+      w.App.init({ neu: false, daten: { kontakte: [
+        { id: "email-case", vorname: "Email", nachname: "Fixture", [field]: address(original) }] } });
+      T.mergeKontakte([{ vorname: "Email", nachname: "Fixture", [field]: address(original.toLowerCase()), notiz: "Same email" }]);
+      assert.equal(T.daten().kontakte.length, 1, field + " e-mail case created duplicate");
+      assert.equal(T.daten().kontakte[0].notiz, "Same email");
+      assert.equal(T.daten().kontakte[0].email, original.toLowerCase(), "E-mail spelling was not canonical lowercase");
+      T.mergeKontakte([{ vorname: "Email", nachname: "Fixture", [field]: address("alex.example+other@example.test") }]);
+      assert.equal(T.daten().kontakte.length, 2, "Significant e-mail plus tag ignored");
+    }
     console.log("CONTACT IMPORT IDENTITY PASSED:", web);
   } finally { w.close(); }
 }

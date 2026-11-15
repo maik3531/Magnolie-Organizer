@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='utf-8'?>
+<XML_DIZ_INFO>
+  <MASTER_PAD_VERSION_INFO>
+    <MASTER_PAD_VERSION>4.0</MASTER_PAD_VERSION>
+    <MASTER_PAD_EDITOR>Magnolie PAD maintenance script</MASTER_PAD_EDITOR>
+    <MASTER_PAD_INFO>Self-hosted PAD metadata. Not AppVisor certified. See docs/PAD.md for validation scope.</MASTER_PAD_INFO>
+    <CERTIFIED>N</CERTIFIED>
+  </MASTER_PAD_VERSION_INFO>
+  <Company_Info>
+    <Company_Name>Maik Walter</Company_Name>
+    <Company_WebSite_URL>https://github.com/maik3531/Magnolie-Organizer</Company_WebSite_URL>
+    <Contact_Info>
+      <Author_First_Name>Maik</Author_First_Name>
+      <Author_Last_Name>Walter</Author_Last_Name>
+      <Author_Email>maik3531@gmail.com</Author_Email>
+      <Contact_First_Name>Maik</Contact_First_Name>
+      <Contact_Last_Name>Walter</Contact_Last_Name>
+      <Contact_Email>maik3531@gmail.com</Contact_Email>
+    </Contact_Info>
+  </Company_Info>
+  <Program_Info>
+    <Program_Name>Magnolie Organizer for Windows</Program_Name>
+    <Program_Version>2.0.30</Program_Version>
+    <Program_Release_Month>10</Program_Release_Month>
+    <Program_Release_Day>31</Program_Release_Day>
+    <Program_Release_Year>2026</Program_Release_Year>
+    <Program_Cost_Dollars>0.00</Program_Cost_Dollars>
+    <Program_Cost_Other_Code>EUR</Program_Cost_Other_Code>
+    <Program_Cost_Other>0.00</Program_Cost_Other>
+    <Program_Type>Freeware</Program_Type>
+    <Program_Release_Status>Minor Update</Program_Release_Status>
+    <Program_Install_Support>Install and Uninstall</Program_Install_Support>
+    <Program_OS_Support>WinOther</Program_OS_Support>
+    <Program_Language>Arabic,Byelorussian,ChineseSimplified,Czech,Danish,Dutch,English,French,German,Hindi,Italian,Japanese,Norwegian,Polish,Portuguese,Russian,Spanish,Turkish,Ukrainian,Other</Program_Language>
+    <File_Info>
+      <File_Size_Bytes>174431464</File_Size_Bytes>
+      <File_Size_K>170343.23</File_Size_K>
+      <File_Size_MB>166.35</File_Size_MB>
+    </File_Info>
+    <Expire_Info>
+      <Has_Expire_Info>N</Has_Expire_Info>
+    </Expire_Info>
+    <Program_Change_Info>Windows installer downloads now have a separate bounded deadline instead of the short update-check timeout.</Program_Change_Info>
+    <Program_Category_Class>Business::PIMS &amp; Calendars</Program_Category_Class>
+    <Program_System_Requirements>Windows 10 or Windows 11, x64.</Program_System_Requirements>
+  </Program_Info>
+  <Program_Descriptions>
+    <English>
+      <Char_Desc_45>Local calendar, tasks, contacts and notes</Char_Desc_45>
+      <Char_Desc_80>A local personal organizer for Windows with calendar, tasks, contacts and notes.</Char_Desc_80>
+      <Char_Desc_250>Magnolie Organizer for Windows brings calendars, tasks, contacts and notes together in a classic ring-binder interface. Your primary data is stored locally.</Char_Desc_250>
+      <Char_Desc_450>Magnolie Organizer for Windows combines appointments, tasks, contacts, notes, anniversaries and planning in a leather-and-paper ring-binder interface. Primary data is stored locally. Calendar, vCard and Lotus Organizer imports help reuse existing information.</Char_Desc_450>
+      <Char_Desc_2000>Magnolie Organizer for Windows is a personal organizer with the appearance of a leather-bound ring binder. It keeps appointments, tasks, contacts, notes, anniversaries, planning and health records together. Primary data is stored locally on your device. Import options include calendars, vCards, Lotus Organizer data and common note exports. Keyboard navigation, optional focus outlines and scalable layouts support everyday use. Magnolienbaum can exchange approved content with trusted devices over a local network, VPN or a configured remote endpoint. This listing covers the Windows 10/11 x64 desktop installer; Magnolie Notes for Android is a separate product. The interface supports 20 languages, including Upper Sorbian (represented as Other in PAD). Program and handbook sources use GPL-3.0-or-later unless otherwise stated; some bundled assets have separate terms.</Char_Desc_2000>
+      <Keywords>organizer,calendar,tasks,contacts,notes,local storage,Windows,PIM</Keywords>
+    </English>
+    <German>
+      <Char_Desc_45>Lokaler Kalender, Aufgaben und Notizen</Char_Desc_45>
+      <Char_Desc_80>Persönlicher Windows-Organizer mit Kalender, Aufgaben, Kontakten und Notizen.</Char_Desc_80>
+      <Char_Desc_250>Magnolie Organizer für Windows vereint Kalender, Aufgaben, Kontakte und Notizen in einer klassischen Ringbuchoberfläche. Die primären Daten werden lokal gespeichert.</Char_Desc_250>
+      <Char_Desc_450>Magnolie Organizer für Windows verbindet Termine, Aufgaben, Kontakte, Notizen, Jahrestage und Planung in einer Ringbuchoberfläche mit Leder- und Papieroptik. Die primären Daten bleiben lokal. Kalender, vCards und Lotus-Organizer-Daten lassen sich importieren.</Char_Desc_450>
+      <Char_Desc_2000>Magnolie Organizer für Windows ist ein persönlicher Organizer in der Optik eines ledergebundenen Ringbuchs. Termine, Aufgaben, Kontakte, Notizen, Jahrestage, Planung und Gesundheitsdaten sind gemeinsam erreichbar. Die primären Daten werden lokal auf dem eigenen Gerät gespeichert. Importmöglichkeiten umfassen Kalender, vCards, Lotus-Organizer-Daten und gängige Notizexporte. Tastaturnavigation, optionale Fokusmarkierungen und skalierbare Ansichten unterstützen die Bedienung. Magnolienbaum kann freigegebene Inhalte mit vertrauten Geräten im lokalen Netz, über VPN oder einen eingerichteten entfernten Endpunkt austauschen. Dieser Eintrag betrifft den Desktop-Installer für Windows 10/11 x64. Magnolie Notes für Android ist ein eigenständiges Produkt. Die Oberfläche unterstützt 20 Sprachen, darunter Obersorbisch, das PAD als Other abbildet. Programm- und Handbuchquellen stehen grundsätzlich unter GPL-3.0-or-later; für einzelne mitgelieferte Inhalte gelten gesonderte Bedingungen.</Char_Desc_2000>
+      <Keywords>Organizer,Kalender,Aufgaben,Kontakte,Notizen,lokale Speicherung,Windows</Keywords>
+    </German>
+    <Spanish>
+      <Char_Desc_45>Calendario, tareas y notas locales</Char_Desc_45>
+      <Char_Desc_80>Organizador para Windows con calendario, tareas, contactos y notas locales.</Char_Desc_80>
+      <Char_Desc_250>Magnolie Organizer para Windows reúne calendario, tareas, contactos y notas en una interfaz de agenda de anillas. Los datos principales se guardan localmente.</Char_Desc_250>
+      <Char_Desc_450>Magnolie Organizer para Windows reúne citas, tareas, contactos, notas, aniversarios y planificación en una agenda con aspecto de cuero y papel. Los datos principales se guardan localmente. Permite importar calendarios, vCards y datos de Lotus Organizer.</Char_Desc_450>
+      <Char_Desc_2000>Magnolie Organizer para Windows es un organizador personal con el aspecto de una agenda de anillas encuadernada en cuero. Reúne citas, tareas, contactos, notas, aniversarios, planificación y registros de salud. Guarda los datos principales en el dispositivo. Ofrece importación de calendarios, vCards, datos de Lotus Organizer y exportaciones habituales de notas. Incluye navegación por teclado, indicadores de foco opcionales y vistas escalables. Magnolienbaum permite intercambiar contenido autorizado con dispositivos de confianza mediante la red local, una VPN o un punto remoto configurado. Esta ficha corresponde al instalador de escritorio para Windows 10/11 x64. Magnolie Notes para Android es un producto independiente. La interfaz admite 20 idiomas, incluido el alto sorabo, representado como Other en PAD. El código del programa y del manual se distribuye bajo GPL-3.0-or-later, salvo indicación contraria; algunos recursos incluidos tienen condiciones propias.</Char_Desc_2000>
+      <Keywords>organizador,calendario,tareas,contactos,notas,almacenamiento local,Windows</Keywords>
+    </Spanish>
+    <French>
+      <Char_Desc_45>Calendrier, tâches et notes en local</Char_Desc_45>
+      <Char_Desc_80>Organiseur Windows avec calendrier, tâches, contacts et notes en local.</Char_Desc_80>
+      <Char_Desc_250>Magnolie Organizer pour Windows rassemble calendrier, tâches, contacts et notes dans une interface de classeur à anneaux. Les données principales sont conservées localement.</Char_Desc_250>
+      <Char_Desc_450>Magnolie Organizer pour Windows réunit rendez-vous, tâches, contacts, notes, anniversaires et planification dans une interface évoquant un agenda en cuir et papier. Les données principales restent locales. Importation de calendriers, de vCards et de données Lotus Organizer.</Char_Desc_450>
+      <Char_Desc_2000>Magnolie Organizer pour Windows est un organiseur personnel qui reprend l’apparence d’un agenda en cuir à anneaux. Il rassemble rendez-vous, tâches, contacts, notes, anniversaires, planification et données de santé. Les données principales sont stockées sur votre appareil. Les imports comprennent calendriers, vCards, données Lotus Organizer et exports courants de notes. Navigation au clavier, repères de focus facultatifs et vues redimensionnables facilitent l’utilisation. Magnolienbaum permet d’échanger du contenu autorisé avec des appareils de confiance sur le réseau local, via un VPN ou un point distant configuré. Cette fiche concerne l’installateur de bureau Windows 10/11 x64. Magnolie Notes pour Android est un produit distinct. L’interface prend en charge 20 langues, dont le haut-sorabe, représenté par Other dans PAD. Les sources du programme et du manuel sont sous GPL-3.0-or-later sauf mention contraire ; certaines ressources intégrées ont des conditions distinctes.</Char_Desc_2000>
+      <Keywords>organiseur,calendrier,tâches,contacts,notes,stockage local,Windows</Keywords>
+    </French>
+    <Russian>
+      <Char_Desc_45>Локальные календарь, задачи и заметки</Char_Desc_45>
+      <Char_Desc_80>Органайзер для Windows: календарь, задачи, контакты и локальные заметки.</Char_Desc_80>
+      <Char_Desc_250>Magnolie Organizer для Windows объединяет календарь, задачи, контакты и заметки в интерфейсе классического ежедневника на кольцах. Основные данные хранятся локально.</Char_Desc_250>
+      <Char_Desc_450>Magnolie Organizer для Windows объединяет встречи, задачи, контакты, заметки, памятные даты и планирование в интерфейсе бумажного ежедневника в кожаной обложке. Основные данные хранятся локально. Поддерживается импорт календарей, vCard и данных Lotus Organizer.</Char_Desc_450>
+      <Char_Desc_2000>Magnolie Organizer для Windows — персональный органайзер в стиле ежедневника на кольцах с кожаной обложкой. Он объединяет встречи, задачи, контакты, заметки, памятные даты, планирование и записи о здоровье. Основные данные хранятся на вашем устройстве. Доступен импорт календарей, vCard, данных Lotus Organizer и распространённых форматов экспорта заметок. Предусмотрены управление с клавиатуры, необязательные индикаторы фокуса и масштабируемые представления. Magnolienbaum позволяет обмениваться разрешёнными данными с доверенными устройствами по локальной сети, через VPN или настроенный удалённый узел. Эта запись относится к настольному установщику для Windows 10/11 x64. Magnolie Notes для Android — отдельный продукт. Интерфейс поддерживает 20 языков, включая верхнелужицкий, обозначенный в PAD как Other. Исходный код программы и руководства распространяется под GPL-3.0-or-later, если не указано иное; для отдельных включённых ресурсов действуют особые условия.</Char_Desc_2000>
+      <Keywords>органайзер,календарь,задачи,контакты,заметки,локальное хранение,Windows</Keywords>
+    </Russian>
+  </Program_Descriptions>
+  <Web_Info>
+    <Application_URLs>
+      <Application_Info_URL>https://github.com/maik3531/Magnolie-Organizer</Application_Info_URL>
+      <Application_Screenshot_URL>https://raw.githubusercontent.com/maik3531/Magnolie-Organizer/main/magnolie-handbuch/web/02-woche.png</Application_Screenshot_URL>
+      <Application_Icon_URL>https://github.com/maik3531/Magnolie-Organizer/raw/main/magnolie-organizer-windows/app/symbole/48x48/magnolie-organizer.png</Application_Icon_URL>
+      <Application_XML_File_URL>https://raw.githubusercontent.com/maik3531/Magnolie-Organizer/main/pad/magnolie-organizer-windows.xml</Application_XML_File_URL>
+    </Application_URLs>
+    <Download_URLs>
+      <Primary_Download_URL>https://github.com/maik3531/Magnolie-Organizer/releases/download/v2.0.30/Magnolie-Organizer-Windows-2.0.30-Setup-x64.exe</Primary_Download_URL>
+    </Download_URLs>
+  </Web_Info>
+  <Permissions>
+    <Distribution_Permissions>Program and handbook sources: GPL-3.0-or-later unless stated otherwise. Bundled fonts and metadata retain their licenses. Protected coffee QR and portrait assets have separate limited usage permission. See https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md</Distribution_Permissions>
+    <EULA>See the project licensing overview: https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md and the full GNU GPL version 3: https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE. No additional license terms are created by this PAD file.</EULA>
+  </Permissions>
+</XML_DIZ_INFO>

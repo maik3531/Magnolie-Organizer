@@ -17,6 +17,8 @@ internal sealed record ContactSyncResult(JsonArray Contacts, JsonArray Tombstone
 internal interface IContactRemote
 {
     bool SupportsYearlessBirthdays => true;
+    // Optional spelling repair is not a reason to assume unknown write grants.
+    bool? CanWrite => null;
     Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken cancellationToken);
     Task<RemoteContact> CreateAsync(string uid, JsonObject contact, CancellationToken cancellationToken);
     Task<RemoteContact> UpdateAsync(RemoteContact remote, string uid, JsonObject contact, CancellationToken cancellationToken);
@@ -109,6 +111,103 @@ internal static class ContactFields
             return x.All(value => y.Any(other => JsonNode.DeepEquals(value, other))) || y.All(value => x.Any(other => JsonNode.DeepEquals(value, other)));
         return JsonNode.DeepEquals(left, right);
     }
+
+    // Separate classification from the exact persisted content/baseline hashes.
+    // Only field labels/types/roles are optional here; actual contact values,
+    // group membership, photos and unknown provider properties remain content.
+    private static JsonObject LabelComparison(JsonObject contact, bool valuesOnly, string homeCountry, bool sourceTransliteration)
+    {
+        var projection = ComparisonProjection(contact, homeCountry);
+        if (sourceTransliteration)
+        {
+            static void Fold(JsonObject obj, string field)
+            {
+                if (obj[field] is JsonValue value && value.TryGetValue<string>(out var text))
+                    obj[field] = text.Replace("ß", "ss", StringComparison.Ordinal).Replace("ẞ", "SS", StringComparison.Ordinal);
+            }
+            foreach (var field in new[] { "vorname", "nachname", "anzeigename", "firma", "strasse", "ort", "land" }) Fold(projection, field);
+            foreach (var row in (projection["anschriften"] as JsonArray ?? []).OfType<JsonObject>())
+                foreach (var field in new[] { "strasse", "ort", "region", "land" }) Fold(row, field);
+        }
+        projection["foto"] = Text(contact, "foto");
+        foreach (var field in new[] { "telefone", "emailEintraege", "anschriften" })
+        {
+            if (projection[field] is not JsonArray rows) continue;
+            var comparable = rows.Select(row =>
+            {
+                var copy = row?.DeepClone();
+                if (valuesOnly && copy is JsonObject value)
+                    foreach (var label in new[] { "label", "typen", "rolle" }) value.Remove(label);
+                if (!valuesOnly && copy is JsonObject labelled)
+                {
+                    var types = (labelled["typen"] as JsonArray ?? []).Select(type => type?.GetValue<string>() ?? "").ToArray();
+                    var home = Text(labelled, "rolle") == "private" || new[] { "Home", "Home phone", "Private", "Privat", "Zuhause" }
+                        .Any(alias => NativeLocalization.IsTranslation(alias, Text(labelled, "label")));
+                    if (types.Length == 0)
+                    {
+                        var inferred = home ? "HOME" : new[] { "Mobile", "Mobil", "Handy" }.Any(alias => NativeLocalization.IsTranslation(alias, Text(labelled, "label"))) ? "CELL" :
+                            new[] { "Work", "Work phone", "Arbeit" }.Any(alias => NativeLocalization.IsTranslation(alias, Text(labelled, "label"))) ? "WORK" : "";
+                        if (inferred.Length > 0) { labelled["typen"] = new JsonArray(inferred); labelled.Remove("label"); types = [inferred]; }
+                    }
+                    if (home && types.SequenceEqual(new[] { "HOME" })) { labelled.Remove("rolle"); labelled.Remove("label"); }
+                }
+                return copy;
+            }).ToArray();
+            projection[field] = new JsonArray(comparable.GroupBy(row => row is null ? "null" :
+                Convert.ToHexString(MagnolienbaumCrypto.Canonical(row)), StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal).Select(group => group.First()).ToArray());
+        }
+        return projection;
+    }
+
+    internal static bool SameLabelValues(JsonObject left, JsonObject right, string homeCountry = "", bool sourceTransliteration = false) =>
+        JsonNode.DeepEquals(LabelComparison(left, true, homeCountry, sourceTransliteration), LabelComparison(right, true, homeCountry, sourceTransliteration));
+
+    internal static bool SameLabelMetadata(JsonObject left, JsonObject right, string homeCountry = "", bool sourceTransliteration = false) =>
+        JsonNode.DeepEquals(LabelComparison(left, false, homeCountry, sourceTransliteration), LabelComparison(right, false, homeCountry, sourceTransliteration));
+
+    // Comparison only: never use country-dependent keys as persisted baselines.
+    internal static JsonObject ComparisonProjection(JsonObject contact, string homeCountry)
+        => ConflictProjection(ContactComparisonValues(contact, homeCountry));
+
+    private static JsonObject ContactComparisonValues(JsonObject contact, string homeCountry)
+    {
+        var copy = contact.DeepClone().AsObject();
+        foreach (var row in (copy["telefone"] as JsonArray ?? []).OfType<JsonObject>())
+            row["wert"] = IdentityNumberKey(Text(row, "wert"), homeCountry);
+        foreach (var field in new[] { "telefon", "mobil" })
+            if (copy.ContainsKey(field)) copy[field] = IdentityNumberKey(Text(copy, field), homeCountry);
+        NormalizeEmailAddresses(copy);
+        return copy;
+    }
+
+    internal static bool NormalizeEmailAddresses(JsonObject contact, bool apply = true)
+    {
+        var changed = false;
+        void Address(JsonObject obj, string field)
+        {
+            if (obj[field] is not JsonValue item || !item.TryGetValue<string>(out var value)) return;
+            var lower = ExchangeCodec.EmailAddressSpelling(value).Trim().ToLowerInvariant();
+            if (!lower.Contains('@')) return;
+            if (lower == value) return;
+            changed = true;
+            if (apply) obj[field] = lower;
+        }
+        Address(contact, "email");
+        if (contact["emails"] is JsonArray emails)
+            for (var i = 0; i < emails.Count; i++)
+                if (emails[i] is JsonValue item && item.TryGetValue<string>(out var value))
+                {
+                    var lower = ExchangeCodec.EmailAddressSpelling(value).Trim().ToLowerInvariant();
+                    if (!lower.Contains('@') || lower == value) continue;
+                    changed = true; if (apply) emails[i] = lower;
+                }
+        foreach (var row in (contact["emailEintraege"] as JsonArray ?? []).OfType<JsonObject>()) Address(row, "wert");
+        return changed;
+    }
+
+    internal static string ComparisonKey(JsonObject contact, string homeCountry) =>
+        SyncBaseline.Hash(ContentProjection(ContactComparisonValues(contact, homeCountry)), Names);
 
     internal static JsonObject MergeAdditions(JsonObject existing, JsonObject incoming)
     {
@@ -219,16 +318,25 @@ internal static class ContactFields
 
     private static string IdentityNumberKey(string number, string homeCountry)
     {
-        if (homeCountry.Length > 0 && number.Length <= 128)
+        var text = System.Text.RegularExpressions.Regex.Replace(number.Trim(), @"^tel:", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^\+{2,}(?=\d)", "+");
+        var extension = System.Text.RegularExpressions.Regex.Match(text, @"(?:;ext=|\b(?:ext|extension|durchwahl)\b|[x#])\s*(\d+)\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var suffix = extension.Success ? "x" + extension.Groups[1].Value : "";
+        if (extension.Success) text = text[..extension.Index];
+        if (text.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(text, @"^\+?[0-9()./\s-]+$")) return NumberKey(number);
+        if (text.StartsWith("00", StringComparison.Ordinal)) text = "+" + text[2..];
+        var country = homeCountry.Trim().ToUpperInvariant();
+        // Unknown country is not permission to apply the default DE setting.
+        if (text.StartsWith('+') || PhoneNumbers.PhoneNumberUtil.GetInstance().GetSupportedRegions().Contains(country))
             try
             {
                 var utility = PhoneNumbers.PhoneNumberUtil.GetInstance();
-                var parsed = utility.Parse(number, homeCountry);
-                if (utility.IsValidNumber(parsed)) return utility.Format(parsed, PhoneNumbers.PhoneNumberFormat.E164) +
-                    (string.IsNullOrEmpty(parsed.Extension) ? "" : ";ext=" + parsed.Extension);
+                var parsed = utility.Parse(text, country);
+                if (text.StartsWith('+') || utility.IsPossibleNumber(parsed))
+                    return utility.Format(parsed, PhoneNumbers.PhoneNumberFormat.E164) + suffix;
             }
             catch (PhoneNumbers.NumberParseException) { }
-        return NumberKey(number);
+        return NumberKey(text) + suffix;
     }
 
     internal static HashSet<string> StrongKeys(JsonObject contact, string homeCountry = "")
@@ -323,6 +431,7 @@ internal static class ContactFields
             }
         }
         NormalizeBirthday(target);
+        NormalizeEmailAddresses(target);
         if (Text(target, "foto") != oldPhoto)
         {
             target["fotoQuellen"] = new JsonArray();
@@ -627,8 +736,9 @@ internal sealed class ContactSyncEngine
 {
     internal async Task<ContactSyncResult> SyncAsync(string source, JsonArray contacts, JsonArray tombstones,
         long lastSync, IContactRemote remoteStore, CancellationToken cancellationToken = default,
-        bool additiveOnly = false, Func<Task>? beforeMutation = null)
+        bool additiveOnly = false, Func<Task>? beforeMutation = null, string homeCountry = "")
     {
+        additiveOnly |= remoteStore.CanWrite == false;
         var local = new JsonArray(contacts.Select(item => item?.DeepClone()).ToArray());
         var dead = new JsonArray(tombstones.Select(item => item?.DeepClone()).ToArray());
         var received = await remoteStore.ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -641,7 +751,8 @@ internal sealed class ContactSyncEngine
             if (ContactFields.NormalizeBirthday(data) && remoteStore.SupportsYearlessBirthdays) birthdayRepairs.Add(item.Id);
             return item with { Data = data };
         }).ToArray();
-        foreach (var item in local.OfType<JsonObject>()) ContactFields.NormalizeBirthday(item);
+        foreach (var item in local.OfType<JsonObject>())
+        { ContactFields.NormalizeBirthday(item); ContactFields.NormalizeEmailAddresses(item); }
         if (remote.Any(item => string.IsNullOrWhiteSpace(item.Id)) || remote.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != remote.Length)
             throw new InvalidDataException(NativeLocalization.Gettext("The Nextcloud response was incomplete."));
         var remoteById = remote.ToDictionary(item => item.Id, StringComparer.Ordinal);
@@ -673,7 +784,7 @@ internal sealed class ContactSyncEngine
         var reservedIds = local.Concat(dead).OfType<JsonObject>()
             .Select(item => ContactFields.Source(item, source)?["id"]?.GetValue<string>())
             .Where(id => !string.IsNullOrWhiteSpace(id)).ToHashSet(StringComparer.Ordinal);
-        var sameContent = remote.GroupBy(item => ContactFields.ContentHash(item.Data), StringComparer.Ordinal)
+        var sameContent = remote.GroupBy(item => ContactFields.ComparisonKey(item.Data, homeCountry), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         var imported = 0; var exported = 0; var updated = 0; var deleted = 0; var errors = 0; var conflicts = 0;
 
@@ -683,8 +794,9 @@ internal sealed class ContactSyncEngine
             var uid = ContactFields.Text(item, "uid");
             if (uid.Length == 0) { uid = $"mag-{Guid.NewGuid():N}@magnolie-organizer"; item["uid"] = uid; }
             var mapping = ContactFields.Source(item, source);
+            var originalMapping = mapping?.DeepClone();
             var remoteId = mapping?["id"]?.GetValue<string>() ?? "";
-            if (remoteId.Length == 0 && sameContent.TryGetValue(ContactFields.ContentHash(item), out var equal))
+            if (remoteId.Length == 0 && sameContent.TryGetValue(ContactFields.ComparisonKey(item, homeCountry), out var equal))
             {
                 // A different provider UID does not make otherwise identical
                 // contact data a new person. Names alone remain ambiguous.
@@ -750,8 +862,10 @@ internal sealed class ContactSyncEngine
                 var localChanged = ContactFields.Dirty(item, mapping, other.Data);
                 var localProjection = ContactFields.ConflictProjection(item);
                 var remoteProjection = ContactFields.ConflictProjection(other.Data);
+                var sourceTransliteration = originalMapping is JsonObject original && ContactFields.Text(original, "id") == remoteId;
+                var sameLabelValues = ContactFields.SameLabelValues(item, other.Data, homeCountry, sourceTransliteration);
                 // Membership sets must use the source baseline, never additive union.
-                var sameContact = JsonNode.DeepEquals(localProjection["gruppen"], remoteProjection["gruppen"]) &&
+                var sameContact = sameLabelValues || JsonNode.DeepEquals(localProjection["gruppen"], remoteProjection["gruppen"]) &&
                     ContactFields.NonConflicting(localProjection, remoteProjection);
                 var incomingData = sameContact ? ContactFields.MergeAdditions(item, other.Data) : other.Data;
                 var conflictingChanges = remoteChanged && localChanged && !sameContact;
@@ -764,7 +878,36 @@ internal sealed class ContactSyncEngine
                     ContactFields.Text(item, "geburtstag").Length > 0 && ContactFields.Text(other.Data, "geburtstag").Length == 0 &&
                     (remoteStore.SupportsYearlessBirthdays || !ContactFields.Text(item, "geburtstag").StartsWith("--", StringComparison.Ordinal));
                 var wroteRemote = false;
-                if (additiveOnly)
+                if (sameLabelValues)
+                {
+                    if (ContactFields.SameLabelMetadata(item, other.Data, homeCountry, sourceTransliteration))
+                        ContactFields.SetSource(item, source, other, remoteBaseline: additiveOnly);
+                    else
+                    {
+                        var clockLimit = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 300000;
+                        // An unchanged original source revision is not a newer
+                        // user edit merely because our own prior write is recent.
+                        var incomingNewer = remoteChanged && localTime > 0 && localTime <= clockLimit &&
+                            other.Modified > 0 && other.Modified <= clockLimit && other.Modified > localTime;
+                        if (incomingNewer)
+                        {
+                            ContactFields.CopyRemoteFields(item, other.Data, source); item["geaendert"] = other.Modified;
+                            ContactFields.SetSource(item, source, other, remoteBaseline: additiveOnly); updated++;
+                        }
+                        else if (additiveOnly) ContactFields.SetSource(item, source, other, remoteBaseline: true);
+                        else
+                        {
+                            if (beforeMutation is not null) await beforeMutation();
+                            try
+                            {
+                                var changed = await remoteStore.UpdateAsync(other, uid, item, cancellationToken);
+                                ContactFields.SetSource(item, source, changed); updated++; wroteRemote = true;
+                            }
+                            catch { errors++; }
+                        }
+                    }
+                }
+                else if (additiveOnly)
                 {
                     if (other.Modified > localTime)
                     {
@@ -796,11 +939,21 @@ internal sealed class ContactSyncEngine
                     catch { errors++; }
                 }
                 else ContactFields.SetSource(item, source, other);
-                if (!additiveOnly && repairBirthday && !wroteRemote && !conflictingChanges)
+                if (!additiveOnly && (repairBirthday || remoteStore.CanWrite == true && ContactFields.NormalizeEmailAddresses(other.Data, apply: false)) && !wroteRemote && !conflictingChanges && errors == 0)
                 {
                     if (beforeMutation is not null) await beforeMutation();
                     try { var changed = await remoteStore.UpdateAsync(other, uid, item, cancellationToken); ContactFields.SetSource(item, source, changed); updated++; }
-                    catch { errors++; }
+                    catch
+                    {
+                        // A cosmetic repair receipt cannot be fabricated from
+                        // the original uppercase wire record after a failed CAS.
+                        if (item["syncQuellen"] is JsonObject sources)
+                        {
+                            if (originalMapping is null) sources.Remove(source);
+                            else sources[source] = originalMapping.DeepClone();
+                        }
+                        errors++;
+                    }
                 }
                 continue;
             }
@@ -846,7 +999,7 @@ internal sealed class ContactSyncEngine
         void IndexCard(JsonObject card)
         {
             var name = ContactName(card);
-            foreach (var key in ContactFields.StrongKeys(card).Select(key => "value:" + name + ":" + key)
+            foreach (var key in ContactFields.StrongKeys(card, homeCountry).Select(key => "value:" + name + ":" + key)
                 .Concat((card["kontaktAliase"]?["uids"] as JsonArray ?? []).Select(uid => "alias:" + uid?.GetValue<string>())))
             {
                 if (!identityIndex.TryGetValue(key, out var cards)) identityIndex[key] = cards = [];
@@ -857,7 +1010,7 @@ internal sealed class ContactSyncEngine
         foreach (var other in remoteById.Values)
         {
             var incomingUid = ContactFields.Text(other.Data, "uid");
-            var keys = ContactFields.StrongKeys(other.Data).Select(key => "value:" + ContactName(other.Data) + ":" + key)
+            var keys = ContactFields.StrongKeys(other.Data, homeCountry).Select(key => "value:" + ContactName(other.Data) + ":" + key)
                 .Append("alias:" + incomingUid);
             var matches = keys.SelectMany(key => identityIndex.GetValueOrDefault(key) ?? []).Distinct().ToArray();
             if (matches.Length == 1 && ContactFields.NonConflicting(ContactFields.ConflictProjection(matches[0]), ContactFields.ConflictProjection(other.Data)))
@@ -885,12 +1038,13 @@ internal sealed class ContactSyncEngine
                 continue;
             }
             var item = other.Data.DeepClone().AsObject();
+            ContactFields.NormalizeEmailAddresses(item);
             item["id"] = Guid.NewGuid().ToString("N");
             if (ContactFields.Text(item, "uid").Length == 0)
                 item["uid"] = $"mag-{Guid.NewGuid():N}@magnolie-organizer";
             item["geaendert"] = other.Modified;
             var importedRemote = other;
-            if (!additiveOnly && birthdayRepairs.Contains(other.Id))
+            if (!additiveOnly && (birthdayRepairs.Contains(other.Id) || remoteStore.CanWrite == true && ContactFields.NormalizeEmailAddresses(other.Data, apply: false)))
             {
                 if (beforeMutation is not null) await beforeMutation();
                 try { importedRemote = await remoteStore.UpdateAsync(other, ContactFields.Text(item, "uid"), item, cancellationToken); updated++; }

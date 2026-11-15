@@ -1,4 +1,46 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 1 && args[0] == "--phone-camera-combined-journal-binding")
+{
+    await PhoneCameraCombinedSetupWireTests.JournalTransactionAndPlanGuardAsync();
+    Console.WriteLine("PASS combined header original journal transaction and plan guard");
+    return 0;
+}
+if (args.Length == 1 && args[0] == "--phone-camera-combined-setup-wire")
+{
+    await PhoneCameraCombinedSetupWireTests.IdentityAndEchoAsync();
+    await PhoneCameraCombinedSetupWireTests.RejectWrongIdentityAsync();
+    await PhoneCameraCombinedSetupWireTests.InterruptedExchangeAsync();
+    Console.WriteLine("PASS combined setup header identities and echo\nPASS combined setup wrong identity refusal\nPASS combined setup interrupted exchange");
+    return 0;
+}
+if (args.Length == 1 && args[0] == "--phone-camera-setup-native-result")
+{
+    await PhoneCameraSetupJournalTests.NativeResultAfterSourceAsync();
+    await PhoneCameraSetupJournalTests.NativeAmbiguityIsTerminalAsync();
+    await PhoneCameraSetupJournalTests.NativeResultExclusiveAndPoisonedAsync();
+    await PhoneCameraAudioSetupTests.RebootIsNotReadinessAsync();
+    Console.WriteLine("PASS original native result requires Source\nPASS ambiguous native result is terminal\nPASS native result exclusive durable writer\nPASS affected legacy reboot result not readiness");
+    return 0;
+}
+if (args.Length == 1 && args[0] == "--phone-camera-setup-journal")
+{
+    await PhoneCameraSetupJournalTests.DurableOrderAsync();
+    await PhoneCameraSetupJournalTests.GuardsAndUncertaintyAsync();
+    await PhoneCameraSetupJournalTests.StrictAuditAsync();
+    await PhoneCameraSetupJournalTests.ExclusiveOrderAsync();
+    Console.WriteLine("PASS combined journal durable order\nPASS combined journal uncertainty\nPASS combined journal strict audit\nPASS combined journal exclusive order");
+    return 0;
+}
+if (args.Length == 1 && args[0] == "--phone-camera-source-payload")
+{
+    await PhoneCameraSourcePayloadTests.ImmutableResourcesAsync();
+    await PhoneCameraSourcePayloadTests.PeAndDigestAsync();
+    await PhoneCameraSourcePayloadTests.StrictDescriptorAsync();
+    Console.WriteLine("PASS source immutable resources\nPASS source PE and digest\nPASS source strict descriptor");
+    return 0;
+}
+if (args.Length == 3 && args[0] == "--phone-camera-source-product")
+    return PhoneCameraSourcePayloadTests.InspectProduct(args[1], bool.Parse(args[2]));
 if (args.Length == 3 && args[0] == "--phone-audio-parent-product")
     return PhoneCameraAudioParentPayloadTests.InspectProduct(args[1], bool.Parse(args[2]));
 if (args.Length == 3 && args[0] == "--phone-audio-runtime-product")
@@ -158,6 +200,20 @@ runner.Add("Phone webcam audio runtime / strict source manifest", PhoneCameraAud
 runner.Add("Phone webcam parent payload / immutable snapshot and absent external fallback", PhoneCameraAudioParentPayloadTests.ImmutableSnapshotAsync);
 runner.Add("Phone webcam parent payload / exact x64 DLL and digest", PhoneCameraAudioParentPayloadTests.PeAndDigestAsync);
 runner.Add("Phone webcam parent payload / strict fixed source descriptor", PhoneCameraAudioParentPayloadTests.StrictDescriptorAsync);
+runner.Add("Phone webcam source payload / immutable bounded resources", PhoneCameraSourcePayloadTests.ImmutableResourcesAsync);
+runner.Add("Phone webcam source payload / x64 DLL protections and digest", PhoneCameraSourcePayloadTests.PeAndDigestAsync);
+runner.Add("Phone webcam source payload / exact class and source descriptor", PhoneCameraSourcePayloadTests.StrictDescriptorAsync);
+runner.Add("Phone webcam setup journal / flushed intents and partial completion", PhoneCameraSetupJournalTests.DurableOrderAsync);
+runner.Add("Phone webcam setup journal / terminal uncertainty and no retry", PhoneCameraSetupJournalTests.GuardsAndUncertaintyAsync);
+runner.Add("Phone webcam setup journal / strict identity and history audit", PhoneCameraSetupJournalTests.StrictAuditAsync);
+runner.Add("Phone webcam setup journal / exclusive original writer", PhoneCameraSetupJournalTests.ExclusiveOrderAsync);
+runner.Add("Phone webcam setup native result / original Source and own instance", PhoneCameraSetupJournalTests.NativeResultAfterSourceAsync);
+runner.Add("Phone webcam setup native result / terminal ambiguous helper outcome", PhoneCameraSetupJournalTests.NativeAmbiguityIsTerminalAsync);
+runner.Add("Phone webcam setup native result / exclusive durable completion", PhoneCameraSetupJournalTests.NativeResultExclusiveAndPoisonedAsync);
+runner.Add("Phone webcam combined setup wire / own identities and transaction echo", PhoneCameraCombinedSetupWireTests.IdentityAndEchoAsync);
+runner.Add("Phone webcam combined setup wire / wrong composition mode and transaction refusal", PhoneCameraCombinedSetupWireTests.RejectWrongIdentityAsync);
+runner.Add("Phone webcam combined setup wire / interrupted exchange no retry", PhoneCameraCombinedSetupWireTests.InterruptedExchangeAsync);
+runner.Add("Phone webcam combined setup wire / original journal transaction and plan guard", PhoneCameraCombinedSetupWireTests.JournalTransactionAndPlanGuardAsync);
 runner.Add("Phone webcam output authority / prepared current before actual SEND", PhoneCameraSessionTests.AuthorityPrepareThenActualSendAsync);
 runner.Add("Phone webcam output authority / exact original object and independent replacement owner", PhoneCameraSessionTests.AuthorityCannotBeReplacedAsync);
 runner.Add("Phone webcam output authority / original loss permanently rejects resurrection", PhoneCameraSessionTests.AuthorityOriginalLossCannotReviveAsync);
@@ -271,6 +327,14 @@ runner.Add("Password / native source / revisions / authenticated readback", Pass
 runner.Add("Record export / native codecs / actual files / guards", RecordExportFileTests.RunAsync);
 runner.Add("Import file / native readers / source CAS / archive limits", ImportFileSourceTests.RunAsync);
 runner.Add("OR6 import / native fixtures / freed storage / corrupt boundaries", Or6CodecTests.RunAsync);
+runner.Add("OR6 unsupported note / supported collections survive explicit omission", Or6UnsupportedNoteTests.UnknownBodyDoesNotBlockCollectionsAsync);
+runner.Add("OR6 unsupported note / known empty and malformed RTF remain distinct", Or6UnsupportedNoteTests.EmptyAndMalformedStayDistinctAsync);
+runner.Add("OR6 description lines / appointment CRLF LF CR preserve title notes and UID", Or6LineEndingTests.AppointmentDescriptionsAsync);
+runner.Add("OR6 description lines / anniversary CRLF LF CR preserve name notes and UID", Or6LineEndingTests.AnniversaryDescriptionsAsync);
+runner.Add("OR6 contact source text / preserve Extn slots and mail merge name without guessing", Or6ContactSourceTextTests.PreserveSourceTextAsync);
+runner.Add("OR6 contact region / native State and sparse address roles survive", Or6ContactSourceTextTests.PreserveRegionSlotsAsync);
+runner.Add("Contact native labels / two sources converge without transport-time rollback", ContactProviderLabelTests.TwoSourceConvergenceAsync);
+runner.Add("Contact native labels / real values and failed original writes remain protected", ContactProviderLabelTests.RealChangesAndFailedWritesAsync);
 runner.Add("OR6 extension / original recurring set / categories / sparse phone contexts", Or6ExtensionTests.RunAsync);
 runner.Add("Country flags / local ISO artwork / native setup coordinates", CountryFlagsTests.RunAsync);
 runner.Add("Local import / native readers / semantic snapshot CAS", LocalImportSourceTests.RunAsync);
@@ -386,6 +450,9 @@ runner.Add("Device file native destination / absent read does not bootstrap", De
 runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
 if (OperatingSystem.IsWindows())
 {
+    runner.Add("Phone webcam source registration / memory-only registry ACL policy", PhoneCameraSourceRegistrationTests.RegistryAclPolicyAsync);
+    runner.Add("Phone webcam source registration / memory-only exact readback", PhoneCameraSourceRegistrationTests.ExactReadbackAsync);
+    runner.Add("Phone webcam source registration / memory-only persistent file owner", PhoneCameraSourceRegistrationTests.PersistentFileOwnerAsync);
     runner.Add("Phone webcam parent module / original process and fixed sibling layout", PhoneCameraAudioParentModuleTests.FixedLayoutAsync);
     runner.Add("Phone webcam parent module / trusted owner and no unprivileged mutation rights", PhoneCameraAudioParentModuleTests.ProtectedAclAsync);
     runner.Add("Phone webcam parent module / ambiguous callback and oversized ACL denied", PhoneCameraAudioParentModuleTests.AmbiguousAclAsync);

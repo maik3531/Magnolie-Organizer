@@ -26,6 +26,7 @@ import java.security.KeyStore
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import io.gitlab.maik3531.magnolienotes.baum.AndroidKontakte
+import io.gitlab.maik3531.magnolienotes.baum.KontaktOriginalFreigaben
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
@@ -187,11 +188,18 @@ internal class DateiSnapshotStore(
     }
 }
 
-private fun androidKey(): SecretKey {
+internal const val JOURNAL_KEY_ALIAS = "magnolie-wiederherstellungsjournal-v1"
+
+/** Read-only key lookup for contact outcome recovery; never initialize on read. */
+internal fun vorhandenerJournalKey(): SecretKey? {
     val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-    (ks.getKey("magnolie-wiederherstellungsjournal-v1", null) as? SecretKey)?.let { return it }
+    return ks.getKey(JOURNAL_KEY_ALIAS, null) as? SecretKey
+}
+
+private fun androidKey(): SecretKey {
+    vorhandenerJournalKey()?.let { return it }
     val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
-    generator.init(KeyGenParameterSpec.Builder("magnolie-wiederherstellungsjournal-v1",
+    generator.init(KeyGenParameterSpec.Builder(JOURNAL_KEY_ALIAS,
         KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
         .setKeySize(256).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
         .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
@@ -239,13 +247,26 @@ class AndroidJournal private constructor(private val context: Context) {
             z.syncEpoch, pinned)
     }
 
-    fun kontaktSnapshot(reason: String, contacts: List<KontaktRohstand>, mutationId: String): SnapshotManifest {
+    fun kontaktSnapshot(reason: String, contacts: List<KontaktRohstand>, mutationId: String,
+                        pinned: Boolean = false): SnapshotManifest {
         val bytes = json.encodeToString(KontaktNutzlast.serializer(), KontaktNutzlast(contacts, mutationId)).toByteArray()
         val names = contacts.map { listOf(it.portable.vorname, it.portable.nachname).joinToString(" ").trim() }
             .filter(String::isNotBlank).take(5).joinToString(", ")
         return create(reason, "android-system-contacts", bytes,
             "${contacts.size} contact(s)${if (names.isBlank()) "" else ": $names"}",
-            Ablage.hole(context).baum.value.syncEpoch, mutationId = mutationId)
+            Ablage.hole(context).baum.value.syncEpoch, pinned = pinned, mutationId = mutationId)
+    }
+
+    internal fun kontaktOriginalSicherung(grant: KontaktOriginalFreigaben.Freigabe, mutationId: String): KontaktOriginalSicherungen.Sicherung {
+        grant.pruefen()
+        val strictReader = AesGcmKrypto { vorhandenerJournalKey() ?: error("contact_original_journal_key_unavailable") }
+        val producer = KontaktOriginalSicherungen(context, store, crypto, strictReader,
+            { Ablage.hole(context).baum.value.syncEpoch }, BuildConfig.VERSION_NAME, {
+                val outcomes = File(context.filesDir, "kontakt-original-versuche")
+                if (store.bytes() > 0 || outcomes.listFiles().orEmpty().isNotEmpty())
+                    check(vorhandenerJournalKey() != null) { "contact_original_journal_key_unavailable" }
+            })
+        return producer.sichern(grant, mutationId).also { bereinigen(); refresh() }
     }
 
     private fun create(reason: String, domain: String, payload: ByteArray, summary: String,

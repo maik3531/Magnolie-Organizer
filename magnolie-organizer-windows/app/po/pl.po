@@ -3051,8 +3051,8 @@ msgstr "Uwzględnij odbiór odpadów"
 msgid "Incoming"
 msgstr "Przybywający"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Przychodzące pliki KDE Connect (zawsze potwierdzaj)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Przychodzące pliki KDE Connect (zawsze potwierdzaj)"
 
 msgid "Incoming call"
 msgstr "Połączenie przychodzące"
@@ -8807,3 +8807,20 @@ msgstr "Ikona w zasobniku systemowym (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "Tryb programisty musi być zapisany."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Dodaj folder źródłowy na komputerze …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Foldery źródłowe na komputerze są niezależne od miejsc odbioru."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Tylko zdjęcia"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Wybrane foldery źródłowe na komputerze"

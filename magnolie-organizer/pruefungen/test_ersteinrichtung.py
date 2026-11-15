@@ -149,6 +149,46 @@ def test_setup_downloads_and_native_phone_callbacks_store_custom_designer_module
     assert 'for module in custom_modules:' in source
 
 
+def test_native_setup_fdroid_uses_existing_download_dialog(tmp_path, monkeypatch):
+    gi = pytest.importorskip("gi")
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk, Gdk
+    if not Gtk.init_check()[0]:
+        pytest.skip("Native GTK display required")
+    for key in ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"):
+        monkeypatch.setenv(key, str(tmp_path))
+    monkeypatch.setattr(setup_ui, "_play_welcome_chime", lambda *_: None)
+    expected = "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes"
+    assert setup_ui.MAGNOLIE_NOTES_FDROID_URL == expected
+    assert setup_ui.MAGNOLIE_NOTES_URL.endswith("/Magnolie-Notes.apk")
+    checked = []
+
+    def descendants(widget):
+        yield widget
+        if isinstance(widget, Gtk.Container):
+            for child in widget.get_children():
+                yield from descendants(child)
+
+    def cancel(dialog):
+        widgets = list(descendants(dialog))
+        if dialog.get_title() == "Magnolie Notes · F-Droid":
+            links = [widget.get_uri() for widget in widgets if isinstance(widget, Gtk.LinkButton)]
+            assert links == [expected]
+            checked.append("download")
+            return Gtk.ResponseType.CLOSE
+        buttons = [widget for widget in widgets if isinstance(widget, Gtk.Button)
+                   and widget.get_label() == "Magnolie Notes · F-Droid"]
+        assert len(buttons) == 1
+        buttons[0].clicked()
+        checked.append("assistant")
+        return Gtk.ResponseType.CANCEL
+
+    monkeypatch.setattr(Gtk.Dialog, "run", cancel)
+    assert setup_ui.run_setup(Gtk, Gdk, lambda text: text,
+                              lambda *_: pytest.fail("Cancellation must not save"), BIN) is None
+    assert checked == ["download", "assistant"]
+
+
 def test_damaged_foreground_requires_assistant_but_services_stay_blocked():
     assert setup.assistant_required("damaged")
     assert setup.assistant_required("fresh")

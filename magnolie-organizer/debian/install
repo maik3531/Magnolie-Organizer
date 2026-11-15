@@ -23,6 +23,15 @@ bin/magnolie_personal_actor.py         usr/bin
 bin/magnolie_personal_actor_store.py   usr/bin
 bin/magnolie_personal_actor_completion.py usr/bin
 bin/magnolie_native_book_json.py       usr/bin
+bin/magnolie_contact_source_book.py    usr/bin
+bin/magnolie_contact_source_dav.py     usr/bin
+bin/magnolie_contact_source_authority.py     usr/bin
+bin/magnolie_contact_book_save_chain.py      usr/bin
+bin/magnolie_contact_notes_return.py         usr/bin
+bin/magnolie_contact_notes_consent.py        usr/bin
+bin/magnolie_contact_notes_controller.py     usr/bin
+bin/magnolie_contact_notes_setup.py          usr/bin
+bin/magnolie_contact_notes_requests.py       usr/bin
 bin/magnolie_personal_actor_decision_review.py usr/bin
 bin/magnolie_personal_actor_producer.py usr/bin
 bin/magnolie_personal_actor_projection.py usr/bin

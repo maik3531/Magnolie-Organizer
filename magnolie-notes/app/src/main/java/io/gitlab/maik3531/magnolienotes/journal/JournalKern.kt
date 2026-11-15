@@ -65,7 +65,9 @@ data class KontaktRohstand(
     val beforeHash: String = "",
     val action: String = "",
     val generatedByMagnolie: Boolean = false,
-    val operationId: String = ""
+    val operationId: String = "",
+    // 0: legacy/unknown; absent native metadata cannot be reconstructed.
+    val syncSpaltenVersion: Int = 0
 )
 
 @Serializable

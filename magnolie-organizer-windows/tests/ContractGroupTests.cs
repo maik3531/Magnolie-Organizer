@@ -831,18 +831,170 @@ internal static class ContractGroupTests
         return Task.CompletedTask;
     }
 
-    internal static Task TreeAsync()
+    internal static async Task TreeAsync()
     {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-fs1-identity-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-flow-and-addition")
+            {
+                await NotesOriginalChoiceStoreTests.SetupFlowAsync(Path.Combine(root, "notes-setup-flow"));
+                await NotesOriginalChoiceStoreTests.SetupAdditionAsync(Path.Combine(root, "notes-source-addition"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-flow-only")
+            {
+                await NotesOriginalChoiceStoreTests.SetupFlowAsync(Path.Combine(root, "notes-setup-flow"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-collector-and-worker")
+            {
+                await NotesOriginalChoiceStoreTests.SetupCollectorAsync(Path.Combine(root, "notes-setup-collector"));
+                await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-collector-only")
+            {
+                await NotesOriginalChoiceStoreTests.SetupCollectorAsync(Path.Combine(root, "notes-setup-collector"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "source-addition-only")
+            {
+                await NotesOriginalChoiceStoreTests.SetupAdditionAsync(Path.Combine(root, "notes-source-addition"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "setup-change-repro")
+            {
+                await NotesOriginalChoiceStoreTests.SetupHistoryReproductionAsync(Path.Combine(root, "notes-setup-change-repro"));
+                return; // Explicit pre-UI reproduction, not part of a checked default regression group until resolved.
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "native-session-and-worker")
+            {
+                await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
+                await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "native-session-only")
+            {
+                await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "existing-key-only")
+            {
+                NotesOriginalChoiceStoreTests.ExistingJournalKey(Path.Combine(root, "notes-existing-key"));
+                NotesOriginalJournalTests.Run(Path.Combine(root, "notes-journal-layout"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "dom-native-wire-only")
+            {
+                await NotesOriginalChoiceStoreTests.FrontendWireAsync(Path.Combine(root, "notes-dom-native-wire"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "worker-only")
+            {
+                await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "controller-ui-only")
+            {
+                await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"), uiOnly: true);
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "controller-base-only")
+            {
+                await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"), completionOnly: false);
+                await NotesOriginalChoiceStoreTests.ControllerSourcesAsync(Path.Combine(root, "notes-controller-sources"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "controller-completion-only")
+            {
+                await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"), completionOnly: true);
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "controller-only")
+            {
+                await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"));
+                await NotesOriginalChoiceStoreTests.ControllerSourcesAsync(Path.Combine(root, "notes-controller-sources"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "historical-followup")
+            {
+                await NotesOriginalChoiceStoreTests.SavedAcksAsync(Path.Combine(root, "notes-followup-history"), followupSlice: true);
+                await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
+                await NotesOriginalChoiceStoreTests.VerifiedRecoveryAsync(Path.Combine(root, "notes-verified-recovery"));
+                return; // Narrow #635 evidence: historical ACK boundary plus unchanged strict unconfirmed paths.
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "history-only")
+            {
+                await NotesOriginalChoiceStoreTests.SavedAcksAsync(Path.Combine(root, "notes-saved-ack-intentions"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "export-and-recovery")
+            {
+                await NotesOriginalChoiceStoreTests.ExportBootstrapAsync(Path.Combine(root, "notes-export-bootstrap"));
+                await NotesOriginalChoiceStoreTests.VerifiedRecoveryAsync(Path.Combine(root, "notes-verified-recovery"));
+                return; // Both affected typed-bootstrap adapters, not a full native regression claim.
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "export-bootstrap-only")
+            {
+                await NotesOriginalChoiceStoreTests.ExportBootstrapAsync(Path.Combine(root, "notes-export-bootstrap"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "transport-only")
+            {
+                await NotesOriginalChoiceStoreTests.ReservedTransportAsync(Path.Combine(root, "notes-reserved-transport"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "verified-recovery-only")
+            {
+                await NotesOriginalChoiceStoreTests.VerifiedRecoveryAsync(Path.Combine(root, "notes-verified-recovery"));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "terminal-only")
+            {
+                await NotesOriginalChoiceStoreTests.TerminalAsync(Path.Combine(root, "notes-terminal-retirement"));
+                return; // Explicit new-test-only slice, prior unchanged evidence retained separately.
+            }
+            if (Environment.GetEnvironmentVariable("MAGNOLIE_NOTES_TEST_SLICE") == "unconfirmed-only")
+            {
+                await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
+                return; // Explicit bounded test slice; not full-group regression evidence.
+            }
+            MagnolienbaumPairingTests.SessionIdentityBinding(root);
+            NotesOriginalReceiveTests.Run(Path.Combine(root, "notes-native-origin"));
+            NotesOriginalReceiveTests.Negotiation(Path.Combine(root, "notes-native-negotiation"));
+            await NotesOriginalPendingTests.RunAsync(Path.Combine(root, "notes-native-pending"));
+            await NotesOriginalChoiceStoreTests.RunAsync(Path.Combine(root, "notes-private-choice"));
+            await NotesOriginalChoiceStoreTests.SaveChainAsync(Path.Combine(root, "notes-private-save-chain"));
+            NotesOriginalJournalTests.Run(Path.Combine(root, "notes-independent-journal"));
+            NotesOriginalChoiceStoreTests.ExistingJournalKey(Path.Combine(root, "notes-existing-key"));
+            NotesOriginalChoiceStoreTests.Requests(Path.Combine(root, "notes-request-intentions"));
+            await NotesOriginalChoiceStoreTests.SavedAcksAsync(Path.Combine(root, "notes-saved-ack-intentions"));
+            await NotesOriginalChoiceStoreTests.UnconfirmedQueriesAsync(Path.Combine(root, "notes-unconfirmed-query"));
+            await NotesOriginalChoiceStoreTests.TerminalAsync(Path.Combine(root, "notes-terminal-retirement"));
+            await NotesOriginalChoiceStoreTests.VerifiedRecoveryAsync(Path.Combine(root, "notes-verified-recovery"));
+            await NotesOriginalChoiceStoreTests.ReservedTransportAsync(Path.Combine(root, "notes-reserved-transport"));
+            await NotesOriginalChoiceStoreTests.ExportBootstrapAsync(Path.Combine(root, "notes-export-bootstrap"));
+            await NotesOriginalChoiceStoreTests.ControllerAsync(Path.Combine(root, "notes-controller"));
+            await NotesOriginalChoiceStoreTests.ControllerSourcesAsync(Path.Combine(root, "notes-controller-sources"));
+            await NotesOriginalChoiceStoreTests.WorkerAsync(Path.Combine(root, "notes-worker"));
+            await NotesOriginalChoiceStoreTests.FrontendWireAsync(Path.Combine(root, "notes-dom-native-wire"));
+            await NotesOriginalChoiceStoreTests.NativeSessionAsync(Path.Combine(root, "notes-native-session"));
+            await NotesOriginalChoiceStoreTests.SetupAdditionAsync(Path.Combine(root, "notes-source-addition"));
+            await NotesOriginalChoiceStoreTests.SetupCollectorAsync(Path.Combine(root, "notes-setup-collector"));
+            await NotesOriginalChoiceStoreTests.SetupFlowAsync(Path.Combine(root, "notes-setup-flow"));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
         var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");
         var bobPublic = Convert.FromHexString("de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f");
         TestAssert.That(Convert.ToHexString(MagnolienbaumCrypto.X25519(alicePrivate, bobPublic)).ToLowerInvariant() ==
             "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
             "Magnolienbaum X25519 wich vom RFC/Python-Golden ab.");
-        return Task.CompletedTask;
     }
 
     internal static Task TreeContactsAsync()
     {
+        NotesOriginalReturnHashTests.Run();
         var contractPath = Path.Combine(AppContext.BaseDirectory, "resources", "kontakt-sync-contract.json");
         TestAssert.That(File.Exists(contractPath), "Gemeinsamer Kontaktvertrag fehlt im Testlauf.");
         var vectors = JsonNode.Parse(File.ReadAllText(contractPath))!.AsObject();

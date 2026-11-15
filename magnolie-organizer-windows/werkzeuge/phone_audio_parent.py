@@ -12,10 +12,19 @@ import subprocess
 
 SOURCES = tuple('native/phone-camera/' + name + suffix for name in (
     'PhoneCameraAudioParent', 'PhoneCameraClock', 'PhoneCameraPipe', 'PhoneCameraOutputLease',
-    'PhoneCameraOutputPublisher', 'PhoneCameraRuntimeProcess', 'PhoneCameraRuntimeStatus')
-    for suffix in ('.h', '.cpp')) + ('native/phone-camera/PhoneCameraSamples.h',
+    'PhoneCameraOutputPublisher', 'PhoneCameraRuntimeProcess', 'PhoneCameraRuntimeStatus', 'PhoneCameraVirtualCamera',
+    'PhoneCameraBrokerProtocol', 'PhoneCameraBrokerChannel', 'PhoneCameraFrameServerPeer', 'PhoneCameraSourceBrokerParent', 'PhoneCameraVideoParent')
+    for suffix in ('.h', '.cpp')) + ('native/phone-camera/PhoneCameraSamples.h', 'native/phone-camera/PhoneCameraModule.h',
         'werkzeuge/phone_audio_parent.py', 'PhoneCameraAudioParent.targets')
 NAME = 'Magnolie.PhoneAudioParent.x64.dll'
+
+
+def _response_file_text(arguments):
+    if arguments.count('/link') != 1:
+        raise ValueError('Exactly one linker delimiter is required')
+    index = arguments.index('/link')
+    # cl.exe forwards only the remainder of THIS response-file line to link.exe.
+    return '\n'.join(arguments[:index] + [' '.join(arguments[index:])]) + '\n'
 
 
 def build(output):
@@ -47,7 +56,7 @@ def build(output):
             arguments.append('"' + path + '"')
     arguments += ['/link', '/WX', '/DYNAMICBASE', '/NXCOMPAT', '/guard:cf', '/MACHINE:X64',
         'mfplat.lib', 'mfuuid.lib', 'ole32.lib', 'advapi32.lib', 'bcrypt.lib', 'uuid.lib']
-    (output / 'phone-audio-parent.rsp').write_text('\n'.join(arguments) + '\n', encoding='utf-8')
+    (output / 'phone-audio-parent.rsp').write_text(_response_file_text(arguments), encoding='utf-8')
     (output / 'phone-audio-parent-build.cmd').write_text('@echo off\ncall "' + str(vcvars) +
         '"\nif errorlevel 1 exit /b %errorlevel%\ncl.exe @phone-audio-parent.rsp\nexit /b %errorlevel%\n', encoding='utf-8', newline='\r\n')
     with (output / 'phone-audio-parent-build.log').open('w', encoding='utf-8') as log:

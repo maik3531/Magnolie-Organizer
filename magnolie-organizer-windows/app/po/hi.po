@@ -2949,8 +2949,8 @@ msgstr "कचरा संग्रह शामिल करें"
 msgid "Incoming"
 msgstr "आने वाली"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "KDE Connect से आने वाली फ़ाइलें (हमेशा पुष्टि करें)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "KDE Connect से आने वाली फ़ाइलें (हमेशा पुष्टि करें)"
 
 msgid "Incoming call"
 msgstr "इनकमिंग कॉल"
@@ -8543,3 +8543,20 @@ msgstr "सिस्टम ट्रे आइकन (60 सेकंड)"
 
 msgid "Saved developer mode is required."
 msgstr "डेवलपर मोड सहेजा हुआ होना चाहिए।"
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "पीसी का स्रोत फ़ोल्डर जोड़ें …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "पीसी स्रोत फ़ोल्डर प्राप्ति के गंतव्यों से अलग होते हैं।"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "केवल फ़ोटो"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "चुने गए पीसी स्रोत फ़ोल्डर"

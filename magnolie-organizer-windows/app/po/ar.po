@@ -3089,8 +3089,8 @@ msgstr "تضمين جمع النفايات"
 msgid "Incoming"
 msgstr "وارد"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "الملفات الواردة عبر KDE Connect (التأكيد دائمًا)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "الملفات الواردة عبر KDE Connect (التأكيد دائمًا)"
 
 msgid "Incoming call"
 msgstr "مكالمة واردة"
@@ -8774,3 +8774,20 @@ msgstr "أيقونة علبة النظام (60 ثانية)"
 
 msgid "Saved developer mode is required."
 msgstr "يجب حفظ وضع المطوّر."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "إضافة مجلد مصدر من الكمبيوتر …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "مجلدات المصدر على الكمبيوتر منفصلة عن وجهات الاستقبال."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "الصور فقط"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "مجلدات المصدر المحددة على الكمبيوتر"

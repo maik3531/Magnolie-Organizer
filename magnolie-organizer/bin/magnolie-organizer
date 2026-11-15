@@ -1084,11 +1084,12 @@ def _gesamtarchiv_tokens_pruefen(wert):
 
 
 def gesamtarchiv_erzeugen(daten, plattform="linux", appversion=None,
-                           kennwort="", erstellt=None):
+                           kennwort="", erstellt=None, *, normalisieren=True):
     """Erzeugt den plattformneutralen, vollständigen Datencontainer."""
     if not isinstance(daten, dict):
         raise RuntimeError("Der Datenbestand muss ein JSON-Objekt sein.")
-    daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
+    daten = (_gesamtarchiv_wiederholungen_normalisieren(daten) if normalisieren else
+             json.loads(json.dumps(daten, ensure_ascii=False)))
     _gesamtarchiv_tokens_pruefen(daten)
     kanonisch = _gesamtarchiv_kanonisch(daten)
     wurzel = {
@@ -1201,7 +1202,7 @@ def _stabile_aufgaben_uid(kennung, salt=""):
     return "mag-task-%08x%08x@magnolie-organizer" % (a, b)
 
 
-def gesamtarchiv_lesen_text(text, kennwort=""):
+def gesamtarchiv_lesen_text(text, kennwort="", *, normalisieren=True):
     """Validiert und öffnet ein Archiv vollständig vor jeder Mutation."""
     verschluesselt = ist_verschluesselt(text)
     if verschluesselt and not kennwort:
@@ -1233,7 +1234,8 @@ def gesamtarchiv_lesen_text(text, kennwort=""):
     if len(soll_hash) != 64 or not hmac.compare_digest(ist_hash, soll_hash):
         raise RuntimeError("Die SHA-256-Prüfsumme des Gesamtarchivs stimmt nicht.")
     _gesamtarchiv_tokens_pruefen(daten)
-    daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
+    if normalisieren:
+        daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
     namen = ("termine", "aufgaben", "kontakte", "notizen", "notizgruppen",
              "notizbuecher", "jahrestage", "feiertage", "urlaube",
              "muelltermine", "personen", "schichten", "zyklusmarker",
@@ -1311,6 +1313,7 @@ def _journal_manifest_pruefen(manifest):
             or not isinstance(manifest.get("appVersion"), str)
             or not manifest.get("appVersion")
             or manifest.get("reason") not in JOURNAL_GRUENDE
+            or ('exactBook' in manifest and type(manifest['exactBook']) is not bool)
             or not isinstance(manifest.get("summary"), dict)
             or not isinstance(manifest.get("payload"), dict)):
         raise RuntimeError(_("The recovery snapshot manifest is invalid."))
@@ -1749,10 +1752,11 @@ def journal_snapshots_loeschen(snapshot_ids, basis=None, expected_revisions=None
 @_journal_exklusiv
 def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                                pinned=None, disk_usage=None, haken=None,
-                               maximum=None, tage=None):
+                               maximum=None, tage=None, exakt=False):
     if grund not in JOURNAL_GRUENDE or not isinstance(daten, dict):
         raise ValueError("snapshot")
-    archiv_daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
+    archiv_daten = (_gesamtarchiv_wiederholungen_normalisieren(daten) if not exakt else
+                   json.loads(json.dumps(daten, ensure_ascii=False)))
     zeit = _journal_zeit(jetzt)
     erstellt = zeit.isoformat(timespec="microseconds").replace("+00:00", "Z")
     quellhash = hashlib.sha256(_gesamtarchiv_kanonisch(archiv_daten)).hexdigest()
@@ -1760,8 +1764,10 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     alt = staende[0] if staende else None
     if alt and alt.get("integrity") == "ok":
         try:
-            geprueft, gelesen = journal_snapshot_lesen(alt["snapshotId"], kennwort, basis)
-            if not journal_inhalt_geaendert(gelesen["daten"], archiv_daten):
+            geprueft, gelesen = journal_snapshot_lesen(alt["snapshotId"], kennwort, basis, exakt=exakt)
+            if (not journal_inhalt_geaendert(gelesen["daten"], archiv_daten) and
+                    (not exakt or _gesamtarchiv_kanonisch(gelesen['daten']) ==
+                     _gesamtarchiv_kanonisch(archiv_daten))):
                 if (grund == "manual" if pinned is None else pinned) and not geprueft.get("pinned"):
                     manifest_pfad = os.path.join(geprueft["path"], "manifest.json")
                     with open(manifest_pfad, encoding="utf-8") as datei:
@@ -1776,7 +1782,7 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
         except (OSError, RuntimeError, ValueError, TypeError):
             pass
     text = gesamtarchiv_erzeugen(archiv_daten, "linux", PROGRAMM_FASSUNG,
-                                 kennwort=kennwort, erstellt=erstellt)
+                                 kennwort=kennwort, erstellt=erstellt, normalisieren=not exakt)
     payload = text.encode("utf-8")
     journal_komprimieren(basis, zeit)
     plan_maximum = None if maximum is None else max(0, _journal_anzahl(maximum) - 1)
@@ -1812,7 +1818,9 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                             "schema": JOURNAL_PAYLOAD_SCHEMA},
                 "summary": {name: len(daten.get(name) or [])
                             if isinstance(daten.get(name), list) else 0 for name in namen},
-                "syncEpoch": epoch}
+                 "syncEpoch": epoch}
+    if exakt:
+        manifest['exactBook'] = True
     stufe = os.path.join(wurzel, ".%s.partial" % snapshot_id)
     ziel = os.path.join(wurzel, snapshot_id)
     os.mkdir(stufe, 0o700)
@@ -1842,7 +1850,7 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
 
 
 @_journal_exklusiv
-def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None, expected_revision=None):
+def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None, expected_revision=None, *, exakt=False):
     if expected_revision is not None and (not isinstance(expected_revision, str) or
             not hmac.compare_digest(journal_snapshot_revision(snapshot_id, basis), expected_revision)):
         raise RuntimeError("snapshot_conflict")
@@ -1851,7 +1859,7 @@ def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None, expected_revisi
     if not stand or stand.get("integrity") != "ok":
         raise RuntimeError(_("The recovery snapshot is missing or damaged."))
     gelesen = gesamtarchiv_lesen_text(
-        _text_dekodieren(_journal_payload_lesen(stand)), kennwort)
+        _text_dekodieren(_journal_payload_lesen(stand)), kennwort, normalisieren=not exakt)
     if not hmac.compare_digest(
             gelesen["quellsha256"], stand["payload"]["sourceSha256"]):
         raise RuntimeError(_("The recovery snapshot payload does not match its manifest."))
@@ -1873,10 +1881,11 @@ def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
         alt = os.path.join(wurzel, ".%s.rewrite-old" % snapshot_id)
         try:
             _geprueft, gelesen = journal_snapshot_lesen(
-                snapshot_id, kennwort_alt, basis)
+                snapshot_id, kennwort_alt, basis, exakt=stand.get('exactBook') is True)
             text = gesamtarchiv_erzeugen(
                 gelesen["daten"], "linux", stand["appVersion"],
-                kennwort=kennwort_neu, erstellt=stand["createdAt"])
+                kennwort=kennwort_neu, erstellt=stand["createdAt"],
+                normalisieren=stand.get('exactBook') is not True)
             payload = text.encode("utf-8")
             manifest = json.loads(_text_dekodieren(datei_begrenzt_lesen(
                 os.path.join(ziel, "manifest.json"), 1024 * 1024,
@@ -2434,6 +2443,29 @@ def automatische_sicherung_anlegen(daten, ordner, kennwort, aufbewahrung,
     return ziel
 
 
+def sicherungsprofil_gueltig(daten):
+    """Minimum legacy profile shape, not a new version/full-schema requirement.
+
+    Keep old partial profiles and unknown future fields unchanged. Optional
+    nulls may coexist with a recognizable collection/object, but are not proof
+    that an unrelated JSON file is an Organizer backup (#601).
+    """
+    if not isinstance(daten, dict):
+        return False
+    erkannt = False
+    for felder, art in ((("notizen", "aufgaben", "termine", "kontakte", "jahrestage",
+                          "notizgruppen", "notizbuecher", "personen"), list),
+                        (("einstellungen", "gesundheit", "customOrganizer", "zeiterfassung"), dict)):
+        for feld in felder:
+            wert = daten.get(feld)
+            if wert is None:
+                continue
+            if not isinstance(wert, art):
+                return False
+            erkannt = True
+    return erkannt
+
+
 def sicherung_lesen(pfad, kennwort="", expected_revision=None):
     """Liest und prüft eine Sicherungsdatei, ohne den Bestand zu verändern."""
     pfad = os.path.abspath(os.path.expanduser(str(pfad or "").strip()))
@@ -2475,7 +2507,7 @@ def sicherung_lesen(pfad, kennwort="", expected_revision=None):
                 "fehler": _("The backup does not contain readable organizer data."),
                 "brauchtKennwort": False,
                 "verschluesselt": verschluesselt}
-    if not isinstance(daten, dict):
+    if not sicherungsprofil_gueltig(daten):
         return {"ok": False,
                 "fehler": _("The backup does not contain a complete data set."),
                 "brauchtKennwort": False,
@@ -4321,8 +4353,12 @@ def _telefon_typen_aus_label(typen, label):
     apple = re.fullmatch(r"_\$!<([^<>]+)>!\$_", text)
     vergleich = (apple.group(1) if apple else text).casefold()
     vergleich = re.sub(r"[\s_-]+", "", vergleich)
-    if (vergleich in ("mobil", "mobile", "handy", "cell", "iphone")
-            or "mobil" in vergleich):
+    # Free labels such as Immobilienbuero or Automobilclub are not phone
+    # roles. Only known complete aliases can supplement the explicit TYPE;
+    # arbitrary provider labels/categories must remain intact (#600).
+    if vergleich in ("mobil", "mobile", "handy", "cell", "iphone",
+                     "mobiltelefon", "mobilfunk", "mobilephone", "cellphone",
+                     "privatesmobiltelefon"):
         aus.add("CELL")
     elif vergleich in ("zuhause", "home", "privat", "private"):
         aus.add("HOME")
@@ -4455,12 +4491,43 @@ def _email_adresse(wert):
         text = klammer.group(1).strip()
     if text.lower().startswith("mailto:"):
         text = text[7:]
+    verschleiert = re.findall(r"\(at\)|\[at\]", text, re.I)
+    if "@" not in text and len(verschleiert) == 1:
+        text = re.sub(r"\(at\)|\[at\]", "@", text, flags=re.I)
     if len(text) > 254 or not _EMAIL_MUSTER.match(text):
         return ""
     domain = text.rsplit("@", 1)[-1].lower()
     if domain == "invalid" or domain.endswith(".invalid"):
         return ""
     return text
+
+
+def _kontakt_emails_klein(kontakt, anwenden=True):
+    """Canonical profile spelling; retain wire values until a guarded write."""
+    geaendert = False
+    def adresse(obj, feld):
+        nonlocal geaendert
+        wert = obj.get(feld)
+        if not isinstance(wert, str):
+            return
+        klein = _email_adresse(wert).lower()
+        if not klein:
+            return
+        if wert != klein:
+            geaendert = True
+            if anwenden:
+                obj[feld] = klein
+    adresse(kontakt, "email")
+    for index, wert in enumerate(kontakt.get("emails") or []):
+        klein = _email_adresse(wert).lower() if isinstance(wert, str) else ""
+        if klein and wert != klein:
+            geaendert = True
+            if anwenden and isinstance(kontakt.get("emails"), list):
+                kontakt["emails"][index] = klein
+    for zeile in kontakt.get("emailEintraege") or []:
+        if isinstance(zeile, dict):
+            adresse(zeile, "wert")
+    return geaendert
 
 
 def _email_eintraege(kontakt):
@@ -5375,14 +5442,14 @@ def kontakte_vor_sync_zuordnen(lokal, entfernt):
         uid = obj.get("uid")
         if obj.get("sync") or obj.get("kontaktProviderKonflikte") or (uid and uid in entfernt):
             continue
-        mails = {wert.casefold() for wert in _email_liste(obj)}
+        mails = {wert.lower() for wert in _email_liste(obj)}
         telefone = _kontakt_telefone(obj)
         name = _kontakt_name_schluessel(obj)
         kandidaten = []
         for fern_uid, fern in entfernt.items():
             if fern_uid in vergeben:
                 continue
-            fern_mails = {wert.casefold() for wert in _email_liste(fern)}
+            fern_mails = {wert.lower() for wert in _email_liste(fern)}
             stark = bool(mails & fern_mails) or bool(telefone & _kontakt_telefone(fern))
             sparsam = (_kontakt_sparsam(obj) or _kontakt_sparsam(fern)) and name == _kontakt_name_schluessel(fern)
             if stark or sparsam:
@@ -5626,6 +5693,29 @@ def _vcard_escape_text(text):
             .replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
             .replace("\n", "\\n"))
     return result
+
+
+def kontakt_original_vcard_beobachtung(text):
+    """Strict automatic-update observation, not tolerant import identity repair."""
+    if not isinstance(text, str) or len(text.encode('utf-8')) > IMPORT_DATEI_MAX:
+        raise ValueError('contact_source_card_invalid')
+    cards = _vcard_karten(text)
+    if len(cards) != 1 or not text.lstrip().upper().startswith('BEGIN:VCARD') or not text.rstrip().upper().endswith('END:VCARD'):
+        raise ValueError('contact_source_card_invalid')
+    properties = [value for value in (_prop_zerlegen(line) for line in cards[0]) if value]
+    identities = [value for value in properties if value[0] == 'UID']
+    if len(identities) != 1 or any(value[0] in ('BEGIN', 'END') for value in properties):
+        raise ValueError('contact_source_native_uid_ambiguous')
+    _, parameters, raw = identities[0]
+    exact_uid = _ical_unescape(_vcard_wert(raw, parameters) if parameters else raw)
+    parsed = vcf_lesen(text)
+    if parsed['uebersprungen'] or len(parsed['kontakte']) != 1:
+        raise ValueError('contact_source_card_invalid')
+    contact = parsed['kontakte'][0]
+    uid = contact.get('uid')
+    if not uid or uid != exact_uid or any(ord(value) < 32 or ord(value) == 127 for value in uid):
+        raise ValueError('contact_source_native_uid_missing_or_changed')
+    return uid, _sync_inhalt_hash(contact, KONTAKT_FELDER)
 
 
 def vcard_text(k):
@@ -6506,8 +6596,11 @@ def grabsteine_behalten(tombstones, zeitpunkt):
     return list(ergebnis.values())
 
 
-def kontakt_grabsteine_nach_loeschung(tombstones, loeschen, geschafft, zeitpunkt):
+def kontakt_grabsteine_nach_loeschung(tombstones, loeschen, geschafft, zeitpunkt, uid_zuordnung=None):
     """Behält die Schonfrist und ergänzt fehlgeschlagene Fernlöschungen."""
+    if uid_zuordnung:
+        loeschen = [uid_zuordnung.get(uid, uid) for uid in loeschen]
+        geschafft = {uid_zuordnung.get(uid, uid) for uid in geschafft}
     zeiten = {str(t.get("uid") or ""): t.get("zeit", 0)
               for t in tombstones or [] if isinstance(t, dict)}
     ergebnis = grabsteine_behalten(tombstones, zeitpunkt)
@@ -6552,7 +6645,7 @@ def _kontakt_konflikt_inhalt(obj):
     for feld in ("telefon", "mobil", "telefone", "email", "emails", "emailEintraege"):
         inhalt.pop(feld, None)
     inhalt["telefone"] = sorted(_kontakt_telefone(obj))
-    inhalt["emails"] = sorted({wert.casefold() for wert in _email_liste(obj)})
+    inhalt["emails"] = sorted({wert.lower() for wert in _email_liste(obj)})
     groups = set()
     for line in obj.get('vcardRoundtrip') or []:
         prop = _prop_zerlegen(line) if isinstance(line, str) else None
@@ -6569,6 +6662,71 @@ def _kontakt_konflikt_inhalt(obj):
             return sorted((normal(v) for v in wert), key=lambda v: json.dumps(v, sort_keys=True)) or None
         return wert
     return normal(inhalt)
+
+
+def _kontakt_label_vergleich(obj, nur_werte=False, quellumschrift=False):
+    """Label classification only; persisted linux-1 hashes remain exact."""
+    inhalt = _kontakt_konflikt_inhalt(obj)
+    def umschrift(wert):
+        return wert.replace("ß", "ss").replace("ẞ", "SS") if isinstance(wert, str) else wert
+    if quellumschrift:
+        for feld in ("vorname", "nachname", "anzeigename", "firma", "strasse", "ort", "land"):
+            if feld in inhalt:
+                inhalt[feld] = umschrift(inhalt[feld])
+    for feld in ("telefon", "mobil", "emails", "email", "strasse", "plz", "ort"):
+        inhalt.pop(feld, None)
+    inhalt["foto"] = obj.get("foto") or None
+    inhalt["vcardParameter"] = obj.get("vcardParameter") or None
+    for feld, lesen in (("telefone", _telefon_liste), ("emailEintraege", _email_eintraege),
+                        ("anschriften", _anschrift_liste)):
+        zeilen = []
+        for roh in obj.get(feld) or lesen(obj):
+            if not isinstance(roh, dict):
+                return None
+            zeile = json.loads(json.dumps(roh))
+            if nur_werte:
+                for key in ("label", "typen", "rolle"):
+                    zeile.pop(key, None)
+            else:
+                typen = sorted(set(_telefon_typen(zeile.get("typen"))))
+                if feld == "telefone":
+                    for normalisiert in _telefon_liste(obj):
+                        if (normalisiert.get("wert") == zeile.get("wert") and
+                                normalisiert.get("label", "") == zeile.get("label", "")):
+                            typen = sorted(set(typen) | set(normalisiert.get("typen") or []))
+                label = str(zeile.get("label") or "").strip().casefold()
+                if (label in ("home", "privat", "private", "zuhause") or
+                        zeile.get("rolle") == "private") and not set(typen) - {"HOME", "VOICE"}:
+                    zeile.pop("label", None)
+                    zeile.pop("rolle", None)
+                    typen = sorted((set(typen) | {"HOME"}) - {"VOICE"})
+                zeile["typen"] = typen
+            if feld == "telefone":
+                zeile["wert"] = _telefon_schluessel(str(zeile.get("wert") or ""))
+            elif feld == "emailEintraege":
+                zeile["wert"] = str(zeile.get("wert") or "").strip().lower()
+                if "typen" in zeile:
+                    zeile["typen"] = [typ for typ in zeile["typen"] if typ != "INTERNET"]
+            zeile = {key: value for key, value in zeile.items() if value not in (None, "", [], {})}
+            if quellumschrift and feld == "anschriften":
+                for key in ("strasse", "ort", "region", "land"):
+                    if key in zeile:
+                        zeile[key] = umschrift(zeile[key])
+            zeilen.append(json.dumps(zeile, ensure_ascii=False, sort_keys=True))
+        inhalt[feld] = sorted(set(zeilen)) or None
+    return inhalt
+
+
+def _kontakt_labels_uebernehmen(obj, fern):
+    # Values have already been compared, so only replace their representation.
+    _telefone_setzen(obj, json.loads(json.dumps(_telefon_liste(fern))))
+    obj["emailEintraege"] = json.loads(json.dumps(_email_eintraege(fern)))
+    obj["emails"] = _email_liste(fern)
+    obj["email"] = next(iter(obj["emails"]), "")
+    _anschriften_setzen(obj, json.loads(json.dumps(_anschrift_liste(fern))))
+    for feld in ("telefone", "emailEintraege", "anschriften"):
+        if isinstance(fern.get(feld), list):
+            obj[feld] = json.loads(json.dumps(fern[feld]))
 
 
 def _kontakt_nur_ergaenzungen(obj, fern):
@@ -6599,7 +6757,7 @@ def _kontakt_ergaenzungs_schluessel(obj):
     keys = [('uid', uid) for uid in ((obj.get('kontaktAliase') or {}).get('uids') or [])]
     name = _kontakt_name_schluessel(obj)
     if name:
-        keys.extend(('mail', name, wert.casefold()) for wert in _email_liste(obj))
+        keys.extend(('mail', name, wert.lower()) for wert in _email_liste(obj))
         keys.extend(('phone', name, wert) for wert in _kontakt_telefone(obj))
     return keys
 
@@ -6611,7 +6769,7 @@ def _kontakt_ergaenzung_indexieren(index, obj):
 
 def _kontakt_passende_ergaenzung(karten, fern, index=None, mit_ersetzung=False):
     name = _kontakt_name_schluessel(fern)
-    mails = {wert.casefold() for wert in _email_liste(fern)}
+    mails = {wert.lower() for wert in _email_liste(fern)}
     telefone = _kontakt_telefone(fern)
     if index is not None:
         keys = [('uid', fern.get('uid'))]
@@ -6623,7 +6781,7 @@ def _kontakt_passende_ergaenzung(karten, fern, index=None, mit_ersetzung=False):
     passend = [obj for obj in karten if
         (fern.get('uid') in ((obj.get('kontaktAliase') or {}).get('uids') or []) or
          name and name == _kontakt_name_schluessel(obj) and (
-             mails & {wert.casefold() for wert in _email_liste(obj)} or telefone & _kontakt_telefone(obj))) and
+             mails & {wert.lower() for wert in _email_liste(obj)} or telefone & _kontakt_telefone(obj))) and
         (mit_ersetzung or _kontakt_nur_ergaenzungen(obj, fern) or _kontakt_nur_ergaenzungen(fern, obj))]
     return passend[0] if len(passend) == 1 else None
 
@@ -6726,6 +6884,20 @@ def _kontakt_eds_baseline(obj, quelle, fern):
         "abweichungBehalten": lokal_hash != remote_hash, "eigen": True}
 
 
+def _kontakt_quellen_uid(obj, quelle, dav_meta=None):
+    """Resolve only an exact existing source binding, never a name/phone guess."""
+    basis = (obj.get("syncQuellen") or {}).get(quelle) or {}
+    original_id = basis.get("id")
+    if not original_id:
+        return obj.get("uid") or ""
+    if dav_meta is None:
+        return original_id
+    treffer = [uid for uid, meta in dav_meta.items() if meta.get("href") == original_id]
+    if len(treffer) > 1:
+        raise RuntimeError(_("The address book contains an ambiguous source binding."))
+    return treffer[0] if treffer else ""
+
+
 def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                kontakt_quelle="", kontakt_nur_lesen=False):
     """Gleicht die lokale Liste mit dem entfernten Stand ab.
@@ -6739,7 +6911,10 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     Liefert (neue_lokal, anlegen, aendern, loeschen_uids, zaehler).
     Bei gleichem Eintrag gewinnt die zuletzt geänderte Seite.
     """
-    if felder == KONTAKT_FELDER: lokal = _kontakte_gleiche_karten_buendeln(lokal)
+    if felder == KONTAKT_FELDER:
+        for obj in lokal:
+            _kontakt_emails_klein(obj)
+        lokal = _kontakte_gleiche_karten_buendeln(lokal)
     zaehler = {"lokal_neu": 0, "lokal_geaendert": 0, "lokal_geloescht": 0,
                "remote_neu": 0, "remote_geaendert": 0, "remote_geloescht": 0,
                "konflikte": 0}
@@ -6747,13 +6922,22 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     neue_lokal = []
     konflikt_kopien = []
     konflikt_uids = {}
-    tote = {t.get("uid"): t.get("zeit", 0) for t in tombstones if t.get("uid")}
+    kontakt_source = (kontakt_quelle or (dav[0] if dav else "")) if felder == KONTAKT_FELDER else ""
+    kontakt_meta = (dav[2] or {}) if dav and kontakt_source else None
+    tote = {(_kontakt_quellen_uid(t, kontakt_source, kontakt_meta) if kontakt_source else t.get("uid")):
+            t.get("zeit", 0) for t in tombstones if t.get("uid")}
+    gebundene_uids = [_kontakt_quellen_uid(obj, kontakt_source, kontakt_meta)
+                     for obj in lokal if kontakt_source and
+                     ((obj.get("syncQuellen") or {}).get(kontakt_source) or {}).get("id")]
+    if len([uid for uid in gebundene_uids if uid]) != len({uid for uid in gebundene_uids if uid}):
+        raise RuntimeError(_("The address book contains an ambiguous source binding."))
     gesehen = set()
 
     if dav is not None:
         quelle, alte_etags, aktuelle_etags = dav
         for grab in tombstones:
-            uid = grab.get("uid")
+            uid = (_kontakt_quellen_uid(grab, kontakt_source, kontakt_meta)
+                   if kontakt_source else grab.get("uid"))
             if uid not in entfernt:
                 continue
             basis = ((grab.get("syncQuellen") or {}).get(quelle) or
@@ -6765,7 +6949,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     for obj in lokal:
         if not obj.get("uid"):
             obj["uid"] = _neue_uid()
-        u = obj["uid"]
+        u = _kontakt_quellen_uid(obj, kontakt_source, kontakt_meta) if kontakt_source else obj["uid"]
+        if kontakt_source and u != obj["uid"] and obj["uid"] in entfernt:
+            raise RuntimeError(_("The address book contains an ambiguous source binding."))
         gesehen.add(u)
         fern = entfernt.get(u)
         # Compatible provider additions can normalize phone/email structures.
@@ -6778,6 +6964,45 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         kontakt_identisch = (felder == KONTAKT_FELDER and fern is not None and
                              _kontakt_personengruppen(obj) == _kontakt_personengruppen(fern) and
                              _kontakt_nur_ergaenzungen(obj, fern))
+        quellumschrift = bool(kontakt_source and
+                             ((obj.get("syncQuellen") or {}).get(kontakt_source) or {}).get("id"))
+        if (felder == KONTAKT_FELDER and fern is not None and
+                _kontakt_label_vergleich(obj, True, quellumschrift) is not None and
+                _kontakt_label_vergleich(obj, True, quellumschrift) == _kontakt_label_vergleich(fern, True, quellumschrift)):
+            quelle = kontakt_quelle or (dav[0] if dav else None)
+            basis = (obj.get("syncQuellen") or {}).get(quelle) or {}
+            if kontakt_quelle:
+                remote_neu = (basis.get("inhaltFormat") == _sync_inhalt_format(felder) and
+                              bool(basis.get("inhaltSha256")) and
+                              basis["inhaltSha256"] != _sync_inhalt_hash(fern, felder))
+            else:
+                meta = ((dav[2] or {}).get(u) or {}) if dav else {}
+                remote_neu = bool(basis.get("etag") and meta.get("etag") and
+                                  basis["etag"] != meta["etag"])
+            verschieden = _kontakt_label_vergleich(obj, False, quellumschrift) != _kontakt_label_vergleich(fern, False, quellumschrift)
+            lokal_zeit, fern_zeit = obj.get("geaendert") or 0, fern.get("geaendert") or 0
+            limit = int(time.time() * 1000) + 300000
+            if (verschieden and remote_neu and
+                    isinstance(lokal_zeit, (int, float)) and isinstance(fern_zeit, (int, float)) and
+                    0 < lokal_zeit < fern_zeit <= limit):
+                _kontakt_labels_uebernehmen(obj, fern)
+                obj["geaendert"] = fern_zeit
+                zaehler["lokal_geaendert"] += 1
+            elif verschieden and not kontakt_nur_lesen:
+                aendern.append(obj)
+                zaehler["remote_geaendert"] += 1
+            if not kontakt_nur_lesen and _kontakt_emails_klein(fern, anwenden=False) and obj not in aendern:
+                _kontakt_emails_klein(obj)
+                aendern.append(obj)
+                zaehler["remote_geaendert"] += 1
+            if quelle and (obj.get("kontaktProviderKonflikte") or {}).get(quelle):
+                del obj["kontaktProviderKonflikte"][quelle]
+                if not obj["kontaktProviderKonflikte"]:
+                    obj.pop("kontaktProviderKonflikte", None)
+            if kontakt_quelle:
+                _kontakt_eds_baseline(obj, kontakt_quelle, fern)
+            neue_lokal.append(obj)
+            continue
         if kontakt_identisch:
             _kontakt_ergaenzungen_uebernehmen(obj, fern)
             quelle = kontakt_quelle or (dav[0] if dav else None)
@@ -7078,6 +7303,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     if kontakt_quelle and kontakt_nur_lesen:
         anlegen, aendern, loeschen = [], [], []
         zaehler.update(remote_neu=0, remote_geaendert=0, remote_geloescht=0)
+    if felder == KONTAKT_FELDER:
+        for obj in neue_lokal:
+            _kontakt_emails_klein(obj)
     return neue_lokal, anlegen, aendern, loeschen, zaehler
 
 
@@ -11161,6 +11389,9 @@ def _organizer_gui_bereitschaft(fenster, bereit):
     owner = getattr(fenster, "_notes_actor_book_owner", None)
     if owner is not None:
         owner.set_ready(bool(bereit))
+    contact_book = getattr(fenster, "_kontakt_quellen_buch", None)
+    if contact_book is not None:
+        contact_book.set_ready(bool(bereit))
     _kde_gui_bereitschaft(bereit)
     telefon = getattr(fenster, "_telefon", None)
     if hasattr(telefon, "set_ready"):
@@ -13728,6 +13959,7 @@ def baum_kontakt_import_pruefen(art, inhalt):
 
 
 def baum_kontakt_nutzlast_pruefen(art, inhalt):
+    _baum_notes_saveack_sperren(art, inhalt)
     if art == "kontakt_faehigkeiten":
         return baum_kontakt_faehigkeiten_pruefen(inhalt)
     if art in ("geraete_status_anfrage", "geraete_status"):
@@ -13739,6 +13971,14 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
     if art in ("kontakt_import_manifest", "kontakt_import_karte"):
         return baum_kontakt_import_pruefen(art, inhalt)
     return inhalt
+
+
+def _baum_notes_saveack_sperren(art, inhalt):
+    # Reserved native admission is separate and not registered in production.
+    # Copied request/ACK JSON must never enter generic renderer/outbox/FS1 paths.
+    reserved = ("kontakt_original_saveack", "kontakt_original_anfrage", "kontakt_original_statusanfrage", "kontakt_original_aushandlung")
+    if art in reserved or isinstance(inhalt, dict) and inhalt.get("art") in reserved:
+        raise RuntimeError(_("This type cannot be shared."))
 
 
 def baum_kontakt_faehigkeiten(antwort=False, maximum=2):
@@ -15317,6 +15557,7 @@ def baum_weitergabe_rpc(zustand, partner, anfrage, sender=None):
 
 def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
                     sender=None, zeitgrenze=6, probe=None):
+    _baum_notes_saveack_sperren(art, inhalt)
     from urllib.error import HTTPError
     sende = sender or (lambda adresse, nutzlast: _baum_http_json_senden(
         adresse, nutzlast, zeitgrenze))
@@ -15352,6 +15593,117 @@ def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
             if sitzung:
                 fs_sitzung_loeschen(sitzung)
             privat = None
+    return False
+
+
+def baum_notes_saveack_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben,
+                             sender=None, zeitgrenze=6):
+    """Reserved saved-ACK admission, never generic payload JSON."""
+    from magnolie_contact_notes_return import NativeNotesSavedAckIntent
+    if type(intent) is not NativeNotesSavedAckIntent:
+        raise PermissionError('notes_original_native_saved_ack_required')
+    return _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben, sender, zeitgrenze)
+
+
+def baum_notes_anfrage_senden(zustand_lesen, pending, negotiation, verbindung_freigegeben,
+                            sender=None, zeitgrenze=6):
+    """Only a genuine private-choice-owned pending request, never a new UUID retry."""
+    from magnolie_contact_notes_return import NativeNotesPendingResult
+    if type(pending) is not NativeNotesPendingResult:
+        raise PermissionError('notes_original_native_choice_pending_required')
+    return _baum_notes_original_senden(zustand_lesen, pending, negotiation, verbindung_freigegeben, sender, zeitgrenze)
+
+
+def baum_notes_statusanfrage_senden(zustand_lesen, query, negotiation, verbindung_freigegeben,
+                                  sender=None, zeitgrenze=6):
+    """Historical read-only inquiry: no target and no request/apply fallback."""
+    from magnolie_contact_notes_return import NativeNotesHistoryQuery
+    from magnolie_contact_notes_requests import NativeNotesUnconfirmedQuery
+    if type(query) not in (NativeNotesHistoryQuery, NativeNotesUnconfirmedQuery):
+        raise PermissionError('notes_original_private_history_query_required')
+    return _baum_notes_original_senden(zustand_lesen, query, negotiation, verbindung_freigegeben, sender, zeitgrenze)
+
+
+def baum_notes_protokollprobe_senden(zustand_lesen, negotiation, verbindung_freigegeben,
+                                   sender=None, zeitgrenze=6):
+    """Initial native challenge only; delivery does not negotiate the profile."""
+    from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
+    if type(negotiation) is not NativeNotesProtocolNegotiation:
+        raise PermissionError('notes_original_native_protocol_probe_required')
+    return _baum_notes_original_senden(zustand_lesen, negotiation, negotiation, verbindung_freigegeben, sender, zeitgrenze)
+
+
+def _baum_notes_original_senden(zustand_lesen, intent, negotiation, verbindung_freigegeben,
+                               sender=None, zeitgrenze=6):
+    """Typed native FS1 lane; no queue/renderer/dict admission or fallback.
+
+    Not registered in production. A valid transport ACK is NOT native settlement;
+    keep private outcome history until separately authenticated terminal status.
+    Native caller owns current-state/network policy callbacks, never payload flags.
+    """
+    from magnolie_contact_notes_return import NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesProtocolNegotiation, NativeNotesHistoryQuery
+    from magnolie_contact_notes_requests import NativeNotesUnconfirmedQuery
+    if (type(intent) not in (NativeNotesSavedAckIntent, NativeNotesPendingResult, NativeNotesHistoryQuery, NativeNotesUnconfirmedQuery, NativeNotesProtocolNegotiation) or type(negotiation) is not NativeNotesProtocolNegotiation or
+            not callable(zustand_lesen) or not callable(verbindung_freigegeben)):
+        raise PermissionError('notes_original_native_send_admission_required')
+    probe = type(intent) is NativeNotesProtocolNegotiation
+    if probe and intent is not negotiation:
+        raise PermissionError('notes_original_native_protocol_probe_required')
+    if verbindung_freigegeben() is not True:
+        return False  # Quietly wait for the native WLAN/connection policy.
+    peer_pins, own_pins = negotiation._native_probe()[0] if probe else negotiation.require_current()
+    initial = zustand_lesen()
+    epoch = initial.get('syncEpoch')
+    if not isinstance(epoch, str) or not epoch:
+        raise PermissionError('notes_original_native_send_epoch_required')
+
+    def current():
+        state = zustand_lesen()
+        peer = baum_partner(state, peer_pins[0])
+        if (state.get('an') is not True or state.get('syncEpoch') != epoch or
+                (state.get('kennung'), state.get('oeffentlich')) != own_pins or
+                not peer or (peer.get('kennung'), peer.get('oeffentlich')) != peer_pins or
+                peer.get('bestaetigt') is not True or peer.get('vertraut') is not True or
+                peer.get('kontaktSync') is not True or peer.get('protokoll') != 'baum-fs1' or
+                verbindung_freigegeben() is not True):
+            raise PermissionError('notes_original_native_send_context_changed')
+        if probe:
+            pins, body = negotiation._native_probe()
+            if pins != (peer_pins, own_pins):
+                raise PermissionError('notes_original_protocol_probe_pins_changed')
+        else:
+            body = intent._for_negotiated_protocol(negotiation)
+        return state, peer, body
+
+    _, peer, _ = current()
+    sende = sender or (lambda adresse, nutzlast: _baum_http_json_senden(adresse, nutzlast, zeitgrenze))
+    for host, port in baum_partner_endpunkte(peer):
+        session = None
+        secret = None
+        try:
+            state, remote, body = current()
+            start, secret = fs_start_bauen(state, remote)
+            basis = baum_url(host, port)
+            answer = sende(basis + '/magnolie/v2/sitzung', start)
+            current()
+            session = fs_antwort_oeffnen(state, remote, start, answer, secret)
+            _, _, confirmed_body = current()
+            if confirmed_body != body:
+                raise PermissionError('notes_original_native_send_intent_changed')
+            envelope = umschlag_bauen_fs(session, own_pins[0], peer_pins[0], body, _fs_b64(os.urandom(16)))
+            current()
+            receipt = sende(basis + '/magnolie/v2/nachricht', envelope)
+            current()
+            if fs_ack_pruefen(session, envelope, receipt):
+                return True
+        except PermissionError:
+            raise
+        except Exception:
+            current()  # Errors never hide revoked consent or changed pins/epoch.
+        finally:
+            if session:
+                fs_sitzung_loeschen(session)
+            secret = None
     return False
 
 
@@ -15728,10 +16080,12 @@ class BaumDienst(object):
     def __init__(self, hole_zustand, sichere_zustand, bei_nachricht=None,
                  bei_paarung=None, port=BAUM_PORT, sperre=None,
                  http_zeitgrenze=BAUM_HTTP_GESAMT_SEKUNDEN,
-                 http_pro_adresse=BAUM_HTTP_PRO_ADRESSE_MAX, bei_weitergabe=None):
+                 http_pro_adresse=BAUM_HTTP_PRO_ADRESSE_MAX, bei_weitergabe=None,
+                 bei_sicherer_nachricht=None):
         self.hole_zustand = hole_zustand
         self.sichere_zustand = sichere_zustand
         self.bei_nachricht = bei_nachricht
+        self.bei_sicherer_nachricht = bei_sicherer_nachricht
         self.bei_weitergabe = bei_weitergabe
         self.bei_paarung = bei_paarung
         self.port = BAUM_PORT if port is None else int(port)
@@ -15751,6 +16105,22 @@ class BaumDienst(object):
         self._anfragen = {}
         self._paarungsanfragen = {}
         self._fs_sitzungen = {}
+        self._fs_empfang_generation = 0
+        self._notes_setup_collector = None  # Explicit native acquisition only, never a source grant.
+
+    def _notes_setup_attach(self, collector):
+        from magnolie_contact_notes_setup import NativeNotesSetupCollector
+        if type(collector) is not NativeNotesSetupCollector:
+            raise PermissionError('notes_setup_native_collector_required')
+        with self._sperre:
+            if self._notes_setup_collector is not None:
+                raise PermissionError('notes_setup_slot_unavailable')
+            self._notes_setup_collector = collector
+
+    def _notes_setup_detach(self, collector):
+        with self._sperre:
+            if self._notes_setup_collector is collector:
+                self._notes_setup_collector = None
 
     def _anfrage_erlaubt(self, adresse, paarung=False):
         import time
@@ -15852,6 +16222,9 @@ class BaumDienst(object):
                         "sitzung": sitzung, "partner": partner["kennung"],
                         "partnerSchluessel": partner["oeffentlich"],
                         "eigenerSchluessel": zustand["oeffentlich"],
+                        "empfangGeneration": self._fs_empfang_generation,
+                        "eigeneKennung": zustand["kennung"],
+                        "syncEpoch": zustand.get("syncEpoch"),
                         "adresse": baum_quelladresse_normieren(quelle),
                         "ablauf": jetzt_mono + BAUM_FS_SITZUNG_SEKUNDEN}
                     return 200, antwort
@@ -15897,7 +16270,12 @@ class BaumDienst(object):
                             "The secure session is unknown or expired."))
                     sitzung = offen["sitzung"]
                     partner = baum_partner(zustand, offen["partner"])
-                    if not partner or not partner.get("bestaetigt"):
+                    if (not partner or not partner.get("bestaetigt") or not offen.get("partnerSchluessel") or
+                            not offen.get("eigenerSchluessel") or
+                            partner.get("oeffentlich") != offen.get("partnerSchluessel") or
+                            zustand.get("oeffentlich") != offen.get("eigenerSchluessel")):
+                        self._fs_sitzungen.pop(sitzungs_id, None)
+                        fs_sitzung_loeschen(sitzung)
                         raise RuntimeError(_(
                             "This branch has not been confirmed."))
                     _umschlag_fs_felder_pruefen(
@@ -15910,10 +16288,45 @@ class BaumDienst(object):
                         inhalt, transport_id = umschlag_oeffnen_fs(
                             sitzung, zustand["kennung"], partner["kennung"],
                             nachricht)
-                        baum_kontakt_nutzlast_pruefen((inhalt or {}).get("art"), inhalt)
+                        # Probe/query receive admission belongs only to the
+                        # authenticated native callback below. Their generic
+                        # SEND blockers must not suppress a genuine native echo.
+                        if inhalt.get("art") not in ("kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
+                            baum_kontakt_nutzlast_pruefen(inhalt.get("art"), inhalt)
                         gesehen = partner.setdefault("transportIds", [])
                         if transport_id not in gesehen:
-                            if self.bei_nachricht:
+                            if (self.bei_sicherer_nachricht or self._notes_setup_collector is not None) and inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
+                                from magnolie_contact_notes_return import _issue_notes_fs_origin
+                                # Schedule later saved-book work; never wait for
+                                # its data lock while holding the receive lock.
+                                # That writer rechecks this retained origin.
+                                def aktuell():
+                                    with self._sperre:
+                                        current = self.hole_zustand()
+                                        remote = baum_partner(current, offen["partner"])
+                                        return bool(current.get("an") and remote and remote.get("bestaetigt") and
+                                            remote.get("oeffentlich") == offen.get("partnerSchluessel") and
+                                            current.get("oeffentlich") == offen.get("eigenerSchluessel") and
+                                            current.get("kennung") == offen.get("eigeneKennung") and
+                                            current.get("syncEpoch") == offen.get("syncEpoch") and
+                                            self._fs_empfang_generation == offen.get("empfangGeneration") and
+                                            offen["ablauf"] > _zeit.monotonic())
+                                origin = _issue_notes_fs_origin(
+                                    (offen["partner"], offen["partnerSchluessel"]),
+                                    (offen["eigeneKennung"], offen["eigenerSchluessel"]),
+                                    inhalt, transport_id, aktuell)
+                                setup = self._notes_setup_collector
+                                setup_staged = (inhalt.get('art') in ('kontakt_original_aushandlung', 'kontakt_original_export') and
+                                    setup is not None and setup.receive(inhalt, origin, transport_id))
+                                exclusive = setup_staged and inhalt.get('art') == 'kontakt_original_aushandlung'
+                                normal_staged = (not exclusive and self.bei_sicherer_nachricht is not None and
+                                    self.bei_sicherer_nachricht(partner, inhalt, origin, transport_id) is not False)
+                                if not setup_staged and not normal_staged:
+                                    raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
+                                origin.require_current(inhalt, transport_id)
+                            elif inhalt.get("art") in ("kontakt_original_ergebnis", "kontakt_original_export", "kontakt_original_abschlussstatus", "kontakt_original_aushandlung", "kontakt_original_statusanfrage"):
+                                raise RuntimeError(_("This type cannot be shared."))
+                            elif self.bei_nachricht:
                                 self.bei_nachricht(partner, inhalt)
                             gesehen.append(transport_id)
                             partner["transportIds"] = gesehen[-256:]
@@ -16195,6 +16608,11 @@ class BaumDienst(object):
                     self._such_ergebnisse = None
 
     def anhalten(self):
+        with self._sperre:
+            self._fs_empfang_generation += 1
+            setup, self._notes_setup_collector = self._notes_setup_collector, None
+        if setup is not None:
+            setup.stop()  # Native cancellation only, outside tree/receive lock.
         if self._bluetooth:
             self._bluetooth.anhalten()
             self._bluetooth = None
@@ -18859,6 +19277,11 @@ def nextcloud_fehlertext(fehler):
             "The Linux Secret Service is unavailable. The app password was not stored."),
         "secret_store_failed": _(
             "The Linux Secret Service did not store the app password."),
+        "secret_read_unavailable": _("Account access is temporarily unavailable. Automatic updates will wait."),
+        "secret_lookup_timeout": _("Account access is temporarily unavailable. Automatic updates will wait."),
+        "secret_service_locked": _("Waiting for account access. Unlock the system keyring when convenient."),
+        "secret_interaction_required": _("Set up account access once in Settings. Automatic updates will wait."),
+        "secret_ambiguous": _("The saved account access is ambiguous. Check the account in Settings."),
         "app_password_missing": _("The Nextcloud app password is missing."),
         "invalid_config": _("The Nextcloud settings are invalid."),
         "account_busy": _("The Nextcloud account settings are being changed. Try again after the current operation finishes."),
@@ -18894,7 +19317,7 @@ def nextcloud_status(transport=None, discover=True, verified_snapshot=None):
               "fehler": "", "fehlerCode": "none", "kalender": [],
               "adressbuecher": []}
     try:
-        settings, password_present, revision, snapshot_error = verified_snapshot if verified_snapshot is not None else store.read_snapshot()
+        settings, password_present, revision, snapshot_error = verified_snapshot if verified_snapshot is not None else store.read_snapshot(interactive=False)
         result["revision"] = revision
         if not settings:
             return result
@@ -18919,7 +19342,7 @@ def nextcloud_status(transport=None, discover=True, verified_snapshot=None):
         if not discover:
             result["zustand"] = "bereit"
             return result
-        dav = NextcloudDav(configured_client(store, transport))
+        dav = NextcloudDav(configured_client(store, transport, interactive=False))
         result["kalender"] = dav.collections("calendar")
         result["adressbuecher"] = dav.collections("addressbook")
         result["zustand"] = "bereit"
@@ -20646,6 +21069,10 @@ class Fenster(_FENSTER_BASIS):
         self._daten_sperre = threading.RLock()
         from magnolie_personal_actor_store import NativeBookOwnerScope
         self._notes_actor_book_owner = NativeBookOwnerScope()
+        from magnolie_contact_source_book import NativeContactSourceBook
+        self._kontakt_quellen_buch = NativeContactSourceBook()
+        self._kontakt_quellen_dauerstore()
+        self._notes_original_choice_store_hole()
         self._zeit_abgleich_ausgang = queue.Queue()
         self._zeit_abgleich_ausgang_sperre = threading.Lock()
         self._zeit_abgleich_ausgang_aktiv = False
@@ -21799,6 +22226,20 @@ class Fenster(_FENSTER_BASIS):
                     "id": kennung, "ok": False,
                     "fehler": _("The save request is invalid.")})
                 return
+            if 'kontaktOriginalLauf' in nachricht:
+                try:
+                    from magnolie_contact_source_book import NativeContactSourceCommitOffer
+                    with self._daten_sperre:
+                        offer = getattr(self, '_kontakt_quellen_commit_angebot', None)
+                        self._kontakt_quellen_commit_angebot = None
+                        if type(offer) is not NativeContactSourceCommitOffer or nachricht.get('baumSyncLauf') is not None:
+                            raise PermissionError('contact_source_native_offer_required')
+                        invocation = offer.claim(nachricht['kontaktOriginalLauf'], klartext)
+                        self._speicher_auftraege.put((kennung, klartext, None, None, invocation))
+                except Exception:
+                    self.antwort('App.gespeichert', {'id': kennung, 'ok': False,
+                        'fehler': _('The save request is invalid.')})
+                return
             self._speicher_auftraege.put((kennung, klartext, nachricht.get("baumSyncLauf")))
 
         elif befehl == "cloud_sicherung_status":
@@ -22148,6 +22589,33 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "sync_bestaetigen":
             threading.Thread(target=self._sync_bestaetigen,
                              args=(nachricht.get("transactionId"), nachricht.get("requestId")), daemon=True).start()
+
+        elif befehl == 'kontakt_originalquellen_freigabe':
+            self._kontakt_quellen_freigabe_starten(nachricht.get('requestId'))
+
+        elif befehl == 'kontakt_originalquellen_widerrufen':
+            self._kontakt_quellen_dialog_generation = getattr(self, '_kontakt_quellen_dialog_generation', 0) + 1
+            self._kontakt_quellen_commit_angebot = None
+            scope = getattr(self, '_kontakt_quellen_freigaben', None)
+            if scope is not None:
+                scope.revoke()
+            self._kontakt_quellen_netz_stoppen()
+            self._kontakt_quellen_letzter_save = None
+            if nachricht.get('dauerhaft') is True:
+                self._kontakt_quellen_dauerhaft_gesperrt = True
+                def revoke_durable():
+                    try:
+                        self._kontakt_quellen_dauerstore().revoke()
+                        ok = True
+                    except Exception:
+                        ok = False
+                    self.antwort('App.originalKontaktFreigabe', {'ok': ok, 'changed': True, 'freigaben': 0})
+                threading.Thread(target=revoke_durable, daemon=True).start()
+            else:
+                self.antwort('App.originalKontaktFreigabe', {'ok': True, 'changed': True, 'freigaben': 0})
+
+        elif befehl == 'kontakt_originalquellen_update':
+            self._kontakt_quellen_updates_starten(nachricht.get('requestId'), nachricht.get('standSha256'))
 
         elif befehl == "internet_konten_mcp":
             self.antwort("App.internetKontenMcp", {"requestId": nachricht.get("requestId"), "ok": False,
@@ -22810,7 +23278,7 @@ class Fenster(_FENSTER_BASIS):
             if nachricht.get("mcp") is True and self._gesperrt:
                 self.antwort("App.syncMcpFehler", {"nativeId": nachricht.get("requestId"), "code": "profile_locked"})
                 return
-            if self._sync_laeuft or self._operation_laeuft:
+            if self._sync_laeuft or self._operation_laeuft or getattr(self, '_kontakt_quellen_update_aktiv', False):
                 if nachricht.get("mcp") is True:
                     self.antwort("App.syncMcpFehler", {"nativeId": nachricht.get("requestId"), "code": "native_busy"})
                 else:
@@ -23371,10 +23839,23 @@ class Fenster(_FENSTER_BASIS):
             kennung, klartext, *nachweise = auftrag
             proof = nachweise[0] if nachweise else None
             historical = nachweise[1] if len(nachweise) > 1 else None
+            contact_result = nachweise[2] if len(nachweise) > 2 else None
+            notes_work = nachweise[3] if len(nachweise) > 3 else None
             self._speicher_laeuft = True
             warnung = ""
+            contact_approval_store = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+            contact_approval_intent = None
+            contact_approval_error = None
+            notes_choice_store = getattr(self, '_notes_original_choice_store', None)
+            notes_choice_intent = None
+            notes_choice_error = None
             try:
                 with self._daten_sperre:
+                    from magnolie_contact_source_book import NativeContactSourceResultCommit
+                    from magnolie_contact_notes_requests import NativeNotesBootstrapSave
+                    if contact_result is not None and (type(contact_result) not in (NativeContactSourceResultCommit, NativeNotesBootstrapSave) or
+                            proof is not None or historical is not None):
+                        raise PermissionError('Invalid native contact result invocation')
                     if (getattr(self, "_gesperrt", False) or
                             getattr(self, "_ladefehler", "")):
                         raise RuntimeError(getattr(self, "_ladefehler", "") or _(
@@ -23393,7 +23874,32 @@ class Fenster(_FENSTER_BASIS):
                     changed = isinstance(previous, dict) and journal_inhalt_geaendert(previous, daten)
                     covered = lease.covers(previous, proof, time.monotonic())
                     def native_write(payload):
-                        nonlocal warnung
+                        nonlocal warnung, contact_approval_intent, contact_approval_error, notes_choice_intent, notes_choice_error
+                        if contact_approval_store is not None:
+                            try:
+                                if contact_approval_store.has_desired_consent():
+                                    previous_contact_book = self._kontakt_quellen_buchaufnahme()
+                                    if previous_contact_book is None:
+                                        previous_contact_book = self._kontakt_quellen_hauptdatei_aufnahme()
+                                        contact_approval_store.recover_primary(previous_contact_book)
+                                    else:
+                                        contact_approval_store.recover_saved(previous_contact_book)
+                                    contact_approval_intent = contact_approval_store.prepare_save(
+                                        previous_contact_book, payload)
+                            except Exception:
+                                # Consent-sidecar failures hold automatic source
+                                # authority, not the user's ordinary book save.
+                                contact_approval_error = 'contact_approval_save_preparation_failed'
+                        if notes_choice_store is not None:
+                            try:
+                                notes_choice_intent = notes_choice_store.prepare_current_save(payload)
+                            except Exception:
+                                # Independent Notes consent may be held, but
+                                # must never block the user's ordinary save.
+                                notes_choice_error = 'notes_choice_save_preparation_failed'
+                        contact_book = getattr(self, "_kontakt_quellen_buch", None)
+                        if contact_book is not None:
+                            contact_book.invalidate_saved()
                         if changed and not covered:
                             self._journal_snapshot("pre-change")
                         gespeichert = self._vielleicht_verschluesseln(payload)
@@ -23432,6 +23938,8 @@ class Fenster(_FENSTER_BASIS):
                         if type(historical) is not NativeHistoricalWriterInvocation or proof is not None:
                             raise PermissionError("Invalid native historical writer invocation")
                         historical.write(klartext, native_write)
+                    elif contact_result is not None:
+                        contact_result.write(klartext, native_write)
                     else:
                         native_write(klartext)
                     if not warnung:
@@ -23442,18 +23950,90 @@ class Fenster(_FENSTER_BASIS):
                                 raise OSError(_("Reminders"))
                         except Exception as fehler:
                             warnung = fehler_deutsch(fehler, _("Reminders"))
+                    contact_book = getattr(self, "_kontakt_quellen_buch", None)
+                    if contact_book is not None:
+                        if warnung:
+                            contact_book.invalidate_saved()
+                        else:
+                            contact_book.record_saved(*self._kontakt_quellen_buchbindung(), klartext)
+                            if contact_approval_intent is not None:
+                                try:
+                                    contact_approval_store.confirm_save(contact_approval_intent,
+                                        self._kontakt_quellen_buchaufnahme())
+                                except Exception:
+                                    contact_approval_error = 'contact_approval_save_confirmation_failed'
+                            if notes_choice_intent is not None:
+                                try:
+                                    notes_choice_store.confirm_save(notes_choice_intent,
+                                        self._kontakt_quellen_buchaufnahme())
+                                except Exception:
+                                    notes_choice_error = 'notes_choice_save_confirmation_failed'
+                    if contact_approval_store is not None:
+                        # Native diagnostic only, never a renderer grant. Repair
+                        # or unknown saves leave the signed intent for recovery.
+                        self._kontakt_quellen_dauerfehler = contact_approval_error or (
+                            'contact_approval_save_repair_pending' if warnung else None)
+                    if notes_choice_store is not None:
+                        self._notes_original_choice_error = notes_choice_error or (
+                            'notes_choice_save_repair_pending' if warnung else None)
                 ergebnis = {"id": kennung, "ok": True, "committed": True,
                             "repairPending": bool(warnung), "fehler": warnung,
                             "standSha256": lease.ack}
+                if (contact_approval_store is not None and not warnung and not contact_approval_error and
+                        not getattr(self, '_kontakt_quellen_dauerhaft_gesperrt', False)):
+                    try:
+                        if contact_approval_store.recognizes_saved():
+                            ergebnis['kontaktQuellenDauerhaft'] = True  # Correlation marker, NOT a source grant.
+                    except Exception:
+                        pass
             except Exception as fehler:
                 sys.stderr.write(_("Saving failed: %s") % fehler + "\n")
+                if contact_approval_store is not None:
+                    self._kontakt_quellen_dauerfehler = contact_approval_error or 'contact_approval_save_unconfirmed'
+                if notes_choice_store is not None:
+                    self._notes_original_choice_error = notes_choice_error or 'notes_choice_save_unconfirmed'
                 self._beenden_angefragt = False
                 self._beenden_speicherfehler = True
                 ergebnis = {
                     "id": kennung, "ok": False,
                     "fehler": fehler_deutsch(fehler, _("Saving the data"))}
+            if type(contact_result) is NativeContactSourceResultCommit:
+                contact_result.complete(ergebnis)
+                if notes_work is not None:
+                    try:
+                        from magnolie_contact_notes_controller import NativeNotesController, NativeNotesWork
+                        controller = getattr(self, '_notes_original_controller', None)
+                        if (type(controller) is not NativeNotesController or type(notes_work) is not NativeNotesWork or
+                                notes_work.intent is not contact_result):
+                            raise PermissionError('notes_controller_owned_save_work_required')
+                        controller.finish_save(notes_work)
+                        self._notes_original_work_error = None
+                    except Exception:
+                        # Real book save success is not undone by held native
+                        # automation. No Boolean/transport receipt issues an ACK.
+                        self._notes_original_work_error = 'notes_controller_save_ack_held'
+                if contact_result.result['confirmed'] and contact_result.offer_token is not None:
+                    ergebnis['kontaktOriginalGespeichert'] = contact_result.offer_token
+            elif type(contact_result) is NativeNotesBootstrapSave:
+                contact_result.complete(ergebnis)
+                try:
+                    from magnolie_contact_notes_controller import NativeNotesController, NativeNotesWork
+                    controller = getattr(self, '_notes_original_controller', None)
+                    if (type(controller) is not NativeNotesController or type(notes_work) is not NativeNotesWork or
+                            notes_work.intent is not contact_result):
+                        raise PermissionError('notes_controller_owned_bootstrap_required')
+                    controller.finish_bootstrap(notes_work)
+                    self._notes_original_work_error = None
+                except Exception:
+                    self._notes_original_work_error = 'notes_controller_bootstrap_held'
             try:
                 self.antwort("App.gespeichert", ergebnis)
+                if (contact_approval_store is not None and ergebnis.get('ok') is True and
+                        ergebnis.get('committed') is True and not ergebnis.get('repairPending')):
+                    self._kontakt_quellen_letzter_save = (kennung, lease.ack)
+                if ergebnis.get('kontaktQuellenDauerhaft') is True:
+                    self._kontakt_quellen_dauerwiederherstellen(kennung, lease.ack)
+                    self._kontakt_quellen_netz_starten()
                 if warnung:
                     self.antwort("App.erinnerungStand", {"ok": False, "fehler": warnung})
                 if ergebnis["ok"]:
@@ -24559,11 +25139,505 @@ class Fenster(_FENSTER_BASIS):
         if art in ("status", "paired", "device_status"):
             self._telefon_stand_melden()
 
+    def _kontakt_quellen_buchbindung(self):
+        # Native lifecycle fields only. Do not reuse/relax the phone actor's
+        # owner or reconstruct a saved witness from syncEpoch/document flags.
+        data = self._aktuelle_daten
+        available = (not self._gesperrt and isinstance(data, dict) and
+            not getattr(self, "_ladefehler", "") and not self._operation_laeuft and
+            not self._sync_laeuft and not self._wirklich_beenden)
+        binding = json.dumps([os.path.realpath(daten_datei()), str(self._daten_dek_kennung or ""),
+            str(data.get("syncEpoch", "")) if isinstance(data, dict) else ""], ensure_ascii=False)
+        return binding, available
+
+    def _kontakt_quellen_dauerstore(self):
+        """Native construction is default-no-files/no-keyring; no JSON grant."""
+        from magnolie_contact_source_authority import NativeContactSourceApprovalStore
+        store = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+        if store is None:
+            store = NativeContactSourceApprovalStore(
+                os.path.join(daten_verzeichnis(), 'kontakt-quellen-freigabe'), nextcloud_speicher(),
+                self._kontakt_quellen_buchaufnahme, lambda: os.path.realpath(daten_datei()),
+                capture_primary=self._kontakt_quellen_hauptdatei_aufnahme)
+            self._kontakt_quellen_dauerfreigabe = store
+        return store
+
+    def _notes_original_choice_store_hole(self):
+        """Native reader/save-chain only: no files, keys, sender or grant by default."""
+        from magnolie_contact_notes_consent import NativeNotesChoiceStore
+        store = getattr(self, '_notes_original_choice_store', None)
+        if store is None:
+            store = NativeNotesChoiceStore(os.path.join(daten_verzeichnis(), 'notes-original-choice'),
+                self._kontakt_quellen_buchaufnahme, lambda: os.path.realpath(daten_datei()),
+                self._kontakt_quellen_hauptdatei_aufnahme, current_native_data=lambda: self._aktuelle_daten)
+            self._notes_original_choice_store = store
+        return store
+
+    def _notes_original_native_controller(self, outcomes):
+        """Native factory only, not startup registration or a document switch."""
+        from magnolie_contact_notes_controller import NativeNotesController
+        with self._daten_sperre:
+            return NativeNotesController(self._notes_original_choice_store_hole(), outcomes,
+                lambda: self._daten_sperre)
+
+    def _notes_original_native_setup_candidate(self, candidate, choose_native=None):
+        """Explicit native-only entry; no IPC/startup/acquisition registration."""
+        from magnolie_contact_notes_setup import NativeNotesSetupFlow
+        if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_setup_active', False)):
+            raise PermissionError('notes_setup_native_context_required')
+        store = self._notes_original_choice_store_hole()
+        def usable():
+            if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    getattr(self, '_notes_original_choice_store', None) is not store):
+                raise PermissionError('notes_setup_native_context_changed')
+        usable()
+        self._notes_original_setup_active = True
+        try:
+            choose = (lambda view: notes_original_freigabe_dialog(self, view)) if choose_native is None else choose_native
+            flow = NativeNotesSetupFlow(store, self._kontakt_quellen_buchaufnahme, lambda: self._daten_sperre, usable)
+            return flow.configure(candidate, choose)
+        finally:
+            self._notes_original_setup_active = False
+
+    def _baum_notes_native_empfangen(self, peer, body, origin, transport):
+        """Stage only; never wait for book/consent IO inside the tree gate."""
+        from magnolie_contact_notes_controller import NativeNotesController
+        controller = getattr(self, '_notes_original_controller', None)
+        if getattr(self, '_gesperrt', True) or type(controller) is not NativeNotesController:
+            return False
+        try:
+            return controller.receive(peer, body, origin, transport)
+        except PermissionError:
+            return False
+
+    def _notes_original_native_arbeit(self):
+        """Explicit native worker step, never called by receive or a renderer."""
+        from magnolie_contact_notes_controller import NativeNotesController
+        controller = getattr(self, '_notes_original_controller', None)
+        if getattr(self, '_gesperrt', True) or type(controller) is not NativeNotesController:
+            return None
+        work = controller.process_one()
+        if work is not None and work.kind in ('save', 'needs-real-save'):
+            self._speicher_auftraege.put(('notes-original-' + uuid.uuid4().hex,
+                work.intent.text, None, None, work.intent, work))
+        return work
+
+    def _notes_original_native_pump(self, jetzt=None, sender=None):
+        """Existing post worker only; no startup controller or extra timer."""
+        from magnolie_contact_notes_controller import NativeNotesController
+        controller = getattr(self, '_notes_original_controller', None)
+        if (getattr(self, '_gesperrt', True) or getattr(self, '_baum_post_stop', True) or
+                type(controller) is not NativeNotesController):
+            return False
+        work = self._notes_original_native_arbeit()
+        def permitted():
+            return (not self._gesperrt and not self._baum_post_stop and
+                getattr(self, '_notes_original_controller', None) is controller and
+                kontakt_quellen_wlan_verfuegbar())
+        if not permitted():
+            return work is not None
+        plan = controller.next_transport(time.monotonic() if jetzt is None else jetzt)
+        if plan is None:
+            return work is not None
+        outgoing, protocol = plan
+        def state():
+            with self._baum_sperre:
+                return json.loads(json.dumps(self._baum_zustand()))
+        send = {'probe': baum_notes_protokollprobe_senden, 'query': baum_notes_statusanfrage_senden,
+            'request': baum_notes_anfrage_senden, 'ack': baum_notes_saveack_senden}[outgoing.kind]
+        if outgoing.kind == 'probe':
+            delivered = send(state, protocol, permitted, sender=sender)
+        else:
+            delivered = send(state, outgoing.intent, protocol, permitted, sender=sender)
+        controller.transport_finished(outgoing, protocol, delivered)
+        return True
+
+    def _kontakt_quellen_dauerwiederherstellen(self, save_id, saved_sha256):
+        """Worker-only restore after a real SaveACK, outside the writer lock."""
+        from magnolie_contact_source_dav import NativeDavApprovalScope
+        correlation = (save_id, saved_sha256)
+        generation = getattr(self, '_kontakt_quellen_dialog_generation', 0)
+        def current():
+            snapshot = self._kontakt_quellen_buchaufnahme()
+            return (snapshot is not None and snapshot.saved_sha256 == saved_sha256 and
+                getattr(self, '_kontakt_quellen_letzter_save', None) == correlation and
+                getattr(self, '_kontakt_quellen_dialog_generation', 0) == generation and
+                not getattr(self, '_kontakt_quellen_dauerhaft_gesperrt', False) and
+                not getattr(self, '_wirklich_beenden', False))
+        if not current():
+            return False
+        scope = getattr(self, '_kontakt_quellen_freigaben', None)
+        try:
+            persistent = self._kontakt_quellen_dauerstore()
+            stored = persistent.load_current()
+            if stored is None or not current():
+                return False
+            if scope is None:
+                scope = self._kontakt_quellen_freigaben = NativeDavApprovalScope(
+                    self._kontakt_quellen_buchnachweis, persistent._account_store)
+            def require_context():
+                if not current():
+                    raise PermissionError('contact_source_restore_context_changed')
+            scope.restore(stored, require_context)
+            if not current():
+                return False
+            count = len(scope.capture())
+            ok = count > 0
+        except Exception:
+            if scope is not None and current():
+                scope.revoke()
+            count, ok = 0, False
+        if current():
+            self.antwort('App.originalKontaktDauerfreigabe', {'id': save_id, 'standSha256': saved_sha256,
+                'ok': ok, 'freigaben': count})
+        return ok
+
+    def _kontakt_quellen_buchnachweis(self):
+        with self._daten_sperre:
+            return self._kontakt_quellen_buch.current(*self._kontakt_quellen_buchbindung(), self._aktuelle_daten)
+
+    def _kontakt_quellen_buchaufnahme(self):
+        with self._daten_sperre:
+            return self._kontakt_quellen_buch.capture(*self._kontakt_quellen_buchbindung(), self._aktuelle_daten)
+
+    def _kontakt_quellen_hauptdatei_aufnahme(self):
+        """Authenticate the primary, not memory or a saved-book substitute."""
+        from magnolie_contact_source_authority import NativeContactSourcePrimaryBook
+        from magnolie_native_book_json import book_hash
+        with self._daten_sperre:
+            if getattr(self, '_gesperrt', True) or getattr(self, '_ladefehler', ''):
+                raise PermissionError('contact_approval_primary_not_available')
+            binding = os.path.realpath(daten_datei())
+            raw, fingerprint = _erinnerungsprofil_lesen(dauerhaft=True)
+            if ist_verschluesselt(raw):
+                from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+                _envelope, _rounds, key_id, _salt, _nonce, _wrapped, nonce, secret = _daten_huelle_felder(raw)
+                dek, expected_id = self._daten_dek, self._daten_dek_kennung
+                if dek is None or key_id != expected_id:
+                    raise PermissionError('contact_approval_primary_key_not_available')
+                text = AESGCM(dek).decrypt(nonce, secret,
+                    DATEN_AAD + b'\0inhalt\0' + key_id).decode('utf-8')
+            else:
+                text = raw
+            data = json.loads(text)
+            if not isinstance(data, dict):
+                raise PermissionError('contact_approval_primary_invalid')
+            content = book_hash(data)
+            if (_erinnerungsprofil_lesen(dauerhaft=True)[1] != fingerprint or
+                    os.path.realpath(daten_datei()) != binding):
+                raise PermissionError('contact_approval_primary_changed')
+            return NativeContactSourcePrimaryBook(binding, fingerprint, content)
+
+    def _kontakt_quellen_schutz(self, snapshot):
+        """Exact current saved-book recovery coverage, not periodic reuse."""
+        from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        from magnolie_native_book_json import book_hash
+        with self._daten_sperre:
+            if type(snapshot) is not NativeProducerBookSnapshot or self._kontakt_quellen_buchaufnahme() != snapshot:
+                raise RuntimeError('contact_source_saved_book_changed')
+            data = snapshot.book()
+            general = (data.get('einstellungen') or {}).get('allgemein') or {}
+            mode, maximum, days = _journal_aufbewahrung(general)
+            stand = journal_snapshot_erzeugen(data, 'pre-contact', self._kennwort,
+                maximum=maximum if mode == 'count' else None,
+                tage=days if mode == 'days' else None, exakt=True)
+            _, actual = journal_snapshot_lesen(stand['snapshotId'], self._kennwort, exakt=True)
+            if (book_hash(actual['daten']) != snapshot.content_sha256 or
+                    self._kontakt_quellen_buchaufnahme() != snapshot):
+                raise RuntimeError('contact_source_exact_protection_required')
+            return stand['snapshotId']
+
+    def _kontakt_quellen_ergebnis_speichern(self, snapshot, proposal, require_session):
+        """Native-only queue path; caller must await token.done and confirmed.
+
+        The random non-renderer ID cannot acknowledge a renderer save request.
+        This method is not registered as a bridge command.
+        """
+        from magnolie_contact_source_book import NativeContactSourceResultCommit
+        with self._daten_sperre:
+            invocation = NativeContactSourceResultCommit(snapshot, proposal,
+                self._kontakt_quellen_buchaufnahme, require_session)
+            self._speicher_auftraege.put(('contact-source-' + uuid.uuid4().hex,
+                                        invocation.text, None, None, invocation))
+            return invocation
+
+    def _kontakt_quellen_ergebnis_anbieten(self, snapshot, proposal, require_session):
+        """Native-only creation; bridge Save can consume but never create an offer."""
+        from magnolie_contact_source_book import NativeContactSourceCommitOffer
+        with self._daten_sperre:
+            offer = NativeContactSourceCommitOffer(snapshot, proposal,
+                self._kontakt_quellen_buchaufnahme, require_session)
+            self._kontakt_quellen_commit_angebot = offer
+            return offer.offer()
+
+    def _kontakt_quellen_freigabe_starten(self, request_id):
+        """Native discovery -> GTK decision; IPC supplies no catalog or grants."""
+        from magnolie_contact_source_dav import NativeDavApprovalScope
+        if (getattr(self, '_kontakt_quellen_dialog_aktiv', False) or
+                getattr(self, '_kontakt_quellen_update_aktiv', False)):
+            self.antwort('App.originalKontaktFreigabe', {'requestId': request_id, 'ok': False,
+                                                       'code': 'native_busy'})
+            return
+        snapshot = self._kontakt_quellen_buchaufnahme()
+        if snapshot is None:
+            self.antwort('App.originalKontaktFreigabe', {'requestId': request_id, 'ok': False,
+                                                       'code': 'contact_source_book_not_saved'})
+            return
+        store = nextcloud_speicher()
+        scope = getattr(self, '_kontakt_quellen_freigaben', None)
+        if scope is None:
+            scope = self._kontakt_quellen_freigaben = NativeDavApprovalScope(
+                self._kontakt_quellen_buchnachweis, store)
+        self._kontakt_quellen_dialog_aktiv = True
+        self._kontakt_quellen_dialog_generation = getattr(self, '_kontakt_quellen_dialog_generation', 0) + 1
+        generation = self._kontakt_quellen_dialog_generation
+
+        def report(ok, changed=False):
+            self._kontakt_quellen_dialog_aktiv = False
+            count = len(scope.capture())
+            persistent = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+            desired = ok and persistent is not None and persistent.recognizes_saved()
+            if count or desired:
+                self._kontakt_quellen_netz_starten()
+            else:
+                self._kontakt_quellen_netz_stoppen()
+            response = {'requestId': request_id, 'ok': ok, 'changed': changed, 'freigaben': count}
+            correlation = getattr(self, '_kontakt_quellen_letzter_save', None)
+            if ok and desired and correlation is not None and correlation[1] == snapshot.saved_sha256:
+                response.update(dauerhaft=True, wartet=not bool(count), id=correlation[0], standSha256=correlation[1])
+            self.antwort('App.originalKontaktFreigabe', response)
+            return False
+
+        def discover():
+            client = None
+            try:
+                settings, present, revision, error = store.read_snapshot()
+                if error is not None or not settings or settings.get('davAktiv') is not True or not present:
+                    raise PermissionError('contact_source_account_not_available')
+                client = store.checked_client(revision, purpose='dav')
+                catalog = NextcloudDav(client).collections('addressbook')
+
+                def decide():
+                    try:
+                        if (self._kontakt_quellen_dialog_generation != generation or
+                                self._kontakt_quellen_buchaufnahme() != snapshot or
+                                store.read_snapshot(interactive=False)[2] != revision):
+                            raise PermissionError('contact_source_approval_context_changed')
+                        selection = None
+                        def ask(choices, selected):
+                            nonlocal selection
+                            answer = kontakt_quellen_freigabe_dialog(self, choices, selected)
+                            if answer is not None:
+                                selection = tuple(answer)
+                            return answer
+                        changed = scope.configure(catalog, ask)
+                        if not changed:
+                            return report(True, False)
+                        def persist():
+                            try:
+                                if (self._kontakt_quellen_dialog_generation != generation or
+                                        self._kontakt_quellen_buchaufnahme() != snapshot):
+                                    raise PermissionError('contact_source_approval_context_changed')
+                                persistent = self._kontakt_quellen_dauerstore()
+                                approvals = scope.capture()
+                                if tuple(item.source for item in approvals) != selection:
+                                    raise PermissionError('contact_source_approval_context_changed')
+                                stored = persistent.approve(snapshot, approvals)
+                                if self._kontakt_quellen_dialog_generation != generation:
+                                    if stored is not None:
+                                        persistent.revoke_if_generation(stored.generation)
+                                    raise PermissionError('contact_source_approval_context_changed')
+                                if stored is not None:
+                                    def require_context():
+                                        if (self._kontakt_quellen_dialog_generation != generation or
+                                                self._kontakt_quellen_buchaufnahme() != snapshot):
+                                            raise PermissionError('contact_source_approval_context_changed')
+                                    scope.restore(stored, require_context)
+                                self._kontakt_quellen_dauerhaft_gesperrt = False
+                                report(True, True)
+                            except Exception:
+                                if self._kontakt_quellen_dialog_generation == generation:
+                                    self._kontakt_quellen_dauerhaft_gesperrt = True
+                                    scope.revoke()
+                                report(False)
+                        threading.Thread(target=persist, daemon=True).start()
+                        return False
+                    except Exception:
+                        return report(False)
+                GLib.idle_add(decide)
+            except Exception:
+                GLib.idle_add(report, False)
+            finally:
+                if client is not None:
+                    client.password = ''
+        try:
+            threading.Thread(target=discover, daemon=True).start()
+        except Exception:
+            report(False)
+
+    def _kontakt_quellen_netz_stoppen(self):
+        self._kontakt_quellen_netz_generation = getattr(self, '_kontakt_quellen_netz_generation', 0) + 1
+        timer = getattr(self, '_kontakt_quellen_netz_timer', None)
+        self._kontakt_quellen_netz_timer = None
+        self._kontakt_quellen_netz_letzter = None
+        if timer is not None and GLib is not None:
+            try:
+                GLib.source_remove(timer)
+            except Exception:
+                pass
+        return False
+
+    def _kontakt_quellen_netz_starten(self):
+        # GTK already requires GLib, but headless/native test hosts need not
+        # provide timers. No NetworkManager/Gio service is required here.
+        if (getattr(self, '_kontakt_quellen_netz_timer', None) is not None or GLib is None or
+                not callable(getattr(GLib, 'timeout_add_seconds', None))):
+            return
+        self._kontakt_quellen_netz_generation = getattr(self, '_kontakt_quellen_netz_generation', 0) + 1
+        self._kontakt_quellen_netz_letzter = None
+        self._kontakt_quellen_netz_timer = GLib.timeout_add_seconds(15, self._kontakt_quellen_netz_pruefen)
+        self._kontakt_quellen_netz_pruefen()
+
+    def _kontakt_quellen_netz_pruefen(self):
+        if getattr(self, '_kontakt_quellen_netz_timer', None) is None:
+            return False
+        if getattr(self, '_kontakt_quellen_netz_probe', False):
+            return True
+        self._kontakt_quellen_netz_probe = True
+        generation = self._kontakt_quellen_netz_generation
+        def probe():
+            try:
+                scope = getattr(self, '_kontakt_quellen_freigaben', None)
+                persistent = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+                desired = (persistent is not None and not getattr(self, '_kontakt_quellen_dauerhaft_gesperrt', False)
+                    and persistent.recognizes_saved() and not self._wirklich_beenden)
+                if desired and (scope is None or not scope.capture()):
+                    correlation = getattr(self, '_kontakt_quellen_letzter_save', None)
+                    if correlation is not None and generation == self._kontakt_quellen_netz_generation:
+                        self._kontakt_quellen_dauerwiederherstellen(*correlation)
+                    scope = getattr(self, '_kontakt_quellen_freigaben', None)
+                permitted = scope is not None and bool(scope.capture()) and not self._wirklich_beenden
+                wlan = permitted and kontakt_quellen_wlan_verfuegbar()
+                if permitted and (not scope.capture() or self._wirklich_beenden):
+                    permitted = False
+                if generation != self._kontakt_quellen_netz_generation:
+                    return
+                if not permitted:
+                    if desired:
+                        return  # Keep human intent while quiet account access waits.
+                    def stop():
+                        if generation == self._kontakt_quellen_netz_generation:
+                            self._kontakt_quellen_netz_stoppen()
+                        return False
+                    GLib.idle_add(stop)
+                    return
+                # Repeat known True so a frontend held by an editor/save can
+                # resume when idle. Its explicit WLAN-wait flag gates retries;
+                # a clean or nonterminal run never retries from topology alone.
+                if wlan or wlan != self._kontakt_quellen_netz_letzter:
+                    self._kontakt_quellen_netz_letzter = wlan
+                    self.antwort('App.originalKontaktNetz', {'wlan': bool(wlan)})
+            except Exception:
+                # Unknown is not evidence of return; allow a later fresh known
+                # observation to signal again rather than retaining stale True.
+                if generation == self._kontakt_quellen_netz_generation:
+                    self._kontakt_quellen_netz_letzter = None
+            finally:
+                self._kontakt_quellen_netz_probe = False
+        try:
+            threading.Thread(target=probe, daemon=True).start()
+        except Exception:
+            self._kontakt_quellen_netz_probe = False
+        return True
+
+    def _kontakt_quellen_updates_starten(self, request_id, expected_saved_hash):
+        """Native saved-book/DAV controller; returns a one-use result offer."""
+        from magnolie_contact_source_dav import NativeBoundDavFactory
+        if (getattr(self, '_kontakt_quellen_update_aktiv', False) or
+                getattr(self, '_kontakt_quellen_dialog_aktiv', False)):
+            self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False, 'code': 'native_busy'})
+            return
+        snapshot = self._kontakt_quellen_buchaufnahme()
+        if snapshot is None or not isinstance(expected_saved_hash, str) or snapshot.saved_sha256 != expected_saved_hash:
+            self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False, 'code': 'held'})
+            return
+        scope = getattr(self, '_kontakt_quellen_freigaben', None)
+        if scope is None:
+            self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': True,
+                'token': '', 'kontakte': None, 'freigaben': 0, 'originalSha256': expected_saved_hash, 'fehlerQuellen': 0})
+            return
+        self._kontakt_quellen_commit_angebot = None
+        self._kontakt_quellen_update_aktiv = True
+        generation = getattr(self, '_kontakt_quellen_dialog_generation', 0)
+        deadline = time.monotonic() + 120
+        store = nextcloud_speicher()
+
+        def require_session():
+            if getattr(self, '_kontakt_quellen_dialog_generation', 0) != generation:
+                raise InterruptedError('contact_source_cancelled')
+
+        def capture_for_run():
+            require_session()
+            if time.monotonic() > deadline:
+                raise InterruptedError('contact_source_cancelled')
+            if not kontakt_quellen_wlan_verfuegbar():
+                raise RuntimeError('contact_source_wlan_required')
+            return self._kontakt_quellen_buchaufnahme()
+
+        def run():
+            try:
+                # Credential/authority observations may involve the system
+                # keyring. Keep even the initial capture off the GTK thread.
+                approvals = scope.capture()
+                require_session()
+                if not approvals:
+                    persistent = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
+                    if (persistent is not None and not getattr(self, '_kontakt_quellen_dauerhaft_gesperrt', False)
+                            and persistent.recognizes_saved()):
+                        self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False,
+                            'code': 'account_access_wait', 'freigaben': 0})
+                        return
+                    self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': True,
+                        'token': '', 'kontakte': None, 'freigaben': 0,
+                        'originalSha256': expected_saved_hash, 'fehlerQuellen': 0})
+                    return
+                protected = False
+                def protect():
+                    nonlocal protected
+                    if not protected:
+                        self._kontakt_quellen_schutz(snapshot)
+                        protected = True
+                def open_source(approval, hrefs, require_current):
+                    return NativeBoundDavFactory(store, approval, hrefs, require_current,
+                        protect, kontakt_original_vcard_beobachtung)
+                result = kontakt_quellen_updates_vorbereiten(snapshot, capture_for_run, approvals, open_source)
+                require_session()
+                offered = (self._kontakt_quellen_ergebnis_anbieten(snapshot, result['book'], require_session)
+                           if result['book'] != snapshot.book() else
+                           {'token': '', 'originalSha256': expected_saved_hash, 'kontakte': None})
+                self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': True,
+                    **offered, 'freigaben': len(scope.capture()), 'fehlerQuellen': sum(
+                        item['status'] in ('held', 'conflict') for item in result['outcomes'])})
+            except Exception as error:
+                self._kontakt_quellen_commit_angebot = None
+                self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False,
+                    'code': 'wlan_required' if str(error) == 'contact_source_wlan_required' else 'held',
+                    'freigaben': len(scope.capture())})
+            finally:
+                self._kontakt_quellen_update_aktiv = False
+        try:
+            threading.Thread(target=run, daemon=True).start()
+        except Exception:
+            self._kontakt_quellen_update_aktiv = False
+            self.antwort('App.originalKontaktErgebnis', {'requestId': request_id, 'ok': False, 'code': 'held'})
+
     def _telefon_actor_buchbindung(self):
         # Native fields only: never call GTK/a main loop from a receiver/store callback.
         data = self._aktuelle_daten
         available = (not self._gesperrt and isinstance(data, dict) and
-            not self._operation_laeuft and not self._sync_laeuft and not self._wirklich_beenden)
+            not self._operation_laeuft and not self._sync_laeuft and not self._wirklich_beenden and
+            not getattr(self, '_kontakt_quellen_update_aktiv', False))
         binding = json.dumps([os.path.realpath(daten_datei()), str(self._daten_dek_kennung or ""),
             str(data.get("syncEpoch", "")) if isinstance(data, dict) else ""], ensure_ascii=False)
         return binding, available
@@ -26498,6 +27572,7 @@ class Fenster(_FENSTER_BASIS):
                 bei_nachricht=self._baum_empfangen,
                 bei_weitergabe=self._baum_stand_melden,
                 bei_paarung=lambda *_: self._baum_kontakt_faehigkeiten_anmelden(),
+                bei_sicherer_nachricht=self._baum_notes_native_empfangen,
                 port=int(zustand.get("port") or BAUM_PORT),
                 sperre=self._baum_sperre)
             if neuer_dienst.starten():
@@ -26539,7 +27614,7 @@ class Fenster(_FENSTER_BASIS):
                 settings = nextcloud_speicher().load()
                 if settings and settings["briefkastenAktiv"]:
                     mailbox = NextcloudMailbox(configured_client(
-                        nextcloud_speicher(), purpose="briefkasten"))
+                        nextcloud_speicher(), purpose="briefkasten", interactive=False))
             except Exception as fehler:
                 self._baum_briefkasten_fehler = str(fehler)
                 self._baum_briefkasten_zustand = "fehler"
@@ -26565,6 +27640,10 @@ class Fenster(_FENSTER_BASIS):
                 geaendert = bool(self._baum_post_lauf().get("geaendert"))
                 geaendert = self._baum_paarungsanfragen_pruefen() or geaendert
                 geaendert = self._baum_briefkasten_poll() or geaendert
+                try:
+                    self._notes_original_native_pump()
+                except (PermissionError, ValueError, OSError, RuntimeError):
+                    pass  # Private native source waits; no recurring dialog.
             except Exception as fehler:
                 debug_ausnahme("tree.outbox.failed", error=fehler)
             finally:
@@ -26613,7 +27692,7 @@ class Fenster(_FENSTER_BASIS):
         settings = store.load()
         if not settings or not settings["briefkastenAktiv"]:
             return False
-        mailbox = NextcloudMailbox(configured_client(store, purpose="briefkasten"))
+        mailbox = NextcloudMailbox(configured_client(store, purpose="briefkasten", interactive=False))
         with self._baum_sperre:
             zustand = self._baum_zustand()
             eigene = zustand.get("kennung") or ""
@@ -27575,6 +28654,9 @@ class Fenster(_FENSTER_BASIS):
         akonadi = akonadi_quellen_status()
         nutzlast["nextcloud"] = cloud
         nutzlast["akonadi"] = akonadi
+        scope = getattr(self, '_kontakt_quellen_freigaben', None)
+        nutzlast['originalKontaktUpdates'] = {'verfuegbar': True,
+            'freigaben': len(scope.capture()) if scope is not None else 0}
         nutzlast["alleKalender"] = [dict(item, quelle="eds") for item in
                                      nutzlast["kalender"]] + [
                                          dict(item, quelle="nextcloud") for item in
@@ -27598,7 +28680,7 @@ class Fenster(_FENSTER_BASIS):
                 result["code"] = "profile_locked"
                 return
             store = nextcloud_speicher()
-            settings, present, revision, error = store.read_snapshot()
+            settings, present, revision, error = store.read_snapshot(interactive=False)
             if error is not None or not revision:
                 return
             if revision != expected_revision:
@@ -27607,14 +28689,14 @@ class Fenster(_FENSTER_BASIS):
             if not settings or not settings["briefkastenAktiv"] or not present or settings["kontoArt"] != "nextcloud":
                 result["code"] = "not_active"
                 return
-            client = store.checked_client(expected_revision, purpose="briefkasten")
+            client = store.checked_client(expected_revision, purpose="briefkasten", interactive=False)
             passed, code = False, "none"
             try:
                 NextcloudMailbox(client).test_access((self._baum_zustand() or {}).get("kennung") or "")
                 passed = True
             except Exception as error:
                 code = nextcloud_fehlercode(error)
-            if store.read_snapshot()[2] != revision:
+            if store.read_snapshot(interactive=False)[2] != revision:
                 result["code"] = "conflict"
                 return
             result = {"requestId": request_id, "ok": True, "revision": revision,
@@ -27633,7 +28715,7 @@ class Fenster(_FENSTER_BASIS):
                 result["code"] = "profile_locked"
                 return
             store = nextcloud_speicher()
-            settings, present, revision, error = store.read_snapshot()
+            settings, present, revision, error = store.read_snapshot(interactive=False)
             if error is not None or not revision:
                 return
             if revision != expected_revision:
@@ -27643,7 +28725,7 @@ class Fenster(_FENSTER_BASIS):
                 result["code"] = "not_active"
                 return
             status = nextcloud_status()
-            if store.read_snapshot()[2] != revision:
+            if store.read_snapshot(interactive=False)[2] != revision:
                 result["code"] = "conflict"
                 return
             partial = bool(status["fehler"] and (status["kalender"] or status["adressbuecher"]))
@@ -27678,7 +28760,7 @@ class Fenster(_FENSTER_BASIS):
             if settings and settings["briefkastenAktiv"]:
                 try:
                     mailbox = NextcloudMailbox(configured_client(
-                        nextcloud_speicher(), purpose="briefkasten"))
+                        nextcloud_speicher(), purpose="briefkasten", interactive=False))
                     mailbox.test_access((self._baum_zustand() or {}).get("kennung") or "")
                 except Exception as fehler:
                     nutzlast["zustand"] = "fehler"
@@ -27784,7 +28866,7 @@ class Fenster(_FENSTER_BASIS):
         snapshot_funktion = getattr(self, "_journal_snapshot", None)
         if snapshot and snapshot_funktion:
             snapshot_funktion("pre-sync")
-        dav = NextcloudDav(configured_client(nextcloud_speicher()))
+        dav = NextcloudDav(configured_client(nextcloud_speicher(), interactive=False))
         termine = [dict(item) for item in (daten.get("termine") or [])]
         aufgaben = [dict(item) for item in (daten.get("aufgaben") or [])]
         _aufgaben_graph_normalisieren(aufgaben)
@@ -28213,6 +29295,7 @@ class Fenster(_FENSTER_BASIS):
                     dav=(buch_uid, basis.get("etags"), remote_meta))
                 fehler = 0
             erfolgreich = {"anlegen": 0, "aendern": 0, "loeschen": 0}
+            fehlgeschlagene_kontakte = set()
             for item in anlegen:
                 href = quelle["href"].rstrip("/") + "/" + _dav_uid_dateiname(item["uid"], ".vcf")
                 try:
@@ -28223,29 +29306,32 @@ class Fenster(_FENSTER_BASIS):
                                                  "etag": item["davEtag"]}
                     erfolgreich["anlegen"] += 1
                 except Exception as fehler_ursache:
-                    item["sync"] = False
+                    fehlgeschlagene_kontakte.add(item["uid"])
                     fehler += 1
                     sync_fehler.append(_sync_fehlertext(
                         "%s · %s" % (quelle["name"], _("Contacts")),
                         fehler_ursache))
             for item in aendern:
-                meta = remote_meta.get(item["uid"])
+                source_uid = _kontakt_quellen_uid(item, buch_uid, remote_meta)
+                meta = remote_meta.get(source_uid)
                 try:
                     if not meta or not meta.get("etag"):
                         raise RuntimeError(_("The DAV ETag is missing."))
-                    item["davEtag"] = dav.put(meta["href"], vcard_text(item), meta["etag"])
+                    item["davEtag"] = dav.put(meta["href"], vcard_text(dict(item, uid=source_uid)), meta["etag"])
                     item["davHref"] = meta["href"]
                     _dav_syncquelle_setzen(item, buch_uid, meta["href"], item["davEtag"])
-                    remote_meta[item["uid"]] = {"href": meta["href"],
-                                                 "etag": item["davEtag"]}
+                    remote_meta[source_uid] = {"href": meta["href"],
+                                                  "etag": item["davEtag"]}
                     erfolgreich["aendern"] += 1
                 except Exception as fehler_ursache:
-                    item["sync"] = False
+                    fehlgeschlagene_kontakte.add(item["uid"])
                     fehler += 1
                     sync_fehler.append(_sync_fehlertext(
                         "%s · %s" % (quelle["name"], _("Contacts")),
                         fehler_ursache))
             geschafft = set()
+            kontakt_grab_uids = {_kontakt_quellen_uid(t, buch_uid, remote_meta): t.get("uid")
+                                for t in tote_kontakte}
             for item_uid in loeschen:
                 meta = remote_meta.get(item_uid)
                 try:
@@ -28261,17 +29347,20 @@ class Fenster(_FENSTER_BASIS):
                         "%s · %s" % (quelle["name"], _("Contacts")),
                         fehler_ursache))
             tote_kontakte = kontakt_grabsteine_nach_loeschung(
-                tote_kontakte, loeschen, geschafft, jetzt_ms())
+                tote_kontakte, loeschen, geschafft, jetzt_ms(), kontakt_grab_uids)
             for item in kontakte:
-                meta = remote_meta.get(item.get("uid"))
+                source_uid = _kontakt_quellen_uid(item, buch_uid, remote_meta)
+                meta = remote_meta.get(source_uid)
                 pruefung = (item.get("kontaktProviderKonflikte") or {}).get(buch_uid)
                 if pruefung:
                     pruefung["name"] = quelle["name"]
-                if meta and item.get("sync"):
+                # A failed source stays pending; do not disable other sources or
+                # acknowledge the canonical content as this provider's baseline.
+                if meta and item.get("sync") and item.get("uid") not in fehlgeschlagene_kontakte:
                     item["davHref"] = meta["href"]
                     item["davEtag"] = meta["etag"]
                     _dav_syncquelle_setzen(item, buch_uid, meta["href"], meta["etag"],
-                        baseline=fern.get(item.get("uid")) if erster else None)
+                        baseline=fern.get(source_uid) if erster else None)
             if not fehler:
                 sync_zeit = jetzt_ms()
                 adress_meta[buch_uid] = {"initialisiert": True,
@@ -28927,6 +30016,10 @@ class Fenster(_FENSTER_BASIS):
                 client = buch_client
                 fern = buch_fern
                 kontakt_quelle = ("akonadi:" if buch_uid.startswith("akonadi-addressbook:") else "eds:") + buch_uid
+                kontakt_baselines_vorher = {
+                    obj.get("id") or obj.get("uid"): json.loads(json.dumps(
+                        (obj.get("syncQuellen") or {}).get(kontakt_quelle)))
+                    for obj in kontakte}
                 geburtstage = buch_lesen["geburtstage"]
                 erster_buch_sync = not bool(buch_basis.get("initialisiert"))
                 if buch_nur_lesen:
@@ -28951,6 +30044,7 @@ class Fenster(_FENSTER_BASIS):
                 fehler = 0
                 verweigert = []
                 geschrieben = set()
+                fehlgeschlagene_kontakte = set()
                 for recht, liste in (("create", anlegen), ("change", aendern)):
                     if recht not in buch_rechte and liste:
                         verweigert.extend(liste)
@@ -28980,22 +30074,23 @@ class Fenster(_FENSTER_BASIS):
                         erfolgreich["anlegen"] += 1
                     except Exception as fehler_ursache:
                         fehler += 1
-                        obj["sync"] = False
+                        fehlgeschlagene_kontakte.add(obj["uid"])
                         sync_fehler.append(_sync_fehlertext(
                             "%s · %s" % (buch_name, _("Contacts")),
                             fehler_ursache))
                 for obj in aendern:
                     try:
-                        text = vcard_text(obj)
+                        source_uid = _kontakt_quellen_uid(obj, kontakt_quelle)
+                        text = vcard_text(dict(obj, uid=source_uid))
                         if not isinstance(client, AkonadiClient):
-                            text = _eds_vcard_transportstand(text, fern.get(obj["uid"]),
-                                buch_lesen.get("transportFotos", {}).get(obj["uid"]))
+                            text = _eds_vcard_transportstand(text, fern.get(source_uid),
+                                buch_lesen.get("transportFotos", {}).get(source_uid))
                         eds_kontakt_aendern(client, text)
-                        geschrieben.add(obj["uid"])
+                        geschrieben.add(source_uid)
                         erfolgreich["aendern"] += 1
                     except Exception as fehler_ursache:
                         fehler += 1
-                        obj["sync"] = False
+                        fehlgeschlagene_kontakte.add(obj["uid"])
                         sync_fehler.append(_sync_fehlertext(
                             "%s · %s" % (buch_name, _("Contacts")),
                             fehler_ursache))
@@ -29021,19 +30116,30 @@ class Fenster(_FENSTER_BASIS):
                             raise RuntimeError(_("The address book backend reported an incomplete read."))
                     except Exception as fehler_ursache:
                         fehler += 1
-                        for obj in kontakte:
-                            if obj.get("uid") in geschrieben:
-                                obj["sync"] = False
+                        fehlgeschlagene_kontakte.update(obj.get("uid") for obj in kontakte
+                            if _kontakt_quellen_uid(obj, kontakt_quelle) in geschrieben)
                         baseline_fern = {uid: k for uid, k in fern.items() if uid not in geschrieben}
                         sync_fehler.append(_sync_fehlertext("%s · %s" % (buch_name, _("Contacts")), fehler_ursache))
                 for obj in kontakte:
+                    if obj.get("uid") in fehlgeschlagene_kontakte:
+                        # Planning may have recorded an observed remote version.
+                        # Failed/uncertain delivery must not acknowledge its
+                        # local projection or alter this source's prior baseline.
+                        vorher = kontakt_baselines_vorher.get(obj.get("id") or obj.get("uid"))
+                        if vorher is None:
+                            (obj.get("syncQuellen") or {}).pop(kontakt_quelle, None)
+                        else:
+                            obj.setdefault("syncQuellen", {})[kontakt_quelle] = vorher
                     pruefung = (obj.get("kontaktProviderKonflikte") or {}).get(kontakt_quelle)
+                    source_uid = _kontakt_quellen_uid(obj, kontakt_quelle)
                     if pruefung:
                         pruefung["name"] = buch_name
-                    elif obj.get("sync") and obj.get("uid") in baseline_fern:
-                        _kontakt_eds_baseline(obj, kontakt_quelle, baseline_fern[obj["uid"]])
+                    elif (obj.get("sync") and source_uid in baseline_fern and
+                          obj.get("uid") not in fehlgeschlagene_kontakte):
+                        _kontakt_eds_baseline(obj, kontakt_quelle, baseline_fern[source_uid])
                 tote_kontakte = kontakt_grabsteine_nach_loeschung(
-                    tote_kontakte, loeschen, geschafft, jetzt_ms())
+                    tote_kontakte, loeschen, geschafft, jetzt_ms(),
+                    {_kontakt_quellen_uid(t, kontakt_quelle): t.get("uid") for t in tote_kontakte})
                 if erster_buch_sync:
                     bericht.append(_(
                         "Contacts: safe first import from %(source)s: %(count)d received.") % {
@@ -29123,6 +30229,332 @@ def sync_quellen_aufteilen(kalender_uids, adressbuch_uid):
         ("nextcloud-addressbook:", "generic-dav-addressbook:")) else "")
     return nextcloud_kalender, eds_kalender, nextcloud_buch, (
         "" if nextcloud_buch else adressbuch_uid)
+
+
+def _kontakt_quellen_kernel_route(family):
+    """Read-only kernel route lookup; sends ONLY to local NETLINK_ROUTE pid 0.
+
+    Documentation addresses are lookup keys, never network packet destinations.
+    Policy routing is resolved by the kernel, without any network-manager daemon
+    or external executable. Unavailable address families return no route.
+    """
+    import socket
+    import struct
+    import errno
+    target = {socket.AF_INET: '192.0.2.1', socket.AF_INET6: '2001:db8::1'}[family]
+    address = socket.inet_pton(family, target)
+    attribute = struct.pack('=HH', 4 + len(address), 1) + address  # RTA_DST
+    route = struct.pack('=BBBBBBBBI', family, len(address) * 8, 0, 0, 0, 0, 0, 0, 0) + attribute
+    sequence = int.from_bytes(os.urandom(4), 'little') or 1
+    request = struct.pack('=IHHII', 16 + len(route), 26, 1, sequence, 0) + route  # RTM_GETROUTE
+    with socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, socket.NETLINK_ROUTE) as channel:
+        channel.settimeout(0.5)
+        channel.bind((0, 0))
+        channel.sendto(request, (0, 0))
+        payload, sender = channel.recvfrom(8192)
+    if sender[0] != 0 or len(payload) < 16:
+        raise ValueError('contact_source_route_unknown')
+    size, kind, flags, reply_sequence, _ = struct.unpack_from('=IHHII', payload)
+    if reply_sequence != sequence or size > len(payload) or size < 16 or flags & 16:
+        raise ValueError('contact_source_route_unknown')
+    if kind == 2 and size >= 20:  # NLMSG_ERROR
+        error = -struct.unpack_from('=i', payload, 16)[0]
+        if error in (errno.ENETUNREACH, errno.EHOSTUNREACH, errno.EAFNOSUPPORT):
+            return None
+        raise OSError(error, 'contact_source_route_unknown')
+    if kind != 24 or size < 28:  # RTM_NEWROUTE
+        raise ValueError('contact_source_route_unknown')
+    fields = struct.unpack_from('=BBBBBBBBI', payload, 16)
+    if fields[0] != family or fields[7] != 1:  # RTN_UNICAST only
+        raise ValueError('contact_source_route_unknown')
+    interface, offset = None, 28
+    while offset < size:
+        if offset + 4 > size:
+            raise ValueError('contact_source_route_unknown')
+        length, attribute_kind = struct.unpack_from('=HH', payload, offset)
+        if length < 4 or offset + length > size:
+            raise ValueError('contact_source_route_unknown')
+        if attribute_kind == 4:  # RTA_OIF
+            if interface is not None or length != 8:
+                raise ValueError('contact_source_route_unknown')
+            interface = struct.unpack_from('=I', payload, offset + 4)[0]
+        offset += (length + 3) & ~3
+    if not interface:
+        raise ValueError('contact_source_route_unknown')
+    return socket.if_indextoname(interface)
+
+
+def kontakt_quellen_wlan_verfuegbar():
+    """Daemon-independent kernel egress + sysfs WLAN/link observation.
+
+    Both routable families must use WLAN. Ethernet/mobile/tunnel/unknown paths
+    hold, even if another wireless interface is UP. No connectivity is changed.
+    """
+    import socket
+    try:
+        families = (socket.AF_INET, socket.AF_INET6)
+        before = tuple(_kontakt_quellen_kernel_route(family) for family in families)
+        if not any(before):
+            return False
+        for interface in set(before) - {None}:
+            if not isinstance(interface, str) or re.fullmatch(r'[A-Za-z0-9_.:-]{1,15}', interface) is None:
+                return False
+            root = '/sys/class/net/' + interface
+            if not (os.path.isdir(root + '/wireless') or os.path.exists(root + '/phy80211')):
+                return False
+            with open(root + '/operstate', encoding='ascii') as state:
+                if state.read(32).strip() != 'up':
+                    return False
+            with open(root + '/carrier', encoding='ascii') as carrier:
+                if carrier.read(8).strip() != '1':
+                    return False
+        return tuple(_kontakt_quellen_kernel_route(family) for family in families) == before
+    except Exception:
+        return False
+
+
+def notes_original_freigabe_dialog(parent, view):
+    """GTK main-thread native choice only, no default contact or name matching."""
+    from magnolie_contact_notes_setup import NativeNotesSetupView
+    if Gtk is None or threading.current_thread() is not threading.main_thread() or type(view) is not NativeNotesSetupView:
+        raise RuntimeError('notes_setup_native_dialog_unavailable')
+    def display(value):
+        return ''.join(character for character in str(value) if character.isprintable() and character not in
+            '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
+    dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    try:
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        accept = dialog.add_button(_("Allow updates"), Gtk.ResponseType.APPLY)
+        accept.set_sensitive(False)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL)
+        dialog.set_default_size(720, 380)
+        content = dialog.get_content_area(); content.set_spacing(12); content.set_border_width(12)
+        text = (_("Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi.")
+            if view.addition else
+            _("Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."))
+        explanation = Gtk.Label(label=text)
+        explanation.set_line_wrap(True); explanation.set_max_width_chars(80); explanation.set_xalign(0)
+        content.pack_start(explanation, False, False, 0)
+        source = Gtk.Label(label='\n'.join(display(value) for value in (*view.peer, view.export['share_id'], view.export['setup_id'])))
+        source.set_line_wrap(True); source.set_max_width_chars(80); source.set_xalign(0); source.set_selectable(True)
+        content.pack_start(source, False, False, 0)
+        contacts = Gtk.ComboBoxText()
+        for contact in view.contacts:
+            label = ' '.join(str(contact.get(field) or '') for field in ('vorname', 'nachname', 'firma'))
+            contacts.append_text(display(label) + ' — ' + display(contact.get('id', '')) + ' — ' + display(contact.get('uid', '')))
+        contacts.set_active(-1)
+        contacts.connect('changed', lambda selection: accept.set_sensitive(selection.get_active() >= 0))
+        content.pack_start(contacts, False, False, 0)
+        dialog.show_all()
+        if dialog.run() != Gtk.ResponseType.APPLY or contacts.get_active() < 0:
+            return None
+        return view.contacts[contacts.get_active()].get('id')
+    finally:
+        dialog.destroy()
+
+
+def kontakt_quellen_freigabe_dialog(parent, choices, selected):
+    """GTK main-thread explicit session decision; never infer writable = approved."""
+    if Gtk is None or threading.current_thread() is not threading.main_thread():
+        raise RuntimeError('contact_source_native_dialog_unavailable')
+    choices = tuple(choices)
+    if (len(choices) > 256 or any(not isinstance(item.get('uid'), str) or not item['uid'] for item in choices) or
+            len({item['uid'] for item in choices}) != len(choices)):
+        raise ValueError('contact_source_approval_catalog_ambiguous')
+    dialog = Gtk.Dialog(title=_("Update original contact sources"), transient_for=parent,
+                        modal=True, destroy_with_parent=True)
+    try:
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        dialog.add_button(_("Apply"), Gtk.ResponseType.APPLY)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL)
+        dialog.set_default_size(560, 360)
+        content = dialog.get_content_area()
+        content.set_spacing(12)
+        content.set_border_width(12)
+        explanation = Gtk.Label(label=_(
+            "Allow automatic updates only to the selected original address books, including after restarting. "
+            "Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. "
+            "Nothing is selected by default. An empty selection revokes all approvals. "
+            "You can revoke this permission at any time in Settings."))
+        explanation.set_line_wrap(True)
+        explanation.set_max_width_chars(70)
+        explanation.set_xalign(0)
+        content.pack_start(explanation, False, False, 0)
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        buttons = []
+        for item in choices:
+            name = str(item.get('name') or _("Original address book"))
+            name = ''.join(char if char.isprintable() else ' ' for char in name)[:200]
+            button = Gtk.CheckButton(label=name)
+            button.set_active(item['uid'] in selected)
+            rows.pack_start(button, False, False, 0)
+            buttons.append((item['uid'], button))
+        scroll.add(rows)
+        content.pack_start(scroll, True, True, 0)
+        dialog.show_all()
+        if dialog.run() != Gtk.ResponseType.APPLY:
+            return None
+        return tuple(uid for uid, button in buttons if button.get_active())
+    finally:
+        dialog.destroy()
+
+
+def kontakt_quellen_update_bindungen(snapshot, quelle):
+    """Native saved input only; mappings select targets, never grant writes."""
+    from magnolie_personal_actor_store import NativeProducerBookSnapshot
+    if type(snapshot) is not NativeProducerBookSnapshot or not isinstance(quelle, str) or not quelle.startswith((
+            'nextcloud-addressbook:', 'generic-dav-addressbook:')):
+        raise TypeError('contact_source_native_snapshot_required')
+    if hashlib.sha256(snapshot.text.encode('utf-8')).hexdigest() != snapshot.content_sha256:
+        raise ValueError('contact_source_snapshot_changed')
+    contacts = snapshot.book().get('kontakte')
+    if not isinstance(contacts, list) or any(not isinstance(item, dict) for item in contacts):
+        raise ValueError('contact_source_contacts_invalid')
+    selected, seen_hrefs, seen_ids, seen_uids = [], set(), set(), set()
+    for item in contacts:
+        mappings = item.get('syncQuellen') or {}
+        if not isinstance(mappings, dict):
+            raise ValueError('contact_source_mapping_invalid')
+        basis = mappings.get(quelle)
+        if basis is None:
+            continue
+        if not isinstance(basis, dict):
+            raise ValueError('contact_source_mapping_invalid')
+        href = basis.get('id')
+        if not href:
+            continue  # No canonical UID/default-book fallback.
+        if (not isinstance(href, str) or not isinstance(item.get('id'), str) or not item['id'] or
+                not isinstance(item.get('uid'), str) or not item['uid'] or href in seen_hrefs or
+                item['id'] in seen_ids or item['uid'] in seen_uids):
+            raise ValueError('contact_source_binding_ambiguous')
+        seen_hrefs.add(href); seen_ids.add(item['id']); seen_uids.add(item['uid'])
+        # Old timestamp-only mappings need a separate manual reconciliation.
+        known = (basis.get('inhaltFormat') == _sync_inhalt_format(KONTAKT_FELDER) and
+                 isinstance(basis.get('inhaltSha256'), str) and
+                 re.fullmatch('[0-9a-f]{64}', basis['inhaltSha256']) is not None)
+        if (item.get('sync') is True and known and
+                (_sync_inhalt_hash(item, KONTAKT_FELDER) != basis.get('lokalInhaltSha256', basis['inhaltSha256']) or
+                 basis.get('pruefungFreigegeben') or
+                 (item.get('kontaktProviderKonflikte') or {}).get(quelle))):
+            selected.append(item)
+    return tuple(selected)
+
+
+def kontakt_quellen_update_plan(item, quelle, original):
+    """One bound original through existing pure merge policy; no source/local IO.
+
+    Result is provisional. Neither its merged contact nor a new baseline may be
+    adopted before actual factory readback and a separately authorized native save.
+    """
+    from magnolie_contact_source_dav import BoundDavContact
+    if type(original) is not BoundDavContact:
+        raise TypeError('contact_source_native_original_required')
+    obj = json.loads(json.dumps(item, ensure_ascii=False, allow_nan=False))
+    basis = (obj.get('syncQuellen') or {}).get(quelle) or {}
+    if (obj.get('sync') is not True or not obj.get('id') or not obj.get('uid') or
+            basis.get('id') != original.href or not basis.get('etag') or
+            basis.get('inhaltFormat') != _sync_inhalt_format(KONTAKT_FELDER) or
+            not isinstance(basis.get('inhaltSha256'), str) or
+            re.fullmatch('[0-9a-f]{64}', basis['inhaltSha256']) is None):
+        raise ValueError('contact_source_known_original_binding_required')
+    if kontakt_original_vcard_beobachtung(original.wire) != (original.native_uid, original.content_sha256):
+        raise ValueError('contact_source_original_observation_changed')
+    if basis['etag'] == original.etag and basis['inhaltSha256'] != original.content_sha256:
+        raise ValueError('contact_source_content_changed_without_revision')
+    remote = vcf_lesen(original.wire)['kontakte'][0]
+    metadata = {original.native_uid: {'href': original.href, 'etag': original.etag}}
+    merged, creates, updates, deletes, counts = sync_merge(
+        [obj], {original.native_uid: remote}, [], 0, KONTAKT_FELDER,
+        dav=(quelle, {}, metadata))
+    if (creates or deletes or len(merged) != 1 or len(updates) > 1 or
+            merged[0].get('id') != item['id'] or merged[0].get('uid') != item['uid'] or
+            merged[0].get('syncQuellen') != item.get('syncQuellen') or
+            any(update is not merged[0] for update in updates)):
+        raise ValueError('contact_source_update_only_plan_required')
+    candidate = merged[0]
+    if counts['konflikte'] or (candidate.get('kontaktProviderKonflikte') or {}).get(quelle):
+        return {'status': 'conflict', 'contact': candidate, 'wire': None}
+    wire = vcard_text(dict(candidate, uid=original.native_uid)) if updates else None
+    if wire is not None and kontakt_original_vcard_beobachtung(wire)[0] != original.native_uid:
+        raise ValueError('contact_source_original_uid_required')
+    return {'status': 'update' if wire is not None else 'observed', 'contact': candidate, 'wire': wire}
+
+
+def kontakt_quellen_updates_vorbereiten(snapshot, capture_current, approvals, open_source, cancelled=None):
+    """Operation-local native DAV orchestration, NOT a result-save authority.
+
+    open_source is a trusted native factory builder (approval, bound hrefs,
+    require_current). Its protection callback must cover this exact saved input.
+    No renderer command or production consent UI is connected by this helper.
+    """
+    from magnolie_contact_source_dav import NativeDavSourceApproval, NativeBoundDavFactory
+    from magnolie_personal_actor_store import NativeProducerBookSnapshot
+    if (type(snapshot) is not NativeProducerBookSnapshot or not callable(capture_current) or
+            not callable(open_source) or cancelled is not None and not callable(cancelled)):
+        raise TypeError('contact_source_native_run_callbacks_required')
+    cancelled = cancelled or (lambda: False)
+
+    def require_current():
+        if cancelled():
+            raise InterruptedError('contact_source_cancelled')
+        current = capture_current()
+        if type(current) is not NativeProducerBookSnapshot or current != snapshot:
+            raise RuntimeError('contact_source_saved_book_changed')
+
+    require_current()
+    approvals = tuple(approvals)
+    if (any(type(value) is not NativeDavSourceApproval for value in approvals) or
+            len({value.source for value in approvals}) != len(approvals)):
+        raise ValueError('contact_source_native_approvals_required')
+    result, outcomes = snapshot.book(), []
+    for approval in approvals:
+        require_current()
+        factory = None
+        try:
+            approval.require_current()
+            selected = kontakt_quellen_update_bindungen(snapshot, approval.source)
+            if not selected:
+                continue
+            factory = open_source(approval, tuple(item['syncQuellen'][approval.source]['id']
+                                                  for item in selected), require_current)
+            if type(factory) is not NativeBoundDavFactory:
+                raise TypeError('contact_source_native_factory_required')
+            rows = {row.href: row for row in factory.read_bound()}
+            require_current()
+            for saved_item in selected:
+                require_current()
+                href = saved_item['syncQuellen'][approval.source]['id']
+                row = rows[href]
+                target = next(item for item in result['kontakte'] if item.get('id') == saved_item['id'])
+                plan = kontakt_quellen_update_plan(target, approval.source, row)
+                require_current()
+                if plan['status'] == 'conflict':
+                    target.setdefault('kontaktProviderKonflikte', {})[approval.source] = (
+                        plan['contact']['kontaktProviderKonflikte'][approval.source])
+                    outcomes.append({'source': approval.source, 'contactId': target['id'], 'status': 'conflict'})
+                    continue
+                actual = factory.update_existing(row, plan['wire']) if plan['wire'] is not None else row
+                require_current()
+                approval.require_current()
+                candidate = plan['contact']
+                basis = dict(candidate['syncQuellen'][approval.source])
+                basis.update(etag=actual.etag, inhaltFormat=_sync_inhalt_format(KONTAKT_FELDER),
+                             inhaltSha256=actual.content_sha256,
+                             lokalInhaltSha256=_sync_inhalt_hash(candidate, KONTAKT_FELDER))
+                candidate['syncQuellen'][approval.source] = basis
+                target.clear(); target.update(candidate)
+                outcomes.append({'source': approval.source, 'contactId': target['id'], 'status': plan['status']})
+        except Exception:
+            # Source-local errors cannot mask a global lock/book/save/abort change.
+            require_current()
+            outcomes.append({'source': approval.source, 'status': 'held'})
+        finally:
+            if factory is not None:
+                factory.close()
+        require_current()
+    return {'book': result, 'outcomes': outcomes}  # Unsaved proposal only.
 
 
 def _dav_syncquelle_setzen(item, quelle, remote_id, etag, eigen=True, baseline=None):

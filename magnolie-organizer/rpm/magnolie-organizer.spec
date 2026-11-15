@@ -161,6 +161,15 @@ install -Dpm 0644 bin/magnolie_personal_actor.py %{buildroot}%{_bindir}/magnolie
 install -Dpm 0644 bin/magnolie_personal_actor_store.py %{buildroot}%{_bindir}/magnolie_personal_actor_store.py
 install -Dpm 0644 bin/magnolie_personal_actor_completion.py %{buildroot}%{_bindir}/magnolie_personal_actor_completion.py
 install -Dpm 0644 bin/magnolie_native_book_json.py %{buildroot}%{_bindir}/magnolie_native_book_json.py
+install -Dpm 0644 bin/magnolie_contact_source_book.py %{buildroot}%{_bindir}/magnolie_contact_source_book.py
+install -Dpm 0644 bin/magnolie_contact_source_dav.py %{buildroot}%{_bindir}/magnolie_contact_source_dav.py
+install -Dpm 0644 bin/magnolie_contact_source_authority.py %{buildroot}%{_bindir}/magnolie_contact_source_authority.py
+install -Dpm 0644 bin/magnolie_contact_book_save_chain.py %{buildroot}%{_bindir}/magnolie_contact_book_save_chain.py
+install -Dpm 0644 bin/magnolie_contact_notes_return.py %{buildroot}%{_bindir}/magnolie_contact_notes_return.py
+install -Dpm 0644 bin/magnolie_contact_notes_consent.py %{buildroot}%{_bindir}/magnolie_contact_notes_consent.py
+install -Dpm 0644 bin/magnolie_contact_notes_controller.py %{buildroot}%{_bindir}/magnolie_contact_notes_controller.py
+install -Dpm 0644 bin/magnolie_contact_notes_setup.py %{buildroot}%{_bindir}/magnolie_contact_notes_setup.py
+install -Dpm 0644 bin/magnolie_contact_notes_requests.py %{buildroot}%{_bindir}/magnolie_contact_notes_requests.py
 install -Dpm 0644 bin/magnolie_personal_actor_decision_review.py %{buildroot}%{_bindir}/magnolie_personal_actor_decision_review.py
 install -Dpm 0644 bin/magnolie_personal_actor_producer.py %{buildroot}%{_bindir}/magnolie_personal_actor_producer.py
 install -Dpm 0644 bin/magnolie_personal_actor_projection.py %{buildroot}%{_bindir}/magnolie_personal_actor_projection.py

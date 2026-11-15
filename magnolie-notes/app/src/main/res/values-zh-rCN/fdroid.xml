@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">请使用 F-Droid 客户端检查并安装 Notes 更新。仅从 F-Droid 网站下载 APK 不会收到更新通知。</string>
+    <string name="about_update_fdroid_unknown">通过 F-Droid 安装了 Notes？请使用 F-Droid 客户端更新，而不是 GitHub 发布版本。仅从网站下载 APK 不会收到 F-Droid 更新通知。</string>
+</resources>

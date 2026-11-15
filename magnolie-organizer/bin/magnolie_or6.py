@@ -18,6 +18,10 @@ MAX_BYTES = 32 * 1024 * 1024
 MAX_BLOCKS = 250000
 MAX_FIELDS = 512
 REPEAT_TAG = 0xfefffff2
+# Independently selected original-program KeyID0..14 and actual saved event fills.
+PLANNER_COLORS = ("#ff0000", "#00c200", "#0000ff", "#ffff00", "#ff00ff", "#00ffff",
+                  "#800000", "#008000", "#000080", "#808000", "#800080", "#008080",
+                  "#808080", "#c0c0c0", "#000000")
 _RTF_CONTROL = re.compile(r"([a-zA-Z]+)(-?\d{1,10})? ?")
 
 
@@ -157,6 +161,7 @@ class _Document:
         if self.blocks.get(0) != (0x66099660, 1024):
             raise _invalid()
         self.schemas = {}
+        self.schema_names = {}
         for address, (tag, size) in self.blocks.items():
             if tag != 0xffffffff:
                 continue
@@ -166,6 +171,11 @@ class _Document:
             if key in self.schemas:
                 raise _invalid()
             self.schemas[key] = (self.u32(address + 0x2c), self._schema_fields(address))
+            if self.schemas[key][0] == 0x200 and size >= 0xc8:
+                try:
+                    self.schema_names[key] = _wide(self.data[address+0x48:address+0xc8]).split("\0")[0]
+                except ValueError:
+                    pass  # Unreadable optional metadata is not a guessed label.
 
     def u32(self, offset):
         return struct.unpack_from("<I", self.data, offset)[0]
@@ -189,10 +199,21 @@ class _Document:
             offset = self.u32(offset + 0x20)
         return fields
 
-    def entries(self, repeats=False):
+    def entries(self, repeats=False, planner_sections=False):
         for address, (tag, size) in self.blocks.items():
             # Freed blocks retain old text. Only live application allocations count.
-            if not address or tag >= 0x80000000 and not (repeats and tag == REPEAT_TAG):
+            if planner_sections:
+                if tag != 0xfeffffff or size < 0x34:
+                    continue
+                count = self.u32(address + 0x28)
+                if count > MAX_FIELDS or 0x34 + count * 8 > size:
+                    continue
+                # Inspect only the inline section-kind enum before reading any
+                # section name: unrelated/notebook roots are not reconstructed.
+                if not any(struct.unpack_from("<HHI", self.data, address+0x34+i*8) == (5, 4, 0x200)
+                           for i in range(count)):
+                    continue
+            elif not address or tag >= 0x80000000 and not (repeats and tag == REPEAT_TAG):
                 continue
             if size < 0x34:
                 raise _invalid()
@@ -219,6 +240,42 @@ class _Document:
             oid, origin = self.reference(address+12)
             yield tag, fields, "or6:%08x:%08x" % (origin, oid), (oid, origin), self.reference(address+0x18)
 
+    def planner_keys(self, entries):
+        """Unique native root/name/namespace binding, never OID arithmetic.
+
+        Configs can share one options schema across different sections. Their
+        explicit Section ID, not that shared schema, owns the names. Actual
+        root names remain aligned with event-schema names after tab renames.
+        """
+        roots = list(self.entries(planner_sections=True))
+        root_counts, schema_index = {}, {}
+        for root in roots:
+            root_counts[root[3]] = root_counts.get(root[3], 0) + 1
+        for key, name in self.schema_names.items():
+            if name:
+                schema_index.setdefault((key[1], name), []).append(key)
+        bindings = {}
+        for _, fields, _, reference, _ in roots:
+            if root_counts[reference] != 1:
+                continue
+            name = _string(fields, 3)
+            candidates = schema_index.get((reference[1], name), [])
+            if len(candidates) == 1:
+                bindings.setdefault(candidates[0], []).append(reference)
+        configs = {}
+        for tag, fields, _, _, _ in entries:
+            if tag != 0x201 or len(fields.get(3, b"")) != 8 or 10 not in fields:
+                continue
+            try:
+                names = _wide(fields[10]).split("\0")
+            except ValueError:
+                continue
+            if len(names) < 15 or any(names[15:]):
+                continue
+            configs.setdefault(struct.unpack("<II", fields[3]), []).append(names[:15])
+        return {schema: configs[references[0]][0] for schema, references in bindings.items()
+                if len(references) == 1 and len(configs.get(references[0], [])) == 1}
+
     def records(self):
         for tag, fields, uid, reference, schema in self.entries():
             yield tag, fields, uid
@@ -237,7 +294,7 @@ class _Document:
                 continue
             source = by_key.get(self.reference(address+0x20) + self.reference(address+0x28))
             target = by_key.get(self.reference(address+0x30) + self.reference(address+0x38))
-            if source is None or target is None or source[0] != 0x100 or target[0] != REPEAT_TAG:
+            if source is None or target is None or source[0] not in (0x100, 0x300) or target[0] != REPEAT_TAG:
                 continue
             if source[2] in assigned and assigned[source[2]] != target[2]:
                 raise _invalid()
@@ -301,6 +358,28 @@ def _date(fields, fid):
     return (f"{when.year:04d}-{when.month:02d}-{when.day:02d}", when.strftime("%H:%M")) if when else ("", "")
 
 
+def _planner_source_clock(fields):
+    """Original UI shows inclusive dates for these verified legacy clocks.
+
+    Keep the exact local timestamp parts as source properties, not a guessed
+    timezone or scheduling rule. Other clock shapes remain unsupported.
+    """
+    raw = [fields.get(fid, b"") for fid in (7, 8)]
+    if any(len(value) != 8 or value[7] != 0 for value in raw):
+        return None
+    begin, end = map(_stamp, raw)
+    if not begin or not end or end < begin:
+        return None
+    midnights = all((value.hour, value.minute, value.second) == (0, 0, 0) for value in (begin, end))
+    same_day_hours = begin.date() == end.date() and all(value.minute == value.second == 0 for value in (begin, end))
+    if not (midnights or same_day_hours):
+        return None
+    compact = lambda value: (f"{value.year:04d}{value.month:02d}{value.day:02d}T"
+                             f"{value.hour:02d}{value.minute:02d}{value.second:02d}")
+    return ["X-MAGNOLIE-OR6-PLANNER-LOCAL-START:" + compact(begin),
+            "X-MAGNOLIE-OR6-PLANNER-LOCAL-END:" + compact(end)]
+
+
 def _common(fields, uid):
     title = _string(fields, 9)
     result = {"titel": title.splitlines()[0], "notiz": "\n".join(title.splitlines()[1:]),
@@ -311,8 +390,10 @@ def _common(fields, uid):
     return result
 
 
-def _finite_series(group, orphaned=()):
+def _finite_series(group, orphaned=(), task_states=False):
     definition, members = group
+    if not members or len({member[0] for member in members}) != 1:
+        return None  # A native definition cannot mix tasks and appointments.
     metadata = definition[1]
     arrays = []
     for fid in (12, 13):
@@ -328,7 +409,8 @@ def _finite_series(group, orphaned=()):
         return None
     ordered = sorted(members, key=lambda member: _number(member[1], 14))
     base = ordered[0][1]
-    comparable = {fid:value for fid,value in base.items() if fid not in (7, 8, 14)}
+    ignored = {7, 8, 14} | ({3, 19, 20} if task_states else set())
+    comparable = {fid:value for fid,value in base.items() if fid not in ignored}
     indices = [_number(member[1], 14) for member in ordered]
     if len(set(indices)) != len(indices) or any(index >= len(starts) for index in indices):
         return None
@@ -338,7 +420,7 @@ def _finite_series(group, orphaned=()):
     for index, member in zip(indices, ordered):
         fields = member[1]
         if (_number(fields, 10) != 1 or
-                {fid:value for fid,value in fields.items() if fid not in (7, 8, 14)} != comparable or
+                {fid:value for fid,value in fields.items() if fid not in ignored} != comparable or
                 _stamp(fields.get(7)) != starts[index] or _stamp(fields.get(8)) != ends[index] or
                 ends[index] < starts[index]):
             return None
@@ -348,6 +430,10 @@ def _finite_series(group, orphaned=()):
     if not _string(base, 9):
         return None
     result = _common(base, definition[2])
+    if not task_states:
+        categories = _categories(base)
+        if categories:
+            result["kategorien"] = categories
     first, end = starts[0], ends[0]
     result.update(datum=first.strftime("%Y-%m-%d"), zeit=first.strftime("%H:%M"),
         endDatum=end.strftime("%Y-%m-%d") if end.date() != first.date() else "", endZeit=end.strftime("%H:%M"),
@@ -398,15 +484,283 @@ def _finite_series(group, orphaned=()):
     return result
 
 
+def _calendar_history_series(group, orphaned, schemas):
+    """Original Calendar later-segment edit, not generic task recovery (#616)."""
+    definition, members = group
+    if not members or any(member[0] != 0x100 for member in members) or len({member[4] for member in members}) != 1:
+        return None
+    if any(schemas[member[4]][1].get(14) != 0x2003 or
+           14 in member[1] and len(member[1][14]) != 4 for member in members):
+        return None
+    arrays = []
+    for fid in (12, 13):
+        raw = definition[1].get(fid, b"")
+        if not raw or len(raw) % 8:
+            return None
+        values = [_stamp(raw[i:i+8]) for i in range(0, len(raw), 8)]
+        if any(value is None for value in values):
+            return None
+        arrays.append(values)
+    starts, ends = arrays
+    anchor = _stamp(definition[1].get(6))
+    if not anchor or len(starts) != len(ends) or starts != sorted(set(starts)):
+        return None
+    history, current, seen = [], [], set()
+    base = {fid: value for fid, value in members[0][1].items() if fid not in (7, 8, 14)}
+    for member in members:
+        fields = member[1]; begin, end = _stamp(fields.get(7)), _stamp(fields.get(8))
+        if (not begin or not end or begin in seen or end < begin or begin.date() < anchor.date() or
+                {fid: value for fid, value in fields.items() if fid not in (7, 8, 14)} != base):
+            return None  # No unknown content/Busy/meeting history is discarded.
+        seen.add(begin)
+        if begin < starts[0]:
+            history.append(member)
+        else:
+            index = _number(fields, 14)
+            if index >= len(starts) or begin != starts[index] or end != ends[index]:
+                return None  # Historical identity not guessed for moved members.
+            current.append(member)
+    history.sort(key=lambda member: _stamp(member[1][7]))
+    if not history or not current or [_number(member[1], 14) for member in history] != list(range(len(history))):
+        return None  # Only independently observed earlier sequential segment.
+    indices = [_number(member[1], 14) for member in current]
+    if len(set(indices)) != len(indices):
+        return None
+    missing = set(range(len(starts))) - set(indices)
+    if any((members[0][4], index, starts[index]) in orphaned for index in missing):
+        return None
+    metadata = dict(definition[1])
+    for fid, source in ((12, 7), (13, 8)):
+        metadata[fid] = b"".join(member[1][source] for member in history) + metadata[fid]
+    projected = []
+    for ordinal, member in enumerate(history + current):
+        fields = dict(member[1]); fields[14] = struct.pack('<I', ordinal if ordinal < len(history) else len(history) + _number(fields, 14))
+        projected.append((member[0], fields, *member[2:]))
+    master = _finite_series(((definition[0], metadata, *definition[2:]), projected), orphaned)
+    if master is None:
+        return None  # Same rule-expansion/duration/link guards as normal sets.
+    for fid, name in ((12, "STARTS"), (13, "ENDS")):
+        raw = definition[1][fid]
+        master["icsRoundtrip"].append("X-MAGNOLIE-OR6-CALENDAR-TEMPLATE-" + name + ":" + ",".join(
+            _stamp(raw[i:i+8]).strftime("%Y%m%dT%H%M%S") for i in range(0, len(raw), 8)))
+    return [master]
+
+
+def _finite_calendar_series(group, orphaned, schemas):
+    """Verified original slot identity, not task index/date recovery (#614)."""
+    ordinary = _finite_series(group, orphaned)
+    if ordinary is not None:
+        return [ordinary]
+    historical = _calendar_history_series(group, orphaned, schemas)
+    if historical is not None:
+        return historical
+    definition, members = group
+    if not members or any(member[0] != 0x100 for member in members):
+        return None
+    arrays = []
+    for fid in (12, 13):
+        raw = definition[1].get(fid, b"")
+        if not raw or len(raw) % 8:
+            return None
+        values = [_stamp(raw[i:i+8]) for i in range(0, len(raw), 8)]
+        if any(value is None for value in values):
+            return None
+        arrays.append(values)
+    starts, ends = arrays
+    if len(starts) != len(ends):
+        return None
+    # The absent first index means zero only for the independently observed
+    # native computed uint32 declaration; _number alone accepts other widths.
+    if any(schemas[member[4]][1].get(14) != 0x2003 or
+           14 in member[1] and len(member[1][14]) != 4 for member in members):
+        return None
+    ordered = sorted(members, key=lambda member: _number(member[1], 14))
+    indices = [_number(member[1], 14) for member in ordered]
+    if len(set(indices)) != len(indices) or any(index >= len(starts) for index in indices):
+        return None
+    base = ordered[0][1]
+    known = {3, 7, 8, 9, 14}
+    comparable = {fid: value for fid, value in base.items() if fid not in known}
+    projected = []
+    for index, member in zip(indices, ordered):
+        fields = member[1]
+        begin, end = _stamp(fields.get(7)), _stamp(fields.get(8))
+        if (not begin or not end or end < begin or not _string(fields, 9) or
+                {fid: value for fid, value in fields.items() if fid not in known} != comparable):
+            return None  # Includes Busy/meeting differences: never ignored.
+        if _categories(base) and not _categories(fields):
+            return None  # Explicit empty-category export/inheritance unverified.
+        canonical = dict(base)
+        canonical.update({7: definition[1][12][index*8:index*8+8],
+                          8: definition[1][13][index*8:index*8+8],
+                          14: struct.pack('<I', index)})
+        projected.append((member[0], canonical, *member[2:]))
+    # Reuse strict original-link/array/rule/missing-slot/orphan checks, but only
+    # on an in-memory uniform view of the original slots, never moved clocks.
+    master = _finite_series((definition, projected), orphaned)
+    if master is None:
+        return None
+    converted = [master]
+    compact = lambda value: value.strftime("%Y%m%dT%H%M%S")
+    for index, member in zip(indices, ordered):
+        fields = member[1]
+        begin, end = _stamp(fields[7]), _stamp(fields[8])
+        if (begin == starts[index] and end == ends[index] and
+                fields.get(9) == base.get(9) and _categories(fields) == _categories(base)):
+            continue
+        master["icsRoundtrip"].append("EXDATE:" + compact(starts[index]))
+        master.update(icsKomplex=True, icsSerienUid=definition[2])
+        child = _common(fields, member[2])
+        child.update(datum=begin.strftime("%Y-%m-%d"), zeit=begin.strftime("%H:%M"),
+                     endDatum=end.strftime("%Y-%m-%d") if end.date() != begin.date() else "",
+                     endZeit=end.strftime("%H:%M"), kategorien=_categories(fields),
+                     vorlaeufig=bool(_number(fields, 18)), icsSerienUid=definition[2],
+                     icsRoundtrip=["RECURRENCE-ID:" + compact(starts[index]),
+                                   "DTSTART:" + compact(begin), "DTEND:" + compact(end),
+                                   "X-MAGNOLIE-OR6-OBJECT-UID:" + member[2]])
+        converted.append(child)
+    return converted
+
+
+def _task_segment_members(group, orphaned):
+    """Retain linked history preceding the current native date-array segment.
+
+    Later scoped edits restart indices; original bulk edits can also copy zero
+    to the whole set while leaving old template dates behind. Only complete,
+    uniquely dated, explicitly linked sets can recover that verified form.
+    Projection is in memory, never a source edit or guessed historical dates.
+    """
+    definition, members = group
+    arrays = []
+    for fid in (12, 13):
+        raw = definition[1].get(fid, b"")
+        if not raw or len(raw) % 8:
+            return None
+        values = [_stamp(raw[i:i+8]) for i in range(0, len(raw), 8)]
+        if any(value is None for value in values):
+            return None
+        arrays.append(values)
+    starts, ends = arrays
+    if (len(starts) != len(ends) or starts != sorted(set(starts)) or
+            any(end < start for start, end in zip(starts, ends))):
+        return None
+    history, current, seen = [], [], set()
+    for member in members:
+        start, end = _stamp(member[1].get(7)), _stamp(member[1].get(8))
+        if not start or not end or start in seen or end < start:
+            return None
+        seen.add(start)
+        if start < starts[0]:
+            anchor = _stamp(definition[1].get(6))
+            if not anchor or start.date() < anchor.date():
+                return None
+            history.append(member)
+        else:
+            index = _number(member[1], 14)
+            if index >= len(starts):
+                return None
+            current.append(member)
+    if not current or len({member[4] for member in members}) != 1:
+        return None
+    indices = {_number(member[1], 14) for member in current}
+    recovered = any(_stamp(member[1][7]) != starts[_number(member[1], 14)] or
+                    _stamp(member[1][8]) != ends[_number(member[1], 14)] for member in current)
+    if recovered:
+        if len(current) != len(starts) or indices not in ({0}, set(range(len(starts)))):
+            return None  # No partial/ambiguous rebinding or unknown index default.
+        actual_starts = {_stamp(member[1][7]) for member in current}
+        candidate_starts = set(starts) | actual_starts
+        if any(schema == current[0][4] and start in candidate_starts for schema, _, start in orphaned):
+            return None  # A known active unlinked task is never guessed deleted.
+        current.sort(key=lambda member: _stamp(member[1][7]))
+    if not history and not recovered:
+        return group
+    if any((current[0][4], index, starts[index]) in orphaned for index in set(range(len(starts))) - indices):
+        return None
+    history.sort(key=lambda member: _stamp(member[1][7]))
+    # For the verified complete-set edit form, visible linked clocks take
+    # precedence over stale templates. Rule validation below still has to match
+    # every actual date; otherwise this is an exact finite RDATE set, not a rule.
+    start_bytes = b"".join(member[1][7] for member in history) + (b"".join(member[1][7] for member in current) if recovered else definition[1][12])
+    end_bytes = b"".join(member[1][8] for member in history) + (b"".join(member[1][8] for member in current) if recovered else definition[1][13])
+    metadata = dict(definition[1])
+    metadata.update({12: start_bytes, 13: end_bytes})
+    projected = []
+    for index, member in enumerate(history):
+        fields = dict(member[1]); fields[14] = struct.pack('<I', index)
+        projected.append((member[0], fields, *member[2:]))
+    for index, member in enumerate(current):
+        fields = dict(member[1]); fields[14] = struct.pack('<I', len(history) + (index if recovered else _number(fields, 14)))
+        projected.append((member[0], fields, *member[2:]))
+    return ((definition[0], metadata, *definition[2:]), projected)
+
+
+def _categories(fields):
+    return ", ".join(dict.fromkeys(value for value in _strings(fields, 3) if value))
+
+
+def _finite_task_series(group, orphaned=()):
+    # Reuse the native link/index/array and exact finite-expansion validation,
+    # not the appointment destination model. Task data remains one VTODO set.
+    if any(_number(member[1], 20) not in (1, 2, 4) for member in group[1]):
+        return None  # Unknown per-occurrence states must not become open tasks.
+    for member in group[1]:
+        _date(member[1], 19)  # Retain strict native stamp validation.
+    templates = {fid: group[0][1].get(fid, b"") for fid in (12, 13)}
+    group = _task_segment_members(group, orphaned)
+    if group is None:
+        return None
+    series = _finite_series(group, orphaned, task_states=True)
+    if series is None:
+        return None
+    fields = group[1][0][1]
+    priority = _number(fields, 18, 3)
+    all_done = all(_number(member[1], 20) == 4 for member in group[1])
+    result = _common(fields, group[0][2])
+    categories = _categories(fields)
+    if categories:
+        result["kategorien"] = categories
+    result.update(startDatum=series["datum"], startZeit=series["zeit"],
+                  faellig=series["endDatum"] or series["datum"], faelligZeit=series["endZeit"],
+                  prio=priority+1 if priority < 3 else 2,
+                  erledigt=all_done,
+                  icsSerienUid=group[0][2],
+                  icsRoundtrip=["DUE:" + line[6:] if line.startswith("DTEND:") else line
+                                for line in series["icsRoundtrip"]])
+    for fid, name in ((12, "STARTS"), (13, "DUES")):
+        if templates[fid] != group[0][1][fid]:
+            result["icsRoundtrip"].append("X-MAGNOLIE-OR6-TASK-TEMPLATE-" + name + ":" + ",".join(
+                _stamp(templates[fid][i:i+8]).strftime("%Y%m%dT%H%M%S") for i in range(0, len(templates[fid]), 8)))
+    converted = [result]
+    for member in sorted(group[1], key=lambda value: _number(value[1], 14)):
+        completed = _number(member[1], 20) == 4
+        member_categories = _categories(member[1])
+        if completed == all_done and member_categories == categories:
+            continue
+        start, due = _stamp(member[1].get(7)), _stamp(member[1].get(8))
+        compact = lambda value: value.strftime("%Y%m%dT%H%M%S")
+        result["icsRoundtrip"].append("EXDATE:" + compact(start))
+        done = _common(member[1], member[2])
+        done.update(startDatum=start.strftime("%Y-%m-%d"), startZeit=start.strftime("%H:%M"),
+                    faellig=due.strftime("%Y-%m-%d"), faelligZeit=due.strftime("%H:%M"),
+                    prio=result["prio"], erledigt=completed, kategorien=member_categories, icsSerienUid=group[0][2],
+                    icsRoundtrip=["RECURRENCE-ID:" + compact(start), "DTSTART:" + compact(start),
+                                  "DUE:" + compact(due), "STATUS:" + ("COMPLETED" if completed else "NEEDS-ACTION"),
+                                  "PERCENT-COMPLETE:" + ("100" if completed else "0")])
+        converted.append(done)
+    return converted
+
+
 def _read_or6(raw):
     result = {key: [] for key in ("termine", "aufgaben", "kontakte", "notizen", "jahrestage", "geburtstage")}
     result.update(uebersprungen=0, wiederholend=0)
     document = _Document(raw)
     entries = list(document.entries(repeats=True))
+    planner_keys = document.planner_keys(entries)
     groups = document.repeat_groups(entries)
     memberships, represented_groups = document.contact_groups(entries)
     orphaned = {(entry[4], _number(entry[1], 14), _stamp(entry[1].get(7))) for entry in entries
-                if entry[0] == 0x100 and _number(entry[1], 10) and entry[2] not in groups}
+                if entry[0] in (0x100, 0x300) and _number(entry[1], 10) and entry[2] not in groups}
     consumed = set()
     evaluated = {}
     for tag, fields, uid, reference, schema in entries:
@@ -417,12 +771,16 @@ def _read_or6(raw):
             if not title:
                 continue
             if _number(fields, 10):
-                group = groups.get(uid) if tag == 0x100 else None
+                group = groups.get(uid)
                 if group and group[0][2] not in evaluated:
-                    evaluated[group[0][2]] = _finite_series(group, orphaned)
+                    evaluated[group[0][2]] = (_finite_task_series(group, orphaned) if tag == 0x300 else
+                                              _finite_calendar_series(group, orphaned, document.schemas))
                 series = evaluated.get(group[0][2]) if group else None
                 if series is not None:
-                    result["termine"].append(series)
+                    if tag == 0x300:
+                        result["aufgaben"].extend(series)
+                    else:
+                        result["termine"].extend(series)
                     # The shared counter warns about unresolved source rules;
                     # this fully verified recurrence set is already expandable.
                     consumed.update(member[2] for member in group[1])
@@ -438,14 +796,23 @@ def _read_or6(raw):
                 if not begin or not end or (end, end_time) < (begin, time):
                     result["uebersprungen"] += 1
                     continue
+                categories = _categories(fields)
+                if categories:
+                    common["kategorien"] = categories
                 result["termine"].append(dict(common, datum=begin, zeit=time,
                     endDatum=end if end != begin else "", endZeit=end_time,
                     vorlaeufig=bool(_number(fields, 18))))
             else:
                 completed, completed_time = _date(fields, 19)
                 priority = _number(fields, 18, 3)
-                result["aufgaben"].append(dict(common, faellig=end, prio=priority+1 if priority < 3 else 2,
-                                               erledigt=bool(completed)))
+                # Original-program open/completed/reopened controls verify
+                # Status 1/2 as open and 4 as complete. A Lotus reexport may
+                # leave a completion stamp even on an explicitly open task.
+                status = _number(fields, 20)
+                done = status == 4 if status in (1, 2, 4) else bool(completed)
+                result["aufgaben"].append(dict(common, startDatum=begin, startZeit=time,
+                                               faellig=end, faelligZeit=end_time, prio=priority+1 if priority < 3 else 2,
+                                               erledigt=done))
         elif tag == 0x400:
             first, last = _string(fields, 17), _string(fields, 19)
             company = _string(fields, 23)
@@ -461,11 +828,13 @@ def _read_or6(raw):
             phones = [{"wert": value, "typen": phone_types.get(index, ["VOICE"])}
                       for index, value in enumerate(_strings(fields, 33)) if value]
             emails = list(dict.fromkeys(value for value in _strings(fields, 35) if value))
-            columns = [_strings(fields, fid) for fid in (28, 31, 29, 32)]
+            columns = [_strings(fields, fid) for fid in (28, 31, 29, 32, 30)]
             addresses = []
             for index in range(max(map(len, columns))):
                 address = {key: values[index] if index < len(values) else "" for key, values in
-                           zip(("strasse", "plz", "ort", "land"), columns)}
+                           zip(("strasse", "plz", "ort", "land", "region"), columns)}
+                if not address["region"]:
+                    del address["region"]
                 if any(address.values()):
                     address["typen"] = ["WORK"] if index == 0 else ["HOME"] if index == 1 else []
                     addresses.append(address)
@@ -485,10 +854,15 @@ def _read_or6(raw):
                 contact["geburtstag"] = birthday
             for fid, label in ((16, "Title"), (18, "Middle name"), (20, "Suffix"),
                                (22, "Position"), (25, "Department"), (27, "Assistant"),
-                               (30, "State"), (37, "URL"), (43, "Spouse"), (44, "Children")):
+                                (30, "State"), (37, "URL"), (40, "Mail merge name"), (43, "Spouse"), (44, "Children")):
                 value = "; ".join(part for part in _strings(fields, fid) if part)
                 if value:
                     contact["notiz"] += ("\n" if contact["notiz"] else "") + label + ": " + value
+            # Preserve opaque source slots without guessing their relationship
+            # to phone numbers, labels or dialable extensions.
+            for index, value in enumerate(_strings(fields, 34), 1):
+                if value:
+                    contact["notiz"] += ("\n" if contact["notiz"] else "") + "Lotus Extn slot %d: %s" % (index, value)
             for fid in range(46, 66):
                 value = _string(fields, fid)
                 if value:
@@ -496,7 +870,15 @@ def _read_or6(raw):
             result["kontakte"].append(contact)
         elif tag == 0x510:
             title = _string(fields, 7)
-            text = _rtf(fields.get(8, b""))
+            body = fields.get(8, b"")
+            # An opaque unsupported note is not a corrupt allocation chain.
+            # Do not guess a plaintext encoding or silently import its title as
+            # complete content. Omit/count this entry in the existing preview;
+            # recognized-but-malformed RTF still fails through the strict parser.
+            if len(body) <= 1024 * 1024 and b"{\\rtf" not in body and body.strip(b"\x00\xff\x02"):
+                result["uebersprungen"] += 1
+                continue
+            text = _rtf(body)
             if title or text:
                 result["notizen"].append({"titel": title, "text": text, "uid": uid})
         elif tag in (0x200, 0x600):
@@ -504,19 +886,40 @@ def _read_or6(raw):
                 continue
             begin, time = _date(fields, 7)
             end, end_time = _date(fields, 8)
-            # Only native date-only spans and the independently verified annual
-            # checkbox are understood. Do not invent a rule for custom repeats.
-            if (not begin or not end or end < begin or time != "00:00" or
-                    end_time != "23:59" or _number(fields, 10) or _number(fields, 1)):
+            # Planner UI has independently verified inclusive date presentation
+            # for the bounded legacy clock forms below; anniversaries do not
+            # acquire these semantics. Repeat/confidential guards stay intact.
+            if (not begin or not end or end < begin or _number(fields, 10) or _number(fields, 1)):
                 result["uebersprungen"] += 1
                 continue
+            source_clock = None
+            if time != "00:00" or end_time != "23:59":
+                source_clock = _planner_source_clock(fields) if tag == 0x200 else None
+                if source_clock is None:
+                    result["uebersprungen"] += 1
+                    continue
             common = _common(fields, uid)
+            if source_clock is not None:
+                common["icsRoundtrip"] = source_clock
             if tag == 0x600 and _number(fields, 19) == 1 and not _number(fields, 18) & 0x10000 and begin == end:
                 result["jahrestage"].append({"name": common["titel"], "datum": begin,
                     "typ": "anniversary", "notiz": common["notiz"], "uid": uid, "geaendert": 0})
             elif tag == 0x200 or (_number(fields, 19) == 0 and _number(fields, 18) & 0x10000 and begin == end):
                 if tag == 0x200:
-                    common["notiz"] += ("\n" if common["notiz"] else "") + "Lotus planner event type: " + str(_number(fields, 18))
+                    # The original UI's explicitly selected first slot is
+                    # serialized without field19. This semantic zero default
+                    # is limited to a declared native uint16 KeyID; absence is
+                    # still not printed as an observed source field below.
+                    key_id = (_number(fields, 19) if document.schemas[schema][1].get(19) == 2 and
+                              (19 not in fields or len(fields[19]) == 2) else -1)
+                    if schema in planner_keys and 0 <= key_id < len(PLANNER_COLORS):
+                        common["kategorien"] = planner_keys[schema][key_id]
+                        common["akzentFarbe"] = PLANNER_COLORS[key_id]
+                    # Independently named native schema fields: Row != KeyID.
+                    # Neither number proves a category name or palette color.
+                    for fid, label in ((18, "Row"), (19, "KeyID")):
+                        if fid in fields:
+                            common["notiz"] += ("\n" if common["notiz"] else "") + "Lotus planner " + label + ": " + str(_number(fields, fid))
                 result["termine"].append(dict(common, datum=begin, zeit="", endDatum=end if end != begin else "", endZeit="", vorlaeufig=False))
             else:
                 result["uebersprungen"] += 1

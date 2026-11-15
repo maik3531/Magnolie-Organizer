@@ -79,6 +79,59 @@ Prüfstand dokumentieren. Auch bei späteren Fixes diese Hinweise im Issue ergä
 eine Mac-/Tablet-Korrektur nicht als bereits geprüften Linux-/Windows-Fix ausgeben.
 Diese Regel gilt dauerhaft, nicht nur für die aktuell bearbeitete Portierung.
 
+## Aktuelle Abhängigkeiten und gezielte Rückfallwege
+
+Grundsätzlich die aktuellste unterstützte, funktionierende Version einer
+Abhängigkeit verwenden. Eine ältere Version nur als gezielten Fallback vorsehen,
+wenn die neuere in der konkreten Distribution oder Umgebung nachweislich nicht
+funktioniert. Ein einzelner Kompatibilitätsfall rechtfertigt keine allgemeine
+Bindung aller Distributionen an eine alte Version. Das gilt insbesondere auch
+für WebKit, Java sowie Python/Pillow (`python3-pil`) beim Handbuch. Der gemeldete
+Handbuch-2.0.30-Installationsfall auf Mate 21.3 ist gezielt zu prüfen: Unterstützung
+der dort vorhandenen älteren Pillow-Version darf aktuelle Versionen auf anderen
+Systemen nicht ausschließen oder einen pauschalen Downgrade erzwingen. Mindest-
+und Versionsgrenzen nur aus tatsächlich benötigten und geprüften Funktionen
+ableiten, nicht ohne Nachweis anheben oder auf eine alte Version festschreiben.
+
+Dasselbe gilt für Geräte-APIs, insbesondere Notes/Android in #558: aktuelles
+unterstütztes `compileSdk`/`targetSdk` und aktuelle APIs bevorzugen, ältere Geräte
+über geprüfte API-Level-/Fähigkeitsabfragen und gezielte Rückfallwege unterstützen.
+`minSdk` getrennt vom Ziel-SDK behandeln und nur bei eigenständig belegter
+technischer Notwendigkeit anheben; ein modernes Ziel-SDK ist allein kein Grund,
+die bisher unterstützten älteren Geräte auszuschließen. Kein pauschaler alter
+API-Pfad für alle Geräte. Bestehende Geräte-/Build-/Store-Pausen bleiben wirksam.
+
+Optionale Systemdienste oder Werkzeuge nur bei tatsächlicher Verfügbarkeit
+voraussetzen; andernfalls einen geeigneten geprüften Rückfallweg verwenden.
+Beispielsweise darf NetworkManager nicht vorausgesetzt werden, wenn dieselbe
+Funktion unabhängig vom verwendeten Netzwerkdienst sicher umgesetzt werden kann.
+Rückfallbedingungen, betroffene Umgebungen und Prüfnachweise konkret festhalten;
+keine unbemerkten automatischen Downgrades, Installationen oder Erweiterungen
+bestehender Freigaben daraus ableiten.
+
+## Einfache, verlässliche Automatik
+
+Automatische Funktionen so einfach und benutzerfreundlich wie möglich gestalten:
+einmal bewusst einrichten und freigeben, anschließend ohne wiederkehrende
+Bestätigungsdialoge weiterarbeiten, auch nach Neustarts. Fehlende Verbindungen
+still abwarten und nach Rückkehr kontrolliert fortsetzen; einzelne Konflikte
+zurückstellen, statt alle übrigen freigegebenen Vorgänge zu blockieren.
+Notwendige System-/Quellenberechtigungen bei der Einrichtung einholen, nicht
+bei jedem automatischen Lauf erneut abfragen. Echte Rechte-, Konto- oder
+Identitätsänderungen weiterhin sicher erkennen; dann nur die konkret betroffene
+Funktion verständlich als wartend/klärungsbedürftig anzeigen. Keine Berechtigungen
+umgehen oder aus importierten Auto-/Profilfeldern erfinden. Dauerhafte Freigaben
+müssen an echte native Konto-/Buchidentitäten und Widerruf gebunden bleiben.
+
+Das gilt auch für Gerätefunktionen wie „Handy als Webcam“: Beim bewussten
+Aktivieren vorhandene, kompatible Treiber/Komponenten erkennen und erforderliche
+bereits installierte Module oder Dienste möglichst automatisch laden/starten und
+verwenden. Nicht bloß wegen eines noch nicht gestarteten vorhandenen Bestandteils
+an Bestätigungsdialogen scheitern. Laden/Starten vorhandener Komponenten von
+Download/Neuinstallation trennen; fehlende Installationen verständlich gezielt
+anbieten, nicht ungefragt ausführen. Erforderliche echte Systemberechtigungen
+nicht umgehen; bestehende Geräte-/VM-/Installationspausen bleiben wirksam.
+
 ## Native Startprüfung vor jeder Veröffentlichung
 
 Jedes installierbare Release-Paket in einer passenden vorhandenen VM bzw. nativ

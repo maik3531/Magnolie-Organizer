@@ -103,9 +103,7 @@ internal sealed class MainForm : Form
     {
         this.paths = paths ?? new WindowsPaths();
         // Isolated UI profiles do not own the installed user's startup entry.
-        userProfileAutostart = string.Equals(
-            Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.paths.Root)),
-            Path.TrimEndingDirectorySeparator(new WindowsPaths().Root), StringComparison.OrdinalIgnoreCase);
+        userProfileAutostart = this.paths.IsDefaultUserProfile;
         this.setupSelections = setupSelections;
         Text = "Magnolie Organizer";
         BackColor = Color.FromArgb(46, 58, 52);

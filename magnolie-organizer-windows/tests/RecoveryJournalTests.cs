@@ -7,6 +7,7 @@ internal static class RecoveryJournalTests
 {
     internal static async Task RunAsync()
     {
+        BackupDataValidationTests.Run();
         var root = Path.Combine(Path.GetTempPath(), $"magnolie-journal-{Guid.NewGuid():N}");
         var now = new DateTimeOffset(2026, 8, 12, 10, 0, 0, TimeSpan.Zero);
         try

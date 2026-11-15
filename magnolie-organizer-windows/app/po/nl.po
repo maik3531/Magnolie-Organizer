@@ -3041,8 +3041,8 @@ msgstr "Afvalinzamelingen opnemen"
 msgid "Incoming"
 msgstr "Inkomend"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Inkomende KDE Connect-bestanden (altijd bevestigen)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Inkomende KDE Connect-bestanden (altijd bevestigen)"
 
 msgid "Incoming call"
 msgstr "Inkomende oproep"
@@ -8817,3 +8817,20 @@ msgstr "Systeemvakpictogram (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "De ontwikkelaarsmodus moet opgeslagen zijn."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Bronmap op pc toevoegen …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Bronmappen op de pc staan los van ontvangstbestemmingen."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Alleen foto’s"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Geselecteerde bronmappen op de pc"

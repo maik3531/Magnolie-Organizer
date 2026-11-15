@@ -1,0 +1,457 @@
+package io.gitlab.maik3531.magnolienotes.baum
+
+import android.Manifest
+import android.app.Application
+import android.content.Context
+import android.content.pm.ProviderInfo
+import android.provider.ContactsContract
+import android.provider.ContactsContract.RawContacts
+import androidx.test.core.app.ApplicationProvider
+import kotlinx.serialization.json.*
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
+import java.io.File
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
+import org.robolectric.shadows.ShadowContentResolver
+
+/** Native combined setup, encrypted private map and source store; no UI/device. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28, 35], application = Application::class)
+class KontaktOriginalZuordnungenTest {
+    private lateinit var context: Context
+    private lateinit var parent: File
+    private lateinit var mapRoot: File
+    private lateinit var provider: KontaktOriginalBindungTest.OriginalProvider
+    private lateinit var binding: KontaktOriginalBindung
+    private lateinit var sourceStore: KontaktOriginalDauerfreigaben
+    private lateinit var scope: KontaktOriginalFreigaben
+    private var journalKey: SecretKey? = null
+    private var consentKey: SecretKey? = null
+    private var reads = 0
+    private var rotations = 0
+    private var peer = KontaktOriginalFreigaben.Partner("synthetic-peer", "native-pinned-key")
+    private var peerHook: (() -> Unit)? = null
+    private val share = "canonical-share-kept-verbatim"
+    private fun maps() = KontaktOriginalZuordnungen.fuerTest(mapRoot) { reads++; journalKey }
+    private fun freshScope() = KontaktOriginalFreigaben(sourceStore) {
+        peerHook?.also { peerHook = null }?.invoke()
+        peer
+    }
+    private fun candidate(id: String = share, bound: KontaktOriginalBindung = binding) = KontaktOriginalFreigaben.Original(id, bound)
+    private fun approve(id: String = share) {
+        val offered = candidate(id)
+        assertTrue(scope.einrichtenOriginale(listOf(binding), listOf(offered), speichern = { maps().speichern(it) }) { sources, originals ->
+            KontaktOriginalFreigaben.Auswahl(sources.toSet(), originals.toSet())
+        })
+    }
+    @Before fun setup() {
+        context = ApplicationProvider.getApplicationContext()
+        Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS)
+        provider = KontaktOriginalBindungTest.OriginalProvider()
+        provider.attachInfo(context, ProviderInfo().apply { authority = ContactsContract.AUTHORITY })
+        ShadowContentResolver.registerProviderInternal(ContactsContract.AUTHORITY, provider)
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        parent = java.nio.file.Files.createTempDirectory(context.cacheDir.toPath(), "contact-native-mapping-").toFile()
+        mapRoot = File(parent, "maps")
+        journalKey = SecretKeySpec(ByteArray(32) { 79 }, "AES")
+        sourceStore = KontaktOriginalDauerfreigaben(File(parent, "consent"), KontaktOriginalSchutz.fuerTest(
+            { consentKey }, { rotations++; consentKey = SecretKeySpec(ByteArray(32) { rotations.toByte() }, "AES") }, { consentKey = null }))
+        scope = freshScope()
+    }
+    @After fun cleanup() { parent.deleteRecursively() }
+
+    @Test fun absentOrForgedMappingCreatesNoFilesKeysOrNativePermission() {
+        val queries = provider.queries
+        assertNull(maps().finden(peer, share)); assertFalse(mapRoot.exists()); assertEquals(0, reads)
+        assertThrows(SecurityException::class.java) { maps().speichern(KontaktOriginalFreigaben.Entscheidung(Any())) }
+        assertThrows(SecurityException::class.java) { KontaktOriginalZuordnungen.Zuordnung(Any()).freigabeId() }
+        assertEquals(queries, provider.queries); assertEquals(0, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun combinedNativeDecisionPreservesCanonicalIdAndFreshOwnerCanVerifyTheExactOriginal() {
+        approve()
+        val proof = maps().finden(peer, share)!!
+        assertEquals(share, proof.freigabeId()); proof.pruefen(scope.freigabe(binding))
+        val exportedBasis = proof.basisHash(scope.freigabe(binding))
+        val encrypted = mapRoot.listFiles()!!.single { it.extension == "bin" }.readBytes()
+        assertFalse(encrypted.toString(Charsets.ISO_8859_1).contains(share))
+        assertFalse(encrypted.toString(Charsets.ISO_8859_1).contains("original-server-id"))
+        val reopenedSource = KontaktOriginalDauerfreigaben(File(parent, "consent"), KontaktOriginalSchutz.fuerTest(
+            { consentKey }, { fail("Restore may not rotate consent keys") }, { fail("Restore may not revoke") }))
+        val fresh = KontaktOriginalFreigaben(reopenedSource) { peer }
+        assertTrue(fresh.wiederherstellen(reopenedSource.laden()!!))
+        val actual = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        maps().finden(peer, share)!!.pruefen(fresh.freigabe(actual))
+        assertEquals(exportedBasis, maps().finden(peer, share)!!.basisHash(fresh.freigabe(actual)))
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun sourceOnlyApprovalDoesNotBlessPortableOrUnselectedOriginalMappings() {
+        scope.einrichten(listOf(binding), speichern = { decision -> assertTrue(maps().speichern(decision).isEmpty()) }) { it.toSet() }
+        scope.freigabe(binding).pruefen()
+        assertNull(maps().finden(peer, share)); assertFalse(mapRoot.exists()); assertEquals(0, reads)
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun onlyOfferedExactOriginalAndItsChosenSourceCanBeSelected() {
+        val offer = candidate()
+        for (mode in listOf("clone", "no-source")) {
+            assertThrows(IllegalArgumentException::class.java) {
+                scope.einrichtenOriginale(listOf(binding), listOf(offer), speichern = { fail("Invalid mapping reached storage") }) { sources, _ ->
+                    KontaktOriginalFreigaben.Auswahl(if (mode == "no-source") emptySet() else sources.toSet(),
+                        setOf(if (mode == "clone") candidate() else offer))
+                }
+            }
+        }
+        val otherCapture = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertThrows(IllegalArgumentException::class.java) {
+            scope.einrichtenOriginale(listOf(binding), listOf(candidate(bound = otherCapture))) { _, _ ->
+                fail("A nonoffered native observation reached the chooser"); null
+            }
+        }
+        assertFalse(mapRoot.exists()); assertEquals(0, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun cancelPreservesTheOldAcceptedSourceAndMappingWithoutASecondPublication() {
+        approve()
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }; val previous = file.readBytes()
+        val grant = scope.freigabe(binding)
+        assertFalse(scope.einrichtenOriginale(listOf(binding), listOf(candidate()), speichern = { fail("Cancel persisted mappings") }) { _, _ -> null })
+        assertArrayEquals(previous, file.readBytes()); maps().finden(peer, share)!!.pruefen(grant)
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun canonicalShareCannotBeRetargetedToAnotherNativeSourceIdentity() {
+        approve()
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }; val previous = file.readBytes()
+        provider.raw[RawContacts.SOURCE_ID] = "different-native-source"
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertThrows(IllegalArgumentException::class.java) { approve() }
+        assertArrayEquals(previous, file.readBytes()); assertEquals(1, rotations)
+        assertFalse(scope.gewuenscht); assertEquals(0, provider.writes)
+    }
+
+    @Test fun missingHistoryKeyDoesNotRegenerateItOrEraseAcceptedSourceIntent() {
+        approve(); val existing = journalKey
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }; val previous = file.readBytes()
+        journalKey = null
+        assertThrows(IllegalStateException::class.java) { maps().finden(peer, share) }
+        scope.freigabe(binding).pruefen()
+        assertArrayEquals(previous, file.readBytes()); assertEquals(1, rotations)
+        journalKey = existing
+        maps().finden(peer, share)!!.pruefen(scope.freigabe(binding))
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun missingKeyDuringCombinedSetupCannotPublishSourcePermissionOrMappingDirectories() {
+        journalKey = null
+        assertThrows(IllegalStateException::class.java) { approve() }
+        assertFalse(mapRoot.exists()); assertNull(sourceStore.laden()); assertEquals(0, rotations)
+        assertFalse(scope.gewuenscht); assertEquals(0, provider.writes)
+    }
+
+    @Test fun partialMappingDependencyCannotBeUsedWithAnOlderAcceptedSourceDecision() {
+        scope.einrichten(listOf(binding)) { it.toSet() } // Old accepted source intent has NO exact mapping authority.
+        val oldSource = File(parent, "consent/approval.bin").readBytes()
+        val offer = candidate()
+        assertThrows(java.io.IOException::class.java) {
+            scope.einrichtenOriginale(listOf(binding), listOf(offer), speichern = {
+                maps().speichern(it)
+                throw java.io.IOException("Controlled setup stops before owned source publication")
+            }) { sources, originals -> KontaktOriginalFreigaben.Auswahl(sources.toSet(), originals.toSet()) }
+        }
+        assertArrayEquals(oldSource, File(parent, "consent/approval.bin").readBytes())
+        val fresh = freshScope(); fresh.wiederherstellen(sourceStore.laden()!!)
+        assertThrows(IllegalArgumentException::class.java) { maps().finden(peer, share)!!.pruefen(fresh.freigabe(binding)) }
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun changedNativeRevisionAndAnotherPeerDoNotAcquireTheStoredMapping() {
+        approve()
+        assertThrows(IllegalArgumentException::class.java) { maps().finden(peer.copy(schluessel = "different-key"), share) }
+        provider.raw[RawContacts.VERSION] = 99L
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertThrows(IllegalArgumentException::class.java) { maps().finden(peer, share)!!.pruefen(scope.freigabe(binding)) }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun returnedMutableSelectionCannotAddAnOriginalAfterTheNativeDecision() {
+        val offer = candidate(); val injected = candidate("not-offered")
+        val selected = mutableSetOf(offer)
+        scope.einrichtenOriginale(listOf(binding), listOf(offer), speichern = { maps().speichern(it) }) { sources, _ ->
+            peerHook = { selected.clear(); selected += injected }
+            KontaktOriginalFreigaben.Auswahl(sources.toSet(), selected)
+        }
+        assertTrue(injected in selected)
+        maps().finden(peer, share)!!.pruefen(scope.freigabe(binding))
+        assertNull(maps().finden(peer, "not-offered")); assertEquals(0, provider.writes)
+    }
+
+    @Test fun mappingTamperDuringTheFinalNativeObservationCannotReturnAnOldValidWitness() {
+        approve()
+        val proof = maps().finden(peer, share)!!; val grant = scope.freigabe(binding)
+        val before = provider.queries
+        proof.pruefen(grant)
+        val queryCount = provider.queries - before
+        assertTrue(queryCount > 0)
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }
+        val old = file.readBytes(); var queries = 0
+        lateinit var hook: () -> Unit
+        hook = {
+            queries++
+            if (queries == queryCount) file.writeBytes(old.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() })
+            else provider.onQuery = hook
+        }
+        provider.onQuery = hook
+        assertThrows(Exception::class.java) { proof.pruefen(grant) }
+        assertEquals(queryCount, queries)
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun mappingContinuityProofIsNotRetargetableOrConstructibleFromImportedMetadata() {
+        approve(); val grant = scope.freigabe(binding)
+        val proof = maps().finden(peer, share)!!.festhalten(grant)
+        proof.pruefen(grant)
+        assertThrows(SecurityException::class.java) { proof.pruefen(scope.freigabe(binding)) }
+        val queries = provider.queries
+        assertThrows(SecurityException::class.java) { KontaktOriginalZuordnungen.Fortbestand(Any()).pruefen(grant) }
+        assertEquals(queries, provider.queries); assertEquals(0, provider.writes)
+    }
+
+    @Test fun canonicalShareLimitUsesTheExistingProtocolUnicodeCodePointCountWithoutRenaming() {
+        val id = "😀".repeat(128)
+        approve(id)
+        assertEquals(id, maps().finden(peer, id)!!.freigabeId())
+        maps().finden(peer, id)!!.pruefen(scope.freigabe(binding))
+        assertThrows(IllegalArgumentException::class.java) { approve(id + "a") }
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    private fun attempts() = KontaktOriginalVersuche.fuerTest(File(parent, "attempts")) { journalKey }
+
+    @Test fun unchangedNativeExportKeepsItsExactBaselineWithoutAnotherSetupOrConsentKeyRotation() {
+        approve()
+        val before = maps().finden(peer, share)!!.basisHash(scope.freigabe(binding))
+        repeat(2) {
+            val refreshed = maps().aktualisieren(scope.freigabe(binding), share, attempts())
+            assertEquals(before, refreshed.basisHash(scope.freigabe(binding)))
+        }
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun freshNativeRevisionCanRefreshTheSelectedOriginalAfterRestartWithoutAnotherDecision() {
+        approve()
+        val old = maps().finden(peer, share)!!.basisHash(scope.freigabe(binding))
+        provider.raw[RawContacts.VERSION] = 4L
+        provider.row[ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME] = "Native original edited locally"
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        scope = freshScope(); assertTrue(scope.wiederherstellen(sourceStore.laden()!!))
+        val refreshed = maps().aktualisieren(scope.freigabe(binding), share, attempts())
+        val quote = refreshed.basisHash(scope.freigabe(binding))
+        assertNotEquals(old, quote); assertEquals(share, refreshed.freigabeId())
+        val reopened = freshScope(); assertTrue(reopened.wiederherstellen(sourceStore.laden()!!))
+        assertEquals(quote, maps().aktualisieren(reopened.freigabe(binding), share, attempts()).basisHash(reopened.freigabe(binding)))
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun automaticNativeRefreshNeverRegistersAnAbsentOrOnlyPortableCanonicalMapping() {
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        val beforeReads = reads
+        assertThrows(SecurityException::class.java) { maps().aktualisieren(scope.freigabe(binding), share, attempts()) }
+        assertFalse(mapRoot.exists()); assertFalse(File(parent, "attempts").exists())
+        assertEquals(beforeReads, reads); assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun automaticRefreshCannotCombineAPartialMapWithAnotherSourceSetupUuid() {
+        approve()
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }; val before = file.readBytes()
+        scope.einrichten(listOf(binding)) { it.toSet() }
+        assertThrows(IllegalArgumentException::class.java) { maps().aktualisieren(scope.freigabe(binding), share, attempts()) }
+        assertArrayEquals(before, file.readBytes()); assertFalse(File(parent, "attempts").exists())
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun nativeRefreshRejectsRetargetedSourceIdentityAndRegressedProviderRevision() {
+        approve()
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }; val before = file.readBytes()
+        provider.raw[RawContacts.SOURCE_ID] = "different-source"
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertThrows(IllegalArgumentException::class.java) { maps().aktualisieren(scope.freigabe(binding), share, attempts()) }
+        provider.raw[RawContacts.SOURCE_ID] = "original-server-id"; provider.raw[RawContacts.VERSION] = 2L
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertThrows(IllegalArgumentException::class.java) { maps().aktualisieren(scope.freigabe(binding), share, attempts()) }
+        assertArrayEquals(before, file.readBytes()); assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun changedNativeContentWithoutAnAdvancedRevisionDoesNotInventANewExportBasis() {
+        approve()
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }; val before = file.readBytes()
+        provider.row[ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME] = "Unversioned change"
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        assertThrows(IllegalArgumentException::class.java) { maps().aktualisieren(scope.freigabe(binding), share, attempts()) }
+        assertArrayEquals(before, file.readBytes()); assertEquals(0, provider.writes)
+    }
+
+    @Test fun unavailableJournalKeyDuringNativeRefreshPreservesBothAcceptedMappingAndConsent() {
+        approve()
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }; val before = file.readBytes()
+        val acceptedConsent = File(parent, "consent/approval.bin").readBytes()
+        journalKey = null
+        assertThrows(IllegalStateException::class.java) { maps().aktualisieren(scope.freigabe(binding), share, attempts()) }
+        assertArrayEquals(before, file.readBytes())
+        assertArrayEquals(acceptedConsent, File(parent, "consent/approval.bin").readBytes())
+        scope.freigabe(binding).pruefen()
+        assertFalse(File(parent, "attempts").exists()); assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun peerPinChangeCannotSilentlyReapproveAnExistingNativeMappingDuringRefresh() {
+        approve()
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }; val before = file.readBytes()
+        peer = peer.copy(schluessel = "Changed pinned identity")
+        assertThrows(SecurityException::class.java) { maps().aktualisieren(scope.freigabe(binding), share, attempts()) }
+        assertArrayEquals(before, file.readBytes()); assertFalse(File(parent, "attempts").exists())
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun genuineNativeExportKeepsObservedContentRevisionCanonicalIdAndBasisTogether() {
+        approve()
+        val offer = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val stand = offer.lesen()
+        assertEquals(share, stand.freigabeId); assertEquals(binding.revision, stand.revision)
+        assertEquals(binding.aktuell().daten, stand.daten)
+        assertEquals(maps().finden(peer, share)!!.basisHash(scope.freigabe(binding)), stand.basisHash)
+        assertEquals(stand, offer.lesen()); assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun draftExportFrameComesOnlyFromTheSameActualNativeContentAndQuotedBasis() {
+        approve()
+        val offer = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val current = offer.lesen()
+        val body = offer.nachricht()
+        assertEquals(setOf("art", "fassung", "share_id", "before_basis", "setup_id", "native_revision", "content_sha256", "kontakt"), body.keys)
+        assertEquals(JsonPrimitive("kontakt_original_export"), body["art"])
+        assertEquals(JsonPrimitive(share), body["share_id"])
+        assertEquals(JsonPrimitive(current.basisHash), body["before_basis"])
+        assertEquals(JsonPrimitive(current.revision), body["native_revision"])
+        assertEquals(JsonPrimitive(scope.freigabe(binding).entscheidungId()), body["setup_id"])
+        assertEquals(JsonPrimitive(KontaktSync.hash(current.daten)), body["content_sha256"])
+        assertEquals(current.daten, Json.decodeFromJsonElement(KontaktDaten.serializer(), body.getValue("kontakt")))
+        assertTrue(body.getValue("kontakt").jsonObject.containsKey("gruppen"))
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { offer.nachricht() }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun copiedPortableExportDataCannotMintADraftNativeExportFrame() {
+        val queries = provider.queries
+        assertThrows(SecurityException::class.java) { KontaktOriginalExport.Angebot(Any()).nachricht() }
+        assertEquals(queries, provider.queries); assertFalse(mapRoot.exists())
+    }
+
+    @Test fun forgedOrCopiedExportValuesCannotBecomeANativeObservedOffer() {
+        val before = provider.queries
+        val copied = KontaktOriginalExport.Stand(share, "0".repeat(64), 3, KontaktDaten(vorname = "Imported"))
+        for (fake in listOf(Any(), copied)) {
+            assertThrows(SecurityException::class.java) { KontaktOriginalExport.Angebot(fake).lesen() }
+        }
+        assertEquals(before, provider.queries); assertFalse(mapRoot.exists()); assertEquals(0, rotations)
+    }
+
+    @Test fun freshExportAfterANativeEditRefreshesContentAndQuoteWithoutAnotherHumanDecision() {
+        approve()
+        val previous = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val old = previous.lesen()
+        provider.raw[RawContacts.VERSION] = 4L
+        provider.row[ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME] = "New genuine native content"
+        assertThrows(IllegalArgumentException::class.java) { previous.lesen() }
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        val current = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts()).lesen()
+        assertEquals("New genuine native content", current.daten.vorname)
+        assertEquals(4L, current.revision); assertEquals(old.freigabeId, current.freigabeId)
+        assertNotEquals(old.basisHash, current.basisHash); assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun retainedNativeExportCannotOutliveSourcePermissionOrItsExactStoredMapping() {
+        approve()
+        val offer = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val file = mapRoot.listFiles()!!.single { it.extension == "bin" }
+        val old = file.readBytes()
+        file.writeBytes(old.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() })
+        assertThrows(Exception::class.java) { offer.lesen() }
+        file.writeBytes(old); offer.lesen()
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { offer.lesen() }
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun callersCannotMutateTheNativeExportSnapshotThroughReturnedListContainers() {
+        provider.rows += mutableMapOf<String, Any?>(
+            ContactsContract.Data._ID to 24L, ContactsContract.Data.RAW_CONTACT_ID to 7L,
+            ContactsContract.Data.MIMETYPE to ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
+            ContactsContract.CommonDataKinds.Phone.NUMBER to "+12025550101",
+            ContactsContract.CommonDataKinds.Phone.TYPE to ContactsContract.CommonDataKinds.Phone.TYPE_HOME,
+            ContactsContract.Data.IS_READ_ONLY to 0)
+        binding = KontaktOriginalBindung.erfassen(context, "native-lookup")
+        approve()
+        val offer = KontaktOriginalExport.erfassen(scope.freigabe(binding), share, maps(), attempts())
+        val expected = binding.aktuell().daten
+        val returned = offer.lesen().daten
+        assertTrue(returned.telefone.isNotEmpty())
+        (returned.telefone as MutableList<KontaktWert>).clear()
+        assertEquals(expected, offer.lesen().daten)
+        assertEquals(0, provider.writes)
+    }
+
+    @Test fun missingPrivateOriginalResolutionDoesNotReadProvidersOrCreateDefaultState() {
+        val before = provider.queries
+        assertNull(maps().beobachten(context, peer, share))
+        assertEquals(before, provider.queries); assertFalse(mapRoot.exists()); assertEquals(0, rotations)
+    }
+
+    @Test fun privateCanonicalOriginalResolvesCurrentNativeLookupAfterRenameWithoutPortableMappings() {
+        approve()
+        val oldQuote = maps().finden(peer, share)!!.basisHash(scope.freigabe(binding))
+        provider.contact[ContactsContract.Contacts.LOOKUP_KEY] = "native-lookup-after-local-rename"
+        provider.raw[RawContacts.VERSION] = 4L
+        provider.row[ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME] = "Renamed on native device"
+        val actual = maps().beobachten(context, peer, share)!!
+        assertEquals("native-lookup-after-local-rename", actual.lookupKey)
+        assertEquals(7L, actual.rawContactId); assertEquals("original-server-id", actual.sourceId)
+        val fresh = freshScope(); assertTrue(fresh.wiederherstellen(sourceStore.laden()!!))
+        val export = KontaktOriginalExport.erfassen(fresh.freigabe(actual), share, maps(), attempts()).lesen()
+        assertEquals("Renamed on native device", export.daten.vorname)
+        assertNotEquals(oldQuote, export.basisHash); assertEquals(share, export.freigabeId)
+        assertEquals(1, rotations); assertEquals(0, provider.writes)
+    }
+
+    @Test fun selectedRawIdDoesNotResolveAReplacedAccountSourceDatabaseOrAmbiguousAggregate() {
+        approve()
+        provider.raw[RawContacts.SOURCE_ID] = "replacement-source"
+        assertThrows(IllegalArgumentException::class.java) { maps().beobachten(context, peer, share) }
+        provider.raw[RawContacts.SOURCE_ID] = "original-server-id"
+        provider.raw[RawContacts.ACCOUNT_NAME] = "other@example.invalid"
+        assertThrows(IllegalArgumentException::class.java) { maps().beobachten(context, peer, share) }
+        provider.raw[RawContacts.ACCOUNT_NAME] = "synthetic@example.invalid"
+        provider.status[ContactsContract.ProviderStatus.DATABASE_CREATION_TIMESTAMP] = 654321L
+        assertThrows(IllegalArgumentException::class.java) { maps().beobachten(context, peer, share) }
+        provider.status[ContactsContract.ProviderStatus.DATABASE_CREATION_TIMESTAMP] = 123456L
+        provider.aggregate = true
+        assertThrows(IllegalArgumentException::class.java) { maps().beobachten(context, peer, share) }
+        assertEquals(0, provider.writes); assertEquals(1, rotations)
+    }
+
+    @Test fun nativeResolutionDoesNotCreateAnAutomaticSourceGrant() {
+        approve()
+        val resolved = maps().beobachten(context, peer, share)!!
+        scope.pausieren()
+        assertThrows(SecurityException::class.java) { scope.freigabe(resolved) }
+        assertEquals(0, provider.writes)
+    }
+}

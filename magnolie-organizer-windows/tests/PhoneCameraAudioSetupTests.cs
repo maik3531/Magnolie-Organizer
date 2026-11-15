@@ -75,6 +75,20 @@ internal static class PhoneCameraAudioSetupTests
             TestAssert.That(!PhoneCameraAudioSetup.ValidArguments(invalid), "Malformed setup argument admitted: " + field);
         }
         TestAssert.That(!PhoneCameraAudioSetup.ValidArguments(args.Concat(new[] { "retry" }).ToArray()), "Unknown setup switch admitted");
+        foreach (var mode in new[] { PhoneCameraAudioSetup.CombinedElevatedArgument, PhoneCameraAudioSetup.CombinedElevatedPlanArgument })
+        {
+            var combined = args.ToArray(); combined[0] = mode; combined[1] = "magnolie-phone-combined-" + new string('a', 32);
+            TestAssert.That(PhoneCameraAudioSetup.ValidCombinedArguments(combined), "Combined original invocation refused");
+            TestAssert.That(!PhoneCameraAudioSetup.ValidArguments(combined) && !PhoneCameraAudioSetup.ValidCombinedArguments(args),
+                "Audio and combined invocation namespaces mixed");
+            foreach (var (field, value) in new[] { (0,"--install"), (1,"magnolie-phone-audio-" + new string('a',32)),
+                (2,new string('B',64)), (3,"0"), (4,"not-a-sid"), (5,"0") })
+            {
+                var invalid = combined.ToArray(); invalid[field] = value;
+                TestAssert.That(!PhoneCameraAudioSetup.ValidCombinedArguments(invalid), "Malformed combined invocation admitted: " + field);
+            }
+            TestAssert.That(!PhoneCameraAudioSetup.ValidCombinedArguments(combined.Concat(new[] { "retry" }).ToArray()), "Combined retry switch admitted");
+        }
         return Task.CompletedTask; // No pipe, UAC, staging or installer invocation.
     }
     [SupportedOSPlatform("windows")]
@@ -123,6 +137,10 @@ internal static class PhoneCameraAudioSetupTests
             Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), identity.User!.Value, "1" };
         var result = await PhoneCameraAudioSetup.RunElevatedAsync(args);
         TestAssert.That(result == (elevated ? 5 : 740), "Wrong original process birth-time admitted or requested elevation");
+        args[0] = PhoneCameraAudioSetup.CombinedElevatedPlanArgument;
+        args[1] = "magnolie-phone-combined-" + Guid.NewGuid().ToString("N");
+        result = await PhoneCameraAudioSetup.RunCombinedElevatedAsync(args);
+        TestAssert.That(result == (elevated ? 5 : 740), "Combined wrong original birth-time admitted preparation");
         // The actual kernel parent handle/start-time gate exits before pipe
         // connection, resources, ProgramData or native helper execution.
     }

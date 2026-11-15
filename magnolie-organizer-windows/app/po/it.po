@@ -3047,8 +3047,8 @@ msgstr "Includi raccolte rifiuti"
 msgid "Incoming"
 msgstr "In arrivo"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "File KDE Connect in arrivo (conferma sempre)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "File KDE Connect in arrivo (conferma sempre)"
 
 msgid "Incoming call"
 msgstr "Chiamata in arrivo"
@@ -8849,3 +8849,20 @@ msgstr "Icona nell’area di notifica del sistema (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "La modalità sviluppatore deve essere salvata."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Aggiungi cartella di origine del PC …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Le cartelle di origine del PC sono separate dalle destinazioni di ricezione."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Solo foto"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Cartelle di origine del PC selezionate"

@@ -3035,8 +3035,8 @@ msgstr "Включити вивезення відходів"
 msgid "Incoming"
 msgstr "Вхідні"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Вхідні файли KDE Connect (завжди запитувати підтвердження)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Вхідні файли KDE Connect (завжди запитувати підтвердження)"
 
 msgid "Incoming call"
 msgstr "Вхідний дзвінок"
@@ -8769,3 +8769,20 @@ msgstr "Значок у системному треї (60 с)"
 
 msgid "Saved developer mode is required."
 msgstr "Режим розробника має бути збережено."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Додати вихідну теку на ПК …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Вихідні теки на ПК відокремлені від місць отримання."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Лише фотографії"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Вибрані вихідні теки на ПК"

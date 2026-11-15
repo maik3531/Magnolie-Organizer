@@ -3052,8 +3052,8 @@ msgstr "Müllentleerungen mitdrucken"
 msgid "Incoming"
 msgstr "Eingehend"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Eingehende KDE Connect-Dateien (immer bestätigen)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Eingehende KDE Connect-Dateien (immer bestätigen)"
 
 msgid "Incoming call"
 msgstr "Eingehender Anruf"

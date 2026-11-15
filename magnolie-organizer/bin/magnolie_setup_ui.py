@@ -66,6 +66,7 @@ REGIONS_BY_COUNTRY = {
 MAX_ITEM_LENGTH = 80
 # Generated from handbook mobile-downloads.json by tools/sync_mobile_downloads.py.
 MAGNOLIE_NOTES_URL = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Notes.apk"
+MAGNOLIE_NOTES_FDROID_URL = "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes"
 KDE_CONNECT_URL = "https://play.google.com/store/apps/details?id=org.kde.kdeconnect_tp"
 
 
@@ -897,8 +898,10 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
         N_("Downloads"))
     phone_actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
     notes_qr = bind(Gtk.Button(), "Magnolie Notes")
+    notes_fdroid_qr = Gtk.Button(label="Magnolie Notes · F-Droid")
     kde_qr = bind(Gtk.Button(), "KDE Connect")
     phone_actions.pack_start(notes_qr, False, False, 0)
+    phone_actions.pack_start(notes_fdroid_qr, False, False, 0)
     phone_actions.pack_start(kde_qr, False, False, 0)
     phone.pack_start(phone_actions, False, False, 9)
     phone_connect_buttons = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -1034,6 +1037,7 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
         qr_dialog.destroy()
 
     notes_qr.connect("clicked", show_download_qr, "Magnolie Notes", MAGNOLIE_NOTES_URL)
+    notes_fdroid_qr.connect("clicked", show_download_qr, "Magnolie Notes · F-Droid", MAGNOLIE_NOTES_FDROID_URL)
     kde_qr.connect("clicked", show_download_qr, "KDE Connect", KDE_CONNECT_URL)
 
     registers = page(

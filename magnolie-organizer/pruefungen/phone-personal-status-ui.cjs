@@ -14,7 +14,9 @@ for (const web of harness.exports.roots) {
   const css = fs.readFileSync(path.join(web, "stil.css"), "utf8");
   const start = css.indexOf(".geraet-dialog { width: min(500px");
   assert.ok(start >= 0);
-  styles.push(css.slice(start, css.indexOf(".notiz-anpassen-dialog", start))
+  // Compare the device dialog/advanced controls, not the unrelated platform-
+  // specific media destination and trash rules that follow them.
+  styles.push(css.slice(start, css.indexOf(".telefon-medien {", start))
     .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ").trim());
   const js = fs.readFileSync(path.join(web, "anwendung.js"), "utf8");
   layouts.push(js.slice(js.indexOf("  function baueGeraeteStatusKoerper("), js.indexOf("  function baueTelefonPersonalSync(")));

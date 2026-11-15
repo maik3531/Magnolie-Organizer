@@ -11,6 +11,10 @@
 
 namespace Magnolie::PhoneCamera
 {
+    // Only authority callbacks use this conversion. Ordinary COM success/status
+    // results keep their documented HRESULT semantics.
+    static HRESULT ConfirmedAuthority(HRESULT hr) noexcept
+    { return hr == S_OK ? S_OK : FAILED(hr) ? hr : E_ACCESSDENIED; }
     using Microsoft::WRL::ComPtr;
     using Microsoft::WRL::RuntimeClass;
     using Microsoft::WRL::RuntimeClassFlags;
@@ -26,8 +30,8 @@ namespace Magnolie::PhoneCamera
         {
             auto& state = *static_cast<State*>(value);
             if (state.shutdown) return MF_E_SHUTDOWN;
-            HRESULT hr = state.owner.current(state.owner.context);
-            return FAILED(hr) ? hr : state.owner.sending(state.owner.context);
+            HRESULT hr = ConfirmedAuthority(state.owner.current(state.owner.context));
+            return FAILED(hr) ? hr : ConfirmedAuthority(state.owner.sending(state.owner.context));
         }
         std::recursive_mutex gate;
         SourceOwner owner;
@@ -35,9 +39,9 @@ namespace Magnolie::PhoneCamera
         Samples samples;
         std::shared_ptr<PresentationClock> clock;
         GUID clockScope = GUID_NULL;
-        bool shutdown = false, started = false, announced = false, received = false;
+        bool shutdown = false, started = false, announced = false, received = false, sendingObserved = false;
         MF_STREAM_STATE streamState = MF_STREAM_STATE_STOPPED;
-        Clock::time_point startedAt{}, receivedAt{};
+        Clock::time_point sendingAt{}, receivedAt{};
         GUID descriptorId{};
         MFWORKITEM_KEY timer = 0;
         ComPtr<IMFMediaEventQueue> sourceEvents, streamEvents;
@@ -167,7 +171,7 @@ namespace Magnolie::PhoneCamera
     HRESULT Source::CurrentLocked() noexcept
     {
         if (state_->shutdown) return MF_E_SHUTDOWN;
-        const HRESULT hr = state_->owner.current(state_->owner.context);
+        const HRESULT hr = ConfirmedAuthority(state_->owner.current(state_->owner.context));
         return FAILED(hr) ? RetireLocked(hr) : state_->shutdown ? MF_E_SHUTDOWN : S_OK;
     }
 
@@ -175,7 +179,9 @@ namespace Magnolie::PhoneCamera
     {
         auto& s = *state_;
         if (s.shutdown) return MF_E_SHUTDOWN;
+        const bool wasActive = s.started && s.streamState == MF_STREAM_STATE_RUNNING;
         s.shutdown = true; s.started = false; s.samples.Retire();
+        if (wasActive && s.owner.active) s.owner.active(s.owner.context, false);
         s.latest.Reset(); s.requests.clear(); s.outstanding = 0;
         if (s.timer) { MFCancelWorkItem(s.timer); s.timer = 0; }
         if (s.sourceEvents) s.sourceEvents->Shutdown();
@@ -230,14 +236,16 @@ namespace Magnolie::PhoneCamera
         if (hr != S_OK) return FAILED(hr) ? hr : MF_E_INVALIDMEDIATYPE;
         hr = CurrentLocked(); if (FAILED(hr)) return hr;
         s.started = true; s.streamState = MF_STREAM_STATE_RUNNING;
-        s.startedAt = Clock::now(); s.received = false; s.latest.Reset();
+        s.sendingObserved = false; s.received = false; s.latest.Reset();
         s.outstanding -= s.requests.size(); s.requests.clear();
         hr = s.sourceEvents->QueueEventParamUnk(s.announced ? MEUpdatedStream : MENewStream, GUID_NULL, S_OK, stream_.Get());
         PROPVARIANT zero{}; zero.vt = VT_I8; zero.hVal.QuadPart = 0;
         if (SUCCEEDED(hr)) hr = s.streamEvents->QueueEventParamVar(MEStreamStarted, GUID_NULL, S_OK, &zero);
         if (SUCCEEDED(hr)) hr = s.sourceEvents->QueueEventParamVar(MESourceStarted, GUID_NULL, S_OK, &zero);
         if (FAILED(hr)) return RetireLocked(hr);
-        s.announced = true; return S_OK;
+        s.announced = true;
+        if (s.owner.active) s.owner.active(s.owner.context, true);
+        return S_OK;
     }
 
     HRESULT Source::Stop()
@@ -246,7 +254,9 @@ namespace Magnolie::PhoneCamera
         HRESULT hr = CurrentLocked(); if (FAILED(hr)) return hr;
         auto& s = *state_;
         if (!s.started) return MF_E_INVALID_STATE_TRANSITION;
+        const bool wasActive = s.streamState == MF_STREAM_STATE_RUNNING;
         s.started = false; s.streamState = MF_STREAM_STATE_STOPPED;
+        if (wasActive && s.owner.active) s.owner.active(s.owner.context, false);
         s.latest.Reset(); s.outstanding -= s.requests.size(); s.requests.clear();
         hr = s.streamEvents->QueueEventParamVar(MEStreamStopped, GUID_NULL, S_OK, nullptr);
         if (SUCCEEDED(hr)) hr = s.sourceEvents->QueueEventParamVar(MESourceStopped, GUID_NULL, S_OK, nullptr);
@@ -289,13 +299,13 @@ namespace Magnolie::PhoneCamera
         auto& s = *state_;
         if (!s.started || s.streamState != MF_STREAM_STATE_RUNNING || !s.latest || s.requests.empty()) return S_OK;
         HRESULT hr = CurrentLocked();
-        if (SUCCEEDED(hr)) hr = s.owner.sending(s.owner.context);
+        if (SUCCEEDED(hr)) hr = ConfirmedAuthority(s.owner.sending(s.owner.context));
         if (SUCCEEDED(hr) && s.clock) hr = s.clock->RequireImportedAnchor(s.clockScope);
         if (SUCCEEDED(hr) && Clock::now() - s.receivedAt > std::chrono::milliseconds(250)) hr = MF_E_NET_TIMEOUT;
         if (FAILED(hr)) return s.shutdown ? hr : RetireLocked(hr);
         auto sample = std::move(s.latest); auto token = std::move(s.requests.front()); s.requests.pop_front();
         if (token) hr = sample->SetUnknown(MFSampleExtension_Token, token.Get());
-        if (SUCCEEDED(hr)) hr = s.owner.sending(s.owner.context);
+        if (SUCCEEDED(hr)) hr = ConfirmedAuthority(s.owner.sending(s.owner.context));
         if (SUCCEEDED(hr)) hr = CurrentLocked();
         if (SUCCEEDED(hr)) hr = s.streamEvents->QueueEventParamUnk(MEMediaSample, GUID_NULL, S_OK, sample.Get());
         return FAILED(hr) ? (s.shutdown ? hr : RetireLocked(hr)) : S_OK;
@@ -341,9 +351,22 @@ namespace Magnolie::PhoneCamera
         auto& s = *state_; s.timer = 0;
         HRESULT hr = CurrentLocked(); if (FAILED(hr)) return S_OK;
         const auto now = Clock::now();
-        if (s.started && ((s.received && now - s.receivedAt > std::chrono::milliseconds(250)) ||
-            (!s.received && now - s.startedAt > std::chrono::seconds(5))))
-        { RetireLocked(MF_E_NET_TIMEOUT); return S_OK; }
+        if (s.started)
+        {
+            const HRESULT sending = s.owner.sending(s.owner.context);
+            if (sending == S_OK)
+            {
+                if (!s.sendingObserved) { s.sendingAt = now; s.sendingObserved = true; }
+                if ((s.received && now - s.receivedAt > std::chrono::milliseconds(250)) ||
+                    (!s.received && now - s.sendingAt > std::chrono::seconds(5)))
+                { RetireLocked(MF_E_NET_TIMEOUT); return S_OK; }
+            }
+            else if (sending != E_ACCESSDENIED || s.sendingObserved || s.received)
+            { RetireLocked(FAILED(sending) ? sending : E_ACCESSDENIED); return S_OK; }
+            // Genuine preparation (Current, not yet SEND) has no media-arrival
+            // deadline. Original consent/peer/control-lease checks above remain
+            // active. This starts neither a PTS epoch nor capture/readiness.
+        }
         hr = ScheduleLocked(); if (FAILED(hr)) RetireLocked(hr);
         return S_OK;
     }
@@ -387,7 +410,7 @@ namespace Magnolie::PhoneCamera
             MediaEventType type = MEUnknown; hr = (*result)->GetType(&type);
             if (SUCCEEDED(hr) && type == MEMediaSample)
             {
-                hr = state_->owner.sending(state_->owner.context);
+                hr = ConfirmedAuthority(state_->owner.sending(state_->owner.context));
                 if (SUCCEEDED(hr) && state_->clock) hr = state_->clock->RequireImportedAnchor(state_->clockScope);
                 PROPVARIANT payload{};
                 ComPtr<IMFSample> sample;
@@ -430,9 +453,12 @@ namespace Magnolie::PhoneCamera
         if (stateValue != MF_STREAM_STATE_RUNNING && stateValue != MF_STREAM_STATE_STOPPED && stateValue != MF_STREAM_STATE_PAUSED)
             return E_INVALIDARG;
         if (stateValue == MF_STREAM_STATE_RUNNING && !state_->started) return MF_E_INVALID_STATE_TRANSITION;
+        const bool wasActive = state_->started && state_->streamState == MF_STREAM_STATE_RUNNING;
         state_->streamState = stateValue;
         if (stateValue != MF_STREAM_STATE_RUNNING)
         { state_->latest.Reset(); state_->outstanding -= state_->requests.size(); state_->requests.clear(); }
+        const bool isActive = state_->started && stateValue == MF_STREAM_STATE_RUNNING;
+        if (wasActive != isActive && state_->owner.active) state_->owner.active(state_->owner.context, isActive);
         return S_OK;
     }
     STDMETHODIMP Stream::GetStreamState(MF_STREAM_STATE* stateValue)

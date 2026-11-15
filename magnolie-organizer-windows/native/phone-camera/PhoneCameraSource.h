@@ -15,6 +15,9 @@ namespace Magnolie::PhoneCamera
         // Held until the last source/stream state reference is released, including
         // shutdown interfaces retained by a capture client and pending callbacks.
         IUnknown* lifetime = nullptr;
+        // Optional nonblocking/nonreentrant output telemetry, called ONLY by
+        // actual MF Start/Stop/stream-state transitions. Never Current/SEND.
+        void (*active)(void*, bool) noexcept = nullptr;
     };
 
     // Private in-process feed. Not an IPC endpoint, capture consent or SEND grant.

@@ -125,7 +125,7 @@ function Get-ReleaseArchiveSources([string] $Root) {
     # source archives must carry them instead of reaching outside the archive.
     $sharedTests = Join-Path (Split-Path -Parent $Root) 'magnolie-organizer/pruefungen'
     if (-not (Test-Path -LiteralPath $sharedTests -PathType Container)) { $sharedTests = Join-Path $Root 'shared/magnolie-organizer/pruefungen' }
-    foreach ($name in 'phone-personal-status-ui.cjs', 'appointment-occurrence-delete.cjs', 'appointment-replacement.cjs', 'waste-holiday-authority.cjs', 'media-trash-ui.cjs') {
+    foreach ($name in 'phone-personal-status-ui.cjs', 'appointment-occurrence-delete.cjs', 'appointment-replacement.cjs', 'waste-holiday-authority.cjs', 'media-trash-ui.cjs', 'task-context-sort-ui.cjs') {
         $file = Get-Item -LiteralPath (Join-Path $sharedTests $name)
         Assert-SourceFileSafe $file
         [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/pruefungen/$name" }

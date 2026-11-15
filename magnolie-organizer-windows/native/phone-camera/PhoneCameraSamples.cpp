@@ -22,7 +22,7 @@ namespace Magnolie::PhoneCamera
     {
         if (IsRetired()) return MF_E_SHUTDOWN;
         const HRESULT status = current_(context_);
-        if (FAILED(status)) { Retire(); return status; }
+        if (status != S_OK) { Retire(); return FAILED(status) ? status : E_ACCESSDENIED; }
         return IsRetired() ? MF_E_SHUTDOWN : S_OK;
     }
 

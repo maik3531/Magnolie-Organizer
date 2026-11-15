@@ -3037,8 +3037,8 @@ msgstr "Уключыць вываз адходаў"
 msgid "Incoming"
 msgstr "Паступае"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Уваходныя файлы KDE Connect (заўсёды пацвярджаць)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Уваходныя файлы KDE Connect (заўсёды пацвярджаць)"
 
 msgid "Incoming call"
 msgstr "Уваходны званок"
@@ -8766,3 +8766,20 @@ msgstr "Значок у сістэмным трэі (60 с)"
 
 msgid "Saved developer mode is required."
 msgstr "Рэжым распрацоўшчыка павінен быць захаваны."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Дадаць зыходную папку на ПК …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Зыходныя папкі на ПК аддзеленыя ад месцаў атрымання."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Толькі фота"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Выбраныя зыходныя папкі на ПК"

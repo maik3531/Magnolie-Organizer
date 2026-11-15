@@ -23,7 +23,7 @@ namespace Magnolie::PhoneCamera
             *result = nullptr;
             std::lock_guard<std::mutex> lock(gate_);
             if (spent_) return MF_E_SHUTDOWN;
-            HRESULT hr = owner_.current(owner_.context);
+            HRESULT hr = RequireCurrent();
             if (FAILED(hr)) { RetireLocked(); return hr; }
             if (!source_)
             {
@@ -36,16 +36,16 @@ namespace Magnolie::PhoneCamera
                     const HRESULT unlocked = attributes_->UnlockStore();
                     hr = FAILED(copied) ? copied : unlocked;
                 }
-                if (SUCCEEDED(hr)) hr = owner_.current(owner_.context);
+                if (SUCCEEDED(hr)) hr = RequireCurrent();
                 if (SUCCEEDED(hr)) hr = owner_.construct(owner_.context, snapshot.Get(), &source_);
                 if (SUCCEEDED(hr) && !source_) hr = E_UNEXPECTED;
-                if (SUCCEEDED(hr)) hr = owner_.current(owner_.context);
+                if (SUCCEEDED(hr)) hr = RequireCurrent();
                 if (FAILED(hr)) { RetireLocked(); return hr; }
             }
             hr = source_->QueryInterface(iid, result);
             if (SUCCEEDED(hr))
             {
-                const HRESULT current = owner_.current(owner_.context);
+                const HRESULT current = RequireCurrent();
                 if (FAILED(current))
                 {
                     static_cast<IUnknown*>(*result)->Release(); *result = nullptr;
@@ -102,6 +102,11 @@ namespace Magnolie::PhoneCamera
         ATTRIBUTE(CopyAllItems, (IMFAttributes* target), (target))
 #undef ATTRIBUTE
     private:
+        HRESULT RequireCurrent() noexcept
+        {
+            const HRESULT hr = owner_.current(owner_.context);
+            return hr == S_OK ? S_OK : FAILED(hr) ? hr : E_ACCESSDENIED;
+        }
         void RetireLocked() noexcept
         { spent_ = true; if (source_) source_->Shutdown(); source_.Reset(); }
         ActivateOwner owner_;

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">Używaj klienta F-Droid do sprawdzania i instalowania aktualizacji Notes. Pobranie samego pliku APK ze strony F-Droid nie zapewnia powiadomień o aktualizacjach.</string>
+    <string name="about_update_fdroid_unknown">Notes zainstalowano przez F-Droid? Do aktualizacji używaj klienta F-Droid, a nie wydania GitHub. Pobranie samego pliku APK ze strony nie zapewnia powiadomień F-Droid o aktualizacjach.</string>
+</resources>

@@ -11,6 +11,7 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed class WindowsContactStore : IContactRemote
 {
+    public bool? CanWrite => true;
     private sealed record ContactPhone(string Value, bool Mobile);
     private const int MaxContactBytes = 2 * 1024 * 1024;
     private static readonly XNamespace ContactNs = "http://schemas.microsoft.com/Contact";

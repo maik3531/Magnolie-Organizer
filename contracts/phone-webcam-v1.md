@@ -1,5 +1,345 @@
 # Phone webcam: two capture providers, one native AV backend (Refs #244)
 
+## Separate combined-setup identity wire (Refs #588)
+
+PhoneCameraCombinedSetupWire defines a separate bounded v2 identity exchange for
+the future original combined setup caller. It is NOT appended to the existing
+audio-only protocol, and has no active UI/CLI/elevated/installer caller yet.
+Its fixed 144-byte header contains magic `MGWSET02`, little-endian version2 and
+expected Plan1/Install2 mode, a nonempty transaction GUID, the fixed Source class,
+and32-byte Source/helper/original microphone package digests. Production factories
+take Source/helper identities only from their own verified embedded resources;
+missing resources are unavailable, with no external path/manifest fallback.
+
+The receiver compares its own composition and separately expected mode. The
+original sender then requires an exact echo including its transaction; a child
+cannot assume that sender role. Headers are owned copies, including across Stream
+read/write callbacks, and a failed/cancelled send or echo attempt cannot be retried
+on that object. A decoder error must retire the caller's original conversation,
+not trigger scanning/reconnection until another header happens to fit.
+
+These public fields and their equality are NOT a MAC, original peer identity,
+user approval, installed-source proof, capture permission or readiness. The future
+caller must still enforce original SID/PID/birth/pipe checks, one actual original
+mutation approval, protected setup ownership and joined outcomes. The wire never
+invokes any installer, registry, device, camera or audio client.
+
+Four new groups passed on Linux and Windows against actual stream/file methods:
+both-mode framing/identity/echo and caller-buffer isolation; wrong version/mode/
+class/artifact/package/transaction refusal; truncation/cancellation/flush failures
+without retry; and the original header transaction reaching the actual journal.
+The production journal factory now requires a completed Install-receiver header
+and records exactly that transaction instead of generating an unrelated GUID.
+Plan, sender-role or incomplete-echo headers fail before Windows identity/path/
+file operations. That structural gate is NOT original peer or user approval.
+The corresponding production protected-file factory was not invoked in tests.
+Those are stream/fixture-file checks, not a native service/process or
+privileged setup acceptance. Arbitrary-identity factories exist only in the test
+host and are excluded from the optional product; BASE excludes the wire type.
+
+## Activation metadata without capture authority (Refs #589)
+
+The actual Source COM module passes the owned IMFActivate snapshot into its
+dormant source. Ordinary symbolic-link/string/GUID/blob/COM metadata is retained
+per original shell, before and after genuine adoption. GetSourceAttributes returns
+an independent store; later activation/caller-store changes cannot retarget the
+source. Source-owned media invariants (including fixed Color source type) win
+over conflicting caller metadata. CopyAllItems replaces its target, so canonical
+bound-source attributes are overlaid individually rather than erasing the saved
+activation metadata. Neither public metadata, IUnknown, class/scope flags nor
+symbolic links become capture/SEND authority or an OS source-binding proof.
+
+The new production-module case reproduced the missing symbolic-link attribute
+before the fix. The final source-bound DLL passed ten unregistered module groups
+(three new metadata/lifetime/isolation cases and seven affected lifecycle cases),
+including a metadata COM object's reentrant Shutdown during release and actual
+DLL unload. A separate new actual MF shell case verifies metadata both before
+and after test-only adoption, preserved canonical Color/no implicit SEND, and
+original capture loss refusing metadata readback while registration remains live.
+Fourteen affected shell/lifetime cases passed at the final source state as well.
+The test-only adoption is not a productive broker or OS identity proof.
+
+Metadata COM references are moved out of the shell lock before release during
+terminal Stop; registration cleanup remains separate and outside locks. The new
+Source artifact replaces only its changed 17-input snapshot. Parent/worker
+catalogs and base managed inputs are unchanged. No camera registration, real
+FrameServer/AudioClient, driver setup, physical phone or AV/OBS acceptance occurs
+in these tests. Those remain #588/#503 under the existing device pauses.
+
+## Persistent Source deployment contract (Refs #588)
+
+PhoneCameraSourceRegistration now implements the future elevated Source step,
+but has NO active caller in the current audio-only setup. It consumes its own
+embedded payload and matching original journal identity. Before mutation it
+requires an administrator, an explicit machine64 COM parent with protected
+owner/DACL, and no existing fixed class in either machine64 or current-user64
+view. It never uses merged HKCR, a user-selected DLL or an HKCU fallback.
+
+After the flushed SourceIntent it creates a fixed protected permanent
+`ProgramData/Magnolie-Webcam-Source/<digest>/Magnolie.PhoneCameraSource.x64.dll`
+from owned resource bytes, refusing an existing digest directory/file. Parent
+directory handles and the checked DLL read lease are held through registration.
+Both the persistent DLL and the new journal file request an explicit trusted
+owner/DACL at CREATE_NEW, rather than assuming the creating token's default
+owner. The DLL's held local-file/no-reparse/final-path identity and protected
+owner/DACL are checked before the machine COM path is written.
+Both the class and InprocServer32 key require actual REG_CREATED_NEW_KEY;
+collisions do not authorize value replacement. The fixed REG_SZ path and Both
+threading model, exact key/value shape, protected ACLs and held DLL digest are
+checked before recording SourceInstalled. A later error records terminal
+uncertainty when possible and preserves every partial file/key; no automatic
+rollback, ACL repair, foreign takeover or unknown-outcome retry is implemented.
+
+Registry ACLs have a distinct rights mask: KEY_NOTIFY is allowed read access,
+not FILE_WRITE_EA. Three new actual-Windows memory-only groups check that policy,
+the actual persistent-file creation descriptor and strict registration readback,
+including wrong path/type/threading and extra
+values/subkeys. A separate explicit Registry64 read-only query observed protected
+standard COM parents and no fixed class at the time of that query. Neither result
+is a registered-source or protected-install acceptance test.
+
+The protected file publication, Win32 key creation/flush and combined PnP path
+have only been compiled, NOT executed or accepted. InstallCurrent neither loads
+the DLL nor invokes COM/FrameServer or audio clients; SourceInstalled is setup
+accounting, NOT OS source-identity proof, signature validation or capture readiness.
+The original single-approval IPC/microphone setup still needs integration and
+safe native acceptance. No Source installer is exposed to phone/renderer commands.
+
+## Combined setup journal boundary (Refs #588)
+
+PhoneCameraSetupJournal implements a bounded, collision-refusing durable setup
+record for the future combined installer. Its production factory consumes its
+own embedded Source/helper identities and the fixed original microphone package
+digest, holds the existing protected ProgramData/root checks, and creates one
+fixed journal with CreateNew/WriteThrough. No existing/empty/partial journal is
+overwritten, removed or reopened for mutation. The factory is NOT wired to the
+current audio-only setup, plan/preparation probes or incoming phone commands.
+
+The journal records separate Prepared → SourceIntent → SourceInstalled →
+MicrophoneIntent → RebootRequired steps. Each complete row is flushed to disk
+before the method returns; intent must precede its future external mutation.
+Source class/digest/fixed relative deployment path, helper and original mic
+package identities remain bound throughout. Failed/UnknownPending are terminal;
+a write/flush exception poisons the live writer before any retry. Review retains
+known source/mic steps and any known original devnode even on a partial failure.
+Interrupted prefixes remain pending; truncated/corrupt/noncanonical/misbound
+records are refused, not interpreted as an unused transaction. Row hashes and
+history links detect corruption but are NOT authentication or installed-source
+proof; trusted ownership still depends on the protected filesystem boundary.
+
+Four new groups passed with actual owned temporary files on Linux and
+Windows: flushed step order/readback, terminal uncertainty, strict audit, and
+exclusive original writer. Prefix/truncation tests simulate interrupted records,
+not power-loss durability certification. The tests do not invoke the production
+ProgramData factory, elevation, registry/COM registration, PnP or audio clients.
+They do not certify a medium-integrity process or the original non-elevated
+runtime's access to the genuine LocalService/FrameServer primary token. An
+administrator diagnostic process or a service-status observation is not that
+admission proof; no elevated streaming or identity/ACL fallback is permitted.
+The test-only arbitrary-path factory and writer fault hook are excluded from the
+product. No journal receipt grants capture, SourceBindingProof or UI readiness.
+
+The Source step now has a compiled persistent deployment/registration contract,
+but has not been executed or natively accepted. The combined installer and
+linkage to the original mic setup must actually consume these durable steps
+within ONE approved elevated process.
+The existing microphone-only reboot result is not combined webcam success.
+
+The journal's native-result bridge now extracts the original helper's OwnInstance
+without rewriting it. This path requires SourceInstalled and MicrophoneIntent
+before accepting the bounded native reply; only exit3010 plus the exact original
+reboot-required schema/flags can append RebootRequired. Missing, oversized,
+malformed, contradictory or late replies remain terminal UnknownPending and
+cannot authorize retry. Exact failed/cleanup-pending/unknown-pending exit/state
+pairs can preserve a known original devnode for review without certifying success
+or granting ownership/cleanup rights. The original process/pipe authentication is
+still required by the future caller; JSON is not peer or installation proof.
+
+Three new actual temporary-file/JSON groups and one affected legacy reboot-result
+group passed on Linux and Windows, including ordering, ambiguous receipts,
+concurrent completion and a failed durable write. Existing independent journal
+groups and native artifacts did not change and were not rerun. The bridge is not
+wired to a new live UI/elevated entry and never starts a helper, driver, source or
+audio client. Actual combined installation, normal-process authority, microphone
+readiness and AV acceptance remain open under the existing pauses.
+Broker/VirtualCamera/real AV acceptance and all existing device pauses remain.
+
+## Native response-file linker routing (Refs #587)
+
+All three native artifact builders keep compiler arguments on separate lines but
+put `/link` and its complete linker tail on one response-file line. Separate tail
+lines were interpreted as compiler options: actual MSVC logs contained ignored
+NXCOMPAT/MACHINE options, and the new source DLL had no DEF-specified COM exports.
+The corrected source DLL exports exactly the two COM entry points; the parent
+retains its nine C-ABI exports. All three final artifacts have their required x64
+role and ASLR/NX/CFG flags with no ignored-option warnings. This finding does not
+establish that older artifacts lacked effective default protections or caused
+the independent Audiosrv failure.
+
+Three writer cases reproduced the old formatting; nine portable cases now pass,
+including preserved path quoting and invalid delimiter refusal. The source-bound
+parent/worker artifacts were rebuilt because their builder inputs changed; the
+worker's binary digest happened to remain unchanged, but its descriptor changed.
+The changed optional product composition and its three existing resource/sibling
+identities passed read-only checks. Unchanged base/native-method suites were not
+rerun, and no audio worker, installer or registered camera was started.
+
+## Native source DLL and immutable build input (Refs #586, #587)
+
+PhoneCameraModule implements the fixed custom-source COM class using the existing
+factory/activation boundaries and the dormant shell. Each activation has its own
+registration context. Source shutdown notifies that context and releases its
+controller; detached/independently held source interfaces retain their module
+lifetime. DllCanUnloadNow also accounts for explicit server locks. Only
+DllGetClassObject/DllCanUnloadNow are exported; no self-registration entry point,
+test proof factory, phone capture or fake SEND path is provided.
+
+Seven actual ordinary-process lifecycle groups passed against the unregistered
+DLL, including exact class/interface rejection, activation and detached-source
+lifetime, independent activations, metadata/property refusal and server locks.
+The final source-bound DLL was loaded and actually unloaded by the controlled
+host. This is not protected installed loading, FrameServer activation or camera
+registration. Module registration liveness never becomes a capture callback.
+
+The existing MSVC/SDK conventions also build this required DLL with a fixed
+17-input descriptor, class ID, x64 DLL role and ASLR/NX/CFG. PhoneCameraSource.targets
+validates those inputs before taking one private byte snapshot; an actual imported
+task accepted the good artifact and rejected checksum, stale source, ARM64,
+camera-OFF, wrong class ID and extra descriptor rows. A failed check leaves the
+previous valid snapshot unchanged. Build identity is not signing or load authority.
+
+The source snapshot target is now imported into the optional managed product.
+When an explicit build artifact directory is supplied, it embeds the immutable
+DLL/descriptor pair and copies the fixed DLL sibling. PhoneCameraSourcePayload
+consumes only the embedded pair, with bounded reads, an owned byte snapshot,
+exact class/source descriptor, checksum and x64 DLL ASLR/NX/CFG checks. Missing
+both resources means unavailable; incomplete or invalid resources are refused.
+This validates build identity, not a signature, trusted installation, COM/source
+identity, broker readiness or capture permission. No adjacent descriptor or
+runtime path supplies authority. The consumer neither loads nor registers code.
+
+Three new managed groups cover immutable/bounded resources, PE/digest refusal
+and strict class/source descriptors. Actual changed BOTH and BASE builds and
+read-only source/parent/worker resource checks passed; BOTH's source DLL sibling
+matches its embedded identity, while BASE excludes the source type/resources.
+These are managed composition checks, not installed package acceptance.
+
+The source DLL is not yet installed or registered. The authenticated broker/proof producer,
+IMFVirtualCamera manager, combined single-approval setup and real AV acceptance
+remain #586. Old audio artifacts remain separate; no unrelated tests are repeated
+merely because this DLL/target was added.
+
+## Dormant registration source boundary (Refs #584)
+
+PhoneCameraDormantSource separates registration/module lifetime from capture
+authority. Its unregistered MF shell offers static metadata but no presentation,
+event wait, Start or frame-feed access before binding. Caller-set attributes and
+KS properties cannot grant authority. Registration Current is a separate type,
+requires exact S_OK and cannot satisfy the capture SourceOwner or SEND checks.
+
+The native controller can adopt one exact-target SourceBindingProof. Its constructor
+is private to the future trusted FrameServerSourceBroker; the ordinary product
+has no implemented proof producer or property/bootstrap protocol yet. Tests alone
+can create controlled proofs through a build-only friend. This private C++ API is
+not itself a cryptographic or OS source-identity proof. After admission, the shell
+constructs the actual anchored source with its identical original clock owner.
+Foreign targets/clocks cannot consume an unbound slot; authenticated adoption is
+one attempt and cannot replace/revive an owner. No broker IO occurs under the
+shell lock. Shutdown detaches and shuts down the real source outside that lock,
+including a source being constructed concurrently; delegated event waits wake.
+The native owner must join its calls before destroying the controller.
+
+Eleven new actual MF-memory/COM groups passed: pre-binding refusal, no property
+grant, exact target, one original/preparation versus SEND, registration revocation,
+Stop during adoption, original clock, module lifetime, pending event wait, stale
+target, and lost capture owner despite a live registration. A production object
+compiled without test access, and a separate negative compilation confirmed that
+ordinary code cannot construct a proof. No existing unchanged native suites or
+artifacts were rebuilt: this component is not yet linked into their catalogs.
+
+This is a new source component, not a historical released-bug reproduction or a
+usable registered camera. Factory/module/IMFVirtualCamera wiring, authenticated
+property/broker admission, real LocalService access, combined setup and actual
+AV/OBS/phone/package acceptance remain open. No system registration, AudioClient,
+endpoint, installer, VM or device-pause change was part of these checks.
+
+For the pending native registry/module composition (#586), RegistrationLifetime
+also has an optional terminal `closed` notification, separate from capture
+retirement. It runs once outside the shell lock, after source shutdown. The native
+registry may release its controller from that callback; controller calls retain
+their state locally before invoking any callbacks. Three additional native cases
+cover registry-owned-controller release from Source.Shutdown, from the controller's
+own Stop, and during adoption. Those three and the eleven affected shell groups
+passed on the changed implementation. This is lifecycle wiring for a future
+registry, not the authenticated broker, combined setup or OS camera registration.
+
+## Exact native authority confirmation (Refs #585)
+
+Native Current/Sending callbacks confirm authority only with `S_OK`. `S_FALSE`
+and other nonnegative status values are not permission: Samples, PresentationClock,
+Source publication/delivery/readback, activation, PipeReader and AudioRender now
+convert them to `E_ACCESSDENIED`. Genuine failing HRESULTs retain their cause.
+Ordinary COM/IO status handling is unchanged. Refusal remains terminal for an
+admitted owner; later returning `S_OK` cannot revive it. Preparation may still
+precede SEND, but publishing media cannot.
+
+Eight new device-free native groups cover those boundaries. The first seven
+reproduced against the original components and passed after correction. The pipe
+fixture initially supplied the invalid current-process pseudohandle; it was
+corrected to a held real process handle and separately reproduced before/after.
+Existing affected native suites were rerun because their source inputs changed.
+The renderer fixture never creates an AudioClient; its production object also
+compiles without the test-access macro. Parent/worker immutable artifacts and the
+changed optional product composition were rebuilt and inspected without payload
+execution. Unchanged base composition inputs were not rerun.
+
+This is Windows HRESULT-specific hardening, not a proven Linux/Notes defect or
+completed webcam. The registration-bound bootstrap (#584), real FrameServer peer,
+normal microphone, joined AV/OBS and installable-package acceptance remain open;
+existing device/audio/VM pauses are unchanged.
+
+## Separate LocalService FrameServer peer admission (Refs #557)
+
+FrameServer custom sources run as LocalService in Session 0, not SYSTEM or a
+child of the Organizer. A read-only query on the Windows test host confirmed the
+configured FrameServer account and unrestricted service SID while the service
+was stopped. This did not start the service, enumerate cameras or initialize audio.
+The audio worker's stricter original-parent and user/SYSTEM pipe rules therefore
+remain unchanged; they are not reused as FrameServer authentication.
+
+PhoneCameraFrameServerPeer accepts only a connected byte-mode server pipe and
+reads its client PID/session from the kernel. It holds that process and its
+primary token, requires LocalService, Session 0 and the exact enabled FrameServer
+service SID (not deny-only/duplicate/absent), and checks the System32 svchost image.
+PID/session association, process liveness and original Current are rechecked.
+Token groups are bounded and their SID pointers stay inside the owned token blob.
+No metadata PID, user-selected SID, SYSTEM alias, World/AuthenticatedUsers grant
+or broad LocalService fallback can construct an admitted peer.
+
+Rejected/unadmitted peers do not retire the genuine original owner or close its
+base pipe. An admitted peer's later loss is terminal and signals that original
+owner once. This is only peer admission, NOT source-scope resolution, phone
+capture permission, actual SEND or output readiness. Admission must run under
+the future broker's bounded ownership/cleanup design, never as a crypto-Current
+callback. No elevation or permission repair is attempted if process/token access
+is denied. The Microsoft sample's World-access app-launch notification pipe is
+not a model for capture authority and is not copied here.
+
+Six NEW actual Windows groups passed: fixed service identity policy, mandatory
+enabled group, bounded/owned token blob, real own-user pipe rejection without
+base transport/owner loss, endpoint role/type rejection, and original Current
+before peer admission (including refusal of S_FALSE). Positive token identity
+exists ONLY as in-memory SID test data; no real LocalService process was admitted.
+The production object also compiled without a test factory/bypass. Existing
+parent/worker artifact inputs were unchanged and their old suites were not rerun.
+
+The new component is not yet linked into the original parent or FrameServer
+resolver. Real service-peer/token-access acceptance, trusted scope/lease/anchor/
+video routing, combined outputs and actual module/device/AV/phone/OBS/package
+acceptance remain #503/#536/#538/#486. No service, camera, audio endpoint, installer
+or VM was started. Source code here is Windows-only; the transferable rule is
+kernel peer identity rather than metadata authority, not a proven portable fix.
+
 ## Imported original AV anchor reaches actual video samples (Refs #556)
 
 CreateAnchoredSource is the explicit route for the future trusted FrameServer

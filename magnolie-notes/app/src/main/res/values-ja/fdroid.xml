@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">Notesの更新の確認とインストールにはF-Droidクライアントを使用してください。F-DroidのウェブサイトからAPKをダウンロードするだけでは更新通知は届きません。</string>
+    <string name="about_update_fdroid_unknown">NotesをF-Droid経由でインストールしましたか？更新にはGitHubのリリースではなくF-Droidクライアントを使用してください。ウェブサイトからAPKをダウンロードするだけではF-Droidの更新通知は届きません。</string>
+</resources>

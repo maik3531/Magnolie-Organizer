@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">Ke kontrole a instalaci aktualizací Notes používejte klienta F-Droid. Samotné stažení APK z webu F-Droid neposkytuje oznámení o aktualizacích.</string>
+    <string name="about_update_fdroid_unknown">Máte Notes z F-Droid? K aktualizacím používejte klienta F-Droid, nikoli vydání GitHub. Samotné stažení APK z webu neposkytuje oznámení F-Droid o aktualizacích.</string>
+</resources>

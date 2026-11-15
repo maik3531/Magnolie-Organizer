@@ -24,6 +24,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk, WebKit2
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--web", choices=("linux", "windows"), required=True)
+parser.add_argument("--web-links-only", action="store_true")
 args = parser.parse_args()
 assert os.environ.get("MAGNOLIE_EDITOR_ISOLATED") == "1"
 assert not Path("/dev/dri").exists() and not list(Path("/dev").glob("nvidia*"))
@@ -188,6 +189,56 @@ def state():
 html:field.innerHTML, focus:document.activeElement === field, events,
 start:field.selectionStart, end:field.selectionEnd,
 hint:document.getElementById(field.getAttribute('aria-describedby'))?.textContent};""")
+
+
+if args.web_links_only:
+    completed = False
+    navigations = []
+    try:
+        load({"notizen": [{"id": "web-note", "titel": "Synthetic web links",
+              "text": "See (https://example.test/path).", "html": "<p>See (https://example.test/path).</p>"}]})
+        js("OrganizerTest.zustand().notizen.auswahlId='web-note'; OrganizerTest.wechsel('notizen'); return true;")
+        wait(400)
+        before = js("return {note:JSON.stringify(OrganizerTest.daten().notizen[0]), html:document.querySelector('#notiz-text').innerHTML};")
+        links = js("return Array.from(document.querySelectorAll('.notiz-web-aktionen a'), a=>a.href);")
+        assert links == ["https://example.test/path"], links
+
+        def navigation(_view, decision, kind):
+            if kind in (WebKit2.PolicyDecisionType.NAVIGATION_ACTION, WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION):
+                action = decision.get_navigation_action()
+                navigations.append({"uri": action.get_request().get_uri(), "userGesture": action.is_user_gesture()})
+                decision.ignore()  # Do not open a browser or use network in a test.
+                return True
+            return False
+
+        view.connect("decide-policy", navigation)
+        assert not navigations
+        js("document.querySelector('.notiz-web-aktionen a').focus(); return true;")
+        key("Return")
+        assert navigations == [{"uri": "https://example.test/path", "userGesture": True}], navigations
+        after = js("return {note:JSON.stringify(OrganizerTest.daten().notizen[0]), html:document.querySelector('#notiz-text').innerHTML};")
+        assert after == before, (before, after)
+        screen("note-web-links")
+        js("window.field=document.querySelector('#notiz-text'); field.focus(); const range=document.createRange(); range.selectNodeContents(field); range.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(range); return true;")
+        key("space")
+        assert js("return OrganizerTest.daten().notizen[0].text;") == "See (https://example.test/path). "
+        key("ctrl+z")
+        assert js("return OrganizerTest.daten().notizen[0].text;") == "See (https://example.test/path)."
+        assert js("return field.innerHTML;") == before["html"]
+        assert js("return field.querySelectorAll('a').length;") == 0
+        results.append({"case": "note-web-link-native-gesture", "navigations": navigations,
+                        "storedNoteAndEditorUnchanged": True, "nativeTypingUndoNoGeneratedLinks": True,
+                        "networkNamespaceOffline": True})
+        completed = True
+    finally:
+        report = {"completed": completed, "web": args.web, "seconds": round(time.monotonic()-started, 2),
+                  "engine": f"WebKitGTK {WebKit2.MAJOR_VERSION}.{WebKit2.MINOR_VERSION}.{WebKit2.MICRO_VERSION}",
+                  "cpuAffinity": sorted(os.sched_getaffinity(0)), "results": results, "screenshots": screens,
+                  "sourceSha256": {name: hashlib.sha256((web/name).read_bytes()).hexdigest() for name in ("anwendung.js", "stil.css")}}
+        (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps({key: value for key, value in report.items() if key != "results"}, indent=2))
+        window.destroy()
+    raise SystemExit(0)
 
 
 completed = False

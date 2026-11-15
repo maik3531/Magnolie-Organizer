@@ -6,8 +6,23 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class ManagedInternetAccountsTests
 {
+    private static void ProfileScopeDoesNotAcquireSharedAccounts()
+    {
+        var installed = new WindowsPaths();
+        TestAssert.That(installed.IsDefaultUserProfile, "The installed user profile lost its account scope.");
+        TestAssert.That(new WindowsPaths(Path.Combine(installed.Root, ".")).IsDefaultUserProfile &&
+            new WindowsPaths(installed.Root + Path.DirectorySeparatorChar).IsDefaultUserProfile,
+            "Equivalent installed profile paths lost their normal account scope.");
+        var isolated = Path.Combine(Path.GetTempPath(), "magnolie-isolated-scope-" + Guid.NewGuid().ToString("N"));
+        TestAssert.That(!Directory.Exists(isolated) && !new WindowsPaths(isolated).IsDefaultUserProfile &&
+            !Directory.Exists(isolated), "Scope inspection created a profile or admitted an isolated book to shared accounts.");
+        TestAssert.That(!new WindowsPaths(Path.Combine(installed.Root, "separate-book")).IsDefaultUserProfile,
+            "A child profile was mistaken for the installed user's global account scope.");
+    }
+
     internal static async Task RunAsync()
     {
+        ProfileScopeDoesNotAcquireSharedAccounts();
         ManagedAccountRuntimePolicyTests.Run();
         var root = Path.Combine(Path.GetTempPath(), "magnolie-account-profile-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

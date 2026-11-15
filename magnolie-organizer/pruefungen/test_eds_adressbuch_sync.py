@@ -334,7 +334,9 @@ def test_fehlendes_ruecklesen_nach_schreiben_bestaetigt_keine_baseline(monkeypat
     probe, erstellt, _, _ = sync_lauf(monkeypatch, VerzoegerteSicht(),
         [{"uid": "neu", "nachname": "Keep", "geaendert": 200, "sync": False}], basis=basis)
     assert len(erstellt) == 1
-    assert probe.nutzlast["kontakte"][0]["sync"] is False
+    # An uncertain source acknowledgment is not a global contact opt-out (#581).
+    assert probe.nutzlast["kontakte"][0]["sync"] is True
+    assert not (probe.nutzlast["kontakte"][0].get("syncQuellen") or {}).get("eds:google")
     assert probe.nutzlast["kontakte"][0]["nachname"] == "Keep"
     assert probe.nutzlast["kontaktVorschau"]["fehler"] == 1
     assert probe.nutzlast["syncMetadaten"]["eds"]["adressbuecher"]["google"] == basis

@@ -3260,11 +3260,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const klammer = text.match(/<([^<>]+)>/);
     if (klammer) text = klammer[1].trim();
     text = text.replace(/^mailto:/i, "");
+    if (!text.includes("@") && (text.match(/\(at\)|\[at\]/gi) || []).length === 1)
+      text = text.replace(/\(at\)|\[at\]/i, "@");
     if (text.length > 254 ||
       !/^[^\s@<>,;:]+@[^\s@<>,;:]+\.[^\s@<>,;:]+$/.test(text)) return "";
     const domain = text.slice(text.lastIndexOf("@") + 1).toLowerCase();
     if (domain === "invalid" || domain.endsWith(".invalid")) return "";
-    return text;
+    return text.toLowerCase();
   }
 
   function emailEintragListe(kontakt) {
@@ -3306,6 +3308,88 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function emailListe(kontakt) {
     return emailEintragListe(kontakt).map((eintrag) => eintrag.wert);
+  }
+
+  function emailAdressenImText(text) {
+    text = String(text || "");
+    const muster = /[\p{L}\p{N}._%+-]+(?:@|\(at\)|\[at\])[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/giu;
+    const aus = [];
+    for (const match of text.matchAll(muster)) {
+      const davor = text[match.index - 1] || "";
+      if (davor && /[\p{L}\p{N}._%+@)\]-]/u.test(davor)) continue;
+      const email = emailAdresse(match[0]);
+      if (email) aus.push({ start: match.index, ende: match.index + match[0].length, text: match[0], email });
+      if (aus.length >= 32) break;
+    }
+    return aus;
+  }
+
+  function webLinkZiel(wert) {
+    const text = String(wert || "");
+    if (text.length > 4096 || !/^https?:\/\/[^/]/i.test(text) ||
+      /[\s\\\u0000-\u001f\u007f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u.test(text)) return "";
+    try {
+      const url = new URL(text);
+      return ["http:", "https:"].includes(url.protocol) && url.hostname && !url.username && !url.password ? url.href : "";
+    } catch (_fehler) { return ""; }
+  }
+
+  function webLinksImText(text) {
+    text = String(text || "");
+    const aus = [];
+    for (const match of text.matchAll(/https?:\/\/[^\s<>"'\u0000-\u001f\u007f]+/giu)) {
+      if (match[0].length > 4096) continue;
+      if (match.index && /[\p{L}\p{N}_@%:/\\.-]/u.test(text[match.index - 1])) continue;
+      let kandidat = match[0];
+      // Sentence punctuation and unmatched enclosing brackets are not a URL.
+      // Balanced path parentheses and IPv6 host brackets remain part of it.
+      const ueberhang = {};
+      for (const [auf, zu] of [["(", ")"], ["[", "]"], ["{", "}"]])
+        ueberhang[zu] = Math.max(0, kandidat.split(zu).length - kandidat.split(auf).length);
+      let ende = kandidat.length;
+      while (ende && (".,;:!?".includes(kandidat[ende - 1]) || ueberhang[kandidat[ende - 1]] > 0)) {
+        if (ueberhang[kandidat[ende - 1]] > 0) ueberhang[kandidat[ende - 1]]--;
+        ende--;
+      }
+      kandidat = kandidat.slice(0, ende);
+      const ziel = webLinkZiel(kandidat);
+      if (ziel) aus.push({ text: kandidat, ziel });
+      if (aus.length >= 32) break;
+    }
+    return aus;
+  }
+
+  function notizWebLinks(flaeche) {
+    const aus = [], gesehen = new Set();
+    const aufnehmen = (text, ziel) => {
+      if (!ziel || gesehen.has(ziel) || aus.length >= 32) return;
+      gesehen.add(ziel); aus.push({ text, ziel });
+    };
+    for (const link of flaeche.querySelectorAll("a[href]")) {
+      const text = link.getAttribute("href");
+      aufnehmen(text, webLinkZiel(text));
+    }
+    // Inspect only a detached copy: neither link recognition nor its action
+    // changes the editor DOM, stored HTML/text, revision or undo history.
+    const kopie = flaeche.cloneNode(true);
+    for (const link of kopie.querySelectorAll("a")) link.replaceWith(document.createTextNode(" "));
+    for (const treffer of webLinksImText(htmlZuText(kopie))) aufnehmen(treffer.text, treffer.ziel);
+    return aus;
+  }
+
+  function emailTextElement(klasse, text) {
+    text = String(text || "");
+    const ziel = el("div", klasse);
+    let position = 0;
+    for (const treffer of emailAdressenImText(text)) {
+      ziel.append(document.createTextNode(text.slice(position, treffer.start)));
+      const link = el("a", null, treffer.text);
+      link.href = "mailto:" + treffer.email;
+      link.addEventListener("click", (event) => { event.preventDefault(); schreibePost(null, treffer.email); });
+      ziel.append(link); position = treffer.ende;
+    }
+    ziel.append(document.createTextNode(text.slice(position)));
+    return ziel;
   }
 
   function setzeEmailListe(kontakt, eintraege) {
@@ -3948,7 +4032,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const schleier = el("div", "eingabe-schleier sms-detail-schleier");
     const dialog = el("div", "eingabe-dialog sms-detail-dialog");
     const schliessen = () => { beendeModal(schleier); schleier.remove(); };
-    const text = el("div", "sms-detail-text", nachricht.text);
+    const text = emailTextElement("sms-detail-text", nachricht.text);
     const liste = el("dl", "sms-detail-liste");
     const zeile = (name, wert) => { liste.append(el("dt", null, name), el("dd", null, wert || "–")); };
     zeile(_("Date"), smsZeitText(nachricht.zeit, true));
@@ -3980,7 +4064,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const reihe = el("div", "sms-nachricht " + nachricht.richtung);
       const blase = el("div", "sms-blase");
       blase.dataset.smsId = nachricht.id;
-      blase.append(el("div", "sms-text", nachricht.text));
+      blase.append(emailTextElement("sms-text", nachricht.text));
       const meta = el("div", "sms-meta", smsZeitText(nachricht.zeit, false));
       if (nachricht.richtung === "ausgang") {
         const legende = smsStatusText(nachricht.status);
@@ -6600,7 +6684,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           kontaktePruefen: !!kontaktSyncPruefungLauf,
           baumSyncLauf: baumSpeicherNachweis?.text === auftrag.text ? {run:baumSpeicherNachweis.proof.run,
             peer:baumSpeicherNachweis.proof.peer,
-            before:baumSpeicherNachweis.beforeText === letzterSpeicherText ? letzterSpeicherSha256 : ""} : null })) {
+            before:baumSpeicherNachweis.beforeText === letzterSpeicherText ? letzterSpeicherSha256 : ""} : null,
+          ...(originalKontaktSpeicher?.text === auftrag.text ? { kontaktOriginalLauf: originalKontaktSpeicher.token } : {}) })) {
         App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
       }
       return;
@@ -6640,6 +6725,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function verwerfeSpeichernNachRestore() {
+    originalKontaktDauerNachweis = originalKontaktLetzterAck = null;
+    originalKontaktWlanWartet = false;
+    originalKontaktGeneration++;
+    originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     letzterSpeicherSha256 = ""; baumSpeicherNachweis = baumPostVorSpeichern = null;
     clearTimeout(speicherTimer); clearTimeout(speicherAntwortTimer); clearTimeout(notizSnapshotTimer);
     speicherTimer = speicherAntwortTimer = notizSnapshotTimer = null;
@@ -14365,6 +14454,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return true;
   }
 
+  function merkeTelefonAbgleichSchreibwunsch(kontakt, vorher = null) {
+    const stand = normalisiereTelefonWerteStand(kontakt.telefonWerteStand), aktuell = kontaktWerteProjektion(kontakt);
+    const pending = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung);
+    // Reconciliation never confirms an unknown baseline or changes its owner.
+    if (!stand || !aktuell || pending?.unbekannt?.length || !gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(kontakt), stand)) return false;
+    const bekanntVorher = kopie(aktuell), quellStand = kopie(aktuell);
+    for (const name of Object.keys(stand.fields)) {
+      if (Array.isArray(vorher?.[name])) bekanntVorher[name] = kopie(vorher[name]);
+      quellStand[name] = kopie(stand.fields[name]);
+    }
+    const geaendert = merkeTelefonWerteAenderung(kontakt, bekanntVorher);
+    return merkeTelefonWerteAenderung(kontakt, quellStand) || geaendert;
+  }
+
   function telefonWerteSchreibQuelle(kontakt) {
     const pending = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung);
     if (!pending || !DATEN.kontakte.includes(kontakt)) return null;
@@ -21946,8 +22049,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }).then((eingabe) => {
       if (eingabe === null || !flaeche.isConnected) return;
       let adresse = String(eingabe).trim();
-      if (new RegExp("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").test(adresse)) {
-        adresse = "mailto:" + adresse;
+      const email = emailAdresse(adresse);
+      if (email) {
+        adresse = "mailto:" + email;
       }
       if (!new RegExp("^(?:https?:|mailto:)", "i").test(adresse)) adresse = "https://" + adresse;
       const link = document.createElement("a");
@@ -21959,7 +22063,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         link.append(bereich.extractContents());
         bereich.insertNode(link);
       } else {
-        link.textContent = adresse.replace(/^mailto:/i, "");
+        link.textContent = email ? String(eingabe).trim().replace(/^mailto:/i, "") : adresse.replace(/^mailto:/i, "");
         flaeche.append(link);
       }
       flaeche.dispatchEvent(new Event("input", { bubbles: true }));
@@ -22742,6 +22846,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     pruefeSchreibung(flaeche);
     const htmlStand = {};
     flaeche.innerHTML = saeubereHtml(notiz.html, htmlStand) || textZuHtml(notiz.text);
+    const emailAktionen = el("div", "notiz-email-aktionen");
+    const aktualisiereEmailAktionen = () => {
+      emailAktionen.replaceChildren();
+      const gesehen = new Set();
+      for (const treffer of emailAdressenImText(htmlZuText(flaeche))) {
+        if (gesehen.has(treffer.email)) continue;
+        gesehen.add(treffer.email);
+        const taste = knopf(treffer.text, "klein", () => schreibePost(null, treffer.email));
+        taste.title = _("Email") + ": " + treffer.email;
+        emailAktionen.append(taste);
+      }
+      emailAktionen.hidden = !gesehen.size;
+    };
+    aktualisiereEmailAktionen();
+    flaeche.addEventListener("input", aktualisiereEmailAktionen);
+
+    const webAktionen = el("div", "notiz-web-aktionen");
+    const aktualisiereWebAktionen = () => {
+      webAktionen.replaceChildren();
+      for (const treffer of notizWebLinks(flaeche)) {
+        const link = el("a", "knopf klein", treffer.text);
+        link.href = treffer.ziel; link.rel = "noopener noreferrer";
+        link.title = _("Open in browser") + ": " + treffer.ziel;
+        webAktionen.append(link);
+      }
+      webAktionen.hidden = !webAktionen.childElementCount;
+    };
+    aktualisiereWebAktionen();
+    flaeche.addEventListener("input", aktualisiereWebAktionen);
 
     const geaendert = () => {
       notizAenderungMerken(notiz);
@@ -22874,7 +23007,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       for (const taste of [...einfuegen.querySelectorAll("button"),
         ...leiste.querySelectorAll("button")]) taste.disabled = true;
     }
-    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, rahmen,
+    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, emailAktionen, webAktionen, rahmen,
       bindeSchreibTab(flaeche));
     if (notiz.anhaenge.length) {
       const anhaenge = el("div", "notiz-anhaenge");
@@ -25431,11 +25564,125 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let internetKontoStartet = false;
   let edsAngefragt = false;
   let syncLaeuft = false;
+  let originalKontaktFreigaben = 0, originalKontaktLauf = null, originalKontaktSpeicher = null;
+  let originalKontaktGeneration = 0;
+  let originalKontaktFreigabeAnfrage = "";
+  let originalKontaktWlanWartet = false;
+  let originalKontaktDauerNachweis = null, originalKontaktLetzterAck = null;
+
+  function originalKontaktUpdatesWiderrufen(dauerhaft = false) {
+    originalKontaktWlanWartet = false;
+    originalKontaktGeneration++;
+    originalKontaktFreigaben = 0;
+    originalKontaktFreigabeAnfrage = "";
+    originalKontaktSpeicher = null;
+    originalKontaktDauerNachweis = originalKontaktLetzterAck = null;
+    if (Bruecke.vorhanden) Bruecke.sende({ cmd: "kontakt_originalquellen_widerrufen", dauerhaft: dauerhaft === true });
+  }
+
+  function starteOriginalKontaktUpdates() {
+    if (!Bruecke.vorhanden || !initialisiert || !antwortErhalten || gesperrt || originalKontaktFreigaben < 1 ||
+        originalKontaktFreigabeAnfrage || originalKontaktLauf || originalKontaktSpeicher || syncLaeuft || kontaktSyncPruefungLauf || aktiverEditor || mcpSyncAktiv() ||
+        laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null || !/^[0-9a-f]{64}$/.test(letzterSpeicherSha256)) return;
+    sichereNotizSnapshot();
+    if (JSON.stringify(DATEN) !== letzterSpeicherText || speicherTimer !== null) return;
+    const lauf = { requestId: crypto.randomUUID(), bestand: DATEN, text: letzterSpeicherText, sha256: letzterSpeicherSha256,
+      generation: originalKontaktGeneration };
+    originalKontaktLauf = lauf;
+    originalKontaktWlanWartet = false;
+    if (!Bruecke.sende({ cmd: "kontakt_originalquellen_update", requestId: lauf.requestId, standSha256: lauf.sha256 })) {
+      originalKontaktLauf = null;
+      return false;
+    }
+    // Only a native terminal reply releases the run. A timeout is NOT evidence
+    // of delivery failure and must not start another provider attempt.
+    return true;
+  }
+
+  function empfangeOriginalKontaktErgebnis(nutzlast) {
+    const lauf = originalKontaktLauf;
+    if (!lauf || nutzlast?.requestId !== lauf.requestId) return;
+    originalKontaktLauf = null;
+    if (lauf.generation !== originalKontaktGeneration) return;
+    if (Number.isSafeInteger(nutzlast.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
+    if (nutzlast.ok !== true) {
+      if (nutzlast.code === "account_access_wait" && originalKontaktDauerNachweis) originalKontaktDauerNachweis.starten = true;
+      if (nutzlast.code === "wlan_required") originalKontaktWlanWartet = true;
+      if (nutzlast.code === "wlan_required" && $("#sync-status")) $("#sync-status").textContent = _("Waiting for Wi-Fi.");
+      return;
+    }
+    if (nutzlast.fehlerQuellen > 0) zettel(_("Synchronization failed."));
+    if (!nutzlast.token) return;
+    sichereNotizSnapshot();
+    if (gesperrt || lauf.bestand !== DATEN || aktiverEditor || syncLaeuft || kontaktSyncPruefungLauf || mcpSyncAktiv() ||
+        laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null || originalKontaktFreigaben < 1 ||
+        letzterSpeicherText !== lauf.text || letzterSpeicherSha256 !== lauf.sha256 ||
+        nutzlast.originalSha256 !== lauf.sha256 || JSON.stringify(DATEN) !== lauf.text ||
+        !/^[0-9a-f]{64}$/.test(nutzlast.token) || !Array.isArray(nutzlast.kontakte) ||
+        nutzlast.kontakte.length !== DATEN.kontakte.length || nutzlast.kontakte.some((kontakt, index) =>
+          !kontakt || kontakt.id !== DATEN.kontakte[index].id || kontakt.uid !== DATEN.kontakte[index].uid)) return;
+    DATEN.kontakte = JSON.parse(JSON.stringify(nutzlast.kontakte));
+    originalKontaktSpeicher = { token: nutzlast.token, text: JSON.stringify(DATEN) };
+    speichereJetzt();
+  }
+  function notesOriginalUiFrei() {
+    return Bruecke.vorhanden && initialisiert && antwortErhalten && !gesperrt && !aktiverEditor && !syncLaeuft && !kontaktSyncPruefungLauf &&
+      !mcpSyncAktiv() && !baumSpeicherNachweis && !baumPostVorSpeichern && !ausstehendeAdressbuchBaseline && !laufenderSpeicher &&
+      wartenderSpeicherText === null && speicherTimer === null && !ausstehenderNotizSnapshot && notizSnapshotTimer === null &&
+      !originalKontaktLauf && !originalKontaktSpeicher;
+  }
+  function notesOriginalUiStand(beforeText) {
+    try {
+      const normal = JSON.stringify(JSON.parse(beforeText));
+      return JSON.stringify(DATEN) === normal && !!letzterSpeicherText && JSON.stringify(JSON.parse(letzterSpeicherText)) === normal;
+    } catch (_) { return false; }
+  }
+  function empfangeNotesOriginalBereit(nutzlast) {
+    if (typeof nutzlast?.token !== "string" || !/^[a-f0-9]{64}$/.test(nutzlast.token) || !Bruecke.vorhanden) return;
+    Bruecke.sende({ cmd: "notes_original_ready", token: nutzlast.token, bereit: notesOriginalUiFrei() && notesOriginalUiStand(nutzlast.beforeText) });
+  }
+  function empfangeNotesOriginalSpeichern(nutzlast) {
+    // This idle/CAS check protects unsent edits, never grants source/ACK rights.
+    const token = nutzlast?.token;
+    if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) return;
+    const ablehnen = () => Bruecke.vorhanden && Bruecke.sende({ cmd: "notes_original_save_cancel", token });
+    if (!notesOriginalUiFrei() ||
+        !["bootstrap", "save"].includes(nutzlast.kind) || typeof nutzlast.beforeText !== "string" || typeof nutzlast.text !== "string") {
+      ablehnen(); return;
+    }
+    let vorher, danach;
+    try {
+      vorher = JSON.parse(nutzlast.beforeText); danach = JSON.parse(nutzlast.text);
+      if (!notesOriginalUiStand(nutzlast.beforeText)) { ablehnen(); return; }
+      if (nutzlast.kind === "bootstrap") {
+        if (nutzlast.text !== nutzlast.beforeText) { ablehnen(); return; }
+      } else {
+        if (!Array.isArray(vorher.kontakte) || !Array.isArray(danach.kontakte)) { ablehnen(); return; }
+        const ohneBasis = buch => {
+          const kopie = JSON.parse(JSON.stringify(buch));
+          kopie.kontakte.forEach(kontakt => { delete kontakt.notesOriginalBasis; });
+          return JSON.stringify(kopie);
+        };
+        if (ohneBasis(vorher) !== ohneBasis(danach)) { ablehnen(); return; }
+      }
+    } catch (_) { ablehnen(); return; }
+    // Exact native payload, including a deliberately unchanged first save.
+    // Uses the ordinary serial SaveACK lane rather than writing behind DATEN.
+    if (nutzlast.kind === "save") DATEN.kontakte = danach.kontakte;
+    const auftrag = { id: naechsteSpeicherId++, text: nutzlast.text };
+    laufenderSpeicher = auftrag;
+    setzeSpeicherStatus(_("Saving …"), false);
+    speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: auftrag.id, ok: false }), 30000);
+    if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text, notesOriginalLauf: token })) {
+      App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
+    }
+  }
   let kontaktSyncPruefungMoeglich = false;
   let kontaktSyncPruefungLauf = null;
   let kontaktSyncPruefungStand = null;
   let kontaktSyncNachlauf = null;
   let updateLaeuft = false;
+  let updateInstallationLaeuft = false;
   let handbuchInstalliert = false;
   let handbuchVersion = "";
   let handbuchStatus = "ungeprueft";
@@ -25771,7 +26018,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (erzwungen) zettel(_("Update checking is available only in the installed application."));
       return false;
     }
-    if (updateLaeuft || (!erzwungen && !u.automatisch)) return false;
+    if (updateLaeuft || updateInstallationLaeuft || (!erzwungen && !u.automatisch)) return false;
     if (!erzwungen && u.letztePruefung &&
       Date.now() - u.letztePruefung < 24 * 60 * 60 * 1000) return false;
     updateLaeuft = true;
@@ -27354,7 +27601,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return karte;
   }
 
-  function baumKontaktVergleich(kontakt, ohneFoto = false, alsObjekt = false, mitGruppen = false) {
+  function baumKontaktVergleich(kontakt, ohneFoto = false, alsObjekt = false, mitGruppen = false, nurKontaktWerte = false) {
     const werte = {};
     for (const feld of ["vorname", "nachname", "anzeigename", "firma", "notiz", "foto", "jubilaeum"])
       werte[feld] = String(kontakt[feld] || "").trim();
@@ -27364,9 +27611,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const art = e => String(e.label || telefonArt(e) || "");
     const sortiert = liste => liste.map(kanonischerEntwurf).sort();
     werte.telefone = sortiert(telefonListe(kontakt).map(e => [telefonSchluessel(e.wert), art(e)]));
+    // Only conflict classification ignores source-specific field labels.
+    // Default hashes, stored revisions and actual metadata remain exact.
+    if (nurKontaktWerte) werte.telefone = [...new Set(telefonListe(kontakt).map(e => telefonSchluessel(e.wert)))].sort();
     werte.emails = sortiert(emailEintragListe(kontakt).map(e => [kanonischerText(e.wert), art(e)]));
     werte.anschriften = sortiert(anschriftListe(kontakt).map(e =>
       [art(e), ...["strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim())]));
+    if (nurKontaktWerte) {
+      werte.emails = [...new Set(emailEintragListe(kontakt).map(e => kanonischerText(e.wert)))].sort();
+      werte.anschriften = [...new Set(sortiert(anschriftListe(kontakt).map(e =>
+        ["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim()))))];
+    }
     werte.namen = (kontakt.vcardRoundtrip || []).filter(s => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).slice().sort();
     if (mitGruppen) werte.gruppen = kontaktGruppen(kontakt).slice().sort();
     return alsObjekt ? werte : kanonischerEntwurf(werte);
@@ -27377,8 +27632,60 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       !/^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG|CATEGORIES)[;:]/i.test(s)).slice().sort();
   }
 
+  function wendeKontaktBezeichnungenAn(ziel, bisher, quelle, eingangNeuer) {
+    const adresse = e => kanonischerEntwurf(["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim()));
+    for (const [lesen, setzen, key] of [[telefonListe, setzeTelefonListe, e => telefonSchluessel(e.wert)],
+      [emailEintragListe, setzeEmailListe, e => kanonischerText(e.wert)], [anschriftListe, setzeAnschriftListe, adresse]]) {
+      const alt = lesen(bisher), neu = lesen(quelle), aktuell = lesen(ziel);
+      const gemeinsam = new Set(alt.map(key).filter(k => neu.some(e => key(e) === k)));
+      const bevorzugt = eingangNeuer ? neu : alt, erledigt = new Set(), werte = [];
+      for (const eintrag of aktuell) {
+        const k = key(eintrag);
+        if (!gemeinsam.has(k)) { werte.push(eintrag); continue; }
+        if (erledigt.has(k)) continue;
+        erledigt.add(k);
+        werte.push(...bevorzugt.filter(e => key(e) === k).map(e => kopie(e)));
+      }
+      setzen(ziel, werte);
+    }
+    merkeTelefonAbgleichSchreibwunsch(ziel, kontaktWerteProjektion(bisher));
+  }
+
+  function kontaktQuellenVergleich(ziel, karte, gespeicherteQuelle, eingangsQuelle, mitGruppen = true) {
+    const vergleich = el("div", "kontakt-quellenvergleich");
+    const adresse = e => ["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim());
+    const zeilen = (k, feld) => {
+      if (feld === "telefone") return telefonListe(k).map(e => [telefonSchluessel(e.wert), e.wert]);
+      if (feld === "emailEintraege") return emailEintragListe(k).map(e => [kanonischerText(e.wert), e.wert]);
+      if (feld === "anschriften") return anschriftListe(k).map(e => [kanonischerEntwurf(adresse(e)), adresse(e).filter(Boolean).join(", ")]);
+      if (feld === "gruppen") return kontaktGruppen(k).map(e => [e, kontaktGruppenName(e)]);
+      const wert = String(k[feld] || "").trim(); return wert ? [[wert, wert]] : [];
+    };
+    for (const [feld, titel] of Object.entries({ vorname: _("First name"), nachname: _("Last name"), anzeigename: _("Name"),
+      firma: _("Company"), notiz: _("Note"), geburtstag: _("Birthday"), jubilaeum: _("Anniversary"),
+      telefone: _("Phone numbers"), emailEintraege: _("Email addresses"), anschriften: _("Address"), gruppen: _("Contact groups") })) {
+      if (feld === "gruppen" && !mitGruppen) continue;
+      const alt = zeilen(ziel, feld), neu = zeilen(karte, feld);
+      const links = alt.filter(([key]) => !neu.some(([anderer]) => anderer === key));
+      const rechts = neu.filter(([key]) => !alt.some(([anderer]) => anderer === key));
+      if (!links.length && !rechts.length) continue;
+      const unterschied = el("section", "kontakt-quellenunterschied"); unterschied.dataset.kontaktVergleich = feld;
+      unterschied.append(el("strong", null, titel));
+      const quellen = el("div", "kontakt-quellenspalten");
+      for (const [klasse, rolle, quelle, werte] of [["gespeichert", _("Saved"), gespeicherteQuelle, links],
+        ["eingang", _("Incoming"), eingangsQuelle, rechts]]) {
+        const seite = el("section", "kontakt-quelle kontakt-quelle-" + klasse);
+        seite.append(el("strong", null, rolle + (quelle && quelle !== rolle ? " · " + quelle : "")),
+          el("pre", null, [...new Set(werte.map(([, text]) => text))].join("\n") || "—"));
+        quellen.append(seite);
+      }
+      unterschied.append(quellen); vergleich.append(unterschied);
+    }
+    return vergleich;
+  }
+
   function kontaktKonfliktInhalt(k) {
-    const basis = baumKontaktVergleich(k, true, true); delete basis.namen;
+    const basis = baumKontaktVergleich(k, true, true, false, true); delete basis.namen;
     basis.telefone = [...new Set(telefonListe(k).map(e => telefonSchluessel(e.wert)))].sort();
     basis.emails = [...new Set(emailEintragListe(k).map(e => kanonischerText(e.wert)))].sort();
     return kanonischerEntwurf([basis, kontaktpersonenListe(k),
@@ -27412,7 +27719,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function baumKontaktNurErgaenzungen(ziel, karte) {
     const mitGruppen = karte.baumGruppenBekannt === true;
-    const bisher = JSON.parse(baumKontaktVergleich(ziel, ziel.fotoManuell, false, mitGruppen)), eingang = JSON.parse(baumKontaktVergleich(karte, ziel.fotoManuell, false, mitGruppen));
+    const bisher = JSON.parse(baumKontaktVergleich(ziel, ziel.fotoManuell, false, mitGruppen, true)), eingang = JSON.parse(baumKontaktVergleich(karte, ziel.fotoManuell, false, mitGruppen, true));
     for (const feld of ["telefone", "emails"]) {
       if (!bisher[feld].every(wert => eingang[feld].includes(wert))) return false;
       bisher[feld] = eingang[feld];
@@ -27437,7 +27744,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         Number(inhalt.version) < meta.version)) return { art: "gleich", ziel, bekannteVersion: true };
     const starkeKennung = !!bindung?.size || [...schluessel.keys()].some(key =>
       (key.startsWith("e:") || key.startsWith("t:")) && index.get(key)?.has(ziel));
-    if (starkeKennung && baumKontaktVergleich(ziel, ziel.fotoManuell, false, karte.baumGruppenBekannt === true) === baumKontaktVergleich(karte, ziel.fotoManuell, false, karte.baumGruppenBekannt === true)) return { art: "gleich", ziel };
+    if (starkeKennung && baumKontaktVergleich(ziel, ziel.fotoManuell, false, karte.baumGruppenBekannt === true, true) === baumKontaktVergleich(karte, ziel.fotoManuell, false, karte.baumGruppenBekannt === true, true)) return { art: "gleich", ziel };
     if (starkeKennung && baumKontaktNurErgaenzungen(ziel, karte)) return { art: "ergaenzung", ziel };
     return { art: "konflikt", kandidaten, eindeutig: starkeKennung };
   }
@@ -27480,8 +27787,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (plan.bekannteVersion && inhalt.fassung >= 3 && kontaktZeitGueltig(inhalt.inhaltGeaendert)) {
       const zeit = await kontaktInhaltszeit(plan.ziel);
       if (zeit && inhalt.inhaltGeaendert > zeit && !kontaktZeitInhaltGleich(
-          baumKontaktVergleich(plan.ziel, plan.ziel.fotoManuell, true, inhalt.fassung >= 4),
-          baumKontaktVergleich(baumKontaktKarte(stueck), plan.ziel.fotoManuell, true, inhalt.fassung >= 4)))
+          baumKontaktVergleich(plan.ziel, plan.ziel.fotoManuell, true, inhalt.fassung >= 4, true),
+          baumKontaktVergleich(baumKontaktKarte(stueck), plan.ziel.fotoManuell, true, inhalt.fassung >= 4, true)))
         plan = { art: "konflikt", kandidaten: [plan.ziel], eindeutig: true };
     }
     const ziel = plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null;
@@ -27581,12 +27888,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   async function uebernehmeBaumKontaktPlan(daten, stueck, plan, pruefen = () => true) {
     const vorher = daten.kontakte.length;
+    const vorherKontakt = plan.ziel ? kopie(plan.ziel) : null;
     const zeitRelevant = !!plan.ziel?.kontaktZeit || stueck.inhalt?.fassung >= 3 && kontaktZeitGueltig(stueck.inhalt.inhaltGeaendert);
     const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
     const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
     if (!pruefen()) return false;
     if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" }))) return false;
     const ziel = plan.ziel || daten.kontakte[vorher];
+    if (vorherKontakt && !plan.behalten && !plan.bekannteVersion) {
+      const zeit = stueck.inhalt?.fassung >= 3 ? stueck.inhalt.inhaltGeaendert : 0;
+      wendeKontaktBezeichnungenAn(ziel, vorherKontakt, baumKontaktKarte(stueck),
+        kontaktZeitGueltig(zeit) && kontaktZeitGueltig(vorherZeit) && zeit > vorherZeit);
+    }
     if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(stueck), stueck.inhalt?.fassung >= 3 ? stueck.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, daten);
     return pruefen();
   }
@@ -27760,11 +28073,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             const zeitRelevant = !!plan.ziel?.kontaktZeit || angebot.inhalt?.fassung >= 3 && kontaktZeitGueltig(angebot.inhalt.inhaltGeaendert);
             const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
             const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
+            const vorherKontakt = plan.ziel ? kopie(plan.ziel) : null;
             if (DATEN !== bestand || gesperrt || lauf.beendet) throw new Error(_("Conflict"));
             if (!mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(angebot, {}, {
               aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" })))
               throw new Error(_("The offered entry is incomplete."));
             const ziel = plan.ziel || lauf.daten.kontakte[anzahl];
+            if (vorherKontakt && !plan.behalten && !plan.bekannteVersion) {
+              const zeit = angebot.inhalt?.fassung >= 3 ? angebot.inhalt.inhaltGeaendert : 0;
+              wendeKontaktBezeichnungenAn(ziel, vorherKontakt, baumKontaktKarte(angebot),
+                kontaktZeitGueltig(zeit) && kontaktZeitGueltig(vorherZeit) && zeit > vorherZeit);
+            }
             if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(angebot),
               angebot.inhalt?.fassung >= 3 ? angebot.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, lauf.daten);
           }
@@ -27847,6 +28166,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ziel = lauf.daten.kontakte.find(k => k.id === zielWahl.value); revision = kanonischerEntwurf(ziel);
       fehler.textContent = "";
       auswahl = { felder: {}, listen: {}, leeren: {} }; felder.textContent = "";
+      const peerName = baumPartnerListe().find(p => p.kennung === stueck.von)?.name || _("Incoming");
+      felder.append(kontaktQuellenVergleich(ziel, karte, kontaktKonfliktHerkunft(ziel, _("Saved")), peerName, karte.baumGruppenBekannt === true));
       if (karte.baumGruppenBekannt === true) {
         const gruppenText = kontakt => kontaktGruppen(kontakt).map(kontaktGruppenName).join(", ") || "—";
         const wahl = auswahlFeld([["keep", _("Keep existing") + ": " + gruppenText(ziel)],
@@ -27938,11 +28259,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return entwurf;
   }
   function wendeSyncKontaktInhaltAn(ziel, entwurf) {
+    const vorherTelefonWerte = kontaktWerteProjektion(ziel);
     for (const feld of BAUM_KONTAKT_FELDER.concat(["geburtstagJahrUnbekannt", "vcardRoundtrip", "fotoAlternativen", "fotoQuellen", "kontaktZeit"]))
       if (entwurf[feld] !== undefined) ziel[feld] = kopie(entwurf[feld]);
     if (!entwurf.kontaktZeit) delete ziel.kontaktZeit;
     for (const regel of Object.values(BAUM_KONTAKT_LISTEN)) regel.setzen(ziel, regel.lesen(entwurf));
     setzeKontaktpersonen(ziel, kontaktpersonenListe(entwurf)); setzeSozialeMedien(ziel, sozialeMedienListe(entwurf));
+    merkeTelefonAbgleichSchreibwunsch(ziel, vorherTelefonWerte);
   }
   function setzeKontaktProviderFreigabe(ziel, source, konflikt) {
     ziel.syncQuellen ||= {}; ziel.syncQuellen[source] = kopie(konflikt.mapping);
@@ -27959,6 +28282,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const duplikatRevision = duplikat ? kanonischerEntwurf(duplikat) : "";
     const revision = kanonischerEntwurf(ziel), karte = normalisiere({kontakte:[konflikt.kontakt]}).kontakte[0];
     if (!karte) return;
+    const sammelRevision = kanonischerEntwurf(DATEN);
+    const weitereZiele = duplikat ? [] : bestand.kontakte.filter(k => k !== ziel &&
+      k.syncKonflikte?.[source]?.kontakt && k.syncKonflikte[source].mapping?.id && k.syncKonflikte[source].mapping.etag);
+    const alle = document.createElement("input"); alle.type = "checkbox"; alle.dataset.syncKontaktRest = "true";
+    alle.disabled = !weitereZiele.length;
     const schleier = el("div", "eingabe-schleier sync-kontakt-konflikt"), dialog = el("section", "eingabe-dialog");
     dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
     const felder = el("div"), fehler = el("p", "einst-warnung"), auswahl = {felder:{},listen:{},leeren:{}};
@@ -27968,6 +28296,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       telefone:_("Phone numbers"),emailEintraege:_("Email addresses"),anschriften:_("Address")};
     const beschreibe = wert => typeof wert === "string" ? wert : wert.wert ||
       [wert.strasse,wert.plz,wert.ort,wert.region,wert.land].filter(Boolean).join(", ");
+    felder.append(kontaktQuellenVergleich(ziel, karte, kontaktKonfliktHerkunft(ziel, _("Saved")),
+      kontaktKonfliktHerkunft(karte, source || _("Incoming"))));
     for (const feld of BAUM_KONTAKT_FELDER) {
       if (String(ziel[feld] || "") === String(karte[feld] || "")) continue;
       if (["geburtstag","jubilaeum"].includes(feld) && !karte[feld]) continue;
@@ -28020,7 +28350,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     syncKontaktDialogSchliessen = schliessen;
     const gueltig=()=>schleier.isConnected&&DATEN===bestand&&!gesperrt&&!syncLaeuft&&DATEN.kontakte.includes(ziel)&&kanonischerEntwurf(ziel)===revision&&
-      (!duplikat || DATEN.kontakte.includes(duplikat) && kanonischerEntwurf(duplikat)===duplikatRevision);
+      (!duplikat || DATEN.kontakte.includes(duplikat) && kanonischerEntwurf(duplikat)===duplikatRevision) &&
+      (!alle.checked || kanonischerEntwurf(DATEN) === sammelRevision);
     const knoepfe=el("div","dialog-knoepfe");
     const zeitHinweis = el("p", "einst-hinweis", _("Reliable modification times are not available for both versions."));
     let neuereEntscheidung = null, neuerKnopf = null;
@@ -28042,9 +28373,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           }
            const [lokalzeit, quellzeit] = await zeiten;
            if (!gueltig()) throw new Error(_("Conflict"));
-           const entwurf = await baueSyncKontaktEntwurf(bestand, ziel, karte, auswahl, modus, zusatzWahl, lokalzeit, quellzeit);
-          if (!gueltig()) throw new Error(_("Conflict"));
-          mitMutationsSnapshot("pre-contact-merge",()=>{
+            const entwurf = await baueSyncKontaktEntwurf(bestand, ziel, karte, auswahl, modus, zusatzWahl, lokalzeit, quellzeit);
+           if (!gueltig()) throw new Error(_("Conflict"));
+           const weitereEntwuerfe = [];
+           if (alle.checked) for (const anderesZiel of weitereZiele) {
+             const andererKonflikt = anderesZiel.syncKonflikte[source];
+             const andereKarte = normalisiere({ kontakte: [andererKonflikt.kontakt] }).kontakte[0];
+             if (!andereKarte) continue;
+             const andereAuswahl = modus === "merge" ? baumKontaktAuswahlFuerRest(ziel, karte, auswahl, anderesZiel, andereKarte) : {};
+             if (andereAuswahl === null) continue;
+             const andereLokalzeit = await kontaktInhaltszeit(anderesZiel);
+             const andereQuellzeit = kontaktZeitGueltig(andereKarte.vcardRev) ? andereKarte.vcardRev : 0;
+             let andererModus = modus;
+             if (entscheidung === "newer") {
+               if (!andereLokalzeit || !andereQuellzeit || andereLokalzeit === andereQuellzeit) continue;
+               andererModus = andereLokalzeit > andereQuellzeit ? "keep" : "replace";
+             }
+             const andererEntwurf = await baueSyncKontaktEntwurf(bestand, anderesZiel, andereKarte, andereAuswahl,
+               andererModus, zusatzWahl, andereLokalzeit, andereQuellzeit);
+             if (!gueltig()) throw new Error(_("Conflict"));
+             weitereEntwuerfe.push({ ziel: anderesZiel, entwurf: andererEntwurf, konflikt: andererKonflikt });
+           }
+           mitMutationsSnapshot("pre-contact-merge",()=>{
             if(!gueltig()){fehler.textContent=_("Conflict");return;}
              wendeSyncKontaktInhaltAn(ziel, entwurf);
             ziel.syncQuellen ||= {};
@@ -28074,11 +28424,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               DATEN.kontakte=DATEN.kontakte.filter(k=>k!==duplikat);
               normalisiereKontaktVerweise(DATEN);
               if(offenerSmsChat?.kontaktId===duplikat.id)offenerSmsChat.kontaktId=ziel.id;
-            } else {
-               setzeKontaktProviderFreigabe(ziel, source, konflikt);
-            }
-            ziel.geaendert=Date.now();verknuepfeKontaktGeburtstag(ziel);verknuepfeKontaktJubilaeum(ziel);
-            schliessen();planeSpeichern();zeichneAlles();
+             } else {
+                setzeKontaktProviderFreigabe(ziel, source, konflikt);
+             }
+             for (const weiterer of weitereEntwuerfe) {
+               wendeSyncKontaktInhaltAn(weiterer.ziel, weiterer.entwurf);
+               setzeKontaktProviderFreigabe(weiterer.ziel, source, weiterer.konflikt);
+               weiterer.ziel.geaendert = Date.now();
+               verknuepfeKontaktGeburtstag(weiterer.ziel); verknuepfeKontaktJubilaeum(weiterer.ziel);
+             }
+             ziel.geaendert=Date.now();verknuepfeKontaktGeburtstag(ziel);verknuepfeKontaktJubilaeum(ziel);
+             schliessen();planeSpeichern();zeichneAlles();
+             if (alle.checked && weitereEntwuerfe.length < weitereZiele.length)
+               zettel(_("Conflict") + " (" + (weitereZiele.length - weitereEntwuerfe.length) + ")");
             if (duplikat) nachDauerhaftemSpeichern(() => {
               if (DATEN !== bestand || gesperrt || aktiverEditor) return;
               const gruppe = findeDubletten()[0];
@@ -28094,8 +28452,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (entscheidung === "newer") { neuerKnopf = button; button.disabled = true; }
     }
     knoepfe.append(knopf(_("Cancel"),"",schliessen));
+    const restZeile = el("label", "hak");
+    restZeile.append(alle, document.createTextNode(" " + _("Apply to the remaining conflicts") + " (" + weitereZiele.length + ")"));
     dialog.append(el("h2",null,(duplikat?_("Merge duplicate contact cards"):_("Conflict"))+" · "+kontaktName(ziel)),
-      el("p",null,_("Contacts with different information were found. How would you like to proceed?")),felder,zeitHinweis,fehler,knoepfe);
+      el("p",null,_("Contacts with different information were found. How would you like to proceed?")),felder,restZeile,zeitHinweis,fehler,knoepfe);
     schleier.append(dialog);document.body.append(schleier);
     registriereModal(schleier,dialog,{anfang:knoepfe.querySelector("button"),schliessen});
     zeiten.then(([lokal, fern]) => {
@@ -29646,7 +30006,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     const updateStand = el("p", "einst-hinweis");
     updateStand.id = "update-stand";
-    if (updateLaeuft) {
+    updateStand.setAttribute("role", "status");
+    if (updateInstallationLaeuft) {
+      updateStand.textContent = _("Please wait …");
+    } else if (updateLaeuft) {
       updateStand.textContent = _("Checking the current version …");
     } else if (update.letzterFehler) {
       updateStand.textContent = uebersetzt("Last check failed: %(error)s",
@@ -29682,26 +30045,31 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const updateReihe = el("div", "knopfreihe");
     const pruefen = knopf(_("Check now"), "", () => starteUpdatePruefung(true));
     pruefen.id = "update-pruefen";
-    pruefen.disabled = !Bruecke.vorhanden || updateLaeuft;
+    pruefen.disabled = !Bruecke.vorhanden || updateLaeuft || updateInstallationLaeuft;
     updateReihe.append(pruefen);
     if (istNeuereFassung(update.letzteVersion) && update.letzteUrl) {
       const holen = knopf(uebersetzt("Install version %(version)s …",
         { version: update.letzteVersion }), "haupt", () => {
+        if (updateInstallationLaeuft) return;
         frage(uebersetzt("Install version %(version)s now? All changes will be saved. " +
           "The Organizer will close and restart after the installation.",
           { version: update.letzteVersion }), _("Apply"), _("Cancel")).then((ja) => {
           if (!ja) return;
           navigiereMitGuard(() => {}).then((freigegeben) => {
-            if (!freigegeben) return;
+            if (!freigegeben || updateInstallationLaeuft) return;
+            updateInstallationLaeuft = true;
+            if (einstSeite === "ueber") baueEinstellungen();
             nachDauerhaftemSpeichern(() => {
-              holen.disabled = true;
               Bruecke.sende({ cmd: "update_herunterladen" });
+            }, () => {
+              updateInstallationLaeuft = false;
+              if (einstSeite === "ueber") baueEinstellungen();
             });
           });
         });
       });
       holen.id = "update-herunterladen";
-      holen.disabled = !Bruecke.vorhanden;
+      holen.disabled = !Bruecke.vorhanden || updateInstallationLaeuft;
       updateReihe.append(holen);
       if (update.letzterFehler) {
         const manuell = knopf(_("Downloads") + " · EXE", "", () => {
@@ -32027,6 +32395,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     wahl.append(kalListe);
 
+    if (nutzlast.originalKontaktUpdates?.verfuegbar === true) {
+      const freigaben = nutzlast.originalKontaktUpdates.freigaben;
+      if (freigaben === 0) {
+        // Missing usable access is not a human revoke. Retain the authenticated
+        // SaveACK correlation so the same waiting run can resume quietly.
+        if (originalKontaktFreigaben > 0 && !originalKontaktDauerNachweis) originalKontaktGeneration++;
+        originalKontaktFreigaben = 0; // Discovery/status never grants automatic delivery.
+      }
+      const knoepfe = el("div", "knopfreihe");
+      knoepfe.append(knopf(_("Original contact sources"), "", () => {
+        if (originalKontaktFreigabeAnfrage || originalKontaktLauf || originalKontaktSpeicher) return;
+        nachDauerhaftemSpeichern(() => {
+          originalKontaktFreigabeAnfrage = crypto.randomUUID();
+          if (!Bruecke.sende({ cmd: "kontakt_originalquellen_freigabe", requestId: originalKontaktFreigabeAnfrage }))
+            originalKontaktFreigabeAnfrage = "";
+        });
+      }), knopf(_("Revoke"), "", () => originalKontaktUpdatesWiderrufen(true)));
+      wahl.append(knoepfe);
+    }
+
     if (nutzlast.buchOk || adressbuecher.length) {
       const adrWahl = auswahlFeld(
         [["", _("— do not link —")]].concat(
@@ -32222,7 +32610,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function starteSync(stumm, kontaktVorbereitet = false) {
     sichereNotizSnapshot();
-    if (!Bruecke.vorhanden || syncLaeuft || kontaktSyncPruefungLauf) return;
+    if (!Bruecke.vorhanden || syncLaeuft || kontaktSyncPruefungLauf || originalKontaktLauf || originalKontaktSpeicher) return;
     if (mcpSyncAktiv() && mcpSyncAktiv().phase !== "preparing") return;
     if (mcpSyncLauf?.native_dispatched && !mcpSyncLauf.provider_finished && mcpSyncLauf.phase === "failed") return;
     const mcpStart = mcpSyncAktiv();
@@ -32817,6 +33205,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function wendeKontaktDateiVorgabenAn({ plaene, bestand }) {
     let geaendert = false;
+    for (const plan of plaene) if (!plan.gewaehlt && plan.modus === "keep" && plan.eindeutig &&
+        kontaktZeitGueltig(plan.lokalzeit) && kontaktZeitGueltig(plan.quellzeit) && plan.quellzeit > plan.lokalzeit) {
+      plan.modus = "merge"; plan.bezeichnungenNeu = true; geaendert = true;
+    }
     for (const plan of plaene) if (plan.abgelehnt && !plan.gewaehlt) { plan.modus = "skip"; geaendert = true; }
     for (const plan of plaene) if (!plan.modus && !plan.gewaehlt && plan.eindeutig && plan.neuereEntscheidung &&
         bestand.einstellungen.sync.kontaktNeuereBevorzugen) { plan.modus = "newer"; geaendert = true; }
@@ -32851,6 +33243,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (plan.hash && plan.gewaehlt) daten.kontaktImportAblehnungen.push(plan.hash);
         merkeKontaktFoto(ziel, karte.foto, "import");
         ziel.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(karte.importBindungen || [])])].slice(-32);
+        merkeTelefonAbgleichSchreibwunsch(ziel);
         zaehlung.doppelt++; continue;
       }
       if (modus === "new") {
@@ -32863,6 +33256,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       const vorher = personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt);
       const vorherZeit = await kontaktInhaltszeit(ziel);
+      const vorherKontakt = kopie(ziel);
       const alterNachname = ziel.nachname;
       if (modus === "merge") {
         karte.uid = ziel.uid; karte.geaendert = 0;
@@ -32873,6 +33267,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (feld === "foto" && wahl === "incoming") { ziel.fotoManuell = true; delete ziel.fotoQuelle; }
         }
         for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) regel.setzen(ziel, regel.lesen(gewaehlt));
+        if (plan.bezeichnungenNeu && !plan.gewaehlt) wendeKontaktBezeichnungenAn(ziel, vorherKontakt, karte, true);
         mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
       } else {
         const entwurf = baumKontaktEntwurf(ziel, karte, {}, modus, "import");
@@ -32888,6 +33283,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(entwurf); verknuepfeKontaktJubilaeum(entwurf); });
       }
       const ergebnis = daten.kontakte.find(k => k.id === ziel.id);
+      merkeTelefonAbgleichSchreibwunsch(ergebnis, kontaktWerteProjektion(vorherKontakt));
       if (plan.geburtsname && alterNachname && ergebnis.nachname && ergebnis.nachname !== alterNachname) {
         const zeile = uebersetzt("Birth name: %(name)s", { name: alterNachname });
         if (!String(ergebnis.notiz || "").split(/\r?\n/).includes(zeile))
@@ -33007,6 +33403,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             vorher.textContent = ziel ? beschreibe(ziel) : "";
             lokalQuelle.textContent = ziel ? kontaktKonfliktHerkunft(ziel, _("Saved")) : _("Saved");
             vergleich.textContent = "";
+            if (ziel) vergleich.append(kontaktQuellenVergleich(ziel, plan.karte, lokalQuelle.textContent, plan.herkunft));
             if (ziel && !plan.ergaenzung) {
               const alt = beschreibeFelder(ziel), neu = beschreibeFelder(plan.karte);
               alt.forEach(([feld, wert], index) => {
@@ -33076,8 +33473,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           zielWahl.addEventListener("change", () => { entscheidungsVersion++; plan.gewaehlt = true; plan.eindeutig = false; neuer.disabled = true; plan.zielId = zielWahl.value; plan.modus = ""; plan.geburtsname = false; plan.auswahl = { felder: {}, listen: {} }; wahl.value = ""; aktualisieren(); });
           wahl.addEventListener("change", () => {
             entscheidungsVersion++; plan.gewaehlt = true; plan.modus = wahl.value;
-            if (rest.checked && hashesFertig && plan.eindeutig && plan.modus) {
-              for (const anderer of plaene) if (anderer.eindeutig && !anderer.modus && !anderer.gewaehlt &&
+            // Creating a separate person needs no inferred existing target.
+            // All target-dependent decisions still require unique identity.
+            if (rest.checked && hashesFertig && (plan.eindeutig || plan.modus === "new") && plan.modus) {
+              for (const anderer of plaene) if ((anderer.eindeutig || plan.modus === "new") && !anderer.modus && !anderer.gewaehlt &&
                   (plan.modus !== "newer" || anderer.neuereEntscheidung)) {
                 anderer.modus = plan.modus; anderer.gewaehlt = true;
                 anderer.auswahl.felder = kopie(plan.auswahl.felder);
@@ -33124,7 +33523,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       anwenden.dataset.importAnwenden = "true";
       rest.addEventListener("change", () => {
         if (!rest.checked || !hashesFertig) return;
-        const index = plaene.findIndex(plan => plan.gewaehlt && plan.eindeutig && plan.modus && plan.modus !== "skip");
+        const index = plaene.findIndex(plan => plan.gewaehlt && (plan.eindeutig || plan.modus === "new") && plan.modus && plan.modus !== "skip");
         const feld = zeilen.querySelector('[data-import-entscheidung="' + index + '"]');
         if (feld) feld.dispatchEvent(new Event("change"));
       });
@@ -33316,6 +33715,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   let sperrZustand = { eingabe: "", wartet: 0, uhr: null, art: "pin" };
 
   function zeigeSperrbildschirm(wartet) {
+    originalKontaktWlanWartet = false;
+    if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher || originalKontaktDauerNachweis) originalKontaktUpdatesWiderrufen();
+    originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
     kontaktFotoDialogSchliessen?.();
     syncKontaktDialogSchliessen?.();
     kontaktDateiPruefungSchliessen?.();
@@ -33936,6 +34338,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
     trayDarstellungTestStand(value) { window.MagnolieAppearance?.nativeResult(value); },
     init(nutzlast) {
+      if (originalKontaktFreigaben || originalKontaktLauf || originalKontaktSpeicher || originalKontaktDauerNachweis) originalKontaktUpdatesWiderrufen();
+      originalKontaktFreigaben = 0; originalKontaktLauf = originalKontaktSpeicher = null; originalKontaktFreigabeAnfrage = "";
       window.MagnolieAppearance?.update({ today: "", developer: false, locked: true });
       verwerfeKdeEmpfangDialoge();
       kontaktFotoDialogSchliessen?.();
@@ -35434,6 +35838,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     updateHeruntergeladen(nutzlast) {
       nutzlast = nutzlast || {};
       if (!nutzlast.ok || !nutzlast.bereit) {
+        updateInstallationLaeuft = false;
         const fehler = nutzlast.fehler || _("The package could not be opened.");
         DATEN.einstellungen.update.letzterFehler = fehler;
         planeSpeichern();
@@ -35446,6 +35851,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     updateInstallationVorbereitet(nutzlast) {
       nutzlast = nutzlast || {};
       if (!nutzlast.ok || !nutzlast.bereitZumBeenden) {
+        updateInstallationLaeuft = false;
         const fehler = nutzlast.fehler || _("The package could not be opened.");
         DATEN.einstellungen.update.letzterFehler = fehler;
         planeSpeichern();
@@ -35680,16 +36086,62 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     syncFehler(text) {
       zettel(merkeSyncFehler(text));
     },
+    originalKontaktFreigabe(nutzlast) {
+      if (!nutzlast?.requestId && nutzlast?.freigaben !== 0) return;
+      if (nutzlast?.requestId && nutzlast.requestId !== originalKontaktFreigabeAnfrage) return;
+      originalKontaktFreigabeAnfrage = "";
+      if (nutzlast?.freigaben === 0) { originalKontaktGeneration++; originalKontaktSpeicher = null; }
+      if (Number.isSafeInteger(nutzlast?.freigaben) && nutzlast.freigaben >= 0) originalKontaktFreigaben = nutzlast.freigaben;
+      if (letzterEdsStatus?.originalKontaktUpdates) letzterEdsStatus.originalKontaktUpdates.freigaben = originalKontaktFreigaben;
+      const ack = originalKontaktLetzterAck;
+      if (nutzlast?.ok === true && nutzlast.dauerhaft === true && ack && nutzlast.id === ack.id &&
+          nutzlast.standSha256 === ack.sha256 && (ack.generation === originalKontaktGeneration || nutzlast.wartet === true) &&
+          letzterSpeicherText === ack.text && letzterSpeicherSha256 === ack.sha256)
+        originalKontaktDauerNachweis = { ...ack, generation: originalKontaktGeneration, starten: nutzlast.wartet === true };
+      if (nutzlast?.ok === false && $("#sync-status"))
+        $("#sync-status").textContent = _("The contact source permission could not be saved. Automatic updates are paused.");
+      if (nutzlast?.ok === true && (nutzlast.changed === true || originalKontaktWlanWartet) && originalKontaktFreigaben > 0)
+        nachDauerhaftemSpeichern(starteOriginalKontaktUpdates);
+    },
+    originalKontaktDauerfreigabe(nutzlast) {
+      const nachweis = originalKontaktDauerNachweis;
+      if (!nachweis || nutzlast?.id !== nachweis.id || nutzlast?.standSha256 !== nachweis.sha256 ||
+          nachweis.generation !== originalKontaktGeneration || gesperrt || originalKontaktFreigabeAnfrage ||
+          letzterSpeicherSha256 !== nachweis.sha256 || letzterSpeicherText !== nachweis.text ||
+          JSON.stringify(DATEN) !== nachweis.text || laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null) return;
+      if (nutzlast.ok !== true) {
+        originalKontaktFreigaben = 0;
+        if ($("#sync-status")) $("#sync-status").textContent = _("Waiting for account access. Automatic contact updates will resume when available.");
+        return;
+      }
+      if (!Number.isSafeInteger(nutzlast.freigaben) || nutzlast.freigaben < 1) return;
+      originalKontaktFreigaben = nutzlast.freigaben;
+      if (nachweis.starten && starteOriginalKontaktUpdates()) nachweis.starten = false;
+    },
+    originalKontaktNetz(nutzlast) {
+      if (nutzlast?.wlan === true) {
+        if (originalKontaktWlanWartet) starteOriginalKontaktUpdates();
+        else if (originalKontaktDauerNachweis?.starten && starteOriginalKontaktUpdates()) originalKontaktDauerNachweis.starten = false;
+      }
+    },
+    originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
+    notesOriginalSpeichern(nutzlast) { empfangeNotesOriginalSpeichern(nutzlast); },
+    notesOriginalBereit(nutzlast) { empfangeNotesOriginalBereit(nutzlast); },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};
       if (Bruecke.vorhanden && (!laufenderSpeicher || !Number.isSafeInteger(ergebnis.id) ||
           ergebnis.id !== laufenderSpeicher.id)) return;
       const erledigt = laufenderSpeicher;
+      const originalKontaktNachweis = originalKontaktSpeicher?.text === erledigt?.text ? originalKontaktSpeicher : null;
       clearTimeout(speicherAntwortTimer);
       speicherAntwortTimer = null;
       laufenderSpeicher = null;
       if (ergebnis.ok === true) {
+        if (originalKontaktNachweis) {
+          if (ergebnis.kontaktOriginalGespeichert === originalKontaktNachweis.token) originalKontaktSpeicher = null;
+          else originalKontaktUpdatesWiderrufen();
+        }
         if (kontaktSyncPruefungLauf && ergebnis.kontaktPruefung) kontaktSyncPruefungStand = ergebnis.kontaktPruefung;
         if (ausstehendeAdressbuchBaseline && erledigt &&
           erledigt.text.includes('"adressbuecher"')) {
@@ -35698,6 +36150,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (erledigt) {
           letzterSpeicherText = erledigt.text;
           letzterSpeicherSha256 = typeof ergebnis.standSha256 === "string" ? ergebnis.standSha256 : "";
+          originalKontaktLetzterAck = ergebnis.committed === true && ergebnis.repairPending !== true && /^[0-9a-f]{64}$/.test(letzterSpeicherSha256) ? {
+            id: ergebnis.id, sha256: letzterSpeicherSha256, text: erledigt.text,
+            generation: originalKontaktGeneration, starten: !originalKontaktNachweis } : null;
+          originalKontaktDauerNachweis = ergebnis.kontaktQuellenDauerhaft === true ? originalKontaktLetzterAck : null;
+          if (originalKontaktDauerNachweis) originalKontaktFreigaben = 0;
+          if (ergebnis.kontaktQuellenFehler === true) originalKontaktFreigaben = 0;
           if (baumSpeicherNachweis?.text === erledigt.text) baumSpeicherNachweis = null;
         }
         const d = organizerDatumzeitTeile(new Date());
@@ -35706,7 +36164,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }), true);
         pumpeSpeichern();
         zeitAbgleichAutomatisch();
+        if (!originalKontaktNachweis && !originalKontaktDauerNachweis) starteOriginalKontaktUpdates();
       } else {
+        if (originalKontaktNachweis) originalKontaktUpdatesWiderrufen();
         speicherFehlgeschlagen(ergebnis.fehler, erledigt);
       }
     },

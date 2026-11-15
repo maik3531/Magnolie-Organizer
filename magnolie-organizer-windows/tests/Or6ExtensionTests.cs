@@ -21,6 +21,15 @@ internal static class Or6ExtensionTests
     }
     internal static Task RunAsync()
     {
+        Or6PlannerTests.Run();
+        Or6PlannerBoundaryTests.Run();
+        Or6TaskScopeTests.Run();
+        Or6TaskBindingTests.Run();
+        Or6SectionRemovalTests.Run();
+        Or6SingleTaskDateTests.Run();
+        Or6AppointmentCategoryTests.Run();
+        Or6AppointmentOverrideTests.Run();
+        Or6CalendarHistoryTests.Run();
         var expected = Contract()["expected"]!;
         var raw = Fixture("weekly-monday-222.or6"); var result = Or6Codec.Read(raw);
         var series = result.Termine.OfType<JsonObject>().Where(item => item["titel"]!.GetValue<string>() == expected["weekly"]!["title"]!.GetValue<string>()).ToArray();
@@ -69,6 +78,96 @@ internal static class Or6ExtensionTests
         TestAssert.That(once.Jahrestage.Count == 0 && once.Uebersprungen == 0 && JsonNode.DeepEquals(oneOff["uid"], annual["uid"]) &&
             oneOff["datum"]!.GetValue<string>() == "2026-11-04" && oneOff["zeit"]!.GetValue<string>() == "" && oneOff["wiederholung"] is null,
             "Unchecked original annual checkbox became a yearly recurrence.");
+        CheckPlannerFields();
+        CheckTaskStatus();
+        Or6TaskSeriesTests.Run();
         return Task.CompletedTask;
+    }
+
+    private static void CheckTaskStatus()
+    {
+        var raw = Or6CodecTests.Fixture(); var original = Or6Codec.Read(raw);
+        foreach (var (status, completion, expected) in new (uint Status, bool Completion, bool Expected)[] {
+            (1, false, false), (2, false, false), (4, true, true), (1, true, false), (2, true, false) })
+        {
+            var data = Or6UnsupportedNoteTests.Rotate(raw, true);
+            for (int offset = 0; offset < data.Length;)
+            {
+                var tag = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset));
+                var size = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset + 8)));
+                if (tag == 0x300)
+                {
+                    var count = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset + 0x28)));
+                    for (var i = 0; i < count; i++)
+                    {
+                        var entry = offset + 0x34 + i * 8;
+                        var field = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(entry));
+                        var length = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(entry + 2));
+                        if (field == 20)
+                        {
+                            TestAssert.That(length == 4, "Native task status fixture width changed");
+                            BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(entry + 4), status);
+                        }
+                        else if (field == 19)
+                        {
+                            TestAssert.That(length == 8, "Native completion fixture width changed");
+                            var address = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(entry + 4)));
+                            byte[] stamp = completion ? [0xea, 0x07, 11, 13, 12, 0, 0, 0] : [2, 0, 2, 2, 2, 2, 2, 2];
+                            stamp.CopyTo(data.AsSpan(offset + address));
+                        }
+                    }
+                }
+                offset += size;
+            }
+            var result = Or6Codec.Read(Or6UnsupportedNoteTests.Rotate(data, false));
+            var task = result.Aufgaben.Single()!.DeepClone().AsObject(); var basis = original.Aufgaben.Single()!.DeepClone().AsObject();
+            TestAssert.That(task["erledigt"]!.GetValue<bool>() == expected, "Explicit native task status was overridden by an old completion date");
+            task.Remove("erledigt"); basis.Remove("erledigt");
+            TestAssert.That(JsonNode.DeepEquals(task, basis) && JsonNode.DeepEquals(result.Termine, original.Termine) &&
+                JsonNode.DeepEquals(result.Kontakte, original.Kontakte) && JsonNode.DeepEquals(result.Notizen, original.Notizen) &&
+                JsonNode.DeepEquals(result.Jahrestage, original.Jahrestage), "Task status correction changed unrelated data");
+        }
+    }
+
+    private static void CheckPlannerFields()
+    {
+        var raw = Fixture("sections-corrected-222.or6");
+        var original = Or6Codec.Read(raw);
+        foreach (var (row, keyId) in new (ushort Row, ushort? KeyId)[] { (1, null), (7, 2), (2, 7), (0, 0) })
+        {
+            var data = Or6UnsupportedNoteTests.Rotate(raw, true);
+            for (int offset = 0; offset < data.Length;)
+            {
+                var tag = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset));
+                var size = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset + 8)));
+                if (tag == 0x200)
+                {
+                    var count = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset + 0x28)));
+                    for (var i = 0; i < count; i++)
+                    {
+                        var entry = offset + 0x34 + i * 8;
+                        var field = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(entry));
+                        if (field != 18 && !(field == 3 && keyId.HasValue)) continue;
+                        BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(entry), field == 18 ? (ushort)18 : (ushort)19);
+                        BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(entry + 2), 2);
+                        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(entry + 4), field == 18 ? row : keyId!.Value);
+                    }
+                }
+                offset += size;
+            }
+            var result = Or6Codec.Read(Or6UnsupportedNoteTests.Rotate(data, false));
+            var planner = result.Termine.OfType<JsonObject>().Single(value => value["titel"]!.GetValue<string>() == "OR6-222 Planned span");
+            var note = planner["notiz"]!.GetValue<string>();
+            TestAssert.That(!note.Contains("event type", StringComparison.Ordinal) && note.Split('\n').Contains("Lotus planner Row: " + row) &&
+                (keyId.HasValue ? note.Split('\n').Contains("Lotus planner KeyID: " + keyId.Value) : !note.Contains("KeyID:", StringComparison.Ordinal)),
+                "Native planner Row/KeyID were conflated or a missing type reference invented");
+            TestAssert.That(!planner.ContainsKey("farbe") && !planner.ContainsKey("kategorie") && !planner.ContainsKey("kategorien"),
+                "Unverified native planner numbers became colors/categories");
+            var basis = original.Termine.OfType<JsonObject>().Single(value => JsonNode.DeepEquals(value["uid"], planner["uid"])).DeepClone().AsObject();
+            var projection = planner.DeepClone().AsObject(); basis.Remove("notiz"); projection.Remove("notiz");
+            TestAssert.That(JsonNode.DeepEquals(basis, projection) && JsonNode.DeepEquals(result.Kontakte, original.Kontakte) &&
+                JsonNode.DeepEquals(result.Aufgaben, original.Aufgaben) && JsonNode.DeepEquals(result.Notizen, original.Notizen) &&
+                JsonNode.DeepEquals(result.Jahrestage, original.Jahrestage), "Planner metadata changed dates, identity or unrelated records");
+        }
     }
 }

@@ -1,0 +1,22 @@
+{
+  "status": "draft-interoperability-only-no-capability",
+  "native": "KontaktSync.hash",
+  "vectors": [
+    {"name": "empty-legacy", "contact": {}, "sha256": "00e6d952c3d115f903955cf7e4eb53de94da4b69390072717fc392ad9f18fab3"},
+    {"name": "unicode-json", "contact": {"vorname": "Jörg 😀", "nachname": "李", "notiz": "Quote \" slash \\ line\nTab\tSeparator\u0001\u000f\u001f\u2028\u2029"}, "sha256": "aa5ba58dc4eab200ec3692ba5e854b5626924f0bd1f2982020d9167a007d5602"},
+    {"name": "explicit-legacy-names", "contact": {"vorname": "Ada", "nachname": "Lovelace", "anzeigename": "Ada Lovelace", "vcardName": ["N:Lovelace;Ada;;;", "FN:Ada Lovelace"]}, "sha256": "8cffbf64d4d3ac79db24b1b508800cbae7c14c37381a4e5072e59d015e019301"},
+    {"name": "extended-names", "contact": {"vorname": "Ada", "nachname": "Lovelace", "anzeigename": "Dr. Ada Lovelace", "vcardName": ["N;CHARSET=UTF-8:Lovelace;Ada;;Dr.;"]}, "sha256": "f8fd2581d589b0c4481c77d20f180fc5127daa5e85f246923bf4ac2aeea9b395"},
+    {"name": "anniversary", "contact": {"vorname": "Native", "jubilaeum": "2020-03-04"}, "sha256": "3455711be9f30dd4faa2471e06007122b33d2ee705823e9a22d5cdd10b1764da"},
+    {"name": "phone-normalization", "contact": {"telefone": [{"art": "privat", "wert": "+1 (202) 555-0101"}, {"art": "arbeit", "wert": "12025550101"}, {"art": "mobil", "wert": "  "}, {"art": "sonstige", "wert": "+٢٣"}]}, "sha256": "12f8c9cd03f30e8ffff51f2d1509a8f8354eec80e285e87570697acd68520038"},
+    {"name": "bmp-decimal-not-python-isdigit", "contact": {"telefone": [{"art": "privat", "wert": "²𝟙+23"}, {"art": "arbeit", "wert": "23"}]}, "sha256": "997ee305e4653c38aea20e842bcdad3f546cad9d00e4ef1f7dbc9711ef077a58"},
+    {"name": "email-and-spaces", "contact": {"emailEintraege": [{"art": "privat", "wert": " SYNTHETIC@EXAMPLE.INVALID "}, {"art": "arbeit", "wert": "synthetic@example.invalid"}, {"art": "mobil", "wert": " "}]}, "sha256": "3dd03314f35d71cb59678124136407b47ffd965d9fdbb36c2a379b10298b832a"},
+    {"name": "postal-first-preserved", "contact": {"anschriften": [{"art": "privat", "strasse": " Main Street ", "plz": "123", "ort": "Town", "region": "", "land": "DE"}, {"art": "arbeit", "strasse": "main street", "plz": "123", "ort": "town", "region": "", "land": "de"}]}, "sha256": "3f1546ba13676e537e355471630b6130d64468d7cffa7deaa997a3ed5c8d394a"},
+    {"name": "known-empty-groups", "contact": {"gruppen": []}, "sha256": "08f21ce32d3fa908672dca7a541bd7acc3dd583594ab0ff5809dba2dc99e2c47"},
+    {"name": "group-nfc-and-utf16-order", "contact": {"gruppen": [" é ", "É", "é", "😀", "", " Native ", "native"]}, "sha256": "58be1add0f2ba40ac25b5a131ffaee960218bcd2dab072da35ec357803bded78"},
+    {"name": "photo-and-control-escape", "contact": {"foto": "data:image/png;base64,AA==", "notiz": "\b\f\r\n\t"}, "sha256": "f3c863e4d781a4c3c09d0a641b61612dae87e6b0e1c567fe14e05e19bdf564fe"},
+    {"name": "root-casing-turkish-dot", "contact": {"emailEintraege": [{"art": "privat", "wert": "İ@example.invalid"}, {"art": "arbeit", "wert": "i̇@example.invalid"}]}, "sha256": "d9c14e07ba96e7bd8081158450eb7de1f53dab76e6687a47d4f630f463279e39"},
+    {"name": "root-casing-greek-final-sigma", "contact": {"emailEintraege": [{"art": "privat", "wert": "ΟΣ@example.invalid"}, {"art": "arbeit", "wert": "ος@example.invalid"}]}, "sha256": "3163d206d914f35caca0b135fea518039b1cb8d3f3ce91e52adb54ed752b3bad"},
+    {"name": "root-casing-other-lowercase", "contact": {"gruppen": ["ªΣ", "ªς"]}, "sha256": "4bf59002e8eeaefca47e388abab1d34ca7da07a88bf8bfd19af8cb251ff7fff8"},
+    {"name": "root-word-boundaries", "contact": {"gruppen": ["A.1Σ", "a.1σ", "A_Σ", "a_ς", "A:Σ", "a:σ", "ΟΣ.A", "οσ.a", "AΣ́", "aς́", "AΣ.A", "aσ.a", "A‍Σ", "a‍ς", "A㐀Σ", "a㐀ς", "A1Σ", "a1ς"]}, "sha256": "144aae39a0dd4ce42389468224aadbe5a1b5130baac2355a51345ff5e0e4fae1"}
+  ]
+}

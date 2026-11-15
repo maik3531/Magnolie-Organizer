@@ -162,7 +162,12 @@ namespace Magnolie::PhoneCamera
     {
         if (IsRetired()) return MF_E_SHUTDOWN;
         HRESULT hr = owner_.current(owner_.context);
-        if (SUCCEEDED(hr) && requireSend) hr = owner_.sending(owner_.context);
+        if (hr != S_OK) return Fail(FAILED(hr) ? hr : E_ACCESSDENIED);
+        if (requireSend)
+        {
+            hr = owner_.sending(owner_.context);
+            if (hr != S_OK) return Fail(FAILED(hr) ? hr : E_ACCESSDENIED);
+        }
         if (SUCCEEDED(hr) && control_) hr = control_->RequireCurrent();
         if (FAILED(hr)) return Fail(hr);
         return IsRetired() ? MF_E_SHUTDOWN : S_OK;

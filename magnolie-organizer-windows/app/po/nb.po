@@ -3015,8 +3015,8 @@ msgstr "Ta med avfallshentinger"
 msgid "Incoming"
 msgstr "Innkommende"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Innkommende KDE Connect-filer (bekreft alltid)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Innkommende KDE Connect-filer (bekreft alltid)"
 
 msgid "Incoming call"
 msgstr "Innkommende anrop"
@@ -8721,3 +8721,20 @@ msgstr "Systemets statusikon (60 s)"
 
 msgid "Saved developer mode is required."
 msgstr "Utviklermodus må være lagret."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Legg til kildemappe på PC …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Kildemapper på PC er atskilt fra mottaksmål."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Bare bilder"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Valgte kildemapper på PC"

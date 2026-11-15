@@ -170,13 +170,14 @@ def test_whitespace_ordnervorwahl_nutzt_standard(monkeypatch, tmp_path):
 
 
 def test_fs_sitzung_ueberlebt_falsche_quelle_und_kopf_aber_nicht_falsches_tag():
-    zustand = {"an": True, "kennung": "empfaenger", "partner": [
-        {"kennung": "sender", "bestaetigt": True}]}
+    zustand = {"an": True, "kennung": "empfaenger", "oeffentlich": "synthetic-receiver", "partner": [
+        {"kennung": "sender", "bestaetigt": True, "oeffentlich": "synthetic-sender"}]}
     sitzung = {"sid": "sitzung", "kenc": bytearray(b"K" * 32),
                "kack": bytearray(b"A" * 32), "transkript": b"T" * 32}
     dienst = m.BaumDienst(lambda: zustand, lambda _zustand: None)
     dienst._fs_sitzungen[sitzung["sid"]] = {
         "sitzung": sitzung, "partner": "sender", "adresse": "127.0.0.1",
+        "partnerSchluessel": "synthetic-sender", "eigenerSchluessel": "synthetic-receiver",
         "ablauf": time.monotonic() + 60}
     umschlag = m.umschlag_bauen_fs(
         sitzung, "sender", "empfaenger", {"art": "notiz", "text": "Probe"},

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">Use the F-Droid client to check for and install Notes updates. Downloading an APK from the F-Droid website alone provides no update notifications.</string>
+    <string name="about_update_fdroid_unknown">Installed Notes through F-Droid? Use the F-Droid client for updates, not the GitHub release. A website APK download alone provides no F-Droid update notifications.</string>
+    <string name="about_update_fdroid_link" translatable="false">Magnolie Notes · F-Droid</string>
+</resources>

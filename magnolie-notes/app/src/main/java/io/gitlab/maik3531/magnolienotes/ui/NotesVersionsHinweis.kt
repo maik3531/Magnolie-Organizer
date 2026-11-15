@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -12,12 +13,26 @@ import io.gitlab.maik3531.magnolienotes.BuildConfig
 import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.aktualisierung.NotesVeroeffentlichung
 import io.gitlab.maik3531.magnolienotes.aktualisierung.NotesVersionsInfo
+import io.gitlab.maik3531.magnolienotes.aktualisierung.NotesUpdateKanal
 import kotlinx.coroutines.CancellationException
 
 @Composable
 internal fun NotesVersionsHinweis() {
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val fdroid = remember(context) {
+        NotesUpdateKanal.istFdroid(BuildConfig.FDROID_DISTRIBUTION, NotesUpdateKanal.installer(context))
+    }
+    if (fdroid) {
+        Column {
+            Text(stringResource(R.string.about_update_fdroid))
+            Papierknopf(stringResource(R.string.about_update_fdroid_link)) {
+                uriHandler.openUri(NotesUpdateKanal.FDROID_SEITE)
+            }
+        }
+        return // GitHub availability is not F-Droid availability; do not query it here.
+    }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val quelle = remember { NotesVeroeffentlichung() }
     var generation by remember { mutableIntStateOf(0) }
     var prueft by remember { mutableStateOf(true) }
@@ -43,5 +58,6 @@ internal fun NotesVersionsHinweis() {
             uriHandler.openUri(current.releaseUrl)
         }
         if (!prueft) Papierknopf(stringResource(R.string.about_update_retry)) { generation++ }
+        Text(stringResource(R.string.about_update_fdroid_unknown))
     }
 }

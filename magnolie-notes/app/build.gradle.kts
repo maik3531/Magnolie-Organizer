@@ -56,6 +56,7 @@ android {
         targetSdk = 35
         versionCode = 21
         versionName = "1.0.21"
+        buildConfigField("boolean", "FDROID_DISTRIBUTION", fdroidBau.toString())
         testInstrumentationRunner = "io.gitlab.maik3531.magnolienotes.MagnolieTestRunner"
         resourceConfigurations += listOf(
             "ar", "be", "cs", "da", "de", "en", "es", "fr", "hi", "hsb",
@@ -183,6 +184,16 @@ tasks.configureEach {
 // dafür laufen die Einheitstests im Projektstammverzeichnis.
 tasks.withType<Test>().configureEach {
     workingDir = rootDir
+    // The shared native-hash oracle is outside the Kotlin source/resource tree.
+    // Changing its vectors must invalidate the test result, not reuse an older
+    // successful run as evidence for newly added interoperability cases.
+    inputs.file(rootDir.resolve("../contracts/contact-original-return-hash-v1-vectors.json"))
+        .withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE)
+    // Robolectric/Compose retain SDK sandboxes across classes. Bound the
+    // serial worker lifetime instead of accumulating them for the whole gate.
+    maxParallelForks = 1
+    maxHeapSize = "768m"
+    forkEvery = 32
     val cross = providers.gradleProperty("magnolieCrossTests").orNull == "true"
     // These explicit tests launch external Python sources and a separately built
     // Windows test host; unchanged Kotlin classes are not evidence they still pass.

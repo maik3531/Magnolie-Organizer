@@ -10,6 +10,7 @@ internal sealed partial class PhoneCameraAudioParentRuntime
     {
         internal readonly TaskCompletionSource PrepareEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource WriteEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal readonly TaskCompletionSource StopEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly ManualResetEventSlim stop = new(false);
         internal bool HoldPrepare, HoldWrite, FailClose;
         internal int Creates, Prepares, Writes, Stops, Closes, Releases, Active;
@@ -45,7 +46,7 @@ internal sealed partial class PhoneCameraAudioParentRuntime
                 finally { Interlocked.Decrement(ref Active); }
             },
             Anchor = (own, record, bytes) => { for (int i = 0; i < record.Length; i++) record[i] = (byte)(i + 1); return Sending(); },
-            Stop = own => { Interlocked.Increment(ref Stops); stop.Set(); return 0; },
+            Stop = own => { Interlocked.Increment(ref Stops); stop.Set(); StopEntered.TrySetResult(); return 0; },
             Close = own => { Closes++; return FailClose || Active != 0 ? unchecked((int)0x800705b4) : 0; },
             ReleaseModule = () => { if (Active != 0 || Closes == 0) throw new Exception("Diagnostic module released before confirmed/drained Close"); Releases++; }
         };

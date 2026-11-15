@@ -3008,8 +3008,8 @@ msgstr "Atık toplamalarını dahil et"
 msgid "Incoming"
 msgstr "Gelen"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Gelen KDE Connect dosyaları (her zaman onay iste)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Gelen KDE Connect dosyaları (her zaman onay iste)"
 
 msgid "Incoming call"
 msgstr "Gelen arama"
@@ -8708,3 +8708,20 @@ msgstr "Sistem tepsisi simgesi (60 sn)"
 
 msgid "Saved developer mode is required."
 msgstr "Geliştirici modu kaydedilmiş olmalıdır."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Bilgisayar kaynak klasörü ekle …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Bilgisayar kaynak klasörleri, alma hedeflerinden ayrıdır."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Yalnızca fotoğraflar"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Seçili bilgisayar kaynak klasörleri"

@@ -65,6 +65,8 @@ internal static class PhoneCameraAudioParentPayloadTests
         TestAssert.That(types.Contains(nameof(PhoneCameraAudioParentPayload)) == expected, "Parent composition mismatch");
         TestAssert.That(types.Contains("PhoneCameraAudioParentModule") == expected, "Optional parent loader composition mismatch");
         TestAssert.That(types.Contains("PhoneCameraAudioParentRuntime") == expected && !types.Contains("DiagnosticPlan"), "Runtime composition retained diagnostic call table");
+        TestAssert.That(types.Contains("PhoneCameraVideoParentRuntime") == expected && types.Contains("PhoneCameraNativeOutputs") == expected,
+            "Video runtime/actual native output consumer missing or retained in BASE");
         TestAssert.That(!metadata.MethodDefinitions.Any(h => metadata.GetString(metadata.GetMethodDefinition(h).Name) == "ProbeHeldPath"),
             "Product retained test-only held-path access");
         TestAssert.That(!metadata.MethodDefinitions.Any(h => metadata.GetString(metadata.GetMethodDefinition(h).Name) is "CreateDiagnostic" or "ReleaseStoppedDiagnosticFixture"),

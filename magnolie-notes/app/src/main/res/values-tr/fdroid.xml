@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_update_fdroid">Notes güncellemelerini denetlemek ve yüklemek için F-Droid istemcisini kullanın. F-Droid web sitesinden yalnızca APK indirmek güncelleme bildirimleri sağlamaz.</string>
+    <string name="about_update_fdroid_unknown">Notes uygulamasını F-Droid üzerinden mi yüklediniz? Güncellemeler için GitHub sürümünü değil, F-Droid istemcisini kullanın. Web sitesinden yalnızca APK indirmek F-Droid güncelleme bildirimleri sağlamaz.</string>
+</resources>

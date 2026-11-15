@@ -1,0 +1,1511 @@
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace MagnolieOrganizer.Windows.Tests;
+
+internal static partial class NotesOriginalChoiceStoreTests
+{
+    private sealed class CallbackViolation : Exception { }
+    private sealed class Protector : ISecretProtector, IDisposable
+    {
+        private readonly byte[] key = RandomNumberGenerator.GetBytes(32);
+        internal bool Unavailable, Raw;
+        internal readonly List<byte[]> Secrets = [];
+        public byte[] Protect(byte[] plain)
+        {
+            Secrets.Add(plain);
+            if (Raw) return plain.ToArray();
+            var output = new byte[plain.Length + 28]; RandomNumberGenerator.Fill(output.AsSpan(0, 12));
+            using var aes = new AesGcm(key, 16);
+            aes.Encrypt(output.AsSpan(0, 12), plain, output.AsSpan(12, plain.Length), output.AsSpan(12 + plain.Length, 16));
+            return output;
+        }
+        public byte[] Unprotect(byte[] cipher)
+        {
+            if (Unavailable) throw new CryptographicException("synthetic-key-unavailable");
+            var plain = new byte[cipher.Length - 28];
+            using var aes = new AesGcm(key, 16);
+            aes.Decrypt(cipher.AsSpan(0, 12), cipher.AsSpan(12, plain.Length), cipher.AsSpan(12 + plain.Length, 16), plain);
+            Secrets.Add(plain); return plain;
+        }
+        public void Dispose() => CryptographicOperations.ZeroMemory(key);
+    }
+
+    private sealed class Fixture : IDisposable
+    {
+        internal readonly string Root, ConsentRoot;
+        internal readonly Protector Protector = new();
+        internal readonly JsonObject Export, Book;
+        internal readonly MagnolienbaumCoordinator Coordinator;
+        internal PersonalActorNativeSaveHost Host;
+        internal readonly NotesOriginalChoiceStore Store;
+        internal readonly NotesOriginalExportChoice Choice;
+        internal int Choices;
+        internal bool NoCallbacks, CheckOutsideLock;
+        internal Action? GuardHook;
+        internal string? FailSaveStage;
+        private readonly bool nativeDefault;
+        private readonly JsonObject sender, target;
+        private bool receiving;
+        private JsonObject? observed;
+        private MagnolienbaumCoordinator.NativeNotesOrigin? origin;
+        private string transport = "";
+        internal NotesOriginalPendingResult? PendingResult;
+        internal NotesOriginalNegotiation? Protocol;
+        internal NotesOriginalController? Controller;
+        internal JsonObject RemoteState => sender;
+        internal JsonObject RemotePeer => target;
+        internal bool CaptureRecovery;
+        internal (JsonObject Body, MagnolienbaumCoordinator.NativeNotesOrigin Origin, string Transport) RecoveryObservation =>
+            (observed!.DeepClone().AsObject(), origin!, transport);
+
+        internal Fixture(string root, bool nativeDefault = false)
+        {
+            Root = root; ConsentRoot = Path.Combine(root, "private-choice"); this.nativeDefault = nativeDefault;
+            JsonObject State(string id)
+            {
+                var keys = MagnolienbaumCrypto.GenerateX25519();
+                return new() { ["kennung"] = id, ["name"] = id, ["geheim"] = Convert.ToBase64String(keys.Private),
+                    ["oeffentlich"] = Convert.ToBase64String(keys.Public), ["port"] = 8737, ["an"] = true, ["partner"] = new JsonArray() };
+            }
+            sender = State("synthetic-notes"); var receiver = State("synthetic-desktop");
+            target = MagnolienbaumPairing.AddPartner(sender, MagnolienbaumPairing.Identity(receiver), "127.0.0.1", false);
+            var peer = MagnolienbaumPairing.AddPartner(receiver, MagnolienbaumPairing.Identity(sender), "127.0.0.1", false);
+            target["bestaetigt"] = true; peer["bestaetigt"] = true; peer["vertraut"] = true; peer["kontaktSync"] = true;
+            var paths = new WindowsPaths(Path.Combine(root, "tree")); new MagnolienbaumStore(paths).SaveState(receiver);
+            Coordinator = new(paths, (_, _) => Task.CompletedTask);
+            var contact = new JsonObject { ["id"] = "chosen-private-id", ["uid"] = "canonical-private-uid", ["vorname"] = "Local",
+                ["notesOriginalBasis"] = new JsonObject { ["permission"] = true, ["auto"] = true } };
+            Book = new() { ["kontakte"] = new JsonArray(contact), ["other-domain"] = "preserve", ["syncEpoch"] = "synthetic" };
+            Host = new(Path.Combine(root, "book"), Book.ToJsonString()); Store = NewStore();
+            var before = new JsonObject { ["vorname"] = "Provider" };
+            Export = new() { ["art"] = "kontakt_original_export", ["fassung"] = 1, ["share_id"] = "private-original-share",
+                ["setup_id"] = "11111111-1111-4111-8111-111111111111", ["native_revision"] = 1, ["before_basis"] = new string('b', 64),
+                ["content_sha256"] = NotesOriginalReturnHash.ContentHash(before), ["kontakt"] = before };
+            Coordinator.NotesOriginalReceive = (_, body, proof, mid) =>
+            {
+                receiving = true;
+                try
+                {
+                    if (Controller is not null) return Controller.Stage(new JsonObject(), body, proof, mid);
+                    if (body["art"]!.GetValue<string>() == "kontakt_original_aushandlung" && Protocol is not null)
+                        Protocol.Accept(body, proof, mid);
+                    else if (!CaptureRecovery && body["art"]!.GetValue<string>() == "kontakt_original_ergebnis" && PendingResult is not null)
+                        PendingResult.StageResult(body, proof, mid);
+                    else { observed = body.DeepClone().AsObject(); origin = proof; transport = mid; }
+                    return true;
+                }
+                finally { receiving = false; }
+            };
+            Send(Export); Choice = MakeChoice();
+        }
+
+        private void Outside()
+        {
+            if (receiving || NoCallbacks) throw new CallbackViolation();
+            if (CheckOutsideLock) _ = Store.HasDesiredConsent(); // Would fail if our file session were still locked.
+        }
+        internal NativeActorBookSnapshot? Capture() { Outside(); return Host.Snapshot(); }
+        internal ContactSourcePrimaryBook Primary() { Outside(); return Host.Primary(); }
+        private string Binding() { Outside(); return Path.GetFullPath(Host.DataPath); }
+        internal NotesOriginalChoiceStore NewStore() => new(new(ConsentRoot, controlledUnix: !OperatingSystem.IsWindows()),
+            Capture, Primary, Binding, nativeDefault ? null : Protector, () => Host.CurrentNativeText,
+            stage => { if (stage == FailSaveStage) throw new IOException("synthetic-notes-consent-save-interruption"); });
+        internal void Send(JsonObject body)
+        {
+            using var start = MagnolienbaumFs1.BuildStart(sender, target);
+            var response = Coordinator.HandleProtocolRequest("/magnolie/v2/sitzung", start.Message, "127.0.0.1");
+            TestAssert.That(response.Status == 200, "Synthetic native consent FS1 handshake failed");
+            using var session = MagnolienbaumFs1.OpenResponse(sender, target, start.Message, response.Body, start.EphemeralPrivate);
+            var envelope = MagnolienbaumFs1.BuildEnvelope(session, "synthetic-notes", "synthetic-desktop", body,
+                Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)));
+            var result = Coordinator.HandleProtocolRequest("/magnolie/v2/nachricht", envelope, "127.0.0.1");
+            TestAssert.That(result.Status == 200 && MagnolienbaumFs1.VerifyAcknowledgement(session, envelope, result.Body), "Genuine consent export not staged");
+        }
+        internal NotesOriginalExportChoice MakeChoice() => new(observed!, origin!, transport, Capture()!, Capture,
+            _ => { Outside(); Choices++; return "chosen-private-id"; }, () => { Outside(); GuardHook?.Invoke(); });
+        internal NotesOriginalExportChoice Restore(NotesOriginalChoiceStore? store = null) => (store ?? Store).Restore(observed!, origin!, transport);
+        internal string File(string name) => Path.Combine(ConsentRoot, name);
+        public void Dispose() { Coordinator.Dispose(); Protector.Dispose(); }
+    }
+
+    private static void Hold(Action action)
+    {
+        try { action(); }
+        catch (Exception error) when (error is InvalidOperationException or InvalidDataException or CryptographicException or JsonException or FormatException or IOException or UnauthorizedAccessException) { return; }
+        throw new Exception("Unknown private consent state granted authority");
+    }
+
+    internal static async Task RunAsync(string root)
+    {
+        var modes = new[] { "missing", "restore", "revoke", "lost-key", "corrupt", "pending", "old-record-replay", "foreign-book", "foreign-choice",
+            "wrong-setup", "wrong-share", "changed-book", "same-content-save", "reopen-no-witness", "raw-protector", "fake-seal",
+            "callbacks-outside-lock", "newer-decision-cas", "changed-during-approval", "zeroed-keys", "unavailable-key", "native-default" };
+        foreach (var mode in modes) await ScenarioAsync(Path.Combine(root, mode), mode);
+        Console.WriteLine($"Notes durable private consent core: {modes.Length} synthetic scenarios passed (stable-book only; no native save-chain activation).");
+    }
+
+    internal static async Task SaveChainAsync(string root)
+    {
+        var modes = new[] { "actual-save", "actual-metadata", "first-real-save", "prepared-before-write", "failed-primary-recover",
+            "fake-intent", "foreign-intent-owner", "wrong-target", "tampered-intent", "no-rollback", "revoke", "newer-decision",
+            "callbacks-outside-lock", "uid-change", "missing-current-model" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]);
+            var oldKey = System.IO.File.ReadAllText(h.File(".key.dpapi")); var next = h.Book.DeepClone().AsObject(); next["known-user-edit"] = "preserve";
+            if (mode == "fake-intent")
+            {
+                Hold(() => h.Store.ConfirmSave(new(new object()), h.Host.Snapshot()!)); continue;
+            }
+            if (mode == "missing-current-model")
+            {
+                h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+                var unowned = new NotesOriginalChoiceStore(new(h.ConsentRoot, controlledUnix: !OperatingSystem.IsWindows()), h.Capture, h.Primary,
+                    () => Path.GetFullPath(h.Host.DataPath), h.Protector);
+                Hold(() => unowned.PrepareCurrentSave(h.Book.ToJsonString()));
+                TestAssert.That(!System.IO.File.Exists(h.File(".save-intent.json")) && h.Host.Snapshot() is null, "Unsaved primary bypassed owned native model"); continue;
+            }
+            if (mode is "actual-save" or "callbacks-outside-lock" or "uid-change" or "actual-metadata" or "first-real-save" or "failed-primary-recover")
+            {
+                h.Host.NativeNotesChoices = h.Store;
+                if (mode == "callbacks-outside-lock") h.CheckOutsideLock = true;
+                if (mode == "first-real-save")
+                {
+                    h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
+                    TestAssert.That(h.Host.Snapshot() is null, "Reopen fabricated saved observation"); next = h.Book.DeepClone().AsObject();
+                }
+                if (mode == "uid-change") next["kontakte"]![0]!["uid"] = "changed-canonical-identity";
+                NotesOriginalPendingResult? pending = null; NotesOriginalPendingResult.NativeCommit? metadata = null;
+                if (mode == "actual-metadata")
+                {
+                    pending = h.Choice.CreatePending()!; h.PendingResult = pending;
+                    var request = pending.Request();
+                    var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                        ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                    foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+                    h.Send(result); metadata = pending.PrepareCommit(h.Host.SourceResultCommit); next = JsonNode.Parse(metadata.Text)!.AsObject();
+                }
+                if (mode == "failed-primary-recover") h.Host.FailAfterPrimary = true;
+                var response = await h.Host.SaveOriginalContactResultAsync(metadata?.Offer.Token ?? "", next);
+                if (mode == "failed-primary-recover")
+                {
+                    TestAssert.That(!response["ok"]!.GetValue<bool>() && h.Host.Snapshot() is null && System.IO.File.Exists(h.File(".save-intent.json")), "Failed primary lost prepared recovery intent");
+                    Hold(() => h.Store.RecoverPrimary(h.Host.Primary())); // Stale owned model must not be adopted.
+                    h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+                    h.Store.RecoverPrimary(h.Host.Primary());
+                    TestAssert.That(h.Host.Snapshot() is null && !System.IO.File.Exists(h.File(".save-intent.json")), "Primary permission recovery minted a saved witness");
+                    Hold(() => h.Restore()); h.Host.NativeNotesChoices = h.Store;
+                    response = await h.Host.SaveOriginalContactResultAsync("", JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject());
+                }
+                TestAssert.That(response["ok"]!.GetValue<bool>() && response["notesOriginalDauerhaft"]!.GetValue<bool>() &&
+                    !response["notesOriginalFehler"]!.GetValue<bool>() && !System.IO.File.Exists(h.File(".save-intent.json")) &&
+                    System.IO.File.ReadAllText(h.File(".key.dpapi")) == oldKey, "Actual writer did not advance known-book consent with the same key: " + mode);
+                if (mode == "uid-change") { Hold(h.Choice.RequireCurrent); Hold(() => h.Restore()); continue; }
+                if (pending is not null) TestAssert.That(pending.ConfirmedSave().RequireCurrent() == h.Host.Saved(), "Persistent source seal blocked actual metadata writer witness");
+                h.Send(h.Export); h.Restore(h.NewStore()).RequireCurrent(); TestAssert.That(h.Choices == 1, "Real save chain requested source setup again"); continue;
+            }
+            var intent = h.Store.PrepareCurrentSave(next.ToJsonString())!;
+            TestAssert.That(System.IO.File.Exists(h.File(".save-intent.json")), "Native intent was not durable before writer invalidation");
+            h.Choice.RequireCurrent();
+            if (mode == "prepared-before-write")
+            {
+                h.Store.RecoverSaved(h.Host.Snapshot()!);
+                TestAssert.That(!System.IO.File.Exists(h.File(".save-intent.json")), "Prepared-only crash failed to return to known before"); continue;
+            }
+            if (mode == "foreign-intent-owner") { Hold(() => h.NewStore().ConfirmSave(intent, h.Host.Snapshot()!)); continue; }
+            if (mode == "tampered-intent")
+            {
+                var frame = JsonNode.Parse(System.IO.File.ReadAllText(h.File(".save-intent.json")))!.AsObject(); frame["payload"]!["new"] = new string('f', 64);
+                System.IO.File.WriteAllText(h.File(".save-intent.json"), frame.ToJsonString()); Hold(() => h.Store.HasDesiredConsent()); continue;
+            }
+            if (mode == "revoke") h.Store.Revoke();
+            var actual = next.DeepClone().AsObject(); if (mode == "wrong-target") actual["unplanned-user-edit"] = true;
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", actual))["ok"]!.GetValue<bool>(), "Actual unhooked native writer failed");
+            if (mode == "wrong-target") { Hold(() => h.Store.ConfirmSave(intent, h.Host.Snapshot()!)); Hold(() => h.Store.RecoverSaved(h.Host.Snapshot()!)); continue; }
+            if (mode == "revoke") { Hold(() => h.Store.ConfirmSave(intent, h.Host.Snapshot()!)); TestAssert.That(!h.Store.HasDesiredConsent(), "Old intent rearmed revoked consent"); continue; }
+            if (mode == "newer-decision")
+            {
+                var fresh = h.MakeChoice(); h.Store.Approve([fresh]); var current = System.IO.File.ReadAllText(h.File("approval.json"));
+                Hold(() => h.Store.ConfirmSave(intent, h.Host.Snapshot()!)); fresh.RequireCurrent();
+                TestAssert.That(System.IO.File.ReadAllText(h.File("approval.json")) == current, "Old save completion overwrote newer conscious setup"); continue;
+            }
+            var archive = System.IO.File.ReadAllText(h.File(".save-intent.json")); h.Store.ConfirmSave(intent, h.Host.Snapshot()!);
+            if (mode == "no-rollback")
+            {
+                System.IO.File.WriteAllText(h.File(".save-intent.json"), archive);
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", h.Book.DeepClone().AsObject()))["ok"]!.GetValue<bool>(), "Actual synthetic rollback writer failed");
+                Hold(() => h.Store.RecoverSaved(h.Host.Snapshot()!)); Hold(h.Choice.RequireCurrent);
+            }
+        }
+        Console.WriteLine($"Notes actual known-book save chain: {modes.Length} synthetic native-writer/recovery scenarios passed (no primary-read saved witness).");
+        foreach (var phase in new[] { "intent-written", "content-written", "content-readback", "before-intent-delete", "intent-deleted" })
+        {
+            using var h = new Fixture(Path.Combine(root, "fault-" + phase)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            h.FailSaveStage = phase;
+            var proposal = h.Book.DeepClone().AsObject(); proposal["known-user-edit"] = phase;
+            var response = await h.Host.SaveOriginalContactResultAsync("", proposal);
+            TestAssert.That(response["ok"]!.GetValue<bool>() && response["notesOriginalFehler"]!.GetValue<bool>(), "Consent interruption blocked ordinary actual user save");
+            var saved = h.Host.Saved(); TestAssert.That(saved is not null, "Actual user writer lost real saved observation");
+            h.FailSaveStage = null; h.Store.RecoverSaved(h.Host.Snapshot()!);
+            TestAssert.That(h.Host.Saved() == saved && h.Store.RecognizesSaved() && !System.IO.File.Exists(h.File(".save-intent.json")),
+                "Interrupted private save-chain recovery rewrote user data or invented a new saved observation");
+            h.Send(h.Export); h.Restore(h.NewStore()).RequireCurrent();
+        }
+        Console.WriteLine("Notes private save-chain interruption: 5 signed-intent/content/readback/delete boundary scenarios passed.");
+    }
+
+    internal static void Requests(string root)
+    {
+        var modes = new[] { "fresh", "physical-crash", "archive-crash", "readback-crash", "stop", "stop-during-seal", "revoke",
+            "key-change", "missing-identity", "unknown-existing-root", "tampered-archive", "different-uuid", "different-setup", "foreign-proof", "no-consent", "missing-store",
+            "result-arrived", "cancelled-protocol", "changed-book", "tampered-physical" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode));
+            var journalRoot = Path.Combine(h.Root, "independent-requests");
+            byte keyByte = 42;
+            var copies = new List<byte[]>();
+            byte[] Key() { var key = Enumerable.Repeat(keyByte, 32).ToArray(); copies.Add(key); return key; }
+            ContactSourcePrivateFiles Boundary() => new(journalRoot, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            NotesOriginalRequestIntents? requests = null;
+            requests = new(Boundary(), Key, phase =>
+            {
+                if (mode == "physical-crash" && phase == "physical-written" || mode == "archive-crash" && phase == "archive-written" || mode == "readback-crash" && phase == "after-readback")
+                    throw new IOException("synthetic-request-crash");
+                if (mode == "stop-during-seal" && phase == "after-readback") requests!.Stop();
+            });
+            var binding = Path.GetFullPath(h.Host.DataPath);
+            if (mode == "missing-store")
+            {
+                TestAssert.That(requests.LoadPhysical(binding, "chosen-private-id") is null && !Directory.Exists(journalRoot), "Read-only request discovery created store"); continue;
+            }
+            if (mode != "no-consent") h.Store.Approve([h.Choice]);
+            var pending = h.Choice.CreatePending()!;
+            if (mode == "no-consent") { Hold(() => requests.Seal(pending)); TestAssert.That(!Directory.Exists(journalRoot), "Request without private consent reserved a slot"); continue; }
+            h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own);
+            var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+            if (mode == "unknown-existing-root")
+            {
+                using (Boundary().Open(create: true)) { }
+                Hold(() => requests.Seal(pending));
+                TestAssert.That(!System.IO.File.Exists(Path.Combine(journalRoot, ".journal-key")), "Unknown root was silently initialized"); continue;
+            }
+            if (mode is "physical-crash" or "archive-crash" or "readback-crash" or "stop-during-seal")
+            {
+                Hold(() => requests.Seal(pending));
+                var restarted = new NotesOriginalRequestIntents(Boundary(), Key);
+                TestAssert.That(restarted.LoadPhysical(binding, "chosen-private-id") is not null, "Physical-first crash intention lost");
+                Hold(() => restarted.Seal(pending));
+                if (mode == "physical-crash") TestAssert.That(!Directory.EnumerateFiles(journalRoot, "r-*.json").Any(), "Physical-only crash unexpectedly had archive");
+                continue;
+            }
+            var fresh = requests.Seal(pending);
+            TestAssert.That(JsonNode.DeepEquals(fresh.RequireFor(pending, h.Protocol), pending.Request()), "Fresh owned intention did not correlate request");
+            TestAssert.That(JsonNode.DeepEquals(requests.Seal(pending).RequireFor(pending, h.Protocol), pending.Request()), "Owned repeated seal changed request");
+            var loaded = new NotesOriginalRequestIntents(Boundary(), Key).LoadPhysical(binding, "chosen-private-id")!;
+            loaded["request"]!["request_id"] = Guid.NewGuid().ToString();
+            TestAssert.That(!JsonNode.DeepEquals(loaded, requests.LoadPhysical(binding, "chosen-private-id")), "Loaded history mutation altered native state");
+            var another = h.Choice.CreatePending()!;
+            Hold(() => fresh.RequireFor(another, h.Protocol));
+            Hold(() => new NotesOriginalRequestIntents.FreshRequest(new object()).RequireFor(pending, h.Protocol));
+            Hold(() => new NotesOriginalRequestIntents(Boundary(), Key).Seal(pending)); // Loaded intention never restores nonce.
+            if (mode == "fresh") continue;
+            if (mode == "stop") requests.Stop();
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode == "key-change") keyByte = 43;
+            if (mode == "missing-identity") System.IO.File.Delete(Path.Combine(journalRoot, ".journal-key"));
+            if (mode == "tampered-archive") System.IO.File.WriteAllText(Directory.GetFiles(journalRoot, "r-*.json").Single(), "{}");
+            if (mode == "tampered-physical")
+            {
+                System.IO.File.WriteAllText(Directory.GetFiles(journalRoot, "p-*.json").Single(), "{}");
+                Hold(() => requests.LoadPhysical(binding, "chosen-private-id"));
+            }
+            if (mode == "cancelled-protocol") h.Protocol.Cancel();
+            if (mode == "changed-book")
+            {
+                h.Host.NativeNotesChoices = h.Store;
+                var changed = h.Book.DeepClone().AsObject(); changed["unrelated-edit"] = "preserve";
+                TestAssert.That(h.Host.SaveOriginalContactResultAsync("", changed).GetAwaiter().GetResult()["ok"]!.GetValue<bool>(), "Intervening native save failed");
+            }
+            if (mode == "result-arrived")
+            {
+                h.PendingResult = pending; var request = pending.Request();
+                var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                    ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+                h.Send(result);
+            }
+            if (mode == "different-uuid") { Hold(() => requests.Seal(another)); continue; }
+            if (mode == "different-setup")
+            {
+                var export = h.Export.DeepClone().AsObject(); export["setup_id"] = Guid.NewGuid().ToString(); h.Send(export);
+                var reconfigured = h.MakeChoice(); h.Store.Approve([reconfigured]);
+                Hold(() => requests.Seal(reconfigured.CreatePending()!));
+            }
+            if (mode == "foreign-proof") { Hold(() => fresh.RequireFor(another, h.Protocol)); continue; }
+            Hold(() => fresh.RequireFor(pending, h.Protocol));
+            TestAssert.That(copies.All(key => key.All(value => value == 0)), "Request journal retained a key copy");
+        }
+        Console.WriteLine($"Notes physical-first request intentions: {modes.Length} synthetic cases passed (loaded history never restores send rights).");
+    }
+
+    internal static async Task UnconfirmedQueriesAsync(string root)
+    {
+        var modes = new[] { "restart", "physical-only", "revoke", "target-change", "unrelated-save", "no-offer", "stop", "missing", "wrong-pins", "tampered-physical" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]);
+            var journalRoot = Path.Combine(h.Root, "request-history");
+            ContactSourcePrivateFiles Boundary() => new(journalRoot, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var store = new NotesOriginalRequestIntents(Boundary(), Key, stage =>
+            { if (mode == "physical-only" && stage == "physical-written") throw new IOException("synthetic-physical-only-request"); });
+            var pending = h.Choice.CreatePending()!; var expected = pending.Request();
+            if (mode == "physical-only") Hold(() => store.Seal(pending));
+            else if (mode != "missing") store.Seal(pending);
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode is "target-change" or "unrelated-save")
+            {
+                h.Host.NativeNotesChoices = h.Store;
+                var next = h.Book.DeepClone().AsObject(); next["new-independent-edit"] = "preserve";
+                if (mode == "target-change") next["kontakte"]![0]!["vorname"] = "Changed chosen target";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", next))["ok"]!.GetValue<bool>(), "Known intervening native save failed");
+            }
+            if (mode == "tampered-physical") System.IO.File.WriteAllText(Directory.GetFiles(journalRoot, "p-*.json").Single(), "{}");
+            store.Stop(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+            var reloaded = new NotesOriginalRequestIntents(Boundary(), Key);
+            var pins = h.Choice.Pins;
+            h.Protocol = new(mode == "wrong-pins" ? new("other-native-peer", pins.Peer.PublicKey) : pins.Peer, pins.Own);
+            if (mode != "no-offer" && mode != "wrong-pins") { var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer); }
+            var binding = Path.GetFullPath(h.Host.DataPath);
+            if (mode is "revoke" or "target-change" or "no-offer" or "missing" or "wrong-pins" or "tampered-physical")
+                Hold(() => reloaded.ReadOnlyQuery(binding, "chosen-private-id", h.NewStore(), h.Protocol));
+            else
+            {
+                var query = reloaded.ReadOnlyQuery(binding, "chosen-private-id", h.NewStore(), h.Protocol);
+                var body = query.Request(h.Protocol);
+                TestAssert.That(body.Count == 7 && body["ziel"] is null && body["desktop_sha256"] is null &&
+                    body["request_id"]!.GetValue<string>() == expected["request_id"]!.GetValue<string>(), "Loaded unconfirmed query changed UUID or supplied write/ACK data");
+                if (mode == "stop") { reloaded.Stop(); Hold(() => query.Request(h.Protocol)); }
+            }
+            TestAssert.That(h.Host.Snapshot() is null, "Unconfirmed query fabricated saved snapshot");
+            Hold(() => reloaded.Seal(pending));
+            TestAssert.Throws<InvalidOperationException>(() => new NotesOriginalRequestIntents.UnconfirmedQuery(new object()).Request(h.Protocol), "Fake unconfirmed query accepted");
+            if (mode == "missing") TestAssert.That(!Directory.Exists(journalRoot), "Query without record created history root");
+        }
+        Console.WriteLine($"Notes unconfirmed query-only restart: {modes.Length} synthetic cases passed (no replay, pending writer, saved witness or ACK).");
+    }
+
+    internal static async Task TerminalAsync(string root)
+    {
+        var modes = new[] { "success", "prepared", "fake", "terminal-crash", "archive-crash", "physical-crash", "mapping-change", "tampered-terminal", "missing-archive", "reuse", "reloaded-terminal",
+            "revoke-before-retire", "mapping-after-terminal", "stop-before-retire", "missing-terminal" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            var requestRoot = Path.Combine(h.Root, "requests"); var ackRoot = Path.Combine(h.Root, "acks");
+            ContactSourcePrivateFiles Boundary(string path) => new(path, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var fault = true;
+            var requests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key, phase =>
+            {
+                if (fault && (mode == "archive-crash" && phase == "retired-archive-written" || mode == "physical-crash" && phase == "retired-physical-written"))
+                    throw new IOException("synthetic-retirement-boundary");
+            });
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests, phase =>
+            { if (fault && mode == "terminal-crash" && phase == "terminal-written") throw new IOException("synthetic-terminal-durable-boundary"); });
+            var pending = h.Choice.CreatePending()!; h.PendingResult = pending; requests.Seal(pending);
+            var request = pending.Request(); var key = NotesOriginalSchema.Hash(request);
+            var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = key,
+                ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+            foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+            h.Send(result); var commit = pending.PrepareCommit(h.Host.SourceResultCommit);
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "Actual terminal fixture metadata writer failed");
+            var ack = outcomes.Seal(pending).Body();
+            h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own); var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+            var query = outcomes.ReadOnlyQuery(key, h.Store, h.Protocol);
+            h.CaptureRecovery = true;
+            var settled = result.DeepClone().AsObject(); settled["art"] = "kontakt_original_abschlussstatus"; settled["phase"] = mode == "prepared" ? "prepared" : "settled";
+            settled["desktop_sha256"] = ack["desktop_sha256"]!.DeepClone(); h.Send(settled); var observed = h.RecoveryObservation;
+            var restored = outcomes.Reauthorize(query, observed.Body, observed.Origin, observed.Transport, h.Protocol);
+            var binding = Path.GetFullPath(h.Host.DataPath);
+            if (mode == "prepared")
+            {
+                Hold(() => outcomes.SealTerminal(restored)); TestAssert.That(Directory.GetFiles(ackRoot, "a-*.json").Length == 1 &&
+                    requests.LoadPhysical(binding, "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Prepared status released physical hold"); continue;
+            }
+            if (mode == "fake") { Hold(() => requests.Retire(new(new object()))); continue; }
+            if (mode == "mapping-change")
+            {
+                var changed = JsonNode.Parse(commit.Text)!.AsObject(); changed["kontakte"]![0]!["notesOriginalBasis"]!["receipt_id"] = Guid.NewGuid().ToString();
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual changed-mapping save failed");
+                Hold(() => outcomes.SealTerminal(restored)); continue;
+            }
+            if (mode == "terminal-crash")
+            {
+                Hold(() => outcomes.SealTerminal(restored));
+                TestAssert.That(requests.LoadPhysical(binding, "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Terminal-write crash released request early"); fault = false;
+            }
+            var terminal = outcomes.SealTerminal(restored);
+            if (mode is "revoke-before-retire" or "mapping-after-terminal" or "stop-before-retire" or "missing-terminal")
+            {
+                if (mode == "revoke-before-retire") h.Store.Revoke();
+                if (mode == "stop-before-retire") outcomes.Stop();
+                if (mode == "mapping-after-terminal")
+                {
+                    var changed = JsonNode.Parse(commit.Text)!.AsObject(); changed["kontakte"]![0]!["notesOriginalBasis"]!["receipt_id"] = Guid.NewGuid().ToString();
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual mapping edit after terminal failed");
+                }
+                if (mode == "missing-terminal")
+                {
+                    var terminalKey = terminal.RequireFor(requests).Settled["terminal"]!["key"]!.GetValue<string>();
+                    System.IO.File.Delete(Path.Combine(ackRoot, "a-" + terminalKey + ".json"));
+                }
+                Hold(() => requests.Retire(terminal));
+                TestAssert.That(requests.LoadPhysical(binding, "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Invalid current terminal installation released hold"); continue;
+            }
+            if (mode == "tampered-terminal")
+            {
+                var terminalKey = terminal.RequireFor(requests).Settled["terminal"]!["key"]!.GetValue<string>();
+                System.IO.File.WriteAllText(Path.Combine(ackRoot, "a-" + terminalKey + ".json"), "{}");
+                Hold(() => requests.Retire(terminal)); continue;
+            }
+            if (mode == "missing-archive")
+            {
+                System.IO.File.Delete(Directory.GetFiles(requestRoot, "r-*.json").Single()); Hold(() => requests.Retire(terminal)); continue;
+            }
+            if (mode is "archive-crash" or "physical-crash") { Hold(() => requests.Retire(terminal)); fault = false; }
+            requests.Retire(terminal);
+            var retired = requests.LoadPhysical(binding, "chosen-private-id")!;
+            TestAssert.That(retired["state"]!.GetValue<string>() == "request_settled" && requests.RetiredArchiveMatches(retired), "Terminal history and physical/archive retirement diverged");
+            TestAssert.That(outcomes.LoadHeld(key) is not null, "Retirement destroyed genuine independent saved history");
+            if (mode == "reuse")
+            {
+                var changed = JsonNode.Parse(commit.Text)!.AsObject(); changed["kontakte"]![0]!["vorname"] = "New intended local value";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual post-terminal edit failed");
+                var export = h.Export.DeepClone().AsObject(); var provider = export["kontakt"]!.AsObject();
+                foreach (var field in request["ziel"]!.AsObject()) provider[field.Key] = field.Value?.DeepClone();
+                export["content_sha256"] = NotesOriginalReturnHash.ContentHash(provider); export["before_basis"] = new string('d', 64); export["native_revision"] = 2;
+                h.Send(export); var next = h.Restore().CreatePending()!;
+                Hold(() => requests.Seal(next)); requests.Seal(next, terminal);
+                TestAssert.That(requests.LoadPhysical(binding, "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Valid terminal proof failed to permit exact next UUID slot");
+                Hold(() => requests.Retire(terminal)); // An old completion must not overwrite the next request.
+            }
+            if (mode == "reloaded-terminal")
+            {
+                requests.Stop(); outcomes.Stop(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+                var reloadedRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+                var reloadedOutcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, reloadedRequests);
+                h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own); offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+                var recoveredQuery = reloadedOutcomes.ReadOnlyQuery(key, h.NewStore(), h.Protocol); h.Send(settled); observed = h.RecoveryObservation;
+                var recovered = reloadedOutcomes.Reauthorize(recoveredQuery, observed.Body, observed.Origin, observed.Transport, h.Protocol);
+                reloadedRequests.Retire(reloadedOutcomes.SealTerminal(recovered));
+                TestAssert.That(h.Host.Snapshot() is null, "Terminal repair created a saved witness from primary reads");
+            }
+        }
+        Console.WriteLine($"Notes durable terminal retirement: {modes.Length} native-writer synthetic cases passed (settled history and matching installed mapping before physical reuse).");
+    }
+
+    internal static async Task VerifiedRecoveryAsync(string root)
+    {
+        var modes = new[] { "restart", "physical-only", "wrong-result", "prepared", "stale-revision", "bool-version", "revoke", "changed-target", "stop", "expired-queued-save", "fake-context", "unrelated-rebase",
+            "bootstrap-forged", "bootstrap-mixed", "bootstrap-stale", "bootstrap-revoke", "bootstrap-expired", "bootstrap-failed-primary", "bootstrap-double", "bootstrap-mixed-tree" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]);
+            var requestRoot = Path.Combine(h.Root, "requests"); var ackRoot = Path.Combine(h.Root, "acks");
+            ContactSourcePrivateFiles Boundary(string path) => new(path, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var oldStore = new NotesOriginalRequestIntents(Boundary(requestRoot), Key, phase =>
+            { if (mode == "physical-only" && phase == "physical-written") throw new IOException("synthetic-before-archive-crash"); });
+            var originalPending = h.Choice.CreatePending()!; var request = originalPending.Request();
+            if (mode == "physical-only") Hold(() => oldStore.Seal(originalPending)); else oldStore.Seal(originalPending);
+            oldStore.Stop(); await h.Coordinator.StopAsync(); // Old export origins really lose their native generation.
+            h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
+            var requests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+            h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own); var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+            var query = requests.ReadOnlyQuery(Path.GetFullPath(h.Host.DataPath), "chosen-private-id", h.Store, h.Protocol);
+            var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1,
+                ["request_sha256"] = NotesOriginalSchema.Hash(request), ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+            foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+            if (mode == "wrong-result") result["request_sha256"] = new string('0', 64);
+            if (mode == "stale-revision") result["native_revision"] = 1L;
+            if (mode == "bool-version") result["fassung"] = true;
+            if (mode == "prepared") { result["art"] = "kontakt_original_abschlussstatus"; result["phase"] = "prepared"; result["desktop_sha256"] = new string('f', 64); }
+            h.CaptureRecovery = true; h.Send(result); var observed = h.RecoveryObservation;
+            if (mode is "wrong-result" or "stale-revision" or "bool-version" or "prepared")
+            {
+                Hold(() => requests.Recover(query, observed.Body, observed.Origin, observed.Transport, h.Protocol));
+                TestAssert.That(h.Host.Snapshot() is null && !Directory.Exists(ackRoot), "Invalid/terminal result reconstructed native save or ACK"); continue;
+            }
+            if (mode == "fake-context")
+            { Hold(() => new NotesOriginalRequestIntents.RecoveryContext(new object()).Resume()); continue; }
+            var context = requests.Recover(query, observed.Body, observed.Origin, observed.Transport, h.Protocol);
+            try { context.Resume(); throw new Exception("Recovery minted a primary-read snapshot"); }
+            catch (NotesOriginalRequestIntents.RecoveryNeedsRealSave needed)
+            { TestAssert.That(ReferenceEquals(needed.Context, context) && h.Host.Snapshot() is null, "Recovery lost owned native save requirement"); }
+            // Explicit typed invocation through actual SaveAsync; automatic
+            // queue/controller construction remains a separate integration.
+            var bootstrap = context.PrepareBootstrap(); var bootstrapText = bootstrap.Text;
+            Hold(bootstrap.RequireCompleted);
+            if (mode is "bootstrap-forged" or "bootstrap-mixed" or "bootstrap-stale" or "bootstrap-revoke" or "bootstrap-expired" or "bootstrap-failed-primary" or "bootstrap-mixed-tree")
+            {
+                if (mode == "bootstrap-forged") bootstrap = new(new object());
+                if (mode == "bootstrap-stale") TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", JsonNode.Parse(bootstrapText)!.AsObject()))["ok"]!.GetValue<bool>(), "Intervening real ordinary save failed");
+                if (mode == "bootstrap-revoke") h.Store.Revoke();
+                if (mode == "bootstrap-expired")
+                {
+                    var native = observed.Origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(observed.Origin)!;
+                    native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+                }
+                if (mode == "bootstrap-failed-primary") h.Host.FailAfterPrimary = true;
+                var beforeBootstrap = System.IO.File.ReadAllBytes(h.Host.DataPath); var beforeSaved = h.Host.Saved();
+                var proposed = bootstrapText;
+                if (mode == "bootstrap-mixed") { var modified = JsonNode.Parse(bootstrapText)!.AsObject(); modified["unowned-edit"] = "do not adopt"; proposed = modified.ToJsonString(); }
+                var rejected = await h.Host.SaveNotesBootstrapAsync(bootstrap, proposed, mode == "bootstrap-mixed-tree");
+                TestAssert.That(!rejected["ok"]!.GetValue<bool>(), "Invalid native bootstrap was acknowledged");
+                Hold(bootstrap.RequireCompleted);
+                if (mode != "bootstrap-failed-primary") TestAssert.That(System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(beforeBootstrap) && h.Host.Saved() == beforeSaved, "Rejected bootstrap changed primary or saved observation");
+                else TestAssert.That(h.Host.Saved() is null, "Failed primary bootstrap fabricated a real saved observation");
+                TestAssert.That(!Directory.Exists(ackRoot), "Rejected bootstrap fabricated an ACK history"); continue;
+            }
+            TestAssert.That((await h.Host.SaveNotesBootstrapAsync(bootstrap))["ok"]!.GetValue<bool>() &&
+                h.Host.Saved()!.Sequence == 1, "First actual bootstrap save did not create real native observation");
+            bootstrap.RequireCompleted();
+            if (mode == "bootstrap-double")
+            {
+                var beforeDouble = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                TestAssert.That(!(await h.Host.SaveNotesBootstrapAsync(bootstrap, bootstrapText))["ok"]!.GetValue<bool>() &&
+                    h.Host.Saved()!.Sequence == 1 && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(beforeDouble), "Bootstrap invocation was used twice");
+            }
+            if (mode == "unrelated-rebase")
+            {
+                var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["independent-user-edit"] = "preserve fresh whole-book state";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Unrelated native edit failed");
+            }
+            var pending = context.Resume(); TestAssert.That(ReferenceEquals(context.Resume(), pending) && JsonNode.DeepEquals(pending.Request(), request), "Recovered request changed UUID/target or duplicated pending");
+            Hold(() => requests.Seal(pending)); // Local recovery is NEVER provider-send authority.
+            var commit = pending.PrepareCommit(h.Host.SourceResultCommit); var sequence = h.Host.Saved()!.Sequence;
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode == "stop") requests.Stop();
+            if (mode == "expired-queued-save")
+            {
+                var native = observed.Origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(observed.Origin)!;
+                native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+            }
+            if (mode == "changed-target")
+            {
+                var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["kontakte"]![0]!["vorname"] = "Do not overwrite new user choice";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Chosen target edit failed");
+            }
+            var before = System.IO.File.ReadAllBytes(h.Host.DataPath);
+            var saved = await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject());
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests);
+            if (mode is "revoke" or "stop" or "expired-queued-save" or "changed-target")
+            {
+                TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before), "Invalid queued recovery overwrote native data");
+                Hold(() => outcomes.Seal(pending)); continue;
+            }
+            TestAssert.That(saved["ok"]!.GetValue<bool>() && h.Host.Saved()!.Sequence == sequence + 1 && pending.ConfirmedSave().RequireCurrent() == h.Host.Saved(),
+                "Recovered metadata save did not supply genuine next writer witness");
+            var ack = outcomes.Seal(pending).Body();
+            TestAssert.That(ack["request_sha256"]!.GetValue<string>() == NotesOriginalSchema.Hash(request) && ack["desktop_sha256"]!.GetValue<string>() == h.Host.Saved()!.Sha256,
+                "Recovered actual write did not seal correlated independent ACK");
+            if (mode == "unrelated-rebase") TestAssert.That(JsonNode.Parse(h.Host.CurrentNativeText!)!["independent-user-edit"]!.GetValue<string>() == "preserve fresh whole-book state", "Recovery lost unrelated new edit");
+            if (mode == "physical-only") TestAssert.That(Directory.GetFiles(requestRoot, "r-*.json").Length == 1, "Post-save recovered archive was not made durable");
+            Hold(() => requests.Seal(pending));
+        }
+        Console.WriteLine($"Notes fresh VERIFIED local recovery: {modes.Length} synthetic actual-writer cases passed (real bootstrap then metadata save, no provider replay).");
+    }
+
+    internal static async Task ControllerAsync(string root, bool? completionOnly = null, bool uiOnly = false)
+    {
+        var modes = new[] { "fresh", "bootstrap", "unconfirmed", "physical-only", "history", "corrupt-history", "stop-save", "duplicate", "readiness", "stale-snapshot",
+            "retry", "renew-save", "next-uuid", "failed-save", "counterfeit-plan", "inline-history-fail", "inline-forged", "inline-payload", "inline-readiness", "inline-no-writer",
+            "ui-success", "ui-bootstrap", "ui-cancel", "ui-expire", "ui-forged", "ui-mixed", "ui-native-change", "ui-stop" };
+        if (completionOnly is not null) modes = modes.Where(mode => mode.StartsWith("inline-", StringComparison.Ordinal) == completionOnly.Value && !mode.StartsWith("ui-", StringComparison.Ordinal)).ToArray();
+        if (uiOnly) modes = modes.Where(mode => mode.StartsWith("ui-", StringComparison.Ordinal)).ToArray();
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            var requestRoot = Path.Combine(h.Root, "requests"); var ackRoot = Path.Combine(h.Root, "acks");
+            ContactSourcePrivateFiles Boundary(string path) => new(path, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            JsonObject Result(JsonObject request) {
+                var value = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                    ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) value[name] = request[name]!.DeepClone();
+                return value;
+            }
+            JsonObject? original = null;
+            if (mode is "unconfirmed" or "physical-only" or "history" or "corrupt-history")
+            {
+                var oldRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key, phase =>
+                { if (mode == "physical-only" && phase == "physical-written") throw new IOException("synthetic-physical-crash"); });
+                var oldPending = h.Choice.CreatePending()!; original = oldPending.Request();
+                if (mode == "physical-only") Hold(() => oldRequests.Seal(oldPending)); else oldRequests.Seal(oldPending);
+                if (mode is "history" or "corrupt-history")
+                {
+                    h.PendingResult = oldPending; h.Send(Result(original));
+                    var native = oldPending.PrepareCommit(h.Host.SourceResultCommit);
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync(native.Offer.Token, JsonNode.Parse(native.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "Controller historical fixture actual save failed");
+                    new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, oldRequests).Seal(oldPending);
+                    if (mode == "corrupt-history") System.IO.File.WriteAllText(Directory.GetFiles(ackRoot, "a-*.json").Single(), "{}");
+                }
+                oldRequests.Stop();
+            }
+            if (mode is "bootstrap" or "unconfirmed" or "physical-only" or "history" or "corrupt-history" or "ui-bootstrap")
+            {
+                await h.Coordinator.StopAsync(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
+            }
+            var requests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests);
+            var ready = mode != "readiness";
+            long now = 0;
+            h.Controller = new(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => { h.Primary(); return ready; }, perPeer: 2, monotonicMilliseconds: () => now);
+            var controller = h.Controller;
+            var ui = new NotesOriginalUiSaveSession(controller, () => h.Host.CurrentNativeText, () => now);
+            h.Host.NativeNotesUi = ui;
+            TestAssert.That((await controller.ProcessOneAsync()).Kind == "waiting" && controller.Counts.Peers == 1, "Controller failed bounded private peer refresh");
+            var protocol = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!;
+            var offer = protocol.Probe(); offer["antwort"] = true;
+            h.NoCallbacks = true; h.Send(offer); h.NoCallbacks = false;
+            TestAssert.That((await controller.ProcessOneAsync()).Kind == "negotiated", "Deferred native negotiation failed");
+            NotesOriginalController.Work work;
+            if (original is not null)
+            {
+                work = await controller.ProcessOneAsync();
+                if (mode == "corrupt-history")
+                { TestAssert.That(work.Kind == "held" && controller.Counts.Owners == 0, "Corrupt genuine ACK downgraded into unconfirmed recovery"); controller.Stop(); continue; }
+                TestAssert.That(work.Kind == "query" && work.RequestId == original["request_id"]!.GetValue<string>() &&
+                    (work.Invocation is NotesOriginalSavedAckIntents.HistoryQuery) == (mode == "history"), "Discovery lost UUID or genuine saved-history preference");
+                if (mode == "history")
+                {
+                    var status = Result(original); status["art"] = "kontakt_original_abschlussstatus"; status["phase"] = "settled";
+                    status["desktop_sha256"] = outcomes.LoadHeld(NotesOriginalSchema.Hash(original))!["saved_book"]![2]!.DeepClone();
+                    h.NoCallbacks = true; h.Send(status); h.NoCallbacks = false;
+                    TestAssert.That((await controller.ProcessOneAsync()).Kind == "settled" && controller.Counts.Owners == 0 && h.Host.Snapshot() is null,
+                        "Historical controller settlement manufactured a writer or failed retirement"); controller.Stop(); continue;
+                }
+                h.NoCallbacks = true; h.Send(Result(original)); h.NoCallbacks = false;
+                work = await controller.ProcessOneAsync();
+            }
+            else
+            {
+                h.NoCallbacks = true;
+                for (var n = 0; n < (mode == "duplicate" ? 50 : 1); n++) h.Send(h.Export);
+                h.NoCallbacks = false;
+                TestAssert.That(controller.Counts.Queued == 1, "Duplicate authenticated staging grew the bounded queue");
+                work = await controller.ProcessOneAsync();
+                if (mode == "readiness")
+                { TestAssert.That(work.Kind == "waiting" && !Directory.Exists(requestRoot), "Readiness manufactured request or bypassed UI restriction"); ready = true; work = await controller.ProcessOneAsync(); }
+            }
+            if (work.Kind == "bootstrap")
+            {
+                TestAssert.That(h.Host.Snapshot() is null, "Controller bootstrap manufactured saved observation");
+                var bootstrapSave = mode == "ui-bootstrap"
+                    ? await h.Host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 500, ["text"] = ((NotesOriginalBootstrapSave)work.Invocation!).Text,
+                        ["notesOriginalLauf"] = ui.Publish(work).Token })
+                    : await h.Host.SaveNotesWorkAsync(controller, work);
+                TestAssert.That(bootstrapSave["ok"]!.GetValue<bool>(), "Controller typed bootstrap native save failed");
+                work = await controller.ProcessOneAsync();
+            }
+            if (original is null)
+            {
+                TestAssert.That(work.Kind == "request", "Export controller did not seal fresh native request");
+                original = ((NotesOriginalPendingResult)work.Invocation!).Request();
+                if (mode is "retry" or "counterfeit-plan")
+                {
+                    var plan = await controller.NextTransportAsync();
+                    TestAssert.That(plan?.Kind == "request" && await controller.NextTransportAsync() is null, "Controller did not enforce bounded owner retry");
+                    TestAssert.That(!await plan!.SendAsync(h.Coordinator, () => false), "Offline controller planned delivery or fabricated authority");
+                    now = 29_999; TestAssert.That(await controller.NextTransportAsync() is null, "Controller retry occurred before 30 seconds");
+                    now = 30_000; TestAssert.That((await controller.NextTransportAsync())?.Kind == "request", "Controller failed bounded request retry");
+                    if (mode == "counterfeit-plan") await TestAssert.ThrowsAsync<InvalidOperationException>(async () =>
+                        { _ = await new NotesOriginalController.TransportPlan(new object()).SendAsync(h.Coordinator, () => true); }, "Counterfeit transport plan accepted");
+                }
+                if (mode == "stale-snapshot")
+                {
+                    var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["unrelated-later-edit"] = "preserve";
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Controller stale fixture real edit failed");
+                }
+                h.NoCallbacks = true; h.Send(Result(original)); h.NoCallbacks = false;
+                work = await controller.ProcessOneAsync();
+            }
+            TestAssert.That(work.Kind == "save", "Controller did not offer deferred exact native metadata save");
+            var commit = (NotesOriginalPendingResult.NativeCommit)work.Invocation!;
+            if (mode == "renew-save")
+            {
+                var offered = typeof(NotesOriginalNegotiation).GetField("offer", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(protocol)!;
+                var origin = (MagnolienbaumCoordinator.NativeNotesOrigin)offered.GetType().GetProperty("Origin")!.GetValue(offered)!;
+                var native = origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(origin)!;
+                native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+                TestAssert.That((await controller.NextTransportAsync())?.Kind == "probe", "Expired offer did not renew typed probe");
+                var replacement = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!;
+                TestAssert.That(replacement.Probe()["challenge"]!.GetValue<string>() != offer["challenge"]!.GetValue<string>(), "Renewal reused old challenge");
+                var oldBytes = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                TestAssert.That(!(await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject()))["ok"]!.GetValue<bool>() &&
+                    System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(oldBytes), "Renewal did not revoke old queued writer");
+                offer = replacement.Probe(); offer["antwort"] = true; h.Send(offer);
+                TestAssert.That((await controller.ProcessOneAsync()).Kind == "negotiated" && (await controller.NextTransportAsync())?.Kind == "query",
+                    "Renewed owner recreated provider-send proof instead of query");
+                h.Send(Result(original)); work = await controller.ProcessOneAsync();
+                TestAssert.That(work.Kind == "save" && work.RequestId == original["request_id"]!.GetValue<string>(), "Fresh renewed result lost same UUID local recovery");
+                commit = (NotesOriginalPendingResult.NativeCommit)work.Invocation!;
+            }
+            var before = System.IO.File.ReadAllBytes(h.Host.DataPath);
+            var completion = controller.PrepareSaveCompletion(work);
+            if (mode == "inline-no-writer")
+            {
+                completion.Begin(commit.Text, commit.Offer.Token, null);
+                Hold(completion.Complete);
+                TestAssert.That(System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before) && !Directory.Exists(ackRoot),
+                    "Native completion without actual writer manufactured independent ACK history"); controller.Stop(); continue;
+            }
+            if (mode == "stop-save") controller.Stop();
+            if (mode == "failed-save") h.Host.FailAfterPrimary = true;
+            if (mode == "inline-history-fail") { using var unknown = Boundary(ackRoot).Open(create: true); }
+            if (mode == "inline-readiness") ready = false;
+            var proposedText = commit.Text;
+            if (mode == "inline-payload") { var mixed = JsonNode.Parse(proposedText)!.AsObject(); mixed["unowned-edit"] = true; proposedText = mixed.ToJsonString(); }
+            if (mode == "inline-forged") completion = new(new object());
+            JsonObject saved;
+            if (mode.StartsWith("ui-", StringComparison.Ordinal))
+            {
+                var offerUi = ui.Publish(work);
+                if (mode == "ui-cancel") ui.Cancel(offerUi.Token);
+                if (mode == "ui-stop") ui.Stop();
+                if (mode == "ui-expire") { now += 8_000; ui.Expire(); }
+                if (mode == "ui-mixed") { var changed = JsonNode.Parse(proposedText)!.AsObject(); changed["unowned-edit"] = true; proposedText = changed.ToJsonString(); }
+                if (mode == "ui-native-change")
+                {
+                    var changed = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); changed["new-native-edit"] = "preserve";
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual native edit before UI claim failed");
+                    before = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                }
+                saved = await h.Host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 501, ["text"] = proposedText,
+                    ["notesOriginalLauf"] = mode == "ui-forged" ? new string('0', 64) : offerUi.Token });
+                if (mode is not ("ui-success" or "ui-bootstrap"))
+                {
+                    TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before) && !Directory.Exists(ackRoot),
+                        "Invalid/expired renderer lease wrote a book or invented ACK history");
+                    controller.Stop(); continue;
+                }
+                if (mode == "ui-success")
+                {
+                    var committedBytes = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                    var replay = await h.Host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 502,
+                        ["text"] = proposedText, ["notesOriginalLauf"] = offerUi.Token });
+                    TestAssert.That(!replay["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(committedBytes) &&
+                        outcomes.LoadHeld(NotesOriginalSchema.Hash(original)) is not null, "Renderer lease replay wrote again or destroyed genuine ACK history");
+                }
+            }
+            else saved = await h.Host.SaveNotesWorkAsync(controller, work, proposedText, completion);
+            if (mode == "stop-save")
+            {
+                TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before), "Stop did not revoke queued controller save");
+                Hold(() => controller.AfterNativeSave(work)); continue;
+            }
+            if (mode == "failed-save")
+            {
+                TestAssert.That(!saved["ok"]!.GetValue<bool>(), "Synthetic writer failure unexpectedly succeeded");
+                TestAssert.That(controller.Counts.Owners == 0 && requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null,
+                    "Failed writer retained memory save lane or released durable slot"); controller.Stop(); continue;
+            }
+            if (mode is "inline-forged" or "inline-payload" or "inline-readiness")
+            {
+                TestAssert.That(!saved["ok"]!.GetValue<bool>() && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before) && !Directory.Exists(ackRoot),
+                    "Invalid native completion wrote data or invented ACK history"); controller.Stop(); continue;
+            }
+            TestAssert.That(saved["ok"]!.GetValue<bool>(), "Actual controller metadata writer failed");
+            if (mode == "inline-history-fail")
+            {
+                TestAssert.That(saved["notesOriginalFehler"]!.GetValue<bool>() && controller.Counts.Owners == 0 && h.Host.Saved() is not null &&
+                    requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null, "Independent journal failure rejected actual user save or released durable hold");
+                controller.Stop(); continue;
+            }
+            TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(original)) is not null, "Inline writer completion did not seal history before SaveAsync returned");
+            TestAssert.That((await controller.NextTransportAsync())?.Kind == "ack", "Actual newly saved authority did not permit prompt typed ACK");
+            TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(original)) is not null, "Controller lacked genuine independent post-save ACK history");
+            if (mode == "stale-snapshot") TestAssert.That(JsonNode.Parse(h.Host.CurrentNativeText!)!["unrelated-later-edit"]!.GetValue<string>() == "preserve", "Controller stale rebase lost unrelated edit");
+            var terminal = Result(original); terminal["art"] = "kontakt_original_abschlussstatus"; terminal["phase"] = "settled"; terminal["desktop_sha256"] = h.Host.Saved()!.Sha256;
+            h.NoCallbacks = true; h.Send(terminal); h.NoCallbacks = false;
+            TestAssert.That((await controller.ProcessOneAsync()).Kind == "settled" && controller.Counts.Owners == 0 && controller.Counts.Queued == 0,
+                "Controller actual-save terminal lifecycle did not retire owner");
+            if (mode == "next-uuid")
+            {
+                var later = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); later["kontakte"]![0]!["vorname"] = "Next deliberate local value";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Next local contact save failed");
+                var export = h.Export.DeepClone().AsObject(); var provider = export["kontakt"]!.AsObject();
+                foreach (var pair in original["ziel"]!.AsObject()) provider[pair.Key] = pair.Value?.DeepClone();
+                export["native_revision"] = 2L; export["before_basis"] = new string('d', 64); export["content_sha256"] = NotesOriginalReturnHash.ContentHash(provider);
+                h.Send(export); var next = await controller.ProcessOneAsync();
+                TestAssert.That(next.Kind == "request" && next.RequestId != original["request_id"]!.GetValue<string>(), "Controller failed exact terminal-proven next UUID reuse");
+            }
+            controller.Stop();
+        }
+        Console.WriteLine($"Notes bounded native controller: {modes.Length} synthetic receive/deferred/actual-writer cases passed (no registered pump or UI dispatch).");
+    }
+
+    internal static async Task ControllerSourcesAsync(string root)
+    {
+        foreach (var conflict in new[] { false, true })
+        {
+            using var h = new Fixture(Path.Combine(root, conflict ? "conflict" : "fairness"));
+            var book = h.Book.DeepClone().AsObject(); var second = book["kontakte"]![0]!.DeepClone().AsObject(); second["id"] = "second-id"; second["uid"] = "second-uid";
+            book["kontakte"]!.AsArray().Add(second);
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", book))["ok"]!.GetValue<bool>(), "Controller multi-source fixture save failed");
+            var export = h.Export.DeepClone().AsObject(); export["share_id"] = "second-source-share"; export["setup_id"] = "33333333-3333-4333-8333-333333333333";
+            h.Send(export); var observed = h.RecoveryObservation;
+            var secondChoice = new NotesOriginalExportChoice(observed.Body, observed.Origin, observed.Transport, h.Host.Snapshot()!, h.Host.Snapshot, _ => "second-id", () => { });
+            h.Store.Approve([h.Choice, secondChoice]); h.Host.NativeNotesChoices = h.Store;
+            ContactSourcePrivateFiles Boundary(string path) => new(Path.Combine(h.Root, path), controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var requests = new NotesOriginalRequestIntents(Boundary("requests"), Key); var outcomes = new NotesOriginalSavedAckIntents(Boundary("acks"), Key, requests);
+            long now = 0;
+            h.Controller = new(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => true, perPeer: 2, monotonicMilliseconds: () => now);
+            var controller = h.Controller; await controller.ProcessOneAsync();
+            var protocol = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!; var offer = protocol.Probe(); offer["antwort"] = true; h.Send(offer);
+            await controller.ProcessOneAsync(); h.NoCallbacks = true; h.Send(h.Export); h.Send(export); h.NoCallbacks = false;
+            var firstWork = await controller.ProcessOneAsync(); var secondWork = await controller.ProcessOneAsync();
+            TestAssert.That(firstWork.Kind == "request" && secondWork.Kind == "request" && firstWork.RequestId != secondWork.RequestId && controller.Counts.Owners == 2,
+                "Controller lost isolated native source owners");
+            var first = ((NotesOriginalPendingResult)firstWork.Invocation!).Request(); var last = ((NotesOriginalPendingResult)secondWork.Invocation!).Request();
+            TestAssert.That((await controller.NextTransportAsync())?.Kind == "request" && (await controller.NextTransportAsync())?.Kind == "request" &&
+                await controller.NextTransportAsync() is null, "Due owner retry blocked another source or escaped bounded retry");
+            JsonObject Result(JsonObject request) {
+                var body = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                    ["receipt_id"] = Guid.NewGuid().ToString(), ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) body[name] = request[name]!.DeepClone(); return body;
+            }
+            var result = Result(first); h.Send(result);
+            if (conflict)
+            {
+                var changed = result.DeepClone().AsObject(); changed["receipt_id"] = Guid.NewGuid().ToString();
+                Hold(() => h.Send(changed));
+                TestAssert.That((await controller.ProcessOneAsync()).Kind == "held", "Conflicting same-request result was not isolated");
+            }
+            else
+            {
+                var save = await controller.ProcessOneAsync(); var native = (NotesOriginalPendingResult.NativeCommit)save.Invocation!;
+                TestAssert.That((await h.Host.SaveNotesWorkAsync(controller, save))["ok"]!.GetValue<bool>(), "First source actual metadata save failed");
+            }
+            h.Send(Result(last)); var next = await controller.ProcessOneAsync();
+            TestAssert.That(next.Kind == "save", "One held/conflicting source blocked another valid source");
+            var commit = (NotesOriginalPendingResult.NativeCommit)next.Invocation!;
+            TestAssert.That((await h.Host.SaveNotesWorkAsync(controller, next))["ok"]!.GetValue<bool>(), "Second stale-source rebase failed");
+            TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(last)) is not null, "Second source did not seal genuine ACK after isolated conflict/stale whole-book rebase");
+            if (!conflict) TestAssert.That(outcomes.LoadHeld(NotesOriginalSchema.Hash(first)) is not null &&
+                JsonNode.Parse(h.Host.CurrentNativeText!)!["kontakte"]!.AsArray().OfType<JsonObject>().All(value => value["notesOriginalBasis"]?["receipt_id"] is not null),
+                "Sequential source saves overwrote earlier metadata");
+            now = 30_000; TestAssert.That(await controller.NextTransportAsync() is not null, "Remaining valid source was stranded by fairness scheduling");
+            controller.Stop();
+        }
+        Console.WriteLine("Notes controller multi-source: 2 fairness/conflict/stale-whole-book actual-writer cases passed.");
+    }
+
+    internal static async Task WorkerAsync(string root)
+    {
+        foreach (var mode in new[] { "valid", "not-idle", "foreign-token", "expired-probe", "changed-book", "replay", "cache-expiry", "stopped" })
+        {
+            long now = 0; var text = "synthetic-owned-book";
+            var readiness = new NotesOriginalUiReadiness(() => text, () => now); var probe = readiness.Request();
+            TestAssert.That(!readiness.IsReady && readiness.Request() == probe, "Readiness probe itself granted permission or grew pending probes");
+            if (mode == "expired-probe") now = 5_000;
+            if (mode == "changed-book") text += "-new";
+            if (mode == "stopped") readiness.Stop();
+            var allowed = readiness.Accept(mode == "foreign-token" ? new string('0', 64) : probe.Token, mode != "not-idle");
+            TestAssert.That(allowed == (mode is "valid" or "replay" or "cache-expiry"), "Readiness restriction accepted stale/foreign/unsent native state");
+            if (mode == "replay") TestAssert.That(!readiness.Accept(probe.Token, true), "Readiness token was replayed");
+            if (mode == "cache-expiry") { now = 5_000; TestAssert.That(!readiness.IsReady, "Cached readiness never expired"); }
+            readiness.Stop();
+        }
+        foreach (var mode in new[] { "event-save", "coalesced-turn", "stop-pending" })
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            ContactSourcePrivateFiles Boundary(string path) => new(Path.Combine(h.Root, path), controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var readiness = new NotesOriginalUiReadiness(() => h.Host.CurrentNativeText);
+            var requests = new NotesOriginalRequestIntents(Boundary("requests"), Key);
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary("acks"), Key, requests);
+            var controller = new NotesOriginalController(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => readiness.IsReady);
+            var ui = new NotesOriginalUiSaveSession(controller, () => h.Host.CurrentNativeText); h.Host.NativeNotesUi = ui;
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var savedEvent = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var asks = 0; var offers = 0; var wakeOutsideBook = false;
+            var worker = new NotesOriginalWorker(controller, ui, readiness, h.Coordinator, async work =>
+            {
+                var outside = await Task.Run(() => { var taken = MutationGate.Global.Wait(0); if (taken) MutationGate.Global.Release(); return taken; });
+                TestAssert.That(outside, "Deferred UI dispatch held native book gate");
+                NotesOriginalUiSaveSession.Offer offer;
+                await MutationGate.Global.WaitAsync();
+                try { offer = ui.Publish(work); }
+                finally { MutationGate.Global.Release(); }
+                offers++;
+                var saved = await h.Host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = 700 + offers, ["text"] = offer.Text, ["notesOriginalLauf"] = offer.Token });
+                savedEvent.TrySetResult(saved);
+            }, async () =>
+            {
+                asks++; entered.TrySetResult();
+                if (mode == "coalesced-turn") await release.Task;
+                var probe = readiness.Request(); readiness.Accept(probe.Token, true);
+            }, () => false);
+            h.Host.NativeNotesWake = () =>
+            {
+                wakeOutsideBook = MutationGate.Global.Wait(0); if (wakeOutsideBook) MutationGate.Global.Release();
+                worker.Wake();
+            };
+            h.Coordinator.NotesOriginalReceive = null; worker.Attach();
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            if (mode == "coalesced-turn")
+            {
+                var first = worker.PulseAsync(deadline.Token); await entered.Task.WaitAsync(deadline.Token);
+                await worker.PulseAsync(deadline.Token);
+                TestAssert.That(asks == 1 && offers == 0, "Overlapping deferred turns did not coalesce");
+                release.TrySetResult(); await first; await worker.StopAsync(); continue;
+            }
+            await worker.PulseAsync(deadline.Token);
+            var protocol = (NotesOriginalNegotiation)controller.ProbeOne().Invocation!; var offerBody = protocol.Probe(); offerBody["antwort"] = true;
+            h.NoCallbacks = true; h.Send(offerBody); h.NoCallbacks = false; await worker.PulseAsync(deadline.Token);
+            h.NoCallbacks = true; h.Send(h.Export); h.NoCallbacks = false; await worker.PulseAsync(deadline.Token);
+            var request = requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id")!["request"]!.AsObject();
+            var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(request),
+                ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+            foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+            h.NoCallbacks = true; h.Send(result); h.NoCallbacks = false;
+            if (mode == "stop-pending")
+            {
+                var before = System.IO.File.ReadAllBytes(h.Host.DataPath); await h.Coordinator.StopAsync(); await worker.PulseAsync();
+                TestAssert.That(!readiness.IsReady && offers == 0 && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before) &&
+                    requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null, "Coordinator Stop left a live queued writer or released durable hold");
+                await worker.StopAsync(); continue;
+            }
+            // Run the actual existing maintenance loop privately, without StartAsync,
+            // listeners, devices or a test server. Its staged receive wake must
+            // dispatch before the 30-second periodic tick.
+            using var loopStop = new CancellationTokenSource();
+            var loop = (Task)typeof(MagnolienbaumCoordinator).GetMethod("MaintenanceLoopAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(h.Coordinator, [loopStop.Token])!;
+            try
+            {
+                var saved = await savedEvent.Task.WaitAsync(deadline.Token);
+                TestAssert.That(saved["ok"]!.GetValue<bool>() && offers == 1 && wakeOutsideBook && outcomes.LoadHeld(NotesOriginalSchema.Hash(request)) is not null,
+                    "Actual event-driven maintenance/UI/native-writer/inline ACK chain failed or ran under receive/book gate");
+            }
+            finally { loopStop.Cancel(); await loop; await worker.StopAsync(); }
+            TestAssert.That(requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null, "Worker Stop freed a disk hold");
+        }
+        Console.WriteLine("Notes native readiness/worker: 8 cached-restriction and 3 coalesced/event/Stop synthetic cases passed (no listener or startup factory).");
+    }
+
+    private sealed class NotesHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler) : HttpMessageHandler
+    { protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellation) => handler(request, cancellation); }
+
+    internal static async Task ReservedTransportAsync(string root)
+    {
+        var modes = new[] { "probe", "request", "unconfirmed-query", "history-query", "saved-ack", "restored-ack", "offline", "fake-request", "fake-ack",
+            "drop-policy", "peer-change", "own-secret-loss", "stop-after-handshake", "stop-after-receipt", "bad-receipt", "cancel-after-handshake", "deadline" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            ContactSourcePrivateFiles Boundary(string leaf) => new(Path.Combine(h.Root, leaf), controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            byte[] Key() => Enumerable.Repeat((byte)42, 32).ToArray();
+            var requests = new NotesOriginalRequestIntents(Boundary("requests"), Key);
+            var outcomes = new NotesOriginalSavedAckIntents(Boundary("acks"), Key, requests);
+            var pending = h.Choice.CreatePending()!; h.PendingResult = pending;
+            var fresh = requests.Seal(pending); var originalRequest = pending.Request();
+            h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own);
+            if (mode != "probe") { var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer); }
+            NotesOriginalRequestIntents.UnconfirmedQuery? unconfirmed = null;
+            NotesOriginalSavedAckIntents.HistoryQuery? history = null;
+            NotesOriginalSavedAckIntents.SavedAck? savedAck = null;
+            NotesOriginalSavedAckIntents.RestoredAck? restoredAck = null;
+            if (mode == "unconfirmed-query") unconfirmed = requests.ReadOnlyQuery(Path.GetFullPath(h.Host.DataPath), "chosen-private-id", h.Store, h.Protocol);
+            if (mode is "history-query" or "saved-ack" or "restored-ack")
+            {
+                var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = NotesOriginalSchema.Hash(originalRequest),
+                    ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+                foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = originalRequest[name]!.DeepClone();
+                h.Send(result); var commit = pending.PrepareCommit(h.Host.SourceResultCommit);
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject()))["ok"]!.GetValue<bool>(), "Reserved ACK fixture writer failed");
+                savedAck = outcomes.Seal(pending);
+                history = outcomes.ReadOnlyQuery(NotesOriginalSchema.Hash(originalRequest), h.Store, h.Protocol);
+                if (mode == "restored-ack")
+                {
+                    h.CaptureRecovery = true; h.Send(result); var observation = h.RecoveryObservation;
+                    restoredAck = outcomes.Reauthorize(history, observation.Body, observation.Origin, observation.Transport, h.Protocol);
+                }
+            }
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var gate = typeof(MagnolienbaumCoordinator).GetField("gate", flags)!.GetValue(h.Coordinator)!;
+            var live = (JsonObject)typeof(MagnolienbaumCoordinator).GetField("state", flags)!.GetValue(h.Coordinator)!;
+            var beforeOutbox = ((JsonArray)typeof(MagnolienbaumCoordinator).GetField("outbox", flags)!.GetValue(h.Coordinator)!).ToJsonString();
+            var sessions = new List<MagnolienbaumFsSession>();
+            var calls = new List<string>(); var contents = new List<JsonObject>(); var allowed = mode != "offline";
+            using var cancellation = new CancellationTokenSource();
+            using var handler = new NotesHandler(async (request, token) =>
+            {
+                if (!request.RequestUri!.AbsolutePath.StartsWith("/magnolie/v2/", StringComparison.Ordinal)) throw new CallbackViolation();
+                calls.Add(request.RequestUri.AbsolutePath);
+                var acquired = await Task.Run(() =>
+                {
+                    var treeFree = Monitor.TryEnter(gate, TimeSpan.FromSeconds(1)); if (treeFree) Monitor.Exit(gate);
+                    var bookFree = MutationGate.Global.Wait(TimeSpan.FromSeconds(1)); if (bookFree) MutationGate.Global.Release();
+                    return treeFree && bookFree;
+                });
+                if (!acquired) throw new CallbackViolation(); // Must not be swallowed as an expected transport failure.
+                if (mode == "deadline") await Task.Delay(Timeout.Infinite, token);
+                var payload = JsonNode.Parse(await request.Content!.ReadAsStringAsync(token))!.AsObject(); JsonObject reply;
+                if (request.RequestUri.AbsolutePath.EndsWith("/sitzung", StringComparison.Ordinal))
+                {
+                    var built = MagnolienbaumFs1.BuildResponse(h.RemoteState, h.RemotePeer, payload); sessions.Add(built.Session); reply = built.Response;
+                    if (mode == "drop-policy") allowed = false;
+                    if (mode == "peer-change") live["partner"]![0]!["kontaktSync"] = false;
+                    if (mode == "own-secret-loss") live.Remove("geheim");
+                    if (mode == "stop-after-handshake") await h.Coordinator.StopAsync();
+                    if (mode == "cancel-after-handshake") cancellation.Cancel();
+                }
+                else
+                {
+                    var session = sessions.Last(); var opened = MagnolienbaumFs1.OpenEnvelope(session, "synthetic-notes", "synthetic-desktop", payload);
+                    contents.Add(opened.Content.DeepClone().AsObject()); reply = MagnolienbaumFs1.BuildAcknowledgement(session, payload);
+                    if (mode == "bad-receipt") reply["mac"] = Convert.ToBase64String(new byte[32]);
+                    if (mode == "stop-after-receipt") await h.Coordinator.StopAsync();
+                }
+                return new(System.Net.HttpStatusCode.OK) { Content = new StringContent(reply.ToJsonString()) };
+            });
+            var clientField = typeof(MagnolienbaumCoordinator).GetField("client", flags)!;
+            ((HttpClient)clientField.GetValue(h.Coordinator)!).Dispose(); clientField.SetValue(h.Coordinator, new HttpClient(handler));
+            async Task<bool> Send() => mode switch
+            {
+                "probe" => await h.Coordinator.SendNotesProbeAsync(h.Protocol, () => allowed, cancellation.Token),
+                "unconfirmed-query" => await h.Coordinator.SendNotesQueryAsync(unconfirmed!, h.Protocol, () => allowed, cancellation.Token),
+                "history-query" => await h.Coordinator.SendNotesQueryAsync(history!, h.Protocol, () => allowed, cancellation.Token),
+                "saved-ack" => await h.Coordinator.SendNotesSavedAckAsync(savedAck!, h.Protocol, () => allowed, cancellation.Token),
+                "restored-ack" => await h.Coordinator.SendNotesSavedAckAsync(restoredAck!, h.Protocol, () => allowed, cancellation.Token),
+                "fake-ack" => await h.Coordinator.SendNotesSavedAckAsync(new NotesOriginalSavedAckIntents.SavedAck(new object()), h.Protocol, () => allowed, cancellation.Token),
+                _ => await h.Coordinator.SendNotesRequestAsync(pending, mode == "fake-request" ? new(new object()) : fresh, h.Protocol, () => allowed, cancellation.Token)
+            };
+            try
+            {
+                var timer = System.Diagnostics.Stopwatch.StartNew(); bool delivered;
+                if (mode == "cancel-after-handshake")
+                {
+                    await TestAssert.ThrowsAsync<OperationCanceledException>(async () => { _ = await Send(); }, "Caller cancellation was ignored"); delivered = false;
+                }
+                else delivered = await Send();
+                TestAssert.That(delivered == (mode is "probe" or "request" or "unconfirmed-query" or "history-query" or "saved-ack" or "restored-ack"), "Reserved transport disposition was wrong: " + mode);
+                if (mode is "offline" or "fake-request" or "fake-ack") TestAssert.That(calls.Count == 0, "Offline/counterfeit request reached networking");
+                if (mode is "drop-policy" or "peer-change" or "own-secret-loss" or "stop-after-handshake" or "cancel-after-handshake" or "deadline") TestAssert.That(calls.Count == 1 && contents.Count == 0, "Invalid context sent draft after handshake or bypassed the actual attempted handshake");
+                if (mode == "deadline") TestAssert.That(timer.Elapsed >= TimeSpan.FromSeconds(7) && timer.Elapsed < TimeSpan.FromSeconds(12), "Reserved send did not exercise its bounded network deadline");
+                if (mode is "bad-receipt" or "stop-after-receipt") TestAssert.That(calls.Count == 2 && contents.Count == 1, "Uncertain-delivery case did not reach the actual encrypted message");
+                if (mode == "probe") TestAssert.Throws<InvalidOperationException>(() => h.Protocol.RequireCurrent(), "Transport receipt negotiated profile without actual native offer");
+                if (mode == "request") TestAssert.That(contents.Count == 1 && JsonNode.DeepEquals(contents[0], originalRequest), "Reserved request body was retargeted");
+                if (mode is "unconfirmed-query" or "history-query") TestAssert.That(contents.Single()["ziel"] is null && contents.Single()["art"]!.GetValue<string>() == "kontakt_original_statusanfrage", "Reserved query acquired write target");
+                if (mode is "saved-ack" or "restored-ack") TestAssert.That(contents.Single()["desktop_sha256"]!.GetValue<string>() == h.Host.Saved()!.Sha256 &&
+                    requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id")!["state"]!.GetValue<string>() == "request_pending", "Transport receipt retired native request history");
+                TestAssert.That(((JsonArray)typeof(MagnolienbaumCoordinator).GetField("outbox", flags)!.GetValue(h.Coordinator)!).ToJsonString() == beforeOutbox,
+                    "Reserved draft entered generic outbox");
+            }
+            finally { foreach (var session in sessions) session.Dispose(); }
+        }
+        Console.WriteLine($"Notes reserved native FS1 transport: {modes.Length} synthetic authenticated-handler cases passed (no generic fallback or receipt settlement).");
+    }
+
+    internal static async Task ExportBootstrapAsync(string root)
+    {
+        var modes = new[] { "success", "no-op", "missing-private", "bad-hash", "wrong-setup", "revoke", "missing-key", "unknown-primary", "wrong-uid",
+            "expired", "stop", "unsupported-postal", "discovery-reopen", "discovery-isolation", "late-duplicate" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode));
+            if (mode == "missing-private")
+            {
+                h.NoCallbacks = true;
+                TestAssert.That(h.Store.DiscoverySources() is null && !Directory.Exists(h.ConsentRoot), "Missing private discovery created state or read book");
+                var absent = h.RecoveryObservation; Hold(() => h.Store.ExportBootstrap(absent.Body, absent.Origin, absent.Transport));
+                TestAssert.That(!Directory.Exists(h.ConsentRoot), "Export schema created source consent"); continue;
+            }
+            var secondExport = h.Export.DeepClone().AsObject(); secondExport["share_id"] = "second-source-share"; secondExport["setup_id"] = "33333333-3333-4333-8333-333333333333";
+            if (mode is "discovery-isolation" or "late-duplicate")
+            {
+                var book = h.Book.DeepClone().AsObject(); var second = book["kontakte"]![0]!.DeepClone().AsObject(); second["id"] = "second-id"; second["uid"] = "second-uid";
+                book["kontakte"]!.AsArray().Add(second);
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", book))["ok"]!.GetValue<bool>(), "Two-source native fixture save failed");
+                h.Send(secondExport); var observation = h.RecoveryObservation;
+                var secondChoice = new NotesOriginalExportChoice(observation.Body, observation.Origin, observation.Transport, h.Host.Snapshot()!, h.Host.Snapshot, _ => "second-id", () => { });
+                h.Store.Approve([h.Choice, secondChoice]);
+            }
+            else h.Store.Approve([h.Choice]);
+            var keyBefore = System.IO.File.ReadAllText(h.File(".key.dpapi"));
+            if (mode is "unknown-primary" or "wrong-uid" or "unsupported-postal" or "discovery-isolation")
+            {
+                h.Host.NativeNotesChoices = mode == "unknown-primary" ? null : h.Store;
+                var changed = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); changed["unrelated-user-field"] = "preserve";
+                if (mode is "wrong-uid" or "discovery-isolation") changed["kontakte"]![0]!["uid"] = "changed-private-uid";
+                if (mode == "unsupported-postal") changed["kontakte"]![0]!["anschriften"] = new JsonArray(new JsonObject { ["typen"] = new JsonArray("HOME", "WORK"), ["strasse"] = "Unsupported exact synthetic value" });
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual native pre-bootstrap change failed");
+            }
+            await h.Coordinator.StopAsync(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true); h.Host.NativeNotesChoices = h.Store;
+            TestAssert.That(h.Host.Snapshot() is null, "Export bootstrap read fabricated saved scope");
+            var export = h.Export.DeepClone().AsObject();
+            if (mode == "no-op")
+            {
+                var before = export["kontakt"]!.AsObject(); var local = JsonNode.Parse(h.Host.CurrentNativeText!)!["kontakte"]![0]!.AsObject();
+                foreach (var field in NotesOriginalExportChoice.Project(local, before)) before[field.Key] = field.Value?.DeepClone();
+                export["content_sha256"] = NotesOriginalReturnHash.ContentHash(before);
+            }
+            if (mode == "bad-hash") export["content_sha256"] = new string('0', 64);
+            if (mode == "wrong-setup") export["setup_id"] = Guid.NewGuid().ToString();
+            h.Send(export); var observed = h.RecoveryObservation;
+            if (mode == "missing-key") System.IO.File.Delete(h.File(".key.dpapi"));
+            if (mode is "bad-hash" or "wrong-setup" or "missing-key" or "unknown-primary" or "wrong-uid" or "unsupported-postal")
+            {
+                Hold(() => h.Store.ExportBootstrap(observed.Body, observed.Origin, observed.Transport));
+                TestAssert.That(h.Host.Snapshot() is null && (mode != "missing-key" || !System.IO.File.Exists(h.File(".key.dpapi"))), "Rejected export minted scope or replacement key"); continue;
+            }
+            if (mode is "discovery-reopen" or "discovery-isolation")
+            {
+                h.CheckOutsideLock = true;
+                var found = h.Store.DiscoverySources() ?? throw new Exception("Known private discovery missing");
+                TestAssert.That(found.Binding == Path.GetFullPath(h.Host.DataPath) && found.Sources.Count == 1 &&
+                    found.Sources[0]["local_id"]!.GetValue<string>() == (mode == "discovery-isolation" ? "second-id" : "chosen-private-id"), "Private discovery lost isolation or exact ID/UID selection");
+                found.Sources[0]["local_id"] = "copied-hint-mutation";
+                TestAssert.That(h.Store.DiscoverySources()!.Value.Sources[0]["local_id"]!.GetValue<string>() != "copied-hint-mutation" && h.Host.Snapshot() is null,
+                    "Discovery hint alias or primary read became authority"); continue;
+            }
+            var context = h.Store.ExportBootstrap(observed.Body, observed.Origin, observed.Transport);
+            try { context.Restore(); throw new Exception("Export context fabricated saved snapshot"); }
+            catch (NotesOriginalChoiceStore.ExportNeedsRealSave needed) { TestAssert.That(ReferenceEquals(needed.Context, context), "Export lost exact private bootstrap context"); }
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode == "stop") await h.Coordinator.StopAsync();
+            if (mode == "expired")
+            {
+                var native = observed.Origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(observed.Origin)!;
+                native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+            }
+            if (mode is "revoke" or "stop" or "expired") { Hold(() => context.PrepareBootstrap()); TestAssert.That(h.Host.Snapshot() is null, "Stale export context performed bootstrap"); continue; }
+            NotesOriginalBootstrapSave? secondBootstrap = null;
+            NotesOriginalChoiceStore.ExportBootstrapContext? secondContext = null;
+            string? secondText = null;
+            if (mode == "late-duplicate")
+            {
+                h.Send(secondExport); var second = h.RecoveryObservation;
+                secondContext = h.Store.ExportBootstrap(second.Body, second.Origin, second.Transport); secondBootstrap = secondContext.PrepareBootstrap(); secondText = secondBootstrap.Text;
+            }
+            var bootstrap = context.PrepareBootstrap();
+            TestAssert.That((await h.Host.SaveNotesBootstrapAsync(bootstrap))["ok"]!.GetValue<bool>() && h.Host.Saved()!.Sequence == 1,
+                "Regular fresh export did not reach actual native first writer save"); bootstrap.RequireCompleted();
+            var restored = context.Restore(); var pending = restored.CreatePending();
+            TestAssert.That((pending is null) == (mode == "no-op") && h.Choices == 1 && System.IO.File.ReadAllText(h.File(".key.dpapi")) == keyBefore,
+                "Regular export fabricated request/no-op, repeated chooser or replaced durable consent key");
+            if (mode == "late-duplicate")
+            {
+                var raw = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                TestAssert.That(!(await h.Host.SaveNotesBootstrapAsync(secondBootstrap!, secondText))["ok"]!.GetValue<bool>() &&
+                    h.Host.Saved()!.Sequence == 1 && System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(raw) && secondContext!.Restore().CreatePending() is not null,
+                    "Second source queued another full-book bootstrap instead of using real first save");
+            }
+            TestAssert.That(!Directory.Exists(Path.Combine(h.Root, "requests")), "Bootstrap fabricated unconfirmed request history");
+        }
+        Console.WriteLine($"Notes regular export bootstrap/private discovery: {modes.Length} synthetic native-writer cases passed (no fake recovered request or primary-read saved scope).");
+    }
+
+    internal static async Task SavedAcksAsync(string root, bool followupSlice = false)
+    {
+        var modes = new[] { "success", "before-save", "failed-save", "missing-request", "tampered-history", "missing-history", "key-change", "request-tamper",
+            "revoke", "later-real-save", "stop", "history-written-crash", "readback-crash", "stop-during-seal", "reloaded-request-store", "unknown-ack-root", "revoke-during-seal",
+            "query-restart", "query-later-save", "query-revoked", "query-target-and-mapping-changed", "query-mapping-changed", "query-no-offer", "query-no-history", "query-stop",
+            "query-prepared", "query-settled", "query-wrong-receipt", "query-wrong-desktop", "query-copy-origin", "query-expire-origin", "query-no-reconstructed-ack", "query-followup-local-edit", "query-uid-changed", "query-id-changed" };
+        if (followupSlice) modes = modes.Where(mode => mode is "query-followup-local-edit" or "query-target-and-mapping-changed" or "query-mapping-changed" or
+            "query-revoked" or "query-no-history" or "query-no-reconstructed-ack" or "query-wrong-receipt" or "query-wrong-desktop" or "query-copy-origin" or
+            "query-expire-origin" or "key-change" or "request-tamper" or "query-uid-changed" or "query-id-changed").ToArray();
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
+            var requestRoot = Path.Combine(h.Root, "requests"); var ackRoot = Path.Combine(h.Root, "acks");
+            byte keyByte = 42;
+            byte[] Key() => Enumerable.Repeat(keyByte, 32).ToArray();
+            ContactSourcePrivateFiles Boundary(string path) => new(path, controlledUnix: !OperatingSystem.IsWindows(), layout: ContactSourcePrivateFiles.Layout.NotesReturnJournal);
+            var requests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+            NotesOriginalSavedAckIntents? outcomes = null;
+            outcomes = new(Boundary(ackRoot), Key, requests, phase =>
+            {
+                if (mode == "history-written-crash" && phase == "history-written" || mode == "readback-crash" && phase == "after-readback")
+                    throw new IOException("synthetic-saved-history-interruption");
+                if (mode == "stop-during-seal" && phase == "after-readback") outcomes!.Stop();
+                if (mode == "revoke-during-seal" && phase == "after-readback") h.Store.Revoke();
+            });
+            var pending = h.Choice.CreatePending()!; h.PendingResult = pending;
+            if (mode != "missing-request") requests.Seal(pending);
+            var request = pending.Request(); var historyKey = NotesOriginalSchema.Hash(request);
+            TestAssert.That(outcomes.LoadHeld(historyKey) is null && !Directory.Exists(ackRoot), "Missing saved history read created a store");
+            var result = new JsonObject { ["art"] = "kontakt_original_ergebnis", ["fassung"] = 1, ["request_sha256"] = historyKey,
+                ["receipt_id"] = "22222222-2222-4222-8222-222222222222", ["native_revision"] = 2L, ["next_basis"] = new string('d', 64) };
+            foreach (var name in new[] { "request_id", "share_id", "before_basis", "target_sha256" }) result[name] = request[name]!.DeepClone();
+            h.Send(result);
+            if (mode == "before-save")
+            {
+                Hold(() => outcomes.Seal(pending)); TestAssert.That(!Directory.Exists(ackRoot), "Transport/result created saved history without actual write"); continue;
+            }
+            var commit = pending.PrepareCommit(h.Host.SourceResultCommit);
+            if (mode == "failed-save") h.Host.FailAfterPrimary = true;
+            var saved = await h.Host.SaveOriginalContactResultAsync(commit.Offer.Token, JsonNode.Parse(commit.Text)!.AsObject());
+            if (mode is "failed-save" or "missing-request")
+            {
+                TestAssert.That(saved["ok"]!.GetValue<bool>() == (mode == "missing-request"), "Actual synthetic writer returned unexpected status");
+                Hold(() => outcomes.Seal(pending)); TestAssert.That(!Directory.Exists(ackRoot), "Missing request/genuine save minted ACK history"); continue;
+            }
+            if (mode == "reloaded-request-store")
+            {
+                var reloadedRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+                var reloadedOutcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, reloadedRequests);
+                Hold(() => reloadedOutcomes.Seal(pending));
+                TestAssert.That(!Directory.Exists(ackRoot), "Loaded request history reconstructed saved-ACK authority"); continue;
+            }
+            if (mode == "unknown-ack-root")
+            {
+                using (Boundary(ackRoot).Open(create: true)) { }
+                Hold(() => outcomes.Seal(pending));
+                TestAssert.That(!System.IO.File.Exists(Path.Combine(ackRoot, ".journal-key")), "Unknown ACK root silently initialized"); continue;
+            }
+            if (mode is "history-written-crash" or "readback-crash" or "stop-during-seal" or "revoke-during-seal")
+            {
+                Hold(() => outcomes.Seal(pending));
+                var reloaded = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests);
+                TestAssert.That(reloaded.LoadHeld(historyKey) is JsonObject, "Genuine saved history was lost after interruption");
+                TestAssert.Throws<InvalidOperationException>(() => new NotesOriginalSavedAckIntents.SavedAck(new object()).Body(), "Loaded/counterfeit history became an ACK proof"); continue;
+            }
+            var ack = outcomes.Seal(pending); var body = ack.Body();
+            TestAssert.That(body["art"]!.GetValue<string>() == "kontakt_original_saveack" && body["desktop_sha256"]!.GetValue<string>() == h.Host.Saved()!.Sha256 &&
+                body["request_sha256"]!.GetValue<string>() == historyKey && JsonNode.DeepEquals(outcomes.Seal(pending).Body(), body), "Native saved ACK lost exact witness correlation/idempotence");
+            var loaded = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, requests).LoadHeld(historyKey)!;
+            loaded["result"]!["receipt_id"] = Guid.NewGuid().ToString();
+            TestAssert.That(!JsonNode.DeepEquals(loaded, outcomes.LoadHeld(historyKey)), "Loaded saved history alias changed private outcome");
+            if (mode.StartsWith("query-", StringComparison.Ordinal))
+            {
+                if (mode is "query-later-save" or "query-target-and-mapping-changed" or "query-mapping-changed" or "query-followup-local-edit" or "query-uid-changed" or "query-id-changed")
+                {
+                    var later = JsonNode.Parse(commit.Text)!.AsObject(); later["independent-user-edit"] = "preserve";
+                    if (mode is "query-target-and-mapping-changed" or "query-followup-local-edit") later["kontakte"]![0]!["vorname"] = "New chosen target";
+                    if (mode == "query-target-and-mapping-changed") later["kontakte"]![0]!["notesOriginalBasis"]!["target_sha256"] = new string('f', 64);
+                    if (mode == "query-mapping-changed") later["kontakte"]![0]!["notesOriginalBasis"]!["receipt_id"] = Guid.NewGuid().ToString();
+                    if (mode == "query-uid-changed") later["kontakte"]![0]!["uid"] = "different-native-uid";
+                    if (mode == "query-id-changed") later["kontakte"]![0]!["id"] = "different-native-id";
+                    TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Known later save failed");
+                }
+                if (mode == "query-revoked") h.Store.Revoke();
+                if (mode == "query-no-history") System.IO.File.Delete(Directory.GetFiles(ackRoot, "a-*.json").Single());
+                requests.Stop(); outcomes.Stop();
+                h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
+                TestAssert.That(h.Host.Snapshot() is null, "Restart read invented saved snapshot");
+                var reloadedRequests = new NotesOriginalRequestIntents(Boundary(requestRoot), Key);
+                var reloadedOutcomes = new NotesOriginalSavedAckIntents(Boundary(ackRoot), Key, reloadedRequests);
+                var primaryBeforeQuery = System.IO.File.ReadAllBytes(h.Host.DataPath);
+                h.Protocol = new(h.Choice.Pins.Peer, h.Choice.Pins.Own);
+                if (mode != "query-no-offer") { var offer = h.Protocol.Probe(); offer["antwort"] = true; h.Send(offer); }
+                if (mode is "query-revoked" or "query-target-and-mapping-changed" or "query-mapping-changed" or "query-no-offer" or "query-no-history" or "query-uid-changed" or "query-id-changed")
+                    Hold(() => reloadedOutcomes.ReadOnlyQuery(historyKey, h.NewStore(), h.Protocol));
+                else
+                {
+                    var query = reloadedOutcomes.ReadOnlyQuery(historyKey, h.NewStore(), h.Protocol);
+                    var outgoing = query.Request(h.Protocol);
+                    TestAssert.That(outgoing.Count == 7 && outgoing["ziel"] is null && outgoing["desktop_sha256"] is null &&
+                        outgoing["request_sha256"]!.GetValue<string>() == historyKey, "Historical query supplied target or ACK authority");
+                    if (mode == "query-stop") { reloadedOutcomes.Stop(); Hold(() => query.Request(h.Protocol)); }
+                    else
+                    {
+                        var response = result.DeepClone().AsObject();
+                        if (mode is "query-prepared" or "query-settled" or "query-wrong-desktop" or "query-no-reconstructed-ack" or "query-followup-local-edit")
+                        {
+                            response["art"] = "kontakt_original_abschlussstatus"; response["phase"] = mode is "query-settled" or "query-followup-local-edit" ? "settled" : "prepared";
+                            response["desktop_sha256"] = mode == "query-wrong-desktop" ? new string('0', 64) : body["desktop_sha256"]!.DeepClone();
+                        }
+                        if (mode == "query-wrong-receipt") response["receipt_id"] = Guid.NewGuid().ToString();
+                        h.CaptureRecovery = true; h.Send(response); var observation = h.RecoveryObservation;
+                        if (mode == "query-no-reconstructed-ack") System.IO.File.Delete(Directory.GetFiles(ackRoot, "a-*.json").Single());
+                        if (mode is "query-wrong-receipt" or "query-wrong-desktop" or "query-copy-origin" or "query-no-reconstructed-ack")
+                            Hold(() => reloadedOutcomes.Reauthorize(query, observation.Body,
+                                mode == "query-copy-origin" ? new(new object()) : observation.Origin, observation.Transport, h.Protocol));
+                        else
+                        {
+                            var restored = reloadedOutcomes.Reauthorize(query, observation.Body, observation.Origin, observation.Transport, h.Protocol);
+                            TestAssert.That(JsonNode.DeepEquals(restored.Body(), body) && restored.TerminalConfirmed() == (mode is "query-settled" or "query-followup-local-edit"),
+                                "Fresh result did not reauthorize exact historical ACK/hash or falsely settled history");
+                            TestAssert.That(reloadedRequests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id") is not null,
+                                "Terminal observation released physical hold without exact installation");
+                            if (mode == "query-expire-origin")
+                            {
+                                var native = observation.Origin.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Single().GetValue(observation.Origin)!;
+                                native.GetType().GetProperty("Expires")!.SetValue(native, 0L);
+                                Hold(() => restored.Body());
+                            }
+                            TestAssert.Throws<InvalidOperationException>(() => new NotesOriginalSavedAckIntents.RestoredAck(new object()).Body(), "Counterfeit restored ACK proof accepted");
+                            if (mode == "query-followup-local-edit")
+                            {
+                                reloadedRequests.Retire(reloadedOutcomes.SealTerminal(restored));
+                                TestAssert.That(JsonNode.Parse(h.Host.CurrentNativeText!)!["kontakte"]![0]!["vorname"]!.GetValue<string>() == "New chosen target" &&
+                                    System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(primaryBeforeQuery), "Historical ACK lost the subsequent local edit or rewrote the book");
+                            }
+                        }
+                    }
+                }
+                TestAssert.That(h.Host.Snapshot() is null, "Query recovery called RecordSaved");
+                TestAssert.That(System.IO.File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(primaryBeforeQuery), "Historical query/reauthorization rewrote actual native book");
+                Hold(() => ack.Body()); continue;
+            }
+            if (mode == "success") continue;
+            if (mode == "tampered-history") System.IO.File.WriteAllText(Directory.GetFiles(ackRoot, "a-*.json").Single(), "{}");
+            if (mode == "missing-history") System.IO.File.Delete(Directory.GetFiles(ackRoot, "a-*.json").Single());
+            if (mode == "key-change") keyByte = 43;
+            if (mode == "request-tamper") System.IO.File.WriteAllText(Directory.GetFiles(requestRoot, "r-*.json").Single(), "{}");
+            if (mode == "revoke") h.Store.Revoke();
+            if (mode == "stop") outcomes.Stop();
+            if (mode == "later-real-save")
+            {
+                var later = JsonNode.Parse(commit.Text)!.AsObject(); later["new-user-edit"] = "preserve";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", later))["ok"]!.GetValue<bool>(), "Later actual save failed");
+            }
+            Hold(() => ack.Body());
+            if (mode is "revoke" or "later-real-save" or "stop")
+                TestAssert.That(outcomes.LoadHeld(historyKey) is not null, "Live witness invalidation erased independent genuine history");
+        }
+        Console.WriteLine($"Notes independent genuine saved-ACK history: {modes.Length} actual-writer synthetic cases passed (loaded history is not ACK authority).");
+    }
+
+    private static async Task ScenarioAsync(string root, string mode)
+    {
+        using var h = new Fixture(root, mode == "native-default");
+        if (mode == "missing")
+        {
+            h.NoCallbacks = true;
+            TestAssert.That(!h.Store.HasDesiredConsent(), "Portable permission-looking book data granted source consent");
+            h.Store.Revoke(); Hold(() => h.Restore());
+            TestAssert.That(!Directory.Exists(h.ConsentRoot), "Missing-store reader/revoke created a root/key"); return;
+        }
+        if (mode == "native-default" && !OperatingSystem.IsWindows())
+        {
+            TestAssert.Throws<PlatformNotSupportedException>(() => h.Store.Approve([h.Choice]), "Production key protector fell back to a raw host key");
+            TestAssert.That(!Directory.Exists(h.ConsentRoot), "Unsupported production protector created consent state"); return;
+        }
+        if (mode == "raw-protector")
+        {
+            h.Protector.Raw = true; Hold(() => h.Store.Approve([h.Choice]));
+            TestAssert.That(!Directory.Exists(h.ConsentRoot), "Raw protector wrote a portable consent key"); Hold(h.Choice.RequireCurrent); return;
+        }
+        if (mode == "foreign-choice")
+        {
+            var foreign = new PersonalActorNativeSaveHost(Path.Combine(root, "foreign-book"), h.Book.ToJsonString());
+            var originalCapture = foreign.Snapshot;
+            // Same IDs/content, different real native book owner: never transfer its choice.
+            var frame = h.Export.DeepClone().AsObject(); h.Send(frame);
+            var foreignChoice = new NotesOriginalExportChoice(frame,
+                (MagnolienbaumCoordinator.NativeNotesOrigin)typeof(Fixture).GetField("origin", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(h)!,
+                (string)typeof(Fixture).GetField("transport", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(h)!,
+                foreign.Snapshot()!, originalCapture, _ => "chosen-private-id", () => { });
+            Hold(() => h.Store.Approve([foreignChoice]));
+            TestAssert.That(!Directory.Exists(h.ConsentRoot), "Foreign native book choice was rebound to this store"); return;
+        }
+        if (mode == "changed-during-approval")
+        {
+            h.GuardHook = () =>
+            {
+                h.GuardHook = null;
+                var changed = h.Book.DeepClone().AsObject(); changed["user-newer-field"] = "preserve";
+                TestAssert.That(h.Host.SaveOriginalContactResultAsync("", changed).GetAwaiter().GetResult()["ok"]!.GetValue<bool>(), "Synthetic actual intervening save failed");
+            };
+            Hold(() => h.Store.Approve([h.Choice]));
+            TestAssert.That(System.IO.File.ReadAllText(h.File(".transaction")) == "pending\n", "Stale approval remained active");
+            Hold(h.Choice.RequireCurrent); return;
+        }
+        h.Store.Approve([h.Choice]);
+        TestAssert.That(h.Store.HasDesiredConsent() && !System.IO.File.ReadAllText(h.File("approval.json")).Contains("chosen-private-id", StringComparison.Ordinal),
+            "Private source choice was missing or stored unencrypted");
+        var oldRecord = System.IO.File.ReadAllText(h.File("approval.json")); var oldKey = System.IO.File.ReadAllText(h.File(".key.dpapi"));
+        if (mode == "newer-decision-cas")
+        {
+            var older = h.MakeChoice(); var newer = h.MakeChoice(); var secondStore = h.NewStore(); string? protectedDecision = null;
+            h.GuardHook = () => { h.GuardHook = null; secondStore.Approve([newer]); protectedDecision = System.IO.File.ReadAllText(h.File("approval.json")); };
+            Hold(() => h.Store.Approve([older]));
+            TestAssert.That(protectedDecision is not null && System.IO.File.ReadAllText(h.File("approval.json")) == protectedDecision, "Stale approval overwrote newer explicit decision");
+            newer.RequireCurrent(); Hold(older.RequireCurrent); return;
+        }
+        if (mode == "callbacks-outside-lock") h.CheckOutsideLock = true;
+        if (mode == "fake-seal")
+        {
+            Hold(() => h.Choice.AttachConsent(new(new object())));
+            var seal = (NotesOriginalChoiceStore.SourceSeal)typeof(NotesOriginalExportChoice).GetField("consent", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(h.Choice)!;
+            var other = h.MakeChoice(); Hold(() => other.AttachConsent(seal)); h.Choice.RequireCurrent(); return;
+        }
+        if (mode is "revoke" or "old-record-replay")
+        {
+            h.NoCallbacks = true;
+            h.Store.Revoke();
+            TestAssert.That(!h.Store.HasDesiredConsent() && System.IO.File.ReadAllText(h.File(".key.dpapi")) != oldKey, "Revocation failed to rotate dedicated key");
+            Hold(h.Choice.RequireCurrent);
+            if (mode == "revoke") { Hold(() => h.Restore()); return; }
+            System.IO.File.WriteAllText(h.File("approval.json"), oldRecord); Hold(() => h.Restore()); return;
+        }
+        if (mode == "lost-key") System.IO.File.Delete(h.File(".key.dpapi"));
+        if (mode == "pending") System.IO.File.WriteAllText(h.File(".transaction"), "pending\n");
+        if (mode == "corrupt")
+        {
+            var record = JsonNode.Parse(oldRecord)!.AsObject(); var bytes = Convert.FromBase64String(record["cipher"]!.GetValue<string>());
+            bytes[0] ^= 1; record["cipher"] = Convert.ToBase64String(bytes); System.IO.File.WriteAllText(h.File("approval.json"), record.ToJsonString());
+        }
+        if (mode == "unavailable-key") h.Protector.Unavailable = true;
+        if (mode is "lost-key" or "pending" or "corrupt" or "unavailable-key")
+        {
+            Hold(() => h.Store.HasDesiredConsent()); Hold(() => h.Restore()); Hold(h.Choice.RequireCurrent);
+            TestAssert.That(mode != "lost-key" || !System.IO.File.Exists(h.File(".key.dpapi")), "Missing key was silently replaced"); return;
+        }
+        if (mode is "wrong-setup" or "wrong-share")
+        {
+            var changed = h.Export.DeepClone().AsObject(); changed[mode == "wrong-setup" ? "setup_id" : "share_id"] = mode == "wrong-setup" ? Guid.NewGuid().ToString() : "different-share";
+            h.Send(changed); Hold(() => h.Restore()); TestAssert.That(h.Choices == 1, "Wrong source triggered a new/default choice"); return;
+        }
+        if (mode == "foreign-book")
+        {
+            var foreign = new PersonalActorNativeSaveHost(Path.Combine(root, "foreign-book"), h.Book.ToJsonString());
+            var copied = new NotesOriginalChoiceStore(new(h.ConsentRoot, controlledUnix: !OperatingSystem.IsWindows()), foreign.Snapshot,
+                foreign.Primary, () => Path.GetFullPath(foreign.DataPath), h.Protector);
+            Hold(() => h.Restore(copied)); return;
+        }
+        if (mode is "changed-book" or "same-content-save")
+        {
+            var changed = h.Book.DeepClone().AsObject(); if (mode == "changed-book") changed["new-user-edit"] = true;
+            TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", changed))["ok"]!.GetValue<bool>(), "Actual ordinary native writer failed");
+            if (mode == "changed-book")
+            {
+                Hold(() => h.Restore()); Hold(h.Choice.RequireCurrent);
+                TestAssert.That(System.IO.File.ReadAllText(h.File("approval.json")) == oldRecord, "Unknown book was silently adopted"); return;
+            }
+        }
+        if (mode == "reopen-no-witness")
+        {
+            h.Host = new(Path.Combine(root, "book"), "", reopen: true);
+            TestAssert.That(h.Host.Snapshot() is null && h.Store.HasDesiredConsent(), "Primary read fabricated native saved witness");
+            Hold(() => h.Restore()); TestAssert.That(h.Host.Snapshot() is null, "Consent read called RecordSaved"); return;
+        }
+        h.Send(h.Export);
+        var restored = h.Restore(h.NewStore()); restored.RequireCurrent();
+        TestAssert.That(h.Choices == 1 && restored.CreatePending() is not null && System.IO.File.ReadAllText(h.File("approval.json")) == oldRecord,
+            "Stable private source restore prompted/rewrote state or failed exact native selection");
+        if (mode == "native-default" && OperatingSystem.IsWindows())
+        {
+            var wrapped = Convert.FromBase64String(oldKey);
+            TestAssert.Throws<CryptographicException>(() =>
+            {
+                if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+                ProtectedData.Unprotect(wrapped, Encoding.UTF8.GetBytes("Magnolie/native-original-contact-consent/key/v1"), DataProtectionScope.CurrentUser);
+            },
+                "Notes consent key reused DAV protector purpose");
+        }
+        TestAssert.That(h.Protector.Secrets.All(bytes => bytes.All(value => value == 0)), "Raw private consent key buffer was retained");
+    }
+}

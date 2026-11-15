@@ -303,6 +303,7 @@ internal static class NextcloudDavTests
             await TestGenericBaikalDiscovery(root);
             await TestGenericConfiguredBaseDiscovery(root);
             await TestSingleServiceDiscovery(root);
+            await TestContactUpdateCapabilities(settings);
             await TestMissingUpdateEtags(settings);
             await TestSafeFirstRunsAndConflictIdentity(settings);
             await TestPersistedConflicts(settings, root);
@@ -316,6 +317,38 @@ internal static class NextcloudDavTests
             TestSyncJournal(root);
         }
         finally { try { Directory.Delete(root, true); } catch (Exception) { } }
+    }
+
+    private static async Task TestContactUpdateCapabilities(NextcloudMailboxSettingsStore settings)
+    {
+        foreach (var (grant, expected) in new (string? Grant, bool? Expected)[] {
+            (null, null), ("", false), ("<d:privilege><d:read/></d:privilege>", false),
+            ("<d:privilege><d:write-properties/></d:privilege>", false), ("<d:privilege><d:bind/></d:privilege>", false),
+            ("<d:privilege><d:write-content/></d:privilege>", true), ("<d:privilege><d:write/></d:privilege>", true),
+            ("<d:privilege><d:all/></d:privilege>", true),
+            ("<d:privilege><x:write xmlns:x=\"urn:foreign\"/></d:privilege>", false),
+            ("<d:other><d:privilege><d:write/></d:privilege></d:other>", false) })
+        {
+            var current = grant; var discoveries = 0;
+            using var http = new HttpClient(new Handler(async request => {
+                TestAssert.That(request.Method.Method == "PROPFIND", "Contact capability discovery attempted a provider mutation");
+                var body = await request.Content!.ReadAsStringAsync();
+                if (!request.Headers.TryGetValues("Depth", out var depth) || depth.Single() != "1")
+                    return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/</d:href><d:propstat><d:prop><c:addressbook-home-set><d:href>/nc/books/</d:href></c:addressbook-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
+                discoveries++;
+                TestAssert.That(body.Contains("current-user-privilege-set", StringComparison.Ordinal), "Actual current-user privileges were not requested");
+                var response = Collections("addressbook", "urn:ietf:params:xml:ns:carddav", "/nc/books/original/", "Original");
+                if (current is not null) response = response.Replace("</d:prop>", "<d:current-user-privilege-set>" + current + "</d:current-user-privilege-set></d:prop>", StringComparison.Ordinal);
+                return Xml(response);
+            }));
+            using var client = new NextcloudDavClient(settings, http);
+            var first = (await client.ListSourcesAsync(default, calendars: false)).AddressBooks.Single();
+            TestAssert.That(first.CanUpdate == expected, "Connected source fabricated contact update permission or discarded actual current-user grant");
+            current = null;
+            var again = (await client.ListSourcesAsync(default, calendars: false)).AddressBooks.Single();
+            TestAssert.That(again.CanUpdate is null && first.Uid == again.Uid && discoveries == 2,
+                "Removed/unknown DAV update privilege reused an old write capability or changed source identity");
+        }
     }
 
     private static async Task TestMissingUpdateEtags(NextcloudMailboxSettingsStore settings)

@@ -9,10 +9,79 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
 ## Supported subset
 
 - Basic appointments: description, local date/time, explicit end, confidentiality
-  and tentative flag. No time-zone conversion is inferred from the legacy file.
-- Tasks: description, due date, priority and completed state.
+  and tentative flag. Native categories of ordinary appointments and verified
+  uniform finite appointment series map to the existing `kategorien` field
+  (#613). The existing user's category palette may color them, but the import
+  does not guess a native color from a category name. Verified independently
+  indexed calendar occurrences (#614) retain moved start/end clocks and changed
+  title/category as source-bound exceptions, not unrelated appointments. Their
+  `RECURRENCE-ID` is the original array slot, never the moved start. Native child
+  identity remains the imported UID and `X-MAGNOLIE-OR6-OBJECT-UID` provenance
+  through calendar export/reimport. The original master excludes each overridden
+  slot; missing-slot and active-orphan guards remain in force.
+  This calendar-only path requires unique in-range indices; absent index0 is
+  accepted only with the native computed uint32 declaration (kind `0x2003`),
+  and present indices must be exactly four bytes. Task index recovery is not
+  applied. Unknown differing fields, including meeting metadata and `$Busy`,
+  remain guarded, as does unverified empty-category clearing. Pencil-in/Busy
+  availability semantics remain separate under #615. No timezone is inferred.
+  A separately verified Calendar later-segment edit (#616) may retain earlier
+  linked occurrences while restarting relative indices for the current arrays.
+  Only an earlier sequentially indexed segment with unique observed clocks,
+  unchanged content/availability, one schema and dates within the native anchor
+  is projected ahead of the exact current arrays. Current members still require
+  exact slot/start/end matches; ambiguous history and unknown meeting metadata
+  remain held. No historical dates are extrapolated from an old rule or deduced
+  from duplicate indices. The rule must match all actual dates, otherwise the
+  exact finite set is retained. Original current templates survive as
+  `X-MAGNOLIE-OR6-CALENDAR-TEMPLATE-STARTS` / `...-ENDS` provenance, not schedules.
+- Tasks: description, native local start/due dates and clocks, priority and
+  completed state. Ordinary single tasks use the same existing structured
+  `startDatum`/`startZeit`/`faellig`/`faelligZeit` fields as task series (#612),
+  including the existing task editor and VTODO roundtrip. Missing native stamps
+  remain empty, not filled from a due date, current date or guessed work hours;
+  no source timezone is inferred. Original identity/status/priority are unchanged.
+  Independently verified native status values 1/2 (open) and 4 (completed)
+  take precedence over a completion timestamp that a Lotus reexport may retain
+  on an open task (#567). Unverified/missing status layouts retain the previous
+  timestamp fallback.
+  Verified finite repeating-task sets retain their original native repeat-object
+  links, occurrence indices and start/due arrays as one recurring task (VTODO),
+  not appointments or unrelated tasks. Known completed occurrences within an open
+  set become source-bound completed instances plus exclusions on the master.
+  The existing task list selects the next due date and completes one occurrence
+  without completing the future series. Reimport does not undo that local edit.
+  Freed occurrences stay excluded. A rule is emitted only if its expansion
+  exactly matches the native dates; otherwise the explicit finite set is kept.
+  Unlinked occurrences, unknown task states, mixed task/appointment definitions
+   and other differing content remain unsupported rather than being guessed away.
+   Individually assigned categories also become source-bound `RECURRENCE-ID`
+   exceptions, including open occurrences; completion never spreads the category
+   or status to other dates. A later scoped rule edit may restart indices while
+   retaining earlier linked records. Those historical dates preceding the current
+   array segment are preserved, not deduplicated by relative index. Earlier
+   dates must lie within the native anchor and pass the same content/duration/
+   state guards. Current index/start/due matches are required except for the
+   independently verified complete-set edit forms (#610): the original “All”
+   action can copy index0 to every linked task; moving occurrences can leave old
+   template dates unchanged. Recovery requires a complete, uniquely dated live
+   linked set, with all indices zero or a full unique in-range slot set. Unknown
+   indices, incomplete sets, conflicting dates/content/duration/state and known
+   active unlinked tasks remain guarded. It never binds unrelated tasks by title.
+   Only observed live start/due values are projected in memory. A rule must match
+   the entire actual expansion, otherwise the exact finite `RDATE` set is used:
+   old template dates do not become phantom tasks. Changed template arrays remain
+   as non-scheduling `X-MAGNOLIE-OR6-TASK-TEMPLATE-STARTS` / `...-DUES` provenance
+   (`yyyyMMddTHHmmss`, comma-separated) across VTODO export/import and restore.
+   No historical dates or lost original recurrence identities are guessed.
 - Contacts: names, company, telephone numbers, email addresses and postal
   addresses; additional basic text fields are retained in the contact note.
+  Mail-merge names and nonempty native `Extn` slots are retained as explicitly
+  labelled source text (#579). Slot positions remain visible; no interpretation
+  as a phone label or dialable extension is inferred, and numbers are unchanged.
+  Native `State` values remain in the corresponding structured address `region`
+  slot (#580), including sparse source slots; no region is guessed from a postal
+  code. Existing labelled source-note text is retained as well.
 - Notepad pages: title and plain text extracted from RTF, including escaped
   Windows-1252 characters and Unicode escapes. Embedded objects are not executed.
 - Stable record identities derive from the legacy object's origin and ID.
@@ -28,8 +97,37 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   Verified native Work, Home and Work-fax slots retain their phone contexts;
   empty preceding slots do not change later slot meanings.
 - Basic planner date spans become all-day appointments with the original
-  inclusive last date; their native event-type number is retained in the note.
-  Row layout, event-type labels and busy-time booking are not inferred.
+  inclusive last date. Present native `Row` (field 18) and `KeyID` (field 19)
+  values remain separately labelled in the note (#568); absent fields are not
+  fabricated as observed zero fields. `Row` is not an event-type number.
+  A uniquely bound planner configuration now supplies the original key name as
+  `kategorien` and the independently verified key color as `akzentFarbe`. The
+  existing calendar, annual planner, print and spreadsheet views use these
+  fields directly; there is no separate planner UI or guessed global category
+  palette. The native configuration's explicit Section ID owns the labels.
+  A unique allocated planner root and matching native schema name/namespace
+  identify the event scope, including multiple planners sharing one options
+  schema. Native OID arithmetic and globally unique options are not assumed.
+  All15 original-program key slots and their actual event fills were verified
+  after save/reopen; native bright green is `#00c200`, not guessed `#00ff00`.
+  The explicitly selected first slot omits KeyID19 in the original file; its
+  semantic zero default applies only to the declared native uint16 KeyID and
+  does not invent a present field in source notes. Missing/ambiguous configuration
+  or an unknown key does not acquire a guessed name/color. A prior export that
+  already discarded renamed keys cannot recreate them. Row layout and busy-time
+   booking remain separate unsupported semantics, not inferred from a key.
+   Legacy planner clocks (#609) also retain the independently verified inclusive
+   date presentation: midnight Dec3 to midnight Dec4 occupies both dates;
+   same-date 08:00–18:00 and zero-duration midnight each occupy one date. These
+   additional forms are limited to nonreversed timestamps with reserved byte
+   zero, either both midnight or same-date whole hours. Original local clocks
+   remain in `icsRoundtrip` as `X-MAGNOLIE-OR6-PLANNER-LOCAL-START` and
+   `X-MAGNOLIE-OR6-PLANNER-LOCAL-END` (`yyyyMMddTHHmmss`). They are provenance,
+   not event times, timezone guesses or recurrence rules. Calendar export/import
+   and profile restoration preserve them. Other clock forms remain unsupported;
+   anniversary, repetition and confidentiality guards are unchanged. Original
+   UI date presentation and retained raw clocks were independently inspected;
+   successful normalization by the original boundary editor is **not** claimed.
 - Native anniversaries with the verified annual checkbox become anniversary
   entries. Turning that checkbox off in the original application produces a
   single all-day appointment with the same stable identity, not a yearly rule.
@@ -45,7 +143,16 @@ appointments or contacts. Confidential entries in the newly supported sections
 are skipped rather than dropping a confidentiality marker the destination
 collection cannot represent. Distribution-list-specific options are not contact-group permissions.
 Unsupported live entries are counted where
-identified. Formatting, attachments, non-contact categories and alarms are not transferred.
+identified. Formatting, attachments and alarms are not transferred; unverified
+category/override combinations remain unsupported rather than guessed.
+An allocated notepad entry with a nonempty body in an unrecognized non-RTF format
+is omitted as one unsupported entry rather than blocking every other supported
+collection (#564). Its title is not imported as a misleading empty replacement,
+and the body is not guessed to be plaintext. Known empty-body sentinels retain
+their existing title-only behavior. Recognized but malformed RTF still rejects
+the import, as do corrupt allocation/schema/field boundaries. The original file
+remains untouched; the existing import preview/report must be reviewed for
+omission counts before accepting the supported subset.
 The native result always includes the translated limitation report; this is
 not advertised as a lossless conversion. Password-protected or unfamiliar
 storage variants are rejected rather than guessed.
@@ -94,3 +201,92 @@ The final two files additionally verify preselected planner/anniversary/call/web
 values, exact replacement of the original phone/URL edit controls and the
 original annual-checkbox on/off distinction. Earlier private snapshots with an
 incorrectly inserted phone number or URL are not the public expected dataset.
+
+`or6-native-tasks.json` retains a separately authored original-program weekly
+Task series, with three preselected Tuesday due dates. Both readers and actual
+task export/reimport retain one series; both frontends additionally verify
+next-due selection, source-bound duplicate reimport, original completion
+exceptions and single-occurrence completion without losing future tasks.
+
+`or6-native-planner.json` retains a synthetic two-planner original-program file:
+each section has15 independently renamed keys, and all15 slots were explicitly
+selected for dated events before saving and reopening. The fixture includes
+two different key names for the same numeric slot in different sections, a
+shared options schema, and the original first-slot omission. Independent
+expected names/dates/colors are retained beside the source hash. Both native
+readers test scope ambiguity/missing metadata and calendar export roundtrips;
+both full frontends additionally verify real calendar rendering, annual-planner
+models, print/ODS output, duplicate reimport and preservation of a local color
+edit. These are source/controlled UI checks, not installed-package approval.
+
+`or6-native-planner-boundaries.json` adds three synthetic timestamp variants
+whose inclusive date ranges were inspected in the unmodified original UI.
+Both readers test exact clock provenance, calendar export/reimport, seven
+negative clock/flag guards and anniversary exclusion. Both full frontends check
+each affected date and its neighboring dates, including overlapping entries
+matched by title, annual/ODS models, print, reimport and profile restoration.
+
+`or6-native-task-scopes.json` retains genuine synthetic original-program
+single-category and later-segment-extension snapshots. The latter has four
+linked occurrences with indices `0/1/0/1` but only two current-array dates.
+Expected completion/category/date values were selected before the original UI
+actions. Both readers verify exact VTODO roundtrips and conflicting-history
+guards; both full frontends verify effective dates/categories/states, profile
+restoration, the original category in the editor, actual single-occurrence
+completion and reimport preserving the local edit. Additional native binding
+ forms are covered separately by the following complete-set edit fixtures.
+
+`or6-native-task-bindings.json` retains three genuine synthetic original-program
+snapshots: a single moved/category occurrence, all indices copied to zero with
+exact original dates, and a whole-set date shift after reopening while template
+arrays remain unchanged. Original UI and source values were independently
+checked. The original bulk “All” operation also copies the selected status and
+category; its resulting open/blank values are not attributed to the importer.
+Both readers test exact effective dates/states/categories, template provenance,
+VTODO roundtrip and seven ambiguity/incompleteness guards. Both full frontends
+check expansion, profile restoration, actual single-occurrence completion and
+reimport without undoing the local edit. These verified finite forms do not
+establish compatibility with every possible native task edit or infinite rule.
+
+`or6-native-section-removal.json` retains the genuine synthetic ordinary
+notebook-section removal before, after confirmed Remove/Yes/Apply/save, and after
+reopening (#570). Both readers verify two active/imported pages before and zero
+after, identical other collections/counters, and unchanged caller buffers. Early
+automation samples that missed the confirmation are intentionally not included.
+This establishes no resurrection for that verified ordinary removal path, not
+general visibility or reachability semantics for arbitrary active/detached/hidden
+native roots. Those broader container/selection checks remain a separate open
+safety topic (#611); private excluded sections are never used to reconstruct it.
+
+`or6-native-appointment-categories.json` adds independently inspected original
+single and weekly-Saturday appointment files. The category was assigned while
+single, before creating the native three-occurrence weekly set; save/reopen,
+category, clocks and all three original Find results were verified. Both readers
+test existing calendar export/reimport and absent category. A differing member
+category now remains a bound exception under #614, never a whole-set category.
+Both full frontends additionally verify selected-day rendering and the
+existing local category palette, annual/ODS/print output, profile restoration,
+duplicate reimport and preservation of a local category edit. This does not
+claim support for other still-held native override/repetition forms (#243).
+
+`or6-native-appointment-overrides.json` retains genuine synthetic original-program
+single-move and title/category-edit snapshots after save/reopen, plus a guarded
+Pencil-in/Busy intermediate. Original native links, indices and slot arrays were
+independently checked against the original UI. Both readers test original versus
+actual clocks, native identity, calendar roundtrip and ambiguous/unknown-field
+guards. Both full frontends verify old/moved days, changed content, profile
+restoration, the actual moved-exception editor and reimport preserving its local
+edit. Earlier-fragment, duplicate-index and meeting-metadata forms not explained
+by these fixtures remain outside this proven scope (#243).
+
+`or6-native-calendar-history.json` retains the genuine synthetic Calendar repeat
+extension at the last of three existing occurrences. The original offered no
+separate scope dialog; accepting the changed Until value retained all four
+expected dates while its current arrays contained only the last two. Reopened
+Find/Edit dialogs and native links/indices were independently checked. Both
+readers verify all observed dates, unchanged clocks/category, template provenance,
+actual ICS roundtrip and rejection of ambiguous indices/content/durations. Missing
+current slots stay excluded; active unlinked slots are not guessed deleted. Both
+full frontends verify all four days and neighboring absences, profile restoration
+and reimport preserving local edits. This is not universal native fragment or
+meeting-metadata compatibility.

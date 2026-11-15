@@ -21,7 +21,10 @@
     },
     "task": {
       "titel": "TASK-OR6-212",
+      "startDatum": "2026-10-24",
+      "startZeit": "08:00",
       "faellig": "2026-10-24",
+      "faelligZeit": "18:00",
       "prio": 2,
       "erledigt": false
     },

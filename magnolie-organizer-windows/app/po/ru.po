@@ -3048,8 +3048,8 @@ msgstr "Включить вывоз отходов"
 msgid "Incoming"
 msgstr "Входящий"
 
-msgid "Incoming KDE Connect files (always confirm)"
-msgstr "Входящие файлы KDE Connect (всегда запрашивать подтверждение)"
+#~ msgid "Incoming KDE Connect files (always confirm)"
+#~ msgstr "Входящие файлы KDE Connect (всегда запрашивать подтверждение)"
 
 msgid "Incoming call"
 msgstr "Входящий звонок"
@@ -8794,3 +8794,20 @@ msgstr "Значок в системном трее (60 с)"
 
 msgid "Saved developer mode is required."
 msgstr "Режим разработчика должен быть сохранён."
+
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Add PC source folder …"
+msgstr "Добавить исходную папку на ПК …"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "PC source folders are separate from receive destinations."
+msgstr "Исходные папки на ПК не связаны с местами сохранения получаемых файлов."
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Photos only"
+msgstr "Только фотографии"
+
+#. Shared phone-media.js control; existing Linux translation. Refs #594.
+msgid "Selected PC source folders"
+msgstr "Выбранные исходные папки на ПК"

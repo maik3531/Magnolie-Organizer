@@ -50,7 +50,7 @@ def fixture(monkeypatch, tmp_path, *, initial=False, restore=False, readonly=Fal
     source = {"uid": SOURCE, "href": COLLECTION, "name": "Synthetic", "supportsVtodo": False,
               "readOnly": readonly}
     monkeypatch.setattr(m, "NextcloudDav", lambda _: dav)
-    monkeypatch.setattr(m, "configured_client", lambda _: object())
+    monkeypatch.setattr(m, "configured_client", lambda _, **kwargs: object())
     monkeypatch.setattr(m, "nextcloud_speicher", lambda: object())
     monkeypatch.setattr(m, "_nextcloud_quelle", lambda *_: source)
     monkeypatch.setattr(m, "daten_verzeichnis", lambda: str(tmp_path))

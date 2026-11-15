@@ -256,6 +256,50 @@ internal static class MagnolienbaumPairingTests
             "Old shared invitation revived an explicitly removed device.");
     }
 
+    internal static void SessionIdentityBinding(string root)
+    {
+        var violations = new List<string>();
+        foreach (var change in new[] { "normal", "cosmetic", "peer-key", "own-key", "unconfirmed" })
+        {
+            var sender = State("synthetic-sender"); var receiver = State("synthetic-receiver");
+            var remote = Trust(sender, receiver); Trust(receiver, sender);
+            var paths = new WindowsPaths(Path.Combine(root, change));
+            var storage = new MagnolienbaumStore(paths); storage.SaveState(receiver);
+            using var coordinator = new MagnolienbaumCoordinator(paths, (_, _) => Task.CompletedTask);
+            using var start = MagnolienbaumFs1.BuildStart(sender, remote);
+            var answer = coordinator.HandleProtocolRequest("/magnolie/v2/sitzung", start.Message, "127.0.0.1");
+            TestAssert.That(answer.Status == 200, "Synthetic identity session handshake failed");
+            using var channel = MagnolienbaumFs1.OpenResponse(sender, remote, start.Message, answer.Body, start.EphemeralPrivate);
+            var channels = (System.Collections.IDictionary)typeof(MagnolienbaumCoordinator)
+                .GetField("incomingFsSessions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
+            var retained = channels[channel.Sid]!;
+            var serverSession = (MagnolienbaumFsSession)retained.GetType().GetProperty("Session")!.GetValue(retained)!;
+            var payload = MagnolienbaumFs1.BuildEnvelope(channel, "synthetic-sender", "synthetic-receiver",
+                new JsonObject { ["art"] = "synthetic-audit" }, Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)));
+            var state = (JsonObject)typeof(MagnolienbaumCoordinator).GetField("state", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
+            var peer = state["partner"]![0]!.AsObject();
+            if (change == "peer-key") peer["oeffentlich"] = State("different-synthetic")["oeffentlich"]!.DeepClone();
+            if (change == "own-key")
+            {
+                var replacement = State("different-synthetic");
+                foreach (var key in new[] { "oeffentlich", "geheim" }) state[key] = replacement[key]!.DeepClone();
+            }
+            if (change == "unconfirmed") peer["bestaetigt"] = false;
+            if (change == "cosmetic") { peer["name"] = "Changed display"; state["name"] = "Changed display"; }
+            var result = coordinator.HandleProtocolRequest("/magnolie/v2/nachricht", payload, "127.0.0.1");
+            if (change is "normal" or "cosmetic")
+                TestAssert.That(result.Status == 200 && storage.LoadInbox().Count == 1 &&
+                    MagnolienbaumFs1.VerifyAcknowledgement(channel, payload, result.Body), "Unchanged FS1 pins stopped working");
+            else if (result.Status != 403 || storage.LoadInbox().Count != 0) violations.Add(change);
+            TestAssert.That(channels.Count == 0 && serverSession.EncryptionKey.All(value => value == 0) &&
+                serverSession.AcknowledgementKey.All(value => value == 0), "Rejected/consumed channel retained session keys");
+            TestAssert.That(coordinator.HandleProtocolRequest("/magnolie/v2/nachricht", payload, "127.0.0.1").Status == 403,
+                "FS1 identity-bound channel was not consumed");
+            if (!violations.Contains(change)) Console.WriteLine("FS1 NATIVE IDENTITY PASS " + change);
+        }
+        TestAssert.That(violations.Count == 0, "Old FS1 session accepted after identity change: " + string.Join(", ", violations));
+    }
+
     private static JsonObject State(string id)
     {
         var keys = MagnolienbaumCrypto.GenerateX25519();

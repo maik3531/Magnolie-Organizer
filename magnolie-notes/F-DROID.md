@@ -3,7 +3,7 @@
 ## Öffentlicher Bau ohne Produktionsschlüssel
 
 Magnolie Notes verwendet GPL-3.0-or-later; siehe die übergeordnete
-[`LICENSE.md`](../LICENSE.md) und den dort verlinkten vollständigen Lizenztext.
+[`LICENSING.md`](../LICENSING.md) und den dort verlinkten vollständigen Lizenztext.
 Die Android-App verwendet AndroidX/Compose, Kotlin Serialization,
 Bouncy Castle und libphonenumber. Sie benötigt weder Google Play Services
 noch Firebase und kann ohne Konto als lokales Notizbuch verwendet werden.
@@ -73,6 +73,18 @@ gebaut, eingereicht oder veröffentlicht.
 
 ## Signaturen und bestehende Installationen
 
+Die Über-Seite verweist bei `magnolieFdroid=true` sowie bei einer von Android
+gemeldeten Installation durch `org.fdroid.fdroid` auf Updates über den
+F-Droid-Client und fragt dort keine GitHub-Releases ab. Ab Android 11 wird
+`getInstallSourceInfo` verwendet, auf älteren unterstützten Versionen
+`getInstallerPackageName`, jeweils nur für das eigene Paket und ohne neue
+Berechtigung. Das ist ein Hinweis auf den Bezugsweg, kein Signaturnachweis.
+Fehlende Angaben oder andere Installer beweisen keinen direkten Projektbezug;
+ein bedingter F-Droid-Hinweis bleibt auch dann sichtbar. Weitere Clients werden
+nicht anhand von Namensteilen geraten. Für manuell heruntergeladene APKs kann
+die ursprüngliche Webseite unbekannt bleiben. F-Droid empfiehlt den Client:
+Ein reiner Webseiten-APK-Download bietet keine Updatebenachrichtigungen.
+
 Android akzeptiert ein Update unter derselben Anwendungskennung nur mit einer
 passenden Signatur. Eine durch F-Droid selbst signierte APK ist daher nicht
 automatisch ein direktes Update einer bereits über GitHub/GitLab installierten
@@ -112,7 +124,7 @@ der unerwünschte Metadatenblock bereits durch die Gradle-Konfiguration abgescha
 
 Magnolie Notes ist im
 [offiziellen F-Droid-Katalog](https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes/)
-verfügbar. Bei der Prüfung am 11. November 2026 führt der Katalog Version
+verfügbar. Bei der erneuten Prüfung am 15. November 2026 führt der Katalog Version
 **1.0.21 (Versionscode 21)**, hinzugefügt am **4. November 2026**, für
 **Android 8.0 oder neuer**. Diese Ausgabe verwendet laut Katalog die ursprüngliche
 Entwicklersignatur und ist dem dort verlinkten Quellarchiv zugeordnet.
