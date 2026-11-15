@@ -9,6 +9,14 @@ internal sealed partial class BridgeDispatcher
     private NotesOriginalNativeSession? nativeNotesSession;
     private int notesSetupPrompt;
     private NotesOriginalSetupAcquisition? nativeNotesSetupAcquisition;
+    private NotesOriginalSetupPreparation? nativeNotesSetupPreparation;
+
+    private async Task AcceptNotesSetupPreparationAsync(string token, bool idle, string savedHash)
+    {
+        await MutationGate.Global.WaitAsync(backgroundLifetime.Token);
+        try { nativeNotesSetupPreparation?.Accept(token, idle, savedHash); }
+        finally { MutationGate.Global.Release(); }
+    }
 
     private NotesOriginalChoiceStore NativeNotesChoiceStore() => NativeNotesChoices ??= new NotesOriginalChoiceStore(
         new ContactSourcePrivateFiles(Path.Combine(Path.GetFullPath(paths.Root), "notes-original-choices")), NativeActorBook,
@@ -23,17 +31,30 @@ internal sealed partial class BridgeDispatcher
             Interlocked.CompareExchange(ref notesSetupPrompt, 1, 0) != 0)
             throw new InvalidOperationException("notes_setup_native_context_required");
         NotesOriginalSetupAcquisition? acquisition = null;
+        NotesOriginalSetupPreparation? preparation = null;
         try
         {
             if (nativeNotesSetupAcquisition?.IsActive == true) throw new InvalidOperationException("notes_setup_acquisition_busy");
             Interlocked.Exchange(ref nativeNotesSetupAcquisition, null)?.Stop();
             var coordinator = baumInstance; var choices = NativeNotesChoiceStore();
+            using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellation, backgroundLifetime.Token);
+            await MutationGate.Global.WaitAsync(operation.Token);
+            try
+            {
+                preparation = new(NativeActorBookSource, NativeActorBook);
+                nativeNotesSetupPreparation = preparation;
+            }
+            finally { MutationGate.Global.Release(); }
+            // This internal native entry must run OUTSIDE bridgeCommands: the
+            // renderer must be able to send its normal numeric saves and reply.
+            await form.SendAsync("App.notesSetupVorbereiten", new { token = preparation.Token });
+            var prepared = await preparation.WaitAsync(operation.Token) ?? throw new InvalidOperationException("notes_setup_saved_editor_required");
             void Usable()
             {
                 if (disposed || restoreInProgress || !currentPlainTextAvailable || !ReferenceEquals(baumInstance, coordinator) ||
-                    !ReferenceEquals(NativeNotesChoices, choices)) throw new InvalidOperationException("notes_setup_native_context_changed");
+                    !ReferenceEquals(NativeNotesChoices, choices) || NativeActorBook()?.SavedBook != prepared.SavedBook)
+                    throw new InvalidOperationException("notes_setup_native_context_changed");
             }
-            using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellation, backgroundLifetime.Token);
             acquisition = await NotesOriginalSetupAcquisition.BeginAsync(new(choices, NativeActorBook), coordinator,
                 (peers, token) => NotesOriginalPeerDialog.ChooseAsync(form, peers, T, token), Usable, OriginalContactWlanAvailable, operation.Token);
             nativeNotesSetupAcquisition = acquisition;
@@ -45,7 +66,11 @@ internal sealed partial class BridgeDispatcher
             if (acquisition is not null) Interlocked.CompareExchange(ref nativeNotesSetupAcquisition, null, acquisition);
             acquisition?.Stop(); throw;
         }
-        finally { Volatile.Write(ref notesSetupPrompt, 0); }
+        finally
+        {
+            if (preparation is not null) Interlocked.CompareExchange(ref nativeNotesSetupPreparation, null, preparation);
+            preparation?.Dispose(); Volatile.Write(ref notesSetupPrompt, 0);
+        }
     }
     internal async Task<bool> CompleteNotesSetupAsync(NotesOriginalSetupAcquisition acquisition,
         NotesOriginalSetupCollector.Candidate candidate, CancellationToken cancellation = default)
@@ -121,6 +146,7 @@ internal sealed partial class BridgeDispatcher
     }
     private async Task StopNativeNotesSessionAsync()
     {
+        Interlocked.Exchange(ref nativeNotesSetupPreparation, null)?.Dispose();
         Interlocked.Exchange(ref nativeNotesSetupAcquisition, null)?.Stop();
         var session = Interlocked.Exchange(ref nativeNotesSession, null); if (session is null) return;
         await session.StopAsync();

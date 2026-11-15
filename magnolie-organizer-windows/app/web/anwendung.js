@@ -25644,6 +25644,30 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (typeof nutzlast?.token !== "string" || !/^[a-f0-9]{64}$/.test(nutzlast.token) || !Bruecke.vorhanden) return;
     Bruecke.sende({ cmd: "notes_original_ready", token: nutzlast.token, bereit: notesOriginalUiFrei() && notesOriginalUiStand(nutzlast.beforeText, true) });
   }
+  const notesSetupVorbereitungen = new Set();
+  let notesSetupVorbereitung = null;
+  function empfangeNotesSetupVorbereiten(nutzlast) {
+    const token = nutzlast?.token;
+    if (!Bruecke.vorhanden || typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token) || notesSetupVorbereitungen.has(token)) return;
+    // Bounded per-window replay memory; no portable field starts native setup.
+    const antwort = bereit => Bruecke.sende({ cmd: "notes_setup_prepared", token, bereit,
+      standSha256: bereit ? letzterSpeicherSha256 : "" });
+    if (notesSetupVorbereitungen.size >= 64) { antwort(false); return; }
+    notesSetupVorbereitungen.add(token);
+    const modalOffen = () => modalStapel.some(eintrag => eintrag.schleier.isConnected);
+    if (notesSetupVorbereitung || !initialisiert || !antwortErhalten || gesperrt || aktiverEditor || modalOffen() || syncLaeuft ||
+        kontaktSyncPruefungLauf || mcpSyncAktiv() || originalKontaktLauf || originalKontaktSpeicher || baumSpeicherNachweis ||
+        baumPostVorSpeichern || ausstehendeAdressbuchBaseline) { antwort(false); return; }
+    notesSetupVorbereitung = token;
+    const ende = bereit => {
+      if (notesSetupVorbereitung !== token) return;
+      notesSetupVorbereitung = null; antwort(bereit);
+    };
+    // Includes the actual pending Notes editor snapshot and ordinary numeric
+    // saves. Neither loaded-model equality nor a string ACK completes this lane.
+    nachDauerhaftemSpeichern(() => ende(!modalOffen() && notesOriginalUiFrei() && notesOriginalUiStand(letzterSpeicherText) &&
+      /^[a-f0-9]{64}$/.test(letzterSpeicherSha256)), () => ende(false));
+  }
   function empfangeNotesOriginalSpeichern(nutzlast) {
     // This idle/CAS check protects unsent edits, never grants source/ACK rights.
     const token = nutzlast?.token;
@@ -36133,6 +36157,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     originalKontaktErgebnis(nutzlast) { empfangeOriginalKontaktErgebnis(nutzlast); },
     notesOriginalSpeichern(nutzlast) { empfangeNotesOriginalSpeichern(nutzlast); },
     notesOriginalBereit(nutzlast) { empfangeNotesOriginalBereit(nutzlast); },
+    notesSetupVorbereiten(nutzlast) { empfangeNotesSetupVorbereiten(nutzlast); },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};

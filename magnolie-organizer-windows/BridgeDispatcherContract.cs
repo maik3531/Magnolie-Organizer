@@ -19,6 +19,7 @@ internal static class BridgeDispatcherContract
         ["speichern"] = S(N("id"), T("text"), O("kontaktePruefen", JsonValueKind.True, JsonValueKind.False), O("baumSyncLauf", JsonValueKind.Object, JsonValueKind.Null), O("kontaktOriginalLauf", JsonValueKind.String), O("notesOriginalLauf", JsonValueKind.String)), ["contributor_pruefen"] = S(T("key")), ["beenden"] = S(), ["beenden_bereit"] = S(), ["beenden_abgebrochen"] = S(),
         ["notes_original_save_cancel"] = S(T("token")),
         ["notes_original_ready"] = S(T("token"), B("bereit")),
+        ["notes_setup_prepared"] = S(T("token"), B("bereit"), T("standSha256")),
         ["ablage_kopieren"] = S(T("text")), ["ablage_holen"] = S(), ["sicherung"] = S(T("pfad"), T("kennwort"), O("requestId", JsonValueKind.String)), ["sicherung_waehlen"] = S(),
         ["sicherung_pruefen"] = S(T("pfad"), T("kennwort"), O("requestId", JsonValueKind.String)),
         ["sicherung_wiederherstellen"] = S(T("pfad"), T("kennwort"), O("sicherungsordner", JsonValueKind.String), O("requestId", JsonValueKind.String), O("expectedRevision", JsonValueKind.String)), ["journal_liste"] = S(O("requestId", JsonValueKind.String)), ["journal_erzeugen"] = S(O("requestId", JsonValueKind.String)), ["journal_manuell"] = S(O("requestId", JsonValueKind.String)),

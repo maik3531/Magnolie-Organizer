@@ -290,6 +290,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kontakt_originalquellen_update": await UpdateOriginalContactSourcesAsync(message); break;
                     case "notes_original_save_cancel": NativeNotesUi?.Cancel(Text(message, "token")); break;
                     case "notes_original_ready": await AcceptNotesReadinessAsync(Text(message, "token"), Boolean(message, "bereit")); break;
+                    case "notes_setup_prepared": await AcceptNotesSetupPreparationAsync(Text(message, "token"), Boolean(message, "bereit"), Text(message, "standSha256")); break;
                     case "sync_commit":
                         if (Text(message, "requestId") is { Length: > 0 } commitRequest)
                         {

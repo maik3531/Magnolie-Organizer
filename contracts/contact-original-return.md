@@ -2055,6 +2055,43 @@ saveflush/editor snapshot, host status/cancel/lifecycle and conditional startup
 remain unconnected; production stays OFF/unadvertised and all acceptance pauses
 remain effective.
 
+### Windows pre-peer editor/saveflush connection (#640, partial)
+
+The existing explicit native `BeginNotesSetupAsync` entry now first requests a
+one-use renderer preparation, outside the serialized bridge-command wait. The
+renderer uses the ordinary `nachDauerhaftemSpeichern` queue and actual Notes
+snapshot, not the idle/readiness callback. Open drafts/modals, lock and conflicting
+work hold preparation; replay is bounded and cannot schedule another flush.
+Numeric save completion is required when the current model needs saving; string
+ACKs remain ignored. No new startup, button, capability or renderer setup-start
+command is registered.
+
+`NotesOriginalSetupPreparation` binds the request to the existing native book
+owner, expiry and one-use token. Renderer idle/hash values restrict admission but
+do not create a saved witness: acceptance captures the independently recorded
+native successful-save state and checks current text/hash and unchanged owner.
+The same native saved state is required by acquisition context checks afterwards;
+the ordinary primary/private CAS decision is still captured before the first
+peer dialog. Shutdown/cancel discards the owned preparation. A writer that fails
+after primary replacement does not obtain a successful saved witness.
+
+Nine actual DOM/native encrypted-writer cases pass on host: fresh reopened book,
+two serial pending saves, unsnapshotted Notes editor text, string ACK rejection,
+replay, post-primary failure, lock, contact draft and open modal. Nine native
+token/owner/load-without-witness/expiry/cancellation cases plus strict reply-schema
+negatives pass on host and noninteractive Windows. Full managed tests and four
+existing DOM/native wire modes pass; Core/BASE compile cleanly. The actual
+Windows modal entry itself is compiled, not interactively exercised. No live
+provider/device/user keys or installation are used.
+
+Linux has the analogous need to prepare its actual editor/save lane before native
+setup, but this Windows connection is not a checked Linux fix. Carry the native
+one-use request, real numeric writer/snapshot evidence, owner/expiry checks and
+nonblocking dispatch adaptation in #640; do not substitute Linux idle/model flags.
+Application action registration, joined setup worker/status/cancel host lifecycle,
+conditional startup and native capability/profile acceptance remain open there.
+Production stays OFF/unadvertised and all physical acceptance pauses remain.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending
