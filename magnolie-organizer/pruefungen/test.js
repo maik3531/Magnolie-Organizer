@@ -6397,8 +6397,10 @@ function knopfMit(text, wurzel) {
   assert.ok(/Musterstr/.test(erg.bleibt.strasse), "Straße nicht übernommen");
   assert.strictEqual(erg.bleibt.ort, "Duisburg", "Ort nicht ergänzt");
   assert.deepStrictEqual(Array.from(erg.bleibt.emails),
-    ["MAIK3531@GMAIL.COM", "d@example.de"],
-    "E-Post-Großschreibung wurde nicht als dieselbe Adresse erkannt");
+    ["maik3531@gmail.com", "d@example.de"],
+    "E-Post-Großschreibung wurde nicht zur bestehenden kanonischen Adresse zusammengeführt");
+  assert.strictEqual(erg.bleibt.uid, "mag-d2@x", "die vollständigere Karte verliert ihre kanonische UID");
+  assert.strictEqual(erg.bleibt.email, "maik3531@gmail.com", "die primäre E-Post-Adresse weicht von der kanonischen Liste ab");
   assert.strictEqual(erg.bleibt.telefone.length, 2, "Rufnummern nicht zusammengelegt");
   assert.strictEqual(erg.bleibt.anschriften.length, 2,
     "gleich geschriebene und zusätzliche Anschriften falsch zusammengelegt");
