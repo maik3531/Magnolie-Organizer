@@ -399,4 +399,10 @@
     </Content>
   </ItemGroup>
   <Import Project="../NormativeTimezones.targets" />
+  <ItemGroup>
+    <!-- Test-host access only; the shipped Windows assembly grants no friend access. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>NativeImportProbe</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>
