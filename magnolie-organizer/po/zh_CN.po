@@ -1977,6 +1977,57 @@ msgstr "续页"
 msgid "Contributor Key"
 msgstr "贡献者密钥"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "账户访问暂时不可用。自动更新将等待。"
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "添加此原始来源，不替换现有权限。请明确选择 Organizer 中的现有联系人。这将授予持续更新权限；不会创建或删除任何原始联系人。自动更新会等待 Wi-Fi 连接。"
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "仅允许自动更新所选的原始地址簿，重新启动后也适用。仅限现有联系人；不创建或删除联系人。更新会等待 Wi-Fi 连接。默认不选择任何地址簿。清空选择会撤销所有授权。您可以随时在设置中撤销此权限。"
+
+msgid "Allow updates"
+msgstr "允许更新"
+
+msgid "Notes original source"
+msgstr "Notes 原始来源"
+
+msgid "Original address book"
+msgstr "原始地址簿"
+
+msgid "Original contact sources"
+msgstr "原始联系人来源"
+
+msgid "Revoke"
+msgstr "撤销授权"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "请为此 Notes 原始来源明确选择 Organizer 中的现有联系人。这将授予持续更新权限；不会创建或删除任何原始联系人。自动更新会等待 Wi-Fi 连接。"
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "请在设置中一次性设置账户访问。自动更新将等待。"
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "地址簿中的来源绑定不明确。"
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "无法保存联系人来源的授权。自动更新已暂停。"
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "保存的账户访问不明确。请在设置中检查账户。"
+
+msgid "Update original contact sources"
+msgstr "更新原始联系人来源"
+
+msgid "Waiting for Wi-Fi."
+msgstr "正在等待 Wi-Fi。"
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "正在等待账户访问权限。可访问账户后将恢复自动更新联系人。"
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "正在等待账户访问。请在方便时解锁系统密钥环。"
+
 msgid "Only HTTPS attachments can be opened. You can copy other addresses."
 msgstr "只能打开 HTTPS 附件。其他地址可以复制。"
 

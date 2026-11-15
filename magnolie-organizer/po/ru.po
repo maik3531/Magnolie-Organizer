@@ -2144,6 +2144,57 @@ msgstr "Продолжение"
 msgid "Contributor Key"
 msgstr "Ключ Contributor"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "Доступ к учётной записи временно недоступен. Автоматические обновления будут ждать."
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Добавьте этот исходный источник, не заменяя существующие разрешения. Явно выберите существующий контакт в Organizer. Это разрешает постоянные обновления; исходные контакты не будут создаваться или удаляться. Автоматические обновления ожидают Wi-Fi."
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "Разрешите автоматические обновления только для выбранных исходных адресных книг, в том числе после перезапуска. Только существующие контакты; без создания и удаления. Обновления ожидают Wi-Fi. По умолчанию ничего не выбрано. Пустой выбор отзывает все разрешения. Вы можете в любой момент отозвать это разрешение в настройках."
+
+msgid "Allow updates"
+msgstr "Разрешить обновления"
+
+msgid "Notes original source"
+msgstr "Исходный источник Notes"
+
+msgid "Original address book"
+msgstr "Исходная адресная книга"
+
+msgid "Original contact sources"
+msgstr "Исходные источники контактов"
+
+msgid "Revoke"
+msgstr "Отозвать"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Явно выберите существующий контакт в Organizer для этого исходного источника Notes. Это разрешает постоянные обновления; исходные контакты не будут создаваться или удаляться. Автоматические обновления ожидают Wi-Fi."
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "Один раз настройте доступ к учётной записи в настройках. Автоматические обновления будут ждать."
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "Адресная книга содержит неоднозначную привязку к источнику."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Не удалось сохранить разрешение для источника контактов. Автоматические обновления приостановлены."
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "Сохранённый доступ к учётной записи неоднозначен. Проверьте учётную запись в настройках."
+
+msgid "Update original contact sources"
+msgstr "Обновить исходные источники контактов"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Ожидание Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Ожидание доступа к учётной записи. Автоматические обновления контактов возобновятся, когда доступ станет доступен."
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "Ожидание доступа к учётной записи. Разблокируйте системную связку ключей, когда вам будет удобно."
+
 msgid "Only HTTPS attachments can be opened. You can copy other addresses."
 msgstr "Можно открывать только вложения HTTPS. Другие адреса можно скопировать."
 

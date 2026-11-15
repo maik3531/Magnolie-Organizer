@@ -2090,6 +2090,57 @@ msgstr "Fortsat"
 msgid "Contributor Key"
 msgstr "Contributor Key"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "Kontoadgang er midlertidigt utilgængelig. Automatiske opdateringer venter."
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Tilføj denne oprindelige kilde uden at erstatte eksisterende tilladelser. Vælg udtrykkeligt den eksisterende kontakt i Organizer. Dette tillader vedvarende opdateringer; ingen oprindelige kontakter oprettes eller slettes. Automatiske opdateringer venter på wi-fi."
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "Tillad kun automatiske opdateringer til de valgte oprindelige adressebøger, også efter genstart. Kun eksisterende kontakter; ingen oprettelse eller sletning. Opdateringer venter på wi-fi. Intet er valgt som standard. Et tomt valg tilbagekalder alle tilladelser. Du kan til enhver tid tilbagekalde denne tilladelse i Indstillinger."
+
+msgid "Allow updates"
+msgstr "Tillad opdateringer"
+
+msgid "Notes original source"
+msgstr "Oprindelig Notes-kilde"
+
+msgid "Original address book"
+msgstr "Oprindelig adressebog"
+
+msgid "Original contact sources"
+msgstr "Oprindelige kontaktkilder"
+
+msgid "Revoke"
+msgstr "Tilbagekald"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Vælg udtrykkeligt den eksisterende kontakt i Organizer til denne oprindelige Notes-kilde. Dette tillader vedvarende opdateringer; ingen oprindelige kontakter oprettes eller slettes. Automatiske opdateringer venter på wi-fi."
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "Konfigurer kontoadgang én gang i Indstillinger. Automatiske opdateringer venter."
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "Adressebogen indeholder en tvetydig kildebinding."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Tilladelsen til kontaktkilden kunne ikke gemmes. Automatiske opdateringer er sat på pause."
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "Den gemte kontoadgang er tvetydig. Kontrollér kontoen i Indstillinger."
+
+msgid "Update original contact sources"
+msgstr "Opdater oprindelige kontaktkilder"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Venter på wi-fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Venter på kontoadgang. Automatiske kontaktopdateringer genoptages, når adgang er tilgængelig."
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "Venter på kontoadgang. Lås systemets nøglering op, når det passer dig."
+
 msgid "Only HTTPS attachments can be opened. You can copy other addresses."
 msgstr "Kun HTTPS-vedhæftninger kan åbnes. Andre adresser kan kopieres."
 

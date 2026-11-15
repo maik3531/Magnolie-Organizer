@@ -2053,6 +2053,57 @@ msgstr "जारी"
 msgid "Contributor Key"
 msgstr "योगदानकर्ता कुंजी"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "खाते तक पहुँच अस्थायी रूप से उपलब्ध नहीं है। स्वचालित अपडेट प्रतीक्षा करेंगे।"
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "मौजूदा अनुमतियों को बदले बिना यह मूल स्रोत जोड़ें। Organizer में मौजूदा संपर्क को स्पष्ट रूप से चुनें। इससे स्थायी अपडेट की अनुमति मिलती है; कोई मूल संपर्क बनाया या हटाया नहीं जाएगा। स्वचालित अपडेट Wi-Fi की प्रतीक्षा करते हैं।"
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "केवल चुनी गई मूल पता पुस्तिकाओं में स्वचालित अपडेट की अनुमति दें, पुनः प्रारंभ करने के बाद भी। केवल मौजूदा संपर्क; न बनाना, न हटाना। अपडेट Wi-Fi की प्रतीक्षा करते हैं। डिफ़ॉल्ट रूप से कुछ भी चयनित नहीं है। खाली चयन सभी अनुमतियाँ रद्द करता है। आप सेटिंग में किसी भी समय यह अनुमति रद्द कर सकते हैं।"
+
+msgid "Allow updates"
+msgstr "अपडेट की अनुमति दें"
+
+msgid "Notes original source"
+msgstr "Notes का मूल स्रोत"
+
+msgid "Original address book"
+msgstr "मूल पता पुस्तिका"
+
+msgid "Original contact sources"
+msgstr "संपर्कों के मूल स्रोत"
+
+msgid "Revoke"
+msgstr "अनुमति वापस लें"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "इस Notes मूल स्रोत के लिए Organizer में मौजूदा संपर्क को स्पष्ट रूप से चुनें। इससे स्थायी अपडेट की अनुमति मिलती है; कोई मूल संपर्क बनाया या हटाया नहीं जाएगा। स्वचालित अपडेट Wi-Fi की प्रतीक्षा करते हैं।"
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "सेटिंग में खाते तक पहुँच एक बार सेट करें। स्वचालित अपडेट प्रतीक्षा करेंगे।"
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "पता पुस्तिका में स्रोत का अस्पष्ट बंधन है।"
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "संपर्क स्रोत की अनुमति सहेजी नहीं जा सकी। स्वचालित अपडेट रोके गए हैं।"
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "सहेजी गई खाते की पहुँच अस्पष्ट है। सेटिंग में खाते की जाँच करें।"
+
+msgid "Update original contact sources"
+msgstr "मूल संपर्क स्रोत अपडेट करें"
+
+msgid "Waiting for Wi-Fi."
+msgstr "वाई-फ़ाई की प्रतीक्षा है।"
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "खाते तक पहुँच की प्रतीक्षा है। पहुँच उपलब्ध होने पर संपर्कों के स्वचालित अपडेट फिर शुरू होंगे।"
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "खाते तक पहुँच की प्रतीक्षा है। सुविधानुसार सिस्टम कीरिंग अनलॉक करें।"
+
 msgid "Only HTTPS attachments can be opened. You can copy other addresses."
 msgstr "केवल HTTPS अनुलग्नक खोले जा सकते हैं। अन्य पते कॉपी किए जा सकते हैं।"
 
