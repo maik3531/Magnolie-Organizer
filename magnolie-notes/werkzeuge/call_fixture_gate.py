@@ -319,7 +319,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('/tmp/opencode/latest-call-clean'))
     parser.add_argument('--cache-home', type=Path, default=Path.home())
-    parser.add_argument('--variant', choices=('debug', 'release'), default='debug')
+    parser.add_argument('--variant', choices=('debug', 'release'), default='release')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     args.output = args.output.resolve(); args.cache_home = args.cache_home.resolve()

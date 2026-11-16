@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 import sys
@@ -123,6 +124,29 @@ for name in ['settings.gradle.kts','app/build.gradle.kts','app/src/fixture.kt']:
 
 
 class SupervisorTest(unittest.TestCase):
+    def test_default_variant_matches_canonical_test_build_type(self):
+        variants = re.findall(r'testBuildType\s*=\s*"([^"]+)"', (gate.SOURCE / 'app/build.gradle.kts').read_text())
+        self.assertEqual(1, len(variants))
+        with tempfile.TemporaryDirectory(dir='/tmp/opencode') as temporary:
+            def completed(command, **kwargs):
+                self.assertEqual(variants[0], command[command.index('--variant') + 1])
+                (Path(temporary) / 'gate-result.json').write_text(json.dumps({'passed': True, 'clean_exit': True}))
+                return gate.subprocess.CompletedProcess(command, 0)
+            with patch.object(sys, 'argv', ['call_fixture_gate.py', '--output', temporary]), \
+                    patch.object(gate.subprocess, 'run', side_effect=completed):
+                self.assertEqual(0, gate.main())
+
+    def test_explicit_variant_is_not_silently_replaced(self):
+        for variant in ('debug', 'release'):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory(dir='/tmp/opencode') as temporary:
+                def completed(command, **kwargs):
+                    self.assertEqual(variant, command[command.index('--variant') + 1])
+                    (Path(temporary) / 'gate-result.json').write_text(json.dumps({'passed': True, 'clean_exit': True}))
+                    return gate.subprocess.CompletedProcess(command, 0)
+                with patch.object(sys, 'argv', ['call_fixture_gate.py', '--output', temporary, '--variant', variant]), \
+                        patch.object(gate.subprocess, 'run', side_effect=completed):
+                    self.assertEqual(0, gate.main())
+
     def test_selected_jdk_reaches_the_isolated_worker(self):
         with tempfile.TemporaryDirectory(dir='/tmp/opencode') as temporary:
             def completed(command, **kwargs):
