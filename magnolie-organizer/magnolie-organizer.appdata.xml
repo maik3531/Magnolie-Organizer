@@ -11,6 +11,13 @@
     <p xml:lang="de">Verwaltet Termine, Adressen, Aufgaben, Notizen, Jahrestage und druckbare Planer lokal, ohne persoenliche Organizer-Daten an einen Cloud-Dienst zu geben.</p>
   </description>
   <launchable type="desktop-id">io.gitlab.maik3531.MagnolieOrganizer.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Weekly calendar with example appointments</caption>
+      <caption xml:lang="de">Wochenkalender mit Beispielterminen</caption>
+      <image type="source" width="1440" height="900">https://raw.githubusercontent.com/maik3531/Magnolie-Organizer/fb2fe53e6072e4bcb56454b03d10d3f3d045d2b4/magnolie-organizer/screenshots/calendar-week-en.png</image>
+    </screenshot>
+  </screenshots>
   <url type="homepage">https://gitlab.com/maik3531/mint-forgs</url>
   <developer id="io.gitlab.maik3531">
     <name>Maik Walter</name>
