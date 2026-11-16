@@ -5,6 +5,10 @@ param([switch] $VerifierProcessOnly)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 Set-StrictMode -Version Latest
+$runningOnWindows = [Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)
+if ($VerifierProcessOnly -and -not $runningOnWindows) {
+    throw 'VerifierProcessOnly requires Windows; native verifier acceptance cannot run on this host.'
+}
 $temp = Join-Path ([IO.Path]::GetTempPath()) ('magnolie-embedded-signing-' + [guid]::NewGuid().ToString('N'))
 try {
     [IO.Directory]::CreateDirectory($temp) | Out-Null
@@ -120,6 +124,9 @@ try {
                 'missing-script' { 'source-bound script is missing' }
                 'untrusted-host' { 'Configured verifier host is not a valid Microsoft-signed PowerShell executable' }
             }
+            if (-not $runningOnWindows) {
+                $expected = 'Official embedding requires independent native verification configuration.'
+            }
             $message = $stdout.Result + $stderr.Result
             if ($process.ExitCode -eq 0 -or $message -notmatch 'MAGNOLIE560' -or $message -notmatch [regex]::Escape($expected)) {
                 throw "Independent verifier boundary did not reject $case as expected: $message"
@@ -130,6 +137,10 @@ try {
             if ($case -eq 'missing-script') { Move-Item -LiteralPath ($verifier + '.held') -Destination $verifier }
         }
         $count++
+    }
+    if (-not $runningOnWindows) {
+        Write-Host "$count actual MSBuild source/OS-hold cases passed; configured official embedding remained blocked on non-Windows. Native receipt, Microsoft-host signature and verifier-process acceptance remain untested here."
+        return
     }
     # Controlled host-process tests, NOT substitutes for the signature policy.
     # A successful controlled dependency must precede the inert snapshot marker.
