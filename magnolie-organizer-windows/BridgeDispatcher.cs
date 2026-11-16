@@ -911,7 +911,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     {
         var locked = false;
         var contactAckCommitted = false;
-        var contactAckRecognized = false;
+        Func<Task>? contactAckCompletion = null;
         void FailNotesCompletion() { try { notesCompletion?.Failed(); } catch (Exception) { } } // Never block native failure reporting.
         var id = Integer(message, "id");
         var text = Text(message, "text");
@@ -1057,6 +1057,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
             if (notesConsent is not null && !notesConsentError)
                 try { notesConsentRecognized = notesConsent.RecognizesSaved(); }
                 catch (Exception) { notesConsentError = true; }
+            // Fix the native lifecycle BEFORE the frontend may begin a new
+            // decision in response to this ACK. Restoration/notification remains
+            // deferred until after the ACK and mutation-gate release below.
+            contactAckCompletion = PrepareOriginalContactSaveAcknowledgement(id, BaumSyncSnapshot.Hash(text),
+                contactConsentRecognized && !contactConsentError);
             await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "", kontaktPruefung = contactPlan,
                 committed = true, repairPending = false,
                 kontaktQuellenDauerhaft = contactConsentRecognized && !contactConsentError,
@@ -1067,7 +1072,6 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 kontaktOriginalGespeichert = originalContactWrite?.Completed == true ? originalContactWrite.Token : "" });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);
             contactAckCommitted = true;
-            contactAckRecognized = contactConsentRecognized && !contactConsentError;
         }
         catch (Exception error)
         {
@@ -1081,7 +1085,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             if (notesCompletion is not null)
                 try { NativeNotesWake?.Invoke(); } catch (Exception) { } // Deferred wake cannot turn a genuine user save into failure.
         }
-        if (contactAckCommitted) await OriginalContactSaveAcknowledgedAsync(id, BaumSyncSnapshot.Hash(text), contactAckRecognized);
+        if (contactAckCommitted && contactAckCompletion is not null) await contactAckCompletion();
     }
 
     // Private native issuer, never an ExecuteMcp/request action. The frontend

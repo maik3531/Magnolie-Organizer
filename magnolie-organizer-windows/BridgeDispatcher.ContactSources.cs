@@ -59,14 +59,30 @@ internal sealed partial class BridgeDispatcher
         if (disposed) StopOriginalContactMonitor();
     }
 
-    private async Task OriginalContactSaveAcknowledgedAsync(int id, string hash, bool recognized)
+    private Func<Task>? PrepareOriginalContactSaveAcknowledgement(int id, string hash, bool recognized)
     {
         try
         {
-            if (await OriginalContactAutomation.SavedAsync(id, hash, recognized)) StartOriginalContactMonitor();
-            else StopOriginalContactMonitor();
+            var automation = OriginalContactAutomation;
+            var acknowledgement = automation.PrepareSaved(id, hash, recognized);
+            if (acknowledgement is null) return null;
+            return async () =>
+            {
+                try
+                {
+                    var usable = await automation.CompleteSavedAsync(acknowledgement);
+                    if (!automation.IsCurrentAcknowledgement(acknowledgement)) return;
+                    if (usable == true) StartOriginalContactMonitor();
+                    else if (usable == false) StopOriginalContactMonitor();
+                }
+                catch (Exception)
+                {
+                    if (automation.IsCurrentAcknowledgement(acknowledgement)) StopOriginalContactMonitor();
+                    // Actual user save succeeded. Uncertain consent stays held.
+                }
+            };
         }
-        catch (Exception) { /* The user data SaveACK already succeeded. Consent remains held. */ }
+        catch (Exception) { StopOriginalContactMonitor(); return null; }
     }
 
     private static bool OriginalContactWlanAvailable()

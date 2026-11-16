@@ -12,6 +12,8 @@ internal sealed class ContactSourceAutomation(
     Func<ContactSourceAutomationNotice, Task> notify) : IDisposable
 {
     private sealed record Ack(long Id, string Hash);
+    // Native operation-local identity, never a renderer acknowledgement/grant.
+    internal sealed record SaveAcknowledgement(ContactSourceAutomation Owner, object Identity, long Generation);
     private readonly object gate = new();
     private readonly SemaphoreSlim refresh = new(1, 1);
     private readonly CancellationTokenSource lifetime = new();
@@ -33,20 +35,44 @@ internal sealed class ContactSourceAutomation(
         lock (gate) return !disposed && !blocked && !setup && eligible && generation == expected && ReferenceEquals(last, ack);
     }
 
-    internal async Task<bool> SavedAsync(long id, string hash, bool recognized)
+    internal SaveAcknowledgement? PrepareSaved(long id, string hash, bool recognized)
     {
         if (id < 1 || hash.Length != 64 || hash.Any(value => value is not (>= '0' and <= '9') and not (>= 'a' and <= 'f')))
             throw new ArgumentException("contact_source_native_saveack_required");
         bool held;
+        Ack ack; long expected;
         lock (gate)
         {
-            if (disposed) return false;
-            last = new(id, hash); generation++; applied = ""; usable = null; eligible = recognized; setup = false;
+            if (disposed) return null;
+            ack = new(id, hash); last = ack; expected = ++generation;
+            applied = ""; usable = null; eligible = recognized; setup = false;
             held = blocked || !recognized;
         }
-        if (held) { session.Revoke(); return false; } // No account/book/file observation, no stale runtime grant.
+        if (held) session.Revoke(); // No account/book/file observation, no stale runtime grant.
+        return new(this, ack, expected);
+    }
+
+    internal bool IsCurrentAcknowledgement(SaveAcknowledgement acknowledgement)
+    {
+        lock (gate) return !disposed && ReferenceEquals(acknowledgement.Owner, this) &&
+            ReferenceEquals(acknowledgement.Identity, last) && acknowledgement.Generation == generation;
+    }
+
+    // Only after delivery of the actual frontend ACK and writer-gate release.
+    // A later setup/revoke/save supersedes this continuation: it must neither
+    // reset the user's decision nor stop that newer operation's monitor.
+    internal async Task<bool?> CompleteSavedAsync(SaveAcknowledgement acknowledgement)
+    {
+        if (!IsCurrentAcknowledgement(acknowledgement)) return null;
+        lock (gate) if (blocked || !eligible) return false;
         await ProbeAsync(wait: true).ConfigureAwait(false);
-        return HasCurrentIntent;
+        return IsCurrentAcknowledgement(acknowledgement) ? HasCurrentIntent : null;
+    }
+
+    internal async Task<bool> SavedAsync(long id, string hash, bool recognized)
+    {
+        var acknowledgement = PrepareSaved(id, hash, recognized);
+        return acknowledgement is not null && await CompleteSavedAsync(acknowledgement).ConfigureAwait(false) == true;
     }
 
     internal bool HasCurrentIntent
