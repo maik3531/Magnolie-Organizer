@@ -26408,6 +26408,10 @@ class Fenster(_FENSTER_BASIS):
                     self._telefon_actor_abschluss_planen(source, request)
             elif request.get("action") == "read":
                 result = {"ok": True, "status": self._telefon.mcp_status()}
+            elif request.get("action") == "media_status_read":
+                import copy
+                request = copy.deepcopy(request)
+                result = {"ok": True, "mediaStatusDeferred": True}
             else:
                 if request.get("action") == "settings" and request.get("enabled") is True:
                     if request.get("expectedRevision") != self._telefon.mcp_status()["revision"]:
@@ -26429,7 +26433,16 @@ class Fenster(_FENSTER_BASIS):
             result = {"ok": False, "code": "native_operation_failed"}
         finally:
             token = result.get("deviceStatusToken") if result.get("ok") is True else None
-            if isinstance(token, str):
+            if result.pop("mediaStatusDeferred", False):
+                def medien_aktuell():
+                    if self._gesperrt or not self._organizer_vertraut() or self._telefon is not source:
+                        return {"requestId": nachricht.get("requestId"), "ok": False, "code": "source_changed"}
+                    try:
+                        return {**source.mcp_action(request), "requestId": nachricht.get("requestId")}
+                    except Exception:
+                        return {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"}
+                self.antwort("App.telefonMcpErgebnis", medien_aktuell)
+            elif isinstance(token, str):
                 def aktuell():
                     if self._gesperrt or not self._organizer_vertraut() or self._telefon is not source:
                         try:

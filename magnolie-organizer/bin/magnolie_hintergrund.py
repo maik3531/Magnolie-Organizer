@@ -945,6 +945,12 @@ def _request_shape(operation, arguments):
                     validate_request(request["body"])
                 except (ValueError, TypeError, KeyError) as error:
                     raise IPCError("invalid phone timer command") from error
+        elif isinstance(request, dict) and request.get("action") == "media_status_read":
+            if (set(arguments) != {"request"} or set(request) != {"action", "peerId", "fingerprint", "expectedRevision"}
+                    or len(encoded.encode("utf-8")) > 8192 or not isinstance(request.get("peerId"), str) or not 1 <= len(request["peerId"]) <= 256
+                    or not isinstance(request.get("fingerprint"), str) or not re.fullmatch(r"[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}", request["fingerprint"])
+                    or not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"])):
+                raise IPCError("invalid media status request")
         elif set(arguments) != {"request"} or not isinstance(request, dict) or len(encoded.encode("utf-8")) > 8192 or set(request) - {"action", "expectedRevision", "peerId", "fingerprint", "enabled", "name", "address", "attemptId", "accept", "queryId", "includeIdentifiers", "field", "value", "initial", "skipDeletions", "mode"}:
             raise IPCError("invalid phone control request")
         elif request.get("action") not in ("settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth", "device_status_query", "device_status_cancel", "notes_settings_read", "notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction", "notes_legacy_policy") or (request.get("action") != "notes_settings_read" and (not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]))):
@@ -1921,7 +1927,7 @@ class IPCServer:
                                                                arguments['enabled'], permitted=permitted)
                 elif operation.startswith("phone_"):
                     if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or (
-                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel", "call_context_read", *TIME_CONTROL_ACTIONS, *CALL_ACTOR_ACTIONS)):
+                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel", "media_status_read", "call_context_read", *TIME_CONTROL_ACTIONS, *CALL_ACTOR_ACTIONS)):
                         with self._mutation_lock:
                             result = self._phone_operation(operation, arguments)
                     else:
@@ -1972,7 +1978,7 @@ class IPCServer:
                 and not normalize_settings(self.settings_getter())["permissions"]["phone_call_notifications"]):
             raise IPCError("call notifications are not permitted")
         if (operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or
-                operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_cancel", "time_control_cancel", "call_context_read", "call_actor_status", "call_actor_cancel")) and \
+                operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_cancel", "time_control_cancel", "media_status_read", "call_context_read", "call_actor_status", "call_actor_cancel")) and \
                 self.setup_sessions.connecting_transport in ("wifi", "bluetooth"):
             raise IPCError("Another phone setup session is active.")
         if operation == "phone_take_event":

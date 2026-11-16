@@ -60,9 +60,36 @@ const watchdog = setTimeout(() => { console.error("MCP phone lifecycle timed out
       for (const code of ["profile_locked", "native_busy", "unsupported_feature", "conflict"]) { onNative = message => reply(message, { ok: false, code }); fail(await read(), code); }
       onNative = message => reply(message, { status: { ...state, revision: "bad" } }); fail(await read(), "invalid_result");
       onNative = message => reply(message, { status: { ...state, capabilities: { device_status: { available: true, versions: ["11"] } } } }); fail(await read(), "invalid_result");
+      const mediaTarget = { expected_revision: state.revision, ...target };
+      const mediaState = { peer_id: target.peer_id, fingerprint: target.fingerprint, supported: true, activation_required: false,
+        photos_enabled: false, videos_enabled: true, video_supported: true, automatic_wifi: false, busy: false,
+        shared_settings_present: true, shared_settings_agreed: false, persisted: false, transfer_started: false };
+      const media = async (args = mediaTarget, id) => (await rpc("tools/call", { name: "organizer_phone_media_status_read", arguments: args }, id)).result;
+      let mediaRequest;
+      onNative = message => { mediaRequest = message; reply(message, { mediaStatus: mediaState }); };
+      const currentMedia = ok(await media());
+      assert.equal(currentMedia.videos_enabled, true); assert.equal(currentMedia.photos_enabled, false);
+      assert.deepEqual(JSON.parse(JSON.stringify(mediaRequest.request)), { action: "media_status_read", expectedRevision: state.revision,
+        peerId: target.peer_id, fingerprint: target.fingerprint });
+      const unknown = { ...mediaState, supported: false, photos_enabled: null, videos_enabled: null, video_supported: null,
+        automatic_wifi: null, busy: null, shared_settings_present: null, shared_settings_agreed: null };
+      onNative = message => reply(message, { mediaStatus: unknown }); assert.equal(ok(await media()).photos_enabled, null);
+      for (const changes of [{ path: "private" }, { transfer_started: true }, { persisted: true }, { videos_enabled: "true" }]) {
+        onNative = message => reply(message, { mediaStatus: { ...mediaState, ...changes } }); fail(await media(), "invalid_result");
+      }
+      for (const changes of [{ peer_id: "foreign" }, { fingerprint: "foreign" }]) {
+        onNative = message => reply(message, { mediaStatus: { ...mediaState, ...changes } }); fail(await media(), "source_changed");
+      }
+      for (const code of ["profile_locked", "native_busy", "conflict", "source_changed", "invalid_selection"]) {
+        onNative = message => reply(message, { ok: false, code }); fail(await media(), code);
+      }
+      const requestsBeforeBadArguments = b.messages.length;
+      const badMedia = await rpc("tools/call", { name: "organizer_phone_media_status_read", arguments: { ...mediaTarget, enabled: true } });
+      assert.equal(badMedia.error.code, -32602);
+      assert(!b.messages.slice(requestsBeforeBadArguments).some(message => message.cmd === "telefon_mcp"));
       let held;
       const waiting = new Promise(resolve => { onNative = message => { held = message; resolve(); }; });
-      const pending = read({}, 9000); await waiting;
+      const pending = media(mediaTarget, 9000); await waiting;
       b.t.oeffneEinstellungen(); await tick();
       fail(await action({ action: "settings", enabled: false }), "dialog_busy");
       const toast = b.w.document.querySelector("#zettel").textContent;

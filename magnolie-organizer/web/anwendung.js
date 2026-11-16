@@ -39317,6 +39317,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (native) properties.report = body; else Object.assign(properties, { status: body, identifiers: { anyOf: [{ type: "null" }, mcpGeraeteKennungenSchema()] } });
     return { type: "object", properties, required: Object.keys(properties), additionalProperties: false };
   }
+  function mcpMedienStatusSchema() {
+    const flag = { type: ["boolean", "null"] };
+    const properties = { peer_id: { type: "string", minLength: 1, maxLength: 256 }, fingerprint: { type: "string", minLength: 1, maxLength: 256 },
+      supported: { type: "boolean" }, activation_required: { type: "boolean" }, photos_enabled: flag, videos_enabled: flag,
+      video_supported: flag, automatic_wifi: flag, busy: flag, shared_settings_present: flag, shared_settings_agreed: flag,
+      persisted: { type: "boolean", enum: [false] }, transfer_started: { type: "boolean", enum: [false] } };
+    return { type: "object", properties, required: Object.keys(properties), additionalProperties: false };
+  }
+  function mcpMedienStatusWerkzeug() {
+    return { name: "organizer_phone_media_status_read", description: "Read the selected phone's existing native photo/video runtime status. Requires the current phone-control revision and exact paired fingerprint. Unknown fields are null, not implied opt-outs. No albums, paths, files, tokens or cached content are returned. Does not enable, configure, scan, transfer, pair, request OS rights or start a listener. Availability and shared agreement are not proof of a completed transfer. Late replies leave GUI settings and drafts unchanged.",
+      inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: { type: "string", minLength: 1, maxLength: 256 }, fingerprint: { type: "string", minLength: 1, maxLength: 256 } }, required: ["expected_revision", "peer_id", "fingerprint"], additionalProperties: false },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => {
+        const value = await mcpNativeAufruf("telefon_mcp", { request: { action: "media_status_read", expectedRevision: args.expected_revision,
+          peerId: args.peer_id, fingerprint: args.fingerprint } }, "telefonMcpErgebnis", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError(["profile_locked", "native_busy", "unsupported_feature", "conflict", "source_changed", "invalid_selection"].includes(value.code) ? value.code : "native_operation_failed", "Native media status unavailable");
+        try { MagnolieMcp.validate(value.mediaStatus, mcpMedienStatusSchema()); }
+        catch { throw new MagnolieMcp.ToolError("invalid_result", "Native media status was incomplete"); }
+        if (value.mediaStatus.peer_id !== args.peer_id || value.mediaStatus.fingerprint.toUpperCase() !== args.fingerprint.toUpperCase())
+          throw new MagnolieMcp.ToolError("source_changed", "Native media status belongs to another phone");
+        return kopie(value.mediaStatus);
+      } };
+  }
   function mcpGeraeteStatusWerkzeug() {
     return { name: "organizer_phone_device_status_read", description: "Request fresh correlated general device status over the selected phone's existing verified WLAN session. Requires current phone-control revision and exact peer/fingerprint. Uses shared GUI request/contracts with an ephemeral actor: no status cache, queued replay or GUI status events. include_identifiers defaults to false, never the GUI setting. Explicit true additionally requires both own-device confirmations, both grants and fresh v4 controls; actual phone/OS sharing restrictions remain visible per field. Identifier results expire, are reauthorized at native dispatch and never persisted. Cancellation/late replies leave GUI drafts/dialogs unchanged. Does not start listeners, pair/connect phones or alter permissions.",
       inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: { type: "string", minLength: 1, maxLength: 256 }, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" }, include_identifiers: { type: "boolean", default: false } }, required: ["expected_revision", "peer_id", "fingerprint"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async (args, signal) => {
@@ -42591,6 +42613,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
     if (name === "organizer_phone_device_status_read") return mcpGeraeteStatusSchema();
+    if (name === "organizer_phone_media_status_read") return mcpMedienStatusSchema();
     if (name === "organizer_note_send_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (["organizer_note_send_settings_read", "organizer_note_send_state_read"].includes(name)) {
       const settings = shape({ enabled: flag, faxServer: text }, ["enabled", "faxServer"]), properties = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, settings };
@@ -43002,6 +43025,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpNotesEinstellungenWerkzeuge(),
       ...mcpNotesZeitWerkzeuge(owner),
       mcpGeraeteStatusWerkzeug(),
+      mcpMedienStatusWerkzeug(),
       ...mcpNotesTimerWerkzeuge(),
       ...mcpTelefonAnrufWerkzeuge(owner),
       ...mcpKdeVerbindungWerkzeuge(owner),

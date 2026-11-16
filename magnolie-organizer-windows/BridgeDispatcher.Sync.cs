@@ -230,6 +230,17 @@ internal sealed partial class BridgeDispatcher
             if (restoreInProgress) { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "native_busy" }); return; }
             var request = JsonNode.Parse(message.GetProperty("request").GetRawText())!.AsObject();
             var source = telefon;
+            if (request["action"]?.GetValue<string>() == "media_status_read")
+            {
+                await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "source_changed" }, () =>
+                {
+                    if (disposed || restoreInProgress || !currentPlainTextAvailable || !ReferenceEquals(telefonInstance, source) ||
+                        (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+                        return new JsonObject { ["requestId"] = requestId, ["ok"] = false, ["code"] = "source_changed" };
+                    var current = source.McpMediaStatus(request); current["requestId"] = requestId; return current;
+                });
+                return;
+            }
             JsonObject result;
             if (request["action"]?.GetValue<string>() == "read") result = new() { ["ok"] = true, ["status"] = source.McpStatus() };
             else
