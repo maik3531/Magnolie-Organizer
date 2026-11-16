@@ -31,7 +31,7 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
         // Stop feeding an already proven runaway loop; never leave a test worker unbounded.
         if (sent <= 5000) this.worker.postMessage(value);
       }
-      terminate() { return this.worker.terminate(); }
+      terminate() { return workerFiles.stop(this.worker); }
     };
     try {
       w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));

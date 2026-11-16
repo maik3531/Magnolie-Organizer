@@ -22,7 +22,7 @@ const { JSDOM } = require("jsdom");
         this.worker.on("error", error => this.onerror?.(error));
       }
       postMessage(value) { this.worker.postMessage(value); }
-      terminate() { return this.worker.terminate(); }
+      terminate() { return workerFiles.stop(this.worker); }
     };
     try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));

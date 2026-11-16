@@ -7,7 +7,7 @@ const { Worker } = require("node:worker_threads");
 const prelude = 'const { parentPort } = require("node:worker_threads"); globalThis.self = globalThis; self.postMessage = value => parentPort.postMessage(value); parentPort.on("message", data => self.onmessage({ data }));\n';
 
 class WorkerFileFixture {
-  constructor() { this.folder = null; this.threads = []; }
+  constructor() { this.folder = null; this.threads = []; this.terminations = new WeakMap(); }
   start(source) {
     assert.equal(typeof source, "string"); assert.ok(source.length);
     this.folder ||= fs.mkdtempSync(path.join(os.tmpdir(), "magnolie-worker-664-"));
@@ -17,11 +17,20 @@ class WorkerFileFixture {
     assert.equal(fs.readFileSync(file, "utf8"), prelude + source);
     const thread = new Worker(file); this.threads.push(thread); return thread;
   }
+  stop(thread) {
+    if (this.terminations.has(thread)) return this.terminations.get(thread);
+    assert.ok(this.threads.includes(thread), "Cannot stop a foreign fixture worker");
+    const stopped = Promise.resolve(thread.terminate());
+    this.terminations.set(thread, stopped);
+    return stopped;
+  }
   async close() {
-    await Promise.all(this.threads.map(thread => thread.terminate()));
+    await Promise.all(this.threads.map(thread => this.stop(thread)));
+    this.threads = [];
     if (this.folder) {
       fs.rmSync(this.folder, { recursive: true });
       assert.equal(fs.existsSync(this.folder), false);
+      this.folder = null;
     }
   }
 }

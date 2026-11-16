@@ -54,4 +54,42 @@ const expired = runBoundedProgram(process.execPath, ["-e", "setInterval(() => {}
 assert.notEqual(expired.status, 0);
 assert.equal(expired.error?.code, "ETIMEDOUT");
 assert.match(timeoutProgress[1], /TEST END synthetic hanging child/);
-console.log("Native test-process cases passed: real startup/status, supported newer SDKs and no false policy rejection from null results.");
+const { WorkerFileFixture } = require("./worker-file-fixture");
+(async () => {
+  let calls = 0, finish;
+  const pendingTermination = new Promise(resolve => { finish = resolve; });
+  const owned = { terminate() { calls++; return pendingTermination; } };
+  const fixture = new WorkerFileFixture();
+  fixture.threads.push(owned); // Explicit controlled double, not a product worker.
+  const stopped = fixture.stop(owned);
+  assert.equal(fixture.stop(owned), stopped);
+  let closed = false;
+  const closing = fixture.close().then(() => { closed = true; });
+  await Promise.resolve();
+  assert.equal(closed, false, "Cleanup must await the actual owned termination");
+  assert.equal(calls, 1);
+  finish(0); await closing;
+  assert.equal(fixture.stop(owned), stopped);
+  await fixture.close();
+  assert.equal(calls, 1, "A stopped worker must never be terminated twice");
+  assert.throws(() => fixture.stop({ terminate() { throw new Error("foreign worker invoked"); } }));
+
+  const actual = new WorkerFileFixture();
+  try {
+    const thread = actual.start("self.onmessage = event => self.postMessage(event.data);");
+    const reply = new Promise((resolve, reject) => {
+      const deadline = setTimeout(() => reject(new Error("Owned worker echo timeout")), 8000);
+      thread.once("message", value => { clearTimeout(deadline); resolve(value); });
+      thread.once("error", error => { clearTimeout(deadline); reject(error); });
+    });
+    thread.postMessage("owned-echo");
+    assert.equal(await reply, "owned-echo");
+    const first = actual.stop(thread);
+    assert.equal(actual.stop(thread), first);
+    const folder = actual.folder;
+    await actual.close(); await first;
+    assert.equal(require("node:fs").existsSync(folder), false);
+    assert.equal(actual.threads.length, 0);
+  } finally { await actual.close(); }
+  console.log("Native test-process cases passed: startup/status/deadlines and owned worker termination once with actual drain.");
+})().catch(error => { console.error(error); process.exitCode = 1; });
