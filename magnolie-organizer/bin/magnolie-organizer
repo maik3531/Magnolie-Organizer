@@ -28541,7 +28541,8 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.baumMcpErgebnis", result)
 
     def _baum_stand_melden(self):
-        self.antwort("App.baumStand", self._baum_bericht())
+        # Read at main-loop delivery so a delayed worker cannot revive old opt-in UI.
+        self.antwort("App.baumStand", self._baum_bericht)
 
     def _baum_schalt_wunsch(self):
         with self._baum_sperre:
