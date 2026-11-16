@@ -20526,12 +20526,15 @@ _ORGANIZER_RESSOURCEN = {
     "/kaffee-qr.png": ("kaffee-qr.mga", "image/png"),
     "/i18n.js": ("i18n.js", "application/javascript"),
     "/i18n-start.js": ("i18n-start.js", "application/javascript"),
+    "/appearance.js": ("appearance.js", "application/javascript"),
+    "/normative-timezones.js": ("normative-timezones.js", "application/javascript"),
     "/anwendung.js": ("anwendung.js", "application/javascript"),
     "/zeichenblatt.js": ("zeichenblatt.js", "application/javascript"),
     "/qr-decoder.js": ("qr-decoder.js", "application/javascript"),
     "/qr-dialog.js": ("qr-dialog.js", "application/javascript"),
     "/qr-dialog.css": ("qr-dialog.css", "text/css"),
     "/mcp-protocol.js": ("mcp-protocol.js", "application/javascript"),
+    "/contact-group-aliases.js": ("contact-group-aliases.js", "application/javascript"),
 }
 _ORGANIZER_RESSOURCEN.update({
     "/i18n/%s.js" % sprache: ("i18n/%s.js" % sprache, "application/javascript")
