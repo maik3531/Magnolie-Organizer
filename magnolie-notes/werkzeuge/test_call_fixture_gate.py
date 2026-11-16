@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import os
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -84,6 +85,41 @@ zipStorePath=wrapper/dists
                      'build.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml',
                      'app/gradle.lockfile', 'settings-gradle.lockfile'):
             self.assertIn(name, paths)
+
+
+class ReadonlyProjectTest(unittest.TestCase):
+    def test_project_metadata_is_writable_but_canonical_files_stay_readonly(self):
+        with tempfile.TemporaryDirectory(dir='/tmp/opencode') as directory:
+            root = Path(directory); source = root / 'canonical'; output = root / 'output'
+            (source / 'app/src').mkdir(parents=True)
+            for name in ('project-root', 'app-root'): (output / name).mkdir(parents=True)
+            contents = {'settings.gradle.kts': 'canonical settings', 'app/build.gradle.kts': 'canonical app',
+                        'app/src/fixture.kt': 'canonical Kotlin'}
+            for name, text in contents.items(): (source / name).write_text(text)
+            code = '''import os,sys
+from pathlib import Path
+source=Path(sys.argv[1])
+assert os.access(source,os.W_OK) and os.access(source/'app',os.W_OK)
+for name in ['settings.gradle.kts','app/build.gradle.kts','app/src/fixture.kt']:
+    try: (source/name).write_text('forbidden')
+    except OSError: pass
+    else: raise AssertionError('Canonical input became writable: '+name)
+(source/'generated-metadata').write_text('temporary')
+(source/'app/generated-metadata').write_text('temporary')
+'''
+            command = ['bwrap', '--die-with-parent', '--unshare-net', '--ro-bind', '/', '/',
+                       '--tmpfs', '/tmp', '--bind', str(root), str(root), *gate.project_mounts(output, source),
+                       sys.executable, '-B', '-c', code, str(source)]
+            completed = subprocess.run(command, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            for name, text in contents.items(): self.assertEqual(text, (source / name).read_text())
+            self.assertFalse((source / 'generated-metadata').exists())
+            self.assertFalse((source / 'app/generated-metadata').exists())
+            self.assertEqual('temporary', (output / 'project-root/generated-metadata').read_text())
+            self.assertEqual('temporary', (output / 'app-root/generated-metadata').read_text())
+
+    def test_shared_test_contract_is_source_bound(self):
+        self.assertIn('../contracts/contact-original-return-hash-v1-vectors.json', gate.source_hashes())
 
 
 class SupervisorTest(unittest.TestCase):

@@ -71,6 +71,22 @@ def cached_gradle(cache_home, properties=None):
     return executable
 
 
+def project_mounts(output, source=SOURCE):
+    """Writable, disposable directory metadata; every canonical child stays RO.
+
+    Bind real inputs directly, without copying or editing a second source tree.
+    Gradle 9 requires writable project directories even with relocated outputs.
+    """
+    command = ['--bind', str(output / 'project-root'), str(source)]
+    for path in sorted(source.iterdir()):
+        if path.name not in ('app', 'build', '.gradle', '.kotlin'):
+            command += ['--ro-bind', str(path), str(path)]
+    command += ['--bind', str(output / 'app-root'), str(source / 'app')]
+    for path in sorted((source / 'app').iterdir()):
+        if path.name != 'build': command += ['--ro-bind', str(path), str(path)]
+    return command
+
+
 def process(pid):
     try:
         fields = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
@@ -215,7 +231,10 @@ def source_hashes():
         SOURCE / 'gradle/wrapper/gradle-wrapper.properties', SOURCE / 'gradle/wrapper/gradle-wrapper.jar',
         SOURCE / 'gradle/libs.versions.toml', SOURCE / 'gradle/verification-metadata.xml',
         SOURCE / 'app/gradle.lockfile', SOURCE / 'settings-gradle.lockfile']
-    return {str(path.relative_to(SOURCE)): hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(files)}
+    values = {str(path.relative_to(SOURCE)): hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(files)}
+    contract = SOURCE.parent / 'contracts/contact-original-return-hash-v1-vectors.json'
+    values['../contracts/' + contract.name] = hashlib.sha256(contract.read_bytes()).hexdigest()
+    return values
 
 
 def worker(args):
@@ -230,7 +249,8 @@ def worker(args):
     if any(not path.exists() for path in required): raise RuntimeError('Required offline SDK/Gradle/Robolectric cache is unavailable')
     compiler = subprocess.check_output([str(jdk / 'bin/javac'), '-version'], stderr=subprocess.STDOUT, text=True, timeout=10)
     if not re.search(r'\bjavac 21(?:\.|\s|$)', compiler): raise RuntimeError('A complete JDK 21 is required')
-    for name in ('home/.m2/repository', 'gradle', 'app-build', 'root-build', 'cache', 'tmp', 'kotlin', 'trace'):
+    for name in ('home/.m2/repository', 'gradle', 'app-build', 'root-build', 'cache', 'tmp', 'kotlin', 'trace',
+                 'project-root', 'app-root'):
         (output / name).mkdir(parents=True, exist_ok=True)
     started_wall = time.time()
     before = source_hashes()
@@ -245,7 +265,9 @@ def worker(args):
                 time.sleep(0.2)
         command = ['bwrap', '--die-with-parent', '--unshare-net', '--unshare-pid', '--as-pid-1',
             '--ro-bind', '/', '/', '--tmpfs', '/tmp', '--tmpfs', '/run', '--tmpfs', '/home',
-            '--ro-bind', str(SOURCE), str(SOURCE), '--ro-bind', str(sdk), str(sdk), '--ro-bind', str(jdk), str(jdk),
+            *project_mounts(output), '--ro-bind', str(sdk), str(sdk), '--ro-bind', str(jdk), str(jdk),
+            '--ro-bind', str(SOURCE.parent / 'contracts/contact-original-return-hash-v1-vectors.json'),
+            str(SOURCE.parent / 'contracts/contact-original-return-hash-v1-vectors.json'),
             '--bind', str(output), str(output),
             '--bind', str(cache_home / '.gradle/caches'), str(output / 'gradle/caches'),
             '--ro-bind', str(cache_home / '.gradle/wrapper'), str(output / 'gradle/wrapper'),
