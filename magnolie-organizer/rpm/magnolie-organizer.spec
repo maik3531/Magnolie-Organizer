@@ -98,6 +98,7 @@ while read -r language; do
     test -s "web/i18n/$language.js"
 done < po/LINGUAS
 /usr/bin/python3 -m pytest -q pruefungen/test_locale_completeness.py
+/usr/bin/python3 -B -m pytest -q -p no:cacheprovider pruefungen/test_organizer_resource_inventory.py pruefungen/test_rpm_start_scripts.py
 test "$(wc -l < po/LINGUAS)" -eq 19
 test "$(find locale -name '%{name}.mo' -type f | wc -l)" -eq 19
 test "$(find web/i18n -name '*.js' -type f | wc -l)" -eq 19
@@ -218,6 +219,7 @@ printf '{"version":"%{version}"}\n' > %{buildroot}%{_datadir}/%{name}/version.js
 install -d %{buildroot}%{_datadir}/%{name}/web/schriften
 install -pm 0644 web/schriften/Z003-MediumItalic.otf web/schriften/Z003-LIZENZ.txt %{buildroot}%{_datadir}/%{name}/web/schriften/
 install -pm 0644 web/index.html web/stil.css web/anwendung.js web/zeichenblatt.js web/mcp-protocol.js \
+    web/appearance.js web/contact-group-aliases.js \
     web/qr-dialog.css web/qr-dialog.js web/qr-decoder.js web/qr-decoder-LICENSE.txt \
     web/country-flags.png web/country-flags-LICENSE.txt \
     web/i18n.js web/i18n-start.js web/i18n-markers.js web/normative-timezones.js \
@@ -268,6 +270,7 @@ done < po/LINGUAS
 
 %find_lang %{name}
 /usr/bin/python3 -I -B werkzeuge/phone_features.py %{buildroot}%{_bindir} %{buildroot}%{_datadir}/%{name}
+/usr/bin/python3 -I -B werkzeuge/web_startskripte_pruefen.py %{buildroot}%{_datadir}/%{name}/web
 /usr/bin/python3 werkzeuge/release_sources.py binary %{buildroot}%{_datadir}/%{name}
 
 # %check runs before %install. Validate the installed product here while the
