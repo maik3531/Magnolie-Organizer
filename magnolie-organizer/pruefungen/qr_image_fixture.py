@@ -21,12 +21,22 @@ def main():
     args = parser.parse_args()
     if args.image:
         from magnolie_asset import read_asset
-        import cv2
-        import numpy
         data = read_asset(str(args.image), 1, 1)
         image = Image.open(io.BytesIO(data)).convert('RGBA')
-        value, points, _ = cv2.QRCodeDetector().detectAndDecode(cv2.imdecode(numpy.frombuffer(data, dtype=numpy.uint8), cv2.IMREAD_COLOR))
-        if points is None or not value:
+        try:
+            from pyzbar.pyzbar import ZBarSymbol, decode
+        except (ImportError, OSError):
+            # Existing Windows/host test environments use a QR-capable OpenCV.
+            import cv2
+            import numpy
+            value, points, _ = cv2.QRCodeDetector().detectAndDecode(cv2.imdecode(numpy.frombuffer(data, dtype=numpy.uint8), cv2.IMREAD_COLOR))
+            if points is None:
+                value = ''
+        else:
+            # Distro OpenCV can be built without QUIRC; use its supported decoder.
+            results = decode(image, symbols=[ZBarSymbol.QRCODE])
+            value = results[0].data.decode('utf-8') if len(results) == 1 else ''
+        if not value:
             raise SystemExit('Test QR image could not be decoded')
     else:
         import qrcode
