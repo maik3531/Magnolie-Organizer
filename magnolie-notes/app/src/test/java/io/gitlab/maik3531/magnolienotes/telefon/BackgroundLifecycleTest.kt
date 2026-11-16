@@ -470,7 +470,7 @@ class BackgroundLifecycleTest {
                 assertTrue(c.moveToFirst()); assertEquals(pending, c.getString(0)); assertFalse(c.moveToNext())
             }
             assertThrows(TelefonProtokollFehler::class.java) { helper.writableDatabase.phoneCapacity("personal_run", rows = 1) }
-            helper.writableDatabase.execSQL("INSERT INTO event_dedupe(event_key,seen_ms) VALUES (?,?)", arrayOf("a".repeat(64), now))
+            helper.writableDatabase.execSQL("INSERT INTO event_dedupe(event_key,seen_ms) VALUES (?,?)", arrayOf<Any>("a".repeat(64), now))
             assertThrows(TelefonProtokollFehler::class.java) {
                 helper.writableDatabase.phoneCapacity("event_dedupe", bytes = 50 * 1024 * 1024 - 32)
             }

@@ -429,7 +429,7 @@ class KontaktGruppenProviderTest {
             val id = db.insertOrThrow(table, null, copy)
             if (table == "raw_contacts") {
                 db.execSQL("UPDATE raw_contacts SET contact_id=? WHERE _id=?", arrayOf(id, id))
-                db.execSQL("INSERT INTO contacts (_id,lookup) VALUES (?,?)", arrayOf(id, "lookup-$id"))
+                db.execSQL("INSERT INTO contacts (_id,lookup) VALUES (?,?)", arrayOf<Any>(id, "lookup-$id"))
             }
             if (table == "data") bump(copy.getAsLong(Data.RAW_CONTACT_ID))
             return ContentUris.withAppendedId(uri, id)

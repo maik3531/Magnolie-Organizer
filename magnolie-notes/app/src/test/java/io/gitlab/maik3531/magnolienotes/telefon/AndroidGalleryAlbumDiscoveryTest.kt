@@ -50,7 +50,7 @@ class AndroidGalleryAlbumDiscoveryTest {
             check("_data" !in columns) // No technical filesystem paths or raw app-directory crawl.
             val cursor = MatrixCursor(columns)
             filtered.forEach { row ->
-                val fields = mapOf("_id" to row.id, "bucket_id" to row.bucket, "bucket_display_name" to row.label, "mime_type" to row.mime)
+                val fields = mapOf<String, Any?>("_id" to row.id, "bucket_id" to row.bucket, "bucket_display_name" to row.label, "mime_type" to row.mime)
                 cursor.addRow(columns.map { fields[it] }.toTypedArray())
             }
             cursors += cursor; onQuery?.invoke(); return cursor

@@ -2,7 +2,7 @@ package io.gitlab.maik3531.magnolienotes
 
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.test.Test
+import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Source integration contracts. These do not compile or emulate Android."""
 from pathlib import Path
+import re
 import unittest
 import xml.etree.ElementTree as ET
 
@@ -11,9 +12,30 @@ def read(path): return (SRC / path).read_text()
 class LanContracts(unittest.TestCase):
     def test_current_sdk_manifest_and_migration_stop(self):
         build = (ROOT / 'app/build.gradle.kts').read_text()
-        for value in ('compileSdk = 35', 'targetSdk = 35', 'minSdk = 26', 'check(requireNotNull(targetSdk) < 37)'):
+        for value in ('version = release(37)', 'minorApiLevel = 2', 'targetSdk = 35', 'minSdk = 26', 'check(requireNotNull(targetSdk) < 37)'):
             self.assertIn(value, build)
         self.assertNotIn('ACCESS_LOCAL_NETWORK', (ROOT / 'app/src/main/AndroidManifest.xml').read_text())
+    def test_builtin_kotlin_compiler_plugins_stay_aligned(self):
+        catalog = (ROOT / 'gradle/libs.versions.toml').read_text()
+        root = (ROOT / 'build.gradle.kts').read_text()
+        app = (ROOT / 'app/build.gradle.kts').read_text()
+        self.assertNotRegex(catalog, r'(?m)^kotlin-android\s*=')
+        self.assertNotIn('libs.plugins.kotlin.android', root + app)
+        self.assertNotIn('kotlinOptions', app)
+        self.assertIn('jvmToolchain(21)', app)
+        self.assertIn('JvmTarget.JVM_17', app)
+        for plugin in ('kotlin-compose', 'kotlin-serialization'):
+            self.assertRegex(catalog, r'(?m)^' + re.escape(plugin) + r'\s*=\s*\{[^\n]*version\.ref\s*=\s*"kotlin"')
+        kgp = re.search(r'classpath\("org.jetbrains.kotlin:kotlin-gradle-plugin:([^"\s]+)"\)', root)
+        self.assertIsNotNone(kgp)
+        kotlin = re.search(r'(?m)^kotlin\s*=\s*"([^"]+)"', catalog)
+        self.assertIsNotNone(kotlin)
+        self.assertEqual(kgp.group(1), kotlin.group(1))
+        self.assertIn('lockMode.set(LockMode.STRICT)', root)
+    def test_prepared_wrapper_is_checksum_bound(self):
+        properties = (ROOT / 'gradle/wrapper/gradle-wrapper.properties').read_text()
+        self.assertIn('gradle-9.6.0-bin.zip', properties)
+        self.assertIn('distributionSha256Sum=bbaeb2fef8710818cf0e261201dab964c572f92b942812df0c3620d62a529a01', properties)
     def test_no_background_prompt(self):
         for path in ('MagnolieApp.kt', 'baum/BaumDienst.kt', 'baum/Baumwerk.kt', 'netz/LanFreigabe.kt'):
             text = read(path)
