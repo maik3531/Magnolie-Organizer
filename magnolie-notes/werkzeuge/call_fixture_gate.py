@@ -87,6 +87,12 @@ def project_mounts(output, source=SOURCE):
     return command
 
 
+def suites_passed(suites):
+    expected = {'CallLifecycleTransportTest': 15, 'CallControlOriginTrackerTest': 7, 'TelefonSitzungTest': 9}
+    return len(suites) == len(expected) and {s['name']: s['tests'] for s in suites} == expected and all(
+        s['failures'] == s['errors'] == s['skipped'] == 0 for s in suites)
+
+
 def process(pid):
     try:
         fields = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
@@ -307,9 +313,7 @@ def worker(args):
         gradle_unchanged=cached_gradle(cache_home) == gradle and hashlib.sha256(gradle.read_bytes()).hexdigest() == gradle_sha,
         started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(started_wall)),
         ended_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
-    expected_tests = {'CallLifecycleTransportTest': 15, 'CallControlOriginTrackerTest': 7, 'TelefonSitzungTest': 8}
-    result['passed'] = result['clean_exit'] and {s['name']: s['tests'] for s in suites} == expected_tests and all(
-        s['failures'] == s['errors'] == s['skipped'] == 0 for s in suites) and before == after and result['gradle_unchanged']
+    result['passed'] = result['clean_exit'] and suites_passed(suites) and before == after and result['gradle_unchanged']
     (output / 'gate-result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(dict(passed=result['passed'], suites=suites, clean_exit=result['clean_exit'], seconds=result['seconds'])), flush=True)
     return 0 if result['passed'] else 1

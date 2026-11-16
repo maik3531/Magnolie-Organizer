@@ -123,6 +123,27 @@ for name in ['settings.gradle.kts','app/build.gradle.kts','app/src/fixture.kt']:
         self.assertIn('../contracts/contact-original-return-hash-v1-vectors.json', gate.source_hashes())
 
 
+class SuiteCountsTest(unittest.TestCase):
+    def suites(self):
+        return [dict(name=name, tests=count, failures=0, errors=0, skipped=0) for name, count in
+                [('CallLifecycleTransportTest', 15), ('CallControlOriginTrackerTest', 7), ('TelefonSitzungTest', 9)]]
+
+    def test_exact_current_31_cases_pass(self):
+        self.assertTrue(gate.suites_passed(self.suites()))
+
+    def test_missing_extra_duplicate_wrong_count_or_unsuccessful_suite_fails(self):
+        variants = [self.suites()[:-1], self.suites() + [dict(self.suites()[0])],
+                    self.suites() + [dict(name='Unexpected', tests=1, failures=0, errors=0, skipped=0)]]
+        for key, value in [('tests', 8), ('tests', 10), ('failures', 1), ('errors', 1), ('skipped', 1)]:
+            suites = self.suites(); suites[-1][key] = value; variants.append(suites)
+        for suites in variants:
+            with self.subTest(suites=suites): self.assertFalse(gate.suites_passed(suites))
+
+    def test_session_count_matches_declared_test_methods(self):
+        source = (gate.SOURCE / 'app/src/test/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonSitzungTest.kt').read_text()
+        self.assertEqual(9, len(re.findall(r'@Test\s+fun\b', source)))
+
+
 class SupervisorTest(unittest.TestCase):
     def test_default_variant_matches_canonical_test_build_type(self):
         variants = re.findall(r'testBuildType\s*=\s*"([^"]+)"', (gate.SOURCE / 'app/build.gradle.kts').read_text())
