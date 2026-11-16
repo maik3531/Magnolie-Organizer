@@ -12,6 +12,80 @@ spec = importlib.util.spec_from_file_location('call_fixture_gate', Path(__file__
 gate = importlib.util.module_from_spec(spec); spec.loader.exec_module(gate)
 
 
+class WrapperSelectionTest(unittest.TestCase):
+    def fixture(self, root):
+        properties = root / 'gradle-wrapper.properties'
+        properties.write_text('''distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\\://services.gradle.org/distributions/gradle-9.6.0-bin.zip
+distributionSha256Sum=''' + 'a' * 64 + '''
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+''')
+        cache = root / '.gradle/wrapper/dists/gradle-9.6.0-bin/42k10rwplmzkhuboz9kdazi7s'
+        executable = cache / 'gradle-9.6.0/bin/gradle'
+        executable.parent.mkdir(parents=True)
+        executable.write_text('#!/bin/sh\nexit 0\n'); executable.chmod(0o700)
+        (cache / 'gradle-9.6.0-bin.zip.ok').touch()
+        return properties, cache, executable
+
+    def test_exact_wrapper_cache_not_old_or_first_directory(self):
+        with tempfile.TemporaryDirectory(dir='/tmp/opencode') as directory:
+            root = Path(directory); properties, cache, executable = self.fixture(root)
+            old = root / '.gradle/wrapper/dists/gradle-8.13-bin/5xuhj0ry160q40clulazy9h7d/gradle-8.13/bin'
+            old.mkdir(parents=True); (old / 'gradle').write_text('old')
+            (cache.parent / 'unrelated-cache-key').mkdir()
+            self.assertEqual(executable, gate.cached_gradle(root, properties))
+
+    def test_missing_configured_cache_never_falls_back(self):
+        with tempfile.TemporaryDirectory(dir='/tmp/opencode') as directory:
+            root = Path(directory); properties, cache, executable = self.fixture(root)
+            executable.unlink()
+            old = root / '.gradle/wrapper/dists/gradle-8.13-bin/5xuhj0ry160q40clulazy9h7d/gradle-8.13/bin'
+            old.mkdir(parents=True); (old / 'gradle').write_text('old')
+            with self.assertRaises(RuntimeError): gate.cached_gradle(root, properties)
+
+    def test_incomplete_wrapper_install_is_rejected(self):
+        with tempfile.TemporaryDirectory(dir='/tmp/opencode') as directory:
+            root = Path(directory); properties, cache, _ = self.fixture(root)
+            (cache / 'gradle-9.6.0-bin.zip.ok').unlink()
+            with self.assertRaises(RuntimeError): gate.cached_gradle(root, properties)
+
+    def test_ambiguous_distribution_roots_are_rejected(self):
+        with tempfile.TemporaryDirectory(dir='/tmp/opencode') as directory:
+            root = Path(directory); properties, cache, _ = self.fixture(root)
+            (cache / 'gradle-8.13').mkdir()
+            with self.assertRaises(RuntimeError): gate.cached_gradle(root, properties)
+
+    def test_symlinked_executable_is_rejected(self):
+        with tempfile.TemporaryDirectory(dir='/tmp/opencode') as directory:
+            root = Path(directory); properties, _, executable = self.fixture(root)
+            other = root / 'other-gradle'; other.write_text('old')
+            executable.unlink(); executable.symlink_to(other)
+            with self.assertRaises(RuntimeError): gate.cached_gradle(root, properties)
+
+    def test_unbound_or_unsupported_wrapper_config_is_rejected(self):
+        replacements = [
+            ('distributionSha256Sum=' + 'a' * 64, 'distributionSha256Sum=invalid'),
+            ('https\\://services.gradle.org', 'http\\://services.gradle.org'),
+            ('distributionPath=wrapper/dists', 'distributionPath=../elsewhere'),
+            ('zipStoreBase=GRADLE_USER_HOME', 'zipStoreBase=PROJECT'),
+            ('distributionBase=GRADLE_USER_HOME', 'distributionBase=GRADLE_USER_HOME\ndistributionBase=PROJECT'),
+        ]
+        for before, after in replacements:
+            with self.subTest(after=after), tempfile.TemporaryDirectory(dir='/tmp/opencode') as directory:
+                root = Path(directory); properties, _, _ = self.fixture(root)
+                properties.write_text(properties.read_text().replace(before, after))
+                with self.assertRaises(RuntimeError): gate.cached_gradle(root, properties)
+
+    def test_selection_and_compiler_inputs_are_source_bound(self):
+        paths = gate.source_hashes()
+        for name in ('gradle/wrapper/gradle-wrapper.properties', 'gradle/wrapper/gradle-wrapper.jar',
+                     'build.gradle.kts', 'gradle/libs.versions.toml', 'gradle/verification-metadata.xml',
+                     'app/gradle.lockfile', 'settings-gradle.lockfile'):
+            self.assertIn(name, paths)
+
+
 class SupervisorTest(unittest.TestCase):
     def test_selected_jdk_reaches_the_isolated_worker(self):
         with tempfile.TemporaryDirectory(dir='/tmp/opencode') as temporary:
