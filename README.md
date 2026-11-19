@@ -36,6 +36,12 @@ sharing first.
 - **20 interface languages:** including English, German, French, Spanish, Arabic,
   Japanese and Ukrainian.
 
+## Project introductions
+
+- **Linux Today — November 19, 2026:** [Magnolie Organizer: A Free, Open-Source Desktop Organizer in 20 Languages](https://www.linuxtoday.com/blog/magnolie-organizer-a-free-open-source-desktop-organizer-in-20-languages/)
+  Developer-submitted project introduction by Maik Walter / Magnolie Organizer,
+  prepared with AI assistance.
+
 ## Download
 
 | Platform | Recommended package | Alternative |
