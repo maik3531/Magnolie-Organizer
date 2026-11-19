@@ -17,6 +17,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgid "Original contact sources"
+msgstr "Özgün kişi kaynakları"
+
+msgid "Revoke"
+msgstr "İzni geri al"
+
+msgid "The backup does not contain a complete data set."
+msgstr "Yedek tam bir veri kümesi içermiyor."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Kişi kaynağı izni kaydedilemedi. Otomatik güncellemeler duraklatıldı."
+
+msgid "Waiting for Wi-Fi."
+msgstr "Wi-Fi bekleniyor."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Hesap erişimi bekleniyor. Erişim sağlandığında otomatik kişi güncellemeleri devam edecek."
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "Telefonunuzu sistem mikrofonu olarak kullanmak için Magnolie, VB-Audio’nun VB-CABLE sürücüsüne ihtiyaç duyar."
 
@@ -1747,6 +1765,9 @@ msgstr "Devamı"
 
 msgid "Contributor key"
 msgstr "Katkıda bulunan anahtarı"
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Yalnızca HTTPS ekleri açılabilir. Diğer adresleri kopyalayabilirsiniz."
 
 msgid "Copy"
 msgstr "Kopyala"

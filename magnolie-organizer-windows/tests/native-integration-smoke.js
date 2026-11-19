@@ -87,15 +87,22 @@ assert.match(bridge, /internal async Task ShutdownAsync\(\)[\s\S]*kdeInstance\?\
   "Shutdown must dispose only an initialized KDE instance, not create an optional service");
 assert.match(read("KdeConnectSms.cs"), /public void Dispose\(\) \{ if \(backend.IsValueCreated\) backend.Value.Dispose\(\); \}/);
 // Execute the actual initializer with an in-memory event source, never a phone service.
-const dotnet = [process.env.DOTNET_HOST_PATH, "/tmp/opencode/dotnet-8.0.408/dotnet", "dotnet"]
-  .filter(Boolean).find(command => spawnSync(command, ["--version"], { encoding: "utf8" }).status === 0);
-assert.ok(dotnet, ".NET 8 is required for the optional-service lifecycle fixture");
+const { findExecutable, assertSpawned } = require("./native-test-process");
+const defaultDotnet = process.env.DOTNET_ROOT ? path.join(process.env.DOTNET_ROOT, process.platform === "win32" ? "dotnet.exe" : "dotnet") :
+  process.platform === "win32" ? path.join(process.env.ProgramFiles || "C:\\Program Files", "dotnet/dotnet.exe") : "dotnet";
+const detectedDotnet = findExecutable([process.env.DOTNET_HOST_PATH || defaultDotnet], ["--version"], 8);
+const dotnet = detectedDotnet.command;
+assert.ok(dotnet, "A working .NET 8-compatible SDK is required for the optional-service lifecycle fixture: " + detectedDotnet.diagnostics.join("; "));
 const lifecycle = fs.mkdtempSync(path.join(os.tmpdir(), "magnolie-service-lifecycle-"));
 try {
   const home = path.join(lifecycle, "home"); fs.mkdirSync(home);
+  const restoreConfig = path.join(lifecycle, "NuGet.Config");
+  fs.writeFileSync(restoreConfig, '<configuration><packageSources><clear /></packageSources></configuration>');
   fs.writeFileSync(path.join(lifecycle, "Lifecycle.csproj"), `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>
     <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable><NuGetAudit>false</NuGetAudit><RestoreSources></RestoreSources>
+    <UseSharedCompilation>false</UseSharedCompilation><BuildInParallel>false</BuildInParallel>
+    <RestoreConfigFile>${restoreConfig.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</RestoreConfigFile>
     </PropertyGroup></Project>`);
   fs.writeFileSync(path.join(lifecycle, "Program.cs"), `
 internal sealed class Probe {
@@ -173,8 +180,10 @@ internal static class Program {
   const result = spawnSync(dotnet, ["run", "--project", path.join(lifecycle, "Lifecycle.csproj"), "--verbosity", "quiet"], {
     encoding: "utf8", timeout: 120000,
     env: { ...process.env, HOME: home, DOTNET_CLI_HOME: home, DOTNET_CLI_TELEMETRY_OPTOUT: "1",
-      DOTNET_GENERATE_ASPNET_CERTIFICATE: "false", DOTNET_NOLOGO: "1", NUGET_PACKAGES: path.join(lifecycle, "packages") }
+      DOTNET_GENERATE_ASPNET_CERTIFICATE: "false", DOTNET_NOLOGO: "1", DOTNET_CLI_USE_MSBUILD_SERVER: "0",
+      MSBUILDDISABLENODEREUSE: "1", NUGET_PACKAGES: path.join(lifecycle, "packages") }
   });
+  assertSpawned(result, "Optional-service lifecycle fixture");
   assert.strictEqual(result.status, 0, (result.error || "") + result.stdout + result.stderr);
   assert.match(result.stdout, /OPTIONAL SERVICE LIFECYCLE PASSED/);
 } finally { fs.rmSync(lifecycle, { recursive: true, force: true }); }

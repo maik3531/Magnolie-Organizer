@@ -2,11 +2,14 @@ const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert/strict');
 const path = require('path');
+const root = path.resolve(__dirname, '..');
+const siblingLinux = path.resolve(root, '../magnolie-organizer/web');
+const embeddedLinux = path.join(root, 'shared/magnolie-organizer/web');
+const linux = process.env.MAGNOLIE_LINUX_SOURCE ? path.resolve(process.env.MAGNOLIE_LINUX_SOURCE, 'web') :
+  (fs.existsSync(path.join(siblingLinux, 'anwendung.js')) ? siblingLinux : embeddedLinux);
 for (const file of [path.join(__dirname, '../app/web/anwendung.js'),
-  path.join(__dirname, '../../magnolie-organizer/web/anwendung.js')]) {
-  if (!fs.existsSync(file) && file.includes('magnolie-organizer/web')) {
-    console.log('SKIP Linux SMS target absent from standalone Windows source'); continue;
-  }
+  path.join(linux, 'anwendung.js')]) {
+  assert.ok(fs.existsSync(file), 'Required SMS test target missing: ' + file);
   const source = fs.readFileSync(file, 'utf8');
   const extract = name => {
     const start = source.indexOf('  function ' + name + '(');

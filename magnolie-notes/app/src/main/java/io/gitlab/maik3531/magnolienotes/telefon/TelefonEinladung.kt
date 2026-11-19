@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
@@ -51,7 +53,10 @@ internal class TelefonEinladungsEmpfang(
     val invitation = MutableStateFlow<GefundenerDesktop?>(null)
     val finished = MutableStateFlow(false)
     val nonce = TelefonKrypto.b64(TelefonKrypto.zufall(16))
+    private val lanMarke = LanFreigabe.marke()
     private val listener = ServerSocket(0, 1)
+    private val lanWache = try { LanFreigabe.beobachten(listener) }
+        catch (error: Exception) { runCatching { listener.close() }; throw error }
     val port: Int get() = listener.localPort
     private val closed = AtomicBoolean(false)
     private val decision = AtomicReference<Boolean?>(null)
@@ -73,6 +78,7 @@ internal class TelefonEinladungsEmpfang(
                 active = socket
                 try {
                     socket.use {
+                        if (!LanFreigabe.aktuell(lanMarke)) return@use
                         if (!TelefonEinladungsVertrag.local(socket.inetAddress)) return@use
                         socket.soTimeout = 2000
                         val readDeadline = object : java.util.TimerTask() { override fun run() { runCatching { socket.close() } } }
@@ -84,11 +90,11 @@ internal class TelefonEinladungsEmpfang(
                         val expires = minOf(until, nanoTime() + 60_000_000_000L)
                         invitation.value = desktop
                         socket.soTimeout = 200
-                        while (!closed.get() && nanoTime() < expires && decision.get() == null) {
+                        while (!closed.get() && LanFreigabe.aktuell(lanMarke) && nanoTime() < expires && decision.get() == null) {
                             try { socket.getInputStream().read(); return@use }
                             catch (_: SocketTimeoutException) { }
                         }
-                        if (!closed.get() && nanoTime() < expires && decision.get() == true) {
+                        if (!closed.get() && LanFreigabe.aktuell(lanMarke) && nanoTime() < expires && decision.get() == true) {
                             TelefonRahmen.schreiben(socket.getOutputStream(), buildJsonObject {
                                 put("p", JsonPrimitive(TelefonEinladungsVertrag.PROTOCOL))
                                 put("type", JsonPrimitive("accepted")); put("nonce", JsonPrimitive(nonce))
@@ -107,24 +113,28 @@ internal class TelefonEinladungsEmpfang(
     }
 
     fun advertise(context: Context): AutoCloseable {
+        LanFreigabe.pruefen()
         val nsd = context.getSystemService(Context.NSD_SERVICE) as NsdManager
         val registration = object : NsdManager.RegistrationListener {
             override fun onServiceRegistered(info: NsdServiceInfo) {
-                if (closed.get()) runCatching { nsd.unregisterService(this) }
+                if (closed.get() || !LanFreigabe.erlaubt()) runCatching { nsd.unregisterService(this) }
             }
             override fun onServiceUnregistered(info: NsdServiceInfo) = Unit
             override fun onRegistrationFailed(info: NsdServiceInfo, errorCode: Int) { close() }
             override fun onUnregistrationFailed(info: NsdServiceInfo, errorCode: Int) = Unit
         }
-        nsd.registerService(NsdServiceInfo().apply {
+        val wache = LanFreigabe.beobachten(AutoCloseable { runCatching { nsd.unregisterService(registration) }; close() })
+        try { nsd.registerService(NsdServiceInfo().apply {
             serviceName = target; serviceType = TelefonEinladungsVertrag.SERVICE; port = this@TelefonEinladungsEmpfang.port
             setAttribute("v", "1"); setAttribute("id", target); setAttribute("name", name); setAttribute("nonce", nonce)
         }, NsdManager.PROTOCOL_DNS_SD, registration)
-        return AutoCloseable { runCatching { nsd.unregisterService(registration) } }
+        } catch (error: Exception) { wache.close(); close(); throw error }
+        return AutoCloseable { wache.close(); runCatching { nsd.unregisterService(registration) } }
     }
 
     override fun close() {
         if (closed.compareAndSet(false, true)) {
+            lanWache.close()
             runCatching { listener.close() }; runCatching { active?.close() }
             timer.cancel()
             invitation.value = null; finished.value = true

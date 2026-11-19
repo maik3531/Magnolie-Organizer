@@ -66,10 +66,14 @@ internal static partial class UiSelfTest
                     setPhone(provider === 'notes' ? { peers: [{ device_id: device.slice(6), state: 'online_wifi', own_device: true,
                       remote_own_device: true, contacts_read_available: true, contacts_fingerprint: fingerprint }],
                       kdeconnect: { contacts_available: false } } :
-                      { peers: [], kdeconnect: { contacts_available: true, contacts_device_id: device } });
+                      { peers: [], kdeconnect: { paired: true, available: true, contacts_available: true,
+                        contacts_device_id: device, contacts_fingerprint: fingerprint } });
                     OrganizerTest.baueEinstellungen();
                     document.querySelector('#einst-tab-sync').click();
-                    document.querySelector('#kde-kontakte-abrufen').click();
+                    const importButton = document.querySelector('#kde-kontakte-abrufen');
+                    check(importButton && !importButton.disabled && !document.querySelector('#telefon-kontakt-import').hidden,
+                      'Synthetic source did not enable contact import: ' + provider + '/' + mode);
+                    importButton.click();
                     await wait(() => document.querySelector('.kontakt-import-dialog'));
                     const dialog = document.querySelector('.kontakt-import-dialog');
                     const apply = dialog.querySelector('.hauptknopf');

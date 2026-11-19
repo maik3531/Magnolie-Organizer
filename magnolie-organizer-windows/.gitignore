@@ -1,4 +1,8 @@
 bin/
+/app/web/normative-timezones.js
+/app/web/timezones/tzdb-2026egtz.json
+/app/web/timezones/provenance.json
+/app/web/timezones/LICENSE-tzdb.txt
 obj/
 Ausgabe/
 node_modules/

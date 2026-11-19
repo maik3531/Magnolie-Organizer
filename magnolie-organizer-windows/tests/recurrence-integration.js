@@ -6,6 +6,7 @@ for (const web of [path.resolve(__dirname, "../../magnolie-organizer/web"), path
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), { runScripts: "outside-only", url: "https://recurrence.test/", pretendToBeVisual: true });
   const w = dom.window;
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
   w.document.dispatchEvent(new w.Event("DOMContentLoaded", { bubbles: true }));
   const output = [];

@@ -134,6 +134,9 @@ async function preview(web, data, mode = "apply", provider = "kde") {
       const section = b.w.document.querySelector("#telefon-kontakt-import");
       const importButton = section.querySelector("#kde-kontakte-abrufen");
       assert(section.hidden && importButton.disabled, "No phone source must not expose contact import");
+      b.w.App.telefonStand({ peers: [], kdeconnect: { paired: true,
+        contacts_available: true, contacts_device_id: "missing-live-status" } });
+      assert(section.hidden && importButton.disabled, "A missing live KDE status must not enable contact import");
       b.w.App.telefonStand({ peers: [], kdeconnect: { paired: true, available: false,
         contacts_available: true, contacts_device_id: "stale-cache" } });
       assert(section.hidden, "Cached KDE contact metadata made an offline import visible");

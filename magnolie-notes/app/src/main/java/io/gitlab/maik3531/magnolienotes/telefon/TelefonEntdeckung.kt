@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
@@ -12,6 +14,9 @@ import java.util.concurrent.atomic.AtomicInteger
 object TelefonEntdeckung {
     fun suchen(context: Context, waitMs: Long = 3000, peerId: String? = null,
                pairedIds: Set<String> = emptySet()): List<GefundenerDesktop> {
+        LanFreigabe.pruefen()
+        val lanMarke = LanFreigabe.marke()
+        val aktiv = java.util.concurrent.atomic.AtomicBoolean(true)
         val nsd = context.applicationContext.getSystemService(Context.NSD_SERVICE) as? NsdManager ?: return emptyList()
         val found = Collections.synchronizedList(mutableListOf<GefundenerDesktop>())
         val done = CountDownLatch(1)
@@ -19,17 +24,21 @@ object TelefonEntdeckung {
         val listener = object : NsdManager.DiscoveryListener {
             override fun onStartDiscoveryFailed(serviceType: String?, errorCode: Int) = done.countDown()
             override fun onStopDiscoveryFailed(serviceType: String?, errorCode: Int) = done.countDown()
-            override fun onDiscoveryStarted(serviceType: String?) = Unit
+            override fun onDiscoveryStarted(serviceType: String?) {
+                if (!aktiv.get() || !LanFreigabe.aktuell(lanMarke)) runCatching { nsd.stopServiceDiscovery(this) }
+            }
             override fun onDiscoveryStopped(serviceType: String?) = done.countDown()
             override fun onServiceLost(serviceInfo: NsdServiceInfo?) = Unit
             override fun onServiceFound(serviceInfo: NsdServiceInfo?) {
+                if (!aktiv.get() || !LanFreigabe.aktuell(lanMarke)) return
                 val service = serviceInfo ?: return
                 resolving.incrementAndGet()
                 @Suppress("DEPRECATION")
-                nsd.resolveService(service, object : NsdManager.ResolveListener {
+                runCatching { nsd.resolveService(service, object : NsdManager.ResolveListener {
                     override fun onResolveFailed(serviceInfo: NsdServiceInfo?, errorCode: Int) { resolving.decrementAndGet() }
                     override fun onServiceResolved(serviceInfo: NsdServiceInfo?) {
                         resolving.decrementAndGet()
+                        if (!aktiv.get() || !LanFreigabe.aktuell(lanMarke)) return
                         val resolved = serviceInfo ?: return
                         fun attribute(name: String) = resolved.attributes?.get(name)?.toString(Charsets.UTF_8).orEmpty()
                         val id = attribute("id")
@@ -43,21 +52,28 @@ object TelefonEntdeckung {
                             resolved.host?.hostAddress.orEmpty(), token)
                         done.countDown()
                     }
-                })
+                }) }.onFailure { done.countDown() }
             }
         }
         var started = false
+        var lanWache: AutoCloseable? = null
         return try {
+            lanWache = LanFreigabe.beobachten(AutoCloseable {
+                aktiv.set(false)
+                done.countDown()
+                runCatching { nsd.stopServiceDiscovery(listener) }
+            })
+            LanFreigabe.pruefen()
             nsd.discoverServices(TelefonParameter.NSD_TYP, NsdManager.PROTOCOL_DNS_SD, listener)
             started = true
             done.await(waitMs, TimeUnit.MILLISECONDS)
             var waited = 0
             while (resolving.get() > 0 && waited < 2000) { Thread.sleep(50); waited += 50 }
-            synchronized(found) { found.distinctBy { it.deviceId } }
+            synchronized(found) { if (!LanFreigabe.aktuell(lanMarke)) throw java.io.IOException(LanFreigabe.WARTET); found.distinctBy { it.deviceId } }
         } catch (_: InterruptedException) {
             Thread.currentThread().interrupt()
-            synchronized(found) { found.distinctBy { it.deviceId } }
-        } catch (_: Exception) { synchronized(found) { found.distinctBy { it.deviceId } } }
-        finally { if (started) runCatching { nsd.stopServiceDiscovery(listener) } }
+            synchronized(found) { if (!LanFreigabe.aktuell(lanMarke)) throw java.io.IOException(LanFreigabe.WARTET); found.distinctBy { it.deviceId } }
+        } catch (_: Exception) { synchronized(found) { if (!LanFreigabe.aktuell(lanMarke)) throw java.io.IOException(LanFreigabe.WARTET); found.distinctBy { it.deviceId } } }
+        finally { aktiv.set(false); lanWache?.close(); if (started) runCatching { nsd.stopServiceDiscovery(listener) } }
     }
 }

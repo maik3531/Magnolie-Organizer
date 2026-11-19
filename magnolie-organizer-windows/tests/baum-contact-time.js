@@ -15,6 +15,7 @@ async function check(web) {
     if (message.cmd === "mutations_snapshot") queueMicrotask(() => w.App.mutationsSnapshot({ token: message.token, ok: true }));
   } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
   const T = w.OrganizerTest, now = Date.now(), older = now - 20000, newer = now - 10000;
   const person = { id: "local", vorname: "Person", nachname: "Local", geaendert: now,

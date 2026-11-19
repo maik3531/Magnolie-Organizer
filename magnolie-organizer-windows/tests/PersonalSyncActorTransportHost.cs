@@ -151,7 +151,7 @@ internal static class PersonalSyncActorTransportHost
                 var replyNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); privateReplyId = Guid.NewGuid().ToString("D");
                 var replyWire = PersonalSyncActorContract.WireMessage(new JsonObject { ["type"] = "message", ["v"] = 1,
                     ["message_id"] = privateReplyId, ["created_ms"] = replyNow, ["expires_ms"] = replyNow + 86400000, ["kind"] = "personal_sync.batch",
-                    ["body"] = new JsonObject { ["format"] = 3, ["run_id"] = handle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                    ["body"] = new JsonObject { ["format"] = staged.Format, ["run_id"] = handle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"),
                         ["sequence"] = 0, ["last"] = true, ["reply"] = true, ["records"] = replyRecords,
                         ["records_hash"] = PersonalSyncContract.RecordsHash(replyRecords) } }, handle.ActorId);
                 await coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; });
@@ -167,7 +167,7 @@ internal static class PersonalSyncActorTransportHost
                 var privateFile = await privateFileReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
                 await coordinator.WithPersonalActorStoreAsync(registry => registry.Read(handle, privateFile["message_id"]!.GetValue<string>()));
                 var reportNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); phoneBookReportId = Guid.NewGuid().ToString("D");
-                var report = new JsonObject { ["format"] = 3, ["run_id"] = handle.ActorId, ["state"] = "complete", ["trigger"] = "manual", ["transport"] = "wifi",
+                var report = new JsonObject { ["format"] = staged.Format, ["run_id"] = handle.ActorId, ["state"] = "complete", ["trigger"] = "manual", ["transport"] = "wifi",
                     ["sent"] = new JsonObject { ["notes"] = 1, ["tasks"] = 0, ["notebooks"] = 0 },
                     ["received"] = new JsonObject { ["notes"] = 1, ["tasks"] = 1, ["notebooks"] = 0 },
                     ["conflicts"] = 0, ["attachments_omitted"] = 0, ["oversized_skipped"] = 0, ["started_ms"] = reportNow, ["finished_ms"] = reportNow, ["error"] = "none",

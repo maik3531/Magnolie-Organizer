@@ -2141,6 +2141,60 @@ msgstr "Ciąg dalszy"
 msgid "Contributor Key"
 msgstr "Klucz Contributor"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "Dostęp do konta jest chwilowo niedostępny. Automatyczne aktualizacje zaczekają."
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Dodaj to pierwotne źródło bez zastępowania istniejących uprawnień. Wyraźnie wybierz istniejący kontakt w Organizerze. Pozwala to na trwałe aktualizacje; żadne pierwotne kontakty nie będą tworzone ani usuwane. Automatyczne aktualizacje czekają na Wi-Fi."
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "Zezwól na automatyczne aktualizacje tylko wybranych pierwotnych książek adresowych, również po ponownym uruchomieniu. Tylko istniejące kontakty; bez tworzenia ani usuwania. Aktualizacje czekają na Wi-Fi. Domyślnie nic nie jest wybrane. Pusty wybór cofa wszystkie uprawnienia. Możesz w każdej chwili cofnąć to uprawnienie w ustawieniach."
+
+msgid "Allow updates"
+msgstr "Zezwól na aktualizacje"
+
+msgid "Notes original source"
+msgstr "Pierwotne źródło Notes"
+
+msgid "Original address book"
+msgstr "Pierwotna książka adresowa"
+
+msgid "Original contact sources"
+msgstr "Pierwotne źródła kontaktów"
+
+msgid "Revoke"
+msgstr "Cofnij uprawnienie"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Wyraźnie wybierz istniejący kontakt w Organizerze dla tego pierwotnego źródła Notes. Pozwala to na trwałe aktualizacje; żadne pierwotne kontakty nie będą tworzone ani usuwane. Automatyczne aktualizacje czekają na Wi-Fi."
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "Jednorazowo skonfiguruj dostęp do konta w ustawieniach. Automatyczne aktualizacje zaczekają."
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "Książka adresowa zawiera niejednoznaczne powiązanie ze źródłem."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Nie udało się zapisać uprawnienia do źródła kontaktów. Automatyczne aktualizacje są wstrzymane."
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "Zapisany dostęp do konta jest niejednoznaczny. Sprawdź konto w ustawieniach."
+
+msgid "Update original contact sources"
+msgstr "Aktualizuj pierwotne źródła kontaktów"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Oczekiwanie na Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Oczekiwanie na dostęp do konta. Automatyczne aktualizacje kontaktów zostaną wznowione, gdy dostęp będzie możliwy."
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "Oczekiwanie na dostęp do konta. Odblokuj systemowy magazyn kluczy w dogodnym momencie."
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Można otwierać tylko załączniki HTTPS. Inne adresy można skopiować."
+
 msgid "Copy"
 msgstr "Kopiuj"
 

@@ -2120,6 +2120,60 @@ msgstr "Pokračování"
 msgid "Contributor Key"
 msgstr "Klíč Contributor"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "Přístup k účtu je dočasně nedostupný. Automatické aktualizace počkají."
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Přidejte tento původní zdroj, aniž byste nahradili stávající oprávnění. Výslovně vyberte existující kontakt v Organizeru. Tím povolíte trvalé aktualizace; žádné původní kontakty nebudou vytvářeny ani odstraňovány. Automatické aktualizace čekají na Wi-Fi."
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "Povolte automatické aktualizace pouze vybraných původních adresářů, a to i po restartu. Pouze existující kontakty; žádné vytváření ani odstraňování. Aktualizace čekají na Wi-Fi. Ve výchozím stavu není nic vybráno. Prázdný výběr odvolá všechna oprávnění. Toto oprávnění můžete kdykoli odvolat v nastavení."
+
+msgid "Allow updates"
+msgstr "Povolit aktualizace"
+
+msgid "Notes original source"
+msgstr "Původní zdroj Notes"
+
+msgid "Original address book"
+msgstr "Původní adresář"
+
+msgid "Original contact sources"
+msgstr "Původní zdroje kontaktů"
+
+msgid "Revoke"
+msgstr "Odvolat"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Výslovně vyberte existující kontakt v Organizeru pro tento původní zdroj Notes. Tím povolíte trvalé aktualizace; žádné původní kontakty nebudou vytvářeny ani odstraňovány. Automatické aktualizace čekají na Wi-Fi."
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "Jednou nastavte přístup k účtu v nastavení. Automatické aktualizace počkají."
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "Adresář obsahuje nejednoznačnou vazbu na zdroj."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Oprávnění ke zdroji kontaktů se nepodařilo uložit. Automatické aktualizace jsou pozastaveny."
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "Uložený přístup k účtu je nejednoznačný. Zkontrolujte účet v nastavení."
+
+msgid "Update original contact sources"
+msgstr "Aktualizovat původní zdroje kontaktů"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Čekání na Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Čekání na přístup k účtu. Automatické aktualizace kontaktů se obnoví, jakmile bude přístup dostupný."
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "Čekání na přístup k účtu. Až se vám to bude hodit, odemkněte systémovou klíčenku."
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Otevřít lze pouze přílohy HTTPS. Ostatní adresy můžete zkopírovat."
+
 msgid "Copy"
 msgstr "Kopírovat"
 

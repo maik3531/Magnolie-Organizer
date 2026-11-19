@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.app.Application
 import android.content.Context
 import android.os.Build
@@ -89,6 +91,7 @@ class MagnolieApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        LanFreigabe.initialisieren(this)
         if (BuildConfig.LEGACY_PLAINTEXT_FIXTURE) {
             fixtureEinmaligAnlegen()
             return

@@ -589,7 +589,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
         foreach (var aliases in localAnniversaries.OfType<JsonObject>()
                      .Where(item => mergedBirthdays.Contains(ContactFields.Text(item, "uid")))
                      .GroupBy(item => ContactFields.Text(item, "uid")))
-            if (aliases.Select(item => (ContactFields.Text(item, "kontaktId"), SyncBaseline.Hash(item, Fields))).Distinct().Count() > 1)
+            if (aliases.Select(item => (ContactFields.Text(item, "kontaktId"), CalendarSyncBaseline.Hash(item, Fields))).Distinct().Count() > 1)
                 throw new InvalidDataException("Merged birthday aliases contain different local changes.");
         if (!source.ReadOnly && !additiveOnly) foreach (var tombstone in dead.OfType<JsonObject>())
         {
@@ -671,8 +671,8 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
                     }
                     if (remote.Remove(id, out var read))
                     {
-                        var changed = SyncBaseline.Hash(value, Fields) != SyncBaseline.Hash(read.Data, Fields);
-                        if (changed && SyncBaseline.Dirty(value, mapping, Fields, read.Data))
+                        var changed = CalendarSyncBaseline.Hash(value, Fields) != CalendarSyncBaseline.Hash(read.Data, Fields);
+                        if (changed && CalendarSyncBaseline.Dirty(value, mapping, Fields, read.Data))
                         {
                             // Preserve a deliberate local edit as a local-only
                             // shadow in this feed, never export it to a different
@@ -685,7 +685,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
                         if (changed) { CopyCalendar(value, read.Data); updated++; }
                         SetSource(value, source.Uid, id, read.Object.ETag, read.Data);
                     }
-                    else if (!additiveOnly && mapping is not null && !SyncBaseline.Dirty(value, mapping, Fields))
+                    else if (!additiveOnly && mapping is not null && !CalendarSyncBaseline.Dirty(value, mapping, Fields))
                     {
                         var bindings = value["syncQuellen"] as JsonObject;
                         if (bindings is not null && bindings.Count > 1)
@@ -741,7 +741,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
                 if (id.Length > 0 && remote.Remove(id, out var other))
                 {
                     var remoteChanged = mapping?["etag"]?.GetValue<string>() != observedEtags[other.Object.Href];
-                    var localChanged = SyncBaseline.Dirty(value, mapping, Fields, remoteChanged ? null : other.Data);
+                    var localChanged = CalendarSyncBaseline.Dirty(value, mapping, Fields, remoteChanged ? null : other.Data, observedRemote: other.Data);
                     if (additiveOnly)
                     {
                         if ((other.Data["geaendert"]?.GetValue<long>() ?? 0) > (value["geaendert"]?.GetValue<long>() ?? 0))
@@ -749,7 +749,9 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
                         SetSource(value, source.Uid, id, other.Object.ETag, other.Data);
                         continue;
                     }
-                    if (localChanged && remoteChanged && SyncBaseline.Hash(value, Fields) != SyncBaseline.Hash(other.Data, Fields))
+                    if ((localChanged && remoteChanged || !CalendarSyncBaseline.Current(mapping) &&
+                         !CalendarSyncBaseline.LegacyCoversDifference(value, mapping, other.Data)) &&
+                        CalendarSyncBaseline.Hash(value, Fields) != CalendarSyncBaseline.Hash(other.Data, Fields))
                     {
                         var clone = value.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N");
                         clone["uid"] = $"mag-{Guid.NewGuid():N}@magnolie-organizer";
@@ -772,7 +774,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
                     continue;
                 }
                 if (additiveOnly) { (value["syncQuellen"] as JsonObject)?.Remove(source.Uid); continue; }
-                if (id.Length > 0 && !anniversary && !additiveOnly && !SyncBaseline.Dirty(value, mapping, Fields)) { values.Remove(value); deleted++; continue; }
+                if (id.Length > 0 && !anniversary && !additiveOnly && !CalendarSyncBaseline.Dirty(value, mapping, Fields)) { values.Remove(value); deleted++; continue; }
                 if (!additiveOnly)
                 {
                     var made = await WriteAsync(value, anniversary, null, cancellationToken).ConfigureAwait(false); SetSource(value, source.Uid, RemoteKey(made.Href, value), made.ETag); remote.Remove(RemoteKey(made.Href, value)); exported++;
@@ -797,7 +799,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
     {
         var all = value["syncQuellen"] as JsonObject ?? new JsonObject(); value["syncQuellen"] = all;
         all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true,
-            ["inhaltFormat"] = "windows-1", ["inhaltSha256"] = SyncBaseline.Hash(baseline ?? value, Fields) };
+            ["inhaltFormat"] = CalendarSyncBaseline.Format(), ["inhaltSha256"] = CalendarSyncBaseline.Hash(baseline ?? value, Fields) };
         value["syncKalenderUid"] = source; value["sync"] = true;
     }
     internal static void CopyCalendar(JsonObject target, JsonObject source)
@@ -855,14 +857,16 @@ internal sealed class NextcloudTaskSync(NextcloudDavClient client)
                     exported++; continue;
                 }
                 var remoteChanged = mapping?["etag"]?.GetValue<string>() != observedEtags[other.Object.Href];
-                var localChanged = SyncBaseline.Dirty(value, mapping, Fields, remoteChanged ? null : other.Data);
+                var localChanged = CalendarSyncBaseline.Dirty(value, mapping, Fields, remoteChanged ? null : other.Data, tasks: true, observedRemote: other.Data);
                 if (additiveOnly)
                 {
                     if ((other.Data["geaendert"]?.GetValue<long>() ?? 0) > (value["geaendert"]?.GetValue<long>() ?? 0)) CopyTask(value, other.Data);
                     SetSource(value, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag, other.Data);
                     continue;
                 }
-                if (!additiveOnly && localChanged && remoteChanged)
+                if (!additiveOnly && (localChanged && remoteChanged || !CalendarSyncBaseline.Current(mapping, tasks: true) &&
+                    !CalendarSyncBaseline.LegacyCoversDifference(value, mapping, other.Data, tasks: true)) &&
+                    CalendarSyncBaseline.Hash(value, Fields, tasks: true) != CalendarSyncBaseline.Hash(other.Data, Fields, tasks: true))
                 {
                     var clone = value.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N");
                     clone["uid"] = $"mag-task-{Guid.NewGuid():N}@magnolie-organizer";
@@ -887,7 +891,7 @@ internal sealed class NextcloudTaskSync(NextcloudDavClient client)
             }
             if (additiveOnly) { (value["syncQuellen"] as JsonObject)?.Remove(source.Uid); continue; }
             if (!additiveOnly && ContactFields.Source(value, source.Uid) is { } missingMapping &&
-                !SyncBaseline.Dirty(value, missingMapping, Fields))
+                !CalendarSyncBaseline.Dirty(value, missingMapping, Fields, tasks: true))
             {
                 local.Remove(value); deleted++; continue;
             }
@@ -927,10 +931,10 @@ internal sealed class NextcloudTaskSync(NextcloudDavClient client)
             SetSource(value, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag); local.Add(value); imported++;
         }
         var clean = local.OfType<JsonObject>().Where(value =>
-            ContactFields.Source(value, source.Uid) is { } mapping && !SyncBaseline.Dirty(value, mapping, Fields)).ToArray();
+            ContactFields.Source(value, source.Uid) is { } mapping && !CalendarSyncBaseline.Dirty(value, mapping, Fields, tasks: true)).ToArray();
         GesamtarchivService.NormalizeTaskGraph(local);
         // Internal sibling renumbering is not a new user edit; retain already-dirty baselines.
-        foreach (var value in clean) ContactFields.Source(value, source.Uid)!["inhaltSha256"] = SyncBaseline.Hash(value, Fields);
+        foreach (var value in clean) ContactFields.Source(value, source.Uid)!["inhaltSha256"] = CalendarSyncBaseline.Hash(value, Fields, tasks: true);
         return new NextcloudTaskResult(local, dead, imported, exported, updated, deleted, conflicts);
     }
 
@@ -938,7 +942,7 @@ internal sealed class NextcloudTaskSync(NextcloudDavClient client)
     {
         var all = value["syncQuellen"] as JsonObject ?? new JsonObject(); value["syncQuellen"] = all;
         all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true,
-            ["inhaltFormat"] = "windows-1", ["inhaltSha256"] = SyncBaseline.Hash(baseline ?? value, Fields) };
+            ["inhaltFormat"] = CalendarSyncBaseline.Format(tasks: true), ["inhaltSha256"] = CalendarSyncBaseline.Hash(baseline ?? value, Fields, tasks: true) };
         value["syncKalenderUid"] = source; value["sync"] = true;
     }
 

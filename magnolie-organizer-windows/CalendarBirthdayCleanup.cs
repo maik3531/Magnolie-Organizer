@@ -104,7 +104,11 @@ internal static class CalendarBirthdayCleanup
         return result;
     }
     private static bool Bound(JsonObject item, string source) => Text(item, "syncKalenderUid") == source || Text(item, "icsQuelleId") == source;
-    private static bool Clean(JsonObject item, string source) => ContactFields.Source(item, source) is { } mapping && Text(mapping, "inhaltFormat") == "windows-1" && Text(mapping, "inhaltSha256") == SyncBaseline.Hash(item, NextcloudCalendarSync.Fields);
+    // Destructive cleanup requires the complete current calendar projection.
+    // Legacy hashes do not cover colour; ordinary synchronization must migrate
+    // those mappings before a later cleanup can claim that they are clean.
+    private static bool Clean(JsonObject item, string source) => ContactFields.Source(item, source) is { } mapping &&
+        CalendarSyncBaseline.Current(mapping) && Text(mapping, "inhaltSha256") == CalendarSyncBaseline.Hash(item, NextcloudCalendarSync.Fields);
     private static IEnumerable<string> Uids(JsonObject item) => new[] { Text(item, "uid"), Text(item, "icsSerienUid") }.Where(uid => uid.Length > 0).Distinct(StringComparer.Ordinal);
     private static string Key(Uri href, string uid) => NextcloudCalendarSync.RemoteKey(href, new JsonObject { ["uid"] = uid });
 

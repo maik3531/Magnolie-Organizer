@@ -21,6 +21,14 @@ try {
   assert.equal(t.daten().futureRoot.opaque, "AA=="); assertions++;
   assert.equal(t.daten().aufgaben[0].futureTask.keep, 17); assertions++;
   assert.equal(JSON.stringify(t.daten().notizen[0].futureNote), "[true,null]"); assertions++;
+  const regional = t.daten().einstellungen.regional, priorManagement = regional.timeZoneManagement;
+  const contactClockFixture = { id: "timezone-off-fixture", vorname: "Synthetic", nachname: "Clock",
+    vcardRoundtrip: ["TZ:Europe/Berlin"] };
+  regional.timeZoneManagement = "off";
+  assert.equal(t.kontaktKarte(contactClockFixture).querySelector(".kontakt-ortszeit").hidden, true); assertions++;
+  regional.timeZoneManagement = "manual";
+  assert.equal(t.kontaktKarte(contactClockFixture).querySelector(".kontakt-ortszeit").hidden, false); assertions++;
+  regional.timeZoneManagement = priorManagement;
   // Exercise the real attachment dialog and its published native action spelling.
   const image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
   t.daten().notizen[0].anhaenge = [{ id: "attachment-action", name: "drawing.png", art: "image", daten: image }];

@@ -13,7 +13,7 @@ async function boot(options = {}) {
   w.HTMLElement.prototype.scrollIntoView = () => {}; w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   Object.defineProperty(w, "crypto", { value: webcrypto }); w.__MAGNOLIE_BRUECKE__ = "test";
   w.webkit = { messageHandlers: { test: { postMessage: raw => { const value = JSON.parse(raw); messages.push(value); options.emit?.(value); } } } };
-  for (const name of ["i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
+  for (const name of ["normative-timezones.js", "i18n.js", "zeichenblatt.js", "appearance.js", "anwendung.js"]) w.eval(fs.readFileSync(path.join(web, name), "utf8"));
   await new Promise(resolve => setImmediate(resolve));
   w.App.init({ neu: false, regional: { language: "en", timeZone: "UTC" }, daten: options.data || {
     kontakte: [{ id: "synthetic-id", uid: "synthetic-uid", vorname: "Synthetic", notiz: "Keep", notesOriginalBasis: { old: true } }],
@@ -84,10 +84,15 @@ async function wire() {
   try {
     for await (const line of lines) {
       const packet = JSON.parse(line);
-      if (packet.type === "init") {
+      if (packet.type === "init" || packet.type === "reopen") {
         mode = packet.mode;
+        b?.close();
         b = await boot({ data: packet.daten, wire: true, emit: value => emit({ type: "command", value }) });
-        b.t.speichereJetzt(); continue;
+        if (packet.type === "reopen") {
+          assert.equal(b.commands("speichern").length, 0);
+          emit({ type: "reopened" });
+        } else b.t.speichereJetzt();
+        continue;
       }
       assert.ok(b);
       if (packet.type === "finish") { emit({ type: "finished" }); return; }

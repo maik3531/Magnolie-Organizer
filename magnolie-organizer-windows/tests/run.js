@@ -4,6 +4,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { runBoundedProgram } = require("./native-test-process");
 
 const root = path.resolve(__dirname, "..");
 const props = fs.readFileSync(path.join(root, "Directory.Build.props"), "utf8");
@@ -11,13 +12,18 @@ const version = /<Version>([^<]+)<\/Version>/.exec(props)?.[1];
 if (!/^\d+\.\d+\.\d+$/.test(version || "")) throw new Error("Kanonische Version fehlt.");
 const installerName = `Magnolie-Organizer-Windows-${version}-Setup-x64.exe`;
 const python = process.env.MAGNOLIE_PYTHON || ["python3", "python"].find((candidate) =>
-  spawnSync(candidate, ["--version"], { encoding: "utf8" }).status === 0);
+  spawnSync(candidate, ["--version"], { encoding: "utf8", timeout: 10000 }).status === 0);
 if (!python) throw new Error("Python 3 for localization tests is missing");
 process.env.MAGNOLIE_PYTHON = python;
 
 let failed = false;
 const results = [];
-for (const test of ["welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
+for (const test of ["welcome-first-save.js", "time-zone-planning.js", "time-zone-settings.js", "ui-bugfixes.js", "drawing-sheet.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-sms-paths.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
+  "handbook-page-ids.js",
+  "calendar-attachment-actions.js", "calendar-attachment-native.js",
+  "calendar-accent-edits.js",
+  "normative-timezones.js",
+  "contact-email-case.js",
   "oversized-note-safety.js", "desktop-state-regressions.js", "../../magnolie-organizer/pruefungen/phone-personal-status-ui.cjs", "../../magnolie-organizer/pruefungen/appointment-occurrence-delete.cjs", "mcp-ui.js", "mcp-import-review.js", "mcp-planner-export.js", "mcp-print.js", "mcp-waste-import.js", "mcp-sync-settings.js", "mcp-sync-run.js", "mcp-provider-conflicts.js", "mcp-dav-account.js", "mcp-microsoft-signin.js", "mcp-internet-accounts.js", "mcp-tree-actions.js", "save-custom-regressions.js", "custom-time-regressions.js", "regional-time-input.js", "planned-sms-save-regressions.js", "asr-sms-regressions.js", "desktop-data-regressions.js", "frontend-integrity.js", "recurrence-worker.js", "recurrence-golden.js",
     "phone-contact-preview-batches.js", "kde-receive-ui.js", "realm-data-assert-test.js", "legacy-android-instance-ui.js", "drawing-pointerup.js",
     "phone-media-ui.js", "phone-media-source-choice-ui.js",
@@ -38,8 +44,8 @@ for (const test of ["welcome-first-save.js", "time-zone-planning.js", "time-zone
   "mcp-contact-group-diagnostics.js",
   "note-web-links.js",
   "ods-regional.js", "time-tracking-core.js", "time-tracking-ui.js", "time-sync-ui.js", "month-recurrence-stability.js", "birthday-display.js", "waste-import.js", "baum-contact-batch.js", "baum-contact-review.js", "baum-contact-time.js", "baum-contact-groups.js", "contact-import-identity.js", "email-obfuscation.js", "baum-note-identity.js", "tree-connection-sharing.js", "personal-note-dates.js", "personal-note-identities.js", "personal-note-mode.js", "journal-selection.js", "bundled-handbook-update.js", "update-waiting.js", "structured-appointment-parity.js", "handbook-smoke.js", "handbook-windows-variants.js",
-   "native-integration-smoke.js", "contact-sync-cleanup.js", "contact-sync-conflicts.js", "contact-sync-time.js", "contact-provider-review.js", "contact-duplicate-review.js", "contact-field-review.js", "contact-address-choice.js", "contact-person-editor.js", "contact-import-transaction.js", "contact-file-review.js", "contact-file-batch.js", "contact-file-time.js", "contact-photo-cache.js", "kde-contact-import.js", "account-management-ui.js", "managed-account-adapter.js", "managed-source-folders.js", "thunderbird-bridge.js", "full-parity-contract.js", "linux-live-parity.js",
-    "mcp-notes-time-direction.js", "mcp-notes-timer.js", "mcp-phone-call-actors.js", "mcp-notes-settings.js", "mcp-notes-actor-review.js", "mcp-device-status.js", "note-send.js", "fax-options.js", "contact-websites.js", "contact-time-zones.js", "kde-input-ui.js", "contact-group-filter.js", "contact-group-exclusions.js", "category-colors.js", "mcp-tree-content.js", "mcp-tree-inbox.js", "mcp-tree-sync.js", "mcp-tree-contact-preview.js", "mcp-phone-lifecycle.js", "mcp-kde-lifecycle.js", "mcp-kde-pairing-jobs.js", "nsis-installer-fixture.js", "installer-publication.js", "manifest-policy.js", "release-audit.js"]) {
+   "native-test-process-cases.js", "native-integration-smoke.js", "contact-sync-cleanup.js", "contact-sync-conflicts.js", "contact-sync-time.js", "contact-provider-review.js", "contact-duplicate-review.js", "contact-field-review.js", "contact-address-choice.js", "contact-person-editor.js", "contact-import-transaction.js", "contact-file-review.js", "contact-file-batch.js", "contact-file-time.js", "contact-photo-cache.js", "kde-contact-import.js", "account-management-ui.js", "managed-account-adapter.js", "managed-source-folders.js", "thunderbird-bridge.js", "full-parity-contract.js", "linux-live-parity.js",
+    "mcp-notes-time-direction.js", "mcp-notes-timer.js", "mcp-phone-call-actors.js", "mcp-notes-settings.js", "mcp-notes-actor-review.js", "mcp-device-status.js", "note-send.js", "fax-options.js", "contact-websites.js", "contact-time-zones.js", "kde-input-ui.js", "contact-group-filter.js", "contact-group-exclusions.js", "category-colors.js", "mcp-tree-content.js", "mcp-tree-inbox.js", "mcp-tree-sync.js", "mcp-tree-contact-preview.js", "mcp-phone-lifecycle.js", "mcp-kde-lifecycle.js", "mcp-kde-pairing-jobs.js", "nsis-installer-fixture.js", "installer-authenticode.js", "installer-publication.js", "manifest-policy.js", "release-audit.js"]) {
    if (test === "contact-provider-review.js" && !fs.existsSync(path.resolve(root, "../magnolie-organizer/web/index.html"))) {
      console.log("NOT APPLICABLE contact-provider-review.js: Linux EDS/DAV adapter; Windows native conflicts have their own test.");
      continue;
@@ -47,14 +53,14 @@ for (const test of ["welcome-first-save.js", "time-zone-planning.js", "time-zone
     const canonicalTest = path.join(__dirname, test);
     const testPath = test.startsWith("../../magnolie-organizer/pruefungen/") && !fs.existsSync(canonicalTest)
       ? path.join(root, "shared/magnolie-organizer/pruefungen", path.basename(test)) : canonicalTest;
-    const result = spawnSync(process.execPath, [testPath,
+     const result = runBoundedProgram(process.execPath, [testPath,
     ...(test === "aur-sms-regressions.js" ? [] : [version, installerName])], {
-    stdio: "inherit",
+     label: test,
     env: { ...process.env, MAGNOLIE_PYTHON: python }
   });
   if (result.error) { console.error(result.error); failed = true; }
-  else if (result.status !== 0) failed = true;
-  results.push([test, !result.error && result.status === 0]);
+   else if (result.status !== 0 || result.signal) failed = true;
+   results.push([test, !result.error && result.status === 0 && !result.signal]);
 }
 console.log("\nComplete Windows web test results:");
 for (const [test, passed] of results) console.log(`${passed ? "PASS" : "FAIL"} ${test}`);

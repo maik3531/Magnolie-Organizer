@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">Sieć lokalna oczekuje na uprawnienie w ustawieniach aplikacji Android.</string>
     <string name="webcam_kanal">Kamera internetowa telefonu</string>
     <string name="webcam_startet">Uruchamianie kamery internetowej telefonu…</string>
     <string name="webcam_aktiv">Kamera i mikrofon są aktywne</string>

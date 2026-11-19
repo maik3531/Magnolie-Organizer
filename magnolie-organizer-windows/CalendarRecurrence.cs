@@ -26,10 +26,14 @@ internal static class CalendarRecurrence
     internal readonly record struct Stamp(DateTime Wall, bool AllDay, SourceZone? Zone);
     // TimeZoneInfo is sealed and restricts offsets to whole minutes and +/-14h.
     // Keep embedded observances as transitions instead of approximating them.
-    internal sealed record SourceZone(TimeZoneInfo? System, Lazy<EmbeddedZone>? Definition = null)
+    internal sealed record SourceZone(TimeZoneInfo? System, Lazy<EmbeddedZone>? Definition = null,
+        NormativeTimezones.Zone? Named = null, string? Identifier = null)
     {
-        public static implicit operator SourceZone(TimeZoneInfo zone) => new(zone);
+        public static implicit operator SourceZone(TimeZoneInfo zone) => TryNamedZone(zone.Id, out var named) ? named! : new(zone);
         internal EmbeddedZone? Embedded => Definition?.Value;
+        internal string Id => Identifier ?? System?.Id ?? throw new InvalidOperationException("Embedded timezone has no named identifier.");
+        internal bool IsConstant => Named?.IsConstant ?? (System?.GetAdjustmentRules().Length == 0);
+        internal bool IsAmbiguousTime(DateTime wall) => FoldSpan(wall, this) > TimeSpan.Zero;
     }
     internal sealed class EmbeddedZone
     {
@@ -215,14 +219,25 @@ internal static class CalendarRecurrence
         return new Stamp(DateTime.SpecifyKind(wall, DateTimeKind.Unspecified), allDay, allDay ? null : zone);
     }
 
-    internal static TimeZoneInfo Zone(string id) => id is "" or "system" ? TimeZoneInfo.Local : TimeZoneInfo.FindSystemTimeZoneById(id);
+    private static bool TryNamedZone(string id, out SourceZone? zone)
+    {
+        var portable = id;
+        if (!NormativeTimezones.TryGet(portable, out var rules) &&
+            TimeZoneInfo.TryConvertWindowsIdToIanaId(id, out var iana))
+        { portable = iana; _ = NormativeTimezones.TryGet(portable, out rules); }
+        zone = rules is null ? null : new SourceZone(null, Named: rules, Identifier: portable);
+        return zone is not null;
+    }
+    internal static SourceZone Zone(string id) => TryNamedZone(id is "" or "system" ? TimeZoneInfo.Local.Id : id, out var zone) ? zone! :
+        throw new TimeZoneNotFoundException("Named timezone is unavailable in the bound normative rules.");
     internal static string TextValue(string text) => Regex.Replace(text, @"\\([nN,;\\])", m => m.Groups[1].Value is "n" or "N" ? "\n" : m.Groups[1].Value);
-    internal static TimeZoneInfo OrganizerZone(JsonElement root) => Zone(root.TryGetProperty("einstellungen", out var settings) &&
+    internal static SourceZone OrganizerZone(JsonElement root) => Zone(root.TryGetProperty("einstellungen", out var settings) &&
         settings.TryGetProperty("regional", out var regional) ? Text(regional, "timeZone") : "");
     internal static DateTime ToUtc(DateTime wall, SourceZone source)
     {
         wall = DateTime.SpecifyKind(wall, DateTimeKind.Unspecified);
         if (source.Embedded is { } embedded) return embedded.ToUtc(wall);
+        if (source.Named is { } named) return named.ToUtc(wall);
         var zone = source.System!;
         if (zone.IsAmbiguousTime(wall)) return DateTime.SpecifyKind(wall - zone.GetAmbiguousTimeOffsets(wall).Max(), DateTimeKind.Utc);
         // RFC 5545: an explicitly supplied gap time uses the offset before the gap.
@@ -231,9 +246,11 @@ internal static class CalendarRecurrence
         return DateTime.SpecifyKind(wall - zone.GetUtcOffset(before), DateTimeKind.Utc);
     }
     internal static DateTime NowUtc(DateTime now) => now.Kind == DateTimeKind.Utc ? now :
-        now.Kind == DateTimeKind.Local ? now.ToUniversalTime() : ToUtc(now, TimeZoneInfo.Local);
-    internal static DateTime FromUtc(DateTime utc, SourceZone zone) => zone.Embedded is { } embedded ? embedded.FromUtc(utc) : TimeZoneInfo.ConvertTimeFromUtc(utc, zone.System!);
+        now.Kind == DateTimeKind.Local ? now.ToUniversalTime() : ToUtc(now, Zone("system"));
+    internal static DateTime FromUtc(DateTime utc, SourceZone zone) => zone.Embedded is { } embedded ? embedded.FromUtc(utc) :
+        zone.Named is { } named ? named.FromUtc(utc) : TimeZoneInfo.ConvertTimeFromUtc(utc, zone.System!);
     private static TimeSpan FoldSpan(DateTime wall, SourceZone zone) => zone.Embedded is { } embedded ? embedded.FoldSpan(wall) :
+        zone.Named is { } named ? named.FoldSpan(wall) :
         zone.System!.IsAmbiguousTime(wall) ? zone.System.GetAmbiguousTimeOffsets(wall).Max() - zone.System.GetAmbiguousTimeOffsets(wall).Min() : TimeSpan.Zero;
     internal static DateTime InZone(Stamp stamp, SourceZone target) => stamp.AllDay ? stamp.Wall :
         FromUtc(ToUtc(stamp.Wall, stamp.Zone ?? target), target);
@@ -250,7 +267,7 @@ internal static class CalendarRecurrence
         return TimeSpan.FromSeconds(seconds);
     }
 
-    internal static DateTime DurationEndUtc(Stamp start, string specification, TimeZoneInfo fallback)
+    internal static DateTime DurationEndUtc(Stamp start, string specification, SourceZone fallback)
     {
         var span = Duration(specification);
         var days = Regex.Matches(specification, @"(\d+)([WD])", RegexOptions.IgnoreCase).Cast<Match>()
@@ -270,7 +287,7 @@ internal static class CalendarRecurrence
         catch (Exception error) when (error is InvalidDataException or FormatException or OverflowException) { return false; }
     }
 
-    internal static IReadOnlyList<CalendarOccurrence> Expand(JsonElement item, DateTime lower, DateTime upper, TimeZoneInfo target, bool task = false, bool overlap = false)
+    internal static IReadOnlyList<CalendarOccurrence> Expand(JsonElement item, DateTime lower, DateTime upper, SourceZone target, bool task = false, bool overlap = false)
     {
         var properties = Properties(item);
         var zones = CalendarZones(item);
@@ -361,8 +378,8 @@ internal static class CalendarRecurrence
             var endWall = stamp.Wall.Add(span);
             var endUtc = stamp.AllDay ? ToUtc(endWall, target) : durationText is not null ? DurationEndUtc(stamp, durationText, target) : instant.Add(span);
             if (stamp.AllDay ? stamp.Wall > sourceUpper || stamp.Wall < sourceLower && !(overlap && endWall >= sourceLower.Add(padding).Add(lookback)) : instant > through.Add(padding) || instant < from.Subtract(padding).Subtract(lookback) && !(overlap && endUtc >= from)) return;
-            occurrences[stamp.AllDay ? stamp.Wall : instant] = new CalendarOccurrence(stamp.AllDay ? stamp.Wall : TimeZoneInfo.ConvertTimeFromUtc(instant, target),
-                stamp.AllDay ? endWall : TimeZoneInfo.ConvertTimeFromUtc(endUtc, target), instant, endUtc, stamp.AllDay);
+            occurrences[stamp.AllDay ? stamp.Wall : instant] = new CalendarOccurrence(stamp.AllDay ? stamp.Wall : FromUtc(instant, target),
+                stamp.AllDay ? endWall : FromUtc(endUtc, target), instant, endUtc, stamp.AllDay);
             if (occurrences.Count > MaximumOccurrences) throw new InvalidDataException("Calendar recurrence window is too large.");
         }
         Add(first, duration, durationProperty.Value);
@@ -441,7 +458,7 @@ internal static class CalendarRecurrence
             var instant = ToUtc(wall, sourceZone);
             var endInstant = range.Specification is not null ? DurationEndUtc(new Stamp(wall, first.AllDay, sourceZone), range.Specification, target) :
                 first.AllDay ? ToUtc(wall.Add(range.Duration), target) : instant.Add(range.Duration);
-            occurrences[key] = new CalendarOccurrence(first.AllDay ? wall : TimeZoneInfo.ConvertTimeFromUtc(instant, target), first.AllDay ? wall.Add(range.Duration) : TimeZoneInfo.ConvertTimeFromUtc(endInstant, target), instant, endInstant, first.AllDay, range.Summary, range.Location);
+            occurrences[key] = new CalendarOccurrence(first.AllDay ? wall : FromUtc(instant, target), first.AllDay ? wall.Add(range.Duration) : FromUtc(endInstant, target), instant, endInstant, first.AllDay, range.Summary, range.Location);
         }
         return occurrences.Values.Where(value => value.AllDay ? (overlap ? value.End : value.Start) >= sourceLower.Add(padding).Add(lookback) && value.Start <= sourceUpper.Subtract(padding) : (overlap ? value.EndUtc : value.StartUtc) >= from && value.StartUtc <= through).OrderBy(value => value.Start).ToArray();
     }
@@ -545,7 +562,7 @@ internal static class CalendarRecurrence
             if (count != long.MaxValue && first > 0)
             {
                 if ((Subdaily || frequency is "DAILY" or "WEEKLY") && fields.Keys.All(key => key is "FREQ" or "INTERVAL" or "COUNT" or "WKST") &&
-                     (start.Zone is null || start.Zone.System?.GetAdjustmentRules().Length == 0 || start.AllDay)) seen = first;
+                      (start.Zone is null || start.Zone.IsConstant || start.AllDay)) seen = first;
                 else
                 {
                 // Shared exact prefix checkpoints survive windows and budget errors.
@@ -608,7 +625,7 @@ internal static class CalendarRecurrence
             var until = Get("UNTIL"); if (until.Length == 0) return true;
             var parsed = ParseStamp(new Property("UNTIL", until, []));
             if (parsed.AllDay) return candidate.Date <= parsed.Wall;
-            return parsed.Zone is null ? candidate <= parsed.Wall : ToUtc(candidate, start.Zone ?? TimeZoneInfo.Local) <= ToUtc(parsed.Wall, parsed.Zone);
+            return parsed.Zone is null ? candidate <= parsed.Wall : ToUtc(candidate, start.Zone ?? Zone("system")) <= ToUtc(parsed.Wall, parsed.Zone);
         }
         private List<DateTime> Candidates(long index)
         {

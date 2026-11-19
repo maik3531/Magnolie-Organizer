@@ -164,6 +164,10 @@ install -m 0644 "$WURZEL/bin/magnolie_contact_notes_return.py" "$APPDIR/usr/bin/
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_consent.py" "$APPDIR/usr/bin/magnolie_contact_notes_consent.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_controller.py" "$APPDIR/usr/bin/magnolie_contact_notes_controller.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_setup.py" "$APPDIR/usr/bin/magnolie_contact_notes_setup.py"
+install -m 0644 "$WURZEL/bin/magnolie_contact_notes_key.py" "$APPDIR/usr/bin/magnolie_contact_notes_key.py"
+install -m 0644 "$WURZEL/bin/magnolie_contact_notes_ui.py" "$APPDIR/usr/bin/magnolie_contact_notes_ui.py"
+install -m 0644 "$WURZEL/bin/magnolie_contact_notes_session.py" "$APPDIR/usr/bin/magnolie_contact_notes_session.py"
+install -m 0644 "$WURZEL/bin/magnolie_contact_notes_setup_run.py" "$APPDIR/usr/bin/magnolie_contact_notes_setup_run.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_requests.py" "$APPDIR/usr/bin/magnolie_contact_notes_requests.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor_decision_review.py" "$APPDIR/usr/bin/magnolie_personal_actor_decision_review.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor_producer.py" "$APPDIR/usr/bin/magnolie_personal_actor_producer.py"
@@ -306,6 +310,7 @@ EOF
     cp -a /usr/lib/$MULTIARCH/webkit2gtk-4.0 "$APPDIR/usr/lib/"
 
 cp -a "$WURZEL/web/." "$APPDIR/usr/share/magnolie-organizer/web/"
+python3 -I -B "$WURZEL/werkzeuge/zeitzonen_erzeugen.py" --output "$APPDIR/usr/share/magnolie-organizer/web"
 HANDBUCH=${MAGNOLIE_HANDBUCH_SOURCE:-"$(dirname "$WURZEL")/magnolie-handbuch"}
 python3 "$WURZEL/werkzeuge/appimage_handbook.py" "$APPDIR" "$HANDBUCH" "$FASSUNG" --cache "$WERKZEUGE"
 printf '{"version":"%s"}\n' "$FASSUNG" > "$APPDIR/usr/share/magnolie-organizer/version.json"

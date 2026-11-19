@@ -3686,7 +3686,46 @@ class PhoneService:
             raise ValueError("phone_control_conflict")
         return peer
 
+    def mcp_media_status(self, request):
+        """Read the existing media projection, never configure, scan or transfer."""
+        if (set(request) != {"action", "peerId", "fingerprint", "expectedRevision"}
+                or any(type(request.get(key)) is not str for key in request)
+                or re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]) is None):
+            return {"ok": False, "code": "invalid_selection"}
+        try:
+            def current():
+                if request["expectedRevision"] != self.mcp_status(include_bluetooth=False)["revision"]:
+                    raise ValueError("phone_control_conflict")
+                return self._mcp_require_peer(request["peerId"], request["fingerprint"])
+            with self.lock:
+                current()
+                channel = self.connections.get(request["peerId"])
+            raw = self.photo_sync_state(request["peerId"])
+            with self.lock:
+                peer = current()
+                if self.connections.get(request["peerId"]) is not channel:
+                    return {"ok": False, "code": "source_changed"}
+                supported = isinstance(raw, dict) and raw.get("available") is True
+                raw = raw if supported else {}
+                flag = lambda value: value if type(value) is bool else None
+                shared = raw.get("shared_media")
+                status = dict(peer_id=request["peerId"], fingerprint=fingerprint(unb64(peer["static_public"], 32)),
+                    supported=supported, activation_required=False,
+                    photos_enabled=flag(raw.get("enabled")), videos_enabled=flag(raw.get("video_enabled")),
+                    video_supported=raw.get("video_supported") is True if supported else None,
+                    automatic_wifi=(raw["mode"] == "automatic") if raw.get("mode") in ("manual", "automatic") else None,
+                    busy=flag(raw.get("busy")), shared_settings_present=isinstance(shared, dict) if supported else None,
+                    shared_settings_agreed=flag(shared.get("agreed")) if isinstance(shared, dict) else None,
+                    persisted=False, transfer_started=False)
+            return {"ok": True, "mediaStatus": status}
+        except (ValueError, KeyError, TypeError):
+            return {"ok": False, "code": "conflict"}
+        except (RuntimeError, OSError):
+            return {"ok": False, "code": "native_operation_failed"}
+
     def mcp_action(self, request):
+        if request.get("action") == "media_status_read":
+            return self.mcp_media_status(request)
         if str(request.get("action", "")).startswith("call_actor_"):
             return self.call_actors.action(request)
         if request.get("action") == "call_context_read":

@@ -2055,6 +2055,60 @@ msgstr "続き"
 msgid "Contributor Key"
 msgstr "貢献者キー"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "アカウントへのアクセスは一時的に利用できません。自動更新は待機します。"
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "既存の権限を置き換えずに、この元のソースを追加します。Organizer の既存の連絡先を明示的に選択してください。これにより継続的な更新が許可されます。元の連絡先の作成や削除は行われません。自動更新は Wi-Fi 接続を待機します。"
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "選択した元のアドレス帳に対してのみ、再起動後も自動更新を許可します。既存の連絡先のみが対象で、作成や削除は行いません。更新は Wi-Fi 接続を待機します。既定では何も選択されていません。選択を空にするとすべての許可が取り消されます。この権限は設定でいつでも取り消せます。"
+
+msgid "Allow updates"
+msgstr "更新を許可"
+
+msgid "Notes original source"
+msgstr "Notes の元のソース"
+
+msgid "Original address book"
+msgstr "元のアドレス帳"
+
+msgid "Original contact sources"
+msgstr "元の連絡先ソース"
+
+msgid "Revoke"
+msgstr "許可を取り消す"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "この Notes の元のソースに対応する Organizer の既存の連絡先を明示的に選択してください。これにより継続的な更新が許可されます。元の連絡先の作成や削除は行われません。自動更新は Wi-Fi 接続を待機します。"
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "設定でアカウントへのアクセスを一度設定してください。自動更新は待機します。"
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "アドレス帳のソースとの関連付けが不明確です。"
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "連絡先ソースの許可を保存できませんでした。自動更新は一時停止されています。"
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "保存されたアカウントへのアクセスが不明確です。設定でアカウントを確認してください。"
+
+msgid "Update original contact sources"
+msgstr "元の連絡先ソースを更新"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Wi-Fi 接続を待っています。"
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "アカウントへのアクセスを待っています。アクセス可能になると連絡先の自動更新を再開します。"
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "アカウントへのアクセスを待機しています。都合のよいときにシステムのキーリングを解除してください。"
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "開けるのは HTTPS の添付ファイルだけです。他のアドレスはコピーできます。"
+
 msgid "Copy"
 msgstr "コピー"
 

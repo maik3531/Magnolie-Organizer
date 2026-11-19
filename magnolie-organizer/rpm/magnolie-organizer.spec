@@ -75,6 +75,7 @@ integration and encrypted Magnolienbaum sharing are available.
 
 %build
 set -eu
+/usr/bin/python3 -I -B werkzeuge/zeitzonen_erzeugen.py
 while read -r language; do
     test -n "$language" || continue
     mkdir -p "locale/$language/LC_MESSAGES" web/i18n
@@ -87,6 +88,7 @@ done < po/LINGUAS
 
 %check
 set -eu
+/usr/bin/python3 -B -m pytest -q -p no:cacheprovider pruefungen/test_normative_timezone_recipe.py
 /usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_phone_contacts.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py bin/magnolie_recurrence.py werkzeuge/*.py pruefungen/*.py
 while read -r language; do
     test -n "$language" || continue
@@ -96,6 +98,7 @@ while read -r language; do
     test -s "web/i18n/$language.js"
 done < po/LINGUAS
 /usr/bin/python3 -m pytest -q pruefungen/test_locale_completeness.py
+/usr/bin/python3 -B -m pytest -q -p no:cacheprovider pruefungen/test_organizer_resource_inventory.py pruefungen/test_rpm_start_scripts.py
 test "$(wc -l < po/LINGUAS)" -eq 19
 test "$(find locale -name '%{name}.mo' -type f | wc -l)" -eq 19
 test "$(find web/i18n -name '*.js' -type f | wc -l)" -eq 19
@@ -169,6 +172,10 @@ install -Dpm 0644 bin/magnolie_contact_notes_return.py %{buildroot}%{_bindir}/ma
 install -Dpm 0644 bin/magnolie_contact_notes_consent.py %{buildroot}%{_bindir}/magnolie_contact_notes_consent.py
 install -Dpm 0644 bin/magnolie_contact_notes_controller.py %{buildroot}%{_bindir}/magnolie_contact_notes_controller.py
 install -Dpm 0644 bin/magnolie_contact_notes_setup.py %{buildroot}%{_bindir}/magnolie_contact_notes_setup.py
+install -Dpm 0644 bin/magnolie_contact_notes_key.py %{buildroot}%{_bindir}/magnolie_contact_notes_key.py
+install -Dpm 0644 bin/magnolie_contact_notes_ui.py %{buildroot}%{_bindir}/magnolie_contact_notes_ui.py
+install -Dpm 0644 bin/magnolie_contact_notes_session.py %{buildroot}%{_bindir}/magnolie_contact_notes_session.py
+install -Dpm 0644 bin/magnolie_contact_notes_setup_run.py %{buildroot}%{_bindir}/magnolie_contact_notes_setup_run.py
 install -Dpm 0644 bin/magnolie_contact_notes_requests.py %{buildroot}%{_bindir}/magnolie_contact_notes_requests.py
 install -Dpm 0644 bin/magnolie_personal_actor_decision_review.py %{buildroot}%{_bindir}/magnolie_personal_actor_decision_review.py
 install -Dpm 0644 bin/magnolie_personal_actor_producer.py %{buildroot}%{_bindir}/magnolie_personal_actor_producer.py
@@ -206,13 +213,16 @@ install -Dpm 0644 bin/magnolie_country_flags.py %{buildroot}%{_bindir}/magnolie_
 install -Dpm 0644 bin/magnolie_or6.py %{buildroot}%{_bindir}/magnolie_or6.py
 
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
+install -d %{buildroot}%{_datadir}/%{name}/web/timezones
+install -pm 0644 web/timezones/tzdb-2026egtz.json web/timezones/provenance.json web/timezones/LICENSE-tzdb.txt %{buildroot}%{_datadir}/%{name}/web/timezones/
 printf '{"version":"%{version}"}\n' > %{buildroot}%{_datadir}/%{name}/version.json
 install -d %{buildroot}%{_datadir}/%{name}/web/schriften
 install -pm 0644 web/schriften/Z003-MediumItalic.otf web/schriften/Z003-LIZENZ.txt %{buildroot}%{_datadir}/%{name}/web/schriften/
 install -pm 0644 web/index.html web/stil.css web/anwendung.js web/zeichenblatt.js web/mcp-protocol.js \
+    web/appearance.js web/contact-group-aliases.js \
     web/qr-dialog.css web/qr-dialog.js web/qr-decoder.js web/qr-decoder-LICENSE.txt \
     web/country-flags.png web/country-flags-LICENSE.txt \
-    web/i18n.js web/i18n-start.js web/i18n-markers.js \
+    web/i18n.js web/i18n-start.js web/i18n-markers.js web/normative-timezones.js \
     web/i18n-en.js web/phone-metadata-LICENSE.txt web/phone-metadata-NOTICE.txt \
     %{buildroot}%{_datadir}/%{name}/web/
 install -pm 0644 web/kaffee-qr.mga \
@@ -260,6 +270,7 @@ done < po/LINGUAS
 
 %find_lang %{name}
 /usr/bin/python3 -I -B werkzeuge/phone_features.py %{buildroot}%{_bindir} %{buildroot}%{_datadir}/%{name}
+/usr/bin/python3 -I -B werkzeuge/web_startskripte_pruefen.py %{buildroot}%{_datadir}/%{name}/web
 /usr/bin/python3 werkzeuge/release_sources.py binary %{buildroot}%{_datadir}/%{name}
 
 # %check runs before %install. Validate the installed product here while the

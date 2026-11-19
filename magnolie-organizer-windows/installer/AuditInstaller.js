@@ -8,7 +8,9 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { artifactPayload } = require("../build/AuditWebPayload");
 
-const [installer, publish, expectedName, buildRecord] = process.argv.slice(2);
+const [installer, publish, expectedName, buildRecord, ...signatureArgs] = process.argv.slice(2);
+if (signatureArgs.length && (signatureArgs.length !== 7 || signatureArgs[0] !== "--authenticode"))
+  throw new Error("Invalid Authenticode audit arguments");
 const markerName = "WINDOWS-RUNTIME-UNVERIFIED.txt";
 const marker = "windowsRuntimeVerified=false\nwindowsVmValidationRequired=true\nartifactTrust=UNSIGNED\n";
 const fail = message => { throw new Error(`Installer-Audit: ${message}`); };
@@ -116,6 +118,13 @@ try {
     if (!fs.readFileSync(source).equals(fs.readFileSync(target))) fail(`Installerdatei ist nicht bytegleich: ${relative}`);
   }
   artifactPayload(publish, extracted);
+  if (signatureArgs.length) {
+    const [, host, verifier, publisher, signTool, report, receipt] = signatureArgs;
+    const verified = spawnSync(host, ["-NoProfile", "-NonInteractive", "-File", verifier,
+      "-Root", extracted, "-Publisher", publisher, "-SignTool", signTool,
+      "-Report", report, "-Installer", installer, "-UninstallerReceipt", receipt], { stdio: "inherit" });
+    if (verified.error || verified.status !== 0) fail("Authenticode-Vertrauensprüfung fehlgeschlagen");
+  }
   const extractedMarker = path.join(extracted, markerName);
   if (crossCompile && fs.readFileSync(extractedMarker).toString("ascii") !== marker)
     fail("eingebetteter Cross-Marker ist nicht exakt");

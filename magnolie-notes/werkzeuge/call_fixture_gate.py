@@ -26,6 +26,73 @@ TOOLS = Path(__file__).resolve().parent
 MEMORY = 6 * 1024 ** 3
 
 
+def cached_gradle(cache_home, properties=None):
+    """Select only the wrapper's completed offline cache; never download/fallback.
+
+    The URL MD5 is Gradle Wrapper's cache-directory key, NOT a security hash.
+    The wrapper configuration must separately pin the distribution's SHA-256.
+    A completion marker is not an independent re-verification of extracted jars.
+    """
+    values = {}
+    for line in (properties or SOURCE / 'gradle/wrapper/gradle-wrapper.properties').read_text().splitlines():
+        if not line.strip() or line.lstrip().startswith(('#', '!')): continue
+        key, separator, value = line.partition('=')
+        key, value = key.strip(), value.strip().replace('\\:', ':')
+        if not separator or key in values or '\\' in value:
+            raise RuntimeError('Unsupported or ambiguous Gradle wrapper properties')
+        values[key] = value
+    for key, expected in (('distributionBase', 'GRADLE_USER_HOME'), ('distributionPath', 'wrapper/dists'),
+                          ('zipStoreBase', 'GRADLE_USER_HOME'), ('zipStorePath', 'wrapper/dists')):
+        if values.get(key) != expected:
+            raise RuntimeError('Offline fixture requires the configured user wrapper cache')
+    url = values.get('distributionUrl', '')
+    match = re.fullmatch(r'https://services\.gradle\.org/distributions/gradle-([0-9]+(?:\.[0-9]+){1,2})-(bin|all)\.zip', url)
+    if match is None or not re.fullmatch(r'[a-fA-F0-9]{64}', values.get('distributionSha256Sum', '')):
+        raise RuntimeError('Offline fixture requires a supported SHA-256-bound wrapper distribution')
+    number = int.from_bytes(hashlib.md5(url.encode('utf-8'), usedforsecurity=False).digest(), 'big')
+    key = ''
+    while number:
+        number, digit = divmod(number, 36)
+        key = '0123456789abcdefghijklmnopqrstuvwxyz'[digit] + key
+    version, kind = match.groups()
+    base = cache_home / '.gradle/wrapper/dists'
+    family = base / f'gradle-{version}-{kind}'
+    cache = family / (key or '0')
+    distribution = cache / f'gradle-{version}'
+    executable = distribution / 'bin/gradle'
+    marker = cache / f'gradle-{version}-{kind}.zip.ok'
+    if (not cache.is_dir() or family.is_symlink() or cache.is_symlink() or distribution.is_symlink()
+            or executable.is_symlink() or marker.is_symlink() or not marker.is_file()
+            or not executable.is_file() or not os.access(executable, os.X_OK)
+            or not executable.resolve().is_relative_to(base.resolve())):
+        raise RuntimeError('The configured completed offline Gradle distribution is unavailable')
+    if [path.name for path in cache.iterdir() if path.is_dir()] != [distribution.name]:
+        raise RuntimeError('Ambiguous offline Gradle distribution roots')
+    return executable
+
+
+def project_mounts(output, source=SOURCE):
+    """Writable, disposable directory metadata; every canonical child stays RO.
+
+    Bind real inputs directly, without copying or editing a second source tree.
+    Gradle 9 requires writable project directories even with relocated outputs.
+    """
+    command = ['--bind', str(output / 'project-root'), str(source)]
+    for path in sorted(source.iterdir()):
+        if path.name not in ('app', 'build', '.gradle', '.kotlin'):
+            command += ['--ro-bind', str(path), str(path)]
+    command += ['--bind', str(output / 'app-root'), str(source / 'app')]
+    for path in sorted((source / 'app').iterdir()):
+        if path.name != 'build': command += ['--ro-bind', str(path), str(path)]
+    return command
+
+
+def suites_passed(suites):
+    expected = {'CallLifecycleTransportTest': 15, 'CallControlOriginTrackerTest': 7, 'TelefonSitzungTest': 9}
+    return len(suites) == len(expected) and {s['name']: s['tests'] for s in suites} == expected and all(
+        s['failures'] == s['errors'] == s['skipped'] == 0 for s in suites)
+
+
 def process(pid):
     try:
         fields = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
@@ -166,8 +233,14 @@ def source_hashes():
     files += list((SOURCE / 'app/src/test/java').rglob('*Call*Test.kt'))
     files += list((SOURCE / 'app/src/test/java').rglob('TelefonSitzungTest.kt'))
     files += [SOURCE / 'app/build.gradle.kts', SOURCE / 'gradle.properties', TOOLS / 'call_fixture.gradle',
-        TOOLS / 'call_fixture_gate.py', TOOLS / 'test_call_fixture_gate.py']
-    return {str(path.relative_to(SOURCE)): hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(files)}
+        TOOLS / 'call_fixture_gate.py', TOOLS / 'test_call_fixture_gate.py', SOURCE / 'build.gradle.kts',
+        SOURCE / 'gradle/wrapper/gradle-wrapper.properties', SOURCE / 'gradle/wrapper/gradle-wrapper.jar',
+        SOURCE / 'gradle/libs.versions.toml', SOURCE / 'gradle/verification-metadata.xml',
+        SOURCE / 'app/gradle.lockfile', SOURCE / 'settings-gradle.lockfile']
+    values = {str(path.relative_to(SOURCE)): hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(files)}
+    contract = SOURCE.parent / 'contracts/contact-original-return-hash-v1-vectors.json'
+    values['../contracts/' + contract.name] = hashlib.sha256(contract.read_bytes()).hexdigest()
+    return values
 
 
 def worker(args):
@@ -177,15 +250,17 @@ def worker(args):
     cache_home = args.cache_home
     sdk = cache_home / '.local/share/android-sdk'
     jdk = Path(os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-21-openjdk-amd64')).resolve()
-    gradle = cache_home / '.gradle/wrapper/dists/gradle-8.13-bin/5xuhj0ry160q40clulazy9h7d/gradle-8.13/bin/gradle'
+    gradle = cached_gradle(cache_home)
     required = [sdk, gradle, jdk / 'bin/java', jdk / 'bin/javac', cache_home / '.gradle/caches', cache_home / '.m2/repository/org/robolectric']
     if any(not path.exists() for path in required): raise RuntimeError('Required offline SDK/Gradle/Robolectric cache is unavailable')
     compiler = subprocess.check_output([str(jdk / 'bin/javac'), '-version'], stderr=subprocess.STDOUT, text=True, timeout=10)
     if not re.search(r'\bjavac 21(?:\.|\s|$)', compiler): raise RuntimeError('A complete JDK 21 is required')
-    for name in ('home/.m2/repository', 'gradle', 'app-build', 'root-build', 'cache', 'tmp', 'kotlin', 'trace'):
+    for name in ('home/.m2/repository', 'gradle', 'app-build', 'root-build', 'cache', 'tmp', 'kotlin', 'trace',
+                 'project-root', 'app-root'):
         (output / name).mkdir(parents=True, exist_ok=True)
     started_wall = time.time()
     before = source_hashes()
+    gradle_sha = hashlib.sha256(gradle.read_bytes()).hexdigest()
     (output / 'sources-before.json').write_text(json.dumps(before, indent=2) + '\n')
     with open('/tmp/opencode/android-build.lock', 'a') as lock:
         deadline = time.monotonic() + 20
@@ -196,7 +271,9 @@ def worker(args):
                 time.sleep(0.2)
         command = ['bwrap', '--die-with-parent', '--unshare-net', '--unshare-pid', '--as-pid-1',
             '--ro-bind', '/', '/', '--tmpfs', '/tmp', '--tmpfs', '/run', '--tmpfs', '/home',
-            '--ro-bind', str(SOURCE), str(SOURCE), '--ro-bind', str(sdk), str(sdk), '--ro-bind', str(jdk), str(jdk),
+            *project_mounts(output), '--ro-bind', str(sdk), str(sdk), '--ro-bind', str(jdk), str(jdk),
+            '--ro-bind', str(SOURCE.parent / 'contracts/contact-original-return-hash-v1-vectors.json'),
+            str(SOURCE.parent / 'contracts/contact-original-return-hash-v1-vectors.json'),
             '--bind', str(output), str(output),
             '--bind', str(cache_home / '.gradle/caches'), str(output / 'gradle/caches'),
             '--ro-bind', str(cache_home / '.gradle/wrapper'), str(output / 'gradle/wrapper'),
@@ -232,11 +309,11 @@ def worker(args):
     (output / 'sources-after.json').write_text(json.dumps(after, indent=2) + '\n')
     result.update(suites=suites, sources_unchanged=before == after, limits_before=limits, limits_after=cgroup(),
         affinity=sorted(os.sched_getaffinity(0)), source=str(SOURCE), command=command,
+        selected_gradle=str(gradle), selected_gradle_sha256=gradle_sha,
+        gradle_unchanged=cached_gradle(cache_home) == gradle and hashlib.sha256(gradle.read_bytes()).hexdigest() == gradle_sha,
         started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(started_wall)),
         ended_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
-    expected_tests = {'CallLifecycleTransportTest': 15, 'CallControlOriginTrackerTest': 7, 'TelefonSitzungTest': 8}
-    result['passed'] = result['clean_exit'] and {s['name']: s['tests'] for s in suites} == expected_tests and all(
-        s['failures'] == s['errors'] == s['skipped'] == 0 for s in suites) and before == after
+    result['passed'] = result['clean_exit'] and suites_passed(suites) and before == after and result['gradle_unchanged']
     (output / 'gate-result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(dict(passed=result['passed'], suites=suites, clean_exit=result['clean_exit'], seconds=result['seconds'])), flush=True)
     return 0 if result['passed'] else 1
@@ -246,7 +323,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('/tmp/opencode/latest-call-clean'))
     parser.add_argument('--cache-home', type=Path, default=Path.home())
-    parser.add_argument('--variant', choices=('debug', 'release'), default='debug')
+    parser.add_argument('--variant', choices=('debug', 'release'), default='release')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     args.output = args.output.resolve(); args.cache_home = args.cache_home.resolve()

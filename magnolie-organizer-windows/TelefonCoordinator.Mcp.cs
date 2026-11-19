@@ -156,9 +156,58 @@ internal sealed partial class TelefonCoordinator
         if (state["shared"]!["supported"]!.GetValue<bool>() || state["shared"]!["initialized"]!.GetValue<bool>()) throw new NotSupportedException();
     }
 
+    partial void ReadNativeMediaMcpStatus(string peerId, ref JsonObject? result);
+
+    internal JsonObject McpMediaStatus(JsonObject request)
+    {
+        if (request.Count != 4 || new[] { "action", "peerId", "fingerprint", "expectedRevision" }.Any(key =>
+            request[key] is not JsonValue value || !value.TryGetValue<string>(out _)) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(request["expectedRevision"]!.GetValue<string>(), "\\A[a-f0-9]{64}\\z"))
+            return new() { ["ok"] = false, ["code"] = "invalid_selection" };
+        try
+        {
+            var id = request["peerId"]!.GetValue<string>(); var fingerprint = request["fingerprint"]!.GetValue<string>();
+            var revision = request["expectedRevision"]!.GetValue<string>();
+            TelefonConnection? connection;
+            lock (gate)
+            {
+                if (disposed || store.RestoreFenced) return new() { ["ok"] = false, ["code"] = "native_busy" };
+                CheckMcpRevision(revision); RequireMcpPeer(id, fingerprint); online.TryGetValue(id, out connection);
+            }
+            JsonObject? native = null;
+            ReadNativeMediaMcpStatus(id, ref native);
+            lock (gate)
+            {
+                if (disposed || store.RestoreFenced) return new() { ["ok"] = false, ["code"] = "source_changed" };
+                CheckMcpRevision(revision); var peer = RequireMcpPeer(id, fingerprint);
+                online.TryGetValue(id, out var current);
+                if (!ReferenceEquals(current, connection)) return new() { ["ok"] = false, ["code"] = "source_changed" };
+                return new() { ["ok"] = true, ["mediaStatus"] = ProjectMcpMediaStatus(id, TelefonCrypto.Fingerprint(peer.PublicKey), native) };
+            }
+        }
+        catch (McpConflictException) { return new() { ["ok"] = false, ["code"] = "conflict" }; }
+        catch (Exception error) when (error is InvalidDataException or InvalidOperationException or IOException)
+        { return new() { ["ok"] = false, ["code"] = "native_operation_failed" }; }
+    }
+
+    internal static JsonObject ProjectMcpMediaStatus(string id, string fingerprint, JsonObject? native)
+    {
+        static JsonNode? Flag(JsonNode? value) => value is JsonValue flag && flag.TryGetValue<bool>(out var enabled) ? JsonValue.Create(enabled) : null;
+        var supported = native?["supported"] is JsonValue available && available.TryGetValue<bool>(out var yes) && yes;
+        native = supported ? native : null;
+        return new() { ["peer_id"] = id, ["fingerprint"] = fingerprint, ["supported"] = supported,
+            ["activation_required"] = Flag(native?["activation_required"]) ?? JsonValue.Create(false),
+            ["photos_enabled"] = Flag(native?["photos"]), ["videos_enabled"] = Flag(native?["videos"]),
+            ["video_supported"] = Flag((native?["metadata_ready"] as JsonObject)?["video"]),
+            ["automatic_wifi"] = Flag(native?["automatic"]), ["busy"] = Flag(native?["busy"]),
+            ["shared_settings_present"] = native is null ? null : JsonValue.Create(native["shared_settings"] is JsonObject),
+            ["shared_settings_agreed"] = Flag(native?["shared_matched"]), ["persisted"] = false, ["transfer_started"] = false };
+    }
+
     internal async Task<JsonObject> ExecuteMcpAsync(JsonObject request, CancellationToken cancellation,
         Func<string, string, string, Task>? removeWithRuntime = null)
     {
+        if (request["action"]?.GetValue<string>() == "media_status_read") return McpMediaStatus(request);
         if (request["action"]?.GetValue<string>() is "device_status_query" or "device_status_cancel") return await ExecuteMcpStatusAsync(request, cancellation);
         if (request["action"]?.GetValue<string>()?.StartsWith("call_actor_", StringComparison.Ordinal) == true) return ExecuteMcpCallActor(request);
         if (request["action"]?.GetValue<string>() == "call_context_read") return ExecuteMcpCallContext(request);

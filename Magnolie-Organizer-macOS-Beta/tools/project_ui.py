@@ -64,10 +64,39 @@ def timezone_assets(snapshot):
     return result
 
 
+def strip_canonical_timezone_bootstrap(html):
+    tag = '<script src="normative-timezones.js"></script>'
+    app = '<script src="anwendung.js"></script>'
+    if "normative-timezones.js" not in html:
+        return html
+    if (html.count("normative-timezones.js") != 1 or html.count(tag) != 1 or
+            html.count(app) != 1 or html.index(tag) > html.index(app)):
+        raise ValueError("Timezone bootstrap script changed")
+    return html.replace(tag, "", 1)
+
+
 def apply_timezone_patches(source, snapshot):
     prefix = "port-adapters/timezones/"
     patches = json.loads(snapshot[prefix + "projection-patches.json"])
     hooks = snapshot[prefix + "app-hooks.snippets"].decode()
+    def replacement(patch):
+        if not patch.get("hook"):
+            return patch["replacement"]
+        begin = "/*TZ_HOOK:" + patch["hook"] + "*/\n"
+        finish = "/*TZ_HOOK_END:" + patch["hook"] + "*/"
+        if hooks.count(begin) != 1 or hooks.count(finish) != 1:
+            raise ValueError("Timezone hook changed: " + patch["id"])
+        return hooks.split(begin)[1].split(finish)[0]
+
+    if "/*TZ_PORT:" in source:
+        if source.count("/*TZ_PORT:") != len(patches) * 2:
+            raise ValueError("Timezone projection match changed: marker inventory")
+        for patch in patches:
+            begin = "/*TZ_PORT:" + patch["id"] + ":BEGIN*/"
+            end = "/*TZ_PORT:" + patch["id"] + ":END*/"
+            if source.count(begin) != 1 or source.count(end) != 1 or source.count(begin + replacement(patch) + end) != 1:
+                raise ValueError("Timezone projection match changed: " + patch["id"])
+        return source
     canonical = source
     for patch in patches:
         if canonical.count(patch["start"]) != 1:
@@ -82,14 +111,7 @@ def apply_timezone_patches(source, snapshot):
         allowed = [patch["sha256"]] + [variant["sha256"] for variant in patch.get("reviewedVariants", [])]
         if digest(before.encode()) not in allowed:
             raise ValueError("Timezone canonical block changed: " + patch["id"])
-        if patch.get("hook"):
-            begin = "/*TZ_HOOK:" + patch["hook"] + "*/\n"
-            finish = "/*TZ_HOOK_END:" + patch["hook"] + "*/"
-            if hooks.count(begin) != 1 or hooks.count(finish) != 1:
-                raise ValueError("Timezone hook changed: " + patch["id"])
-            after = hooks.split(begin)[1].split(finish)[0]
-        else:
-            after = patch["replacement"]
+        after = replacement(patch)
         if source.count(before) != 1:
             raise ValueError("Timezone projection match changed: " + patch["id"])
         source = source.replace(before, "/*TZ_PORT:" + patch["id"] + ":BEGIN*/" + after + "/*TZ_PORT:" + patch["id"] + ":END*/", 1)
@@ -394,7 +416,7 @@ def project(snapshot, target):
     (target / "web/macos-beta.css").write_bytes(snapshot[str((BETA / "Projection/macos-beta.css").relative_to(REPO))] +
                                               b"\n" + snapshot["port-adapters/legacy-display.css"])
     index = target / "web/index.html"
-    html = replace_once(index.read_text(), "<title>Magnolie Organizer</title>",
+    html = replace_once(strip_canonical_timezone_bootstrap(index.read_text()), "<title>Magnolie Organizer</title>",
                         "<title>Magnolie Organizer macOS Beta</title>\n<link rel=\"stylesheet\" href=\"macos-beta.css\">")
     # All existing catalogs are copied and registered; locale selection still belongs to the canonical UI.
     catalogs = sorted((target / "web/i18n").glob("*.js"))

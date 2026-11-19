@@ -8,7 +8,6 @@ import org.gradle.api.tasks.testing.TestResult
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -43,17 +42,26 @@ val eigenerSchluessel = !fdroidBau && schluesselDatei.isFile && schluesselVollst
 // Keep the Android Java/Kotlin bytecode target at 17 for compatibility.
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
 
 android {
     namespace = "io.gitlab.maik3531.magnolienotes"
-    compileSdk = 35
+    // #672 preparation only: target/manifest migration still needs native acceptance.
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
     testBuildType = "release"
 
     defaultConfig {
         applicationId = "io.gitlab.maik3531.magnolienotes"
         minSdk = 26
         targetSdk = 35
+        check(requireNotNull(targetSdk) < 37) {
+            "#648/#558: API 37 requires reviewed toolchain, LAN manifest and native acceptance; guards alone are not migration approval."
+        }
         versionCode = 21
         versionName = "1.0.21"
         buildConfigField("boolean", "FDROID_DISTRIBUTION", fdroidBau.toString())
@@ -97,10 +105,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     buildFeatures {

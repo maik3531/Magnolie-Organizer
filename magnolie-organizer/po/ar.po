@@ -2216,6 +2216,60 @@ msgstr "تابع"
 msgid "Contributor Key"
 msgstr "Contributor Key"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "الوصول إلى الحساب غير متاح مؤقتًا. ستنتظر التحديثات التلقائية."
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "أضف هذا المصدر الأصلي دون استبدال الأذونات الحالية. حدد جهة الاتصال الموجودة في Organizer بشكل صريح. يمنح هذا إذنًا بالتحديثات المستمرة؛ لن تُنشأ أي جهات اتصال أصلية أو تُحذف. تنتظر التحديثات التلقائية اتصال Wi-Fi."
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "اسمح بالتحديثات التلقائية لدفاتر العناوين الأصلية المحددة فقط، بما في ذلك بعد إعادة التشغيل. جهات الاتصال الموجودة فقط؛ دون إنشاء أو حذف. تنتظر التحديثات اتصال Wi-Fi. لا يتم تحديد أي شيء افتراضيًا. يؤدي إفراغ التحديد إلى إلغاء جميع الموافقات. يمكنك إلغاء هذا الإذن في أي وقت من الإعدادات."
+
+msgid "Allow updates"
+msgstr "السماح بالتحديثات"
+
+msgid "Notes original source"
+msgstr "مصدر Notes الأصلي"
+
+msgid "Original address book"
+msgstr "دفتر العناوين الأصلي"
+
+msgid "Original contact sources"
+msgstr "مصادر جهات الاتصال الأصلية"
+
+msgid "Revoke"
+msgstr "إلغاء الإذن"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "حدد جهة الاتصال الموجودة في Organizer لهذا المصدر الأصلي من Notes بشكل صريح. يمنح هذا إذنًا بالتحديثات المستمرة؛ لن تُنشأ أي جهات اتصال أصلية أو تُحذف. تنتظر التحديثات التلقائية اتصال Wi-Fi."
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "أعدّ الوصول إلى الحساب مرة واحدة في الإعدادات. ستنتظر التحديثات التلقائية."
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "يحتوي دفتر العناوين على ارتباط ملتبس بالمصدر."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "تعذّر حفظ إذن مصدر جهات الاتصال. تم إيقاف التحديثات التلقائية مؤقتًا."
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "الوصول المحفوظ إلى الحساب ملتبس. تحقق من الحساب في الإعدادات."
+
+msgid "Update original contact sources"
+msgstr "تحديث مصادر جهات الاتصال الأصلية"
+
+msgid "Waiting for Wi-Fi."
+msgstr "في انتظار اتصال Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "في انتظار الوصول إلى الحساب. ستُستأنف التحديثات التلقائية لجهات الاتصال عند توفر الوصول."
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "في انتظار الوصول إلى الحساب. افتح قفل حلقة مفاتيح النظام عندما يناسبك ذلك."
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "يمكن فتح مرفقات HTTPS فقط. يمكنك نسخ العناوين الأخرى."
+
 msgid "Copy"
 msgstr "نسخ"
 

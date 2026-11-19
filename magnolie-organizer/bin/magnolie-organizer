@@ -3957,6 +3957,25 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
                 if name in ("DTSTART", "DTEND", "DUE") and "T" in value and getattr(zone, "key", None):
                     zeilen[index] = _ics_prop_roh(name, dict(params, TZID=zone.key), value.rstrip("Z"))
     eigene = {"SUMMARY", "DESCRIPTION", "CATEGORIES", "PRIORITY", "X-MAGNOLIE-ACCENT-COLOR"}
+    # A parameterized colour property is not ours to rewrite. Preserve it
+    # exactly when unchanged, or refuse an edit rather than dropping parameters.
+    geschuetzte_farbe, tiefe = False, 0
+    for zeile in rohzeilen:
+        name, params, wert = _prop_zerlegen(zeile)
+        if name == "BEGIN":
+            tiefe += 1
+        if not tiefe and name == "X-MAGNOLIE-ACCENT-COLOR" and params:
+            if eintrag is not None and _kalender_akzentfarbe(eintrag.get("akzentFarbe")) != _kalender_akzentfarbe(wert):
+                # Do not let the generic invalid-record skip path silently
+                # turn this protected edit into a partial calendar export.
+                raise RuntimeError(_("The content is unreadable."))
+            geschuetzte_farbe = True
+        if name == "END":
+            tiefe = max(0, tiefe - 1)
+    if geschuetzte_farbe:
+        eigene.discard("X-MAGNOLIE-ACCENT-COLOR")
+        zeilen[:] = [line for line in zeilen if
+                     (_prop_zerlegen(line) or ("",))[0] != "X-MAGNOLIE-ACCENT-COLOR"]
     if jahrestag:
         # The annual projection owns its anchor and rule, not nested alarm fields.
         eigene.update(("DTSTART", "DTEND", "DUE", "DURATION", "RRULE",
@@ -6637,6 +6656,43 @@ def _sync_inhalt_hash(obj, felder):
         separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
+def _sync_dav_inhalt_hash(obj, felder):
+    # Keep the shipped linux-1/linux-calendar-2 functions and vectors intact.
+    # Only the separately versioned calendar/task DAV projection owns colour.
+    if felder != TERMIN_FELDER and felder != AUFGABE_FELDER:
+        return _sync_inhalt_hash(obj, felder)
+    inhalt = _sync_inhalt(obj, felder)
+    inhalt["akzentFarbe"] = _kalender_akzentfarbe(obj.get("akzentFarbe"))
+    if felder == TERMIN_FELDER:
+        for name in ("icsAusnahmen", "icsEndeFehlt", "icsNullDauer"):
+            inhalt[name] = obj.get(name) or None
+    else:
+        inhalt["kategorien"] = obj.get("kategorien") or ""
+        inhalt["icsElternUid"] = obj.get("icsElternUid", obj.get("elternUid")) or ""
+    # An imported generated colour line must not pin the old colour or create
+    # a second dirty edit after our own confirmed export is read back.
+    roh, tiefe = [], 0
+    for line in inhalt.get("icsRoundtrip") or []:
+        prop = _prop_zerlegen(line) if isinstance(line, str) else None
+        if prop and prop[0] == "BEGIN":
+            tiefe += 1
+        if not (prop and not tiefe and prop[0] == "X-MAGNOLIE-ACCENT-COLOR" and not prop[1]):
+            roh.append(line)
+        if prop and prop[0] == "END":
+            tiefe = max(0, tiefe - 1)
+    inhalt["icsRoundtrip"] = roh or None
+    return hashlib.sha256(json.dumps(inhalt, ensure_ascii=False, sort_keys=True,
+                                    separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _sync_dav_inhalt_format(felder):
+    if felder == TERMIN_FELDER:
+        return "linux-calendar-3"
+    if felder == AUFGABE_FELDER:
+        return "linux-task-2"
+    return _sync_inhalt_format(felder)
+
+
 def _kontakt_konflikt_inhalt(obj):
     """Compare contact information, never photo choices or serialization dates."""
     inhalt = _sync_inhalt(obj, KONTAKT_FELDER)
@@ -6911,6 +6967,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     Liefert (neue_lokal, anlegen, aendern, loeschen_uids, zaehler).
     Bei gleichem Eintrag gewinnt die zuletzt geänderte Seite.
     """
+    inhalt_hash = _sync_dav_inhalt_hash if dav is not None else _sync_inhalt_hash
+    inhalt_format = _sync_dav_inhalt_format if dav is not None else _sync_inhalt_format
     if felder == KONTAKT_FELDER:
         for obj in lokal:
             _kontakt_emails_klein(obj)
@@ -6956,7 +7014,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         fern = entfernt.get(u)
         # Compatible provider additions can normalize phone/email structures.
         # Compare the persisted DAV baseline with the user's pre-merge state.
-        kontakt_lokal_hash = (_sync_inhalt_hash(obj, felder)
+        kontakt_lokal_hash = (inhalt_hash(obj, felder)
                               if dav is not None and felder == KONTAKT_FELDER else None)
         # Membership changes are authoritative sets, not additive provider fields.
         # Resolve them against the existing source baseline before any union;
@@ -6972,9 +7030,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
             quelle = kontakt_quelle or (dav[0] if dav else None)
             basis = (obj.get("syncQuellen") or {}).get(quelle) or {}
             if kontakt_quelle:
-                remote_neu = (basis.get("inhaltFormat") == _sync_inhalt_format(felder) and
+                remote_neu = (basis.get("inhaltFormat") == inhalt_format(felder) and
                               bool(basis.get("inhaltSha256")) and
-                              basis["inhaltSha256"] != _sync_inhalt_hash(fern, felder))
+                              basis["inhaltSha256"] != inhalt_hash(fern, felder))
             else:
                 meta = ((dav[2] or {}).get(u) or {}) if dav else {}
                 remote_neu = bool(basis.get("etag") and meta.get("etag") and
@@ -7033,8 +7091,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 continue
             if obj.get("sync"):
                 basis = ((obj.get("syncQuellen") or {}).get(dav[0] if dav else kontakt_quelle) or {})
-                lokal_neu = (basis.get("inhaltFormat") != _sync_inhalt_format(felder) or
-                              _sync_inhalt_hash(obj, felder) != basis.get("lokalInhaltSha256", basis.get("inhaltSha256")) or
+                lokal_neu = (basis.get("inhaltFormat") != inhalt_format(felder) or
+                              inhalt_hash(obj, felder) != basis.get("lokalInhaltSha256", basis.get("inhaltSha256")) or
                               bool(basis.get("pruefungFreigegeben"))
                               if dav or kontakt_quelle else (obj.get("geaendert") or 0) > letzter_sync)
                 if kontakt_quelle and not basis.get("inhaltSha256") and not basis.get("pruefungFreigegeben"):
@@ -7057,9 +7115,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
             dav_entscheidung = None
             if kontakt_quelle:
                 basis = (obj.get("syncQuellen") or {}).get(kontakt_quelle) or {}
-                lokal_hash = _sync_inhalt_hash(obj, felder)
-                remote_hash = _sync_inhalt_hash(fern, felder)
-                bekannt = basis.get("inhaltFormat") == _sync_inhalt_format(felder) and bool(basis.get("inhaltSha256"))
+                lokal_hash = inhalt_hash(obj, felder)
+                remote_hash = inhalt_hash(fern, felder)
+                bekannt = basis.get("inhaltFormat") == inhalt_format(felder) and bool(basis.get("inhaltSha256"))
                 lokal_neu = lokal_hash != basis.get("lokalInhaltSha256", basis.get("inhaltSha256"))
                 remote_neu = remote_hash != basis.get("inhaltSha256")
                 freigegeben = bool(basis.get("pruefungFreigegeben")) and not remote_neu
@@ -7081,15 +7139,18 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 if alt.get("etag") and aktuell.get("etag"):
                     remote_neu = alt["etag"] != aktuell["etag"]
                     # Migrate shipped timestamp-only mappings conservatively.
-                    lokal_hash = kontakt_lokal_hash or _sync_inhalt_hash(obj, felder)
+                    lokal_hash = kontakt_lokal_hash or inhalt_hash(obj, felder)
+                    bekannt = (zuordnung.get("inhaltFormat") == inhalt_format(felder) and
+                               bool(zuordnung.get("inhaltSha256")))
+                    legacy_konflikt = (felder in (TERMIN_FELDER, AUFGABE_FELDER) and not bekannt and
+                                       lokal_hash != inhalt_hash(fern, felder))
                     lokal_neu = (lokal_hash != zuordnung["inhaltSha256"] if
-                                  zuordnung.get("inhaltFormat") == _sync_inhalt_format(felder) and zuordnung.get("inhaltSha256") else remote_neu or
-                                  lokal_hash != _sync_inhalt_hash(fern, felder))
+                                  bekannt else remote_neu or lokal_hash != inhalt_hash(fern, felder))
                     vergleich_fern = fern
                     if "foto" in felder and obj.get("fotoManuell") is True:
                         vergleich_fern = dict(fern, foto=obj.get("foto") or "")
-                    if remote_neu and lokal_neu and not kontakt_identisch and (
-                            _sync_inhalt_hash(obj, felder) != _sync_inhalt_hash(vergleich_fern, felder)):
+                    if (remote_neu and lokal_neu or legacy_konflikt) and not kontakt_identisch and (
+                            inhalt_hash(obj, felder) != inhalt_hash(vergleich_fern, felder)):
                         if felder == KONTAKT_FELDER:
                             _kontakt_provider_pruefung(obj, fern, quelle, aktuell, baseline=alt)
                             neue_lokal.append(obj)
@@ -7097,7 +7158,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                             continue
                         kopie = json.loads(json.dumps(obj))
                         kennung = uuid.uuid5(uuid.NAMESPACE_URL, "\n".join((
-                            quelle, u, alt["etag"], _sync_inhalt_hash(obj, felder)))).hex
+                            quelle, u, alt["etag"], inhalt_hash(obj, felder)))).hex
                         kopie.update(id=kennung, uid="mag-" + kennung + "@magnolie-organizer",
                                      sync=False)
                         for name in ("syncQuellen", "davHref", "davEtag", "icsSerienUid"):
@@ -7105,7 +7166,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                         konflikt_kopien.append(kopie)
                         konflikt_uids[u] = kopie["uid"]
                         zaehler["konflikte"] += 1
-                    dav_entscheidung = "remote" if remote_neu else "lokal" if lokal_neu else "gleich"
+                    dav_entscheidung = "remote" if remote_neu or legacy_konflikt else "lokal" if lokal_neu else "gleich"
             ergaenzung_hochladen = False
             if "foto" in felder:
                 lokal_foto = obj.get("foto") or ""
@@ -7173,8 +7234,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 obj["sozialeMedien"] = _soziale_medien_vereinigen(obj, fern)
             ist_termin = felder is TERMIN_FELDER or felder == TERMIN_FELDER
             inhalt_gleich = (not ist_termin or
-                             _sync_inhalt_hash(obj, felder) ==
-                             _sync_inhalt_hash(fern, felder))
+                              inhalt_hash(obj, felder) ==
+                              inhalt_hash(fern, felder))
             lokal_sequence = _sync_sequence(obj) if ist_termin else 0
             fern_sequence = _sync_sequence(fern) if ist_termin else 0
             if dav_entscheidung is not None:
@@ -7226,6 +7287,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                     if f in fern:
                         obj[f] = fern[f]
                 if felder == TERMIN_FELDER or felder == AUFGABE_FELDER:
+                    if dav is not None:
+                        obj["akzentFarbe"] = _kalender_akzentfarbe(fern.get("akzentFarbe"))
                     for f in ICS_BEGLEITFELDER:
                         if f in fern:
                             obj[f] = fern[f]
@@ -20463,12 +20526,15 @@ _ORGANIZER_RESSOURCEN = {
     "/kaffee-qr.png": ("kaffee-qr.mga", "image/png"),
     "/i18n.js": ("i18n.js", "application/javascript"),
     "/i18n-start.js": ("i18n-start.js", "application/javascript"),
+    "/appearance.js": ("appearance.js", "application/javascript"),
+    "/normative-timezones.js": ("normative-timezones.js", "application/javascript"),
     "/anwendung.js": ("anwendung.js", "application/javascript"),
     "/zeichenblatt.js": ("zeichenblatt.js", "application/javascript"),
     "/qr-decoder.js": ("qr-decoder.js", "application/javascript"),
     "/qr-dialog.js": ("qr-dialog.js", "application/javascript"),
     "/qr-dialog.css": ("qr-dialog.css", "text/css"),
     "/mcp-protocol.js": ("mcp-protocol.js", "application/javascript"),
+    "/contact-group-aliases.js": ("contact-group-aliases.js", "application/javascript"),
 }
 _ORGANIZER_RESSOURCEN.update({
     "/i18n/%s.js" % sprache: ("i18n/%s.js" % sprache, "application/javascript")
@@ -21409,6 +21475,11 @@ class Fenster(_FENSTER_BASIS):
         if (getattr(self, "_speicher_laeuft", False) or
                 getattr(getattr(self, "_speicher_auftraege", None), "unfinished_tasks", 0)):
             return True
+        host = getattr(self, '_notes_original_setup_host', None)
+        if host is not None:
+            self._notes_original_setup_exit_pending = True
+            host.stop()
+            if host.poll(): return True  # Existing close timer retries; never join a live network/GTK callback here.
         self._wirklich_beenden = True
         if getattr(self, '_tray_test_timer', 0):
             GLib.source_remove(self._tray_test_timer)
@@ -22122,6 +22193,11 @@ class Fenster(_FENSTER_BASIS):
         if not isinstance(befehl, str) or not befehl:
             return
 
+        if befehl in ('bereit', 'entsperren', 'kennwort_setzen', 'kennwort_entfernen',
+                'journal_wiederherstellen', 'sicherung_wiederherstellen', 'gesamtarchiv_importieren'):
+            if Fenster._notes_original_native_setup_defer_profile(self, befehl, roh, nachricht):
+                return  # Normal saves/replies remain dispatchable while the owned setup is being joined.
+
         if (str(befehl or "").startswith("baum_") or
                 str(befehl or "").startswith("telefon_") or befehl == "kde_mcp") and self._gesperrt:
             if befehl == "kde_mcp":
@@ -22226,6 +22302,22 @@ class Fenster(_FENSTER_BASIS):
                     "id": kennung, "ok": False,
                     "fehler": _("The save request is invalid.")})
                 return
+            if 'notesOriginalLauf' in nachricht:
+                try:
+                    from magnolie_contact_notes_ui import NativeNotesUiSaveSession
+                    with self._daten_sperre:
+                        session = getattr(self, '_notes_original_ui', None)
+                        if (type(session) is not NativeNotesUiSaveSession or
+                                session.controller is not getattr(self, '_notes_original_controller', None) or
+                                'kontaktOriginalLauf' in nachricht or nachricht.get('baumSyncLauf') is not None):
+                            raise PermissionError('notes_ui_native_session_required')
+                        completion = session.claim(nachricht['notesOriginalLauf'], klartext)
+                        self._speicher_auftraege.put((kennung, klartext, None, None,
+                            completion.work.intent, completion))
+                except Exception:
+                    self.antwort('App.gespeichert', {'id': kennung, 'ok': False,
+                        'fehler': _('The save request is invalid.')})
+                return
             if 'kontaktOriginalLauf' in nachricht:
                 try:
                     from magnolie_contact_source_book import NativeContactSourceCommitOffer
@@ -22241,6 +22333,15 @@ class Fenster(_FENSTER_BASIS):
                         'fehler': _('The save request is invalid.')})
                 return
             self._speicher_auftraege.put((kennung, klartext, nachricht.get("baumSyncLauf")))
+
+        elif befehl == 'notes_original_save_cancel':
+            from magnolie_contact_notes_ui import NativeNotesUiSaveSession
+            session = getattr(self, '_notes_original_ui', None)
+            if type(session) is NativeNotesUiSaveSession:
+                session.cancel(nachricht.get('token'))
+
+        elif befehl == 'notes_setup_prepared':
+            Fenster._notes_original_native_setup_prepared(self, nachricht)
 
         elif befehl == "cloud_sicherung_status":
             if nachricht.get("requestId"):
@@ -23841,6 +23942,8 @@ class Fenster(_FENSTER_BASIS):
             historical = nachweise[1] if len(nachweise) > 1 else None
             contact_result = nachweise[2] if len(nachweise) > 2 else None
             notes_work = nachweise[3] if len(nachweise) > 3 else None
+            from magnolie_contact_notes_ui import _SaveProof
+            notes_completion = notes_work if type(notes_work) is _SaveProof else None
             self._speicher_laeuft = True
             warnung = ""
             contact_approval_store = getattr(self, '_kontakt_quellen_dauerfreigabe', None)
@@ -23939,6 +24042,8 @@ class Fenster(_FENSTER_BASIS):
                             raise PermissionError("Invalid native historical writer invocation")
                         historical.write(klartext, native_write)
                     elif contact_result is not None:
+                        if notes_completion is not None and notes_completion.controller is not getattr(self, '_notes_original_controller', None):
+                            raise PermissionError('notes_ui_native_controller_changed')
                         contact_result.write(klartext, native_write)
                     else:
                         native_write(klartext)
@@ -23976,6 +24081,16 @@ class Fenster(_FENSTER_BASIS):
                     if notes_choice_store is not None:
                         self._notes_original_choice_error = notes_choice_error or (
                             'notes_choice_save_repair_pending' if warnung else None)
+                    if notes_completion is not None:
+                        try:
+                            # Still inside the serial book gate: seal against the
+                            # real saved witness before a later user save can run.
+                            notes_completion.complete({'id': kennung, 'ok': True, 'committed': True,
+                                'repairPending': bool(warnung), 'standSha256': lease.ack})
+                            self._notes_original_work_error = None
+                        except Exception:
+                            notes_completion.failed()
+                            self._notes_original_work_error = 'notes_ui_save_ack_held'
                 ergebnis = {"id": kennung, "ok": True, "committed": True,
                             "repairPending": bool(warnung), "fehler": warnung,
                             "standSha256": lease.ack}
@@ -23997,7 +24112,11 @@ class Fenster(_FENSTER_BASIS):
                 ergebnis = {
                     "id": kennung, "ok": False,
                     "fehler": fehler_deutsch(fehler, _("Saving the data"))}
-            if type(contact_result) is NativeContactSourceResultCommit:
+            if notes_completion is not None:
+                if ergebnis.get('ok') is not True:
+                    contact_result.complete(ergebnis)
+                    notes_completion.failed()
+            elif type(contact_result) is NativeContactSourceResultCommit:
                 contact_result.complete(ergebnis)
                 if notes_work is not None:
                     try:
@@ -25180,10 +25299,346 @@ class Fenster(_FENSTER_BASIS):
             return NativeNotesController(self._notes_original_choice_store_hole(), outcomes,
                 lambda: self._daten_sperre)
 
+    def _notes_original_native_resume_known(self):
+        """Explicit future native resume entry; NOT called by startup/IPC."""
+        from magnolie_contact_notes_session import NativeNotesNativeSession
+        current = getattr(self, '_notes_original_session', None)
+        if (type(current) is NativeNotesNativeSession and current.is_active and
+                not getattr(self, '_gesperrt', True) and not getattr(self, '_wirklich_beenden', False) and
+                current.choices is getattr(self, '_notes_original_choice_store', None)):
+            return 'attached'
+        if type(current) is NativeNotesNativeSession:
+            current.stop()  # No book/tree gate held at this explicit entry.
+        store = self._notes_original_choice_store_hole()
+        def usable():
+            if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    getattr(self, '_notes_original_choice_store', None) is not store):
+                raise PermissionError('notes_session_native_context_unavailable')
+        def attach(owner, controller, ui):
+            usable()
+            if (getattr(self, '_notes_original_controller', None) is not None or
+                    getattr(self, '_notes_original_ui', None) is not None or
+                    getattr(self, '_notes_original_session', None) not in (None, current)):
+                return False
+            self._notes_original_controller, self._notes_original_ui, self._notes_original_session = controller, ui, owner
+            return True
+        def detach(owner, controller, ui):
+            if getattr(self, '_notes_original_session', None) is not owner:
+                return
+            if getattr(self, '_notes_original_controller', None) is controller:
+                self._notes_original_controller = None
+            if getattr(self, '_notes_original_ui', None) is ui:
+                self._notes_original_ui = None
+            self._notes_original_session = None
+        session = NativeNotesNativeSession(os.path.realpath(daten_verzeichnis()), os.path.realpath(daten_datei()),
+            store, lambda: json.dumps(self._aktuelle_daten, ensure_ascii=False, sort_keys=True,
+                separators=(',', ':'), allow_nan=False) if not self._gesperrt else None,
+            lambda: self._daten_sperre, attach, detach, usable)
+        return session.try_attach_known()
+
+    def _notes_original_native_stop_session(self):
+        host = getattr(self, '_notes_original_setup_host', None)
+        if host is not None:
+            host.stop()  # UI poll joins asynchronously, never under a book/tree gate.
+        Fenster._notes_original_native_setup_preparation_stop(self)
+        from magnolie_contact_notes_session import NativeNotesNativeSession
+        session = getattr(self, '_notes_original_session', None)
+        if type(session) is NativeNotesNativeSession:
+            session.stop()  # Native caller must be outside book/tree locks.
+
+    def _notes_original_native_setup_defer_profile(self, command, raw, message):
+        """Fence one actual profile command until own setup AND ordinary saves returned."""
+        callbacks = {'journal_wiederherstellen': 'App.journalWiederhergestellt',
+            'sicherung_wiederherstellen': 'App.sicherungWiederhergestellt',
+            'gesamtarchiv_importieren': 'App.gesamtarchivImportiert',
+            'kennwort_setzen': 'App.kennwortStand', 'kennwort_entfernen': 'App.kennwortStand'}
+        pending = getattr(self, '_notes_original_setup_profile_fence', None)
+        host = getattr(self, '_notes_original_setup_host', None)
+        if pending is None and host is None:
+            return False  # Existing no-feature profile behavior remains unchanged.
+        def reject(code, *, dispatched=False):
+            callback = callbacks.get(command)
+            if callback is not None:
+                result = {'requestId': message.get('requestId'), 'ok': False, 'code': code,
+                    'fehler': _("Synchronization failed.") if dispatched else _("Another data operation is still running.")}
+                if dispatched: result['outcomeUnknown'] = True
+                else: result['committed'] = False
+                self.antwort(callback, result)
+            else:
+                self.antwort('App.syncFehler', _("Synchronization failed.") if dispatched else _("Another data operation is still running."))
+        from magnolie_contact_notes_setup_run import NativeNotesSetupHost
+        if (threading.current_thread() is not threading.main_thread() or pending is not None or
+                type(host) is not NativeNotesSetupHost or getattr(self, '_wirklich_beenden', False) or
+                getattr(self, '_notes_original_setup_exit_pending', False)):
+            reject('busy')
+            return True
+        pending = {'raw': raw}
+        self._notes_original_setup_profile_fence = pending
+        self._notes_original_setup_version = getattr(self, '_notes_original_setup_version', 0) + 1
+        host.stop()  # No book/tree gate. The existing owned UI poll can close own GTK dialogs.
+        def resume():
+            if getattr(self, '_notes_original_setup_profile_fence', None) is not pending:
+                return False
+            if getattr(self, '_wirklich_beenden', False) or getattr(self, '_notes_original_setup_exit_pending', False):
+                self._notes_original_setup_profile_fence = None; pending.clear()
+                return False  # Do not replay a restore/password operation after final close.
+            if host.poll():
+                return True
+            current_host = getattr(self, '_notes_original_setup_host', None)
+            if (current_host is not None and current_host is not host or
+                    getattr(self, '_speicher_laeuft', False) or
+                    getattr(getattr(self, '_speicher_auftraege', None), 'unfinished_tasks', 0)):
+                return True  # No stale queued save may run behind a restored profile.
+            original = pending.pop('raw')
+            self._notes_original_setup_profile_fence = None
+            try:
+                Fenster.bei_nachricht(self, original)  # One use; recheck current UI trust and ALL original route validations.
+            except Exception as error:
+                debug_notiz('notes.profile-fence-failed', error=type(error).__name__)
+                reject('native_outcome_unknown', dispatched=True)  # The original transaction may already have committed.
+            return False
+        try:
+            GLib.timeout_add(25, resume)
+        except Exception:
+            self._notes_original_setup_profile_fence = None; pending.clear()
+            reject('native_operation_failed')
+        return True
+
+    def _notes_original_native_setup_preparation_stop(self):
+        pending = getattr(self, '_notes_original_setup_preparation', None)
+        self._notes_original_setup_preparation = None
+        timer = getattr(self, '_notes_original_setup_preparation_timer', None)
+        self._notes_original_setup_preparation_timer = None
+        if timer is not None:
+            GLib.source_remove(timer)
+        if pending is not None:
+            pending[0].stop()
+
+    def _notes_original_native_setup_run(self, status, choose_source=None, choose_peer=None, choose_contact=None, sender=None):
+        """Explicit native UI action only; no renderer/startup/capability registration."""
+        from magnolie_contact_notes_setup_run import NativeNotesSetupHost
+        if (threading.current_thread() is not threading.main_thread() or not callable(status) or
+                getattr(self, '_notes_original_setup_host', None) is not None or
+                getattr(self, '_notes_original_setup_preparation', None) is not None or
+                getattr(self, '_notes_original_peer_prompt', False) or getattr(self, '_notes_original_setup_active', False) or
+                getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_notes_original_setup_profile_fence', None) is not None or
+                getattr(self, '_operation_laeuft', False) or getattr(self, '_sync_laeuft', False) or
+                getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False)):
+            raise PermissionError('notes_setup_native_context_required')
+        with self._daten_sperre:
+            source = self._kontakt_quellen_buch.source(*self._kontakt_quellen_buchbindung())
+        if type(source) is not str or not source:
+            raise PermissionError('notes_setup_native_book_required')
+        version = getattr(self, '_notes_original_setup_version', 0) + 1
+        request, context = [None], {'model': None}
+        host = None
+        def begin(acquired):
+            def ready(acquisition):
+                if acquisition is not None: context['model'] = self._aktuelle_daten
+                acquired(acquisition)
+            peer = choose_peer or (lambda values: notes_original_peer_dialog(self, values, cancelled=host.cancelled.is_set))
+            request[0] = Fenster._notes_original_native_setup_prepare(self, ready, peer, sender, on_failed=host.fail, host_owner=host)
+        def cancel_prepare():
+            pending = getattr(self, '_notes_original_setup_preparation', None)
+            if pending is not None and pending[0] is request[0]:
+                Fenster._notes_original_native_setup_preparation_stop(self)
+        def launch(work):
+            worker = threading.Thread(target=work, name='notes-native-setup', daemon=True)
+            worker.start(); return worker
+        def post(callback):
+            return bool(GLib.idle_add(callback))
+        def finished(phase):
+            if getattr(self, '_notes_original_setup_host', None) is not host: return
+            self._notes_original_setup_host = None
+            with self._daten_sperre:
+                current = self._kontakt_quellen_buch.source(*self._kontakt_quellen_buchbindung())
+            if (not getattr(self, '_gesperrt', True) and not getattr(self, '_wirklich_beenden', False) and
+                    getattr(self, '_notes_original_setup_version', None) == version and current == source):
+                status(phase)
+        host = NativeNotesSetupHost(begin, cancel_prepare, launch, post,
+            choose_source or (lambda values: notes_original_source_dialog(self, values, cancelled=host.cancelled.is_set)),
+            choose_contact or (lambda view: notes_original_freigabe_dialog(self, view, cancelled=host.cancelled.is_set)),
+            finished, lambda: not getattr(self, '_notes_original_peer_prompt', False) and not getattr(self, '_notes_original_setup_active', False))
+        self._notes_original_setup_host, self._notes_original_setup_version = host, version
+        def poll():
+            if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    context['model'] is not None and self._aktuelle_daten is not context['model']):
+                host.stop()  # Native profile/model replacement invalidates this explicit setup only.
+            active = host.poll()
+            if not active:
+                timer = getattr(self, '_notes_original_setup_host_timer', None)
+                if timer is not None and timer[0] is host: self._notes_original_setup_host_timer = None
+            return active
+        try:
+            self._notes_original_setup_host_timer = host, GLib.timeout_add(25, poll)
+            host.start()
+        except Exception:
+            host.fail(); host.poll()
+            timer = getattr(self, '_notes_original_setup_host_timer', None)
+            if timer is not None and timer[0] is host:
+                self._notes_original_setup_host_timer = None; GLib.source_remove(timer[1])
+            raise
+        return host
+
+    def _notes_original_native_setup_prepare(self, on_acquired, choose_peer=None, sender=None, *, on_failed=None, host_owner=None):
+        """Explicit native UI entry; flush asynchronously, never wait on the UI."""
+        from magnolie_contact_notes_setup import NativeNotesSetupPreparation
+        if (threading.current_thread() is not threading.main_thread() or not callable(on_acquired) or
+                getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_notes_original_setup_profile_fence', None) is not None or
+                getattr(self, '_notes_original_setup_host', None) is not host_owner or
+                on_failed is not None and not callable(on_failed) or
+                getattr(self, '_notes_original_setup_preparation', None) is not None or
+                getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False)):
+            raise PermissionError('notes_setup_native_context_required')
+        with self._daten_sperre:
+            preparation = NativeNotesSetupPreparation(
+                lambda: self._kontakt_quellen_buch.source(*self._kontakt_quellen_buchbindung()),
+                self._kontakt_quellen_buchaufnahme)
+        self._notes_original_setup_preparation = preparation, on_acquired, choose_peer, sender, on_failed, host_owner
+        def expired():
+            if getattr(self, '_notes_original_setup_preparation', None) is not None and self._notes_original_setup_preparation[0] is preparation:
+                self._notes_original_setup_preparation_timer = None
+                Fenster._notes_original_native_setup_preparation_stop(self)
+                on_acquired(None)
+            return False
+        try:
+            self._notes_original_setup_preparation_timer = GLib.timeout_add_seconds(40, expired)
+            self.antwort('App.notesSetupVorbereiten', {'token': preparation.token})
+        except Exception:
+            Fenster._notes_original_native_setup_preparation_stop(self)
+            raise
+        return preparation
+
+    def _notes_original_native_setup_prepared(self, message):
+        from magnolie_contact_notes_setup import NativeNotesSetupPreparation
+        pending = getattr(self, '_notes_original_setup_preparation', None)
+        if (threading.current_thread() is not threading.main_thread() or pending is None or
+                type(pending[0]) is not NativeNotesSetupPreparation or type(message) is not dict or
+                set(message) != {'cmd', 'token', 'bereit', 'standSha256'} or type(message.get('bereit')) is not bool or
+                type(message.get('standSha256')) is not str or message.get('token') != pending[0].token):
+            return
+        preparation, on_acquired, choose_peer, sender, on_failed, host_owner = pending
+        acquisition = None
+        try:
+            try:
+                with self._daten_sperre:
+                    prepared = preparation.accept(message)
+            finally:
+                Fenster._notes_original_native_setup_preparation_stop(self)
+            if prepared is not None:
+                acquisition = Fenster._notes_original_native_setup_acquire(self, choose_peer, sender, prepared=prepared, host_owner=host_owner)
+        except Exception:
+            if on_failed is None: raise
+            on_failed()
+            return
+        try:
+            on_acquired(acquisition)  # Native UI callback only; no data/tree gates held.
+        except Exception:
+            if acquisition is not None: acquisition.stop()
+            raise
+
+    def _notes_original_native_setup_acquire(self, choose_peer=None, sender=None, *, prepared=None, host_owner=None):
+        """Native main-thread action, no IPC/startup entry or lazy tree/service creation."""
+        from magnolie_contact_notes_setup import NativeNotesSetupFlow, NativeNotesSetupCollector, NativeNotesSetupAcquisition
+        from magnolie_contact_notes_return import NativeNotesProtocolNegotiation
+        if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_notes_original_setup_profile_fence', None) is not None or
+                getattr(self, '_notes_original_setup_host', None) is not host_owner or
+                getattr(self, '_notes_original_peer_prompt', False)):
+            raise PermissionError('notes_setup_native_context_required')
+        store = self._notes_original_choice_store_hole()
+        def usable():
+            if (getattr(self, '_gesperrt', True) or getattr(self, '_wirklich_beenden', False) or
+                    getattr(self, '_notes_original_setup_exit_pending', False) or
+                    getattr(self, '_notes_original_setup_profile_fence', None) is not None or
+                    getattr(self, '_notes_original_choice_store', None) is not store):
+                raise PermissionError('notes_setup_native_context_changed')
+            if prepared is not None:
+                from magnolie_personal_actor_store import NativeProducerBookSnapshot
+                current = self._kontakt_quellen_buchaufnahme()
+                if (type(prepared) is not NativeProducerBookSnapshot or type(current) is not NativeProducerBookSnapshot or
+                        current.saved_book != prepared.saved_book):
+                    raise PermissionError('notes_setup_prepared_book_changed')
+        flow = NativeNotesSetupFlow(store, self._kontakt_quellen_buchaufnahme, lambda: self._daten_sperre, usable)
+        decision = flow.begin()  # BEFORE the first native peer dialog, not after acquisition.
+        collector = None
+        self._notes_original_peer_prompt = True
+        try:
+            with self._baum_sperre:
+                service, tree = getattr(self, '_baumdienst', None), getattr(self, '_baum', None)
+                if (type(service) is not BaumDienst or not isinstance(tree, dict) or tree.get('an') is not True or
+                        service._notes_setup_collector is not None or not isinstance(tree.get('syncEpoch'), str) or not tree['syncEpoch']):
+                    raise PermissionError('notes_setup_existing_active_tree_required')
+                generation, epoch = service._fs_empfang_generation, tree['syncEpoch']
+                own = tree.get('kennung'), tree.get('oeffentlich')
+                peers = tuple(dict(id=peer['kennung'], publicKey=peer['oeffentlich'], label=str(peer.get('name') or ''))
+                    for peer in tree.get('partner', []) if isinstance(peer, dict) and
+                    peer.get('bestaetigt') is True and peer.get('vertraut') is True and peer.get('kontaktSync') is True and
+                    peer.get('protokoll') == 'baum-fs1')
+                if not peers or len(peers) > 32 or len({peer['id'] for peer in peers}) != len(peers):
+                    raise PermissionError('notes_setup_native_peer_catalog_unavailable')
+            choose = (lambda values: notes_original_peer_dialog(self, values)) if choose_peer is None else choose_peer
+            selected = choose(tuple(dict(peer) for peer in peers))  # Detached display only; no gates held.
+            if selected is None:
+                decision.cancel()
+                return None
+            matches = [peer for peer in peers if type(selected) is str and peer['id'] == selected]
+            if len(matches) != 1:
+                raise PermissionError('notes_setup_explicit_native_peer_required')
+            pins = matches[0]['id'], matches[0]['publicKey']
+            def current():
+                usable()
+                with self._baum_sperre:
+                    peer = baum_partner(tree, pins[0])
+                    if (getattr(self, '_baumdienst', None) is not service or getattr(self, '_baum', None) is not tree or
+                            service._fs_empfang_generation != generation or tree.get('an') is not True or tree.get('syncEpoch') != epoch or
+                            (tree.get('kennung'), tree.get('oeffentlich')) != own or not peer or
+                            (peer.get('kennung'), peer.get('oeffentlich')) != pins or peer.get('bestaetigt') is not True or
+                            peer.get('vertraut') is not True or peer.get('kontaktSync') is not True or peer.get('protokoll') != 'baum-fs1'):
+                        raise PermissionError('notes_setup_native_peer_context_changed')
+            with self._daten_sperre:
+                decision.require_current(store)
+                current()
+                protocol = NativeNotesProtocolNegotiation(pins, own)
+                collector = NativeNotesSetupCollector(service, protocol, require_native_context=current)
+                collector.attach()
+            def state():
+                current()
+                with self._baum_sperre:
+                    return json.loads(json.dumps(tree))  # Existing cached native state, never _baum_zustand().
+            def permitted():
+                with self._daten_sperre:
+                    decision.require_current(store)
+                current()
+                return kontakt_quellen_wlan_verfuegbar()
+            def contact(view):
+                if (threading.current_thread() is not threading.main_thread() or
+                        getattr(self, '_notes_original_setup_active', False)):
+                    raise PermissionError('notes_setup_native_context_required')
+                self._notes_original_setup_active = True
+                try:
+                    return notes_original_freigabe_dialog(self, view)
+                finally:
+                    self._notes_original_setup_active = False
+            return NativeNotesSetupAcquisition(collector, flow, decision,
+                lambda: baum_notes_protokollprobe_senden(state, protocol, permitted, sender=sender), current, contact)
+        except Exception:
+            decision.cancel()
+            if collector is not None: collector.stop()
+            raise
+        finally:
+            self._notes_original_peer_prompt = False
+
     def _notes_original_native_setup_candidate(self, candidate, choose_native=None):
         """Explicit native-only entry; no IPC/startup/acquisition registration."""
         from magnolie_contact_notes_setup import NativeNotesSetupFlow
         if (threading.current_thread() is not threading.main_thread() or
+                getattr(self, '_notes_original_setup_exit_pending', False) or
+                getattr(self, '_notes_original_setup_profile_fence', None) is not None or
+                getattr(self, '_notes_original_setup_host', None) is not None or
                 getattr(self, '_notes_original_setup_active', False)):
             raise PermissionError('notes_setup_native_context_required')
         store = self._notes_original_choice_store_hole()
@@ -25214,13 +25669,29 @@ class Fenster(_FENSTER_BASIS):
     def _notes_original_native_arbeit(self):
         """Explicit native worker step, never called by receive or a renderer."""
         from magnolie_contact_notes_controller import NativeNotesController
+        from magnolie_contact_notes_ui import NativeNotesUiSaveSession
         controller = getattr(self, '_notes_original_controller', None)
+        session = getattr(self, '_notes_original_ui', None)
+        if type(session) is NativeNotesUiSaveSession:
+            if getattr(self, '_gesperrt', True) or session.controller is not controller:
+                session.stop()
+            else:
+                session.expire()  # Existing worker tick only; lost UI handoff cannot own the lane forever.
         if getattr(self, '_gesperrt', True) or type(controller) is not NativeNotesController:
             return None
         work = controller.process_one()
         if work is not None and work.kind in ('save', 'needs-real-save'):
-            self._speicher_auftraege.put(('notes-original-' + uuid.uuid4().hex,
-                work.intent.text, None, None, work.intent, work))
+            with self._daten_sperre:
+                session = getattr(self, '_notes_original_ui', None)
+                if type(session) is not NativeNotesUiSaveSession or session.controller is not controller:
+                    if type(session) is NativeNotesUiSaveSession:
+                        session.stop()
+                    session = NativeNotesUiSaveSession(controller, lambda: json.dumps(self._aktuelle_daten,
+                        ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+                        if not self._gesperrt else None)
+                    self._notes_original_ui = session
+                offer = session.publish(work)
+            self.antwort('App.notesOriginalSpeichern', offer)
         return work
 
     def _notes_original_native_pump(self, jetzt=None, sender=None):
@@ -25937,6 +26408,10 @@ class Fenster(_FENSTER_BASIS):
                     self._telefon_actor_abschluss_planen(source, request)
             elif request.get("action") == "read":
                 result = {"ok": True, "status": self._telefon.mcp_status()}
+            elif request.get("action") == "media_status_read":
+                import copy
+                request = copy.deepcopy(request)
+                result = {"ok": True, "mediaStatusDeferred": True}
             else:
                 if request.get("action") == "settings" and request.get("enabled") is True:
                     if request.get("expectedRevision") != self._telefon.mcp_status()["revision"]:
@@ -25958,7 +26433,16 @@ class Fenster(_FENSTER_BASIS):
             result = {"ok": False, "code": "native_operation_failed"}
         finally:
             token = result.get("deviceStatusToken") if result.get("ok") is True else None
-            if isinstance(token, str):
+            if result.pop("mediaStatusDeferred", False):
+                def medien_aktuell():
+                    if self._gesperrt or not self._organizer_vertraut() or self._telefon is not source:
+                        return {"requestId": nachricht.get("requestId"), "ok": False, "code": "source_changed"}
+                    try:
+                        return {**source.mcp_action(request), "requestId": nachricht.get("requestId")}
+                    except Exception:
+                        return {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"}
+                self.antwort("App.telefonMcpErgebnis", medien_aktuell)
+            elif isinstance(token, str):
                 def aktuell():
                     if self._gesperrt or not self._organizer_vertraut() or self._telefon is not source:
                         try:
@@ -28070,7 +28554,8 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.baumMcpErgebnis", result)
 
     def _baum_stand_melden(self):
-        self.antwort("App.baumStand", self._baum_bericht())
+        # Read at main-loop delivery so a delayed worker cannot revive old opt-in UI.
+        self.antwort("App.baumStand", self._baum_bericht)
 
     def _baum_schalt_wunsch(self):
         with self._baum_sperre:
@@ -29248,11 +29733,11 @@ class Fenster(_FENSTER_BASIS):
             saubere_baselines = [(item, zuordnung) for item in aufgaben
                 for quelle, zuordnung in (item.get("syncQuellen") or {}).items()
                 if quelle in ausgewaehlt and isinstance(zuordnung, dict) and
-                zuordnung.get("inhaltSha256") == _sync_inhalt_hash(item, AUFGABE_FELDER)]
+                zuordnung.get("inhaltSha256") == _sync_dav_inhalt_hash(item, AUFGABE_FELDER)]
             _aufgaben_graph_normalisieren(aufgaben)
             # Internal sibling renumbering is not a new user edit.
             for item, zuordnung in saubere_baselines:
-                zuordnung["inhaltSha256"] = _sync_inhalt_hash(item, AUFGABE_FELDER)
+                zuordnung["inhaltSha256"] = _sync_dav_inhalt_hash(item, AUFGABE_FELDER)
 
         if buch_uid:
             quelle = _nextcloud_quelle(dav, "addressbook", buch_uid)
@@ -30313,15 +30798,107 @@ def kontakt_quellen_wlan_verfuegbar():
         return False
 
 
-def notes_original_freigabe_dialog(parent, view):
-    """GTK main-thread native choice only, no default contact or name matching."""
-    from magnolie_contact_notes_setup import NativeNotesSetupView
-    if Gtk is None or threading.current_thread() is not threading.main_thread() or type(view) is not NativeNotesSetupView:
+def notes_original_dialog_cancel_timer(dialog, cancelled):
+    """Cancel only this owned GTK dialog; no global modal/window lookup."""
+    if cancelled is None:
+        return lambda: None
+    if not callable(cancelled):
+        raise TypeError('notes_setup_native_cancel_required')
+    source = [None]
+    def poll():
+        try:
+            cancel = cancelled() is not False
+        except Exception:
+            cancel = True  # Failed ownership/lifecycle predicate cannot allow a source.
+        if cancel:
+            source[0] = None  # GLib removes this one-shot source after False.
+            dialog.response(Gtk.ResponseType.CANCEL)
+            return False
+        return True
+    source[0] = GLib.timeout_add(50, poll)
+    def stop():
+        if source[0] is not None:
+            GLib.source_remove(source[0]); source[0] = None
+    return stop
+
+
+def notes_original_source_dialog(parent, sources, *, cancelled=None):
+    """Native original-index choice, never name matching or a default source."""
+    if Gtk is None or threading.current_thread() is not threading.main_thread():
         raise RuntimeError('notes_setup_native_dialog_unavailable')
+    if cancelled is not None and cancelled() is not False:
+        return None
     def display(value):
         return ''.join(character for character in str(value) if character.isprintable() and character not in
             '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
     dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    stop_cancel = lambda: None
+    try:
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        accept = dialog.add_button(_("Select"), Gtk.ResponseType.APPLY); accept.set_sensitive(False)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL); dialog.set_default_size(720, 300)
+        content = dialog.get_content_area(); content.set_spacing(12); content.set_border_width(12)
+        selection = Gtk.ComboBoxText()
+        for source in sources:
+            selection.append_text(' — '.join(display(value) for value in (*source.peer, source.export['share_id'], source.export['setup_id'])))
+        selection.set_active(-1)
+        selection.connect('changed', lambda widget: accept.set_sensitive(widget.get_active() >= 0))
+        content.pack_start(selection, False, False, 0)
+        stop_cancel = notes_original_dialog_cancel_timer(dialog, cancelled)
+        dialog.show_all()
+        if dialog.run() != Gtk.ResponseType.APPLY or (cancelled is not None and cancelled() is not False) or selection.get_active() < 0:
+            return None
+        return selection.get_active()
+    finally:
+        try: stop_cancel()
+        finally: dialog.destroy()
+
+
+def notes_original_peer_dialog(parent, peers, *, cancelled=None):
+    """Explicit native peer identity selection, never a source/contact grant."""
+    if Gtk is None or threading.current_thread() is not threading.main_thread():
+        raise RuntimeError('notes_setup_native_dialog_unavailable')
+    if cancelled is not None and cancelled() is not False:
+        return None
+    def display(value):
+        return ''.join(character for character in str(value) if character.isprintable() and character not in
+            '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
+    dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    stop_cancel = lambda: None
+    try:
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        accept = dialog.add_button(_("Select"), Gtk.ResponseType.APPLY); accept.set_sensitive(False)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL)
+        dialog.set_default_size(720, 300)
+        content = dialog.get_content_area(); content.set_spacing(12); content.set_border_width(12)
+        selection = Gtk.ComboBoxText()
+        for peer in peers:
+            selection.append_text(' — '.join(display(peer[field]) for field in ('label', 'id', 'publicKey')))
+        selection.set_active(-1)
+        selection.connect('changed', lambda widget: accept.set_sensitive(widget.get_active() >= 0))
+        content.pack_start(selection, False, False, 0)
+        stop_cancel = notes_original_dialog_cancel_timer(dialog, cancelled)
+        dialog.show_all()
+        if dialog.run() != Gtk.ResponseType.APPLY or (cancelled is not None and cancelled() is not False) or selection.get_active() < 0:
+            return None
+        return peers[selection.get_active()]['id']
+    finally:
+        try: stop_cancel()
+        finally: dialog.destroy()
+
+
+def notes_original_freigabe_dialog(parent, view, *, cancelled=None):
+    """GTK main-thread native choice only, no default contact or name matching."""
+    from magnolie_contact_notes_setup import NativeNotesSetupView
+    if Gtk is None or threading.current_thread() is not threading.main_thread() or type(view) is not NativeNotesSetupView:
+        raise RuntimeError('notes_setup_native_dialog_unavailable')
+    if cancelled is not None and cancelled() is not False:
+        return None
+    def display(value):
+        return ''.join(character for character in str(value) if character.isprintable() and character not in
+            '\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069')
+    dialog = Gtk.Dialog(title=_("Notes original source"), transient_for=parent, modal=True, destroy_with_parent=True)
+    stop_cancel = lambda: None
     try:
         dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
         accept = dialog.add_button(_("Allow updates"), Gtk.ResponseType.APPLY)
@@ -30345,12 +30922,14 @@ def notes_original_freigabe_dialog(parent, view):
         contacts.set_active(-1)
         contacts.connect('changed', lambda selection: accept.set_sensitive(selection.get_active() >= 0))
         content.pack_start(contacts, False, False, 0)
+        stop_cancel = notes_original_dialog_cancel_timer(dialog, cancelled)
         dialog.show_all()
-        if dialog.run() != Gtk.ResponseType.APPLY or contacts.get_active() < 0:
+        if dialog.run() != Gtk.ResponseType.APPLY or (cancelled is not None and cancelled() is not False) or contacts.get_active() < 0:
             return None
         return view.contacts[contacts.get_active()].get('id')
     finally:
-        dialog.destroy()
+        try: stop_cancel()
+        finally: dialog.destroy()
 
 
 def kontakt_quellen_freigabe_dialog(parent, choices, selected):
@@ -30565,7 +31144,7 @@ def _dav_syncquelle_setzen(item, quelle, remote_id, etag, eigen=True, baseline=N
               else AUFGABE_FELDER if "faellig" in item or "elternUid" in item else TERMIN_FELDER)
     alle[quelle] = {"id": remote_id, "etag": etag,
                      "geaendert": int(item.get("geaendert") or 0),
-                    "inhaltFormat": _sync_inhalt_format(felder), "inhaltSha256": _sync_inhalt_hash(item if baseline is None else baseline, felder),
+                    "inhaltFormat": _sync_dav_inhalt_format(felder), "inhaltSha256": _sync_dav_inhalt_hash(item if baseline is None else baseline, felder),
                     "eigen": bool(eigen)}
     item["syncQuellen"] = alle
     item["sync"] = True

@@ -10,7 +10,24 @@ internal static partial class NotesOriginalChoiceStoreTests
     internal static async Task FrontendWireAsync(string root)
     {
         if (OperatingSystem.IsWindows()) return; // Existing Node lane on host; no installed/interactive Windows UI claim.
-        foreach (var mode in new[] { "normal", "restart", "late-edit" })
+        var repository = TestSource.Root("contracts/contact-provider-labels.md");
+        var windows = File.Exists(Path.Combine(repository, "MagnolieOrganizer.Windows.csproj")) ? repository : Path.Combine(repository, "magnolie-organizer-windows");
+        var freshStart = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE") ?? "node") {
+            RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+        freshStart.ArgumentList.Add(Path.Combine(windows, "tests", "notes-original-fresh-readiness.js"));
+        using (var fresh = Process.Start(freshStart) ?? throw new InvalidOperationException("Existing Node runtime required"))
+        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+        {
+            var output = fresh.StandardOutput.ReadToEndAsync(); var error = fresh.StandardError.ReadToEndAsync();
+            try
+            {
+                await fresh.WaitForExitAsync(deadline.Token);
+                TestAssert.That(fresh.ExitCode == 0, "Fresh DOM policy cases failed: " + await error);
+                Console.Write(await output);
+            }
+            finally { if (!fresh.HasExited) { fresh.Kill(entireProcessTree: true); await fresh.WaitForExitAsync(); } }
+        }
+        foreach (var mode in new[] { "normal", "restart", "late-edit", "fresh-restart" })
         {
             using var h = new Fixture(Path.Combine(root, mode)); h.Store.Approve([h.Choice]); h.Host.NativeNotesChoices = h.Store;
             h.Host.ConcurrentNativeWorker = true;
@@ -29,8 +46,6 @@ internal static partial class NotesOriginalChoiceStoreTests
             NotesOriginalController? controller = null;
             NotesOriginalUiSaveSession? ui = null;
             NotesOriginalWorker? worker = null;
-            var repository = TestSource.Root("contracts/contact-provider-labels.md");
-            var windows = File.Exists(Path.Combine(repository, "MagnolieOrganizer.Windows.csproj")) ? repository : Path.Combine(repository, "magnolie-organizer-windows");
             var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE") ?? "node") {
                 RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
             start.ArgumentList.Add(Path.Combine(windows, "tests", "notes-original-ui-save.js")); start.ArgumentList.Add("--wire");
@@ -95,6 +110,15 @@ internal static partial class NotesOriginalChoiceStoreTests
             });
             var client = typeof(MagnolienbaumCoordinator).GetField("client", BindingFlags.Instance | BindingFlags.NonPublic)!;
             ((HttpClient)client.GetValue(h.Coordinator)!).Dispose(); client.SetValue(h.Coordinator, new HttpClient(handler));
+            void AttachWorker()
+            {
+                controller = new(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => readiness.IsReady);
+                ui = new(controller, () => h.Host.CurrentNativeText); h.Host.NativeNotesUi = ui;
+                worker = CreateWorker(controller, ui);
+                h.Host.NativeNotesWake = worker.Wake; h.Coordinator.NotesOriginalReceive = null; worker.Attach();
+                loop = (Task)typeof(MagnolienbaumCoordinator).GetMethod("MaintenanceLoopAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .Invoke(h.Coordinator, [loopStop.Token])!;
+            }
             try
             {
                 await Send(new { type = "init", mode, daten = JsonNode.Parse(h.Host.CurrentNativeText!) });
@@ -130,21 +154,28 @@ internal static partial class NotesOriginalChoiceStoreTests
                             break;
                         case "initialized":
                             TestAssert.That(!initialized && h.Host.Snapshot() is not null, "Wire initialization invented native saved observation"); initialized = true;
-                            if (mode == "restart")
+                            if (mode is "restart" or "fresh-restart")
                             {
                                 await h.Coordinator.StopAsync(); h.Host = new(Path.Combine(h.Root, "book"), "", reopen: true);
                                 h.Host.NativeNotesChoices = h.Store;
                                 h.Host.ConcurrentNativeWorker = true;
                                 TestAssert.That(h.Host.Snapshot() is null, "Wire reopen fabricated a saved witness");
                             }
+                            if (mode == "fresh-restart")
+                            {
+                                // New DOM, not the previous window with a primed
+                                // last-saved model. No ordinary save on reopen.
+                                await Send(new { type = "reopen", mode, daten = JsonNode.Parse(h.Host.CurrentNativeText!) });
+                                break;
+                            }
                             // Bind the controller to the actual current writer,
                             // not the discarded pre-reopen synthetic host.
-                            controller = new(h.Store, requests, outcomes, h.Host.SourceResultCommit, () => readiness.IsReady);
-                            ui = new(controller, () => h.Host.CurrentNativeText); h.Host.NativeNotesUi = ui;
-                            worker = CreateWorker(controller, ui);
-                            h.Host.NativeNotesWake = worker.Wake; h.Coordinator.NotesOriginalReceive = null; worker.Attach();
-                            loop = (Task)typeof(MagnolienbaumCoordinator).GetMethod("MaintenanceLoopAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
-                                .Invoke(h.Coordinator, [loopStop.Token])!;
+                            AttachWorker();
+                            break;
+                        case "reopened":
+                            TestAssert.That(mode == "fresh-restart" && initialized && h.Host.Snapshot() is null,
+                                "Fresh DOM reopen bypassed the missing native saved witness");
+                            AttachWorker();
                             break;
                         case "frontend-complete": frontendText = packet["text"]!.GetValue<string>(); break;
                         default: throw new InvalidOperationException("Unexpected frontend packet");
@@ -154,7 +185,7 @@ internal static partial class NotesOriginalChoiceStoreTests
                 // session is still locked. Join the owned turn before reading
                 // final disk evidence; do not race the writer's lock release.
                 await worker!.StopAsync();
-                TestAssert.That(initialized && requestCount == 1 && ackCount >= 1 && uiSaves == (mode == "restart" ? 2 : 1) &&
+                TestAssert.That(initialized && requestCount == 1 && ackCount >= 1 && uiSaves == (mode is "restart" or "fresh-restart" ? 2 : 1) &&
                     requestHash is not null && savedHash is not null && outcomes.LoadHeld(requestHash)!["saved_book"]![2]!.GetValue<string>() == savedHash &&
                     h.Host.CurrentNativeText == frontendText && new EncryptionService().Unlock(File.ReadAllText(h.Host.DataPath), PersonalActorNativeSaveHost.Password) == frontendText &&
                     requests.LoadPhysical(Path.GetFullPath(h.Host.DataPath), "chosen-private-id")!["state"]!.GetValue<string>() == "request_settled",

@@ -113,4 +113,83 @@ internal static partial class NotesOriginalChoiceStoreTests
         }
         Console.WriteLine($"Notes native setup decision flow: {modes.Length} synthetic dialog-boundary/CAS/initial-addition cases passed (no actual modal/startup).");
     }
+
+    internal static async Task SetupBeforePeerAsync(string root)
+    {
+        var modes = new[] { "initial", "addition", "empty-revoke", "revoke", "other-store-revoke", "replace", "native-save",
+            "foreign-decision", "forged-decision", "cancel-before-contact", "cancel-contact", "chooser-error", "replay" };
+        foreach (var mode in modes)
+        {
+            using var h = new Fixture(Path.Combine(root, mode));
+            var adding = mode is "addition" or "revoke" or "other-store-revoke" or "replace";
+            if (adding)
+            {
+                var book = h.Book.DeepClone().AsObject(); var other = book["kontakte"]![0]!.DeepClone().AsObject();
+                other["id"] = "second-peer-id"; other["uid"] = "second-peer-uid"; book["kontakte"]!.AsArray().Add(other);
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", book))["ok"]!.GetValue<bool>(), "Native peer fixture save failed");
+                h.Store.Approve([h.Choice]);
+            }
+            h.Host.NativeNotesChoices = h.Store;
+            var flow = new NotesOriginalSetupFlow(h.Store, h.Capture);
+            var decision = await flow.BeginAsync(); // Before any peer chooser/export acquisition.
+            TestAssert.That(decision.IsAddition == adding, "Before-peer decision invented setup mode");
+            if (mode == "foreign-decision") decision = await new NotesOriginalSetupFlow(h.NewStore(), h.Capture).BeginAsync();
+            if (mode == "forged-decision") decision = new(new object());
+            if (mode is "empty-revoke" or "revoke") h.Store.Revoke();
+            if (mode == "other-store-revoke") h.NewStore().Revoke();
+            if (mode == "replace") h.Store.Approve([h.Choice]);
+            if (mode == "cancel-before-contact") decision.Cancel();
+            if (mode == "native-save")
+            {
+                var edit = JsonNode.Parse(h.Host.CurrentNativeText!)!.AsObject(); edit["between-dialogs"] = "preserve";
+                TestAssert.That((await h.Host.SaveOriginalContactResultAsync("", edit))["ok"]!.GetValue<bool>(), "Actual intervening native save failed");
+            }
+            var protocol = new NotesOriginalNegotiation(h.Choice.Pins.Peer, h.Choice.Pins.Own);
+            var collector = new NotesOriginalSetupCollector(h.Coordinator, protocol); collector.Attach();
+            try
+            {
+                var offer = protocol.Probe(); offer["antwort"] = true; h.NoCallbacks = true; h.Send(offer);
+                var export = h.Export.DeepClone().AsObject(); export["share_id"] = "before-peer-source";
+                export["setup_id"] = "55555555-5555-4555-8555-555555555555"; h.Send(export); h.NoCallbacks = false;
+                var candidate = collector.Candidates().Single(); var dialogs = 0;
+                var before = File.ReadAllBytes(h.Host.DataPath);
+                async Task<string?> Choose(NotesOriginalSetupFlow.View view, CancellationToken token)
+                {
+                    dialogs++;
+                    var outside = await Task.Run(() => { var taken = MutationGate.Global.Wait(0); if (taken) MutationGate.Global.Release(); return taken; });
+                    TestAssert.That(outside && view.Addition == adding, "Before-peer chooser ran under book gate or with a replacement mode");
+                    _ = h.Store.HasDesiredConsent();
+                    if (mode == "chooser-error") throw new IOException("synthetic native dialog failure");
+                    return mode == "cancel-contact" ? null : view.Contacts[adding ? 1 : 0]["id"]!.GetValue<string>();
+                }
+                Task<bool> Configure() => flow.ConfigureAsync(candidate, Choose, beforePeerDecision: decision);
+                if (mode is "initial" or "addition" or "replay")
+                {
+                    TestAssert.That(await Configure(), "Original before-peer decision did not publish the explicit source");
+                    TestAssert.That(h.Store.DiscoverySources()!.Value.Sources.Any(value => value["share_id"]!.GetValue<string>() == "before-peer-source"),
+                        "Before-peer native source was not persisted");
+                    if (mode == "replay") await TestAssert.ThrowsAsync<InvalidOperationException>(async () => { await Configure(); }, "Used before-peer decision replayed");
+                    TestAssert.That(dialogs == 1, "Used native peer decision displayed another dialog");
+                }
+                else if (mode is "cancel-contact" or "chooser-error")
+                {
+                    if (mode == "cancel-contact") TestAssert.That(!await Configure(), "Cancelled contact dialog granted a source");
+                    else await TestAssert.ThrowsAsync<IOException>(async () => { await Configure(); }, "Synthetic dialog exception was hidden");
+                    Hold(() => decision.RequireCurrent(h.Store));
+                    await TestAssert.ThrowsAsync<InvalidOperationException>(async () => { await Configure(); }, "Cancelled before-peer proof was reused");
+                    TestAssert.That(dialogs == 1 && !h.Store.HasDesiredConsent(), "Cancelled or failed chooser recreated permission");
+                }
+                else
+                {
+                    await TestAssert.ThrowsAsync<InvalidOperationException>(async () => { await Configure(); }, "Fresh contact decision bypassed stale before-peer context");
+                    TestAssert.That(dialogs == 0, "Stale/foreign before-peer decision opened a contact dialog");
+                }
+                TestAssert.That(File.ReadAllBytes(h.Host.DataPath).AsSpan().SequenceEqual(before), "Peer setup overwrote native user book");
+                if (mode is "revoke" or "other-store-revoke" or "empty-revoke") TestAssert.That(!h.Store.HasDesiredConsent(), "Peer acquisition resurrected revocation");
+                if (!adding && mode is not ("initial" or "replay")) TestAssert.That(!File.Exists(h.File(".key.dpapi")), "Read/cancel/stale peer decision created a key");
+            }
+            finally { collector.Stop(); }
+        }
+        Console.WriteLine($"Notes before-peer native decision: {modes.Length} acquisition/owner/CAS/cancel cases passed (no modal/peer UI registration).");
+    }
 }

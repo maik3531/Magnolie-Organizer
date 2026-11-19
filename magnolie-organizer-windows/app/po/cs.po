@@ -17,6 +17,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
 
+msgid "Original contact sources"
+msgstr "Původní zdroje kontaktů"
+
+msgid "Revoke"
+msgstr "Odvolat"
+
+msgid "The backup does not contain a complete data set."
+msgstr "Záloha neobsahuje úplnou datovou sadu."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Oprávnění ke zdroji kontaktů se nepodařilo uložit. Automatické aktualizace jsou pozastaveny."
+
+msgid "Waiting for Wi-Fi."
+msgstr "Čekání na Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Čekání na přístup k účtu. Automatické aktualizace kontaktů se obnoví, jakmile bude přístup dostupný."
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "Aby bylo možné telefon používat jako systémový mikrofon, potřebuje Magnolie ovladač VB-CABLE od VB-Audio."
 
@@ -1769,6 +1787,9 @@ msgstr "Pokračování"
 
 msgid "Contributor key"
 msgstr "Klíč přispěvatele"
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Otevřít lze pouze přílohy HTTPS. Ostatní adresy můžete zkopírovat."
 
 msgid "Copy"
 msgstr "Kopírovat"

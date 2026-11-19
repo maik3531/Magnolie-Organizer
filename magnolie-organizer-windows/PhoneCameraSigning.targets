@@ -1,0 +1,156 @@
+<Project>
+  <UsingTask TaskName="VerifyPreparedOfficialPhoneInputs" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <HelperDirectory ParameterType="System.String" />
+      <RuntimeDirectory ParameterType="System.String" />
+      <ParentDirectory ParameterType="System.String" />
+      <SourceDirectory ParameterType="System.String" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Diagnostics" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        // Public verification configuration only. Never pass a signing key or
+        // password through MSBuild properties, response files or this process.
+        var receipt = Environment.GetEnvironmentVariable("MAGNOLIE_PHONE_VERIFY_RECEIPT");
+        var publisher = Environment.GetEnvironmentVariable("MAGNOLIE_PHONE_VERIFY_PUBLISHER");
+        var tool = Environment.GetEnvironmentVariable("MAGNOLIE_PHONE_VERIFY_TOOL");
+        var host = Environment.GetEnvironmentVariable("MAGNOLIE_PHONE_VERIFY_HOST");
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT ||
+            String.IsNullOrWhiteSpace(receipt) || String.IsNullOrWhiteSpace(publisher) ||
+            String.IsNullOrWhiteSpace(tool) || String.IsNullOrWhiteSpace(host)) {
+          Log.LogError("MAGNOLIE560: Official embedding requires independent native verification configuration.");
+          return false;
+        }
+        var script = Path.Combine(Root, "build", "Verify-PhonePayloadInputs.ps1");
+        Func<string, bool> absolute = path => Path.IsPathRooted(path) &&
+            String.Equals(Path.GetFullPath(path), path, StringComparison.OrdinalIgnoreCase);
+        if (!absolute(host) || !File.Exists(host) ||
+            !String.Equals(Path.GetFileName(host), "pwsh.exe", StringComparison.OrdinalIgnoreCase) ||
+            !absolute(tool) || !File.Exists(tool) ||
+            !absolute(receipt) || !File.Exists(receipt) || !File.Exists(script)) {
+          Log.LogError("MAGNOLIE560: Native verifier host, tool, receipt or source-bound script is missing.");
+          return false;
+        }
+        var programs = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var installedCore = Path.Combine(programs, "PowerShell") + Path.DirectorySeparatorChar;
+        var installedStore = Path.Combine(programs, "WindowsApps") + Path.DirectorySeparatorChar + "Microsoft.PowerShell_";
+        if ((!host.StartsWith(installedCore, StringComparison.OrdinalIgnoreCase) &&
+             !host.StartsWith(installedStore, StringComparison.OrdinalIgnoreCase)) ||
+            (File.GetAttributes(host) & FileAttributes.ReparsePoint) != 0) {
+          Log.LogError("MAGNOLIE560: Configured verifier host is not a valid Microsoft-signed PowerShell executable in a protected installation.");
+          return false;
+        }
+        var start = new ProcessStartInfo(host) {
+          WorkingDirectory = Root, UseShellExecute = false, CreateNoWindow = true,
+          RedirectStandardOutput = true, RedirectStandardError = true
+        };
+        // RoslynCodeTaskFactory compiles against its netstandard reference
+        // contract even on modern .NET. Require, rather than emulate or silently
+        // downgrade, the runtime's real ArgumentList and process-tree kill APIs.
+        var argumentProperty = typeof(ProcessStartInfo).GetProperty("ArgumentList");
+        var killTree = typeof(Process).GetMethod("Kill", new[] { typeof(bool) });
+        var arguments = argumentProperty == null ? null : argumentProperty.GetValue(start) as ICollection<string>;
+        if (arguments == null || killTree == null) {
+          Log.LogError("MAGNOLIE560: Native verification requires modern argv and process-tree termination APIs.");
+          return false;
+        }
+        // The configurable host must not become an "exit 0" bypass. Bootstrap
+        // its native Authenticode check through the protected OS PowerShell,
+        // not through the executable that is still being verified.
+        using (var hostLease = File.Open(host, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+        var clock = Stopwatch.StartNew();
+        var bootstrap = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
+            "WindowsPowerShell", "v1.0", "powershell.exe");
+        if (!File.Exists(bootstrap)) {
+          Log.LogError("MAGNOLIE560: Protected Windows verification bootstrap is unavailable.");
+          return false;
+        }
+        var hostScript = "$ErrorActionPreference='Stop'; $p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(host)) + "')); " +
+            "Import-Module -Name ([IO.Path]::Combine($PSHOME,'Modules','Microsoft.PowerShell.Security','Microsoft.PowerShell.Security.psd1')) -ErrorAction Stop; " +
+            "$s=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $p; " +
+            "if($s.Status -ne 'Valid' -or -not $s.SignerCertificate -or $s.SignerCertificate.Subject -cne " +
+            "'CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'){exit 1}; exit 0";
+        var bootstrapStart = new ProcessStartInfo(bootstrap) {
+          WorkingDirectory = Root, UseShellExecute = false, CreateNoWindow = true,
+          RedirectStandardOutput = true, RedirectStandardError = true
+        };
+        var bootstrapArguments = argumentProperty.GetValue(bootstrapStart) as ICollection<string>;
+        foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-EncodedCommand",
+            Convert.ToBase64String(Encoding.Unicode.GetBytes(hostScript)) }) bootstrapArguments.Add(argument);
+        bootstrapStart.Environment.Remove("MAGNOLIE_SIGN_CERTIFICATE");
+        bootstrapStart.Environment.Remove("MAGNOLIE_SIGN_PASSWORD");
+        using (var bootstrapProcess = new Process { StartInfo = bootstrapStart }) {
+          if (!bootstrapProcess.Start()) { Log.LogError("MAGNOLIE560: Protected host verification did not start."); return false; }
+          var bootstrapOutput = bootstrapProcess.StandardOutput.ReadToEndAsync();
+          var bootstrapError = bootstrapProcess.StandardError.ReadToEndAsync();
+          if (!bootstrapProcess.WaitForExit(30000)) {
+            killTree.Invoke(bootstrapProcess, new object[] { true });
+            bootstrapProcess.WaitForExit(5000);
+            Log.LogError("MAGNOLIE560: Native verifier exceeded its deadline during host verification.");
+            return false;
+          }
+          if (!System.Threading.Tasks.Task.WaitAll(new System.Threading.Tasks.Task[] { bootstrapOutput, bootstrapError }, 5000) || bootstrapProcess.ExitCode != 0) {
+            Log.LogError("MAGNOLIE560: Configured verifier host is not a valid Microsoft-signed PowerShell executable.");
+            return false;
+          }
+        }
+        // ArgumentList preserves empty properties, spaces and publisher commas
+        // without cmd.exe or MSBuild property-list interpolation.
+        foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-File", script,
+            "-Receipt", receipt, "-Publisher", publisher, "-SignTool", tool,
+            "-MagnoliePhoneCameraHelperDirectory", HelperDirectory ?? "",
+            "-MagnoliePhoneCameraRuntimeDirectory", RuntimeDirectory ?? "",
+            "-MagnoliePhoneCameraParentDirectory", ParentDirectory ?? "",
+            "-MagnoliePhoneCameraSourceDirectory", SourceDirectory ?? "" }) arguments.Add(argument);
+        start.Environment.Remove("MAGNOLIE_SIGN_CERTIFICATE");
+        start.Environment.Remove("MAGNOLIE_SIGN_PASSWORD");
+        // Do not auto-import user modules into the independent verifier.
+        start.Environment["PSModulePath"] = Path.Combine(Path.GetDirectoryName(host), "Modules") + ";" +
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "Modules");
+        using (var process = new Process { StartInfo = start }) {
+          if (!process.Start()) { Log.LogError("MAGNOLIE560: Native verifier did not start."); return false; }
+          var output = process.StandardOutput.ReadToEndAsync();
+          var error = process.StandardError.ReadToEndAsync();
+          if (!process.WaitForExit((int)Math.Max(1, 30000 - clock.ElapsedMilliseconds))) {
+            killTree.Invoke(process, new object[] { true });
+            process.WaitForExit(5000);
+            Log.LogError("MAGNOLIE560: Native verifier exceeded its deadline; embedding is held.");
+            return false;
+          }
+          if (!System.Threading.Tasks.Task.WaitAll(new System.Threading.Tasks.Task[] { output, error }, 5000)) {
+            Log.LogError("MAGNOLIE560: Native verifier output did not settle; embedding is held.");
+            return false;
+          }
+          if (process.ExitCode != 0) {
+            var detail = error.Result + output.Result;
+            Log.LogError("MAGNOLIE560: Independent phone input verification rejected: " +
+                detail.Substring(0, Math.Min(detail.Length, 4096)));
+            return false;
+          }
+        }
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="VerifyPreparedOfficialPhonePayloadSigning"
+          BeforeTargets="HoldUnpreparedOfficialPhonePayloadSigning"
+          Condition="'$(MAGNOLIE_OFFICIAL_RELEASE)' == '1' And ('$(MagnoliePhoneCameraHelperDirectory)' != '' Or '$(MagnoliePhoneCameraRuntimeDirectory)' != '' Or '$(MagnoliePhoneCameraParentDirectory)' != '' Or '$(MagnoliePhoneCameraSourceDirectory)' != '')">
+    <VerifyPreparedOfficialPhoneInputs Root="$(MSBuildProjectDirectory)"
+        HelperDirectory="$(MagnoliePhoneCameraHelperDirectory)" RuntimeDirectory="$(MagnoliePhoneCameraRuntimeDirectory)"
+        ParentDirectory="$(MagnoliePhoneCameraParentDirectory)" SourceDirectory="$(MagnoliePhoneCameraSourceDirectory)" />
+  </Target>
+  <!-- The preceding target must actually verify all configured input paths.
+       No ready/verified flag or receipt alone authorizes embedding. Existing
+       source-bound snapshot validators still run after this boundary. -->
+  <Target Name="HoldUnpreparedOfficialPhonePayloadSigning"
+          BeforeTargets="PreparePhoneAudioHelperResource;PreparePhoneAudioRuntimeResource;PreparePhoneAudioParentResource;PreparePhoneCameraSourceResource"
+          Condition="'$(MAGNOLIE_OFFICIAL_RELEASE)' == '1'">
+    <Message Importance="Low" Text="Independent official phone input verification completed; existing source snapshot validation remains mandatory." />
+  </Target>
+</Project>

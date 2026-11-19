@@ -11,6 +11,12 @@ internal sealed class NotesOriginalSetupCollector
     internal sealed class Candidate(object proof)
     {
         private CandidateProof Native() => proof as CandidateProof ?? throw new InvalidOperationException("notes_setup_native_candidate_required");
+        internal void RequireOwner(NotesOriginalSetupCollector owner)
+        {
+            var native = Native();
+            if (!ReferenceEquals(native.Owner, owner)) throw new InvalidOperationException("notes_setup_owned_candidate_required");
+            native.Owner.RequireCandidate(native.Key, native.Frame);
+        }
         internal JsonObject Display()
         {
             var native = Native(); native.Owner.RequireCandidate(native.Key, native.Frame);
@@ -34,6 +40,7 @@ internal sealed class NotesOriginalSetupCollector
     private readonly MagnolienbaumCoordinator coordinator;
     private readonly NotesOriginalNegotiation protocol;
     private readonly Func<long> clock;
+    private readonly Action nativeContext;
     private readonly long deadline;
     private readonly int budget;
     private readonly string challenge;
@@ -45,15 +52,18 @@ internal sealed class NotesOriginalSetupCollector
     private bool active = true, attached;
 
     internal NotesOriginalSetupCollector(MagnolienbaumCoordinator coordinator, NotesOriginalNegotiation protocol,
-        Func<long>? monotonicMilliseconds = null, int budget = 8)
+        Func<long>? monotonicMilliseconds = null, int budget = 8, Action? requireNativeContext = null)
     {
         if (budget is < 1 or > 32) throw new ArgumentOutOfRangeException(nameof(budget));
         this.coordinator = coordinator; this.protocol = protocol; this.budget = budget;
+        nativeContext = requireNativeContext ?? (() => { });
         pins = protocol.NativeProbePins(); challenge = NotesOriginalSchema.Text(protocol.Probe(), "challenge");
         clock = monotonicMilliseconds ?? (() => Environment.TickCount64); deadline = clock() + 120_000;
     }
     private void RequireActive()
     { if (!active || clock() >= deadline) throw new InvalidOperationException("notes_setup_acquisition_expired"); }
+    internal void RequireAttached()
+    { lock (gate) { RequireActive(); if (!attached) throw new InvalidOperationException("notes_setup_not_attached"); } }
     internal void Attach()
     {
         lock (gate) { RequireActive(); if (attached) throw new InvalidOperationException("notes_setup_already_attached"); }
@@ -143,9 +153,11 @@ internal sealed class NotesOriginalSetupCollector
                     throw new InvalidOperationException("notes_setup_candidate_changed");
             }
         }
+        nativeContext(); // Deferred only, never called by Stage/receive.
         Current(); protocol.RequireCurrent();
         if (frame.Origin.RequireCurrent(frame.Body, frame.Transport) != pins) throw new InvalidOperationException("notes_setup_peer_changed");
         Current();
+        nativeContext();
     }
     internal void Stop()
     {

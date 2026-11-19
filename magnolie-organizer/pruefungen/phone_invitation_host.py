@@ -19,6 +19,16 @@ def main():
     platform, target, nonce, port, address = sys.argv[1:]
     if platform in ("linux-phone-start", "linux-desktop-start", "linux-renew-two-rounds"):
         import magnolie_telefon as phone_module
+        handlers_drained = threading.Condition()
+        if platform == "linux-renew-two-rounds":
+            original_handle = PhoneService._handle
+            def tracked_handle(self, *args, **kwargs):
+                try:
+                    return original_handle(self, *args, **kwargs)
+                finally:
+                    with handlers_drained:
+                        handlers_drained.notify_all()
+            PhoneService._handle = tracked_handle
         if os.environ.get('MAGNOLIE_CONTROL_TRACE') == '1':
             original_send = phone_module.SecureChannel.send
             original_receive = phone_module.SecureChannel.receive
@@ -62,6 +72,15 @@ def main():
                 rounds = 2 if platform == 'linux-renew-two-rounds' else 1
                 for round_number in range(rounds):
                     assert done.wait(15), "Pairing did not finish"
+                    if platform == "linux-renew-two-rounds":
+                        # Refs #673: the paired callback precedes _handle cleanup.
+                        # Do not start a third socket while the previous session
+                        # and current pairing still occupy the real two-IP slots.
+                        def drained():
+                            with service.lock:
+                                return not service._workers
+                        with handlers_drained:
+                            assert handlers_drained.wait_for(drained, timeout=3), "Owned pairing/session handlers did not drain"
                     print("RESULT paired" if service.store.peer(target) else "REJECTED", flush=True)
                     command = input()
                     while command == 'INITIALIZE' and platform == 'linux-renew-two-rounds':

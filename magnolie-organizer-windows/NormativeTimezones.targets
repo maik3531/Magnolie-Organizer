@@ -1,0 +1,13 @@
+<Project>
+  <!-- Same primary/cold source closure as werkzeuge/zeitzonen_erzeugen.py.
+       No editable second payload and no dependency on generated Web assets. -->
+  <PropertyGroup>
+    <MagnolieTimezoneInputs Condition="Exists('$(MSBuildThisFileDirectory)../port-adapters/timezones')">$(MSBuildThisFileDirectory)../port-adapters/timezones</MagnolieTimezoneInputs>
+    <MagnolieTimezoneInputs Condition="'$(MagnolieTimezoneInputs)' == ''">$(MSBuildThisFileDirectory)shared/magnolie-organizer/werkzeuge/timezones</MagnolieTimezoneInputs>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MagnolieTimezoneInputs)/tzdb-2026egtz.json" LogicalName="Magnolie.Timezones.tzdb-2026egtz.json" />
+    <EmbeddedResource Include="$(MagnolieTimezoneInputs)/provenance.json" LogicalName="Magnolie.Timezones.provenance.json" />
+    <EmbeddedResource Include="$(MagnolieTimezoneInputs)/LICENSE-tzdb.txt" LogicalName="Magnolie.Timezones.LICENSE-tzdb.txt" />
+  </ItemGroup>
+</Project>

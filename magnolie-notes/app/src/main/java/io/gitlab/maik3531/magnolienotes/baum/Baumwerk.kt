@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.baum
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
@@ -111,7 +113,7 @@ class Baumwerk private constructor(
     // ----------------------------------------------------------- Empfangsdienst
 
     fun dienstStarten(zusammenhang: Context): Boolean {
-        if (!server.starten()) {
+        if (LanFreigabe.erlaubt() && !server.starten()) {
             melde(R.string.baum_meldung_dienst_fehler)
             return false
         }
@@ -123,6 +125,16 @@ class Baumwerk private constructor(
             einreihen(it.kennung, "kontakt_faehigkeiten", KontaktFaehigkeiten.inhalt(false))
         }
         return true
+    }
+
+    /** Resume/periodic work never requests permission or changes saved consent. */
+    @Synchronized fun lanAbgleichen() {
+        if (!LanFreigabe.erlaubt()) {
+            server.lanAnhalten()
+            Entdeckung.beenden()
+        } else if (dienstLaeuft && ablage.baum.value.dienstAn && !server.lanLaeuft) {
+            if (server.starten()) Entdeckung.veroeffentlichen(zusammenhang, eigen(), server.port)
+        }
     }
 
     fun dienstAnhalten() {
@@ -192,6 +204,7 @@ class Baumwerk private constructor(
     }
 
     fun suchen(zusammenhang: Context): List<Gefunden> {
+        LanFreigabe.pruefen()
         codeFenster.oeffnen()
         val ausMdns = Entdeckung.suchen(zusammenhang, eigen()?.kennung.orEmpty())
         val ausRuf = server.rufen()
@@ -802,6 +815,7 @@ class Baumwerk private constructor(
     }
 
     fun automatischSynchronisierenWennFaellig(istWlan: Boolean, jetzt: Long = System.currentTimeMillis()): Boolean {
+        if (!LanFreigabe.erlaubt()) return false
         val zustand = ablage.baum.value
         val partner = zustand.partner.filter { it.bestaetigt && it.vertraut }
         if (!AutoSync.sollLaufen(
@@ -925,7 +939,9 @@ class Baumwerk private constructor(
                 aufgeben(sendung)
                 continue
             }
-            val transporte = Versand.wegeZu(partner, ablage.baum.value.bluetoothAn)
+            val bekannteTransporte = Versand.wegeZu(partner, ablage.baum.value.bluetoothAn)
+            val transporte = bekannteTransporte.filter { it !is WlanTransport || !it.wartetAufLan() }
+            if (transporte.isEmpty() && bekannteTransporte.isNotEmpty()) continue // wait, no failed-attempt/deletion
             if (transporte.isEmpty()) {
                 fehlversuch(sendung, "Für diesen Zweig ist kein Weg bekannt.")
                 continue
@@ -991,6 +1007,7 @@ class Baumwerk private constructor(
             } else if (ergebnis.unsicher) {
                 wartendePartner += sendung.an
             } else {
+                if (!LanFreigabe.erlaubt()) continue // revocation must not consume retries
                 if (sendung.baum1Umschlag.isNotEmpty()) wartendePartner += sendung.an
                 fehlversuch(sendung, ergebnis.grund)
             }

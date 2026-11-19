@@ -3146,7 +3146,8 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         if removed is not None:
             removed["worker"].close(join=True)
             self._filesystem_browser.close(removed['worker'])
-            self._emit('connection_changed', {})
+            if self._is_confirmed(device_id):
+                self._emit('connection_changed', {})
         else:
             connection.close()
 
@@ -3178,7 +3179,8 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         worker.connection.close()
         if removed:
             self._filesystem_browser.close(worker)
-            self._emit('connection_changed', {})
+            if self._is_confirmed(device_id):
+                self._emit('connection_changed', {})
         if removed and not self._stop_event.is_set():
             self._reschedule_discovery(immediate=False)
 

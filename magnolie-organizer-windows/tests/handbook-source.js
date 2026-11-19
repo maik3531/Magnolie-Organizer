@@ -41,14 +41,24 @@ function selectHandbookWeb(root, requiredFiles) {
   return { directory: bundled, label: `bundled standalone ${bundled}` };
 }
 
+function pageIds(pages) {
+  assert.ok(Array.isArray(pages), "Handbuchseiten müssen eine Liste sein");
+  // Array.prototype.map preserves the source realm's array prototype. These
+  // identifiers are data, so explicitly create an array in the test's realm.
+  const ids = Array.from(pages, page => {
+    assert.ok(page && typeof page.id === "string" && page.id.length, "Ungültige Handbuch-Seiten-ID");
+    return page.id;
+  });
+  assert.strictEqual(new Set(ids).size, ids.length, "Handbuch-Seiten-IDs sind nicht eindeutig");
+  return ids;
+}
+
 function canonicalPageIds(directory) {
   const i18n = { registerBook() {}, locale: () => "en" };
   const context = { window: { MagnolieI18n: i18n }, MagnolieI18n: i18n };
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(path.join(directory, "inhalt.js"), "utf8"), context);
-  const ids = context.window.HANDBUCH_SEITEN.map((page) => page.id);
-  assert.strictEqual(new Set(ids).size, ids.length, "Kanonische Seiten-IDs sind nicht eindeutig");
-  return ids;
+  return pageIds(context.window.HANDBUCH_SEITEN);
 }
 
-module.exports = { canonicalPageIds, selectHandbookWeb };
+module.exports = { canonicalPageIds, pageIds, selectHandbookWeb };

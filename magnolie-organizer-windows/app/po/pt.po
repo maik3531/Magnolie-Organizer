@@ -17,6 +17,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Original contact sources"
+msgstr "Fontes originais de contactos"
+
+msgid "Revoke"
+msgstr "Revogar"
+
+msgid "The backup does not contain a complete data set."
+msgstr "A cópia de segurança não contém um conjunto de dados completo."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Não foi possível guardar a permissão da fonte de contactos. As atualizações automáticas estão em pausa."
+
+msgid "Waiting for Wi-Fi."
+msgstr "A aguardar Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "A aguardar acesso à conta. As atualizações automáticas de contactos serão retomadas quando o acesso estiver disponível."
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "Para utilizar o telefone como microfone do sistema, o Magnolie precisa do controlador VB-CABLE da VB-Audio."
 
@@ -1772,6 +1790,9 @@ msgstr "Continuação"
 
 msgid "Contributor key"
 msgstr "Chave do contribuidor"
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Só é possível abrir anexos HTTPS. Pode copiar os outros endereços."
 
 msgid "Copy"
 msgstr "Copiar"

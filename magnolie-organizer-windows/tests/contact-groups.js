@@ -12,6 +12,7 @@ for (const web of require("./web-test-roots")) {
   w.__MAGNOLIE_BRUECKE__ = "test"; w.webkit = { messageHandlers: { test: { postMessage() {} } } };
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     w.App.init({ neu: false, regional: { language: "en" }, daten: { kontakte: [{ id: "local", uid: "stable", vorname: "Synthetic", nachname: "Person",
       vcardRoundtrip: ["CATEGORIES:Client,Team\\, North", "X-UNKNOWN:preserve"] }] } });

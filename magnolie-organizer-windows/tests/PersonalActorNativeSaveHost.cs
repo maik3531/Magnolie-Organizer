@@ -22,8 +22,27 @@ internal sealed partial class PersonalActorNativeSaveHost
     internal NotesOriginalChoiceStore? NativeNotesChoices { get; set; }
     internal string? CurrentNativeText => currentPlainTextAvailable ? currentPlainText : null;
     internal Func<int, string, bool, Task>? SaveAckObserver;
+    internal ContactSourceAutomation? ContactAckLifecycle;
+    internal Func<Task>? AfterSuccessfulSaveAck { set => form.AfterSuccessfulSaveAck = value; }
     internal bool ConcurrentNativeWorker;
     private ContactSourceApprovalStore? OriginalContactApprovals => ApprovalStore;
+    private Func<Task> PrepareOriginalContactSaveAcknowledgement(int id, string hash, bool recognized)
+    {
+        if (ContactAckLifecycle is null) return () => OriginalContactSaveAcknowledgedAsync(id, hash, recognized);
+        var lifecycle = ContactAckLifecycle;
+        var acknowledgement = lifecycle.PrepareSaved(id, hash, recognized);
+        return async () =>
+        {
+            RequireReleasedWriterGate();
+            if (acknowledgement is not null) await lifecycle.CompleteSavedAsync(acknowledgement);
+        };
+    }
+    private void RequireReleasedWriterGate()
+    {
+        var released = MutationGate.Global.Wait(0);
+        TestAssert.That(released, "Actual contact completion still held the writer mutation gate");
+        MutationGate.Global.Release();
+    }
     private async Task OriginalContactSaveAcknowledgedAsync(int id, string hash, bool recognized)
     {
         // A real deferred worker may acquire the released gate before this
@@ -34,7 +53,8 @@ internal sealed partial class PersonalActorNativeSaveHost
             : MutationGate.Global.Wait(0);
         TestAssert.That(released, "Actual contact restore continuation still held the writer mutation gate");
         MutationGate.Global.Release();
-        if (SaveAckObserver is not null) await SaveAckObserver(id, hash, recognized);
+        if (ContactAckLifecycle is not null) await ContactAckLifecycle.SavedAsync(id, hash, recognized);
+        else if (SaveAckObserver is not null) await SaveAckObserver(id, hash, recognized);
     }
     private readonly CancellationTokenSource backgroundLifetime = new();
     private readonly Replies form = new();
@@ -203,6 +223,13 @@ internal sealed partial class PersonalActorNativeSaveHost
     private sealed class Replies
     {
         internal readonly List<(string Callback, JsonObject Value)> Values = [];
-        internal Task SendAsync(string callback, object value) { Values.Add((callback, JsonSerializer.SerializeToNode(value)!.AsObject())); return Task.CompletedTask; }
+        internal Func<Task>? AfterSuccessfulSaveAck;
+        internal async Task SendAsync(string callback, object value)
+        {
+            var payload = JsonSerializer.SerializeToNode(value)!.AsObject();
+            Values.Add((callback, payload));
+            if (callback == "App.gespeichert" && payload["ok"]?.GetValue<bool>() == true && AfterSuccessfulSaveAck is not null)
+                await AfterSuccessfulSaveAck();
+        }
     }
 }

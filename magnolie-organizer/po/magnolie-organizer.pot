@@ -642,6 +642,9 @@ msgstr ""
 msgid "According to language"
 msgstr ""
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr ""
+
 msgid "Account type"
 msgstr ""
 
@@ -708,6 +711,13 @@ msgid "Add shift"
 msgstr ""
 
 msgid "Add subtask"
+msgstr ""
+
+msgid ""
+"Add this original source without replacing existing permissions. Select the "
+"existing organizer contact explicitly. This grants persistent updates; no "
+"original contacts will be created or deleted. Automatic updates wait for Wi-"
+"Fi."
 msgstr ""
 
 msgid "Add to dictionary"
@@ -817,6 +827,14 @@ msgstr ""
 msgid "All-day dates are not converted into timed entries."
 msgstr ""
 
+msgid ""
+"Allow automatic updates only to the selected original address books, "
+"including after restarting. Existing contacts only; no creation or deletion. "
+"Updates wait for Wi-Fi. Nothing is selected by default. An empty selection "
+"revokes all approvals. You can revoke this permission at any time in "
+"Settings."
+msgstr ""
+
 msgid "Allow notifications despite password protection"
 msgstr ""
 
@@ -827,6 +845,9 @@ msgid "Allow photo access on the phone, then refresh albums."
 msgstr ""
 
 msgid "Allow this device to share this connection"
+msgstr ""
+
+msgid "Allow updates"
 msgstr ""
 
 msgid "Allow video access on phone"
@@ -2482,6 +2503,11 @@ msgid "Duplicates"
 msgstr ""
 
 msgid "Duration"
+msgstr ""
+
+msgid ""
+"During initial setup, a restart may be required to install a necessary "
+"driver."
 msgstr ""
 
 msgid "Earlier occurrence"
@@ -4472,6 +4498,9 @@ msgid ""
 "synchronization or start manually."
 msgstr ""
 
+msgid "Notes original source"
+msgstr ""
+
 msgid "Nothing can be encrypted without a password."
 msgstr ""
 
@@ -4646,6 +4675,9 @@ msgstr ""
 msgid "Online via WLAN"
 msgstr ""
 
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr ""
+
 msgid ""
 "Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
 "Your account password is never used."
@@ -4809,6 +4841,12 @@ msgid "Organizer style (paper sheet)"
 msgstr ""
 
 msgid "Organizer · Calendar · Contacts · Notes"
+msgstr ""
+
+msgid "Original address book"
+msgstr ""
+
+msgid "Original contact sources"
 msgstr ""
 
 msgid "Original time zone"
@@ -5760,6 +5798,9 @@ msgstr ""
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr ""
 
+msgid "Revoke"
+msgstr ""
+
 msgid "Rhineland-Palatinate"
 msgstr ""
 
@@ -6073,6 +6114,12 @@ msgstr ""
 msgid "Select something first."
 msgstr ""
 
+msgid ""
+"Select the existing organizer contact for this Notes original source "
+"explicitly. This grants persistent updates; no original contacts will be "
+"created or deleted. Automatic updates wait for Wi-Fi."
+msgstr ""
+
 msgid "Select what you want to print on the left."
 msgstr ""
 
@@ -6159,6 +6206,9 @@ msgid "Set or change password"
 msgstr ""
 
 msgid "Set up Magnolie Organizer"
+msgstr ""
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
 msgstr ""
 
 msgid "Set up contacts"
@@ -6901,6 +6951,9 @@ msgstr ""
 msgid "The address book backend reported an incomplete read."
 msgstr ""
 
+msgid "The address book contains an ambiguous source binding."
+msgstr ""
+
 #, python-format
 msgid "The address book contains the UID %s more than once."
 msgstr ""
@@ -7048,6 +7101,11 @@ msgid "The connection could not be shared."
 msgstr ""
 
 msgid "The connection settings could not be saved."
+msgstr ""
+
+msgid ""
+"The contact source permission could not be saved. Automatic updates are "
+"paused."
 msgstr ""
 
 msgid "The contact synchronization message is invalid."
@@ -7561,6 +7619,9 @@ msgid ""
 msgstr ""
 
 msgid "The save request is invalid."
+msgstr ""
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
 msgstr ""
 
 msgid "The secure interface could not be registered."
@@ -8260,6 +8321,9 @@ msgstr ""
 msgid "Update checking is available only in the installed application."
 msgstr ""
 
+msgid "Update original contact sources"
+msgstr ""
+
 msgid "Update weather"
 msgstr ""
 
@@ -8428,6 +8492,17 @@ msgid ""
 msgstr ""
 
 msgid "WLAN listener on port %(port)s"
+msgstr ""
+
+msgid "Waiting for Wi-Fi."
+msgstr ""
+
+msgid ""
+"Waiting for account access. Automatic contact updates will resume when "
+"available."
+msgstr ""
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
 msgstr ""
 
 msgid "Waiting for authenticated phone connection..."

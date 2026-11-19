@@ -12,6 +12,7 @@ for (const web of require("./web-test-roots")) for (const [start, later, expecte
   w.__MAGNOLIE_BRUECKE__ = "test"; w.webkit = { messageHandlers: { test: { postMessage() {} } } };
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     w.App.init({ neu: false, regional: { language: "en", timeZone: "UTC" }, daten: {} });

@@ -18,6 +18,24 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
 
+msgid "Original contact sources"
+msgstr "مصادر جهات الاتصال الأصلية"
+
+msgid "Revoke"
+msgstr "إلغاء الإذن"
+
+msgid "The backup does not contain a complete data set."
+msgstr "لا تحتوي النسخة الاحتياطية على مجموعة بيانات كاملة."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "تعذّر حفظ إذن مصدر جهات الاتصال. تم إيقاف التحديثات التلقائية مؤقتًا."
+
+msgid "Waiting for Wi-Fi."
+msgstr "في انتظار اتصال Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "في انتظار الوصول إلى الحساب. ستُستأنف التحديثات التلقائية لجهات الاتصال عند توفر الوصول."
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "لاستخدام هاتفك كميكروفون للنظام، يحتاج Magnolie إلى برنامج التشغيل VB-CABLE من VB-Audio."
 
@@ -1840,6 +1858,9 @@ msgstr "تابع"
 
 msgid "Contributor key"
 msgstr "مفتاح المساهم"
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "يمكن فتح مرفقات HTTPS فقط. يمكنك نسخ العناوين الأخرى."
 
 msgid "Copy"
 msgstr "نسخ"

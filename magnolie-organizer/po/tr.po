@@ -2091,6 +2091,60 @@ msgstr "Devamı"
 msgid "Contributor Key"
 msgstr "Contributor Key"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "Hesaba erişim geçici olarak kullanılamıyor. Otomatik güncellemeler bekleyecek."
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Mevcut izinleri değiştirmeden bu özgün kaynağı ekleyin. Organizer içindeki mevcut kişiyi açıkça seçin. Bu, kalıcı güncelleme izni verir; hiçbir özgün kişi oluşturulmaz veya silinmez. Otomatik güncellemeler Wi-Fi bağlantısını bekler."
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "Yalnızca seçilen özgün adres defterlerine, yeniden başlatmadan sonra da otomatik güncelleme izni verin. Yalnızca mevcut kişiler; oluşturma veya silme yok. Güncellemeler Wi-Fi bağlantısını bekler. Varsayılan olarak hiçbir şey seçili değildir. Boş seçim tüm izinleri iptal eder. Bu izni istediğiniz zaman Ayarlar bölümünden iptal edebilirsiniz."
+
+msgid "Allow updates"
+msgstr "Güncellemelere izin ver"
+
+msgid "Notes original source"
+msgstr "Notes özgün kaynağı"
+
+msgid "Original address book"
+msgstr "Özgün adres defteri"
+
+msgid "Original contact sources"
+msgstr "Özgün kişi kaynakları"
+
+msgid "Revoke"
+msgstr "İzni geri al"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Bu Notes özgün kaynağı için Organizer içindeki mevcut kişiyi açıkça seçin. Bu, kalıcı güncelleme izni verir; hiçbir özgün kişi oluşturulmaz veya silinmez. Otomatik güncellemeler Wi-Fi bağlantısını bekler."
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "Ayarlar bölümünde hesaba erişimi bir kez ayarlayın. Otomatik güncellemeler bekleyecek."
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "Adres defteri belirsiz bir kaynak bağlantısı içeriyor."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Kişi kaynağı izni kaydedilemedi. Otomatik güncellemeler duraklatıldı."
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "Kaydedilmiş hesap erişimi belirsiz. Ayarlar bölümünde hesabı kontrol edin."
+
+msgid "Update original contact sources"
+msgstr "Özgün kişi kaynaklarını güncelle"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Wi-Fi bekleniyor."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Hesap erişimi bekleniyor. Erişim sağlandığında otomatik kişi güncellemeleri devam edecek."
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "Hesaba erişim bekleniyor. Uygun olduğunuzda sistem anahtarlığının kilidini açın."
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Yalnızca HTTPS ekleri açılabilir. Diğer adresleri kopyalayabilirsiniz."
+
 msgid "Copy"
 msgstr "Kopyala"
 

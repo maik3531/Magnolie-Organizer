@@ -32,21 +32,30 @@ internal sealed class RecoveryJournal
     private readonly string settingsPath;
     private readonly AtomicStore store;
     private readonly Func<DateTimeOffset> clock;
+    private readonly Action<string, string[]> runTar;
     private readonly object gate = new();
 
     internal RecoveryJournal(string root, string settingsPath, AtomicStore? store = null,
-        Func<DateTimeOffset>? clock = null)
+        Func<DateTimeOffset>? clock = null, Action<string, string[]>? runTar = null)
     {
         this.root = Path.GetFullPath(root);
         this.settingsPath = settingsPath;
         this.store = store ?? new AtomicStore();
         this.clock = clock ?? (() => DateTimeOffset.UtcNow);
+        this.runTar = runTar ?? RunTar;
     }
 
     internal SnapshotInfo Create(JsonObject data, SnapshotReason reason, string appVersion,
         Func<string, string>? protect = null, string? syncEpoch = null, Func<string, string>? unprotect = null)
     {
         lock (gate) return Create(data, reason, appVersion, protect, syncEpoch, unprotect, restoreLease: false);
+    }
+
+    internal SnapshotInfo CreateExactBook(JsonObject data, string appVersion,
+        Func<string, string>? protect = null, Func<string, string>? unprotect = null)
+    {
+        lock (gate) return Create(data, SnapshotReason.PreContact, appVersion, protect, null, unprotect,
+            restoreLease: false, exactBook: true);
     }
 
     internal static string CreationMode(JsonObject data) => data["einstellungen"]?["allgemein"]?["wiederherstellungsmodus"]?.GetValue<string>() switch
@@ -134,20 +143,21 @@ internal sealed class RecoveryJournal
     }
 
     private SnapshotInfo Create(JsonObject data, SnapshotReason reason, string appVersion,
-        Func<string, string>? protect, string? syncEpoch, Func<string, string>? unprotect, bool restoreLease)
+        Func<string, string>? protect, string? syncEpoch, Func<string, string>? unprotect, bool restoreLease, bool exactBook = false)
     {
         EnsureSafeRoot();
         var now = clock().ToUniversalTime();
         var reasonText = ReasonText(reason);
         var latest = List().FirstOrDefault();
         var mode = CreationMode(data); var period = CreationPeriod(data);
-        if (reasonText.StartsWith("pre-", StringComparison.Ordinal) && reason != SnapshotReason.PreRestore && latest is { Integrity: "ok" } &&
+        if (!exactBook && reasonText.StartsWith("pre-", StringComparison.Ordinal) && reason != SnapshotReason.PreRestore && latest is { Integrity: "ok" } &&
             (mode == "startup" || period is not null && now - latest.CreatedUtc < period.Value))
         {
             return Verify(latest.Id);
         }
         var snapshotData = data.DeepClone().AsObject();
-        var archive = GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
+        var archive = exactBook ? GesamtarchivService.CreateExactBook(snapshotData, "windows", appVersion, created: now)
+            : GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
         // Hash the normalized content, not the archive envelope's changing timestamp.
         var sourceHash = JsonNode.Parse(archive)!["sha256"]!.GetValue<string>();
         SnapshotInfo? duplicate = null;
@@ -156,8 +166,12 @@ internal sealed class RecoveryJournal
             try
             {
                 var previous = ReadPayload(latest.Id);
+                var sameEncryption = EncryptionService.IsEncrypted(previous) == (protect is not null);
                 if (EncryptionService.IsEncrypted(previous) && unprotect is not null) previous = unprotect(previous);
-                if (!HasRecoverableChanges(GesamtarchivService.Read(previous).Daten, GesamtarchivService.Read(archive).Daten)) duplicate = Verify(latest.Id);
+                if (exactBook
+                    ? sameEncryption && NativeBookJson.Same(GesamtarchivService.ReadOriginalBook(previous).Daten, snapshotData)
+                    : !HasRecoverableChanges(GesamtarchivService.Read(previous).Daten, GesamtarchivService.Read(archive).Daten))
+                    duplicate = Verify(latest.Id);
             }
             catch (Exception error) when (error is IOException or InvalidDataException or JsonException or CryptographicException or InvalidOperationException) { }
         }
@@ -180,6 +194,8 @@ internal sealed class RecoveryJournal
         }
 
         var payload = protect is null ? archive : protect(archive);
+        if (exactBook && EncryptionService.IsEncrypted(payload) != (protect is not null))
+            throw new InvalidDataException("contact_source_protection_encryption_changed");
         var payloadBytes = Encoding.UTF8.GetBytes(payload);
         var drive = new DriveInfo(Path.GetPathRoot(root)!);
         var protectedBytes = List().Where(item => item.Pinned || item.Integrity != "ok").Sum(item => item.Size);
@@ -584,6 +600,12 @@ internal sealed class RecoveryJournal
                 Directory.Delete(previous, true);
                 changed++;
             }
+            catch (XzUnavailableException)
+            {
+                // Compression is optional. No replacement has been committed:
+                // retain the original snapshot and retry on a later run.
+                break;
+            }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or
                                            JsonException or CryptographicException or System.ComponentModel.Win32Exception)
             {
@@ -712,7 +734,7 @@ internal sealed class RecoveryJournal
         if (compressed)
         {
             storedPath = Path.Combine(directory, CompressedPayloadFile);
-            RunTar(directory, "-cJf", storedPath, "-C", directory, "--", PayloadFile);
+            runTar(directory, new[] { "-cJf", storedPath, "-C", directory, "--", PayloadFile });
             File.Delete(plainPath);
             payload["file"] = CompressedPayloadFile;
             payload["compression"] = "xz";
@@ -778,8 +800,17 @@ internal sealed class RecoveryJournal
         using var process = Process.Start(start) ?? throw new IOException("XZ-Komprimierung konnte nicht gestartet werden.");
         var error = process.StandardError.ReadToEnd();
         process.WaitForExit();
+        if (OperatingSystem.IsWindows() && IsUnsupportedXz(process.ExitCode, error))
+            throw new XzUnavailableException();
         if (process.ExitCode != 0) throw new IOException("XZ-Komprimierung ist fehlgeschlagen: " + error.Trim());
     }
+    internal sealed class XzUnavailableException : IOException
+    {
+        internal XzUnavailableException() : base("Das System-tar unterstützt keine XZ-Komprimierung.") { }
+    }
+
+    internal static bool IsUnsupportedXz(int exitCode, string error) => exitCode != 0 &&
+        error.Trim() == "tar.exe: Unsupported compression option --xz";
     private static string Mode(JsonObject settings) => settings["mode"] is JsonValue value &&
         value.TryGetValue<string>(out var mode) && mode == "count" ? "count" : "days";
     private static int Maximum(JsonObject settings) => settings["maximum"] is JsonValue value &&

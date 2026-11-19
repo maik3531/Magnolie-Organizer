@@ -971,6 +971,18 @@ probe are separate from physical paired-peer/installed-product acceptance.
 
 ## Notes phone connection controls
 
+`organizer_phone_media_status_read` reads the existing native photo/video runtime
+projection for an exact paired `peer_id`/`fingerprint` and current
+`expected_revision`. It returns availability, any pending legacy activation,
+independent photo/video choices, video support, automatic/busy state and whether
+shared settings are present/agreed. Unknown flags are `null`, not invented
+opt-outs. No paths, albums, media contents, owner tokens or permissions are
+returned. `persisted` and `transfer_started` are always false. It never enables,
+configures, scans, starts transfers/listeners or requests OS rights. Native
+identity/session checks bracket the read; dispatch rechecks the current unlocked
+profile/service. Availability/agreement do not prove a completed transfer. The
+Linux daemon path is non-subscribing and does not enter the mutation lane.
+
 `organizer_phone_connection_read` reads the actual native phone-control store and
 runtime snapshot. It returns public identity/fingerprints, listener/pairing state,
 pending verification codes and attempt IDs, declared capabilities, editable

@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
-internal static class ContactSourceUpdateRunTests
+internal static partial class ContactSourceUpdateRunTests
 {
     private sealed class Protector : ISecretProtector
     {
@@ -128,6 +128,11 @@ internal static class ContactSourceUpdateRunTests
     }
     internal static async Task RunAsync()
     {
+        if (Environment.GetEnvironmentVariable("MAGNOLIE_CONTACT_TEST_SLICE") == "exact-protection")
+        {
+            await ExactProtectionAsync();
+            return;
+        }
         foreach (var mode in new[] { "success", "failure", "readback", "readonly", "unknown", "revoked", "conflict", "ambiguous", "save-failed", "book-changed", "readback-uid", "readback-uid-missing" })
         {
             var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
@@ -203,6 +208,7 @@ internal static class ContactSourceUpdateRunTests
         await SavedDavOrchestrationAsync();
         await SavedResultCommitAsync();
         await NativeSessionAsync();
+        await ExactProtectionAsync();
         var dialogProduct = Environment.GetEnvironmentVariable("MAGNOLIE_CONTACT_DIALOG_PRODUCT");
         if (OperatingSystem.IsWindows() && !string.IsNullOrEmpty(dialogProduct)) await ContactSourceNativeDialogTests.RunAsync(dialogProduct);
         if (!OperatingSystem.IsWindows())
@@ -449,7 +455,8 @@ internal static class ContactSourceUpdateRunTests
     {
         foreach (var mode in new[] { "default-off", "normal", "restart", "wlan-return", "account-return", "account-loss-before-run",
             "account-loss-during-save", "volatile-pause", "durable-revoke", "failed-durable-revoke", "wrong-ack-hash", "cancel",
-            "empty", "revoke-during-restore", "dispose", "concurrent-probe", "external-intent-revoke", "corrupt-recognized-record" })
+            "empty", "revoke-during-restore", "dispose", "concurrent-probe", "external-intent-revoke", "corrupt-recognized-record",
+            "ack-immediate-setup", "ack-immediate-cancel", "ack-immediate-revoke", "ack-immediate-new-save" })
         {
             var root = Path.Combine(Path.GetTempPath(), "magnolie-native-contact-automation-" + Guid.NewGuid().ToString("N"));
             var original = new JsonObject { ["id"] = "local", ["uid"] = "canonical-person", ["sync"] = true,
@@ -483,6 +490,47 @@ internal static class ContactSourceUpdateRunTests
                 automation = NewAutomation();
                 void Attach() => host.SaveAckObserver = async (id, hash, recognized) => { await automation.SavedAsync(id, hash, recognized); };
                 Attach();
+                if (mode.StartsWith("ack-immediate-", StringComparison.Ordinal))
+                {
+                    // Run the ACTUAL generated encrypted SaveAsync. The GUI
+                    // starts its decision as soon as it receives the real ACK,
+                    // while the writer's native continuation has not run yet.
+                    host.ContactAckLifecycle = automation;
+                    var shown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    var decision = new TaskCompletionSource<IReadOnlyList<string>?>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    Task<ContactSourceAutomationSetup>? pending = null;
+                    host.AfterSuccessfulSaveAck = async () =>
+                    {
+                        pending = automation.ConfigureAsync((choices, _, _) =>
+                        { decisions++; shown.TrySetResult(); return decision.Task; });
+                        await shown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                    };
+                    await Save(91);
+                    host.AfterSuccessfulSaveAck = null;
+                    TestAssert.That(pending is not null && decisions == 1, "Immediate native setup did not reach its real decision boundary");
+                    if (mode == "ack-immediate-revoke") await automation.RevokeAsync(true);
+                    if (mode == "ack-immediate-new-save")
+                    { document["laterActualEdit"] = true; await Save(92); }
+                    decision.SetResult(mode == "ack-immediate-cancel" ? null : [source.Catalog.Uid]);
+                    ContactSourceAutomationSetup? completed = null; Exception? rejection = null;
+                    try { completed = await pending!.WaitAsync(TimeSpan.FromSeconds(5)); }
+                    catch (Exception error) { rejection = error; }
+                    if (mode is "ack-immediate-revoke" or "ack-immediate-new-save")
+                        TestAssert.That(rejection is not null && !automation.HasCurrentIntent && session.GrantCount == 0,
+                            "A genuine revoke/new saved book was accepted during a stale native setup");
+                    else if (mode == "ack-immediate-cancel")
+                        TestAssert.That(rejection is null && completed?.Changed == false && completed.Desired == false && session.GrantCount == 0,
+                            "Cancel after the first native ACK became an error or a durable grant");
+                    else
+                    {
+                        TestAssert.That(rejection is null && completed?.Desired == true && completed.Grants == 1 && completed.Id == 91,
+                            "Late native completion of the SAME already delivered SaveACK invalidated the user's unchanged native decision: " + rejection);
+                        document["afterImmediateSetup"] = true; await Save(92);
+                        TestAssert.That(notices.Last().Ok && notices.Last().Id == 92 && decisions == 1,
+                            "Immediate setup did not survive the next actual encrypted writer/ACK without a second decision");
+                    }
+                    Console.WriteLine("CONTACT SOURCE AUTOMATION PASS " + mode); continue;
+                }
                 async Task<JsonObject> Save(int id)
                     => await host.SaveBridgeEnvelopeAsync(new JsonObject { ["cmd"] = "speichern", ["id"] = id, ["text"] = document.ToJsonString() });
                 await Save(91);

@@ -146,7 +146,7 @@ internal sealed partial class BridgeDispatcher
         actorBookOwner.Invalidate();
         var fence = Path.Combine(paths.Telefon, "restore-fence.json");
         if (Path.Exists(fence) || Path.Exists(AtomicStore.BackupPath(fence)))
-        { restoreInProgress = true; throw new InvalidOperationException(T("Synchronization failed.")); }
+        { restoreInProgress = true; await CancelNotesSetupAsync().ConfigureAwait(false); throw new InvalidOperationException(T("Synchronization failed.")); }
         lock (personalSyncGate)
         {
             if (personalUiPending.Count != 0) throw new InvalidOperationException(T("Wait for personal synchronization to finish before restoring."));
@@ -154,6 +154,7 @@ internal sealed partial class BridgeDispatcher
             restoreToken = Guid.NewGuid().ToString("D");
             restoreContentCommitted = false;
         }
+        await CancelNotesSetupAsync().ConfigureAwait(false); // Before any book gate; joined setup cannot cross a restore.
         Task queued;
         lock (serviceGate)
         {

@@ -57,7 +57,8 @@ internal object NativeGalleryRecoveryPreview {
                 }
                 "video" -> {
                     if (Build.VERSION.SDK_INT < 27) throw PhotoFolderScopeError("gallery_preview_decoder_unavailable")
-                    MediaMetadataRetriever().use { decoder ->
+                    val decoder = MediaMetadataRetriever()
+                    try {
                         val source = object : MediaDataSource() {
                             override fun getSize() = bytes.size.toLong()
                             override fun close() { }
@@ -78,7 +79,7 @@ internal object NativeGalleryRecoveryPreview {
                         val scale = minOf(1.0, side.toDouble() / maxOf(width, height))
                         decoder.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
                             maxOf(1, (width * scale).toInt()), maxOf(1, (height * scale).toInt()))
-                    }
+                    } finally { decoder.release() }
                 }
                 else -> throw PhotoFolderScopeError("gallery_preview_format")
             } ?: throw PhotoFolderScopeError("gallery_preview_decode_failed")

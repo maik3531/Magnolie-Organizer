@@ -18,6 +18,24 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+msgid "Original contact sources"
+msgstr "Першапачатковыя крыніцы кантактаў"
+
+msgid "Revoke"
+msgstr "Адклікаць"
+
+msgid "The backup does not contain a complete data set."
+msgstr "Рэзервовая копія не змяшчае поўнага набору даных."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Не ўдалося захаваць дазвол для крыніцы кантактаў. Аўтаматычныя абнаўленні прыпынены."
+
+msgid "Waiting for Wi-Fi."
+msgstr "Чаканне Wi-Fi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Чаканне доступу да ўліковага запісу. Аўтаматычныя абнаўленні кантактаў адновяцца, калі доступ стане магчымым."
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "Каб выкарыстоўваць тэлефон як сістэмны мікрафон, Magnolie патрэбны драйвер VB-CABLE ад VB-Audio."
 
@@ -1779,6 +1797,9 @@ msgstr "Працяг"
 
 msgid "Contributor key"
 msgstr "Ключ удзельніка"
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Можна адкрываць толькі ўкладанні HTTPS. Іншыя адрасы можна скапіяваць."
 
 msgid "Copy"
 msgstr "Капіяваць"

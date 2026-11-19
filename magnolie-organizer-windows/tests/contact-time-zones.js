@@ -24,7 +24,10 @@ const watchdog = setTimeout(() => { console.error("Contact timezone test timed o
         formatters = 0;
         for (let n = 0; n < 1000; n++) assert.equal(b.t.gueltigeIanaZeitzone(" Europe/Berlin "), expected);
         assert.equal(formatters, 0, "Repeated named-zone checks must not allocate a formatter per cached calendar result");
-        for (const alias of ["UTC", "Etc/UTC", "Etc/GMT", "GMT", "Z"]) assert.equal(b.t.gueltigeIanaZeitzone(alias), "UTC");
+        for (const alias of ["UTC", "Etc/UTC", "Etc/GMT", "GMT", "Z"]) {
+          assert.equal(b.t.gueltigeIanaZeitzone(alias), alias, "A supported source identifier must retain its identity");
+          assert.equal(b.w.MagnolieTime.offsetAt(alias, Date.parse("2026-01-15T12:30:00Z")), 0);
+        }
         for (const invalid of ["", "../Europe/Berlin", "Europe/../Berlin", "Europe/Berlin".repeat(20), "Mars/Olympus"])
           assert.equal(b.t.gueltigeIanaZeitzone(invalid), "");
         formatters = 0;

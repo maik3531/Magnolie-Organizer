@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.Manifest
 import android.content.Context
 import android.content.ComponentName
@@ -2063,7 +2065,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
         retireInvalidPersonalActors()
     }
 
+    private var lanZuletzt = LanFreigabe.erlaubt()
     internal fun maintenance() {
+        val erlaubt = LanFreigabe.erlaubt()
+        if (erlaubt != lanZuletzt) {
+            lanZuletzt = erlaubt
+            wifiChanged(wifiAvailable)
+        }
         retireInvalidPersonalActors()
         reapPersonalActors()
         val pendingRuns = Ablage.hole(context).personalSyncPendingDecisions()
@@ -2074,21 +2082,23 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     fun wifiChanged(available: Boolean) {
         wifiAvailable = available
-        if (!available) safePeer()?.takeIf { queue.hasActiveAutoRun(it.device_id) }?.let {
+        val nutzbar = available && LanFreigabe.erlaubt()
+        if (!nutzbar) safePeer()?.takeIf { queue.hasActiveAutoRun(it.device_id) }?.let {
             storage.setPersonalSyncReport(context.getString(
                 io.gitlab.maik3531.magnolienotes.R.string.personal_sync_wlan_pause))
             refreshModules()
         }
-        if (activeTransport?.first == TelefonTransportArt.BLUETOOTH && System.nanoTime() < bluetoothFirstSessionUntil) return
-        if (available && activeTransport?.first == TelefonTransportArt.BLUETOOTH) {
+        if (activeTransport?.first == TelefonTransportArt.BLUETOOTH &&
+            (!nutzbar || System.nanoTime() < bluetoothFirstSessionUntil)) return
+        if (nutzbar && activeTransport?.first == TelefonTransportArt.BLUETOOTH) {
             closeTransport()
         }
-        if (!available && activeTransport?.first == TelefonTransportArt.WIFI) {
+        if (!nutzbar && activeTransport?.first == TelefonTransportArt.WIFI) {
             closeTransport()
         }
         if (!serviceRunning || !storage.enabled() || _state.value.connection == TelefonVerbindungsstatus.CODE_PENDING) return
         _state.value = _state.value.copy(connection = when {
-            !available -> TelefonVerbindungsstatus.OFFLINE
+            !nutzbar -> TelefonVerbindungsstatus.OFFLINE
             _state.value.peer?.state == "paired" -> TelefonVerbindungsstatus.PAIRED
             else -> TelefonVerbindungsstatus.OFFLINE
         })
@@ -2257,6 +2267,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     fun beginPairing(desktop: GefundenerDesktop) {
+        LanFreigabe.pruefen()
         if (savedComputers().any { it.device_id == desktop.deviceId }) {
             selectComputer(desktop.deviceId)
             if (desktop.token.isBlank()) return
@@ -2493,7 +2504,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             return
         }
         if (serviceRunning && storage.enabled() && passive?.state == "paired" && passive.bluetooth_inbound &&
-            (!wifiAvailable || System.nanoTime() < bluetoothFirstSessionUntil)) {
+            (!wifiAvailable || !LanFreigabe.erlaubt() || System.nanoTime() < bluetoothFirstSessionUntil)) {
             runCatching { ensureBluetoothListener() }
             return
         }
@@ -2511,10 +2522,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 }
                 var host = peer.last_host
                 if (peer.state == "paired_unverified" && !peer.bluetooth_inbound && retryFinish(peer, host)) peer = safePeer() ?: return@thread
-                if (peer.bluetooth_inbound && (peer.state == "paired_unverified" || !wifiAvailable || System.nanoTime() < bluetoothFirstSessionUntil)) return@thread
+                if (peer.bluetooth_inbound && (peer.state == "paired_unverified" || !wifiAvailable || !LanFreigabe.erlaubt() || System.nanoTime() < bluetoothFirstSessionUntil)) return@thread
                 var direct: TelefonRoehre? = null
-                if (wifiAvailable && host.isNotBlank()) direct = runCatching { TelefonTcpRoehre(host, 1_200) }.getOrNull()
-                if (direct == null && wifiAvailable) {
+                if (wifiAvailable && LanFreigabe.erlaubt() && host.isNotBlank()) direct = runCatching { TelefonTcpRoehre(host, 1_200) }.getOrNull()
+                if (direct == null && wifiAvailable && LanFreigabe.erlaubt()) {
                     val saved = if (peer.state == "paired" && explicitlySelectedComputer != peer.device_id) savedComputers() else listOf(peer)
                     val found = TelefonEntdeckung.suchen(context, peerId = peer.device_id,
                         pairedIds = saved.filter { it.state == "paired" }.map { it.device_id }.toSet())
@@ -2531,7 +2542,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 }
                 if (generation != pairingGeneration) { direct?.close(); return@thread }
                 val selected = if (direct != null) TelefonTransportArt.WIFI to direct else
-                    TelefonTransportwahl.oeffnen(wifiAvailable && host.isNotBlank(), peer.bluetooth_address,
+                    TelefonTransportwahl.oeffnen(wifiAvailable && LanFreigabe.erlaubt() && host.isNotBlank(), peer.bluetooth_address,
                         !peer.bluetooth_inbound && storage.bluetoothEnabled() && bluetooth.erlaubt(),
                         wifi = { TelefonTcpRoehre(host) }, bluetooth = bluetooth::verbinden)
                 session(peer, selected.first, selected.second,
@@ -2539,7 +2550,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     authenticated = { authenticated = true })
             } catch (error: Exception) {
                 synchronized(this) {
-                    if (!authenticated && generation == pairingGeneration && activeTransport?.first == TelefonTransportArt.WIFI)
+                    if (LanFreigabe.erlaubt() && !authenticated && generation == pairingGeneration && activeTransport?.first == TelefonTransportArt.WIFI)
                         safePeer()?.takeIf { it.device_id == passive?.device_id && it.last_host.isNotBlank() }
                             ?.let { storage.savePeer(it.copy(last_host = "")) }
                 }
@@ -2557,7 +2568,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun retryFinish(peer: TelefonPeer, host: String): Boolean = runCatching {
         if (peer.pending_finish.isBlank()) return@runCatching false
         val sent = TelefonKanonisch.json.parseToJsonElement(peer.pending_finish) as JsonObject
+        LanFreigabe.pruefen()
         Socket().use { socket ->
+            LanFreigabe.beobachten(socket).use {
             socket.connect(InetSocketAddress(host, TelefonParameter.PORT), 10_000); socket.soTimeout = 10_000
             TelefonRahmen.schreiben(socket.getOutputStream(), sent)
             val finish = TelefonRahmen.lesen(socket.getInputStream())
@@ -2566,6 +2579,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 finish.string("side") != "desktop" || finish.string("transcript") != sent.string("transcript"))
                 throw TelefonProtokollFehler("Ungültiger Pairing-Abschluss.")
             TelefonKrypto.b64(finish.string("proof"), 32)
+            LanFreigabe.pruefen()
+            }
         }
         // Erst der anschließende gepinnte FS-Reconnect bestätigt den Abschluss lokal.
         true

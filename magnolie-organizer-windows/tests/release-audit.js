@@ -13,13 +13,19 @@ const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")) &&
     fs.existsSync(path.join(candidate, "i18n", "de.js")));
 if (!handbook) fail("Gemeinsame Handbuchquelle fehlt");
-function checkPowerShell(file) {
-  const text = read(file);
+function checkPowerShell(file, text = read(file)) {
   const pairs = { ")": "(", "]": "[", "}": "{" };
   const stack = [];
-  let quote = "", escaped = false, comment = false;
+  let quote = "", hereQuote = "", escaped = false, comment = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
+    if (hereQuote) {
+      if ((i === 0 || text[i - 1] === "\n") && c === hereQuote && text[i + 1] === "@") {
+        hereQuote = "";
+        i++;
+      }
+      continue;
+    }
     if (comment) { if (c === "\n") comment = false; continue; }
     if (quote) {
       if (quote === '"' && c === "`" && !escaped) { escaped = true; continue; }
@@ -28,11 +34,22 @@ function checkPowerShell(file) {
       continue;
     }
     if (c === "#") { comment = true; continue; }
+    if (c === "@" && (text[i + 1] === "'" || text[i + 1] === '"') && /^[\t ]*\r?\n/.test(text.slice(i + 2))) {
+      hereQuote = text[++i];
+      continue;
+    }
     if (c === '"' || c === "'") { quote = c; continue; }
     if ("([{ ".includes(c) && c !== " ") stack.push(c);
     if (pairs[c] && stack.pop() !== pairs[c]) fail(`${file} hat unausgeglichene Klammern`);
   }
-  if (quote || stack.length) fail(`${file} hat unausgeglichene Zeichenketten oder Klammern`);
+  if (quote || hereQuote || stack.length) fail(`${file} hat unausgeglichene Zeichenketten oder Klammern`);
+}
+checkPowerShell("here-string regression", "$text = @'\n'\" ] })\n'@\nfunction Valid() { }\n");
+checkPowerShell("double here-string regression", '$text = @"\n\' ] })\n"@\nfunction Valid() { }\n');
+for (const invalid of ["$text = @'\nunclosed\n", '$text = @"\nunclosed\n', "$text = @'\ntext\n'@\nfunction Broken() {\n"]) {
+  let rejected = false;
+  try { checkPowerShell("invalid here-string regression", invalid); } catch { rejected = true; }
+  if (!rejected) fail("PowerShell smoke checker accepted an unterminated string/block");
 }
 for (const file of ["build/Build.ps1", "build/BuildSource.ps1", "build/Release.Common.ps1", "build/UpdateManifest.ps1", "vm/StartTest.ps1", "vm/TestInstallerUpdate.ps1"]) checkPowerShell(file);
 const version = /<Version>([^<]+)<\/Version>/.exec(read("Directory.Build.props"))?.[1];
@@ -138,7 +155,70 @@ const shutdown = vmResultTest.indexOf("$shutdownOutput = @(&");
 const shutdownCheck = vmResultTest.indexOf("if ($shutdownExitCode -ne 0)", shutdown);
 if (flush < 0 || persistenceCheck < flush || dismount < persistenceCheck || dismountCheck < dismount || shutdown < dismountCheck || shutdownCheck < shutdown) fail("VM prüft Flush, Persistenz, Aushängen und Herunterfahren nicht in dieser Reihenfolge");
 const build = read("build/Build.ps1");
-for (const token of [".release-staging-", "New-DeterministicZip", "Enter-ReleaseLock", "Sign-Official", "MAGNOLIE_SIGNTOOL", "--packaging-self-test", "Write-ReleaseChecksums", "Assert-SourceArchive", "Assert-BinaryArchiveBuildConfig", "AuditWebPayload.js", '"--publish", $buildRoot, $publish', '"--artifact", $publish, $zipAudit', "BuildSource.ps1", "sourceForRelease", "installerName", "TimeStamperCertificate", 'Move-Item -LiteralPath $unsignedSetupStage', "CreateInstallerBuildRecord.js", "installerRecordName", "CrossCompile", "WINDOWS-RUNTIME-UNVERIFIED.txt", "windowsRuntimeVerified=false", "windowsVmValidationRequired=true", "artifactTrust=UNSIGNED", "AuditInstaller.js", "NSISDIR", "/tmp/opencode/nsis-root/usr/bin/makensis", "Binärausgabe benötigt MAGNOLIE_CONTRIBUTOR_HASH"]) if (!build.includes(token)) fail(`Build-Invariante fehlt: ${token}`);
+for (const token of ['PhonePayloadSigning.Common.ps1', 'PhonePayloadResources.Common.ps1',
+  'New-VerifiedSignedPhoneInputs -BuildRoot $buildRoot', 'Get-PreparedPhonePublishArguments $preparedPhoneInputs']) {
+  if (!build.includes(token)) fail(`Vorbereitete Phone-Payload-Anbindung fehlt: ${token}`);
+}
+const preparePhoneAt = build.indexOf('New-VerifiedSignedPhoneInputs -BuildRoot $buildRoot');
+const publishPhoneAt = build.indexOf('Invoke-NativeCommand "dotnet" $publishArguments');
+const verifyPhoneAt = build.indexOf("& (Join-Path $PSScriptRoot 'Verify-PhonePayloadInputs.ps1')");
+if (verifyPhoneAt <= preparePhoneAt || verifyPhoneAt >= publishPhoneAt) {
+  fail('Unabhängige Phone-Signaturprüfung muss nach Vorbereitung und vor publish liegen.');
+}
+const phoneVerifier = read('build/Verify-PhonePayloadInputs.ps1');
+if (/MAGNOLIE_SIGN_(?:CERTIFICATE|PASSWORD)|Sign-Official|\b(?:New|Import)-PfxCertificate\b/.test(phoneVerifier) ||
+    !phoneVerifier.includes('Assert-Signature $binary') || !phoneVerifier.includes('Assert-PhonePayloadAuthenticodeEnvelope -Path $binary') || phoneVerifier.includes('-ThirdParty')) {
+  fail('Die vorbereitete Phone-Prüfung muss geheimnisfrei und ohne Vendor-Ausnahme verifizieren.');
+}
+const phoneSigningTarget = read('PhoneCameraSigning.targets');
+for (const token of ['BeforeTargets="HoldUnpreparedOfficialPhonePayloadSigning"',
+  'Root="$(MSBuildProjectDirectory)"', 'HelperDirectory="$(MagnoliePhoneCameraHelperDirectory)"',
+  'RuntimeDirectory="$(MagnoliePhoneCameraRuntimeDirectory)"', 'ParentDirectory="$(MagnoliePhoneCameraParentDirectory)"',
+  'SourceDirectory="$(MagnoliePhoneCameraSourceDirectory)"', 'UseShellExecute = false', '"-NonInteractive"',
+  '"Verify-PhonePayloadInputs.ps1"', 'MAGNOLIE_PHONE_VERIFY_RECEIPT', 'MAGNOLIE_PHONE_VERIFY_PUBLISHER',
+  'MAGNOLIE_PHONE_VERIFY_TOOL', 'MAGNOLIE_PHONE_VERIFY_HOST', 'WaitForExit(30000)', 'killTree.Invoke(process',
+  'start.Environment.Remove("MAGNOLIE_SIGN_CERTIFICATE")', 'start.Environment.Remove("MAGNOLIE_SIGN_PASSWORD")',
+  'File.Open(host, FileMode.Open, FileAccess.Read, FileShare.Read)', 'Microsoft.PowerShell.Security.psd1',
+  'start.Environment["PSModulePath"]', 'CN=Microsoft Corporation', 'killTree.Invoke(bootstrapProcess']) {
+  if (!phoneSigningTarget.includes(token)) fail(`Unabhängige Einbettungsgrenze fehlt: ${token}`);
+}
+if (!phoneSigningTarget.includes('existing source snapshot validation remains mandatory.') ||
+    !phoneSigningTarget.includes('<VerifyPreparedOfficialPhoneInputs Root="$(MSBuildProjectDirectory)"')) {
+  fail('Nur die tatsächlich ausgeführte unabhängige Verifikation darf zur bestehenden Quellprüfung weiterführen.');
+}
+const phoneReadbacks = [...build.matchAll(/Assert-PreparedPhonePayloadResources -AssemblyPath/g)].map(match => match.index);
+if (preparePhoneAt < 0 || publishPhoneAt <= preparePhoneAt || phoneReadbacks.length !== 2 ||
+    phoneReadbacks[0] <= publishPhoneAt || phoneReadbacks[1] <= build.indexOf('Sign-Official $owned')) {
+  fail('Phone-Payloads benötigen Vorbereitung vor publish und Ressourcenreadback vor/nach App-Signierung.');
+}
+if (!build.includes("foreach ($name in @('Magnolie Organizer.exe', 'Magnolie Organizer.dll'))")) {
+  fail('Vorbereitete native Phone-Payloads dürfen nach Einbettung nicht erneut signiert werden.');
+}
+for (const file of ["build/Signing.Common.ps1", "build/PhonePayloadSigning.Common.ps1", "build/PhonePayloadResources.Common.ps1", "build/Sign-NsisUninstaller.ps1", "build/Verify-AuthenticodePayload.ps1", "build/Verify-PhonePayloadInputs.ps1", "tests/authenticode-policy.ps1", "tests/authenticode-inventory.ps1", "tests/nsis-signing-hook.ps1", "tests/phone-camera-signing-boundary.ps1", "tests/phone-camera-signed-inputs.ps1", "tests/phone-camera-signed-resources.ps1", "tests/phone-camera-input-signatures.ps1"]) checkPowerShell(file);
+for (const file of ['build/PhonePayloadAuthenticode.Common.ps1', 'tests/phone-camera-authenticode-envelope.ps1']) checkPowerShell(file);
+checkPowerShell('tests/nsis-signing-compiler.ps1');
+checkPowerShell('tests/source-build-context.ps1');
+const sourceBuild = read('build/BuildSource.ps1');
+for (const variable of ['MAGNOLIE_OFFICIAL_RELEASE', 'MagnoliePhoneCameraHelperDirectory',
+  'MagnoliePhoneCameraRuntimeDirectory', 'MagnoliePhoneCameraParentDirectory', 'MagnoliePhoneCameraSourceDirectory',
+  'MAGNOLIE_PHONE_VERIFY_RECEIPT', 'MAGNOLIE_PHONE_VERIFY_PUBLISHER', 'MAGNOLIE_PHONE_VERIFY_TOOL', 'MAGNOLIE_PHONE_VERIFY_HOST']) {
+  if (!sourceBuild.includes(`'${variable}'`)) fail(`Die reine Quellprüfung muss den offiziellen Eingabekontext isolieren und wiederherstellen: ${variable}`);
+}
+if (!sourceBuild.includes("'tests/source-build-context.ps1'") || !build.includes("'tests/source-build-context.ps1'")) {
+  fail('Die isolierte Quellkontextregression fehlt im kalten Quell- oder vorhandenen Release-Archivpfad.');
+}
+if (!build.includes("(Join-Path $buildRoot 'tests/nsis-signing-compiler.ps1'), '-Compiler', $makensis") ||
+    build.indexOf("(Join-Path $buildRoot 'tests/nsis-signing-compiler.ps1')") < build.indexOf('if ($BuildInstaller -or $official -or $CrossCompile)')) {
+  fail('Die echte NSIS-Hook-Compilerprobe darf nur im angeforderten Installerzweig mit dessen vorhandenem Compiler laufen.');
+}
+for (const test of ["tests/authenticode-policy.ps1", "tests/authenticode-inventory.ps1", "tests/nsis-signing-hook.ps1", "tests/phone-camera-signing-boundary.ps1", "tests/phone-camera-signed-inputs.ps1", "tests/phone-camera-signed-resources.ps1", "tests/phone-camera-input-signatures.ps1", "tests/phone-camera-authenticode-envelope.ps1"]) {
+  if (!build.includes(`'-File', '${test}'`)) fail(`Synthetic signing regression is not connected: ${test}`);
+}
+if (!/!uninstfinalize[^\n]+ = 0/.test(nsi)) fail("NSIS signing hook must enforce zero exit");
+for (const token of ["TimeStamperCertificate", '"/all"', '"/tw"', "Ordinal", "$ThirdParty"]) {
+  if (!read("build/Signing.Common.ps1").includes(token)) fail(`Signature policy missing: ${token}`);
+}
+for (const token of [".release-staging-", "New-DeterministicZip", "Enter-ReleaseLock", "Sign-Official", "MAGNOLIE_SIGNTOOL", "--packaging-self-test", "Write-ReleaseChecksums", "Assert-SourceArchive", "Assert-BinaryArchiveBuildConfig", "AuditWebPayload.js", '"--publish", $buildRoot, $publish', '"--artifact", $publish, $zipAudit', "BuildSource.ps1", "sourceForRelease", "installerName", "Signing.Common.ps1", 'Move-Item -LiteralPath $unsignedSetupStage', "CreateInstallerBuildRecord.js", "installerRecordName", "CrossCompile", "WINDOWS-RUNTIME-UNVERIFIED.txt", "windowsRuntimeVerified=false", "windowsVmValidationRequired=true", "artifactTrust=UNSIGNED", "AuditInstaller.js", "NSISDIR", "/tmp/opencode/nsis-root/usr/bin/makensis", "Binärausgabe benötigt MAGNOLIE_CONTRIBUTOR_HASH"]) if (!build.includes(token)) fail(`Build-Invariante fehlt: ${token}`);
 for (const token of ['ExtractToDirectory($sourceForRelease, $sourceProjection)', 'Push-Location $buildRoot', 'MAGNOLIE_LINUX_SOURCE']) if (!build.includes(token)) fail(`Verified source projection missing: ${token}`);
 if (build.includes(".SignerCertificate.Subject.Contains(")) fail("Build akzeptiert Herausgeber-Teiltreffer");
 if (!/if \(\$CrossCompile\)[\s\S]*?else \{[\s\S]*?--packaging-self-test[\s\S]*?--self-test[\s\S]*?--ui-self-test[\s\S]*?\}/.test(build)) fail("Cross-Bau grenzt Windows-Laufzeittests nicht eindeutig ab");
@@ -158,7 +238,9 @@ for (const token of ["Assert-BinaryArchiveBuildConfig", 'GetFileName($_) -ceq "b
 const webAudit = read("build/AuditWebPayload.js");
 for (const token of ["app", "web", "anwendung.js", "oeffneSuche", "nextcloud", "LINGUAS", "native-i18n.json", "handbuch", "artifactPayload"]) if (!webAudit.includes(token)) fail(`Web-Publish-Invariante fehlt: ${token}`);
 const publishCall = build.indexOf('"--publish", $buildRoot, $publish');
-const dotnetPublish = build.indexOf('"dotnet" @("publish"');
+const dotnetPublish = build.indexOf('Invoke-NativeCommand "dotnet" $publishArguments');
+if (!build.includes('$publishArguments = @("publish", "MagnolieOrganizer.Windows.csproj"'))
+  fail('Die vorbereiteten Publish-Argumente müssen den kanonischen Projektaufruf beibehalten.');
 const handbookPort = build.indexOf("build/PortHandbook.js");
 const zipBuild = build.indexOf("New-DeterministicZip $publish");
 if (dotnetPublish < 0 || handbookPort < dotnetPublish || publishCall < handbookPort || zipBuild < publishCall)
@@ -303,7 +385,7 @@ if (!nsisInstaller.includes('Call un.DeleteManagedManifest')) fail("Uninstaller 
 const uninstallSection = /Section "Uninstall"([\s\S]*?)SectionEnd/.exec(nsisInstaller)?.[1] || "";
 if (!/ExecWait\s+'"\$INSTDIR\\\$\{PRODUCT_EXE\}" --unregister-call-notifications'\s+\$0/.test(uninstallSection))
   fail("Uninstaller quotes the notification-cleanup executable incorrectly");
-if (!/Invoke-NativeCommand \$makensis @\("-WX"/.test(buildScriptText))
+if (!/Invoke-NativeCommand \$makensis \(\$hookArguments \+ @\("-WX"/.test(buildScriptText))
   fail("NSIS warnings must fail the installer build");
 if (!uninstallSection.includes('${LEGACY_PRODUCT_MARKER}')) fail("Uninstaller erkennt den alten 2.0.0-Produktmarker nicht");
 if (!uninstallSection.includes("$UninstallCleanupFailed == 1")) fail("Uninstaller ignoriert fehlgeschlagene Dateilöschungen");

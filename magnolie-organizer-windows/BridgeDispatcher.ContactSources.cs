@@ -19,7 +19,14 @@ internal sealed partial class BridgeDispatcher
                         (string.IsNullOrEmpty(currentEnvelope) || encryption.Session is not null))));
     private ContactSourceNativeSession OriginalContactSession => LazyInitializer.EnsureInitialized(ref originalContactSession, () => new(
         NativeActorBook, NativeActorSavedBook, NextcloudSettings, OriginalContactCommit,
-        OriginalContactWlanAvailable, _ => CreateSnapshot(SnapshotReason.PreContact), durableStore: OriginalContactApprovals));
+        OriginalContactWlanAvailable, ProtectOriginalContactBook, durableStore: OriginalContactApprovals));
+
+    private void ProtectOriginalContactBook(NativeActorBookSnapshot original) =>
+        new ContactSourceExactProtection(recovery, Path.GetFullPath(paths.Data), NativeActorBook,
+            () => ContactSourcePrimaryBook.Capture(Path.GetFullPath(paths.Data), store, encryption,
+                () => currentPlainTextAvailable && !restoreInProgress && !disposed), AppVersion,
+            encryption.Session is null ? null : archive => encryption.EncryptData(archive),
+            text => EncryptionService.IsEncrypted(text) ? encryption.DecryptDataWithSession(text) : text).Protect(original);
     private ContactSourceAutomation OriginalContactAutomation => LazyInitializer.EnsureInitialized(ref originalContactAutomation,
         () => new(OriginalContactApprovals, OriginalContactSession, NativeActorBook,
             () => currentPlainTextAvailable && !restoreInProgress && !disposed, notice =>
@@ -52,14 +59,30 @@ internal sealed partial class BridgeDispatcher
         if (disposed) StopOriginalContactMonitor();
     }
 
-    private async Task OriginalContactSaveAcknowledgedAsync(int id, string hash, bool recognized)
+    private Func<Task>? PrepareOriginalContactSaveAcknowledgement(int id, string hash, bool recognized)
     {
         try
         {
-            if (await OriginalContactAutomation.SavedAsync(id, hash, recognized)) StartOriginalContactMonitor();
-            else StopOriginalContactMonitor();
+            var automation = OriginalContactAutomation;
+            var acknowledgement = automation.PrepareSaved(id, hash, recognized);
+            if (acknowledgement is null) return null;
+            return async () =>
+            {
+                try
+                {
+                    var usable = await automation.CompleteSavedAsync(acknowledgement);
+                    if (!automation.IsCurrentAcknowledgement(acknowledgement)) return;
+                    if (usable == true) StartOriginalContactMonitor();
+                    else if (usable == false) StopOriginalContactMonitor();
+                }
+                catch (Exception)
+                {
+                    if (automation.IsCurrentAcknowledgement(acknowledgement)) StopOriginalContactMonitor();
+                    // Actual user save succeeded. Uncertain consent stays held.
+                }
+            };
         }
-        catch (Exception) { /* The user data SaveACK already succeeded. Consent remains held. */ }
+        catch (Exception) { StopOriginalContactMonitor(); return null; }
     }
 
     private static bool OriginalContactWlanAvailable()

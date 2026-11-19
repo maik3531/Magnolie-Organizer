@@ -4,7 +4,7 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
 const { JSDOM } = require("jsdom");
-const { canonicalPageIds, selectHandbookWeb } = require("./handbook-source");
+const { canonicalPageIds, pageIds, selectHandbookWeb } = require("./handbook-source");
 
 const root = path.resolve(__dirname, "..");
 const selected = selectHandbookWeb(root, ["index.html", "platform.js", "inhalt.js", "i18n/de.js"]);
@@ -38,7 +38,7 @@ try {
     assert.strictEqual(w.document.documentElement.lang, code);
     assert.strictEqual(w.document.documentElement.dir, code === "ar" ? "rtl" : "ltr");
     const pages = w.HANDBUCH_SEITEN;
-    assert.deepStrictEqual(pages.map(p => p.id), expectedIds);
+    assert.deepStrictEqual(pageIds(pages), expectedIds);
     for (const id of variantIds) {
       const source = variants[id].en;
       let expected = w.MagnolieI18n.gettext(source);

@@ -1039,6 +1039,35 @@ def test_replacement_pairing_is_transactional_on_accept_reject_and_timeout():
         assert old_id not in reopened.peers and new_peer.device_id in reopened.peers
 
 
+@pytest.mark.parametrize("confirmed", [False, True])
+@pytest.mark.parametrize("method", ["forget", "worker_died"])
+def test_connection_teardown_notifies_only_confirmed_peers(confirmed, method):
+    events = []
+    device_id = "7" * 32
+    secure = kde.validate_identity(identity(device_id), True)
+    with tempfile.TemporaryDirectory() as root:
+        backend = kde.KDEConnectSMSBackend(root,
+            callback=lambda event, payload: events.append((event, payload)))
+        if confirmed:
+            backend.store.peers[device_id] = {"paired": True}
+        peers_before = dict(backend.store.peers)
+        connection = FakeConnection()
+        worker = mock.Mock()
+        worker.connection = connection
+        worker.close.side_effect = lambda **kwargs: connection.close()
+        backend._connections[device_id] = {"connection": connection,
+            "identity": secure, "worker": worker, "certificate": None,
+            "address": "127.0.0.1", "port": 1716}
+        with mock.patch.object(backend, "_reschedule_discovery"):
+            if method == "forget":
+                backend._forget_connection(device_id, connection)
+            else:
+                backend._worker_died(device_id, worker)
+        assert connection.closed and device_id not in backend._connections
+        assert events == ([("connection_changed", {})] if confirmed else [])
+        assert backend.store.peers == peers_before
+
+
 def test_stale_inbound_pair_request_is_closed_without_callback_or_trust():
     events = []
     with tempfile.TemporaryDirectory() as local_root, tempfile.TemporaryDirectory() as peer_root:

@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.baum
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -32,6 +34,8 @@ import kotlin.concurrent.thread
 class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.PORT,
              private val requestTimeoutMs: Long = 10_000,
              private val clockSeconds: () -> Long = { System.currentTimeMillis() / 1000 }) {
+
+    private fun lanErlaubt() = LanFreigabe.erlaubt()
 
     private class EmpfangsBeleg(val partner: String, val partnerSchluessel: String,
         val eigen: String, val eigenerSchluessel: String, val sid: String,
@@ -137,10 +141,12 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     private val bodyBudget = java.util.concurrent.Semaphore(NACHRICHT_MAX)
     @Volatile private var lauf: Lauf? = null
 
+    val lanLaeuft: Boolean get() = lauf != null
     val port: Int get() = lauf?.buchse?.localPort ?: wunschPort
 
     @Synchronized
     fun starten(): Boolean {
+        if (!lanErlaubt()) return false
         if (lauf != null) return true
         val buchse = try {
             ServerSocket(wunschPort, 16)
@@ -154,6 +160,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         }
         val neuerLauf = Lauf(buchse, neuerArbeiter())
         lauf = neuerLauf
+        buchse.soTimeout = 500
         thread(name = "baum-http", isDaemon = true) { horchen(neuerLauf) }
         thread(name = "baum-ruf", isDaemon = true) { rufHorchen(neuerLauf) }
         return true
@@ -164,6 +171,10 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         empfangGeneration.incrementAndGet()
         sitzungen.values.forEach { it.sitzung.loeschen() }
         sitzungen.clear()
+        lanAnhalten()
+    }
+
+    @Synchronized fun lanAnhalten() {
         val alterLauf = lauf ?: return
         lauf = null
         alterLauf.aktiv.set(false)
@@ -188,12 +199,13 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
 
     private fun horchen(lauf: Lauf) {
         while (lauf.aktiv.get()) {
+            if (!lanErlaubt()) { lanAnhalten(); break }
             val verbindung = try {
                 lauf.buchse.accept()
             } catch (fehler: Exception) {
                 if (lauf.aktiv.get()) continue else break
             }
-            if (!lauf.aktiv.get()) {
+            if (!lauf.aktiv.get() || !lanErlaubt()) {
                 runCatching { verbindung.close() }
                 break
             }
@@ -266,6 +278,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                 return antworten(hinaus, 400, fehlerAntwort("Die Anfrage ist unlesbar."))
             }
             val quelle = verbindung.inetAddress?.hostAddress?.substringBefore('%').orEmpty()
+            if (!lanErlaubt() || verbindung.isClosed) return
             val (nummer, antwort) = behandeln(pfad, nachricht, quelle)
             antworten(hinaus, nummer, antwort)
         } catch (fehler: Exception) {
@@ -395,7 +408,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     // ------------------------------------------------------------------- UDP
 
     private fun rufHorchen(lauf: Lauf) {
-        if (!lauf.aktiv.get()) return
+        if (!lauf.aktiv.get() || !lanErlaubt()) return
         val buchse = try {
             java.net.DatagramSocket(null).apply {
                 reuseAddress = true
@@ -412,6 +425,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         }
         val puffer = ByteArray(512)
         while (lauf.aktiv.get()) {
+            if (!lanErlaubt()) { lanAnhalten(); break }
             val paket = java.net.DatagramPacket(puffer, puffer.size)
             try {
                 buchse.receive(paket)
@@ -435,6 +449,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                 .encodeToString(JsonObject.serializer(), antwort)
                 .toByteArray(Charsets.UTF_8)
             runCatching {
+                if (!lanErlaubt()) return@runCatching
                 buchse.send(java.net.DatagramPacket(bytes, bytes.size, paket.address, paket.port))
             }
         }
@@ -444,6 +459,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
 
     /** Ruft ins lokale Netz und sammelt antwortende Zweige ein. */
     fun rufen(wartezeitMs: Int = 1500): List<Gefunden> {
+        if (!lanErlaubt()) return emptyList()
         val gefunden = mutableListOf<Gefunden>()
         val buchse = try {
             java.net.DatagramSocket().apply {
@@ -455,6 +471,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         }
         try {
             for (ziel in listOf("255.255.255.255", "127.0.0.1")) {
+                if (!lanErlaubt()) break
                 runCatching {
                     buchse.send(
                         java.net.DatagramPacket(
@@ -465,7 +482,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             }
             val ende = System.currentTimeMillis() + wartezeitMs
             val puffer = ByteArray(1024)
-            while (System.currentTimeMillis() < ende) {
+            while (System.currentTimeMillis() < ende && lanErlaubt()) {
                 val paket = java.net.DatagramPacket(puffer, puffer.size)
                 try {
                     buchse.receive(paket)
@@ -494,7 +511,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         } finally {
             runCatching { buchse.close() }
         }
-        return gefunden
+        return if (lanErlaubt()) gefunden else emptyList()
     }
 
     // ---------------------------------------------------------------- Hilfen

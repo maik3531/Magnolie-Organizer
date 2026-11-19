@@ -88,6 +88,11 @@
     <Compile Include="..\NotesOriginalNativeSession.cs" Link="NotesOriginalNativeSession.cs" />
     <Compile Include="..\NotesOriginalSetupCollector.cs" Link="NotesOriginalSetupCollector.cs" />
     <Compile Include="..\MagnolienbaumCoordinator.NotesSetup.cs" Link="MagnolienbaumCoordinator.NotesSetup.cs" />
+    <Compile Include="..\MagnolienbaumCoordinator.NotesSetupPeers.cs" Link="MagnolienbaumCoordinator.NotesSetupPeers.cs" />
+    <Compile Include="..\NotesOriginalSetupAcquisition.cs" Link="NotesOriginalSetupAcquisition.cs" />
+    <Compile Include="..\NotesOriginalSetupRun.cs" Link="NotesOriginalSetupRun.cs" />
+    <Compile Include="..\NotesOriginalSetupHost.cs" Link="NotesOriginalSetupHost.cs" />
+    <Compile Include="..\NotesOriginalSetupPreparation.cs" Link="NotesOriginalSetupPreparation.cs" />
     <Compile Include="..\NotesOriginalRequestIntents.cs" Link="NotesOriginalRequestIntents.cs" />
     <Compile Include="..\NotesOriginalRequestRecovery.cs" Link="NotesOriginalRequestRecovery.cs" />
     <Compile Include="..\NotesOriginalBootstrapSave.cs" Link="NotesOriginalBootstrapSave.cs" />
@@ -104,6 +109,7 @@
     <Compile Include="..\NotesOriginalTerminalHistory.cs" Link="NotesOriginalTerminalHistory.cs" />
     <Compile Include="..\NotesOriginalReturnHash.cs" Link="NotesOriginalReturnHash.cs" />
     <Compile Include="..\ContactSourceNativeSession.cs" Link="ContactSourceNativeSession.cs" />
+    <Compile Include="..\ContactSourceExactProtection.cs" Link="ContactSourceExactProtection.cs" />
     <Compile Include="..\ContactSourceAutomation.cs" Link="ContactSourceAutomation.cs" />
     <Compile Include="..\BackupDataValidation.cs" Link="BackupDataValidation.cs" />
     <Compile Include="..\PhoneCameraAudioSetup.cs" Link="PhoneCameraAudioSetup.cs" />
@@ -243,6 +249,7 @@
     <Compile Include="..\ReminderScheduler.cs" Link="ReminderScheduler.cs" />
     <Compile Include="..\CycleCalendar.cs" Link="CycleCalendar.cs" />
     <Compile Include="..\CalendarRecurrence.cs" Link="CalendarRecurrence.cs" />
+    <Compile Include="..\NormativeTimezones.cs" Link="NormativeTimezones.cs" />
     <Compile Include="..\WindowsPaths.cs" Link="WindowsPaths.cs" />
     <Compile Include="..\CloudBackupService.cs" Link="CloudBackupService.cs" />
     <Compile Include="..\RegionalSettings.cs" Link="RegionalSettings.cs" />
@@ -315,6 +322,7 @@
     <Compile Include="..\TelefonCoordinator.Time.cs" Link="TelefonCoordinator.Time.cs" />
     <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />
     <Compile Include="..\TelefonCoordinator.Mcp.cs" Link="TelefonCoordinator.Mcp.cs" />
+    <Compile Include="..\DeviceFileMcpStatus.cs" Link="DeviceFileMcpStatus.cs" />
     <Compile Include="..\TelefonCoordinator.Actor.cs" Link="TelefonCoordinator.Actor.cs" />
     <Compile Include="..\TelefonDeviceStatusRead.cs" Link="TelefonDeviceStatusRead.cs" />
     <Compile Include="..\KdeConnectDirectBackend.Mcp.cs" Link="KdeConnectDirectBackend.Mcp.cs" />
@@ -390,5 +398,12 @@
     <Content Include="resources\phone-region-vectors.json" Condition="!Exists('..\..\contracts\phone-region-vectors.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <Import Project="../NormativeTimezones.targets" />
+  <ItemGroup>
+    <!-- Test-host access only; the shipped Windows assembly grants no friend access. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>NativeImportProbe</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 </Project>

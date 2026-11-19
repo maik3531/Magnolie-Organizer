@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
@@ -25,6 +27,7 @@ internal class TelefonTcpRoehre(host: String, connectTimeoutMs: Int = 10_000,
     port: Int = TelefonParameter.PORT, localAddress: java.net.InetAddress? = null) : TelefonRoehre {
     private val socket = Socket().also { socket ->
         try {
+            LanFreigabe.pruefen()
             if (localAddress != null) socket.bind(InetSocketAddress(localAddress, 0))
             socket.connect(InetSocketAddress(host, port), connectTimeoutMs)
             socket.soTimeout = 75_000
@@ -33,13 +36,15 @@ internal class TelefonTcpRoehre(host: String, connectTimeoutMs: Int = 10_000,
             throw error
         }
     }
-    override val input: InputStream get() = socket.getInputStream()
-    override val output: OutputStream get() = socket.getOutputStream()
+    private val lanWache = try { LanFreigabe.beobachten(socket) }
+        catch (error: Exception) { runCatching { socket.close() }; throw error }
+    override val input: InputStream get() { LanFreigabe.pruefen(); return socket.getInputStream() }
+    override val output: OutputStream get() { LanFreigabe.pruefen(); return socket.getOutputStream() }
     internal val remoteAddress: java.net.InetAddress get() = socket.inetAddress
     internal val localAddress: java.net.InetAddress get() = socket.localAddress
     internal val isClosed: Boolean get() = socket.isClosed
     override fun setReadTimeout(timeoutMs: Int) { socket.soTimeout = timeoutMs }
-    override fun close() = socket.close()
+    override fun close() { try { lanWache.close() } finally { socket.close() } }
 }
 
 // RFCOMM has no read timeout. Closing the owned pipe enforces the same absolute

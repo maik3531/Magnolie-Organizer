@@ -14,9 +14,14 @@ internal static class OutgoingDialTests
     private static FieldInfo Field(Type type, string name) => type.GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!;
     private static long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     private static void Check(bool value, string message) { if (!value) throw new Exception(message); }
-    private static JsonObject Message(string kind, JsonObject body) => new() { ["type"] = "message", ["v"] = 1,
-        ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind, ["created_ms"] = Now(), ["expires_ms"] = Now() + 60_000,
-        ["body"] = body.DeepClone() };
+    private static JsonObject Message(string kind, JsonObject body, Func<long>? clock = null)
+    {
+        clock ??= Now;
+        var created = clock();
+        return new() { ["type"] = "message", ["v"] = 1,
+            ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind, ["created_ms"] = created, ["expires_ms"] = created + 60_000,
+            ["body"] = body.DeepClone() };
+    }
     private static JsonObject Event(string state, int revision, long start) => new() {
         ["call_ref"] = CallId, ["revision"] = (long)revision, ["state"] = state, ["direction"] = "outgoing",
         ["control_origin"] = "desktop", ["number"] = "", ["number_status"] = "not_shared", ["started_ms"] = start,
@@ -67,7 +72,7 @@ internal static class OutgoingDialTests
             return connection;
         }
         internal Task Dial() => Host.RequestDialAsync(PeerId, "+12025550123", CallId);
-        internal Task Receive(string kind, JsonObject body) => Receive(Message(kind, body));
+        internal Task Receive(string kind, JsonObject body, Func<long>? clock = null) => Receive(Message(kind, body, clock));
         internal async Task Receive(JsonObject message) => await (Task)Method(typeof(TelefonConnection), "HandlePlainAsync").Invoke(Connection, [message])!;
         internal JsonObject[] WireMessages()
         {

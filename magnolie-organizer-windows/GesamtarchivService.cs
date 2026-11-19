@@ -42,7 +42,29 @@ internal static class GesamtarchivService
         return result;
     }
 
-    internal static GesamtarchivInfo Read(string storedText, string password = "")
+    // Local exact protection only: preserve every original book value, including
+    // schema/settings/mappings/fractional drawing data. Never a saved witness.
+    internal static string CreateExactBook(JsonObject data, string platform, string appVersion,
+        DateTimeOffset? created = null)
+    {
+        RejectIntegrationSecrets(data);
+        var root = new JsonObject
+        {
+            ["magnolie"] = Marker, ["fassung"] = Fassung, ["datenschema"] = Datenschema,
+            ["erstellt"] = (created ?? DateTimeOffset.UtcNow).ToUniversalTime().ToString("O"),
+            ["plattform"] = platform, ["appversion"] = appVersion, ["exactBook"] = true,
+            ["sha256"] = NativeBookJson.Hash(data), ["daten"] = data.DeepClone()
+        };
+        var result = Encoding.UTF8.GetString(NativeBookJson.Canonical(root));
+        if (Encoding.UTF8.GetByteCount(result) > AtomicStore.MaxArchiveBytes)
+            throw new IOException("Das Gesamtarchiv ist größer als 384 MiB.");
+        return result;
+    }
+
+    internal static GesamtarchivInfo Read(string storedText, string password = "") => ReadCore(storedText, password, normalize: true);
+    internal static GesamtarchivInfo ReadOriginalBook(string storedText, string password = "") => ReadCore(storedText, password, normalize: false);
+
+    private static GesamtarchivInfo ReadCore(string storedText, string password, bool normalize)
     {
         var encrypted = EncryptionService.IsEncrypted(storedText);
         if (encrypted && password.Length == 0)
@@ -61,16 +83,22 @@ internal static class GesamtarchivService
             throw new InvalidDataException("Die Quellplattform des Gesamtarchivs ist ungültig.");
         var data = root["daten"] as JsonObject
             ?? throw new InvalidDataException("Der Datenbestand des Gesamtarchivs muss ein Objekt sein.");
+        var exactBook = false;
+        if (root.TryGetPropertyValue("exactBook", out var exact))
+        {
+            if (exact is not JsonValue value || !value.TryGetValue<bool>(out exactBook))
+                throw new InvalidDataException("Das Snapshot-Format ist ungültig.");
+        }
         var expected = Text(root, "sha256");
         if (expected.Length != 64 || !CryptographicOperations.FixedTimeEquals(
                 Encoding.ASCII.GetBytes(expected.ToLowerInvariant()),
-                Encoding.ASCII.GetBytes(Convert.ToHexString(SHA256.HashData(
+                Encoding.ASCII.GetBytes(exactBook ? NativeBookJson.Hash(data) : Convert.ToHexString(SHA256.HashData(
                     MagnolienbaumCrypto.Canonical(data))).ToLowerInvariant())))
             throw new InvalidDataException("Die SHA-256-Prüfsumme des Gesamtarchivs stimmt nicht.");
         if (Integer(root, "datenschema") is not (1 or 2 or Datenschema))
             throw new InvalidDataException("Format oder Datenschema des Gesamtarchivs wird nicht unterstützt.");
         RejectIntegrationSecrets(data);
-        data = NormalizeRecurrences(data);
+        if (normalize) data = NormalizeRecurrences(data);
         var names = new[] { "termine", "aufgaben", "kontakte", "notizen", "notizgruppen", "notizbuecher",
             "jahrestage", "feiertage", "urlaube", "muelltermine", "personen", "schichten", "zyklusmarker",
             "tagmarken", "papierkorb", "tombstones" };

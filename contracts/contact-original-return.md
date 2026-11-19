@@ -1793,6 +1793,519 @@ consent/return source inputs are unchanged. Actual peer/acquisition UI ingress,
 existing-key session composition/startup recovery and installed/provider/device/
 package acceptance remain open; production stays OFF/unadvertised.
 
+### Linux read-only existing independent journal key (#636, partial)
+
+The explicit native-root adapter reads only an already existing private
+`telefon/storage.key` in its exact native 32-byte format. It never constructs
+`PhoneStore`/`PhoneService`, looks up a keyring/consent/book key, repairs permissions
+or creates a root, lock, identity, database or replacement secret. HKDF-SHA256 uses
+a fixed Linux-specific journal domain, separate from raw phone storage and the
+Windows journal domain. Missing material returns unavailable; unsafe or changing
+material holds.
+
+Descriptor-relative no-follow/nonblocking read checks private owner/mode, regular
+single-link leaf and exact length. Two reads and final path/descriptor correlation
+check root/leaf identity and key contents. Owned mutable raw buffers are cleared
+on success/failure, descriptors are closed and the separate derived copy belongs
+to its journal consumer. No renderer/imported path or default profile guessing is
+accepted by the adapter.
+
+Twenty-two owned-fixture cases pass, including independent derivation vectors,
+raw-buffer cleanup, missing/unsafe/short/long/link/FIFO inputs, owner mismatches,
+key/root changes during reading, descriptor closure and real existing physical
+journal holds after loss/replacement. Existing Linux source manifests include the
+helper and their syntax checks pass, without package builds/installation. The
+backend is not registered or read against actual user keys. Native session/UI
+composition and startup recovery, installed profile/permission and provider/
+device/package acceptance remain open; prior unchanged platform evidence is kept.
+
+### Linux joined native work/UI/numeric writer completion (#638)
+
+Native Notes work no longer writes behind the renderer with a private string
+SaveID. An explicit controller's worker offers an eight-second one-use native
+lease. The actual DOM requires an idle save/editor/snapshot lane and matching
+current AND previously saved JSON models (object-key order is insignificant,
+arrays/values are not). Only Notes-basis metadata deltas or an unchanged bootstrap
+are admitted. The exact native text then uses the ordinary numeric save IPC/queue;
+unknown string SaveACKs remain ignored. Neither the UI comparison nor a token is
+source permission or a saved witness.
+
+A freshly reopened DOM may compare an unchanged bootstrap against its separately
+retained exact loaded model, never a synthesized saved ACK. This baseline is
+captured before normalization, cleared on init/restore, and cannot admit a normal
+metadata save without a preceding real save. Unsent edits or normalization changes
+fail the model comparison. Native source/primary/origin/owner/writer checks still
+govern every mutation and the real writer must establish the saved witness.
+
+Claiming requires exact native ownership/current text/payload and consumes the
+lease once. Expiry, cancellation, lock or owner replacement holds only its memory
+lane, without releasing physical request reservations. The existing worker tick
+expires lost UI offers; no new thread/timer/startup registration is introduced.
+Real completion and independent journal sealing run inside the serial book gate
+before another save, without acquiring controller._work in reverse lock order.
+Journal failure holds Notes but does not falsify an already successful user save.
+
+Twenty-five native lease/completion/manifest cases and seven actual DOM/native
+wire cases pass, including reopening, unchanged bootstrap, later and unsent edits,
+unknown ACKs, invalid tokens/types/owners, revoke/Stop/expiry, journal failure and
+the controller-work-lock inversion check. With actual joined original-contact
+wire/result regressions, the final focused run passes 75 cases. The 309 affected
+Notes regressions also pass; old native-worker fixtures now explicitly claim
+numeric UI offers rather than expecting a behind-DOM string save. These are
+bounded synthetic encrypted/FS1 fixtures, not GTK/installed/provider/device proof.
+The original red reproduction showed metadata loss, NOT lost historical-query
+availability or unauthorized provider writes. Windows product inputs are unchanged;
+the fresh-loaded-model bootstrap detail is not claimed tested/fixed there.
+Production registration and all #636 setup/installed/device/package gates remain.
+
+### Linux explicit known-choice/existing-key session composition (#636, partial)
+
+An explicit native session now composes the checked private choice reader,
+read-only existing `telefon/storage.key` adapter, independent outcome/request
+journals, controller and joined UI save lane. Admission first authenticates native
+known choices/no pending intent, exact primary binding and current native model,
+then checks existing key availability and rechecks the choice/context before
+claiming an empty native host slot. Constructors/admission do not create journal
+roots, a phone store/database/key/identity, a service/listener or a source grant.
+
+The internal window entry does not replace another controller/UI owner. Stop is
+owned/idempotent and clears only its in-memory slot; independent physical holds
+and journal history remain. The key callback rechecks usable native context and
+reads existing material afresh per operation, rather than caching authority after
+key loss/replacement. A separate short state lock avoids taking the session
+lifecycle lock from a journal callback under work/book locks. Native lifecycle
+entries must be called outside book/tree gates.
+
+Twenty-six owned-fixture cases cover admission, cancellation/lifecycle and real
+FS1 -> numeric IPC -> encrypted writer -> independent journal completion, including
+Stop/lock/key loss/replacement. Replacement may reject with the authenticated
+cipher's InvalidTag; this is a hold, not history adoption. No actual user key,
+PhoneService, installed GTK or provider/device is opened. The 309 Notes and 75
+joined native/UI/original-contact checks are retained: existing app AST excluding
+only the new entries and all involved existing module bytes are unchanged. Source
+manifests include the helper; no package was built or installed. Actual peer/
+acquisition UI ingress and startup registration are still absent/unadvertised,
+and Windows follow-up #639 and installed/provider/device/package gates stay open.
+
+### Windows fresh-DOM bootstrap readiness (#639)
+
+The follow-up reproduced a separate UI restriction: a fresh matching Windows DOM
+before its first real save returned readiness=false, so an unchanged necessary
+bootstrap could not enter. The old restart wire reopened the native writer but
+kept its already-saved DOM; those passing checks did not cover a fresh window.
+The reproduction issues no fake SaveACK and claims neither data loss nor an
+unauthorized provider write.
+
+Windows now retains a separate exact loaded-model comparison captured before
+normalization and cleared on init/restore. Readiness may compare that model, but
+only an unchanged bootstrap may use it in the save path. Normal metadata saves
+still need the real prior UI save. This does not set lastSavedText or produce a
+native saved witness: existing native source/primary/lease/writer/journal checks
+remain unchanged and the actual serial writer must complete the bootstrap.
+
+Six new fresh-DOM policy cases and the 16 existing UI cases pass. The actual
+combined managed/native-writer/FS1/DOM wire now includes a fresh DOM after native
+reopen with no ordinary save beforehand, then real bootstrap, metadata save,
+journal and terminal completion. All four combined modes and the full managed
+group pass; the original-contact/private-file group also passes. CoreTests builds
+without warnings/errors. These are Windows-source tests on the existing host,
+not an interactive/installed Windows or package acceptance claim. Linux inputs
+and native Windows backend code are unchanged; existing appropriate evidence is
+retained, and #636 production/startup/device/installed acceptance gates stay open.
+
+### Linux native peer/acquisition ingress with one before-peer decision (#636, partial)
+
+The explicit main-thread native entry selects a real existing peer before bounded
+export acquisition. It uses only the cached native tree and an existing active
+service, never the lazy getter, a new identity or service constructor. Only
+confirmed/trusted/contact-enabled FS1 partners are offered; exact pinned IDs/keys
+are retained independently of detached display copies. The actual GTK peer
+adapter has no preselection, defaults to Cancel and uses literal sanitized text.
+It is not registered as a renderer/startup command or advertised as production.
+
+A single native decision is captured BEFORE peer selection and carried through
+the WLAN-first typed probe, acquisition and contact dialog to the publication CAS.
+Revoke, replacement, a real save, foreign/fake decision, pin/epoch/tree/service
+change, opt-out and Stop cannot be bypassed by recapturing a later decision. Read
+guards/cancellation do not create a key/file or source decision. Exact candidate
+ownership is required; completion/cancellation stops only its own acquisition.
+Native context callbacks run only in deferred candidate/choice work, never under
+the receive/tree gate. Network callbacks and choosers run outside book/tree/private
+gates. Existing source permissions are not inferred from contact-sync flags.
+
+Ninety-nine cases pass: 13 before-peer CAS cases, 19 actual native-entry/real FS1
+acquisition cases, three controlled-widget peer-adapter cases and 64 existing
+setup/collector/manifest cases. GTK itself is not opened. One new addition fixture
+initially collided on the same local contact and was corrected to use distinct
+native IDs/UIDs; the ambiguity rejection was not weakened. Unchanged Notes309,
+joined/native/original-contact75, session26 and Windows evidence are retained by
+exact source/AST comparison. Windows before-peer decision/peer UI composition,
+final application action/worker dispatch and conditional startup registration
+remain open; no installed/provider/device/package acceptance follows from this.
+
+### Windows before-peer decision handoff (#636, partial)
+
+Windows now exposes the equivalent native `BeginAsync` capture and optional
+before-peer decision handoff through the existing contact chooser flow. Exact
+native owner, unused proof, saved/primary context and original private CAS are
+checked before displaying the contact dialog and again before committing. Cancel
+or a chooser/cancellation error consumes only the memory proof, without creating
+an empty key or new permission. No later decision is silently captured in place
+of one invalidated during peer selection/acquisition. Existing commit, first
+approval, monotone addition and historical checks remain unchanged.
+
+Thirteen new before-peer cases, the 19 existing setup-flow cases and 16 addition
+cases pass on the host AND noninteractive Windows (48 cases each). The full
+managed group including all four joined DOM/native wire modes passes, and Release
+CoreTests/BASE build without warnings/errors. Unchanged original-contact, Linux
+and installed/native-boundary evidence is retained rather than repeated. This is
+not an interactive modal or provider/device/package acceptance. Windows native
+peer selection/acquisition UI composition and the final application action/worker
+dispatch/startup registration remain open; production stays OFF/unadvertised.
+
+### Windows native peer/acquisition composition (#636, partial)
+
+Windows now composes a coordinator-owned opaque peer selection with bounded
+authenticated export acquisition and the original before-peer decision. The
+catalog reads only an existing loaded active coordinator and returns detached
+public identity views, never private keys or a new service/identity. Exact owner,
+pins, generation, epoch, own-identity digest and current native opt-outs are
+rechecked. Cosmetic labels/protocol-discovery metadata are not treated as identity
+changes. Display-array replacement cannot alter the retained native selection.
+
+The same decision reaches the actual contact publication; no post-revoke decision
+is substituted. Probe/choosers/network callbacks run outside book/tree gates;
+additional candidate guards are deferred only and never run on receive. Native
+busy/WLAN restrictions quietly hold the probe. Cancelled waits, stale context,
+service Stop and completion release only the owned acquisition/memory proof,
+not another receiver or durable consent/history. Bridge begin/complete entries
+require the existing coordinator, live native book/store, one prompt and exact
+acquisition ownership; profile shutdown cancels owned acquisition as well.
+
+Twenty-five real FS1/native peer/acquisition cases, 19 collector cases and 13
+before-peer cases pass on host AND noninteractive Windows (57 each). This includes
+display aliases, foreign/fake inputs, addition, private/native edits, handshake
+revocation, cancelled waits, Stop during contact choice and opt-out. The full
+managed group with all four DOM/native wire modes passes; Release CoreTests/BASE
+build without warnings/errors. The actual new Windows peer dialog is compiled
+only, not opened. Existing Linux/original-contact evidence is retained. One new
+addition fixture initially reused the original share and was correctly rejected;
+only its second share/setup was corrected, not the native collision check.
+
+Final application action/worker dispatch, waiting/cancel status and conditional
+resume/startup registration remain unconnected. No production capability is
+advertised or activated, and installed/native GUI/provider/device/package gates
+remain open. This source composition is not permission to run those acceptances.
+
+### Scope transfer and explicit Linux setup worker/UI dispatcher (#640, partial)
+
+#636 is closed as a checked SOURCE PARTIAL, not as a finished productive return
+path. The concrete remaining application action, UI/worker/lifecycle dispatch,
+conditional resume/startup and separate native/provider/device/package gates are
+transferred to #640, with #625/#619/#560/#558 still effective. No pause is lifted.
+
+The explicit Linux `NativeNotesSetupRun` now consumes an already genuine native
+acquisition without creating a thread/service or registering an action itself.
+The host owns its worker and main-thread dispatcher. Network/event waits are
+rejected on the main thread; source/contact dialogs are rejected off that thread.
+Queued UI work and status notifications are one-use/owner-bound. Before any
+dialog, original native/private context is rechecked; stale frames are isolated,
+display copies cannot replace source identity and an integer selection addresses
+only the original native candidate list. Status is informational, never consent,
+a saved witness or a SaveACK.
+
+Cancellation before/during waiting, a queued/native edit/revoke, replayed worker/UI
+callbacks, dispatch failure and late UI completion cannot grant a source. Cleanup
+closes only the owned acquisition; notification failure does not undo an actual
+explicitly committed source decision. Twenty-three owned-fixture cases pass:
+real FS1 acquisition, explicit worker/main-thread queue, selection/cancellation/
+replay/error and manifest/type-admission checks. No installed GUI, live socket,
+actual user profile or device is opened. Existing source inputs and their passing
+evidence remain unchanged. The helper is shipped in existing manifests; no package
+build/install is claimed.
+Actual application registration/saveflush, detailed waiting-status integration,
+Windows dispatch counterpart and production/native acceptance remain open in #640.
+
+### Explicit Windows setup worker/UI dispatcher (#640, partial)
+
+`NotesOriginalSetupRun` now owns a genuine acquisition and its queued candidate
+references without starting a thread/service or registering an application action.
+The caller owns the worker and native UI dispatcher. UI-thread predicates restrict
+execution only; they do not establish source permission or a saved witness.
+Probe/wait is rejected on UI, chooser callbacks are explicitly marshalled back to
+UI even after asynchronous flow continuations. The original acquisition context
+is revalidated before source choice; detached displays cannot replace candidates.
+
+One-use selection/notice/request ownership protects delayed and replayed posts.
+An already dispatched asynchronous request remains cancellation-owned until it
+returns; replay cannot remove it. Terminal cleanup cancels only owned work and
+clears queued candidate/acquisition references. Status failure cannot undo an
+actual native source commit; status never supplies consent, SavedWitness or ACK.
+Cancellation/disposal is serialized, and an active host callback still must honor
+its cancellation token and return; terminal Done is not a claim of host join.
+
+Twenty-three actual FS1/worker/nested synthetic UI queue cases pass on host and
+noninteractive Windows: explicit choice, display alias, cancellation before work,
+during export wait, queued source/contact, contact cancellation/Stop, stale native
+save/revoke, wrong thread, replay, disposal and dispatcher/chooser/status failure.
+Full managed tests and all four DOM/native wire modes pass; Core and BASE compile
+with zero warnings/errors. No installed modal, live provider, device or user keys
+are exercised. Linux inputs/evidence remain unchanged. Actual application action,
+saveflush/editor snapshot, host status/cancel/lifecycle and conditional startup
+remain unconnected; production stays OFF/unadvertised and all acceptance pauses
+remain effective.
+
+### Windows pre-peer editor/saveflush connection (#640, partial)
+
+The existing explicit native `BeginNotesSetupAsync` entry now first requests a
+one-use renderer preparation, outside the serialized bridge-command wait. The
+renderer uses the ordinary `nachDauerhaftemSpeichern` queue and actual Notes
+snapshot, not the idle/readiness callback. Open drafts/modals, lock and conflicting
+work hold preparation; replay is bounded and cannot schedule another flush.
+Numeric save completion is required when the current model needs saving; string
+ACKs remain ignored. No new startup, button, capability or renderer setup-start
+command is registered.
+
+`NotesOriginalSetupPreparation` binds the request to the existing native book
+owner, expiry and one-use token. Renderer idle/hash values restrict admission but
+do not create a saved witness: acceptance captures the independently recorded
+native successful-save state and checks current text/hash and unchanged owner.
+The same native saved state is required by acquisition context checks afterwards;
+the ordinary primary/private CAS decision is still captured before the first
+peer dialog. Shutdown/cancel discards the owned preparation. A writer that fails
+after primary replacement does not obtain a successful saved witness.
+
+Nine actual DOM/native encrypted-writer cases pass on host: fresh reopened book,
+two serial pending saves, unsnapshotted Notes editor text, string ACK rejection,
+replay, post-primary failure, lock, contact draft and open modal. Nine native
+token/owner/load-without-witness/expiry/cancellation cases plus strict reply-schema
+negatives pass on host and noninteractive Windows. Full managed tests and four
+existing DOM/native wire modes pass; Core/BASE compile cleanly. The actual
+Windows modal entry itself is compiled, not interactively exercised. No live
+provider/device/user keys or installation are used.
+
+Linux has the analogous need to prepare its actual editor/save lane before native
+setup, but this Windows connection is not a checked Linux fix. Carry the native
+one-use request, real numeric writer/snapshot evidence, owner/expiry checks and
+nonblocking dispatch adaptation in #640; do not substitute Linux idle/model flags.
+Application action registration, joined setup worker/status/cancel host lifecycle,
+conditional startup and native capability/profile acceptance remain open there.
+Production stays OFF/unadvertised and all physical acceptance pauses remain.
+
+### Linux asynchronous pre-peer editor/saveflush connection (#640, partial)
+
+The explicit native `_notes_original_native_setup_prepare` entry now posts the
+same preparation callback to the actual Linux renderer without waiting on GTK's
+main thread. Only a strict reply to its native-owned token can resume native peer
+acquisition. One owned 40-second UI timeout, explicit stop and reply completion
+release the pending callback; foreign/malformed replies do not consume it. The
+existing book-owner accessor exposes identity only, never a saved observation.
+
+The renderer snapshots Notes text and drains the normal numeric save queue before
+replying. Native preparation independently requires a successful current native
+saved snapshot, unchanged owner, expiry and raw saved-byte hash. Linux's canonical
+model comparison remains separate from that raw-byte ACK hash. The saved snapshot
+is retained as a restriction through the original acquisition/decision; no new
+post-dialog decision is substituted. Preparation still grants no source.
+
+Twenty-three Linux preparation cases pass: nine native guards, five owned
+timeout/stop/busy/strict-reply cases and nine actual DOM/IPC/encrypted-writer/peer
+choice cases. They cover fresh load without a witness, two pending serial saves,
+real pending Notes editor text, ignored string ACK, replay, repair-pending writer,
+lock, contact draft and modal. Ninety-nine affected setup/collector/peer cases,
+23 worker/UI cases and seven existing joined writer cases also pass (152 total).
+The shared synthetic DOM driver additionally passes the existing Windows
+preparation slice with its default source path. Windows product inputs remain
+unchanged; no native Windows rerun or package build is inferred from this Linux
+change. No installed GTK/provider/device/user keys are used.
+
+These remain explicit internal entries, not registered application actions or
+startup features. Complete host-owned worker/status/cancel/lifecycle assembly,
+conditional restart recovery and native counterpart/system-rights acceptance
+remain open in #640. Full write stays unadvertised/production OFF, Resource19 stays
+phone/email-only, and no physical, installation or publication pause is lifted.
+
+### Owned setup-host quiescence and Windows native lifecycle (#640, partial)
+
+Linux `NativeNotesSetupRun.quiesced` and Windows `NotesOriginalSetupRun.Quiesced`
+now distinguish terminal cleanup from the return of started worker/chooser
+callbacks. Held synthetic probes and active contact callbacks demonstrate that
+Done can be true while quiescence is still false. Ownership claims and finally
+cleanup count active work; replayed/late queued callbacks cannot acquire new work.
+The native host must still join its actual thread/task rather than blocking UI.
+
+The explicit Windows `RunNotesSetupAsync` application entry now composes ordinary
+editor/save preparation, the before-peer native acquisition, a caller-owned tracked
+worker, original-index source selection, native contact selection and joined host
+completion. `NotesOriginalSetupHost` starts nothing in its constructor and owns
+late preparation, worker scheduling, cancellation and active asynchronous UI calls.
+Rejected schedulers/UI, busy reuse, cancellation and replay do not grant sources.
+Final status is one-use/informational, after quiescence, and restricted by native
+book owner/version; it is not a permission, saved witness or ACK.
+
+Windows initialization/profile replacement, restore fencing and shutdown cancel
+and await the setup host outside book/service locks. A restore may itself own the
+bridge lane, so the existing tracked setup-worker scheduler deliberately skips
+that lane's admission wait; the restore does not join a worker waiting for its own
+command lane. Manual acquisition-completion entries cannot steal a host-owned run.
+The native source dialog has no default and returns only an index into original
+candidates; public pins/share/setup display text is sanitized, never matched by
+name. This actual Form/Bridge composition is compiled only, not a modal acceptance.
+
+Sixteen real FS1/native host/scheduler/lifecycle cases and 25 dispatcher cases pass
+on host and noninteractive Windows (41 each). Linux's affected dispatcher group
+passes 24 cases. Full managed tests, four existing DOM/native wire modes and the
+host background-lifecycle group pass; Core/BASE compile with zero warnings/errors.
+No live installed GUI, provider, device, user keys or package installation is used.
+
+No application button/renderer setup-start/startup/capability registration is
+introduced. Linux's full native setup-host/lifecycle composition, deliberate
+application action and conditional restart recovery still remain in #640, with
+separate native profile/system-rights/counterpart and package gates unchanged.
+The productive full-write draft stays OFF/unadvertised and Resource19 remains
+phone/email-only; no pause or new device/install/publication permission is inferred.
+
+### Linux owned dialog cancellation prerequisite (#640, partial)
+
+Linux now also has an explicit native source picker returning only the original
+candidate index, with no default/name matching and sanitized public pins/share/
+setup display. Peer, source and contact adapters accept an optional native
+cancellation predicate. A short-lived GTK timeout responds CANCEL only to that
+adapter's own dialog; it never looks up or closes another modal/window. Timer
+ownership is released after cancellation, normal return or failure, and the own
+dialog is always destroyed. Cancellation before construction or after a stale
+APPLY cannot select a source. With no cancellation predicate the existing adapters
+create no timer and preserve their prior behavior.
+
+Twenty-four controlled-widget cases cover the three dialog kinds, cancellation
+before/during/after selection, same-label second choices, no selection, timer/
+dialog errors and a failing ownership predicate. Sixty affected existing native
+flow/peer cases also pass (84 total). No real GTK dialog/provider/device is opened.
+This is a prerequisite for the still-open Linux setup-host/lifecycle connection,
+not a claim that it is already registered. Windows host/quiescence inputs and
+proofs remain unchanged. All productive/native/profile/package pauses remain.
+
+### Explicit Linux setup-host composition and nonblocking close (#640, partial)
+
+`_notes_original_native_setup_run` now composes the actual asynchronous renderer
+preparation, before-peer native acquisition, owned started worker, source/contact
+choices and final informational status. `NativeNotesSetupHost` creates no thread
+or service in its constructor. Its UI poll requires the worker to have returned,
+performs only a nonblocking actual thread join, and additionally requires both run
+quiescence and return from the native peer/contact dialog scope. An empty pending
+preparation slot is not evidence that a nested peer dialog has returned.
+
+One owned cancellation event can close exactly the own GTK peer/source/contact
+dialogs. Late acquisition after cancellation is stopped, duplicate callbacks do
+not relaunch work, and failed native preparation/acquisition reports held instead
+of stranding the host. Native owner references prevent manual prepare/acquire/
+candidate entry from stealing the host. Status is restricted by native book owner
+and version, never supplies consent/SavedWitness/ACK, and callback failure cannot
+undo a real explicit source commit. Terminal cleanup drops own acquisition,
+worker, run and preparation callback references.
+
+The actual Linux final-close path now cancels and retries until this host is
+quiet before destroying the UI; it never joins live network or GTK work on main.
+An exit-pending guard prevents reentrant setup starts during that close. Lock or
+native model replacement holds/cancels the current setup through its native UI
+poll and the unchanged saved/primary/private CAS checks. Deferring/joining before
+all synchronous profile/restore operations remains a separate open connection.
+
+Twenty-seven host cases pass: 21 actual native preparation/FS1/worker/UI/close/
+ownership cases, four constructor/scheduler/native-quietness negatives, and two
+fully joined actual DOM/numeric encrypted-writer/FS1/source-publication cases.
+The affected setup, collector, peer, dispatcher, preparation, controlled-widget,
+existing writer-wire and close regression groups all pass (205 total). The first
+DOM invocation lacked the known Node path; reusing the existing runtime fixed the
+test invocation without installation or a product-policy change. No installed
+GTK/provider/device/user keys are used. Windows inputs/proofs are unchanged.
+
+This is still an explicit native internal entry, not a registered application
+button/renderer setup-start/startup/capability. Remaining profile-operation fences,
+deliberate application action, conditional restart and native counterpart/rights/
+profile/package acceptances remain in #640. Production stays OFF/unadvertised,
+Resource19 remains phone/email-only and all physical/install/publication pauses
+remain effective.
+
+### Linux profile-command fence around owned setup (#640, partial)
+
+While an owned setup is active, normal ready/unlock, password-change/removal,
+journal/backup restore and archive-import commands now defer through one native
+UI continuation. The fence cancels and joins only that owned setup, waits for
+ordinary queued/running saves to drain, then re-dispatches the exact original
+message through current UI-trust checks and all unchanged transaction validation.
+It holds no book/tree gate while waiting; ordinary numeric saves and replies stay
+dispatchable. With no setup/fence, the existing profile routes are unchanged.
+
+A second profile intent reports busy without replacing the first. Native setup
+entry/continuation cannot restart inside the fence or an existing native data/sync
+operation. Unknown foreign owners are held, not stopped or overwritten. Final
+close drops only the owned deferred payload instead of replaying a password or
+restore operation after UI destruction. Failed scheduling never falls through to
+an unfenced transaction. Failure before dispatch reports uncommitted; an exception
+after entering the original route instead reports `native_outcome_unknown` and
+does not falsely assert rollback or `committed=false`.
+
+The targeted host/dispatcher/preparation/flow/peer/close groups pass 153 cases.
+After the post-dispatch outcome review, all 19 fence cases pass again, including
+the additional unknown-outcome negative; unchanged paths/evidence are retained.
+Seven command routes are covered, along with two real ordinary queued-writer
+saves before continuation, duplicate intents, trust loss, scheduler failure, final
+close, no-feature behavior and foreign-owner preservation. Restore/password body
+spies verify original IDs/revisions/arguments; those actual transaction bodies are
+unchanged, not re-certified here. Ready re-dispatch uses a neutral test endpoint
+to avoid starting unrelated native services. No installed GTK/provider/device/user
+keys, profile installation or publication is involved; Windows inputs are unchanged.
+
+This fences the owned setup lifetime, not a new productive automatic session or
+startup registration. Deliberate application action/capability admission,
+conditional known-source resume and separate native counterpart/system-rights/
+profile/package gates remain in #640. Full write remains OFF/unadvertised and all
+existing pauses remain effective.
+
+### Windows exact original-book protection before DAV writes (#619)
+
+The production `BridgeDispatcher.ContactSources` protection callback now passes
+the supplied native snapshot to `ContactSourceExactProtection`, rather than
+discarding it through ordinary `CreateSnapshot`. The helper requires the actual
+current saved observation and independently authenticated primary binding,
+plaintext hash, complete book-content hash and encryption state. It reads the
+published recovery payload back, authenticates/decrypts it with the existing
+session, checks the full original content, then rechecks primary and saved state
+before returning to provider IO. Archive equality never creates saved authority.
+
+`RecoveryJournal.CreateExactBook` bypasses periodic reuse. Deduplication requires
+complete original book equality and matching actual encryption, not merely
+recoverable-domain equality. `GesamtarchivService.CreateExactBook` preserves the
+original schema, settings, mappings and fractional local JSON values, using the
+local `NativeBookJson` checksum domain and a typed `exactBook` marker.
+`ReadOriginalBook` validates the archive before migration; ordinary `Create` and
+default `Read` retain their existing creation/import/restore normalization.
+Encryption rewriting retains exact payload contents. No provider create/delete,
+default-book fallback, new identity, key or consent path is added.
+
+The pre-fix reproduction reached one synthetic DAV PUT in each of six cases
+without full original coverage: schema-6 migration, recent-old reuse and
+metadata-only deduplication, each plain/encrypted. Two exact controls passed.
+After the fix, ten actual generated native writer/journal/DAV success cases and
+eight held-write cases pass on both the managed host and the existing bounded
+noninteractive Windows runner. Held cases cover stale saved authority, wrong
+binding, encryption downgrade/plaintext callback, wrong or tampered readback and
+primary replacement before/during protection; all produce zero PUTs and no offer,
+without overwriting external primary edits. Archive checks cover fractions,
+normal migration, typed markers/checksums, encryption-aware deduplication and
+password/encryption rewriting. Recovery retention/scheduler/tamper, archive,
+allocation, native sync, localization and contact regressions pass, including
+five existing DOM/native contact wire modes. The full managed Notes/FS1 group
+also passes; CoreTests and BASE builds have zero warnings/errors.
+
+This is a checked source correction, not installed GUI/ACL/live-provider or
+package acceptance. Existing #625 gates and all device/install/publication pauses
+remain. The separate productive Notes activation/application-action/startup rest
+is tracked in #641 after the explicit #640 source-partial closure; full return
+remains OFF/unadvertised. The Linux exact-protection reference is retained, not
+re-certified by these Windows results.
+
 ### Durable native saved-ACK intent, no production sending (#628)
 
 `NativeNotesAckIntents.seal_after_save()` now requires the actual pending

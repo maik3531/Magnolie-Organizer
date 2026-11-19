@@ -2177,6 +2177,60 @@ msgstr "Pokročowanje"
 msgid "Contributor Key"
 msgstr "Contributor Key"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "Přistup ke kontu tuchwilu k dispoziciji njesteji. Awtomatiske aktualizacije počakaja."
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Přidaj tute prěnjotne žórło, bjeztoho zo bychu so eksistowace dowolnosće narunali. Wubjer eksistowacy kontakt w Organizerje wuraznje. To dowola trajne aktualizacije; žane prěnjotne kontakty so njewutworja ani njezhašeja. Awtomatiske aktualizacije na WLAN čakaja."
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "Dowol awtomatiske aktualizacije jenož za wubrane prěnjotne adresniki, tež po znowastartowanju. Jenož eksistowace kontakty; žane wutworjenje abo zhašenje. Aktualizacije na WLAN čakaja. Po standardźe njeje ničo wubrane. Prózdny wuběr wšě dowolnosće wotwoła. Tutu dowolnosć móžeš kóždy čas w nastajenjach wotwołać."
+
+msgid "Allow updates"
+msgstr "Aktualizacije dowolić"
+
+msgid "Notes original source"
+msgstr "Prěnjotne žórło Notes"
+
+msgid "Original address book"
+msgstr "Prěnjotny adresnik"
+
+msgid "Original contact sources"
+msgstr "Prěnjotne kontaktowe žórła"
+
+msgid "Revoke"
+msgstr "Wotwołać"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Wubjer eksistowacy kontakt w Organizerje za tute prěnjotne žórło Notes wuraznje. To dowola trajne aktualizacije; žane prěnjotne kontakty so njewutworja ani njezhašeja. Awtomatiske aktualizacije na WLAN čakaja."
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "Zarjaduj přistup ke kontu jedyn raz w nastajenjach. Awtomatiske aktualizacije počakaja."
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "Adresnik wjacozmysłowu zwjazanosć ze žórłom wobsahuje."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "Dowolnosć za kontaktowe žórło njeda so składować. Awtomatiske aktualizacije su zastajene."
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "Składowany přistup ke kontu je wjacozmysłowy. Přepruwuj konto w nastajenjach."
+
+msgid "Update original contact sources"
+msgstr "Prěnjotne kontaktowe žórła aktualizować"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Čaka so na WLAN."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Čaka so na přistup ke kontu. Awtomatiske aktualizacije kontaktow so pokročuja, hdyž je přistup k dispoziciji."
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "Čaka so na přistup ke kontu. Wotewri systemowy klučowy wěnc, hdyž so ći hodźi."
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Jenož HTTPS-přiwěški hodźa so wočinić. Druhe adresy móžeš kopěrować."
+
 msgid "Copy"
 msgstr "Kopěrować"
 

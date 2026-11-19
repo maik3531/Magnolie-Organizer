@@ -29,8 +29,40 @@ internal static class CalendarBirthdayCleanupTests
     {
         var resources = new[] { Resource("original"), Resource("copy") };
         var local = new JsonArray(Local(resources[0]), Local(resources[1]));
+        var legacy = local.DeepClone().AsArray();
+        foreach (var item in legacy.OfType<JsonObject>())
+        {
+            var mapping = ContactFields.Source(item, Source.Uid)!;
+            mapping["inhaltFormat"] = "windows-1";
+            mapping["inhaltSha256"] = SyncBaseline.Hash(item, NextcloudCalendarSync.Fields);
+        }
+        legacy[1]!["akzentFarbe"] = "#123456";
+        TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(legacy, resources, Source.Uid).Count == 0,
+            "Legacy colour-blind birthday baseline authorized cleanup.");
         var plans = CalendarBirthdayCleanup.PlanCleanup(local, resources, Source.Uid);
         TestAssert.That(plans.Count == 1 && plans[0].KeepUid == "original" && plans[0].RemoveUid == "copy", "No exact bound birthday plan.");
+        TestAssert.That(local.OfType<JsonObject>().All(item => CalendarSyncBaseline.Current(ContactFields.Source(item, Source.Uid))),
+            "The positive cleanup fixture did not use the actual current calendar baseline.");
+        foreach (var format in new[] { "windows-1", "windows-task-2", "windows-calendar-999", "" })
+        {
+            var changed = local.DeepClone().AsArray();
+            ContactFields.Source(changed[1]!.AsObject(), Source.Uid)!["inhaltFormat"] = format;
+            TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(changed, resources, Source.Uid).Count == 0,
+                "An unsupported birthday baseline format authorized cleanup: " + format);
+        }
+        foreach (var colour in new[] { "#123456", "#ABCDEF" })
+        {
+            var changed = local.DeepClone().AsArray(); changed[1]!["akzentFarbe"] = colour;
+            TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(changed, resources, Source.Uid).Count == 0,
+                "A genuine local birthday colour edit authorized cleanup.");
+        }
+        foreach (var digest in new[] { "", new string('0', 64), "not-a-current-digest" })
+        {
+            var changed = local.DeepClone().AsArray();
+            ContactFields.Source(changed[1]!.AsObject(), Source.Uid)!["inhaltSha256"] = digest;
+            TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(changed, resources, Source.Uid).Count == 0,
+                "An absent or changed birthday digest authorized cleanup.");
+        }
         var unicode = new[] { Resource("\U00010000"), Resource("\uE000") };
         var unicodePlan = CalendarBirthdayCleanup.PlanCleanup(new JsonArray(Local(unicode[0]), Local(unicode[1])), unicode, Source.Uid).Single();
         TestAssert.That(unicodePlan.KeepUid == "\uE000" && unicodePlan.RemoveUid == "\U00010000", "Unicode survivor choice differs from Python/UTF-8 order.");
@@ -61,6 +93,7 @@ internal static class CalendarBirthdayCleanupTests
         await RuntimeAsync(weakEtag: true);
         await RuntimeAsync(bridge: true);
         await RuntimeAsync(bridge: true, conflict: true);
+        await RuntimeAsync(legacyBaseline: true);
         if (OperatingSystem.IsWindows())
         {
             var root = Path.Combine(Path.GetTempPath(), "magnolie-birthday135-dpapi-" + Guid.NewGuid().ToString("N"));
@@ -77,7 +110,7 @@ internal static class CalendarBirthdayCleanupTests
         }
     }
 
-    private static async Task RuntimeAsync(bool crash = false, bool conflict = false, bool weakEtag = false, bool bridge = false)
+    private static async Task RuntimeAsync(bool crash = false, bool conflict = false, bool weakEtag = false, bool bridge = false, bool legacyBaseline = false)
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-birthday135-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -90,6 +123,17 @@ internal static class CalendarBirthdayCleanupTests
             var remote = new Dictionary<string, NextcloudDavObject> { ["original"] = Resource("original"), ["copy"] = Resource("copy") };
             if (weakEtag) remote["copy"] = remote["copy"] with { ETag = "W/\"weak\"" };
             var items = new JsonArray(Local(remote["original"], sourceUid: source.Uid), Local(remote["copy"], sourceUid: source.Uid));
+            if (legacyBaseline)
+            {
+                foreach (var item in items.OfType<JsonObject>())
+                {
+                    var mapping = ContactFields.Source(item, source.Uid)!;
+                    mapping["inhaltFormat"] = "windows-1";
+                    mapping["inhaltSha256"] = SyncBaseline.Hash(item, NextcloudCalendarSync.Fields);
+                }
+                TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(items, remote.Values.ToArray(), source.Uid).Count == 0,
+                    "Legacy mappings entered cleanup before ordinary synchronization migrated them.");
+            }
             var deletes = 0;
             var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "settings"), Path.Combine(root, "secret"), protector);
             settings.Save(new NextcloudMailboxSettings(true, "https://cloud.example/nc", "synthetic")); settings.SetApplicationPassword("fixture");
@@ -112,6 +156,13 @@ internal static class CalendarBirthdayCleanupTests
             var engine = new NextcloudCalendarSync(client, archive);
             var first = await engine.SyncAsync(source, [], items, [], 0, true, CancellationToken.None);
             TestAssert.That(deletes == 0 && !archive.Exists && first.Jahrestage.Count == 2, "Additive first run deleted birthdays.");
+            if (legacyBaseline)
+            {
+                TestAssert.That(first.Jahrestage.OfType<JsonObject>().All(item => CalendarSyncBaseline.Current(ContactFields.Source(item, source.Uid))) &&
+                    CalendarBirthdayCleanup.PlanCleanup(first.Jahrestage, remote.Values.ToArray(), source.Uid).Count == 1,
+                    "Ordinary synchronization did not establish a complete current birthday baseline.");
+                items = first.Jahrestage;
+            }
             NextcloudCalendarResult? result = null;
             try { result = await engine.SyncAsync(source, [], items, [], 1, false, CancellationToken.None); }
             catch (Exception error) when ((crash && error is IOException) || (conflict && error is InvalidOperationException) || (weakEtag && error is InvalidDataException)) { }

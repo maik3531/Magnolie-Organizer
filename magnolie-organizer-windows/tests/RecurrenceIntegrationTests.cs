@@ -9,6 +9,7 @@ internal static class RecurrenceIntegrationTests
 {
     internal static Task BoundaryAnchorsAsync()
     {
+        NormativeTimezoneTests.Points();
         string[] Definition(string stamp = "00010101T000000", string before = "+0100", string? after = null) => [
             "BEGIN:VTIMEZONE", "TZID:External/Initial", "BEGIN:STANDARD", "DTSTART:" + stamp,
             "TZOFFSETFROM:" + before, "TZOFFSETTO:" + (after ?? before), "END:STANDARD", "END:VTIMEZONE"];

@@ -199,7 +199,7 @@ if (regionalSource.split(startupBefore).length !== 2) throw Error('Canonical doc
 regionalSource = regionalSource.replace(startupBefore,startupAfter);
 generated.set('assets/web/anwendung.js', Buffer.from(regionalSource.replace(anchor,
   '  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed), exportCalendar: art => starteExport(art) };\n'+anchor)));
-let html = buffers.get(path.join(desktop,'index.html')).toString();
+let html = timezonePatcher.module.exports.stripCanonicalBootstrap(buffers.get(path.join(desktop,'index.html')).toString());
 if (!html.includes('<script src="anwendung.js"></script>')) throw Error('Desktop entry point changed');
 html = html.replace('<title>Magnolie Organizer</title>', '<title>Magnolie Organizer Android Tablet Beta 2.0.30Beta</title>')
   .replace('</head>', '<link rel="stylesheet" href="desktop-fonts.css">\n<link rel="stylesheet" href="tablet.css">\n<script src="tablet.js"></script>\n</head>');

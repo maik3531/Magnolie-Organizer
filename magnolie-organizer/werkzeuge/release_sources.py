@@ -12,6 +12,22 @@ import stat
 from source_selection import ARCHIVE, SECRET, PRIVATE_KEY, private_path, source_files
 
 
+def projection_files(root):
+    """Canonical Linux source closure includes the bound portable timezone inputs."""
+    root = Path(root)
+    if not (root / "werkzeuge/zeitzonen_erzeugen.py").is_file():
+        return list(source_files(root))
+    from zeitzonen_erzeugen import source_directory, read_inputs, build_assets
+    source = source_directory(root)
+    inputs = read_inputs(source)
+    build_assets(inputs)  # Refuse a changed/missing source before copying anything.
+    files = [(relative, path) for relative, path in source_files(root)
+             if relative.as_posix() != "web/normative-timezones.js"
+             and not relative.as_posix().startswith(("web/timezones/", "werkzeuge/timezones/"))]
+    files.extend((Path("werkzeuge/timezones") / name, source / name) for name in inputs)
+    return sorted(files)
+
+
 def file_stamp(status):
     return (status.st_dev, status.st_ino, status.st_size, status.st_mode,
             status.st_mtime_ns, status.st_ctime_ns)
@@ -74,7 +90,7 @@ def inventory(root):
         folder = root / component
         if not folder.is_dir() or folder.is_symlink():
             raise ValueError("Canonical source component is missing")
-        for relative, path in source_files(folder):
+        for relative, path in projection_files(folder):
             result[f"{component}/{relative.as_posix()}"] = source_identity(path)
     for path in sorted(root.iterdir()):
         name = path.name
@@ -138,7 +154,7 @@ def main():
     else:
         if args.destination is None or args.destination.resolve().is_relative_to(args.root.resolve()):
             raise ValueError("Source projection must be outside its input tree")
-        files = list(source_files(args.root))
+        files = projection_files(args.root)
         for relative, path in files:
             target = args.destination / relative
             target.parent.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,14 @@
 Unicode true
+; NSIS finalizes this executable BEFORE embedding it in the installer.
+!ifdef OFFICIAL_RELEASE
+  !ifndef SIGNING_HOST
+    !error "Official build requires SIGNING_HOST."
+  !endif
+  !ifndef SIGNING_SCRIPT
+    !error "Official build requires SIGNING_SCRIPT."
+  !endif
+  !uninstfinalize '"${SIGNING_HOST}" -NoProfile -NonInteractive -File "${SIGNING_SCRIPT}" -Path "%1"' = 0
+!endif
 !define ROOT "${__FILEDIR__}/.."
 
 !include "MUI2.nsh"

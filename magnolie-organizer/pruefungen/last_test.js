@@ -95,6 +95,7 @@ function baueTermine(anzahl) {
   w.eval(i18nJs);
   w.eval(deJs);
   w.MagnolieI18n.setLocale("de");
+  w.eval(fs.readFileSync(path.join(WEB, "normative-timezones.js"), "utf8"));
   w.eval(js);
   if (d.readyState === "loading") {
     await new Promise((resolve) => d.addEventListener("DOMContentLoaded", resolve, { once: true }));

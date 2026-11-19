@@ -21,7 +21,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class, shadows = [GalleryIncomingRowsTest.WriteTargetLinux::class,
+@Config(sdk = [35], application = Application::class, shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class,
     GalleryIncomingRowsTest.SameFileDescriptorDuplicate::class])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class NativeGalleryIncomingRuntimeTest {

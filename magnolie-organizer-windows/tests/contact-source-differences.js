@@ -10,6 +10,7 @@ async function check(web, mode) {
   w.webkit = { messageHandlers: { test: { postMessage() {} } } };
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     const local = { id: "local", uid: "fixture", vorname: "Alex", nachname: "Fixture", notiz: "Saved note",
       importHerkunfte: ["Saved account"], vcardRoundtrip: ["CATEGORIES:Colleagues"],

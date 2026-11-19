@@ -80,6 +80,7 @@ function ladeAnwendung(fenster, sprache = "de") {
   fenster.eval(i18nJs);
   fenster.eval(deJs);
   fenster.MagnolieI18n.setLocale(sprache);
+  fenster.eval(fs.readFileSync(path.join(WEB, "normative-timezones.js"), "utf8"));
   fenster.eval(js);
 }
 
@@ -6396,8 +6397,10 @@ function knopfMit(text, wurzel) {
   assert.ok(/Musterstr/.test(erg.bleibt.strasse), "Straße nicht übernommen");
   assert.strictEqual(erg.bleibt.ort, "Duisburg", "Ort nicht ergänzt");
   assert.deepStrictEqual(Array.from(erg.bleibt.emails),
-    ["MAIK3531@GMAIL.COM", "d@example.de"],
-    "E-Post-Großschreibung wurde nicht als dieselbe Adresse erkannt");
+    ["maik3531@gmail.com", "d@example.de"],
+    "E-Post-Großschreibung wurde nicht zur bestehenden kanonischen Adresse zusammengeführt");
+  assert.strictEqual(erg.bleibt.uid, "mag-d2@x", "die vollständigere Karte verliert ihre kanonische UID");
+  assert.strictEqual(erg.bleibt.email, "maik3531@gmail.com", "die primäre E-Post-Adresse weicht von der kanonischen Liste ab");
   assert.strictEqual(erg.bleibt.telefone.length, 2, "Rufnummern nicht zusammengelegt");
   assert.strictEqual(erg.bleibt.anschriften.length, 2,
     "gleich geschriebene und zusätzliche Anschriften falsch zusammengelegt");
@@ -8840,6 +8843,7 @@ function knopfMit(text, wurzel) {
   for (const name of katalogDateien) {
     sprachenDom.window.eval(fs.readFileSync(path.join(WEB, "i18n", name), "utf8"));
   }
+  sprachenDom.window.eval(fs.readFileSync(path.join(WEB, "normative-timezones.js"), "utf8"));
   sprachenDom.window.eval(js);
   sprachenDom.window.document.dispatchEvent(new sprachenDom.window.Event(
     "DOMContentLoaded", { bubbles: true }));

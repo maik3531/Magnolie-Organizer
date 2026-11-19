@@ -10,6 +10,7 @@ function client(web, id, actor, date) {
   w.Date.now = () => 1790000000000 + date;
   w.__MAGNOLIE_BRUECKE__ = "test"; w.webkit = { messageHandlers: { test: { postMessage() {} } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+  w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
   w.App.init({ daten: { personalSync: { actor_id: actor }, notizen: [{ id, titel: "Welcome", text: "Same content",
     html: "Same content", angelegt: date }] }, neu: false });

@@ -1142,6 +1142,11 @@ def test_nextcloud_etag_conflict_keeps_old_cursor(monkeypatch):
     data["termine"] = [{"uid": "remote", "datum": "2026-08-13", "zeit": "",
                         "titel": "New local", "geaendert": 2_000_000_000_000,
                         "sync": True, "syncKalenderUid": uid}]
+    # Exercise rejection of a conditional write from a known content baseline.
+    # Unknown legacy projections now preserve a conflict copy instead of
+    # treating their timestamp-only mapping as proof of a clean remote state.
+    remote = m.ics_lesen(dav.resources["calendar"][0]["data"])["termine"][0]
+    m._dav_syncquelle_setzen(data["termine"][0], uid, href, '"one"', baseline=remote)
     probe = run_sync(monkeypatch, dav, data)
     assert dav.puts and probe.payload["letzteSyncs"]["kalender"][uid] == 100
     assert probe.payload["syncMetadaten"]["nextcloud"]["kalender"][uid] == old
@@ -1188,6 +1193,10 @@ def test_caldav_series_update_puts_complete_resource(monkeypatch):
     master = next(item for item in parsed if not any(
         line.startswith("RECURRENCE-ID") for line in item["icsRoundtrip"]))
     override = next(item for item in parsed if item is not master)
+    uid = dav.collections("calendar")[0]["uid"]
+    # This is a normal local edit, not an ambiguous legacy ETag-only mapping.
+    for item in parsed:
+        m._dav_syncquelle_setzen(item, uid, href, '"series-1"', baseline=item)
     master["titel"] = "Lokal geänderte Serienrunde"
     master["geaendert"] = 2_000_000_000_000
     master["sync"] = True
@@ -1202,7 +1211,8 @@ def test_caldav_series_update_puts_complete_resource(monkeypatch):
     data["letzteSyncs"]["kalender"][uid] = 100
     data["syncMetadaten"]["nextcloud"]["kalender"][uid] = {
         "initialisiert": True, "letzterSync": 100,
-        "etags": {master["uid"]: {"href": href, "etag": '"series-1"'}}}
+        "etags": {item["uid"]: {"href": href, "etag": '"series-1"'}
+                  for item in parsed}}
 
     run_sync(monkeypatch, dav, data)
 

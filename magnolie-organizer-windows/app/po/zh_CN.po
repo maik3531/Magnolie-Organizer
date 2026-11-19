@@ -17,6 +17,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "Original contact sources"
+msgstr "原始联系人来源"
+
+msgid "Revoke"
+msgstr "撤销授权"
+
+msgid "The backup does not contain a complete data set."
+msgstr "备份不包含完整的数据集。"
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "无法保存联系人来源的授权。自动更新已暂停。"
+
+msgid "Waiting for Wi-Fi."
+msgstr "正在等待 Wi-Fi。"
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "正在等待账户访问权限。可访问账户后将恢复自动更新联系人。"
+
 msgid "To use your phone as a system microphone, Magnolie needs the VB-CABLE driver by VB-Audio."
 msgstr "要将手机用作系统麦克风，Magnolie 需要 VB-Audio 的 VB-CABLE 驱动程序。"
 
@@ -1657,6 +1675,9 @@ msgstr "续页"
 
 msgid "Contributor key"
 msgstr "贡献者密钥"
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "只能打开 HTTPS 附件。其他地址可以复制。"
 
 msgid "Copy"
 msgstr "复制"

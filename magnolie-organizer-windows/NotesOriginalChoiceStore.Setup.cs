@@ -21,6 +21,16 @@ internal sealed partial class NotesOriginalChoiceStore
         private SetupProof Native() => proof as SetupProof ?? throw new InvalidOperationException("notes_setup_native_decision_required");
         internal NativeActorBookSnapshot Snapshot => Native().Snapshot;
         internal bool IsAddition => Native().Addition;
+        internal void RequireCurrent(NotesOriginalChoiceStore owner)
+        {
+            var native = Native();
+            if (!ReferenceEquals(native.Store, owner)) throw new InvalidOperationException("notes_setup_decision_owner_changed");
+            if (Volatile.Read(ref native.Used) != 0) throw new InvalidOperationException("notes_setup_decision_already_used");
+            owner.RequireSetupContext(native);
+            if (owner.ReadRaw() != native.Expected) throw new InvalidOperationException("notes_setup_context_changed");
+            owner.RequireSetupContext(native);
+        }
+        internal void Cancel() => Interlocked.Exchange(ref Native().Used, 1); // Memory only, no empty key creation.
         internal void Commit(NotesOriginalExportChoice choice)
         {
             var native = Native();

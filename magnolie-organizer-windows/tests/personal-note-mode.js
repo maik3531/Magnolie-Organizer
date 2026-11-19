@@ -13,6 +13,7 @@ async function check(web) {
       commands.push(typeof message === "string" ? JSON.parse(message) : message);
     } } } };
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     w.App.init({ daten: { notizen: [{ id: "private-note", titel: "Private", text: "Desktop text", html: "<b>Desktop text</b>",
       angelegt: 1, anhaenge: [{ id: "private-file", name: "private.pdf", art: "pdf", daten: "data:application/pdf;base64,JVBERg==" }] }],

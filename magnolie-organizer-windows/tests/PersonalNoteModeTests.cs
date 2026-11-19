@@ -11,6 +11,7 @@ internal static class PersonalNoteModeTests
         try
         {
             var store = new TelefonStore(new WindowsPaths(temporary), Enumerable.Repeat((byte)19, 32).ToArray());
+            using var ownPool = new OwnedTelefonPool(store);
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Synthetic phone", Enumerable.Repeat((byte)112, 32).ToArray());
             store.SavePeers([peer]);
             var rejectOwn = false;

@@ -11,6 +11,8 @@ export SOURCE_DATE_EPOCH
 # Kataloge erzeugen und die Python-Syntax prüfen.
 override_dh_auto_build:
 	python3 werkzeuge/release_sources.py contracts .
+	python3 -I -B werkzeuge/zeitzonen_erzeugen.py
+	python3 -B -m pytest -q -p no:cacheprovider pruefungen/test_normative_timezone_recipe.py
 	python3 werkzeuge/klang.py klang/erinnerung.wav
 	mkdir -p web/i18n
 	set -e; while read sprache; do \
@@ -27,6 +29,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 		python3 werkzeuge/katalog_pruefen.py po/magnolie-organizer.pot po/$$sprache.po; \
 	done < po/LINGUAS
 	python3 -m pytest -q pruefungen/test_locale_completeness.py
+	python3 -B -m pytest -q -p no:cacheprovider pruefungen/test_organizer_resource_inventory.py pruefungen/test_debian_start_scripts.py
 	mkdir -p debian/test-home debian/test-data debian/test-config debian/test-cache debian/test-state debian/test-runtime
 	chmod 700 debian/test-runtime
 	DISPLAY= WAYLAND_DISPLAY= HOME=$(CURDIR)/debian/test-home XDG_DATA_HOME=$(CURDIR)/debian/test-data XDG_CONFIG_HOME=$(CURDIR)/debian/test-config XDG_CACHE_HOME=$(CURDIR)/debian/test-cache XDG_STATE_HOME=$(CURDIR)/debian/test-state XDG_RUNTIME_DIR=$(CURDIR)/debian/test-runtime TZ=Europe/Berlin dbus-run-session -- python3 pruefungen/test_parser.py
@@ -71,6 +74,7 @@ override_dh_gencontrol:
 	  dh_gencontrol -- -Vmagnolie:WebcamRecommends="$$empfiehlt"
 
 override_dh_builddeb:
+	python3 -I -B werkzeuge/web_startskripte_pruefen.py debian/magnolie-organizer/usr/share/magnolie-organizer/web
 	python3 -I -B werkzeuge/runtime_pruefen.py debian/magnolie-organizer/usr/bin
 	python3 werkzeuge/release_sources.py binary debian/magnolie-organizer/usr/share/magnolie-organizer
 	find debian/magnolie-organizer -exec touch -h -d "@$(SOURCE_DATE_EPOCH)" {} +
@@ -78,4 +82,5 @@ override_dh_builddeb:
 
 override_dh_auto_clean:
 	python3 werkzeuge/release_sources.py contracts .
+	rm -f web/normative-timezones.js web/timezones/tzdb-2026egtz.json web/timezones/provenance.json web/timezones/LICENSE-tzdb.txt
 	rm -rf .flatpak-builder bin/__pycache__ debian/tests/__pycache__ pruefungen/__pycache__ werkzeuge/__pycache__ klang locale web/i18n/*.js debian/test-data debian/test-config bau

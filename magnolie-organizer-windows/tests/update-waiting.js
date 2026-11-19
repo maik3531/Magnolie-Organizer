@@ -18,6 +18,7 @@ async function check(web, failure) {
   } } } };
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     d.dispatchEvent(new w.Event("DOMContentLoaded"));
     w.App.init({ daten: {}, neu: false, regional: { language: "en" }, handbuchInstalliert: true, handbuchVersion: "2.0.30" });

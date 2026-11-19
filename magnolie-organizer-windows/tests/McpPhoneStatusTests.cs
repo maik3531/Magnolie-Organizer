@@ -29,8 +29,45 @@ internal static class McpPhoneStatusTests
             var changed = service.McpStatus();
             TestAssert.That(changed["revision"]!.GetValue<string>() != initial["revision"]!.GetValue<string>() && changed["peers"]![0]!["local_grants"]!["selected_notifications_readonly"]!.GetValue<bool>(), "Actual local grant changes were absent from the public phone snapshot/revision.");
             await ActionsAsync(Path.Combine(root, "actions"));
+            await MediaStatusAsync(Path.Combine(root, "media"));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private static async Task MediaStatusAsync(string root)
+    {
+        var paths = new WindowsPaths(root);
+        var store = new TelefonStore(paths, testStorageKey: Enumerable.Repeat((byte)9, 32).ToArray());
+        using var ownPool = new OwnedTelefonPool(store);
+        store.LoadOrCreateIdentity(); store.Enabled = false;
+        var peer = new TelefonPeer("44444444-4444-4444-8444-444444444444", "Owned media phone", TelefonCrypto.GenerateX25519().Public);
+        store.SavePeers([peer]);
+        using var service = new TelefonCoordinator(paths, (_, _) => throw new InvalidOperationException("Read emitted a UI event"), dataStore: store, localOnly: true);
+        JsonObject Request() => new() { ["action"] = "media_status_read", ["expectedRevision"] = service.McpStatus()["revision"]!.DeepClone(),
+            ["peerId"] = peer.Id, ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey) };
+        var before = Directory.GetFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToArray();
+        var peerBytes = File.ReadAllBytes(paths.TelefonPeers);
+        var result = await service.ExecuteMcpAsync(Request(), default);
+        var status = result["mediaStatus"]!.AsObject();
+        TestAssert.That(result["ok"]!.GetValue<bool>() && !status["supported"]!.GetValue<bool>() && status["photos_enabled"] is null &&
+            status["automatic_wifi"] is null && !status["persisted"]!.GetValue<bool>() && !status["transfer_started"]!.GetValue<bool>(), "Unavailable native media invented permission or transfer state");
+        TestAssert.That(File.ReadAllBytes(paths.TelefonPeers).SequenceEqual(peerBytes), "Media status changed paired identities");
+        TestAssert.That(Directory.GetFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal).SequenceEqual(before), "Media status created native storage");
+        foreach (var (field, value) in new[] { ("expectedRevision", "0" + service.McpStatus()["revision"]!.GetValue<string>()[1..]), ("fingerprint", "foreign"), ("peerId", "foreign") })
+        {
+            var request = Request(); request[field] = field == "expectedRevision" ? new string('f', 64) : value;
+            var denied = await service.ExecuteMcpAsync(request, default);
+            TestAssert.That(denied["ok"]!.GetValue<bool>() == false, "Stale/foreign media selection reached status");
+        }
+        var extra = Request(); extra["enabled"] = true;
+        TestAssert.That((await service.ExecuteMcpAsync(extra, default))["code"]!.GetValue<string>() == "invalid_selection", "Media status admitted mutation fields");
+        var projected = TelefonCoordinator.ProjectMcpMediaStatus(peer.Id, TelefonCrypto.Fingerprint(peer.PublicKey), new() {
+            ["supported"] = true, ["photos"] = false, ["videos"] = true, ["automatic"] = false, ["busy"] = false,
+            ["metadata_ready"] = new JsonObject { ["video"] = true }, ["shared_settings"] = new JsonObject { ["secret"] = "owned-private" },
+            ["shared_matched"] = false, ["path"] = "owned-private", ["owner_token"] = "owned-private" });
+        TestAssert.That(projected["videos_enabled"]!.GetValue<bool>() && !projected["photos_enabled"]!.GetValue<bool>() &&
+            projected["shared_settings_present"]!.GetValue<bool>() && !projected["shared_settings_agreed"]!.GetValue<bool>() &&
+            !projected.ToJsonString().Contains("owned-private", StringComparison.Ordinal), "Native media projection leaked source metadata or changed independent choices");
     }
 
     private static async Task ActionsAsync(string root)

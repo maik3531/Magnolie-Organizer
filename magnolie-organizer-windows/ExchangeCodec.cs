@@ -178,13 +178,13 @@ internal static partial class ExchangeCodec
             ["zeilen"] = new JsonArray(rows.Select(row => (JsonNode)new JsonArray(row.Select(cell => (JsonNode)JsonValue.Create(cell)!).ToArray())).ToArray()) };
     }
 
-    private static string PortableCalendarZone(TimeZoneInfo? timeZone)
+    private static string PortableCalendarZone(CalendarRecurrence.SourceZone? timeZone)
     {
-        var id = (timeZone ?? TimeZoneInfo.Local).Id;
+        var id = (timeZone ?? CalendarRecurrence.Zone("system")).Id;
         return TimeZoneInfo.TryConvertWindowsIdToIanaId(id, out var iana) ? iana : id;
     }
 
-    internal static ExchangeImportResult ParseIcs(string text, string sourceId = "", TimeZoneInfo? timeZone = null)
+    internal static ExchangeImportResult ParseIcs(string text, string sourceId = "", CalendarRecurrence.SourceZone? timeZone = null)
     {
         using var culture = new CalendarRecurrence.WireCulture();
         if (text.IndexOf('\0') >= 0 || !IcsMarker().IsMatch(text))
@@ -301,6 +301,9 @@ internal static partial class ExchangeCodec
             FehlerhafteTermine: invalidEvents, FehlerhafteAufgaben: invalidTasks) { BirthdayRepairs = birthdayRepairs };
     }
 
+    private sealed class ProtectedCalendarPropertyException() : InvalidOperationException(
+        NativeLocalization.Gettext("The content is unreadable.")) { }
+
     internal static ExchangeExportResult WriteIcs(string art, JsonElement data)
     {
         using var culture = new CalendarRecurrence.WireCulture();
@@ -332,7 +335,7 @@ internal static partial class ExchangeCodec
                 calendarComponents.Add((generated.ToArray(), definitions));
                 count++;
             }
-            catch (Exception) { skipped++; }
+            catch (Exception error) when (error is not ProtectedCalendarPropertyException) { skipped++; }
         }
         lines.AddRange(CalendarRecurrence.ExportCalendar(calendarComponents));
         lines.Add("END:VCALENDAR");
@@ -836,7 +839,7 @@ internal static partial class ExchangeCodec
         return new ExchangeExportResult(output.ToString(), count, skipped, report.Trim());
     }
 
-    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, TimeZoneInfo? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null)
+    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null)
     {
         var roundtripValues = values;
         values = TopLevelProperties(values);
@@ -853,8 +856,8 @@ internal static partial class ExchangeCodec
             if (start.AllDay && (span <= TimeSpan.Zero || span.Ticks % TimeSpan.TicksPerDay != 0 || duration.Value.Contains("T", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidDataException("An all-day duration must contain whole days or weeks.");
             var stamp = CalendarRecurrence.ParseStamp(new CalendarRecurrence.Property(startProperty.Name, startProperty.Value, startProperty.Parameters), zones);
-            var endUtc = CalendarRecurrence.DurationEndUtc(stamp, duration.Value, timeZone ?? TimeZoneInfo.Local);
-            end = (stamp.AllDay ? stamp.Wall.Add(span) : TimeZoneInfo.ConvertTimeFromUtc(endUtc, timeZone ?? TimeZoneInfo.Local), start.AllDay);
+            var endUtc = CalendarRecurrence.DurationEndUtc(stamp, duration.Value, timeZone ?? CalendarRecurrence.Zone("system"));
+            end = (stamp.AllDay ? stamp.Wall.Add(span) : CalendarRecurrence.FromUtc(endUtc, timeZone ?? CalendarRecurrence.Zone("system")), start.AllDay);
         }
         if (end is not null && (end.Value.AllDay != start.AllDay || end.Value.DateTime < start.DateTime || start.AllDay && end.Value.DateTime == start.DateTime))
             throw new InvalidDataException("Invalid calendar end.");
@@ -979,7 +982,7 @@ internal static partial class ExchangeCodec
         return (result, false, complex);
     }
 
-    private static JsonObject ParseTask(List<IcsProperty> values, TimeZoneInfo? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null)
+    private static JsonObject ParseTask(List<IcsProperty> values, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null)
     {
         var original = values;
         values = TopLevelProperties(values);
@@ -991,8 +994,8 @@ internal static partial class ExchangeCodec
         {
             if (due is not null || start is null) throw new InvalidDataException("Invalid task duration.");
             var stamp = CalendarRecurrence.ParseStamp(new CalendarRecurrence.Property(start.Name, start.Value, start.Parameters), zones);
-            dueValue = (CalendarRecurrence.InZone(new CalendarRecurrence.Stamp(CalendarRecurrence.DurationEndUtc(stamp, duration.Value, timeZone ?? TimeZoneInfo.Local), false, TimeZoneInfo.Utc),
-                timeZone ?? TimeZoneInfo.Local), startValue.AllDay);
+            dueValue = (CalendarRecurrence.InZone(new CalendarRecurrence.Stamp(CalendarRecurrence.DurationEndUtc(stamp, duration.Value, timeZone ?? CalendarRecurrence.Zone("system")), false, TimeZoneInfo.Utc),
+                timeZone ?? CalendarRecurrence.Zone("system")), startValue.AllDay);
         }
         var uid = IcsText(First(values, "UID")?.Value ?? "");
         var recurrenceId = First(values, "RECURRENCE-ID");
@@ -1041,7 +1044,7 @@ internal static partial class ExchangeCodec
     // Keep shipped instance IDs stable; timezone-qualified identity remains in RECURRENCE-ID.
     private static string InstanceUid(string uid, IcsProperty recurrenceId) => uid + "#" + recurrenceId.Value;
 
-    internal static void ReconcileRecurrences(JsonArray items, TimeZoneInfo? timeZone = null)
+    internal static void ReconcileRecurrences(JsonArray items, CalendarRecurrence.SourceZone? timeZone = null)
     {
         using var culture = new CalendarRecurrence.WireCulture();
         var masters = items.OfType<JsonObject>().Where(item => !(item["icsRoundtrip"] as JsonArray ?? []).Any(line =>
@@ -1533,12 +1536,17 @@ internal static partial class ExchangeCodec
         }
         var replace = topLevel.Select(property => property.Name).Where(name => name is "DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or "EXRULE" or "RECURRENCE-ID" or "STATUS").ToHashSet();
         lines.RemoveAll(line => replace.Contains(PropertyName(line)));
+        var protectedColours = topLevel.Where(property => property.Name == "X-MAGNOLIE-ACCENT-COLOR" && property.Parameters.Length > 0).ToArray();
+        if (protectedColours.Any(property => AccentColor(property.Value) != AccentColor(J(item, "akzentFarbe"))))
+            throw new ProtectedCalendarPropertyException();
+        if (protectedColours.Length > 0) lines.RemoveAll(line => PropertyName(line) == "X-MAGNOLIE-ACCENT-COLOR");
         var rawDepth = 0;
         foreach (var line in raw)
         {
             var name = PropertyName(line);
             if (name == "BEGIN") rawDepth++;
-            if (rawDepth > 0 || name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR")) lines.Add(line);
+            if (rawDepth > 0 || name == "X-MAGNOLIE-ACCENT-COLOR" && protectedColours.Length > 0 ||
+                name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR")) lines.Add(line);
             if (name == "END") rawDepth = Math.Max(0, rawDepth - 1);
         }
         var duration = topLevel.Any(property => property.Name == "DURATION");
@@ -1667,35 +1675,31 @@ internal static partial class ExchangeCodec
     }
 
     private static IcsProperty? First(IEnumerable<IcsProperty> values, string name) => values.FirstOrDefault(value => value.Name == name);
-    private static (DateTime DateTime, bool AllDay) ParseIcsDate(IcsProperty property, TimeZoneInfo? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null)
+    private static (DateTime DateTime, bool AllDay) ParseIcsDate(IcsProperty property, CalendarRecurrence.SourceZone? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null)
     {
         var stamp = CalendarRecurrence.ParseStamp(new CalendarRecurrence.Property(property.Name, property.Value, property.Parameters), zones);
-        return (CalendarRecurrence.InZone(stamp, timeZone ?? TimeZoneInfo.Local), stamp.AllDay);
+        return (CalendarRecurrence.InZone(stamp, timeZone ?? CalendarRecurrence.Zone("system")), stamp.AllDay);
     }
 
     private static bool RecurrenceZoneIsLocal(IcsProperty property)
     {
-        if (property.Value.EndsWith('Z')) return TimeZoneInfo.Local.HasSameRules(TimeZoneInfo.Utc);
+        if (property.Value.EndsWith('Z')) return SameRules(CalendarRecurrence.Zone("UTC"), CalendarRecurrence.Zone("system"));
         var parameter = property.Parameters.FirstOrDefault(value =>
             value.StartsWith("TZID=", StringComparison.OrdinalIgnoreCase));
         if (parameter is null) return true;
         var zoneId = parameter[5..].Trim('"');
         try
         {
-            var zone = TimeZoneInfo.FindSystemTimeZoneById(zoneId);
-            return zone.Id == TimeZoneInfo.Local.Id || zone.HasSameRules(TimeZoneInfo.Local);
+            return SameRules(CalendarRecurrence.Zone(zoneId), CalendarRecurrence.Zone("system"));
         }
         catch (TimeZoneNotFoundException)
         {
-            if (!TimeZoneInfo.TryConvertIanaIdToWindowsId(zoneId, out var windowsId)) return false;
-            try
-            {
-                var zone = TimeZoneInfo.FindSystemTimeZoneById(windowsId);
-                return zone.Id == TimeZoneInfo.Local.Id || zone.HasSameRules(TimeZoneInfo.Local);
-            }
-            catch (TimeZoneNotFoundException) { return false; }
+            return false;
         }
     }
+
+    private static bool SameRules(CalendarRecurrence.SourceZone left, CalendarRecurrence.SourceZone right) =>
+        left.Named is not null && ReferenceEquals(left.Named, right.Named);
 
     private static string RecurrenceKind(string rule, DateTime start)
     {

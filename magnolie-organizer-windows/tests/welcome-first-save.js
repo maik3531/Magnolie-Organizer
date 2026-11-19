@@ -17,6 +17,7 @@ function saveAndClose(web, profile, first) {
     }; }`);
     w.webkit = { messageHandlers: { bridge: { postMessage: text => messages.push(JSON.parse(text)) } } };
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+    w.eval(fs.readFileSync(path.join(web, "normative-timezones.js"), "utf8"));
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     w.document.dispatchEvent(new w.Event("DOMContentLoaded", { bubbles: true }));
     w.App.init({ daten: profile, neu: first, echterErststart: first, datenPfad: "/synthetic/welcome.magnolie",

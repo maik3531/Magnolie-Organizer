@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="lan_freigabe_wartet">La red local espera permiso en los ajustes de la aplicación en Android.</string>
     <string name="webcam_kanal">Cámara web del teléfono</string>
     <string name="webcam_startet">Iniciando la cámara web del teléfono…</string>
     <string name="webcam_aktiv">La cámara y el micrófono están activos</string>

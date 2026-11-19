@@ -1,9 +1,14 @@
 'use strict';
+require('./promoted-hooks.test.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{createRequire}=require('node:module'),{Worker}=require('node:worker_threads'),{webcrypto}=require('node:crypto');
 const repo=path.resolve(__dirname,'../..'),tablet=path.join(repo,'Magnolie-Organizer-Android-Tablet-Beta'),deps=createRequire(path.join(tablet,'package.json')),{JSDOM,VirtualConsole}=deps('jsdom'),web=path.join(tablet,'app/build/generated/projection/assets/web');
 const apply=require('./projection-patches.cjs'),read=name=>fs.readFileSync(path.join(__dirname,name)),canonical=fs.readFileSync(path.join(repo,'magnolie-organizer/web/anwendung.js'),'utf8'),patched=apply(canonical,read);
 assert.equal(apply(patched,read,true,canonical),canonical,'Strict inverse retains every canonical byte');
-assert.throws(()=>apply(canonical.replace('const ianaZonenPruefungen = new Map();','const ianaZonenPruefungen = new Map(); /*change*/').replace('let zone = String(value || "").trim();','let zone = String(value || "").trim(); /*change*/'),read),/canonical block changed/);
+const drift=canonical.includes('/*TZ_PORT:')
+ ?canonical.replace('return MagnolieTime.has(zone) ? zone : "";','return "UTC";')
+ :canonical.replace('const ianaZonenPruefungen = new Map();','const ianaZonenPruefungen = new Map(); /*change*/').replace('let zone = String(value || "").trim();','let zone = String(value || "").trim(); /*change*/');
+assert.notEqual(drift,canonical,'The drift countercase must change the actual canonical block');
+assert.throws(()=>apply(drift,read),/canonical block changed|projection match changed/);
 assert.throws(()=>apply(patched.replace('TZ_PORT:validate-zone:BEGIN','changed'),read,true,canonical),/projection match changed/);
 // Both projectors must apply the very same reviewed transformations.
 const cp=require('node:child_process');
@@ -12,12 +17,13 @@ sys.dont_write_bytecode=True
 r=pathlib.Path(sys.argv[1]);s=importlib.util.spec_from_file_location('p',r/'Magnolie-Organizer-macOS-Beta/tools/project_ui.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 p='port-adapters/timezones/';snap={p+f.name:f.read_bytes() for f in (r/p).iterdir() if f.is_file()}
 source=(r/'magnolie-organizer/web/anwendung.js').read_text()
-if len(sys.argv)>2:source=source.replace('let zone = String(value || \"\").trim();','let zone = String(value || \"\").trim(); /*change*/')
+if len(sys.argv)>2:
+    source=source.replace('return MagnolieTime.has(zone) ? zone : \"\";','return \"UTC\";') if '/*TZ_PORT:' in source else source.replace('let zone = String(value || \"\").trim();','let zone = String(value || \"\").trim(); /*change*/')
 sys.stdout.buffer.write(m.apply_timezone_patches(source,snap).encode())
 `;
 assert.equal(cp.execFileSync('python3',['-c',python,repo],{maxBuffer:8*1024*1024}).toString(),patched);
 const rejected=cp.spawnSync('python3',['-c',python,repo,'drift'],{encoding:'utf8',maxBuffer:8*1024*1024});
-assert.notEqual(rejected.status,0);assert.match(rejected.stderr,/canonical block changed/);
+assert.notEqual(rejected.status,0);assert.match(rejected.stderr,/canonical block changed|projection match changed/);
 // Replacement metacharacters are trusted source bytes, never replace() directives.
 const dollarSource="ANCHOR $& $` $' $$ END",dollarReplacement="BODY $& $` $' $$";
 const dollarManifest=[{id:'literal',start:'ANCHOR',end:' END',includeEnd:true,sha256:require('node:crypto').createHash('sha256').update(dollarSource).digest('hex'),replacement:dollarReplacement}];
@@ -46,7 +52,7 @@ async function boot(initial=null) {
   let source=fs.readFileSync(path.join(web,name),'utf8');
   if(name==='anwendung.js') {assert.equal(source.split('window.OrganizerTest = {').length,2);
    // Existing test doorway: expose references only, never replace a calculator.
-   source=source.replace('window.OrganizerTest = {','window.OrganizerTest = { eindeutigerOrtszeitpunkt, zeitOrtszeitpunkt, zeitLokaleMinute, zeitDatumTeile,');}
+    source=source.replace('window.OrganizerTest = {','window.OrganizerTest = { kontaktOrtszeit, eindeutigerOrtszeitpunkt, zeitOrtszeitpunkt, zeitLokaleMinute, zeitDatumTeile,');}
   w.eval(source);
  }
  await tick();await tick();w.MagnolieI18n.setLocale('en');
@@ -55,7 +61,11 @@ async function boot(initial=null) {
 (async()=>{
  const b=await boot();let checks=0;
  try{
-  const w=b.w,T=w.OrganizerTest,D=T.daten();D.einstellungen.regional.timeZone='UTC';D.einstellungen.regional.hourCycle='h23';
+   const w=b.w,T=w.OrganizerTest,D=T.daten();D.einstellungen.regional.timeZone='UTC';D.einstellungen.regional.hourCycle='h23';
+   const management=D.einstellungen.regional.timeZoneManagement;
+   D.einstellungen.regional.timeZoneManagement='off';assert.equal(T.kontaktOrtszeit('Europe/Berlin',new w.Date('2026-01-15T12:30Z')),null);checks++;
+   D.einstellungen.regional.timeZoneManagement='manual';assert.ok(T.kontaktOrtszeit('Europe/Berlin',new w.Date('2026-01-15T12:30Z')));checks++;
+   D.einstellungen.regional.timeZoneManagement=management;
   // The actual formatted clock must not acquire the OS Berlin spring-gap shift.
   const oldTZ=process.env.TZ;try{process.env.TZ='Europe/Berlin';assert.equal(T.zeitText('2026-03-29','02:30'),'02:30');assert.equal(T.zeitText('2026-03-29','02:30:45'),'02:30:45');checks+=2;}finally{if(oldTZ===undefined)delete process.env.TZ;else process.env.TZ=oldTZ;}
   const sourceZone=['BEGIN:VTIMEZONE','TZID:Europe/Berlin','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:+235959','TZOFFSETTO:+235959','END:STANDARD','END:VTIMEZONE'];

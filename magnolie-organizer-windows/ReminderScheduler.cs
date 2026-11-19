@@ -234,7 +234,7 @@ internal sealed class ReminderScheduler : IDisposable
                 var standard = !item.TryGetProperty("standardErinnerung", out var standardNode) || standardNode.ValueKind != JsonValueKind.False || individualDays == 0;
                 var existing = new HashSet<string>(StringComparer.Ordinal);
                 if (individualDays > 0) AddDue(result, id, "individuell", start, start.AddDays(-individualDays), now, includeMissed, zone: zone, endUtc: startUtc, occurrenceUtc: startUtc);
-                if (standard) AddDue(result, id, "standard", start, TimeZoneInfo.ConvertTimeFromUtc(startUtc.AddMinutes(-lead), zone), now, includeMissed,
+                if (standard) AddDue(result, id, "standard", start, CalendarRecurrence.FromUtc(startUtc.AddMinutes(-lead), zone), now, includeMissed,
                     zone: zone, dueUtc: startUtc.AddMinutes(-lead), endUtc: startUtc, occurrenceUtc: startUtc);
                 if (individualDays > 0) existing.Add($"START:{individualDays * 1440}");
                 if (standard) existing.Add($"START:{lead}");
@@ -242,9 +242,9 @@ internal sealed class ReminderScheduler : IDisposable
                 {
                     if (!existing.Add($"{alarm.Related}:{alarm.OffsetMinutes}")) continue;
                     var basisUtc = alarm.Related == "END" ? occurrence.EndUtc : startUtc;
-                    var basis = TimeZoneInfo.ConvertTimeFromUtc(basisUtc, zone);
+                    var basis = CalendarRecurrence.FromUtc(basisUtc, zone);
                     AddDue(result, id, $"alarm-{alarm.Related.ToLowerInvariant()}-{alarm.OffsetMinutes}",
-                        start, TimeZoneInfo.ConvertTimeFromUtc(basisUtc.AddMinutes(-alarm.OffsetMinutes), zone), now, includeMissed, basis,
+                        start, CalendarRecurrence.FromUtc(basisUtc.AddMinutes(-alarm.OffsetMinutes), zone), now, includeMissed, basis,
                         zone, basisUtc.AddMinutes(-alarm.OffsetMinutes), basisUtc, startUtc);
                 }
                 if (titles is not null && occurrence.Summary is not null)
@@ -257,7 +257,7 @@ internal sealed class ReminderScheduler : IDisposable
     }
 
     private static IReadOnlyList<CalendarOccurrence> ExpandForReminders(JsonElement item, DateTime lower, DateTime upper,
-        TimeZoneInfo zone, bool task, bool overlap, Dictionary<string, string>? errors)
+        CalendarRecurrence.SourceZone zone, bool task, bool overlap, Dictionary<string, string>? errors)
     {
         try { return CalendarRecurrence.Expand(item, lower, upper, zone, task, overlap); }
         catch (Exception error) when (errors is not null && error is InvalidDataException or ArgumentException or FormatException or OverflowException or InvalidOperationException or TimeZoneNotFoundException or InvalidTimeZoneException)
@@ -406,7 +406,7 @@ internal sealed class ReminderScheduler : IDisposable
                     var basis = alarm.Related == "END" ? occurrence.EndUtc : occurrence.StartUtc;
                     var trigger = basis.AddMinutes(-alarm.OffsetMinutes);
                     AddDue(result, "aufgabe:" + id, $"alarm-{alarm.Related.ToLowerInvariant()}-{alarm.OffsetMinutes}", due,
-                        TimeZoneInfo.ConvertTimeFromUtc(trigger, zone), now, includeMissed, zone: zone, dueUtc: trigger,
+                        CalendarRecurrence.FromUtc(trigger, zone), now, includeMissed, zone: zone, dueUtc: trigger,
                         endUtc: basis > trigger ? basis : trigger, occurrenceUtc: occurrence.EndUtc);
                 }
                 if (titles is not null && occurrence.Summary is not null)
@@ -430,7 +430,7 @@ internal sealed class ReminderScheduler : IDisposable
         var hour = Math.Clamp(Number(settings, "stunde", 8), 0, 23);
         var result = new List<(string, DateTime, DateTime)>();
         var zone = CalendarRecurrence.OrganizerZone(root);
-        var localNow = TimeZoneInfo.ConvertTimeFromUtc(CalendarRecurrence.NowUtc(now), zone);
+        var localNow = CalendarRecurrence.FromUtc(CalendarRecurrence.NowUtc(now), zone);
         var groupExcluded = ContactGroupExclusions.Create(root);
         foreach (var item in anniversaries.EnumerateArray())
         {
@@ -464,7 +464,7 @@ internal sealed class ReminderScheduler : IDisposable
         var type = Text(item, "typ");
         var birthday = NativeLocalization.IsTranslation("Birthday", type);
         var wedding = type == "wedding-anniversary" || NativeLocalization.IsTranslation("Wedding anniversary", type);
-        var localNow = TimeZoneInfo.ConvertTimeFromUtc(CalendarRecurrence.NowUtc(now), CalendarRecurrence.OrganizerZone(root));
+        var localNow = CalendarRecurrence.FromUtc(CalendarRecurrence.NowUtc(now), CalendarRecurrence.OrganizerZone(root));
         var days = (occurrence.Date - localNow.Date).Days;
         var when = days switch
         {
@@ -488,10 +488,10 @@ internal sealed class ReminderScheduler : IDisposable
 
     private static void AddDue(List<(string Key, DateTime Start, DateTime Due)> result, string id,
         string mode, DateTime start, DateTime due, DateTime now, bool includeMissed, DateTime? reminderEnd = null,
-        TimeZoneInfo? zone = null, DateTime? dueUtc = null, DateTime? endUtc = null, DateTime? occurrenceUtc = null)
+        CalendarRecurrence.SourceZone? zone = null, DateTime? dueUtc = null, DateTime? endUtc = null, DateTime? occurrenceUtc = null)
     {
         var end = reminderEnd ?? start;
-        zone ??= TimeZoneInfo.Local;
+        zone ??= CalendarRecurrence.Zone("system");
         var instant = CalendarRecurrence.NowUtc(now);
         var trigger = dueUtc ?? CalendarRecurrence.ToUtc(due, zone);
         var endInstant = endUtc ?? CalendarRecurrence.ToUtc(end, zone);

@@ -2111,6 +2111,60 @@ msgstr "Vervolg"
 msgid "Contributor Key"
 msgstr "Contributor Key"
 
+msgid "Account access is temporarily unavailable. Automatic updates will wait."
+msgstr "Accounttoegang is tijdelijk niet beschikbaar. Automatische updates wachten."
+
+msgid "Add this original source without replacing existing permissions. Select the existing organizer contact explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Voeg deze oorspronkelijke bron toe zonder bestaande toestemmingen te vervangen. Selecteer uitdrukkelijk het bestaande contact in Organizer. Dit staat blijvende updates toe; er worden geen oorspronkelijke contacten aangemaakt of verwijderd. Automatische updates wachten op wifi."
+
+msgid "Allow automatic updates only to the selected original address books, including after restarting. Existing contacts only; no creation or deletion. Updates wait for Wi-Fi. Nothing is selected by default. An empty selection revokes all approvals. You can revoke this permission at any time in Settings."
+msgstr "Sta automatische updates alleen toe voor de geselecteerde oorspronkelijke adresboeken, ook na opnieuw opstarten. Alleen bestaande contacten; niets aanmaken of verwijderen. Updates wachten op wifi. Standaard is niets geselecteerd. Een lege selectie trekt alle toestemmingen in. Je kunt deze toestemming op elk moment intrekken in Instellingen."
+
+msgid "Allow updates"
+msgstr "Updates toestaan"
+
+msgid "Notes original source"
+msgstr "Oorspronkelijke Notes-bron"
+
+msgid "Original address book"
+msgstr "Oorspronkelijk adresboek"
+
+msgid "Original contact sources"
+msgstr "Oorspronkelijke contactbronnen"
+
+msgid "Revoke"
+msgstr "Intrekken"
+
+msgid "Select the existing organizer contact for this Notes original source explicitly. This grants persistent updates; no original contacts will be created or deleted. Automatic updates wait for Wi-Fi."
+msgstr "Selecteer uitdrukkelijk het bestaande contact in Organizer voor deze oorspronkelijke Notes-bron. Dit staat blijvende updates toe; er worden geen oorspronkelijke contacten aangemaakt of verwijderd. Automatische updates wachten op wifi."
+
+msgid "Set up account access once in Settings. Automatic updates will wait."
+msgstr "Stel accounttoegang eenmalig in bij Instellingen. Automatische updates wachten."
+
+msgid "The address book contains an ambiguous source binding."
+msgstr "Het adresboek bevat een dubbelzinnige bronbinding."
+
+msgid "The contact source permission could not be saved. Automatic updates are paused."
+msgstr "De toestemming voor de contactbron kon niet worden opgeslagen. Automatische updates zijn gepauzeerd."
+
+msgid "The saved account access is ambiguous. Check the account in Settings."
+msgstr "De opgeslagen accounttoegang is dubbelzinnig. Controleer het account in Instellingen."
+
+msgid "Update original contact sources"
+msgstr "Oorspronkelijke contactbronnen bijwerken"
+
+msgid "Waiting for Wi-Fi."
+msgstr "Wachten op wifi."
+
+msgid "Waiting for account access. Automatic contact updates will resume when available."
+msgstr "Wachten op accounttoegang. Automatische contactupdates worden hervat zodra toegang beschikbaar is."
+
+msgid "Waiting for account access. Unlock the system keyring when convenient."
+msgstr "Wachten op accounttoegang. Ontgrendel de systeemsleutelbos wanneer het je uitkomt."
+
+msgid "Only HTTPS attachments can be opened. You can copy other addresses."
+msgstr "Alleen HTTPS-bijlagen kunnen worden geopend. Andere adressen kun je kopiëren."
+
 msgid "Copy"
 msgstr "Kopiëren"
 
