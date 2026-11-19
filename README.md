@@ -10,7 +10,8 @@
 <p align="center">
   <a href="README.DE.md">Deutsch</a> · <strong>English</strong> ·
   <a href="https://github.com/maik3531/Magnolie-Organizer/releases/latest">Downloads</a> ·
-  <a href="CHANGELOG.md">Changelog</a>
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="docs/PRESSE.md">Press coverage</a>
 </p>
 
 <p align="center">
@@ -35,12 +36,6 @@ sharing first.
 - **Accessible:** keyboard navigation, optional focus outlines and scalable layouts.
 - **20 interface languages:** including English, German, French, Spanish, Arabic,
   Japanese and Ukrainian.
-
-## Project introductions
-
-- **Linux Today — November 19, 2026:** [Magnolie Organizer: A Free, Open-Source Desktop Organizer in 20 Languages](https://www.linuxtoday.com/blog/magnolie-organizer-a-free-open-source-desktop-organizer-in-20-languages/)
-  Developer-submitted project introduction by Maik Walter / Magnolie Organizer,
-  prepared with AI assistance.
 
 ## Download
 
