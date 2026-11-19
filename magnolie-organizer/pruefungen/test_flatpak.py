@@ -33,7 +33,7 @@ assert not any(value.startswith("--filesystem=home") or value == "--device=dri"
                for value in permissions)
 assert "0" * 64 not in json.dumps(manifest)
 builder = (ROOT / "werkzeuge/flatpak_bauen.sh").read_text(encoding="utf-8")
-assert 'if contributor_hash:' in builder
+assert 'if contributor_hash or raw_features is not None:' in builder
 assert '/app/share/magnolie-organizer/build-config.json' in builder
 commands = "\n".join(manifest["modules"][-1]["build-commands"])
 assert "web/kaffee-qr.mga" not in commands  # the complete reviewed web tree is copied
@@ -69,7 +69,7 @@ def bundle_commit(bundle):
         commit = subprocess.check_output(
             [*ostree, f"--repo={repo}", "rev-parse", ref], text=True).strip()
         check_appstream(subprocess.check_output([*ostree, f"--repo={repo}", "cat", commit,
-            f"/files/share/metainfo/{APP_ID}.metainfo.xml"]))
+            f"/files/share/metainfo/{APP_ID}.appdata.xml"]))
         return commit
 
 
