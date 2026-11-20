@@ -2872,7 +2872,7 @@ class PhoneService:
     # until both controllers and frontend review/receipt union are accepted.
     _actor_mixed_ready = False
 
-    def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None):
+    def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None, *, native_screen_ui=False):
         self.store = PhoneStore(root, display_name)
         self._native_photo_built = optional_phone.available('photo_sync')
         self._native_camera_built = optional_phone.available('phone_camera')
@@ -2882,6 +2882,7 @@ class PhoneService:
         self._webcam_probe_tokens = weakref.WeakKeyDictionary()
         from magnolie_phone_screen_control import PhoneScreenDesktopDispatch
         self._screen_dispatch = PhoneScreenDesktopDispatch(self)
+        self.native_screen_included = native_screen_ui is True
         self._mcp_worker = threading.local()
         self._mcp_operations = threading.Lock()
         emit = callback or (lambda _event, _payload: None)
@@ -3066,8 +3067,11 @@ class PhoneService:
     def native_screen_available(self, peer_id):
         return self._screen_dispatch.available(peer_id)
 
-    def begin_native_screen(self, peer_id, width, height, density, native_start):
-        return self._screen_dispatch.begin(peer_id, width, height, density, native_start)
+    def native_screen_candidate(self, peer_id):
+        return self._screen_dispatch.candidate(peer_id)
+
+    def begin_native_screen(self, peer_id, width, height, density, native_start, *, expected=None):
+        return self._screen_dispatch.begin(peer_id, width, height, density, native_start, expected=expected)
 
     def end_native_webcam(self, original_owner):
         with self.lock:
@@ -8300,6 +8304,10 @@ class PhoneService:
         if is_reserved_ephemeral_phone_control(message):
             return False
         if message.get('kind') == 'capabilities.update':
+            status = message.get('body', {}).get('items', {}).get('device_status', {})
+            if 26 in status.get('versions', ()) and (not getattr(self, 'native_screen_included', False) or
+                    self.connections.get(peer_id) is not channel or self.connection_transports.get(peer_id) != 'wifi'):
+                return False
             self._signal_native_webcam_retire(channel)
             self._signal_native_screen_retire(channel)
         # Reserved actors require their own authorized route, never a legacy fallback.
@@ -8645,6 +8653,20 @@ class PhoneService:
             if self._custom_supported(peer) and custom.get("local"):
                 self.store.remove_kind(peer_id, "personal_sync.custom_settings")
                 self.store.queue(peer_id, "personal_sync.custom_settings", custom["local"], DAY_MS)
+
+    def _queue_native_screen_availability(self, peer_id, channel):
+        # Initial bootstrap capabilities have already been acknowledged. Use a
+        # new normal capability revision only on this established GUI WLAN owner.
+        if not getattr(self, 'native_screen_included', False):
+            return
+        with self.lock:
+            if self.connections.get(peer_id) is not channel or self.connection_transports.get(peer_id) != 'wifi':
+                return
+            available, reason = self.bluetooth_backend.availability()
+            revision = self.store.next_revision('capabilities.update')
+            body = desktop_capabilities(revision, available, reason)
+            body['items']['device_status']['versions'].append(26)
+            self.store.queue(peer_id, 'capabilities.update', body, DAY_MS)
 
     def _accept(self):
         listener, stopped = self.server, self.stop_event
@@ -9007,6 +9029,7 @@ class PhoneService:
             self.store.save_peers()
             if file_binding is not None:self._resume_automatic_photos(peer,channel)
             sock.settimeout(1)
+            self._queue_native_screen_availability(peer_id, channel)
             self.callback("status", self.report())
             last_incoming = time.monotonic()
             while self.enabled and not self.stop_event.is_set():

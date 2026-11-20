@@ -116,7 +116,7 @@ def validate_body(body, kind):
 class PhoneScreenDesktopControl:
     """Original opt-in + probe belong to one parent. Side effects are supplied by its native caller."""
 
-    def __init__(self, parent, probe, require_current, *, clock=time.monotonic):
+    def __init__(self, parent, probe, require_current, *, clock=time.monotonic, deadline=None):
         validate_body(probe, REQUEST)
         if parent is None or probe['op'] != 'probe':
             raise ValueError('screen_original_probe_required')
@@ -125,6 +125,7 @@ class PhoneScreenDesktopControl:
         self._current = require_current
         self._clock = clock
         self._issued = clock()
+        self._deadline = self._issued + 60 if deadline is None else min(self._issued + 60, deadline)
         self._lock = threading.Lock()
         self._phase = 'probe'
         self._identity = None
@@ -133,8 +134,8 @@ class PhoneScreenDesktopControl:
         try:
             self._current()
             with self._lock:
-                age = self._clock() - self._issued
-                if self._phase == 'closed' or not age >= 0 or (self._phase != 'sending' and not age < 60):
+                now = self._clock()
+                if self._phase == 'closed' or not now >= self._issued or (self._phase != 'sending' and not now < self._deadline):
                     raise PermissionError('screen_original_control_retired')
         except Exception:
             self.close()
@@ -217,7 +218,7 @@ class PhoneScreenDesktopRun:
     the PhoneService monitor. Stopping signals only; the caller waits for drain.
     """
 
-    def __init__(self, parent, probe, width, height, density, *, require_original, require_view, offer_rgb, track=lambda *_: None):
+    def __init__(self, parent, probe, width, height, density, *, require_original, require_view, offer_rgb, track=lambda *_: None, deadline=None):
         self._parent = parent
         self._require_original = require_original
         self._require_view = require_view
@@ -228,7 +229,7 @@ class PhoneScreenDesktopRun:
         self._lock = threading.Lock()
         self._listener = self._receiver = None
         self._started = self._peer_ended = False
-        self._control = PhoneScreenDesktopControl(parent, probe, self._current)
+        self._control = PhoneScreenDesktopControl(parent, probe, self._current, deadline=deadline)
         self._wire = PhoneScreenDesktopChannel(parent, require_original, track)
         self.failure = None
         self.cleanup_error = None
@@ -414,11 +415,19 @@ class PhoneScreenDesktopDispatch:
             except PermissionError:
                 return False
 
-    def begin(self, peer_id, width, height, density, native_start):
+    def candidate(self, peer_id):
+        """Opaque in-process witness for the native confirmation dialog."""
+        with self._lock:
+            channel, probe = self._candidate(peer_id)
+            return channel, probe
+
+    def begin(self, peer_id, width, height, density, native_start, *, expected=None):
         with self._lock:
             if self._owner is not None and (self._owner[2] is None or not self._owner[2].is_drained()):
                 raise PermissionError('screen_original_view_busy')
             channel, probe = self._candidate(peer_id)
+            if expected is not None and (channel is not expected[0] or probe is not expected[1]):
+                raise PermissionError('screen_original_probe_changed')
             probe[3] = True
             token = object()
             slot = [channel, token, None, False]
@@ -429,7 +438,7 @@ class PhoneScreenDesktopDispatch:
                 self._acks.setdefault(channel, deque(maxlen=16)).append((id_, token))
 
         try:
-            owner = native_start(channel, probe[0], width, height, density, require_original=probe[2], track=track)
+            owner = native_start(channel, probe[0], width, height, density, require_original=probe[2], track=track, deadline=probe[1])
         except Exception:
             with self._lock:
                 if self._owner is slot:

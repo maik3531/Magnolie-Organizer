@@ -17,10 +17,10 @@ PROBE = dict(version=26, request_id='4b6aef60-a7bf-4a17-8a6b-56928034dd5d', nonc
 SHAPE = dict(port=55443, width=720, height=1600, density=160)
 
 
-def begin():
+def begin(deadline=None):
     parent = object()
     now = [100]
-    owner = PhoneScreenDesktopControl(parent, PROBE, lambda: None, clock=lambda: now[0])
+    owner = PhoneScreenDesktopControl(parent, PROBE, lambda: None, clock=lambda: now[0], deadline=deadline)
     offer = owner.offer(**SHAPE)
     prepared = dict(PROBE, op='prepared', session=offer['session'])
     return parent, now, owner, offer, prepared
@@ -78,6 +78,14 @@ def test_expired_or_revoked_control_cannot_publish_send():
         owner.authorize(lambda: None, write)
     with pytest.raises(PermissionError):
         owner.require_send()
+
+
+def test_native_view_start_does_not_renew_the_original_probe_deadline():
+    parent, now, owner, _, prepared = begin(deadline=101)
+    assert owner.receive(parent, prepared)
+    now[0] = 101
+    with pytest.raises(PermissionError):
+        owner.authorize(lambda: None, lambda *args: pytest.fail('SEND after original deadline'))
 
 
 def test_native_channel_guard_rejects_before_wire_and_live_write_is_encrypted():
@@ -149,8 +157,9 @@ def test_original_phone_dispatch_uses_only_current_advertised_probe_and_ephemera
         owner = SimpleNamespace(stop=lambda: stopped.append(True), is_drained=lambda: bool(stopped))
         outgoing = str(uuid.uuid4())
 
-        def native_start(original, probe, *shape, require_original, track):
+        def native_start(original, probe, *shape, require_original, track, deadline):
             assert original is channel and probe == PROBE and shape == (720, 1600, 160)
+            assert deadline > 0
             require_original()
             track(outgoing)
             called.append(True)
@@ -164,3 +173,29 @@ def test_original_phone_dispatch_uses_only_current_advertised_probe_and_ephemera
         store = PhoneStore(str(tmp_path / 'phone'), 'fixture')
         with pytest.raises(ValueError, match='persistent replay'):
             store.remember_message('phone', msg, 'accepted', 'none')
+
+
+def test_availability_marker_only_queues_for_checked_established_gui_wlan():
+    from magnolie_telefon import validate_capabilities
+
+    channel, other = object(), object()
+    writes = []
+    service = PhoneService.__new__(PhoneService)
+    service.lock = threading.RLock()
+    service.connections = {'phone': channel}
+    service.connection_transports = {'phone': 'wifi'}
+    service.bluetooth_backend = SimpleNamespace(availability=lambda: (False, 'not_implemented'))
+    service.store = SimpleNamespace(next_revision=lambda _kind: 5, queue=lambda *args: writes.append(args))
+    service.native_screen_included = False
+    service._queue_native_screen_availability('phone', channel)
+    assert writes == []
+    service.native_screen_included = True
+    service._queue_native_screen_availability('phone', other)
+    service.connection_transports['phone'] = 'bluetooth'
+    service._queue_native_screen_availability('phone', channel)
+    assert writes == []
+    service.connection_transports['phone'] = 'wifi'
+    service._queue_native_screen_availability('phone', channel)
+    assert len(writes) == 1 and writes[0][:2] == ('phone', 'capabilities.update')
+    body = validate_capabilities(writes[0][2])
+    assert body['revision'] == 5 and 26 in body['items']['device_status']['versions']

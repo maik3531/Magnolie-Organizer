@@ -23,6 +23,7 @@ internal class PhoneScreenNotesDispatch(private val context: Context) {
     private var runIdentity: Any? = null
     private var dispatched: Witness? = null
     private val refresh = Runnable { startIfReady() }
+    private var nextProbeAt = 0L
 
     fun observe(channel: TelefonSecureChannel, pipe: TelefonTcpRoehre?, body: JsonObject, requireOriginal: () -> Unit) {
         if (Build.VERSION.SDK_INT < 29) return
@@ -32,6 +33,7 @@ internal class PhoneScreenNotesDispatch(private val context: Context) {
         synchronized(gate) {
             if (witness?.let { supported && it.channel === channel && it.pipe === pipe && it.body == body } == true) return
             witness = if (supported && pipe != null) Witness(channel, pipe, body, requireOriginal) else null
+            nextProbeAt = 0
             run?.close()
         }
         refresh()
@@ -49,20 +51,26 @@ internal class PhoneScreenNotesDispatch(private val context: Context) {
             val previous = run
             if (previous != null) {
                 if (!previous.isDrained()) {
-                    if (witness !== dispatched && witness != null) ui.postDelayed(refresh, 100)
+                    if (witness != null) ui.postDelayed(refresh, if (witness !== dispatched) 100 else 1000)
                     return
                 }
                 run = null
                 runIdentity = null
             }
             val source = witness ?: return
-            if (source === dispatched) return
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (source === dispatched && now < nextProbeAt) {
+                ui.postDelayed(refresh, nextProbeAt - now)
+                return
+            }
             val host = PhoneScreenForeground.availableHost() ?: return
             val identity = Any()
             val current = {
                 check(witness === source) { "screen_control_original_capabilities_lost" }
+                check(!host.retired) { "screen_original_activity_retired" }
                 source.requireOriginal()
             }
+            if (runCatching { current() }.isFailure) return
             val next = PhoneScreenNotesRun(context, source.channel, source.pipe, current, { host }, { id ->
                 synchronized(gate) {
                     val pending = acks.getOrPut(source.channel) { ArrayDeque() }
@@ -73,7 +81,11 @@ internal class PhoneScreenNotesDispatch(private val context: Context) {
             run = next
             runIdentity = identity
             dispatched = source
+            // A fresh availability probe is not a retry of the previous offer.
+            // It can never prompt or stream without a new explicit desktop action.
+            nextProbeAt = now + 60_000
             try { next.start() } catch (_: Exception) { next.close() }
+            ui.postDelayed(refresh, 60_000)
         }
     }
 
@@ -83,6 +95,7 @@ internal class PhoneScreenNotesDispatch(private val context: Context) {
             if (channel != null && witness?.channel !== channel) return
             witness = null
             run?.close()
+            ui.removeCallbacks(refresh)
         }
     }
 

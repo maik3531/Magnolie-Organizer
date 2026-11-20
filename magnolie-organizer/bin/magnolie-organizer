@@ -21677,7 +21677,7 @@ class Fenster(_FENSTER_BASIS):
         else:
             threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
 
-    def _phone_screen_begin_original(self, parent, probe, width, height, density, *, require_original, track=lambda *_: None):
+    def _phone_screen_begin_original(self, parent, probe, width, height, density, *, require_original, track=lambda *_: None, deadline=None):
         """GTK-thread entry after the single explicit native viewing action.
 
         The native caller still owns the selected probe/parent and routes only
@@ -21706,7 +21706,7 @@ class Fenster(_FENSTER_BASIS):
         try:
             view = self._phone_screen_attach(is_current=is_current, request_stop=stop)
             run = PhoneScreenDesktopRun(parent, probe, width, height, density, require_original=require_original,
-                                        require_view=require_view, offer_rgb=view.offer_rgb, track=track)
+                                        require_view=require_view, offer_rgb=view.offer_rgb, track=track, deadline=deadline)
             run.start()
         except Exception:
             attached = getattr(self, "_phone_screen_window", None)
@@ -21724,6 +21724,85 @@ class Fenster(_FENSTER_BASIS):
 
         GLib.timeout_add(100, poll_drain)
         return run
+
+    # Never enable the product advertisement from JavaScript or saved settings.
+    # Real Android/WLAN acceptance is still required for the foreground owner.
+    _native_screen_view_checked = False
+
+    def _phone_screen_ui(self, message):
+        phone = self._telefon
+        reply = {"requestId": message.get("requestId"), "ok": False}
+        def respond():
+            self.antwort("App.kdeMedien", reply)
+
+        included = (not self._gesperrt and type(phone) is PhoneService and phone.native_screen_included)
+        state = lambda: {
+            "active": getattr(self, "_phone_screen_window", None) is not None,
+            "peers": [{"id": p["device_id"], "name": str(p.get("display_name") or _("Phone"))[:60]}
+                      for p in phone.store.peers if p.get("state") == "paired" and phone.native_screen_available(p["device_id"])]
+                     if included else [],
+            "included": included,
+        }
+        command = message.get("cmd")
+        if command == "telefon_screen_stand":
+            reply.update(ok=True, screen=state()); respond(); return
+        if not included or self._beenden_angefragt or self._wirklich_beenden:
+            respond(); return
+        if command == "telefon_screen_stop":
+            self._phone_screen_stop()
+            reply.update(ok=True, screen=state()); respond(); return
+        peer_id = message.get("peer")
+        if (command != "telefon_screen_start" or type(peer_id) is not str or not self.get_visible() or
+                getattr(self, "_phone_screen_question", None) is not None):
+            respond(); return
+        try:
+            witness = phone.native_screen_candidate(peer_id)
+            peer = next(p for p in state()["peers"] if p["id"] == peer_id)
+        except (PermissionError, StopIteration):
+            respond(); return
+        dialog = Gtk.MessageDialog(transient_for=self, modal=True, destroy_with_parent=True,
+            message_type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.NONE,
+            text=_("View this phone's screen?"))
+        dialog.format_secondary_text(peer["name"])
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        dialog.add_button(_("View phone screen"), Gtk.ResponseType.OK)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL)
+        self._phone_screen_question = dialog
+        timer = 0
+
+        def expired():
+            nonlocal timer
+            timer = 0
+            dialog.response(Gtk.ResponseType.CANCEL)
+            return False
+
+        def destroyed(original):
+            nonlocal timer
+            if timer:
+                GLib.source_remove(timer)
+                timer = 0
+            if self._phone_screen_question is original:
+                self._phone_screen_question = None
+
+        def answered(original, answer):
+            if self._phone_screen_question is not original:
+                return
+            self._phone_screen_question = None
+            original.destroy()
+            if (answer == Gtk.ResponseType.OK and self.get_visible() and not self._gesperrt and
+                    not self._beenden_angefragt and not self._wirklich_beenden and self._telefon is phone):
+                try:
+                    phone.begin_native_screen(peer_id, 720, 1280, 160, self._phone_screen_begin_original, expected=witness)
+                    reply["ok"] = True
+                except (PermissionError, ValueError, OSError, RuntimeError):
+                    pass
+            reply["screen"] = state() if self._telefon is phone and not self._gesperrt else {"included": False}
+            respond()
+
+        dialog.connect("response", answered)
+        dialog.connect("destroy", destroyed)
+        timer = GLib.timeout_add_seconds(25, expired)
+        dialog.show_all()
 
     def _phone_screen_attach(self, *, is_current, request_stop):
         """Native view owner only; request_stop(view) signals the exact owner.
@@ -23212,6 +23291,9 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl in ("telefon_webcam_stand", "telefon_webcam_aktion"):
             threading.Thread(target=self._telefon_webcam, args=(nachricht,), daemon=True).start()
+
+        elif befehl in ("telefon_screen_stand", "telefon_screen_start", "telefon_screen_stop"):
+            self._phone_screen_ui(nachricht)
 
         elif befehl == "telefon_anruf_audio_pruefen":
             threading.Thread(target=self._telefon_anruf_audio_pruefen, daemon=True).start()
@@ -26298,7 +26380,7 @@ class Fenster(_FENSTER_BASIS):
                     self._telefon = (PhoneServiceProxy(callback=self._telefon_ereignis)
                         if daemon_owner else PhoneService(
                             os.path.join(daten_verzeichnis(), "telefon"),
-                             local_device_name(), self._telefon_ereignis))
+                             local_device_name(), self._telefon_ereignis, native_screen_ui=self._native_screen_view_checked))
                     self._telefon.native_actor_book_source = self._telefon_actor_buchquelle
                     self._telefon.native_actor_saved_book = self._telefon_actor_buchnachweis
                     self._telefon.native_actor_producer_book = self._telefon_actor_producer_buch

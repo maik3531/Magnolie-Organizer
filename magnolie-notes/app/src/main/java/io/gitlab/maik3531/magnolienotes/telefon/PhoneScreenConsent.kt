@@ -73,8 +73,9 @@ internal class PhoneScreenConsentHost(private val activity: ComponentActivity,
         var launcher: ActivityResultLauncher<Intent>? = null
     }
     private var pending: Pending? = null
-    private var closed = false
+    @Volatile private var closed = false
     val requestPending get() = pending != null
+    val retired get() = closed
 
     init { activity.lifecycle.addObserver(this) }
 

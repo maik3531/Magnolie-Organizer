@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenWindow
 from magnolie_phone_screen_transport import PhoneScreenReceiveRun
 from magnolie_phone_screen_control import REQUEST
-from magnolie_telefon import PROTOCOL, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
+from magnolie_telefon import PROTOCOL, PhoneService, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
 
 
 @pytest.fixture(autouse=True)
@@ -136,13 +136,56 @@ def organizer_hooks():
     source = Path(__file__).resolve().parents[1] / "bin" / "magnolie-organizer"
     code = ast.parse(source.read_text())
     window = next(node for node in code.body if isinstance(node, ast.ClassDef) and node.name == "Fenster")
-    names = {"_phone_screen_begin_original", "_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained",
+    names = {"_phone_screen_begin_original", "_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained", "_phone_screen_ui",
              "_tray_telefone_aktualisieren", "_beenden_endgueltig"}
     hooks = ast.Module(body=[node for node in window.body if isinstance(node, ast.FunctionDef) and node.name in names],
                        type_ignores=[])
-    namespace = {"Gtk": Gtk, "GLib": GLib, "threading": threading, "_": lambda text: text}
+    namespace = {"Gtk": Gtk, "GLib": GLib, "PhoneService": PhoneService, "threading": threading, "_": lambda text: text}
     exec(compile(hooks, str(source), "exec"), namespace)
-    return type("OrganizerHooks", (), {name: namespace[name] for name in names})()
+    return type("OrganizerHooks", (Gtk.Window,), {name: namespace[name] for name in names})()
+
+
+def test_advanced_entry_requires_native_confirmation_and_same_original_probe():
+    from types import SimpleNamespace
+
+    app = organizer_hooks()
+    app._gesperrt = app._beenden_angefragt = app._wirklich_beenden = False
+    phone = PhoneService.__new__(PhoneService)
+    phone.store = SimpleNamespace(peers=[dict(device_id="test", state="paired", display_name="Test Notes")])
+    token = [object()]
+    phone.native_screen_candidate = lambda _peer: token[0]
+    phone.native_screen_available = lambda _peer: True
+    calls, responses = [], []
+
+    def begin(peer, width, height, density, _start, *, expected):
+        if expected is not token[0]:
+            raise PermissionError("old probe")
+        calls.append((peer, width, height, density))
+
+    phone.begin_native_screen = begin
+    app._telefon = phone
+    app.antwort = lambda handler, reply: responses.append((handler, reply))
+    command = dict(cmd="telefon_screen_start", requestId="sample", peer="test")
+    app.show()
+    try:
+        phone.native_screen_included = False
+        app._phone_screen_ui(command)
+        assert not getattr(app, "_phone_screen_question", None)
+        assert responses[-1][1]["ok"] is False and calls == []
+        phone.native_screen_included = True
+        app._phone_screen_ui(command)
+        assert calls == [] and app._phone_screen_question.get_visible()
+        app._phone_screen_question.response(Gtk.ResponseType.CANCEL)
+        assert calls == [] and app._phone_screen_question is None
+        app._phone_screen_ui(command)
+        token[0] = object()
+        app._phone_screen_question.response(Gtk.ResponseType.OK)
+        assert calls == [] and responses[-1][1]["ok"] is False
+        app._phone_screen_ui(command)
+        app._phone_screen_question.response(Gtk.ResponseType.OK)
+        assert calls == [("test", 720, 1280, 160)] and responses[-1][1]["ok"] is True
+    finally:
+        app.destroy()
 
 
 def test_actual_organizer_menu_and_exit_use_exact_window_and_wait_for_join():

@@ -197,6 +197,12 @@ class PhoneWebcamWerkDispatchTest {
                         }
                     }
                 }
+                Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(61))
+                val freshProbe = PhoneScreenControl.validateMessage(f.receive())
+                assertNotEquals(probe.string("request_id"), freshProbe.string("request_id"))
+                f.deliver(offerMessage)
+                assertEquals(JsonPrimitive("rejected"), f.receive()["status"])
+                assertNull(Shadows.shadowOf(activity.get()).nextStartedActivityForResult)
             } finally {
                 PhoneScreenForeground.unregister(host)
                 host.close()
