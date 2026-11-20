@@ -3,18 +3,20 @@
 from contextlib import ExitStack
 from pathlib import Path
 import os
-from select import select
 import shlex
 import socket
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
+from time import monotonic, sleep
 import unittest
+from unittest.mock import patch
 
 from gi.repository import GLib
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 from magnolie_desktop_screen_cast import ScreenCastTarget, _target
+from magnolie_desktop_screen_observer import KWinOutputObserver
 from magnolie_desktop_screen_output import KWinOutputFeed, KWinOutputWitness
 from test_desktop_screen_cast import streams
 
@@ -146,32 +148,49 @@ class TestKWinOutputWitness(unittest.TestCase):
                     return process
 
                 fixture = start(server, left, stdin=subprocess.PIPE)
-                client = start(observer, right, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
-                feed = KWinOutputFeed()
+                client = KWinOutputObserver(observer, right)
+                self.assertEqual(right.fileno(), -1)
 
-                def read():
-                    self.assertTrue(select([client.stdout], [], [], 3)[0], 'Wayland observer deadline')
-                    return client.stdout.readline(271)
+                def wait_for(condition):
+                    deadline = monotonic() + 3
+                    while monotonic() < deadline:
+                        client.tick()
+                        if condition():
+                            return
+                        sleep(.005)
+                    self.fail('Wayland observer deadline')
 
-                def step(command):
-                    fixture.stdin.write(command)
-                    self.assertTrue(feed.consume(read()))
+                def stop():
+                    client.close()
+                    wait_for(lambda: client.drained)
 
-                self.assertTrue(feed.consume(read()))
-                self.assertTrue(feed.consume(read()))
-                self.assertIsNone(feed.witness)
-                self.assertEqual(read(), b'ready\n')
-                self.assertTrue(feed.consume(b'ready\n'))
+                cleanup.callback(stop)
+                wait_for(lambda: client.feed is not None)
+                feed = client.feed
+                self.assertEqual(set(feed._live.values()), {'eDP-1', 'HDMI-A-1'})
                 self.assertTrue(feed.witness.bind(self.target))
-                step(b'+')
-                self.assertTrue(feed.witness.present(self.target))
-                step(b'o')
+                fixture.stdin.write(b'+')
+                wait_for(lambda: feed.witness.present(self.target))
+                fixture.stdin.write(b'o')
+                wait_for(lambda: 'HDMI-A-1' not in feed._live.values())
                 self.assertTrue(feed.witness.present(self.target))
                 self.assertFalse(feed.witness.removal_observed(self.target))
-                step(b'-')
-                self.assertTrue(feed.witness.removal_observed(self.target))
+                fixture.stdin.write(b'-')
+                wait_for(lambda: feed.witness.removal_observed(self.target))
                 fixture.stdin.write(b'q')
                 self.assertEqual(fixture.wait(3), 0)
-                self.assertFalse(feed.consume(read()))  # EOF retires the witness.
+                wait_for(lambda: client.drained)
+                self.assertIsNone(client.feed)
                 self.assertFalse(feed.witness.removal_observed(self.target))
-                self.assertEqual(client.wait(3), 1)
+
+            stalled, silent_peer = socket.socketpair()
+            with stalled, silent_peer:
+                client = KWinOutputObserver(observer, stalled)
+                try:
+                    self.assertIsNone(client.feed)
+                    with patch('magnolie_desktop_screen_observer.monotonic', return_value=client._baseline_deadline):
+                        client.tick()
+                    wait_for(lambda: client.drained)
+                    self.assertIsNone(client.feed)
+                finally:
+                    stop()

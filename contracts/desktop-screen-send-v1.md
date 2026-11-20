@@ -146,7 +146,9 @@ changed registry, inferred topology, or a new instance reusing the name. This
 requires a verified KDE backend route and a complete, ordered native display
 observer. An isolated libwayland prototype takes only a supplied connected
 descriptor, settles the initial `wl_output` v4 names before becoming ready,
-and reports exact registry additions and removals. Its socketpair test uses
+and reports exact registry additions and removals. A private nonblocking owner
+reads bounded records, drops an observer without an initial baseline after
+two seconds, and closes and reaps only its own helper. Its socketpair test uses
 the real libwayland client and server, but no actual desktop compositor. EOF
 or invalid records retire the observation. In the private run, a caller that
 already verified the backend can supply one settled feed. The portal records
@@ -157,7 +159,10 @@ for the disappearance of that instance and reports it separately from media
 drain. The draft attempt rechecks the proof when transport drain finishes;
 it cannot upgrade a missing proof after local completion. The current product
 neither verifies that route nor starts the observer; GTK admission still does
-not reuse the virtual-output slot. Real placement, window movement, and
+not reuse the virtual-output slot. Native use must verify the exact broker
+route and an ordered, settled output baseline at Start (including pending
+Wayland name events), not infer either from a desktop name or socket alone.
+Real placement, window movement, and
 compositor cleanup must still be observed independently of media cleanup.
 
 ## Retirement and acceptance
