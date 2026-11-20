@@ -21488,9 +21488,11 @@ class Fenster(_FENSTER_BASIS):
         if (getattr(self, "_speicher_laeuft", False) or
                 getattr(getattr(self, "_speicher_auftraege", None), "unfinished_tasks", 0)):
             return True
-        if getattr(self, "_phone_screen_window", None) is not None:
+        if (getattr(self, "_phone_screen_window", None) is not None or
+                getattr(self, "_phone_screen_daemon_pending", None) is not None):
             self._phone_screen_stop()
-            if self._phone_screen_window is not None:
+            if (getattr(self, "_phone_screen_window", None) is not None or
+                    getattr(self, "_phone_screen_daemon_pending", None) is not None):
                 return True  # The original native owner must report a joined drain.
         host = getattr(self, '_notes_original_setup_host', None)
         if host is not None:
@@ -21779,8 +21781,148 @@ class Fenster(_FENSTER_BASIS):
     # Real Android/WLAN acceptance is still required for the foreground owner.
     _native_screen_view_checked = False
 
+    def _phone_screen_daemon_ui(self, phone, message):
+        from magnolie_phone_screen_local import request_daemon_screen
+        from magnolie_phone_screen_window import PhoneScreenSessionLock
+
+        command = message.get("cmd")
+        peer_id = message.get("peer")
+        response = {"requestId": message.get("requestId"), "ok": False}
+        if getattr(self, "_phone_screen_daemon_pending", None) is not None:
+            if command == "telefon_screen_stop":
+                self._phone_screen_stop()
+            self.antwort("App.kdeMedien", response)
+            return
+        monitor = getattr(self, "_phone_screen_session_lock", None)
+        if monitor is None:
+            monitor = self._phone_screen_session_lock = PhoneScreenSessionLock().start()
+        cancelled = threading.Event()
+        self._phone_screen_daemon_pending = cancelled
+        state = {"included": False}
+
+        def finish():
+            if self._phone_screen_daemon_pending is cancelled:
+                self._phone_screen_daemon_pending = None
+                if self._telefon is phone and not self._gesperrt and not self._wirklich_beenden:
+                    response["screen"] = dict(state, active=getattr(self, "_phone_screen_window", None) is not None)
+                    self.antwort("App.kdeMedien", response)
+            return False
+
+        def work():
+            try:
+                report = phone.screen_view_report()
+                native = report.get("screen_view")
+                if type(native) is not dict:
+                    return
+                state.update(included=True, peers=[{"id": item["device_id"], "name": str(item.get("display_name") or _("Phone"))[:60]}
+                    for item in report.get("peers", ()) if item["device_id"] in native["peers"] and monitor.available])
+                if command == "telefon_screen_stand":
+                    response["ok"] = True
+                    return
+                if command != "telefon_screen_start" or type(peer_id) is not str:
+                    return
+                name = next(item["name"] for item in state["peers"] if item["id"] == peer_id)
+                desktop_current = monitor.claim()
+
+                def current():
+                    desktop_current()
+                    if cancelled.is_set() or self._telefon is not phone or self._gesperrt or self._wirklich_beenden:
+                        raise PermissionError("phone_screen_original_gui_retired")
+
+                def on_gtk(action, deadline):
+                    ready, results = threading.Event(), []
+
+                    def invoke():
+                        try:
+                            current()
+                            if time.monotonic() < deadline:
+                                results.append(action())
+                        except Exception as error:
+                            results.append(error)
+                        finally:
+                            ready.set()
+                        return False
+
+                    GLib.idle_add(invoke)
+                    while not ready.wait(.05):
+                        current()
+                        if time.monotonic() >= deadline:
+                            raise TimeoutError("phone_screen_gui_timeout")
+                    if not results:
+                        raise PermissionError("phone_screen_original_gui_retired")
+                    if isinstance(results[0], Exception):
+                        raise results[0]
+                    return results[0]
+
+                def confirm(deadline):
+                    answered = threading.Event()
+                    approved = []
+
+                    def show():
+                        if not self.get_visible() or self._beenden_angefragt or self._phone_screen_window_if_any():
+                            raise PermissionError("phone_screen_gui_not_ready")
+                        dialog = Gtk.MessageDialog(transient_for=self, modal=True, destroy_with_parent=True,
+                            message_type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.NONE,
+                            text=_("View this phone's screen?"))
+                        dialog.format_secondary_text(name)
+                        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+                        dialog.add_button(_("View phone screen"), Gtk.ResponseType.OK)
+                        dialog.set_default_response(Gtk.ResponseType.CANCEL)
+
+                        def response_cb(original, answer):
+                            if answer == Gtk.ResponseType.OK and self.get_visible() and not self._beenden_angefragt:
+                                approved.append(True)
+                            original.destroy()
+
+                        def timeout():
+                            if answered.is_set():
+                                return False
+                            try:
+                                current()
+                                if time.monotonic() < deadline:
+                                    return True
+                            except PermissionError:
+                                pass
+                            dialog.destroy()
+                            return False
+
+                        dialog.connect("response", response_cb)
+                        dialog.connect("destroy", lambda *_: answered.set())
+                        GLib.timeout_add(100, timeout)
+                        dialog.show_all()
+                        return True
+
+                    on_gtk(show, deadline)
+                    while not answered.wait(.05):
+                        current()
+                        if time.monotonic() >= deadline:
+                            return False
+                    current()
+                    return approved == [True]
+
+                request_daemon_screen(phone.path, peer_id, require_gui=current, confirm=confirm,
+                    attach=lambda lane, width, height, deadline: on_gtk(lambda: self._phone_screen_begin_local(
+                        lane, width, height, require_original=current, deadline=deadline), deadline))
+                response["ok"] = True
+            except (OSError, EOFError, ValueError, RuntimeError, StopIteration):
+                pass
+            finally:
+                GLib.idle_add(finish)
+
+        threading.Thread(target=work, daemon=True, name="magnolie-screen-gui-setup").start()
+
+    def _phone_screen_window_if_any(self):
+        return getattr(self, "_phone_screen_window", None) is not None
+
     def _phone_screen_ui(self, message):
         phone = self._telefon
+        if (self._native_screen_view_checked and not self._gesperrt and not self._wirklich_beenden and
+                type(phone) is PhoneServiceProxy):
+            if message.get("cmd") == "telefon_screen_stop":
+                self._phone_screen_stop()
+                message = dict(message, cmd="telefon_screen_stand")
+            self._phone_screen_daemon_ui(phone, message)
+            return
         reply = {"requestId": message.get("requestId"), "ok": False}
         def respond():
             self.antwort("App.kdeMedien", reply)
@@ -21907,6 +22049,9 @@ class Fenster(_FENSTER_BASIS):
             self._tray_telefone_aktualisieren()
 
     def _phone_screen_stop(self):
+        pending = getattr(self, "_phone_screen_daemon_pending", None)
+        if pending is not None:
+            pending.set()
         view = getattr(self, "_phone_screen_window", None)
         if view is not None:
             view.stop()
@@ -22209,7 +22354,8 @@ class Fenster(_FENSTER_BASIS):
         fenster_zustand_schreiben(self._fenster)
 
     def _bei_ende(self, *_egal):
-        if getattr(self, "_phone_screen_window", None) is not None:
+        if (getattr(self, "_phone_screen_window", None) is not None or
+                getattr(self, "_phone_screen_daemon_pending", None) is not None):
             self._phone_screen_stop()
         screen_lock = getattr(self, "_phone_screen_session_lock", None)
         if screen_lock is not None:
@@ -24744,7 +24890,8 @@ class Fenster(_FENSTER_BASIS):
         start = time.monotonic()
         self._kennwort = getattr(self, "_kennwort", "")
         self._gesperrt = True
-        if getattr(self, "_phone_screen_window", None) is not None:
+        if (getattr(self, "_phone_screen_window", None) is not None or
+                getattr(self, "_phone_screen_daemon_pending", None) is not None):
             self._phone_screen_stop()
         self._aktuelle_daten = None
         self._ladefehler = ""

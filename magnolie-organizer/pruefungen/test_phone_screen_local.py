@@ -13,7 +13,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 from magnolie_phone_screen_control import PhoneScreenDesktopDispatch, REQUEST
-from magnolie_phone_screen_local import PhoneScreenLocalAttach, PhoneScreenLocalLane, PhoneScreenPeerLifetime, begin_daemon_screen, local_peer
+from magnolie_phone_screen_local import PhoneScreenLocalAttach, PhoneScreenLocalLane, PhoneScreenPeerLifetime, begin_daemon_screen, local_peer, request_daemon_screen
+from magnolie_hintergrund import IPCServer, ipc_request
 from magnolie_telefon import PhoneService, SecureChannel, now_ms, receive_frame
 
 
@@ -299,9 +300,9 @@ def test_daemon_adapter_requires_live_original_candidate_and_closes_only_view_so
                         assert not worker.is_alive() and len(outcome) == 1
                         assert not isinstance(outcome[0], Exception), outcome
                         daemon = outcome[0]
-                        assert receive_frame(peer, 8192)['seq'] == 2  # Original encrypted offer.
+                        assert receive_frame(peer, 8192)['seq'] == 2
                         local.close()
-                        assert receive_frame(peer, 8192)['seq'] == 3  # Only original view STOP, not parent close.
+                        assert receive_frame(peer, 8192)['seq'] == 3
                         until = time.monotonic() + 2
                         while not daemon.is_drained() and time.monotonic() < until:
                             time.sleep(.01)
@@ -314,3 +315,53 @@ def test_daemon_adapter_requires_live_original_candidate_and_closes_only_view_so
                         attached.close()
                         a.close()
                         worker.join(2)
+
+
+def test_daemon_binary_ingress_separates_confirmation_and_normal_ipc(tmp_path):
+    filename = str(tmp_path / 'runtime' / 'control.sock')
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        listener.listen(1)
+        with socket.create_connection(listener.getsockname(), timeout=2) as peer:
+            native, _ = listener.accept()
+            with native:
+                native.settimeout(.2)
+                phone_id = str(uuid.uuid4())
+                paired = dict(device_id=phone_id, static_public='fixture', state='paired')
+                channel = SecureChannel(native, bytes(16), bytes(32), bytes(4), bytes(32), b'\x01' * 4)
+                channel.last_capabilities = {'items': {'device_status': {'available': True, 'versions': [26]}}}
+                phone = PhoneService.__new__(PhoneService)
+                phone.store = SimpleNamespace(peers=[paired])
+                phone.enabled, phone._generation, phone.stop_event = True, 1, threading.Event()
+                phone.connections, phone.connection_transports = {phone_id: channel}, {phone_id: 'wifi'}
+                phone._screen_dispatch = PhoneScreenDesktopDispatch(phone)
+                phone.native_screen_included = True
+                now = now_ms()
+                body = dict(version=26, request_id=str(uuid.uuid4()), nonce=uuid.uuid4().hex * 2, op='probe')
+                phone._payload(paired, channel, dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=REQUEST,
+                                                    created_ms=now, expires_ms=now + 8000, body=body))
+                receive_frame(peer, 8192)
+                daemon = IPCServer(None, filename, phone_backend=phone).start()
+                view = None
+                try:
+                    with pytest.raises((OSError, EOFError)):
+                        request_daemon_screen(filename, phone_id, require_gui=lambda: None,
+                                              confirm=lambda _: pytest.fail('disabled daemon offered a view'), attach=None)
+                    assert ipc_request('ping', path=filename)['running']
+                    daemon._native_screen_view_checked = True
+                    def confirm(expiry):
+                        assert expiry > time.monotonic()
+                        assert channel.send_seq == 1
+                        assert ipc_request('ping', path=filename)['running']
+                        return True
+
+                    view = request_daemon_screen(filename, phone_id, require_gui=lambda: None, confirm=confirm,
+                                                 attach=lambda lane, width, height, expiry: lane)
+                    assert receive_frame(peer, 8192)['seq'] == 1
+                    view.close()
+                    assert receive_frame(peer, 8192)['seq'] == 2
+                    assert ipc_request('ping', path=filename)['running'] and native.fileno() >= 0
+                finally:
+                    if view is not None:
+                        view.close()
+                    daemon.close()

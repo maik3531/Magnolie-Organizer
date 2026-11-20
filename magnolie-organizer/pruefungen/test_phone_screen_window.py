@@ -139,12 +139,16 @@ def organizer_hooks():
     code = ast.parse(source.read_text())
     window = next(node for node in code.body if isinstance(node, ast.ClassDef) and node.name == "Fenster")
     names = {"_phone_screen_begin_original", "_phone_screen_begin_local", "_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained", "_phone_screen_ui",
+             "_phone_screen_daemon_ui", "_phone_screen_window_if_any",
              "_tray_telefone_aktualisieren", "_beenden_endgueltig"}
     hooks = ast.Module(body=[node for node in window.body if isinstance(node, ast.FunctionDef) and node.name in names],
                        type_ignores=[])
-    namespace = {"Gtk": Gtk, "GLib": GLib, "PhoneService": PhoneService, "threading": threading, "_": lambda text: text}
+    import time
+    from magnolie_hintergrund import PhoneServiceProxy
+    namespace = {"Gtk": Gtk, "GLib": GLib, "PhoneService": PhoneService, "PhoneServiceProxy": PhoneServiceProxy,
+                 "threading": threading, "time": time, "_": lambda text: text}
     exec(compile(hooks, str(source), "exec"), namespace)
-    return type("OrganizerHooks", (Gtk.Window,), {name: namespace[name] for name in names})()
+    return type("OrganizerHooks", (Gtk.Window,), dict({name: namespace[name] for name in names}, _native_screen_view_checked=False))()
 
 
 def test_advanced_entry_requires_native_confirmation_and_same_original_probe():
@@ -197,6 +201,51 @@ def test_advanced_entry_requires_native_confirmation_and_same_original_probe():
         assert calls == [("test", 720, 1280, 160)] and responses[-1][1]["ok"] is True
     finally:
         desktop.close()
+        app.destroy()
+
+
+def test_daemon_advanced_path_confirms_on_gtk_and_rejects_a_retired_desktop_lease(monkeypatch):
+    from magnolie_hintergrund import PhoneServiceProxy
+    import magnolie_phone_screen_local
+
+    app = organizer_hooks()
+    app._gesperrt = app._beenden_angefragt = app._wirklich_beenden = False
+    app._native_screen_view_checked = True
+    app._telefon = PhoneServiceProxy(path='/unused-control')
+    app._telefon.screen_view_report = lambda: {'screen_view': {'peers': ['exact']}, 'peers': [{'device_id': 'exact', 'display_name': 'Notes'}]}
+    app._phone_screen_session_lock = monitor = PhoneScreenSessionLock()
+    monitor._lease = object()
+    responses, consent = [], []
+    app.antwort = lambda _callback, value: responses.append(value)
+
+    def request(path, peer, *, require_gui, confirm, attach):
+        assert path == '/unused-control' and peer == 'exact'
+        assert threading.current_thread() is not threading.main_thread()
+        require_gui()
+        consent.append(confirm(monotonic() + 2))
+
+    def dialog():
+        return next((item for item in Gtk.Window.list_toplevels() if isinstance(item, Gtk.MessageDialog)
+                     and item.get_transient_for() is app and item.get_visible()), None)
+
+    monkeypatch.setattr(magnolie_phone_screen_local, 'request_daemon_screen', request)
+    app.show()
+    try:
+        app._phone_screen_ui(dict(cmd='telefon_screen_start', peer='exact'))
+        wait_for(dialog)
+        assert consent == []
+        dialog().response(Gtk.ResponseType.OK)
+        wait_for(lambda: len(responses) == 1)
+        assert consent == [True] and responses[0]['ok']
+        app._phone_screen_ui(dict(cmd='telefon_screen_start', peer='exact'))
+        wait_for(dialog)
+        monitor._lease = object()
+        dialog().response(Gtk.ResponseType.OK)
+        wait_for(lambda: len(responses) == 2)
+        assert consent == [True] and not responses[1]['ok']
+    finally:
+        app._phone_screen_stop()
+        monitor.close()
         app.destroy()
 
 

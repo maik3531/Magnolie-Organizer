@@ -9,6 +9,7 @@ import struct
 import sys
 import threading
 import time
+import uuid
 
 
 _CREDENTIALS = struct.Struct('3i')  # Linux struct ucred, native order.
@@ -18,6 +19,12 @@ _OFFER = struct.Struct('!8s16sHH')
 _READY = struct.Struct('!8s16s')
 _OFFER_MAGIC = b'MGSVL001'
 _READY_MAGIC = b'MGSVACK1'
+DAEMON_REQUEST_PREFIX = b'\x01'
+_DAEMON_REQUEST = struct.Struct('!8s16s')
+_DAEMON_CANDIDATE = struct.Struct('!8s16sd')
+_REQUEST_MAGIC = DAEMON_REQUEST_PREFIX + b'MGSV001'
+_CANDIDATE_MAGIC = b'MGSVSEL1'
+_APPROVAL_MAGIC = b'MGSVYES1'
 
 
 def local_peer(sock):
@@ -114,7 +121,8 @@ class PhoneScreenLocalAttach:
 
     def _prepare(self):
         self._check()
-        self._process = PhoneScreenPeerLifetime(self._sock, expected_peer=self._peer)
+        if self._process is None:
+            self._process = PhoneScreenPeerLifetime(self._sock, expected_peer=self._peer)
         self._sock.setblocking(False)
 
     def _transfer(self, data, *, writing):
@@ -386,7 +394,7 @@ class PhoneScreenLocalDisplay:
         return self._stopped.is_set()
 
 
-def begin_daemon_screen(phone, peer_id, candidate, sock, expected_gui, *, require_gui):
+def begin_daemon_screen(phone, peer_id, candidate, sock, expected_gui, *, require_gui, attachment=None):
     """Private daemon owner adapter, after native GUI approval and admission.
 
     Never called by the general JSON proxy. `candidate` is the actual probe
@@ -396,7 +404,6 @@ def begin_daemon_screen(phone, peer_id, candidate, sock, expected_gui, *, requir
     from magnolie_phone_screen_control import PhoneScreenDesktopRun
     from magnolie_telefon import PhoneService
 
-    attachment = None
     relay = None
     owner = None
 
@@ -407,7 +414,11 @@ def begin_daemon_screen(phone, peer_id, candidate, sock, expected_gui, *, requir
             require_gui()
             require_original()
 
-        attachment = PhoneScreenLocalAttach(sock, expected_peer=expected_gui, require_original=current, deadline=deadline)
+        if attachment is None:
+            attachment = PhoneScreenLocalAttach(sock, expected_peer=expected_gui, require_original=current, deadline=deadline)
+        else:
+            attachment._deadline = min(attachment._deadline, deadline)
+        deadline = attachment._deadline
         relay = attachment.daemon_offer(width, height)
         owner = PhoneScreenDesktopRun(parent, probe, width, height, density, require_original=require_original,
                                       require_view=require_gui, local_lane=relay, track=track, deadline=deadline)
@@ -430,4 +441,93 @@ def begin_daemon_screen(phone, peer_id, candidate, sock, expected_gui, *, requir
             attachment.close()
         else:
             sock.close()
+        raise
+
+
+def serve_daemon_screen(sock, phone, *, expected_uid, require_daemon):
+    """Handle one binary selection on a dedicated connection, not a JSON op.
+
+    Same-UID IPC is the local application trust boundary, not proof that a
+    user accepted. The native client captures explicit approval on this exact
+    connection. Genuine Android consent and phone SEND remain separate gates.
+    """
+    attachment = None
+    try:
+        peer = local_peer(sock)
+        if peer[1] != expected_uid:
+            raise PermissionError('screen_daemon_unrelated_user')
+        require_daemon()
+        attachment = PhoneScreenLocalAttach(sock, expected_peer=peer, require_original=require_daemon,
+                                            deadline=time.monotonic() + 2)
+        attachment._prepare()
+        request = bytearray(_DAEMON_REQUEST.size)
+        attachment._transfer(request, writing=False)
+        magic, device_id = _DAEMON_REQUEST.unpack(request)
+        if magic != _REQUEST_MAGIC or phone is None or not phone.native_screen_included:
+            raise PermissionError('screen_daemon_not_available')
+        peer_id = str(uuid.UUID(bytes=device_id))
+        candidate = phone.native_screen_candidate(peer_id)
+        channel, probe = candidate
+        require_probe = probe[2]
+
+        def current():
+            require_daemon()
+            require_probe()
+            if phone.connections.get(peer_id) is not channel:
+                raise PermissionError('screen_daemon_original_parent_retired')
+
+        attachment._guard = current
+        attachment._deadline = min(time.monotonic() + 30, probe[1])
+        token = secrets.token_bytes(16)
+        attachment._transfer(_DAEMON_CANDIDATE.pack(_CANDIDATE_MAGIC, token, attachment._deadline), writing=True)
+        approval = bytearray(_READY.size)
+        attachment._transfer(approval, writing=False)
+        if _READY.unpack(approval) != (_APPROVAL_MAGIC, token):
+            raise PermissionError('screen_daemon_original_approval_required')
+        return begin_daemon_screen(phone, peer_id, candidate, sock, peer, require_gui=current, attachment=attachment)
+    except BaseException:
+        if attachment is None:
+            sock.close()
+        else:
+            attachment.close()
+        raise
+
+
+def request_daemon_screen(path, peer_id, *, require_gui, confirm, attach):
+    """Worker entry only: confirm and attach marshal to the original GTK owner.
+
+    The exact connected daemon is pinned before the first request and retained
+    in the display lane. No reconnect, saved option or ordinary subscriber ID.
+    """
+    require_gui()
+    identity = uuid.UUID(peer_id)
+    if str(identity) != peer_id:
+        raise ValueError('screen_daemon_invalid_peer')
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    attachment = None
+    try:
+        sock.settimeout(2)
+        sock.connect(path)
+        peer = local_peer(sock)
+        if peer[1] != os.getuid():
+            raise PermissionError('screen_daemon_unrelated_user')
+        attachment = PhoneScreenLocalAttach(sock, expected_peer=peer, require_original=require_gui,
+                                            deadline=time.monotonic() + 2)
+        attachment._prepare()
+        attachment._transfer(_DAEMON_REQUEST.pack(_REQUEST_MAGIC, identity.bytes), writing=True)
+        raw = bytearray(_DAEMON_CANDIDATE.size)
+        attachment._transfer(raw, writing=False)
+        magic, token, deadline = _DAEMON_CANDIDATE.unpack(raw)
+        if magic != _CANDIDATE_MAGIC or not 0 < deadline - time.monotonic() <= 30:
+            raise PermissionError('screen_daemon_invalid_candidate')
+        attachment._deadline = deadline
+        if confirm(deadline) is not True:
+            raise PermissionError('screen_daemon_native_approval_denied')
+        attachment._transfer(_READY.pack(_APPROVAL_MAGIC, token), writing=True)
+        return attachment.gui_accept(attach)
+    except BaseException:
+        if attachment is None:
+            sock.close()
+        else:
+            attachment.close()
         raise

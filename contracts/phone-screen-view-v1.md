@@ -133,8 +133,20 @@ throughout. The reply does not authorize Android capture or phone SEND.
 Once setup is complete the socket carries only the one-way record stream
 described above. Failure retires this socket, not the general daemon proxy.
 
-The private daemon adapter consumes the exact probe selected before local
-approval. After GTK confirms attachment, it starts that probe's native
-WLAN/data owner; it does not select a new probe on expiry, reconnect, or
-failure. The dedicated process admission and operation providing this
-already connected socket are still required for deployed daemon use.
+The private daemon entry uses the existing 0600 Unix listener but switches
+to a separate fixed-size binary exchange before JSON parsing. One dedicated
+setup worker is allowed; it does not occupy a general IPC handler during
+the native dialog. The request carries the selected phone's UUID, then the
+daemon returns a fresh nonce and the original monotonic deadline (capped at
+30 seconds). The GUI only echoes the nonce after an explicit native dialog;
+the daemon consumes the exact probe selected before that dialog. After GTK
+confirms attachment, it starts that probe's native WLAN/data owner; it does
+not select a new probe on expiry, reconnect, or failure. The ordinary phone
+report can expose only the currently eligible paired device IDs, never the
+capability witness, nonce, socket, approval or phone data secret.
+
+This is a same-UID application boundary, not a defence against arbitrary
+code running as the desktop user. Neither the PID nor a nonce is proof of
+human interaction outside the cooperating native GUI. The phone must still
+request and verify its own genuine system consent. The daemon and GUI gates
+stay off until the actual product, device and desktop lock paths are checked.

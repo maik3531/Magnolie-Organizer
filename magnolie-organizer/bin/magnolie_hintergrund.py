@@ -1253,6 +1253,9 @@ def _request_shape(operation, arguments):
 
 
 class IPCServer:
+    # Keep outside the public operation table; independent of general phone IPC.
+    _native_screen_view_checked = False
+
     def __init__(self, backend, path=None, settings_getter=None,
                  settings_setter=None, shutdown_callback=None,
                  operation_callback=None, phone_backend=None,
@@ -1285,6 +1288,7 @@ class IPCServer:
         self.backend = backend
         self.lifecycle = "ready"
         self._handlers = threading.BoundedSemaphore(MAX_IPC_HANDLERS)
+        self._screen_setup = threading.BoundedSemaphore(1)
         self._mutation_lock = threading.RLock()
         self.settings_revision = 0
         self.phone_provider = None
@@ -1782,9 +1786,51 @@ class IPCServer:
     def _handle(self, connection):
         try:
             with connection:
-                self._handle_request(connection)
+                from magnolie_phone_screen_local import DAEMON_REQUEST_PREFIX
+                try:
+                    prefix = connection.recv(1, socket.MSG_PEEK)
+                except OSError as error:
+                    try:
+                        _write_message(connection, {"ok": False, "error": _safe_text(error, 300) or type(error).__name__})
+                    except OSError:
+                        pass
+                    return
+                if prefix == DAEMON_REQUEST_PREFIX:
+                    self._admit_screen_setup(connection)
+                elif prefix:
+                    self._handle_request(connection)
         finally:
             self._handlers.release()
+
+    def _admit_screen_setup(self, connection):
+        if (not self._native_screen_view_checked or self.lifecycle != 'ready' or self.stopped.is_set() or
+                not self._screen_setup.acquire(blocking=False)):
+            return
+        from magnolie_phone_screen_local import serve_daemon_screen
+        phone = self.phone_backend
+
+        def current():
+            if (self.lifecycle != 'ready' or self.stopped.is_set() or self.phone_backend is not phone or
+                    not self._native_screen_view_checked):
+                raise PermissionError('screen_original_daemon_retired')
+
+        def serve(original):
+            try:
+                serve_daemon_screen(original, phone, expected_uid=self._owner_uid, require_daemon=current)
+                # The viewer now owns this socket and closes it on drain.
+            except (OSError, EOFError, ValueError, RuntimeError):
+                original.close()
+            finally:
+                self._screen_setup.release()
+
+        original = None
+        try:
+            original = connection.dup()
+            threading.Thread(target=serve, args=(original,), daemon=True, name='magnolie-screen-native-setup').start()
+        except (OSError, RuntimeError):
+            if original is not None:
+                original.close()
+            self._screen_setup.release()
 
     def _handle_request(self, connection):
             try:
@@ -1990,6 +2036,13 @@ class IPCServer:
             return phone.tray_sync_activity() if phone is not None else {'synchronizing': False}
         if phone is None:
             raise IPCError("phone service is not owned by the background service")
+        if operation == 'phone_report' and self._native_screen_view_checked and getattr(phone, 'native_screen_included', False):
+            # Discovery metadata only; neither a probe, approval nor a secret
+            # passes through the JSON control path.
+            result = dict(phone.report())
+            result['screen_view'] = {'peers': [p['device_id'] for p in result.get('peers', ())
+                                             if phone.native_screen_available(p['device_id'])]}
+            return result
         if operation == "phone_actor_source":
             return phone.current_actor_source(arguments["peer_id"], arguments["fingerprint"],
                 lambda: self.gui_actor_book_source(arguments["subscriber"], arguments["book_source"]))
@@ -2848,6 +2901,9 @@ class PhoneServiceProxy:
         return bool(self.report().get("enabled"))
 
     def report(self): return self._call("report")
+
+    def screen_view_report(self):
+        return ipc_request('phone_report', path=self.path, timeout=2)
     def tray_sync_activity(self): return self._call('tray_sync_activity')
 
     def photo_sync_action(self, peer_id, fingerprint, request):
@@ -3689,13 +3745,15 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
 
     def make_phone():
         selected = phone_factory
+        options = {}
         if selected is None:
             from magnolie_telefon import PhoneService
             selected = PhoneService
+            options['native_screen_ui'] = server._native_screen_view_checked
         def route(event, payload):
             if not server.setup_sessions.phone_event(event, payload): phone_events(event, payload)
         return selected(os.path.join(data_directory(), "telefon"),
-                        local_device_name(), callback=route)
+                        local_device_name(), callback=route, **options)
 
     def setup_phone(create):
         if holder["phone"] is None and create:
