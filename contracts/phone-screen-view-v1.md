@@ -156,3 +156,41 @@ code running as the desktop user. Neither the PID nor a nonce is proof of
 human interaction outside the cooperating native GUI. The phone must still
 request and verify its own genuine system consent. The daemon and GUI gates
 stay off until the actual product, device and desktop lock paths are checked.
+
+## Platform prerequisites for the separate desktop-to-phone functions
+
+This section defines acceptance boundaries, not additional v26 operations.
+Desktop viewing, control and a virtual monitor each require their own capability
+and user approval. Success in one mode must not advertise another. A mirror of
+an existing monitor does not count as a second monitor.
+
+- **Linux desktop viewing:** Query the running session's
+  [ScreenCast portal](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html)
+  before offering capture of an existing monitor or window. The portal must
+  present the real source chooser and return a PipeWire stream for that exact
+  session. Neither a running portal service nor the Screenshot interface
+  establishes ScreenCast support. Do not persist or restore the approval.
+- **Linux second monitor:** Require the portal's `AvailableSourceTypes` to
+  include `VIRTUAL` (`4`), and an interface that can report the actual stream
+  type (ScreenCast v3 or newer). Request only `VIRTUAL`. Missing or different
+  `source_type` in the returned stream is a failure, not an invitation to try
+  `MONITOR` or `WINDOW`. Acceptance requires observing a new, separately
+  positioned compositor output, moving a window onto it while leaving the
+  primary output unchanged, and seeing it removed after closing or losing the
+  session. A virtual bit indicates a candidate backend, not a usable monitor.
+- **Linux control:** The
+  [RemoteDesktop portal](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.RemoteDesktop.html)
+  must separately grant the requested device types. Apply absolute input only
+  to the original approved stream with matching current geometry. Rotation or
+  a geometry change invalidates the old coordinate mapping; unconfirmed input
+  must not reach a different surface or fall through to global KDE input.
+- **Windows second monitor:** A viewing window or a desktop capture API cannot
+  create a display target. A verified provider using the
+  [Indirect Display Driver model](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/indirect-display-driver-model-overview)
+  is a separate candidate. Its presence, ability to add exactly one owned
+  extended target, data handoff and removal must be checked independently of
+  the Windows viewing feature. Discovery must not install or change a driver.
+
+Any of these modes must stop on loss of its exact native session, authenticated
+peer, approval or unlocked desktop. A disconnected output is not drained until
+its original producer and stream have ended and the output is gone.
