@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 pytest.importorskip("gi")
 pytest.importorskip("cairo")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
-from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenWindow
+from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenSessionLock, PhoneScreenWindow
 from magnolie_phone_screen_transport import PhoneScreenReceiveRun
 from magnolie_phone_screen_control import REQUEST
 from magnolie_telefon import PROTOCOL, PhoneService, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
@@ -164,6 +164,8 @@ def test_advanced_entry_requires_native_confirmation_and_same_original_probe():
 
     phone.begin_native_screen = begin
     app._telefon = phone
+    desktop = PhoneScreenSessionLock()
+    app._phone_screen_session_lock = desktop
     app.antwort = lambda handler, reply: responses.append((handler, reply))
     command = dict(cmd="telefon_screen_start", requestId="sample", peer="test")
     app.show()
@@ -174,6 +176,9 @@ def test_advanced_entry_requires_native_confirmation_and_same_original_probe():
         assert responses[-1][1]["ok"] is False and calls == []
         phone.native_screen_included = True
         app._phone_screen_ui(command)
+        assert calls == [] and not getattr(app, "_phone_screen_question", None)
+        desktop._lease = object()
+        app._phone_screen_ui(command)
         assert calls == [] and app._phone_screen_question.get_visible()
         app._phone_screen_question.response(Gtk.ResponseType.CANCEL)
         assert calls == [] and app._phone_screen_question is None
@@ -182,10 +187,58 @@ def test_advanced_entry_requires_native_confirmation_and_same_original_probe():
         app._phone_screen_question.response(Gtk.ResponseType.OK)
         assert calls == [] and responses[-1][1]["ok"] is False
         app._phone_screen_ui(command)
+        desktop._lease = object()  # A lock/unlock while confirmation was visible.
+        app._phone_screen_question.response(Gtk.ResponseType.OK)
+        assert calls == [] and responses[-1][1]["ok"] is False
+        app._phone_screen_ui(command)
         app._phone_screen_question.response(Gtk.ResponseType.OK)
         assert calls == [("test", 720, 1280, 160)] and responses[-1][1]["ok"] is True
     finally:
+        desktop.close()
         app.destroy()
+
+
+def test_desktop_lock_and_session_loss_permanently_revoke_the_exact_view():
+    from types import SimpleNamespace
+
+    monitor = PhoneScreenSessionLock()
+    props = {"LockedHint": GLib.Variant("b", False), "Active": GLib.Variant("b", True)}
+    owner = [":1.9"]
+    proxy = SimpleNamespace(get_name_owner=lambda: owner[0], get_cached_property=props.get)
+    monitor._proxy = proxy
+    monitor._update(proxy)
+    original = monitor.claim()
+
+    def is_current():
+        original()
+        return True
+
+    stops = []
+    view = PhoneScreenWindow("Phone screen", is_current=is_current, request_stop=lambda: stops.append(True))
+    try:
+        assert view.show()
+        monitor._signal(proxy, owner[0], "Lock", None)
+        monitor._properties(proxy, GLib.Variant("a{sv}", {}), [])
+        assert not monitor.available  # An unrelated update cannot undo Lock.
+        wait_for(lambda: stops == [True])
+        monitor._signal(proxy, owner[0], "Unlock", None)
+        unlocked = monitor.claim()
+        unlocked()
+        with pytest.raises(PermissionError):
+            original()
+        assert not view.show()
+        props.pop("Active")
+        monitor._properties(proxy, GLib.Variant("a{sv}", {}), ["Active"])
+        with pytest.raises(PermissionError):
+            unlocked()
+        assert not monitor.available
+        owner[0] = None
+        monitor._owner_changed(proxy)
+        assert not monitor.available
+    finally:
+        monitor._proxy = None
+        monitor.close()
+        view.stop()
 
 
 def test_actual_organizer_menu_and_exit_use_exact_window_and_wait_for_join():

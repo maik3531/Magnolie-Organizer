@@ -87,3 +87,20 @@ deadline from its original probe; active viewing always needs live guards.
 Keep this first mode viewing-only. It does not advertise remote input,
 desktop-to-phone capture or a virtual second monitor, and does not treat
 any of those modes as a fallback.
+
+### Linux display and background ownership
+
+The GTK owner must hold both the exact WLAN parent and a live local desktop
+session lease. The logind observer resolves the Organizer process's own
+session without starting logind. Unknown or inactive sessions are unavailable.
+Lock, inactivity and owner loss retire the original display lease; unlocking
+does not recreate that view or reuse its approval. This is separate from
+Organizer profile lock and from hiding the window in the tray.
+
+The disabled foreground-only integration is not a daemon migration. When
+the background service owns the phone connection, keep the existing owner,
+pairing and settings. A future native local rendezvous must bind the exact GUI
+process, desktop lease and daemon's original parent, transfer only an owned
+bounded viewing lane, and stop/drain on either endpoint's loss. Do not route
+pixels or session secrets through the regular JSON proxy/event history, or
+treat its ordinary same-user subscriber identifier as fresh viewing consent.

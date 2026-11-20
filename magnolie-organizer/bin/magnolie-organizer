@@ -21736,11 +21736,15 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.kdeMedien", reply)
 
         included = (not self._gesperrt and type(phone) is PhoneService and phone.native_screen_included)
+        monitor = getattr(self, "_phone_screen_session_lock", None)
+        if included and monitor is None:
+            from magnolie_phone_screen_window import PhoneScreenSessionLock
+            monitor = self._phone_screen_session_lock = PhoneScreenSessionLock().start()
         state = lambda: {
             "active": getattr(self, "_phone_screen_window", None) is not None,
             "peers": [{"id": p["device_id"], "name": str(p.get("display_name") or _("Phone"))[:60]}
                       for p in phone.store.peers if p.get("state") == "paired" and phone.native_screen_available(p["device_id"])]
-                     if included else [],
+                     if included and monitor.available else [],
             "included": included,
         }
         command = message.get("cmd")
@@ -21756,6 +21760,7 @@ class Fenster(_FENSTER_BASIS):
                 getattr(self, "_phone_screen_question", None) is not None):
             respond(); return
         try:
+            desktop_current = monitor.claim()
             witness = phone.native_screen_candidate(peer_id)
             peer = next(p for p in state()["peers"] if p["id"] == peer_id)
         except (PermissionError, StopIteration):
@@ -21792,7 +21797,15 @@ class Fenster(_FENSTER_BASIS):
             if (answer == Gtk.ResponseType.OK and self.get_visible() and not self._gesperrt and
                     not self._beenden_angefragt and not self._wirklich_beenden and self._telefon is phone):
                 try:
-                    phone.begin_native_screen(peer_id, 720, 1280, 160, self._phone_screen_begin_original, expected=witness)
+                    desktop_current()
+
+                    def original_start(*args, require_original, **options):
+                        def current():
+                            desktop_current()
+                            require_original()
+                        return self._phone_screen_begin_original(*args, require_original=current, **options)
+
+                    phone.begin_native_screen(peer_id, 720, 1280, 160, original_start, expected=witness)
                     reply["ok"] = True
                 except (PermissionError, ValueError, OSError, RuntimeError):
                     pass
@@ -22148,6 +22161,9 @@ class Fenster(_FENSTER_BASIS):
     def _bei_ende(self, *_egal):
         if getattr(self, "_phone_screen_window", None) is not None:
             self._phone_screen_stop()
+        screen_lock = getattr(self, "_phone_screen_session_lock", None)
+        if screen_lock is not None:
+            screen_lock.close()
         mcp_server = getattr(self, "_mcp_server", None)
         if mcp_server is not None:
             mcp_server.close()

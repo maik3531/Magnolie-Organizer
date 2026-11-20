@@ -8,7 +8,124 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
+
+
+class PhoneScreenSessionLock:
+    """Observe this desktop's own logind session without starting any service.
+
+    Unknown state is unavailable. Once a lease has observed lock/session loss,
+    unlocking cannot make that original mirror lease current again.
+    """
+
+    _SERVICE = 'org.freedesktop.login1'
+    _SESSION = 'org.freedesktop.login1.Session'
+
+    def __init__(self):
+        self._lease = None
+        self._proxy = None
+        self._signals = ()
+        self._closed = False
+        self._lock_signalled = False
+        self._cancel = Gio.Cancellable()
+
+    def start(self):
+        Gio.bus_get(Gio.BusType.SYSTEM, self._cancel, self._got_bus)
+        return self
+
+    def _got_bus(self, _bus, result):
+        if self._closed:
+            return
+        try:
+            bus = Gio.bus_get_finish(result)
+            if bus is None:
+                return
+            import os
+            bus.call(self._SERVICE, '/org/freedesktop/login1', 'org.freedesktop.login1.Manager', 'GetSessionByPID',
+                     GLib.Variant('(u)', (os.getpid(),)), GLib.VariantType.new('(o)'), Gio.DBusCallFlags.NO_AUTO_START,
+                     500, self._cancel, self._got_session)
+        except GLib.Error:
+            pass
+
+    def _got_session(self, bus, result):
+        if self._closed:
+            return
+        try:
+            path, = bus.call_finish(result).unpack()
+            Gio.DBusProxy.new(bus, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None,
+                             self._SERVICE, path, self._SESSION, self._cancel, self._got_proxy)
+        except GLib.Error:
+            pass
+
+    def _got_proxy(self, _proxy, result):
+        if self._closed:
+            return
+        try:
+            proxy = Gio.DBusProxy.new_finish(result)
+        except GLib.Error:
+            return
+        self._proxy = proxy
+        self._signals = (proxy.connect('g-properties-changed', self._properties),
+                         proxy.connect('notify::g-name-owner', self._owner_changed),
+                         proxy.connect('g-signal', self._signal),
+                         proxy.get_connection().connect('closed', self._bus_closed))
+        self._update(proxy)
+
+    def _properties(self, proxy, changes, _invalidated):
+        if proxy is self._proxy and changes.lookup_value('LockedHint', None) is not None:
+            self._lock_signalled = changes.lookup_value('LockedHint', None).unpack() is not False
+        self._update(proxy)
+
+    def _owner_changed(self, proxy, *_):
+        self._lease = None
+        self._lock_signalled = False
+        self._update(proxy)
+
+    def _signal(self, proxy, _sender, name, _parameters):
+        if proxy is self._proxy and name == 'Lock':
+            self._lock_signalled = True
+            self._lease = None
+        elif proxy is self._proxy and name == 'Unlock':
+            self._lock_signalled = False
+            self._update(proxy)
+
+    def _bus_closed(self, *_):
+        self._lease = None
+
+    def _update(self, proxy):
+        if self._closed or self._lock_signalled or proxy is not self._proxy or proxy.get_name_owner() is None:
+            self._lease = None
+            return
+        lock, active = (proxy.get_cached_property(key) for key in ('LockedHint', 'Active'))
+        if lock is not None and lock.unpack() is False and active is not None and active.unpack() is True:
+            if self._lease is None:
+                self._lease = object()
+        else:
+            self._lease = None
+
+    def claim(self):
+        lease = self._lease
+        if lease is None:
+            raise PermissionError('phone_screen_desktop_lock_state_unavailable')
+
+        def current():
+            if self._lease is not lease:
+                raise PermissionError('phone_screen_desktop_session_locked_or_replaced')
+        return current
+
+    @property
+    def available(self):
+        return self._lease is not None
+
+    def close(self):
+        self._closed = True
+        self._lease = None
+        self._cancel.cancel()
+        proxy, self._proxy = self._proxy, None
+        if proxy is not None:
+            for identifier in self._signals[:3]:
+                proxy.disconnect(identifier)
+            proxy.get_connection().disconnect(self._signals[3])
 
 
 class PhoneScreenJpegReceiver:
