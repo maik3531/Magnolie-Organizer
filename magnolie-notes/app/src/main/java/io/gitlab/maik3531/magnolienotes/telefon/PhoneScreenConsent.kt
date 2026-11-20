@@ -78,6 +78,12 @@ internal class PhoneScreenConsentHost(private val activity: ComponentActivity,
 
     init { activity.lifecycle.addObserver(this) }
 
+    fun isAvailable(): Boolean {
+        requireMainThread()
+        return Build.VERSION.SDK_INT >= 29 && !closed && !requestPending && !otherPermissionPending() &&
+            runCatching { requireVisible(activity) }.isSuccess
+    }
+
     fun request(original: PhoneScreenViewRequest, deliver: (Result<PhoneScreenViewConsent>) -> Unit) {
         requireMainThread()
         check(!closed && !requestPending && !otherPermissionPending()) { "screen_consent_slot_unavailable" }
@@ -205,4 +211,27 @@ internal class PhoneScreenConsentHost(private val activity: ComponentActivity,
             requireUnlocked(activity)
         }
     }
+}
+
+/** UI-thread rendezvous only. Capture the returned host once for an original
+ * probe; do not look up a replacement after an Activity is recreated. */
+internal object PhoneScreenForeground {
+    private var host = WeakReference<PhoneScreenConsentHost>(null)
+
+    fun register(original: PhoneScreenConsentHost) {
+        requireMainThread()
+        host = WeakReference(original)
+    }
+
+    fun unregister(original: PhoneScreenConsentHost) {
+        requireMainThread()
+        if (host.get() === original) host.clear()
+    }
+
+    fun availableHost(): PhoneScreenConsentHost? {
+        requireMainThread()
+        return host.get()?.takeIf { it.isAvailable() }
+    }
+
+    private fun requireMainThread() = check(Looper.myLooper() == Looper.getMainLooper()) { "screen_main_thread_required" }
 }

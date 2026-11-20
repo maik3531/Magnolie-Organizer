@@ -125,6 +125,7 @@ private fun liesPortableArchiv(context: Context, uri: Uri): ByteArray {
 
 class MainActivity : ComponentActivity() {
     private var phoneWebcamPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamPermissionHost? = null
+    private var phoneScreenConsentHost: io.gitlab.maik3531.magnolienotes.telefon.PhoneScreenConsentHost? = null
     private var galleryPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
     private var galleryVideoPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
     private var galleryWriteConsentHost: io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryWriteConsentHost? = null
@@ -180,26 +181,38 @@ class MainActivity : ComponentActivity() {
         // Explicit native file activation can attach later, preserving drafts.
         phoneWebcamPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamPermissionHost(this) {
             galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
-                galleryWriteConsentHost?.requestPending == true || galleryPcWriteConsentHost?.requestPending == true
+                galleryWriteConsentHost?.requestPending == true || galleryPcWriteConsentHost?.requestPending == true ||
+                phoneScreenConsentHost?.requestPending == true
         }.also { io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamForeground.register(it) }
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            phoneScreenConsentHost = io.gitlab.maik3531.magnolienotes.telefon.PhoneScreenConsentHost(this) {
+                galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
+                    galleryWriteConsentHost?.requestPending == true || galleryPcWriteConsentHost?.requestPending == true ||
+                    phoneWebcamPermissionHost?.requestPending == true
+            }.also { io.gitlab.maik3531.magnolienotes.telefon.PhoneScreenForeground.register(it) }
+        }
         galleryWriteConsentHost = io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryWriteConsentHost(this) {
             galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
-                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true
+                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true ||
+                phoneScreenConsentHost?.requestPending == true
         }
         galleryPcWriteConsentHost = io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryPcWriteConsentHost(this) {
             galleryPermissionHost?.requestPending == true || galleryVideoPermissionHost?.requestPending == true ||
-                galleryWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true
+                galleryWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true ||
+                phoneScreenConsentHost?.requestPending == true
         }.also { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryPcReplacementForeground.register(this, it) }
         galleryPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this,
             writeConsent = galleryWriteConsentHost, otherPermissionPending = {
-                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true
+                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true ||
+                    phoneScreenConsentHost?.requestPending == true
             }).also {
             io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
         }
         galleryVideoPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this,
             io.gitlab.maik3531.magnolienotes.telefon.GalleryMediaType.VIDEO, galleryWriteConsentHost,
             otherPermissionPending = {
-                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true
+                galleryPcWriteConsentHost?.requestPending == true || phoneWebcamPermissionHost?.requestPending == true ||
+                    phoneScreenConsentHost?.requestPending == true
             }).also {
             io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
         }
@@ -227,6 +240,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         lanAnfrage.close()
+        phoneScreenConsentHost?.let {
+            io.gitlab.maik3531.magnolienotes.telefon.PhoneScreenForeground.unregister(it)
+            it.close()
+        }
+        phoneScreenConsentHost = null
         phoneWebcamPermissionHost?.let {
             io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamForeground.unregister(it)
             it.close()

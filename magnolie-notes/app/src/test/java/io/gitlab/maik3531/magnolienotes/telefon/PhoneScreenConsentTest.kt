@@ -81,6 +81,35 @@ class PhoneScreenConsentTest {
         }
     }
 
+    @Test fun foregroundRendezvousNeverSelectsAnInvisibleOrBusyHostAndStaleRemovalDoesNotReplace() {
+        Fixture().use { first ->
+            Fixture().use { next ->
+                PhoneScreenForeground.register(first.host)
+                try {
+                    assertSame(first.host, PhoneScreenForeground.availableHost())
+                    first.competing = true
+                    assertNull(PhoneScreenForeground.availableHost())
+                    first.competing = false
+                    first.controller.pause()
+                    assertNull(PhoneScreenForeground.availableHost())
+                    first.controller.resume()
+                    val code = first.prompt(first.original())
+                    assertNull(PhoneScreenForeground.availableHost())
+                    PhoneScreenForeground.register(next.host)
+                    PhoneScreenForeground.unregister(first.host)
+                    assertSame(next.host, PhoneScreenForeground.availableHost())
+                    first.result(code, Activity.RESULT_CANCELED)
+                    assertTrue(first.outcomes.single().isFailure)
+                    assertTrue(next.noPrompt())
+                    assertTrue(next.outcomes.isEmpty())
+                } finally {
+                    PhoneScreenForeground.unregister(first.host)
+                    PhoneScreenForeground.unregister(next.host)
+                }
+            }
+        }
+    }
+
     @Test fun delayedOriginalResultOnlyCompletesAfterResumeAndStaleResultCannotRetarget() {
         Fixture().use { f ->
             val first = f.prompt(f.original())
