@@ -70,6 +70,10 @@ the original extra output. A missing cleanup acknowledgment is not successful
 drain. Do not stop the ordinary Notes connection unless its own transport failed.
 
 The local reader/encoder and portal tests do not validate this wire contract.
+The isolated Linux draft writer implements the socket proof and records, but
+does not own discovery, authenticated control dispatch, heartbeat scheduling,
+or any Android viewer. Its trusted caller must bind the original accepted
+socket and PREPARED receipt and perform the guarded SEND control write.
 Before allocation or advertising, check independent vectors and incompatible
 direction/mode/session rejection, data-before-SEND, stop during blocked I/O, and
 the real native phone viewer. Extended mode additionally needs the compositor
