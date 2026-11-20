@@ -26,7 +26,11 @@ internal interface PhoneScreenOutput {
     val surface: Surface
     fun requestStop()
     fun isDrained(): Boolean
+    val failure: Exception? get() = null
 }
+
+/** An output setup attempt failed and could not confirm native teardown. */
+internal class PhoneScreenOutputCleanupException(cause: Exception) : IllegalStateException("screen_output_cleanup_unconfirmed", cause)
 
 /** Process-local one-shot handoff, never an Android grant in an Intent or on disk.
  * The caller supplies the original decoder/transport counterpart and must own
@@ -68,6 +72,7 @@ internal object PhoneScreenServiceStarts {
             check(service.foregroundServiceType == ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
             openingOutput = true
             val target = try { openOutput().also { output = it } }
+            catch (error: PhoneScreenOutputCleanupException) { cleanupFailed = true; throw error }
             finally { openingOutput = false }
             // If the adapter reentered stop during construction, retire its late output.
             if (stoppingAt != null) {
@@ -101,6 +106,8 @@ internal object PhoneScreenServiceStarts {
             catch (error: Exception) { cleanupFailed = true; if (failure == null) failure = error; false }
         }
 
+        fun checkOutput() { output?.failure?.let { stop(it) } }
+
         fun detach(service: PhoneScreenCaptureService) {
             if (this.service === service) this.service = null
         }
@@ -109,6 +116,14 @@ internal object PhoneScreenServiceStarts {
     private const val START_BUDGET = 8_000L
     private val handler by lazy { Handler(Looper.getMainLooper()) }
     private var slot: Entry? = null
+
+    fun startJpeg(context: Context, request: PhoneScreenViewRequest, consent: PhoneScreenViewConsent,
+        width: Int, height: Int, density: Int, offer: (PhoneScreenJpegOutput.Frame) -> Boolean): AutoCloseable {
+        require(width in 2..1920 && height in 2..1920 && width * height <= 1920 * 1080)
+        return start(context, request, consent, width, height, density) {
+            PhoneScreenJpegOutput.open(width, height, request::requireCurrent, offer)
+        }
+    }
 
     fun start(context: Context, request: PhoneScreenViewRequest, consent: PhoneScreenViewConsent,
         width: Int, height: Int, density: Int, output: () -> PhoneScreenOutput): AutoCloseable {
@@ -176,6 +191,7 @@ class PhoneScreenCaptureService : Service() {
         override fun run() {
             if (Build.VERSION.SDK_INT < 29) return
             val owner = entry ?: return
+            owner.checkOutput()
             val stopping = owner.stoppingAt
             if (stopping != null && (owner.drained() || SystemClock.elapsedRealtime() - stopping >= 12_000)) {
                 // A failed/late drain does not allow a replacement owner.
