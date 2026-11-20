@@ -14,7 +14,7 @@ from urllib.parse import unquote, urlsplit
 
 SOURCE_URL = "https://maik3531.github.io/Magnolie-Organizer"
 FILES = ("index.html", ".nojekyll", "robots.txt", "sitemap.xml", "SOURCE-NOTICES.txt")
-DIRECTORIES = ("assets", "en", "intl", "media", "presse")
+DIRECTORIES = ("assets", "en", "intl", "media", "presse", "impressum", "datenschutz")
 DOCUMENTS = ("docs/PRESSE.md",)
 
 
