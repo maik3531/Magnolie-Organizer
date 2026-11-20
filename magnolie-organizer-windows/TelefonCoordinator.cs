@@ -2692,7 +2692,9 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             var envelope = Seal(value);
             using var syncActivity = TraySyncFrames.IsData(value) ? TraySyncActivity?.Enter() : null;
-            await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token); lastSentMs = Now();
+            await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token);
+            RememberNativeWebcamCapabilities(value);
+            lastSentMs = Now();
         }
         catch { stream.Dispose(); throw; }
         finally { writer.Release(); }

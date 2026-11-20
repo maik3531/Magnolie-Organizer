@@ -71,6 +71,7 @@ internal sealed class PhoneCameraSession
     private readonly IPhoneCameraOutputs outputs;
     private readonly OutputAuthority outputAuthority;
     private readonly Action originalCurrent;
+    private readonly Action? requireDiscoveryProvider;
     private readonly bool muted, front;
     private readonly CancellationTokenSource stop = new();
     private readonly TaskCompletionSource controlReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -89,11 +90,12 @@ internal sealed class PhoneCameraSession
     internal Task ControlReady => controlReady.Task;
 
     internal PhoneCameraSession(TelefonConnection originalParent, IPhoneCameraOutputs originalOutputs,
-        Action originalCurrent, bool muted, bool front)
+        Action originalCurrent, bool muted, bool front, Action? requireDiscoveryProvider = null)
     {
         parent = originalParent ?? throw new ArgumentNullException(nameof(originalParent));
         outputs = originalOutputs ?? throw new ArgumentNullException(nameof(originalOutputs));
         this.originalCurrent = originalCurrent ?? throw new ArgumentNullException(nameof(originalCurrent));
+        this.requireDiscoveryProvider = requireDiscoveryProvider;
         this.muted = muted; this.front = front;
         outputAuthority = new OutputAuthority(this);
     }
@@ -102,7 +104,15 @@ internal sealed class PhoneCameraSession
     // exchange. No renderer, saved permission or screen-share consent fallback.
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     internal static PhoneCameraSession CreateNative(TelefonConnection originalParent, Action originalCurrent, bool muted, bool front) =>
-        new(originalParent, new PhoneCameraNativeOutputs(), originalCurrent, muted, front);
+        new(originalParent, new PhoneCameraNativeOutputs(), originalCurrent, muted, front, RequireInstalledSource);
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static void RequireInstalledSource()
+    {
+        using var installed = PhoneCameraSourceRegistration.HoldInstalledCurrent() ??
+            throw new InvalidOperationException("webcam_installed_source_required");
+        installed.RequireCurrent(); // Read-only preflight; native outputs revalidate before preparing AV.
+    }
     internal Task RunAsync()
     {
         if (Interlocked.Exchange(ref started, 1) != 0) throw new InvalidOperationException("webcam_original_session_already_used");
@@ -257,7 +267,10 @@ internal sealed class PhoneCameraSession
         try
         {
             stop.Token.ThrowIfCancellationRequested(); originalCurrent();
-            binding = parent.BindWebcamControl(originalCurrent, Stop);
+            requireDiscoveryProvider?.Invoke();
+            stop.Token.ThrowIfCancellationRequested();
+            binding = parent.BindWebcamControl(originalCurrent, Stop, needsDiscovery: requireDiscoveryProvider is not null);
+            if (requireDiscoveryProvider is not null) await parent.AdvertiseWebcamAsync(binding, stop.Token.ThrowIfCancellationRequested);
             controlReady.TrySetResult();
             monitor = MonitorAsync();
             probe = await binding.ReadAsync(stop.Token);
@@ -307,6 +320,8 @@ internal sealed class PhoneCameraSession
             if (binding is not null && probe is not null && session is not null)
                 try { await binding.SendAsync(Report(probe, "stop", session)); } catch (Exception) { }
             binding?.Dispose();
+            if (binding is not null && requireDiscoveryProvider is not null)
+                try { await parent.WithdrawWebcamAsync(binding); } catch (Exception) { /* No foreign write or retry after parent loss. */ }
             try { outputs.Dispose(); if (CleanupError is null && binding?.RetirementError is null) Volatile.Write(ref cleanupConfirmed, 1); }
             catch (Exception failure) { Interlocked.CompareExchange(ref cleanupError, failure, null); }
             if (secret is not null) CryptographicOperations.ZeroMemory(secret);

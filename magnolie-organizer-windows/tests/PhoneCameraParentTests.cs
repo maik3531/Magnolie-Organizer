@@ -237,9 +237,78 @@ internal static class PhoneCameraParentTests
             TestAssert.Throws<InvalidDataException>(() => storage.Store.CommitIncoming(storage.Peer.Id, value, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), (_, _) => null), "Screen rejection entered durable dedupe");
         }
         storage.NoPersistentControls();
+        await WebcamDiscoveryAsync(supersede: false);
+        await WebcamDiscoveryAsync(supersede: true);
         await OriginalScreenControlAsync();
         await ScreenSendRetirementAsync(afterPublication: false);
         await ScreenSendRetirementAsync(afterPublication: true);
+    }
+
+    private static async Task WebcamDiscoveryAsync(bool supersede)
+    {
+        using var fixture = new Fixture();
+        var parent = fixture.Connection;
+        var stopped = 0;
+        using var owner = parent.BindWebcamControl(() => { }, () => stopped++, needsDiscovery: true);
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => parent.AdvertiseWebcamAsync(owner, () => { }),
+            "Webcam advertised without a written baseline");
+        async Task PublishBaseline(long sequence, int extra)
+        {
+            var baseline = TelefonProtocolContract.DesktopCapabilities();
+            baseline["revision"] = fixture.Store.NextOwnRevision("capabilities");
+            baseline["items"]!["device_status"]!["versions"]!.AsArray().Add(extra);
+            var value = Message(); value["kind"] = "capabilities.update"; value["body"] = baseline;
+            await parent.SendPlainAsync(value);
+            TestAssert.That(JsonNode.DeepEquals(value, await fixture.Read(sequence)), "Wrong original baseline");
+        }
+        await PublishBaseline(0, 99);
+        await parent.HandlePlainAsync(Message());
+        TestAssert.That((await fixture.Read(1))["status"]!.GetValue<string>() == "rejected", "Unadvertised native owner admitted a phone probe");
+        if (!supersede)
+        {
+            await fixture.Writer.WaitAsync();
+            Task writing;
+            using var cancel = new CancellationTokenSource();
+            try
+            {
+                writing = parent.AdvertiseWebcamAsync(owner, cancel.Token.ThrowIfCancellationRequested);
+                cancel.Cancel();
+            }
+            finally { fixture.Writer.Release(); }
+            await TestAssert.ThrowsAsync<OperationCanceledException>(() => writing, "Retired start survived waiting for the writer");
+        }
+        await parent.AdvertiseWebcamAsync(owner, () => { });
+        var discovery = await fixture.Read(2);
+        var advertised = discovery["body"]!["items"]!["device_status"]!["versions"]!.AsArray();
+        TestAssert.That(advertised.Count(v => v!.GetValue<int>() == 24) == 1 && advertised.Any(v => v!.GetValue<int>() == 99),
+            "Discovery did not add exactly the webcam marker to the original baseline");
+        var probe = Message(); probe["body"]!["nonce"] = new string('b', 64);
+        await parent.HandlePlainAsync(probe);
+        TestAssert.That((await fixture.Read(3))["status"]!.GetValue<string>() == "accepted", "Committed discovery did not admit its owner probe");
+        if (supersede)
+        {
+            await PublishBaseline(4, 98);
+            TestAssert.Throws<InvalidOperationException>(owner.RequireCurrent, "Overwritten webcam discovery remained authoritative");
+        }
+        else
+        {
+            await parent.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = discovery["message_id"]!.DeepClone(),
+                ["status"] = "rejected", ["error"] = "not_granted" });
+            TestAssert.That(owner.IsRetired && stopped == 1, "Discovery ACK did not retire just its original owner");
+        }
+        await parent.WithdrawWebcamAsync(owner);
+        if (!supersede)
+        {
+            var withdrawal = await fixture.Read(4);
+            var remaining = withdrawal["body"]!["items"]!["device_status"]!["versions"]!.AsArray();
+            TestAssert.That(remaining.All(v => v!.GetValue<int>() != 24) && remaining.Any(v => v!.GetValue<int>() == 99) &&
+                TelefonProtocolContract.Integer(withdrawal["body"]!["revision"]) > TelefonProtocolContract.Integer(discovery["body"]!["revision"]),
+                "Withdrawal did not remove just the current webcam marker");
+        }
+        var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = 123 };
+        await parent.SendPlainAsync(ping);
+        TestAssert.That(JsonNode.DeepEquals(ping, await fixture.Read(5)), "Retirement overwrote newer metadata or broke the Notes channel");
+        fixture.NoPersistentControls();
     }
 
     private static async Task ScreenSendRetirementAsync(bool afterPublication)

@@ -128,6 +128,7 @@ internal static class PhoneCameraSessionTests
     }
     internal static async Task JoinedEncryptedAvAsync()
     {
+        await DiscoveryLifecycleAsync();
         await using var f = new Fixture(); await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
         TestAssert.That(f.SawSend && f.Output.Prepared == 1, "SEND not published after original PREPARED/provider preparation");
         await f.SendFrame(false,0,0); await f.SendFrame(true,0,0); await f.SendFrame(false,1,20000);
@@ -140,6 +141,43 @@ internal static class PhoneCameraSessionTests
             Stopwatch.GetElapsedTime(written[0].At,written[5].At) >= TimeSpan.FromMilliseconds(40), "Joined output burst lost original presentation spacing");
         TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped && f.Output.Stopped == 1 && f.Output.Disposed == 1, "Original joined AV cleanup not confirmed");
         f.Parent.NoPersistentControls();
+    }
+
+    private static async Task DiscoveryLifecycleAsync()
+    {
+        using var fixture = new PhoneCameraParentTests.Fixture();
+        var parent = fixture.Connection;
+        var baseline = TelefonProtocolContract.DesktopCapabilities();
+        baseline["revision"] = fixture.Store.NextOwnRevision("capabilities");
+        var message = PhoneCameraParentTests.Message(); message["kind"] = "capabilities.update"; message["body"] = baseline;
+        await parent.SendPlainAsync(message);
+        await fixture.Read(0);
+
+        var unavailable = new Outputs();
+        var missing = new PhoneCameraSession(parent, unavailable, () => { }, false, false,
+            () => throw new IOException("controlled missing installed source"));
+        await missing.RunAsync().WaitAsync(TimeSpan.FromSeconds(4));
+        TestAssert.That(missing.Error is IOException && missing.IsCompletelyStopped && unavailable.Prepared == 0 &&
+            !fixture.HasUnexpectedFrame, "Failed source preflight advertised, prepared outputs or lost cleanup");
+
+        var output = new Outputs(); int checks = 0;
+        var session = new PhoneCameraSession(parent, output, () => { }, false, false, () => Interlocked.Increment(ref checks));
+        var run = session.RunAsync();
+        try
+        {
+            await session.ControlReady.WaitAsync(TimeSpan.FromSeconds(4));
+            var discovery = await fixture.Read(1);
+            TestAssert.That(checks == 1 && HasCameraMarker(discovery) && !session.IsSending && output.Prepared == 0,
+                "Session advertised before the provider check or prepared/sent before phone consent");
+        }
+        finally { session.Stop(); await run.WaitAsync(TimeSpan.FromSeconds(4)); }
+        var withdrawal = await fixture.Read(2);
+        TestAssert.That(withdrawal["kind"]!.GetValue<string>() == "capabilities.update" &&
+            !HasCameraMarker(withdrawal) && session.IsCompletelyStopped && output.Disposed == 1,
+            "Stopping before the phone probe did not withdraw and drain its exact native owner");
+        fixture.NoPersistentControls();
+        static bool HasCameraMarker(JsonObject frame) => frame["body"]!["items"]!["device_status"]!["versions"]!.AsArray()
+            .Any(value => value!.GetValue<int>() == PhoneCameraControl.Version);
     }
     internal static async Task MissingMicrophonePreventsSendAsync()
     {

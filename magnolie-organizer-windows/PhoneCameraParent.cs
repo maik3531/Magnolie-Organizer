@@ -15,6 +15,9 @@ internal sealed partial class TelefonConnection
         internal bool Observed;
     }
     private readonly Queue<WebcamAck> webcamAcks = new();
+    private sealed record WrittenCapabilities(string Id, long Revision, JsonObject Body);
+    private WrittenCapabilities? lastWebcamCapabilities;
+    private readonly Dictionary<string, WeakReference<PhoneCameraControlBinding>?> webcamDiscoveryAcks = new();
 
     partial void NativeWebcamControl(JsonObject message, ref Task? handling) => handling = HandleWebcamControlAsync(message);
     partial void NativeWebcamAck(JsonObject message, ref bool consumed) => consumed = ObserveWebcamAck(message);
@@ -24,6 +27,8 @@ internal sealed partial class TelefonConnection
     {
         RequireWebcamParent();
         if (!ReferenceEquals(Volatile.Read(ref webcamBinding), binding)) throw new InvalidOperationException("webcam_original_binding_required");
+        if (binding.DiscoveryWritten && Volatile.Read(ref lastWebcamCapabilities)?.Id != binding.DiscoveryId)
+            throw new InvalidOperationException("webcam_original_discovery_superseded");
     }
     internal (Socket Listener, System.Net.IPAddress Remote) OpenWebcamListener(PhoneCameraControlBinding binding)
     {
@@ -39,11 +44,11 @@ internal sealed partial class TelefonConnection
         }
         catch { listener.Dispose(); throw; }
     }
-    internal PhoneCameraControlBinding BindWebcamControl(Action originalCurrent, Action retire)
+    internal PhoneCameraControlBinding BindWebcamControl(Action originalCurrent, Action retire, bool needsDiscovery = false)
     {
         ArgumentNullException.ThrowIfNull(originalCurrent); ArgumentNullException.ThrowIfNull(retire);
         RequireWebcamParent(); originalCurrent();
-        var binding = new PhoneCameraControlBinding(this, originalCurrent, retire);
+        var binding = new PhoneCameraControlBinding(this, originalCurrent, retire, needsDiscovery);
         if (Interlocked.CompareExchange(ref webcamBinding, binding, null) is not null)
             throw new InvalidOperationException("webcam_original_owner_busy");
         binding.RequireCurrent(); return binding;
@@ -113,13 +118,72 @@ internal sealed partial class TelefonConnection
         PhoneCameraControlBinding? owner;
         lock (webcamGate)
         {
-            var receipt = webcamAcks.FirstOrDefault(value => value.Id == ack["message_id"]!.GetValue<string>());
-            if (receipt is null) return false;
-            if (receipt.Observed) return true;
-            receipt.Observed = true; owner = receipt.Binding;
+            var id = ack["message_id"]!.GetValue<string>();
+            if (webcamDiscoveryAcks.TryGetValue(id, out var discovery))
+            {
+                // Keep the ID, not the owner, for the rest of this parent.
+                webcamDiscoveryAcks[id] = null;
+                owner = ack["status"]!.GetValue<string>() == "rejected" && discovery?.TryGetTarget(out var original) == true ? original : null;
+            }
+            else
+            {
+                var receipt = webcamAcks.FirstOrDefault(value => value.Id == id);
+                if (receipt is null) return false;
+                if (receipt.Observed) return true;
+                receipt.Observed = true; owner = receipt.Binding;
+            }
         }
-        if (ack["status"]!.GetValue<string>() == "rejected") owner.Dispose();
+        if (ack["status"]!.GetValue<string>() == "rejected") owner?.Dispose();
         return true; // Never feed original ephemeral IDs to durable retry policy.
+    }
+
+    partial void RememberNativeWebcamCapabilities(JsonObject frame)
+    {
+        // The original writer is held here; older queued duplicates do not
+        // supersede the latest revision the phone can accept.
+        if (frame["kind"]?.GetValue<string>() != "capabilities.update" || frame["body"] is not JsonObject body ||
+            frame["message_id"] is not JsonValue id || !id.TryGetValue<string>(out var messageId) || messageId is null ||
+            !TelefonProtocolContract.TryInteger(body["revision"], out var revision) || revision <= (lastWebcamCapabilities?.Revision ?? 0)) return;
+        Volatile.Write(ref lastWebcamCapabilities, new(messageId, revision, body.DeepClone().AsObject()));
+    }
+
+    internal Task AdvertiseWebcamAsync(PhoneCameraControlBinding binding, Action requireStarting) => ChangeWebcamDiscoveryAsync(binding, requireStarting);
+    internal Task WithdrawWebcamAsync(PhoneCameraControlBinding binding) => ChangeWebcamDiscoveryAsync(binding, null);
+
+    private async Task ChangeWebcamDiscoveryAsync(PhoneCameraControlBinding binding, Action? requireStarting)
+    {
+        bool withdraw = requireStarting is null;
+        void Current()
+        {
+            if (requireStarting is null) return;
+            binding.RequireCurrent(); requireStarting();
+        }
+        Current();
+        var witness = Volatile.Read(ref lastWebcamCapabilities);
+        if (withdraw && (!binding.DiscoveryWritten || witness?.Id != binding.DiscoveryId)) return;
+        if (witness is null) throw new InvalidOperationException("webcam_original_capabilities_required");
+        var body = witness.Body.DeepClone().AsObject();
+        var versions = body["items"]!["device_status"]!["versions"]!.AsArray();
+        var index = versions.ToList().FindIndex(value => TelefonProtocolContract.TryInteger(value, out var version) && version == PhoneCameraControl.Version);
+        if (withdraw && index >= 0) versions.RemoveAt(index);
+        else if (!withdraw && index < 0 && versions.Count < 16) versions.Add(PhoneCameraControl.Version);
+        else throw new InvalidOperationException("webcam_original_capability_budget");
+        long revision = store.NextOwnRevision("capabilities");
+        if (revision <= witness.Revision) throw new InvalidOperationException("webcam_original_capabilities_revision");
+        body["revision"] = revision;
+        var message = LiveControlEnvelope("capabilities.update", body);
+        var id = message["message_id"]!.GetValue<string>();
+        await SendWebcamFrameAsync(message, Current, () =>
+        {
+            if (!ReferenceEquals(lastWebcamCapabilities, witness)) throw new InvalidOperationException("webcam_original_capabilities_changed");
+            lock (webcamGate)
+            {
+                // Keep a matching terminal slot for every admitted discovery.
+                if (webcamDiscoveryAcks.Count >= (withdraw ? 32 : 16)) throw new InvalidOperationException("webcam_discovery_ack_capacity");
+                if (!withdraw) binding.MarkDiscoveryWriting(id);
+                webcamDiscoveryAcks.Add(id, withdraw ? null : new(binding));
+            }
+        }, preserveCompletedFrame: true, onWritten: withdraw ? null : binding.MarkDiscoveryWritten);
     }
     /// <summary>
     /// Bounded original-parent write for an explicit native webcam owner. Does

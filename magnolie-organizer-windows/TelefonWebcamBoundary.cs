@@ -10,6 +10,7 @@ namespace MagnolieOrganizer.Windows;
 // webcam module. This reserves/rejects controls; it is not a provider or grant.
 internal static class PhoneCameraControl
 {
+    internal const int Version = 24;
     internal const string Request = "device_status.request";
     internal const string Report = "device_status.report";
     private static readonly string[] Base = ["version", "request_id", "nonce", "op"];
@@ -17,9 +18,9 @@ internal static class PhoneCameraControl
 
     internal static bool IsReserved(string? kind, JsonObject? body) =>
         kind is Request or Report && body?["version"] is JsonValue version &&
-        (TelefonProtocolContract.TryInteger(version, out var integer) && integer == 24 ||
+        (TelefonProtocolContract.TryInteger(version, out var integer) && integer == Version ||
          version.TryGetValue<string>(out var text) && text == "24" ||
-         version.TryGetValue<double>(out var number) && number == 24);
+         version.TryGetValue<double>(out var number) && number == Version);
     internal static bool IsReserved(JsonObject message) =>
         IsReserved(message["kind"] is JsonValue kind && kind.TryGetValue<string>(out var text) ? text : null, message["body"] as JsonObject);
     private static string Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text)
@@ -30,7 +31,7 @@ internal static class PhoneCameraControl
     }
     internal static void ValidateBody(JsonObject body, string kind)
     {
-        if (kind is not (Request or Report) || TelefonProtocolContract.Integer(body["version"]) != 24 ||
+        if (kind is not (Request or Report) || TelefonProtocolContract.Integer(body["version"]) != Version ||
             !TelefonProtocolContract.IsUuidV4(Text(body["request_id"]))) throw new InvalidDataException("webcam_control_invalid");
         Hex(body["nonce"], 64);
         var op = Text(body["op"]);
@@ -149,6 +150,7 @@ internal sealed partial class TelefonConnection
     // Elided in the product (no implementation). The test host observes the
     // actual queued writer task without replacing sender behavior or polling.
     partial void ObserveNativeWebcamWriterWait(JsonObject snapshot, Task waiting);
+    partial void RememberNativeWebcamCapabilities(JsonObject frame);
 
     private async Task DispatchWebcamControlAsync(JsonObject message)
     {
@@ -210,7 +212,7 @@ internal sealed partial class TelefonConnection
         body["revision"] = revision;
         body["items"]!["device_status"]!["versions"]!.AsArray().Add(PhoneScreenControl.Version);
         var marker = new object();
-        var message = ScreenEnvelope("capabilities.update", body);
+        var message = LiveControlEnvelope("capabilities.update", body);
         lock (screenGate)
         {
             if (screenAdvertisementId is not null) throw new InvalidOperationException("screen_original_advertisement_already_used");
@@ -296,7 +298,7 @@ internal sealed partial class TelefonConnection
         return true;
     }
 
-    private static JsonObject ScreenEnvelope(string kind, JsonObject body)
+    private static JsonObject LiveControlEnvelope(string kind, JsonObject body)
     {
         var now = Now();
         return new JsonObject { ["type"] = "message", ["v"] = 1, ["kind"] = kind, ["message_id"] = Guid.NewGuid().ToString("D"),
@@ -401,7 +403,7 @@ internal sealed partial class TelefonConnection
 
         private Task WriteAsync(JsonObject body, Action guard)
         {
-            var message = ScreenEnvelope(PhoneScreenControl.Report, body);
+            var message = LiveControlEnvelope(PhoneScreenControl.Report, body);
             var id = message["message_id"]!.GetValue<string>();
             lock (parent.screenGate)
             {
@@ -444,7 +446,8 @@ internal sealed partial class TelefonConnection
             (transport != "wifi" || stream is not NetworkStream network || !network.Socket.Connected))
             throw new InvalidOperationException("webcam_original_parent_required");
     }
-    private async Task SendWebcamFrameAsync(JsonObject snapshot, Action originalCurrent, Action? onWriting = null, bool preserveCompletedFrame = false)
+    private async Task SendWebcamFrameAsync(JsonObject snapshot, Action originalCurrent, Action? onWriting = null,
+        bool preserveCompletedFrame = false, Action? onWritten = null)
     {
         void Current() { RequireWebcamParent(snapshot["type"]!.GetValue<string>() != "ack"); originalCurrent(); }
         Current();
@@ -474,12 +477,14 @@ internal sealed partial class TelefonConnection
             Current(); deadline.Token.ThrowIfCancellationRequested(); onWriting?.Invoke(); sendSequence++; attempted = true;
             await TelefonCoordinator.WriteFrameAsync(stream, header, deadline.Token);
             completed = true;
+            RememberNativeWebcamCapabilities(snapshot);
+            onWritten?.Invoke();
             Current(); deadline.Token.ThrowIfCancellationRequested(); lastSentMs = Now();
         }
         catch
         {
-            // An incomplete encrypted frame cannot be retried. A fully written
-            // screen frame can instead be followed by the original owner's STOP.
+            // An incomplete encrypted frame cannot be retried. Callers with
+            // exact retirement controls can preserve a fully written frame.
             if (attempted && !(preserveCompletedFrame && completed)) stream.Dispose();
             throw;
         }

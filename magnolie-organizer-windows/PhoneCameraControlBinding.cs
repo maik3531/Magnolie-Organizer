@@ -14,17 +14,28 @@ internal sealed class PhoneCameraControlBinding : IDisposable
     private readonly TelefonConnection parent;
     private readonly Action current;
     private readonly Action retired;
+    private readonly bool needsDiscovery;
     private readonly object gate = new();
     private readonly Channel<JsonObject> incoming = Channel.CreateBounded<JsonObject>(new BoundedChannelOptions(4)
         { FullMode = BoundedChannelFullMode.Wait, AllowSynchronousContinuations = false });
     private string? requestId, nonce, session;
     private readonly HashSet<string> controls = new(StringComparer.Ordinal);
     private int stopped;
+    private string? discoveryId;
+    private int discoveryWritten;
     private Exception? retirementError;
     internal bool IsRetired => Volatile.Read(ref stopped) != 0;
     internal Exception? RetirementError => Volatile.Read(ref retirementError);
-    internal PhoneCameraControlBinding(TelefonConnection parent, Action current, Action retired)
-    { this.parent = parent; this.current = current; this.retired = retired; }
+    internal PhoneCameraControlBinding(TelefonConnection parent, Action current, Action retired, bool needsDiscovery)
+    { this.parent = parent; this.current = current; this.retired = retired; this.needsDiscovery = needsDiscovery; }
+    internal string? DiscoveryId => Volatile.Read(ref discoveryId);
+    internal bool DiscoveryWritten => Volatile.Read(ref discoveryWritten) != 0;
+    internal void MarkDiscoveryWriting(string id)
+    {
+        if (!needsDiscovery || IsRetired || Interlocked.CompareExchange(ref discoveryId, id, null) is not null)
+            throw new InvalidOperationException("webcam_original_discovery_required");
+    }
+    internal void MarkDiscoveryWritten() => Volatile.Write(ref discoveryWritten, 1);
 
     internal void RequireCurrent()
     {
@@ -47,7 +58,7 @@ internal sealed class PhoneCameraControlBinding : IDisposable
             if (controls.Contains(id)) return false;
             if (body["op"]!.GetValue<string>() == "probe")
             {
-                if (requestId is not null || !parent.ClaimWebcamProbe(body)) return false;
+                if ((needsDiscovery && DiscoveryId is null) || requestId is not null || !parent.ClaimWebcamProbe(body)) return false;
                 requestId = body["request_id"]!.GetValue<string>(); nonce = body["nonce"]!.GetValue<string>();
             }
             else if (requestId != body["request_id"]!.GetValue<string>() || nonce != body["nonce"]!.GetValue<string>() ||
