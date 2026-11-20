@@ -11,6 +11,12 @@ A dedicated Notes app for iPhone is excluded. Organizer note features remain in
 the acceptance scope. File/media transfer and further actually supported peer
 capabilities require separate integration and native device evidence.
 
+Requested iPhone screen mirroring (2026-11-20, #721): stable UxPlay 1.73.7
+documents AirPlay screen/audio reception on Intel and Apple Silicon Macs,
+including older hardware. This is a concrete external receiver candidate;
+Organizer integration, packaging and actual iPhone/native acceptance are open.
+Screen reception does not establish mouse/keyboard control of the iPhone.
+
 - All 8 declared primary sections and 13 settings pages; all 35 persisted root model keys.
 - Union 206 outer native wire commands from every tagged web JS literal, published Python dispatcher, published Windows typed contract plus current port allowlists. Each command has its own row in [command appendix](BRIDGE-ACCEPTANCE-2.0.30.md); source sites/status also in JSON.
 - All 1,364 mechanically detected named JS functions, 210 literal MCP tools, 122 App callbacks and 64 tagged contract files indexed in the scratch source-evidence JSON (not a committed dependency). Named helpers are not separate user features and literal MCP names do not cover computed action enums by themselves.
