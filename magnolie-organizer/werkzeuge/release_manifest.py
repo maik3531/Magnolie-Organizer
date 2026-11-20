@@ -25,7 +25,7 @@ def text_setzen(knoten, name, text):
 
 
 def manifest_schreiben(pfad, deb_pfad, appimage_pfad, handbuch_pfad,
-                       windows_pfad):
+                       windows_pfad, *, package_base=None):
     baum = ET.parse(pfad)
     wurzel = baum.getroot()
     deb_url = (wurzel.findtext("./deb") or "").strip()
@@ -36,6 +36,10 @@ def manifest_schreiben(pfad, deb_pfad, appimage_pfad, handbuch_pfad,
     if treffer is None:
         raise RuntimeError("Ungültiger Debian-Paketname.")
     version = treffer.group(1)
+    if package_base is not None and package_base != (
+            "https://gitlab.com/api/v4/projects/78301901/packages/generic/"
+            f"magnolie-desktop/{version}/"):
+        raise RuntimeError("Nicht freigegebene Registry-Adresse für diese Manifestversion.")
     deb_name = "magnolie-organizer_%s_all.deb" % version
     appimage_name = "Magnolie-Organizer-%s-x86_64.AppImage" % version
     handbuch_name = "magnolie-handbuch_%s_all.deb" % version
@@ -49,7 +53,7 @@ def manifest_schreiben(pfad, deb_pfad, appimage_pfad, handbuch_pfad,
     for signatur in wurzel.findall("./signature"):
         wurzel.remove(signatur)
 
-    basis = deb_url.rsplit("/", 1)[0] + "/"
+    basis = package_base if package_base is not None else deb_url.rsplit("/", 1)[0] + "/"
     text_setzen(wurzel, "version", version)
     text_setzen(wurzel, "deb", basis + deb_name)
     text_setzen(wurzel, "sha256", datei_summe(deb_pfad))

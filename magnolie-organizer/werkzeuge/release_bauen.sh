@@ -9,6 +9,11 @@ if [ "${1:-}" = --promote ]; then
     exec python3 "$LIVE_SOURCE/werkzeuge/release_gate.py" promote --root "$LIVE_ROOT" \
         --candidate "$2" --approval "$3" --accept-candidate "$4"
 fi
+if [ "${1:-}" = --prepare-storage ]; then
+    [ "$#" -eq 5 ] || { printf '%s\n' 'Usage: release_bauen.sh --prepare-storage CANDIDATE APPROVAL ACCEPTED_CANDIDATE_SHA256 STORAGE_DIRECTORY' >&2; exit 2; }
+    exec python3 "$LIVE_SOURCE/werkzeuge/release_gate.py" prepare-storage --root "$LIVE_ROOT" \
+        --candidate "$2" --approval "$3" --accept-candidate "$4" --storage-directory "$5"
+fi
 AUTOPKGTESTS=1
 FEDORA_TESTS=1
 case "${1:-}" in
