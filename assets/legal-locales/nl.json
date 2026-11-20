@@ -1,0 +1,150 @@
+{
+  "locale": "nl",
+  "language_name": "Nederlands",
+  "direction": "ltr",
+  "labels": {
+    "skip": "Naar de inhoud",
+    "main_navigation": "Hoofdnavigatie",
+    "home": "Startpagina",
+    "press": "Persoverzicht",
+    "downloads": "Downloads",
+    "imprint": "Colofon",
+    "privacy": "Privacy",
+    "contents": "Inhoud van deze pagina",
+    "more_information": "Meer informatie",
+    "language": "Taal",
+    "german_original": "Oorspronkelijke Duitse versie",
+    "email": "E-mail",
+    "country": "Duitsland",
+    "updated": "Bijgewerkt op 20 november 2026",
+    "project": "Broncode en project",
+    "product_information": "Productinformatie",
+    "license": "Licentie",
+    "feedback": "Feedback",
+    "source_note": "Productafbeeldingen: officiële handleiding en aangeleverde schermafbeelding van de toepassing. Productinformatie gecontroleerd op 11 november 2026.",
+    "downloads_note": "Downloads en software zijn beschikbaar via de gekoppelde projectpagina's.",
+    "footer_project": "Mijn persoonlijke opensourceproject · Ontwikkeld in mijn vrije tijd"
+  },
+  "project_notice": "Magnolie is mijn persoonlijke opensourceproject, dat ik in mijn vrije tijd ontwikkel en onderhoud. Er zit geen bedrijf achter het project.",
+  "imprint": {
+    "title": "Colofon",
+    "description": "Aanbieder en contactgegevens van de Magnolie-website, en informatie over externe links.",
+    "lead": "Aanbieder, contactgegevens en juridische informatie over deze website.",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "Aanbieder en contact",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "Mijn persoonlijke project",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "Redactionele verantwoordelijkheid",
+        "paragraphs": [
+          "Verantwoordelijk voor de redactionele inhoud van het persoverzicht overeenkomstig § 18 Abs. 2 MStV:",
+          "{{operator_name}}, <a href=\"#anbieter\">adres zoals hierboven vermeld</a>."
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "Eigen inhoud",
+        "paragraphs": [
+          "Ik ben binnen de geldende wetgeving verantwoordelijk voor de eigen inhoud van mijn website. Ik stel de informatie zorgvuldig samen. Toch kunnen er fouten voorkomen of kan informatie inmiddels verouderd zijn.",
+          "Als je fouten of mogelijke rechtsschendingen opmerkt, meld dan de betreffende pagina en de concrete omstandigheden via <a href=\"mailto:{{email}}\">{{email}}</a>. Ik onderzoek zulke meldingen en corrigeer of verwijder inhoud waar dat nodig is. Wettelijke rechten en plichten blijven onverlet."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "Externe links en aansprakelijkheid",
+        "paragraphs": [
+          "Mijn website bevat links naar externe informatie en diensten, met name persartikelen, softwareoverzichten en downloadplatforms. De gekoppelde informatie en diensten worden aangeboden door de partijen die op de betreffende sites worden genoemd. De inhoud kan na het plaatsen van de link veranderen.",
+          "Als je onrechtmatige inhoud of onjuiste links opmerkt, meld dan het betreffende internetadres en de concrete omstandigheden via <a href=\"mailto:{{email}}\">{{email}}</a>. Ik onderzoek zulke meldingen en verwijder de betreffende links waar dat nodig is.",
+          "De wettelijke verantwoordelijkheid voor eigen inhoud en de wettelijke onderzoeks- en verwijderingsplichten blijven onverlet. Dit geldt ook voor mijn eigen bijdragen die op andere websites worden gepubliceerd."
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "Auteursrecht en licenties",
+        "paragraphs": [
+          "Ik stel Magnolie Organizer beschikbaar als opensourcesoftware onder GPL-3.0-or-later. Voor inhoud die onder een open of afzonderlijke licentie wordt aangeboden, blijven de daarvoor vermelde licentievoorwaarden gelden. Met deze informatie beperk ik geen reeds verleende rechten op gebruik, verveelvoudiging, bewerking en verdere verspreiding.",
+          "Voor zover het gebruik van beschermde inhoud niet wettelijk is toegestaan en niet onder een bestaande licentie of andere toestemming valt, is toestemming van de betreffende rechthebbenden vereist. De rechten op gekoppelde persartikelen en andere inhoud van derden blijven bij de respectieve rechthebbenden.",
+          "Het <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">licentieoverzicht van het project</a>, de <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">GPL-licentietekst</a> en de <a href=\"{{source_notices_url}}\">bron- en afbeeldingsvermeldingen van deze website</a> bevatten de bijbehorende informatie."
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "Privacy",
+        "paragraphs": [
+          "Informatie over hosting, contact opnemen en je privacyrechten vind je in de <a href=\"{{privacy_url}}\">privacyverklaring</a>."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Privacy",
+    "description": "Privacyinformatie over de Magnolie-website: GitHub Pages, externe links, contact en je rechten.",
+    "lead": "Deze informatie heeft betrekking op het bezoek aan de Magnolie-website. De lokale gegevensopslag in de geïnstalleerde Magnolie-toepassing staat daar los van.",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. Verwerkingsverantwoordelijke",
+        "paragraphs": [
+          "Ik, {{operator_name}}, ben verantwoordelijk voor deze website. Mijn postadres staat in het <a href=\"{{imprint_url}}#anbieter\">colofon</a>. Met vragen over gegevensbescherming kun je terecht op <a href=\"mailto:{{email}}\">{{email}}</a>."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. Beschikbaarstelling via GitHub Pages",
+        "paragraphs": [
+          "De website wordt via GitHub Pages aangeboden. Bij het opvragen ontvangt GitHub technisch noodzakelijke verbindingsgegevens, waaronder je IP-adres en informatie over het opgevraagde bestand. GitHub bevestigt IP-adressen voor beveiligingsdoeleinden te loggen en op te slaan, ook zonder aanmelding bij GitHub. Zie <a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">GitHubs informatie over gegevensverzameling bij Pages</a>.",
+          "De hosting dient om deze website betrouwbaar en veilig beschikbaar te stellen. Op deze gerechtvaardigde belangen berust de technische beschikbaarstelling die ik regel, overeenkomstig Art. 6 Abs. 1 Buchst. f DSGVO. Zonder overdracht van de voor de verbinding noodzakelijke gegevens kan de website niet worden geleverd.",
+          "GitHub noemt als aanbieders GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande, en GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA. Gegevens kunnen ook in de Verenigde Staten en andere landen worden verwerkt. Voor dergelijke doorgiften beschrijft GitHub onder meer de EU-standaardcontractbepalingen als beschermingsmechanisme.",
+          "GitHub noemt in de gekoppelde informatie geen vaste verwijderingstermijn voor verbindingsgegevens van Pages. Volgens GitHub hangt de bewaring af van het verwerkingsdoel en wettelijke verplichtingen. Meer informatie over ontvangers, doorgiften en bewaring staat in de <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">privacyverklaring van GitHub</a>; het daar vermelde privacycontact is <a href=\"mailto:privacy@github.com\">privacy@github.com</a>."
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. Websitefuncties en ingesloten media",
+        "paragraphs": [
+          "De websitecode plaatst geen cookies, gebruikt geen Local Storage of vergelijkbare eigen blijvende browseropslag en bevat geen analyse- of advertentietrackers. Er is geen registratie en geen contactformulier.",
+          "Afbeeldingen, video's, ondertitels, stylesheets en JavaScript worden via dezelfde GitHub Pages-hosting geladen. Er zijn geen videospelers van derden, externe lettertypediensten of widgets van sociale media ingesloten. Ook het laden van videometagegevens en het afspelen van een video leiden tot verzoeken aan de hostingaanbieder.",
+          "De deelknop kopieert pas na je klik een vooraf opgestelde tekst met het pagina-adres naar het klembord. De knop leest geen bestaande klembordinhoud en stuurt de tekst niet naar een sociale dienst. De afdrukknop opent de afdrukfunctie van je browser.",
+          "Bij het openen van het algemene startadres kiest een script op basis van de voorkeurstalen die in je browser zijn ingesteld een geschikte beschikbare startpagina in die taal. Een uitdrukkelijk gekozen taaladres heeft voorrang. De keuze vindt in je browser plaats en wordt niet naar een aanvullende dienst gestuurd. Ik plaats hiervoor geen cookies en sla de taalkeuze niet op in Local Storage of andere blijvende browseropslag."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. Links naar andere aanbieders",
+        "paragraphs": [
+          "Sommige downloads, broncode, feedbackmogelijkheden en persbronnen zijn via links op andere websites te vinden. Als je zo'n doelpagina opent, verwerkt de aanbieder ervan verbindingsgegevens en eventueel andere gegevens volgens zijn eigen privacyinformatie. Afhankelijk van de browser en de instellingen kan ook de verwijzende pagina worden doorgegeven.",
+          "De links sluiten deze externe informatie en diensten niet automatisch in de Magnolie-pagina in. Juridische informatie over de verwijzingen staat in het <a href=\"{{imprint_url}}#externe-links\">colofon</a>."
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. Contact per e-mail",
+        "paragraphs": [
+          "Als je mij schrijft, verwerk ik je afzenderadres, je bericht en de gegevens die je daarin vrijwillig verstrekt om je vraag te behandelen. De rechtsgrond is Art. 6 Abs. 1 Buchst. f DSGVO; mijn gerechtvaardigde belang is het beantwoorden van vragen over het project. Zonder een afzenderadres waarop je bereikbaar bent, kan ik niet antwoorden.",
+          "Voor de genoemde mailbox wordt Gmail gebruikt. Google verwerkt daarbij berichten en verbindingsgegevens. De aanbieder voor gebruikers in de Europese Economische Ruimte is Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Verwerking buiten de Europese Economische Ruimte is mogelijk. Google noemt hiervoor adequaatheidsmechanismen, waaronder het EU-VS-kader voor gegevensbescherming, en, voor zover die niet van toepassing zijn, standaardcontractbepalingen. De <a href=\"https://policies.google.com/privacy?hl=de\">privacyverklaring van Google</a> en de <a href=\"https://policies.google.com/privacy/frameworks?hl=de\">informatie over internationale gegevensdoorgiften</a> lichten dit nader toe en vermelden een contact voor kopieën van de bepalingen.",
+          "De correspondentie wordt verwijderd zodra die niet meer nodig is voor de behandeling van de vraag en eventuele vervolgvragen. Dit laat wettelijke bewaarplichten en noodzakelijke bewaring voor de instelling, uitoefening of onderbouwing van een rechtsvordering onverlet."
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. Je rechten",
+        "paragraphs": [
+          "Onder de wettelijke voorwaarden heb je recht op inzage, rectificatie, wissing, beperking van de verwerking en overdraagbaarheid van gegevens (Art. 15–20 DSGVO).",
+          "<strong>Bezwaar:</strong> Voor zover een verwerking op Art. 6 Abs. 1 Buchst. f DSGVO berust, kun je daartegen bezwaar maken om redenen die verband houden met je specifieke situatie (Art. 21 DSGVO). Gebruik daarvoor het hierboven genoemde contact.",
+          "Je kunt ook een klacht indienen bij een toezichthoudende autoriteit voor gegevensbescherming, met name in de lidstaat van je gewone verblijfplaats, je werkplek of de vermeende inbreuk (Art. 77 DSGVO).",
+          "In het kader van deze website neem ik geen uitsluitend geautomatiseerde beslissingen met rechtsgevolgen of vergelijkbaar ingrijpende gevolgen en voer ik geen bijbehorende profilering uit."
+        ]
+      }
+    ]
+  }
+}

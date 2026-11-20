@@ -1,0 +1,150 @@
+{
+  "locale": "hsb",
+  "language_name": "Hornjoserbšćina",
+  "direction": "ltr",
+  "labels": {
+    "skip": "K wobsahoj přeńć",
+    "main_navigation": "Hłowna nawigacija",
+    "home": "Startowa strona",
+    "press": "Nowinski přehlad",
+    "downloads": "Sćehnjenja",
+    "imprint": "Impresum",
+    "privacy": "Škit datow",
+    "contents": "Wobsah tuteje strony",
+    "more_information": "Dalše informacije",
+    "language": "Rěč",
+    "german_original": "Němska wuchadna wersija",
+    "email": "Mejlka",
+    "country": "Němska",
+    "updated": "Staw: 20. nowembra 2026",
+    "project": "Žórłowy kod a projekt",
+    "product_information": "Informacije wo produkće",
+    "license": "Licenca",
+    "feedback": "Wotmołwa",
+    "source_note": "Wobrazy produkta: oficielna přiručka a poskićene foto wobrazowki programa. Informacije wo produkće su so 11. nowembra 2026 přepruwowali.",
+    "downloads_note": "Sćehnjenja a softwara su na wotkazanych stronach projekta k dispoziciji.",
+    "footer_project": "Mój priwatny projekt z wotewrjenym žórłowym kodom · Wuwiwam jón w swobodnym času"
+  },
+  "project_notice": "Magnolie je mój priwatny projekt z wotewrjenym žórłowym kodom, kotryž w swobodnym času wuwiwam a hladam. Za projektom žane předewzaće njesteji.",
+  "imprint": {
+    "title": "Impresum",
+    "description": "Poskićer a kontakt webstrony Magnolie kaž tež informacije wo eksternych wotkazach.",
+    "lead": "Poskićer, kontakt a prawniske informacije k tutej webstronje.",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "Poskićer a kontakt",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "Mój priwatny projekt",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "Redakcionalna zamołwitosć",
+        "paragraphs": [
+          "Za redakcionalne wobsahi nowinskeho přehlada je po § 18 Abs. 2 MStV zamołwity:",
+          "{{operator_name}}, <a href=\"#anbieter\">adresa kaž horjeka</a>."
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "Swójske wobsahi",
+        "paragraphs": [
+          "Za swójske wobsahi mojeje webstrony sym we wobłuku płaćiwych zakonow zamołwity. Informacije swědomiće zestajam. Najebać toho móža so zmylki abo mjeztym zestarjene podaća jewić.",
+          "Jeli zmylki abo móžne přeńdźenja přećiwo prawu spóznaješ, zdźěl prošu potrjechenu stronu a konkretne wobstejnosće na <a href=\"mailto:{{email}}\">{{email}}</a>. Tajke pokazki přepruwuju a wobsahi porjedźuju abo wotstronjam, dalokož je to trěbne. Zakonske prawa a winowatosće njejsu přez to potrjechene."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "Eksterne wotkazy a rukowanje",
+        "paragraphs": [
+          "Moja webstrona wobsahuje wotkazy na eksterne poskitki, wosebje na nowinske nastawki, zapisowniki softwary a platformy za sćehnjenja. Wotkazane poskitki wobhospodarja wotpowědni tam mjenowani poskićerjo. Jich wobsahi móža so po wotkazanju změnić.",
+          "Jeli přećiwozakonske wobsahi abo zmylne wotkazy spóznaješ, zdźěl prošu potrjechenu internetnu adresu a konkretne wobstejnosće na <a href=\"mailto:{{email}}\">{{email}}</a>. Tajke pokazki přepruwuju a potrjechene wotkazy wotstronjam, dalokož je to trěbne.",
+          "Zakonska zamołwitosć za swójske wobsahi a zakonske winowatosće přepruwowanja a wotstronjenja njejsu přez to potrjechene. To płaći tež za swójske přinoški, kotrež so na druhich webstronach wozjewjeja."
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "Awtorske prawo a licency",
+        "paragraphs": [
+          "Magnolie Organizer stawjam jako softwaru z wotewrjenym žórłowym kodom pod GPL-3.0-or-later k dispoziciji. Za wobsahi, kotrež so pod wotewrjenej abo wosebitej licencu poskićeja, płaća dale wotpowědne podate licencne wuměnjenja. Z tutymi pokazkami hižo přizwolene prawa na wužiwanje, rozmnožowanje, wobdźěłanje a dalše rozšěrjenje njewobmjezuju.",
+          "Dalokož wužiwanje škitanych wobsahow njeje ani zakonsce dowolene ani přez wobstejacu licencu abo druhe dowolenje kryte, je přihłosowanje wotpowědnych wobsedźerjow prawow trěbne. Prawa na wotkazane nowinske nastawki a druhe cuze wobsahi wostanu pola wotpowědnych woprawnjenych.",
+          "Wotpowědne podaća wobsahuja <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">přehlad licencow projekta</a>, <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">tekst licency GPL</a> a <a href=\"{{source_notices_url}}\">podaća wo žórłach a wobrazach tuteje webstrony</a>."
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "Škit datow",
+        "paragraphs": [
+          "Informacije wo hostingu, nawjazanju kontakta a twojich prawach nastupajo škit datow namakaš we <a href=\"{{privacy_url}}\">wozjewjenju wo škiće datow</a>."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Škit datow",
+    "description": "Informacije wo škiće datow na webstronje Magnolie: GitHub Pages, eksterne wotkazy, kontakt a twoje prawa.",
+    "lead": "Tute pokazki nastupaja wopyt webstrony Magnolie. Lokalne składowanje datow w instalowanej aplikaciji Magnolie je wot toho dźělene.",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. Zamołwity",
+        "paragraphs": [
+          "Ja, {{operator_name}}, sym za tutu webstronu zamołwity. Moja póstowa adresa steji w <a href=\"{{imprint_url}}#anbieter\">impresumje</a>. Z prašenjemi k škitej datow móžeš so na <a href=\"mailto:{{email}}\">{{email}}</a> wobroćić."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. Spřistupnjenje přez GitHub Pages",
+        "paragraphs": [
+          "Webstrona so přez GitHub Pages spřistupnja. Při wotwołanju dóstawa GitHub technisce trěbne daty zwiska, mjez nimi twoju IP-adresu a informacije wo požadanej dataji. GitHub wobkruća, zo IP-adresy za zaměry wěstoty protokoluje a składuje, tež bjez přizjewjenja pola GitHub. Hlej <a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">informacije GitHub wo zběranju datow pola Pages</a>.",
+          "Hosting słuži spušćomnemu spřistupnjenju a wěstoće tuteje webstrony. Techniske spřistupnjenje, kotrež organizuju, so na tute woprawnjene zajimy po Art. 6 Abs. 1 Buchst. f DSGVO zepěra. Bjez posrědkowanja datow, kotrež su za zwisk trěbne, so webstrona spřistupnić njehodźi.",
+          "GitHub mjenuje jako poskićerjow GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande, a GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA. Daty móža so tež w USA a dalšich krajach předźěłować. Za wotpowědne posrědkowanja wopisuje GitHub mjez druhim standardne zrěčenske klausle EU jako škitny mechanizm.",
+          "GitHub njepodawa we wotkazanych informacijach kruteho termina za wotstronjenje datow zwiska Pages. Składowanje so po podaćach GitHub po zaměrje předźěłanja a prawniskich winowatosćach měri. Dalše podaća wo přijimarjach, posrědkowanjach a składowanju steja we <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">wozjewjenju GitHub wo škiće datow</a>; kontakt za škit datow je tam: <a href=\"mailto:privacy@github.com\">privacy@github.com</a>."
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. Funkcije webstrony a zasadźene medije",
+        "paragraphs": [
+          "Kod webstrony žane cookieje njestaja, njewužiwa Local Storage abo podobne swójske trajne składowaki wobhladowaka a žane slědowanske elementy za analyzu abo wabjenje njewobsahuje. Njeje žana registracija ani kontaktny formular.",
+          "Wobrazy, wideja, podtitule, stilowe łopjena a JavaScript so přez samsny hosting GitHub Pages začituja. Cuze widejowe wothrawaki, eksterne posłužby pismow a widgety socialnych medijow njejsu zasadźene. Tež začitanje widejowych metadatow a wothrawanje wideja k wotwołanjam pola poskićerja hostingu wjedźe.",
+          "Tłóčatko za dźělenje kopěruje hakle po twojim kliknjenju přihotowany tekst z adresu strony do mjezyskłada. Njewučita hižo wobstejace wobsahi mjezyskłada a tekst žanej socialnej posłužbje njeposrědkuje. Tłóčatko za ćišćenje wočini ćišćersku funkciju twojeho wobhladowaka.",
+          "Při wotwołanju powšitkowneje startoweje adresy wuběra skript na zakładźe preferowanych rěčow, kotrež su we wobhladowaku nastajene, hodźacy k dispoziciji stejacy rěčny wstup. Wuraznje wubrana rěčna adresa ma přednost. Wuběr so w twojim wobhladowaku přewjedźe a so žanej přidatnej posłužbje njeposrědkuje. Za to žane cookieje njestajam a rěčny wuběr ani w Local Storage ani w druhim trajnym składowaku wobhladowaka njeskładuju."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. Wotkazy na druhich poskićerjow",
+        "paragraphs": [
+          "Sćehnjenja, žórłowy kod, wotmołwy a nowinske žórła su zdźěla na druhich webstronach wotkazane. Hdyž tajku cilowu stronu wotwołaš, předźěłuje jeje poskićer daty zwiska a snano dalše daty po swójskich pokazkach wo škiće datow. Wotwisnje wot wobhladowaka a nastajenjow móže so tež strona, z kotrejež přichadźeš, posrědkować.",
+          "Wotkazy tute cuze poskitki awtomatisce do strony Magnolie njezasadźuja. Prawniske pokazki k wotkazam steja w <a href=\"{{imprint_url}}#externe-links\">impresumje</a>."
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. Kontakt z mejlku",
+        "paragraphs": [
+          "Hdyž mi pišeš, předźěłuju twoju adresu wotpósłarja, twoju powěsć a w njej dobrowólnje zdźělene podaća, zo bych twoju naležnosć wobdźěłał. Prawniski zakład je Art. 6 Abs. 1 Buchst. f DSGVO; mój woprawnjeny zajim je wotmołwjenje na naprašowanja k projektej. Bjez dosćahliweje adresy wotpósłarja njemóžu wotmołwić.",
+          "Za podaty póstowy kašćik so Gmail wužiwa. Google při tym powěsće a daty zwiska předźěłuje. Poskićer za wužiwarjow w Europskim hospodarskim rumje je Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Předźěłanje zwonka Europskeho hospodarskeho ruma je móžne. Google mjenuje za to mechanizmy přiměrjeneho škita, mjez nimi ramik za škit datow mjez EU a USA, a dalokož tute njepłaća, standardne zrěčenske klausle. <a href=\"https://policies.google.com/privacy?hl=de\">Wozjewjenje Google wo škiće datow</a> a <a href=\"https://policies.google.com/privacy/frameworks?hl=de\">informacije wo mjezynarodnym posrědkowanju datow</a> to bliže rozkładuja a mjenuja kontakt za kopije klauslow.",
+          "Korespondenca so wotstroni, hdyž hižo za wobdźěłanje naležnosće a móžnych dalšich prašenjow trěbna njeje. Zakonske winowatosće składowanja a trěbne składowanje za přesadźenje, wukonjenje abo zakitowanje prawniskich narokow wostanu wobchowane."
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. Twoje prawa",
+        "paragraphs": [
+          "Pod zakonskimi wuměnjenjemi maš prawa na informaciju, porjedźenje, wotstronjenje, wobmjezowanje předźěłanja a přenosliwosć datow (Art. 15–20 DSGVO).",
+          "<strong>Napřećiwjenje:</strong> Dalokož so předźěłanje na Art. 6 Abs. 1 Buchst. f DSGVO zepěra, móžeš jemu z přičin napřećiwjeć, kotrež z twojeje wosebiteje situacije wuslěduja (Art. 21 DSGVO). Wobroć so za to na horjeka mjenowany kontakt.",
+          "Móžeš so nimo toho pola dohladowanskeho zarjada za škit datow poskóržić, wosebje w čłonskim staće swojeho zwučeneho přebywanja, swojeho dźěłoweho městna abo předpokładowaneho přeńdźenja (Art. 77 DSGVO).",
+          "We wobłuku tuteje webstrony žane bjezwuwzaćnje awtomatizowane rozsudy z prawniskim abo podobnje wuznamnym wuskutkom njepřijimam a žane wotpowědne profilowanje njepřewjedu."
+        ]
+      }
+    ]
+  }
+}

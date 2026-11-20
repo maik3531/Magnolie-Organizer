@@ -1,0 +1,150 @@
+{
+  "locale": "zh-CN",
+  "language_name": "简体中文",
+  "direction": "ltr",
+  "labels": {
+    "skip": "跳转到正文",
+    "main_navigation": "主导航",
+    "home": "首页",
+    "press": "媒体报道",
+    "downloads": "下载",
+    "imprint": "法律声明",
+    "privacy": "隐私保护",
+    "contents": "本页目录",
+    "more_information": "更多信息",
+    "language": "语言",
+    "german_original": "德语原文",
+    "email": "电子邮件",
+    "country": "德国",
+    "updated": "更新日期：2026年11月20日",
+    "project": "源代码与项目",
+    "product_information": "产品信息",
+    "license": "许可证",
+    "feedback": "反馈",
+    "source_note": "产品图片来自官方手册和提供的程序截图。产品信息已于2026年11月11日核实。",
+    "downloads_note": "可通过所链接的项目页面获取下载内容和软件。",
+    "footer_project": "我的个人开源项目 · 在业余时间开发"
+  },
+  "project_notice": "Magnolie 是我在业余时间开发和维护的个人开源项目。该项目背后没有公司。",
+  "imprint": {
+    "title": "法律声明",
+    "description": "Magnolie 网站的提供者、联系方式及外部链接说明。",
+    "lead": "本网站的提供者、联系方式及法律说明。",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "提供者与联系方式",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "我的个人项目",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "编辑责任",
+        "paragraphs": [
+          "根据 § 18 Abs. 2 MStV，媒体报道汇编中编辑内容的负责人为：",
+          "{{operator_name}}，<a href=\"#anbieter\">地址同上</a>。"
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "我的自有内容",
+        "paragraphs": [
+          "我在适用法律的范围内，对本网站中的自有内容负责。我会认真整理这些信息，但仍可能出现错误，或信息在一段时间后不再最新。",
+          "如果你发现错误或可能的侵权行为，请将相关页面和具体情况发送至 <a href=\"mailto:{{email}}\">{{email}}</a>。我会核查此类报告，并在必要的范围内更正或删除内容。法定权利和义务不受影响。"
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "外部链接与责任",
+        "paragraphs": [
+          "我的网站包含指向外部内容和服务的链接，尤其是新闻文章、软件目录和下载平台。所链接的内容和服务由各目标页面列明的提供者运营。其内容可能在链接建立后发生变化。",
+          "如果你发现违法内容或错误链接，请将相关网址和具体情况发送至 <a href=\"mailto:{{email}}\">{{email}}</a>。我会核查此类报告，并在必要的范围内移除相关链接。",
+          "对自有内容承担的法定责任，以及法律规定的审查和移除义务，均不受影响。这同样适用于我在其他网站上发布的自有内容。"
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "著作权与许可证",
+        "paragraphs": [
+          "我以 GPL-3.0-or-later 许可证提供 Magnolie Organizer 开源软件。对于采用开放许可证或单独许可证提供的内容，仍适用其注明的许可证条款。这些说明不会限制已经授予的使用、复制、修改和再分发权利。",
+          "如果受保护内容的使用既不为法律所允许，也不在现有许可证或其他许可的范围内，则需要取得相应权利人的同意。所链接的新闻文章及其他第三方内容的权利仍归各自权利人所有。",
+          "相关信息见<a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">项目许可证概览</a>、<a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">GPL 许可证全文</a>以及<a href=\"{{source_notices_url}}\">本网站的来源与图片署名说明</a>。"
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "隐私保护",
+        "paragraphs": [
+          "有关网站托管、联系以及你的数据保护权利的信息，请参阅<a href=\"{{privacy_url}}\">隐私声明</a>。"
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "隐私保护",
+    "description": "Magnolie 网站的数据保护信息：GitHub Pages、外部链接、联系及你的权利。",
+    "lead": "本说明适用于访问 Magnolie 网站的情况。已安装的 Magnolie 应用程序中的本地数据存储与此相互独立。",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. 数据控制者",
+        "paragraphs": [
+          "我，{{operator_name}}，是本网站的负责人。我的邮寄地址见<a href=\"{{imprint_url}}#anbieter\">法律声明</a>。如有数据保护方面的问题，你可以通过 <a href=\"mailto:{{email}}\">{{email}}</a> 联系我。"
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. 通过 GitHub Pages 提供网站",
+        "paragraphs": [
+          "本网站通过 GitHub Pages 提供。访问网站时，GitHub 会接收技术上必要的连接数据，包括你的 IP 地址和所请求文件的信息。GitHub 确认，即使没有登录 GitHub，也会出于安全目的记录并存储 IP 地址。请参阅<a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">GitHub 关于 Pages 数据收集的说明</a>。",
+          "托管服务用于保障本网站的可靠提供和安全性。我安排的技术性网站提供以这些合法利益为依据，法律基础为 Art. 6 Abs. 1 Buchst. f DSGVO。如果不传输建立连接所需的数据，就无法提供本网站。",
+          "GitHub 列出的提供者为 GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande，以及 GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA。数据也可能在美国及其他国家处理。对于相应的数据传输，GitHub 说明的保护机制包括欧盟标准合同条款。",
+          "在所链接的信息中，GitHub 没有为 Pages 连接数据规定固定的删除期限。根据 GitHub 的说明，保存期限取决于处理目的和法律义务。有关接收方、数据传输和保存的更多信息，见<a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">GitHub 隐私声明</a>；其中列明的数据保护联系邮箱为 <a href=\"mailto:privacy@github.com\">privacy@github.com</a>。"
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. 网站功能与嵌入媒体",
+        "paragraphs": [
+          "本网站的代码不设置 Cookie，不使用 Local Storage 或类似的自有持久性浏览器存储，也不包含分析或广告跟踪器。网站没有注册功能，也没有联系表单。",
+          "图片、视频、字幕、样式表和 JavaScript 均通过同一 GitHub Pages 托管服务加载。网站没有嵌入第三方视频播放器、外部字体服务或社交媒体组件。加载视频元数据和播放视频也会向托管服务商发出请求。",
+          "只有在你点击分享按钮后，它才会将包含页面地址的预设文本复制到剪贴板。它不会读取剪贴板中已有的内容，也不会将文本发送给社交服务。打印按钮会打开浏览器的打印功能。",
+          "访问网站的通用入口地址时，脚本会根据浏览器设置的首选语言，选择合适的可用语言入口。明确选择的语言地址优先。选择过程在你的浏览器中完成，不会发送至额外的服务。我不会为此设置 Cookie，也不会将语言选择保存到 Local Storage 或其他持久性浏览器存储中。"
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. 指向其他提供者的链接",
+        "paragraphs": [
+          "下载、源代码、反馈和新闻来源的部分链接会指向其他网站。当你访问此类目标页面时，其提供者会按照自己的隐私说明处理连接数据，并可能处理其他数据。根据浏览器及其设置的不同，来源页面的信息也可能被传送。",
+          "这些链接不会自动将相应的外部内容和服务嵌入 Magnolie 页面。有关这些链接的法律说明，见<a href=\"{{imprint_url}}#externe-links\">法律声明</a>。"
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. 通过电子邮件联系",
+        "paragraphs": [
+          "如果你给我写邮件，我会处理你的发件地址、消息以及你在其中自愿提供的信息，以便处理你的请求。法律依据为 Art. 6 Abs. 1 Buchst. f DSGVO；我的合法利益是回答与项目有关的询问。如果没有可以联系到你的发件地址，我就无法回复。",
+          "所列邮箱使用 Gmail。Google 会在此过程中处理邮件和连接数据。欧洲经济区用户的服务提供者为 Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland。数据可能在欧洲经济区之外处理。Google 为此列出的充分性机制包括欧盟—美国数据隐私框架；如果这些机制不适用，则采用标准合同条款。<a href=\"https://policies.google.com/privacy?hl=de\">Google 隐私政策</a>和<a href=\"https://policies.google.com/privacy/frameworks?hl=de\">国际数据传输说明</a>对此有更详细的解释，并列出了获取条款副本的联系方式。",
+          "当通信内容不再是处理请求及任何后续问题所必需时，我会将其删除。但法律规定的保存义务，以及为提出、行使或抗辩法律请求所必需的保存，不受影响。"
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. 你的权利",
+        "paragraphs": [
+          "在满足法律规定的条件时，你享有访问、更正、删除、限制处理以及数据可携带的权利（Art. 15–20 DSGVO）。",
+          "<strong>反对权：</strong>如果某项处理基于 Art. 6 Abs. 1 Buchst. f DSGVO，你可以基于与你的特定情况有关的理由提出反对（Art. 21 DSGVO）。请通过上方列出的联系方式提出。",
+          "你还可以向数据保护监管机构投诉，尤其是向你惯常居住地、工作地点或涉嫌违规行为发生地所在成员国的监管机构投诉（Art. 77 DSGVO）。",
+          "在本网站范围内，我不会作出仅基于自动化处理、且产生法律效力或类似重大影响的决定，也不会进行相应的个人画像分析。"
+        ]
+      }
+    ]
+  }
+}

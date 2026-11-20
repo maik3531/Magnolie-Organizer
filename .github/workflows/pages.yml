@@ -6,6 +6,7 @@ on:
     paths:
       - index.html
       - assets/**
+      - de/**
       - en/**
       - intl/**
       - media/**
@@ -18,11 +19,15 @@ on:
       - sitemap.xml
       - .nojekyll
       - tools/build-pages.py
+      - tools/render-legal-pages.py
+      - tools/templates/**
+      - tools/test-website-language.cjs
       - .github/workflows/pages.yml
   pull_request:
     paths:
       - index.html
       - assets/**
+      - de/**
       - en/**
       - intl/**
       - media/**
@@ -35,6 +40,9 @@ on:
       - sitemap.xml
       - .nojekyll
       - tools/build-pages.py
+      - tools/render-legal-pages.py
+      - tools/templates/**
+      - tools/test-website-language.cjs
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -56,6 +64,7 @@ jobs:
           sparse-checkout: |
             index.html
             assets
+            de
             en
             intl
             media
@@ -68,9 +77,15 @@ jobs:
             sitemap.xml
             .nojekyll
             tools/build-pages.py
+            tools/render-legal-pages.py
+            tools/templates
+            tools/test-website-language.cjs
           sparse-checkout-cone-mode: false
       - name: Package website and validate local links
-        run: python3 tools/build-pages.py --output _site
+        run: |
+          python3 tools/render-legal-pages.py --check
+          node tools/test-website-language.cjs
+          python3 tools/build-pages.py --output _site
       - name: Upload website
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

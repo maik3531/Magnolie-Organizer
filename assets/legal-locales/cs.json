@@ -1,0 +1,150 @@
+{
+  "locale": "cs",
+  "language_name": "Čeština",
+  "direction": "ltr",
+  "labels": {
+    "skip": "Přejít k obsahu",
+    "main_navigation": "Hlavní navigace",
+    "home": "Úvodní stránka",
+    "press": "Přehled tisku",
+    "downloads": "Ke stažení",
+    "imprint": "Právní informace",
+    "privacy": "Ochrana osobních údajů",
+    "contents": "Obsah této stránky",
+    "more_information": "Další informace",
+    "language": "Jazyk",
+    "german_original": "Německé původní znění",
+    "email": "E-mail",
+    "country": "Německo",
+    "updated": "Stav k 20. listopadu 2026",
+    "project": "Zdrojový kód a projekt",
+    "product_information": "Informace o produktu",
+    "license": "Licence",
+    "feedback": "Zpětná vazba",
+    "source_note": "Obrázky produktu: oficiální příručka a poskytnutý snímek obrazovky programu. Informace o produktu byly ověřeny 11. listopadu 2026.",
+    "downloads_note": "Soubory ke stažení a software jsou dostupné na odkazovaných stránkách projektu.",
+    "footer_project": "Můj soukromý projekt s otevřeným zdrojovým kódem · Vyvíjím ve volném čase"
+  },
+  "project_notice": "Magnolie je můj soukromý projekt s otevřeným zdrojovým kódem, který vyvíjím a udržuji ve volném čase. Za projektem nestojí žádná firma.",
+  "imprint": {
+    "title": "Právní informace",
+    "description": "Provozovatel a kontaktní údaje webu Magnolie a informace o externích odkazech.",
+    "lead": "Provozovatel, kontaktní údaje a právní informace k tomuto webu.",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "Provozovatel a kontakt",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "Můj soukromý projekt",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "Redakční odpovědnost",
+        "paragraphs": [
+          "Za redakční obsah přehledu tisku podle § 18 Abs. 2 MStV odpovídá:",
+          "{{operator_name}}, <a href=\"#anbieter\">adresa je uvedena výše</a>."
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "Vlastní obsah",
+        "paragraphs": [
+          "Za vlastní obsah svého webu odpovídám v mezích platných zákonů. Informace sestavuji pečlivě. Přesto se mohou vyskytnout chyby nebo údaje, které mezitím zastaraly.",
+          "Pokud si všimneš chyb nebo možného porušení práv, nahlas prosím příslušnou stránku a konkrétní okolnosti na <a href=\"mailto:{{email}}\">{{email}}</a>. Taková upozornění prověřuji a v případě potřeby obsah opravuji nebo odstraňuji. Zákonná práva a povinnosti zůstávají nedotčeny."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "Externí odkazy a odpovědnost",
+        "paragraphs": [
+          "Můj web obsahuje odkazy na externí nabídky, zejména na články v tisku, katalogy softwaru a platformy pro stahování. Odkazované nabídky provozují jejich uvedení poskytovatelé. Jejich obsah se může po vložení odkazu změnit.",
+          "Pokud si všimneš protiprávního obsahu nebo chybných odkazů, nahlas prosím příslušnou internetovou adresu a konkrétní okolnosti na <a href=\"mailto:{{email}}\">{{email}}</a>. Taková upozornění prověřuji a v případě potřeby příslušné odkazy odstraňuji.",
+          "Zákonná odpovědnost za vlastní obsah a zákonné povinnosti kontroly a odstranění zůstávají nedotčeny. To platí i pro mé vlastní příspěvky zveřejněné na jiných webech."
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "Autorské právo a licence",
+        "paragraphs": [
+          "Magnolie Organizer poskytuji jako software s otevřeným zdrojovým kódem pod licencí GPL-3.0-or-later. Pro obsah nabízený pod otevřenou nebo samostatnou licencí nadále platí příslušné uvedené licenční podmínky. Těmito informacemi neomezuji již udělená práva k používání, rozmnožování, úpravám a dalšímu šíření.",
+          "Pokud užití chráněného obsahu není dovoleno zákonem ani se na ně nevztahuje stávající licence nebo jiné svolení, je nutný souhlas příslušných nositelů práv. Práva k odkazovaným článkům v tisku a jinému cizímu obsahu zůstávají příslušným oprávněným osobám.",
+          "Příslušné údaje obsahují <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">přehled licencí projektu</a>, <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">text licence GPL</a> a <a href=\"{{source_notices_url}}\">údaje o zdrojích a obrázcích tohoto webu</a>."
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "Ochrana osobních údajů",
+        "paragraphs": [
+          "Informace o hostingu, kontaktování a svých právech v oblasti ochrany osobních údajů najdeš v <a href=\"{{privacy_url}}\">prohlášení o ochraně osobních údajů</a>."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Ochrana osobních údajů",
+    "description": "Informace o ochraně osobních údajů na webu Magnolie: GitHub Pages, externí odkazy, kontakt a tvoje práva.",
+    "lead": "Tyto informace se týkají návštěvy webu Magnolie. Místní ukládání dat v nainstalované aplikaci Magnolie je od toho oddělené.",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. Správce osobních údajů",
+        "paragraphs": [
+          "Já, {{operator_name}}, odpovídám za tento web. Moje poštovní adresa je uvedena v <a href=\"{{imprint_url}}#anbieter\">právních informacích</a>. S otázkami k ochraně osobních údajů se můžeš obrátit na <a href=\"mailto:{{email}}\">{{email}}</a>."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. Poskytování prostřednictvím GitHub Pages",
+        "paragraphs": [
+          "Web je poskytován prostřednictvím GitHub Pages. Při načtení získává GitHub technicky nezbytné údaje o připojení, včetně tvé IP adresy a informací o požadovaném souboru. GitHub potvrzuje, že z bezpečnostních důvodů zaznamenává a ukládá IP adresy, a to i bez přihlášení ke GitHubu. Viz <a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">informace GitHubu o shromažďování údajů ve službě Pages</a>.",
+          "Hosting slouží spolehlivému poskytování a zabezpečení tohoto webu. O tyto oprávněné zájmy se opírá technické poskytování, které zajišťuji, podle Art. 6 Abs. 1 Buchst. f DSGVO. Bez předání údajů nezbytných pro připojení nelze web poskytnout.",
+          "GitHub uvádí jako poskytovatele GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande, a GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA. Údaje mohou být zpracovávány také v USA a dalších zemích. Pro příslušná předávání popisuje GitHub mimo jiné standardní smluvní doložky EU jako ochranný mechanismus.",
+          "V odkazovaných informacích GitHub neuvádí pevnou lhůtu pro vymazání údajů o připojení ke službě Pages. Uchovávání se podle GitHubu řídí účelem zpracování a právními povinnostmi. Další informace o příjemcích, předávání a uchovávání obsahuje <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">prohlášení GitHubu o ochraně osobních údajů</a>; kontaktní adresa pro ochranu osobních údajů: <a href=\"mailto:privacy@github.com\">privacy@github.com</a>."
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. Funkce webu a vložená média",
+        "paragraphs": [
+          "Kód webu neukládá cookies, nepoužívá Local Storage ani srovnatelná vlastní trvalá úložiště prohlížeče a neobsahuje analytické ani reklamní sledovací prvky. Není zde registrace ani kontaktní formulář.",
+          "Obrázky, videa, titulky, styly a JavaScript se načítají ze stejného hostingu GitHub Pages. Nejsou vloženy cizí videopřehrávače, externí služby písem ani widgety sociálních sítí. Také načítání metadat videa a přehrávání videa vyvolává požadavky na poskytovatele hostingu.",
+          "Tlačítko pro sdílení zkopíruje připravený text s adresou stránky do schránky až po tvém kliknutí. Nečte stávající obsah schránky a neposílá text žádné sociální službě. Tlačítko tisku otevře tiskovou funkci tvého prohlížeče.",
+          "Při otevření obecné úvodní adresy vybere skript vhodnou dostupnou jazykovou úvodní stránku podle preferovaných jazyků nastavených v prohlížeči. Výslovně zvolená jazyková adresa má přednost. Výběr probíhá ve tvém prohlížeči a není odesílán další službě. Za tímto účelem neukládám cookies a neukládám volbu jazyka do Local Storage ani jiného trvalého úložiště prohlížeče."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. Odkazy na jiné poskytovatele",
+        "paragraphs": [
+          "Odkazy na soubory ke stažení, zdrojový kód, zpětnou vazbu a tiskové zdroje vedou částečně na jiné weby. Když takovou cílovou stránku otevřeš, její poskytovatel zpracovává údaje o připojení a případně další údaje podle vlastních informací o ochraně osobních údajů. V závislosti na prohlížeči a nastavení může být předána i odkazující stránka.",
+          "Odkazy tyto cizí nabídky automaticky nevkládají do stránky Magnolie. Právní informace k odkazům jsou uvedeny v <a href=\"{{imprint_url}}#externe-links\">právních informacích</a>."
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. Kontakt e-mailem",
+        "paragraphs": [
+          "Když mi napíšeš, zpracovávám tvou adresu odesílatele, zprávu a údaje, které v ní dobrovolně uvedeš, abych mohl vyřídit tvou záležitost. Právním základem je Art. 6 Abs. 1 Buchst. f DSGVO; mým oprávněným zájmem je odpovídání na dotazy týkající se projektu. Bez dostupné adresy odesílatele nemohu odpovědět.",
+          "Pro uvedenou e-mailovou schránku se používá Gmail. Google při tom zpracovává zprávy a údaje o připojení. Poskytovatelem pro uživatele v Evropském hospodářském prostoru je Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Zpracování může probíhat i mimo Evropský hospodářský prostor. Google pro tento účel uvádí mechanismy odpovídající úrovně ochrany včetně rámce ochrany údajů EU–USA a v případech, kdy se neuplatní, standardní smluvní doložky. <a href=\"https://policies.google.com/privacy?hl=de\">Zásady ochrany soukromí společnosti Google</a> a <a href=\"https://policies.google.com/privacy/frameworks?hl=de\">informace o mezinárodním předávání údajů</a> to podrobněji vysvětlují a uvádějí kontakt pro získání kopií doložek.",
+          "Korespondence bude vymazána, jakmile již nebude potřebná k vyřízení záležitosti a případných navazujících dotazů. Zákonné povinnosti uchovávání a nezbytné uchovávání pro uplatnění, výkon nebo obhajobu právních nároků tím nejsou dotčeny."
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. Tvoje práva",
+        "paragraphs": [
+          "Za zákonných podmínek máš právo na přístup k údajům, opravu, výmaz, omezení zpracování a přenositelnost údajů (Art. 15–20 DSGVO).",
+          "<strong>Námitka:</strong> Pokud se zpracování opírá o Art. 6 Abs. 1 Buchst. f DSGVO, můžeš proti němu vznést námitku z důvodů vyplývajících z tvé konkrétní situace (Art. 21 DSGVO). Obrať se za tímto účelem na výše uvedený kontakt.",
+          "Můžeš také podat stížnost u dozorového úřadu pro ochranu osobních údajů, zejména v členském státě svého obvyklého bydliště, pracoviště nebo údajného porušení (Art. 77 DSGVO).",
+          "V rámci tohoto webu nepřijímám rozhodnutí založená výhradně na automatizovaném zpracování, která mají právní nebo obdobně významné účinky, a neprovádím odpovídající profilování."
+        ]
+      }
+    ]
+  }
+}

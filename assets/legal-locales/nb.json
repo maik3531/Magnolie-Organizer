@@ -1,0 +1,150 @@
+{
+  "locale": "nb",
+  "language_name": "Norsk bokmål",
+  "direction": "ltr",
+  "labels": {
+    "skip": "Hopp til innholdet",
+    "main_navigation": "Hovednavigasjon",
+    "home": "Forside",
+    "press": "Presseomtale",
+    "downloads": "Nedlastinger",
+    "imprint": "Juridisk informasjon",
+    "privacy": "Personvern",
+    "contents": "Innhold på denne siden",
+    "more_information": "Mer informasjon",
+    "language": "Språk",
+    "german_original": "Tysk originalversjon",
+    "email": "E-post",
+    "country": "Tyskland",
+    "updated": "Oppdatert: 20. november 2026",
+    "project": "Kildekode og prosjekt",
+    "product_information": "Produktinformasjon",
+    "license": "Lisens",
+    "feedback": "Tilbakemelding",
+    "source_note": "Produktbilder: den offisielle håndboken og et tilgjengeliggjort skjermbilde av programmet. Produktinformasjonen ble kontrollert 11. november 2026.",
+    "downloads_note": "Nedlastinger og programvare er tilgjengelige via de lenkede prosjektsidene.",
+    "footer_project": "Mitt private prosjekt med åpen kildekode · Utviklet på fritiden min"
+  },
+  "project_notice": "Magnolie er mitt private prosjekt med åpen kildekode, som jeg utvikler og vedlikeholder på fritiden. Det står ikke noe selskap bak prosjektet.",
+  "imprint": {
+    "title": "Juridisk informasjon",
+    "description": "Tilbyder og kontakt for Magnolie-nettstedet samt informasjon om eksterne lenker.",
+    "lead": "Tilbyder, kontakt og juridisk informasjon om dette nettstedet.",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "Tilbyder og kontakt",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "Mitt private prosjekt",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "Redaksjonelt ansvar",
+        "paragraphs": [
+          "Ansvarlig for det redaksjonelle innholdet i presseomtalen i henhold til § 18 Abs. 2 MStV:",
+          "{{operator_name}}, <a href=\"#anbieter\">adresse som ovenfor</a>."
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "Eget innhold",
+        "paragraphs": [
+          "Jeg er ansvarlig for mitt eget innhold på nettstedet innenfor rammene av gjeldende lovgivning. Jeg setter sammen informasjonen med omhu. Likevel kan det forekomme feil eller opplysninger som i mellomtiden har blitt utdaterte.",
+          "Hvis du oppdager feil eller mulige rettighetskrenkelser, ber jeg deg sende den berørte siden og en konkret beskrivelse av forholdet til <a href=\"mailto:{{email}}\">{{email}}</a>. Jeg undersøker slike henvendelser og retter eller fjerner innhold i den grad det er nødvendig. Lovfestede rettigheter og plikter berøres ikke."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "Eksterne lenker og ansvar",
+        "paragraphs": [
+          "Nettstedet mitt inneholder lenker til eksterne tilbud, særlig presseartikler, programvarekataloger og nedlastingsplattformer. De lenkede tilbudene drives av tilbyderne som er oppgitt på de respektive sidene. Innholdet deres kan endres etter at lenken er opprettet.",
+          "Hvis du oppdager ulovlig innhold eller feilaktige lenker, ber jeg deg sende den berørte nettadressen og en konkret beskrivelse av forholdet til <a href=\"mailto:{{email}}\">{{email}}</a>. Jeg undersøker slike henvendelser og fjerner de berørte lenkene i den grad det er nødvendig.",
+          "Lovfestet ansvar for eget innhold og lovfestede plikter til å undersøke og fjerne innhold berøres ikke. Dette gjelder også mine egne bidrag som publiseres på andre nettsteder."
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "Opphavsrett og lisenser",
+        "paragraphs": [
+          "Jeg gjør Magnolie Organizer tilgjengelig som programvare med åpen kildekode under GPL-3.0-or-later. For innhold som tilbys under en åpen eller særskilt lisens, gjelder de angitte lisensvilkårene fortsatt. Med denne informasjonen begrenser jeg ikke allerede innvilgede rettigheter til bruk, kopiering, bearbeiding og videreformidling.",
+          "Hvis bruk av beskyttet innhold verken er tillatt ved lov eller dekket av en eksisterende lisens eller annen tillatelse, kreves samtykke fra de respektive rettighetshaverne. Rettighetene til lenkede presseartikler og annet innhold fra tredjeparter forblir hos de respektive rettighetshaverne.",
+          "<a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">Prosjektets lisensoversikt</a>, <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">GPL-lisensteksten</a> og <a href=\"{{source_notices_url}}\">kilde- og bildehenvisningene for dette nettstedet</a> inneholder de tilhørende opplysningene."
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "Personvern",
+        "paragraphs": [
+          "Informasjon om hosting, kontakt og personvernrettighetene dine finner du i <a href=\"{{privacy_url}}\">personvernerklæringen</a>."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Personvern",
+    "description": "Personverninformasjon for Magnolie-nettstedet: GitHub Pages, eksterne lenker, kontakt og rettighetene dine.",
+    "lead": "Denne informasjonen gjelder besøk på Magnolie-nettstedet. Lokal lagring av data i det installerte Magnolie-programmet er atskilt fra dette.",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. Behandlingsansvarlig",
+        "paragraphs": [
+          "Jeg, {{operator_name}}, er ansvarlig for dette nettstedet. Postadressen min står i den <a href=\"{{imprint_url}}#anbieter\">juridiske informasjonen</a>. Ved spørsmål om personvern kan du kontakte <a href=\"mailto:{{email}}\">{{email}}</a>."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. Levering via GitHub Pages",
+        "paragraphs": [
+          "Nettstedet leveres via GitHub Pages. Ved besøk mottar GitHub teknisk nødvendige tilkoblingsdata, blant annet IP-adressen din og informasjon om den forespurte filen. GitHub bekrefter at IP-adresser loggføres og lagres av sikkerhetshensyn, også uten innlogging på GitHub. Se <a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">GitHubs informasjon om datainnsamling ved Pages</a>.",
+          "Hostingen skal sikre pålitelig levering og sikkerhet for dette nettstedet. Den tekniske leveringen som jeg sørger for, bygger på disse berettigede interessene i henhold til Art. 6 Abs. 1 Buchst. f DSGVO. Uten overføring av dataene som er nødvendige for tilkoblingen, kan nettstedet ikke leveres.",
+          "GitHub oppgir GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande, og GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA, som tilbydere. Data kan også behandles i USA og andre land. For slike overføringer beskriver GitHub blant annet EUs standard personvernbestemmelser som beskyttelsesmekanisme.",
+          "GitHub oppgir ingen fast slettefrist for tilkoblingsdata fra Pages i den lenkede informasjonen. Ifølge GitHub avhenger oppbevaringen av formålet med behandlingen og rettslige forpliktelser. Flere opplysninger om mottakere, overføringer og oppbevaring finnes i <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">GitHubs personvernerklæring</a>; personvernkontakt der: <a href=\"mailto:privacy@github.com\">privacy@github.com</a>."
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. Nettstedets funksjoner og innebygde medier",
+        "paragraphs": [
+          "Nettstedets kode setter ingen informasjonskapsler, bruker ikke Local Storage eller tilsvarende egen varig lagring i nettleseren og inneholder ingen analyse- eller reklamesporing. Det finnes ingen registrering og ikke noe kontaktskjema.",
+          "Bilder, videoer, undertekster, stilark og JavaScript lastes inn via den samme GitHub Pages-hostingen. Videospillere fra tredjeparter, eksterne skrifttjenester og moduler fra sosiale medier er ikke bygget inn. Også innlasting av videometadata og avspilling av en video fører til forespørsler hos hostingleverandøren.",
+          "Del-knappen kopierer først en klargjort tekst med sidens adresse til utklippstavlen når du klikker på den. Den leser ikke eksisterende innhold i utklippstavlen og overfører ikke teksten til en sosial tjeneste. Utskriftsknappen åpner nettleserens utskriftsfunksjon.",
+          "Når den generelle startadressen åpnes, velger et skript en passende tilgjengelig språkinngang ut fra de foretrukne språkene som er angitt i nettleseren. En uttrykkelig valgt språkadresse har forrang. Valget skjer i nettleseren din og sendes ikke til noen ekstra tjeneste. Jeg setter ingen informasjonskapsler til dette formålet og lagrer ikke språkvalget i Local Storage eller annen varig nettleserlagring."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. Lenker til andre tilbydere",
+        "paragraphs": [
+          "Nedlastinger, kildekode, tilbakemeldinger og pressekilder er delvis lenket til andre nettsteder. Når du åpner en slik målside, behandler tilbyderen tilkoblingsdata og eventuelt andre data i samsvar med sin egen personverninformasjon. Avhengig av nettleseren og innstillingene kan også den henvisende siden bli overført.",
+          "Lenkene bygger ikke automatisk disse eksterne tilbudene inn på Magnolie-siden. Juridisk informasjon om lenkene finnes i den <a href=\"{{imprint_url}}#externe-links\">juridiske informasjonen</a>."
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. Kontakt via e-post",
+        "paragraphs": [
+          "Når du skriver til meg, behandler jeg avsenderadressen din, meldingen din og opplysninger du frivillig oppgir i den, for å behandle henvendelsen din. Rettsgrunnlaget er Art. 6 Abs. 1 Buchst. f DSGVO; min berettigede interesse er å besvare henvendelser om prosjektet. Uten en avsenderadresse jeg kan nå deg på, kan jeg ikke svare.",
+          "Gmail brukes til den oppgitte postkassen. Google behandler i den forbindelse meldinger og tilkoblingsdata. Tilbyder for brukere i Det europeiske økonomiske samarbeidsområdet er Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Behandling utenfor Det europeiske økonomiske samarbeidsområdet er mulig. Google viser for dette til mekanismer for et tilstrekkelig beskyttelsesnivå, inkludert personvernrammeverket mellom EU og USA, og til standard personvernbestemmelser der disse mekanismene ikke kommer til anvendelse. <a href=\"https://policies.google.com/privacy?hl=de\">Googles personvernerklæring</a> og <a href=\"https://policies.google.com/privacy/frameworks?hl=de\">informasjonen om internasjonale dataoverføringer</a> forklarer dette nærmere og oppgir en kontakt for å få kopier av bestemmelsene.",
+          "Korrespondansen slettes så snart den ikke lenger er nødvendig for å behandle henvendelsen og eventuelle oppfølgingsspørsmål. Lovbestemte oppbevaringsplikter og nødvendig oppbevaring for å fastsette, gjøre gjeldende eller forsvare rettskrav forbeholdes."
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. Rettighetene dine",
+        "paragraphs": [
+          "På de lovbestemte vilkårene har du rett til innsyn, retting, sletting, begrensning av behandling og dataportabilitet (Art. 15–20 DSGVO).",
+          "<strong>Innsigelse:</strong> Dersom en behandling bygger på Art. 6 Abs. 1 Buchst. f DSGVO, kan du protestere mot den av grunner knyttet til din særlige situasjon (Art. 21 DSGVO). Henvend deg til kontakten som er oppgitt ovenfor.",
+          "Du kan også klage til en tilsynsmyndighet for personvern, særlig i medlemsstaten der du vanligvis oppholder deg, har arbeidsplassen din eller der det antatte bruddet har funnet sted (Art. 77 DSGVO).",
+          "I forbindelse med dette nettstedet treffer jeg ingen avgjørelser som utelukkende er automatiserte og har rettsvirkning eller tilsvarende vesentlig virkning, og jeg utfører ingen slik profilering."
+        ]
+      }
+    ]
+  }
+}
