@@ -306,7 +306,7 @@ class TelefonSecureChannel(
 ) : AutoCloseable {
     private var sendSequence = 0L
     private var receiveSequence = 0L
-    private var closed = false
+    @Volatile private var closed = false
     private val writer = ReentrantLock()
 
     fun send(payload: JsonObject) = writer.withLock {
@@ -364,6 +364,11 @@ class TelefonSecureChannel(
             watchdog?.disarm()
             writer.unlock()
         }
+    }
+
+    /** Native ownership check only; it does not dispatch or write a frame. */
+    internal fun requireOriginalWlanPipe(pipe: TelefonTcpRoehre) {
+        check(!closed && pipe.input === input && pipe.output === output && !closed) { "original_wlan_pipe_required" }
     }
 
     fun receive(): JsonObject {
