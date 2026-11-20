@@ -24,7 +24,7 @@ pytest.importorskip("cairo")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenSessionLock, PhoneScreenWindow
 from magnolie_phone_screen_transport import PhoneScreenReceiveRun
-from magnolie_phone_screen_control import PhoneScreenDesktopRun, REQUEST
+from magnolie_phone_screen_control import PhoneScreenDesktopDispatch, PhoneScreenDesktopRun, REQUEST
 from magnolie_phone_screen_local import PhoneScreenLocalAttach
 from magnolie_telefon import PROTOCOL, PhoneService, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
 
@@ -478,8 +478,14 @@ def test_invalid_proof_or_stop_before_proof_never_authorizes_send():
             b.close()
 
 
-@pytest.mark.parametrize('scenario', ['direct-phone-stop', 'local-phone-stop', 'local-window-stop'])
-def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(scenario):
+@pytest.mark.parametrize('scenario', ['direct-phone-stop', 'local-phone-stop', 'local-window-stop', 'daemon-window-stop'])
+def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(scenario, tmp_path):
+    from types import SimpleNamespace
+    from magnolie_hintergrund import IPCServer, PhoneServiceProxy
+
+    daemon_mode = scenario == 'daemon-window-stop'
+    window_stop = scenario.endswith('window-stop')
+    width, height = (720, 1280) if daemon_mode else (17, 16)
     sid, tx, rx = bytes(16), bytes(range(32)), bytes(reversed(range(32)))
     ptx, prx = b"\x04" * 4, b"\x05" * 4
     probe = {"version": 26, "request_id": str(uuid.uuid4()), "nonce": "b" * 64, "op": "probe"}
@@ -497,13 +503,15 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                 app._tray_telefone = Gtk.MenuItem(label="Phones")
                 run = None
                 local = None
+                daemon = None
+                monitor = None
 
                 def read_control(sequence):
                     frame = receive_frame(phone, 8192)
                     header = {key: value for key, value in frame.items() if key != "ciphertext"}
                     assert header["seq"] == sequence and header["dir"] == "desktop_to_phone"
                     return strict_json(AESGCM(tx).decrypt(ptx + sequence.to_bytes(8, "big"),
-                                       base64.b64decode(frame["ciphertext"]), canonical(header)))["body"]
+                                       base64.b64decode(frame["ciphertext"]), canonical(header)))
 
                 def write_control(sequence, body):
                     now = now_ms()
@@ -512,11 +520,49 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                     header = dict(p=PROTOCOL, sid=b64(sid), seq=sequence, dir="phone_to_desktop")
                     data = AESGCM(rx).encrypt(prx + sequence.to_bytes(8, "big"), canonical(envelope), canonical(header))
                     send_frame(phone, dict(header, ciphertext=b64(data)))
-                    assert run.receive(parent, parent.receive())
+                    if daemon_mode:
+                        service._payload(peer, parent, parent.receive())
+                    else:
+                        assert run.receive(parent, parent.receive())
 
                 try:
                     assert parent.send_seq == 0
-                    if scenario.startswith('local'):
+                    if daemon_mode:
+                        parent.last_capabilities = {'items': {'device_status': {'available': True, 'versions': [26]}}}
+                        peer_id = str(uuid.uuid4())
+                        peer = dict(device_id=peer_id, state='paired', static_public='fixture', display_name='Test Notes')
+                        service = PhoneService.__new__(PhoneService)
+                        service.store = SimpleNamespace(peers=[peer])
+                        service.enabled, service._generation, service.stop_event = True, 1, threading.Event()
+                        service.connections, service.connection_transports = {peer_id: parent}, {peer_id: 'wifi'}
+                        service._screen_dispatch = PhoneScreenDesktopDispatch(service)
+                        service.native_screen_included = True
+                        service.report = lambda: {'peers': [peer]}
+                        write_control(0, probe)
+                        assert read_control(0)['status'] == 'accepted'
+                        filename = str(tmp_path / 'runtime' / 'control.sock')
+                        daemon = IPCServer(None, filename, phone_backend=service).start()
+                        daemon._native_screen_view_checked = True
+                        app._native_screen_view_checked = True
+                        app._telefon = PhoneServiceProxy(path=filename)
+                        app._phone_screen_session_lock = monitor = PhoneScreenSessionLock()
+                        monitor._lease = object()
+                        responses = []
+                        app.antwort = lambda _kind, state: responses.append(state)
+                        app.show()
+                        app._phone_screen_ui({'cmd': 'telefon_screen_start', 'peer': peer_id})
+
+                        def question():
+                            return next((w for w in Gtk.Window.list_toplevels() if isinstance(w, Gtk.MessageDialog)
+                                         and w.get_transient_for() is app and w.get_visible()), None)
+
+                        wait_for(question)
+                        assert parent.send_seq == 1 and not app._phone_screen_window_if_any()
+                        question().response(Gtk.ResponseType.OK)
+                        wait_for(lambda: responses and app._phone_screen_window_if_any())
+                        assert responses[0]['ok']
+                        view = app._phone_screen_window
+                    elif scenario.startswith('local'):
                         a, b = socket.socketpair()
                         identity = os.getpid(), os.getuid()
                         deadline = monotonic() + 5
@@ -561,45 +607,49 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                         run = app._phone_screen_begin_original(parent, probe, 17, 16, 160, require_original=lambda: None)
                         view = app._phone_screen_window
                     assert view._window.get_visible()
-                    offer = read_control(0)
+                    offer = read_control(1 if daemon_mode else 0)['body']
+                    if daemon_mode:
+                        run = service._screen_dispatch._owner[2]
                     assert offer["op"] == "offer"
                     session, key = bytes.fromhex(offer["session"]), bytes.fromhex(offer["secret"])
-                    context = b"magnolie-phone-screen-view/1\0phone_to_desktop\0" + session + struct.pack("!HH", 17, 16)
+                    context = b"magnolie-phone-screen-view/1\0phone_to_desktop\0" + session + struct.pack("!HH", width, height)
                     body = dict(probe, op="prepared", session=offer["session"])
                     with socket.create_connection(("127.0.0.1", offer["port"]), timeout=1) as data:
                         data.settimeout(.1)
                         with pytest.raises(socket.timeout):
                             data.recv(1)  # No proof traffic before PREPARED from the original control reader.
                         data.settimeout(1)
-                        write_control(0, body)
+                        write_control(1 if daemon_mode else 0, body)
+                        if daemon_mode:
+                            assert read_control(2)['status'] == 'accepted'
                         with data.makefile("rb") as challenge:
                             value = challenge.read(16)
                         assert len(value) == 16
                         data.sendall(hmac.digest(key, b"magnolie-phone-screen-proof/1\0" + context + value, "sha256"))
-                        assert read_control(1) == dict(body, op="send")
+                        assert read_control(3 if daemon_mode else 1)['body'] == dict(body, op="send")
                         material = HKDF(algorithm=hashes.SHA256(), length=36, salt=session, info=context).derive(key)
-                        jpeg = jpeg_fixture(17, 16)
+                        jpeg = jpeg_fixture(width, height)
                         header = struct.pack("!IQ", len(jpeg) + 16, 0)
                         data.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], jpeg, context + header))
                         wait_for(lambda: (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230)
-                        for ordinal in ((1,) if scenario == 'local-window-stop' else (1, 2, 3)):
+                        for ordinal in ((1,) if window_stop else (1, 2, 3)):
                             sleep(.75)
                             header = struct.pack("!IQ", 16, ordinal)
                             data.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], b"", context + header))
                         assert not run.retired and run.failure is None
                         assert (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230
-                        if scenario == 'local-window-stop':
+                        if window_stop:
                             view.stop()
-                            assert read_control(2) == dict(body, op="stop")
+                            assert read_control(4 if daemon_mode else 2)['body'] == dict(body, op="stop")
                         else:
                             write_control(1, dict(body, op="stop"))
                         if local is not None:
                             wait_for(local.is_drained)
                         wait_for(lambda: run.is_drained() and app._phone_screen_window is None)
                         assert data.recv(1) == b"" and desktop.fileno() != -1
-                        assert (run.failure is None) == (scenario != 'local-window-stop')
+                        assert (run.failure is None) == (not window_stop)
                         assert not app._tray_telefone.get_visible()
-                        assert parent.send_seq == (3 if scenario == 'local-window-stop' else 2)
+                        assert parent.send_seq == (5 if daemon_mode else 3 if window_stop else 2)
                 finally:
                     if run is not None:
                         run.stop()
@@ -607,3 +657,8 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                         local.stop()
                     app._phone_screen_stop()
                     app._tray_telefone.destroy()
+                    app.destroy()
+                    if monitor is not None:
+                        monitor.close()
+                    if daemon is not None:
+                        daemon.close()
