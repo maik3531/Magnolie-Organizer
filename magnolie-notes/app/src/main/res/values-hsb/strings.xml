@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="phone_screen_notification">Dźělenje wobrazowki telefona</string>
+    <string name="phone_screen_stop">Dźělenje wobrazowki skónčić</string>
     <string name="lan_freigabe_wartet">Lokalna syć čaka na dowolnosć w nastajenjach nałoženja Android.</string>
     <string name="webcam_kanal">Webkamera telefona</string>
     <string name="webcam_startet">Webkamera telefona so startuje…</string>

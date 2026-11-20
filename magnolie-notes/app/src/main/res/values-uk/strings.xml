@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="phone_screen_notification">Демонстрація екрана телефона</string>
+    <string name="phone_screen_stop">Зупинити демонстрацію екрана</string>
     <string name="lan_freigabe_wartet">Локальна мережа очікує дозволу в налаштуваннях застосунку Android.</string>
     <string name="webcam_kanal">Вебкамера телефона</string>
     <string name="webcam_startet">Запуск вебкамери телефона…</string>

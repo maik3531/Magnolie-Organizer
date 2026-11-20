@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="phone_screen_notification">Scherm van telefoon delen</string>
+    <string name="phone_screen_stop">Scherm delen stoppen</string>
     <string name="lan_freigabe_wartet">Het lokale netwerk wacht op toestemming in de Android-appinstellingen.</string>
     <string name="webcam_kanal">Telefoonwebcam</string>
     <string name="webcam_startet">Telefoonwebcam starten…</string>

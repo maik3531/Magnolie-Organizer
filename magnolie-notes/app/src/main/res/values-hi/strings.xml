@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="phone_screen_notification">फ़ोन की स्क्रीन साझा की जा रही है</string>
+    <string name="phone_screen_stop">स्क्रीन साझा करना बंद करें</string>
     <string name="lan_freigabe_wartet">स्थानीय नेटवर्क Android ऐप सेटिंग में अनुमति की प्रतीक्षा कर रहा है।</string>
     <string name="webcam_kanal">फ़ोन वेबकैम</string>
     <string name="webcam_startet">फ़ोन वेबकैम शुरू हो रहा है…</string>

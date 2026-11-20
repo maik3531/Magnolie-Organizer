@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="phone_screen_notification">Sdílení obrazovky telefonu</string>
+    <string name="phone_screen_stop">Ukončit sdílení obrazovky</string>
     <string name="lan_freigabe_wartet">Místní síť čeká na udělení oprávnění v nastavení aplikace Android.</string>
     <string name="webcam_kanal">Webkamera telefonu</string>
     <string name="webcam_startet">Spouštění webkamery telefonu…</string>

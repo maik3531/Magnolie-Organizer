@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="phone_screen_notification">Partage de l’écran du téléphone</string>
+    <string name="phone_screen_stop">Arrêter le partage de l’écran</string>
     <string name="lan_freigabe_wartet">Le réseau local attend une autorisation dans les paramètres de l’application Android.</string>
     <string name="webcam_kanal">Webcam du téléphone</string>
     <string name="webcam_startet">Démarrage de la webcam du téléphone…</string>

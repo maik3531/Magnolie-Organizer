@@ -34,10 +34,18 @@ class ForegroundServiceContractTest {
         val activity = project.resolve("src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt").readText()
         val early = activity.substringAfter("override fun onCreate").substringBefore("acceptGalleryPermissionIntent(intent)")
         assertTrue("PhoneWebcamForeground.register(it)" in early)
-        assertEquals(4, Regex("phoneWebcamPermissionHost\\?\\.requestPending == true").findAll(early).count())
+        assertEquals(5, Regex("phoneWebcamPermissionHost\\?\\.requestPending == true").findAll(early).count())
         for (slot in listOf("galleryPermissionHost", "galleryVideoPermissionHost", "galleryWriteConsentHost", "galleryPcWriteConsentHost")) {
             assertTrue("$slot?.requestPending == true" in early.substringBefore("galleryWriteConsentHost ="))
         }
+        val webcam = early.substringBefore("PhoneWebcamForeground.register(it)")
+        val screen = early.substringAfter("PhoneWebcamForeground.register(it)").substringBefore("PhoneScreenForeground.register(it)")
+        assertTrue("phoneScreenConsentHost?.requestPending == true" in webcam)
+        for (slot in listOf("phoneWebcamPermissionHost", "galleryPermissionHost", "galleryVideoPermissionHost",
+            "galleryWriteConsentHost", "galleryPcWriteConsentHost")) {
+            assertTrue("$slot?.requestPending == true" in screen)
+        }
+        assertEquals(5, Regex("phoneScreenConsentHost\\?\\.requestPending == true").findAll(early).count())
         assertFalse("PhoneWebcamServiceStarts.start" in activity)
         assertFalse("PhoneWebcamForeground.request" in activity)
     }
@@ -60,8 +68,9 @@ class ForegroundServiceContractTest {
             "android.permission.FOREGROUND_SERVICE_LOCATION",
             "android.permission.FOREGROUND_SERVICE_CAMERA",
             "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+            "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
         ), foregroundPermissions.toSet())
-        assertEquals(6, foregroundPermissions.size)
+        assertEquals(7, foregroundPermissions.size)
         assertEquals(1, permissions.count { it == "android.permission.CHANGE_NETWORK_STATE" })
 
         val services = document.getElementsByTagName("service").let { nodes ->
@@ -74,6 +83,16 @@ class ForegroundServiceContractTest {
         assertEquals("connectedDevice", services[".baum.BaumDienst"])
         assertEquals("connectedDevice", services[".telefon.TelefonDienst"])
         assertEquals(setOf("camera", "microphone"), services[".telefon.PhoneWebcamCaptureService"]?.split('|')?.toSet())
+        assertEquals(setOf(".telefon.PhoneScreenCaptureService"), services.filterValues {
+            "mediaProjection" in it.split('|')
+        }.keys)
+        assertEquals("mediaProjection", services[".telefon.PhoneScreenCaptureService"])
+        val screenService = document.getElementsByTagName("service").let { nodes ->
+            (0 until nodes.length).map { nodes.item(it) as Element }
+                .single { it.getAttributeNS(android, "name") == ".telefon.PhoneScreenCaptureService" }
+        }
+        assertEquals("false", screenService.getAttributeNS(android, "exported"))
+        assertEquals(0, screenService.getElementsByTagName("intent-filter").length)
         assertEquals(setOf("specialUse", "location"), services[".zeit.ZeitDienst"]?.split('|')?.toSet())
         val timeService = document.getElementsByTagName("service").let { nodes ->
             (0 until nodes.length).map { nodes.item(it) as Element }

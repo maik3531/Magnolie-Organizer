@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="phone_screen_notification">Deling av telefonskjermen</string>
+    <string name="phone_screen_stop">Stopp skjermdeling</string>
     <string name="lan_freigabe_wartet">Lokalt nettverk venter på tillatelse i Androids appinnstillinger.</string>
     <string name="webcam_kanal">Telefon som webkamera</string>
     <string name="webcam_startet">Starter telefonens webkamera…</string>

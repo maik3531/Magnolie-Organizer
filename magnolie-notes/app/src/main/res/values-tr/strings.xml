@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="phone_screen_notification">Telefon ekranı paylaşımı</string>
+    <string name="phone_screen_stop">Ekran paylaşımını durdur</string>
     <string name="lan_freigabe_wartet">Yerel ağ, Android uygulama ayarlarında izin bekliyor.</string>
     <string name="webcam_kanal">Telefon web kamerası</string>
     <string name="webcam_startet">Telefon web kamerası başlatılıyor…</string>
