@@ -1,0 +1,33 @@
+{
+  "request": {
+    "draft": "desktop-screen-control/1",
+    "op": "request",
+    "request": "102132435465768798a9bacbdcedfe0f",
+    "mode": 2,
+    "setup_until_ms": 1795185930000
+  },
+  "offer_fields": {
+    "session": "000102030405060708090a0b0c0d0e0f",
+    "secret": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+    "port": 34567,
+    "width": 57,
+    "height": 33
+  },
+  "transcript": "ce58cdbe420a3f03e2a6ddadf0c3c064080472ad7826d59d692e67de9e5de863",
+  "bad_offer_mutations": [
+    {"mode": true},
+    {"mode": "2"},
+    {"mode": 2.0},
+    {"mode": 3},
+    {"port": 1023},
+    {"width": 1920, "height": 1920},
+    {"width": 15},
+    {"secret": "20212223"},
+    {"session": "000102030405060708090A0B0C0D0E0F"},
+    {"host": "localhost"},
+    {"allow_input": true},
+    {"setup_until_ms": 9007199254740992},
+    {"setup_until_ms": 0},
+    {"draft": 26}
+  ]
+}

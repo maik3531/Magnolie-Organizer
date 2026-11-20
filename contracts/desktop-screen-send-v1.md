@@ -60,6 +60,38 @@ capabilities and approvals. Neither grants input, webcam access or audio.
   deadline and checks the live guard before and during I/O. Never relay input or
   clipboard data through this lane.
 
+## Draft control bodies
+
+These bodies are not registered as product messages. A future adapter must
+receive them only from the already authenticated original WLAN reader, reject
+ambiguous framing and duplicate keys, and never put them into durable queues.
+Before each nominated write, the original writer checks the same live guard.
+
+Every body has `draft` = `desktop-screen-control/1`, `op`, `request` (16 random
+bytes as lower-case hex), `mode` (1 or 2), and `setup_until_ms` (positive exact
+JSON integer, at most 2^53−1). The phone chooses the request ID after a local
+action. All later messages echo the request, mode and absolute setup deadline
+without changes. The desktop converts a budget of at most 30 seconds to its
+own monotonic clock once, capped by its existing local deadline. Only an
+already active attempt can continue past setup expiry; no later message can
+extend that initial budget.
+
+| Operation | Origin | Additional exact fields |
+| --- | --- | --- |
+| `request` | phone | none |
+| `offer` | desktop | `session`, `secret` (16/32 bytes as lower-case hex), `port` (1024–65535), `width`, `height` |
+| `prepared` | phone | `session`, `transcript` (32 bytes as lower-case hex) |
+| `send` | desktop | the same `session` and `transcript` |
+| `stop` | either | `session` |
+
+No message can supply an address, input flags, a replacement session or a
+fallback mode. A PREPARED received at the OFFER write edge may be retained,
+but does not allow SEND before the guarded OFFER write returns successfully.
+The SEND writer checks the transcript against the proven socket, local media
+readiness and the original channel again. Revocation during the write cannot
+turn a completed write into live media authority. STOP retires only its owner.
+See [shared draft vectors](desktop-screen-control-draft-v1-vectors.json).
+
 ## Retirement and acceptance
 
 The Android viewer is a one-shot dialog attached to the original resumed
