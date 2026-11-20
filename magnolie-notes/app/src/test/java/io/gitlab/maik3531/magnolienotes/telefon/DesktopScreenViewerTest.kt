@@ -3,6 +3,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import android.app.Application
 import android.app.Dialog
 import android.app.KeyguardManager
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
@@ -14,18 +15,24 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.test.core.app.ApplicationProvider
 import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
+import java.security.Provider
+import java.security.Security
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicBoolean
+import javax.crypto.spec.SecretKeySpec
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -41,6 +48,7 @@ import org.robolectric.shadows.ShadowDialog
 @Config(sdk = [35], application = Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DesktopScreenViewerTest {
+    private fun field(type: Class<*>, name: String) = type.getDeclaredField(name).apply { isAccessible = true }
     private class Fixture(mode: Int = 1, nanosRemaining: Long = TimeUnit.SECONDS.toNanos(10)) : AutoCloseable {
         val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
         val activity = controller.get()
@@ -236,6 +244,102 @@ class DesktopScreenViewerTest {
                     }
                 }
             }
+        }
+    }
+
+    @Test fun productionSessionsAuthenticateThenDeliverDesktopDraftAndKeepNotesParent() {
+        assumeTrue(System.getenv("MAGNOLIE_DESKTOP_SCREEN_INTEROP") == "1")
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val provider = object : Provider("DesktopDraftFixture", 1.0, "Isolated test keys") {
+            init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
+        }
+        assertEquals(1, Security.insertProviderAt(provider, 1))
+        val storageField = field(TelefonAblage::class.java, "instance")
+        val workField = field(TelefonWerk::class.java, "instance")
+        val documentsField = field(Ablage::class.java, "einzig")
+        val oldDocuments = documentsField.get(null)
+        val oldStorage = storageField.get(null)
+        val oldWork = workField.get(null)
+        val threads = Executors.newFixedThreadPool(2)
+        val stderr = File.createTempFile("draft-peer", ".log", context.cacheDir)
+        var server: Process? = null
+        var work: TelefonWerk? = null
+        try {
+            documentsField.set(null, Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") })
+            storageField.set(null, null)
+            workField.set(null, null)
+            val storage = TelefonAblage.get(context)
+            val (identity, _) = storage.identity("Isolated phone")
+            storage.setEnabled(true)
+            storage.setPersonalSync(false, false, false, false, false)
+            val script = File("../magnolie-organizer/pruefungen/desktop_screen_draft_paired_peer.py").canonicalFile
+            assertTrue(script.isFile)
+            val process = ProcessBuilder("/usr/bin/python3", "-B", script.path)
+                .redirectError(stderr).start()
+            server = process
+            val output = process.inputStream.bufferedReader()
+            fun readHost() = threads.submit<String> { checkNotNull(output.readLine()) { "paired test host exited" } }
+                .get(10, TimeUnit.SECONDS)
+            val (port, desktopId, publicKey) = readHost().split(' ')
+            val peer = TelefonPeer(desktopId, "Isolated desktop", publicKey)
+            storage.savePeer(peer)
+            process.outputStream.bufferedWriter().use { it.write("${identity.device_id} ${identity.static_public}\n") }
+            val runtime = TelefonWerk.get(context).also { work = it }
+            field(TelefonWerk::class.java, "serviceRunning").setBoolean(runtime, true)
+            (field(TelefonWerk::class.java, "connecting").get(runtime) as AtomicBoolean).set(true)
+            val session = TelefonWerk::class.java.getDeclaredMethod("session", TelefonPeer::class.java,
+                TelefonTransportArt::class.java, TelefonRoehre::class.java, String::class.java, String::class.java,
+                Boolean::class.javaPrimitiveType, kotlin.jvm.functions.Function0::class.java).apply { isAccessible = true }
+            Fixture().use { f ->
+                TelefonTcpRoehre("127.0.0.1", port = port.toInt()).use { pipe ->
+                    pipe.setReadTimeout(20_000)
+                    val reader = threads.submit {
+                        session.invoke(runtime, peer, TelefonTransportArt.WIFI, pipe, "", "", false, {})
+                    }
+                    assertEquals("armed", readHost())
+                    val original = awaitValue {
+                        if (reader.isDone) reader.get() // Surface the session failure without waiting for a viewer.
+                        runCatching { runtime.desktopScreenDraftCandidate(desktopId, publicKey) }.getOrNull()
+                    }
+                    runtime.beginDesktopScreenDraft(f.activity, original, 2).use { attempt ->
+                        val dialog = awaitValue {
+                            if (reader.isDone) reader.get()
+                            shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
+                            ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }
+                        }
+                        val image = views(dialog.window!!.decorView).filterIsInstance<ImageView>()
+                            .single { it.contentDescription == f.activity.getString(R.string.desktop_screen_view_picture) }
+                        assertNull(image.drawable)
+                        f.button(dialog, R.string.desktop_screen_view_accept).performClick()
+                        val drawn = awaitValue {
+                            if (reader.isDone) reader.get()
+                            shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
+                            (image.drawable as? BitmapDrawable)?.bitmap
+                        }
+                        assertTrue(kotlin.math.abs(Color.blue(drawn.getPixel(28, 16)) - 228) <= 4)
+                        f.controller.pause()
+                        assertNull(image.drawable)
+                        assertFalse(dialog.isShowing)
+                        awaitValue { true.takeIf { attempt.drained } }
+                    }
+                    assertEquals("same-parent-pong", readHost())
+                    reader.get(5, TimeUnit.SECONDS)
+                    assertTrue(runCatching { runtime.desktopScreenDraftCandidate(desktopId, publicKey) }.isFailure)
+                }
+            }
+            assertTrue(process.waitFor(5, TimeUnit.SECONDS))
+            assertEquals(0, process.exitValue())
+        } catch (failure: Exception) {
+            throw AssertionError(stderr.readText().take(4000), failure)
+        } finally {
+            server?.let { if (it.isAlive) it.destroyForcibly().waitFor(5, TimeUnit.SECONDS) }
+            threads.shutdownNow()
+            work?.serviceStopped()
+            workField.set(null, oldWork)
+            storageField.set(null, oldStorage)
+            documentsField.set(null, oldDocuments)
+            Security.removeProvider(provider.name)
+            stderr.delete()
         }
     }
 

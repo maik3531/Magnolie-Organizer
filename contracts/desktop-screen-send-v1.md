@@ -163,9 +163,13 @@ request through STOP, mutual proof, a synthetic JPEG and the sender's timed
 heartbeat. Ordinary traffic continues on the same control connection after
 STOP. A separate Robolectric variant drives the Android approval dialog,
 decodes the synthetic JPEG into the view, and pauses the Activity to clear the
-image and stop the session. Both variants substitute the local compositor run;
-neither runs pairing, the product dispatcher, a portal or a physical phone.
-The live caller still has to own discovery, native consent and authenticated control dispatch.
+image and stop the session. Another opt-in variant runs both product session
+readers with disposable pinned peer stores, including the authenticated FS1
+handshake and normal setup exchange. Only an explicit test action attaches
+the Linux and Android draft owners; after Android Pause, the same authenticated
+connection completes an ordinary ping/pong. These tests substitute the local
+compositor run. They do not exercise pairing, discovery, a real portal or a
+physical phone, and do not enable a product entry point.
 The Kotlin media lane checks JPEG headers before handoff; decoding and display
 are separate.
 Before allocation or advertising, check independent vectors and incompatible
