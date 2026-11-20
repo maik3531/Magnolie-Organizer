@@ -132,6 +132,8 @@ class TestKWinOutputWitness(unittest.TestCase):
         self.assertTrue(feed.consume(f'+\t2\t{NAME}\n'.encode()))
         feed.mark_start()
         self.assertFalse(witness.bind(self.target))  # Named later, but before the submitted Start.
+        with self.assertRaises(PermissionError):
+            feed.mark_start()
 
     def test_native_name_requires_original_announcement(self):
         for records in ((b'?\t1\n', b'ready\n'), (b'+\t1\teDP-1\n',)):
@@ -191,7 +193,10 @@ class TestKWinOutputWitness(unittest.TestCase):
                 wait_for(lambda: client.feed is not None)
                 feed = client.feed
                 self.assertEqual(set(feed._live.values()), {'eDP-1', 'HDMI-A-1'})
-                self.assertTrue(feed.witness.bind(self.target))
+                witness = feed.take_for_run()
+                self.assertFalse(feed.mark_start())
+                wait_for(feed.mark_start)
+                self.assertTrue(witness.bind(self.target))
                 fixture.stdin.write(b'+')
                 wait_for(lambda: feed.witness.present(self.target))
                 fixture.stdin.write(b'o')

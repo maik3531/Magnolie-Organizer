@@ -9,6 +9,7 @@ from magnolie_desktop_screen_output import KWinOutputFeed
 
 
 _BASELINE_S = 2
+_SYNC_S = 1
 _TERM_S = .5
 _MAX_RECORD = 270
 
@@ -29,13 +30,16 @@ class KWinOutputObserver:
             connected.getpeername()
             fd = connected.fileno()
             self._child = subprocess.Popen([os.fspath(executable), str(fd)], pass_fds=(fd,),
-                                           stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, bufsize=0)
-        self._feed = KWinOutputFeed(require_announcement=True)
+                                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0)
+        self._feed = KWinOutputFeed(require_announcement=True, synchronize=self._synchronize)
         self._pending = b''
         self._baseline_deadline = monotonic() + _BASELINE_S
         self._kill_at = None
+        self._sync_deadline = None
+        self._synced = False
         try:
             os.set_blocking(self._child.stdout.fileno(), False)
+            os.set_blocking(self._child.stdin.fileno(), False)
         except OSError:
             self.close()
             self._child.kill()
@@ -50,13 +54,27 @@ class KWinOutputObserver:
 
     @property
     def drained(self):
-        return self._child.stdout.closed and self._child.poll() is not None
+        return self._child.stdin.closed and self._child.stdout.closed and self._child.poll() is not None
+
+    def _synchronize(self):
+        if self.feed is None:
+            raise PermissionError('kwin_original_output_observer_unavailable')
+        if self._sync_deadline is None:
+            try:
+                if os.write(self._child.stdin.fileno(), b'b') != 1:
+                    raise OSError('kwin_observer_short_write')
+                self._sync_deadline = monotonic() + _SYNC_S
+            except OSError:
+                self.close()
+                raise
+        return self._synced
 
     def tick(self):
         if self._kill_at is None:
             try:
                 if (self._child.poll() is not None or
                         self._feed.witness is not None and self._feed.witness.lost or
+                        not self._synced and self._sync_deadline is not None and monotonic() >= self._sync_deadline or
                         self._feed.witness is None and monotonic() >= self._baseline_deadline):
                     self.close()
                 else:
@@ -78,7 +96,9 @@ class KWinOutputObserver:
             return
         *records, self._pending = (self._pending + data).split(b'\n')
         for record in records:
-            if not self._feed.consume(record + b'\n'):
+            if record == b'synced' and self._sync_deadline is not None and not self._synced and self._feed.settled:
+                self._synced = True
+            elif not self._feed.consume(record + b'\n'):
                 self.close()
                 return
         if len(self._pending) >= _MAX_RECORD:
@@ -90,5 +110,6 @@ class KWinOutputObserver:
         self._kill_at = monotonic() + _TERM_S
         self._feed.close()
         self._pending = b''
+        self._child.stdin.close()
         self._child.stdout.close()
         self._child.terminate()

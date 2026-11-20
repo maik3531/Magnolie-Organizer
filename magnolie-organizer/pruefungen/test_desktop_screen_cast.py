@@ -218,6 +218,33 @@ class TestDesktopScreenCast(unittest.TestCase):
         self.assertEqual(self.ended, [True])
         self.assertFalse(self.run.virtual_start_submitted)
 
+    def test_virtual_start_waits_for_barrier_and_submits_only_once(self):
+        ready = False
+        self.owner(before_virtual_start=lambda: ready)
+        self.complete(self.create(), {'session_handle': GLib.Variant('s', self.run._session)})
+        self.complete(self.bus.take('SelectSources'))
+        self.assertTrue(self.run._tick())
+        self.assertEqual(list(self.bus.calls), [])
+        self.assertFalse(self.run.virtual_start_submitted)
+        ready = True
+        self.assertTrue(self.run._tick())
+        start = self.bus.take('Start')
+        self.assertTrue(self.run.virtual_start_submitted)
+        self.assertTrue(self.run._tick())
+        self.assertEqual(list(self.bus.calls), [])
+        self.complete(start, streams())
+        self.run.stop()
+        self.close_session()
+
+    def test_revocation_during_barrier_cannot_submit_start(self):
+        self.owner(before_virtual_start=lambda: False)
+        self.complete(self.create(), {'session_handle': GLib.Variant('s', self.run._session)})
+        self.complete(self.bus.take('SelectSources'))
+        self.alive = False
+        self.assertFalse(self.run._tick())
+        self.close_session()
+        self.assertFalse(self.run.virtual_start_submitted)
+
     def test_owner_replaced_before_create_or_after_start(self):
         self.owner()
         self.create(owner=':1.10')

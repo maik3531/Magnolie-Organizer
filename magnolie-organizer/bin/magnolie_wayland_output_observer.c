@@ -2,10 +2,12 @@
  * No discovery, reconnection, setting changes or installed entry point. */
 #include <errno.h>
 #include <limits.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <wayland-client.h>
 
 enum { MAX_OUTPUTS = 128, MAX_NAME = 255 };
@@ -108,6 +110,40 @@ static void remove_global(void *data, struct wl_registry *registry, uint32_t id)
 
 static const struct wl_registry_listener registry_listener = { global, remove_global };
 
+static bool settled(struct wl_display *display, struct observer *observer)
+{
+    if (wl_display_roundtrip(display) < 0 || observer->failed || wl_display_roundtrip(display) < 0)
+        return false;
+    for (size_t i = 0; i < MAX_OUTPUTS; ++i)
+        if (observer->outputs[i].proxy && !observer->outputs[i].emitted)
+            return false;
+    return !observer->failed;
+}
+
+static void observe(struct wl_display *display, struct observer *observer)
+{
+    bool synced = false;
+    while (!observer->failed && wl_display_dispatch_pending(display) >= 0) {
+        struct pollfd fds[] = {{wl_display_get_fd(display), POLLIN, 0}, {STDIN_FILENO, POLLIN, 0}};
+        if (wl_display_flush(display) < 0) {
+            if (errno != EAGAIN) return;
+            fds[0].events |= POLLOUT;
+        }
+        if (poll(fds, 2, -1) < 0) {
+            if (errno == EINTR) continue;
+            return;
+        }
+        if ((fds[0].revents | fds[1].revents) & (POLLERR | POLLHUP | POLLNVAL)) return;
+        if ((fds[0].revents & POLLIN) && wl_display_dispatch(display) < 0) return;
+        if (fds[1].revents & POLLIN) {
+            char command;
+            if (read(STDIN_FILENO, &command, 1) != 1 || command != 'b' || synced ||
+                !settled(display, observer) || fputs("synced\n", stdout) < 0 || fflush(stdout)) return;
+            synced = true;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -122,15 +158,9 @@ int main(int argc, char **argv)
         return 2;
     struct observer observer = {0};
     struct wl_registry *registry = wl_display_get_registry(display);
-    if (!registry || wl_registry_add_listener(registry, &registry_listener, &observer) ||
-        wl_display_roundtrip(display) < 0 || observer.failed || wl_display_roundtrip(display) < 0)
-        observer.failed = true;
-    for (size_t i = 0; i < MAX_OUTPUTS; ++i)
-        if (observer.outputs[i].proxy && !observer.outputs[i].emitted)
-            observer.failed = true;
-    if (!observer.failed && fputs("ready\n", stdout) >= 0 && !fflush(stdout)) {
-        while (!observer.failed && wl_display_dispatch(display) >= 0) {}
-    }
+    if (registry && !wl_registry_add_listener(registry, &registry_listener, &observer) &&
+        settled(display, &observer) && fputs("ready\n", stdout) >= 0 && !fflush(stdout))
+        observe(display, &observer);
     for (size_t i = 0; i < MAX_OUTPUTS; ++i)
         if (observer.outputs[i].proxy)
             wl_output_destroy(observer.outputs[i].proxy);
