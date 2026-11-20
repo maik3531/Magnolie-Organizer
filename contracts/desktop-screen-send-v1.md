@@ -104,8 +104,14 @@ local portal/reader/encoder owner and one data listener bound to the original
 TCP interface and peer address. It opens that listener only after a complete
 local JPEG exists, and the data worker rechecks local media and the parent
 throughout proof and sending. A single latest-frame slot feeds the worker;
-heartbeats do not replace local readiness. The product dispatcher is not
-registered.
+heartbeats do not replace local readiness. The Linux authenticated reader can
+feed an explicit, in-process attachment bound to one activated WLAN parent,
+authenticated peer key, store and service generation. Without that attachment
+the reserved wrapper is silently dropped; it is never replayed, acknowledged
+or routed through ordinary messages. The attachment is not capture consent.
+The native caller must retain the slot through cleanup and fence handoff with
+both its consent and the attachment's live guard. No product UI, IPC or
+capability registers an attachment.
 
 ## Retirement and acceptance
 

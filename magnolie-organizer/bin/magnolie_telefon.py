@@ -2888,6 +2888,7 @@ class PhoneService:
         self._webcam_probe_tokens = weakref.WeakKeyDictionary()
         from magnolie_phone_screen_control import PhoneScreenDesktopDispatch
         self._screen_dispatch = PhoneScreenDesktopDispatch(self)
+        self._desktop_screen_draft_dispatch = None  # No installed/native caller yet.
         self.native_screen_included = native_screen_ui is True
         self._mcp_worker = threading.local()
         self._mcp_operations = threading.Lock()
@@ -3069,6 +3070,9 @@ class PhoneService:
         dispatch = getattr(self, '_screen_dispatch', None)
         if dispatch is not None:
             dispatch.retire(channel)
+        draft = getattr(self, '_desktop_screen_draft_dispatch', None)
+        if draft is not None:
+            draft.retire(channel)
 
     def native_screen_available(self, peer_id):
         return self._screen_dispatch.available(peer_id)
@@ -9048,6 +9052,11 @@ class PhoneService:
                             raise ValueError("invalid close reason")
                         remote_unpaired = payload["reason"] == "unpaired"
                         break
+                    if payload.get('type') == 'desktop_screen_draft':
+                        draft = self._desktop_screen_draft_dispatch
+                        if transport == 'wifi' and draft is not None:
+                            draft.receive_authenticated(authenticated_store, file_generation, authenticated_peer, channel, payload)
+                        continue
                     self._payload(peer, channel, payload)
                 except socket.timeout:
                     now = time.monotonic()
@@ -9179,6 +9188,10 @@ class PhoneService:
             self._start_handler(sock, "bluetooth:" + peer_id, "bluetooth")
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
+        # Drop this unregistered namespace outside the original active reader
+        # (including pre-activation, replay/scopes, and without a native owner).
+        if payload.get('type') == 'desktop_screen_draft':
+            return
         if is_reserved_screen_control(payload):
             self._screen_dispatch.receive(peer, channel, payload)
             return
