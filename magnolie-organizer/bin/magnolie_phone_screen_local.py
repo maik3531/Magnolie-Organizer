@@ -99,7 +99,7 @@ class PhoneScreenLocalLane:
                 self.close()
                 raise
 
-    def read(self, *, first_header_deadline=None):
+    def read(self, *, first_header_deadline=None, require_current=lambda: None):
         with self._io:
             try:
                 if self._writing:
@@ -107,14 +107,14 @@ class PhoneScreenLocalLane:
                 now = time.monotonic()
                 expiry = now + 2 if first_header_deadline is None else min(now + 60, first_header_deadline)
                 header = bytearray(_HEADER.size)
-                self._transfer(header, self._sock.recv_into, expiry, lambda: None)
+                self._transfer(header, self._sock.recv_into, expiry, require_current)
                 size, = _HEADER.unpack(header)
                 if size > _MAX_JPEG:
                     raise ValueError('screen_local_record_invalid')
                 data = bytearray(size)
                 if first_header_deadline is not None:
                     expiry = min(expiry, time.monotonic() + 2)
-                self._transfer(data, self._sock.recv_into, expiry, lambda: None)
+                self._transfer(data, self._sock.recv_into, expiry, require_current)
                 return bytes(data)
             except BaseException:
                 self.close()
@@ -142,10 +142,11 @@ class PhoneScreenLocalDisplay:
     then sees EOF. Loss of the daemon closes the GUI worker as well.
     """
 
-    def __init__(self, lane, width, height, *, setup_deadline, offer_rgb):
+    def __init__(self, lane, width, height, *, setup_deadline, require_view, offer_rgb):
         self._lane = lane
         self._width, self._height = width, height
         self._offer_rgb = offer_rgb
+        self._require_view = require_view
         self._setup_deadline = setup_deadline
         self._lock = threading.Lock()
         self._stopped = threading.Event()
@@ -168,14 +169,20 @@ class PhoneScreenLocalDisplay:
         try:
             from magnolie_phone_screen_window import PhoneScreenJpegReceiver
 
+            def require_current():
+                self._require_view()
+                if self._stopped.is_set():
+                    raise PermissionError('screen_local_view_retired')
+
             def current():
+                require_current()
                 self._lane.require_open()
-                return not self._stopped.is_set()
+                return True
 
             decoder = PhoneScreenJpegReceiver(self._width, self._height, is_current=current, offer_rgb=self._offer_rgb)
             first = self._setup_deadline
             while not self._stopped.is_set():
-                data = self._lane.read(first_header_deadline=first)
+                data = self._lane.read(first_header_deadline=first, require_current=require_current)
                 first = None
                 if data and decoder.receive(data) is not True:
                     raise PermissionError('screen_local_view_retired')

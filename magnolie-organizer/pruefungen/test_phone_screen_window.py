@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenSessionLock, PhoneScreenWindow
 from magnolie_phone_screen_transport import PhoneScreenReceiveRun
 from magnolie_phone_screen_control import PhoneScreenDesktopRun, REQUEST
-from magnolie_phone_screen_local import PhoneScreenLocalDisplay, PhoneScreenLocalLane
+from magnolie_phone_screen_local import PhoneScreenLocalLane
 from magnolie_telefon import PROTOCOL, PhoneService, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
 
 
@@ -138,7 +138,7 @@ def organizer_hooks():
     source = Path(__file__).resolve().parents[1] / "bin" / "magnolie-organizer"
     code = ast.parse(source.read_text())
     window = next(node for node in code.body if isinstance(node, ast.ClassDef) and node.name == "Fenster")
-    names = {"_phone_screen_begin_original", "_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained", "_phone_screen_ui",
+    names = {"_phone_screen_begin_original", "_phone_screen_begin_local", "_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained", "_phone_screen_ui",
              "_tray_telefone_aktualisieren", "_beenden_endgueltig"}
     hooks = ast.Module(body=[node for node in window.body if isinstance(node, ast.FunctionDef) and node.name in names],
                        type_ignores=[])
@@ -429,8 +429,8 @@ def test_invalid_proof_or_stop_before_proof_never_authorizes_send():
             b.close()
 
 
-@pytest.mark.parametrize('local_relay', [False, True])
-def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(local_relay):
+@pytest.mark.parametrize('scenario', ['direct-phone-stop', 'local-phone-stop', 'local-window-stop'])
+def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(scenario):
     sid, tx, rx = bytes(16), bytes(range(32)), bytes(reversed(range(32)))
     ptx, prx = b"\x04" * 4, b"\x05" * 4
     probe = {"version": 26, "request_id": str(uuid.uuid4()), "nonce": "b" * 64, "op": "probe"}
@@ -467,17 +467,15 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
 
                 try:
                     assert parent.send_seq == 0
-                    if local_relay:
+                    if scenario.startswith('local'):
                         a, b = socket.socketpair()
                         identity = os.getpid(), os.getuid()
                         relay = PhoneScreenLocalLane(a, expected_peer=identity, require_original=lambda: None, writing=True)
                         lane = PhoneScreenLocalLane(b, expected_peer=identity, require_original=lambda: None, writing=False)
-                        view = app._phone_screen_attach(is_current=lambda: local is None or not local.retired,
-                                                        request_stop=lambda _view: local.stop() if local is not None else lane.close())
-                        local = PhoneScreenLocalDisplay(lane, 17, 16, setup_deadline=monotonic() + 5, offer_rgb=view.offer_rgb)
+                        local = app._phone_screen_begin_local(lane, 17, 16, require_original=lambda: None, deadline=monotonic() + 5)
+                        view = app._phone_screen_window
                         run = PhoneScreenDesktopRun(parent, probe, 17, 16, 160, require_original=lambda: None,
                                                    require_view=lambda: None, local_lane=relay)
-                        local.start()
                         run.start()
                     else:
                         run = app._phone_screen_begin_original(parent, probe, 17, 16, 160, require_original=lambda: None)
@@ -504,20 +502,24 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                         header = struct.pack("!IQ", len(jpeg) + 16, 0)
                         data.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], jpeg, context + header))
                         wait_for(lambda: (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230)
-                        for ordinal in (1, 2, 3):
+                        for ordinal in ((1,) if scenario == 'local-window-stop' else (1, 2, 3)):
                             sleep(.75)
                             header = struct.pack("!IQ", 16, ordinal)
                             data.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], b"", context + header))
                         assert not run.retired and run.failure is None
                         assert (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230
-                        write_control(1, dict(body, op="stop"))
+                        if scenario == 'local-window-stop':
+                            view.stop()
+                            assert read_control(2) == dict(body, op="stop")
+                        else:
+                            write_control(1, dict(body, op="stop"))
                         if local is not None:
                             wait_for(local.is_drained)
-                            app._phone_screen_drained(view)
                         wait_for(lambda: run.is_drained() and app._phone_screen_window is None)
-                        assert data.recv(1) == b"" and desktop.fileno() != -1 and run.failure is None
+                        assert data.recv(1) == b"" and desktop.fileno() != -1
+                        assert (run.failure is None) == (scenario != 'local-window-stop')
                         assert not app._tray_telefone.get_visible()
-                        assert parent.send_seq == 2  # No STOP echo to an original peer that already stopped.
+                        assert parent.send_seq == (3 if scenario == 'local-window-stop' else 2)
                 finally:
                     if run is not None:
                         run.stop()

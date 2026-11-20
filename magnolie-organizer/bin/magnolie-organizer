@@ -21725,6 +21725,56 @@ class Fenster(_FENSTER_BASIS):
         GLib.timeout_add(100, poll_drain)
         return run
 
+    def _phone_screen_begin_local(self, lane, width, height, *, require_original, deadline):
+        """Take ownership of an admitted daemon lane on GTK's main thread.
+
+        The rendezvous must already have fixed the exact desktop lease, peer,
+        dimensions and deadline. Native window close also revokes the daemon
+        endpoint via EOF, even when no new JPEG has arrived.
+        """
+        from magnolie_phone_screen_local import PhoneScreenLocalDisplay
+        if getattr(self, "_phone_screen_window", None) is not None:
+            lane.close()
+            raise PermissionError("phone_screen_view_unavailable")
+        display = None
+
+        def require_view():
+            require_original()
+            if self._gesperrt or self._wirklich_beenden:
+                raise PermissionError("phone_screen_view_retired")
+
+        def current():
+            require_view()
+            lane.require_open()
+            return display is None or not display.retired
+
+        def stop(_view):
+            if display is None:
+                lane.close()
+            else:
+                display.stop()
+
+        try:
+            view = self._phone_screen_attach(is_current=current, request_stop=stop)
+            display = PhoneScreenLocalDisplay(lane, width, height, setup_deadline=deadline,
+                                              require_view=require_view, offer_rgb=view.offer_rgb)
+            display.start()
+        except Exception:
+            attached = getattr(self, "_phone_screen_window", None)
+            stop(attached)
+            if attached is not None and (display is None or display.is_drained()):
+                self._phone_screen_drained(attached)
+            raise
+
+        def poll_drain():
+            if display.is_drained():
+                self._phone_screen_drained(view)
+                return False
+            return True
+
+        GLib.timeout_add(100, poll_drain)
+        return display
+
     # Never enable the product advertisement from JavaScript or saved settings.
     # Real Android/WLAN acceptance is still required for the foreground owner.
     _native_screen_view_checked = False
