@@ -91,7 +91,11 @@ class BackgroundLifecycleTest {
             assertFalse(storage.personalTasksEnabled()); assertTrue(storage.personalAutoWifi())
             assertFalse(storage.personalDeletionsEnabled())
             resume.countDown()
-            assertTrue("$boundary was not revoked", outcome.get(3, TimeUnit.SECONDS) is TelefonProtokollFehler)
+            val revokedOutcome = outcome.get(3, TimeUnit.SECONDS)
+            // Received frames now retire before dispatch when their original
+            // session is gone; other peer-effect boundaries retain their error.
+            if (boundary == "received-control") assertNull(revokedOutcome)
+            else assertTrue("$boundary was not revoked", revokedOutcome is TelefonProtokollFehler)
             worker.join(3000)
             assertFalse(worker.isAlive)
             assertNull(storage.peers().peer)

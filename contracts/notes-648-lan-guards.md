@@ -1,5 +1,10 @@
 # #648 – vorbereitete LAN-Guards, keine API-37-Freigabe
 
+Historischer Nachweis des #648-Stands. Die später geprüfte SDK-37.2-Toolchain
+ist in #672 dokumentiert; der aktuelle gekoppelte Migrationskandidat und die
+weiter offene native Abnahme stehen in
+[notes-691-target37-migration.md](notes-691-target37-migration.md).
+
 Basis der LAN-Änderung: `6b89a37bf0a8ba4447da28ac69776a33cfeb1a69`. Der bereitgestellte
 Notes-648-LAN-Guards-Kandidat wurde geprüft und in der lokalen Arbeitsquelle
 weiterbearbeitet. Dieser Stand ist keine freigegebene APK.
@@ -81,7 +86,7 @@ TCP-Rohrregistrierung; Fehler beim Abmelden verhindern nicht das Socket-Close.
   erwartungsgemäß nicht signiert; keine Installation oder Veröffentlichung.
   Native Paketabnahmen bleiben offen.
 
-## Unveränderte Freigabegrenzen
+## Ursprüngliche Freigabegrenzen des #648-Stands
 
 compileSdk 35 / targetSdk 35 / minSdk 26 bleiben bestehen. Keine neue
 Manifestberechtigung. Eine Gradle-Prüfung blockiert targetSdk ab 37, bis die

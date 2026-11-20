@@ -54,6 +54,7 @@ class NativeFilePairingBootstrapTest {
             (field(TelefonWerk::class.java, "connecting").get(work) as java.util.concurrent.atomic.AtomicBoolean).set(true)
             field(TelefonWerk::class.java, "activeChannel").set(work, channel)
             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
+            bindSyntheticPhoneSession(work, channel)
             action(work, channel, field(TelefonWerk::class.java, "pairingGeneration").getLong(work))
         } finally {
             work.serviceStopped()

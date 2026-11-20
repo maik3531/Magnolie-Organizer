@@ -270,6 +270,7 @@ class ScopedDataRuntimeTest {
             val shared = SharedSyncSettings.merge(SharedSyncSettings.create(peerId), local, peerId, actor)
             TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 }, ByteArray(4) { 12 },
                 ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { channel ->
+                bindSyntheticPhoneSession(work, channel)
                 var session = PersonalNoteSession().apply { capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true }
                 if (nativeActor) session.observeActorOwnDecision(true)
                 @Suppress("UNCHECKED_CAST")

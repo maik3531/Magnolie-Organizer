@@ -29,6 +29,8 @@ interface TelefonRoehre: AutoCloseable {
     val input: InputStream
     val output: OutputStream
     fun setReadTimeout(timeoutMs: Int)
+    fun aktuell(): Boolean = true
+    fun pruefen() { if (!aktuell()) throw IOException("retired") }
 }
 object TelefonParameter { const val PORT = 8738 }
 class BaumFehler(message: String, val httpStatus: Int = 0): IOException(message)
@@ -77,6 +79,11 @@ object LanFreigabe {
         if (denyRegistration) { denyRegistration = false; grant = false }
         return try { gate.beobachten(resource) } catch (error: IllegalStateException) { throw IOException(WARTET, error) }
     }
+    class ZielWache(private val registration: AutoCloseable) : AutoCloseable {
+        fun pruefen() { LanFreigabe.pruefen() }
+        override fun close() { registration.close() }
+    }
+    fun beobachtenZiel(address: InetAddress, resource: AutoCloseable) = ZielWache(beobachten(resource))
 }
 '''
 
@@ -152,7 +159,7 @@ def main():
         for variant in ('current', 'broken-wlan', 'broken-invitation', 'broken-tcp'):
             body, declarations, tcp_body = transport, owner, tcp
             if variant == 'broken-wlan':
-                line = '            lanWache = if (lanMarke != null) LanFreigabe.beobachten(verbindung) else null\n'
+                line = '            val wache = LanFreigabe.beobachtenZiel(ziel, verbindung)\n            lanWache = wache\n'
                 assert body.count(line) == 1
                 body = body.replace(line, '').replace('            try {\n', line + '            try {\n', 1)
             if variant == 'broken-invitation':

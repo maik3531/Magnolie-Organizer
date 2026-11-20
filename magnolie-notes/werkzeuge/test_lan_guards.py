@@ -12,7 +12,9 @@ def read(path): return (SRC / path).read_text()
 class LanContracts(unittest.TestCase):
     def test_current_sdk_manifest_and_migration_stop(self):
         build = (ROOT / 'app/build.gradle.kts').read_text()
-        for value in ('version = release(37)', 'minorApiLevel = 2', 'targetSdk = 35', 'minSdk = 26', 'check(requireNotNull(targetSdk) < 37)'):
+        for value in ('version = release(37)', 'minorApiLevel = 2',
+                      'targetSdk = if (target37Validierung) 37 else 35', 'minSdk = 26',
+                      'extension.defaultConfig.targetSdk == if (target37Validierung) 37 else 35'):
             self.assertIn(value, build)
         self.assertNotIn('ACCESS_LOCAL_NETWORK', (ROOT / 'app/src/main/AndroidManifest.xml').read_text())
     def test_builtin_kotlin_compiler_plugins_stay_aligned(self):
@@ -73,17 +75,26 @@ class LanContracts(unittest.TestCase):
         text = read('baum/Transport.kt').split('class WlanTransport')[1].split('class BluetoothTransport')[0]
         self.assertIn('LanFreigabe.ziel(host)', text)
         self.assertIn('InetSocketAddress(ziel, port)', text)
-        self.assertIn('if (lanMarke != null)', text)
+        self.assertIn('LanFreigabe.beobachtenZiel(ziel, verbindung)', text)
+        self.assertEqual(text.count('wache.pruefen()'), 3)
     def test_wlan_registration_is_inside_cleanup_owner(self):
         text = read('baum/Transport.kt').split('class WlanTransport')[1].split('class BluetoothTransport')[0]
-        start = text.index('var lanWache: AutoCloseable? = null')
+        start = text.index('var lanWache: LanFreigabe.ZielWache? = null')
         guarded = text.index('try {', start)
-        self.assertLess(guarded, text.index('LanFreigabe.beobachten(verbindung)'))
+        self.assertLess(guarded, text.index('LanFreigabe.beobachtenZiel(ziel, verbindung)'))
         self.assertIn('finally {\n                        synchronized(sperre)', text)
     def test_invitation_checks_token_before_acquisition(self):
         text = read('telefon/TelefonEinladung.kt').split('internal class TelefonEinladungsEmpfang')[1]
         self.assertLess(text.index('LanFreigabe.marke()'), text.index('ServerSocket(0, 1)'))
         self.assertIn('catch (error: Exception) { runCatching { listener.close() }; throw error }', text)
+    def test_invitation_rechecks_after_blocking_io(self):
+        text = read('telefon/TelefonEinladung.kt')
+        after_read = text.split('finally { readDeadline.cancel() }', 1)[1].split('invitation.value = desktop', 1)[0]
+        after_write = text.split('}, 2048)', 1)[1].split('onAccepted(desktop)', 1)[0]
+        for guard in (after_read, after_write):
+            self.assertIn('closed.get() || !LanFreigabe.aktuell(lanMarke)', guard)
+            self.assertIn('nanoTime() >=', guard)
+            self.assertIn('return@use', guard)
     def test_live_bluetooth_is_not_marked_offline_by_lan_denial(self):
         text = read('telefon/TelefonWerk.kt').split('fun wifiChanged(available: Boolean)')[1].split('fun ', 1)[0]
         self.assertIn('(!nutzbar || System.nanoTime() < bluetoothFirstSessionUntil)) return', text)

@@ -62,7 +62,6 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
 
     override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
         val ziel = LanFreigabe.ziel(host)
-        val lanMarke = if (LanFreigabe.lokal(ziel)) LanFreigabe.marke() else null
         val roh = Kanonisch.json.encodeToString(JsonObject.serializer(), nutzlast)
             .toByteArray(Charsets.UTF_8)
         return Socket().use { verbindung ->
@@ -71,16 +70,17 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
                 check(buchse == null)
                 buchse = verbindung
             }
-            var lanWache: AutoCloseable? = null
+            var lanWache: LanFreigabe.ZielWache? = null
             var frist: java.util.concurrent.ScheduledFuture<*>? = null
             try {
             // All fallible setup after publishing buchse belongs to this owner.
             // A denied watcher registration must not poison later reuse.
-            lanWache = if (lanMarke != null) LanFreigabe.beobachten(verbindung) else null
+            val wache = LanFreigabe.beobachtenZiel(ziel, verbindung)
+            lanWache = wache
             frist = FRISTEN.schedule({ runCatching { verbindung.close() } },
                 zeitgrenzeMs.coerceAtLeast(1).toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
             try {
-                if (lanMarke != null) LanFreigabe.pruefen()
+                wache.pruefen()
                 verbindung.connect(InetSocketAddress(ziel, port), zeitgrenzeMs)
             } catch (error: java.net.UnknownHostException) {
                 throw KeineVerbindung(error)
@@ -94,6 +94,7 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
                 "Content-Type: application/json\r\nContent-Length: ${roh.size}\r\n" +
                 "Connection: close\r\n\r\n"
             verbindung.getOutputStream().apply {
+                wache.pruefen()
                 write(kopf.toByteArray(Charsets.US_ASCII))
                 write(roh)
                 flush()
@@ -118,7 +119,7 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
                 throw BaumFehler(Netz.fehlertext(nummer, antwort), httpStatus = nummer)
             }
             if (antwort.isBlank()) throw BaumFehler("Die Gegenstelle hat nichts geantwortet.")
-            check(lanMarke == null || LanFreigabe.aktuell(lanMarke)) { LanFreigabe.WARTET }
+            wache.pruefen()
             Kanonisch.json.parseToJsonElement(antwort).jsonObject
             } finally {
                 try { lanWache?.close() } finally {

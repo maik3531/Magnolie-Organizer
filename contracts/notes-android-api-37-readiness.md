@@ -1,7 +1,10 @@
-# Notes: Android 17 / API 37 migration boundaries (#558, #648)
+# Notes: Android 17 / API 37 migration boundaries (#558, #648, #691)
 
-This is a source review, not a migrated build or native Android acceptance.
-Build, device, signing, installation and Store pauses remain in force.
+Current migration candidate and native matrix:
+[notes-691-target37-migration.md](notes-691-target37-migration.md).
+This is a source review, not native Android acceptance.
+The current user authorization governs build and device checks. Source review
+does not authorize signing, installation or Store publication by itself.
 
 The user reports that Notes already runs on their Samsung with Android 17.
 Preserve this positive real-use report; no current Android-17 startup failure
@@ -12,9 +15,9 @@ reported working installation or authorize replacing it.
 
 ## Reviewed baseline
 
-The current Notes source uses `compileSdk = 35`, `targetSdk = 35` and
+After #672 the Notes source uses compile SDK 37.2, product `targetSdk = 35` and
 `minSdk = 26` in `magnolie-notes/app/build.gradle.kts`. Its version catalogue
-selects AGP 8.7.3 and Kotlin 2.0.21; the wrapper selects Gradle 8.13. The build
+selects AGP 9.5.1 and Kotlin 2.4.21; the wrapper selects Gradle 9.6.0. The build
 requires a JDK 21 toolchain with Java/Kotlin bytecode targeting 17.
 
 The official Android 17 setup page specifies SDK 37. The current Google Maven
@@ -33,10 +36,11 @@ For apps targeting 37 or later on Android 17, the platform requires
 TCP, UDP unicast/multicast/broadcast, and NSD discovery/resolution. This also
 applies to local connections originating in WebViews.
 
-The reviewed manifest does not declare that permission and the reviewed main
-sources contain no corresponding runtime request/check. That is a blocker for
-an unreviewed target-37 change, not proof that the currently targeted API-35
-application is broken. The official guidance explicitly says **not** to declare
+The normal manifest does not declare that permission. #648 added runtime guards;
+#691 couples an explicit unsigned target-37 candidate with its own LAN overlay
+and extends the lifecycle, routing and receive checks. Native acceptance is still
+open. This is not proof that the currently targeted API-35 application is broken.
+The official guidance explicitly says **not** to declare
 or request this permission while targeting 36 or lower. Do not add it to the
 current manifest as a disconnected speculative fix.
 
@@ -47,7 +51,7 @@ current manifest as a disconnected speculative fix.
 | `baum/Server.kt` | Check incoming TCP and both directions of UDP traffic, not only outbound discovery. |
 | `baum/Entdeckung.kt` | Include NSD registration/discovery and later permission loss. |
 | `telefon/TelefonEntdeckung.kt` | A permission denial must not be misreported merely as “no peer found”. |
-| `MainActivity.kt` | Bind the visible permission result to the original action; re-read actual permission before continuing. |
+| `MainActivity.kt` | Re-read the actual grant, invalidate stale request lifetimes and never replay a captured peer/source action. |
 
 An existing Bluetooth grant may allow platform pre-grant within the common
 nearby-devices group. It is not a substitute for reading the actual local
@@ -92,11 +96,14 @@ main-source search; no speculative widget bitmap patch is warranted.
 
 ## Remaining acceptance
 
-After the exact SDK/toolchain change is reviewed and separately permitted,
-check API/target combinations, granted/denied/revoked permission, fresh setup,
+The SDK/toolchain preparation is recorded in #672. The #691 candidate's actual
+offline build, merged-manifest and unsigned-APK audits passed on 20 November
+2026; the linked migration contract records their scope and host test results.
+Native acceptance remains open. Check API/target
+combinations, granted/denied/revoked permission, fresh setup,
 restart, connection return, cancellation and late callbacks. Retain a concrete
-older-device test. API-37 local-network work is tracked separately in #648;
-the build/toolchain and complete behavior-change acceptance remain in #558.
+older-device test. Remaining target/manifest and native matrix work is tracked
+in #691 together with #558; #648 is the historical LAN-guard preparation.
 None of these source observations activates the paused original-contact return
 path or supplies its independent native system/provider evidence.
 

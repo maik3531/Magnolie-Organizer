@@ -96,6 +96,7 @@ class TimeSyncTransportTest {
                 field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
                 TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 },
                     ByteArray(4) { 12 }, ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { channel ->
+                    bindSyntheticPhoneSession(work, channel)
                     val session = PersonalNoteSession()
                     if (timerControl) field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     @Suppress("UNCHECKED_CAST")

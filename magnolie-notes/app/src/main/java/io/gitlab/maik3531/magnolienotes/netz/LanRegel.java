@@ -19,9 +19,15 @@ public final class LanRegel {
 
     /** One resolution and the exact returned address; no second DNS lookup. */
     public static java.net.InetAddress ziel(String host, Pruefung grant, Aufloesung resolver) throws java.io.IOException {
+        return ziel(host, grant, resolver, LanRegel::lokal);
+    }
+
+    /** The Android adapter adds the actual route; IP ranges alone cannot identify a LAN. */
+    public static java.net.InetAddress ziel(String host, Pruefung grant, Aufloesung resolver,
+            java.util.function.Predicate<java.net.InetAddress> needsLan) throws java.io.IOException {
         if (lokalerName(host)) grant.pruefen();
         java.net.InetAddress address = resolver.aufloesen(host);
-        if (lokal(address)) grant.pruefen();
+        if (needsLan.test(address)) grant.pruefen();
         return address;
     }
 

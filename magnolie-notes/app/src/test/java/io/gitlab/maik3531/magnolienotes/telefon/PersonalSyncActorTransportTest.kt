@@ -101,6 +101,7 @@ class PersonalSyncActorTransportTest {
                 TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 }, ByteArray(4) { 12 },
                     ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { channel ->
                     field(TelefonWerk::class.java, "activeChannel").set(runtime, channel)
+                    bindSyntheticPhoneSession(runtime, channel)
                     val session = PersonalNoteSession()
                     @Suppress("UNCHECKED_CAST")
                     val sessions = field(TelefonWerk::class.java, "noteSessions").get(runtime) as MutableMap<TelefonSecureChannel, PersonalNoteSession>

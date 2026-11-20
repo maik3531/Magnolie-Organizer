@@ -62,6 +62,7 @@ class PhoneTimeZoneRuntimeTest {
             TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 }, ByteArray(4) { 12 },
                 ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { channel ->
                 field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                bindSyntheticPhoneSession(work, channel)
                 val session = PersonalNoteSession().apply {
                     capabilitiesReceived = scenario != "stale_capabilities"; grantsReceived = scenario != "stale_grants"; ownSettingsReceived = scenario != "stale_own"
                 }

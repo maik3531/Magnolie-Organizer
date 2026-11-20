@@ -85,6 +85,7 @@ internal class TelefonEinladungsEmpfang(
                         timer.schedule(readDeadline, 2000)
                         val value = try { TelefonRahmen.lesen(socket.getInputStream(), 2048) }
                             finally { readDeadline.cancel() }
+                        if (closed.get() || !LanFreigabe.aktuell(lanMarke) || nanoTime() >= until) return@use
                         val desktop = TelefonEinladungsVertrag.offer(value, socket.inetAddress, target, nonce)
                             .copy(localAddress = socket.localAddress)
                         val expires = minOf(until, nanoTime() + 60_000_000_000L)
@@ -99,6 +100,7 @@ internal class TelefonEinladungsEmpfang(
                                 put("p", JsonPrimitive(TelefonEinladungsVertrag.PROTOCOL))
                                 put("type", JsonPrimitive("accepted")); put("nonce", JsonPrimitive(nonce))
                             }, 2048)
+                            if (closed.get() || !LanFreigabe.aktuell(lanMarke) || nanoTime() >= expires) return@use
                             onAccepted(desktop)
                         }
                     }

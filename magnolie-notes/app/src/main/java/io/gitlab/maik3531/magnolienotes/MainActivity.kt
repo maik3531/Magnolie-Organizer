@@ -1,6 +1,7 @@
 package io.gitlab.maik3531.magnolienotes
 
 import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+import io.gitlab.maik3531.magnolienotes.netz.LanAnfrage
 
 import android.Manifest
 import android.content.ClipData
@@ -138,6 +139,41 @@ class MainActivity : ComponentActivity() {
     internal val benachrichtigungsFreigabe = registerForActivityResult(
         ActivityResultContracts.RequestPermission()) {}
 
+    private val lanAnfrage = LanAnfrage()
+    // A stable explicit key does not change the other permission hosts' keys.
+    // Registration before STARTED also drains restored OS results before a new
+    // RESUMED user action. No request/consent/action is restored from a Bundle.
+    private val lanFreigabe = activityResultRegistry.register(
+        "notes-lan-permission", this, ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        // Never trust the result Boolean or replay a captured peer/source action.
+        if (lanAnfrage.antwort(lanSichtbar()) { LanFreigabe.erlaubt() }) {
+            Toast.makeText(this, LanFreigabe.WARTET, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun lanSichtbar(): Boolean =
+        android.os.Looper.myLooper() == android.os.Looper.getMainLooper() &&
+            !isFinishing && !isDestroyed &&
+            lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+
+    internal fun lanEinrichten(): Boolean {
+        val entscheidung = lanAnfrage.einrichten(lanSichtbar(), LanFreigabe.erforderlich()) {
+            LanFreigabe.erlaubt()
+        }
+        if (entscheidung.art == LanAnfrage.Art.ERLAUBT) return true
+        if (entscheidung.art == LanAnfrage.Art.ANFRAGEN) {
+            try { lanFreigabe.launch(LanFreigabe.RECHT) }
+            catch (_: RuntimeException) {
+                // The Activity can stop or lose its launcher before dispatch.
+                // A failed launch must not permanently poison the request slot.
+                lanAnfrage.startFehlgeschlagen(entscheidung.ticket)
+            }
+        }
+        if (lanSichtbar()) Toast.makeText(this, LanFreigabe.WARTET, Toast.LENGTH_LONG).show()
+        return false
+    }
+
     override fun onCreate(zustand: Bundle?) {
         super.onCreate(zustand)
         // Register before STARTED without constructing a phone store/service.
@@ -190,6 +226,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        lanAnfrage.close()
         phoneWebcamPermissionHost?.let {
             io.gitlab.maik3531.magnolienotes.telefon.PhoneWebcamForeground.unregister(it)
             it.close()
@@ -225,6 +262,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(absicht: Intent) {
         super.onNewIntent(absicht)
+        lanAnfrage.unterbrechen()
         entwurfSichern()
         setIntent(absicht)
         empfangeAbsicht(absicht)
@@ -277,6 +315,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        lanAnfrage.unterbrechen()
         entwurfSichern()
         super.onStop()
     }
@@ -653,23 +692,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         }
     }
 
-    var lanDialogOffen by remember { mutableStateOf(false) }
-    val lanFreigabe = androidx.activity.compose.rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        lanDialogOffen = false
-        // Never trust result maps or replay a captured peer/source action.
-        if (!LanFreigabe.erlaubt()) sage(LanFreigabe.WARTET)
-    }
-    fun lanEinrichten(): Boolean {
-        if (LanFreigabe.erlaubt()) return true
-        if (!lanDialogOffen && LanFreigabe.erforderlich()) {
-            lanDialogOffen = true
-            lanFreigabe.launch(LanFreigabe.RECHT)
-        }
-        sage(LanFreigabe.WARTET)
-        return false
-    }
+    fun lanEinrichten(): Boolean = (zusammenhang as? MainActivity)?.lanEinrichten() == true
 
     fun bluetoothErlaubt(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
         zusammenhang.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==

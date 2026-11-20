@@ -20,6 +20,14 @@ plugins {
  */
 val fdroidBau = providers.gradleProperty("magnolieFdroid")
     .map { it.toBooleanStrict() }.getOrElse(false)
+// #691: an explicit, unsigned, offline migration candidate; not release approval.
+// Reuse the locked release configuration instead of adding new dependency variants.
+val target37Validierung = providers.gradleProperty("magnolieTarget37Validation")
+    .map { it.toBooleanStrict() }.getOrElse(false)
+check(!target37Validierung || (fdroidBau && gradle.startParameter.isOffline)) {
+    "#691: Target-37-Validierung erfordert --offline und -PmagnolieFdroid=true; keine Signier-/Installations-/Storefreigabe."
+}
+val target37Manifest = file("src/target37/AndroidManifest.xml")
 val schluesselDatei = providers.environmentVariable("MAGNOLIE_SCHLUESSEL_PROPERTIES")
     .map { file(it) }
     .getOrElse(rootProject.file("app/schluessel.properties"))
@@ -49,7 +57,7 @@ kotlin {
 
 android {
     namespace = "io.gitlab.maik3531.magnolienotes"
-    // #672 preparation only: target/manifest migration still needs native acceptance.
+    // #672 toolchain; #691 keeps the product target at 35 pending native acceptance.
     compileSdk {
         version = release(37) { minorApiLevel = 2 }
     }
@@ -58,10 +66,7 @@ android {
     defaultConfig {
         applicationId = "io.gitlab.maik3531.magnolienotes"
         minSdk = 26
-        targetSdk = 35
-        check(requireNotNull(targetSdk) < 37) {
-            "#648/#558: API 37 requires reviewed toolchain, LAN manifest and native acceptance; guards alone are not migration approval."
-        }
+        targetSdk = if (target37Validierung) 37 else 35
         versionCode = 21
         versionName = "1.0.21"
         buildConfigField("boolean", "FDROID_DISTRIBUTION", fdroidBau.toString())
@@ -93,6 +98,7 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.findByName("freigabe")
+            if (target37Validierung) versionNameSuffix = "-api37-validation"
             buildConfigField("boolean", "LEGACY_PLAINTEXT_FIXTURE", "false")
         }
         create("fixture") {
@@ -126,6 +132,44 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
+    }
+}
+
+androidComponents {
+    finalizeDsl { extension ->
+        check(extension.defaultConfig.minSdk == 26) {
+            "#691: Die Target-Migration darf minSdk 26 nicht anheben."
+        }
+        check(extension.defaultConfig.targetSdk == if (target37Validierung) 37 else 35) {
+            "#691: Produktziel bleibt 35; Ziel 37 ist nur als gekoppelter Validierungsstand zugelassen."
+        }
+        val release = extension.buildTypes.getByName("release")
+        // The public AGP AndroidSourceFile API has a setter, not a srcFile getter.
+        // Select the paired overlay here, immediately before DSL locking. Normal
+        // release uses its usual source-set path and never the target-37 overlay.
+        val releaseManifest = if (target37Validierung) target37Manifest
+            else file("src/release/AndroidManifest.xml")
+        extension.sourceSets.getByName("release").manifest.srcFile(releaseManifest)
+        if (target37Validierung) {
+            check(fdroidBau && release.signingConfig == null && !release.isDebuggable) {
+                "#691: Der Target-37-Kandidat muss eine unsignierte Release-Variante bleiben."
+            }
+            check(target37Manifest.isFile) {
+                "#691: Target 37 erfordert das zugehoerige LAN-/testOnly-Manifest."
+            }
+            check(release.versionNameSuffix == "-api37-validation") {
+                "#691: Dem privaten Target-37-Pruefstand fehlt die Versionskennzeichnung."
+            }
+        }
+    }
+    beforeVariants(selector().all()) { variant ->
+        // Do not accidentally create a debug-signed or plaintext target-37 APK.
+        if (target37Validierung) {
+            if (variant.buildType != "release") variant.enable = false
+            // Device-test APKs have their own signing path. Native validation
+            // needs a separate authorized stage; keep the host unit gate usable.
+            variant.deviceTests.values.forEach { it.enable = false }
         }
     }
 }
@@ -188,6 +232,8 @@ tasks.configureEach {
 // dafür laufen die Einheitstests im Projektstammverzeichnis.
 tasks.withType<Test>().configureEach {
     workingDir = rootDir
+    // Assert the selected variant's exact version, not a suffix-tolerant product version.
+    systemProperty("magnolieTarget37Validation", target37Validierung.toString())
     // The shared native-hash oracle is outside the Kotlin source/resource tree.
     // Changing its vectors must invalidate the test result, not reuse an older
     // successful run as evidence for newly added interoperability cases.

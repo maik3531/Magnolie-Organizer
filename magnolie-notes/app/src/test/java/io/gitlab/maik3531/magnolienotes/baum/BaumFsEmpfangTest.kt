@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.daten.Baumzustand
 import io.gitlab.maik3531.magnolienotes.daten.Partner
+import io.gitlab.maik3531.magnolienotes.netz.LanTor
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.*
@@ -37,14 +38,24 @@ class BaumFsEmpfangTest {
     }
     private val transport = Krypto.b64(ByteArray(16) { 17 })
     private fun exchange(server: Server, sender: EigeneIdentitaet, receiver: EigeneIdentitaet, body: JsonObject,
+                         transportGueltig: (() -> Boolean)? = null,
+                         messageTransportGueltig: (() -> Boolean)? = transportGueltig,
                          afterHandshake: () -> Unit = {}) {
+        fun request(name: String, message: JsonObject): JsonObject {
+            val guard = if (name == "sitzungAufbauen") transportGueltig else messageTransportGueltig
+            if (guard == null) return call(server, name, receiver, message)
+            val path = if (name == "sitzungAufbauen") "/magnolie/v2/sitzung" else "/magnolie/v2/nachricht"
+            val (status, response) = server.behandeln(path, message, "127.0.0.1", guard)
+            if (status != 200) throw BaumFehler("Synthetic guarded receive rejected: $status")
+            return response
+        }
         val start = Sitzung.baueStart(sender, receiver.kennung, receiver.oeffentlich)
-        val answer = call(server, "sitzungAufbauen", receiver, start.nachricht)
+        val answer = request("sitzungAufbauen", start.nachricht)
         val channel = Sitzung.oeffneAntwort(sender, receiver.kennung, receiver.oeffentlich, start, answer)
         try {
             afterHandshake()
             val envelope = Sitzung.baueUmschlag(channel, sender.kennung, receiver.kennung, body, transport)
-            assertTrue(Sitzung.pruefeQuittung(channel, envelope, call(server, "sichereNachricht", receiver, envelope)))
+            assertTrue(Sitzung.pruefeQuittung(channel, envelope, request("sichereNachricht", envelope)))
         } finally { channel.loeschen(); start.ephemerGeheim.fill(0) }
     }
 
@@ -112,6 +123,11 @@ class BaumFsEmpfangTest {
     @Test fun actualNativeRestoreInvalidatesAnAlreadyDecryptedOriginWithUnchangedKeys() = nativeGate("restore")
     @Test fun nativeLifetimeIsCapturedAtHandshakeNotAfterDecryption() = nativeGate("cancel-handshake")
     @Test fun stoppedServerCannotReuseAnOpenHandshakeSession() = nativeGate("stop-handshake")
+    @Test fun lanRevocationAfterDecryptionBlocksActualNativeCommit() = nativeGate("lan-revoke")
+    @Test fun lanRegrantDoesNotReviveDecryptedWorkBeforeNativeCommit() = nativeGate("lan-regrant")
+    @Test fun lanRevocationInvalidatesAnOpenHandshake() = nativeGate("lan-revoke-handshake")
+    @Test fun lanRegrantDoesNotReviveAnOpenHandshake() = nativeGate("lan-regrant-handshake")
+    @Test fun lanRevocationLeavesTheIndependentBluetoothReceivePathUsable() = nativeGate("bluetooth-lan-revoke")
 
     private fun nativeGate(change: String) {
         val dir = kotlin.io.path.createTempDirectory("native-fs-origin-").toFile()
@@ -127,6 +143,22 @@ class BaumFsEmpfangTest {
                 vertraut = true, kontaktSync = true, kontaktSyncFassungen = listOf(1, 2)))))
         val actual = Baumwerk.fuerTest(ablage, context)
         val clock = AtomicLong(1_700_000_000)
+        var lanAllowed = true
+        val lan = LanTor { lanAllowed }
+        val lanToken = lan.marke()
+        var messageLanToken = lanToken
+        fun revokeLan() {
+            lanAllowed = false
+            assertFalse(lan.erlaubt())
+            if (change.contains("regrant")) {
+                lanAllowed = true
+                assertTrue(lan.erlaubt())
+                assertFalse(lan.aktuell(lanToken))
+                messageLanToken = lan.marke()
+            }
+        }
+        val transportGueltig: (() -> Boolean)? = if (change.startsWith("lan-")) ({ lan.aktuell(lanToken) }) else null
+        val messageTransportGueltig: (() -> Boolean)? = if (change.startsWith("lan-")) ({ lan.aktuell(messageLanToken) }) else null
         var entered = false
         lateinit var server: Server
         val handler = object : Server.Handlung by actual {
@@ -139,6 +171,7 @@ class BaumFsEmpfangTest {
                     "cosmetic" -> ablage.aendereBaum { state -> state.copy(name = "New display", partner = state.partner.map { it.copy(name = "New display") }) }
                     "expired" -> clock.addAndGet(31)
                     "stop" -> server.anhalten()
+                    "lan-revoke", "lan-regrant", "bluetooth-lan-revoke" -> revokeLan()
                     "cancel" -> ablage.baumTransporteAbbrechen()
                     "restore" -> {
                         val saved = ablage.journalNutzlast()
@@ -162,8 +195,8 @@ class BaumFsEmpfangTest {
             KontaktSync.inhalt(KontaktNachricht("canonical-share", 1, sender.kennung, 1000,
                 KontaktDaten(vorname = "Synthetic pending contact"), 2))
         try {
-            if (change in setOf("normal", "cosmetic")) {
-                exchange(server, sender, receiver, body)
+            if (change in setOf("normal", "cosmetic", "bluetooth-lan-revoke")) {
+                exchange(server, sender, receiver, body, transportGueltig)
                 assertEquals(1, ablage.baum.value.kontaktEingang.size)
                 assertEquals(listOf(transport), ablage.baum.value.partner.single().gesehen)
             } else if (change == "appointment") {
@@ -172,14 +205,58 @@ class BaumFsEmpfangTest {
                 assertEquals(listOf(transport), ablage.baum.value.partner.single().gesehen)
                 assertTrue(ablage.baum.value.kontaktEingang.isEmpty())
             } else {
-                assertThrows(BaumFehler::class.java) { exchange(server, sender, receiver, body) {
+                assertThrows(BaumFehler::class.java) { exchange(server, sender, receiver, body, transportGueltig, messageTransportGueltig) {
                     if (change == "cancel-handshake") ablage.baumTransporteAbbrechen()
                     if (change == "stop-handshake") server.anhalten()
+                    if (change == "lan-revoke-handshake" || change == "lan-regrant-handshake") revokeLan()
                 } }
                 assertTrue(ablage.baum.value.kontaktEingang.isEmpty())
                 assertTrue(ablage.baum.value.partner.single().gesehen.isEmpty())
             }
-            assertEquals(change !in setOf("cancel-handshake", "stop-handshake"), entered)
+            assertEquals(change !in setOf("cancel-handshake", "stop-handshake", "lan-revoke-handshake", "lan-regrant-handshake"), entered)
         } finally { server.anhalten(); dir.deleteRecursively() }
+    }
+
+    @Test fun deniedLanDispatchNeverReadsNativeIdentityOrRunsAHandler() {
+        val sender = identity("sender"); val receiver = identity("receiver")
+        val handler = object : Handler(receiver, Partner(sender.kennung, oeffentlich = sender.oeffentlich, bestaetigt = true)) {
+            override fun eigen(): EigeneIdentitaet = error("Denied LAN must not dispatch")
+        }
+        val server = Server(handler, 0)
+        try {
+            for (path in listOf("/magnolie/v1/paarung", "/magnolie/v2/paarung", "/magnolie/v1/nachricht",
+                    "/magnolie/v2/sitzung", "/magnolie/v2/nachricht")) {
+                assertEquals(403, server.behandeln(path, JsonObject(emptyMap()), "synthetic") { false }.first)
+            }
+        } finally { server.anhalten() }
+    }
+
+    @Test fun pairingAndLegacyDispatchRecheckRevocationInsideTheNativeWriterGate() {
+        for (path in listOf("/magnolie/v1/paarung", "/magnolie/v2/paarung", "/magnolie/v1/nachricht")) {
+            val sender = identity("sender"); val receiver = identity("receiver")
+            var allowed = true
+            var mutations = 0
+            val handler = object : Handler(receiver, Partner(sender.kennung, oeffentlich = sender.oeffentlich, bestaetigt = true)) {
+                override fun eigen(): EigeneIdentitaet { allowed = false; return self }
+                override fun codeAnfrage(name: String, kennung: String, oeffentlich: String, adresse: String, port: Int) { mutations++ }
+                override fun dateiPaarungAnnehmen(eigen: EigeneIdentitaet, anfrage: JsonObject, adresse: String): JsonObject {
+                    mutations++; return JsonObject(emptyMap())
+                }
+                override fun legacyNachricht(umschlag: JsonObject, quelle: String): JsonObject {
+                    mutations++; return JsonObject(emptyMap())
+                }
+            }
+            val request = JsonObject(mapOf("kennung" to JsonPrimitive(sender.kennung),
+                "oeffentlich" to JsonPrimitive(sender.oeffentlich)))
+            val server = Server(handler, 0)
+            try {
+                val (status, _) = server.behandeln(path, request, "synthetic") {
+                    if (!allowed) assertTrue(Thread.holdsLock(Ablage.SCHREIBSPERRE))
+                    allowed
+                }
+                assertEquals(403, status)
+                assertEquals(0, mutations)
+            } finally { server.anhalten() }
+        }
     }
 }

@@ -134,6 +134,8 @@ internal fun shouldStartPersonalSyncOnSecureWifi(
 class TelefonWerk private constructor(private val context: Context, private val storage: TelefonAblage) {
     private val developerDiagnostics = io.gitlab.maik3531.magnolienotes.Entwicklermodus(context)
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
+    private val sessionPipes = java.util.WeakHashMap<TelefonSecureChannel, TelefonRoehre>()
+    private val receiveLifetime = ThreadLocal<() -> Unit>()
     private class WebcamDiscovery(val channel: TelefonSecureChannel, val pipe: TelefonTcpRoehre,
         val generation: Long, val body: JsonObject)
     private class WebcamAck(val id: String, val token: Any, var seen: Boolean = false)
@@ -1027,8 +1029,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun currentNativeFileTransportPeer(peerId: String, publicKey: String,
         channel: TelefonSecureChannel, generation: Long): TelefonPeer? {
-        if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||
-            generation != pairingGeneration || activeTransport == null || nativeFileOwnDecisions[channel]?.own == false) return null
+        if (!sessionTransportAktuell(channel, generation) || nativeFileOwnDecisions[channel]?.own == false) return null
         return runCatching { storage.fileAuthorityPeers().peer }.getOrNull()?.takeIf { it.device_id == peerId && it.static_public == publicKey }
     }
 
@@ -1071,8 +1072,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun actorSourceRevision(peerId: String, publicKey: String,
         channel: TelefonSecureChannel, generation: Long, completionOnly: Boolean): String? {
-        if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||
-            generation != pairingGeneration || activeTransport == null) return null
+        if (!sessionTransportAktuell(channel, generation)) return null
         val peer = safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey } ?: return null
         val session = noteSessions[channel] ?: return null
         val capabilities = sharedLocalCapabilities()
@@ -1083,6 +1083,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
         if (!completionOnly && historicalContext.any { personalActorCompletions[it.handle.runId]?.completed != true }) return null
         return synchronized(Ablage.SCHREIBSPERRE) {
+            if (!sessionTransportAktuell(channel, generation)) return@synchronized null
             val documents = Ablage.hole(context)
             if (!documents.synchronisationsSchreibbar()) return@synchronized null
             val live = PersonalSync.livePersonalContent(documents.bestand.value)
@@ -1476,7 +1477,36 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private var outgoingScope: OutgoingScope? = null // captureLock; never acquire the tracker lock inside it
     @Volatile private var pairingGeneration = 0L
 
+    /** Bind all native source checks to the original pipe, including the
+     * authentication/control phase before activeChannel is published. */
+    @Synchronized internal fun sessionTransportAktuell(channel: TelefonSecureChannel, generation: Long,
+        establishedOnly: Boolean = true): Boolean {
+        if (!serviceRunning || !storage.enabled() || generation != pairingGeneration) return false
+        val pipe = activeTransport?.second ?: return false
+        if (!pipe.aktuell()) return false
+        val original = sessionPipes[channel]
+        if (original !== pipe) return false
+        return activeChannel === channel || (!establishedOnly && activeChannel == null)
+    }
+
+    private fun pruefeSitzungsTransport(pipe: TelefonRoehre, generation: Long) = synchronized(this) {
+        if (!serviceRunning || !storage.enabled() || generation != pairingGeneration || activeTransport?.second !== pipe)
+            throw TelefonProtokollFehler("Die Verbindung ist nicht mehr aktuell.")
+        pipe.pruefen()
+    }
+
+    private fun pruefeEmpfang() { receiveLifetime.get()?.invoke() }
+
+    /** Recheck the receive source after waiting for the actual native writer. */
+    private inline fun <T> empfangSchreiben(aktion: () -> T): T = synchronized(Ablage.SCHREIBSPERRE) {
+        pruefeEmpfang()
+        aktion()
+    }
+
     internal fun <T> peerEffect(expected: TelefonPeer, generation: Long, effect: (TelefonPeer) -> T): T = synchronized(this) {
+        // Only an active receive/session scope installs this check. Independent
+        // local configuration stays usable while a network permission is absent.
+        pruefeEmpfang()
         val current = safePeer()?.takeIf { generation == pairingGeneration &&
             it.device_id == expected.device_id && it.static_public == expected.static_public }
             ?: throw TelefonProtokollFehler("Unbekannte Gegenstelle.")
@@ -2338,6 +2368,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     throw java.io.IOException(context.getString(io.gitlab.maik3531.magnolienotes.R.string.telefon_status_getrennt))
                 }
                 synchronized(this) {
+                    connection.pruefen()
                     check(generation == pairingGeneration && samePairingPeer(safePeer(), current))
                     attempt = PendingPairing(connection, response, material, privateKey, ephemeralKey, desktop.host, bluetoothAddress, generation, current)
                     pending.getAndSet(attempt)?.close()
@@ -2396,6 +2427,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 pending_finish = TelefonKanonisch.text(phoneFinish), pending_finish_expires_ms = System.currentTimeMillis() + 600_000,
                 file_pairing_epoch = NativeFilePairingAuthority.epochForConfirmedTranscript(transcript))
             synchronized(this) {
+                pair.socket.pruefen()
                 if (pair.generation != pairingGeneration || !samePairingPeer(safePeer(), pair.previousPeer))
                     throw TelefonProtokollFehler("Ein Organizer ist bereits kryptografisch gekoppelt.")
                 if (pair.previousPeer == null) storage.savePeer(peer)
@@ -2410,6 +2442,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             checkProof(finish, "pair_finish", "desktop", pair.material, "magnolie-phone-pair-v1/finish\u0000")
             val complete = peer.copy(state = "paired", last_contact_ms = System.currentTimeMillis(), pending_finish = "", pending_finish_expires_ms = 0)
             peerEffect(peer, pair.generation) {
+                pair.socket.pruefen()
                 storage.savePeer(complete)
                 initializePersonalDefaults(reconnectAfterChange = false)
                 if (complete.bluetooth_inbound) {
@@ -2603,19 +2636,23 @@ class TelefonWerk private constructor(private val context: Context, private val 
         _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.AUTHENTICATING, error = "")
         developerDiagnostics.ereignis("authenticating", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
         var fileCleanupChannel: TelefonSecureChannel? = null
+        val previousLifetime = receiveLifetime.get()
+        receiveLifetime.set { pruefeSitzungsTransport(pipe, generation) }
         try {
             val secrets = TelefonSession.start(identity, peer, staticPrivate)
             TelefonRahmen.schreiben(pipe.output, secrets.start)
             TelefonSession.finish(secrets, TelefonRahmen.lesen(pipe.input), identity, peer,
                  pipe.input, pipe.output).also { fileCleanupChannel = it }.use { channel ->
                 val noteSession = PersonalNoteSession()
-                synchronized(this) { noteSessions[channel] = noteSession }
+                synchronized(this) { noteSessions[channel] = noteSession; sessionPipes[channel] = pipe }
                 try {
                 channel.send(buildJsonObject {
                     put("type", JsonPrimitive("session_ready")); put("connection_id", JsonPrimitive(UUID.randomUUID().toString()))
                     put("capabilities_revision", JsonPrimitive(maxOf(1, peer.capabilities_revision))); put("last_received_seq", JsonPrimitive(-1))
                 })
-                TelefonNachrichten.validateReady(channel.receive())
+                val ready = channel.receive()
+                pruefeSitzungsTransport(pipe, generation)
+                TelefonNachrichten.validateReady(ready)
                 developerDiagnostics.ereignis("secure_ready", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
                 authenticationDeadline?.disarm()
                 authenticated()
@@ -2644,6 +2681,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             it.personal_notes_sync_granted && it.remote_personal_notes_sync_granted && !noteModeReady(it, noteSession)
                     }) {
                     val payload = channel.receive()
+                    pruefeSitzungsTransport(pipe, generation)
                     when (payload.string("type")) {
                         "ack" -> {
                             TelefonNachrichten.validateAck(payload)
@@ -2712,6 +2750,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 sendDue(peer, channel, generation)
                 while (serviceRunning && storage.enabled()) {
                     val payload = channel.receive()
+                    pruefeSitzungsTransport(pipe, generation)
                     when (payload.string("type")) {
                         "ping" -> {
                             TelefonNachrichten.validateHeartbeat(payload)
@@ -2734,6 +2773,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         if (activeChannel === channel) activeChannel = null
                         fileChannelIdentities.remove(channel)
                         noteSessions.remove(channel)
+                        sessionPipes.remove(channel)
                         mediaSessions.remove(channel)
                         contactGroupWriter.clear(channel); contactValueWriter.clear(channel); contactGroupTitleWriter.clear(channel)
                         retireInvalidPersonalActors()
@@ -2746,6 +2786,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 developerDiagnostics.ereignis("failed", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth", true)
             throw error
         } finally {
+            if (previousLifetime == null) receiveLifetime.remove() else receiveLifetime.set(previousLifetime)
             authenticationDeadline?.close()
             developerDiagnostics.ereignis("closed", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
             staticPrivate.fill(0); runCatching { pipe.close() }
@@ -2791,6 +2832,20 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
+        if (!sessionTransportAktuell(channel, generation, establishedOnly = false)) return
+        val pipe = activeTransport?.second ?: return
+        val previousLifetime = receiveLifetime.get()
+        receiveLifetime.set {
+            pruefeSitzungsTransport(pipe, generation)
+            if (!sessionTransportAktuell(channel, generation, establishedOnly = false))
+                throw TelefonProtokollFehler("Die empfangene Sitzung ist nicht mehr aktuell.")
+        }
+        try { receiveMessageCurrent(sessionPeer, message, channel, generation) }
+        finally { if (previousLifetime == null) receiveLifetime.remove() else receiveLifetime.set(previousLifetime) }
+    }
+
+    private fun receiveMessageCurrent(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
+                                      generation: Long) {
         if (PhoneWebcamControl.reserved(message)) {
             receiveWebcamControl(message, channel, generation)
             return // Never enter ordinary replay/identifier/personal-store routing.
@@ -2973,7 +3028,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun receiveActorMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
         var savedReportRun: String? = null
         val reply = synchronized(this) {
-            if (generation != pairingGeneration || activeChannel !== channel) return@synchronized null
+            if (!sessionTransportAktuell(channel, generation)) return@synchronized null
             val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
                 ?: return@synchronized null
             try {
@@ -3266,7 +3321,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             synchronized(Ablage.SCHREIBSPERRE) book@{
                 val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
                 val session = noteSessions[channel]
-                if (peer == null || !serviceRunning || !storage.enabled() || activeChannel !== channel || generation != pairingGeneration ||
+                if (peer == null || !sessionTransportAktuell(channel, generation) ||
                     !timeControlsReady(peer, session)) return@book null
                 val local = sharedLocalCapabilities()[TimeControlProtokoll.CAPABILITY]
                 if (local?.available != true || TimeControlProtokoll.VERSION !in local.versions ||
@@ -3498,7 +3553,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 check(SharedSyncSettings.effective(settings)["content_mode"] == JsonPrimitive("phone_scope"))
                 if (!contentScopeControlsReady(peer, noteSession)) throw java.io.IOException("Shared preference agreement is pending")
                 val wrapped = message["body"] as JsonObject
-                val inner = synchronized(Ablage.SCHREIBSPERRE) {
+                val inner = empfangSchreiben {
                     queueContentScope(peer, noteSession)
                     val manifest = requireNotNull(noteSession?.localContentScope)
                     val (innerKind, body) = PhoneContentScope.unwrap(wrapped, manifest)
@@ -3552,7 +3607,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val body = message["body"] as JsonObject
                 if (queue.duplicateResult(peer.device_id, message.string("message_id")) != null)
                     require(queue.receivedMatches(peer.device_id, message))
-                synchronized(Ablage.SCHREIBSPERRE) {
+                empfangSchreiben {
                     val binding = sharedBinding(peer)
                     if (sharedPreferences.read(binding) == null)
                         sharedPreferences.initialize(binding, initialCommonPreferences(peer))
@@ -3591,6 +3646,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         check(records.isEmpty() || commonValues(peer)?.get("time_mode") != JsonPrimitive("phone_import"))
                         val calendar = (body["calendar"] as? JsonObject)?.let(TimeSyncProtokoll::decodeCalendar)
                         val updated = Ablage.hole(context).aendereZeiterfassung { state ->
+                            pruefeEmpfang()
                             val merged = io.gitlab.maik3531.magnolienotes.daten.ZeiterfassungAbgleich.merge(
                                 state, records, fromOrganizer = true).state
                             if (calendar == null) merged else merged.copy(calendar = calendar)
@@ -3673,6 +3729,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val ablage = Ablage.hole(context)
                 val changed = kind == "personal_sync.custom_settings" && ablage.bestand.value.personalCustom.remote != body
                 ablage.personalCustomChange { state ->
+                    pruefeEmpfang()
                     if (kind == "personal_sync.custom_settings") state.copy(remote = PersonalSyncProtokoll.acceptCustomSettings(state.remote, body))
                     else PersonalCustom.apply(state, body)
                 }
@@ -3872,7 +3929,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         PersonalDeletionProposal(body.string("run_id"), value.proposalId, value.kind, value.id,
                             value.parentId, value.clock, value.priorHash, value.deletedMs, value.label, peer.device_id)
                     }
-                    synchronized(Ablage.SCHREIBSPERRE) {
+                    empfangSchreiben {
                         checkNotNull(queue.personalRun(peer.device_id, body.string("run_id")))
                         Ablage.hole(context).personalSyncStageProposals(body.string("run_id"), peer.device_id, proposals)
                     }
@@ -3881,7 +3938,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 }
                 if (kind == "personal_sync.deletion_decision") {
                     val decisions = PersonalSyncProtokoll.decodeDeletionDecisions(body)
-                    val applied = synchronized(Ablage.SCHREIBSPERRE) {
+                    val applied = empfangSchreiben {
                         checkNotNull(queue.personalRun(peer.device_id, body.string("run_id")))
                         Ablage.hole(context).personalSyncApplyDecisions(body.string("decision_id"), decisions.map {
                             Triple(it.proposalId, it.decision, it.expectedClock) })
@@ -4592,10 +4649,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun applyDecisionAck(decisionAck: DeletionDecisionAck?) {
         decisionAck?.let { ack ->
-            when {
-                ack.state == "accepted" -> Ablage.hole(context).personalSyncDecisionAccepted(ack.decisionId)
-                ack.state == "expired" || ack.state.startsWith("terminal:") ->
-                    Ablage.hole(context).personalSyncDecisionStopped(ack.decisionId, ack.state)
+            empfangSchreiben {
+                when {
+                    ack.state == "accepted" -> Ablage.hole(context).personalSyncDecisionAccepted(ack.decisionId)
+                    ack.state == "expired" || ack.state.startsWith("terminal:") ->
+                        Ablage.hole(context).personalSyncDecisionStopped(ack.decisionId, ack.state)
+                }
             }
         }
     }
@@ -4736,12 +4795,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized private fun refreshCustomAuthorization() {
         val ablage = Ablage.hole(context)
         val peer = safePeer() ?: run {
-            ablage.personalCustomChange { it.copy(active = false) }
+            ablage.personalCustomChange { pruefeEmpfang(); it.copy(active = false) }
             Erinnerung.customNeuStellen(context)
             return
         }
         var initial = false
         ablage.personalCustomChange { old ->
+            pruefeEmpfang()
             var state = PersonalCustom.bind(old, peer.device_id + ":" + peer.static_public)
             if (customSupported(peer) && state.local == null) {
                 initial = true

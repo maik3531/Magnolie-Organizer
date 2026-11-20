@@ -19,6 +19,7 @@ import java.security.Security
 import java.util.Base64
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import javax.crypto.spec.SecretKeySpec
 
 @RunWith(RobolectricTestRunner::class)
@@ -28,7 +29,8 @@ class TimeControlRuntimeTest {
     private fun field(type: Class<*>, name: String) = type.getDeclaredField(name).apply { isAccessible = true }
     private class Fixture(val context: Context, val documents: Ablage, val storage: TelefonAblage, val work: TelefonWerk,
                           val peer: TelefonPeer, val session: PersonalNoteSession, val channel: TelefonSecureChannel,
-                          val output: ByteArrayOutputStream) {
+                          val output: ByteArrayOutputStream, val pipe: TelefonRoehre,
+                          val transportCurrent: AtomicReference<() -> Boolean>) {
         fun receive(body: JsonObject, target: TelefonPeer = peer, generation: Long = 0): JsonObject? {
             work.receiveMessage(target, TelefonNachrichten.message(TimeControlProtokoll.REQUEST, body, 60000), channel, generation)
             val input = ByteArrayInputStream(output.toByteArray()); output.reset()
@@ -73,18 +75,25 @@ class TimeControlRuntimeTest {
         field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
         (field(TelefonWerk::class.java, "connecting").get(work) as AtomicBoolean).set(true)
         val wireOutput = ByteArrayOutputStream()
-        val pipe = object : TelefonRoehre { override val input = ByteArrayInputStream(ByteArray(0)); override val output = wireOutput; override fun close() {} }
+        val transportCurrent = AtomicReference<() -> Boolean>({ true })
+        val pipe = object : TelefonRoehre {
+            override val input = ByteArrayInputStream(ByteArray(0))
+            override val output = wireOutput
+            override fun aktuell() = transportCurrent.get().invoke()
+            override fun close() {}
+        }
         field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
         try {
             documents.aendereZeiterfassung { ZeiterfassungStand(enabled = true) }
             TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 }, ByteArray(4) { 12 },
                 ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { channel ->
                 field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                bindSyntheticPhoneSession(work, channel)
                 val session = PersonalNoteSession().apply { capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true
                     timeSent = peer.personal_time_policy; timeReceived = peer.remote_personal_time_policy }
                 @Suppress("UNCHECKED_CAST")
                 (field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>)[channel] = session
-                action(Fixture(context, documents, storage, work, peer, session, channel, wireOutput))
+                action(Fixture(context, documents, storage, work, peer, session, channel, wireOutput, pipe, transportCurrent))
             }
         } finally {
             field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, false)
@@ -144,6 +153,77 @@ class TimeControlRuntimeTest {
         f.session.timeReceived = null
         assertEquals("not_granted", f.execute(f.command("finish", initial, start.operationId)).string("error"))
         f.session.ownSettingsReceived = false
+        assertNull(f.receive(TimeControlProtokoll.request(UUID.randomUUID().toString())))
+    }
+
+    @Test fun revokedTransportRejectsDecodedTimerCommandsBeforeDispatch() = fixture { f ->
+        val state = f.read()
+        val before = File(f.context.filesDir, "notizen.json").readBytes()
+        val command = f.command("start", state)
+        f.transportCurrent.set { false }
+        assertFalse(f.work.sessionTransportAktuell(f.channel, 0))
+        assertNull(f.receive(TimeControlProtokoll.request(UUID.randomUUID().toString(), f.documents.baum.value.syncEpoch, command)))
+        assertArrayEquals(before, File(f.context.filesDir, "notizen.json").readBytes())
+        assertTrue(f.documents.bestand.value.zeiterfassung.controlReceipts.isEmpty())
+    }
+
+    @Test fun permissionLostAtActualBookWriterDoesNotCommitAnEarlierDecodedCommand() = fixture { f ->
+        val state = f.read()
+        val before = File(f.context.filesDir, "notizen.json").readBytes()
+        val command = f.command("start", state)
+        // Dispatch is still valid. The native book gate observes the later
+        // revocation, after parsing and waiting for the actual writer lock.
+        f.transportCurrent.set { !Thread.holdsLock(Ablage.SCHREIBSPERRE) }
+        assertNull(f.receive(TimeControlProtokoll.request(UUID.randomUUID().toString(), f.documents.baum.value.syncEpoch, command)))
+        assertArrayEquals(before, File(f.context.filesDir, "notizen.json").readBytes())
+        assertTrue(f.documents.bestand.value.zeiterfassung.controlReceipts.isEmpty())
+    }
+
+    @Test fun aReplacementPipeCannotReviveTheOldSecureChannel() = fixture { f ->
+        assertTrue(f.work.sessionTransportAktuell(f.channel, 0))
+        val replacement = object : TelefonRoehre {
+            override val input = ByteArrayInputStream(ByteArray(0))
+            override val output = ByteArrayOutputStream()
+            override fun close() {}
+        }
+        field(TelefonWerk::class.java, "activeTransport").set(f.work, TelefonTransportArt.BLUETOOTH to replacement)
+        assertFalse(f.work.sessionTransportAktuell(f.channel, 0))
+        assertNull(f.receive(TimeControlProtokoll.request(UUID.randomUUID().toString())))
+        field(TelefonWerk::class.java, "activeTransport").set(f.work, TelefonTransportArt.WIFI to f.pipe)
+    }
+
+    @Test fun aTimeSyncImportRechecksItsSourceInsideTheNativeWriter() = fixture { f ->
+        val entry = Zeiteintrag(startMinute = 1000, endMinute = 1060, zone = "UTC",
+            clock = mapOf(UUID.randomUUID().toString() to 1L), note = "Allowed synthetic import")
+        val allowedBody = TimeSyncProtokoll.batches(requireNotNull(f.peer.remote_personal_time_policy),
+            requireNotNull(f.peer.personal_time_policy), listOf(entry)).single()
+        f.work.receiveMessage(f.peer, TelefonNachrichten.message(TimeSyncProtokoll.BATCH, allowedBody, 60000), f.channel, 0)
+        assertEquals(entry.id, f.documents.bestand.value.zeiterfassung.entries.single().id)
+        val before = File(f.context.filesDir, "notizen.json").readBytes()
+        val retired = entry.copy(id = UUID.randomUUID().toString(), note = "Revoked synthetic import")
+        val body = TimeSyncProtokoll.batches(requireNotNull(f.peer.remote_personal_time_policy),
+            requireNotNull(f.peer.personal_time_policy), listOf(retired)).single()
+        val nativeCheck = AtomicBoolean(false)
+        f.transportCurrent.set {
+            if (Thread.holdsLock(Ablage.SCHREIBSPERRE)) { nativeCheck.set(true); false } else true
+        }
+        // The import rejects the revoked source. Its follow-up module refresh
+        // must also reject a native write from that same retired receive scope.
+        assertThrows(java.io.IOException::class.java) {
+            f.work.receiveMessage(f.peer, TelefonNachrichten.message(TimeSyncProtokoll.BATCH, body, 60000), f.channel, 0)
+        }
+        assertTrue("The native writer never rechecked the receive source", nativeCheck.get())
+        assertArrayEquals(before, File(f.context.filesDir, "notizen.json").readBytes())
+        assertEquals(entry.id, f.documents.bestand.value.zeiterfassung.entries.single().id)
+    }
+
+    @Test fun anEstablishedChannelWithoutItsOriginalPipeIsNotAuthorized() = fixture { f ->
+        assertTrue(f.work.sessionTransportAktuell(f.channel, 0))
+        @Suppress("UNCHECKED_CAST")
+        val pipes = field(TelefonWerk::class.java, "sessionPipes").get(f.work) as MutableMap<TelefonSecureChannel, TelefonRoehre>
+        pipes.remove(f.channel)
+        assertFalse(f.work.sessionTransportAktuell(f.channel, 0))
+        assertFalse(f.work.sessionTransportAktuell(f.channel, 0, establishedOnly = false))
         assertNull(f.receive(TimeControlProtokoll.request(UUID.randomUUID().toString())))
     }
 }

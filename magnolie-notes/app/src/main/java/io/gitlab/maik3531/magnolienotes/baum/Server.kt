@@ -1,6 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.baum
 
 import io.gitlab.maik3531.magnolienotes.netz.LanFreigabe
+import io.gitlab.maik3531.magnolienotes.daten.Ablage
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -127,7 +128,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         val gueltig: () -> Boolean
     )
 
-    private class Lauf(val buchse: ServerSocket, val arbeiter: ThreadPoolExecutor) {
+    private class Lauf(val buchse: ServerSocket, val arbeiter: ThreadPoolExecutor, val lanMarke: Long) {
         val aktiv = AtomicBoolean(true)
         val rufBuchse = AtomicReference<java.net.DatagramSocket?>()
         val verbindungen = ConcurrentHashMap.newKeySet<Socket>()
@@ -148,6 +149,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     fun starten(): Boolean {
         if (!lanErlaubt()) return false
         if (lauf != null) return true
+        val lanMarke = try { LanFreigabe.marke() } catch (_: Exception) { return false }
         val buchse = try {
             ServerSocket(wunschPort, 16)
         } catch (fehler: Exception) {
@@ -158,7 +160,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                 return false
             }
         }
-        val neuerLauf = Lauf(buchse, neuerArbeiter())
+        val neuerLauf = Lauf(buchse, neuerArbeiter(), lanMarke)
         lauf = neuerLauf
         buchse.soTimeout = 500
         thread(name = "baum-http", isDaemon = true) { horchen(neuerLauf) }
@@ -185,6 +187,14 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         alterLauf.fristen.shutdownNow()
     }
 
+    /** An old listener must never stop a later, re-authorized LAN run. */
+    @Synchronized private fun lanAnhalten(erwartet: Lauf) {
+        if (lauf === erwartet) lanAnhalten()
+    }
+
+    private fun lanAktuell(erwartet: Lauf): Boolean =
+        lauf === erwartet && erwartet.aktiv.get() && LanFreigabe.aktuell(erwartet.lanMarke)
+
     private fun neuerArbeiter() = ThreadPoolExecutor(
         ARBEITER_MAX,
         ARBEITER_MAX,
@@ -199,14 +209,15 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
 
     private fun horchen(lauf: Lauf) {
         while (lauf.aktiv.get()) {
-            if (!lanErlaubt()) { lanAnhalten(); break }
+            if (!lanAktuell(lauf)) { lanAnhalten(lauf); break }
             val verbindung = try {
                 lauf.buchse.accept()
             } catch (fehler: Exception) {
                 if (lauf.aktiv.get()) continue else break
             }
-            if (!lauf.aktiv.get() || !lanErlaubt()) {
+            if (!lanAktuell(lauf)) {
                 runCatching { verbindung.close() }
+                lanAnhalten(lauf)
                 break
             }
             lauf.verbindungen += verbindung
@@ -217,7 +228,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                     requestTimeoutMs, TimeUnit.MILLISECONDS)
                 lauf.arbeiter.execute {
                     try {
-                        bedienen(verbindung)
+                        bedienen(verbindung, lauf)
                     } finally {
                         frist?.cancel(false)
                         lauf.verbindungen.remove(verbindung)
@@ -235,7 +246,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         }
     }
 
-    private fun bedienen(verbindung: Socket) {
+    private fun bedienen(verbindung: Socket, lauf: Lauf) {
         var reserviert = 0
         try {
             val herein = BufferedInputStream(verbindung.getInputStream())
@@ -278,8 +289,11 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                 return antworten(hinaus, 400, fehlerAntwort("Die Anfrage ist unlesbar."))
             }
             val quelle = verbindung.inetAddress?.hostAddress?.substringBefore('%').orEmpty()
-            if (!lanErlaubt() || verbindung.isClosed) return
-            val (nummer, antwort) = behandeln(pfad, nachricht, quelle)
+            if (!lanAktuell(lauf) || verbindung.isClosed) return
+            // FS1 uses two HTTP requests: bind the proof to this LAN run, not
+            // to a socket that normally closes after the handshake response.
+            val (nummer, antwort) = behandeln(pfad, nachricht, quelle) { lanAktuell(lauf) }
+            if (!lanAktuell(lauf) || verbindung.isClosed) return
             antworten(hinaus, nummer, antwort)
         } catch (fehler: Exception) {
             // Eine abgebrochene Verbindung ist kein Grund für Aufregung.
@@ -293,18 +307,23 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
      * Behandelt einen Baumpfad. Wird auch vom Bluetooth-Horcher benutzt –
      * darum kennt diese Stelle kein HTTP.
      */
-    fun behandeln(pfad: String, nachricht: JsonObject, quelle: String): Pair<Int, JsonObject> {
-        val eigen = handlung.eigen()
-        if (eigen == null || !handlung.istAn()) {
-            return 503 to fehlerAntwort("Der Magnolienbaum ist ausgeschaltet.")
-        }
+    fun behandeln(pfad: String, nachricht: JsonObject, quelle: String): Pair<Int, JsonObject> =
+        behandeln(pfad, nachricht, quelle) { true } // Independent Bluetooth receive lifetime.
+
+    internal fun behandeln(pfad: String, nachricht: JsonObject, quelle: String,
+                          transportGueltig: () -> Boolean): Pair<Int, JsonObject> {
         return try {
+            transportPruefen(transportGueltig)
+            val eigen = handlung.eigen()
+            if (eigen == null || !handlung.istAn()) {
+                return 503 to fehlerAntwort("Der Magnolienbaum ist ausgeschaltet.")
+            }
             when (pfad) {
-                "/magnolie/v1/paarung" -> 200 to codePaarung(eigen, nachricht, quelle)
-                "/magnolie/v2/paarung" -> 200 to dateiPaarung(eigen, nachricht, quelle)
-                "/magnolie/v1/nachricht" -> 200 to alteNachricht(eigen, nachricht, quelle)
-                "/magnolie/v2/sitzung" -> 200 to sitzungAufbauen(eigen, nachricht, quelle)
-                "/magnolie/v2/nachricht" -> 200 to sichereNachricht(eigen, nachricht, quelle)
+                "/magnolie/v1/paarung" -> 200 to codePaarung(eigen, nachricht, quelle, transportGueltig)
+                "/magnolie/v2/paarung" -> 200 to dateiPaarung(eigen, nachricht, quelle, transportGueltig)
+                "/magnolie/v1/nachricht" -> 200 to alteNachricht(nachricht, quelle, transportGueltig)
+                "/magnolie/v2/sitzung" -> 200 to sitzungAufbauen(eigen, nachricht, quelle, transportGueltig)
+                "/magnolie/v2/nachricht" -> 200 to sichereNachricht(eigen, nachricht, quelle, transportGueltig)
                 else -> 404 to fehlerAntwort("Unbekannter Weg.")
             }
         } catch (abgewiesen: BaumFehler) {
@@ -316,7 +335,19 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
 
     // ---------------------------------------------------------- Baumpfade
 
-    private fun codePaarung(eigen: EigeneIdentitaet, anfrage: JsonObject, quelle: String): JsonObject {
+    private fun transportPruefen(gueltig: () -> Boolean) {
+        if (!gueltig()) throw BaumFehler(LanFreigabe.WARTET)
+    }
+
+    /** Recheck after waiting for the same gate used by the native writers. */
+    private fun <T> imEmpfangstor(gueltig: () -> Boolean, aktion: () -> T): T =
+        synchronized(Ablage.SCHREIBSPERRE) {
+            transportPruefen(gueltig)
+            aktion()
+        }
+
+    private fun codePaarung(eigen: EigeneIdentitaet, anfrage: JsonObject, quelle: String,
+                           transportGueltig: () -> Boolean): JsonObject {
         val name = text(anfrage, "name").take(60)
         val kennung = text(anfrage, "kennung").take(32)
         val oeffentlich = text(anfrage, "oeffentlich")
@@ -324,7 +355,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             throw BaumFehler("Die Paarungsanfrage ist unvollständig.")
         }
         val port = zahl(anfrage, "port")?.toInt() ?: Netz.PORT
-        handlung.codeAnfrage(name, kennung, oeffentlich, quelle, port)
+        imEmpfangstor(transportGueltig) { handlung.codeAnfrage(name, kennung, oeffentlich, quelle, port) }
         return buildJsonObject {
             put("name", JsonPrimitive(eigen.name))
             put("kennung", JsonPrimitive(eigen.kennung))
@@ -334,18 +365,24 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         }
     }
 
-    private fun dateiPaarung(eigen: EigeneIdentitaet, anfrage: JsonObject, quelle: String): JsonObject {
-        return handlung.dateiPaarungAnnehmen(eigen, anfrage, quelle)
+    private fun dateiPaarung(eigen: EigeneIdentitaet, anfrage: JsonObject, quelle: String,
+                            transportGueltig: () -> Boolean): JsonObject {
+        return imEmpfangstor(transportGueltig) { handlung.dateiPaarungAnnehmen(eigen, anfrage, quelle) }
     }
 
-    private fun alteNachricht(eigen: EigeneIdentitaet, umschlag: JsonObject, quelle: String): JsonObject {
-        return handlung.legacyNachricht(umschlag, quelle)
+    private fun alteNachricht(umschlag: JsonObject, quelle: String, transportGueltig: () -> Boolean): JsonObject {
+        return imEmpfangstor(transportGueltig) { handlung.legacyNachricht(umschlag, quelle) }
     }
 
-    private fun sitzungAufbauen(eigen: EigeneIdentitaet, start: JsonObject, quelle: String): JsonObject {
+    private fun sitzungAufbauen(eigen: EigeneIdentitaet, start: JsonObject, quelle: String): JsonObject =
+        sitzungAufbauen(eigen, start, quelle) { true }
+
+    private fun sitzungAufbauen(eigen: EigeneIdentitaet, start: JsonObject, quelle: String,
+                               transportGueltig: () -> Boolean): JsonObject {
+        transportPruefen(transportGueltig)
         val generation = empfangGeneration.get()
         val nativeLebensdauer = handlung.empfangLebensdauer()
-        val gueltig = { empfangGeneration.get() == generation && nativeLebensdauer() }
+        val gueltig = { empfangGeneration.get() == generation && nativeLebensdauer() && transportGueltig() }
         val von = text(start, "von")
         val partner = handlung.partner(von) ?: throw BaumFehler("Dieser Zweig ist unbekannt.")
         if (!partner.bestaetigt) throw BaumFehler("Dieser Zweig ist noch nicht bestätigt.")
@@ -355,18 +392,29 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         }
         if (sitzungen.size >= SITZUNGEN_MAX) throw BaumFehler("Zu viele sichere Sitzungen sind offen.")
         val antwort = Sitzung.baueAntwort(eigen, partner.kennung, partner.oeffentlich, start)
-        if (sitzungen.containsKey(antwort.sitzung.sid)) {
+        try {
+            imEmpfangstor(gueltig) {
+                if (sitzungen.containsKey(antwort.sitzung.sid)) {
+                    throw BaumFehler("Diese sichere Sitzung gibt es schon.")
+                }
+                sitzungen[antwort.sitzung.sid] = OffeneSitzung(
+                    antwort.sitzung, partner.kennung, quelle, jetzt + SITZUNG_SEKUNDEN,
+                    partner.oeffentlich, eigen.kennung, eigen.oeffentlich, gueltig
+                )
+            }
+        } catch (fehler: Exception) {
             antwort.sitzung.loeschen()
-            throw BaumFehler("Diese sichere Sitzung gibt es schon.")
+            throw fehler
         }
-        sitzungen[antwort.sitzung.sid] = OffeneSitzung(
-            antwort.sitzung, partner.kennung, quelle, jetzt + SITZUNG_SEKUNDEN,
-            partner.oeffentlich, eigen.kennung, eigen.oeffentlich, gueltig
-        )
         return antwort.nachricht
     }
 
-    private fun sichereNachricht(eigen: EigeneIdentitaet, umschlag: JsonObject, quelle: String): JsonObject {
+    private fun sichereNachricht(eigen: EigeneIdentitaet, umschlag: JsonObject, quelle: String): JsonObject =
+        sichereNachricht(eigen, umschlag, quelle) { true }
+
+    private fun sichereNachricht(eigen: EigeneIdentitaet, umschlag: JsonObject, quelle: String,
+                                transportGueltig: () -> Boolean): JsonObject {
+        transportPruefen(transportGueltig)
         val sid = text(umschlag, "sid")
         val offen = sitzungen.remove(sid) ?: throw BaumFehler("Die sichere Sitzung ist unbekannt oder abgelaufen.")
         val jetzt = clockSeconds()
@@ -381,7 +429,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             fun identitaetPruefen() {
                 val aktuell = handlung.partner(offen.partner)
                 val selbst = handlung.eigen()
-                if (!offen.gueltig() || aktuell?.bestaetigt != true || aktuell.oeffentlich != offen.partnerSchluessel ||
+                if (!offen.gueltig() || !transportGueltig() || aktuell?.bestaetigt != true || aktuell.oeffentlich != offen.partnerSchluessel ||
                     eigen.kennung != offen.eigeneKennung || eigen.oeffentlich != offen.eigenerSchluessel ||
                     selbst?.kennung != offen.eigeneKennung || selbst.oeffentlich != offen.eigenerSchluessel)
                     throw BaumFehler("Die sichere Sitzung ist unbekannt oder abgelaufen.")
@@ -391,11 +439,12 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                 offen.sitzung, eigen.kennung, partner.kennung, umschlag
             )
             identitaetPruefen()
+            val gueltig = { offen.gueltig() && transportGueltig() }
             val ursprung = FsEmpfang(EmpfangsBeleg(offen.partner, offen.partnerSchluessel,
                 offen.eigeneKennung, offen.eigenerSchluessel, offen.sitzung.sid, transportId,
-                Krypto.sha256(Kanonisch.bytes(inhalt)), offen.ablauf, clockSeconds, offen.gueltig))
-            handlung.verarbeiteSichereNachricht(ursprung, inhalt, transportId)
-            handlung.adresseGesehen(partner.kennung, quelle)
+                Krypto.sha256(Kanonisch.bytes(inhalt)), offen.ablauf, clockSeconds, gueltig))
+            imEmpfangstor(gueltig) { handlung.verarbeiteSichereNachricht(ursprung, inhalt, transportId) }
+            imEmpfangstor(gueltig) { handlung.adresseGesehen(partner.kennung, quelle) }
             return Sitzung.baueQuittung(offen.sitzung, umschlag)
         } finally {
             offen.sitzung.loeschen()
@@ -408,7 +457,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     // ------------------------------------------------------------------- UDP
 
     private fun rufHorchen(lauf: Lauf) {
-        if (!lauf.aktiv.get() || !lanErlaubt()) return
+        if (!lanAktuell(lauf)) { lanAnhalten(lauf); return }
         val buchse = try {
             java.net.DatagramSocket(null).apply {
                 reuseAddress = true
@@ -425,7 +474,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         }
         val puffer = ByteArray(512)
         while (lauf.aktiv.get()) {
-            if (!lanErlaubt()) { lanAnhalten(); break }
+            if (!lanAktuell(lauf)) { lanAnhalten(lauf); break }
             val paket = java.net.DatagramPacket(puffer, puffer.size)
             try {
                 buchse.receive(paket)
@@ -449,7 +498,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                 .encodeToString(JsonObject.serializer(), antwort)
                 .toByteArray(Charsets.UTF_8)
             runCatching {
-                if (!lanErlaubt()) return@runCatching
+                if (!lanAktuell(lauf)) return@runCatching
                 buchse.send(java.net.DatagramPacket(bytes, bytes.size, paket.address, paket.port))
             }
         }

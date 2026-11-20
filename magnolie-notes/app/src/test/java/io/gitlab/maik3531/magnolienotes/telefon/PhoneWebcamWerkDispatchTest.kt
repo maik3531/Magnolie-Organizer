@@ -57,6 +57,7 @@ class PhoneWebcamWerkDispatchTest {
             field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
             field(TelefonWerk::class.java, "activeChannel").set(work, parent)
+            bindSyntheticPhoneSession(work, parent)
             @Suppress("UNCHECKED_CAST")
             (field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>)[parent] = session
         }

@@ -19,27 +19,58 @@ internal interface TelefonRoehre : AutoCloseable {
     val input: InputStream
     val output: OutputStream
     val expiresAtNanos: Long get() = Long.MAX_VALUE
+    /** Native transport lifetime, independent of persisted peer/data consent. */
+    fun aktuell(): Boolean = true
+    fun pruefen() { if (!aktuell()) throw java.io.IOException("Die Verbindung ist nicht mehr gültig.") }
     // Optional per-read timeout; pairing also has a transport-independent deadline.
     fun setReadTimeout(timeoutMs: Int) = Unit
 }
 
 internal class TelefonTcpRoehre(host: String, connectTimeoutMs: Int = 10_000,
     port: Int = TelefonParameter.PORT, localAddress: java.net.InetAddress? = null) : TelefonRoehre {
-    private val socket = Socket().also { socket ->
+    private val lanMarke = LanFreigabe.marke()
+    private val socket = Socket()
+    private val lanWache = try { LanFreigabe.beobachten(socket) }
+        catch (error: Exception) { runCatching { socket.close() }; throw error }
+    init {
         try {
-            LanFreigabe.pruefen()
+            pruefen()
             if (localAddress != null) socket.bind(InetSocketAddress(localAddress, 0))
             socket.connect(InetSocketAddress(host, port), connectTimeoutMs)
             socket.soTimeout = 75_000
+            pruefen()
         } catch (error: Exception) {
+            runCatching { lanWache.close() }
             runCatching { socket.close() }
             throw error
         }
     }
-    private val lanWache = try { LanFreigabe.beobachten(socket) }
-        catch (error: Exception) { runCatching { socket.close() }; throw error }
-    override val input: InputStream get() { LanFreigabe.pruefen(); return socket.getInputStream() }
-    override val output: OutputStream get() { LanFreigabe.pruefen(); return socket.getOutputStream() }
+    override fun aktuell(): Boolean = !socket.isClosed && LanFreigabe.aktuell(lanMarke)
+    override fun pruefen() {
+        if (!LanFreigabe.aktuell(lanMarke)) throw java.io.IOException(LanFreigabe.WARTET)
+        if (socket.isClosed) throw java.io.IOException("Die Verbindung ist beendet.")
+    }
+    // The channel keeps these stream objects. Checking only their getter would
+    // miss revocation after authentication and before a later frame read/write.
+    private val eingabe: InputStream by lazy {
+        object : java.io.FilterInputStream(socket.getInputStream()) {
+            override fun read(): Int { pruefen(); return `in`.read().also { pruefen() } }
+            override fun read(bytes: ByteArray, offset: Int, length: Int): Int {
+                pruefen(); return `in`.read(bytes, offset, length).also { pruefen() }
+            }
+        }
+    }
+    private val ausgabe: OutputStream by lazy {
+        object : java.io.FilterOutputStream(socket.getOutputStream()) {
+            override fun write(value: Int) { pruefen(); out.write(value); pruefen() }
+            override fun write(bytes: ByteArray, offset: Int, length: Int) {
+                pruefen(); out.write(bytes, offset, length); pruefen()
+            }
+            override fun flush() { pruefen(); out.flush(); pruefen() }
+        }
+    }
+    override val input: InputStream get() { pruefen(); return eingabe }
+    override val output: OutputStream get() { pruefen(); return ausgabe }
     internal val remoteAddress: java.net.InetAddress get() = socket.inetAddress
     internal val localAddress: java.net.InetAddress get() = socket.localAddress
     internal val isClosed: Boolean get() = socket.isClosed
@@ -61,6 +92,8 @@ internal class TelefonPaarungsRoehre(private val pipe: TelefonRoehre,
     }, maxOf(0, expiresAtNanos - System.nanoTime()), java.util.concurrent.TimeUnit.NANOSECONDS)
     override val input: InputStream get() = pipe.input
     override val output: OutputStream get() = pipe.output
+    override fun aktuell(): Boolean = !closed.get() && pipe.aktuell()
+    override fun pruefen() { if (closed.get()) throw java.io.IOException("Die Verbindung ist beendet."); pipe.pruefen() }
     override fun setReadTimeout(timeoutMs: Int) = pipe.setReadTimeout(timeoutMs)
     fun disarm() { deadline.cancel(false) }
     override fun close() {
@@ -132,9 +165,11 @@ internal class TelefonBluetooth(private val context: Context) {
     private fun adapter(): BluetoothAdapter? = context.getSystemService(BluetoothManager::class.java)?.adapter
 
     private class BluetoothRoehre(private val socket: BluetoothSocket) : TelefonRoehre {
+        private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
         override val input: InputStream get() = socket.inputStream
         override val output: OutputStream get() = socket.outputStream
-        override fun close() = socket.close()
+        override fun aktuell(): Boolean = !closed.get()
+        override fun close() { if (closed.compareAndSet(false, true)) socket.close() }
     }
 }
 
