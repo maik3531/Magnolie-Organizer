@@ -36,6 +36,7 @@ class ScreenCastTarget:
     mode: str
     node: int
     serial: Optional[int]
+    mapping_id: Optional[str] = None
 
 
 class ScreenCastRemote:
@@ -80,7 +81,10 @@ def _target(fields, mode, version):
     # On v6+ a reusable node ID cannot substitute for the stream serial.
     if (version >= 6 and not serial) or (not serial and not node):
         raise ValueError('screen_cast_original_stream_identity_required')
-    return ScreenCastTarget(mode, node, serial or None)
+    mapping_id = _get(properties, 'mapping_id', 's') if mode == 'extend' and version >= 5 else None
+    if not mapping_id or len(mapping_id) > 255 or not mapping_id.isprintable():
+        mapping_id = None
+    return ScreenCastTarget(mode, node, serial or None, mapping_id)
 
 
 class _Request:

@@ -129,6 +129,26 @@ compositor witness for the original output's removal yet. Ordinary mirroring
 does not acquire that restriction. No product UI, IPC or capability registers
 an attachment or opens this dialog.
 
+### KDE/KWin output identity (unwired draft)
+
+The generic ScreenCast v6 contract does not guarantee a compositor connector
+identity. `pipewire-serial` identifies only the media node; an output added
+near the same time, or one with the expected geometry, is not proof. The KDE
+portal's `createVirtualOutputStream` sets `mapping_id` to the KWin output name
+(`Virtual-` plus the unique KDE virtual-screen name for that application).
+See [the KDE portal source](https://github.com/KDE/xdg-desktop-portal-kde/blob/ea33694e88596e000e800eb31accb0cf102e8cc0/src/screencasting.cpp)
+and [KWin's virtual stream lifetime](https://github.com/KDE/kwin/blob/1026613ce8344b1e9191b78e1a1bbe976ba9246f/src/plugins/screencast/screencastmanager.cpp).
+
+The private witness correlates that exact mapping with one new output instance
+on an original Wayland registry observed before portal Start. It can establish
+removal only for the previously bound instance, not from a connector label,
+changed registry, inferred topology, or a new instance reusing the name. This
+requires a verified KDE backend route and a complete, ordered native display
+observer. The current product neither verifies that route nor feeds native
+registry events to the witness; it does not release the virtual-output slot
+on that basis. Real placement, window movement, and compositor cleanup must
+still be observed independently of media cleanup.
+
 ## Retirement and acceptance
 
 The Android viewer is a one-shot dialog attached to the original resumed
