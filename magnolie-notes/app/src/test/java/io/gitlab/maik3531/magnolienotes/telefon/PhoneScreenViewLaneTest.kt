@@ -56,4 +56,24 @@ class PhoneScreenViewLaneTest {
         assertEquals(-1, receiver.socket().getInputStream().read())
         assertArrayEquals(byteArrayOf(0), wrong.jpeg)
     }
+
+    @Test fun socketProofMatchesLinuxChallengeAndDoesNotSendFrames() = connected { producer, receiver ->
+        receiver.socket().getOutputStream().write(ByteArray(16) { (it + 16).toByte() })
+        PhoneScreenViewLane.answerSocketProof(producer, ByteArray(16) { it.toByte() }, ByteArray(32) { it.toByte() },
+            17, 16) {}
+        producer.close()
+        val seen = receiver.socket().getInputStream().readBytes().joinToString("") { "%02x".format(it.toInt() and 255) }
+        assertEquals("8151fa3e157e140cde257828478f01b806cce5a5093a329c62e704f8b9ffbc8d", seen)
+    }
+
+    @Test fun originalConsentLostAfterChallengeDoesNotProduceProof() = connected { producer, receiver ->
+        receiver.socket().getOutputStream().write(ByteArray(16) { (it + 16).toByte() })
+        var checks = 0
+        assertThrows(SecurityException::class.java) {
+            PhoneScreenViewLane.answerSocketProof(producer, ByteArray(16) { it.toByte() }, ByteArray(32) { it.toByte() },
+                17, 16) { if (++checks >= 3) throw SecurityException("consent withdrawn") }
+        }
+        assertEquals(-1, receiver.socket().getInputStream().read())
+        assertFalse(producer.isOpen)
+    }
 }

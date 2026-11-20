@@ -17,6 +17,17 @@ NUL, followed by the 16 raw session bytes and two big-endian uint16 values
 IKM = secret, info = context, and 36 bytes of output. The first 32 bytes
 form the AES-256-GCM key, the last four the nonce prefix.
 
+Before activating the record lane, the desktop sends one fresh random 16-byte
+challenge on the accepted socket; the phone answers with the 32-byte
+HMAC-SHA256 of ASCII `magnolie-phone-screen-proof/1`, NUL, `context`, and
+the challenge, keyed by the session secret. Both steps have a single shared
+two-second deadline per side and no retry. The phone only answers on the
+socket for an original session with live consent; the desktop verifies the
+proof before it can authorize SEND on the authenticated control connection.
+The proof binds the original secret to this data socket, not screen consent
+or viewing/control permission by itself. Record helpers below are used only
+after this step and the independent SEND exchange.
+
 Each record starts with ciphertext length (big-endian uint32, includes the
 16-byte tag) and ordinal (big-endian uint64, starts at 0, consecutive, below
 2^63−1). The nonce is the prefix followed by the ordinal. Associated data is
@@ -29,6 +40,6 @@ One direction and one owned socket per lane, with a two-second deadline for
 each complete record. Check the original guard on every socket step and
 once more before returning the frame. EOF, bad lengths/tags, wrong ordinal,
 timeout or guard loss are terminal. Socket close may interrupt pending IO;
-no handshake or retry takes place in this lane. A future product caller
-must authenticate/bind the original peer before creating it and bound any
-pre-attach wait separately. A valid tag does not itself grant permission.
+no retry takes place in this lane. A future product caller must use the exact
+original peer/control context and bound any pre-attach wait separately.
+A valid tag does not itself grant permission.

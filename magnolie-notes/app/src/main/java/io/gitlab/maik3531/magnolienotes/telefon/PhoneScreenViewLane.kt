@@ -30,8 +30,7 @@ internal class PhoneScreenViewLane(
 
     init {
         try {
-            require(session.size == 16 && secret.size == 32 && width in 2..1920 && height in 2..1920 && width * height <= 1920 * 1080)
-            context = DOMAIN + session + ByteBuffer.allocate(4).putShort(width.toShort()).putShort(height.toShort()).array()
+            context = context(session, secret, width, height)
             val root = hmac(session, secret)
             try {
                 val first = hmac(root, context + byteArrayOf(1))
@@ -100,6 +99,47 @@ internal class PhoneScreenViewLane(
 
     companion object {
         private val DOMAIN = "magnolie-phone-screen-view/1\u0000phone_to_desktop\u0000".toByteArray(Charsets.US_ASCII)
+        private val PROOF_DOMAIN = "magnolie-phone-screen-proof/1\u0000".toByteArray(Charsets.US_ASCII)
+
+        private fun context(session: ByteArray, secret: ByteArray, width: Int, height: Int): ByteArray {
+            require(session.size == 16 && secret.size == 32 && width in 2..1920 && height in 2..1920 && width * height <= 1920 * 1080)
+            return DOMAIN + session + ByteBuffer.allocate(4).putShort(width.toShort()).putShort(height.toShort()).array()
+        }
+
+        /** This only proves the original secret on this socket; it cannot authorize SEND. */
+        fun answerSocketProof(socket: SocketChannel, session: ByteArray, secret: ByteArray, width: Int, height: Int,
+            requireOriginal: () -> Unit) {
+            try {
+                val context = context(session, secret, width, height)
+                val end = System.nanoTime() + 2_000_000_000L
+                fun current() {
+                    requireOriginal()
+                    if (Thread.currentThread().isInterrupted) throw IOException("screen_socket_proof_interrupted")
+                    if (System.nanoTime() - end >= 0) throw SocketTimeoutException("screen_socket_proof_timeout")
+                }
+                current()
+                check(socket.isConnected)
+                socket.configureBlocking(false)
+                fun transfer(buffer: ByteBuffer, operation: (ByteBuffer) -> Int) {
+                    while (buffer.hasRemaining()) {
+                        current()
+                        when (operation(buffer)) {
+                            -1 -> throw EOFException("screen_socket_proof_disconnected")
+                            0 -> LockSupport.parkNanos(5_000_000L)
+                        }
+                    }
+                }
+                val challenge = ByteBuffer.allocate(16)
+                transfer(challenge, socket::read)
+                val proof = hmac(secret, PROOF_DOMAIN + context + challenge.array())
+                try { transfer(ByteBuffer.wrap(proof), socket::write); current() }
+                finally { proof.fill(0) }
+            } catch (failure: Exception) {
+                try { socket.close() } catch (cleanup: Exception) { if (cleanup !== failure) failure.addSuppressed(cleanup) }
+                throw failure
+            }
+        }
+
         private fun hmac(key: ByteArray, data: ByteArray) = Mac.getInstance("HmacSHA256").run {
             init(SecretKeySpec(key, "HmacSHA256")); doFinal(data)
         }
