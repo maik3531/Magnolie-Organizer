@@ -211,6 +211,14 @@ internal static class PhoneCameraParentTests
             await fixture.Connection.HandlePlainAsync(Reply());
             var role = await fixture.Read(1);
             TestAssert.That(role["error"]!.GetValue<string>() == "invalid_schema", "Phone REPORT role admitted");
+            var screen = Message(); screen["body"]!["version"] = 26;
+            await fixture.Connection.HandlePlainAsync(screen);
+            var screenRejected = await fixture.Read(2);
+            TestAssert.That(screenRejected["error"]!.GetValue<string>() == "not_granted", "Unverified screen viewing admitted");
+            screen = Message(); screen["body"]!["version"] = "26";
+            await fixture.Connection.HandlePlainAsync(screen);
+            var invalid = await fixture.Read(3);
+            TestAssert.That(invalid["error"]!.GetValue<string>() == "invalid_schema", "Wrong-typed screen marker was accepted");
             fixture.NoPersistentControls();
         }
         using var storage = new Fixture();
@@ -220,6 +228,13 @@ internal static class PhoneCameraParentTests
             TestAssert.That(PhoneCameraControl.IsReserved(value), "Reserved version alias fell through");
             TestAssert.Throws<InvalidDataException>(() => storage.Store.Enqueue(storage.Peer.Id, PhoneCameraControl.Request, value["body"]!.AsObject(), 1000, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), "Reserved control entered durable outbox");
             TestAssert.Throws<InvalidDataException>(() => storage.Store.CommitIncoming(storage.Peer.Id, value, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), (_, _) => null), "Reserved rejection entered durable dedupe");
+        }
+        foreach (var version in new JsonNode[] { JsonValue.Create(26)!, JsonValue.Create("26")!, JsonValue.Create(26.0)! })
+        {
+            var value = Message(); value["body"]!["version"] = version;
+            TestAssert.That(PhoneScreenControl.IsReserved(value), "Reserved screen marker fell through");
+            TestAssert.Throws<InvalidDataException>(() => storage.Store.Enqueue(storage.Peer.Id, PhoneScreenControl.Request, value["body"]!.AsObject(), 1000, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), "Screen control entered durable outbox");
+            TestAssert.Throws<InvalidDataException>(() => storage.Store.CommitIncoming(storage.Peer.Id, value, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), (_, _) => null), "Screen rejection entered durable dedupe");
         }
         storage.NoPersistentControls();
     }

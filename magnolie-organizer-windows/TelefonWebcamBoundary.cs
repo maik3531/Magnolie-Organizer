@@ -68,6 +68,77 @@ internal static class PhoneCameraControl
     }
 }
 
+// Always-built reservation for #245, separate from webcam v24 and its grants.
+internal static class PhoneScreenControl
+{
+    internal const int Version = 26;
+    internal const string Request = "device_status.request", Report = "device_status.report";
+    private static readonly string[] Base = ["version", "request_id", "nonce", "op"];
+    private static readonly HashSet<string> Reasons = ["not_granted", "unsupported", "foreground_required", "permission_denied", "capture_failed", "output_failed", "retired"];
+
+    internal static bool IsReserved(string? kind, JsonObject? body) => kind is Request or Report && body?["version"] is JsonValue version &&
+        (TelefonProtocolContract.TryInteger(version, out var integer) && integer == Version ||
+         version.TryGetValue<string>(out string? text) && text == "26" ||
+         version.TryGetValue<double>(out var number) && number == Version);
+
+    internal static bool IsReserved(JsonObject message) => IsReserved(
+        message["kind"] is JsonValue kind && kind.TryGetValue<string>(out var value) ? value : null, message["body"] as JsonObject);
+
+    private static string Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text)
+        ? text : throw new InvalidDataException("screen_control_invalid");
+
+    private static void Hex(JsonNode? node, int count)
+    {
+        var text = Text(node);
+        if (text.Length != count || text.Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f')))
+            throw new InvalidDataException("screen_control_invalid");
+    }
+
+    internal static void ValidateMessage(JsonObject message, long now)
+    {
+        TelefonProtocolContract.ExactObject(message, "type", "v", "message_id", "kind", "created_ms", "expires_ms", "body");
+        var created = TelefonProtocolContract.Integer(message["created_ms"]);
+        var expires = TelefonProtocolContract.Integer(message["expires_ms"]);
+        if (Text(message["type"]) != "message" || TelefonProtocolContract.Integer(message["v"]) != 1 ||
+            !TelefonProtocolContract.IsUuidV4(Text(message["message_id"])) || created < 0 || created > now + 60_000 ||
+            expires <= created || expires - created > 60_000 || expires <= now || TelefonCrypto.Canonical(message).Length > 4096 ||
+            message["body"] is not JsonObject body) throw new InvalidDataException("screen_control_envelope_invalid");
+        ValidateBody(body, Text(message["kind"]));
+    }
+
+    internal static void ValidateBody(JsonObject body, string kind)
+    {
+        if (kind is not (Request or Report) || TelefonProtocolContract.Integer(body["version"]) != Version ||
+            !TelefonProtocolContract.IsUuidV4(Text(body["request_id"]))) throw new InvalidDataException("screen_control_invalid");
+        Hex(body["nonce"], 64);
+        var op = Text(body["op"]);
+        var (direction, fields) = op switch
+        {
+            "probe" => (Request, Array.Empty<string>()),
+            "offer" => (Report, new[] { "session", "secret", "port", "width", "height", "density" }),
+            "prepared" => (Request, new[] { "session" }),
+            "send" => (Report, new[] { "session" }),
+            "stop" => (kind, new[] { "session" }),
+            "error" => (kind, new[] { "session", "reason" }),
+            _ => throw new InvalidDataException("screen_control_invalid")
+        };
+        if (direction != kind) throw new InvalidDataException("screen_control_invalid");
+        TelefonProtocolContract.ExactObject(body, Base.Concat(fields).ToArray());
+        if (fields.Contains("session")) Hex(body["session"], 32);
+        if (op == "error" && !Reasons.Contains(Text(body["reason"]))) throw new InvalidDataException("screen_control_invalid");
+        if (op == "offer")
+        {
+            Hex(body["secret"], 64);
+            var width = TelefonProtocolContract.Integer(body["width"]);
+            var height = TelefonProtocolContract.Integer(body["height"]);
+            if (width is < 2 or > 1920 || height is < 2 or > 1920 || width * height > 1920 * 1080 ||
+                TelefonProtocolContract.Integer(body["port"]) is < 1024 or > 65535 ||
+                TelefonProtocolContract.Integer(body["density"]) is < 1 or > 1000)
+                throw new InvalidDataException("screen_control_invalid");
+        }
+    }
+}
+
 internal sealed partial class TelefonConnection
 {
     partial void NativeWebcamControl(JsonObject message, ref Task? handling);
@@ -91,6 +162,21 @@ internal sealed partial class TelefonConnection
         var ack = new JsonObject { ["type"] = "ack", ["message_id"] = message["message_id"]!.DeepClone(),
             ["status"] = "rejected", ["error"] = message["kind"]!.GetValue<string>() == PhoneCameraControl.Request ? "not_granted" : "invalid_schema" };
         await SendWebcamFrameAsync(ack, () => { });
+    }
+
+    private async Task RejectUnavailableScreenControlAsync(JsonObject message)
+    {
+        if (message["message_id"] is not JsonValue id || !id.TryGetValue<string>(out var value) ||
+            !TelefonProtocolContract.IsUuidV4(value)) throw new InvalidDataException("screen_control_invalid");
+        var reason = "not_granted";
+        try
+        {
+            PhoneScreenControl.ValidateMessage(message, Now());
+            if (message["kind"]!.GetValue<string>() != PhoneScreenControl.Request) reason = "invalid_schema";
+        }
+        catch (InvalidDataException) { reason = "invalid_schema"; }
+        await SendWebcamFrameAsync(new JsonObject { ["type"] = "ack", ["message_id"] = value,
+            ["status"] = "rejected", ["error"] = reason }, () => { });
     }
     private bool ConsumeWebcamAck(JsonObject message)
     { var consumed = false; NativeWebcamAck(message, ref consumed); return consumed; }

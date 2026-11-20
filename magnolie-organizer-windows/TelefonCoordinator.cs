@@ -2170,6 +2170,7 @@ internal sealed partial class TelefonConnection : IDisposable
     internal async Task SendMessageAsync(string kind, JsonObject body, long ttl, string? contactMessageId = null, bool ephemeralStatusRead = false)
     {
         if (PhoneCameraControl.IsReserved(kind, body)) throw new InvalidDataException("webcam_ephemeral_control_required");
+        if (PhoneScreenControl.IsReserved(kind, body)) throw new InvalidDataException("screen_ephemeral_control_required");
         var now = Now();
         if (ephemeralStatusRead)
         {
@@ -2318,6 +2319,11 @@ internal sealed partial class TelefonConnection : IDisposable
         if (PhoneCameraControl.IsReserved(plain))
         {
             await DispatchWebcamControlAsync(plain);
+            return;
+        }
+        if (PhoneScreenControl.IsReserved(plain))
+        {
+            await RejectUnavailableScreenControlAsync(plain);
             return;
         }
         if (plain["kind"]?.GetValue<string>() == PhoneContentScope.DataKind)
@@ -2561,6 +2567,7 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
             if (PhoneCameraControl.IsReserved(kind, body)) continue;
+            if (PhoneScreenControl.IsReserved(kind, body)) continue;
             // Reserved actors require their own authorized route, never a legacy fallback.
             if (PersonalSyncActorContract.IsReservedKind(kind)) continue;
             if (kind == SharedSyncSettings.StartKind)
