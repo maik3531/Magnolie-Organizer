@@ -99,8 +99,13 @@ only on the original WLAN streams. Their write-edge callback runs after writer
 admission and encryption, before consuming a sequence. Android admits one
 matching OFFER and delivers it only after the request write returns. It releases
 a single matching SEND receipt only after the PREPARED write returns. A matching
-STOP retires the original control owner. The product dispatcher and native
-data/session joins are still separate work.
+STOP retires the original control owner. The isolated Linux attempt joins one
+local portal/reader/encoder owner and one data listener bound to the original
+TCP interface and peer address. It opens that listener only after a complete
+local JPEG exists, and the data worker rechecks local media and the parent
+throughout proof and sending. A single latest-frame slot feeds the worker;
+heartbeats do not replace local readiness. The product dispatcher is not
+registered.
 
 ## Retirement and acceptance
 
@@ -126,14 +131,15 @@ the original extra output. A missing cleanup acknowledgment is not successful
 drain. Do not stop the ordinary Notes connection unless its own transport failed.
 
 The local reader/encoder and portal tests do not validate this wire contract.
-An opt-in Python/Kotlin loopback test exercises both draft adapters over two
-TCP sockets with preconfigured test keys: encrypted request through STOP,
-mutual proof, authenticated heartbeat and a synthetic JPEG. Ordinary traffic
-continues on the same control connection after STOP. That test does not run
-pairing, the product dispatcher, a portal or a native phone viewer. The live
-caller still has to own discovery, consent, capture, authenticated control
-dispatch and heartbeat scheduling. The Kotlin media lane checks JPEG headers
-before handoff; decoding and display are separate.
+An opt-in Python/Kotlin loopback test exercises both draft adapters and the
+Linux attempt over two TCP sockets with preconfigured test keys: encrypted
+request through STOP, mutual proof, a synthetic JPEG and the sender's timed
+heartbeat. Ordinary traffic continues on the same control connection after
+STOP. The test substitutes the local compositor run; it does not run pairing,
+the product dispatcher, a portal or a native phone viewer. The live caller
+still has to own discovery, native consent and authenticated control dispatch.
+The Kotlin media lane checks JPEG headers before handoff; decoding and display
+are separate.
 Before allocation or advertising, check independent vectors and incompatible
 direction/mode/session rejection, data-before-SEND, stop during blocked I/O, and
 the real native phone viewer. Extended mode additionally needs the compositor

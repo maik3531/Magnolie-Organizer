@@ -80,6 +80,12 @@ class DesktopScreenDraftChannel:
         self.require_current()
         return True
 
+    def open_original_listener(self, guard):
+        # Reuse only the address-bound native TCP primitive, not v26 control
+        # or its proof. No address or interface can come from the phone.
+        from magnolie_phone_screen_transport import PhoneScreenWlanListener
+        return PhoneScreenWlanListener(self._channel, guard)
+
 
 class DesktopScreenDraftControl:
     """One authenticated request from the selected peer. The caller owns the
@@ -226,6 +232,16 @@ class DesktopScreenDraftControl:
     def require_current(self):
         """Guard for proof/data I/O bound by the same original controller."""
         self._current()
+
+    def prepared_for(self, transcript):
+        self._current()
+        with self._lock:
+            self._check_locked()
+            if self._phase != 'offered' or self._prepared is None:
+                return False
+            if not hmac.compare_digest(self._prepared, transcript):
+                raise PermissionError('desktop_screen_draft_original_prepared_required')
+            return True
 
     def require_send(self):
         self._current()

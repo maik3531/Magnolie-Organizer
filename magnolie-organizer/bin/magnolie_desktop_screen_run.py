@@ -4,6 +4,7 @@ No product registration or network permission is implied by local readiness.
 """
 
 from dataclasses import dataclass
+from threading import Event
 from time import monotonic
 
 from gi.repository import GLib
@@ -29,6 +30,7 @@ class DesktopScreenLocalRun:
         self._phase = 'new'
         self._target = self._capture = self._encoder = self._timer = self._portal_result = None
         self._media_ready = False
+        self._media_retired = Event()
 
     def begin(self):
         if self._phase != 'new':
@@ -66,6 +68,12 @@ class DesktopScreenLocalRun:
             return None
         return self._encoder.take_latest()
 
+    def media_current(self):
+        """Worker-safe check; never reads or drives the GTK/portal context."""
+        capture, encoder = self._capture, self._encoder
+        return (not self._media_retired.is_set() and capture is not None and capture.ready and
+                encoder is not None and not encoder.failed and not encoder.drained)
+
     def stop(self):
         if self._phase in ('closing', 'ended'):
             return
@@ -82,6 +90,7 @@ class DesktopScreenLocalRun:
         self._finish_if_joined()
 
     def _retire_media(self):
+        self._media_retired.set()
         if self._encoder is not None:
             self._encoder.stop()
         if self._capture is not None:

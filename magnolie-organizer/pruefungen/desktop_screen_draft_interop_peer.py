@@ -2,16 +2,21 @@
 
 from io import BytesIO
 from pathlib import Path
+from select import select
 import socket
 import sys
+from threading import Event, Thread
 from time import monotonic
+from unittest.mock import patch
 
+from gi.repository import GLib
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
-from magnolie_desktop_screen_control import DesktopScreenDraftChannel, DesktopScreenDraftControl
+import magnolie_desktop_screen_attempt as draft
+from magnolie_desktop_screen_control import DesktopScreenDraftChannel
 from magnolie_desktop_screen_encode import DesktopScreenJpeg
-from magnolie_desktop_screen_send import DesktopScreenSendLane
+from magnolie_desktop_screen_run import ScreenRunCleanup
 from magnolie_telefon import SecureChannel
 
 
@@ -27,49 +32,96 @@ def listener():
         raise
 
 
+class SyntheticLocalRun:
+    """Test substitute for the unavailable compositor, not a product fallback."""
+
+    def __init__(self, _bus, _provider, mode, _window, width, height, guard, ended):
+        assert mode == 'extend'
+        self.guard, self.ended = guard, ended
+        self.ready, self.closed = False, False
+        with Image.new('RGB', (width, height), (7, 110, 228)) as image:
+            output = BytesIO()
+            image.save(output, format='JPEG')
+        self.frame = DesktopScreenJpeg(0, output.getvalue())
+
+    def begin(self):
+        self.guard()
+        self.ready = True
+
+    def media_current(self):
+        return self.ready
+
+    def take_latest(self):
+        self.guard()
+        result, self.frame = self.frame, None
+        return result
+
+    def stop(self):
+        if not self.closed:
+            self.ready, self.closed = False, True
+            self.ended(ScreenRunCleanup(True, True, True))
+
+
 def main():
-    with listener() as original, listener() as media:
+    with listener() as original:
         print(original.getsockname()[1], flush=True)
-        control_socket, remote = original.accept()
+        control_socket, _ = original.accept()
         with control_socket:
             control_socket.settimeout(.5)
             parent = SecureChannel(control_socket, bytes(16), b'\x02' * 32, b'\x05' * 4, b'\x01' * 32, b'\x04' * 4)
             wire = DesktopScreenDraftChannel(parent, lambda: None)
             request = wire.body_from(parent, parent.receive())
-            control = DesktopScreenDraftControl(parent, request, wire.require_current, deadline=monotonic() + 5)
-            assert request['mode'] == 2
-            session, secret = bytes(range(16)), bytes(range(32, 64))  # Disposable fixture keys.
-            control.publish_offer(session=session.hex(), secret=secret.hex(), port=media.getsockname()[1],
-                                  width=57, height=33, write_original=wire.write)
-            accepted, data_peer = media.accept()
-            with accepted:
-                assert data_peer[0] == remote[0]
-                lane = DesktopScreenSendLane(accepted, session, secret, 2, 57, 33,
-                                             control.setup_deadline, control.require_current)
+            loop = GLib.MainLoop()
+            finished, reader_stopped = Event(), Event()
+            results, errors = [], []
+
+            def ended(result):
+                results.append(result)
+                finished.set()
+
+            with patch.object(draft, 'DesktopScreenLocalRun', SyntheticLocalRun):
+                run = draft.DesktopScreenDraftAttempt(parent, request, wire.require_current,
+                    bus=None, provider=None, mode='extend', parent_window='synthetic',
+                    width=57, height=33, deadline=monotonic() + 5, ended=ended)
+
+            def read():
+                def receive():
+                    if not select([control_socket], [], [], 5)[0]:
+                        raise TimeoutError('test control receive expired')
+                    return parent.receive()
+
                 try:
-                    transcript = lane.prove()
-                    assert control.receive(parent, wire.body_from(parent, parent.receive()))
-                    with Image.new('RGB', (57, 33), (7, 110, 228)) as image:
-                        output = BytesIO()
-                        image.save(output, format='JPEG')
-                        jpeg = DesktopScreenJpeg(0, output.getvalue())
-                    lane.authorize_send(transcript, lambda: bool(jpeg.data),
-                                        lambda guard: control.publish_send(transcript, guard, wire.write))
-                    lane.write_record(None)
-                    lane.write_record(jpeg)
-                    assert control.receive(parent, wire.body_from(parent, parent.receive()))
-                    try:
-                        lane.write_record(None)
-                    except PermissionError:
-                        assert lane.drained
-                    else:
-                        raise AssertionError('original STOP did not retire the media lane')
-                    # Evidence that ordinary traffic is still possible on the
-                    # exact parent; this test does not start a Notes dispatcher.
-                    assert parent.receive() == {'type': 'ping'}
+                    assert run.receive(parent, receive())  # PREPARED
+                    assert run.receive(parent, receive())  # STOP
+                    assert finished.wait(2)
+                    assert receive() == {'type': 'ping'}
                     parent.send({'type': 'pong'})
+                except Exception as error:
+                    errors.append(error)
+                    run.stop()
                 finally:
-                    lane.stop()
+                    reader_stopped.set()
+
+            reader = Thread(target=read, daemon=True)
+            run.begin()
+            reader.start()
+            until = monotonic() + 9
+
+            def check_end():
+                if reader_stopped.is_set() and finished.is_set() or monotonic() >= until:
+                    loop.quit()
+                    return False
+                return True
+
+            GLib.timeout_add(25, check_end)
+            try:
+                loop.run()
+                assert not errors, errors
+                assert reader_stopped.is_set() and len(results) == 1 and results[0].transport_drained
+            finally:
+                run.stop()
+                control_socket.close()
+                reader.join(1)
 
 
 if __name__ == '__main__':

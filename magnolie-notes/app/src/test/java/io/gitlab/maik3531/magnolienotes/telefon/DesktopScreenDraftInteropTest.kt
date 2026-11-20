@@ -41,12 +41,12 @@ class DesktopScreenDraftInteropTest {
                                 original.writePrepared(proof) { }
                                 assertTrue(original.receive(parent, parent.receive()))
                                 lane.activate(checkNotNull(original.takeSend()))
-                                assertTrue(lane.receive().isEmpty())
                                 val rgb = ImageIO.read(ByteArrayInputStream(lane.receive()))
                                 assertEquals(57 to 33, rgb.width to rgb.height)
                                 val pixel = rgb.getRGB(28, 16)
                                 assertTrue(kotlin.math.abs((pixel shr 8 and 255) - 110) <= 4)
                                 assertTrue(kotlin.math.abs((pixel and 255) - 228) <= 4)
+                                assertTrue(lane.receive().isEmpty())
                                 val stop = JsonObject(offer.filterKeys { it in setOf("draft", "request", "mode", "setup_until_ms", "session") } +
                                     ("op" to JsonPrimitive("stop")))
                                 original.close()
