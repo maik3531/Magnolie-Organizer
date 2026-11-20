@@ -1,18 +1,25 @@
 """GTK/Xvfb component checks. Frames here are test pixels, not phone capture."""
 
 import ast
+import hmac
 import json
+import socket
+import struct
 import sys
 from pathlib import Path
 from threading import Thread
 from time import monotonic, sleep
 
 import pytest
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 pytest.importorskip("gi")
 pytest.importorskip("cairo")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenWindow
+from magnolie_phone_screen_transport import PhoneScreenReceiveRun
 
 
 @pytest.fixture(autouse=True)
@@ -242,3 +249,78 @@ def test_jpeg_header_bounds_and_guard_loss_cannot_publish():
     with pytest.raises(PermissionError):
         decoder.receive(data)
     assert offered == []
+
+
+def test_owned_receive_run_requires_proof_and_live_send_to_display():
+    a, b = socket.socketpair()
+    b.settimeout(1)
+    current = True
+    sent = []
+    session, key = bytes(range(16)), bytes(range(32))
+    context = b"magnolie-phone-screen-view/1\0phone_to_desktop\0" + session + struct.pack("!HH", 17, 16)
+    view = PhoneScreenWindow("Phone screen", is_current=lambda: current, request_stop=lambda: None)
+    published = []
+
+    def live():
+        if not current:
+            raise PermissionError("original lost")
+
+    def require_sent():
+        if sent != [True]:
+            raise PermissionError("SEND missing")
+
+    def offer(*args):
+        published.append(True)
+        return view.offer_rgb(*args)
+
+    run = PhoneScreenReceiveRun(a, session, key, 17, 16, require_original=live,
+                               authorize_send=lambda: sent.append(True), require_send=require_sent, offer_rgb=offer)
+    try:
+        assert view.show()
+        run.start()
+        challenge = b.recv(16, socket.MSG_WAITALL)
+        assert len(challenge) == 16 and sent == [] and published == []
+        b.sendall(hmac.digest(key, b"magnolie-phone-screen-proof/1\0" + context + challenge, "sha256"))
+        wait_for(lambda: sent == [True])
+        material = HKDF(algorithm=hashes.SHA256(), length=36, salt=session, info=context).derive(key)
+
+        def send_frame(ordinal):
+            jpeg = jpeg_fixture(17, 16)
+            header = struct.pack("!IQ", len(jpeg) + 16, ordinal)
+            b.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], jpeg, context + header))
+
+        send_frame(0)
+        wait_for(lambda: published == [True] and (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230)
+        current = False
+        wait_for(run.is_drained)
+        assert isinstance(run.failure, PermissionError)
+        assert a.fileno() == -1 and published == [True]
+        with pytest.raises(RuntimeError):
+            run.start()
+    finally:
+        run.stop()
+        b.close()
+        view.stop()
+
+
+def test_invalid_proof_or_stop_before_proof_never_authorizes_send():
+    for stop in (False, True):
+        a, b = socket.socketpair()
+        sent = []
+        run = PhoneScreenReceiveRun(a, bytes(16), bytes(32), 17, 16, require_original=lambda: None,
+                                   authorize_send=lambda: sent.append(True), require_send=lambda: None,
+                                   offer_rgb=lambda *args: pytest.fail("no media expected"))
+        try:
+            b.settimeout(1)
+            run.start()
+            assert len(b.recv(16, socket.MSG_WAITALL)) == 16
+            if stop:
+                run.stop()
+            else:
+                b.sendall(bytes(32))
+            wait_for(run.is_drained)
+            assert a.fileno() == -1 and sent == []
+            assert run.failure is None if stop else isinstance(run.failure, PermissionError)
+        finally:
+            run.stop()
+            b.close()

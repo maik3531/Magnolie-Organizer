@@ -127,3 +127,109 @@ class PhoneScreenViewLane:
             except OSError:
                 pass
             self._sock.close()
+
+
+class PhoneScreenReceiveRun:
+    """One exact accepted socket -> proof -> authenticated SEND -> JPEG worker.
+
+    The native control owner hands in the already selected socket and view.
+    authorize_send publishes the one original protected SEND decision; it must
+    return only after that decision is current on the original control socket.
+    require_send independently checks that lease before frame IO/decoding.
+    Neither a data socket nor construction is permission to start a session.
+    """
+
+    def __init__(self, sock, session, secret, width, height, *, require_original,
+                 authorize_send, require_send, offer_rgb):
+        self._socket = sock
+        self._session = session
+        self._secret = secret
+        self._width = width
+        self._height = height
+        self._require_original = require_original
+        self._authorize_send = authorize_send
+        self._require_send = require_send
+        self._offer_rgb = offer_rgb
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._started = False
+        self.failure = None
+        self.cleanup_error = None
+        self._worker = threading.Thread(target=self._run, name="magnolie-phone-screen-receive", daemon=True)
+
+    def start(self):
+        with self._lock:
+            if self._started or self._stop.is_set():
+                raise RuntimeError("screen_receiver_already_used")
+            self._started = True
+            try:
+                self._worker.start()
+            except Exception:
+                self._stop.set()
+                self._close_socket()
+                self._secret = None
+                raise
+
+    def _current(self):
+        if self._stop.is_set():
+            raise OSError("screen_receiver_stopped")
+        self._require_original()
+
+    def _send_current(self):
+        self._current()
+        self._require_send()
+        if self._stop.is_set():
+            raise OSError("screen_receiver_stopped")
+        return True
+
+    def _run(self):
+        lane = None
+        try:
+            from magnolie_phone_screen_window import PhoneScreenJpegReceiver
+            decoder = PhoneScreenJpegReceiver(self._width, self._height,
+                                              is_current=self._send_current, offer_rgb=self._offer_rgb)
+            prove_phone_screen_socket(self._socket, self._session, self._secret,
+                                     self._width, self._height, self._current)
+            self._current()
+            self._authorize_send()
+            self._send_current()
+            lane = PhoneScreenViewLane(self._socket, self._session, self._secret,
+                                      self._width, self._height, self._send_current)
+            self._secret = None
+            while True:
+                if decoder.receive(lane.receive()) is not True:
+                    raise OSError("screen_receiver_view_retired")
+        except Exception as error:
+            if not self._stop.is_set():
+                self.failure = error
+        finally:
+            self._secret = None
+            with self._lock:
+                if lane is not None and not self._stop.is_set():
+                    try:
+                        lane.close()
+                    except OSError as error:
+                        self.cleanup_error = error
+                self._stop.set()
+                self._close_socket()
+
+    def _close_socket(self):
+        try:
+            self._socket.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+        try:
+            self._socket.close()
+        except OSError as error:
+            self.cleanup_error = error
+
+    def stop(self):
+        with self._lock:
+            self._stop.set()
+            if not self._started:
+                self._secret = None
+            self._close_socket()
+
+    def is_drained(self):
+        with self._lock:
+            return self._stop.is_set() and not self._worker.is_alive() and self.cleanup_error is None
