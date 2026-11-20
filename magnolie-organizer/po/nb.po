@@ -10361,3 +10361,33 @@ msgstr "＋ Legg til avtale"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Venter på programmets mediestatus"
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "Åpne Magnolie Notes på den sammenkoblede telefonen over Wi-Fi, og oppdater deretter visningen."
+
+msgid "Phone screen"
+msgstr "Telefonskjermen"
+
+msgid "Phone screen mirroring"
+msgstr "Speiling av telefonskjermen"
+
+msgid "Screen mirroring did not start."
+msgstr "Skjermspeiling startet ikke."
+
+msgid "Show phone screen"
+msgstr "Vis telefonskjermen"
+
+msgid "Stop screen mirroring"
+msgstr "Stopp skjermspeiling"
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "Det separate vinduet med telefonskjermen er åpent eller lukkes."
+
+msgid "View phone screen"
+msgstr "Se telefonskjermen"
+
+msgid "View this phone's screen?"
+msgstr "Vil du se skjermen på denne telefonen?"
+
+msgid "Your phone must approve screen sharing."
+msgstr "Godkjenn skjermdeling på telefonen."

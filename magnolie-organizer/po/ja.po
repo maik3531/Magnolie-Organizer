@@ -10264,3 +10264,33 @@ msgstr "＋ 予定を追加"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "ネイティブのメディア状態を待っています"
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "ペアリング済みのスマートフォンで Wi-Fi 経由で Magnolie Notes を開き、表示を更新してください。"
+
+msgid "Phone screen"
+msgstr "スマートフォンの画面"
+
+msgid "Phone screen mirroring"
+msgstr "スマートフォンの画面ミラーリング"
+
+msgid "Screen mirroring did not start."
+msgstr "画面ミラーリングを開始できませんでした。"
+
+msgid "Show phone screen"
+msgstr "スマートフォンの画面を表示"
+
+msgid "Stop screen mirroring"
+msgstr "画面ミラーリングを停止"
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "スマートフォン画面の別ウィンドウが開いているか、閉じる処理中です。"
+
+msgid "View phone screen"
+msgstr "スマートフォンの画面を見る"
+
+msgid "View this phone's screen?"
+msgstr "このスマートフォンの画面を表示しますか？"
+
+msgid "Your phone must approve screen sharing."
+msgstr "スマートフォンで画面共有を許可してください。"

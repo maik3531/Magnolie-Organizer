@@ -10523,3 +10523,33 @@ msgstr "＋ Termin přidać"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Čaka so na natiwny medijowy status"
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "Wočińće Magnolie Notes na zwjazanym telefonje přez WLAN a wobnowće napohlad."
+
+msgid "Phone screen"
+msgstr "Wobrazowka telefona"
+
+msgid "Phone screen mirroring"
+msgstr "Špihelenje telefonoweje wobrazowki"
+
+msgid "Screen mirroring did not start."
+msgstr "Špihelenje wobrazowki njeje so započało."
+
+msgid "Show phone screen"
+msgstr "Wobrazowku telefona pokazać"
+
+msgid "Stop screen mirroring"
+msgstr "Špihelenje wobrazowki skónčić"
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "Separatne wokno telefonoweje wobrazowki je wočinjene abo so začinja."
+
+msgid "View phone screen"
+msgstr "Wobrazowku telefona sej wobhladać"
+
+msgid "View this phone's screen?"
+msgstr "Chceće sej wobrazowku tutoho telefona wobhladać?"
+
+msgid "Your phone must approve screen sharing."
+msgstr "Wobkrućće dźělenje wobrazowki na telefonje."

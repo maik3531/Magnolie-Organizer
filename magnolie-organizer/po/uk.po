@@ -10422,3 +10422,33 @@ msgstr "＋ Додати зустріч"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Очікування стану медіафайлів від програми"
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "Відкрийте Magnolie Notes на сполученому телефоні через Wi-Fi, а потім оновіть список."
+
+msgid "Phone screen"
+msgstr "Екран телефона"
+
+msgid "Phone screen mirroring"
+msgstr "Дублювання екрана телефона"
+
+msgid "Screen mirroring did not start."
+msgstr "Дублювання екрана не запустилося."
+
+msgid "Show phone screen"
+msgstr "Показати екран телефона"
+
+msgid "Stop screen mirroring"
+msgstr "Зупинити дублювання екрана"
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "Окреме вікно екрана телефона відкрите або закривається."
+
+msgid "View phone screen"
+msgstr "Переглянути екран телефона"
+
+msgid "View this phone's screen?"
+msgstr "Переглянути екран цього телефона?"
+
+msgid "Your phone must approve screen sharing."
+msgstr "Підтвердьте демонстрацію екрана на телефоні."

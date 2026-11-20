@@ -10472,3 +10472,33 @@ msgstr "＋ Dodaj spotkanie"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Oczekiwanie na natywny stan multimediów"
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "Otwórz Magnolie Notes na sparowanym telefonie przez Wi-Fi, a następnie odśwież widok."
+
+msgid "Phone screen"
+msgstr "Ekran telefonu"
+
+msgid "Phone screen mirroring"
+msgstr "Klonowanie ekranu telefonu"
+
+msgid "Screen mirroring did not start."
+msgstr "Nie uruchomiono klonowania ekranu."
+
+msgid "Show phone screen"
+msgstr "Pokaż ekran telefonu"
+
+msgid "Stop screen mirroring"
+msgstr "Zakończ klonowanie ekranu"
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "Oddzielne okno ekranu telefonu jest otwarte lub jest zamykane."
+
+msgid "View phone screen"
+msgstr "Wyświetl ekran telefonu"
+
+msgid "View this phone's screen?"
+msgstr "Wyświetlić ekran tego telefonu?"
+
+msgid "Your phone must approve screen sharing."
+msgstr "Zatwierdź udostępnianie ekranu na telefonie."

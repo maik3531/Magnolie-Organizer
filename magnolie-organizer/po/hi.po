@@ -10143,3 +10143,33 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "ऐप की मीडिया स्थिति की प्रतीक्षा"
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "जोड़े गए फ़ोन पर वाई-फ़ाई से Magnolie Notes खोलें, फिर रीफ़्रेश करें।"
+
+msgid "Phone screen"
+msgstr "फ़ोन की स्क्रीन"
+
+msgid "Phone screen mirroring"
+msgstr "फ़ोन की स्क्रीन मिररिंग"
+
+msgid "Screen mirroring did not start."
+msgstr "स्क्रीन मिररिंग शुरू नहीं हुई।"
+
+msgid "Show phone screen"
+msgstr "फ़ोन की स्क्रीन दिखाएँ"
+
+msgid "Stop screen mirroring"
+msgstr "स्क्रीन मिररिंग बंद करें"
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "फ़ोन की स्क्रीन वाली अलग विंडो खुली है या बंद हो रही है।"
+
+msgid "View phone screen"
+msgstr "फ़ोन की स्क्रीन देखें"
+
+msgid "View this phone's screen?"
+msgstr "क्या इस फ़ोन की स्क्रीन देखना चाहते हैं?"
+
+msgid "Your phone must approve screen sharing."
+msgstr "फ़ोन पर स्क्रीन साझा करने की अनुमति दें।"

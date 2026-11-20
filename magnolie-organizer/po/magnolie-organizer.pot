@@ -4726,6 +4726,9 @@ msgid ""
 "verification key and confirm on both devices."
 msgstr ""
 
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr ""
+
 msgid "Open Magnolie Notes on the phone to allow capture."
 msgstr ""
 
@@ -5129,6 +5132,12 @@ msgid "Phone numbers"
 msgstr ""
 
 msgid "Phone pairing failed."
+msgstr ""
+
+msgid "Phone screen"
+msgstr ""
+
+msgid "Phone screen mirroring"
 msgstr ""
 
 msgid ""
@@ -6029,6 +6038,9 @@ msgstr ""
 msgid "Scope"
 msgstr ""
 
+msgid "Screen mirroring did not start."
+msgstr ""
+
 msgid "Screen notification only"
 msgstr ""
 
@@ -6319,6 +6331,9 @@ msgstr ""
 msgid "Show pairing QR code"
 msgstr ""
 
+msgid "Show phone screen"
+msgstr ""
+
 msgid "Show preview"
 msgstr ""
 
@@ -6534,6 +6549,9 @@ msgid "Stop"
 msgstr ""
 
 msgid "Stop retrying"
+msgstr ""
+
+msgid "Stop screen mirroring"
 msgstr ""
 
 msgid "Stopping photo synchronization…"
@@ -7706,6 +7724,9 @@ msgstr ""
 msgid "The selected time zone is unavailable."
 msgstr ""
 
+msgid "The separate phone screen window is open or stopping."
+msgstr ""
+
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
 "times of your messages."
@@ -8468,6 +8489,12 @@ msgstr ""
 msgid "View and edit appointment"
 msgstr ""
 
+msgid "View phone screen"
+msgstr ""
+
+msgid "View this phone's screen?"
+msgstr ""
+
 msgid "Virtual camera setup is already in progress."
 msgstr ""
 
@@ -8778,6 +8805,9 @@ msgstr ""
 msgid ""
 "Your own address is required as the starting point for a route. Enter it "
 "under Settings ▸ Contacts."
+msgstr ""
+
+msgid "Your phone must approve screen sharing."
 msgstr ""
 
 msgid "Yours sincerely,"

@@ -10498,3 +10498,33 @@ msgstr "＋ Afspraak toevoegen"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Wachten op native mediastatus"
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "Open Magnolie Notes op de gekoppelde telefoon via wifi en vernieuw daarna de weergave."
+
+msgid "Phone screen"
+msgstr "Telefoonscherm"
+
+msgid "Phone screen mirroring"
+msgstr "Telefoonscherm spiegelen"
+
+msgid "Screen mirroring did not start."
+msgstr "Schermspiegeling is niet gestart."
+
+msgid "Show phone screen"
+msgstr "Telefoonscherm tonen"
+
+msgid "Stop screen mirroring"
+msgstr "Schermspiegeling stoppen"
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "Het aparte venster met het telefoonscherm is open of wordt gesloten."
+
+msgid "View phone screen"
+msgstr "Telefoonscherm bekijken"
+
+msgid "View this phone's screen?"
+msgstr "Het scherm van deze telefoon bekijken?"
+
+msgid "Your phone must approve screen sharing."
+msgstr "Keur het delen van het scherm goed op je telefoon."
