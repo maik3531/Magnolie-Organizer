@@ -85,7 +85,7 @@ internal sealed class PhoneCameraSession
     private long sentAt, videoAt, audioAt;
     internal Exception? Error => Volatile.Read(ref error);
     internal Exception? CleanupError => Volatile.Read(ref cleanupError);
-    internal bool IsSending => Volatile.Read(ref sending) != 0 && !stop.IsCancellationRequested;
+    internal bool IsSending => Volatile.Read(ref stopping) == 0 && Volatile.Read(ref sending) != 0 && !stop.IsCancellationRequested;
     internal bool IsCompletelyStopped => Volatile.Read(ref done) != 0 && Volatile.Read(ref cleanupConfirmed) != 0;
     internal Task ControlReady => controlReady.Task;
 
@@ -120,9 +120,21 @@ internal sealed class PhoneCameraSession
     }
     internal void Stop()
     {
-        if (Interlocked.Exchange(ref stopping, 1) != 0) return;
+        if (BeginStop()) CompleteStop();
+    }
+    internal void SignalStop()
+    {
+        if (BeginStop()) _ = Task.Run(CompleteStop);
+    }
+    private bool BeginStop()
+    {
+        if (Interlocked.Exchange(ref stopping, 1) != 0) return false;
         // Retire native authority BEFORE cancellation callbacks or output Stop.
         Volatile.Write(ref outputAdmitted, 0); Volatile.Write(ref sending, 0);
+        return true;
+    }
+    private void CompleteStop()
+    {
         try
         {
             TryCleanup(stop.Cancel);
@@ -326,6 +338,70 @@ internal sealed class PhoneCameraSession
             catch (Exception failure) { Interlocked.CompareExchange(ref cleanupError, failure, null); }
             if (secret is not null) CryptographicOperations.ZeroMemory(secret);
             Volatile.Write(ref done, 1);
+        }
+    }
+}
+
+// One slot per native desktop UI. A completed worker is not sufficient to
+// admit a replacement if owned provider cleanup could not be confirmed.
+internal sealed class PhoneCameraDesktopSlot
+{
+    private readonly object gate = new();
+    private Run? owner;
+    private bool closing;
+
+    internal sealed class Run
+    {
+        private readonly PhoneCameraSession session;
+        private int retired;
+        internal Task Completion { get; }
+        internal bool Drained => Completion.IsCompletedSuccessfully && session.IsCompletelyStopped;
+        internal bool Sending => Volatile.Read(ref retired) == 0 && session.IsSending;
+
+        internal Run(Func<Action, PhoneCameraSession> create, Action originalCurrent)
+        {
+            void Current()
+            {
+                if (Volatile.Read(ref retired) != 0) throw new ObjectDisposedException("webcam_desktop_run_retired");
+                originalCurrent();
+                if (Volatile.Read(ref retired) != 0) throw new ObjectDisposedException("webcam_desktop_run_retired");
+            }
+            // The factory only constructs the original session. It must not
+            // start provider work, wait on I/O, or install anything.
+            session = create(Current);
+            Completion = session.RunAsync();
+        }
+
+        internal void Stop()
+        {
+            // Revoke before waking the cancellable worker. Neither a WinForms
+            // event nor a writer guard has to wait for native output shutdown.
+            session.SignalStop();
+            Volatile.Write(ref retired, 1);
+        }
+    }
+
+    internal Run Start(Func<Action, PhoneCameraSession> create, Action originalCurrent)
+    {
+        lock (gate)
+        {
+            if (closing || owner is { Drained: false }) throw new InvalidOperationException("webcam_desktop_owner_busy");
+            originalCurrent();
+            return owner = new Run(create, originalCurrent);
+        }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal Run StartNative(TelefonConnection parent, Action originalCurrent, bool muted, bool front) =>
+        Start(current => PhoneCameraSession.CreateNative(parent, current, muted, front), originalCurrent);
+
+    internal Run? Close()
+    {
+        lock (gate)
+        {
+            closing = true;
+            owner?.Stop();
+            return owner; // Callers must check Drained after awaiting Completion.
         }
     }
 }

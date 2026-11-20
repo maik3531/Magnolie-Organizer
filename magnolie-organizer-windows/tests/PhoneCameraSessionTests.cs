@@ -129,6 +129,7 @@ internal static class PhoneCameraSessionTests
     internal static async Task JoinedEncryptedAvAsync()
     {
         await DiscoveryLifecycleAsync();
+        await NativeDesktopSlotAsync();
         await using var f = new Fixture(); await f.OfferAsync(); await f.PreparedAsync(); await f.ReadSendOrStopAsync();
         TestAssert.That(f.SawSend && f.Output.Prepared == 1, "SEND not published after original PREPARED/provider preparation");
         await f.SendFrame(false,0,0); await f.SendFrame(true,0,0); await f.SendFrame(false,1,20000);
@@ -141,6 +142,48 @@ internal static class PhoneCameraSessionTests
             Stopwatch.GetElapsedTime(written[0].At,written[5].At) >= TimeSpan.FromMilliseconds(40), "Joined output burst lost original presentation spacing");
         TestAssert.That(f.Session.Error is null && f.Session.IsCompletelyStopped && f.Output.Stopped == 1 && f.Output.Disposed == 1, "Original joined AV cleanup not confirmed");
         f.Parent.NoPersistentControls();
+    }
+
+    private static async Task NativeDesktopSlotAsync()
+    {
+        using var fixture = new PhoneCameraParentTests.Fixture();
+        var slot = new PhoneCameraDesktopSlot();
+        Action? requireOriginal = null;
+        var output = new Outputs();
+        var stopEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var releaseStop = new ManualResetEventSlim();
+        output.BeforeStopReturn = () =>
+        {
+            stopEntered.TrySetResult();
+            if (!releaseStop.Wait(TimeSpan.FromSeconds(4))) throw new TimeoutException("controlled provider stop");
+        };
+        var first = slot.Start(current =>
+        {
+            requireOriginal = current;
+            return new PhoneCameraSession(fixture.Connection, output, current, false, false);
+        }, () => { });
+        try
+        {
+            first.Stop();
+            TestAssert.Throws<ObjectDisposedException>(requireOriginal!, "Stop did not revoke original native desktop scope immediately");
+            await stopEntered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            TestAssert.That(!first.Drained && !first.Completion.IsCompleted, "Blocked provider Stop was certified early");
+            TestAssert.Throws<InvalidOperationException>(() => slot.Start(_ => throw new Exception("Unexpected replacement"), () => { }),
+                "Replacement accepted before exact drain");
+        }
+        finally { releaseStop.Set(); await first.Completion.WaitAsync(TimeSpan.FromSeconds(4)); }
+        TestAssert.That(first.Drained && output.Disposed == 1, "Stopped original slot did not drain");
+
+        var failing = new Outputs { FailCleanup = true };
+        var second = slot.Start(current => new PhoneCameraSession(fixture.Connection, failing, current, false, false), () => { });
+        first.Stop();
+        TestAssert.That(failing.Stopped == 0 && !second.Completion.IsCompleted,
+            "A stale desktop Stop affected its replacement");
+        second.Stop(); await second.Completion.WaitAsync(TimeSpan.FromSeconds(4));
+        TestAssert.That(!second.Drained && failing.Disposed == 1, "Failed provider cleanup was certified as drained");
+        TestAssert.Throws<InvalidOperationException>(() => slot.Start(_ => throw new Exception("Unexpected replacement"), () => { }),
+            "Unconfirmed cleanup allowed replacement despite worker exit");
+        TestAssert.That(ReferenceEquals(slot.Close(), second), "Shutdown lost the exact undrained owner");
     }
 
     private static async Task DiscoveryLifecycleAsync()
