@@ -10,6 +10,22 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonCoordinator : IDisposable
 {
+    // Remains off until the native dialog/desktop session and device acceptance.
+    internal static bool NativeScreenChecked => false;
+
+    internal TelefonConnection.ScreenProbe? ScreenProbeFor(string peerId)
+    {
+        if (!NativeScreenChecked) return null;
+        lock (gate) return !disposed && !store.RestoreFenced && online.TryGetValue(peerId, out var connection)
+            ? connection.CurrentScreenProbe() : null;
+    }
+
+    internal void RequireScreenParent(string peerId, TelefonConnection original)
+    {
+        lock (gate)
+            if (!NativeScreenChecked || disposed || store.RestoreFenced || !ReferenceEquals(online.GetValueOrDefault(peerId), original))
+                throw new InvalidOperationException("screen_original_parent_lost");
+    }
     internal const int Port = 8741;
     internal const string ServiceType = "_magnolie-phone._tcp.local.";
     internal static readonly Guid BluetoothService = Guid.Parse("7b1d9e2a-5c43-4f68-a172-9d30e6b4c851");
@@ -1666,7 +1682,9 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 if (pendingDial?.PeerId != peer.Id || pendingDial.Identity != Convert.ToBase64String(peer.PublicKey)) calls.Remove(peer.Id);
                 online[peer.Id] = connection;
             }
-            await connection.SendCapabilitiesAsync(capabilityRevision);
+            if (NativeScreenChecked && transport == "wifi")
+                await connection.SendScreenCapabilitiesAsync(capabilityRevision, () => RequireScreenParent(peer.Id, connection));
+            else await connection.SendCapabilitiesAsync(capabilityRevision);
             await connection.SendGrantsAsync(grantRevision, store.LocalGrants());
             await connection.SendMessageAsync("personal_sync.settings", new JsonObject {
                 ["format"] = 1, ["own_device"] = store.PersonalSettings(peer.Id).OwnDevice }, 86_400_000);
@@ -2144,19 +2162,23 @@ internal sealed partial class TelefonConnection : IDisposable
     internal async Task RunAsync()
     {
         Task<JsonObject>? read = null;
-        while (!cancellation.IsCancellationRequested)
+        try
         {
-            await PumpOutboxAsync(); read ??= TelefonCoordinator.ReadFrameAsync(stream, 1_048_576, cancellation);
-            var completed = await Task.WhenAny(read, Task.Delay(1_000, cancellation)); var now = Now();
-            CheckNativeWebcamOwner();
-            if (completed == read)
+            while (!cancellation.IsCancellationRequested)
             {
-                var plain = Open(await read); read = null; lastReceivedMs = now; await HandlePlainAsync(plain);
-                if (RemoteCloseReason.Length > 0) return;
+                await PumpOutboxAsync(); read ??= TelefonCoordinator.ReadFrameAsync(stream, 1_048_576, cancellation);
+                var completed = await Task.WhenAny(read, Task.Delay(1_000, cancellation)); var now = Now();
+                CheckNativeWebcamOwner();
+                if (completed == read)
+                {
+                    var plain = Open(await read); read = null; lastReceivedMs = now; await HandlePlainAsync(plain);
+                    if (RemoteCloseReason.Length > 0) return;
+                }
+                if (now - lastReceivedMs >= 75_000) throw new IOException("Telefon-Heartbeat abgelaufen.");
+                if (now - lastSentMs >= 25_000) await SendPlainAsync(new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = now });
             }
-            if (now - lastReceivedMs >= 75_000) throw new IOException("Telefon-Heartbeat abgelaufen.");
-            if (now - lastSentMs >= 25_000) await SendPlainAsync(new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = now });
         }
+        finally { RetireScreenControl(); }
     }
     internal async Task InitializeAsync(long capabilityRevision)
     {
@@ -2284,6 +2306,7 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             TelefonProtocolContract.ValidateAck(plain); var id = plain["message_id"]!.GetValue<string>(); var status = plain["status"]!.GetValue<string>(); var error = plain["error"]!.GetValue<string>();
             if (ConsumeWebcamAck(plain)) return;
+            if (ConsumeScreenAck(id, status)) return;
             var queued = store.OutboxMessage(peer.Id, id!);
             Task? mediaAckHandling = null;
             ObserveNativeMediaAck(id, status, error, queued, ref mediaAckHandling);
@@ -2681,5 +2704,5 @@ internal sealed partial class TelefonConnection : IDisposable
     private JsonObject Header(long sequence, string direction) => new() { ["p"] = TelefonCrypto.Protocol, ["sid"] = Convert.ToBase64String(sid), ["seq"] = sequence, ["dir"] = direction };
     private static byte[] LongBytes(long value) { var result = new byte[8]; BinaryPrimitives.WriteInt64BigEndian(result, value); return result; }
     private static long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    public void Dispose() { if (disposed) return; disposed = true; RetireNativeWebcamOwner(); CloseNativeFileRoute(); store.PurgeIdentifiers(peer.Id); try { stream.Dispose(); } catch { } CryptographicOperations.ZeroMemory(receiveKey); CryptographicOperations.ZeroMemory(sendKey); writer.Dispose(); }
+    public void Dispose() { if (disposed) return; disposed = true; RetireNativeWebcamOwner(); RetireScreenControl(); CloseNativeFileRoute(); store.PurgeIdentifiers(peer.Id); try { stream.Dispose(); } catch { } CryptographicOperations.ZeroMemory(receiveKey); CryptographicOperations.ZeroMemory(sendKey); writer.Dispose(); }
 }

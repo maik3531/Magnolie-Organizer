@@ -487,6 +487,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kde_player_titel":
                     case "kde_medien_stand":
                     case "kde_medien_aktion": await KdeMediaAsync(message); break;
+                    case "telefon_screen_stand":
+                    case "telefon_screen_start":
+                    case "telefon_screen_stop": await PhoneScreenActionAsync(message); break;
                     case "kde_input_stand":
                     case "kde_input_einstellungen":
                     case "kde_input_senden": await KdeInputAsync(message); break;

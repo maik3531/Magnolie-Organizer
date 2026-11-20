@@ -29605,6 +29605,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kdeBlock.append(clipboardLabel, autoClipboardLabel);
     erweitert.id = "kde-erweiterte-funktionen";
     erweitert.append(el("summary", null, _("Advanced functions")));
+    baueTelefonBildschirm(erweitert);
     baueKdeEingabe(erweitert);
     baueKdeSpieler(erweitert);
     kdeBlock.append(erweitert);
@@ -29620,12 +29621,69 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function kdeMedienAnfordern(cmd, args = {}) {
     return new Promise(resolve => {
       const requestId = crypto.randomUUID();
-      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, cmd === "kde_player_datei" ? 120000 : cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
+      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, cmd === "kde_player_datei" ? 120000 : cmd === "telefon_screen_start" ? 32000 : cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
       kdeMedienAnfragen.set(requestId, { resolve, timer });
       if (!Bruecke.sende({ cmd, requestId, ...args })) {
         clearTimeout(timer); kdeMedienAnfragen.delete(requestId); resolve({ ok: false });
       }
     });
+  }
+
+  function baueTelefonBildschirm(wurzel) {
+    const block = el("details", "einst-gruppe");
+    block.id = "telefon-bildschirm";
+    block.hidden = true;
+    block.append(el("summary", null, _("Phone screen mirroring")));
+    const status = el("p", "einst-hinweis");
+    status.setAttribute("aria-live", "polite");
+    const peer = el("select");
+    peer.setAttribute("aria-label", _("Phone"));
+    const start = el("button", null, _("View phone screen"));
+    const stop = el("button", null, _("Stop screen mirroring"));
+    const refresh = el("button", null, _("Refresh"));
+    for (const button of [start, stop, refresh]) button.type = "button";
+    block.append(status, peer, start, stop, refresh);
+    wurzel.append(block);
+    let pending = false;
+    let state = {};
+    const draw = failed => {
+      block.hidden = state.included !== true;
+      const selected = peer.value;
+      peer.replaceChildren();
+      for (const item of state.peers || []) {
+        const option = el("option", null, item.name);
+        option.value = item.id;
+        peer.append(option);
+      }
+      if (Array.from(peer.options).some(item => item.value === selected)) peer.value = selected;
+      peer.hidden = start.hidden = state.active === true || state.busy === true;
+      stop.hidden = state.active !== true;
+      peer.disabled = start.disabled = pending || state.active === true || state.busy === true || !peer.value;
+      stop.disabled = refresh.disabled = pending;
+      status.textContent = failed ? _("Screen mirroring did not start.") : state.active || state.busy ?
+        _("The separate phone screen window is open or stopping.") : peer.value ?
+          _("Your phone must approve screen sharing.") : _("Open Magnolie Notes on the paired phone over WLAN, then refresh.");
+    };
+    async function request(cmd, args = {}) {
+      if (pending) return;
+      pending = true;
+      draw(false);
+      try {
+        const reply = await kdeMedienAnfordern(cmd, args);
+        if (reply.screen) state = reply.screen;
+        pending = false;
+        draw(!reply.ok);
+      } catch (_) {
+        pending = false;
+        draw(true);
+      }
+    }
+    start.addEventListener("click", () => request("telefon_screen_start", {peer: peer.value}));
+    stop.addEventListener("click", () => request("telefon_screen_stop"));
+    refresh.addEventListener("click", () => request("telefon_screen_stand"));
+    wurzel.addEventListener("toggle", () => { if (wurzel.open) request("telefon_screen_stand"); });
+    block.addEventListener("toggle", () => { if (block.open) request("telefon_screen_stand"); });
+    if (wurzel.open) request("telefon_screen_stand");
   }
 
   const kdeDateisystemAnsichten = new Set();

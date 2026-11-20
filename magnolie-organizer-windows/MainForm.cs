@@ -73,6 +73,7 @@ internal sealed class MainForm : Form
     private bool shutdownStarted;
     private PhoneScreenWindow? phoneScreenWindow;
     private Task? phoneScreenDrain;
+    private bool phoneScreenConfirming;
     private readonly CancellationTokenSource closing = new();
     private bool reminderAutostart;
     private TelefonCoordinator? telefonCoordinator;
@@ -849,6 +850,38 @@ internal sealed class MainForm : Form
 
     // Only a native, explicitly approved viewing owner may attach here. No bridge
     // action or v26 advertisement is enabled until the original WLAN path exists.
+    internal PhoneScreenDesktopSession StartPhoneScreen(TelefonConnection.ScreenProbe expected, Action requireOriginalApproval)
+    {
+        if (!TelefonCoordinator.NativeScreenChecked || InvokeRequired || !Visible || shutdownStarted || closeRequested)
+            throw new InvalidOperationException("screen_view_owner_unavailable");
+        requireOriginalApproval();
+        return PhoneScreenDesktopSession.Start(this, expected, requireOriginalApproval);
+    }
+
+    internal bool PhoneScreenActive => phoneScreenWindow is { Retired: false };
+
+    internal bool ConfirmPhoneScreen(TelefonConnection.ScreenProbe expected, string phoneName, Action requireOriginal, Func<bool> sameProbe)
+    {
+        if (!TelefonCoordinator.NativeScreenChecked || InvokeRequired || !Visible || PhoneScreenBusy() ||
+            phoneScreenConfirming || shutdownStarted || closeRequested) return false;
+        void RequireSelection()
+        {
+            requireOriginal();
+            if (!Visible || shutdownStarted || closeRequested || !expected.Fresh || !sameProbe())
+                throw new InvalidOperationException("screen_original_selection_expired");
+        }
+        phoneScreenConfirming = true;
+        try
+        {
+            using var dialog = new PhoneScreenConsentDialog(phoneName, expected.Deadline, RequireSelection);
+            if (!dialog.Confirm(this)) return false;
+            RequireSelection();
+            _ = StartPhoneScreen(expected, requireOriginal);
+            return true;
+        }
+        finally { phoneScreenConfirming = false; }
+    }
+
     internal PhoneScreenWindow AttachPhoneScreen(int width, int height, Func<bool> originalCurrent, Action requestStop, Task drained)
     {
         if (InvokeRequired || !IsHandleCreated || shutdownStarted || closeRequested ||
@@ -865,10 +898,10 @@ internal sealed class MainForm : Form
         catch { view.Stop(); throw; }
     }
 
-    private bool PhoneScreenBusy() => phoneScreenWindow is { Retired: false } ||
+    internal bool PhoneScreenBusy() => phoneScreenWindow is { Retired: false } ||
         phoneScreenDrain is { IsCompletedSuccessfully: false };
 
-    private void StopPhoneScreen() => phoneScreenWindow?.Stop();
+    internal void StopPhoneScreen() => phoneScreenWindow?.Stop();
 
     private NotifyIcon CreateTrayIcon(Icon icon)
     {

@@ -4,10 +4,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { JSDOM } = require("jsdom");
-const source = fs.readFileSync(path.join(__dirname, "../web/anwendung.js"), "utf8");
+const windows = process.argv[2] === "windows";
+const source = fs.readFileSync(path.join(__dirname, windows ? "../../magnolie-organizer-windows/app/web/anwendung.js" : "../web/anwendung.js"), "utf8");
 const begin = source.indexOf("  function baueTelefonBildschirm(");
-const end = source.indexOf("  function baueTelefonWebcam(", begin);
+const end = source.indexOf(windows ? "  const kdeDateisystemAnsichten" : "  function baueTelefonWebcam(", begin);
 assert(begin > 0 && end > begin);
+assert.match(source, /erweitert\.id = "kde-erweiterte-funktionen";[\s\S]{0,200}baueTelefonBildschirm\(erweitert\);/);
 const dom = new JSDOM("<details open></details>");
 const { document } = dom.window;
 const el = (name, css, text) => {
@@ -35,9 +37,16 @@ async function main() {
   await tick();
   assert(!panel.hidden && start.disabled && stop.hidden);
   refresh.click();
-  requests.shift().resolve({ok: true, screen: {included: true, active: false, peers: [{id: "exact", name: "Test Notes"}]}});
+  const available = {included: true, active: false, peers: [{id: "exact", name: "Test Notes"}]};
+  requests.shift().resolve({ok: true, screen: available});
   await tick();
   assert(!start.disabled);
+  if (windows) {
+    start.click();
+    requests.shift().resolve({ok: false, screen: available});
+    await tick();
+    assert(!start.hidden && stop.hidden && requests.length === 0);
+  }
   start.click();
   start.click();
   assert.equal(requests.length, 1);
@@ -49,9 +58,16 @@ async function main() {
   assert(start.hidden && !stop.hidden);
   stop.click();
   assert.equal(requests[0].cmd, "telefon_screen_stop");
-  requests.shift().resolve({ok: true, screen: {included: true, active: false, peers: []}});
+  requests.shift().resolve({ok: true, screen: windows ? {...available, busy: true} : {included: true, active: false, peers: []}});
   await tick();
   assert(start.disabled && stop.hidden);
-  console.log("Advanced phone-screen DOM: OFF, availability, explicit start, exact peer and stop passed");
+  if (windows) {
+    assert(start.hidden);
+    refresh.click();
+    requests.shift().resolve({ok: true, screen: available});
+    await tick();
+    assert(!start.hidden && !start.disabled);
+  }
+  console.log(`Advanced phone-screen DOM (${windows ? "Windows" : "Linux"}): OFF, availability, explicit start, exact peer and stop passed`);
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => dom.window.close());

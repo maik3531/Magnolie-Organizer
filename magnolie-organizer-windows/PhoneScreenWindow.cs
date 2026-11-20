@@ -114,7 +114,7 @@ internal sealed class PhoneScreenWindow : Form
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
-        if (!Retired) sessionNotifications = WTSRegisterSessionNotification(Handle, 0); // This session only.
+        if (!Retired) sessionNotifications = RegisterSession(Handle);
     }
 
     protected override void OnHandleDestroyed(EventArgs e)
@@ -122,7 +122,7 @@ internal sealed class PhoneScreenWindow : Form
         if (sessionNotifications)
         {
             sessionNotifications = false;
-            WTSUnRegisterSessionNotification(Handle);
+            UnregisterSession(Handle);
         }
         Retire(); // No resurrection if WinForms replaces the native handle.
         base.OnHandleDestroyed(e);
@@ -130,7 +130,7 @@ internal sealed class PhoneScreenWindow : Form
 
     protected override void WndProc(ref Message m)
     {
-        if (m.Msg == 0x02B1 && (int)m.WParam is 2 or 4 or 6 or 7 or 11)
+        if (RetiresSession(m))
         {
             // Console/remote disconnect, logoff, lock, or session termination.
             Retire();
@@ -171,7 +171,11 @@ internal sealed class PhoneScreenWindow : Form
         }
     }
 
-    private static bool InteractiveDesktop()
+    internal static bool RetiresSession(Message message) => message.Msg == 0x02B1 && (int)message.WParam is 2 or 4 or 6 or 7 or 11;
+    internal static bool RegisterSession(IntPtr window) => WTSRegisterSessionNotification(window, 0);
+    internal static void UnregisterSession(IntPtr window) => WTSUnRegisterSessionNotification(window);
+
+    internal static bool InteractiveDesktop()
     {
         var desktop = OpenInputDesktop(0, false, 1);
         if (desktop == IntPtr.Zero) return false;

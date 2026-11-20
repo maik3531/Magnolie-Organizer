@@ -237,6 +237,117 @@ internal static class PhoneCameraParentTests
             TestAssert.Throws<InvalidDataException>(() => storage.Store.CommitIncoming(storage.Peer.Id, value, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), (_, _) => null), "Screen rejection entered durable dedupe");
         }
         storage.NoPersistentControls();
+        await OriginalScreenControlAsync();
+        await ScreenSendRetirementAsync(afterPublication: false);
+        await ScreenSendRetirementAsync(afterPublication: true);
+    }
+
+    private static async Task ScreenSendRetirementAsync(bool afterPublication)
+    {
+        using var fixture = new Fixture();
+        var parent = fixture.Connection;
+        var run = parent.RunAsync();
+        try
+        {
+            await parent.SendScreenCapabilitiesAsync(3, () => { });
+            await fixture.Read(0);
+            var probe = Message(); probe["body"]!["version"] = 26;
+            await fixture.Send(probe, 0);
+            TestAssert.That((await fixture.Read(1))["status"]!.GetValue<string>() == "accepted", "Encrypted screen probe missing");
+            var witness = parent.CurrentScreenProbe() ?? throw new Exception("Missing screen probe");
+            var stopped = 0;
+            var owner = parent.BindScreenControl(witness, () => { }, () => Interlocked.Increment(ref stopped));
+            await owner.OfferAsync(new byte[32], 24401, 720, 1280, 160);
+            var offer = await fixture.Read(2);
+            var prepared = Follow(probe, "prepared", offer["body"]!["session"]!.GetValue<string>());
+            prepared["body"]!["version"] = 26;
+            await fixture.Send(prepared, 1);
+            TestAssert.That((await fixture.Read(3))["status"]!.GetValue<string>() == "accepted", "Encrypted PREPARED missing");
+            await owner.Prepared.WaitAsync(TimeSpan.FromSeconds(2));
+            if (!afterPublication)
+            {
+                await fixture.Writer.WaitAsync();
+                Task send;
+                try
+                {
+                    send = owner.SendAsync(() => { });
+                    owner.Stop();
+                }
+                finally { fixture.Writer.Release(); }
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => send, "Queued SEND survived stop");
+            }
+            else
+            {
+                int checks = 0;
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => owner.SendAsync(() =>
+                {
+                    if (++checks == 4) owner.Stop();
+                }), "SEND became live after original owner stopped following completed IO");
+                TestAssert.That((await fixture.Read(4))["body"]!["op"]!.GetValue<string>() == "send", "Completed SEND missing");
+            }
+            TestAssert.That(stopped == 1 && owner.Retired, "Original screen not retired exactly once");
+            var next = afterPublication ? 5 : 4;
+            await owner.StopPeerAsync();
+            TestAssert.That((await fixture.Read(next++))["body"]!["op"]!.GetValue<string>() == "stop", "Original STOP missing or preceded by a stale SEND");
+            owner.ReleaseAfterDrain();
+            var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = 123 };
+            await parent.SendPlainAsync(ping);
+            TestAssert.That(JsonNode.DeepEquals(ping, await fixture.Read(next)), "Screen retirement closed or changed the Notes parent");
+            fixture.NoPersistentControls();
+            await fixture.Send(new JsonObject { ["type"] = "close", ["reason"] = "normal" }, 2);
+            await run.WaitAsync(TimeSpan.FromSeconds(2));
+        }
+        finally
+        {
+            parent.Dispose();
+            try { await run.WaitAsync(TimeSpan.FromSeconds(2)); } catch (Exception failure) when (failure is IOException or OperationCanceledException or ObjectDisposedException) { }
+        }
+    }
+
+    private static async Task OriginalScreenControlAsync()
+    {
+        using var fixture = new Fixture();
+        using var other = new Fixture();
+        var parent = fixture.Connection;
+        await parent.SendScreenCapabilitiesAsync(3, () => { });
+        var capabilities = await fixture.Read(0);
+        TestAssert.That(capabilities["body"]!["items"]!["device_status"]!["versions"]!.AsArray().Any(x => x!.GetValue<int>() == 26), "Missing v26 on original writer");
+        JsonObject probe = Message(); probe["body"]!["version"] = 26;
+        await parent.HandlePlainAsync(probe);
+        TestAssert.That((await fixture.Read(1))["status"]!.GetValue<string>() == "accepted", "Original probe not admitted");
+        var witness = parent.CurrentScreenProbe() ?? throw new Exception("Missing availability witness");
+        var stopped = 0;
+        TestAssert.Throws<InvalidOperationException>(() => other.Connection.BindScreenControl(witness, () => { }, () => stopped++), "Probe retargeted another parent");
+        var owner = parent.BindScreenControl(witness, () => { }, () => Interlocked.Increment(ref stopped));
+        var (listener, peer) = owner.OpenListener();
+        using (listener)
+        {
+            TestAssert.That(peer.Equals(IPAddress.Loopback), "Data listener not bound to original peer");
+            await owner.OfferAsync(new byte[32], ((IPEndPoint)listener.LocalEndPoint!).Port, 720, 1280, 160);
+        }
+        var offer = await fixture.Read(2);
+        var body = offer["body"]!.AsObject();
+        var session = body["session"]!.GetValue<string>();
+        TestAssert.That(Convert.ToHexString(owner.SessionId).Equals(session, StringComparison.OrdinalIgnoreCase), "Offer changed the original session");
+        TestAssert.Throws<InvalidOperationException>(owner.RequireSend, "Offer granted SEND");
+        var prepared = Follow(probe, "prepared", session); prepared["body"]!["version"] = 26;
+        await parent.HandlePlainAsync(prepared);
+        TestAssert.That((await fixture.Read(3))["status"]!.GetValue<string>() == "accepted", "Original PREPARED not accepted");
+        await owner.Prepared.WaitAsync(TimeSpan.FromSeconds(2));
+        TestAssert.Throws<InvalidOperationException>(owner.RequireSend, "PREPARED granted SEND");
+        await owner.SendAsync(() => { });
+        var send = await fixture.Read(4);
+        TestAssert.That(send["body"]!["op"]!.GetValue<string>() == "send", "SEND missing from original encrypted connection");
+        owner.RequireSend();
+        await parent.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = send["message_id"]!.DeepClone(),
+            ["status"] = "rejected", ["error"] = "not_granted" });
+        TestAssert.That(stopped == 1 && owner.Retired, "Rejected SEND did not stop its exact owner");
+        await owner.StopPeerAsync();
+        TestAssert.That((await fixture.Read(5))["body"]!["op"]!.GetValue<string>() == "stop", "Original terminal control missing");
+        owner.ReleaseAfterDrain();
+        await parent.HandlePlainAsync(probe);
+        TestAssert.That((await fixture.Read(6))["status"]!.GetValue<string>() == "rejected" && parent.CurrentScreenProbe() is null, "Consumed probe revived");
+        fixture.NoPersistentControls();
     }
 
     internal static JsonObject Follow(JsonObject probe, string op, string session = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
