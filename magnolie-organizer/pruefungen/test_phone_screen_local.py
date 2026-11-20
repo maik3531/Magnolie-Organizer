@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 from magnolie_phone_screen_control import PhoneScreenDesktopDispatch, REQUEST
-from magnolie_phone_screen_local import PhoneScreenLocalAttach, PhoneScreenLocalLane, begin_daemon_screen, local_peer
+from magnolie_phone_screen_local import PhoneScreenLocalAttach, PhoneScreenLocalLane, PhoneScreenPeerLifetime, begin_daemon_screen, local_peer
 from magnolie_telefon import PhoneService, SecureChannel, now_ms, receive_frame
 
 
@@ -41,6 +41,40 @@ def test_process_identity_is_from_the_connected_kernel_peer(tmp_path):
             if child.poll() is None:
                 child.kill()
                 child.wait(2)
+
+
+def test_process_exit_revokes_peer_even_while_a_duplicate_holds_the_socket(tmp_path):
+    filename = str(tmp_path / 'lifetime.sock')
+    program = '''
+import os, socket, sys
+sock = socket.socket(socket.AF_UNIX)
+sock.connect(sys.argv[1])
+if os.fork() == 0:
+    # Keep the socket open until the test closes this original stream.
+    sock.recv(1)
+    os._exit(0)
+sys.stdin.buffer.read(1)
+'''
+    with socket.socket(socket.AF_UNIX) as listener:
+        listener.bind(filename)
+        listener.listen(1)
+        listener.settimeout(2)
+        with subprocess.Popen([sys.executable, '-c', program, filename], stdin=subprocess.PIPE) as original:
+            connection, _ = listener.accept()
+            with connection:
+                lifetime = PhoneScreenPeerLifetime(connection, expected_peer=(original.pid, os.getuid()))
+                try:
+                    lifetime.require_current()
+                    original.stdin.close()
+                    assert original.wait(2) == 0
+                    connection.settimeout(.1)
+                    with pytest.raises(socket.timeout):
+                        connection.recv(1)  # Inherited descriptor remains open.
+                    with pytest.raises(PermissionError, match='peer_process_ended'):
+                        lifetime.require_current()
+                finally:
+                    lifetime.close()
+                    original.stdin.close()
 
 
 def test_dedicated_lane_carries_only_records_and_finish_is_terminal():
@@ -127,19 +161,27 @@ def test_attachment_waits_for_exact_native_gui_and_carries_no_secret_in_media():
             return read
 
         def offer():
+            writer = None
             try:
                 writer = daemon.daemon_offer(720, 1280)
                 writer.write(b'fixture', require_current=lambda: None)
             except Exception as error:
                 outcomes.append(error)
             finally:
+                if writer is not None:
+                    writer.close()
                 ended.set()
 
         def accept():
+            reader = None
             try:
-                outcomes.append(gui.gui_accept(attach).read())
+                reader = gui.gui_accept(attach)
+                outcomes.append(reader.read())
             except Exception as error:
                 outcomes.append(error)
+            finally:
+                if reader is not None:
+                    reader.close()
 
         server, client = threading.Thread(target=offer), threading.Thread(target=accept)
         server.start()

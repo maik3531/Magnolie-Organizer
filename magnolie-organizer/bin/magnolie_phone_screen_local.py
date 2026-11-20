@@ -1,10 +1,12 @@
 """Dedicated Linux daemon-to-GTK display lane. No JSON or persistent media."""
 
 import math
+import os
 import secrets
 import select
 import socket
 import struct
+import sys
 import threading
 import time
 
@@ -29,6 +31,48 @@ def local_peer(sock):
     return pid, uid
 
 
+class PhoneScreenPeerLifetime:
+    """Retain the peer process object of the exact accepted Unix stream.
+
+    Do not reopen a numeric PID from SO_PEERCRED; that would race PID reuse.
+    A live process is not a viewing grant. The admitting native owner must
+    supply and retain its separate consent/context guard.
+    """
+
+    def __init__(self, sock, *, expected_peer):
+        if sys.platform != 'linux' or local_peer(sock) != expected_peer:
+            raise PermissionError('screen_local_original_peer_required')
+        self._sock = sock
+        self._lock = threading.Lock()
+        if not hasattr(socket, 'SO_PEERPIDFD') and os.uname().machine not in ('x86_64', 'aarch64', 'i386', 'i686', 'riscv64'):
+            raise OSError('screen_local_peer_pidfd_unavailable')
+        # Linux asm-generic SO_PEERPIDFD is 77; some Python versions do not
+        # define the symbol even when the running kernel supports it.
+        option = getattr(socket, 'SO_PEERPIDFD', 77)
+        self._pidfd, = struct.unpack('i', sock.getsockopt(socket.SOL_SOCKET, option, struct.calcsize('i')))
+        try:
+            os.set_inheritable(self._pidfd, False)
+            self.require_current()
+        except BaseException:
+            self.close()
+            raise
+
+    def require_current(self):
+        with self._lock:
+            if self._pidfd is None or self._sock.fileno() < 0:
+                raise PermissionError('screen_local_peer_retired')
+            poll = select.poll()
+            poll.register(self._pidfd, select.POLLIN)
+            if poll.poll(0):
+                raise PermissionError('screen_local_peer_process_ended')
+
+    def close(self):
+        with self._lock:
+            if self._pidfd is not None:
+                fd, self._pidfd = self._pidfd, None
+                os.close(fd)
+
+
 def _view_size(width, height):
     if (type(width) is not int or type(height) is not int or not 2 <= width <= 1920 or
             not 2 <= height <= 1920 or width * height > 1920 * 1080):
@@ -51,9 +95,12 @@ class PhoneScreenLocalAttach:
         self._deadline = deadline
         self._used = False
         self._phase_lock = threading.Lock()
+        self._process = None
 
     def _check(self):
         self._guard()
+        if self._process is not None:
+            self._process.require_current()
         remaining = self._deadline - time.monotonic()
         if not 0 < remaining <= 60:
             raise TimeoutError('screen_local_attach_deadline')
@@ -67,8 +114,7 @@ class PhoneScreenLocalAttach:
 
     def _prepare(self):
         self._check()
-        if local_peer(self._sock) != self._peer:
-            raise PermissionError('screen_local_original_peer_required')
+        self._process = PhoneScreenPeerLifetime(self._sock, expected_peer=self._peer)
         self._sock.setblocking(False)
 
     def _transfer(self, data, *, writing):
@@ -100,8 +146,10 @@ class PhoneScreenLocalAttach:
             self._transfer(ready, writing=False)
             if _READY.unpack(ready) != (_READY_MAGIC, token):
                 raise PermissionError('screen_local_original_view_not_confirmed')
-            lane = PhoneScreenLocalLane(self._sock, expected_peer=self._peer, require_original=self._guard, writing=True)
+            lane = PhoneScreenLocalLane(self._sock, expected_peer=self._peer, require_original=self._guard,
+                                        writing=True, process=self._process)
             lane.require_open()
+            self._process = None
             return lane
         except BaseException:
             self.close()
@@ -122,10 +170,12 @@ class PhoneScreenLocalAttach:
             if magic != _OFFER_MAGIC:
                 raise ValueError('screen_local_attach_offer_invalid')
             _view_size(width, height)
-            lane = PhoneScreenLocalLane(self._sock, expected_peer=self._peer, require_original=self._guard, writing=False)
+            lane = PhoneScreenLocalLane(self._sock, expected_peer=self._peer, require_original=self._guard,
+                                        writing=False, process=self._process)
             view = attach(lane, width, height, self._deadline)
             lane.require_open()
             self._transfer(_READY.pack(_READY_MAGIC, token), writing=True)
+            self._process = None
             return view
         except BaseException:
             if lane is not None:
@@ -136,10 +186,14 @@ class PhoneScreenLocalAttach:
 
     def close(self):
         try:
-            self._sock.shutdown(socket.SHUT_RDWR)
-        except OSError:
-            pass
-        self._sock.close()
+            try:
+                self._sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            self._sock.close()
+        finally:
+            if self._process is not None:
+                self._process.close()
 
 
 class PhoneScreenLocalLane:
@@ -149,10 +203,11 @@ class PhoneScreenLocalLane:
     Empty records are liveness, never displayed. No messages travel in reverse.
     """
 
-    def __init__(self, sock, *, expected_peer, require_original, writing):
+    def __init__(self, sock, *, expected_peer, require_original, writing, process=None):
         self._sock = sock
         self._guard = require_original
         self._writing = writing
+        self._process = process
         self._terminal = threading.Event()
         self._close_lock = threading.Lock()
         self._io = threading.Lock()
@@ -171,6 +226,8 @@ class PhoneScreenLocalLane:
         if self._terminal.is_set():
             raise OSError('screen_local_lane_retired')
         self._guard()
+        if self._process is not None:
+            self._process.require_current()
         if self._terminal.is_set():
             raise OSError('screen_local_lane_retired')
         if self._writing and self._wait(select.POLLIN, 0):
@@ -251,6 +308,12 @@ class PhoneScreenLocalLane:
                 self._sock.close()
             except OSError as error:
                 self.cleanup_error = error
+            if self._process is not None:
+                try:
+                    self._process.close()
+                except OSError as error:
+                    if self.cleanup_error is None:
+                        self.cleanup_error = error
 
 
 class PhoneScreenLocalDisplay:

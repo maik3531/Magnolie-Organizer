@@ -125,7 +125,10 @@ Before the daemon starts its viewing owner, it offers `MGSVL001`, a fresh
 16-byte nonce, and two big-endian uint16
 dimensions. The original GUI replies with `MGSVACK1` and the nonce only
 after its native view is attached. Both sides validate kernel peer PID/UID
-and keep the separately admitted native lease and original setup deadline
+and hold the kernel peer pidfd of that exact connected socket. An inherited
+descriptor cannot keep a view authorized after its original peer exits.
+Missing peer-pidfd support leaves this daemon path unavailable, not unlocked.
+Both sides also keep the separately admitted native lease and original setup deadline
 throughout. The reply does not authorize Android capture or phone SEND.
 Once setup is complete the socket carries only the one-way record stream
 described above. Failure retires this socket, not the general daemon proxy.
