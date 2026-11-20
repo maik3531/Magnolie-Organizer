@@ -72,4 +72,18 @@ class PhoneScreenSendRunTest {
         assertArrayEquals(ByteArray(5), frame.jpeg)
         assertNull(f.pending.take())
     }
+
+    @Test fun quietProjectionEmitsOnlyGuardedAuthenticatedHeartbeatsAfterSend() = connected { f ->
+        f.run.start()
+        f.proof()
+        f.approval.set(true)
+        val header = ByteArray(12).also { f.input.readFully(it) }
+        val data = ByteArray(16).also { f.input.readFully(it) }
+        assertEquals(16, java.nio.ByteBuffer.wrap(header).int)
+        assertEquals("000000100000000000000000645ed91909ccdd8fc7eec4b153dbaa61",
+            (header + data).joinToString("") { "%02x".format(it.toInt() and 255) })
+        f.approval.set(false)
+        assertEquals(-1, f.input.read())
+        f.assertDrained()
+    }
 }

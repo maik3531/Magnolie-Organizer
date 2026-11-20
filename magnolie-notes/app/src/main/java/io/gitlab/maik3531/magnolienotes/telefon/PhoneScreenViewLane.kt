@@ -86,13 +86,18 @@ internal class PhoneScreenViewLane(
     }
 
     /** Takes ownership of a unique frame from the original pending slot. */
-    @Synchronized fun send(frame: PhoneScreenJpegOutput.Frame) {
+    @Synchronized fun send(frame: PhoneScreenJpegOutput.Frame) = writeRecord(frame)
+
+    /** An authenticated liveness record, never a frame or a new SEND decision. */
+    @Synchronized fun heartbeat() = writeRecord(null)
+
+    private fun writeRecord(frame: PhoneScreenJpegOutput.Frame?) {
         try {
             val end = System.nanoTime() + 2_000_000_000L
             current(end)
-            val jpeg = frame.jpeg
-            require(ordinal < Long.MAX_VALUE && frame.width == width && frame.height == height &&
-                jpeg.size in 1..PhoneScreenJpegOutput.MAX_FRAME_BYTES)
+            val jpeg = frame?.jpeg ?: EMPTY
+            require(ordinal < Long.MAX_VALUE && (frame == null || frame.width == width && frame.height == height &&
+                jpeg.size in 1..PhoneScreenJpegOutput.MAX_FRAME_BYTES))
             val header = ByteBuffer.allocate(12).putInt(jpeg.size + 16).putLong(ordinal).array()
             val nonce = ByteBuffer.allocate(12).put(prefix).putLong(ordinal).array()
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -107,7 +112,7 @@ internal class PhoneScreenViewLane(
         } catch (failure: Exception) {
             retire(failure)
             throw failure
-        } finally { frame.jpeg.fill(0) }
+        } finally { frame?.jpeg?.fill(0) }
     }
 
     private fun current(end: Long) {
@@ -135,6 +140,7 @@ internal class PhoneScreenViewLane(
 
     companion object {
         private val DOMAIN = "magnolie-phone-screen-view/1\u0000phone_to_desktop\u0000".toByteArray(Charsets.US_ASCII)
+        private val EMPTY = ByteArray(0)
         private val PROOF_DOMAIN = "magnolie-phone-screen-proof/1\u0000".toByteArray(Charsets.US_ASCII)
 
         private fun context(session: ByteArray, secret: ByteArray, width: Int, height: Int): ByteArray {

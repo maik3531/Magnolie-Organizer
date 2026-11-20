@@ -487,6 +487,12 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                         header = struct.pack("!IQ", len(jpeg) + 16, 0)
                         data.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], jpeg, context + header))
                         wait_for(lambda: (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230)
+                        for ordinal in (1, 2, 3):
+                            sleep(.75)
+                            header = struct.pack("!IQ", 16, ordinal)
+                            data.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], b"", context + header))
+                        assert not run.retired and run.failure is None
+                        assert (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230
                         write_control(1, dict(body, op="stop"))
                         wait_for(lambda: run.is_drained() and app._phone_screen_window is None)
                         assert data.recv(1) == b"" and desktop.fileno() != -1 and run.failure is None

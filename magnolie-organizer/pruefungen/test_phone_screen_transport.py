@@ -15,6 +15,7 @@ from magnolie_telefon import SecureChannel
 FIRST = bytes.fromhex("000000150000000000000000ff4cf254a965f55e05d2cde81cd0c87f07d170c8a0")
 SECOND = bytes.fromhex("0000001600000000000000012cf1d07d1ce098974a3ae945893a44699c661252d503")
 PROOF = bytes.fromhex("8151fa3e157e140cde257828478f01b806cce5a5093a329c62e704f8b9ffbc8d")
+HEARTBEAT = bytes.fromhex("000000100000000000000000645ed91909ccdd8fc7eec4b153dbaa61")
 
 
 def lane(sock, width=17, guard=lambda: None):
@@ -27,6 +28,18 @@ def test_original_wire_sequence_and_replay_rejection():
         view = lane(a)
         b.sendall(FIRST + SECOND + FIRST)
         assert view.receive() == b"first"
+        assert view.receive() == b"second"
+        with pytest.raises(ValueError, match="envelope"):
+            view.receive()
+        assert a.fileno() == -1
+
+
+def test_heartbeat_counts_toward_sequence_but_contains_no_frame():
+    a, b = socket.socketpair()
+    with a, b:
+        view = lane(a)
+        b.sendall(HEARTBEAT + SECOND + HEARTBEAT)
+        assert view.receive() == b""
         assert view.receive() == b"second"
         with pytest.raises(ValueError, match="envelope"):
             view.receive()

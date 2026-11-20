@@ -66,11 +66,15 @@ internal class PhoneScreenSendRun(
             }
             PhoneScreenViewLane(socket, session, secret, width, height, ::sendCurrent).use { lane ->
                 secret.fill(0)
+                var last = System.nanoTime()
                 while (true) {
                     sendCurrent()
                     val frame = pending.take()
-                    if (frame != null) lane.send(frame)
-                    else stop.await(20, TimeUnit.MILLISECONDS)
+                    when {
+                        frame != null -> { lane.send(frame); last = System.nanoTime() }
+                        System.nanoTime() - last >= 750_000_000L -> { lane.heartbeat(); last = System.nanoTime() }
+                        else -> stop.await(20, TimeUnit.MILLISECONDS)
+                    }
                 }
             }
         } catch (error: Exception) {

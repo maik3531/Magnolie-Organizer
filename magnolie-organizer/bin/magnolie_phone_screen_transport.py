@@ -183,7 +183,7 @@ class PhoneScreenViewLane:
                 end = time.monotonic() + 2
                 header = bytes(self._read(_HEADER.size, end))
                 length, ordinal = _HEADER.unpack(header)
-                if ordinal != self._ordinal or ordinal >= 2**63 - 1 or not 17 <= length <= _MAX_BYTES + 16:
+                if ordinal != self._ordinal or ordinal >= 2**63 - 1 or not 16 <= length <= _MAX_BYTES + 16:
                     raise ValueError("screen_lane_envelope")
                 cipher = bytes(self._read(length, end))
                 data = self._cipher.decrypt(self._prefix + header[4:], cipher, self._context + header)
@@ -272,7 +272,8 @@ class PhoneScreenReceiveRun:
                                       self._width, self._height, self._send_current)
             self._secret = None
             while True:
-                if decoder.receive(lane.receive()) is not True:
+                jpeg = lane.receive()
+                if jpeg and decoder.receive(jpeg) is not True:
                     raise OSError("screen_receiver_view_retired")
         except Exception as error:
             if not self._stop.is_set():

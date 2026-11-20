@@ -32,7 +32,11 @@ Each record starts with ciphertext length (big-endian uint32, includes the
 16-byte tag) and ordinal (big-endian uint64, starts at 0, consecutive, below
 2^63−1). The nonce is the prefix followed by the ordinal. Associated data is
 `context || header`. The plaintext is one independent 8-bit baseline RGB
-JPEG at the agreed dimensions, capped at 1,048,576 bytes. No fragments,
+JPEG at the agreed dimensions, capped at 1,048,576 bytes, or empty for an
+authenticated heartbeat (ciphertext length exactly 16). The sender emits a
+heartbeat after 750 ms without a JPEG so that a static screen need not produce
+new pixels to stay connected. Heartbeats require the same live SEND guard,
+consume one ordinal, and never draw or grant any authority. No fragments,
 codec fallback, cursor/input data, audio or replay. Frames may be discarded
 *before* building a record; the ordinal counts transmitted frames only.
 
