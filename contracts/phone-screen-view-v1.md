@@ -194,3 +194,7 @@ an existing monitor does not count as a second monitor.
 Any of these modes must stop on loss of its exact native session, authenticated
 peer, approval or unlocked desktop. A disconnected output is not drained until
 its original producer and stream have ended and the output is gone.
+
+The passive Linux provider probe pins the portal's unique bus owner throughout
+the bounded property queries and does not auto-start it. It reports candidates
+only; it is not wired to the current v26 viewer or to any capture/input action.
