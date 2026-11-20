@@ -92,3 +92,50 @@ class KWinOutputWitness:
     def retire(self, registry):
         if registry is self._registry:
             self._lost = True
+
+
+class KWinOutputFeed:
+    """Consume bounded complete lines from one owned read-only observer.
+
+    The caller must stop reading and close this feed on EOF, invalid records,
+    or process/connection loss. No second observer can continue this feed.
+    """
+
+    def __init__(self):
+        self._registry = object()
+        self._live = {}
+        self.witness = None
+        self._closed = False
+
+    def consume(self, raw):
+        if self._closed:
+            return False
+        try:
+            if type(raw) is not bytes or not raw.endswith(b'\n') or len(raw) > 270:
+                raise ValueError('kwin_feed_invalid_line')
+            if raw == b'ready\n' and self.witness is None:
+                self.witness = KWinOutputWitness(self._registry, self._live)
+                return True
+            fields = raw[:-1].decode('ascii').split('\t')
+            if len(fields) not in (2, 3) or not re.fullmatch(r'[1-9][0-9]{0,9}', fields[1]):
+                raise ValueError('kwin_feed_invalid_record')
+            id_ = int(fields[1])
+            live = self._live.copy()
+            if fields[0] == '+' and len(fields) == 3 and id_ not in live:
+                live[id_] = fields[2]
+            elif fields[0] == '-' and len(fields) == 2 and id_ in live and self.witness is not None:
+                del live[id_]
+            else:
+                raise ValueError('kwin_feed_identity_invalid')
+            self._live = _outputs(live)
+            if self.witness is None or self.witness.observe(self._registry, self._live):
+                return True
+        except ValueError:
+            pass
+        self.close()
+        return False
+
+    def close(self):
+        self._closed = True
+        if self.witness is not None:
+            self.witness.retire(self._registry)

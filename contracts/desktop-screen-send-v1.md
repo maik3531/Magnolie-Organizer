@@ -144,8 +144,12 @@ on an original Wayland registry observed before portal Start. It can establish
 removal only for the previously bound instance, not from a connector label,
 changed registry, inferred topology, or a new instance reusing the name. This
 requires a verified KDE backend route and a complete, ordered native display
-observer. The current product neither verifies that route nor feeds native
-registry events to the witness; it does not release the virtual-output slot
+observer. An isolated libwayland prototype takes only a supplied connected
+descriptor, settles the initial `wl_output` v4 names before becoming ready,
+and reports exact registry additions and removals. Its socketpair test uses
+the real libwayland client and server, but no actual desktop compositor. EOF
+or invalid records retire the observation. The current product neither verifies
+that route nor starts the observer; it does not release the virtual-output slot
 on that basis. Real placement, window movement, and compositor cleanup must
 still be observed independently of media cleanup.
 

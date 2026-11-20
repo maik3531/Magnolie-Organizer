@@ -1,14 +1,21 @@
 """Controlled KWin registry observations; no compositor or output is started."""
 
+from contextlib import ExitStack
 from pathlib import Path
+import os
+from select import select
+import shlex
+import socket
+import subprocess
 import sys
+from tempfile import TemporaryDirectory
 import unittest
 
 from gi.repository import GLib
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 from magnolie_desktop_screen_cast import ScreenCastTarget, _target
-from magnolie_desktop_screen_output import KWinOutputWitness
+from magnolie_desktop_screen_output import KWinOutputFeed, KWinOutputWitness
 from test_desktop_screen_cast import streams
 
 
@@ -97,3 +104,74 @@ class TestKWinOutputWitness(unittest.TestCase):
         for bad in (GLib.Variant('s', '\n'), GLib.Variant('s', 'x' * 256), GLib.Variant('u', 1)):
             self.assertIsNone(_target(response(bad, 4), 'extend', 6).mapping_id)
         self.assertIsNone(_target(GLib.Variant('a{sv}', streams()), 'extend', 6).mapping_id)
+
+    def test_truncated_observer_line_revokes_an_apparent_removal(self):
+        feed = KWinOutputFeed()
+        for record in (b'+\t1\teDP-1\n', b'ready\n'):
+            self.assertTrue(feed.consume(record))
+        self.assertTrue(feed.witness.bind(self.target))
+        self.assertTrue(feed.consume(f'+\t2\t{NAME}\n'.encode()))
+        self.assertTrue(feed.consume(b'-\t2\n'))
+        self.assertTrue(feed.witness.removal_observed(self.target))
+        self.assertFalse(feed.consume(b'+\t'))
+        self.assertFalse(feed.witness.removal_observed(self.target))
+        self.assertFalse(feed.consume(b'ready\n'))
+
+    @unittest.skipUnless(os.environ.get('MAGNOLIE_SCREEN_PRIVATE_WAYLAND') == '1',
+                         'opt in to a private libwayland socketpair')
+    def test_original_output_uses_real_libwayland_registry_and_disconnect_fences_it(self):
+        here = Path(__file__).resolve().parent
+        with TemporaryDirectory(prefix='magnolie-wayland-test-') as directory:
+            def compile_binary(source, lib):
+                program = str(Path(directory) / source.stem)
+                flags = subprocess.check_output(['pkg-config', '--cflags', '--libs', lib], text=True, timeout=3)
+                subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-o', program, str(source),
+                                *shlex.split(flags)], check=True, timeout=15)
+                return program
+
+            observer = compile_binary(here.parent / 'bin/magnolie_wayland_output_observer.c', 'wayland-client')
+            server = compile_binary(here / 'wayland_output_fixture.c', 'wayland-server')
+            left, right = socket.socketpair()
+            with left, right, ExitStack() as cleanup:
+                def start(binary, endpoint, **streams):
+                    fd = endpoint.fileno()
+                    process = cleanup.enter_context(subprocess.Popen([binary, str(fd)], pass_fds=(fd,),
+                                                                      bufsize=0, **streams))
+                    def reap():
+                        if process.poll() is None:
+                            process.kill()
+                        process.wait(3)
+                    cleanup.callback(reap)
+                    endpoint.close()
+                    return process
+
+                fixture = start(server, left, stdin=subprocess.PIPE)
+                client = start(observer, right, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
+                feed = KWinOutputFeed()
+
+                def read():
+                    self.assertTrue(select([client.stdout], [], [], 3)[0], 'Wayland observer deadline')
+                    return client.stdout.readline(271)
+
+                def step(command):
+                    fixture.stdin.write(command)
+                    self.assertTrue(feed.consume(read()))
+
+                self.assertTrue(feed.consume(read()))
+                self.assertTrue(feed.consume(read()))
+                self.assertIsNone(feed.witness)
+                self.assertEqual(read(), b'ready\n')
+                self.assertTrue(feed.consume(b'ready\n'))
+                self.assertTrue(feed.witness.bind(self.target))
+                step(b'+')
+                self.assertTrue(feed.witness.present(self.target))
+                step(b'o')
+                self.assertTrue(feed.witness.present(self.target))
+                self.assertFalse(feed.witness.removal_observed(self.target))
+                step(b'-')
+                self.assertTrue(feed.witness.removal_observed(self.target))
+                fixture.stdin.write(b'q')
+                self.assertEqual(fixture.wait(3), 0)
+                self.assertFalse(feed.consume(read()))  # EOF retires the witness.
+                self.assertFalse(feed.witness.removal_observed(self.target))
+                self.assertEqual(client.wait(3), 1)
