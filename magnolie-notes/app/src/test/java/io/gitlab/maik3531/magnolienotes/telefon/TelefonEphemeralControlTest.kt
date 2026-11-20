@@ -58,13 +58,33 @@ class TelefonEphemeralControlTest {
     @Test fun blockedOriginalWriterHasBoundedAdmissionWithoutClosingTheParent() {
         val pipe = Pipe(blocking = true); val channel = channel(pipe)
         val worker = Thread { channel.send(message) }
+        val atWrite = AtomicBoolean(false)
         try {
             worker.start(); assertTrue(pipe.entered.await(2, TimeUnit.SECONDS))
-            assertThrows(TimeoutException::class.java) { channel.sendEphemeral(message, pipe, {}, 30) }
+            assertThrows(TimeoutException::class.java) {
+                channel.sendEphemeral(message, pipe, {}, 30, atWrite = { atWrite.set(true) })
+            }
+            assertFalse(atWrite.get())
             assertFalse(pipe.closed.get())
         } finally { pipe.release.countDown(); worker.join(3_000); channel.close(); pipe.close() }
         assertFalse(worker.isAlive)
         assertEquals(message, clear(TelefonRahmen.lesen(ByteArrayInputStream(pipe.bytes.toByteArray())), 0))
+    }
+
+    @Test fun guardedWriteEdgeRunsOnceAndCanStillRejectBeforeCiphertext() {
+        val pipe = Pipe(); val channel = channel(pipe)
+        var edges = 0
+        try {
+            assertThrows(IllegalStateException::class.java) {
+                channel.sendEphemeral(message, pipe, {}, atWrite = { edges++; error("owner retired") })
+            }
+            assertEquals(1, edges)
+            assertEquals(0, pipe.bytes.size())
+            assertFalse(pipe.closed.get())
+            channel.sendEphemeral(message, pipe, {}, atWrite = { edges++ })
+            assertEquals(2, edges)
+            assertEquals(message, clear(TelefonRahmen.lesen(ByteArrayInputStream(pipe.bytes.toByteArray())), 0))
+        } finally { channel.close(); pipe.close() }
     }
 
     @Test fun originalOwnerIsRecheckedAfterWriterWaitBeforeAnyExtraFrameIsPublished() {

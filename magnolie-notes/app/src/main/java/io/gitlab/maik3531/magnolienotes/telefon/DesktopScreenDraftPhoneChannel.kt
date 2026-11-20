@@ -20,7 +20,7 @@ internal class DesktopScreenDraftPhoneChannel(private val channel: TelefonSecure
         DesktopScreenDraftControl.validate(body, DesktopScreenDraftControl.Role.PHONE)
         val frame = JsonObject(mapOf("type" to JsonPrimitive(TYPE), "body" to body))
         current()
-        channel.sendEphemeral(frame, pipe, { current(); atWrite() })
+        channel.sendEphemeral(frame, pipe, ::current, atWrite = atWrite)
         current()
     }
 

@@ -326,7 +326,7 @@ class TelefonSecureChannel(
      * only an actual original write, not a healthy parent while waiting for it.
      */
     internal fun sendEphemeral(payload: JsonObject, pipe: TelefonRoehre, current: () -> Unit,
-        timeoutMs: Long = 2_000) {
+         timeoutMs: Long = 2_000, atWrite: (() -> Unit)? = null) {
         require(timeoutMs in 1..2_000)
         val clear = TelefonKanonisch.bytes(payload)
         require(clear.size <= 4096) { "webcam_control_envelope_invalid" }
@@ -346,11 +346,12 @@ class TelefonSecureChannel(
             val remainingMs = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
             if (remainingMs < 1) throw TimeoutException("webcam_control_write_timeout")
             current()
+            atWrite?.invoke() // Exact writer admission, never while queued.
             if (System.nanoTime() >= deadline) throw TimeoutException("webcam_control_write_timeout")
-            sendSequence++
-            attempted = true
             val writeBudget = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
             if (writeBudget < 1) throw TimeoutException("webcam_control_write_timeout")
+            sendSequence++
+            attempted = true
             watchdog = TelefonPaarungsRoehre(pipe, writeBudget)
             TelefonRahmen.schreiben(output, JsonObject(header + ("ciphertext" to JsonPrimitive(TelefonKrypto.b64(encrypted)))),
                 TelefonParameter.VERSCHLUESSELT_RAHMEN_MAX)
