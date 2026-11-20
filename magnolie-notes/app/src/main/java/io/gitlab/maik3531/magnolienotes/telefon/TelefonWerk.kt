@@ -971,8 +971,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
             if (currentNativeFileIdentity(peerId, publicKey, channel, generation) != identity ||
                 currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) != peer)
                 DeviceFileControl.fail("file_control_native_channel_changed")
+            developerDiagnostics.medienEreignis(io.gitlab.maik3531.magnolienotes.Entwicklermodus.Medienphase.FOTO_DATEIKANAL_BEREIT)
             return connection
-        } catch (error: Exception) { connection.close(); throw error }
+        } catch (error: Exception) {
+            developerDiagnostics.medienEreignis(io.gitlab.maik3531.magnolienotes.Entwicklermodus.Medienphase.FOTO_DATEIKANAL_FEHLER)
+            connection.close()
+            throw error
+        }
     }
 
     internal fun nativeGalleryFileTransportEnded(channel: TelefonSecureChannel) {

@@ -1,5 +1,8 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import io.gitlab.maik3531.magnolienotes.Entwicklermodus
+import io.gitlab.maik3531.magnolienotes.Entwicklermodus.Medienphase
+
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -78,7 +81,11 @@ internal class PhoneScreenNotesRun(private val context: Context, private val par
             }
         } else {
             if (!control.receive(actual, body)) false
-            else { if (body.string("op") != "send") stop(remote = true); true }
+            else {
+                if (body.string("op") != "send") stop(remote = true)
+                else Entwicklermodus(context).medienEreignis(Medienphase.SPIEGELUNG_SEND_BESTAETIGT)
+                true
+            }
         }
     }
 
@@ -151,7 +158,10 @@ internal class PhoneScreenNotesRun(private val context: Context, private val par
     }
 
     private fun fail(error: Exception, reason: String = "capture_failed") {
-        if (!stopped.get() && failure == null) failure = error
+        if (!stopped.get() && failure == null) {
+            failure = error
+            Entwicklermodus(context).medienEreignis(Medienphase.SPIEGELUNG_FEHLER)
+        }
         stop(reason = reason)
     }
 

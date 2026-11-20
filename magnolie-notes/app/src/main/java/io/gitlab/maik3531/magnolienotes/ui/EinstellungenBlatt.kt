@@ -66,7 +66,10 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
             uriHandler.openUri("https://github.com/maik3531/Magnolie-Organizer")
         } })
     if (report != null) AlertDialog(onDismissRequest = { report = null },
-        title = { Text(stringResource(R.string.developer_show)) }, text = { Text(report!!) },
+        title = { Text(stringResource(R.string.developer_show)) },
+        text = { androidx.compose.foundation.text.selection.SelectionContainer {
+            Text(report!!, Modifier.verticalScroll(rememberScrollState()))
+        } },
         confirmButton = { Papierknopf("OK") { report = null } })
     Column(Modifier.fillMaxSize().background(Magnolie.papier).verticalScroll(rememberScrollState())) {
         Abschnitt(stringResource(R.string.zeit_einstellungen)) {
@@ -87,7 +90,9 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
                 }), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Checkbox(wifi, null); Text(stringResource(R.string.developer_wifi))
                 }
-                if (wifi) Papierknopf(stringResource(R.string.developer_show), Modifier.fillMaxWidth()) { report = developer.bericht().toString() }
+                if (wifi) Papierknopf(stringResource(R.string.developer_show), Modifier.fillMaxWidth()) {
+                    report = developer.lokalerBericht().toString()
+                }
             }
             Papierknopf(stringResource(R.string.blatt_journal), Modifier.fillMaxWidth()) { beiBlatt(4) }
             Papierknopf(stringResource(R.string.zeit_systemrechte), Modifier.fillMaxWidth(), beiKlick = beiRechten)

@@ -20,8 +20,31 @@ class Entwicklermodus(context: Context) {
         if (!an && ++versionClicks >= 10) { aktivieren(); versionClicks = 0 }
         return an
     }
-    fun deaktivieren() { prefs.edit().putBoolean("enabled", false).putBoolean("wifi", false).commit(); versionClicks = 0 }
-    fun wlanSetzen(value: Boolean) { check(an); prefs.edit().putBoolean("wifi", value).commit() }
+    fun deaktivieren() = synchronized(SPERRE) {
+        prefs.edit().putBoolean("enabled", false).putBoolean("wifi", false).commit()
+        versionClicks = 0
+        medienPhasen.clear()
+    }
+    fun wlanSetzen(value: Boolean) = synchronized(SPERRE) {
+        check(an)
+        prefs.edit().putBoolean("wifi", value).commit()
+        if (!value) medienPhasen.clear()
+    }
+
+    internal enum class Medienphase { FOTO_DATEIKANAL_BEREIT, FOTO_DATEIKANAL_FEHLER,
+        WEBCAM_SEND_BESTAETIGT, WEBCAM_FEHLER, SPIEGELUNG_SEND_BESTAETIGT, SPIEGELUNG_FEHLER }
+
+    internal fun medienEreignis(phase: Medienphase) = synchronized(SPERRE) {
+        if (wlan) {
+            if (medienPhasen.size == 32) medienPhasen.removeFirst()
+            medienPhasen.addLast(phase)
+        }
+    }
+
+    /** Process-local report only. Do not add these entries to the WLAN wire report. */
+    internal fun lokalerBericht(): JsonObject = synchronized(SPERRE) {
+        JsonObject(bericht() + ("media_events" to JsonArray(medienPhasen.map { JsonPrimitive(it.name) })))
+    }
 
     fun ereignis(stage: String, transport: String, failure: Boolean = false) = synchronized(SPERRE) {
         if (!wlan || stage !in STUFEN || transport !in setOf("wifi", "bluetooth")) return@synchronized
@@ -72,6 +95,7 @@ class Entwicklermodus(context: Context) {
     companion object {
         const val ABSTURZ_DIAGNOSE_VERSION = 13
         private val SPERRE = Any()
+        private val medienPhasen = ArrayDeque<Medienphase>()
         private val STUFEN = setOf("pair_begin", "pair_confirmed", "authenticating", "secure_ready", "online", "closed", "failed")
     }
 }

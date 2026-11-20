@@ -1,5 +1,8 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import io.gitlab.maik3531.magnolienotes.Entwicklermodus
+import io.gitlab.maik3531.magnolienotes.Entwicklermodus.Medienphase
+
 import android.app.Service
 import android.content.Context
 import android.os.Handler
@@ -104,6 +107,7 @@ internal class PhoneWebcamNotesRuntime(private val context: Context, private val
                 exchange.acceptSend(parent, message)
                 checkNotNull(run).startSending(checkNotNull(socket) { "webcam_original_media_channel_required" })
                 sendStarted.set(true)
+                Entwicklermodus(context).medienEreignis(Medienphase.WEBCAM_SEND_BESTAETIGT)
             }
             "stop", "error" -> { exchange.acceptStop(parent, message); close() }
             else -> error("webcam_control_unexpected_report")
@@ -149,6 +153,7 @@ internal class PhoneWebcamNotesRuntime(private val context: Context, private val
     private fun fail(error: Throwable, reason: String) {
         if (closed.get() || !failing.compareAndSet(false, true)) return
         terminalFailure = error
+        Entwicklermodus(context).medienEreignis(Medienphase.WEBCAM_FEHLER)
         exchange.close() // Stop capture immediately, not after a control-writer wait.
         runCatching { socket?.close() }
         ui.removeCallbacksAndMessages(uiToken)
