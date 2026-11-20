@@ -8,11 +8,12 @@ from select import select
 import sys
 from tempfile import TemporaryDirectory
 from threading import Event, Lock
-from time import monotonic
+from time import monotonic, time_ns
 from unittest.mock import patch
 from uuid import uuid4
 
 from desktop_screen_draft_interop_peer import SyntheticLocalRun, draft, listener, GLib
+import magnolie_desktop_screen_control as control
 from magnolie_desktop_screen_dispatch import DesktopScreenDraftDispatch
 from magnolie_telefon import PhoneService, now_ms, unb64
 from test_telefon import FakeBluetooth, _complete_peer
@@ -27,7 +28,7 @@ class Desktop(PhoneService):
             self.pong.set()
 
 
-def main(stop_before_phone_approval=False):
+def main(stop_before_phone_approval=False, desktop_clock_behind=False):
     with TemporaryDirectory(prefix='magnolie-screen-paired-') as root, listener() as endpoint:
         service = Desktop(str(Path(root) / 'telefon'), 'Isolated desktop', bluetooth_backend=FakeBluetooth())
         service.enabled = True
@@ -117,7 +118,11 @@ def main(stop_before_phone_approval=False):
 
         GLib.timeout_add(25, tick)
         try:
-            with patch.object(draft, 'DesktopScreenLocalRun', SyntheticLocalRun):
+            def wall_ns():
+                return time_ns() - (2_000_000_000 if desktop_clock_behind else 0)
+
+            with (patch.object(draft, 'DesktopScreenLocalRun', SyntheticLocalRun),
+                  patch.object(control, 'time_ns', wall_ns)):
                 assert service._start_handler(channel_socket, '127.0.0.1', 'wifi')
                 loop.run()
             assert not errors, errors
@@ -134,4 +139,4 @@ def main(stop_before_phone_approval=False):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:] == ['--desktop-stop-before-phone-approval'])
+    main('--desktop-stop-before-phone-approval' in sys.argv[1:], '--desktop-clock-behind' in sys.argv[1:])

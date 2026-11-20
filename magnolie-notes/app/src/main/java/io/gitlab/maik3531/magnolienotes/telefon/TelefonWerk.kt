@@ -151,7 +151,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun beginDesktopScreenDraft(activity: ComponentActivity,
         original: DesktopScreenDraftNotesDispatch.Original, mode: Int) =
-        desktopScreenDraftDispatch.begin(activity, original, mode, 30_000)
+        desktopScreenDraftDispatch.begin(activity, original, mode)
     private val webcamAcks = java.util.WeakHashMap<TelefonSecureChannel, java.util.ArrayDeque<WebcamAck>>()
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private var galleryFileConnection: NativeGalleryFileConnection? = null

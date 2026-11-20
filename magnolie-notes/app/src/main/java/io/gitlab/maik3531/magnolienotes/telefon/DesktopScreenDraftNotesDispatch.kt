@@ -46,7 +46,9 @@ internal class DesktopScreenDraftNotesDispatch {
 
     /** Only an explicit native action can take this slot. A replacement source
      * or Activity cannot re-use the request, consent, or an undrained slot. */
-    fun begin(activity: ComponentActivity, original: Original, mode: Int, budgetMs: Long): DesktopScreenDraftPhoneAttempt {
+    fun begin(activity: ComponentActivity, original: Original, mode: Int,
+        budgetMs: Long = 27_000, // Leave headroom below the receiver's absolute 30 s ceiling.
+    ): DesktopScreenDraftPhoneAttempt {
         check(Looper.myLooper() == Looper.getMainLooper())
         val attempt = synchronized(this) {
             check(slot?.attempt?.drained != false)

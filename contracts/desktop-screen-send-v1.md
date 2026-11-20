@@ -74,7 +74,10 @@ action. All later messages echo the request, mode and absolute setup deadline
 without changes. The desktop converts a budget of at most 30 seconds to its
 own monotonic clock once, capped by its existing local deadline. Only an
 already active attempt can continue past setup expiry; no later message can
-extend that initial budget.
+extend that initial budget. The default phone action requests 27 seconds,
+leaving headroom for a small positive phone clock offset without relaxing the
+desktop's 30-second admission ceiling. Neither peer adjusts or renews the
+original timestamp in response to later messages.
 
 | Operation | Origin | Additional exact fields |
 | --- | --- | --- |

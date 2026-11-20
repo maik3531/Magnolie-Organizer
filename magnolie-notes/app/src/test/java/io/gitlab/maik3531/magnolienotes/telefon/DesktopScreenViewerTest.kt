@@ -251,7 +251,9 @@ class DesktopScreenViewerTest {
 
     @Test fun productionSessionsDesktopStopWithdrawsPendingApprovalAndKeepsNotesParent() = pairedSession(true)
 
-    private fun pairedSession(stopBeforePhoneApproval: Boolean) {
+    @Test fun productionSessionsAcceptDraftWhenDesktopClockIsTwoSecondsBehind() = pairedSession(false, true)
+
+    private fun pairedSession(stopBeforePhoneApproval: Boolean, desktopClockBehind: Boolean = false) {
         assumeTrue(System.getenv("MAGNOLIE_DESKTOP_SCREEN_INTEROP") == "1")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("DesktopDraftFixture", 1.0, "Isolated test keys") {
@@ -278,8 +280,11 @@ class DesktopScreenViewerTest {
             storage.setPersonalSync(false, false, false, false, false)
             val script = File("../magnolie-organizer/pruefungen/desktop_screen_draft_paired_peer.py").canonicalFile
             assertTrue(script.isFile)
-            val command = listOf("/usr/bin/python3", "-B", script.path) +
-                if (stopBeforePhoneApproval) listOf("--desktop-stop-before-phone-approval") else emptyList()
+            val command = buildList {
+                addAll(listOf("/usr/bin/python3", "-B", script.path))
+                if (stopBeforePhoneApproval) add("--desktop-stop-before-phone-approval")
+                if (desktopClockBehind) add("--desktop-clock-behind")
+            }
             val process = ProcessBuilder(command)
                 .redirectError(stderr).start()
             server = process
