@@ -104,7 +104,14 @@ fun AufgabenBlatt(
     abgleichMoeglich: (Aufgabe) -> Boolean = { true },
     papierkorbAn: Boolean = true
 ) {
-    val hierarchie = remember(aufgaben, anzeige) { ListenSortierung.aufgaben(aufgaben, anzeige) }
+    var suche by remember { mutableStateOf("") }
+    val suchZone = java.time.ZoneId.systemDefault()
+    val hierarchie = remember(aufgaben, anzeige, suche, suchZone) {
+        val filter = io.gitlab.maik3531.magnolienotes.daten.EintragSuche(suche, suchZone)
+        // Filter the full projection, not the stored tree: hidden parents must
+        // never reparent matching children or change their manual sibling order.
+        ListenSortierung.aufgaben(aufgaben, anzeige).filter { filter.aufgabePasst(it.aufgabe) }
+    }
     var eigenschaftenId by remember { mutableStateOf<String?>(null) }
     var loeschFrage by remember { mutableStateOf<Aufgabe?>(null) }
     loeschFrage?.let { value -> EintragLoeschFrage(value.anzeigeTitel, { beiLoeschen(value) }, { loeschFrage = null }, papierkorbAn) }
@@ -124,12 +131,7 @@ fun AufgabenBlatt(
     }
 
     Column(modifier.fillMaxSize().background(Magnolie.papier)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Lederknopf(stringResource(R.string.aufgabe_neu), beiKlick = beiNeu)
-        }
+        EintragSuchleiste(suche, { suche = it }, stringResource(R.string.aufgabe_neu), beiNeu)
 
         if (weckerKnapp) {
             Column(
@@ -185,7 +187,7 @@ fun AufgabenBlatt(
                     WischAktion.KEINE -> Unit
                 } }, abgleichMoeglich = { abgleichMoeglich(eintrag.aufgabe) }) { Aufgabenzeile(eintrag.aufgabe, fachVon(eintrag.aufgabe), eintrag.tiefe,
                     beiOeffnen, beiAbhaken, beiTeilaufgabe, beiVerschieben, beiWurzel,
-                    anzeige.aufgaben == AufgabenSortierung.MANUELL, { eigenschaftenId = eintrag.aufgabe.id }) }
+                    anzeige.aufgaben == AufgabenSortierung.MANUELL && suche.isBlank(), { eigenschaftenId = eintrag.aufgabe.id }) }
             }
         }
     }

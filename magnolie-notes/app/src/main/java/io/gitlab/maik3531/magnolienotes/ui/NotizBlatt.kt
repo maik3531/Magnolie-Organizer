@@ -99,10 +99,10 @@ fun NotizBlatt(
         EintragsEigenschaften(value.anzeigeTitel, value.angelegt, value.geaendert, value.ursprungApp,
             importQuelle = value.herkunft, beiSchliessen = { eigenschaftenId = null })
     }
-    val gesucht = remember(notizen, suche) {
-        if (suche.isBlank()) notizen else notizen.filter {
-            it.titel.contains(suche, true) || it.text.contains(suche, true)
-        }
+    val suchZone = java.time.ZoneId.systemDefault()
+    val gesucht = remember(notizen, suche, suchZone) {
+        val filter = io.gitlab.maik3531.magnolienotes.daten.EintragSuche(suche, suchZone)
+        notizen.filter(filter::notizPasst)
     }
     val sortiert = remember(gesucht, anzeige) { ListenSortierung.notizen(gesucht, anzeige) }
     val nachTagen = remember(sortiert, anzeige) {
@@ -114,20 +114,7 @@ fun NotizBlatt(
     val gestern = stringResource(R.string.gestern)
 
     Column(modifier.fillMaxSize().background(Magnolie.papier)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(Modifier.weight(1f)) {
-                Schreibfeld(
-                    wert = suche,
-                    beschriftung = stringResource(R.string.notiz_suchen),
-                    beiAenderung = { suche = it }
-                )
-            }
-            Lederknopf(stringResource(R.string.notiz_neu), beiKlick = beiNeu)
-        }
+        EintragSuchleiste(suche, { suche = it }, stringResource(R.string.notiz_neu), beiNeu)
 
         if (notizen.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
