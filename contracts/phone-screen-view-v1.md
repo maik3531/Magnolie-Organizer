@@ -160,6 +160,8 @@ stay off until the actual product, device and desktop lock paths are checked.
 ## Platform prerequisites for the separate desktop-to-phone functions
 
 This section defines acceptance boundaries, not additional v26 operations.
+The separate [desktop-to-phone media draft](desktop-screen-send-v1.md) does
+not allocate or advertise a capability.
 Desktop viewing, control and a virtual monitor each require their own capability
 and user approval. Success in one mode must not advertise another. A mirror of
 an existing monitor does not count as a second monitor.
