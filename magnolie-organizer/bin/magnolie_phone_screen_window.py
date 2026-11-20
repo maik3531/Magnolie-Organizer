@@ -11,6 +11,99 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
 
+class PhoneScreenJpegReceiver:
+    """Synchronous decoder for one original, authenticated viewing worker.
+
+    Receives already authenticated payloads at its agreed dimensions. This is
+    not an entry point for direct packet, browser, or file input. No queue,
+    persistence, auto-rotation from JPEG metadata, or alternate codec.
+    """
+
+    MAX_BYTES = 1_048_576
+
+    def __init__(self, width, height, *, is_current, offer_rgb):
+        if (type(width) is not int or type(height) is not int or
+                not 2 <= width <= 1920 or not 2 <= height <= 1920 or width * height > 1920 * 1080):
+            raise ValueError("phone_screen_jpeg_dimensions")
+        self._size = (width, height)
+        self._is_current = is_current
+        self._offer_rgb = offer_rgb
+
+    def _require_current(self):
+        if self._is_current() is not True:
+            raise PermissionError("phone_screen_jpeg_not_current")
+
+    def _validate_header(self, data):
+        if (type(data) is not bytes or not 14 <= len(data) <= self.MAX_BYTES or
+                not data.startswith(b"\xff\xd8") or not data.endswith(b"\xff\xd9")):
+            raise ValueError("phone_screen_jpeg_envelope")
+        # Check the advertised shape *before* presenting bytes to libjpeg.
+        # The Android sender emits 8-bit, three-component baseline JPEGs.
+        at, found = 2, False
+        while at < len(data) - 4:
+            if data[at] != 0xff:
+                break
+            at += 1
+            while at < len(data) and data[at] == 0xff:
+                at += 1
+            if at + 3 > len(data) - 2:
+                break
+            marker = data[at]
+            length = int.from_bytes(data[at + 1:at + 3], "big")
+            end = at + 1 + length
+            if length < 2 or end > len(data) - 2:
+                break
+            if marker == 0xc0:
+                if found or length != 17 or data[at + 3] != 8 or data[at + 8] != 3:
+                    break
+                height = int.from_bytes(data[at + 4:at + 6], "big")
+                width = int.from_bytes(data[at + 6:at + 8], "big")
+                if (width, height) != self._size:
+                    break
+                found = True
+            elif marker == 0xda:  # First baseline scan.
+                if found and length == 12 and data[at + 3] == 3 and end < len(data) - 2:
+                    return
+                break
+            elif marker not in (0xc4, 0xdb, 0xdd, 0xfe) and not 0xe0 <= marker <= 0xef:
+                break
+            at = end
+        raise ValueError("phone_screen_jpeg_header")
+
+    def receive(self, data):
+        self._require_current()
+        self._validate_header(data)
+        loader = GdkPixbuf.PixbufLoader.new_with_type("jpeg")
+        expected = self._size
+        native_mismatch = False
+
+        def size_prepared(source, width, height):
+            nonlocal native_mismatch
+            if (width, height) != expected:
+                native_mismatch = True
+                source.set_size(1, 1)
+
+        loader.connect("size-prepared", size_prepared)
+        try:
+            loader.write(data)
+        except Exception:
+            try:
+                loader.close()
+            except GLib.Error:
+                pass
+            raise
+        loader.close()
+        picture = loader.get_pixbuf()
+        if (native_mismatch or picture is None or (picture.get_width(), picture.get_height()) != expected or
+                picture.get_n_channels() != 3 or picture.get_bits_per_sample() != 8):
+            raise ValueError("phone_screen_jpeg_decode_shape")
+        width, height = expected
+        data, stride = picture.get_pixels(), picture.get_rowstride()
+        rgb = data if stride == width * 3 else b"".join(data[y * stride:y * stride + width * 3] for y in range(height))
+        self._require_current()
+        return self._offer_rgb(width, height, rgb)
+
+
 class PhoneScreenWindow:
     """One-shot window owned by the native viewing session, not the main window.
 

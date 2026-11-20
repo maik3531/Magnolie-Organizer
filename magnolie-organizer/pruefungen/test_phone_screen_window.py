@@ -12,7 +12,7 @@ import pytest
 pytest.importorskip("gi")
 pytest.importorskip("cairo")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
-from magnolie_phone_screen_window import Gdk, GLib, Gtk, PhoneScreenWindow
+from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenWindow
 
 
 @pytest.fixture(autouse=True)
@@ -188,3 +188,57 @@ def test_viewer_source_is_in_linux_package_recipes():
     flatpak = json.loads((root / "flatpak/io.gitlab.maik3531.MagnolieOrganizer.json").read_text())
     assert any("magnolie_phone_screen_window.py" in command for module in flatpak["modules"] if isinstance(module, dict)
                for command in module.get("build-commands", []))
+
+
+def jpeg_fixture(width, height, color=0xf82023ff):
+    picture = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, width, height)
+    picture.fill(color)
+    ok, data = picture.save_to_bufferv("jpeg", ["quality"], ["80"])
+    assert ok
+    return bytes(data)
+
+
+def test_native_jpeg_decoder_worker_publishes_only_packed_rgb_to_window():
+    current = True
+    view = PhoneScreenWindow("Test phone view", is_current=lambda: current, request_stop=lambda: None)
+    received = []
+
+    def publish(width, height, pixels):
+        received.append((width, height, len(pixels)))
+        return view.offer_rgb(width, height, pixels)
+
+    receiver = PhoneScreenJpegReceiver(17, 16, is_current=lambda: current, offer_rgb=publish)
+    data = jpeg_fixture(17, 16)
+    result = []
+    worker = Thread(target=lambda: result.append(receiver.receive(data)))
+    try:
+        assert view.show()
+        worker.start()
+        worker.join(2)
+        assert not worker.is_alive() and result == [True]
+        assert received == [(17, 16, 17 * 16 * 3)]
+
+        def visible_red():
+            rgb = pixel(view._window, 240, 320)
+            return rgb is not None and rgb[0] > 230 and rgb[1] < 60 and rgb[2] < 60
+
+        wait_for(visible_red)
+    finally:
+        view.stop()
+
+
+def test_jpeg_header_bounds_and_guard_loss_cannot_publish():
+    data = jpeg_fixture(16, 16)
+    offered = []
+    decoder = PhoneScreenJpegReceiver(16, 16, is_current=lambda: True,
+                                      offer_rgb=lambda *args: offered.append(args))
+    for invalid in (jpeg_fixture(17, 16), data[:-2], data + b"\xff\xd9" + b"x" * decoder.MAX_BYTES,
+                    data.replace(b"\xff\xc0", b"\xff\xc2", 1), b"\xff\xd8" + b"\xff" * 16 + b"\xff\xd9"):
+        with pytest.raises(ValueError):
+            decoder.receive(invalid)
+    checks = iter([True, False])
+    decoder = PhoneScreenJpegReceiver(16, 16, is_current=lambda: next(checks),
+                                      offer_rgb=lambda *args: offered.append(args))
+    with pytest.raises(PermissionError):
+        decoder.receive(data)
+    assert offered == []
