@@ -71,6 +71,8 @@ internal sealed class MainForm : Form
     private Rectangle fullscreenRestoreBounds;
     private Size fullscreenRestoreClientSize;
     private bool shutdownStarted;
+    private PhoneScreenWindow? phoneScreenWindow;
+    private Task? phoneScreenDrain;
     private readonly CancellationTokenSource closing = new();
     private bool reminderAutostart;
     private TelefonCoordinator? telefonCoordinator;
@@ -547,7 +549,16 @@ internal sealed class MainForm : Form
         if (InvokeRequired) { BeginInvoke(CloseAfterSave); return; }
         if (shutdownStarted) return;
         shutdownStarted = true;
+        StopPhoneScreen();
         closing.Cancel();
+        try
+        {
+            if (phoneScreenDrain is { } drain) await drain.WaitAsync(TimeSpan.FromSeconds(3));
+        }
+        catch (Exception error)
+        {
+            WriteWebViewDiagnostic($"Screen view shutdown not confirmed: {error.GetType().Name}");
+        }
         try
         {
             if (dispatcher is not null) await dispatcher.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(10));
@@ -800,10 +811,11 @@ internal sealed class MainForm : Form
 
     private async void OnFormClosing(object? sender, FormClosingEventArgs eventArgs)
     {
-        if (allowClose || webView.CoreWebView2 is null) return;
+        if (allowClose || webView.CoreWebView2 is null) { StopPhoneScreen(); return; }
         if (eventArgs.CloseReason is CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing)
         {
             shutdownStarted = true;
+            StopPhoneScreen(); // Signal before the bounded normal shutdown; never block the OS close on this view.
             closing.Cancel();
             try { dispatcher?.ShutdownAsync().Wait(TimeSpan.FromSeconds(3)); }
             catch (Exception error) { WriteWebViewDiagnostic(error.Message); }
@@ -834,6 +846,29 @@ internal sealed class MainForm : Form
     private void ShowSaveWarning() => MessageBox.Show(this,
         T("Warning: The data could not be saved."),
         Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+    // Only a native, explicitly approved viewing owner may attach here. No bridge
+    // action or v26 advertisement is enabled until the original WLAN path exists.
+    internal PhoneScreenWindow AttachPhoneScreen(int width, int height, Func<bool> originalCurrent, Action requestStop, Task drained)
+    {
+        if (InvokeRequired || !IsHandleCreated || shutdownStarted || closeRequested ||
+            PhoneScreenBusy() || !originalCurrent() || drained.IsCompleted)
+            throw new InvalidOperationException("screen_view_owner_unavailable");
+        var view = new PhoneScreenWindow(T("Phone screen"), width, height, originalCurrent, requestStop);
+        phoneScreenDrain = drained;
+        phoneScreenWindow = view;
+        try
+        {
+            if (!view.ShowOriginal()) throw new InvalidOperationException("screen_view_desktop_unavailable");
+            return view;
+        }
+        catch { view.Stop(); throw; }
+    }
+
+    private bool PhoneScreenBusy() => phoneScreenWindow is { Retired: false } ||
+        phoneScreenDrain is { IsCompletedSuccessfully: false };
+
+    private void StopPhoneScreen() => phoneScreenWindow?.Stop();
 
     private NotifyIcon CreateTrayIcon(Icon icon)
     {
@@ -874,6 +909,18 @@ internal sealed class MainForm : Form
                dauerhaft sichtbarer, nicht benutzbarer Eintrag legt eine
                Funktion nahe, die es gerade nicht gibt. */
             phones.Visible = phoneEnabled && partners.Length > 0;
+            if (phoneScreenWindow is { Retired: false } originalView)
+            {
+                phones.Visible = true;
+                phones.DropDownItems.Add(T("Show phone screen"), null, (_, _) =>
+                {
+                    if (ReferenceEquals(phoneScreenWindow, originalView)) originalView.ShowOriginal();
+                });
+                phones.DropDownItems.Add(T("Stop screen mirroring"), null, (_, _) =>
+                {
+                    if (ReferenceEquals(phoneScreenWindow, originalView)) originalView.Stop();
+                });
+            }
             foreach (var partner in partners)
             {
                 var id = partner.Id;
