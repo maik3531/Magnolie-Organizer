@@ -2392,15 +2392,18 @@ class SecureChannel:
         with self.lock:
             self._send_locked(payload, raw)
 
-    def send_ephemeral(self, payload, current, *, timeout=2):
+    def send_ephemeral(self, payload, current, *, timeout=2, at_write=None):
         """Bounded live control send, never an outbox/replay entry.
 
         current must be a NONBLOCKING original-owner check: no PhoneService
         monitor or callbacks under this channel's writer lock. Never change the
         socket's shared receive timeout to implement a private write deadline.
+        at_write is an optional nonblocking one-shot admission callback, after
+        acquiring the writer and encrypting but before consuming a sequence.
         """
         raw = canonical(payload)
-        if len(raw) > 4096 or not callable(current) or type(timeout) not in (int, float) or not 0 < timeout <= 2:
+        if (len(raw) > 4096 or not callable(current) or type(timeout) not in (int, float) or not 0 < timeout <= 2 or
+                (at_write is not None and not callable(at_write))):
             raise ValueError('invalid ephemeral control send')
         deadline = time.monotonic() + timeout
         current()
@@ -2418,7 +2421,7 @@ class SecureChannel:
             admitted()
             sequence = self.send_seq
             try:
-                self._send_locked(payload, raw, admitted)
+                self._send_locked(payload, raw, admitted, at_write)
             except BaseException:
                 if self.send_seq != sequence:
                     # After an attempted frame write, a timeout may mean partial
@@ -2431,7 +2434,7 @@ class SecureChannel:
         finally:
             self.lock.release()
 
-    def _send_locked(self, payload, raw, current=None):
+    def _send_locked(self, payload, raw, current=None, at_write=None):
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
         aad_object = {"p": PROTOCOL, "sid": b64(self.sid), "seq": self.send_seq,
                       "dir": "desktop_to_phone"}
@@ -2440,6 +2443,9 @@ class SecureChannel:
             canonical(aad_object))
         if current is not None:
             current()  # No sequence/frame publication after a wait/owner loss.
+        if at_write is not None:
+            at_write()
+            current()
         self.send_seq += 1
         activity = self.sync_activity.enter() if self.sync_activity is not None and tray_sync_data_frame(payload) else None
         try:

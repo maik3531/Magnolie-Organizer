@@ -3,11 +3,13 @@
 import hmac
 from math import isfinite
 import re
+import socket
 from threading import Lock
 from time import monotonic, time_ns
 
 
 DRAFT = 'desktop-screen-control/1'
+DRAFT_FRAME = 'desktop_screen_draft'
 MAX_SETUP_MS = 30_000
 _INT_MAX = 2**53 - 1  # Exact across all JSON transports.
 _COMMON = {'draft', 'op', 'request', 'mode', 'setup_until_ms'}
@@ -40,6 +42,43 @@ def parse_control(body, sender):
                 not 16 <= width <= 1920 or not 16 <= height <= 1920 or width * height > 1920 * 1080):
             raise ValueError('desktop_screen_control_invalid')
     return body.copy()
+
+
+class DesktopScreenDraftChannel:
+    """Unregistered desktop adapter for one already authenticated WLAN parent.
+
+    The trusted caller selects that parent and supplies its live ownership and
+    consent guard. Only its original reader may supply received packets.
+    """
+
+    def __init__(self, channel, require_original):
+        from magnolie_telefon import SecureChannel
+        if type(channel) is not SecureChannel or channel.sock.family not in (socket.AF_INET, socket.AF_INET6) or (
+                channel.sock.type & socket.SOCK_STREAM) != socket.SOCK_STREAM:
+            raise ValueError('desktop_screen_original_wlan_required')
+        self._channel, self._socket = channel, channel.sock
+        self._guard = require_original
+        self.require_current()
+        self._socket.getpeername()  # Reject an unconnected socket without opening anything.
+
+    def require_current(self):
+        self._guard()
+        if self._channel.sock is not self._socket or self._socket.fileno() < 0:
+            raise PermissionError('desktop_screen_original_wlan_retired')
+
+    def body_from(self, actual, packet):
+        if actual is not self._channel:
+            return None
+        self.require_current()
+        if type(packet) is not dict or packet.keys() != {'type', 'body'} or packet['type'] != DRAFT_FRAME:
+            raise ValueError('desktop_screen_draft_frame_invalid')
+        return parse_control(packet['body'], 'phone')
+
+    def write(self, body, at_write):
+        packet = dict(type=DRAFT_FRAME, body=parse_control(body, 'desktop'))
+        self._channel.send_ephemeral(packet, self.require_current, at_write=at_write)
+        self.require_current()
+        return True
 
 
 class DesktopScreenDraftControl:

@@ -1,5 +1,6 @@
 """Draft media lane against independent synthetic peers on TCP loopback."""
 
+import base64
 import hashlib
 import hmac
 from io import BytesIO
@@ -18,8 +19,9 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 import magnolie_desktop_screen_send as send
-from magnolie_desktop_screen_control import DesktopScreenDraftControl, parse_control
+from magnolie_desktop_screen_control import DRAFT_FRAME, DesktopScreenDraftChannel, DesktopScreenDraftControl, parse_control
 from magnolie_desktop_screen_encode import DesktopScreenJpeg
+from magnolie_telefon import PROTOCOL, SecureChannel, b64, canonical, receive_frame, send_frame, strict_json
 
 
 SESSION, SECRET = bytes(range(16)), bytes(range(32, 64))
@@ -239,41 +241,59 @@ class TestDesktopScreenSend(unittest.TestCase):
             self.lane.write_record(None)
 
     def test_draft_control_and_proven_tcp_socket_share_send_and_stop(self):
-        # Control writes are injected, but the proof and media socket are real.
         vectors = json.loads((Path(__file__).resolve().parents[2] /
                               'contracts/desktop-screen-control-draft-v1-vectors.json').read_text())
         request = dict(vectors['request'], setup_until_ms=time_ns() // 1_000_000 + 4000)
-        parent = object()
-        control = DesktopScreenDraftControl(parent, request, lambda: None, deadline=monotonic() + 4)
-        wrote = []
+        with socket.socket() as listener:
+            listener.bind(('127.0.0.1', 0))
+            listener.listen(1)
+            phone = socket.create_connection(listener.getsockname(), timeout=1)
+            native, _ = listener.accept()
+        with native, phone:
+            native.settimeout(.25)
+            parent = SecureChannel(native, SESSION, SECRET, b'\x04' * 4, b'\x02' * 32, b'\x05' * 4)
+            channel = DesktopScreenDraftChannel(parent, lambda: None)
 
-        def inject(body, guard):
-            guard()
-            wrote.append(parse_control(body, 'desktop'))
-            if body['op'] == 'send':
-                self.no_data()
-            return True
+            def phone_writes(body, sequence):
+                header = dict(p=PROTOCOL, sid=b64(SESSION), seq=sequence, dir='phone_to_desktop')
+                payload = canonical(dict(type=DRAFT_FRAME, body=body))
+                ciphertext = AESGCM(b'\x02' * 32).encrypt(b'\x05' * 4 + sequence.to_bytes(8, 'big'), payload, canonical(header))
+                send_frame(phone, dict(header, ciphertext=b64(ciphertext)))
+                return parent.receive()
 
-        control.publish_offer(**vectors['offer_fields'], write_original=inject)
-        self.open_lane(require_control=control.require_current)
-        self.assertEqual(self.prove(), PREPARED)
-        prepared = dict(request, op='prepared', session=wrote[0]['session'], transcript=PREPARED.hex())
-        self.assertTrue(control.receive(parent, prepared))
-        self.no_data()
-        self.lane.authorize_send(PREPARED, lambda: True,
-                                 lambda guard: control.publish_send(PREPARED, guard, inject))
-        self.assertEqual([op['op'] for op in wrote], ['offer', 'send'])
-        self.assertEqual(wrote[-1]['transcript'], prepared['transcript'])
-        control.require_send()
-        self.lane.write_record(None)
-        self.assertEqual(read_exact(self.peer, len(HEARTBEAT)), HEARTBEAT)
-        stop = dict(request, op='stop', session=wrote[0]['session'])
-        self.assertFalse(control.receive(object(), stop))
-        self.assertTrue(control.receive(parent, stop))
-        with self.assertRaises(PermissionError):
+            def phone_reads(sequence):
+                packet = receive_frame(phone, 8192)
+                ciphertext = base64.b64decode(packet.pop('ciphertext'), validate=True)
+                self.assertEqual(packet, dict(p=PROTOCOL, sid=b64(SESSION), seq=sequence, dir='desktop_to_phone'))
+                payload = strict_json(AESGCM(SECRET).decrypt(b'\x04' * 4 + sequence.to_bytes(8, 'big'), ciphertext, canonical(packet)))
+                self.assertEqual(payload['type'], DRAFT_FRAME)
+                return parse_control(payload['body'], 'desktop')
+
+            original_request = channel.body_from(parent, phone_writes(request, 0))
+            control = DesktopScreenDraftControl(parent, original_request, channel.require_current, deadline=monotonic() + 4)
+            control.publish_offer(**vectors['offer_fields'], write_original=channel.write)
+            offer = phone_reads(0)
+            self.assertEqual(offer, dict(request, **vectors['offer_fields'], op='offer'))
+            self.open_lane(require_control=control.require_current)
+            self.assertEqual(self.prove(), PREPARED)
+            prepared = dict(request, op='prepared', session=offer['session'], transcript=PREPARED.hex())
+            self.assertTrue(control.receive(parent, channel.body_from(parent, phone_writes(prepared, 1))))
+            self.no_data()
+            self.lane.authorize_send(PREPARED, lambda: True,
+                                     lambda guard: control.publish_send(PREPARED, guard, channel.write))
+            self.assertEqual(phone_reads(1), dict(prepared, op='send'))
+            control.require_send()
             self.lane.write_record(None)
-        self.assertTrue(self.lane.drained)
-        self.assertEqual(self.peer.recv(1), b'')
+            self.assertEqual(read_exact(self.peer, len(HEARTBEAT)), HEARTBEAT)
+            stop = dict(request, op='stop', session=offer['session'])
+            stop_packet = phone_writes(stop, 2)
+            self.assertIsNone(channel.body_from(object(), stop_packet))
+            self.assertTrue(control.receive(parent, channel.body_from(parent, stop_packet)))
+            with self.assertRaises(PermissionError):
+                self.lane.write_record(None)
+            self.assertTrue(self.lane.drained)
+            self.assertEqual(self.peer.recv(1), b'')
+            channel.require_current()  # Ending the draft must not close Notes.
 
 
 if __name__ == '__main__':

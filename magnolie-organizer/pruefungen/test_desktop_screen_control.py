@@ -2,12 +2,14 @@
 
 import json
 from pathlib import Path
+import socket
 import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'magnolie-organizer/bin'))
 from magnolie_desktop_screen_control import DesktopScreenDraftControl, parse_control
+from magnolie_telefon import SecureChannel, receive_frame
 
 
 VECTORS = json.loads((ROOT / 'contracts/desktop-screen-control-draft-v1-vectors.json').read_text())
@@ -17,6 +19,29 @@ PROOF = bytes.fromhex(VECTORS['transcript'])
 
 
 class TestDesktopScreenDraftControl(unittest.TestCase):
+    def test_secure_write_edge_is_not_called_while_busy_or_on_preflight_rejection(self):
+        native, peer = socket.socketpair()
+        with native, peer:
+            native.settimeout(.01)
+            peer.settimeout(.5)
+            channel = SecureChannel(native, bytes(16), bytes(32), b'\x04' * 4, bytes(32), b'\x05' * 4)
+            entered = []
+            packet = {'type': 'desktop_screen_draft', 'body': REQUEST}
+            with channel.lock, self.assertRaises(TimeoutError):
+                channel.send_ephemeral(packet, lambda: None, timeout=.04, at_write=lambda: entered.append(1))
+            self.assertEqual(entered, [])
+
+            def revoked():
+                entered.append(2)
+                raise PermissionError('controlled write edge retirement')
+
+            with self.assertRaises(PermissionError):
+                channel.send_ephemeral(packet, lambda: None, at_write=revoked)
+            self.assertEqual(channel.send_seq, 0)
+            channel.send_ephemeral(packet, lambda: None, at_write=lambda: entered.append(3))
+            self.assertEqual(entered, [2, 3])
+            self.assertEqual(receive_frame(peer, 8192)['seq'], 0)
+
     def start(self, budget=30_000, end=150):
         self.parent = object()
         self.mono = 100
