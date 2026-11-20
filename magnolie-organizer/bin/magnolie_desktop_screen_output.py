@@ -116,9 +116,11 @@ class KWinOutputFeed:
     or process/connection loss. No second observer can continue this feed.
     """
 
-    def __init__(self):
+    def __init__(self, *, require_announcement=False):
         self._registry = object()
         self._live = {}
+        self._unnamed = set()
+        self._require_announcement = require_announcement
         self.witness = None
         self._closed = False
         self._taken = False
@@ -129,13 +131,22 @@ class KWinOutputFeed:
         self._taken = True
         return self.witness
 
+    def mark_start(self):
+        if not self._taken or not self.settled:
+            raise PermissionError('kwin_original_output_baseline_unsettled')
+        self.witness.mark_start()
+
+    @property
+    def settled(self):
+        return not self._closed and self.witness is not None and not self.witness.lost and not self._unnamed
+
     def consume(self, raw):
         if self._closed:
             return False
         try:
             if type(raw) is not bytes or not raw.endswith(b'\n') or len(raw) > 270:
                 raise ValueError('kwin_feed_invalid_line')
-            if raw == b'ready\n' and self.witness is None:
+            if raw == b'ready\n' and self.witness is None and not self._unnamed:
                 self.witness = KWinOutputWitness(self._registry, self._live)
                 return True
             fields = raw[:-1].decode('ascii').split('\t')
@@ -143,7 +154,14 @@ class KWinOutputFeed:
                 raise ValueError('kwin_feed_invalid_record')
             id_ = int(fields[1])
             live = self._live.copy()
-            if fields[0] == '+' and len(fields) == 3 and id_ not in live:
+            if fields[0] == '?' and len(fields) == 2 and self._require_announcement:
+                if id_ >= 2**32 or id_ in live or id_ in self._unnamed or len(live) + len(self._unnamed) >= 128:
+                    raise ValueError('kwin_feed_unnamed_output_invalid')
+                self._unnamed.add(id_)
+                return True
+            if fields[0] == '+' and len(fields) == 3 and id_ not in live and (
+                    not self._require_announcement or id_ in self._unnamed):
+                self._unnamed.discard(id_)
                 live[id_] = fields[2]
             elif fields[0] == '-' and len(fields) == 2 and id_ in live and self.witness is not None:
                 del live[id_]

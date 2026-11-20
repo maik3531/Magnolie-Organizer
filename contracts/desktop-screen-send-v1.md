@@ -150,8 +150,10 @@ and reports exact registry additions and removals. A private nonblocking owner
 reads bounded records, drops an observer without an initial baseline after
 two seconds, and closes and reaps only its own helper. Its socketpair test uses
 the real libwayland client and server, but no actual desktop compositor. EOF
-or invalid records retire the observation. In the private run, a caller that
-already verified the backend can supply one settled feed. The portal records
+or invalid records retire the observation. The native helper announces each
+registry output before its name is ready. A known pending name prevents the
+feed from certifying a pre-Start baseline or a final removal. In the private
+run, a caller that already verified the backend can supply one settled feed. The portal records
 the observed pre-Start names at submission; the run waits for the exact new
 instance before opening the media remote. Output or observer loss withdraws
 media authority. After successful portal Close, the run can wait up to 1.5 s

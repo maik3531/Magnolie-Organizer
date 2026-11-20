@@ -34,10 +34,11 @@ class DesktopScreenLocalRun:
         # this portal uses the KDE backend and own the feed through this run.
         if kde_output_feed is not None and (mode != 'extend' or type(kde_output_feed) is not KWinOutputFeed):
             raise ValueError('screen_cast_original_kde_output_feed_required')
+        self._output_feed = kde_output_feed
         self._output = kde_output_feed.take_for_run() if kde_output_feed is not None else None
         self._portal = DesktopScreenCast(bus, provider, mode, parent_window, require_original,
                                          self._selected, self._portal_ended,
-                                         before_virtual_start=None if self._output is None else self._output.mark_start)
+                                         before_virtual_start=None if kde_output_feed is None else kde_output_feed.mark_start)
         self._opening = False
         self._removal_deadline = None
         self._size = width, height
@@ -105,7 +106,7 @@ class DesktopScreenLocalRun:
 
     def output_removal_current(self):
         return (self._output is not None and self._portal.virtual_start_submitted and self._opening and
-                self._output.removal_observed(self._target))
+                self._output.removal_observed(self._target) and self._output_feed.settled)
 
     def stop(self):
         if self._phase in ('closing', 'ended'):
@@ -178,7 +179,8 @@ class DesktopScreenLocalRun:
         output_removed = False
         if self._output is not None and self._opening and self._portal.virtual_start_submitted:
             output_removed = self.output_removal_current()
-            if (not output_removed and self._portal_result and self._output.present(self._target) and
+            if (not output_removed and self._portal_result and
+                    (self._output.present(self._target) or self._output.removal_observed(self._target)) and
                     monotonic() < self._removal_deadline):
                 return
         drained = self._capture is None or self._capture.drained

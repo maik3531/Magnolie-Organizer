@@ -119,6 +119,29 @@ class TestKWinOutputWitness(unittest.TestCase):
         self.assertFalse(feed.witness.removal_observed(self.target))
         self.assertFalse(feed.consume(b'ready\n'))
 
+    def test_unfinished_native_name_cannot_certify_a_baseline(self):
+        feed = KWinOutputFeed(require_announcement=True)
+        self.assertTrue(feed.consume(b'?\t1\n'))
+        self.assertTrue(feed.consume(b'+\t1\teDP-1\n'))
+        self.assertTrue(feed.consume(b'ready\n'))
+        witness = feed.take_for_run()
+        self.assertTrue(feed.consume(b'?\t2\n'))
+        self.assertFalse(feed.settled)
+        with self.assertRaises(PermissionError):
+            feed.mark_start()
+        self.assertTrue(feed.consume(f'+\t2\t{NAME}\n'.encode()))
+        feed.mark_start()
+        self.assertFalse(witness.bind(self.target))  # Named later, but before the submitted Start.
+
+    def test_native_name_requires_original_announcement(self):
+        for records in ((b'?\t1\n', b'ready\n'), (b'+\t1\teDP-1\n',)):
+            with self.subTest(records=records):
+                feed = KWinOutputFeed(require_announcement=True)
+                for record in records[:-1]:
+                    self.assertTrue(feed.consume(record))
+                self.assertFalse(feed.consume(records[-1]))
+                self.assertIsNone(feed.witness)
+
     @unittest.skipUnless(os.environ.get('MAGNOLIE_SCREEN_PRIVATE_WAYLAND') == '1',
                          'opt in to a private libwayland socketpair')
     def test_original_output_uses_real_libwayland_registry_and_disconnect_fences_it(self):

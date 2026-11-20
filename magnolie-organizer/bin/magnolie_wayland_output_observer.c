@@ -81,7 +81,8 @@ static void global(void *data, struct wl_registry *registry, uint32_t id,
                 continue;
             *output = (struct output){ .owner = observer, .id = id };
             output->proxy = wl_registry_bind(registry, id, &wl_output_interface, 4);
-            if (output->proxy && !wl_output_add_listener(output->proxy, &output_listener, output))
+            if (output->proxy && !wl_output_add_listener(output->proxy, &output_listener, output) &&
+                printf("?\t%u\n", id) >= 0 && !fflush(stdout))
                 return;
             break;
         }

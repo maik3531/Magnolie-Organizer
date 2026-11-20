@@ -30,7 +30,7 @@ class KWinOutputObserver:
             fd = connected.fileno()
             self._child = subprocess.Popen([os.fspath(executable), str(fd)], pass_fds=(fd,),
                                            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, bufsize=0)
-        self._feed = KWinOutputFeed()
+        self._feed = KWinOutputFeed(require_announcement=True)
         self._pending = b''
         self._baseline_deadline = monotonic() + _BASELINE_S
         self._kill_at = None
