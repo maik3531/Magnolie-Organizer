@@ -7,6 +7,7 @@ input. All public methods/callbacks are confined to the GTK main context.
 from dataclasses import dataclass
 import os
 from secrets import token_hex
+from threading import Event
 from time import monotonic
 
 from gi.repository import Gio, GLib
@@ -41,6 +42,8 @@ class ScreenCastRemote:
 
     def __init__(self, owner, fd):
         self._owner, self._fd = owner, fd
+        self._capture_claimed = False
+        self._retired = Event()
 
     def fileno(self):
         if not self._owner._current() or self._fd < 0:
@@ -48,9 +51,19 @@ class ScreenCastRemote:
         return self._fd
 
     def _close(self):
+        self._retired.set()
         fd, self._fd = self._fd, -1
         if fd >= 0:
             os.close(fd)
+
+    def _claim_capture(self, target):
+        # Main context only. The worker gets an owned duplicate, never a
+        # borrowed integer that might be reused when the portal closes it.
+        if self._capture_claimed or target is not self._owner._target or not target.serial:
+            raise PermissionError('screen_cast_original_serial_required')
+        fd = os.dup(self.fileno())
+        self._capture_claimed = True
+        return fd, self._retired, self._owner._deadline
 
 
 def _target(fields, mode, version):

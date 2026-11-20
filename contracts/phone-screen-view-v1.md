@@ -212,3 +212,13 @@ default PipeWire connection or descriptor transfer over renderer IPC. Stop
 invalidates the local borrowed descriptor and accounts for any late reply
 before reporting portal cleanup. That result is not proof of compositor output
 removal or that a separate media consumer has drained.
+
+The local Linux reader claims one duplicate of that original descriptor for
+the exact selected target. This reader requires a PipeWire serial even if an
+older portal returned only a node ID; it does not fall back to a node ID or a
+default connection. It exposes only the newest complete frame at a bounded
+size and rate. An incomplete frame does not establish readiness. Readiness is
+local only, not permission to send, proof of an extended output, or a claim
+that the first pixels represent nonblank desktop content. Portal revocation
+makes the frame slot unavailable immediately; reader drain additionally
+requires that the owned child has exited and its descriptors have closed.
