@@ -6,6 +6,8 @@
     <string name="webcam_aktiv">Camera and microphone are active</string>
     <string name="webcam_stumm">Camera active; microphone muted</string>
     <string name="webcam_stoppt">Stopping phone webcam…</string>
+    <string name="phone_screen_notification">Phone screen sharing</string>
+    <string name="phone_screen_stop">Stop screen sharing</string>
     <string name="webcam_beenden">Stop</string>
     <string name="medien_pc_archiv_titel">Choose a received PC file for a recovery copy</string>
     <string name="medien_pc_archiv_kopie">Create recovery copy</string>

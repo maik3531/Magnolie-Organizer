@@ -36,6 +36,8 @@ internal class PhoneScreenProjection(
     private var started = false
     private var terminal = false
     private var watchingScreen = false
+    var cleanupError: Exception? = null
+        private set
     var notificationError: Exception? = null
         private set
     private val projectionCallback = object : MediaProjection.Callback() {
@@ -106,6 +108,7 @@ internal class PhoneScreenProjection(
         fun cleanup(action: () -> Unit) {
             try { action() }
             catch (error: Exception) {
+                if (cleanupError == null) cleanupError = error
                 if (failure == null) failure = error
                 else if (failure !== error) failure?.addSuppressed(error)
             }

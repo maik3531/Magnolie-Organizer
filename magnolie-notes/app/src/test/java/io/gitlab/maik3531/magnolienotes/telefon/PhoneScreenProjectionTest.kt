@@ -83,6 +83,7 @@ class PhoneScreenProjectionTest {
         var callback: MediaProjection.Callback? = null
         val request = PhoneScreenViewRequest({ check(live) }, { 0L })
         val permit = object : PhoneScreenViewConsent {
+            override fun requireVisibleStart(original: PhoneScreenViewRequest) { assertSame(request, original) }
             override fun open(original: PhoneScreenViewRequest, service: Service, callback: MediaProjection.Callback): MediaProjection {
                 assertSame(request, original)
                 assertSame(this@Fixture.service, service)

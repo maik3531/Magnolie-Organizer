@@ -55,6 +55,7 @@ internal class PhoneScreenViewRequest(private val originalCurrent: () -> Unit,
 
 /** No grant is exposed to the network, persisted, or shared with the webcam path. */
 internal interface PhoneScreenViewConsent : AutoCloseable {
+    fun requireVisibleStart(original: PhoneScreenViewRequest)
     /** Must be called from the original projection foreground service after promotion.
      * The caller owns projection stop, virtual-display release and worker drain.
      */
@@ -149,6 +150,14 @@ internal class PhoneScreenConsentHost(private val activity: ComponentActivity,
     private class Permit(private val request: PhoneScreenViewRequest, activity: ComponentActivity, data: Intent) : PhoneScreenViewConsent {
         private val originalActivity = WeakReference(activity)
         private var data: Intent? = data
+
+        override fun requireVisibleStart(original: PhoneScreenViewRequest) {
+            requireMainThread()
+            check(request === original) { "screen_original_request_required" }
+            check(data != null) { "screen_os_result_already_consumed" }
+            request.requireCurrent()
+            requireVisible(checkNotNull(originalActivity.get()))
+        }
 
         override fun open(original: PhoneScreenViewRequest, service: Service, callback: MediaProjection.Callback): MediaProjection {
             requireMainThread()

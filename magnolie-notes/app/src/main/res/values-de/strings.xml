@@ -6,6 +6,8 @@
     <string name="webcam_aktiv">Kamera und Mikrofon sind aktiv</string>
     <string name="webcam_stumm">Kamera aktiv; Mikrofon stumm</string>
     <string name="webcam_stoppt">Handy-Webcam wird beendet…</string>
+    <string name="phone_screen_notification">Handy-Bildschirmfreigabe</string>
+    <string name="phone_screen_stop">Bildschirmfreigabe beenden</string>
     <string name="webcam_beenden">Beenden</string>
     <string name="medien_pc_archiv_titel">Empfangene PC-Datei für eine Wiederherstellungskopie auswählen</string>
     <string name="medien_pc_archiv_kopie">Wiederherstellungskopie anlegen</string>
