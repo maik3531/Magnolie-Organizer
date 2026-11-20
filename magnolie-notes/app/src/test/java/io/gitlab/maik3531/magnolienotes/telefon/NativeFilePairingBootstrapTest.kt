@@ -425,9 +425,11 @@ class NativeFilePairingBootstrapTest {
                     val sessions = field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>
                     sessions[channel] = PersonalNoteSession().apply { capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true }
                     val normalCapabilities = work.sharedLocalCapabilities
-                    // Fixture-only complete agreement. Product capability23 is unchanged.
+                    // Complete the fixture agreement without duplicating an already advertised marker.
                     work.sharedLocalCapabilities = { normalCapabilities().toMutableMap().apply {
-                        this["device_status"] = getValue("device_status").let { it.copy(versions = it.versions + 23) }
+                        this["device_status"] = getValue("device_status").let {
+                            it.copy(versions = (it.versions + MediaSyncSettings.DISCOVERY_VERSION).distinct().sorted())
+                        }
                     } }
                     work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.settings", buildJsonObject { put("format", 1); put("own_device", true) }, 60000), channel, generation)
                     work.receiveMessage(peer, TelefonNachrichten.message(MediaSyncSettings.KIND, MediaSyncSettings.create(peer.device_id), 60000), channel, generation)
@@ -519,12 +521,20 @@ class NativeFilePairingBootstrapTest {
                                 }
                                 val incomingCapabilities = work.sharedLocalCapabilities
                                 val (withdrawnJob, withdrawnOutcome, withdrawnDialog) = requestReceiving()
-                                work.sharedLocalCapabilities = normalCapabilities // Remove fixture-only capability23 while waiting for the user.
-                                withdrawnDialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
-                                awaitUi { withdrawnJob.isCompleted }
-                                assertTrue(withdrawnOutcome.get()!!.isFailure)
-                                assertNull(connection.runtime.savedPolicy().policy); assertEquals(0, provider.inserts)
-                                work.sharedLocalCapabilities = incomingCapabilities
+                                // The normal provider can now include marker 23 as well. Explicitly
+                                // withdraw it, rather than assuming a swap to that provider removes it.
+                                work.sharedLocalCapabilities = { incomingCapabilities().toMutableMap().apply {
+                                    this["device_status"] = getValue("device_status").let {
+                                        it.copy(versions = it.versions - MediaSyncSettings.DISCOVERY_VERSION)
+                                    }
+                                } }
+                                try {
+                                    assertFalse(MediaSyncSettings.DISCOVERY_VERSION in work.sharedLocalCapabilities().getValue("device_status").versions)
+                                    withdrawnDialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                                    awaitUi { withdrawnJob.isCompleted }
+                                    assertTrue(withdrawnOutcome.get()!!.isFailure)
+                                    assertNull(connection.runtime.savedPolicy().policy); assertEquals(0, provider.inserts)
+                                } finally { work.sharedLocalCapabilities = incomingCapabilities }
                                 repeat(3) { controls() }
                                 val (job, outcome, dialog) = requestReceiving()
                                 assertEquals(0, provider.inserts); assertNull(connection.runtime.savedPolicy().policy)
