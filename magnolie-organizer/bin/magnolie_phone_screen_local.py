@@ -321,3 +321,50 @@ class PhoneScreenLocalDisplay:
     @property
     def retired(self):
         return self._stopped.is_set()
+
+
+def begin_daemon_screen(phone, peer_id, candidate, sock, expected_gui, *, require_gui):
+    """Private daemon owner adapter, after native GUI approval and admission.
+
+    Never called by the general JSON proxy. `candidate` is the actual probe
+    witness selected before the dialog; `require_gui` retains the exact lease.
+    Transfers the socket on success, closes it on every failure.
+    """
+    from magnolie_phone_screen_control import PhoneScreenDesktopRun
+    from magnolie_telefon import PhoneService
+
+    attachment = None
+    relay = None
+    owner = None
+
+    def native_start(parent, probe, width, height, density, *, require_original, track, deadline):
+        nonlocal attachment, relay, owner
+
+        def current():
+            require_gui()
+            require_original()
+
+        attachment = PhoneScreenLocalAttach(sock, expected_peer=expected_gui, require_original=current, deadline=deadline)
+        relay = attachment.daemon_offer(width, height)
+        owner = PhoneScreenDesktopRun(parent, probe, width, height, density, require_original=require_original,
+                                      require_view=require_gui, local_lane=relay, track=track, deadline=deadline)
+        owner.start()
+        return owner
+
+    try:
+        if type(phone) is not PhoneService or not phone.native_screen_included or candidate is None:
+            raise PermissionError('screen_original_daemon_view_not_admitted')
+        require_gui()
+        # Picture format is selected by the desktop, not a client's arbitrary
+        # input or a phone-side extension.
+        return phone.begin_native_screen(peer_id, 720, 1280, 160, native_start, expected=candidate)
+    except BaseException:
+        if owner is not None:
+            owner.stop()
+        elif relay is not None:
+            relay.close()
+        elif attachment is not None:
+            attachment.close()
+        else:
+            sock.close()
+        raise
