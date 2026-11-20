@@ -138,8 +138,13 @@ The isolated Android attempt joins that viewer to the original encrypted
 control channel and opens its data socket only on the native approval click.
 When the viewer closes, the attempt can report one terminal STOP on the still
 current parent; this write cannot reopen the viewer or grant media authority.
-Drain includes that control worker. This composition is not registered with
-the product WLAN dispatcher.
+Drain includes that control worker. The Notes reader can deliver draft frames
+only from the original authenticated, established WLAN session to a single
+attempt started by an explicit in-process native action. A replacement
+connection cannot acquire its request or viewer. Before establishment and
+without an attempt, frames are discarded without acknowledgment or durable
+processing. No product UI calls the private action and no capability is
+advertised.
 
 Cancel, lock, viewer closure, source or geometry change, lost control parent,
 revocation or disconnect retire the original session. Stop first prevents future

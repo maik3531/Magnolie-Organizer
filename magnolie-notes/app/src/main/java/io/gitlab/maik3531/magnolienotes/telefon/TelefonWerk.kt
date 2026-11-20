@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.telecom.TelecomManager
+import androidx.activity.ComponentActivity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.JsonArray
@@ -143,6 +144,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Volatile private var webcamRuntime: PhoneWebcamNotesRuntime? = null
     private val webcamAckLock = Any()
     private val screenDispatch = PhoneScreenNotesDispatch(context)
+    private val desktopScreenDraftDispatch = DesktopScreenDraftNotesDispatch()
+
+    internal fun desktopScreenDraftCandidate(deviceId: String, publicKey: String) =
+        desktopScreenDraftDispatch.candidate(deviceId, publicKey)
+
+    internal fun beginDesktopScreenDraft(activity: ComponentActivity,
+        original: DesktopScreenDraftNotesDispatch.Original, mode: Int) =
+        desktopScreenDraftDispatch.begin(activity, original, mode, 30_000)
     private val webcamAcks = java.util.WeakHashMap<TelefonSecureChannel, java.util.ArrayDeque<WebcamAck>>()
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private var galleryFileConnection: NativeGalleryFileConnection? = null
@@ -2088,6 +2097,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized private fun closeTransport() {
         retireWebcam()
         screenDispatch.retire()
+        desktopScreenDraftDispatch.retire()
         contactGroupWriter.clear(); contactValueWriter.clear(); contactGroupTitleWriter.clear()
         val pipe = activeTransport?.second
         activeTransport = null
@@ -2697,7 +2707,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                                 controls.remove(id)
                             }
                         }
-                        "message" -> receiveMessage(peer, payload, channel, generation)
+                         "message" -> receiveMessage(peer, payload, channel, generation)
+                         DesktopScreenDraftPhoneChannel.TYPE -> Unit // Not established; never queue or ACK.
                         "ping" -> {
                             TelefonNachrichten.validateHeartbeat(payload)
                             channel.send(buildJsonObject { put("type", JsonPrimitive("pong")); put("ping_id", payload.getValue("ping_id")); put("sent_ms", payload.getValue("sent_ms")) })
@@ -2708,12 +2719,20 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     controls.addAll(sendDue(peer, channel, generation, true))
                 } } finally { controlDeadline.disarm() }
                 peer = sessionEstablished(peer, generation, transport, wifiHost, bluetoothAddress, bluetoothInbound)
-                peerEffect(peer, generation) {
-                    activeChannel = channel
+                 val desktopScreenDraftSource = peerEffect(peer, generation) { current ->
+                     activeChannel = channel
                     runCatching { NativeFilePairingAuthority.fromAuthenticatedIdentity(identity) }.getOrNull()?.let {
                         fileChannelIdentities[channel] = it
                     } // Unavailable file projection never creates/reloads identity or changes other modules.
-                    refreshSharedPreferenceState()
+                     refreshSharedPreferenceState()
+                     if (transport == TelefonTransportArt.WIFI && pipe is TelefonTcpRoehre)
+                         desktopScreenDraftDispatch.bind(DesktopScreenDraftNotesDispatch.Original(
+                             current.device_id, current.static_public, current.display_name, channel, pipe) {
+                             val liveTransport = activeTransport
+                             check(serviceRunning && pairingGeneration == generation && activeChannel === channel &&
+                                 liveTransport?.first == TelefonTransportArt.WIFI && liveTransport.second === pipe)
+                         })
+                     else null
                 }
                 maybeStartWebcam()
                 screenDispatch.refresh()
@@ -2766,14 +2785,19 @@ class TelefonWerk private constructor(private val context: Context, private val 
                              handleSessionAck(peer, payload, noteSession, generation, transport, channel)
                         }
                         "message" -> receiveMessage(peer, payload, channel, generation)
-                        "close" -> { handleSessionClose(peer, payload, generation); return }
+                         DesktopScreenDraftPhoneChannel.TYPE -> {
+                             desktopScreenDraftSource?.let { desktopScreenDraftDispatch.receive(it, payload) }
+                             continue // Draft-only receipt; never sends durable work in response.
+                         }
+                         "close" -> { handleSessionClose(peer, payload, generation); return }
                         else -> throw TelefonProtokollFehler("Unbekannter sicherer Inhalt.")
                     }
                     sendDue(peer, channel, generation)
                 }
                 } finally {
                     retireWebcam(channel)
-                    screenDispatch.retire(channel)
+                     screenDispatch.retire(channel)
+                     desktopScreenDraftDispatch.retire(channel)
                     synchronized(this) {
                         if (activeChannel === channel) activeChannel = null
                         fileChannelIdentities.remove(channel)

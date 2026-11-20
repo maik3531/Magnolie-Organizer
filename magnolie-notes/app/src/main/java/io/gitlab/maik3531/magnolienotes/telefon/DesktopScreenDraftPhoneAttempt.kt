@@ -25,6 +25,7 @@ internal class DesktopScreenDraftPhoneAttempt(
     requireOriginalParent: () -> Unit,
     private val mode: Int,
     budgetMs: Long,
+    private val onDrained: ((DesktopScreenDraftPhoneAttempt) -> Unit)? = null,
 ) : DefaultLifecycleObserver, AutoCloseable {
     private val handler = Handler(Looper.getMainLooper())
     private val wire = DesktopScreenDraftPhoneChannel(parent, originalPipe, requireOriginalParent)
@@ -129,6 +130,12 @@ internal class DesktopScreenDraftPhoneAttempt(
         activity.lifecycle.removeObserver(this)
         viewer?.close()
         uiDrained = true
+        if (onDrained != null) notifyDrain()
+    }
+
+    private fun notifyDrain() {
+        if (drained) onDrained?.invoke(this)
+        else handler.postDelayed(::notifyDrain, 25)
     }
 
     val drained: Boolean get() = uiDrained && viewer?.drained != false && !writer.isAlive

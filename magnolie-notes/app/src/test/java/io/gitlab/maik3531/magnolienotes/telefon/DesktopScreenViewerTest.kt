@@ -254,9 +254,17 @@ class DesktopScreenViewerTest {
                     pipe.setReadTimeout(4_000)
                     TelefonSecureChannel(pipe.input, pipe.output, ByteArray(16), ByteArray(32) { 1 }, ByteArray(4) { 4 },
                         ByteArray(32) { 2 }, ByteArray(4) { 5 }).use { parent ->
-                        DesktopScreenDraftPhoneAttempt(f.activity, "Paired desktop", parent, pipe, {}, 2, 10_000).use { attempt ->
-                            attempt.begin()
-                            assertTrue(attempt.receive(parent, parent.receive())) // OFFER
+                        val dispatch = DesktopScreenDraftNotesDispatch()
+                        val original = dispatch.bind(DesktopScreenDraftNotesDispatch.Original("desktop", "paired-key",
+                            "Paired desktop", parent, pipe, {}))
+                        val foreign = DesktopScreenDraftNotesDispatch.Original("desktop", "paired-key", "Paired desktop",
+                            parent, pipe, {})
+                        assertFalse(dispatch.receive(original, kotlinx.serialization.json.JsonObject(emptyMap())))
+                        assertSame(original, dispatch.candidate("desktop", "paired-key"))
+                        dispatch.begin(f.activity, original, 2, 10_000).use { attempt ->
+                            val offer = parent.receive()
+                            assertFalse(dispatch.receive(foreign, offer))
+                            assertTrue(dispatch.receive(original, offer))
                             val dialog = awaitValue {
                                 shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
                                 ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }
@@ -265,7 +273,7 @@ class DesktopScreenViewerTest {
                                 .single { it.contentDescription == f.activity.getString(R.string.desktop_screen_view_picture) }
                             assertNull(image.drawable)
                             f.button(dialog, R.string.desktop_screen_view_accept).performClick()
-                            assertTrue(attempt.receive(parent, parent.receive())) // SEND
+                            assertTrue(dispatch.receive(original, parent.receive())) // SEND
                             val drawn = awaitValue {
                                 shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
                                 (image.drawable as? BitmapDrawable)?.bitmap
@@ -276,6 +284,9 @@ class DesktopScreenViewerTest {
                             assertNull(image.drawable)
                             assertFalse(dialog.isShowing)
                             awaitValue { true.takeIf { attempt.drained } }
+                            assertFalse(dispatch.receive(original, offer))
+                            dispatch.retire(parent)
+                            assertFalse(dispatch.receive(original, offer))
                             parent.send(kotlinx.serialization.json.JsonObject(mapOf("type" to kotlinx.serialization.json.JsonPrimitive("ping"))))
                             assertEquals(kotlinx.serialization.json.JsonPrimitive("pong"), parent.receive()["type"])
                         }
