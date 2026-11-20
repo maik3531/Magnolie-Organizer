@@ -3,12 +3,13 @@
 import hashlib
 import hmac
 from io import BytesIO
+import json
 from pathlib import Path
 import socket
 import struct
 import sys
 from threading import Event, Thread
-from time import monotonic
+from time import monotonic, time_ns
 import unittest
 from unittest.mock import patch
 
@@ -17,6 +18,7 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 import magnolie_desktop_screen_send as send
+from magnolie_desktop_screen_control import DesktopScreenDraftControl, parse_control
 from magnolie_desktop_screen_encode import DesktopScreenJpeg
 
 
@@ -39,7 +41,7 @@ def read_exact(sock, length):
 
 
 class TestDesktopScreenSend(unittest.TestCase):
-    def open_lane(self, *, deadline=5):
+    def open_lane(self, *, deadline=5, require_control=lambda: None):
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0))
             listener.listen(1)
@@ -52,6 +54,7 @@ class TestDesktopScreenSend(unittest.TestCase):
         def guard():
             if not self.live:
                 raise PermissionError('controlled original owner gone')
+            require_control()
 
         self.lane = send.DesktopScreenSendLane(original, SESSION, SECRET, 2, 57, 33, monotonic() + deadline, guard)
         self.addCleanup(self.lane.stop)
@@ -234,6 +237,43 @@ class TestDesktopScreenSend(unittest.TestCase):
         self.assertTrue(self.lane.drained)
         with self.assertRaises(PermissionError):
             self.lane.write_record(None)
+
+    def test_draft_control_and_proven_tcp_socket_share_send_and_stop(self):
+        # Control writes are injected, but the proof and media socket are real.
+        vectors = json.loads((Path(__file__).resolve().parents[2] /
+                              'contracts/desktop-screen-control-draft-v1-vectors.json').read_text())
+        request = dict(vectors['request'], setup_until_ms=time_ns() // 1_000_000 + 4000)
+        parent = object()
+        control = DesktopScreenDraftControl(parent, request, lambda: None, deadline=monotonic() + 4)
+        wrote = []
+
+        def inject(body, guard):
+            guard()
+            wrote.append(parse_control(body, 'desktop'))
+            if body['op'] == 'send':
+                self.no_data()
+            return True
+
+        control.publish_offer(**vectors['offer_fields'], write_original=inject)
+        self.open_lane(require_control=control.require_current)
+        self.assertEqual(self.prove(), PREPARED)
+        prepared = dict(request, op='prepared', session=wrote[0]['session'], transcript=PREPARED.hex())
+        self.assertTrue(control.receive(parent, prepared))
+        self.no_data()
+        self.lane.authorize_send(PREPARED, lambda: True,
+                                 lambda guard: control.publish_send(PREPARED, guard, inject))
+        self.assertEqual([op['op'] for op in wrote], ['offer', 'send'])
+        self.assertEqual(wrote[-1]['transcript'], prepared['transcript'])
+        control.require_send()
+        self.lane.write_record(None)
+        self.assertEqual(read_exact(self.peer, len(HEARTBEAT)), HEARTBEAT)
+        stop = dict(request, op='stop', session=wrote[0]['session'])
+        self.assertFalse(control.receive(object(), stop))
+        self.assertTrue(control.receive(parent, stop))
+        with self.assertRaises(PermissionError):
+            self.lane.write_record(None)
+        self.assertTrue(self.lane.drained)
+        self.assertEqual(self.peer.recv(1), b'')
 
 
 if __name__ == '__main__':

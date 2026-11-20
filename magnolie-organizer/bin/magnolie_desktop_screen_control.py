@@ -184,6 +184,10 @@ class DesktopScreenDraftControl:
             self.close()
             raise
 
+    def require_current(self):
+        """Guard for proof/data I/O bound by the same original controller."""
+        self._current()
+
     def require_send(self):
         self._current()
         with self._lock:
