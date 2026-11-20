@@ -22,6 +22,26 @@ def lane(sock, writing, guard=lambda: None):
     return PhoneScreenLocalLane(sock, expected_peer=(os.getpid(), os.getuid()), require_original=guard, writing=writing)
 
 
+def test_no_daemon_screen_discovery_or_admission_without_kernel_peer_lifetime(tmp_path, monkeypatch):
+    import magnolie_phone_screen_local as local
+
+    monkeypatch.setattr(local, 'peer_pidfd_available', lambda: False)
+    phone = SimpleNamespace(native_screen_included=True, report=lambda: {'peers': []})
+    filename = str(tmp_path / 'runtime' / 'control.sock')
+    daemon = IPCServer(None, filename, phone_backend=phone)
+    daemon._native_screen_view_checked = True
+    daemon.start()
+    try:
+        assert not daemon._native_screen_supported()
+        assert ipc_request('phone_report', path=filename) == {'peers': []}
+        with pytest.raises((OSError, EOFError)):
+            request_daemon_screen(filename, str(uuid.uuid4()), require_gui=lambda: None,
+                                  confirm=lambda _: pytest.fail('unavailable daemon requested approval'), attach=None)
+        assert ipc_request('ping', path=filename)['running']
+    finally:
+        daemon.close()
+
+
 def test_process_identity_is_from_the_connected_kernel_peer(tmp_path):
     # Real second PID, same UID: a correct UID alone must not be enough.
     filename = str(tmp_path / 'view.sock')

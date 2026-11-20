@@ -80,6 +80,21 @@ class PhoneScreenPeerLifetime:
                 os.close(fd)
 
 
+def peer_pidfd_available():
+    """Read-only capability probe on a private socket pair owned by this process."""
+    try:
+        left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        with left, right:
+            original = PhoneScreenPeerLifetime(left, expected_peer=(os.getpid(), os.getuid()))
+            try:
+                original.require_current()
+            finally:
+                original.close()
+        return True
+    except OSError:
+        return False
+
+
 def _view_size(width, height):
     if (type(width) is not int or type(height) is not int or not 2 <= width <= 1920 or
             not 2 <= height <= 1920 or width * height > 1920 * 1080):

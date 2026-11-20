@@ -1256,6 +1256,12 @@ class IPCServer:
     # Keep outside the public operation table; independent of general phone IPC.
     _native_screen_view_checked = False
 
+    def _native_screen_supported(self):
+        if not self._native_screen_view_checked:
+            return False
+        from magnolie_phone_screen_local import peer_pidfd_available
+        return peer_pidfd_available()
+
     def __init__(self, backend, path=None, settings_getter=None,
                  settings_setter=None, shutdown_callback=None,
                  operation_callback=None, phone_backend=None,
@@ -1807,7 +1813,7 @@ class IPCServer:
             self._handlers.release()
 
     def _admit_screen_setup(self, connection):
-        if (not self._native_screen_view_checked or self.lifecycle != 'ready' or self.stopped.is_set() or
+        if (not self._native_screen_supported() or self.lifecycle != 'ready' or self.stopped.is_set() or
                 not self._screen_setup.acquire(blocking=False)):
             return
         from magnolie_phone_screen_local import serve_daemon_screen
@@ -2068,7 +2074,7 @@ class IPCServer:
             return phone.tray_sync_activity() if phone is not None else {'synchronizing': False}
         if phone is None:
             raise IPCError("phone service is not owned by the background service")
-        if operation == 'phone_report' and self._native_screen_view_checked and getattr(phone, 'native_screen_included', False):
+        if operation == 'phone_report' and getattr(phone, 'native_screen_included', False) and self._native_screen_supported():
             # Discovery metadata only; neither a probe, approval nor a secret
             # passes through the JSON control path.
             result = dict(phone.report())
@@ -3782,7 +3788,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
         if selected is None:
             from magnolie_telefon import PhoneService
             selected = PhoneService
-            options['native_screen_ui'] = server._native_screen_view_checked
+            options['native_screen_ui'] = server._native_screen_supported()
         def route(event, payload):
             if not server.setup_sessions.phone_event(event, payload): phone_events(event, payload)
         return selected(os.path.join(data_directory(), "telefon"),
