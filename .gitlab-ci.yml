@@ -1,0 +1,34 @@
+# The same root-level website can be published by the existing GitLab project.
+# Installer packages remain in the repository and are never copied to Pages.
+website-pages:
+  stage: deploy
+  image: python:3-slim
+  variables:
+    GIT_DEPTH: "1"
+    GIT_LFS_SKIP_SMUDGE: "1"
+  resource_group: website-pages
+  script:
+    - python3 tools/build-pages.py --output public --base-url "$CI_PAGES_URL"
+  pages:
+    publish: public
+  artifacts:
+    paths:
+      - public
+    expire_in: 1 day
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - index.html
+        - assets/**/*
+        - en/**/*
+        - intl/**/*
+        - media/**/*
+        - presse/**/*
+        - docs/PRESSE.md
+        - SOURCE-NOTICES.txt
+        - robots.txt
+        - sitemap.xml
+        - .nojekyll
+        - tools/build-pages.py
+        - .gitlab-ci.yml

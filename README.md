@@ -1,4 +1,9 @@
 <p align="center">
+  <strong><a href="https://maik3531.github.io/Magnolie-Organizer/en/">Explore the Magnolie website</a></strong> ·
+  <a href="https://maik3531.github.io/Magnolie-Organizer/presse/">Press coverage</a>
+</p>
+
+<p align="center">
   <img src=".github/assets/magnolie-preview.png" alt="Magnolie Organizer with its leather book cover" width="100%">
 </p>
 
