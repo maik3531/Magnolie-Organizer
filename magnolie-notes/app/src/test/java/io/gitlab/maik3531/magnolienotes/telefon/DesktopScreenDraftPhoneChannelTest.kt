@@ -34,12 +34,12 @@ class DesktopScreenDraftPhoneChannelTest {
             TelefonParameter.VERSCHLUESSELT_RAHMEN_MAX)
     }
 
-    private fun requestFrom(desktop: Socket): JsonObject {
+    private fun requestFrom(desktop: Socket, sequence: Long = 0): JsonObject {
         val encrypted = TelefonRahmen.lesen(desktop.getInputStream(), TelefonParameter.VERSCHLUESSELT_RAHMEN_MAX)
         val header = JsonObject(encrypted - "ciphertext")
-        assertEquals(JsonPrimitive(0), header["seq"])
+        assertEquals(JsonPrimitive(sequence), header["seq"])
         assertEquals(JsonPrimitive("phone_to_desktop"), header["dir"])
-        val bytes = TelefonKrypto.entschluesseln(sendKey, TelefonKrypto.nonce(sendPrefix, 0),
+        val bytes = TelefonKrypto.entschluesseln(sendKey, TelefonKrypto.nonce(sendPrefix, sequence),
             Base64.getDecoder().decode(encrypted.string("ciphertext")), TelefonKanonisch.bytes(header))
         val privateFrame = TelefonKanonisch.json.parseToJsonElement(bytes.decodeToString()).jsonObject
         assertEquals(JsonPrimitive(DesktopScreenDraftPhoneChannel.TYPE), privateFrame["type"])
@@ -57,7 +57,7 @@ class DesktopScreenDraftPhoneChannelTest {
                         request.use {
                             val template = JsonObject(vectors.getValue("request").jsonObject + vectors.getValue("offer_fields").jsonObject +
                                 ("op" to JsonPrimitive("offer")))
-                            assertFalse(request.receiveOffer(parent, frame(template)))
+                            assertFalse(request.receive(parent, frame(template)))
                             assertNull(request.takeOffer())
                             request.writeRequest()
                             val sent = requestFrom(desktop)
@@ -65,16 +65,39 @@ class DesktopScreenDraftPhoneChannelTest {
                             DesktopScreenDraftControl.validate(sent, DesktopScreenDraftControl.Role.PHONE)
                             assertThrows(IllegalStateException::class.java) { request.writeRequest() }
                             val offer = JsonObject(sent + vectors.getValue("offer_fields").jsonObject + ("op" to JsonPrimitive("offer")))
-                            channel(pipe).use { other -> assertFalse(request.receiveOffer(other, frame(offer))) }
+                            channel(pipe).use { other -> assertFalse(request.receive(other, frame(offer))) }
                             desktopWrites(desktop, 0, JsonObject(offer + ("mode" to JsonPrimitive(1))))
-                            assertFalse(request.receiveOffer(parent, parent.receive()))
+                            assertFalse(request.receive(parent, parent.receive()))
                             assertNull(request.takeOffer())
                             desktopWrites(desktop, 1, offer)
-                            assertTrue(request.receiveOffer(parent, parent.receive()))
+                            assertTrue(request.receive(parent, parent.receive()))
                             assertEquals(offer, request.takeOffer())
                             desktopWrites(desktop, 2, offer)
-                            assertFalse(request.receiveOffer(parent, parent.receive()))
+                            assertFalse(request.receive(parent, parent.receive()))
                             assertNull(request.takeOffer())
+                            val transcript = vectors.getValue("transcript") as JsonPrimitive
+                            val receipt = transcript.content.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                            val activeMessage = JsonObject(sent + mapOf("op" to JsonPrimitive("send"),
+                                "session" to offer.getValue("session"), "transcript" to transcript))
+                            desktopWrites(desktop, 3, activeMessage)
+                            assertFalse(request.receive(parent, parent.receive()))
+                            assertNull(request.takeSend())
+                            request.writePrepared(receipt) { }
+                            val prepared = requestFrom(desktop, 1)
+                            assertEquals(JsonObject(activeMessage + ("op" to JsonPrimitive("prepared"))), prepared)
+                            desktopWrites(desktop, 4, JsonObject(activeMessage + ("transcript" to JsonPrimitive("00".repeat(32)))))
+                            assertFalse(request.receive(parent, parent.receive()))
+                            assertNull(request.takeSend())
+                            desktopWrites(desktop, 5, activeMessage)
+                            assertTrue(request.receive(parent, parent.receive()))
+                            assertArrayEquals(receipt, request.takeSend())
+                            assertNull(request.takeSend())
+                            desktopWrites(desktop, 6, activeMessage)
+                            assertFalse(request.receive(parent, parent.receive()))
+                            val stop = JsonObject(activeMessage - "transcript" + ("op" to JsonPrimitive("stop")))
+                            desktopWrites(desktop, 7, stop)
+                            assertTrue(request.receive(parent, parent.receive()))
+                            assertThrows(IllegalStateException::class.java) { request.requireCurrent() }
                         }
                     }
                 }

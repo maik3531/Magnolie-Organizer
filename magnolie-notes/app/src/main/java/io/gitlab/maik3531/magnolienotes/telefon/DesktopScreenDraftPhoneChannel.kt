@@ -42,12 +42,15 @@ internal class DesktopScreenDraftPhoneChannel(private val channel: TelefonSecure
  * visible viewer's approval. Taking an offer is not consent or media authority. */
 internal class DesktopScreenDraftPhoneRequest(private val wire: DesktopScreenDraftPhoneChannel, mode: Int,
     budgetMs: Long, private val clock: () -> Long = System::nanoTime, wallMs: () -> Long = System::currentTimeMillis) : AutoCloseable {
-    private enum class Phase { NEW, WRITING, WRITTEN, CLOSED }
+    private enum class Phase { NEW, WRITING, WRITTEN, TAKEN, PREPARING, PREPARED, ACTIVE, CLOSED }
     private val gate = Any()
     private var phase = Phase.NEW
     private var edge = false
-    private var offered = false
+    private var session: JsonPrimitive? = null
     private var pending: JsonObject? = null
+    private var proof: JsonPrimitive? = null
+    private var preparedEdge = false
+    private var receivedSend = false
     val setupDeadlineNanos: Long
     private val base: Map<String, JsonPrimitive>
 
@@ -60,14 +63,13 @@ internal class DesktopScreenDraftPhoneRequest(private val wire: DesktopScreenDra
     }
 
     private fun currentLocked() {
-        if (phase == Phase.CLOSED || clock() - setupDeadlineNanos >= 0) {
-            phase = Phase.CLOSED
-            pending = null
+        if (phase == Phase.CLOSED || phase != Phase.ACTIVE && clock() - setupDeadlineNanos >= 0) {
+            retireLocked()
             error("desktop_screen_original_request_retired")
         }
     }
 
-    private fun current() {
+    fun requireCurrent() {
         try {
             wire.current()
             synchronized(gate) { currentLocked() }
@@ -75,7 +77,7 @@ internal class DesktopScreenDraftPhoneRequest(private val wire: DesktopScreenDra
     }
 
     fun writeRequest() {
-        current()
+        requireCurrent()
         synchronized(gate) {
             currentLocked()
             check(phase == Phase.NEW)
@@ -85,33 +87,93 @@ internal class DesktopScreenDraftPhoneRequest(private val wire: DesktopScreenDra
             wire.write(JsonObject(base + ("op" to JsonPrimitive("request")))) {
                 synchronized(gate) { currentLocked(); check(phase == Phase.WRITING); edge = true }
             }
-            current()
+            requireCurrent()
             synchronized(gate) { currentLocked(); check(edge); phase = Phase.WRITTEN }
         } catch (failure: Exception) { close(); throw failure }
     }
 
-    fun receiveOffer(actual: TelefonSecureChannel, frame: JsonObject): Boolean {
+    fun receive(actual: TelefonSecureChannel, frame: JsonObject): Boolean {
         val body = wire.readFrom(actual, frame) ?: return false
-        if (body["op"] != JsonPrimitive("offer") || base.any { (k, v) -> body[k] != v }) return false
-        current()
+        if (base.any { (k, v) -> body[k] != v }) return false
         synchronized(gate) {
+            if (phase == Phase.CLOSED) return false
+            val incoming = body.getValue("session") as JsonPrimitive
+            if (body["op"] == JsonPrimitive("stop")) {
+                if (session != incoming) return false
+                retireLocked()
+                return true
+            }
             currentLocked()
-            if (!edge || offered) return false
-            offered = true
-            pending = body
-            return true
+            return when (body["op"]) {
+                JsonPrimitive("offer") -> {
+                    if (!edge || session != null || phase !in setOf(Phase.WRITING, Phase.WRITTEN)) return false
+                    session = incoming
+                    pending = JsonObject(body.toMap())
+                    true
+                }
+                JsonPrimitive("send") -> {
+                    if (session != incoming || !preparedEdge || receivedSend || proof != body["transcript"] ||
+                        phase !in setOf(Phase.PREPARING, Phase.PREPARED)) return false
+                    receivedSend = true
+                    true
+                }
+                else -> false
+            }
         }
     }
 
     fun takeOffer(): JsonObject? {
-        current()
+        requireCurrent()
         return synchronized(gate) {
             currentLocked()
-            if (phase != Phase.WRITTEN) null else pending.also { pending = null }
+            if (phase != Phase.WRITTEN) null else pending?.also { pending = null; phase = Phase.TAKEN }
         }
     }
 
+    /** Only the original visible receiver after its own successful data proof. */
+    fun writePrepared(transcript: ByteArray, requireViewerAndProof: () -> Unit) {
+        require(transcript.size == 32)
+        requireCurrent()
+        requireViewerAndProof()
+        val value = JsonPrimitive(transcript.joinToString("") { "%02x".format(it) })
+        val message = synchronized(gate) {
+            currentLocked()
+            check(phase == Phase.TAKEN)
+            phase = Phase.PREPARING
+            proof = value
+            JsonObject(base + mapOf("op" to JsonPrimitive("prepared"), "session" to checkNotNull(session), "transcript" to value))
+        }
+        try {
+            wire.write(message) {
+                requireViewerAndProof()
+                synchronized(gate) { currentLocked(); check(phase == Phase.PREPARING); preparedEdge = true }
+            }
+            requireViewerAndProof()
+            requireCurrent()
+            synchronized(gate) { currentLocked(); check(preparedEdge); phase = Phase.PREPARED }
+        } catch (failure: Exception) { close(); throw failure }
+    }
+
+    /** Delivers one receipt to the native receiver, never before PREPARED returns. */
+    fun takeSend(): ByteArray? {
+        requireCurrent()
+        return synchronized(gate) {
+            currentLocked()
+            if (phase != Phase.PREPARED || !receivedSend) return null
+            val digest = checkNotNull(proof).content.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            proof = null
+            phase = Phase.ACTIVE
+            digest
+        }
+    }
+
+    private fun retireLocked() {
+        phase = Phase.CLOSED
+        pending = null
+        proof = null
+    }
+
     override fun close() {
-        synchronized(gate) { phase = Phase.CLOSED; pending = null }
+        synchronized(gate) { retireLocked() }
     }
 }

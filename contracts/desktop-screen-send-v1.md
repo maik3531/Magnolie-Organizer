@@ -92,6 +92,14 @@ readiness and the original channel again. Revocation during the write cannot
 turn a completed write into live media authority. STOP retires only its owner.
 See [shared draft vectors](desktop-screen-control-draft-v1-vectors.json).
 
+The isolated Android adapter wraps a body in exactly `type` and `body` (`type`
+is `desktop_screen_draft`). This wrapper is not a registered message kind or a
+capability. The adapter uses the existing encrypted writer only on the original
+WLAN streams. It admits one matching OFFER, delivers it only after the request
+write returns, and releases a single matching SEND receipt only after the
+PREPARED write returns. A matching STOP retires the original control owner.
+The product dispatcher and native data/session joins are still separate work.
+
 ## Retirement and acceptance
 
 The Android viewer is a one-shot dialog attached to the original resumed
