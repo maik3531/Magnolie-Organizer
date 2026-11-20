@@ -229,3 +229,11 @@ a frame. Portal retirement stops the reader, and reader exit closes the portal.
 The terminal result reports the two cleanup outcomes separately and is not
 delivered while either side still has work outstanding. Compositor output
 removal remains a separate acceptance check.
+
+The desktop-side encoder takes complete RGBx frames at the chosen dimensions
+and emits independent baseline JPEGs with no source metadata. It can retry an
+oversized frame once at lower JPEG quality without changing dimensions, then
+drops it if the 1 MiB bound still cannot be met. A single waiting frame and a
+single completed JPEG may be replaced by newer ones; neither is a send queue.
+Retiring the encoder discards both slots and any result from a running job.
+This local component assigns no new control version and cannot send media.
