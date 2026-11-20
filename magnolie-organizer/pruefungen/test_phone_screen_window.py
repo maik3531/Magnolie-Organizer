@@ -1,5 +1,7 @@
 """GTK/Xvfb component checks. Frames here are test pixels, not phone capture."""
 
+import ast
+import json
 import sys
 from pathlib import Path
 from threading import Thread
@@ -114,3 +116,75 @@ def test_invalid_frame_and_failed_stop_do_not_revive_the_window():
         assert not view.show()
     finally:
         view.stop()
+
+
+def organizer_hooks():
+    # Execute the exact Fenster methods without loading a profile, bridge,
+    # phone or desktop service. The menu items and view are actual GTK widgets.
+    source = Path(__file__).resolve().parents[1] / "bin" / "magnolie-organizer"
+    code = ast.parse(source.read_text())
+    window = next(node for node in code.body if isinstance(node, ast.ClassDef) and node.name == "Fenster")
+    names = {"_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained",
+             "_tray_telefone_aktualisieren", "_beenden_endgueltig"}
+    hooks = ast.Module(body=[node for node in window.body if isinstance(node, ast.FunctionDef) and node.name in names],
+                       type_ignores=[])
+    namespace = {"Gtk": Gtk, "GLib": GLib, "_": lambda text: text}
+    exec(compile(hooks, str(source), "exec"), namespace)
+    return type("OrganizerHooks", (), {name: namespace[name] for name in names})()
+
+
+def test_actual_organizer_menu_and_exit_use_exact_window_and_wait_for_join():
+    app = organizer_hooks()
+    app._gesperrt = app._wirklich_beenden = app._beenden_angefragt = False
+    app._telefon = None
+    app._tray_telefone = Gtk.MenuItem(label="Phones")
+    requested = []
+    current = True
+
+    def attach():
+        return app._phone_screen_attach(is_current=lambda: current, request_stop=requested.append)
+
+    def actions():
+        return {child.get_label(): child for child in app._tray_telefone.get_submenu().get_children()}
+
+    first = attach()
+    second = None
+    try:
+        assert set(actions()) == {"Show phone screen", "Stop screen mirroring"}
+        assert app._tray_telefone.get_visible()
+        first._window.hide()
+        actions()["Show phone screen"].activate()
+        assert first._window.get_visible()
+        old_menu = app._tray_telefone.get_submenu()
+        stale_stop = actions()["Stop screen mirroring"]
+        stale_stop.activate()
+        assert requested == [first] and not first.available
+        assert app._beenden_endgueltig() is True and not app._wirklich_beenden
+        with pytest.raises(PermissionError):
+            attach()
+        wait_for(lambda: not actions() and not app._tray_telefone.get_visible())
+
+        app._phone_screen_drained(first)
+        second = attach()
+        app._phone_screen_drained(first)
+        stale_stop.activate()
+        assert old_menu is not app._tray_telefone.get_submenu()
+        assert second.available and requested == [first]
+        app._gesperrt = True
+        wait_for(lambda: requested == [first, second])
+        assert not second.available
+        app._phone_screen_drained(second)
+        with pytest.raises(PermissionError):
+            attach()
+    finally:
+        app._phone_screen_stop()
+        app._tray_telefone.destroy()
+
+
+def test_viewer_source_is_in_linux_package_recipes():
+    root = Path(__file__).resolve().parents[1]
+    for name in ("debian/install", "rpm/magnolie-organizer.spec", "werkzeuge/appimage_bauen.sh"):
+        assert "magnolie_phone_screen_window.py" in (root / name).read_text(), name
+    flatpak = json.loads((root / "flatpak/io.gitlab.maik3531.MagnolieOrganizer.json").read_text())
+    assert any("magnolie_phone_screen_window.py" in command for module in flatpak["modules"] if isinstance(module, dict)
+               for command in module.get("build-commands", []))

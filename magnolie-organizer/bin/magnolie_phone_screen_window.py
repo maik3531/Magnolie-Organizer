@@ -70,6 +70,11 @@ class PhoneScreenWindow:
         self._window.present()
         return True
 
+    @property
+    def available(self):
+        self._require_gtk_thread()
+        return self._window is not None and self._check_current()
+
     def stop(self):
         """Terminal; shared by exit, privacy lock and the future tray Stop action."""
         self._require_gtk_thread()

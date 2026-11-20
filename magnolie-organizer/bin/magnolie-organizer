@@ -21488,6 +21488,10 @@ class Fenster(_FENSTER_BASIS):
         if (getattr(self, "_speicher_laeuft", False) or
                 getattr(getattr(self, "_speicher_auftraege", None), "unfinished_tasks", 0)):
             return True
+        if getattr(self, "_phone_screen_window", None) is not None:
+            self._phone_screen_stop()
+            if self._phone_screen_window is not None:
+                return True  # The original native owner must report a joined drain.
         host = getattr(self, '_notes_original_setup_host', None)
         if host is not None:
             self._notes_original_setup_exit_pending = True
@@ -21673,6 +21677,50 @@ class Fenster(_FENSTER_BASIS):
         else:
             threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
 
+    def _phone_screen_attach(self, *, is_current, request_stop):
+        """Native view owner only; request_stop(view) signals the exact owner.
+
+        Report joined drain even if showing the view fails after attachment.
+        There is no bridge command, pairing or stream startup here.
+        """
+        from magnolie_phone_screen_window import PhoneScreenWindow
+        if (self._gesperrt or self._wirklich_beenden or self._beenden_angefragt or
+                getattr(self, "_phone_screen_window", None) is not None or is_current() is not True):
+            raise PermissionError("phone_screen_view_unavailable")
+
+        def current():
+            return not self._gesperrt and not self._wirklich_beenden and is_current() is True
+
+        def stop():
+            try:
+                request_stop(view)
+            finally:
+                GLib.idle_add(self._tray_telefone_aktualisieren)
+
+        view = PhoneScreenWindow(_("Phone screen"), is_current=current, request_stop=stop)
+        self._phone_screen_window = view
+        try:
+            if not view.show():
+                raise PermissionError("phone_screen_view_no_longer_current")
+            self._tray_telefone_aktualisieren()
+        except Exception:
+            view.stop()
+            raise
+        return view
+
+    def _phone_screen_drained(self, view):
+        # Only the exact original native owner may report drain (on GTK thread).
+        # Late callbacks for a previously joined owner cannot touch a new view.
+        if view is getattr(self, "_phone_screen_window", None) and view is not None:
+            self._phone_screen_window = None
+            view.stop()
+            self._tray_telefone_aktualisieren()
+
+    def _phone_screen_stop(self):
+        view = getattr(self, "_phone_screen_window", None)
+        if view is not None:
+            view.stop()
+
     def _tray_telefone_aktualisieren(self):
         eintrag = getattr(self, "_tray_telefone", None)
         if not eintrag:
@@ -21687,8 +21735,15 @@ class Fenster(_FENSTER_BASIS):
             telefon.connect("activate", self._tray_telefon_zeigen,
                             partner.get("device_id") or "")
             untermenue.append(telefon)
+        view = getattr(self, "_phone_screen_window", None)
+        spiegeln = not self._gesperrt and view is not None and view.available
+        if spiegeln:
+            for label, action in ((_('Show phone screen'), view.show), (_('Stop screen mirroring'), view.stop)):
+                item = Gtk.MenuItem(label=label)
+                item.connect('activate', lambda _item, target=action: target())
+                untermenue.append(item)
         eintrag.set_submenu(untermenue)
-        eintrag.set_visible(aktiv and bool(partner_liste))
+        eintrag.set_visible(spiegeln or (aktiv and bool(partner_liste)))
         verbinden = getattr(self, "_tray_telefon_verbinden_eintrag", None)
         if verbinden:
             verbinden.set_visible(tray_telefon_verbinden_sichtbar(self._tray_einstellungen, aktiv, partner_liste))
@@ -21964,6 +22019,8 @@ class Fenster(_FENSTER_BASIS):
         fenster_zustand_schreiben(self._fenster)
 
     def _bei_ende(self, *_egal):
+        if getattr(self, "_phone_screen_window", None) is not None:
+            self._phone_screen_stop()
         mcp_server = getattr(self, "_mcp_server", None)
         if mcp_server is not None:
             mcp_server.close()
@@ -24491,6 +24548,8 @@ class Fenster(_FENSTER_BASIS):
         start = time.monotonic()
         self._kennwort = getattr(self, "_kennwort", "")
         self._gesperrt = True
+        if getattr(self, "_phone_screen_window", None) is not None:
+            self._phone_screen_stop()
         self._aktuelle_daten = None
         self._ladefehler = ""
         try:
