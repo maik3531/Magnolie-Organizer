@@ -28,7 +28,8 @@ class Desktop(PhoneService):
             self.pong.set()
 
 
-def main(stop_before_phone_approval=False, desktop_clock_behind=False):
+def main(stop_before_phone_approval=False, stop_after_phone_approval=False, desktop_clock_behind=False):
+    desktop_stops = stop_before_phone_approval or stop_after_phone_approval
     with TemporaryDirectory(prefix='magnolie-screen-paired-') as root, listener() as endpoint:
         service = Desktop(str(Path(root) / 'telefon'), 'Isolated desktop', bluetooth_backend=FakeBluetooth())
         service.enabled = True
@@ -48,6 +49,7 @@ def main(stop_before_phone_approval=False, desktop_clock_behind=False):
         state = Lock()
         original = run = pending = cleanup = None
         armed = stopped_here = False
+        viewer_drained = not desktop_stops
         errors = []
 
         def receive(actual, body, packet):
@@ -69,7 +71,7 @@ def main(stop_before_phone_approval=False, desktop_clock_behind=False):
             cleanup = result
 
         def tick():
-            nonlocal original, run, armed, stopped_here
+            nonlocal original, run, armed, stopped_here, viewer_drained
             try:
                 if monotonic() >= deadline:
                     raise TimeoutError('paired draft did not finish')
@@ -95,7 +97,7 @@ def main(stop_before_phone_approval=False, desktop_clock_behind=False):
                                 bus=None, provider=None, mode='extend', parent_window='synthetic', width=57, height=33,
                                 deadline=deadline, ended=ended)
                             run.begin()
-                elif stop_before_phone_approval and not stopped_here and select([sys.stdin], [], [], 0)[0]:
+                elif desktop_stops and not stopped_here and select([sys.stdin], [], [], 0)[0]:
                     assert sys.stdin.readline() == 'stop\n'
                     stopped_here = True
                     run.stop()
@@ -104,6 +106,12 @@ def main(stop_before_phone_approval=False, desktop_clock_behind=False):
                     service.ping_id = str(uuid4())
                     original.channel.send(dict(type='ping', ping_id=service.ping_id, sent_ms=now_ms()))
                 elif service.pong.is_set():
+                    # No parent close can be mistaken for viewer retirement.
+                    if not viewer_drained:
+                        if not select([sys.stdin], [], [], 0)[0]:
+                            return True
+                        assert sys.stdin.readline() == 'viewer-drained\n'
+                        viewer_drained = True
                     original.retire()
                     assert original.release()
                     original.channel.send(dict(type='close', reason='normal'))
@@ -126,7 +134,7 @@ def main(stop_before_phone_approval=False, desktop_clock_behind=False):
                 assert service._start_handler(channel_socket, '127.0.0.1', 'wifi')
                 loop.run()
             assert not errors, errors
-            assert stopped_here is stop_before_phone_approval
+            assert stopped_here is desktop_stops and viewer_drained
             assert service.pong.is_set()
         finally:
             if run is not None:
@@ -139,4 +147,6 @@ def main(stop_before_phone_approval=False, desktop_clock_behind=False):
 
 
 if __name__ == '__main__':
-    main('--desktop-stop-before-phone-approval' in sys.argv[1:], '--desktop-clock-behind' in sys.argv[1:])
+    main(stop_before_phone_approval='--desktop-stop-before-phone-approval' in sys.argv[1:],
+         stop_after_phone_approval='--desktop-stop-after-phone-approval' in sys.argv[1:],
+         desktop_clock_behind='--desktop-clock-behind' in sys.argv[1:])

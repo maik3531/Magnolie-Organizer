@@ -180,8 +180,11 @@ connection completes an ordinary ping/pong. These tests substitute the local
 compositor run. A second case sends desktop STOP while the phone's approval
 dialog is still pending: the dialog is removed, a stale click cannot reopen
 it, and there is no PREPARED or echoed STOP. The same parent still answers.
-Neither case exercises pairing, discovery, a real portal or a physical phone,
-or enables a product entry point.
+An additional desktop STOP case clears an already displayed image. The test
+does not close the control parent until the Android owner has drained, so a
+parent disconnect cannot account for the image clearing. These checks do not
+exercise pairing, discovery, a real portal or a physical phone, or enable a
+product entry point.
 The Kotlin media lane checks JPEG headers before handoff; decoding and display
 are separate.
 Before allocation or advertising, check independent vectors and incompatible

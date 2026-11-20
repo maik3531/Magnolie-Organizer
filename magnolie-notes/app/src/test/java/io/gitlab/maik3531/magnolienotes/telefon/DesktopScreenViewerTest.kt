@@ -247,13 +247,19 @@ class DesktopScreenViewerTest {
         }
     }
 
-    @Test fun productionSessionsAuthenticateThenDeliverDesktopDraftAndKeepNotesParent() = pairedSession(false)
+    @Test fun productionSessionsAuthenticateThenDeliverDesktopDraftAndKeepNotesParent() = pairedSession()
 
-    @Test fun productionSessionsDesktopStopWithdrawsPendingApprovalAndKeepsNotesParent() = pairedSession(true)
+    @Test fun productionSessionsDesktopStopWithdrawsPendingApprovalAndKeepsNotesParent() =
+        pairedSession(stopBeforePhoneApproval = true)
 
-    @Test fun productionSessionsAcceptDraftWhenDesktopClockIsTwoSecondsBehind() = pairedSession(false, true)
+    @Test fun productionSessionsDesktopStopClearsTheActivePictureBeforeParentClose() =
+        pairedSession(stopAfterPhoneApproval = true)
 
-    private fun pairedSession(stopBeforePhoneApproval: Boolean, desktopClockBehind: Boolean = false) {
+    @Test fun productionSessionsAcceptDraftWhenDesktopClockIsTwoSecondsBehind() =
+        pairedSession(desktopClockBehind = true)
+
+    private fun pairedSession(stopBeforePhoneApproval: Boolean = false, stopAfterPhoneApproval: Boolean = false,
+                              desktopClockBehind: Boolean = false) {
         assumeTrue(System.getenv("MAGNOLIE_DESKTOP_SCREEN_INTEROP") == "1")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("DesktopDraftFixture", 1.0, "Isolated test keys") {
@@ -283,6 +289,7 @@ class DesktopScreenViewerTest {
             val command = buildList {
                 addAll(listOf("/usr/bin/python3", "-B", script.path))
                 if (stopBeforePhoneApproval) add("--desktop-stop-before-phone-approval")
+                if (stopAfterPhoneApproval) add("--desktop-stop-after-phone-approval")
                 if (desktopClockBehind) add("--desktop-clock-behind")
             }
             val process = ProcessBuilder(command)
@@ -323,14 +330,18 @@ class DesktopScreenViewerTest {
                         val image = views(dialog.window!!.decorView).filterIsInstance<ImageView>()
                             .single { it.contentDescription == f.activity.getString(R.string.desktop_screen_view_picture) }
                         assertNull(image.drawable)
-                        if (stopBeforePhoneApproval) {
+                        fun stopDesktop() {
                             input.write("stop\n")
                             input.flush()
-                            val accept = f.button(dialog, R.string.desktop_screen_view_accept)
                             awaitValue {
+                                check(!reader.isDone) { "Parent closed before viewer retirement" }
                                 shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
                                 true.takeIf { !dialog.isShowing }
                             }
+                        }
+                        if (stopBeforePhoneApproval) {
+                            val accept = f.button(dialog, R.string.desktop_screen_view_accept)
+                            stopDesktop()
                             accept.performClick() // Stale confirmation must not reanimate this viewer.
                         } else {
                             f.button(dialog, R.string.desktop_screen_view_accept).performClick()
@@ -340,11 +351,16 @@ class DesktopScreenViewerTest {
                                 (image.drawable as? BitmapDrawable)?.bitmap
                             }
                             assertTrue(kotlin.math.abs(Color.blue(drawn.getPixel(28, 16)) - 228) <= 4)
-                            f.controller.pause()
+                            if (stopAfterPhoneApproval) stopDesktop() else f.controller.pause()
                         }
                         assertNull(image.drawable)
                         assertFalse(dialog.isShowing)
                         awaitValue { true.takeIf { attempt.drained } }
+                        if (stopBeforePhoneApproval || stopAfterPhoneApproval) {
+                            assertFalse(reader.isDone)
+                            input.write("viewer-drained\n")
+                            input.flush()
+                        }
                     }
                     assertEquals("same-parent-pong", readHost())
                     reader.get(5, TimeUnit.SECONDS)
