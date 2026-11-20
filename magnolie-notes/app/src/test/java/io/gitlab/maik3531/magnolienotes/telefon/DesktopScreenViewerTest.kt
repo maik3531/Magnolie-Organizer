@@ -247,7 +247,11 @@ class DesktopScreenViewerTest {
         }
     }
 
-    @Test fun productionSessionsAuthenticateThenDeliverDesktopDraftAndKeepNotesParent() {
+    @Test fun productionSessionsAuthenticateThenDeliverDesktopDraftAndKeepNotesParent() = pairedSession(false)
+
+    @Test fun productionSessionsDesktopStopWithdrawsPendingApprovalAndKeepsNotesParent() = pairedSession(true)
+
+    private fun pairedSession(stopBeforePhoneApproval: Boolean) {
         assumeTrue(System.getenv("MAGNOLIE_DESKTOP_SCREEN_INTEROP") == "1")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("DesktopDraftFixture", 1.0, "Isolated test keys") {
@@ -274,7 +278,9 @@ class DesktopScreenViewerTest {
             storage.setPersonalSync(false, false, false, false, false)
             val script = File("../magnolie-organizer/pruefungen/desktop_screen_draft_paired_peer.py").canonicalFile
             assertTrue(script.isFile)
-            val process = ProcessBuilder("/usr/bin/python3", "-B", script.path)
+            val command = listOf("/usr/bin/python3", "-B", script.path) +
+                if (stopBeforePhoneApproval) listOf("--desktop-stop-before-phone-approval") else emptyList()
+            val process = ProcessBuilder(command)
                 .redirectError(stderr).start()
             server = process
             val output = process.inputStream.bufferedReader()
@@ -283,7 +289,9 @@ class DesktopScreenViewerTest {
             val (port, desktopId, publicKey) = readHost().split(' ')
             val peer = TelefonPeer(desktopId, "Isolated desktop", publicKey)
             storage.savePeer(peer)
-            process.outputStream.bufferedWriter().use { it.write("${identity.device_id} ${identity.static_public}\n") }
+            val input = process.outputStream.bufferedWriter()
+            input.write("${identity.device_id} ${identity.static_public}\n")
+            input.flush()
             val runtime = TelefonWerk.get(context).also { work = it }
             field(TelefonWerk::class.java, "serviceRunning").setBoolean(runtime, true)
             (field(TelefonWerk::class.java, "connecting").get(runtime) as AtomicBoolean).set(true)
@@ -310,14 +318,25 @@ class DesktopScreenViewerTest {
                         val image = views(dialog.window!!.decorView).filterIsInstance<ImageView>()
                             .single { it.contentDescription == f.activity.getString(R.string.desktop_screen_view_picture) }
                         assertNull(image.drawable)
-                        f.button(dialog, R.string.desktop_screen_view_accept).performClick()
-                        val drawn = awaitValue {
-                            if (reader.isDone) reader.get()
-                            shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
-                            (image.drawable as? BitmapDrawable)?.bitmap
+                        if (stopBeforePhoneApproval) {
+                            input.write("stop\n")
+                            input.flush()
+                            val accept = f.button(dialog, R.string.desktop_screen_view_accept)
+                            awaitValue {
+                                shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
+                                true.takeIf { !dialog.isShowing }
+                            }
+                            accept.performClick() // Stale confirmation must not reanimate this viewer.
+                        } else {
+                            f.button(dialog, R.string.desktop_screen_view_accept).performClick()
+                            val drawn = awaitValue {
+                                if (reader.isDone) reader.get()
+                                shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
+                                (image.drawable as? BitmapDrawable)?.bitmap
+                            }
+                            assertTrue(kotlin.math.abs(Color.blue(drawn.getPixel(28, 16)) - 228) <= 4)
+                            f.controller.pause()
                         }
-                        assertTrue(kotlin.math.abs(Color.blue(drawn.getPixel(28, 16)) - 228) <= 4)
-                        f.controller.pause()
                         assertNull(image.drawable)
                         assertFalse(dialog.isShowing)
                         awaitValue { true.takeIf { attempt.drained } }
@@ -327,6 +346,7 @@ class DesktopScreenViewerTest {
                     assertTrue(runCatching { runtime.desktopScreenDraftCandidate(desktopId, publicKey) }.isFailure)
                 }
             }
+            input.close()
             assertTrue(process.waitFor(5, TimeUnit.SECONDS))
             assertEquals(0, process.exitValue())
         } catch (failure: Exception) {

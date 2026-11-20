@@ -4,6 +4,7 @@ Peer stores contain disposable pins. This never performs discovery or pairing.
 """
 
 from pathlib import Path
+from select import select
 import sys
 from tempfile import TemporaryDirectory
 from threading import Event, Lock
@@ -26,7 +27,7 @@ class Desktop(PhoneService):
             self.pong.set()
 
 
-def main():
+def main(stop_before_phone_approval=False):
     with TemporaryDirectory(prefix='magnolie-screen-paired-') as root, listener() as endpoint:
         service = Desktop(str(Path(root) / 'telefon'), 'Isolated desktop', bluetooth_backend=FakeBluetooth())
         service.enabled = True
@@ -45,12 +46,14 @@ def main():
         loop = GLib.MainLoop()
         state = Lock()
         original = run = pending = cleanup = None
-        armed = False
+        armed = stopped_here = False
         errors = []
 
         def receive(actual, body, packet):
             nonlocal pending
             actual.require_current()
+            if stop_before_phone_approval and body['op'] in ('prepared', 'stop'):
+                errors.append(AssertionError('unapproved PREPARED or echoed STOP'))
             with state:
                 active = run
                 if active is None:
@@ -65,7 +68,7 @@ def main():
             cleanup = result
 
         def tick():
-            nonlocal original, run, armed
+            nonlocal original, run, armed, stopped_here
             try:
                 if monotonic() >= deadline:
                     raise TimeoutError('paired draft did not finish')
@@ -91,6 +94,10 @@ def main():
                                 bus=None, provider=None, mode='extend', parent_window='synthetic', width=57, height=33,
                                 deadline=deadline, ended=ended)
                             run.begin()
+                elif stop_before_phone_approval and not stopped_here and select([sys.stdin], [], [], 0)[0]:
+                    assert sys.stdin.readline() == 'stop\n'
+                    stopped_here = True
+                    run.stop()
                 elif cleanup is not None and service.ping_id is None:
                     assert cleanup == draft.DesktopScreenAttemptCleanup(draft.ScreenRunCleanup(True, True, True), True)
                     service.ping_id = str(uuid4())
@@ -114,6 +121,7 @@ def main():
                 assert service._start_handler(channel_socket, '127.0.0.1', 'wifi')
                 loop.run()
             assert not errors, errors
+            assert stopped_here is stop_before_phone_approval
             assert service.pong.is_set()
         finally:
             if run is not None:
@@ -126,4 +134,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:] == ['--desktop-stop-before-phone-approval'])

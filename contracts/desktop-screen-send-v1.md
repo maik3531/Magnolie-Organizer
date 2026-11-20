@@ -168,8 +168,11 @@ readers with disposable pinned peer stores, including the authenticated FS1
 handshake and normal setup exchange. Only an explicit test action attaches
 the Linux and Android draft owners; after Android Pause, the same authenticated
 connection completes an ordinary ping/pong. These tests substitute the local
-compositor run. They do not exercise pairing, discovery, a real portal or a
-physical phone, and do not enable a product entry point.
+compositor run. A second case sends desktop STOP while the phone's approval
+dialog is still pending: the dialog is removed, a stale click cannot reopen
+it, and there is no PREPARED or echoed STOP. The same parent still answers.
+Neither case exercises pairing, discovery, a real portal or a physical phone,
+or enables a product entry point.
 The Kotlin media lane checks JPEG headers before handoff; decoding and display
 are separate.
 Before allocation or advertising, check independent vectors and incompatible
