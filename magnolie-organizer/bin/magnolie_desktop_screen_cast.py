@@ -5,6 +5,7 @@ input. All public methods/callbacks are confined to the GTK main context.
 """
 
 from dataclasses import dataclass
+import os
 from secrets import token_hex
 from time import monotonic
 
@@ -33,6 +34,23 @@ class ScreenCastTarget:
     mode: str
     node: int
     serial: int | None
+
+
+class ScreenCastRemote:
+    """One local PipeWire file descriptor, borrowed only by the trusted caller."""
+
+    def __init__(self, owner, fd):
+        self._owner, self._fd = owner, fd
+
+    def fileno(self):
+        if not self._owner._current() or self._fd < 0:
+            raise PermissionError('screen_cast_original_remote_retired')
+        return self._fd
+
+    def _close(self):
+        fd, self._fd = self._fd, -1
+        if fd >= 0:
+            os.close(fd)
 
 
 def _target(fields, mode, version):
@@ -134,9 +152,11 @@ class DesktopScreenCast:
         self._signals = []
         self._bus_signal = None
         self._timer = None
-        self._create_submitted = self._session_closed = self._close_pending = False
+        self._create_submitted = self._session_closed = self._close_pending = self._close_returned = False
         self._bus_lost = False
         self._cleanup_ok = True
+        self._target = self._remote = None
+        self._remote_attempted = self._remote_pending = False
 
     def begin(self):
         if self._phase != 'new':
@@ -219,7 +239,47 @@ class DesktopScreenCast:
         target = _target(fields, self.mode, self.provider.screen_version)
         if self._current():
             self._phase = 'selected'
+            self._target = target
             self._ready(self, target)
+
+    def open_pipewire_remote(self, target, ready):
+        """Open once after the approved target, not via a default PipeWire socket."""
+        if self._phase != 'selected' or self._target is not target or self._remote_attempted or not self._current():
+            raise PermissionError('screen_cast_original_selected_target_required')
+        self._remote_attempted = self._remote_pending = True
+
+        def returned(bus, result, _data):
+            fds = []
+            try:
+                value, fd_list = bus.call_with_unix_fd_list_finish(result)
+                if fd_list is not None:
+                    fds = fd_list.steal_fds()
+                if len(fds) != 1 or value is None or value.unpack() != (0,):
+                    raise ValueError('screen_cast_original_remote_descriptor_required')
+                if self._current():
+                    os.set_inheritable(fds[0], False)
+                    self._remote = ScreenCastRemote(self, fds.pop())
+                    ready(self._remote)
+            except Exception:
+                self.stop()
+            finally:
+                for fd in fds:
+                    try:
+                        os.close(fd)
+                    except OSError:
+                        self._cleanup_ok = False
+                self._remote_pending = False
+                if self._phase == 'closing':
+                    self._finish_or_close()
+
+        try:
+            self.bus.call_with_unix_fd_list(self.provider.owner, _ROOT, _CAST, 'OpenPipeWireRemote',
+                                            GLib.Variant('(oa{sv})', (self._session, {})), GLib.VariantType.new('(h)'),
+                                            Gio.DBusCallFlags.NO_AUTO_START, _METHOD_MS, None, None, returned, None)
+        except Exception:
+            self._remote_pending = False
+            self.stop()
+            raise
 
     def _owner_changed(self, _bus, sender, _path, _iface, _signal, params, _data):
         if sender == _DBUS and params.get_type_string() == '(sss)':
@@ -243,14 +303,14 @@ class DesktopScreenCast:
         elif self._request is not None:
             self._request._finish(None)
         else:
-            self._finish()
+            self._finish_or_close()
 
     def _current(self):
         if self._phase not in ('setup', 'selected'):
             return False
         try:
             self._require_original()
-            if self._phase == 'setup' and monotonic() >= self._deadline:
+            if self._remote is None and monotonic() >= self._deadline:
                 raise TimeoutError('screen_cast_original_deadline')
             return self._phase in ('setup', 'selected')
         except Exception:
@@ -265,6 +325,11 @@ class DesktopScreenCast:
         if self._phase in ('closing', 'ended'):
             return
         self._phase = 'closing'
+        if self._remote is not None:
+            try:
+                self._remote._close()
+            except OSError:
+                self._cleanup_ok = False
         if self._timer is not None:
             GLib.source_remove(self._timer)
             self._timer = None
@@ -277,18 +342,21 @@ class DesktopScreenCast:
             self._finish_or_close()
 
     def _finish_or_close(self):
-        if not self._bus_lost and self._create_submitted and not self._session_closed:
+        if not self._bus_lost and self._create_submitted and not self._session_closed and not self._close_returned:
             if not self._close_pending:
                 self._close_pending = True
                 self._call(_SESSION, 'Close', self._session, None, '()', self._session_close_returned)
-        else:
+        elif not self._remote_pending:
             self._finish()
 
     def _session_close_returned(self, result):
         if self._phase == 'ended':
             return
+        self._close_returned = True
         self._session_closed = self._session_closed or result is not None
-        self._finish()
+        if result is None and not self._session_closed:
+            self._cleanup_ok = False
+        self._finish_or_close()
 
     def _finish(self):
         self._phase = 'ended'

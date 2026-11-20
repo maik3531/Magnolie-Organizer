@@ -1,5 +1,7 @@
 """Controlled async ScreenCast responses and exact lifecycle, not real capture."""
 
+import os
+import socket
 import sys
 import unittest
 from collections import deque
@@ -18,6 +20,7 @@ class Bus:
         self.calls, self.signals = deque(), {}
         self.next_signal = 0
         self.closed = None
+        self.open_call = None
 
     def get_unique_name(self):
         return ':1.42'
@@ -36,6 +39,22 @@ class Bus:
         if value is None:
             raise GLib.Error('controlled method failure')
         return value
+
+    def call_with_unix_fd_list(self, destination, path, iface, method, args, signature, flags, timeout,
+                               fd_list, cancel, callback, data):
+        assert (destination, path, iface, method) == (':1.9', cast._ROOT, cast._CAST, 'OpenPipeWireRemote')
+        assert flags == Gio.DBusCallFlags.NO_AUTO_START and timeout == 2000 and fd_list is cancel is None
+        assert signature.dup_string() == '(h)' and args.get_type_string() == '(oa{sv})'
+        assert self.open_call is None
+        self.open_call = callback, data
+
+    def call_with_unix_fd_list_finish(self, value):
+        return value
+
+    def remote_reply(self, value, fd_list):
+        callback, data = self.open_call
+        self.open_call = None
+        callback(self, (value, fd_list), data)
 
     def deliver(self, call, result):
         if result is not None:
@@ -224,6 +243,65 @@ class TestDesktopScreenCast(unittest.TestCase):
         self.assertEqual(self.ended, [False])
         self.assertFalse(self.bus.calls or self.bus.signals or self.ready)
 
+    def test_open_once_with_original_target_and_close_only_its_fd(self):
+        self.owner()
+        self.complete(self.setup(), streams())
+        target, = self.ready
+        opened = []
+        with self.assertRaises(PermissionError):
+            self.run.open_pipewire_remote(cast.ScreenCastTarget('extend', 54, 903), opened.append)
+        self.run.open_pipewire_remote(target, opened.append)
+        with self.assertRaises(PermissionError):
+            self.run.open_pipewire_remote(target, opened.append)
+        with socket.socket() as endpoint:
+            portal_fds = Gio.UnixFDList.new()
+            portal_fds.append(endpoint.fileno())
+            self.bus.remote_reply(GLib.Variant('(h)', (0,)), portal_fds)
+            remote, = opened
+            borrowed = remote.fileno()
+            self.assertFalse(os.get_inheritable(borrowed))
+            self.run.stop()
+            self.close_session()
+            with self.assertRaises(PermissionError):
+                remote.fileno()
+            with self.assertRaises(OSError):
+                os.fstat(borrowed)
+            self.assertEqual(self.ended, [True])
+            os.fstat(endpoint.fileno())
+
+    def test_stop_before_fd_reply_waits_and_discards_it(self):
+        self.owner()
+        self.complete(self.setup(), streams())
+        opened = []
+        self.run.open_pipewire_remote(self.ready[0], opened.append)
+        self.run.stop()
+        close = self.bus.take('Close')
+        self.bus.deliver(close, GLib.Variant('()', ()))
+        self.assertEqual(self.ended, [])
+        with socket.socket() as endpoint:
+            fd = os.dup(endpoint.fileno())
+            portal_fds = Gio.UnixFDList.new_from_array([fd])
+            self.bus.remote_reply(GLib.Variant('(h)', (0,)), portal_fds)
+            with self.assertRaises(OSError):
+                os.fstat(fd)
+        self.assertEqual(opened, [])
+        self.assertEqual(self.ended, [True])
+
+    def test_reject_other_fd_index_or_extra_fd_without_leak(self):
+        for index, number in ((1, 1), (0, 2)):
+            with self.subTest(index=index, number=number), socket.socket() as endpoint:
+                self.owner()
+                self.complete(self.setup(), streams())
+                opened = []
+                self.run.open_pipewire_remote(self.ready[0], opened.append)
+                descriptors = [os.dup(endpoint.fileno()) for _ in range(number)]
+                self.bus.remote_reply(GLib.Variant('(h)', (index,)), Gio.UnixFDList.new_from_array(descriptors))
+                self.assertEqual(opened, [])
+                self.close_session()
+                for fd in descriptors:
+                    with self.assertRaises(OSError):
+                        os.fstat(fd)
+
     def test_setup_deadline_not_renewed_by_portal_round_trip(self):
         self.owner()
         with patch.object(cast, 'monotonic', return_value=100):
@@ -231,6 +309,20 @@ class TestDesktopScreenCast(unittest.TestCase):
         with patch.object(cast, 'monotonic', return_value=130):
             self.complete(start, streams())
         self.assertFalse(self.ready)
+        self.close_session()
+
+    def test_passing_setup_deadline_cannot_be_extended_by_fd_open(self):
+        self.owner()
+        opened = []
+        with patch.object(cast, 'monotonic', return_value=100):
+            self.complete(self.setup(), streams())
+            self.run.open_pipewire_remote(self.ready[0], opened.append)
+        with socket.socket() as endpoint, patch.object(cast, 'monotonic', return_value=130):
+            fd = os.dup(endpoint.fileno())
+            self.bus.remote_reply(GLib.Variant('(h)', (0,)), Gio.UnixFDList.new_from_array([fd]))
+            with self.assertRaises(OSError):
+                os.fstat(fd)
+        self.assertFalse(opened)
         self.close_session()
 
 
@@ -254,10 +346,15 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
             <method name="CreateSession"><arg type="a{{sv}}" direction="in"/><arg type="o" direction="out"/></method>
             <method name="SelectSources"><arg type="o" direction="in"/><arg type="a{{sv}}" direction="in"/><arg type="o" direction="out"/></method>
             <method name="Start"><arg type="o" direction="in"/><arg type="s" direction="in"/><arg type="a{{sv}}" direction="in"/><arg type="o" direction="out"/></method>
+            <method name="OpenPipeWireRemote"><arg type="o" direction="in"/><arg type="a{{sv}}" direction="in"/><arg type="h" direction="out"/></method>
             </interface></node>''')
         session_xml = Gio.DBusNodeInfo.new_for_xml(f'''<node><interface name="{cast._SESSION}">
             <method name="Close"/></interface></node>''')
-        calls, selected, ended, errors = [], [], [], []
+        calls, selected, ended, errors, borrowed = [], [], [], [], []
+        read_fd, write_fd = os.pipe2(os.O_CLOEXEC | os.O_NONBLOCK)
+        self.addCleanup(os.close, read_fd)
+        self.addCleanup(os.close, write_fd)
+        os.write(write_fd, b'portal-test-fd')
         loop = GLib.MainLoop()
 
         def server(bus, sender, path, iface, method, params, invocation):
@@ -269,6 +366,12 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
                     invocation.return_value(GLib.Variant('()', ()))
                     return
                 values = params.unpack()
+                if method == 'OpenPipeWireRemote':
+                    self.assertEqual(values, (run._session, {}))
+                    descriptors = Gio.UnixFDList.new()
+                    position = descriptors.append(read_fd)
+                    invocation.return_value_with_unix_fd_list(GLib.Variant('(h)', (position,)), descriptors)
+                    return
                 options = values[-1]
                 request = f'{cast._ROOT}/request/{sender[1:].replace(".", "_")}/{options["handle_token"]}'
                 if method == 'CreateSession':
@@ -293,7 +396,11 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
 
         def ready(original, target):
             selected.append(target)
-            original.stop()
+            def remote_ready(remote):
+                fd = remote.fileno()
+                borrowed.append((fd, os.read(fd, 32), os.get_inheritable(fd)))
+                original.stop()
+            original.open_pipewire_remote(target, remote_ready)
 
         def finished(clean):
             ended.append(clean)
@@ -310,9 +417,13 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
             if GLib.MainContext.default().find_source_by_id(timeout) is not None:
                 GLib.source_remove(timeout)
         self.assertEqual(errors, [])
-        self.assertEqual(calls, ['CreateSession', 'SelectSources', 'Start', 'Close'])
+        self.assertEqual(calls, ['CreateSession', 'SelectSources', 'Start', 'OpenPipeWireRemote', 'Close'])
         self.assertEqual(selected, [cast.ScreenCastTarget('extend', 54, 903)])
         self.assertEqual(ended, [True])
+        fd, data, inherited = borrowed[0]
+        self.assertEqual((data, inherited), (b'portal-test-fd', False))
+        with self.assertRaises(OSError):
+            os.fstat(fd)
 
 
 if __name__ == '__main__':

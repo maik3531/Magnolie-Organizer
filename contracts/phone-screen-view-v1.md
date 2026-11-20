@@ -204,7 +204,11 @@ request before each call; neither its method return nor an early `Response`
 alone can advance setup. It checks the original UI/session guard and one setup
 deadline throughout `CreateSession` → `SelectSources` → `Start`. It accepts a
 single stream with the exact requested source type, and requires the PipeWire
-serial when the portal exposes ScreenCast v6 or later. A successful selection
-does not yet open PipeWire or report a live capture. Cancellation closes only
-the original requests/session; an unconfirmed portal cleanup is not an output
-removal or stream-drain proof.
+serial when the portal exposes ScreenCast v6 or later. Selection alone neither
+opens PipeWire nor reports a live capture. The exact selected target permits
+one bounded `OpenPipeWireRemote`, still within the original setup deadline.
+Only the original portal's single returned descriptor is accepted; there is no
+default PipeWire connection or descriptor transfer over renderer IPC. Stop
+invalidates the local borrowed descriptor and accounts for any late reply
+before reporting portal cleanup. That result is not proof of compositor output
+removal or that a separate media consumer has drained.
