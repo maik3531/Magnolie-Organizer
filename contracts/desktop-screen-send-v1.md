@@ -73,7 +73,11 @@ The local reader/encoder and portal tests do not validate this wire contract.
 The isolated Linux draft writer implements the socket proof and records, but
 does not own discovery, authenticated control dispatch, heartbeat scheduling,
 or any Android viewer. Its trusted caller must bind the original accepted
-socket and PREPARED receipt and perform the guarded SEND control write.
+socket and PREPARED receipt and perform the guarded SEND control write. The
+separate Kotlin draft reader authenticates proof and records on its socket but
+requires the original caller to supply the authenticated SEND receipt. It
+does not decode or display images. The loopback interoperability test uses
+a controlled control handoff, not the application protocol or a phone viewer.
 Before allocation or advertising, check independent vectors and incompatible
 direction/mode/session rejection, data-before-SEND, stop during blocked I/O, and
 the real native phone viewer. Extended mode additionally needs the compositor
