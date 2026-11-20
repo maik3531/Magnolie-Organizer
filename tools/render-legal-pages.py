@@ -201,7 +201,7 @@ def legal_page(config, operator, translations, code, kind):
 <meta name="theme-color" content="#304d3b"><meta name="robots" content="noindex,follow">
 <link rel="canonical" href="{config['source_url']}/{page.parent}/">
 {alternates(config, kind)}
-<link rel="icon" href="{relative(page, 'assets/favicon.svg')}" type="image/svg+xml">
+<link rel="icon" href="{relative(page, 'assets/favicon-tray.svg')}" type="image/svg+xml">
 <link rel="stylesheet" href="{relative(page, 'assets/legal.css')}">
 </head>
 <body>

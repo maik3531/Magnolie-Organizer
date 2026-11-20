@@ -36,6 +36,18 @@ Die Auswahl benötigt weder Cookies noch Web Storage, einen Standortdienst
 oder eine externe Übersetzungs-API. Ohne JavaScript bleibt die deutsche
 Startseite samt direkten Sprachlinks nutzbar.
 
+Allgemeine Website-Links, etwa in beiden README-Dateien, verweisen auf die
+Startadresse ohne Sprachsuffix. `/en/`, `/de/` und `intl/<Sprache>/` sind für
+die ausdrücklich gewählte Sprachfassung vorgesehen.
+
+Das Favicon `assets/favicon-tray.svg` ist eine unveränderte Kopie des normalen
+Organizer-/Tray-Symbols aus `magnolie-organizer/symbole/magnolie-organizer.svg`.
+Alle Sprach- und Rechtsseiten verwenden diese Datei. Der separate Dateiname
+verhindert die Weiterverwendung des alten Browser-Favicons aus dem Cache.
+Die bisherige Blüte in `assets/favicon.svg` dient nur noch als Verzierung im
+Zeitungskopf der Presseschau. Bei Änderungen am Produktzeichen die Kopie aus
+der maßgeblichen Quelle erneuern.
+
 Betreiberangaben ausschließlich aus bestätigten Angaben des Betreibers oder
 eindeutig zugehörigen öffentlichen Projektquellen pflegen. Fehlende Angaben
 werden nicht abgeleitet oder erfunden; unvollständige Entwürfe sind vor einer
