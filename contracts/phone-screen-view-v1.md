@@ -53,6 +53,17 @@ follow its compatible desktop-advertisement/phone-probe pattern rather than
 adding a permanent Notes status-list entry. Use the authenticated channel's
 ephemeral controls, never its persistent queue, ACK history or replay files.
 
+The v26 control bodies share `version` (integer 26), canonical UUIDv4
+`request_id`, lowercase 64-hex `nonce` and `op`. Phone-to-desktop requests
+carry `probe` (no additional fields) or `prepared` (32-hex `session`).
+Desktop-to-phone reports carry `offer` (`session`, 64-hex `secret`, `port`,
+`width`, `height`, `density`) or `send` (`session`). Either direction may
+emit terminal `stop` (`session`) or `error` (`session` and a fixed `reason`
+code). No offered address, unknown fields, audio options or input capability.
+The normal authenticated message envelope is limited to 4096 bytes and a
+maximum lifetime of 60 seconds. Each endpoint also maintains a local setup
+deadline from its original probe; active viewing always needs live guards.
+
 1. After seeing this desktop's feature marker on the live paired WLAN
    connection, a supported, visible Notes Activity may report a fresh probe.
    A probe only means the phone can be asked; it never starts capture.

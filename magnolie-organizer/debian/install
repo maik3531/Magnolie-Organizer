@@ -35,6 +35,7 @@ bin/magnolie_contact_notes_key.py            usr/bin
 bin/magnolie_contact_notes_ui.py             usr/bin
 bin/magnolie_phone_screen_window.py          usr/bin
 bin/magnolie_phone_screen_transport.py       usr/bin
+bin/magnolie_phone_screen_control.py         usr/bin
 bin/magnolie_contact_notes_session.py        usr/bin
 bin/magnolie_contact_notes_setup_run.py      usr/bin
 bin/magnolie_contact_notes_requests.py       usr/bin

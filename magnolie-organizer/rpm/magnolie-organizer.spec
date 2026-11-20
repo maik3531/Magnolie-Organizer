@@ -176,6 +176,7 @@ install -Dpm 0644 bin/magnolie_contact_notes_key.py %{buildroot}%{_bindir}/magno
 install -Dpm 0644 bin/magnolie_contact_notes_ui.py %{buildroot}%{_bindir}/magnolie_contact_notes_ui.py
 install -Dpm 0644 bin/magnolie_phone_screen_window.py %{buildroot}%{_bindir}/magnolie_phone_screen_window.py
 install -Dpm 0644 bin/magnolie_phone_screen_transport.py %{buildroot}%{_bindir}/magnolie_phone_screen_transport.py
+install -Dpm 0644 bin/magnolie_phone_screen_control.py %{buildroot}%{_bindir}/magnolie_phone_screen_control.py
 install -Dpm 0644 bin/magnolie_contact_notes_session.py %{buildroot}%{_bindir}/magnolie_contact_notes_session.py
 install -Dpm 0644 bin/magnolie_contact_notes_setup_run.py %{buildroot}%{_bindir}/magnolie_contact_notes_setup_run.py
 install -Dpm 0644 bin/magnolie_contact_notes_requests.py %{buildroot}%{_bindir}/magnolie_contact_notes_requests.py
