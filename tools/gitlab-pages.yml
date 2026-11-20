@@ -1,0 +1,23 @@
+# Complete website archive from this GitLab commit; no external source checkout.
+website-pages:
+  stage: deploy
+  image: python:3-slim
+  variables:
+    GIT_DEPTH: "1"
+    GIT_LFS_SKIP_SMUDGE: "1"
+  resource_group: website-pages
+  script:
+    - python3 -m zipfile -e Magnolie-Webseite.zip .website-source
+    - python3 .website-source/tools/build-pages.py --output public --base-url "$CI_PAGES_URL"
+  pages:
+    publish: public
+  artifacts:
+    paths:
+      - public
+    expire_in: 1 day
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - Magnolie-Webseite.zip
+        - .gitlab-ci.yml
