@@ -65,6 +65,45 @@ oder eine neue iOS-App ist dafür nicht erforderlich. Das ist ein dokumentierter
 Ansatz, noch kein bestandener Gerätetest; er belegt keinen bestimmten
 Apple-Notizen-Export unter iOS 15.
 
+## Bildschirmspiegelung über AirPlay / UxPlay
+
+Ergänzung vom 2026-11-20, [Issue #721](https://github.com/maik3531/Magnolie-Organizer/issues/721):
+Der vom Nutzer genannte [GNU/Linux.ch-Artikel](https://gnulinux.ch/uxplay-iphone-bildschirm-unter-linux-anzeigen)
+zeigt einen weiteren vorhandenen iPhone-Weg. UxPlay empfängt Bildschirm und Ton
+über AirPlay; das iPhone verwendet dazu seine Bildschirmsynchronisierung im
+Kontrollzentrum. Dafür wird keine eigene Notes-App oder andere neue iPhone-App
+benötigt. Dieser Weg ist unabhängig von einer Android-Notes-Verbindung.
+
+Geprüft wurden die Quellen der aktuell stabilen
+[Version 1.73.7](https://github.com/FDH2/UxPlay/releases/tag/v1.73.7), Commit
+`df67c212a433cf6dda3676dd40c097900d24e645`. Die
+[Mac-Bauanleitung](https://github.com/FDH2/UxPlay/blob/v1.73.7/README.md#building-uxplay-on-macos-intel-x86_64-and-apple-silicon-m1m2-macs)
+beschreibt Intel und Apple Silicon sowie ältere Macs ohne den eingebauten
+AirPlay-Empfänger. Der Entwicklungszweig bezeichnet sich bereits als
+„1.74 Experimental“; dessen neue Funktionen sind kein stabiler Nachweis.
+
+Für den Mac-Anschluss sind UxPlay, GStreamer, libplist, OpenSSL 3 und Bonjour
+zu berücksichtigen. Die Anleitung nennt ausdrücklich Besonderheiten des
+GStreamer-Hauptthreads, Videosinks und Fensterschließens auf macOS sowie
+Framedrops bei bestimmten Zeitstempel-Einstellungen. Die Paketierung und
+Standardoptionen müssen deshalb auf beiden Architekturen tatsächlich geprüft
+werden. Geeignete vorhandene Komponenten beim bewussten Start verwenden;
+fehlende Komponenten nicht ungefragt nachinstallieren. Bei einer Mitlieferung
+soll der Nutzer keine Entwicklungswerkzeuge zum Kompilieren benötigen.
+
+UxPlay steht unter GPLv3. Bei einer Auslieferung gehören die Komponentenlizenzen
+und zugehörigen Quellen zum Paketnachweis; insbesondere beschreibt das Projekt
+OpenSSL 3 als geeigneten Linkpfad. Eine fertige Magnolie-Paketintegration ist
+damit noch nicht geprüft.
+
+**Spiegeln und Steuern sind getrennte Fähigkeiten:** UxPlay liefert Bild und
+Ton, aber keine Maus-/Tastatur-Fernbedienung des iPhones. Eine solche Steuerung
+darf die Organizer-Oberfläche daraus nicht ableiten. Die geplante Integration
+benötigt Start/Stop und einen tatsächlichen Verbindungszustand; die Abnahme
+umfasst echte iPhones, Kopplung, Bild/Ton, Drehung, Latenz/Bildrate, längere
+Sitzungen, Verbindungsabbruch und erneutes Verbinden. Es gibt hierfür bisher
+keinen bestandenen nativen Magnolie-Gerätetest.
+
 ## Dateiübertragung und Livezeichnen unterscheiden
 
 Der geprüfte iOS-Pluginbestand unterstützt Dateien, Fotos/Videos und bewusstes
