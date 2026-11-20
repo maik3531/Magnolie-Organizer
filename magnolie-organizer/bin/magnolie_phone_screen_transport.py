@@ -26,6 +26,81 @@ def _context(session, secret, width, height):
     return _DOMAIN + session + struct.pack("!HH", width, height)
 
 
+class PhoneScreenWlanListener:
+    """Single provisional accept on the original authenticated TCP interface.
+
+    The native caller must first check explicit desktop opt-in and WLAN. The
+    address check is not authentication; the accepted socket still needs proof.
+    """
+
+    def __init__(self, channel, require_original):
+        from magnolie_telefon import SecureChannel
+        if type(channel) is not SecureChannel or type(channel.sock) is not socket.socket or channel.sock.family not in (socket.AF_INET, socket.AF_INET6):
+            raise TypeError("screen_listener_original_tcp_required")
+        self._channel = channel
+        self._parent = channel.sock
+        self._local, self._peer = self._parent.getsockname(), self._parent.getpeername()
+        self._guard = require_original
+        self._lock = threading.Lock()
+        self._used = False
+        self._closed = threading.Event()
+        self._current()
+        listener = socket.socket(self._parent.family, socket.SOCK_STREAM)
+        try:
+            if listener.family == socket.AF_INET6:
+                listener.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+            listener.bind((self._local[0], 0, 0, self._local[3]) if listener.family == socket.AF_INET6 else (self._local[0], 0))
+            listener.listen(1)
+            listener.settimeout(.1)
+            self._address = listener.getsockname()
+            self._current()
+        except BaseException:
+            listener.close()
+            raise
+        self._listener = listener
+        self.port = self._address[1]
+
+    def _current(self):
+        self._guard()
+        if (self._closed.is_set() or self._channel.sock is not self._parent or
+                self._parent.getsockname() != self._local or self._parent.getpeername() != self._peer):
+            raise PermissionError("screen_listener_original_socket_lost")
+
+    def accept(self):
+        with self._lock:
+            if self._used or self._closed.is_set():
+                raise PermissionError("screen_listener_already_used")
+            self._used = True
+        accepted = None
+        try:
+            end = time.monotonic() + 5
+            while True:
+                self._current()
+                if time.monotonic() >= end:
+                    raise TimeoutError("screen_listener_timeout")
+                try:
+                    accepted, peer = self._listener.accept()
+                    break
+                except socket.timeout:
+                    continue
+            if (accepted.family != self._parent.family or accepted.getsockname() != self._address or
+                    peer[0] != self._peer[0] or (len(peer) == 4 and peer[3] != self._peer[3])):
+                raise PermissionError("screen_listener_unrelated_address")
+            self._current()
+            result, accepted = accepted, None
+            return result
+        finally:
+            if accepted is not None:
+                accepted.close()
+            self.close()
+
+    def close(self):
+        with self._lock:
+            if not self._closed.is_set():
+                self._closed.set()
+                self._listener.close()
+
+
 def prove_phone_screen_socket(sock, session, secret, width, height, require_original):
     """On failure close the exact accepted socket; on success no frame was read."""
     try:

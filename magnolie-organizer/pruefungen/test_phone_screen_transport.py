@@ -7,7 +7,8 @@ from cryptography.exceptions import InvalidTag
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 import magnolie_phone_screen_transport as wire
-from magnolie_phone_screen_transport import PhoneScreenViewLane, prove_phone_screen_socket
+from magnolie_phone_screen_transport import PhoneScreenViewLane, PhoneScreenWlanListener, prove_phone_screen_socket
+from magnolie_telefon import SecureChannel
 
 
 # Same fixed wire vectors as the Kotlin sender test (not JPEG fixtures).
@@ -79,3 +80,39 @@ def test_socket_proof_requires_original_context_before_record_lane(monkeypatch, 
                 prove_phone_screen_socket(a, bytes(range(16)), bytes(range(32)), 18, 16, lambda: None)
             assert a.fileno() == -1
         assert b.recv(16) == challenge
+
+
+@pytest.mark.parametrize("event", ["original", "other_address", "retired"])
+def test_listener_uses_original_interface_and_consumes_one_accept(event):
+    with socket.socket() as control_listener:
+        control_listener.bind(("127.0.0.1", 0))
+        control_listener.listen(1)
+        with socket.create_connection(control_listener.getsockname(), timeout=1) as control_peer:
+            control, _ = control_listener.accept()
+            with control, socket.socket() as data_peer:
+                original = SecureChannel(control, bytes(16), bytes(32), bytes(4), bytes(32), bytes(4))
+                live = True
+
+                def guard():
+                    if not live:
+                        raise PermissionError("retired")
+
+                listener = PhoneScreenWlanListener(original, guard)
+                try:
+                    data_peer.settimeout(1)
+                    if event == "other_address":
+                        data_peer.bind(("127.0.0.2", 0))
+                    data_peer.connect((control.getsockname()[0], listener.port))
+                    live = event != "retired"
+                    if event != "original":
+                        with pytest.raises(PermissionError):
+                            listener.accept()
+                    else:
+                        with listener.accept() as accepted:
+                            assert accepted.getpeername()[0] == control.getpeername()[0]
+                            assert accepted.getsockname() == (control.getsockname()[0], listener.port)
+                    with pytest.raises(PermissionError):
+                        listener.accept()
+                    assert control.fileno() >= 0 and control_peer.fileno() >= 0
+                finally:
+                    listener.close()

@@ -4,6 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.ServerSocket
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
 
@@ -75,5 +76,30 @@ class PhoneScreenViewLaneTest {
         }
         assertEquals(-1, receiver.socket().getInputStream().read())
         assertFalse(producer.isOpen)
+    }
+
+    @Test fun newDataSocketUsesOnlyOriginalWlanPeerAndInterface() {
+        val loopback = InetAddress.getByName("127.0.0.1")
+        ServerSocket(0, 1, loopback).use { parentListener ->
+            TelefonTcpRoehre("127.0.0.1", port = parentListener.localPort).use { parent ->
+                parentListener.accept().use { original ->
+                    ServerSocket(0, 1, loopback).use { dataListener ->
+                        dataListener.soTimeout = 2_000
+                        assertThrows(IllegalStateException::class.java) {
+                            openPhoneScreenWlanSocket(parent, dataListener.localPort) { error("revoked") }
+                        }
+                        openPhoneScreenWlanSocket(parent, dataListener.localPort) {}.use { data ->
+                            dataListener.accept().use { peer ->
+                                assertEquals(parent.remoteAddress, (data.remoteAddress as InetSocketAddress).address)
+                                assertEquals(original.inetAddress, peer.inetAddress)
+                                assertFalse(parent.isClosed)
+                            }
+                        }
+                        parent.close()
+                        assertThrows(java.io.IOException::class.java) { openPhoneScreenWlanSocket(parent, dataListener.localPort) {} }
+                    }
+                }
+            }
+        }
     }
 }

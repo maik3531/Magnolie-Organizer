@@ -3,6 +3,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import java.io.EOFException
 import java.io.IOException
 import java.net.SocketTimeoutException
+import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.SocketChannel
 import java.util.concurrent.atomic.AtomicBoolean
@@ -11,6 +12,41 @@ import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+
+/** Open no arbitrary address: the only remote and local interface are those of
+ * the authenticated original WLAN parent. The caller still owns consent and proof. */
+internal fun openPhoneScreenWlanSocket(pipe: TelefonTcpRoehre, port: Int, requireOriginal: () -> Unit): SocketChannel {
+    require(port in 1024..65535)
+    fun current() {
+        requireOriginal()
+        pipe.pruefen()
+        if (Thread.currentThread().isInterrupted) throw IOException("screen_socket_connect_interrupted")
+    }
+    current()
+    val local = pipe.localAddress
+    val remote = pipe.remoteAddress
+    val data = SocketChannel.open()
+    try {
+        data.configureBlocking(false)
+        data.bind(InetSocketAddress(local, 0))
+        current()
+        val deadline = System.nanoTime() + 2_000_000_000L
+        if (!data.connect(InetSocketAddress(remote, port))) {
+            while (true) {
+                current()
+                if (System.nanoTime() - deadline >= 0) throw SocketTimeoutException("screen_socket_connect_timeout")
+                if (data.finishConnect()) break
+                LockSupport.parkNanos(5_000_000L)
+            }
+        }
+        current()
+        check((data.remoteAddress as InetSocketAddress).address == remote && (data.localAddress as InetSocketAddress).address == local)
+        return data
+    } catch (failure: Exception) {
+        try { data.close() } catch (cleanup: Exception) { if (cleanup !== failure) failure.addSuppressed(cleanup) }
+        throw failure
+    }
+}
 
 /** Send-only data lane. Caller must supply the original peer-bound socket,
  * fresh context and live SEND guard; this class never starts capture. */
