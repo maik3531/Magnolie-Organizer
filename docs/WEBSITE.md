@@ -43,44 +43,19 @@ und Veröffentlichungstexte im Ausgabeordner an. Broschüren und das darin
 enthaltene Medienpaket verweisen auf die zentrale GitHub-Pages-Adresse.
 Der Teilen-Knopf teilt immer die aktuell besuchte Website-Adresse.
 
-## GitLab-Veröffentlichung
+## GitLab-Links zur zentralen Website
 
-Im bestehenden GitLab-Projekt `maik3531/mint-forgs` wird der vollständige
-Websitebestand als `Magnolie-Webseite.zip` gepflegt. Die Archivwurzel beginnt
-unmittelbar mit `index.html`, `assets/`, `en/`, `intl/`, `media/` und `presse/`;
-auch das Buildskript und die zugehörigen Website-Dokumente sind enthalten.
-Auf GitHub bleiben dieselben Website-Dateien einzeln an der Repository-Wurzel
-bearbeitbar. Änderungen an der Website, den Medien und der Presseliste werden
-bei der Aktualisierung des GitLab-Archivs gemeinsam übernommen.
+Website und Presseschau werden ausschließlich in diesem GitHub-Repository
+gepflegt und über GitHub Pages veröffentlicht. Die README-Dateien im bestehenden
+GitLab-Projekt `maik3531/mint-forgs` verweisen direkt auf die zentralen Seiten:
 
-Die für das bestehende GitLab-Projekt bestimmte Pipeline ist unter
-[`tools/gitlab-pages.yml`](../tools/gitlab-pages.yml) dokumentiert und wird
-dort als `.gitlab-ci.yml` verwendet. Sie entpackt ausschließlich das Archiv
-aus dem jeweiligen GitLab-Commit und baut es mit der eigenen Pages-Adresse:
+- [Magnolie-Website mit Übersicht und Downloads](https://maik3531.github.io/Magnolie-Organizer/)
+- [Magnolie-Presseschau](https://maik3531.github.io/Magnolie-Organizer/presse/)
 
-```sh
-python3 -m zipfile -e Magnolie-Webseite.zip .website-source
-python3 .website-source/tools/build-pages.py --output public --base-url "$CI_PAGES_URL"
-```
-
-`.website-source/` und `public/` sind temporäre Arbeits- beziehungsweise
-Ausgabeordner der Pipeline. Die ausgelieferte Startseite liegt direkt an der
-Wurzel der GitLab-Pages-Adresse. Alle Website-Dateien und Medien werden von
-GitLab ausgeliefert; für den Websitebetrieb sind keine Abrufe von GitHub oder
-ChatGPT erforderlich. Verweise auf Projektquellen, Downloads und externe
-Presseartikel bleiben gewöhnliche ausgehende Links.
-
-Die `.gitlab-ci.yml` in der GitHub-Quelle beschreibt zusätzlich den direkten
-Bau aus einzelnen Quelldateien. Für die Archivablage im bestehenden GitLab-
-Projekt ist dagegen `tools/gitlab-pages.yml` maßgeblich. Beide Varianten
-verwenden dasselbe Buildskript und prüfen lokale Links vor der Veröffentlichung.
-
-Die Pipeline veröffentlicht `public/` bei Änderungen von Archiv oder
-CI-Konfiguration auf dem Standardbranch und kann dort auch über die GitLab-
-Weboberfläche gestartet werden. Runner-Verfügbarkeit, endgültige Pages-Adresse
-und erfolgreiche Veröffentlichung müssen noch am GitLab-Projekt bestätigt
-werden. Erst ein erfolgreicher Pages-Lauf und der Aufruf der veröffentlichten
-Seiten belegen den Live-Stand.
+Änderungen an Website, Medien und Presseliste erfolgen hier im GitHub-Repository.
+Auf GitLab entfällt die bisherige separate `PRESSE.md`; dort bleiben die
+README-Links als Einstieg erhalten. Ein zusätzliches Website-Archiv und eine
+eigene GitLab-Pages-Pipeline werden nicht gepflegt.
 
 Die gewöhnliche GitHub- oder GitLab-Repository-Adresse zeigt weiterhin die
 Projekt- und Codeansicht. Sie lässt sich nicht durch Repository-Dateien zur
