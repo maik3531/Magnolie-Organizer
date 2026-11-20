@@ -18,6 +18,7 @@ class _OriginalReader:
         self.peer_id, self.channel = peer_id, channel
         peer = _paired_peer(self.store, peer_id)
         self.key = peer and peer.get('static_public')
+        self.label = (peer or {}).get('display_name') or peer_id
         self.retired = Event()
         self.receive = receive
         self.delivering = False  # Under the dispatch lock only.

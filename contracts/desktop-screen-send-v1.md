@@ -110,8 +110,15 @@ authenticated peer key, store and service generation. Without that attachment
 the reserved wrapper is silently dropped; it is never replayed, acknowledged
 or routed through ordinary messages. The attachment is not capture consent.
 The native caller must retain the slot through cleanup and fence handoff with
-both its consent and the attachment's live guard. No product UI, IPC or
-capability registers an attachment.
+both its consent and the attachment's live guard. The private GTK admission
+arms only for an explicitly selected peer and exact local mode. A matching
+request still needs an explicit native confirmation, naming the paired peer
+and the mode, before the separate portal can begin. Denial is the default.
+The confirmation shares the original setup deadline and desktop lock lease;
+unlocking never revives it. The dialog offers Stop after confirmation; owner
+exit or revocation also retires the attempt. Unknown cleanup holds the slot
+closed to replacement. No product UI, IPC or capability registers an
+attachment or opens this dialog.
 
 ## Retirement and acceptance
 
