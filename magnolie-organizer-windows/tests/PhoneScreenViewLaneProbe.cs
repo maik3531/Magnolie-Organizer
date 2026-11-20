@@ -31,13 +31,18 @@ internal static class PhoneScreenViewLaneProbe
     private static void Prove(PhoneScreenViewLane lane, NetworkStream phone, bool wrong = false)
     {
         var proof = Task.Run(lane.Prove);
+        AnswerProof(phone, wrong);
+        proof.GetAwaiter().GetResult();
+    }
+
+    private static void AnswerProof(NetworkStream phone, bool wrong = false)
+    {
         byte[] context = new byte["magnolie-phone-screen-proof/1\0magnolie-phone-screen-view/1\0phone_to_desktop\0"u8.Length + 36];
         "magnolie-phone-screen-proof/1\0magnolie-phone-screen-view/1\0phone_to_desktop\0"u8.CopyTo(context);
         Session.CopyTo(context.AsSpan(context.Length - 36));
         Convert.FromHexString(wrong ? "00120010" : "00110010").CopyTo(context.AsSpan(context.Length - 20));
         phone.ReadExactly(context.AsSpan(context.Length - 16));
         phone.Write(HMACSHA256.HashData(Secret, context));
-        proof.GetAwaiter().GetResult();
     }
 
     private static void Throws<T>(Action action) where T : Exception
@@ -114,6 +119,53 @@ internal static class PhoneScreenViewLaneProbe
             Check(phone.ReadByte() == -1);
         });
         Console.WriteLine("6/6 Windows screen wire source checks (managed .NET loopback, no native UI)");
+        WithPair((original, peer) =>
+        {
+            using var writeEntered = new ManualResetEventSlim(false);
+            using var framePresented = new ManualResetEventSlim(false);
+            using var phone = new NetworkStream(peer);
+            var publication = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            byte[]? picture = null;
+            var ended = 0;
+            var run = new PhoneScreenReceiveRun(original, Session, Secret, 17, 16, () => { },
+                () => { if (!publication.Task.IsCompletedSuccessfully) throw new UnauthorizedAccessException(); },
+                guard => { guard(); writeEntered.Set(); return publication.Task; },
+                bytes => { if (!bytes.AsSpan().SequenceEqual("second"u8)) return false; picture = bytes; framePresented.Set(); return true; },
+                () => Interlocked.Increment(ref ended));
+            try
+            {
+                run.Start();
+                AnswerProof(phone);
+                Check(writeEntered.Wait(TimeSpan.FromSeconds(1)));
+                phone.Write(Convert.FromHexString("000000100000000000000000645ed91909ccdd8fc7eec4b153dbaa61"
+                    + "0000001600000000000000012cf1d07d1ce098974a3ae945893a44699c661252d503"));
+                Check(!framePresented.Wait(TimeSpan.FromMilliseconds(100)) && !run.Drained.IsCompleted);
+                publication.SetResult();
+                Check(framePresented.Wait(TimeSpan.FromSeconds(1)));
+                run.Stop();
+                run.Drained.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+                Check(ended == 1 && run.Failure is null && picture is not null && picture.AsSpan().IndexOfAnyExcept((byte)0) < 0);
+            }
+            finally
+            {
+                publication.TrySetCanceled();
+                run.Stop();
+                run.Drained.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+            }
+        });
+        WithPair((original, peer) =>
+        {
+            using var phone = new NetworkStream(peer);
+            int stopped = 0;
+            var run = new PhoneScreenReceiveRun(original, Session, Secret, 17, 16, () => { }, () => { },
+                _ => throw new Exception("Unexpected publication"), _ => false, () => stopped++);
+            run.Stop();
+            run.Stop();
+            run.Drained.WaitAsync(TimeSpan.FromSeconds(1)).GetAwaiter().GetResult();
+            Check(stopped == 1 && phone.ReadByte() == -1);
+            Throws<InvalidOperationException>(run.Start);
+        });
+        Console.WriteLine("2/2 Windows receive-owner checks (managed .NET loopback, controlled output)");
     }
 }
 #endif
