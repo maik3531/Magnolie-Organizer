@@ -16,15 +16,18 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import io.gitlab.maik3531.magnolienotes.R
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.*
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -233,6 +236,57 @@ class DesktopScreenViewerTest {
                     }
                 }
             }
+        }
+    }
+
+    @Test fun encryptedDraftAgainstLinuxReachesNativeViewerAndStopsWithoutClosingParent() {
+        assumeTrue(System.getenv("MAGNOLIE_DESKTOP_SCREEN_INTEROP") == "1")
+        val script = File("../magnolie-organizer/pruefungen/desktop_screen_draft_interop_peer.py").canonicalFile
+        assertTrue(script.isFile)
+        val server = ProcessBuilder("/usr/bin/python3", "-B", script.path)
+            .redirectError(ProcessBuilder.Redirect.INHERIT).start()
+        val readers = Executors.newSingleThreadExecutor()
+        try {
+            val port = readers.submit<Int> { checkNotNull(server.inputStream.bufferedReader().readLine()).toInt() }
+                .get(4, TimeUnit.SECONDS)
+            Fixture().use { f ->
+                TelefonTcpRoehre("127.0.0.1", port = port).use { pipe ->
+                    pipe.setReadTimeout(4_000)
+                    TelefonSecureChannel(pipe.input, pipe.output, ByteArray(16), ByteArray(32) { 1 }, ByteArray(4) { 4 },
+                        ByteArray(32) { 2 }, ByteArray(4) { 5 }).use { parent ->
+                        DesktopScreenDraftPhoneAttempt(f.activity, "Paired desktop", parent, pipe, {}, 2, 10_000).use { attempt ->
+                            attempt.begin()
+                            assertTrue(attempt.receive(parent, parent.receive())) // OFFER
+                            val dialog = awaitValue {
+                                shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
+                                ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }
+                            }
+                            val image = views(dialog.window!!.decorView).filterIsInstance<ImageView>()
+                                .single { it.contentDescription == f.activity.getString(R.string.desktop_screen_view_picture) }
+                            assertNull(image.drawable)
+                            f.button(dialog, R.string.desktop_screen_view_accept).performClick()
+                            assertTrue(attempt.receive(parent, parent.receive())) // SEND
+                            val drawn = awaitValue {
+                                shadowOf(Looper.getMainLooper()).idleFor(30, TimeUnit.MILLISECONDS)
+                                (image.drawable as? BitmapDrawable)?.bitmap
+                            }
+                            val pixel = drawn.getPixel(28, 16)
+                            assertTrue(kotlin.math.abs(Color.green(pixel) - 110) <= 4 && kotlin.math.abs(Color.blue(pixel) - 228) <= 4)
+                            f.controller.pause()
+                            assertNull(image.drawable)
+                            assertFalse(dialog.isShowing)
+                            awaitValue { true.takeIf { attempt.drained } }
+                            parent.send(kotlinx.serialization.json.JsonObject(mapOf("type" to kotlinx.serialization.json.JsonPrimitive("ping"))))
+                            assertEquals(kotlinx.serialization.json.JsonPrimitive("pong"), parent.receive()["type"])
+                        }
+                    }
+                }
+            }
+            assertTrue(server.waitFor(3, TimeUnit.SECONDS))
+            assertEquals(0, server.exitValue())
+        } finally {
+            if (server.isAlive) server.destroyForcibly().waitFor(2, TimeUnit.SECONDS)
+            readers.shutdownNow()
         }
     }
 

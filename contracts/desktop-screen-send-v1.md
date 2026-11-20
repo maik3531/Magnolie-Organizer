@@ -121,7 +121,12 @@ The draft Android owner starts its receiver only on the native approval click.
 It binds SEND to the exact control parent and proof transcript, and never
 consumes media before the PREPARED write returns. Stop closes its data socket;
 drain also requires the receiver worker to exit and the dialog to be removed.
-This composition is not registered with the product WLAN dispatcher.
+The isolated Android attempt joins that viewer to the original encrypted
+control channel and opens its data socket only on the native approval click.
+When the viewer closes, the attempt can report one terminal STOP on the still
+current parent; this write cannot reopen the viewer or grant media authority.
+Drain includes that control worker. This composition is not registered with
+the product WLAN dispatcher.
 
 Cancel, lock, viewer closure, source or geometry change, lost control parent,
 revocation or disconnect retire the original session. Stop first prevents future
@@ -135,9 +140,11 @@ An opt-in Python/Kotlin loopback test exercises both draft adapters and the
 Linux attempt over two TCP sockets with preconfigured test keys: encrypted
 request through STOP, mutual proof, a synthetic JPEG and the sender's timed
 heartbeat. Ordinary traffic continues on the same control connection after
-STOP. The test substitutes the local compositor run; it does not run pairing,
-the product dispatcher, a portal or a native phone viewer. The live caller
-still has to own discovery, native consent and authenticated control dispatch.
+STOP. A separate Robolectric variant drives the Android approval dialog,
+decodes the synthetic JPEG into the view, and pauses the Activity to clear the
+image and stop the session. Both variants substitute the local compositor run;
+neither runs pairing, the product dispatcher, a portal or a physical phone.
+The live caller still has to own discovery, native consent and authenticated control dispatch.
 The Kotlin media lane checks JPEG headers before handoff; decoding and display
 are separate.
 Before allocation or advertising, check independent vectors and incompatible

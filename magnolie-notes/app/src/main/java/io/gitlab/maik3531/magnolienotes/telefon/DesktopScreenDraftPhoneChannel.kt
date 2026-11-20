@@ -32,6 +32,11 @@ internal class DesktopScreenDraftPhoneChannel(private val channel: TelefonSecure
         return DesktopScreenDraftControl.validate(body, DesktopScreenDraftControl.Role.DESKTOP)
     }
 
+    fun openOriginalData(port: Int, guard: () -> Unit) = openPhoneScreenWlanSocket(pipe, port) {
+        current()
+        guard()
+    }
+
     companion object {
         const val TYPE = "desktop_screen_draft"
     }
@@ -51,6 +56,7 @@ internal class DesktopScreenDraftPhoneRequest(private val wire: DesktopScreenDra
     private var proof: JsonPrimitive? = null
     private var preparedEdge = false
     private var receivedSend = false
+    private var terminalUsed = false
     val setupDeadlineNanos: Long
     private val base: Map<String, JsonPrimitive>
 
@@ -100,6 +106,7 @@ internal class DesktopScreenDraftPhoneRequest(private val wire: DesktopScreenDra
             val incoming = body.getValue("session") as JsonPrimitive
             if (body["op"] == JsonPrimitive("stop")) {
                 if (session != incoming) return false
+                terminalUsed = true // Do not echo the remote STOP.
                 retireLocked()
                 return true
             }
@@ -171,6 +178,18 @@ internal class DesktopScreenDraftPhoneRequest(private val wire: DesktopScreenDra
         phase = Phase.CLOSED
         pending = null
         proof = null
+    }
+
+    /** Once retired, may only report STOP, and only on the original live parent. */
+    fun writeStop() {
+        val body = synchronized(gate) {
+            check(phase == Phase.CLOSED)
+            val original = session ?: return
+            if (terminalUsed) return
+            terminalUsed = true
+            JsonObject(base + mapOf("op" to JsonPrimitive("stop"), "session" to original))
+        }
+        wire.write(body) { }
     }
 
     override fun close() {
