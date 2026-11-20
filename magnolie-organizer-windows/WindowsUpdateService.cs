@@ -17,6 +17,8 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class WindowsUpdateService : IDisposable
 {
     internal const string ManifestUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/update.xml";
+    private const string RawPackageBase = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/";
+    private const string RegistryPackageBase = "https://gitlab.com/api/v4/projects/78301901/packages/generic/magnolie-desktop/";
     internal const long MaximumPackageBytes = 512L * 1024 * 1024;
     private const int MaximumManifestBytes = 256 * 1024;
     private const string PublicKey = "8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1Y=";
@@ -49,7 +51,7 @@ internal sealed partial class WindowsUpdateService : IDisposable
     internal bool IsValidatedReleaseUrl(string target) => lastRelease is not null &&
         string.Equals(lastRelease.Url, target, StringComparison.Ordinal) &&
         IsExactPackageUrl(target,
-            $"Magnolie-Organizer-Windows-{lastRelease.Version}-Setup-x64.exe");
+            $"Magnolie-Organizer-Windows-{lastRelease.Version}-Setup-x64.exe", lastRelease.Version);
 
     internal async Task<UpdateCheckResult> CheckAsync(string installedVersion)
     {
@@ -199,14 +201,14 @@ internal sealed partial class WindowsUpdateService : IDisposable
             throw new InvalidDataException("The update information contains invalid release fields.");
         if (windowsVersion != version || manualVersion != version || windowsSha != manualWindowsSha)
             throw new InvalidDataException("The Windows release fields do not describe one exact artifact.");
-        if (!IsExactPackageUrl(deb, $"magnolie-organizer_{version}_all.deb") ||
-            !IsExactPackageUrl(windowsUrl, $"Magnolie-Organizer-Windows-{windowsVersion}-Setup-x64.exe") ||
-            !IsExactPackageUrl(manualLinuxUrl, $"magnolie-handbuch_{manualVersion}_all.deb") ||
-            !IsExactPackageUrl(manualWindowsUrl, $"Magnolie-Organizer-Windows-{manualVersion}-Setup-x64.exe"))
+        if (!IsExactPackageUrl(deb, $"magnolie-organizer_{version}_all.deb", version) ||
+            !IsExactPackageUrl(windowsUrl, $"Magnolie-Organizer-Windows-{windowsVersion}-Setup-x64.exe", version) ||
+            !IsExactPackageUrl(manualLinuxUrl, $"magnolie-handbuch_{manualVersion}_all.deb", version) ||
+            !IsExactPackageUrl(manualWindowsUrl, $"Magnolie-Organizer-Windows-{manualVersion}-Setup-x64.exe", version))
             throw new InvalidDataException("The update information refers to an invalid package URL.");
         if (appImage is not null && (RequiredText(appImage, "architecture") != "x86_64" ||
             !ShaPattern().IsMatch(appImageSha) ||
-            !IsExactPackageUrl(appImageUrl, $"Magnolie-Organizer-{version}-x86_64.AppImage")))
+            !IsExactPackageUrl(appImageUrl, $"Magnolie-Organizer-{version}-x86_64.AppImage", version)))
             throw new InvalidDataException("The update information contains an invalid AppImage entry.");
 
         var message = CanonicalMessage(version, deb, debSha, appImageUrl, appImageSha,
@@ -297,9 +299,20 @@ internal sealed partial class WindowsUpdateService : IDisposable
             {
                 var location = response.Headers.Location;
                 if (location is null) { response.Dispose(); throw new HttpRequestException("The update redirect has no target."); }
-                var next = location.IsAbsoluteUri ? location : new Uri(new Uri(current), location);
                 response.Dispose();
-                current = next.AbsoluteUri;
+                // Compare the original Location spelling before System.Uri can
+                // collapse dot segments, encoded components or explicit ports.
+                // Relative redirects may only spell the same path or filename.
+                if (location.IsAbsoluteUri) current = location.OriginalString;
+                else
+                {
+                    var exact = new Uri(exactUrl);
+                    var value = location.OriginalString;
+                    if (!string.Equals(value, exact.AbsolutePath, StringComparison.Ordinal) &&
+                        !string.Equals(value, Path.GetFileName(exact.AbsolutePath), StringComparison.Ordinal))
+                        throw new InvalidDataException("The update redirect target is not allowed.");
+                    current = new Uri(new Uri(current), location).AbsoluteUri;
+                }
                 continue;
             }
             try { response.EnsureSuccessStatusCode(); return response; }
@@ -407,13 +420,13 @@ internal sealed partial class WindowsUpdateService : IDisposable
             throw new InvalidDataException("The update information contains ambiguous XML fields.");
     }
 
-    internal static bool IsExactPackageUrl(string target, string fileName) =>
-        Uri.TryCreate(target, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps &&
-        uri.Host.Equals("gitlab.com", StringComparison.OrdinalIgnoreCase) && uri.Port == 443 &&
-        string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment) &&
-        uri.AbsolutePath == "/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/" + fileName;
+    internal static bool IsExactPackageUrl(string target, string fileName, string version) =>
+        VersionPattern().IsMatch(version) && ArtifactNamePattern().IsMatch(fileName) &&
+        (string.Equals(target, RawPackageBase + fileName, StringComparison.Ordinal) ||
+         string.Equals(target, RegistryPackageBase + version + "/" + fileName, StringComparison.Ordinal));
 
     private static bool IsExactSignedUrl(string target, string exact) =>
+        string.Equals(target, exact, StringComparison.Ordinal) &&
         Uri.TryCreate(target, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps &&
         uri.Host.Equals("gitlab.com", StringComparison.OrdinalIgnoreCase) && uri.Port == 443 &&
         string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment) &&
@@ -472,6 +485,8 @@ internal sealed partial class WindowsUpdateService : IDisposable
     private static partial Regex VersionPattern();
     [GeneratedRegex(@"^[0-9a-f]{64}$", RegexOptions.CultureInvariant)]
     private static partial Regex ShaPattern();
+    [GeneratedRegex(@"\A[A-Za-z0-9][A-Za-z0-9._-]*\z", RegexOptions.CultureInvariant)]
+    private static partial Regex ArtifactNamePattern();
 
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

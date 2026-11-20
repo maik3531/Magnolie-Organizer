@@ -17222,6 +17222,8 @@ FEIERTAG_DIENST = "https://openholidaysapi.org"
 WETTER_DIENST = "https://wttr.in"
 UPDATE_BASIS = ("https://gitlab.com/maik3531/mint-forgs/-/raw/main/"
                 "Magnolie-Organitzer/")
+UPDATE_REGISTRY_BASIS = ("https://gitlab.com/api/v4/projects/78301901/"
+                         "packages/generic/magnolie-desktop/")
 UPDATE_XML = UPDATE_BASIS + "update.xml"
 # Roher öffentlicher Ed25519-Schlüssel für Release-Manifeste, Base64-kodiert.
 UPDATE_SIGNATUR_SCHLUESSEL = "8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1Y="
@@ -17447,65 +17449,53 @@ def versions_schluessel(fassung):
     return tuple(int(teil) for teil in re.findall(r"\d+", text))
 
 
-def _update_url_erlaubt(url):
-    try:
-        from urllib.parse import urlsplit
-        teile = urlsplit(str(url or "").strip())
-    except (TypeError, ValueError):
+def _update_artefakt_url_erlaubt(url, vorlage, version="", release_version=None):
+    """Vergleicht vollständige Adressen ohne URL-Normalisierung.
+
+    Die Aufrufer binden die Version an das signierte Manifest. Ohne Version
+    prüft der ältere Browserweg nur die kanonische Paketadressform.
+    """
+    adresse = str(url or "")
+    version = str(version or "").strip()
+    if not version:
+        muster = re.escape(vorlage).replace(
+            "%s", r"([0-9]+(?:\.[0-9]+)*(?:-[0-9]+)?)")
+        treffer = re.fullmatch(muster, adresse.rsplit("/", 1)[-1])
+        if not treffer:
+            return False
+        version = treffer.group(1)
+    if not versions_schluessel(version):
         return False
-    basis_pfad = "/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/"
-    return (teile.scheme == "https" and teile.netloc == "gitlab.com" and
-            teile.path.startswith(basis_pfad) and
-            teile.path.lower().endswith(".deb") and not teile.query and
-             not teile.fragment)
+    dateiname = vorlage % version
+    if adresse == UPDATE_BASIS + dateiname:
+        return True
+    registry_version = version if release_version is None else str(release_version)
+    return (bool(re.fullmatch(r"[0-9]+(?:\.[0-9]+)*(?:-[0-9]+)?", registry_version))
+            and adresse == UPDATE_REGISTRY_BASIS + registry_version + "/" + dateiname)
+
+
+def _update_url_erlaubt(url, release_version=None):
+    return (_organizer_deb_update_url_erlaubt(url) or
+            _handbuch_update_url_erlaubt(url, release_version=release_version))
 
 
 def _organizer_deb_update_url_erlaubt(url, version=""):
-    if not _update_url_erlaubt(url):
-        return False
-    try:
-        dateiname = os.path.basename(urlsplit(str(url).strip()).path)
-    except (TypeError, ValueError):
-        return False
-    if version:
-        return dateiname == "magnolie-organizer_%s_all.deb" % str(version).strip()
-    return bool(re.fullmatch(
-        r"magnolie-organizer_\d+(?:\.\d+)*(?:-\d+)?_all\.deb", dateiname))
+    return _update_artefakt_url_erlaubt(
+        url, "magnolie-organizer_%s_all.deb", version)
 
 
 def _appimage_update_url_erlaubt(url, version=""):
-    try:
-        from urllib.parse import urlsplit
-        teile = urlsplit(str(url or "").strip())
-        dateiname = os.path.basename(teile.path)
-    except (TypeError, ValueError):
-        return False
-    basis_pfad = "/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/"
-    if (teile.scheme != "https" or teile.netloc != "gitlab.com" or
-            not teile.path.startswith(basis_pfad) or teile.query or teile.fragment):
-        return False
-    if version:
-        return dateiname == "Magnolie-Organizer-%s-x86_64.AppImage" % str(version).strip()
-    return bool(re.fullmatch(
-        r"Magnolie-Organizer-\d+(?:\.\d+)*(?:-\d+)?-x86_64\.AppImage", dateiname))
+    return _update_artefakt_url_erlaubt(
+        url, "Magnolie-Organizer-%s-x86_64.AppImage", version)
 
 
-def _handbuch_update_url_erlaubt(url, version=""):
-    if not _update_url_erlaubt(url):
-        return False
-    try:
-        from urllib.parse import urlsplit
-        dateiname = os.path.basename(urlsplit(str(url).strip()).path)
-    except (TypeError, ValueError):
-        return False
-    if version:
-        return dateiname == "magnolie-handbuch_%s_all.deb" % str(version).strip()
-    return bool(re.fullmatch(r"magnolie-handbuch_\d+(?:\.\d+)*(?:-\d+)?_all\.deb",
-                             dateiname))
+def _handbuch_update_url_erlaubt(url, version="", release_version=None):
+    return _update_artefakt_url_erlaubt(
+        url, "magnolie-handbuch_%s_all.deb", version, release_version)
 
 
 def _update_manifest_url_erlaubt(url):
-    return str(url or "").strip() == UPDATE_XML
+    return str(url or "") == UPDATE_XML
 
 
 def _update_xml_sicher(text):
@@ -17522,6 +17512,18 @@ def _update_antwort_oeffnen(antrag, zeitlimit, erlaubt):
     import urllib.request
 
     class ErlaubteUpdateUmleitung(urllib.request.HTTPRedirectHandler):
+        def http_error_302(self, req, fp, code, msg, headers):
+            # urllib normalisiert relative Pfade und Punktsegmente vor dem
+            # Aufruf von redirect_request. Nur die vollständige Adresse,
+            # ihr unveränderter absoluter Pfad oder Dateiname sind zulässig.
+            newurl = headers.get("Location", headers.get("URI", ""))
+            pfad = urlsplit(req.full_url).path
+            if newurl not in (req.full_url, pfad, pfad.rsplit("/", 1)[-1]):
+                raise urllib.error.HTTPError(newurl, code, msg, headers, fp)
+            return super().http_error_302(req, fp, code, msg, headers)
+
+        http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302
+
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             if not erlaubt(newurl):
                 raise urllib.error.HTTPError(newurl, code, msg, headers, fp)
@@ -17616,10 +17618,12 @@ def update_manifest_pruefen(text, oeffentlicher_schluessel=None):
         handbuch_paket = (handbuch_knoten.findtext("./linux/deb") or "").strip()
         handbuch_summe = (handbuch_knoten.findtext("./linux/sha256") or "").strip().lower()
         if (versions_schluessel(handbuch_version) and
-                _handbuch_update_url_erlaubt(handbuch_paket, handbuch_version) and
+                _handbuch_update_url_erlaubt(handbuch_paket, handbuch_version, version) and
                 re.fullmatch(r"[0-9a-f]{64}", handbuch_summe)):
             handbuch = {"version": handbuch_version, "url": handbuch_paket,
                         "sha256": handbuch_summe, "platform": "linux"}
+            if handbuch_paket.startswith(UPDATE_REGISTRY_BASIS):
+                handbuch["releaseVersion"] = version
         else:
             handbuch_fehler = _("The manual update information is invalid.")
     if not paket or not _update_url_erlaubt(paket):
@@ -17710,9 +17714,9 @@ def update_pruefen(holer=None, oeffentlicher_schluessel=None):
             "handbuchFehler": manifest.get("handbuchFehler") or "", "fehler": ""}
 
 
-def _update_paket_url_oeffnen(url, starter=None):
+def _update_paket_url_oeffnen(url, starter=None, release_version=None):
     import subprocess
-    if not (_update_url_erlaubt(url) or _appimage_update_url_erlaubt(url)):
+    if not (_update_url_erlaubt(url, release_version) or _appimage_update_url_erlaubt(url)):
         return {"ok": False, "fehler": _("The package URL is not allowed.")}
     if starter is None:
         def starter(argumente):
@@ -18048,9 +18052,12 @@ def handbuch_paket_herunterladen(url, version, pruefsumme, platform="linux",
     import urllib.request
     erwartet = {"version": str(version or ""), "url": str(url or ""),
                 "sha256": str(pruefsumme or "").lower(), "platform": platform}
+    if "releaseVersion" in _LETZTES_HANDBUCH_MANIFEST:
+        erwartet["releaseVersion"] = _LETZTES_HANDBUCH_MANIFEST["releaseVersion"]
     if platform != "linux" or erwartet != _LETZTES_HANDBUCH_MANIFEST:
         return {"ok": False, "fehler": _("The manual download request is no longer valid.")}
-    if (not _handbuch_update_url_erlaubt(url, version) or
+    release_version = erwartet.get("releaseVersion", "")
+    if (not _handbuch_update_url_erlaubt(url, version, release_version) or
             not re.fullmatch(r"[0-9a-f]{64}", erwartet["sha256"])):
         return {"ok": False, "fehler": _("The manual package URL is not allowed.")}
     pfad = ""
@@ -18062,7 +18069,8 @@ def handbuch_paket_herunterladen(url, version, pruefsumme, platform="linux",
         antwort = (holer(antrag, timeout=30) if holer else
                    _update_antwort_oeffnen(
                        antrag, 30,
-                       lambda ziel: _handbuch_update_url_erlaubt(ziel, version)))
+                       lambda ziel: (str(ziel or "") == erwartet["url"] and
+                           _handbuch_update_url_erlaubt(ziel, version, release_version))))
         with antwort, open(pfad, "wb") as datei:
             hasher = hashlib.sha256()
             gesamt = 0
@@ -18105,9 +18113,14 @@ def handbuch_paket_herunterladen(url, version, pruefsumme, platform="linux",
 
 def handbuch_paket_oeffnen(url, starter=None):
     """Kompatibler Browserweg für ältere Aufrufer; die UI nutzt den Hash-Download."""
-    if not _handbuch_update_url_erlaubt(url):
+    release_version = None
+    if str(url or "").startswith(UPDATE_REGISTRY_BASIS):
+        if str(url) != _LETZTES_HANDBUCH_MANIFEST.get("url"):
+            return {"ok": False, "fehler": _("The manual package URL is not allowed.")}
+        release_version = _LETZTES_HANDBUCH_MANIFEST.get("releaseVersion", "")
+    if not _handbuch_update_url_erlaubt(url, release_version=release_version):
         return {"ok": False, "fehler": _("The manual package URL is not allowed.")}
-    return _update_paket_url_oeffnen(url, starter)
+    return _update_paket_url_oeffnen(url, starter, release_version)
 
 
 def _feiertag_sprache():

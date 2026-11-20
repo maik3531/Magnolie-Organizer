@@ -1,6 +1,8 @@
 """Synthetic storage exports; these fixtures never authorize a product release."""
 
 import base64
+import importlib.machinery
+import importlib.util
 import json
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -77,6 +79,38 @@ def test_storage_exports_signed_registry_release_without_changing_sources(
     assert len(urls) == 6
     assert all(url.startswith(gate.storage_base("9.8.7")) for url in urls)
     assert not any(tmp_path.glob(".magnolie-desktop-promote-*"))
+
+
+def test_real_storage_export_is_accepted_by_linux_update_client(
+        candidate, synthetic_signer, monkeypatch, tmp_path):
+    root, directory, approval, identity = candidate
+    destination = tmp_path / "export"
+    gate.promote(root, directory, approval, identity, storage_directory=destination)
+    # Use the actual client and the actual signed prepare-storage output. The
+    # ephemeral fixture key never replaces the production signing key in source.
+    source = Path(__file__).resolve().parents[1] / "bin" / "magnolie-organizer"
+    loader = importlib.machinery.SourceFileLoader("storage_update_client", str(source))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    client = importlib.util.module_from_spec(spec)
+    loader.exec_module(client)
+    xml = (destination / "update.xml").read_text(encoding="utf-8")
+    public_key = signer.oeffentlicher_text(synthetic_signer[1])
+    verified = client.update_manifest_pruefen(xml, public_key)
+    base = gate.storage_base("9.8.7")
+    assert verified["url"] == base + "magnolie-organizer_9.8.7_all.deb"
+    assert verified["appimage"]["url"] == base + "Magnolie-Organizer-9.8.7-x86_64.AppImage"
+    assert verified["handbuch"]["url"] == base + "magnolie-handbuch_9.8.7_all.deb"
+    assert not verified["handbuchFehler"]
+    assert client.UPDATE_XML == (
+        "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/update.xml")
+    monkeypatch.delenv("APPIMAGE", raising=False)
+    deb = client.update_pruefen(lambda url: xml, public_key)
+    assert deb["ok"] and not deb["aktuell"]
+    assert deb["url"] == verified["url"]
+    monkeypatch.setenv("APPIMAGE", "/synthetic/Magnolie.AppImage")
+    appimage = client.update_pruefen(lambda url: xml, public_key)
+    assert appimage["ok"] and not appimage["aktuell"]
+    assert appimage["url"] == verified["appimage"]["url"]
 
 
 @pytest.mark.parametrize("kind", ["existing", "source", "candidate", "parent-symlink", "symlink", "dotdot-source"])
