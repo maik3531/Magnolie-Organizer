@@ -77,7 +77,8 @@ class DesktopScreenDraftChannel:
     def write(self, body, at_write):
         packet = dict(type=DRAFT_FRAME, body=parse_control(body, 'desktop'))
         self._channel.send_ephemeral(packet, self.require_current, at_write=at_write)
-        self.require_current()
+        # The caller records the completed write separately from the subsequent
+        # live consent check. Only a fully written offer can warrant STOP.
         return True
 
     def open_original_listener(self, guard):
@@ -113,6 +114,7 @@ class DesktopScreenDraftControl:
         self._phase = 'requested'
         self._session = self._prepared = None
         self._offer_edge = False
+        self._offer_written = self._terminal_used = False
         self._current()
 
     @property
@@ -159,6 +161,8 @@ class DesktopScreenDraftControl:
         try:
             if write_original(body, at_write) is not True:
                 raise PermissionError('desktop_screen_draft_offer_not_written')
+            with self._lock:
+                self._offer_written = self._offer_edge
             self._current()
             with self._lock:
                 self._check_locked()
@@ -182,6 +186,7 @@ class DesktopScreenDraftControl:
             if body['op'] == 'stop':
                 self._phase = 'closed'
                 self._prepared = None
+                self._terminal_used = True  # Do not echo a remote STOP.
                 return True
             if (body['op'] != 'prepared' or self._phase not in ('offering', 'offered') or
                     self._prepared is not None):
@@ -232,6 +237,19 @@ class DesktopScreenDraftControl:
     def require_current(self):
         """Guard for proof/data I/O bound by the same original controller."""
         self._current()
+
+    def publish_stop(self, write_terminal):
+        """After retirement, report only the fully written original OFFER.
+
+        The nominated terminal writer checks parent identity, not live consent.
+        Consume the one terminal write before any blocking I/O; never retry it.
+        """
+        with self._lock:
+            if self._phase != 'closed' or not self._offer_written or self._terminal_used:
+                return False
+            self._terminal_used = True
+            body = dict(self._base, op='stop', session=self._session)
+        return write_terminal(body, lambda: None) is True
 
     def prepared_for(self, transcript):
         self._current()

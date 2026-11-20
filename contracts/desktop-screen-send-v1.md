@@ -148,7 +148,10 @@ advertised.
 
 Cancel, lock, viewer closure, source or geometry change, lost control parent,
 revocation or disconnect retire the original session. Stop first prevents future
-frame handoff and interrupts owned I/O. It then waits for the exact sender and
+frame handoff and interrupts owned I/O. After a completely written OFFER, the
+retired Linux sender may report one terminal STOP on its still-current parent
+even if local consent is already gone. It neither echoes a received STOP nor
+retries a failed terminal write. The local owner waits for the exact sender and
 reader, portal close, encoder exit, and, for extended mode, observes removal of
 the original extra output. A missing cleanup acknowledgment is not successful
 drain. Do not stop the ordinary Notes connection unless its own transport failed.

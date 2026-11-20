@@ -112,6 +112,7 @@ class TestDesktopScreenDraftControl(unittest.TestCase):
         self.mono += 120
         run.require_send()
         self.assertTrue(run.receive(self.parent, self.packet('stop')))
+        self.assertFalse(run.publish_stop(lambda *_: self.fail('remote STOP echoed')))
         with self.assertRaises(PermissionError):
             run.require_send()
 
@@ -159,6 +160,35 @@ class TestDesktopScreenDraftControl(unittest.TestCase):
         self.live = True
         with self.assertRaises(PermissionError):
             run.publish_offer(**OFFER, write_original=lambda *_: True)
+
+    def test_terminal_stop_requires_a_complete_offer_and_never_retries(self):
+        run = self.start()
+
+        def failed(_, guard):
+            guard()
+            raise OSError('offer not completely written')
+
+        with self.assertRaises(OSError):
+            run.publish_offer(**OFFER, write_original=failed)
+        self.assertFalse(run.publish_stop(lambda *_: self.fail('no committed offer')))
+        run = self.start()
+
+        def offered(_, guard):
+            guard()
+            run.close()  # Local consent was lost after the actual write edge.
+            return True
+
+        with self.assertRaises(PermissionError):
+            run.publish_offer(**OFFER, write_original=offered)
+
+        def stop(body, guard):
+            self.assertEqual(body, self.packet('stop'))
+            guard()
+            raise TimeoutError('terminal writer busy')
+
+        with self.assertRaises(TimeoutError):
+            run.publish_stop(stop)
+        self.assertFalse(run.publish_stop(lambda *_: self.fail('terminal retried')))
 
 
 if __name__ == '__main__':

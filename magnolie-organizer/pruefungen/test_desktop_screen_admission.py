@@ -8,6 +8,8 @@ import pytest
 from test_desktop_screen_dispatch import connected, native, ping, request
 from test_phone_screen_window import Gtk, PhoneScreenSessionLock, wait_for
 import magnolie_desktop_screen_admission as admission
+import magnolie_desktop_screen_attempt as runs
+from desktop_screen_draft_interop_peer import SyntheticLocalRun
 from magnolie_desktop_screen_attempt import DesktopScreenAttemptCleanup, ScreenRunCleanup
 from magnolie_desktop_screen_dispatch import DesktopScreenDraftDispatch
 from magnolie_desktop_screen_portal import DesktopScreenProvider, MONITOR, WINDOW
@@ -137,3 +139,22 @@ def test_exit_and_failed_portal_cleanup_do_not_free_slot(connected, gtk_owner):
     with pytest.raises(PermissionError, match='reader_busy'):
         service._desktop_screen_draft_dispatch.attach(peer['device_id'], client.channel, lambda *_: None)
     ping(client)
+
+
+def test_local_stop_after_offer_before_phone_approval_is_terminal(connected, gtk_owner, monkeypatch):
+    _, _, client = connected
+    arm, _, _, _, _, ended = gtk_owner
+    monkeypatch.setattr(admission, 'DesktopScreenDraftAttempt', runs.DesktopScreenDraftAttempt)
+    monkeypatch.setattr(runs, 'DesktopScreenLocalRun', SyntheticLocalRun)
+    owner = arm()
+    frame, dialog = show(owner, client)
+    dialog.get_widget_for_response(Gtk.ResponseType.ACCEPT).clicked()
+    wait_for(lambda: owner._attempt is not None and owner._attempt._media_ready.is_set())
+    offer = client.receive()
+    assert offer['type'] == 'desktop_screen_draft' and offer['body']['op'] == 'offer'
+    dialog.get_widget_for_response(Gtk.ResponseType.CANCEL).clicked()
+    stop = client.receive()
+    assert stop == dict(frame, body=dict(frame['body'], op='stop', session=offer['body']['session']))
+    wait_for(lambda: ended == [DesktopScreenAttemptCleanup(ScreenRunCleanup(True, True, True), True)])
+    assert not dialog.get_visible()
+    ping(client)  # Exactly one terminal frame, no SEND and no parent loss.

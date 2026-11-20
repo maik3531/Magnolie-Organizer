@@ -131,7 +131,8 @@ class DesktopScreenDraftAdmission:
             self._approval.set()
             attempt = DesktopScreenDraftAttempt(self._original.channel, request, self._require_approved,
                 bus=self._bus, provider=self._provider, mode=self._mode, parent_window=self._parent_handle,
-                width=960, height=540, deadline=deadline, ended=self._attempt_ended)
+                width=960, height=540, deadline=deadline, ended=self._attempt_ended,
+                require_terminal_parent=self._original.require_terminal_parent)
             with self._state:
                 self._attempt = attempt
             attempt.begin()

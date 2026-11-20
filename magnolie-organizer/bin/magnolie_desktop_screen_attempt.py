@@ -26,7 +26,7 @@ class DesktopScreenDraftAttempt:
     """
 
     def __init__(self, channel, request, require_original, *, bus, provider, mode,
-                 parent_window, width, height, deadline, ended):
+                 parent_window, width, height, deadline, ended, require_terminal_parent=None):
         if (type(request) is not dict or mode not in ('monitor', 'window', 'extend') or
                 request.get('mode') != (2 if mode == 'extend' else 1)):
             raise ValueError('desktop_screen_original_mode_required')
@@ -37,6 +37,7 @@ class DesktopScreenDraftAttempt:
         self._listener = self._lane = self._latest = None
         self._transport_clean = True
         self._wire = DesktopScreenDraftChannel(channel, require_original)
+        self._terminal = DesktopScreenDraftChannel(channel, require_terminal_parent or require_original)
         self._control = DesktopScreenDraftControl(channel, request, self._wire.require_current, deadline=deadline)
         self._local = DesktopScreenLocalRun(bus, provider, mode, parent_window, width, height,
                                            self._current, self._local_ended)
@@ -163,3 +164,7 @@ class DesktopScreenDraftAttempt:
                     with self._resources:
                         self._transport_clean = False
             self.stop()
+            try:
+                self._control.publish_stop(self._terminal.write)
+            except (OSError, ValueError):
+                pass  # Best effort on the exact original transport; no retry.

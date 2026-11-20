@@ -25,8 +25,19 @@ class _OriginalReader:
         self.wire = DesktopScreenDraftChannel(channel, self._require_live)
 
     def _require_live(self):
+        if self.retired.is_set():
+            raise PermissionError('desktop_screen_draft_reader_retired')
+        self._require_parent()
+
+    def require_terminal_parent(self):
+        """Transport-only guard for terminal STOP, never capture authority."""
+        if self.dispatch._owner is not self:
+            raise PermissionError('desktop_screen_draft_reader_released')
+        self._require_parent()
+
+    def _require_parent(self):
         service = self.dispatch.service
-        if (self.retired.is_set() or service._desktop_screen_draft_dispatch is not self.dispatch or
+        if (service._desktop_screen_draft_dispatch is not self.dispatch or
                 self.store is not service.store or self.generation != service._generation or
                 not service.enabled or service.stop_event.is_set() or
                 service.connections.get(self.peer_id) is not self.channel or
