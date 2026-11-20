@@ -108,3 +108,15 @@ process, desktop lease and daemon's original parent, transfer only an owned
 bounded viewing lane, and stop/drain on either endpoint's loss. Do not route
 pixels or session secrets through the regular JSON proxy/event history, or
 treat its ordinary same-user subscriber identifier as fresh viewing consent.
+
+The dedicated local relay accepts only an already admitted, connected Linux
+Unix stream with exact kernel peer PID and UID. This check supplements, but
+does not establish, the native GUI and daemon ownership. The daemon forwards
+only authenticated, live-SEND JPEG/heartbeat records, each prefixed by a
+big-endian uint32 length (0 for heartbeat, otherwise at most 1 MiB). No host,
+session key, consent, control message, or input is carried by this stream.
+Reverse bytes, EOF, record timeout, or original guard loss stop the owner;
+the GUI decodes only after bounding the agreed image dimensions. No buffer
+queue or retry spans the two owners. The pre-record wait on the GUI is bound
+by the original setup deadline, not by a new grant. Neither endpoint is
+registered as a public proxy operation.

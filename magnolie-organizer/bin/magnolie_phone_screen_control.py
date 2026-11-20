@@ -218,11 +218,15 @@ class PhoneScreenDesktopRun:
     the PhoneService monitor. Stopping signals only; the caller waits for drain.
     """
 
-    def __init__(self, parent, probe, width, height, density, *, require_original, require_view, offer_rgb, track=lambda *_: None, deadline=None):
+    def __init__(self, parent, probe, width, height, density, *, require_original, require_view,
+                 offer_rgb=None, local_lane=None, track=lambda *_: None, deadline=None):
+        if (offer_rgb is None) == (local_lane is None):
+            raise ValueError('screen_desktop_exactly_one_output_required')
         self._parent = parent
         self._require_original = require_original
         self._require_view = require_view
         self._offer_rgb = offer_rgb
+        self._local_lane = local_lane
         self._width, self._height, self._density = width, height, density
         self._stop = threading.Event()
         self._prepared = threading.Event()
@@ -250,6 +254,8 @@ class PhoneScreenDesktopRun:
     def _current(self):
         self._require_original()
         self._require_view()
+        if self._local_lane is not None:
+            self._local_lane.require_open()
         if self._stop.is_set():
             raise PermissionError('screen_desktop_owner_retired')
 
@@ -285,7 +291,8 @@ class PhoneScreenDesktopRun:
             receiver = PhoneScreenReceiveRun(socket, bytes.fromhex(offer['session']), bytes.fromhex(offer['secret']),
                                              self._width, self._height, require_original=self._current,
                                              authorize_send=lambda: self._control.authorize(self._current, self._wire.write),
-                                             require_send=self._control.require_send, offer_rgb=self._offer_rgb)
+                                             require_send=self._control.require_send, offer_rgb=self._offer_rgb,
+                                             local_lane=self._local_lane)
             with self._lock:
                 if self._stop.is_set():
                     raise PermissionError('screen_desktop_owner_retired')
@@ -325,6 +332,8 @@ class PhoneScreenDesktopRun:
         with self._lock:
             self._stop.set()
             self._control.close()
+            if self._local_lane is not None:
+                self._cleanup(self._local_lane.close)
             if self._listener is not None:
                 self._cleanup(self._listener.close)
             if self._receiver is not None:
@@ -333,6 +342,7 @@ class PhoneScreenDesktopRun:
     def is_drained(self):
         with self._lock:
             return bool(self._stop.is_set() and not self._thread.is_alive() and self.cleanup_error is None and
+                        (self._local_lane is None or self._local_lane.cleanup_error is None) and
                         (self._receiver is None or self._receiver.is_drained()))
 
     @property

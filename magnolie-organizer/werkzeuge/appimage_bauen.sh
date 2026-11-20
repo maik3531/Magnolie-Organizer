@@ -169,6 +169,7 @@ install -m 0644 "$WURZEL/bin/magnolie_contact_notes_ui.py" "$APPDIR/usr/bin/magn
 install -m 0644 "$WURZEL/bin/magnolie_phone_screen_window.py" "$APPDIR/usr/bin/magnolie_phone_screen_window.py"
 install -m 0644 "$WURZEL/bin/magnolie_phone_screen_transport.py" "$APPDIR/usr/bin/magnolie_phone_screen_transport.py"
 install -m 0644 "$WURZEL/bin/magnolie_phone_screen_control.py" "$APPDIR/usr/bin/magnolie_phone_screen_control.py"
+install -m 0644 "$WURZEL/bin/magnolie_phone_screen_local.py" "$APPDIR/usr/bin/magnolie_phone_screen_local.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_session.py" "$APPDIR/usr/bin/magnolie_contact_notes_session.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_setup_run.py" "$APPDIR/usr/bin/magnolie_contact_notes_setup_run.py"
 install -m 0644 "$WURZEL/bin/magnolie_contact_notes_requests.py" "$APPDIR/usr/bin/magnolie_contact_notes_requests.py"

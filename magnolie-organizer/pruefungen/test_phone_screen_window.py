@@ -4,6 +4,7 @@ import ast
 import base64
 import hmac
 import json
+import os
 import socket
 import struct
 import sys
@@ -23,7 +24,8 @@ pytest.importorskip("cairo")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenSessionLock, PhoneScreenWindow
 from magnolie_phone_screen_transport import PhoneScreenReceiveRun
-from magnolie_phone_screen_control import REQUEST
+from magnolie_phone_screen_control import PhoneScreenDesktopRun, REQUEST
+from magnolie_phone_screen_local import PhoneScreenLocalDisplay, PhoneScreenLocalLane
 from magnolie_telefon import PROTOCOL, PhoneService, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
 
 
@@ -427,7 +429,8 @@ def test_invalid_proof_or_stop_before_proof_never_authorizes_send():
             b.close()
 
 
-def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop():
+@pytest.mark.parametrize('local_relay', [False, True])
+def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(local_relay):
     sid, tx, rx = bytes(16), bytes(range(32)), bytes(reversed(range(32)))
     ptx, prx = b"\x04" * 4, b"\x05" * 4
     probe = {"version": 26, "request_id": str(uuid.uuid4()), "nonce": "b" * 64, "op": "probe"}
@@ -444,6 +447,7 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                 app._telefon = None
                 app._tray_telefone = Gtk.MenuItem(label="Phones")
                 run = None
+                local = None
 
                 def read_control(sequence):
                     frame = receive_frame(phone, 8192)
@@ -463,8 +467,21 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
 
                 try:
                     assert parent.send_seq == 0
-                    run = app._phone_screen_begin_original(parent, probe, 17, 16, 160, require_original=lambda: None)
-                    view = app._phone_screen_window
+                    if local_relay:
+                        a, b = socket.socketpair()
+                        identity = os.getpid(), os.getuid()
+                        relay = PhoneScreenLocalLane(a, expected_peer=identity, require_original=lambda: None, writing=True)
+                        lane = PhoneScreenLocalLane(b, expected_peer=identity, require_original=lambda: None, writing=False)
+                        view = app._phone_screen_attach(is_current=lambda: local is None or not local.retired,
+                                                        request_stop=lambda _view: local.stop() if local is not None else lane.close())
+                        local = PhoneScreenLocalDisplay(lane, 17, 16, setup_deadline=monotonic() + 5, offer_rgb=view.offer_rgb)
+                        run = PhoneScreenDesktopRun(parent, probe, 17, 16, 160, require_original=lambda: None,
+                                                   require_view=lambda: None, local_lane=relay)
+                        local.start()
+                        run.start()
+                    else:
+                        run = app._phone_screen_begin_original(parent, probe, 17, 16, 160, require_original=lambda: None)
+                        view = app._phone_screen_window
                     assert view._window.get_visible()
                     offer = read_control(0)
                     assert offer["op"] == "offer"
@@ -494,6 +511,9 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                         assert not run.retired and run.failure is None
                         assert (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230
                         write_control(1, dict(body, op="stop"))
+                        if local is not None:
+                            wait_for(local.is_drained)
+                            app._phone_screen_drained(view)
                         wait_for(lambda: run.is_drained() and app._phone_screen_window is None)
                         assert data.recv(1) == b"" and desktop.fileno() != -1 and run.failure is None
                         assert not app._tray_telefone.get_visible()
@@ -501,5 +521,7 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                 finally:
                     if run is not None:
                         run.stop()
+                    if local is not None:
+                        local.stop()
                     app._phone_screen_stop()
                     app._tray_telefone.destroy()

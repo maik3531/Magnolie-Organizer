@@ -215,7 +215,9 @@ class PhoneScreenReceiveRun:
     """
 
     def __init__(self, sock, session, secret, width, height, *, require_original,
-                 authorize_send, require_send, offer_rgb):
+                 authorize_send, require_send, offer_rgb=None, local_lane=None):
+        if (offer_rgb is None) == (local_lane is None):
+            raise ValueError('screen_receiver_exactly_one_output_required')
         self._socket = sock
         self._session = session
         self._secret = secret
@@ -225,6 +227,7 @@ class PhoneScreenReceiveRun:
         self._authorize_send = authorize_send
         self._require_send = require_send
         self._offer_rgb = offer_rgb
+        self._local_lane = local_lane
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._started = False
@@ -249,6 +252,8 @@ class PhoneScreenReceiveRun:
         if self._stop.is_set():
             raise OSError("screen_receiver_stopped")
         self._require_original()
+        if self._local_lane is not None:
+            self._local_lane.require_open()
 
     def _send_current(self):
         self._current()
@@ -260,9 +265,10 @@ class PhoneScreenReceiveRun:
     def _run(self):
         lane = None
         try:
-            from magnolie_phone_screen_window import PhoneScreenJpegReceiver
-            decoder = PhoneScreenJpegReceiver(self._width, self._height,
-                                              is_current=self._send_current, offer_rgb=self._offer_rgb)
+            if self._local_lane is None:
+                from magnolie_phone_screen_window import PhoneScreenJpegReceiver
+                decoder = PhoneScreenJpegReceiver(self._width, self._height,
+                                                  is_current=self._send_current, offer_rgb=self._offer_rgb)
             prove_phone_screen_socket(self._socket, self._session, self._secret,
                                      self._width, self._height, self._current)
             self._current()
@@ -273,7 +279,9 @@ class PhoneScreenReceiveRun:
             self._secret = None
             while True:
                 jpeg = lane.receive()
-                if jpeg and decoder.receive(jpeg) is not True:
+                if self._local_lane is not None:
+                    self._local_lane.write(jpeg, require_current=self._send_current)
+                elif jpeg and decoder.receive(jpeg) is not True:
                     raise OSError("screen_receiver_view_retired")
         except Exception as error:
             if not self._stop.is_set():
