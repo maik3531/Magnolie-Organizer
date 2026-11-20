@@ -46,13 +46,13 @@ class TestDesktopScreenPortal(unittest.TestCase):
 
     def test_existing_screen_without_virtual_does_not_grant_input(self):
         bus = Bus(screen={'version': uint(5), 'AvailableSourceTypes': uint(3)})
-        self.assertEqual(read_desktop_screen_provider(bus), DesktopScreenProvider(':1.9', 3, False, 0))
+        self.assertEqual(read_desktop_screen_provider(bus), DesktopScreenProvider(':1.9', 3, False, 0, 5))
 
     def test_virtual_is_not_fallback_to_regular_screen(self):
         for version, candidate in ((2, False), (3, True)):
             with self.subTest(version=version):
                 bus = Bus(screen={'version': uint(version), 'AvailableSourceTypes': uint(4)})
-                self.assertEqual(read_desktop_screen_provider(bus), DesktopScreenProvider(':1.9', 0, candidate, 0))
+                self.assertEqual(read_desktop_screen_provider(bus), DesktopScreenProvider(':1.9', 0, candidate, 0, version))
 
     def test_remote_devices_and_unknown_bits_do_not_imply_viewing(self):
         bus = Bus(remote={'version': uint(2), 'AvailableDeviceTypes': uint(0x80000002)})

@@ -25,6 +25,7 @@ class DesktopScreenProvider:
     mirror_sources: int = 0
     extended_output: bool = False
     input_devices: int = 0
+    screen_version: int = 0
 
 
 def read_desktop_screen_provider(bus, cancellable=None):
@@ -72,4 +73,5 @@ def read_desktop_screen_provider(bus, cancellable=None):
     return DesktopScreenProvider(owner,
                                  sources & (MONITOR | WINDOW) if screen_version >= 1 else 0,
                                  screen_version >= 3 and bool(sources & VIRTUAL),
-                                 devices & (KEYBOARD | POINTER | TOUCHSCREEN) if input_version >= 1 else 0)
+                                 devices & (KEYBOARD | POINTER | TOUCHSCREEN) if input_version >= 1 else 0,
+                                 screen_version)

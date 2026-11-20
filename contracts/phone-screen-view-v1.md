@@ -198,3 +198,13 @@ its original producer and stream have ended and the output is gone.
 The passive Linux provider probe pins the portal's unique bus owner throughout
 the bounded property queries and does not auto-start it. It reports candidates
 only; it is not wired to the current v26 viewer or to any capture/input action.
+
+The separate desktop-to-phone ScreenCast owner subscribes to the exact predicted
+request before each call; neither its method return nor an early `Response`
+alone can advance setup. It checks the original UI/session guard and one setup
+deadline throughout `CreateSession` → `SelectSources` → `Start`. It accepts a
+single stream with the exact requested source type, and requires the PipeWire
+serial when the portal exposes ScreenCast v6 or later. A successful selection
+does not yet open PipeWire or report a live capture. Cancellation closes only
+the original requests/session; an unconfirmed portal cleanup is not an output
+removal or stream-drain proof.
