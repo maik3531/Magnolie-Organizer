@@ -118,10 +118,17 @@ internal object PhoneScreenServiceStarts {
     private var slot: Entry? = null
 
     fun startJpeg(context: Context, request: PhoneScreenViewRequest, consent: PhoneScreenViewConsent,
-        width: Int, height: Int, density: Int, offer: (PhoneScreenJpegOutput.Frame) -> Boolean): AutoCloseable {
+        width: Int, height: Int, density: Int, pending: PhoneScreenFrameSlot): AutoCloseable {
         require(width in 2..1920 && height in 2..1920 && width * height <= 1920 * 1080)
+        require(pending.matchesSize(width, height)) { "screen_original_frame_slot_shape" }
         return start(context, request, consent, width, height, density) {
-            PhoneScreenJpegOutput.open(width, height, request::requireCurrent, offer)
+            val output = PhoneScreenJpegOutput.open(width, height, request::requireCurrent, pending::offer)
+            object : PhoneScreenOutput by output {
+                override fun requestStop() {
+                    pending.close()
+                    output.requestStop()
+                }
+            }
         }
     }
 
