@@ -89,4 +89,4 @@ Neue veröffentlichte Originalbeiträge werden nach Prüfung von Titel, Datum, A
 - [Magnolie Organizer auf GitHub](https://github.com/maik3531/Magnolie-Organizer)
 - [Magnolie-Projekt auf GitLab](https://gitlab.com/maik3531/mint-forgs)
 
-Diese Datei wird mit identischem Inhalt in beiden Repositories gepflegt.
+Diese Presseliste und die Website werden zentral im GitHub-Repository gepflegt. Die GitLab-READMEs verlinken auf die zentrale Website und Presseschau.
