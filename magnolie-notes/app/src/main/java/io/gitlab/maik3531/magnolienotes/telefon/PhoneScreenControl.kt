@@ -19,6 +19,9 @@ internal object PhoneScreenControl {
     private val hex64 = Regex("[a-f0-9]{64}")
     private val intValue = Regex("0|[1-9][0-9]*")
 
+    fun reserved(message: JsonObject): Boolean = message["kind"] in setOf(JsonPrimitive(REQUEST), JsonPrimitive(REPORT)) &&
+        ((message["body"] as? JsonObject)?.get("version") as? JsonPrimitive)?.content?.toDoubleOrNull() == VERSION.toDouble()
+
     fun validateMessage(message: JsonObject, now: Long = System.currentTimeMillis()): JsonObject {
         TelefonNachrichten.validateHeader(message, now)
         require(message.long("expires_ms") - message.long("created_ms") in 1..MAX_TTL_MS &&
@@ -61,7 +64,7 @@ internal object PhoneScreenControl {
 
 /** Uses the original bounded native writer; does not consume, start, or substitute a parent. */
 internal class PhoneScreenNotesChannel(private val channel: TelefonSecureChannel, private val pipe: TelefonTcpRoehre,
-    private val requireCurrent: () -> Unit) {
+    private val requireCurrent: () -> Unit, private val track: (String) -> Unit = {}) {
     fun bodyFrom(actual: TelefonSecureChannel, message: JsonObject): JsonObject {
         check(actual === channel && message.string("kind") == PhoneScreenControl.REPORT) { "screen_control_original_channel_required" }
         requireCurrent()
@@ -71,6 +74,9 @@ internal class PhoneScreenNotesChannel(private val channel: TelefonSecureChannel
     fun write(body: JsonObject, guard: () -> Unit = {}) {
         PhoneScreenControl.validateBody(body, PhoneScreenControl.REQUEST)
         val message = TelefonNachrichten.message(PhoneScreenControl.REQUEST, body, 60_000)
+        requireCurrent()
+        guard()
+        track(message.string("message_id"))
         channel.sendEphemeral(message, pipe, { requireCurrent(); guard() })
     }
 }

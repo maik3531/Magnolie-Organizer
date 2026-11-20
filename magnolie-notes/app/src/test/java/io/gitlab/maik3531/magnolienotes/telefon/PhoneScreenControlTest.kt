@@ -74,7 +74,7 @@ class PhoneScreenControlTest {
                     TelefonSecureChannel(pipe.input, pipe.output, ByteArray(16) { 3 }, key, prefix,
                         ByteArray(32) { 2 }, ByteArray(4) { 5 }).use { parent ->
                         var live = true
-                        val native = PhoneScreenNotesChannel(parent, pipe) { check(live) }
+                        val native = PhoneScreenNotesChannel(parent, pipe, requireCurrent = { check(live) })
                         live = false
                         assertThrows(IllegalStateException::class.java) { native.write(probe) }
                         live = true

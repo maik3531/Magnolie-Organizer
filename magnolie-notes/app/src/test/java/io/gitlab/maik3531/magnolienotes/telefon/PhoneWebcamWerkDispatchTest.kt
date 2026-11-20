@@ -81,9 +81,9 @@ class PhoneWebcamWerkDispatchTest {
             if (message["type"] == JsonPrimitive("ack")) work.handleSessionAck(peer, message, session, 0, TelefonTransportArt.WIFI, parent)
             else work.receiveMessage(peer, message, parent, 0)
         }
-        fun capabilities(revision: Long, supported: Boolean): JsonObject {
+        fun capabilities(revision: Long, supported: Boolean, marker: Int = 24): JsonObject {
             val items = TelefonCapabilities.phase1().toMutableMap()
-            items["device_status"] = TelefonCapability(true, "available", if (supported) listOf(1, 24) else listOf(1))
+            items["device_status"] = TelefonCapability(true, "available", if (supported) listOf(1, marker) else listOf(1))
             return TelefonNachrichten.message("capabilities.update", TelefonNachrichten.capabilities(revision, items), 60_000)
         }
         fun runtime() = field(TelefonWerk::class.java, "webcamRuntime").get(work) as PhoneWebcamNotesRuntime?
@@ -164,6 +164,44 @@ class PhoneWebcamWerkDispatchTest {
                 assertEquals(JsonPrimitive("probe"), (f.receive()["body"] as JsonObject)["op"])
             }
             assertFalse(f.pipe.isClosed)
+        }
+    }
+
+    @Test fun screenControlThroughWerkIsOriginalAndNeverEntersTheDurableQueue() {
+        Fixture().use { f ->
+            val activity = org.robolectric.Robolectric.buildActivity(androidx.activity.ComponentActivity::class.java).setup()
+            val host = PhoneScreenConsentHost(activity.get()) { false }
+            PhoneScreenForeground.register(host)
+            try {
+                f.deliver(f.capabilities(6, true, 26))
+                assertEquals(JsonPrimitive("accepted"), f.receive()["status"])
+                Shadows.shadowOf(Looper.getMainLooper()).idle()
+                val probeMessage = f.receive()
+                val probe = PhoneScreenControl.validateMessage(probeMessage)
+                assertEquals("probe", probe.string("op"))
+                assertNull(Shadows.shadowOf(activity.get()).nextStartedActivityForResult)
+                f.deliver(TelefonNachrichten.ack(probeMessage.string("message_id"), "rejected", "not_granted"))
+                val offer = JsonObject(probe + mapOf("op" to JsonPrimitive("offer"), "session" to JsonPrimitive("a".repeat(32)),
+                    "secret" to JsonPrimitive("b".repeat(64)), "port" to JsonPrimitive(24401), "width" to JsonPrimitive(720),
+                    "height" to JsonPrimitive(1600), "density" to JsonPrimitive(160)))
+                val offerMessage = TelefonNachrichten.message(PhoneScreenControl.REPORT, offer, 60_000)
+                f.deliver(offerMessage)
+                assertEquals(JsonPrimitive("rejected"), f.receive()["status"])
+                Shadows.shadowOf(Looper.getMainLooper()).idle()
+                assertNull(Shadows.shadowOf(activity.get()).nextStartedActivityForResult)
+                assertFalse(f.pipe.isClosed)
+                f.context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
+                    for (message in listOf(probeMessage, offerMessage)) for (table in listOf("outbox", "inbox", "dedupe")) {
+                        db.rawQuery("SELECT COUNT(*) FROM $table WHERE message_id=?", arrayOf(message.string("message_id"))).use {
+                            assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+                        }
+                    }
+                }
+            } finally {
+                PhoneScreenForeground.unregister(host)
+                host.close()
+                activity.pause().stop().destroy()
+            }
         }
     }
 }

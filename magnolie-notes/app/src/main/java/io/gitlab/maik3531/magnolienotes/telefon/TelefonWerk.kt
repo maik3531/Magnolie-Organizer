@@ -142,6 +142,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Volatile private var webcamDiscovery: WebcamDiscovery? = null
     @Volatile private var webcamRuntime: PhoneWebcamNotesRuntime? = null
     private val webcamAckLock = Any()
+    private val screenDispatch = PhoneScreenNotesDispatch(context)
     private val webcamAcks = java.util.WeakHashMap<TelefonSecureChannel, java.util.ArrayDeque<WebcamAck>>()
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private var galleryFileConnection: NativeGalleryFileConnection? = null
@@ -1674,6 +1675,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     @Synchronized fun runtimePermissionsChanged() {
+        screenDispatch.refresh()
         galleryFileConnection?.takeUnless { it.isEnded }?.let { owner ->
             runCatching { owner.runtime.nativeReadAccessChanged() }
         }
@@ -2085,6 +2087,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     // Never wait for a graceful network write from a lifecycle/consent callback.
     @Synchronized private fun closeTransport() {
         retireWebcam()
+        screenDispatch.retire()
         contactGroupWriter.clear(); contactValueWriter.clear(); contactGroupTitleWriter.clear()
         val pipe = activeTransport?.second
         activeTransport = null
@@ -2713,6 +2716,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     refreshSharedPreferenceState()
                 }
                 maybeStartWebcam()
+                screenDispatch.refresh()
                 peerEffect(peer, generation) { current ->
                     queue.readyPersonalBatches().filter { it.first == current.device_id }.forEach {
                         completePersonalBatch(current, it.second, noteSession)
@@ -2769,6 +2773,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 }
                 } finally {
                     retireWebcam(channel)
+                    screenDispatch.retire(channel)
                     synchronized(this) {
                         if (activeChannel === channel) activeChannel = null
                         fileChannelIdentities.remove(channel)
@@ -2846,6 +2851,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun receiveMessageCurrent(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                       generation: Long) {
+        if (PhoneScreenControl.reserved(message)) {
+            screenDispatch.receive(channel, message)
+            return
+        }
         if (PhoneWebcamControl.reserved(message)) {
             receiveWebcamControl(message, channel, generation)
             return // Never enter ordinary replay/identifier/personal-store routing.
@@ -2965,6 +2974,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (message["kind"] == JsonPrimitive("capabilities.update") && replies.any {
                 it["type"] == JsonPrimitive("ack") && it["status"] == JsonPrimitive("accepted") }) {
             observeWebcamDiscovery(channel, generation, message["body"] as JsonObject)
+            val original = activeTransport
+            val pipe = original?.second as? TelefonTcpRoehre
+            if (original?.first == TelefonTransportArt.WIFI && generation == pairingGeneration && serviceRunning) {
+                screenDispatch.observe(channel, pipe, message["body"] as JsonObject) {
+                    check(serviceRunning && generation == pairingGeneration && activeChannel === channel &&
+                        activeTransport === original) { "screen_original_wlan_parent_retired" }
+                }
+            }
         }
         if (message["kind"] in setOf(JsonPrimitive("capabilities.update"), JsonPrimitive("grants.update"), JsonPrimitive("personal_sync.settings")))
             refreshMediaPreferenceState()
@@ -4623,6 +4640,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         generation: Long, transport: TelefonTransportArt, channel: TelefonSecureChannel? = null) {
         TelefonNachrichten.validateAck(payload)
         val originalChannel = channel ?: noteSessions.entries.firstOrNull { it.value === session }?.key
+        if (originalChannel != null && screenDispatch.consumeAck(originalChannel, payload)) return
         if (originalChannel != null && consumeWebcamAck(originalChannel, payload)) return
         val id = payload.string("message_id")
         if (queue.outboxWireMessage(expected.device_id, id)?.let(PersonalSyncActor::isReservedMessage) == true) return

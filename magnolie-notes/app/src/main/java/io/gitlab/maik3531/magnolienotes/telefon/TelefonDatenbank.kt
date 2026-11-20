@@ -221,6 +221,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     private fun writableInsert(peerId: String, message: JsonObject, db: SQLiteDatabase = helper.writableDatabase,
                                 transportPolicy: String = "any", actorRunId: String? = null): JsonObject = db.inTransaction {
         require(!PhoneWebcamControl.reserved(message)) { "webcam_controls_cannot_be_persisted" }
+        require(!PhoneScreenControl.reserved(message)) { "screen_controls_cannot_be_persisted" }
         val statusBody = message["body"] as? JsonObject
         require(!message.string("kind").startsWith("device_status.") ||
             statusBody?.containsKey("identifiers") != true && statusBody?.get("version") != JsonPrimitive(4))
@@ -382,6 +383,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     fun receive(peerId: String, message: JsonObject, response: JsonObject? = null,
                 now: Long = System.currentTimeMillis(), validateExtra: () -> Unit = {}): Pair<String, String> = helper.writableDatabase.inTransaction {
         require(!PhoneWebcamControl.reserved(message)) { "webcam_controls_cannot_be_persisted" }
+        require(!PhoneScreenControl.reserved(message)) { "screen_controls_cannot_be_persisted" }
         val id = message.string("message_id")
         query("dedupe", arrayOf("result", "error"), "peer_id=? AND message_id=?", arrayOf(peerId, id),
             null, null, null).use {
@@ -401,6 +403,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
 
     fun terminal(peerId: String, message: JsonObject, error: String, now: Long = System.currentTimeMillis()): Pair<String, String> =
         helper.writableDatabase.inTransaction {
+            require(!PhoneScreenControl.reserved(message)) { "screen_controls_cannot_be_persisted" }
             TelefonNachrichten.validateHeader(message, now)
             val id = message.string("message_id")
             query("dedupe", arrayOf("result", "error"), "peer_id=? AND message_id=?", arrayOf(peerId, id),

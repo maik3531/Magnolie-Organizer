@@ -17,11 +17,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 @RequiresApi(29)
 internal class PhoneScreenNotesRun(private val context: Context, private val parent: TelefonSecureChannel,
     private val pipe: TelefonTcpRoehre, private val requireParent: () -> Unit,
-    private val host: () -> PhoneScreenConsentHost?) : AutoCloseable {
+    private val host: () -> PhoneScreenConsentHost?, track: (String) -> Unit = {}) : AutoCloseable {
     private val ui = Handler(Looper.getMainLooper())
     private val stopped = AtomicBoolean(false)
     private val issued = SystemClock.elapsedRealtime()
-    private val wire = PhoneScreenNotesChannel(parent, pipe, requireParent)
+    private val wire = PhoneScreenNotesChannel(parent, pipe, requireParent, track)
     private val probe = JsonObject(mapOf("version" to JsonPrimitive(PhoneScreenControl.VERSION), "op" to JsonPrimitive("probe"),
         "request_id" to JsonPrimitive(UUID.randomUUID().toString()),
         "nonce" to JsonPrimitive(ByteArray(32).also { SecureRandom().nextBytes(it) }.toHex())))
