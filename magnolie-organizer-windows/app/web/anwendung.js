@@ -8514,8 +8514,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!n) continue;
       const htmlRoh = S(n.html), htmlStand = {};
       const sicheresHtml = saeubereHtml(htmlRoh, htmlStand);
-      const notizDatum = gueltigesISO(n.geaendert) ? n.geaendert : isoHeute();
-      const notizAngelegt = N(n.angelegt) || new Date(notizDatum + "T00:00:00").getTime();
+      const notizDatum = gueltigesISO(n.geaendert) ? n.geaendert : "";
+      const notizAngelegt = N(n.angelegt) || (notizDatum ? N(ausISO(notizDatum).getTime()) : 0);
       const freigabe = n.baumFreigabe && typeof n.baumFreigabe === "object"
         ? { id: S(n.baumFreigabe.id), partner:
           Array.isArray(n.baumFreigabe.partner)
@@ -22322,6 +22322,43 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
+  function notizSuchzeitraum(text) {
+    let jahr, monat = 1, tag = 1, einheit = "jahr";
+    let m;
+    if ((m = /^(\d{1,2})\.(\d{1,2})\.(\d{4}|\d{2})\.?$/.exec(text))) {
+      [, tag, monat, jahr] = m; einheit = "tag";
+    } else if ((m = /^(\d{1,2})\.(\d{4}|\d{2})\.?$/.exec(text))) {
+      [, monat, jahr] = m; einheit = "monat";
+    } else if ((m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(text))) {
+      [, jahr, monat = 1, tag = 1] = m; einheit = m[3] ? "tag" : m[2] ? "monat" : "jahr";
+    } else return null;
+    jahr = Number(jahr) + (jahr.length === 2 ? 2000 : 0); monat = Number(monat); tag = Number(tag);
+    if (jahr < 1 || monat < 1 || monat > 12 || tag < 1 || tag > 31) return null;
+    // UTC arithmetic describes calendar dates only; the recorded instant is
+    // projected into the organizer's configured zone before comparison.
+    const datum = new Date(0);
+    datum.setUTCFullYear(jahr, monat - 1, tag);
+    if (datum.getUTCMonth() !== monat - 1 || datum.getUTCDate() !== tag) return null;
+    const von = jahr * 10000 + monat * 100 + tag;
+    if (einheit === "tag") datum.setUTCDate(tag + 1);
+    else if (einheit === "monat") datum.setUTCMonth(monat);
+    else datum.setUTCFullYear(jahr + 1);
+    return [von, datum.getUTCFullYear() * 10000 + (datum.getUTCMonth() + 1) * 100 + datum.getUTCDate()];
+  }
+
+  function notizSuchdatumPasst(note, zeitraum) {
+    if (!zeitraum) return false;
+    const imZeitraum = (tag) => tag >= zeitraum[0] && tag < zeitraum[1];
+    const zeitPasst = (wert) => {
+      if (!Number.isFinite(wert) || wert <= 0 || wert > 253402300799999) return false;
+      const { jahr, monat, tag } = organizerDatumzeitTeile(new Date(wert));
+      return imZeitraum(jahr * 10000 + monat * 100 + tag);
+    };
+    return (!note.angelegtGeschaetzt && zeitPasst(note.angelegt)) ||
+      ((!note.angelegtGeschaetzt || note.personalGeaendert !== note.angelegt) && zeitPasst(note.personalGeaendert)) ||
+      (gueltigesISO(note.geaendert) && imZeitraum(Number(note.geaendert.replace(/-/g, ""))));
+  }
+
   function sortiereNotizseiten(seiten, wahl) {
     if (wahl.sort === "manual") return seiten.slice();
     const index = new Map(seiten.map((note, n) => [note.id, n]));
@@ -22548,6 +22585,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     const suchbegriffe = suchBegriffe(z.suche);
     const sucht = (werte) => suchPasst(suchText(werte), suchbegriffe);
+    const suchzeitraum = notizSuchzeitraum(z.suche.trim());
+    const seitePasst = (n, werte) => sucht(werte) || notizSuchdatumPasst(n, suchzeitraum);
+    const buchSeitePasst = (n) => seitePasst(n, [n.titel, n.text, n.geaendert, fmtPunkt(n.geaendert),
+      n.anhaenge.map((a) => a.name)]);
     let sichtbareNotizen = 0;
     const baueNotizzeile = (n, i) => {
       const zeile = el("li", "zeile" + (n.id === z.auswahlId ? " aktiv" : ""));
@@ -22598,7 +22639,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     uebersicht.replaceChildren(); sichtbareNotizen = 0;
     const wahl = notizUebersichtWahl();
     if (wahl.view === "days") {
-      const pages = sortiereNotizseiten(DATEN.notizen.filter(note => !suchbegriffe.length || sucht([note.titel, note.text,
+      const pages = sortiereNotizseiten(DATEN.notizen.filter(note => !suchbegriffe.length || seitePasst(note, [note.titel, note.text,
         DATEN.notizbuecher.find(book => book.id === note.notizbuchId)?.name || ""])), wahl);
       const indices = new Map(DATEN.notizen.map((note, index) => [note.id, index]));
       const days = new Map();
@@ -22630,8 +22671,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const passendeBuecher = gruppenBuecher.filter((buch) => {
         const seiten = DATEN.notizen.filter((n) => n.notizbuchId === buch.id);
         return !suchbegriffe.length || sucht([buch.name, gruppe.name]) ||
-          seiten.some((n) => sucht([n.titel, n.text, n.geaendert, fmtPunkt(n.geaendert),
-            n.anhaenge.map((a) => a.name)]));
+          seiten.some(buchSeitePasst);
       });
       if (!passendeBuecher.length && suchbegriffe.length) continue;
       const gruppeEl = el("section", "notiz-gruppe");
@@ -22650,9 +22690,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const alleSeiten = DATEN.notizen.filter((n) => n.notizbuchId === buch.id);
         const seitenNummern = new Map(alleSeiten.map((note, index) => [note.id, index]));
         const buchPasst = sucht([buch.name, gruppe.name]);
-        const gefiltert = suchbegriffe.length && !buchPasst ? alleSeiten.filter((n) =>
-          sucht([n.titel, n.text, n.geaendert, fmtPunkt(n.geaendert),
-            n.anhaenge.map((a) => a.name)])) : alleSeiten;
+        const gefiltert = suchbegriffe.length && !buchPasst ? alleSeiten.filter(buchSeitePasst) : alleSeiten;
         const seiten = sortiereNotizseiten(gefiltert, wahl);
         const buchEintrag = el("div", "notizbuch-eintrag");
         const buchZeile = el("button", "notizbuch-zeile" +

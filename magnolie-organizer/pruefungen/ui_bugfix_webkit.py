@@ -42,7 +42,9 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("WebKit2", "4.1")
 from gi.repository import Gio, GLib, Gtk, WebKit2
 
-script = (ROOT / "magnolie-organizer-windows/tests/ui-bugfix-probe.js").read_text()
+notes_date_search = sys.argv[1:] == ["--notes-date-search"]
+script = (Path(__file__).with_name("notes-date-search-probe.js") if notes_date_search
+          else ROOT / "magnolie-organizer-windows/tests/ui-bugfix-probe.js").read_text()
 locales = list(json.loads((ROOT / "contracts/ui-bugfixes.json").read_text())["translations"])
 results, commands, sources = [], [], {}
 print("EVIDENCE", output, flush=True)
@@ -78,7 +80,8 @@ for platform, relative in (("linux", "magnolie-organizer/web"), ("windows", "mag
     assets = {str(p.relative_to(web)): p.read_bytes() for p in web.rglob("*") if p.is_file()}
     sources[platform] = {name: hashlib.sha256(data).hexdigest() for name, data in assets.items()}
     catalogs = sorted(name for name in assets if name.startswith("i18n/") and name.endswith(".js"))
-    for width, height in ((1920, 1080), (1024, 768), (390, 844), (640, 480)):
+    viewports = ((1024, 768),) if notes_date_search else ((1920, 1080), (1024, 768), (390, 844), (640, 480))
+    for width, height in viewports:
         context = WebKit2.WebContext.new_ephemeral()
         security = context.get_security_manager()
         for method in ("register_uri_scheme_as_secure", "register_uri_scheme_as_display_isolated"):
@@ -111,6 +114,16 @@ for platform, relative in (("linux", "magnolie-organizer/web"), ("windows", "mag
         watchdog = GLib.timeout_add_seconds(600, lambda: os._exit(2))
         view.load_uri("magnolie-organizer://app/index.html")
         loaded.run()
+        if notes_date_search:
+            result = evaluate(script + "\nJSON.stringify(notesDateSearchProbe());")
+            if result.get("checks") != 30:
+                result["errors"].append({"label": "expected 30 notes search checks"})
+            result.update(platform=platform, size=[width, height])
+            results.append(result)
+            print(f"{platform}: {result['checks']} notes search checks in native WebKit, {len(result['errors'])} failures", flush=True)
+            GLib.source_remove(watchdog)
+            window.destroy()
+            continue
         evaluate("\n".join(assets[name].decode() for name in catalogs) + "\n" + script + """
           App.init({daten: {}, neu:false, regional:{language:'en',timeZone:'UTC'}});
           OrganizerTest.oeffneBuch(); JSON.stringify(true);
@@ -150,5 +163,9 @@ report = {"engine": f"WebKitGTK {WebKit2.get_major_version()}.{WebKit2.get_minor
 (output / "report.json").write_text(json.dumps(report, indent=2))
 assert not any("senden" in (cmd or "") or "send" in (cmd or "") for cmd in commands), commands
 failures = [r for r in results if r["errors"]]
-print("RESULT", len(results), "cases;", len(failures), "failures; no SMS dispatched", flush=True)
+if notes_date_search:
+    print("RESULT", sum(r["checks"] for r in results), "notes search checks;",
+          sum(len(r["errors"]) for r in results), "failures", flush=True)
+else:
+    print("RESULT", len(results), "cases;", len(failures), "failures; no SMS dispatched", flush=True)
 sys.exit(bool(failures))
