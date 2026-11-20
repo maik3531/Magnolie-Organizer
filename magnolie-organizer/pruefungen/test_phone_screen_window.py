@@ -273,6 +273,15 @@ def test_desktop_lock_and_session_loss_permanently_revoke_the_exact_view():
         assert not monitor.available  # An unrelated update cannot undo Lock.
         wait_for(lambda: stops == [True])
         monitor._signal(proxy, owner[0], "Unlock", None)
+        # Unlock is only a request. The cached false value predates Lock.
+        monitor._properties(proxy, GLib.Variant("a{sv}", {"Active": props["Active"]}), [])
+        with pytest.raises(PermissionError):
+            monitor.claim()
+        props["LockedHint"] = GLib.Variant("b", True)
+        monitor._properties(proxy, GLib.Variant("a{sv}", {"LockedHint": props["LockedHint"]}), [])
+        assert not monitor.available
+        props["LockedHint"] = GLib.Variant("b", False)
+        monitor._properties(proxy, GLib.Variant("a{sv}", {"LockedHint": props["LockedHint"]}), [])
         unlocked = monitor.claim()
         unlocked()
         with pytest.raises(PermissionError):

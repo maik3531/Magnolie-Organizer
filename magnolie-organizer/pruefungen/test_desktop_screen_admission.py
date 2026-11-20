@@ -1,12 +1,13 @@
 """Real GTK approval and signed PhoneService test parent; no compositor capture."""
 
 from time import time_ns
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 
 from test_desktop_screen_dispatch import connected, native, ping, request
-from test_phone_screen_window import Gtk, PhoneScreenSessionLock, wait_for
+from test_phone_screen_window import GLib, Gtk, PhoneScreenSessionLock, wait_for
 import magnolie_desktop_screen_admission as admission
 import magnolie_desktop_screen_attempt as runs
 from desktop_screen_draft_interop_peer import SyntheticLocalRun
@@ -113,15 +114,29 @@ def test_confirm_then_native_stop_waits_for_exact_drain(connected, gtk_owner):
 def test_lock_then_unlock_cannot_reuse_pending_confirmation(connected, gtk_owner):
     _, _, client = connected
     arm, lock, _, factory, _, ended = gtk_owner
-    owner = arm()
-    _, dialog = show(owner, client)
-    lock._lease = None
-    lock._lease = object()
-    dialog.get_widget_for_response(Gtk.ResponseType.ACCEPT).clicked()
-    wait_for(lambda: ended == [None])
-    factory.assert_not_called()
-    assert not dialog.get_visible()
-    ping(client)
+    props = {'LockedHint': GLib.Variant('b', False), 'Active': GLib.Variant('b', True)}
+    proxy = SimpleNamespace(get_name_owner=lambda: ':1.245', get_cached_property=props.get)
+    lock._proxy = proxy
+    try:
+        owner = arm()
+        _, dialog = show(owner, client)
+        stale_confirm = dialog.get_widget_for_response(Gtk.ResponseType.ACCEPT)
+        lock._signal(proxy, ':1.245', 'Lock', None)
+        lock._signal(proxy, ':1.245', 'Unlock', None)
+        stale_confirm.clicked()
+        wait_for(lambda: ended == [None])
+        with pytest.raises(PermissionError, match='lock_state_unavailable'):
+            arm()
+        for locked in (True, False):
+            props['LockedHint'] = GLib.Variant('b', locked)
+            lock._properties(proxy, GLib.Variant('a{sv}', {'LockedHint': props['LockedHint']}), [])
+        arm()  # A new local admission, after native confirmation of unlock.
+        stale_confirm.clicked()
+        factory.assert_not_called()
+        assert not dialog.get_visible()
+        ping(client)
+    finally:
+        lock._proxy = None
 
 
 def test_exit_and_failed_portal_cleanup_do_not_free_slot(connected, gtk_owner):

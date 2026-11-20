@@ -81,13 +81,12 @@ class PhoneScreenSessionLock:
         self._lock_signalled = False
         self._update(proxy)
 
-    def _signal(self, proxy, _sender, name, _parameters):
-        if proxy is self._proxy and name == 'Lock':
+    def _signal(self, proxy, sender, name, _parameters):
+        # Lock and Unlock are requests to the session manager. Lock may
+        # revoke immediately; only a fresh LockedHint can clear that latch.
+        if proxy is self._proxy and sender == proxy.get_name_owner() and name == 'Lock':
             self._lock_signalled = True
             self._lease = None
-        elif proxy is self._proxy and name == 'Unlock':
-            self._lock_signalled = False
-            self._update(proxy)
 
     def _bus_closed(self, *_):
         self._lease = None

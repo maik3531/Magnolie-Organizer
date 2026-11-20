@@ -97,9 +97,11 @@ any of those modes as a fallback.
 The GTK owner must hold both the exact WLAN parent and a live local desktop
 session lease. The logind observer resolves the Organizer process's own
 session without starting logind. Unknown or inactive sessions are unavailable.
-Lock, inactivity and owner loss retire the original display lease; unlocking
-does not recreate that view or reuse its approval. This is separate from
-Organizer profile lock and from hiding the window in the tray.
+Lock, inactivity and owner loss retire the original display lease. A logind
+`Unlock` request is not evidence that the session is unlocked: after `Lock`,
+only a new `LockedHint=false` update on the active session can allow a fresh
+lease. Unlocking does not recreate that view or reuse its approval. This is
+separate from Organizer profile lock and from hiding the window in the tray.
 
 The disabled foreground-only integration is not a daemon migration. When
 the background service owns the phone connection, keep the existing owner,
