@@ -21677,7 +21677,7 @@ class Fenster(_FENSTER_BASIS):
         else:
             threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
 
-    def _phone_screen_begin_original(self, parent, probe, width, height, density, *, require_original):
+    def _phone_screen_begin_original(self, parent, probe, width, height, density, *, require_original, track=lambda *_: None):
         """GTK-thread entry after the single explicit native viewing action.
 
         The native caller still owns the selected probe/parent and routes only
@@ -21706,7 +21706,7 @@ class Fenster(_FENSTER_BASIS):
         try:
             view = self._phone_screen_attach(is_current=is_current, request_stop=stop)
             run = PhoneScreenDesktopRun(parent, probe, width, height, density, require_original=require_original,
-                                        require_view=require_view, offer_rgb=view.offer_rgb)
+                                        require_view=require_view, offer_rgb=view.offer_rgb, track=track)
             run.start()
         except Exception:
             attached = getattr(self, "_phone_screen_window", None)

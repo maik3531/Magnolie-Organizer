@@ -4,6 +4,8 @@ import secrets
 import threading
 import time
 import uuid
+import weakref
+from collections import deque
 
 VERSION = 26
 REQUEST = 'device_status.request'  # Phone -> desktop
@@ -40,12 +42,13 @@ class PhoneScreenDesktopChannel:
     guard. Incoming values must already have arrived on its authenticated reader.
     """
 
-    def __init__(self, channel, require_current):
+    def __init__(self, channel, require_current, track=lambda *_: None):
         from magnolie_telefon import SecureChannel
         if type(channel) is not SecureChannel:
             raise TypeError('screen_control_original_channel_required')
         self._channel = channel
         self._current = require_current
+        self._track = track
 
     def body_from(self, actual, message):
         if actual is not self._channel or type(message) is not dict or message.get('kind') != REQUEST:
@@ -59,6 +62,9 @@ class PhoneScreenDesktopChannel:
         message = dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=REPORT,
                        created_ms=now, expires_ms=now + MAX_TTL_MS, body=body.copy())
         validate_message(message, now)
+        self._current()
+        guard()
+        self._track(message['message_id'])
 
         def admitted():
             self._current()
@@ -211,7 +217,7 @@ class PhoneScreenDesktopRun:
     the PhoneService monitor. Stopping signals only; the caller waits for drain.
     """
 
-    def __init__(self, parent, probe, width, height, density, *, require_original, require_view, offer_rgb):
+    def __init__(self, parent, probe, width, height, density, *, require_original, require_view, offer_rgb, track=lambda *_: None):
         self._parent = parent
         self._require_original = require_original
         self._require_view = require_view
@@ -223,7 +229,7 @@ class PhoneScreenDesktopRun:
         self._listener = self._receiver = None
         self._started = self._peer_ended = False
         self._control = PhoneScreenDesktopControl(parent, probe, self._current)
-        self._wire = PhoneScreenDesktopChannel(parent, require_original)
+        self._wire = PhoneScreenDesktopChannel(parent, require_original, track)
         self.failure = None
         self.cleanup_error = None
         self._thread = threading.Thread(target=self._run, name='magnolie-phone-screen-control', daemon=True)
@@ -331,3 +337,141 @@ class PhoneScreenDesktopRun:
     @property
     def retired(self):
         return self._stop.is_set()
+
+
+class PhoneScreenDesktopDispatch:
+    """Private volatile dispatch on the original PhoneService, not a GUI command."""
+
+    def __init__(self, service):
+        self._service = service
+        self._lock = threading.Lock()
+        self._probes = weakref.WeakKeyDictionary()
+        self._acks = weakref.WeakKeyDictionary()
+        self._owner = None
+
+    def _guard(self, peer, channel):
+        service = self._service
+        store, generation, caps = service.store, service._generation, channel.last_capabilities
+        peer_id, key = peer['device_id'], peer['static_public']
+        channel_ref = weakref.ref(channel)
+
+        def require():
+            channel = channel_ref()
+            live = next((p for p in store.peers if p.get('device_id') == peer_id), None)
+            status = (caps or {}).get('items', {}).get('device_status', {})
+            if (channel is None or service.store is not store or service._generation != generation or not service.enabled or
+                    service.stop_event.is_set() or service.connections.get(peer_id) is not channel or
+                    service.connection_transports.get(peer_id) != 'wifi' or channel.sock.fileno() < 0 or
+                    channel.last_capabilities is not caps or not live or live.get('state') != 'paired' or
+                    live.get('static_public') != key or status.get('available') is not True or VERSION not in status.get('versions', ())):
+                raise PermissionError('screen_original_wlan_parent_retired')
+        return require
+
+    def receive(self, peer, channel, message):
+        from magnolie_telefon import now_ms
+        status, error = 'rejected', 'not_granted'
+        try:
+            body = validate_message(message)
+            if message['kind'] != REQUEST:
+                raise ValueError('screen_original_phone_request_required')
+            if body['op'] == 'probe':
+                require = self._guard(peer, channel)
+                require()
+                deadline = time.monotonic() + (message['expires_ms'] - now_ms()) / 1000
+                with self._lock:
+                    history = self._probes.setdefault(channel, deque(maxlen=16))
+                    if any(item[0]['request_id'] == body['request_id'] or item[0]['nonce'] == body['nonce'] for item in history):
+                        raise PermissionError('screen_probe_already_seen')
+                    history.append([body.copy(), deadline, require, False, peer['device_id']])
+                status, error = 'accepted', 'none'
+            else:
+                with self._lock:
+                    own = self._owner
+                if own is not None and own[0] is channel and own[2] is not None and own[2].receive(channel, message):
+                    status, error = 'accepted', 'none'
+        except ValueError:
+            error = 'invalid_schema'
+        except (PermissionError, OSError):
+            pass
+        channel.send(dict(type='ack', message_id=message['message_id'], status=status, error=error))
+
+    def _candidate(self, peer_id):
+        channel = self._service.connections.get(peer_id)
+        history = self._probes.get(channel, ()) if channel is not None else ()
+        latest = history[-1] if history else None
+        if latest is None or latest[3] or latest[4] != peer_id or time.monotonic() >= latest[1]:
+            raise PermissionError('screen_original_probe_required')
+        latest[2]()
+        return channel, latest
+
+    def available(self, peer_id):
+        with self._lock:
+            try:
+                if self._owner is not None and (self._owner[2] is None or not self._owner[2].is_drained()):
+                    return False
+                self._candidate(peer_id)
+                return True
+            except PermissionError:
+                return False
+
+    def begin(self, peer_id, width, height, density, native_start):
+        with self._lock:
+            if self._owner is not None and (self._owner[2] is None or not self._owner[2].is_drained()):
+                raise PermissionError('screen_original_view_busy')
+            channel, probe = self._candidate(peer_id)
+            probe[3] = True
+            token = object()
+            slot = [channel, token, None, False]
+            self._owner = slot
+
+        def track(id_):
+            with self._lock:
+                self._acks.setdefault(channel, deque(maxlen=16)).append((id_, token))
+
+        try:
+            owner = native_start(channel, probe[0], width, height, density, require_original=probe[2], track=track)
+        except Exception:
+            with self._lock:
+                if self._owner is slot:
+                    self._owner = None
+            raise
+        with self._lock:
+            slot[2] = owner
+            retired = slot[3]
+        try:
+            probe[2]()
+            if retired:
+                raise PermissionError('screen_original_view_retired')
+        except PermissionError:
+            owner.stop()
+            raise
+        return owner
+
+    def ack(self, channel, message):
+        with self._lock:
+            token = next((item[1] for item in self._acks.get(channel, ()) if item[0] == message['message_id']), None)
+            slot = self._owner
+            if token is not None and slot is not None and slot[1] is token and message['status'] == 'rejected':
+                slot[3] = True
+                owner = slot[2]
+            else:
+                owner = None
+        if token is None:
+            return False
+        if owner is not None:
+            owner.stop()
+        return True
+
+    def retire(self, channel=None):
+        with self._lock:
+            if channel is None:
+                self._probes.clear()
+            else:
+                self._probes.pop(channel, None)
+            slot = self._owner
+            if slot is None or channel is not None and slot[0] is not channel:
+                return
+            slot[3] = True
+            owner = slot[2]
+        if owner is not None:
+            owner.stop()
