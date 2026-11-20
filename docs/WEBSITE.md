@@ -7,6 +7,24 @@ die Gestaltung und Produktbilder und `media/` sämtliche Videos, Untertitel,
 Broschüren und das Medienpaket. Die Website benötigt nur einen statischen
 Webserver und keine ChatGPT-Dienste, API-Schlüssel oder JavaScript-Pakete.
 
+## Zentrale Rechtsseiten
+
+`impressum/index.html` und `datenschutz/index.html` enthalten die zentralen
+deutschsprachigen Rechtsseiten. Sie sind in den Fußzeilen aller Sprachseiten
+und der Presseschau über relative Links erreichbar. Englische Linkzusätze
+helfen auf den internationalen Seiten bei der Orientierung.
+
+Betreiberangaben ausschließlich aus bestätigten Angaben des Betreibers oder
+eindeutig zugehörigen öffentlichen Projektquellen pflegen. Fehlende Angaben
+werden nicht abgeleitet oder erfunden; unvollständige Entwürfe sind vor einer
+Veröffentlichung zu ergänzen. Änderungen an Hosting, Kontaktwegen oder
+eingebundenen Diensten müssen in der Datenschutzerklärung nachvollzogen werden.
+Die technische Bereitstellung der Seiten ist kein Nachweis vollständiger
+Rechtskonformität.
+
+Quellen und noch vor der Veröffentlichung zu vervollständigende Angaben sind
+in [WEBSITE-RECHT.md](WEBSITE-RECHT.md) dokumentiert.
+
 ## Änderungen und Veröffentlichung
 
 HTML-, CSS- und JavaScript-Dateien direkt bearbeiten. Die Presseliste zugleich

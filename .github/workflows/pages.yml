@@ -10,6 +10,8 @@ on:
       - intl/**
       - media/**
       - presse/**
+      - impressum/**
+      - datenschutz/**
       - docs/PRESSE.md
       - SOURCE-NOTICES.txt
       - robots.txt
@@ -25,6 +27,8 @@ on:
       - intl/**
       - media/**
       - presse/**
+      - impressum/**
+      - datenschutz/**
       - docs/PRESSE.md
       - SOURCE-NOTICES.txt
       - robots.txt
@@ -56,6 +60,8 @@ jobs:
             intl
             media
             presse
+            impressum
+            datenschutz
             docs/PRESSE.md
             SOURCE-NOTICES.txt
             robots.txt
