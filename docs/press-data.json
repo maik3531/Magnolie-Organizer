@@ -1,0 +1,533 @@
+{
+  "schema_version": 1,
+  "title": "Magnolie Presseschau",
+  "as_of": "2026-11-20",
+  "verification_date_timezone": "Europe/Berlin",
+  "verification_note": "Prüfstand 20. November 2026 (MEZ). Historische Nachweise behalten ihre jeweils genannten Beobachtungsdaten. Suchindex-Belege sind keine Bestätigung eines erfolgreichen Direktabrufs.",
+  "press_url": "https://maik3531.github.io/Magnolie-Organizer/presse/",
+  "counts": {
+    "external_original_articles": 5,
+    "published_roundup_mentions": 1,
+    "current_directory_list_and_comparison_entries": 13,
+    "own_project_articles": 1,
+    "historical_evidence_entries": 4,
+    "redistribution_traces": 6
+  },
+  "gratitude": {
+    "de": "Herzlichen Dank an alle, die über Magnolie berichten, das Projekt vorstellen oder weiterempfehlen. Eure Unterstützung hilft, Magnolie bekannter und noch mehr Menschen zugänglich zu machen.",
+    "en": "A heartfelt thank you to everyone who writes about Magnolie, introduces the project to others, or recommends it. Your support helps more people discover Magnolie and makes it accessible to an even wider audience.",
+    "es": "Muchas gracias a todas las personas que escriben sobre Magnolie, dan a conocer el proyecto o lo recomiendan. Vuestro apoyo ayuda a que Magnolie sea más conocido y esté al alcance de más personas.",
+    "ru": "Спасибо всем, кто пишет о Magnolie, знакомит других с проектом или рекомендует его. Ваша поддержка помогает большему числу людей узнать о Magnolie.",
+    "zh": "衷心感谢所有介绍、分享或推荐 Magnolie 的朋友。你们的支持帮助更多人了解并使用 Magnolie。",
+    "cs": "Děkujeme všem, kteří o Magnolie píší, představují projekt ostatním nebo jej doporučují. Vaše podpora pomáhá, aby se o Magnolie dozvědělo více lidí."
+  },
+  "categories": [
+    {
+      "id": "redaktion",
+      "title": "Berichte ohne dokumentierte Einreichung",
+      "intro": "Diese Beiträge stehen zuerst, weil für sie kein Einreichungsbezug durch das Projekt dokumentiert ist. Das beweist weder fehlenden Kontakt noch einen unabhängigen Funktionstest.",
+      "entries": [
+        {
+          "id": "linux-bibel",
+          "publisher": "Linux-Bibel",
+          "title": "Magnolie Organizer: Ein Open-Source-PIM für Linux",
+          "url": "https://linux-bibel.at/index.php/2026/08/22/magnolie-organizer-ein-open-source-pim-fuer-linux/",
+          "language": "Deutsch",
+          "description": "Softwarevorstellung mit Hinweisen zur Installation und zu den ersten Schritten unter Linux.",
+          "publisher_country": "Österreich",
+          "publication_date": "2026-08-22",
+          "author": "zebolon",
+          "date_text": "22. August 2026",
+          "type": "editorial_article",
+          "evidence": "original_article",
+          "provenance": "In den geprüften Quellen ist kein Einreichungsbezug dokumentiert."
+        },
+        {
+          "id": "f-droid-weekly",
+          "publisher": "F-Droid · This Week in F-Droid",
+          "title": "Hitting 5K, again",
+          "url": "https://f-droid.org/en/2026/11/09/twif.html",
+          "language": "Englisch",
+          "description": "Der Wochenrückblick führt Magnolie Notes unter „Newly Added Apps“ auf. Die kurze Erwähnung betrifft die separate Android-App und zählt als Fundstelle in einem Sammelbeitrag.",
+          "publisher_country": null,
+          "publication_date": "2026-11-09",
+          "author": "linsui",
+          "date_text": "9. November 2026",
+          "type": "news_roundup_mention",
+          "evidence": "live_page",
+          "provenance": "Für diese redaktionelle Erwähnung ist keine gesonderte Einreichung durch das Projekt dokumentiert. Die Aufnahme der App in den F-Droid-Katalog ist davon zu unterscheiden."
+        }
+      ]
+    },
+    {
+      "id": "hinweise",
+      "title": "Redaktion nach Hinweis oder Einreichung",
+      "intro": "Redaktionell verfasste Artikel, bei denen ein Hinweis oder eine Einreichung durch den Entwickler dokumentiert ist. Die Länderfolge beginnt mit Deutschland und danach der Schweiz.",
+      "entries": [
+        {
+          "id": "deskmodder",
+          "publisher": "Deskmodder.de",
+          "title": "Magnolie Organizer für Windows, Linux und Android in moderner Form ähnlich zum Lotus Organizer",
+          "url": "https://www.deskmodder.de/blog/2026/09/22/magnolie-organizer-fuer-windows-linux-und-android-in-moderner-form-aehnlich-zum-lotus-organizer/",
+          "language": "Deutsch",
+          "description": "Redaktionelle Softwarevorstellung nach einem Hinweis des Entwicklers. Der Artikel nennt ausdrücklich eine zuvor von Maik an die Redaktion gesendete E-Mail.",
+          "publisher_country": "Deutschland",
+          "publication_date": "2026-09-22",
+          "author": "moinmoin",
+          "date_text": "22. September 2026",
+          "type": "editorial_article",
+          "evidence": "original_article",
+          "provenance": "Redaktioneller Beitrag nach einem Entwicklerhinweis."
+        },
+        {
+          "id": "gnulinux",
+          "publisher": "GNU/Linux.ch",
+          "title": "Magnolia ist der Nachfolger des Lotus Organizer",
+          "url": "https://gnulinux.ch/magnolia-ist-der-nachfolger-des-lotus-organizer",
+          "language": "Deutsch",
+          "description": "Persönliche Vorstellung mit einem Rückblick auf Lotus Organizer und Eindrücken von Installation und Nutzung. „Magnolia“ entspricht der Schreibweise des Originaltitels.",
+          "publisher_country": "Schweiz",
+          "publication_date": "2026-08-28",
+          "author": "Norbert Rüthers",
+          "date_text": "28. August 2026",
+          "type": "editorial_article",
+          "evidence": "original_article",
+          "provenance": "Redaktioneller Artikel nach einer dokumentierten Einreichung durch den Entwickler. Die redaktionelle Autorenschaft liegt bei Norbert Rüthers."
+        }
+      ]
+    },
+    {
+      "id": "gastbeitraege",
+      "title": "Veröffentlichte Gastbeiträge",
+      "intro": "Beiträge von Maik Walter in anderen Medien. Entstehung, KI-Unterstützung und redaktionelle Bearbeitung sind bei den jeweiligen Artikeln kenntlich gemacht.",
+      "entries": [
+        {
+          "id": "trotero",
+          "publisher": "Trotero",
+          "title": "Cómo conservar el control de una agenda digital",
+          "url": "https://trotero.com/agenda-digital-control-magnolie/",
+          "language": "Spanisch",
+          "description": "Gastbeitrag über lokale Speicherung, Synchronisation und Sicherung einer digitalen Agenda unter eigener Kontrolle.",
+          "publisher_country": "Spanien",
+          "publication_date": "2026-11-17",
+          "author": "Maik Walter",
+          "date_text": "17. November 2026",
+          "type": "developer_guest_article",
+          "evidence": "original_article",
+          "provenance": "Vom Entwickler verfasst und redaktionell bearbeitet. Der erste Entwurf entstand mit KI-Unterstützung; die Vorstellung beruht auf Projektdokumentation und Quellcode, ohne unabhängigen Funktionstest."
+        },
+        {
+          "id": "linux-today",
+          "publisher": "Linux Today",
+          "title": "Magnolie Organizer: A Free, Open-Source Desktop Organizer in 20 Languages",
+          "url": "https://www.linuxtoday.com/blog/magnolie-organizer-a-free-open-source-desktop-organizer-in-20-languages/",
+          "language": "Englisch",
+          "description": "Vorstellung des Desktop-Organizers und seiner mehrsprachigen Oberfläche.",
+          "publisher_country": "USA",
+          "publication_date": "2026-11-19",
+          "author": "Maik Walter / Magnolie Organizer",
+          "date_text": "19. November 2026",
+          "type": "developer_guest_article",
+          "evidence": "original_article",
+          "provenance": "Eingereichte Projektvorstellung im Namen von Maik Walter. Der Beitrag kennzeichnet die Mitwirkung des Entwicklers und die KI-Unterstützung ausdrücklich."
+        }
+      ]
+    },
+    {
+      "id": "verzeichnisse",
+      "title": "Verzeichnisse & weitere Erwähnungen",
+      "intro": "Softwarekataloge, App-Seiten, Vergleichs- und Aktualisierungslisten. Sie sind eigene Fundstellen und werden nicht als Presseartikel gezählt. Magnolie Notes ist die separate Android-App. Die Belege unterscheiden Originalabruf, öffentliche Datenschnittstelle und Suchindex.",
+      "entries": [
+        {
+          "id": "unstock",
+          "publisher": "Unstock",
+          "title": "Beste Notizen-App für Android: privat zuerst (Nov. 2026) · Unstock",
+          "url": "https://getunstock.com/de/replace/notes",
+          "language": "Deutsch",
+          "description": "Vergleichsübersicht zu Notiz-Apps für Android mit einer Erwähnung von Magnolie Notes. Die spanische Sprachfassung gehört zu derselben Fundstelle.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "comparison_mention",
+          "evidence": "primary_search_index",
+          "status_label": "Im aktuellen Suchindex belegt · Direktabruf gesperrt",
+          "date_text": "November 2026 ist der Monatsstand im Seitentitel; der genaue Veröffentlichungstag ist nicht belegt.",
+          "related_links": [
+            {
+              "label": "Spanische Sprachfassung",
+              "url": "https://getunstock.com/es/replace/notes"
+            }
+          ]
+        },
+        {
+          "id": "aidir3",
+          "publisher": "AIDIR3",
+          "title": "Magnolie-Organizer 1.0.21 — free download for Linux, Android | aidir3",
+          "url": "https://aidir3.com/software/app/magnolie-organizer",
+          "language": "Englisch",
+          "description": "Importierter Katalogeintrag aus AppImageHub und F-Droid. Die Seite vermischt Angaben zum Desktop-Organizer und zu Magnolie Notes; die Versionszahl im Seitentitel wird hier nicht als Produktstand übernommen.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "imported_catalogue",
+          "evidence": "primary_search_index",
+          "status_label": "Im aktuellen Suchindex belegt · Direktabruf gesperrt",
+          "date_text": "Quelldaten abgerufen am 6. November 2026; keine belegte Erstveröffentlichung."
+        },
+        {
+          "id": "appimagehub",
+          "publisher": "AppImageHub",
+          "title": "Magnolie-Organizer",
+          "url": "https://appimage.github.io/Magnolie-Organizer/",
+          "language": "Englisch",
+          "description": "Linux-Katalogseite mit Beschreibung, Hinweisen zur Nutzung des AppImages und Links zum Projekt und zu den Veröffentlichungen.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "software_catalogue",
+          "evidence": "live_page",
+          "status_label": "Originalseite aktuell abgerufen",
+          "date_text": "Datum der Erstveröffentlichung nicht belegt."
+        },
+        {
+          "id": "f-droid-app",
+          "publisher": "F-Droid",
+          "title": "Magnolie Notes",
+          "url": "https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes/",
+          "language": "Englisch",
+          "description": "Offizieller F-Droid-Katalogeintrag der separaten Android-App für lokale Notizen und Aufgaben mit verschlüsselter Weitergabe an Magnolie Organizer.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "app_catalogue",
+          "evidence": "live_page",
+          "status_label": "Originalseite aktuell abgerufen",
+          "date_text": "Version 1.0.21 wurde am 4. November 2026 hinzugefügt. Das Datum der ersten Katalogaufnahme ist nicht belegt."
+        },
+        {
+          "id": "libhunt",
+          "publisher": "LibHunt",
+          "title": "Magnolie Organizer vs BUS Core - compare differences and reviews? | LibHunt",
+          "url": "https://www.libhunt.com/compare-Magnolie-Organizer-vs-TGC-BUS-Core",
+          "language": "Englisch",
+          "description": "Automatische Vergleichsseite mit Repository-Daten zu Magnolie Organizer. Projektprofil und Vergleich werden als eine LibHunt-Fundstelle geführt.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "repository_comparison",
+          "evidence": "primary_search_index",
+          "status_label": "Vergleich im Suchindex belegt · Hauptprofil beim Direktabruf gesperrt",
+          "date_text": "Datum der Erstveröffentlichung nicht belegt.",
+          "provenance": "Das Hauptprofil wurde am 12. November 2026 öffentlich geprüft; beim jüngsten Direktabruf war es gesperrt. Die Vergleichsseite ist im aktuellen Suchindex belegt.",
+          "related_links": [
+            {
+              "label": "Historisch bestätigtes Projektprofil",
+              "url": "https://www.libhunt.com/r/Magnolie-Organizer"
+            }
+          ]
+        },
+        {
+          "id": "litefile",
+          "publisher": "LiteFile",
+          "title": "Magnolie Organizer for Windows",
+          "url": "https://www.litefile.com/magnolie-organizer-for-windows.html",
+          "language": "Englisch",
+          "description": "Softwareverzeichnis mit Beschreibung des Windows-Organizers und Downloadinformationen.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "software_catalogue",
+          "evidence": "live_page",
+          "status_label": "Originalseite aktuell abgerufen",
+          "date_text": "Aktualisiert am 18. November 2026; die Erstveröffentlichung ist nicht belegt.",
+          "date_value": "2026-11-18",
+          "date_kind": "listing_updated"
+        },
+        {
+          "id": "patchbot",
+          "publisher": "PatchBot",
+          "title": "Patch Notification Robot · Magnolie Organizer",
+          "url": "https://www.patchbot.de/",
+          "language": "Englisch",
+          "description": "Die öffentliche Software- und Aktualisierungsliste führt Maik Walter und Magnolie Organizer 2.0.30. Die Fundstelle liegt auf der laufend aktualisierten Übersichtsseite.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "software_update_list",
+          "evidence": "live_page",
+          "status_label": "Originalseite aktuell abgerufen",
+          "date_text": "Der 31. Oktober 2026 bezeichnet die Softwareveröffentlichung; das Datum der Aufnahme in die Liste ist nicht belegt."
+        },
+        {
+          "id": "postlaunchkit",
+          "publisher": "PostLaunchKit",
+          "title": "Magnolie Organizer - Productivity, Free | PostLaunchKit",
+          "url": "https://postlaunchkit.com/directory/magnolie-organizer/",
+          "language": "Englisch",
+          "description": "Produkteintrag im Bereich Produktivität. Die Seite kennzeichnet die autorisierte, KI-unterstützte Einreichung für Maik Walter.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "product_directory",
+          "evidence": "primary_search_index",
+          "status_label": "Im aktuellen Suchindex belegt · Direktabruf gesperrt",
+          "date_text": "Das Verzeichnis nennt den 18. November 2026 als Prüfdatum; die Erstveröffentlichung ist nicht belegt."
+        },
+        {
+          "id": "techtools",
+          "publisher": "TechTools Launchpad",
+          "title": "Magnolie Organizer",
+          "url": "https://techtools.cz/tools/launchpad/?tool=10915",
+          "language": "Englisch",
+          "description": "Verzeichniseintrag im Launchpad. Der konkrete Projekteintrag ist über die öffentliche Datenschnittstelle bestätigt; die Seite kennzeichnet die autorisierte, KI-unterstützte Einreichung für Maik Walter.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "product_directory",
+          "evidence": "public_documented_api",
+          "status_label": "Über öffentliche Datenschnittstelle bestätigt",
+          "date_text": "Eintrag erstellt am 17. November 2026.",
+          "date_value": "2026-11-17",
+          "date_kind": "listing_created",
+          "related_links": [
+            {
+              "label": "Öffentlicher Eintrag als Datensatz",
+              "url": "https://techtools.cz/launchpad-api/tools/10915"
+            }
+          ]
+        },
+        {
+          "id": "windows10download",
+          "publisher": "Windows 10 Download",
+          "title": "Magnolie Organizer for Windows",
+          "url": "https://www.windows10download.com/magnolie-organizer-for-windows/",
+          "language": "Englisch",
+          "description": "Windows-Softwarekatalog mit Beschreibung, Bildschirmfoto und Downloadverweisen zum Organizer.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "software_catalogue",
+          "evidence": "live_page",
+          "status_label": "Originalseite aktuell abgerufen",
+          "date_text": "„Released Oct 31 2026“ bezeichnet die Softwareversion. Das Datum der Katalogveröffentlichung ist nicht belegt."
+        },
+        {
+          "id": "zirulab",
+          "publisher": "ZIRULAB",
+          "title": "Magnolie Organizer | ZIRULAB",
+          "url": "https://zirulab.org/en/software/magnolie-organizer",
+          "language": "Englisch",
+          "description": "Ausführlicher Softwareeintrag auf Grundlage der Projektdokumentation. Die Seite kennzeichnet ausdrücklich, dass kein unabhängiger Funktionstest vorgenommen wurde. Sprachfassungen zählen zusammen als ein Eintrag.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "software_catalogue",
+          "evidence": "primary_search_index",
+          "status_label": "Im aktuellen Suchindex belegt · Direktabruf gesperrt",
+          "date_text": "Datum der Erstveröffentlichung nicht belegt."
+        },
+        {
+          "id": "downlink",
+          "publisher": "Downlink.ru",
+          "title": "Magnolie Organizer",
+          "url": "https://downlink.ru/software/id/265/",
+          "language": "Russisch",
+          "description": "Russischsprachiger Softwarekatalog mit Beschreibung und Verweis auf das Windows-Installationspaket des Projekts.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "software_catalogue",
+          "evidence": "live_page",
+          "status_label": "Originalseite aktuell abgerufen",
+          "date_text": "Datum der Erstveröffentlichung nicht belegt."
+        },
+        {
+          "id": "openapk",
+          "publisher": "OpenAPK",
+          "title": "Magnolie Notes APK免费下载 - OpenAPK",
+          "url": "https://www.openapk.net/zh/magnolie-notes/io.gitlab.maik3531.magnolienotes/",
+          "language": "Chinesisch / Englisch",
+          "description": "Android-Katalogseite für Magnolie Notes mit chinesischer Oberfläche und englischer Beschreibung. Die dortige Versionsangabe scheint Angaben zum Desktop-Organizer zu übernehmen und wird hier nicht als Notes-Version bestätigt.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "app_catalogue",
+          "evidence": "primary_search_index",
+          "status_label": "Im aktuellen Suchindex belegt · Direktabruf gesperrt",
+          "date_text": "Datum der Erstveröffentlichung nicht belegt."
+        }
+      ]
+    },
+    {
+      "id": "historisch",
+      "title": "Historische Nachweise",
+      "intro": "Vier frühere Nachweise bleiben erhalten, obwohl eine aktuelle Inhaltsbestätigung fehlt. Die Einträge zählen nicht zu den aktuell belegten Fundstellen.",
+      "entries": [
+        {
+          "id": "findopensources",
+          "publisher": "FindOpenSources",
+          "title": "Magnolie-Organizer",
+          "url": "https://findopensources.com/software/magnolie-organizer",
+          "language": "Englisch",
+          "description": "Der konkrete Softwareeintrag wurde am 19. November 2026 öffentlich geprüft. Beim jüngsten Abruf war die Originalseite gesperrt; eine erneute Inhaltsprüfung war nicht möglich.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "historical_catalogue",
+          "evidence": "historical_live_observation",
+          "status_label": "Früher öffentlich geprüft · aktuell nicht erneut bestätigt",
+          "date_text": "Öffentlich beobachtet am 19. November 2026. Datum der Erstveröffentlichung nicht belegt."
+        },
+        {
+          "id": "silentstars",
+          "publisher": "SilentStars",
+          "title": "Magnolie-Organizer · SilentStars",
+          "url": "https://silentstars.dev/projects/maik3531--magnolie-organizer/",
+          "language": "Englisch",
+          "description": "Historisches Repository-Profil mit Projektbeschreibung und Metadaten. Beim jüngsten Direktabruf lieferte die genaue Adresse „nicht gefunden“ (404).",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "historical_repository_index",
+          "evidence": "historical_index_observation",
+          "status_label": "Historisch belegt · aktuell nicht erreichbar",
+          "date_text": "Historisch beobachtet am 12. und 17. November 2026. Datum der Erstveröffentlichung nicht belegt."
+        },
+        {
+          "id": "updatestar",
+          "publisher": "UpdateStar",
+          "title": "Magnolie Organizer",
+          "url": "https://magnolie-organizer.updatestar.com",
+          "language": "Sprache aktuell nicht verifiziert",
+          "description": "Für die Aufnahme liegt eine Herausgeberbestätigung vor. Der direkte Seitenabruf war bei der jüngsten Prüfung gesperrt; ein aktueller öffentlicher Seiteninhalt konnte nicht bestätigt werden.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "historical_publisher_confirmation",
+          "evidence": "publisher_notice_only",
+          "status_label": "Herausgeberbestätigung · kein aktueller Inhaltsnachweis",
+          "date_text": "Herausgeberbestätigung vom 16. November 2026. Das Veröffentlichungsdatum der Seite ist nicht belegt."
+        },
+        {
+          "id": "cc-community",
+          "publisher": "CC-Community Board",
+          "title": "Kalender App mit Jahresansicht",
+          "url": "https://www.cc-community.net/threads/kalender-app-mit-jahresansicht.125307/",
+          "language": "Deutsch",
+          "description": "In derselben Diskussion verlinkt Beitrag 8 den Deskmodder-Artikel; Beitrag 10 erwähnt Magnolie und verweist auf Linux Mint Users. Zwei Erwähnungen in einem Thread zählen als eine Community-Fundstelle.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "historical_community_mentions",
+          "evidence": "historical_live_observation",
+          "status_label": "Historisch direkt gelesen · aktuell nicht erneut geprüft",
+          "date_text": "Erwähnungen am 22. und 27. September 2026; Thread-Inhalt am 12. November 2026 geprüft.",
+          "mention_dates": [
+            "2026-09-22",
+            "2026-09-27"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "weiterverbreitung",
+      "title": "Weiterverbreitungen & Feedspuren",
+      "intro": "Diese Übersichten, Feeds und Kanäle verbreiten bereits oben aufgeführte Originale weiter. Ihre Inhalte wechseln oder der einzelne Beitrag ist nicht dauerhaft verlinkbar. Sie zählen nicht als zusätzliche Artikel.",
+      "entries": [
+        {
+          "id": "tuxnews",
+          "publisher": "TuxNews",
+          "title": "GNU/Linux.ch im Nachrichtenindex",
+          "url": "https://tuxnews.de/sources/gnulinux.ch?page=3",
+          "language": "Deutsch",
+          "description": "Der Feed-Index bestätigte Titel, Datum und Original-URL des oben aufgeführten GNU/Linux.ch-Artikels. Er wurde am 12. November 2026 gelesen; der aktuelle Seiteninhalt wurde nicht erneut bestätigt.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "feed_corroboration",
+          "evidence": "historical_live_index",
+          "status_label": "Historischer Feedbeleg",
+          "date_text": "Bezieht sich auf den Originalartikel vom 28. August 2026."
+        },
+        {
+          "id": "y0o",
+          "publisher": "y0o.de",
+          "title": "GNU/Linux.ch im Nachrichtenfeed",
+          "url": "https://y0o.de/p/i/?a=normal&order=DESC&rid=6a95fb6f6beed&sort=lastUserModified&state=2",
+          "language": "Deutsch",
+          "description": "Der Suchindex weist die Weiterverbreitung des GNU/Linux.ch-Artikels nach. Die laufende Übersichtsseite zeigt inzwischen andere Meldungen; ein dauerhafter Einzellink ist nicht belegt.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "feed_redistribution",
+          "evidence": "indexed_redistribution",
+          "status_label": "Im Suchindex belegt · wechselnde Übersicht",
+          "date_text": "Bezieht sich auf den Originalartikel vom 28. August 2026."
+        },
+        {
+          "id": "deskmodder-telegram",
+          "publisher": "Deskmodder · Telegram",
+          "title": "Deskmodder-Artikel im Telegram-Kanal",
+          "url": "https://t.me/s/deskmodder?before=21336",
+          "language": "Deutsch",
+          "description": "Der Suchindex zeigt den Originaltitel im öffentlichen Kanal. Ein stabiler Link zum einzelnen Beitrag wurde nicht bestätigt; die abgerufene Kanalansicht war nicht verfügbar.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "social_redistribution",
+          "evidence": "indexed_redistribution",
+          "status_label": "Suchindex-Beleg · einzelner Beitrag nicht gesichert",
+          "date_text": "Bezieht sich auf den Deskmodder-Artikel vom 22. September 2026; eigenes Beitragsdatum nicht belegt."
+        },
+        {
+          "id": "linux-daily-brief",
+          "publisher": "Linux Daily Brief",
+          "title": "Linux-Today-Artikel in der Nachrichtenübersicht",
+          "url": "https://linuxblast.mr95.uk/",
+          "language": "Englisch",
+          "description": "Der Suchindex enthält Titel und Zusammenfassung des Linux-Today-Beitrags. Die Startseite ist eine wechselnde Nachrichtenübersicht; ein dauerhafter Einzellink ist nicht belegt.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "feed_redistribution",
+          "evidence": "indexed_redistribution",
+          "status_label": "Suchindex-Beleg · wechselnde Übersicht",
+          "date_text": "Quellenmeldung vom 19. November 2026."
+        },
+        {
+          "id": "freshnews",
+          "publisher": "freshnews",
+          "title": "Linux-Today-Artikel in der Nachrichtenübersicht",
+          "url": "https://www.freshnews.org/home",
+          "language": "Englisch",
+          "description": "Der Suchindex zeigt den genauen Titel des Linux-Today-Artikels. Im zuletzt geöffneten Inhalt war die Meldung nicht mehr auffindbar; ein dauerhafter Einzellink ist nicht belegt.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "feed_redistribution",
+          "evidence": "indexed_redistribution",
+          "status_label": "Suchindex-Beleg · wechselnde Übersicht",
+          "date_text": "Bezieht sich auf den Originalartikel vom 19. November 2026; eigenes Veröffentlichungsdatum nicht belegt."
+        },
+        {
+          "id": "hydrarss",
+          "publisher": "HydraRSS",
+          "title": "Linux-Today-Artikel im RSS-Feed",
+          "url": "https://hydra.lukaz.cz/rss/ciste",
+          "language": "Tschechische Oberfläche / englischer Beitrag",
+          "description": "Der Suchindex enthält Titel und Kurztext des Linux-Today-Artikels. Im laufenden Feed war die Meldung beim Direktabruf nicht mehr auffindbar; ein dauerhafter Einzellink ist nicht belegt.",
+          "publisher_country": null,
+          "publication_date": null,
+          "type": "feed_redistribution",
+          "evidence": "indexed_redistribution",
+          "status_label": "Suchindex-Beleg · wechselnder Feed",
+          "date_text": "Quellenmeldung vom 19. November 2026."
+        }
+      ]
+    },
+    {
+      "id": "eigene",
+      "title": "Aus dem Projekt",
+      "intro": "Die eigene Projektvorstellung steht nach den Beiträgen und Fundstellen anderer Anbieter.",
+      "entries": [
+        {
+          "id": "telegraph",
+          "publisher": "Telegraph",
+          "title": "Magnolie Organizer: a free, open-source planner in 20 languages",
+          "url": "https://telegra.ph/Magnolie-Organizer-a-free-open-source-planner-in-20-languages-11-11",
+          "language": "Englisch und Deutsch",
+          "description": "Zweisprachige, selbst veröffentlichte Vorstellung des Projekts.",
+          "publisher_country": null,
+          "publication_date": "2026-11-11",
+          "author": "Maik Walter · Magnolie project",
+          "date_text": "11. November 2026",
+          "type": "own_project_article",
+          "evidence": "original_article",
+          "provenance": "Eigene Projektveröffentlichung, mit KI-Unterstützung erstellt. Der internationalen Plattform wird hier kein Herausgeberland zugeordnet."
+        }
+      ]
+    }
+  ],
+  "project_urls": {
+    "github": "https://github.com/maik3531/Magnolie-Organizer",
+    "gitlab": "https://gitlab.com/maik3531/mint-forgs"
+  }
+}

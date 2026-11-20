@@ -1,0 +1,36 @@
+Magnolie Organizer – promotional website
+Created 2026-11-11.
+
+The program screenshots 02-woche.png and 03-aufgaben.png are unchanged
+images from the official Magnolie Organizer handbook:
+https://github.com/maik3531/Magnolie-Organizer/tree/main/magnolie-handbuch/web
+
+icon.png is the Magnolie Notes Android application icon from:
+https://github.com/maik3531/Magnolie-Organizer/tree/main/fastlane/metadata/android/de-DE/images
+
+Project licensing:
+https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE
+Program and handbook sources: GPL-3.0-or-later, subject to individual notices.
+No protected portrait or coffee donation QR assets are included.
+
+Product information:
+https://github.com/maik3531/Magnolie-Organizer/blob/main/README.DE.md
+https://github.com/maik3531/Magnolie-Organizer/blob/main/README.md
+https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes/
+
+gesundheit.png is an unchanged empty Health-tab screenshot supplied by the
+project owner on 2026-11-11 for this promotional campaign. No personal health
+values appear in it.
+Health and mobile functions are also documented in:
+https://github.com/maik3531/Magnolie-Organizer/blob/main/magnolie-handbuch/web/i18n-markers.js
+Additional emergency-contact, time-tracking, office and notebook claims were
+checked against commit 636e8fc2ef970421cd0651ace239f5f9e03ea8b0, including:
+https://github.com/maik3531/Magnolie-Organizer/blob/636e8fc2ef970421cd0651ace239f5f9e03ea8b0/magnolie-notes/LIESMICH.md
+https://github.com/maik3531/Magnolie-Organizer/blob/636e8fc2ef970421cd0651ace239f5f9e03ea8b0/contracts/time-tracking-v7.md
+https://github.com/maik3531/Magnolie-Organizer/blob/636e8fc2ef970421cd0651ace239f5f9e03ea8b0/magnolie-handbuch/web/i18n-markers.js
+The project owner confirmed optional weather/holidays, shift planning,
+waste-collection dates, menstrual cycle calendar, ongoing development and
+unrestricted free use during this campaign briefing.
+
+Promotional copy is prepared with AI assistance from the sources above.
+The product screenshots are existing project assets, not generated mockups.

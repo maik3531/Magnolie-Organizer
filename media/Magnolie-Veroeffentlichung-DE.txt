@@ -1,0 +1,31 @@
+VERÖFFENTLICHUNGSVORLAGE – DEUTSCH
+Status: vorbereitet; keine Veröffentlichung durch diese Datei.
+
+Titel:
+Magnolie Organizer: Dein Alltag. Seite für Seite.
+
+Beschreibung:
+Kostenlos. Open Source. Uneingeschränkt nutzbar. Magnolie Organizer verbindet Kalender, Aufgaben, Kontakte und Notizen in vertrauter Buchoptik. Wetter, Feiertage und Ferien lassen sich auf Wunsch einblenden. Der Gesundheitsbereich hilft, persönliche Messwerte und einen Medikamentenplan zu dokumentieren – mit Verlaufsgrafiken und druckbaren Übersichten.
+
+Magnolie Notes begleitet Notizen und Aufgaben auf Android. Nach Kopplung ist ein direkter Abgleich mit dem eigenen Organizer möglich. KDE Connect ergänzt davon unabhängig unterstützte Smartphone-Funktionen. Gesundheitsdaten gehören nicht zu Notes Personal Sync.
+
+20 Oberflächensprachen. Linux als Flatpak, AppImage, DEB oder RPM; Windows 10/11 x64. Eine macOS-Beta für Intel und Apple Silicon ist ebenfalls verfügbar. Die Beta besitzt noch nicht den vollen Funktionsumfang.
+
+Das Projekt wird aktiv weiterentwickelt. Rückmeldungen, Fehlerberichte und Übersetzungsbeiträge sind willkommen.
+
+Weitere Alltagsfunktionen umfassen Schichtplanung, Mülltermine sowie einen Regel- und Zykluskalender. Die kompakte Filmvorstellung zeigt eine Auswahl der Funktionen.
+
+Entdecken:
+https://maik3531.github.io/Magnolie-Organizer/
+
+Offizielles Projekt und Downloads:
+https://github.com/maik3531/Magnolie-Organizer
+
+macOS-Beta:
+https://github.com/maik3531/Magnolie-Organizer/tree/main/Magnolie-Organizer-macOS-Beta
+
+Hashtags:
+#MagnolieOrganizer #OpenSource #Linux #Windows #Produktivität #Android
+
+Hinweise zum Film:
+39 Sekunden, ohne Ton; alle Hauptaussagen sind eingeblendet. Querformat und Hochformat enthalten dieselben sieben Szenen. SRT/VTT können für zusätzliche Untertitel verwendet werden. Reale Screenshots stammen aus dem offiziellen Projekt; gezeigt wird deutsche Oberfläche. Keine medizinische Behandlungsempfehlung oder automatische Medikamentenerinnerung wird behauptet. Die Aussage zur uneingeschränkten Nutzung folgt der ausdrücklichen Produktangabe des Auftraggebers; Beta-Kennzeichnung und technische Plattformgrenzen bleiben bestehen.

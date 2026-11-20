@@ -1,0 +1,31 @@
+PUBLICATION COPY – ENGLISH
+Status: prepared; this file does not confirm publication.
+
+Title:
+Magnolie Organizer: Your day. Page by page.
+
+Description:
+Free. Open source. No usage limits. Magnolie Organizer brings calendars, tasks, contacts and notes together in a familiar book interface. Weather, public holidays and school breaks can be displayed optionally. Its health section lets you record personal readings and a medication plan, with history charts and printable summaries.
+
+Magnolie Notes keeps notes and tasks with you on Android and can sync directly with your paired Organizer. Separately paired KDE Connect adds supported phone features. Health records are not included in Notes Personal Sync.
+
+20 interface languages. Linux packages include Flatpak, AppImage, DEB and RPM; Windows 10/11 x64 is supported. A macOS beta is also available for Intel and Apple Silicon, with a more limited feature set while development continues.
+
+The project is actively developed. Feedback, specific bug reports and translation contributions are welcome.
+
+Other everyday features include shift planning, waste-collection dates and a period and cycle calendar. This short film presents a selection of the available features.
+
+Explore:
+https://maik3531.github.io/Magnolie-Organizer/en/
+
+Official project and downloads:
+https://github.com/maik3531/Magnolie-Organizer
+
+macOS beta:
+https://github.com/maik3531/Magnolie-Organizer/tree/main/Magnolie-Organizer-macOS-Beta
+
+Hashtags:
+#MagnolieOrganizer #OpenSource #Linux #Windows #Productivity #Android
+
+Film notes:
+39 seconds, silent, with all key messages on screen. Landscape and portrait versions contain the same seven scenes. SRT/VTT files are available for additional captions. Actual screenshots come from the official project and show the German interface. No medical treatment advice or automatic medication reminders are claimed. The no-usage-limits statement follows the product owner's explicit description; beta status and technical platform limits still apply.

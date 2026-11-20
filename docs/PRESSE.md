@@ -1,6 +1,6 @@
 # Magnolie Presseschau
 
-[Zur Zeitungsseite der Magnolie Presseschau](https://magnolie-entdecken.dualanvil.chatgpt.site/presse/)
+[Zur Zeitungsseite der Magnolie Presseschau](https://maik3531.github.io/Magnolie-Organizer/presse/)
 
 **Stand: 19. November 2026 · 6 verifizierte Originalbeiträge**
 
