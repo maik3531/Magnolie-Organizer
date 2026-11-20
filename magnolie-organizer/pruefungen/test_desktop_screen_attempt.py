@@ -60,6 +60,19 @@ class TestDesktopScreenDraftAttempt(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 run.begin()
 
+    def test_output_proof_is_rechecked_after_the_transport_exits(self):
+        with patch.object(draft, 'DesktopScreenLocalRun') as factory, patch.object(draft.GLib, 'timeout_add'):
+            run = self.create('extend')
+            run.begin()
+            run._local_ended(ScreenRunCleanup(True, True, True, True, True))
+            with patch.object(run._worker, 'is_alive', return_value=True):
+                self.assertTrue(run._tick())
+                self.assertEqual(self.outcomes, [])
+            factory.return_value.output_removal_current.return_value = False
+            self.assertFalse(run._tick())
+            self.assertEqual(self.outcomes, [draft.DesktopScreenAttemptCleanup(
+                ScreenRunCleanup(True, True, True, True, False), True)])
+
 
 if __name__ == '__main__':
     unittest.main()

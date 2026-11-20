@@ -7,6 +7,7 @@ snapshots including all membership changes. No product caller is wired here.
 """
 
 import re
+from threading import Event
 
 from magnolie_desktop_screen_cast import ScreenCastTarget
 
@@ -39,6 +40,7 @@ class KWinOutputWitness:
         self._seen = self._live.copy()
         self._target = self._output = None
         self._lost = False
+        self._withdrawn = Event()
 
     def observe(self, registry, snapshot):
         if self._lost or registry is not self._registry:
@@ -67,6 +69,12 @@ class KWinOutputWitness:
         self._target = target
         return self._correlate()
 
+    def mark_start(self):
+        """Exclude names already reported before this portal Start."""
+        if self._lost or self._target is not None:
+            raise PermissionError('kwin_original_output_witness_unavailable')
+        self._baseline_names = frozenset(self._seen.values())
+
     def _correlate(self):
         if self._target is not None:
             matches = [id_ for id_, name in self._seen.items() if name == self._target.mapping_id]
@@ -75,10 +83,16 @@ class KWinOutputWitness:
                 return False
             if matches and self._output is None:
                 self._output = matches[0]
+            if self._output is not None and self._output not in self._live:
+                self._withdrawn.set()
         return True
 
     def present(self, target):
-        return not self._lost and target is self._target and self._output in self._live
+        return target is self._target and self._output is not None and not self._withdrawn.is_set()
+
+    @property
+    def lost(self):
+        return self._lost
 
     def removal_observed(self, target):
         """Only disappearance of the bound instance on the original registry.
@@ -92,6 +106,7 @@ class KWinOutputWitness:
     def retire(self, registry):
         if registry is self._registry:
             self._lost = True
+            self._withdrawn.set()
 
 
 class KWinOutputFeed:
@@ -106,6 +121,13 @@ class KWinOutputFeed:
         self._live = {}
         self.witness = None
         self._closed = False
+        self._taken = False
+
+    def take_for_run(self):
+        if self._taken or self._closed or self.witness is None or self.witness.lost:
+            raise PermissionError('kwin_original_output_witness_unavailable')
+        self._taken = True
+        return self.witness
 
     def consume(self, raw):
         if self._closed:

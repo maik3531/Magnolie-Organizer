@@ -18,6 +18,7 @@ from gi.repository import Gio, GLib
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 import magnolie_desktop_screen_cast as cast
 from magnolie_desktop_screen_portal import DesktopScreenProvider
+from magnolie_desktop_screen_output import KWinOutputFeed
 from magnolie_desktop_screen_run import DesktopScreenLocalRun, ScreenRunCleanup
 
 
@@ -98,20 +99,23 @@ def request_path(call):
     return f'{cast._ROOT}/request/1_42/{token}'
 
 
-def streams(kind=4, *, serial=903, node=54, count=1):
+def streams(kind=4, *, serial=903, node=54, count=1, mapping=None):
     values = {}
     if kind is not None:
         values['source_type'] = GLib.Variant('u', kind)
     if serial is not None:
         values['pipewire-serial'] = GLib.Variant('t', serial)
+    if mapping is not None:
+        values['mapping_id'] = GLib.Variant('s', mapping)
     return {'streams': GLib.Variant('a(ua{sv})', [(node, values)] * count)}
 
 
 class TestDesktopScreenCast(unittest.TestCase):
-    def owner(self, mode='extend', *, version=6, mirror=3, extended=True):
+    def owner(self, mode='extend', *, version=6, mirror=3, extended=True, before_virtual_start=None):
         self.bus, self.ready, self.ended, self.alive = Bus(), [], [], True
         self.run = cast.DesktopScreenCast(self.bus, DesktopScreenProvider(':1.9', mirror, extended, 0, version),
-                                         mode, 'x11:1234', self.require, self.on_ready, self.ended.append)
+                                         mode, 'x11:1234', self.require, self.on_ready, self.ended.append,
+                                         before_virtual_start=before_virtual_start)
         self.addCleanup(self.run.stop)
         return self.run
 
@@ -199,6 +203,17 @@ class TestDesktopScreenCast(unittest.TestCase):
         self.complete(self.setup(), streams(1))
         self.assertEqual(self.ready, [cast.ScreenCastTarget('monitor', 54, 903)])
         self.run.stop()
+        self.close_session()
+        self.assertEqual(self.ended, [True])
+        self.assertFalse(self.run.virtual_start_submitted)
+
+    def test_lost_output_observer_prevents_virtual_start(self):
+        def unavailable():
+            raise PermissionError('controlled original registry loss')
+
+        self.owner(before_virtual_start=unavailable)
+        self.complete(self.create(), {'session_handle': GLib.Variant('s', self.run._session)})
+        self.complete(self.bus.take('SelectSources'))
         self.close_session()
         self.assertEqual(self.ended, [True])
         self.assertFalse(self.run.virtual_start_submitted)
@@ -355,6 +370,11 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
     def test_portal_passes_real_pipewire_fd_and_original_source_loss_drains(self):
         self._exercise_portal(use_pipewire=True)
 
+    @unittest.skipUnless(os.environ.get('MAGNOLIE_SCREEN_PRIVATE_PIPEWIRE') == '1',
+                         'opt in to private synthetic PipeWire and WirePlumber 0.4')
+    def test_portal_close_waits_for_the_independently_observed_output_removal(self):
+        self._exercise_portal(use_pipewire=True, observe_output=True)
+
     def _private_sources(self, address):
         runtime = TemporaryDirectory(prefix='magnolie-screen-source-')
         self.addCleanup(runtime.cleanup)
@@ -420,7 +440,7 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
         self.addCleanup(os.close, fd)
         return fd, serial, original, unrelated
 
-    def _exercise_portal(self, *, use_pipewire):
+    def _exercise_portal(self, *, use_pipewire, observe_output=False):
         # The test's separate daemon has no installed desktop portal. Neither
         # connection can ask the real desktop to capture or create an output.
         isolated = Gio.TestDBus.new(Gio.TestDBusFlags.NONE)
@@ -454,6 +474,13 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
             self.addCleanup(os.close, write_fd)
             os.write(write_fd, b'portal-test-fd')
         loop = GLib.MainLoop()
+        feed = None
+        mapping = 'Virtual-virtual-xdp-kde-magnolie-1'
+        if observe_output:
+            feed = KWinOutputFeed()
+            self.addCleanup(feed.close)
+            self.assertTrue(feed.consume(b'+\t1\teDP-1\n'))
+            self.assertTrue(feed.consume(b'ready\n'))
 
         def server(bus, sender, path, iface, method, params, invocation):
             try:
@@ -483,7 +510,9 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
                     result = {}
                 else:
                     self.assertEqual(values[:2], (portal_owner._session, 'x11:1234'))
-                    result = streams(serial=serial)
+                    if feed is not None:
+                        self.assertTrue(feed.consume(f'+\t2\t{mapping}\n'.encode()))
+                    result = streams(serial=serial, mapping=mapping if feed is not None else None)
                 bus.emit_signal(sender, request, cast._REQUEST, 'Response', GLib.Variant('(ua{sv})', (0, result)))
                 invocation.return_value(GLib.Variant('(o)', (request,)))
             except Exception as error:
@@ -507,10 +536,16 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
         provider = DesktopScreenProvider(portal.get_unique_name(), 0, True, 0, 6)
         frames = []
         removed = False
+        held_after_portal_close = False
 
         def watch_jpegs():
-            nonlocal removed
+            nonlocal removed, held_after_portal_close
             try:
+                if feed is not None and run._portal_result and run._capture.finished and run._encoder.drained:
+                    self.assertEqual(ended, [])
+                    held_after_portal_close = True
+                    self.assertTrue(feed.consume(b'-\t2\n'))
+                    return False
                 frame = run.take_latest()
                 if frame is not None:
                     with Image.open(BytesIO(frame.data)) as bitmap:
@@ -523,7 +558,11 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
                     frames.append(frame.sequence)
                     if len(frames) == 3:
                         removed = True
-                        original.terminate()  # Only the selected synthetic producer.
+                        if feed is not None:
+                            self.assertTrue(feed.consume(b'-\t1\n'))  # Not the selected output.
+                            run.stop()
+                        else:
+                            original.terminate()  # Only the selected synthetic producer.
                 return True
             except Exception as error:
                 errors.append(error)
@@ -531,7 +570,8 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
                 return False
 
         if use_pipewire:
-            run = DesktopScreenLocalRun(client, provider, 'extend', 'x11:1234', 57, 33, lambda: None, finished)
+            run = DesktopScreenLocalRun(client, provider, 'extend', 'x11:1234', 57, 33, lambda: None, finished,
+                                       kde_output_feed=feed)
             portal_owner = run._portal
             watcher = GLib.timeout_add(20, watch_jpegs)
         else:
@@ -558,7 +598,9 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
         if use_pipewire:
             self.assertTrue(removed)
             self.assertIsNone(unrelated.poll(), 'Unrelated source must still be available')
-            self.assertEqual(ended, [ScreenRunCleanup(True, True, True, virtual_start_submitted=True)])
+            self.assertEqual(held_after_portal_close, observe_output)
+            self.assertEqual(ended, [ScreenRunCleanup(True, True, True, virtual_start_submitted=True,
+                                                      virtual_output_removed=observe_output)])
             self.assertFalse(run.ready)
             self.assertIsNone(run.take_latest())
             return

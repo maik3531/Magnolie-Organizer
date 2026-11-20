@@ -12,6 +12,10 @@ from gi.repository import GLib
 from magnolie_desktop_screen_capture import DesktopScreenCapture
 from magnolie_desktop_screen_cast import DesktopScreenCast
 from magnolie_desktop_screen_encode import DesktopScreenEncoder
+from magnolie_desktop_screen_output import KWinOutputFeed
+
+
+_REMOVAL_WAIT_S = 1.5
 
 
 @dataclass(frozen=True)
@@ -20,12 +24,22 @@ class ScreenRunCleanup:
     reader_drained: bool
     encoder_drained: bool
     virtual_start_submitted: bool = False
+    virtual_output_removed: bool = False
 
 
 class DesktopScreenLocalRun:
-    def __init__(self, bus, provider, mode, parent_window, width, height, require_original, ended):
+    def __init__(self, bus, provider, mode, parent_window, width, height, require_original, ended, *,
+                 kde_output_feed=None):
+        # Private opt-in composition only. The caller must already know that
+        # this portal uses the KDE backend and own the feed through this run.
+        if kde_output_feed is not None and (mode != 'extend' or type(kde_output_feed) is not KWinOutputFeed):
+            raise ValueError('screen_cast_original_kde_output_feed_required')
+        self._output = kde_output_feed.take_for_run() if kde_output_feed is not None else None
         self._portal = DesktopScreenCast(bus, provider, mode, parent_window, require_original,
-                                         self._selected, self._portal_ended)
+                                         self._selected, self._portal_ended,
+                                         before_virtual_start=None if self._output is None else self._output.mark_start)
+        self._opening = False
+        self._removal_deadline = None
         self._size = width, height
         self._ended = ended
         self._phase = 'new'
@@ -38,6 +52,8 @@ class DesktopScreenLocalRun:
             raise RuntimeError('screen_cast_local_run_already_used')
         self._phase = 'live'
         try:
+            if self._output is not None:
+                self._timer = GLib.timeout_add(50, self._tick)
             self._portal.begin()
         except Exception:
             self.stop()
@@ -47,17 +63,28 @@ class DesktopScreenLocalRun:
         if self._phase != 'live' or original is not self._portal:
             return
         self._target = target
-        original.open_pipewire_remote(target, self._attach)
+        if self._output is not None and not self._output.bind(target):
+            self.stop()
+            return
+        self._maybe_open()
+
+    def _maybe_open(self):
+        if not self._opening and self._current():
+            self._opening = True
+            self._portal.open_pipewire_remote(self._target, self._attach)
 
     def _attach(self, remote):
         if not self._current():
+            self.stop()
             return
         self._capture = DesktopScreenCapture.start(remote, self._target, *self._size)
-        self._timer = GLib.timeout_add(50, self._tick)
+        if self._timer is None:
+            self._timer = GLib.timeout_add(50, self._tick)
 
     def _current(self):
         return (self._phase == 'live' and self._target is not None and
-                self._portal.selection_current(self._target))
+                self._portal.selection_current(self._target) and
+                (self._output is None or self._output.present(self._target)))
 
     @property
     def ready(self):
@@ -73,7 +100,12 @@ class DesktopScreenLocalRun:
         """Worker-safe check; never reads or drives the GTK/portal context."""
         capture, encoder = self._capture, self._encoder
         return (not self._media_retired.is_set() and capture is not None and capture.ready and
-                encoder is not None and not encoder.failed and not encoder.drained)
+                encoder is not None and not encoder.failed and not encoder.drained and
+                (self._output is None or self._output.present(self._target)))
+
+    def output_removal_current(self):
+        return (self._output is not None and self._portal.virtual_start_submitted and self._opening and
+                self._output.removal_observed(self._target))
 
     def stop(self):
         if self._phase in ('closing', 'ended'):
@@ -86,6 +118,7 @@ class DesktopScreenLocalRun:
         if self._portal_result is not None:
             return
         self._portal_result = confirmed
+        self._removal_deadline = monotonic() + _REMOVAL_WAIT_S
         self._phase = 'closing'
         self._retire_media()
         self._finish_if_joined()
@@ -100,7 +133,14 @@ class DesktopScreenLocalRun:
     def _tick(self):
         if self._phase == 'live':
             try:
-                self._pump()
+                if self._capture is not None:
+                    self._pump()
+                elif self._output is not None:
+                    if (self._output.lost or monotonic() >= self._portal.setup_deadline or
+                            self._output.removal_observed(self._target)):
+                        self.stop()
+                    elif self._target is not None:
+                        self._maybe_open()
             except Exception:
                 self.stop()
         self._finish_if_joined()
@@ -135,9 +175,16 @@ class DesktopScreenLocalRun:
             return
         if self._encoder is not None and not self._encoder.drained:
             return
+        output_removed = False
+        if self._output is not None and self._opening and self._portal.virtual_start_submitted:
+            output_removed = self.output_removal_current()
+            if (not output_removed and self._portal_result and self._output.present(self._target) and
+                    monotonic() < self._removal_deadline):
+                return
         drained = self._capture is None or self._capture.drained
         self._phase = 'ended'
         if self._timer is not None:
             GLib.source_remove(self._timer)
             self._timer = None
-        self._ended(ScreenRunCleanup(self._portal_result, drained, True, self._portal.virtual_start_submitted))
+        self._ended(ScreenRunCleanup(self._portal_result, drained, True, self._portal.virtual_start_submitted,
+                                     output_removed))

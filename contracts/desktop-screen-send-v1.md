@@ -129,7 +129,7 @@ compositor witness for the original output's removal yet. Ordinary mirroring
 does not acquire that restriction. No product UI, IPC or capability registers
 an attachment or opens this dialog.
 
-### KDE/KWin output identity (unwired draft)
+### KDE/KWin output identity (private draft)
 
 The generic ScreenCast v6 contract does not guarantee a compositor connector
 identity. `pipewire-serial` identifies only the media node; an output added
@@ -148,10 +148,17 @@ observer. An isolated libwayland prototype takes only a supplied connected
 descriptor, settles the initial `wl_output` v4 names before becoming ready,
 and reports exact registry additions and removals. Its socketpair test uses
 the real libwayland client and server, but no actual desktop compositor. EOF
-or invalid records retire the observation. The current product neither verifies
-that route nor starts the observer; it does not release the virtual-output slot
-on that basis. Real placement, window movement, and compositor cleanup must
-still be observed independently of media cleanup.
+or invalid records retire the observation. In the private run, a caller that
+already verified the backend can supply one settled feed. The portal records
+the observed pre-Start names at submission; the run waits for the exact new
+instance before opening the media remote. Output or observer loss withdraws
+media authority. After successful portal Close, the run can wait up to 1.5 s
+for the disappearance of that instance and reports it separately from media
+drain. The draft attempt rechecks the proof when transport drain finishes;
+it cannot upgrade a missing proof after local completion. The current product
+neither verifies that route nor starts the observer; GTK admission still does
+not reuse the virtual-output slot. Real placement, window movement, and
+compositor cleanup must still be observed independently of media cleanup.
 
 ## Retirement and acceptance
 

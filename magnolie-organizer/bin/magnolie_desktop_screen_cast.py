@@ -145,7 +145,8 @@ class _Request:
 class DesktopScreenCast:
     """One selected, non-persistent mode. A target is not an active media stream."""
 
-    def __init__(self, bus, provider, mode, parent_window, require_original, selection_ready, ended):
+    def __init__(self, bus, provider, mode, parent_window, require_original, selection_ready, ended, *,
+                 before_virtual_start=None):
         supported = _MODES.get(mode)
         if supported is None or provider.owner is None or provider.screen_version < 3 or not (
                 provider.extended_output if supported == VIRTUAL else provider.mirror_sources & supported):
@@ -157,6 +158,7 @@ class DesktopScreenCast:
         self.bus, self.provider, self.mode = bus, provider, mode
         self.parent_window = parent_window
         self._require_original = require_original
+        self._before_virtual_start = before_virtual_start
         self._ready, self._ended = selection_ready, ended
         name = bus.get_unique_name()
         if not name or not name.startswith(':'):
@@ -253,6 +255,8 @@ class DesktopScreenCast:
 
     def _selected(self, _fields):
         if self.mode == 'extend':
+            if self._before_virtual_start is not None:
+                self._before_virtual_start()
             # From submission onward the compositor might allocate an output,
             # even if the method reply or the portal Response is later lost.
             self._virtual_start_submitted = True

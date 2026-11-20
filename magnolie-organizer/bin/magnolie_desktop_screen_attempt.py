@@ -1,6 +1,6 @@
 """Isolated Linux composition for a single approved desktop-screen draft."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import secrets
 from threading import Event, Lock, Thread
 from time import monotonic
@@ -26,7 +26,8 @@ class DesktopScreenDraftAttempt:
     """
 
     def __init__(self, channel, request, require_original, *, bus, provider, mode,
-                 parent_window, width, height, deadline, ended, require_terminal_parent=None, setup=None):
+                 parent_window, width, height, deadline, ended, require_terminal_parent=None, setup=None,
+                 kde_output_feed=None):
         if (type(request) is not dict or mode not in ('monitor', 'window', 'extend') or
                 request.get('mode') != (2 if mode == 'extend' else 1)):
             raise ValueError('desktop_screen_original_mode_required')
@@ -40,8 +41,9 @@ class DesktopScreenDraftAttempt:
         self._terminal = DesktopScreenDraftChannel(channel, require_terminal_parent or require_original)
         self._control = DesktopScreenDraftControl(channel, request, self._wire.require_current, deadline=deadline,
                                                   setup=setup)
+        options = {} if kde_output_feed is None else {'kde_output_feed': kde_output_feed}
         self._local = DesktopScreenLocalRun(bus, provider, mode, parent_window, width, height,
-                                           self._current, self._local_ended)
+                                            self._current, self._local_ended, **options)
         self._mode = request['mode']
         self._size = width, height
         self._ended = ended
@@ -117,7 +119,10 @@ class DesktopScreenDraftAttempt:
             if self._local_result is not None and not self._worker.is_alive():
                 self._timer = None
                 drained = self._transport_clean and (self._lane is None or self._lane.drained)
-                self._ended(DesktopScreenAttemptCleanup(self._local_result, drained))
+                local = self._local_result
+                if local.virtual_output_removed and not self._local.output_removal_current():
+                    local = replace(local, virtual_output_removed=False)
+                self._ended(DesktopScreenAttemptCleanup(local, drained))
                 return False
         return True
 
