@@ -43,3 +43,36 @@ timeout or guard loss are terminal. Socket close may interrupt pending IO;
 no retry takes place in this lane. A future product caller must use the exact
 original peer/control context and bound any pre-attach wait separately.
 A valid tag does not itself grant permission.
+
+## Pending control integration
+
+The first product implementation should reserve a separate `device_status`
+marker (26, after existing 21–25); do not advertise it until the complete
+native route is ready. Older Notes peers already use the full status list:
+follow its compatible desktop-advertisement/phone-probe pattern rather than
+adding a permanent Notes status-list entry. Use the authenticated channel's
+ephemeral controls, never its persistent queue, ACK history or replay files.
+
+1. After seeing this desktop's feature marker on the live paired WLAN
+   connection, a supported, visible Notes Activity may report a fresh probe.
+   A probe only means the phone can be asked; it never starts capture.
+2. An explicit Organizer action consumes that original probe and creates one
+   request. Offer the fresh session, secret, TCP port and fixed viewport to
+   that same authenticated peer. Socket addressing comes from the actual
+   authenticated WLAN socket, never an offered host name or a UI address.
+3. Notes asks Android for MediaProjection. A new foreground service may
+   acknowledge readiness only after its exact capture handle is active. This
+   handle also guards the data socket proof. Do not treat an Activity result,
+   a started service, a paired identity, or a probe as actual capture.
+4. The desktop must have the original independent window attached and fresh
+   socket proof verified before it issues SEND. Notes checks the original
+   authenticated SEND and the exact active capture before frame production
+   can reach the socket. Late phases cannot resume or replace a session.
+5. Cancel, stop, lock, revoke, disconnect or shutdown disables authorization
+   first, closes the original provisional/active sockets, stops the original
+   capture and window, then waits on both actual native drains. An uncertain
+   drain cannot release the local slot or authorize a replacement.
+
+Keep this first mode viewing-only. It does not advertise remote input,
+desktop-to-phone capture or a virtual second monitor, and does not treat
+any of those modes as a fallback.
