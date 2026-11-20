@@ -298,6 +298,10 @@ class DesktopScreenCast:
     def selection_current(self, target):
         return self._phase == 'selected' and self._target is target and self._current()
 
+    @property
+    def setup_deadline(self):
+        return self._deadline
+
     def _owner_changed(self, _bus, sender, _path, _iface, _signal, params, _data):
         if sender == _DBUS and params.get_type_string() == '(sss)':
             name, before, after = params.unpack()

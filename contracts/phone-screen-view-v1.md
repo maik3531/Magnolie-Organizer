@@ -237,3 +237,7 @@ drops it if the 1 MiB bound still cannot be met. A single waiting frame and a
 single completed JPEG may be replaced by newer ones; neither is a send queue.
 Retiring the encoder discards both slots and any result from a running job.
 This local component assigns no new control version and cannot send media.
+The local session marks media ready only after a complete JPEG within the
+original portal setup deadline, not upon receiving raw pixels. It rechecks
+the original selection and reader before handing out a JPEG. Codec failure
+retires the session; its terminal result also waits for the encoder to exit.

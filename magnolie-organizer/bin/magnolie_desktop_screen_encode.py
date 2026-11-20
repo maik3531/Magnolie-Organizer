@@ -83,6 +83,11 @@ class DesktopScreenEncoder:
             return latest if not self._stopped else None
 
     @property
+    def has_frame(self):
+        with self._condition:
+            return self._latest is not None and not self._stopped
+
+    @property
     def drained(self):
         return not self._worker.is_alive()
 

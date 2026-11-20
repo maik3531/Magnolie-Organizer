@@ -1,20 +1,23 @@
-"""Join one portal selection and reader on the native main context (#245).
+"""Join one portal selection, reader and encoder on the native main context (#245).
 
 No product registration or network permission is implied by local readiness.
 """
 
 from dataclasses import dataclass
+from time import monotonic
 
 from gi.repository import GLib
 
 from magnolie_desktop_screen_capture import DesktopScreenCapture
 from magnolie_desktop_screen_cast import DesktopScreenCast
+from magnolie_desktop_screen_encode import DesktopScreenEncoder
 
 
 @dataclass(frozen=True)
 class ScreenRunCleanup:
     portal_closed: bool
     reader_drained: bool
+    encoder_drained: bool
 
 
 class DesktopScreenLocalRun:
@@ -24,7 +27,8 @@ class DesktopScreenLocalRun:
         self._size = width, height
         self._ended = ended
         self._phase = 'new'
-        self._target = self._capture = self._timer = self._portal_result = None
+        self._target = self._capture = self._encoder = self._timer = self._portal_result = None
+        self._media_ready = False
 
     def begin(self):
         if self._phase != 'new':
@@ -54,19 +58,19 @@ class DesktopScreenLocalRun:
 
     @property
     def ready(self):
-        return self._capture is not None and self._current() and self._capture.ready
+        return (self._media_ready and self._current() and self._capture.ready
+                and not self._encoder.failed and not self._encoder.drained)
 
     def take_latest(self):
-        if self._capture is None or not self._current():
+        if not self.ready:
             return None
-        return self._capture.take_latest()
+        return self._encoder.take_latest()
 
     def stop(self):
         if self._phase in ('closing', 'ended'):
             return
         self._phase = 'closing'
-        if self._capture is not None:
-            self._capture.stop()
+        self._retire_media()
         self._portal.stop()
 
     def _portal_ended(self, confirmed):
@@ -74,24 +78,56 @@ class DesktopScreenLocalRun:
             return
         self._portal_result = confirmed
         self._phase = 'closing'
-        if self._capture is not None:
-            self._capture.stop()
+        self._retire_media()
         self._finish_if_joined()
 
+    def _retire_media(self):
+        if self._encoder is not None:
+            self._encoder.stop()
+        if self._capture is not None:
+            self._capture.stop()
+
     def _tick(self):
-        if self._phase == 'live' and self._capture.finished:
-            self.stop()
+        if self._phase == 'live':
+            try:
+                self._pump()
+            except Exception:
+                self.stop()
         self._finish_if_joined()
         return self._phase != 'ended'
+
+    def _pump(self):
+        if not self._current() or self._capture.finished:
+            self.stop()
+            return
+        if not self._media_ready and monotonic() >= self._portal.setup_deadline:
+            self.stop()
+            return
+        if self._encoder is not None:
+            if self._encoder.failed or self._encoder.drained:
+                self.stop()
+                return
+            if not self._media_ready and self._encoder.has_frame:
+                if monotonic() >= self._portal.setup_deadline:
+                    self.stop()
+                    return
+                self._media_ready = True
+        frame = self._capture.take_latest()
+        if frame is not None:
+            if self._encoder is None:
+                self._encoder = DesktopScreenEncoder(*self._size)
+            self._encoder.offer(frame)
 
     def _finish_if_joined(self):
         if self._phase != 'closing' or self._portal_result is None:
             return
         if self._capture is not None and not self._capture.finished:
             return
+        if self._encoder is not None and not self._encoder.drained:
+            return
         drained = self._capture is None or self._capture.drained
         self._phase = 'ended'
         if self._timer is not None:
             GLib.source_remove(self._timer)
             self._timer = None
-        self._ended(ScreenRunCleanup(self._portal_result, drained))
+        self._ended(ScreenRunCleanup(self._portal_result, drained, True))
