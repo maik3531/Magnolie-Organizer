@@ -26,9 +26,6 @@ import org.junit.Test
 class DesktopScreenReceiveLaneTest {
     private val session = ByteArray(16) { it.toByte() }
     private val secret = ByteArray(32) { (it + 32).toByte() }
-    private val context = "magnolie-desktop-screen-send/1\u0000desktop_to_phone\u0000".toByteArray() +
-        session + byteArrayOf(2, 0, 57, 0, 33)
-    private val challenge = ByteArray(16) { (it + 80).toByte() }
     private val heartbeat = "000000100000000000000000bfb6de89f9e5ca0e92e7696a2a090be9".chunked(2)
         .map { it.toInt(16).toByte() }.toByteArray()
 
@@ -47,31 +44,79 @@ class DesktopScreenReceiveLaneTest {
     private fun lane(phone: SocketChannel) = DesktopScreenReceiveLane(phone, session, secret, 2, 57, 33,
         System.nanoTime() + TimeUnit.SECONDS.toNanos(4)) { }
 
+    private fun respond(desktop: SocketChannel, role: Int = 1) = DesktopScreenDraftPeer.respond(desktop, role)
+
     private fun prove(lane: DesktopScreenReceiveLane, desktop: SocketChannel, role: Int = 1): ByteArray {
         val worker = Executors.newSingleThreadExecutor()
         val task = worker.submit(Callable { lane.prove() })
         try {
-            val input = desktop.socket().getInputStream()
-            val phone = ByteArray(16)
-            java.io.DataInputStream(input).readFully(phone)
-            val transcript = context + phone + challenge
-            fun signature(role: Int) = Mac.getInstance("HmacSHA256").run {
-                init(SecretKeySpec(secret, "HmacSHA256"))
-                doFinal("magnolie-desktop-screen-proof/1\u0000".toByteArray() + byteArrayOf(role.toByte()) + transcript)
-            }
-            desktop.socket().getOutputStream().write(challenge + signature(role))
-            if (role == 1) {
-                val reply = ByteArray(32)
-                java.io.DataInputStream(input).readFully(reply)
-                assertArrayEquals(signature(2), reply)
-            }
+            val expected = respond(desktop, role)
             val digest = task.get(2, TimeUnit.SECONDS)
-            assertArrayEquals(MessageDigest.getInstance("SHA-256").digest(transcript), digest)
+            assertArrayEquals(expected, digest)
             return digest
         } finally {
             worker.shutdownNow()
             assertTrue(worker.awaitTermination(2, TimeUnit.SECONDS))
         }
+    }
+
+    @Test fun ownerCannotPresentBeforePreparedReturnsOrAcceptForeignSend() {
+        pair { phone, desktop -> exerciseOwner(phone, desktop, stopBeforeReturn = false) }
+    }
+
+    @Test fun ownerClosesDataSocketButWaitsForWriterToDrain() {
+        pair { phone, desktop -> exerciseOwner(phone, desktop, stopBeforeReturn = true) }
+    }
+
+    private fun exerciseOwner(phone: SocketChannel, desktop: SocketChannel, stopBeforeReturn: Boolean) {
+        val parent = Any()
+        val entering = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val presented = CountDownLatch(1)
+        val stopped = CountDownLatch(1)
+        val jpeg = ByteArrayOutputStream().also {
+            assertTrue(ImageIO.write(BufferedImage(57, 33, BufferedImage.TYPE_INT_RGB), "jpeg", it))
+        }.toByteArray()
+        val frames = java.util.concurrent.LinkedBlockingQueue<ByteArray>()
+        val opened = java.util.concurrent.atomic.AtomicBoolean(false)
+        val run = DesktopScreenReceiveRun(parent, session, secret, 2, 57, 33,
+            System.nanoTime() + TimeUnit.SECONDS.toNanos(4), {},
+            { guard -> guard(); opened.set(true); phone },
+            { _, guard -> guard(); entering.countDown(); check(release.await(2, TimeUnit.SECONDS)) },
+            { data -> frames.add(data.copyOf()); presented.countDown() }, stopped::countDown)
+        try {
+            assertFalse(opened.get())
+            assertFalse(run.acceptSend(parent, ByteArray(32)))
+            run.start()
+            val transcript = respond(desktop)
+            assertTrue(entering.await(1, TimeUnit.SECONDS))
+            assertFalse(run.acceptSend(Any(), transcript))
+            assertFalse(run.acceptSend(parent, ByteArray(32)))
+            assertTrue(run.acceptSend(parent, transcript))
+            assertFalse(run.acceptSend(parent, transcript))
+            desktop.socket().getOutputStream().write(record(jpeg, 0))
+            assertFalse(presented.await(60, TimeUnit.MILLISECONDS))
+            if (stopBeforeReturn) {
+                run.close()
+                assertFalse(phone.isOpen)
+                assertFalse(run.drained)
+                assertFalse(run.acceptSend(parent, transcript))
+            }
+            release.countDown()
+            if (!stopBeforeReturn) {
+                assertTrue(presented.await(1, TimeUnit.SECONDS))
+                assertArrayEquals(jpeg, frames.remove())
+                run.close()
+            }
+            assertTrue(stopped.await(1, TimeUnit.SECONDS))
+        } finally {
+            release.countDown()
+            run.close()
+        }
+        val end = System.nanoTime() + TimeUnit.SECONDS.toNanos(1)
+        while (!run.drained && System.nanoTime() - end < 0) Thread.sleep(5)
+        assertTrue(run.drained)
+        assertTrue(frames.isEmpty())
     }
 
     @Test fun authenticatesHeartbeatAndDeniesReplay() = pair { phone, desktop ->
@@ -129,18 +174,6 @@ class DesktopScreenReceiveLaneTest {
         val jpeg = ByteArrayOutputStream().also {
             assertTrue(ImageIO.write(BufferedImage(57, 33, BufferedImage.TYPE_INT_RGB), "jpeg", it))
         }.toByteArray()
-        val material = "f2076c96174d23d200b45ec33273d4fe035e12da30dae7bd3f986b1f79a2976ee2fc6010"
-            .chunked(2).map { it.toInt(16).toByte() }.toByteArray()
-        fun record(data: ByteArray, ordinal: Long): ByteArray {
-            val header = ByteBuffer.allocate(12).putInt(data.size + 16).putLong(ordinal).array()
-            val nonce = ByteBuffer.allocate(12).put(material.copyOfRange(32, 36)).putLong(ordinal).array()
-            return Cipher.getInstance("AES/GCM/NoPadding").run {
-                init(Cipher.ENCRYPT_MODE, SecretKeySpec(material.copyOf(32), "AES"), GCMParameterSpec(128, nonce))
-                updateAAD(context)
-                updateAAD(header)
-                header + doFinal(data)
-            }
-        }
         pair { phone, desktop ->
             lane(phone).use { lane ->
                 lane.activate(prove(lane, desktop))
@@ -160,6 +193,8 @@ class DesktopScreenReceiveLaneTest {
         }
         assertThrows(IllegalArgumentException::class.java) { requireDesktopScreenJpeg(jpeg.copyOf(jpeg.size - 1), 57, 33) }
     }
+
+    private fun record(data: ByteArray, ordinal: Long) = DesktopScreenDraftPeer.record(data, ordinal)
 
     @Test fun closeInterruptsIncompleteRecordAndDoesNotRenewExpiredSetup() {
         pair { phone, desktop ->
@@ -182,6 +217,41 @@ class DesktopScreenReceiveLaneTest {
                 DesktopScreenReceiveLane(phone, session, secret, 2, 57, 33, System.nanoTime() - 1) { }
             }
             assertFalse(phone.isOpen)
+        }
+    }
+}
+
+/** Independent synthetic peer using the known draft record vector. */
+internal object DesktopScreenDraftPeer {
+    fun session() = ByteArray(16) { it.toByte() }
+    fun secret() = ByteArray(32) { (it + 32).toByte() }
+    private val context = "magnolie-desktop-screen-send/1\u0000desktop_to_phone\u0000".toByteArray() +
+        session() + byteArrayOf(2, 0, 57, 0, 33)
+    private val challenge = ByteArray(16) { (it + 80).toByte() }
+
+    fun respond(desktop: SocketChannel, role: Int = 1): ByteArray {
+        val input = java.io.DataInputStream(desktop.socket().getInputStream())
+        val phone = ByteArray(16).also(input::readFully)
+        val transcript = context + phone + challenge
+        fun signature(role: Int) = Mac.getInstance("HmacSHA256").run {
+            init(SecretKeySpec(secret(), "HmacSHA256"))
+            doFinal("magnolie-desktop-screen-proof/1\u0000".toByteArray() + byteArrayOf(role.toByte()) + transcript)
+        }
+        desktop.socket().getOutputStream().write(challenge + signature(role))
+        if (role == 1) assertArrayEquals(signature(2), ByteArray(32).also(input::readFully))
+        return MessageDigest.getInstance("SHA-256").digest(transcript)
+    }
+
+    fun record(data: ByteArray, ordinal: Long): ByteArray {
+        val material = "f2076c96174d23d200b45ec33273d4fe035e12da30dae7bd3f986b1f79a2976ee2fc6010"
+            .chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        val header = ByteBuffer.allocate(12).putInt(data.size + 16).putLong(ordinal).array()
+        val nonce = ByteBuffer.allocate(12).put(material.copyOfRange(32, 36)).putLong(ordinal).array()
+        return Cipher.getInstance("AES/GCM/NoPadding").run {
+            init(Cipher.ENCRYPT_MODE, SecretKeySpec(material.copyOf(32), "AES"), GCMParameterSpec(128, nonce))
+            updateAAD(context)
+            updateAAD(header)
+            header + doFinal(data)
         }
     }
 }

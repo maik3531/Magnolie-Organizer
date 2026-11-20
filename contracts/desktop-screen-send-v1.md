@@ -70,6 +70,11 @@ agreed dimensions again before allocation and before offering the bitmap.
 Only the latest undisplayed bitmap is retained; heartbeats do not redraw.
 Pausing the Activity, locking the phone or dismissing the viewer retires it.
 No image slot, window or approval survives a replacement Activity.
+The draft Android owner starts its receiver only on the native approval click.
+It binds SEND to the exact control parent and proof transcript, and never
+consumes media before the PREPARED write returns. Stop closes its data socket;
+drain also requires the receiver worker to exit and the dialog to be removed.
+This composition is not registered with the product WLAN dispatcher.
 
 Cancel, lock, viewer closure, source or geometry change, lost control parent,
 revocation or disconnect retire the original session. Stop first prevents future

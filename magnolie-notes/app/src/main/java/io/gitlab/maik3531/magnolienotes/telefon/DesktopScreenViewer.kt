@@ -53,6 +53,8 @@ internal class DesktopScreenViewer(
         it.isISOControl() || Character.getType(it) == Character.FORMAT.toInt()
     }.trim().take(100))
     @Volatile private var accepted = false
+    @Volatile var uiDrained = false
+        private set
 
     init {
         require(mode in 1..2 && width in 16..1920 && height in 16..1920 && width * height <= 1920 * 1080)
@@ -215,6 +217,7 @@ internal class DesktopScreenViewer(
                 requestStop() // Signal only; the caller must not wait on the UI thread.
             }
         }
+        uiDrained = true
     }
 
     private fun mainThread() = check(Looper.myLooper() == Looper.getMainLooper())
