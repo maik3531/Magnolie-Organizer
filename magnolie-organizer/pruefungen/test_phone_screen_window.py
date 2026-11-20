@@ -1,11 +1,13 @@
 """GTK/Xvfb component checks. Frames here are test pixels, not phone capture."""
 
 import ast
+import base64
 import hmac
 import json
 import socket
 import struct
 import sys
+import uuid
 from pathlib import Path
 from threading import Thread
 from time import monotonic, sleep
@@ -20,6 +22,8 @@ pytest.importorskip("cairo")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenWindow
 from magnolie_phone_screen_transport import PhoneScreenReceiveRun
+from magnolie_phone_screen_control import PhoneScreenDesktopRun, REQUEST
+from magnolie_telefon import PROTOCOL, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
 
 
 @pytest.fixture(autouse=True)
@@ -324,3 +328,69 @@ def test_invalid_proof_or_stop_before_proof_never_authorizes_send():
         finally:
             run.stop()
             b.close()
+
+
+def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop():
+    sid, tx, rx = bytes(16), bytes(range(32)), bytes(reversed(range(32)))
+    ptx, prx = b"\x04" * 4, b"\x05" * 4
+    probe = {"version": 26, "request_id": str(uuid.uuid4()), "nonce": "b" * 64, "op": "probe"}
+    with socket.socket() as control_listener:
+        control_listener.bind(("127.0.0.1", 0))
+        control_listener.listen(1)
+        with socket.create_connection(control_listener.getsockname(), timeout=1) as phone:
+            desktop, _ = control_listener.accept()
+            with desktop:
+                desktop.settimeout(.3)
+                parent = SecureChannel(desktop, sid, tx, ptx, rx, prx)
+                view = PhoneScreenWindow("Phone screen", is_current=lambda: True, request_stop=lambda: None)
+                run = PhoneScreenDesktopRun(parent, probe, 17, 16, 160, require_original=lambda: None,
+                                           require_view=lambda: None, offer_rgb=view.offer_rgb)
+
+                def read_control(sequence):
+                    frame = receive_frame(phone, 8192)
+                    header = {key: value for key, value in frame.items() if key != "ciphertext"}
+                    assert header["seq"] == sequence and header["dir"] == "desktop_to_phone"
+                    return strict_json(AESGCM(tx).decrypt(ptx + sequence.to_bytes(8, "big"),
+                                       base64.b64decode(frame["ciphertext"]), canonical(header)))["body"]
+
+                def write_control(sequence, body):
+                    now = now_ms()
+                    envelope = dict(type="message", v=1, message_id=str(uuid.uuid4()), kind=REQUEST,
+                                    created_ms=now, expires_ms=now + 60_000, body=body)
+                    header = dict(p=PROTOCOL, sid=b64(sid), seq=sequence, dir="phone_to_desktop")
+                    data = AESGCM(rx).encrypt(prx + sequence.to_bytes(8, "big"), canonical(envelope), canonical(header))
+                    send_frame(phone, dict(header, ciphertext=b64(data)))
+                    assert run.receive(parent, parent.receive())
+
+                try:
+                    assert view.show()
+                    assert parent.send_seq == 0
+                    run.start()
+                    offer = read_control(0)
+                    assert offer["op"] == "offer"
+                    session, key = bytes.fromhex(offer["session"]), bytes.fromhex(offer["secret"])
+                    context = b"magnolie-phone-screen-view/1\0phone_to_desktop\0" + session + struct.pack("!HH", 17, 16)
+                    body = dict(probe, op="prepared", session=offer["session"])
+                    with socket.create_connection(("127.0.0.1", offer["port"]), timeout=1) as data:
+                        data.settimeout(.1)
+                        with pytest.raises(socket.timeout):
+                            data.recv(1)  # No proof traffic before PREPARED from the original control reader.
+                        data.settimeout(1)
+                        write_control(0, body)
+                        with data.makefile("rb") as challenge:
+                            value = challenge.read(16)
+                        assert len(value) == 16
+                        data.sendall(hmac.digest(key, b"magnolie-phone-screen-proof/1\0" + context + value, "sha256"))
+                        assert read_control(1) == dict(body, op="send")
+                        material = HKDF(algorithm=hashes.SHA256(), length=36, salt=session, info=context).derive(key)
+                        jpeg = jpeg_fixture(17, 16)
+                        header = struct.pack("!IQ", len(jpeg) + 16, 0)
+                        data.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], jpeg, context + header))
+                        wait_for(lambda: (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230)
+                        write_control(1, dict(body, op="stop"))
+                        wait_for(run.is_drained)
+                        assert data.recv(1) == b"" and desktop.fileno() != -1 and run.failure is None
+                        assert parent.send_seq == 2  # No STOP echo to an original peer that already stopped.
+                finally:
+                    run.stop()
+                    view.stop()

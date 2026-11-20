@@ -308,3 +308,7 @@ class PhoneScreenReceiveRun:
     def is_drained(self):
         with self._lock:
             return self._stop.is_set() and not self._worker.is_alive() and self.cleanup_error is None
+
+    def join_worker(self):
+        """Only the owning background controller joins; Stop is nonblocking."""
+        self._worker.join()

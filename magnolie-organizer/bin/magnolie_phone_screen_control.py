@@ -201,3 +201,129 @@ class PhoneScreenDesktopControl:
     def close(self):
         with self._lock:
             self._phase = 'closed'
+
+
+class PhoneScreenDesktopRun:
+    """One explicit native Linux viewing request, on its exact live WLAN parent.
+
+    The caller attaches the GTK view and routes v26 controls from the ordinary
+    authenticated parent reader. Checks must be nonblocking and must not acquire
+    the PhoneService monitor. Stopping signals only; the caller waits for drain.
+    """
+
+    def __init__(self, parent, probe, width, height, density, *, require_original, require_view, offer_rgb):
+        self._parent = parent
+        self._require_original = require_original
+        self._require_view = require_view
+        self._offer_rgb = offer_rgb
+        self._width, self._height, self._density = width, height, density
+        self._stop = threading.Event()
+        self._prepared = threading.Event()
+        self._lock = threading.Lock()
+        self._listener = self._receiver = None
+        self._started = self._peer_ended = False
+        self._control = PhoneScreenDesktopControl(parent, probe, self._current)
+        self._wire = PhoneScreenDesktopChannel(parent, require_original)
+        self.failure = None
+        self.cleanup_error = None
+        self._thread = threading.Thread(target=self._run, name='magnolie-phone-screen-control', daemon=True)
+
+    def start(self):
+        with self._lock:
+            if self._started or self._stop.is_set():
+                raise RuntimeError('screen_desktop_owner_already_used')
+            self._started = True
+            try:
+                self._thread.start()
+            except Exception:
+                self._stop.set()
+                self._control.close()
+                raise
+
+    def _current(self):
+        self._require_original()
+        self._require_view()
+        if self._stop.is_set():
+            raise PermissionError('screen_desktop_owner_retired')
+
+    def receive(self, actual, message):
+        body = self._wire.body_from(actual, message)
+        if not self._control.receive(actual, body):
+            return False
+        if body['op'] == 'prepared':
+            self._prepared.set()
+        else:
+            self._peer_ended = True
+            self.stop()
+        return True
+
+    def _run(self):
+        from magnolie_phone_screen_transport import PhoneScreenReceiveRun, PhoneScreenWlanListener
+
+        listener = socket = receiver = offer = None
+        published = False
+        try:
+            listener = PhoneScreenWlanListener(self._parent, self._current)
+            with self._lock:
+                if self._stop.is_set():
+                    raise PermissionError('screen_desktop_owner_retired')
+                self._listener = listener
+            offer = self._control.offer(port=listener.port, width=self._width, height=self._height, density=self._density)
+            self._wire.write(offer, self._current)
+            published = True
+            while not self._prepared.wait(.1):
+                self._control._require()
+            self._current()
+            socket = listener.accept()
+            receiver = PhoneScreenReceiveRun(socket, bytes.fromhex(offer['session']), bytes.fromhex(offer['secret']),
+                                             self._width, self._height, require_original=self._current,
+                                             authorize_send=lambda: self._control.authorize(self._current, self._wire.write),
+                                             require_send=self._control.require_send, offer_rgb=self._offer_rgb)
+            with self._lock:
+                if self._stop.is_set():
+                    raise PermissionError('screen_desktop_owner_retired')
+                self._receiver = receiver
+                receiver.start()
+            offer.pop('secret')
+            receiver.join_worker()
+            self.failure = receiver.failure
+        except Exception as error:
+            if not self._stop.is_set():
+                self.failure = error
+        finally:
+            self.stop()
+            self._cleanup(lambda: listener.close() if listener is not None else None)
+            if receiver is not None:
+                self._cleanup(receiver.stop)
+                if receiver.cleanup_error is not None:
+                    self.cleanup_error = receiver.cleanup_error
+            elif socket is not None:
+                self._cleanup(socket.close)
+            if published and not self._peer_ended:
+                try:
+                    terminal = {key: offer[key] for key in ('version', 'request_id', 'nonce', 'session')}
+                    self._wire.write(dict(terminal, op='stop'), self._require_original)
+                except Exception:
+                    # Parent may already have disconnected; Android independently
+                    # observes loss of the control connection/data socket.
+                    pass
+
+    def _cleanup(self, action):
+        try:
+            action()
+        except Exception as error:
+            self.cleanup_error = error
+
+    def stop(self):
+        with self._lock:
+            self._stop.set()
+            self._control.close()
+            if self._listener is not None:
+                self._cleanup(self._listener.close)
+            if self._receiver is not None:
+                self._cleanup(self._receiver.stop)
+
+    def is_drained(self):
+        with self._lock:
+            return bool(self._stop.is_set() and not self._thread.is_alive() and self.cleanup_error is None and
+                        (self._receiver is None or self._receiver.is_drained()))
