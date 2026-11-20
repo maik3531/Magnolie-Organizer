@@ -22,8 +22,8 @@ internal class DesktopScreenReceiveLane(
     session: ByteArray,
     secret: ByteArray,
     mode: Int,
-    width: Int,
-    height: Int,
+    private val width: Int,
+    private val height: Int,
     private val setupDeadlineNanos: Long,
     private val requireOriginal: () -> Unit,
 ) : AutoCloseable {
@@ -92,8 +92,8 @@ internal class DesktopScreenReceiveLane(
         receiving = true
     }
 
-    /** Returns authenticated bytes, or empty for a heartbeat. Decode and
-     * shape bounds are the separate visible viewer's responsibility. */
+    /** Returns a bounded baseline JPEG candidate, or empty for a heartbeat.
+     * The visible viewer must still verify the native decoder's result. */
     @Synchronized fun receive(): ByteArray = guarded {
         check(receiving) { "desktop_screen_original_send_required" }
         val end = System.nanoTime() + IO_NS
@@ -111,7 +111,11 @@ internal class DesktopScreenReceiveLane(
         cipher.updateAAD(context)
         cipher.updateAAD(header)
         val plaintext = cipher.doFinal(encrypted)
-        try { current(end) } catch (failure: Exception) { plaintext.fill(0); throw failure }
+        try {
+            current(end)
+            if (plaintext.isNotEmpty()) requireDesktopScreenJpeg(plaintext, width, height)
+            current(end)
+        } catch (failure: Exception) { plaintext.fill(0); throw failure }
         ordinal++
         plaintext
     }
@@ -167,4 +171,36 @@ internal class DesktopScreenReceiveLane(
             doFinal(body)
         }
     }
+}
+
+/** Check dimensions before any Android bitmap allocation. This is a header
+ * check, not a substitute for full native JPEG decoding. */
+internal fun requireDesktopScreenJpeg(data: ByteArray, width: Int, height: Int) {
+    fun byte(index: Int) = data[index].toInt() and 0xff
+    fun u16(index: Int) = (byte(index) shl 8) or byte(index + 1)
+    val end = data.size - 2
+    require(data.size in 14..1_048_576 && u16(0) == 0xffd8 && u16(end) == 0xffd9)
+    var at = 2
+    var baseline = false
+    while (at + 4 <= end && byte(at) == 0xff) {
+        val marker = byte(at + 1)
+        val length = u16(at + 2)
+        val next = at + 2 + length
+        require(length >= 2 && next <= end)
+        when (marker) {
+            0xc0 -> {
+                require(!baseline && length == 17 && byte(at + 4) == 8 && byte(at + 9) == 3)
+                require(u16(at + 5) == height && u16(at + 7) == width)
+                baseline = true
+            }
+            0xda -> {
+                require(baseline && length == 12 && byte(at + 4) == 3 && next < end)
+                return
+            }
+            0xc4, 0xdb, 0xdd, 0xfe, in 0xe0..0xef -> Unit
+            else -> break
+        }
+        at = next
+    }
+    throw IllegalArgumentException("desktop_screen_jpeg_header_invalid")
 }

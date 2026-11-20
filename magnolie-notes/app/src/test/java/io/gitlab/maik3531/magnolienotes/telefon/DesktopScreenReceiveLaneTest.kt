@@ -1,5 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -14,7 +16,10 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import javax.imageio.ImageIO
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -118,6 +123,42 @@ class DesktopScreenReceiveLaneTest {
                 }
             }
         }
+    }
+
+    @Test fun authenticatesAndChecksExactBaselineShapeBeforeHandoff() {
+        val jpeg = ByteArrayOutputStream().also {
+            assertTrue(ImageIO.write(BufferedImage(57, 33, BufferedImage.TYPE_INT_RGB), "jpeg", it))
+        }.toByteArray()
+        val material = "f2076c96174d23d200b45ec33273d4fe035e12da30dae7bd3f986b1f79a2976ee2fc6010"
+            .chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        fun record(data: ByteArray, ordinal: Long): ByteArray {
+            val header = ByteBuffer.allocate(12).putInt(data.size + 16).putLong(ordinal).array()
+            val nonce = ByteBuffer.allocate(12).put(material.copyOfRange(32, 36)).putLong(ordinal).array()
+            return Cipher.getInstance("AES/GCM/NoPadding").run {
+                init(Cipher.ENCRYPT_MODE, SecretKeySpec(material.copyOf(32), "AES"), GCMParameterSpec(128, nonce))
+                updateAAD(context)
+                updateAAD(header)
+                header + doFinal(data)
+            }
+        }
+        pair { phone, desktop ->
+            lane(phone).use { lane ->
+                lane.activate(prove(lane, desktop))
+                desktop.socket().getOutputStream().write(record(jpeg, 0))
+                assertArrayEquals(jpeg, lane.receive())
+                val wrong = ByteArrayOutputStream().also {
+                    assertTrue(ImageIO.write(BufferedImage(58, 33, BufferedImage.TYPE_INT_RGB), "jpeg", it))
+                }.toByteArray()
+                desktop.socket().getOutputStream().write(record(wrong, 1))
+                assertThrows(IllegalArgumentException::class.java) { lane.receive() }
+                assertFalse(phone.isOpen)
+            }
+        }
+        val sof = (2 until jpeg.lastIndex).first { jpeg[it] == 0xff.toByte() && jpeg[it + 1] == 0xc0.toByte() }
+        assertThrows(IllegalArgumentException::class.java) {
+            requireDesktopScreenJpeg(jpeg.clone().apply { this[sof + 1] = 0xc2.toByte() }, 57, 33)
+        }
+        assertThrows(IllegalArgumentException::class.java) { requireDesktopScreenJpeg(jpeg.copyOf(jpeg.size - 1), 57, 33) }
     }
 
     @Test fun closeInterruptsIncompleteRecordAndDoesNotRenewExpiredSetup() {

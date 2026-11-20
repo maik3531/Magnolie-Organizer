@@ -76,8 +76,10 @@ or any Android viewer. Its trusted caller must bind the original accepted
 socket and PREPARED receipt and perform the guarded SEND control write. The
 separate Kotlin draft reader authenticates proof and records on its socket but
 requires the original caller to supply the authenticated SEND receipt. It
-does not decode or display images. The loopback interoperability test uses
-a controlled control handoff, not the application protocol or a phone viewer.
+rejects oversized or mismatched baseline JPEG headers before handing off
+the authenticated bytes. It does not decode or display images. The loopback
+interoperability test uses a controlled control handoff, not the application
+protocol or a phone viewer.
 Before allocation or advertising, check independent vectors and incompatible
 direction/mode/session rejection, data-before-SEND, stop during blocked I/O, and
 the real native phone viewer. Extended mode additionally needs the compositor
