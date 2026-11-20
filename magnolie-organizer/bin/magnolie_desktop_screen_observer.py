@@ -57,6 +57,9 @@ class KWinOutputObserver:
         return self._child.stdin.closed and self._child.stdout.closed and self._child.poll() is not None
 
     def _synchronize(self):
+        # The portal timer and the observer timer are independent. Do not hand
+        # a previous reply to Start if EOF or helper exit is already visible.
+        self.tick()
         if self.feed is None:
             raise PermissionError('kwin_original_output_observer_unavailable')
         if self._sync_deadline is None:

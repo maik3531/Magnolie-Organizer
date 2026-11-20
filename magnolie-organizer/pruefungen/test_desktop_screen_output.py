@@ -207,6 +207,11 @@ class TestKWinOutputWitness(unittest.TestCase):
                 wait_for(lambda: feed.witness.removal_observed(self.target))
                 fixture.stdin.write(b'q')
                 self.assertEqual(fixture.wait(3), 0)
+                # The main loop has not pumped again. A previous barrier
+                # reply must not authorize Start after the helper has exited.
+                self.assertEqual(client._child.wait(3), 1)
+                with self.assertRaises(PermissionError):
+                    client._synchronize()
                 wait_for(lambda: client.drained)
                 self.assertIsNone(client.feed)
                 self.assertFalse(feed.witness.removal_observed(self.target))
