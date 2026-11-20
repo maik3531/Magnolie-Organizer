@@ -34,6 +34,7 @@ internal class PhoneScreenOutputCleanupException(cause: Exception) : IllegalStat
 
 /** Process-local control handle. Only the exact attached projection can prove capture current. */
 internal interface PhoneScreenCaptureHandle : AutoCloseable {
+    val isActive: Boolean
     fun requireActive()
     fun isDrained(): Boolean
 }
@@ -58,7 +59,8 @@ internal object PhoneScreenServiceStarts {
         var failure: Exception? = null
             private set
         private var cleanupFailed = false
-        @Volatile private var active = false
+        @Volatile var active = false
+            private set
 
         fun requireStart() {
             val now = SystemClock.elapsedRealtime()
@@ -169,6 +171,7 @@ internal object PhoneScreenServiceStarts {
             throw error
         }
         return object : PhoneScreenCaptureHandle {
+            override val isActive get() = entry.active
             override fun requireActive() = entry.requireActive()
             override fun isDrained(): Boolean {
                 mainThread()
