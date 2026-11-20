@@ -92,13 +92,15 @@ readiness and the original channel again. Revocation during the write cannot
 turn a completed write into live media authority. STOP retires only its owner.
 See [shared draft vectors](desktop-screen-control-draft-v1-vectors.json).
 
-The isolated Android adapter wraps a body in exactly `type` and `body` (`type`
-is `desktop_screen_draft`). This wrapper is not a registered message kind or a
-capability. The adapter uses the existing encrypted writer only on the original
-WLAN streams. It admits one matching OFFER, delivers it only after the request
-write returns, and releases a single matching SEND receipt only after the
-PREPARED write returns. A matching STOP retires the original control owner.
-The product dispatcher and native data/session joins are still separate work.
+The isolated Linux and Android adapters wrap a body in exactly `type` and
+`body` (`type` is `desktop_screen_draft`). This wrapper is not a registered
+message kind or a capability. The adapters use the existing encrypted writers
+only on the original WLAN streams. Their write-edge callback runs after writer
+admission and encryption, before consuming a sequence. Android admits one
+matching OFFER and delivers it only after the request write returns. It releases
+a single matching SEND receipt only after the PREPARED write returns. A matching
+STOP retires the original control owner. The product dispatcher and native
+data/session joins are still separate work.
 
 ## Retirement and acceptance
 
@@ -124,16 +126,14 @@ the original extra output. A missing cleanup acknowledgment is not successful
 drain. Do not stop the ordinary Notes connection unless its own transport failed.
 
 The local reader/encoder and portal tests do not validate this wire contract.
-The isolated Linux draft writer implements the socket proof and records, but
-does not own discovery, authenticated control dispatch, heartbeat scheduling,
-or any Android viewer. Its trusted caller must bind the original accepted
-socket and PREPARED receipt and perform the guarded SEND control write. The
-separate Kotlin draft reader authenticates proof and records on its socket but
-requires the original caller to supply the authenticated SEND receipt. It
-rejects oversized or mismatched baseline JPEG headers before handing off
-the authenticated bytes. The lane itself does not decode or display images.
-The loopback interoperability test uses a controlled control handoff, not the
-application protocol or a phone viewer.
+An opt-in Python/Kotlin loopback test exercises both draft adapters over two
+TCP sockets with preconfigured test keys: encrypted request through STOP,
+mutual proof, authenticated heartbeat and a synthetic JPEG. Ordinary traffic
+continues on the same control connection after STOP. That test does not run
+pairing, the product dispatcher, a portal or a native phone viewer. The live
+caller still has to own discovery, consent, capture, authenticated control
+dispatch and heartbeat scheduling. The Kotlin media lane checks JPEG headers
+before handoff; decoding and display are separate.
 Before allocation or advertising, check independent vectors and incompatible
 direction/mode/session rejection, data-before-SEND, stop during blocked I/O, and
 the real native phone viewer. Extended mode additionally needs the compositor
