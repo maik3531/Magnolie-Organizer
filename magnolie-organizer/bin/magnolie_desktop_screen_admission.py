@@ -90,8 +90,11 @@ class DesktopScreenDraftAdmission:
         if not self._stopping.is_set() or (self._attempt is not None and self._cleanup is None):
             return True
         cleanup = self._cleanup
+        # Portal Close does not observe compositor output removal. An actual
+        # submitted virtual Start has no reusable slot in the draft until a
+        # compositor-specific cleanup witness can establish that removal.
         clean = cleanup is None or (cleanup.transport_drained and cleanup.local.portal_closed and
-            cleanup.local.reader_drained and cleanup.local.encoder_drained)
+            cleanup.local.reader_drained and cleanup.local.encoder_drained and not cleanup.local.virtual_start_submitted)
         if clean and not self._original.release():
             return True  # Retirement raced the last reader handoff.
         self._terminal = True  # Unconfirmed cleanup deliberately keeps the slot.

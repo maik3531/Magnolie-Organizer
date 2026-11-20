@@ -19,6 +19,7 @@ class ScreenRunCleanup:
     portal_closed: bool
     reader_drained: bool
     encoder_drained: bool
+    virtual_start_submitted: bool = False
 
 
 class DesktopScreenLocalRun:
@@ -139,4 +140,4 @@ class DesktopScreenLocalRun:
         if self._timer is not None:
             GLib.source_remove(self._timer)
             self._timer = None
-        self._ended(ScreenRunCleanup(self._portal_result, drained, True))
+        self._ended(ScreenRunCleanup(self._portal_result, drained, True, self._portal.virtual_start_submitted))

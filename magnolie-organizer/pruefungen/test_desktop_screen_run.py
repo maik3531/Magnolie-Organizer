@@ -24,6 +24,7 @@ class TestDesktopScreenLocalRun(unittest.TestCase):
         self.target, self.remote = object(), object()
         self.ended = Mock()
         self.portal = Mock()
+        self.portal.virtual_start_submitted = False
         self.portal.selection_current.return_value = True
         self.portal.setup_deadline = monotonic() + 10
         self.reader = Mock(ready=False, finished=False, drained=False)
@@ -109,6 +110,14 @@ class TestDesktopScreenLocalRun(unittest.TestCase):
         self.ended.assert_called_once_with(joined.ScreenRunCleanup(True, True, True))
         with self.assertRaises(RuntimeError):
             self.run.begin()
+
+    def test_confirmed_portal_close_preserves_possible_virtual_output_without_selection(self):
+        self.run.begin()
+        self.portal.virtual_start_submitted = True
+        self.run.stop()
+        self.closed(True)
+        self.start_reader.assert_not_called()
+        self.ended.assert_called_once_with(joined.ScreenRunCleanup(True, True, True, virtual_start_submitted=True))
 
     def test_late_encoder_frame_never_becomes_ready_or_reports_early_drain(self):
         tick = self.attach()

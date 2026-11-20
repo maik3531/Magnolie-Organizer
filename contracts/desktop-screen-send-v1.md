@@ -120,8 +120,12 @@ and the mode, before the separate portal can begin. Denial is the default.
 The confirmation shares the original setup deadline and desktop lock lease;
 unlocking never revives it. The dialog offers Stop after confirmation; owner
 exit or revocation also retires the attempt. Unknown cleanup holds the slot
-closed to replacement. No product UI, IPC or capability registers an
-attachment or opens this dialog.
+closed to replacement. Once a `VIRTUAL` Start was submitted, the local result
+records a possible additional output even if no target reached the reader.
+A successful portal Close does not release this slot: the draft has no
+compositor witness for the original output's removal yet. Ordinary mirroring
+does not acquire that restriction. No product UI, IPC or capability registers
+an attachment or opens this dialog.
 
 ## Retirement and acceptance
 

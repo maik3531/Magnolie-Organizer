@@ -158,13 +158,16 @@ class TestDesktopScreenCast(unittest.TestCase):
 
     def test_virtual_only_with_original_early_response_and_close(self):
         self.owner()
+        self.assertFalse(self.run.virtual_start_submitted)
         start = self.setup(response_first=True)
+        self.assertTrue(self.run.virtual_start_submitted)
         self.complete(start, streams(), response_first=True)
         self.assertEqual(self.ready, [cast.ScreenCastTarget('extend', 54, 903)])
         self.assertEqual(self.ended, [])
         self.run.stop()
         self.close_session()
         self.assertEqual(self.ended, [True])
+        self.assertTrue(self.run.virtual_start_submitted)
         with self.assertRaises(RuntimeError):
             self.run.begin()
 
@@ -183,6 +186,16 @@ class TestDesktopScreenCast(unittest.TestCase):
         self.assertEqual(self.ready, [])
         self.close_session()
         self.assertEqual(self.ended, [True])
+        self.assertTrue(self.run.virtual_start_submitted)
+
+    def test_monitor_start_never_creates_virtual_output_claim(self):
+        self.owner(mode='monitor', mirror=1)
+        self.complete(self.setup(), streams(1))
+        self.assertEqual(self.ready, [cast.ScreenCastTarget('monitor', 54, 903)])
+        self.run.stop()
+        self.close_session()
+        self.assertEqual(self.ended, [True])
+        self.assertFalse(self.run.virtual_start_submitted)
 
     def test_owner_replaced_before_create_or_after_start(self):
         self.owner()
@@ -209,6 +222,7 @@ class TestDesktopScreenCast(unittest.TestCase):
         self.bus.deliver(close, GLib.Variant('()', ()))
         self.close_session()
         self.assertEqual(self.ended, [True])
+        self.assertFalse(self.run.virtual_start_submitted)
 
     def test_lost_local_guard_drops_late_success_and_checks_close(self):
         self.owner()

@@ -171,6 +171,7 @@ class DesktopScreenCast:
         self._cleanup_ok = True
         self._target = self._remote = None
         self._remote_attempted = self._remote_pending = False
+        self._virtual_start_submitted = False
 
     def begin(self):
         if self._phase != 'new':
@@ -247,7 +248,15 @@ class DesktopScreenCast:
         self._new_request('SelectSources', '(oa{sv})', (self._session,), options, self._selected)
 
     def _selected(self, _fields):
+        if self.mode == 'extend':
+            # From submission onward the compositor might allocate an output,
+            # even if the method reply or the portal Response is later lost.
+            self._virtual_start_submitted = True
         self._new_request('Start', '(osa{sv})', (self._session, self.parent_window), {}, self._started)
+
+    @property
+    def virtual_start_submitted(self):
+        return self._virtual_start_submitted
 
     def _started(self, fields):
         target = _target(fields, self.mode, self.provider.screen_version)

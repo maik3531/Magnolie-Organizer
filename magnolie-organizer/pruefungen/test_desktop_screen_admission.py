@@ -50,8 +50,9 @@ def gtk_owner(connected, monkeypatch):
         lock.close()
 
 
-def show(owner, client):
+def show(owner, client, wire_mode=2):
     frame = request()
+    frame['body']['mode'] = wire_mode
     client.send(frame)
     wait_for(lambda: owner._dialog is not None and owner._dialog.get_visible())
     return frame, owner._dialog
@@ -80,18 +81,19 @@ def test_wrong_mode_expiry_and_denial_never_start_portal(connected, gtk_owner):
     ping(client)
 
 
-def test_confirm_then_native_stop_waits_for_exact_drain(connected, gtk_owner):
+@pytest.mark.parametrize(('mode', 'wire_mode'), [('extend', 2), ('monitor', 1)])
+def test_confirm_then_native_stop_waits_for_exact_drain(connected, gtk_owner, mode, wire_mode):
     _, _, client = connected
     arm, _, _, factory, attempt, ended = gtk_owner
-    owner = arm()
-    frame, dialog = show(owner, client)
+    owner = arm(mode)
+    frame, dialog = show(owner, client, wire_mode)
     deadline = owner._pending[1]
     factory.assert_not_called()
     dialog.get_widget_for_response(Gtk.ResponseType.ACCEPT).clicked()
     attempt.begin.assert_called_once()
     call = factory.call_args
     assert call.args[:2] == (client.channel, frame['body'])
-    assert call.kwargs['mode'] == 'extend' and call.kwargs['deadline'] == deadline
+    assert call.kwargs['mode'] == mode and call.kwargs['deadline'] == deadline
     call.args[2]()
     stop = dict(frame, body=dict(frame['body'], op='stop', session='12' * 16))
     client.send(stop)
@@ -139,7 +141,9 @@ def test_lock_then_unlock_cannot_reuse_pending_confirmation(connected, gtk_owner
         lock._proxy = None
 
 
-def test_exit_and_failed_portal_cleanup_do_not_free_slot(connected, gtk_owner):
+@pytest.mark.parametrize('local', [ScreenRunCleanup(False, True, True),
+                                  ScreenRunCleanup(True, True, True, virtual_start_submitted=True)])
+def test_exit_with_unconfirmed_portal_or_virtual_output_keeps_slot(connected, gtk_owner, local):
     service, peer, client = connected
     arm, _, parent, factory, attempt, ended = gtk_owner
     owner = arm()
@@ -148,7 +152,7 @@ def test_exit_and_failed_portal_cleanup_do_not_free_slot(connected, gtk_owner):
     parent.destroy()
     attempt.stop.assert_called_once()
     assert not dialog.get_visible() and not owner._terminal
-    cleanup = DesktopScreenAttemptCleanup(ScreenRunCleanup(False, True, True), True)
+    cleanup = DesktopScreenAttemptCleanup(local, True)
     factory.call_args.kwargs['ended'](cleanup)
     wait_for(lambda: ended == [cleanup])
     with pytest.raises(PermissionError, match='reader_busy'):
