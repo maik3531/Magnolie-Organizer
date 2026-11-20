@@ -462,14 +462,121 @@ def publish_files(root, stage, ordered, precondition, postcondition):
             shutil.rmtree(stage)
 
 
-def promote(root, directory, approval, accepted_id):
+def storage_base(version):
+    require(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version), "Invalid registry release version")
+    return ("https://gitlab.com/api/v4/projects/78301901/packages/generic/"
+            f"magnolie-desktop/{version}/")
+
+
+def publication_manifest_check(data, record, base):
+    """Bind signed download fields and the unsigned source field to this release."""
+    xml = signed_manifest(data)
+    v = record["version"]
+    for section, artifact, url_field in ((xml, f"magnolie-organizer_{v}_all.deb", "deb"),
+            (xml.find("appimage"), f"Magnolie-Organizer-{v}-x86_64.AppImage", "url"),
+            (xml.find("manual/linux"), f"magnolie-handbuch_{v}_all.deb", "deb"),
+            (xml.find("manual/windows"), f"Magnolie-Organizer-Windows-{v}-Setup-x64.exe", "url"),
+            (xml.find("windows"), f"Magnolie-Organizer-Windows-{v}-Setup-x64.exe", "url")):
+        require(section is not None and section.findtext(url_field) == base + artifact and
+                section.findtext("sha256") == record["artifacts"][artifact]["sha256"],
+                "Signed manifest differs from approved artifacts")
+    require(all(xml.findtext(path) == v for path in ("version", "manual/version", "windows/version")),
+            "Signed manifest version differs from approved candidate")
+    require(xml.findtext("source") == base + f"magnolie-organizer_{v}.tar.xz" and
+            xml.findtext("appimage/architecture") == "x86_64", "Manifest source or architecture differs")
+    return xml
+
+
+def storage_destination(root, directory, destination):
+    destination = Path(destination).absolute()
+    require(not any(part.is_symlink() for part in (destination, *destination.parents)),
+            "Storage destination is symlinked")
+    destination = destination.resolve()
+    require(destination.parent.is_dir() and not destination.exists(),
+            "Storage export needs an existing parent and a new destination")
+    require(not destination.is_relative_to(root.resolve()) and
+            not destination.is_relative_to(directory.resolve()),
+            "Storage export must be outside the source and candidate directories")
+    return destination
+
+
+def rename_new_directory(source, destination):
+    """Linux release gate: atomic export must never replace a raced-in directory."""
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    rename = getattr(libc, "renameat2", None)
+    require(rename is not None, "Atomic no-replace directory export is unavailable")
+    rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    rename.restype = ctypes.c_int
+    if rename(-100, os.fsencode(source), -100, os.fsencode(destination), 1) != 0:
+        number = ctypes.get_errno()
+        raise OSError(number, os.strerror(number), str(destination))
+
+
+def storage_candidate_check(directory, record, identity):
+    """Read-only export validation; callers must separately run the real verify()."""
+    directory = Path(directory).absolute()
+    record_path = directory / "storage-candidate.json"
+    exported, export_identity = json_read(record_path, with_digest=True)
+    require(isinstance(exported, dict) and set(exported) == {
+        "schema", "candidateSha256", "version", "artifacts"} and
+        exported["schema"] == "magnolie-storage-candidate-v1" and
+        exported["candidateSha256"] == identity and exported["version"] == record["version"],
+        "Storage export is not bound to the approved candidate")
+    derived = {"Magnolie-Notes.apk", "Magnolie-Notes-latest-PRUEFSUMMEN.sha256",
+               "Magnolie-Organizer-PRUEFSUMMEN.sha256", "update.xml", "PRUEFSUMMEN.sha256"}
+    expected = exported["artifacts"]
+    require(isinstance(expected, dict) and set(expected) == set(record["artifacts"]) | derived,
+            "Storage export has incomplete or unexpected artifacts")
+    require(all(isinstance(item, dict) and set(item) == {"sha256", "bytes"} and
+                isinstance(item["sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", item["sha256"]) and
+                type(item["bytes"]) is int and item["bytes"] > 0 for item in expected.values()),
+            "Invalid storage artifact identity")
+    require(all(expected[name] == value for name, value in record["artifacts"].items()),
+            "Storage export changed approved artifacts")
+    require(set(path.name for path in directory.iterdir()) == set(expected) | {"storage-candidate.json"} and
+            artifact_map(directory, expected) == expected, "Storage artifact bytes changed")
+    alias = f"Magnolie-Notes-{record['notesVersion']}.apk"
+    require(expected["Magnolie-Notes.apk"] == record["artifacts"][alias], "Storage Notes alias changed")
+    xml = publication_manifest_check(input_bytes(directory / "update.xml"), record,
+                                     storage_base(record["version"]))
+    # The source URL is not part of the established Ed25519 message. Strict
+    # structure additionally excludes duplicate or newly injected download nodes.
+    structure = {"": {"name", "version", "deb", "source", "manual", "appimage", "windows", "sha256", "signature"},
+                 "manual": {"version", "linux", "windows"}, "manual/linux": {"deb", "sha256"},
+                 "manual/windows": {"url", "sha256"}, "appimage": {"architecture", "url", "sha256"},
+                 "windows": {"version", "url", "sha256"}}
+    require(xml.tag == "update", "Invalid storage manifest root")
+    require(xml.findtext("name") == "Magnolie Organizer", "Unexpected storage product name")
+    for path, children in structure.items():
+        node = xml if not path else xml.find(path)
+        require(node is not None and not node.attrib and len(node) == len(children) and
+                {child.tag for child in node} == children, "Unexpected storage manifest structure")
+        for child in node:
+            if (path + "/" + child.tag).lstrip("/") not in structure:
+                require(not child.attrib and len(child) == 0, "Nested storage manifest field")
+    groups = artifact_groups(record["version"], record["notesVersion"], record["architecture"])
+    coverage = {"Magnolie-Notes-latest-PRUEFSUMMEN.sha256": ["Magnolie-Notes.apk"],
+                "Magnolie-Organizer-PRUEFSUMMEN.sha256": groups["linux"],
+                "PRUEFSUMMEN.sha256": sorted(set(expected) - {"PRUEFSUMMEN.sha256"})}
+    for name, members in coverage.items():
+        contents = "".join(f"{expected[file]['sha256']}  {file}\n" for file in sorted(members)).encode("ascii")
+        require(input_bytes(directory / name) == contents, "Storage derived checksum coverage changed")
+    require(artifact_map(directory, expected) == expected and digest(regular(record_path)) == export_identity,
+            "Storage export changed during verification")
+    return exported
+
+
+def promote(root, directory, approval, accepted_id, *, storage_directory=None):
     with release_lock(root):
         bindings = {}
         record, identity, groups = verify(root, directory, approval, accepted_id, bindings=bindings)
+        destination = storage_destination(root, directory, storage_directory) if storage_directory is not None else None
         tool = root / LINUX / "werkzeuge/update_signieren.py"
         key = os.environ.get("MAGNOLIE_UPDATE_SIGNING_KEY", str(Path.home() / ".local/share/magnolie-release/update-ed25519.pem"))
         subprocess.run([sys.executable, str(tool), "--check-key", key, PUBLIC_KEY], check=True)
-        stage = Path(tempfile.mkdtemp(prefix=".magnolie-desktop-promote-", dir=root))
+        stage = Path(tempfile.mkdtemp(prefix=".magnolie-desktop-promote-",
+                                     dir=destination.parent if destination is not None else root))
         keep_stage = False
         try:
             for name in record["artifacts"]:
@@ -480,25 +587,17 @@ def promote(root, directory, approval, accepted_id):
             v = record["version"]
             deb = stage / f"magnolie-organizer_{v}_all.deb"
             image = stage / f"Magnolie-Organizer-{v}-x86_64.AppImage"
+            base = storage_base(v) if destination is not None else (
+                "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/")
             manifest_schreiben(str(stage / "update.xml"), str(deb), str(image),
                               str(stage / f"magnolie-handbuch_{v}_all.deb"),
-                              str(stage / f"Magnolie-Organizer-Windows-{v}-Setup-x64.exe"))
+                              str(stage / f"Magnolie-Organizer-Windows-{v}-Setup-x64.exe"),
+                              package_base=base if destination is not None else None)
             subprocess.run([sys.executable, str(tool), key, str(stage / "update.xml"), str(deb), str(image)],
                            check=True, stdout=subprocess.DEVNULL)
             subprocess.run([sys.executable, str(tool), "--verify", PUBLIC_KEY, str(stage / "update.xml"), str(deb), str(image)], check=True)
             manifest_data = input_bytes(stage / "update.xml")
-            xml = signed_manifest(manifest_data)
-            base = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/"
-            for section, artifact, url_field in ((xml, deb.name, "deb"),
-                    (xml.find("appimage"), image.name, "url"),
-                    (xml.find("manual/linux"), f"magnolie-handbuch_{v}_all.deb", "deb"),
-                    (xml.find("manual/windows"), f"Magnolie-Organizer-Windows-{v}-Setup-x64.exe", "url"),
-                    (xml.find("windows"), f"Magnolie-Organizer-Windows-{v}-Setup-x64.exe", "url")):
-                require(section is not None and section.findtext(url_field) == base + artifact and
-                        section.findtext("sha256") == record["artifacts"][artifact]["sha256"],
-                        "Signed manifest differs from approved artifacts")
-            require(all(xml.findtext(path) == v for path in ("version", "manual/version", "windows/version")),
-                    "Signed manifest version differs from approved candidate")
+            publication_manifest_check(manifest_data, record, base)
             windows_sum = f"Magnolie-Organizer-Windows-{v}-PRUEFSUMMEN.sha256"
             checksums(stage, windows_sum, [name for name in groups["windows"] if name != windows_sum], record["artifacts"])
             require(digest(stage / windows_sum) == record["artifacts"][windows_sum]["sha256"],
@@ -515,6 +614,33 @@ def promote(root, directory, approval, accepted_id):
             final_bindings = {}
             verify(root, directory, approval, identity, bindings=final_bindings)
             require(final_bindings == bindings, "Approval/evidence changed during staging")
+            if destination is not None:
+                write_record(stage / "storage-candidate.json", dict(schema="magnolie-storage-candidate-v1",
+                    candidateSha256=identity, version=v, artifacts=published))
+                storage_candidate_check(stage, record, identity)
+                require(inventory(root) == record["sources"] and
+                        artifact_map(directory, record["artifacts"]) == record["artifacts"],
+                        "Sources or candidate changed before storage export")
+                check_bindings(bindings)
+                storage_destination(root, directory, destination)
+                # Keep all bytes private until the complete verified directory exists.
+                for name in names:
+                    with regular(stage / name).open("rb") as stream:
+                        os.fsync(stream.fileno())
+                with blocked_signals():
+                    fd = os.open(stage, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+                    rename_new_directory(stage, destination)
+                    keep_stage = True
+                    fd = os.open(destination.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+                return
             (stage / LINUX).mkdir()
             shutil.copyfile(stage / "update.xml", stage / LINUX / "update.xml")
             ordered = sorted(name for name in names if name not in {"update.xml", "PRUEFSUMMEN.sha256"})
@@ -565,13 +691,14 @@ def stage_notes_alias(root, stage, record):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("seal", "inspect", "verify", "promote", "notes-inputs", "bootstrap"))
+    parser.add_argument("operation", choices=("seal", "inspect", "verify", "promote", "prepare-storage", "notes-inputs", "bootstrap"))
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--candidate", type=Path)
     parser.add_argument("--source-record", type=Path)
     parser.add_argument("--autopkgtest", choices=("passed", "unavailable"))
     parser.add_argument("--approval", type=Path)
     parser.add_argument("--accept-candidate")
+    parser.add_argument("--storage-directory", type=Path)
     args = parser.parse_args()
     root = args.root.resolve()
     if args.operation == "bootstrap":
@@ -610,7 +737,12 @@ def main():
             verify(root, directory, args.approval, args.accept_candidate)
             print("Exact candidate, current source, native evidence and explicit personal or delegated authorization verified. No signing or promotion performed.")
         else:
-            promote(root, directory, args.approval, args.accept_candidate)
+            require((args.operation == "prepare-storage") == (args.storage_directory is not None),
+                    "Only prepare-storage requires --storage-directory")
+            promote(root, directory, args.approval, args.accept_candidate,
+                    storage_directory=args.storage_directory)
+            if args.operation == "prepare-storage":
+                print("Approved registry candidate exported privately; no remote upload or active metadata changed.")
 
 
 if __name__ == "__main__":

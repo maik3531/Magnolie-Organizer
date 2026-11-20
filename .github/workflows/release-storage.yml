@@ -1,0 +1,60 @@
+name: Release storage guard
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  storage:
+    if: github.event.deleted != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # PRs check their synthetic merge commit, so the event base SHA is an
+          # ancestor even when the contributor branch has not been rebased.
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+      - name: Check every introduced commit against a trusted base
+        shell: bash
+        env:
+          EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CHECK_HEAD: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          base="$EVENT_BASE"
+          if [[ "$GITHUB_EVENT_NAME" == push && "$base" =~ ^0+$ ]]; then
+            # A new branch has no previous SHA. Require the actual default
+            # branch as ancestor; never substitute HEAD or an empty tree.
+            if [[ "$GITHUB_REF" == "refs/heads/$DEFAULT_BRANCH" ]]; then
+              echo "Initial default-branch push has no prior trusted baseline."
+              exit 1
+            fi
+            git check-ref-format "refs/heads/$DEFAULT_BRANCH"
+            base=$(git rev-parse --verify --end-of-options "refs/remotes/origin/$DEFAULT_BRANCH^{commit}")
+          fi
+          python3 tools/release_git_guard.py --repo . --base "$base" --head "$CHECK_HEAD"
+      - name: Exercise storage transaction and Git boundary failures
+        working-directory: tools
+        run: python3 -m unittest -v test_release_git_guard test_gitlab_release_storage test_gitlab_storage_api
+      - name: Prepare the existing release-gate test dependencies
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/release-storage-python"
+          "$RUNNER_TEMP/release-storage-python/bin/python" -m pip install --disable-pip-version-check pytest==8.3.5 cryptography==50.0.0
+      - name: Verify storage export and existing release authorization
+        shell: bash
+        run: |
+          "$RUNNER_TEMP/release-storage-python/bin/python" -B -m pytest -q \
+            magnolie-organizer/pruefungen/test_release_storage_candidate.py \
+            magnolie-organizer/pruefungen/test_release_packaging.py \
+            magnolie-organizer/pruefungen/test_release_signatur.py \
+            magnolie-organizer/pruefungen/test_release_authorization.py
