@@ -1,0 +1,150 @@
+{
+  "locale": "fr",
+  "language_name": "Français",
+  "direction": "ltr",
+  "labels": {
+    "skip": "Aller au contenu",
+    "main_navigation": "Navigation principale",
+    "home": "Accueil",
+    "press": "Revue de presse",
+    "downloads": "Téléchargements",
+    "imprint": "Mentions légales",
+    "privacy": "Confidentialité",
+    "contents": "Sur cette page",
+    "more_information": "Informations complémentaires",
+    "language": "Langue",
+    "german_original": "Version originale allemande",
+    "email": "E-mail",
+    "country": "Allemagne",
+    "updated": "Mise à jour : 20 novembre 2026",
+    "project": "Code source et projet",
+    "product_information": "Informations sur le produit",
+    "license": "Licence",
+    "feedback": "Commentaires",
+    "source_note": "Images du produit : manuel officiel et capture d'écran de l'application fournie. Informations sur le produit vérifiées le 11 novembre 2026.",
+    "downloads_note": "Les téléchargements et le logiciel sont disponibles sur les pages du projet accessibles par les liens.",
+    "footer_project": "Mon projet personnel open source · Développé pendant mon temps libre"
+  },
+  "project_notice": "Magnolie est mon projet personnel open source, que je développe et maintiens pendant mon temps libre. Aucune entreprise n'est à l'origine de ce projet.",
+  "imprint": {
+    "title": "Mentions légales",
+    "description": "Éditeur et coordonnées du site Magnolie, ainsi qu'informations sur les liens externes.",
+    "lead": "Éditeur, coordonnées et informations juridiques concernant ce site.",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "Éditeur et coordonnées",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "Mon projet personnel",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "Responsabilité éditoriale",
+        "paragraphs": [
+          "Responsable des contenus éditoriaux de la revue de presse conformément au § 18 Abs. 2 MStV :",
+          "{{operator_name}}, <a href=\"#anbieter\">à l'adresse indiquée ci-dessus</a>."
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "Mes propres contenus",
+        "paragraphs": [
+          "Je suis responsable de mes propres contenus sur mon site dans le cadre des lois applicables. Je rassemble les informations avec soin. Des erreurs ou des informations devenues obsolètes entre-temps peuvent néanmoins subsister.",
+          "Si tu constates des erreurs ou de possibles violations de la loi, merci de signaler la page concernée et les faits précis à <a href=\"mailto:{{email}}\">{{email}}</a>. J'examine ces signalements et je corrige ou supprime les contenus lorsque cela est nécessaire. Les droits et obligations prévus par la loi restent inchangés."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "Liens externes et responsabilité",
+        "paragraphs": [
+          "Mon site contient des liens vers des offres externes, notamment des articles de presse, des annuaires de logiciels et des plateformes de téléchargement. Ces offres sont exploitées par les prestataires qui y sont indiqués. Leurs contenus peuvent changer après la création du lien.",
+          "Si tu constates des contenus illicites ou des liens erronés, merci de signaler l'adresse Internet concernée et les faits précis à <a href=\"mailto:{{email}}\">{{email}}</a>. J'examine ces signalements et je supprime les liens concernés lorsque cela est nécessaire.",
+          "La responsabilité légale relative à mes propres contenus ainsi que les obligations légales de vérification et de suppression restent inchangées. Cela s'applique aussi à mes propres contributions publiées sur d'autres sites."
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "Droit d'auteur et licences",
+        "paragraphs": [
+          "Je propose Magnolie Organizer en tant que logiciel open source sous GPL-3.0-or-later. Les contenus proposés sous une licence ouverte ou distincte restent soumis aux conditions de licence indiquées pour chacun d'eux. Ces mentions ne restreignent pas les droits d'utilisation, de reproduction, de modification et de redistribution déjà accordés.",
+          "Lorsqu'une utilisation de contenus protégés n'est ni autorisée par la loi ni couverte par une licence existante ou une autre autorisation, l'accord des titulaires des droits concernés est nécessaire. Les droits sur les articles de presse accessibles par les liens et sur les autres contenus de tiers restent détenus par leurs titulaires respectifs.",
+          "La <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">présentation des licences du projet</a>, le <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">texte de la licence GPL</a> et les <a href=\"{{source_notices_url}}\">sources et crédits des images de ce site</a> fournissent les informations correspondantes."
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "Confidentialité",
+        "paragraphs": [
+          "Tu trouveras des informations sur l'hébergement, la prise de contact et tes droits en matière de protection des données dans la <a href=\"{{privacy_url}}\">déclaration de confidentialité</a>."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Confidentialité",
+    "description": "Informations sur la protection des données du site Magnolie : GitHub Pages, liens externes, contact et droits.",
+    "lead": "Ces informations concernent les visites du site Magnolie. Le stockage local des données dans l'application Magnolie installée en est distinct.",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. Responsable du traitement",
+        "paragraphs": [
+          "Moi, {{operator_name}}, suis responsable de ce site. Mon adresse postale figure dans les <a href=\"{{imprint_url}}#anbieter\">mentions légales</a>. Pour toute question concernant la protection des données, tu peux écrire à <a href=\"mailto:{{email}}\">{{email}}</a>."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. Hébergement sur GitHub Pages",
+        "paragraphs": [
+          "Le site est diffusé via GitHub Pages. Lors de son accès, GitHub reçoit les données de connexion techniquement nécessaires, notamment ton adresse IP et des informations sur le fichier demandé. GitHub confirme consigner et conserver les adresses IP à des fins de sécurité, même sans connexion à un compte GitHub. Voir les <a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">informations de GitHub sur la collecte de données par Pages</a>.",
+          "L'hébergement vise à assurer la disponibilité fiable et la sécurité de ce site. La mise à disposition technique que j'organise repose sur ces intérêts légitimes, conformément à Art. 6 Abs. 1 Buchst. f DSGVO. Le site ne peut pas être diffusé sans la transmission des données nécessaires à la connexion.",
+          "GitHub indique comme prestataires GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande, et GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA. Des données peuvent également être traitées aux États-Unis et dans d'autres pays. Pour les transferts concernés, GitHub mentionne notamment les clauses contractuelles types de l'UE comme mécanisme de protection.",
+          "GitHub ne précise pas de délai fixe de suppression des données de connexion de Pages dans les informations accessibles par les liens. Selon GitHub, la conservation dépend de la finalité du traitement et des obligations légales. D'autres informations sur les destinataires, les transferts et la conservation figurent dans la <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">déclaration de confidentialité de GitHub</a> ; le contact pour la protection des données y est <a href=\"mailto:privacy@github.com\">privacy@github.com</a>."
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. Fonctions du site et médias intégrés",
+        "paragraphs": [
+          "Le code du site ne dépose pas de cookies, n'utilise pas de Local Storage ni de stockage persistant comparable qui lui soit propre dans le navigateur et ne contient aucun traceur d'analyse ou de publicité. Il n'y a ni inscription ni formulaire de contact.",
+          "Les images, vidéos, sous-titres, feuilles de style et fichiers JavaScript sont chargés via le même hébergement GitHub Pages. Aucun lecteur vidéo tiers, service externe de polices ou widget de réseau social n'est intégré. Le chargement des métadonnées d'une vidéo et sa lecture entraînent eux aussi des requêtes auprès de l'hébergeur.",
+          "Le bouton de partage copie un texte préparé contenant l'adresse de la page dans le presse-papiers uniquement lorsque tu cliques dessus. Il ne lit pas le contenu déjà présent dans le presse-papiers et ne transmet pas ce texte à un service social. Le bouton d'impression ouvre la fonction d'impression de ton navigateur.",
+          "Lorsque tu accèdes à l'adresse générale d'accueil, un script sélectionne une page d'entrée disponible dans une langue adaptée, à partir des langues préférées définies dans ton navigateur. Une adresse linguistique choisie explicitement est prioritaire. La sélection s'effectue dans ton navigateur et n'est pas envoyée à un service supplémentaire. Je n'utilise pas de cookies à cette fin et je n'enregistre pas le choix de langue dans le Local Storage ni dans un autre stockage persistant du navigateur."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. Liens vers d'autres prestataires",
+        "paragraphs": [
+          "Certains téléchargements, codes sources, moyens de retour d'information et sources de presse sont accessibles par des liens vers d'autres sites. Lorsque tu consultes une telle page de destination, son prestataire traite les données de connexion et, le cas échéant, d'autres données selon ses propres informations de confidentialité. Selon le navigateur et ses réglages, la page d'origine peut également être transmise.",
+          "Ces liens n'intègrent pas automatiquement les offres externes dans la page Magnolie. Les informations juridiques concernant les liens figurent dans les <a href=\"{{imprint_url}}#externe-links\">mentions légales</a>."
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. Contact par e-mail",
+        "paragraphs": [
+          "Lorsque tu m'écris, je traite ton adresse d'expéditeur, ton message et les informations que tu y communiques volontairement afin de répondre à ta demande. La base juridique est Art. 6 Abs. 1 Buchst. f DSGVO ; mon intérêt légitime est de répondre aux demandes concernant le projet. Sans adresse d'expéditeur à laquelle te joindre, je ne peux pas répondre.",
+          "La boîte de réception indiquée utilise Gmail. Google traite dans ce cadre les messages et les données de connexion. Le prestataire pour les utilisateurs de l'Espace économique européen est Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Un traitement en dehors de l'Espace économique européen est possible. Google mentionne à cet effet des mécanismes d'adéquation, dont le cadre de protection des données UE–États-Unis, et, lorsqu'ils ne s'appliquent pas, des clauses contractuelles types. La <a href=\"https://policies.google.com/privacy?hl=de\">déclaration de confidentialité de Google</a> et les <a href=\"https://policies.google.com/privacy/frameworks?hl=de\">informations sur les transferts internationaux de données</a> donnent des précisions et indiquent un contact pour obtenir des copies des clauses.",
+          "La correspondance est supprimée dès qu'elle n'est plus nécessaire au traitement de la demande et des éventuelles questions complémentaires. Cette suppression reste soumise aux obligations légales de conservation et à toute conservation nécessaire à la constatation, à l'exercice ou à la défense de droits en justice."
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. Tes droits",
+        "paragraphs": [
+          "Dans les conditions prévues par la loi, tu disposes des droits d'accès, de rectification, d'effacement, de limitation du traitement et de portabilité des données (Art. 15–20 DSGVO).",
+          "<strong>Opposition :</strong> Lorsqu'un traitement repose sur Art. 6 Abs. 1 Buchst. f DSGVO, tu peux t'y opposer pour des raisons tenant à ta situation particulière (Art. 21 DSGVO). Pour cela, utilise le contact indiqué ci-dessus.",
+          "Tu peux également introduire une réclamation auprès d'une autorité de contrôle chargée de la protection des données, notamment dans l'État membre de ta résidence habituelle, de ton lieu de travail ou du lieu de la violation présumée (Art. 77 DSGVO).",
+          "Dans le cadre de ce site, je ne prends aucune décision fondée exclusivement sur un traitement automatisé produisant des effets juridiques ou des effets significatifs comparables et je ne réalise aucun profilage correspondant."
+        ]
+      }
+    ]
+  }
+}

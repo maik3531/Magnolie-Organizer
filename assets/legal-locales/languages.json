@@ -1,0 +1,105 @@
+{
+  "source_url": "https://maik3531.github.io/Magnolie-Organizer",
+  "languages": [
+    {
+      "code": "ar",
+      "name": "العربية",
+      "home": "intl/ar/"
+    },
+    {
+      "code": "be",
+      "name": "Беларуская",
+      "home": "intl/be/"
+    },
+    {
+      "code": "cs",
+      "name": "Čeština",
+      "home": "intl/cs/"
+    },
+    {
+      "code": "da",
+      "name": "Dansk",
+      "home": "intl/da/"
+    },
+    {
+      "code": "de",
+      "name": "Deutsch",
+      "home": "de/"
+    },
+    {
+      "code": "en",
+      "name": "English",
+      "home": "en/"
+    },
+    {
+      "code": "es",
+      "name": "Español",
+      "home": "intl/es/"
+    },
+    {
+      "code": "fr",
+      "name": "Français",
+      "home": "intl/fr/"
+    },
+    {
+      "code": "hi",
+      "name": "हिन्दी",
+      "home": "intl/hi/"
+    },
+    {
+      "code": "hsb",
+      "name": "Hornjoserbšćina",
+      "home": "intl/hsb/"
+    },
+    {
+      "code": "it",
+      "name": "Italiano",
+      "home": "intl/it/"
+    },
+    {
+      "code": "ja",
+      "name": "日本語",
+      "home": "intl/ja/"
+    },
+    {
+      "code": "nb",
+      "name": "Norsk bokmål",
+      "home": "intl/nb/"
+    },
+    {
+      "code": "nl",
+      "name": "Nederlands",
+      "home": "intl/nl/"
+    },
+    {
+      "code": "pl",
+      "name": "Polski",
+      "home": "intl/pl/"
+    },
+    {
+      "code": "pt",
+      "name": "Português",
+      "home": "intl/pt/"
+    },
+    {
+      "code": "ru",
+      "name": "Русский",
+      "home": "intl/ru/"
+    },
+    {
+      "code": "tr",
+      "name": "Türkçe",
+      "home": "intl/tr/"
+    },
+    {
+      "code": "uk",
+      "name": "Українська",
+      "home": "intl/uk/"
+    },
+    {
+      "code": "zh-CN",
+      "name": "简体中文",
+      "home": "intl/zh-CN/"
+    }
+  ]
+}

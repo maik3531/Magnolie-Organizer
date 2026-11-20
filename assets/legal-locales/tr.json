@@ -1,0 +1,150 @@
+{
+  "locale": "tr",
+  "language_name": "Türkçe",
+  "direction": "ltr",
+  "labels": {
+    "skip": "İçeriğe atla",
+    "main_navigation": "Ana gezinme",
+    "home": "Ana sayfa",
+    "press": "Basında Magnolie",
+    "downloads": "İndirmeler",
+    "imprint": "Yasal bilgiler",
+    "privacy": "Gizlilik",
+    "contents": "Bu sayfanın içeriği",
+    "more_information": "Daha fazla bilgi",
+    "language": "Dil",
+    "german_original": "Almanca kaynak metin",
+    "email": "E-posta",
+    "country": "Almanya",
+    "updated": "Güncelleme: 20 Kasım 2026",
+    "project": "Kaynak kodu ve proje",
+    "product_information": "Ürün bilgileri",
+    "license": "Lisans",
+    "feedback": "Geri bildirim",
+    "source_note": "Ürün görselleri: resmî kılavuz ve sağlanan program ekran görüntüsü. Ürün bilgileri 11 Kasım 2026 tarihinde kontrol edilmiştir.",
+    "downloads_note": "İndirmelere ve yazılıma bağlantı verilen proje sayfalarından ulaşılabilir.",
+    "footer_project": "Kişisel açık kaynak projem · Boş zamanlarımda geliştiriyorum"
+  },
+  "project_notice": "Magnolie, boş zamanlarımda geliştirdiğim ve bakımını yaptığım kişisel açık kaynak projemdir. Projenin arkasında bir şirket bulunmamaktadır.",
+  "imprint": {
+    "title": "Yasal bilgiler",
+    "description": "Magnolie web sitesinin sağlayıcısı, iletişim bilgileri ve haricî bağlantılara ilişkin açıklamalar.",
+    "lead": "Bu web sitesinin sağlayıcısı, iletişim bilgileri ve yasal açıklamalar.",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "Sağlayıcı ve iletişim",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "Kişisel projem",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "Editoryal sorumluluk",
+        "paragraphs": [
+          "§ 18 Abs. 2 MStV uyarınca basın derlemesindeki editoryal içerikten sorumlu kişi:",
+          "{{operator_name}}, <a href=\"#anbieter\">adres yukarıdaki gibidir</a>."
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "Kendi içeriklerim",
+        "paragraphs": [
+          "Web sitemdeki kendi içeriklerimden yürürlükteki yasalar çerçevesinde sorumluyum. Bilgileri özenle derliyorum. Yine de hatalar veya zaman içinde güncelliğini yitiren bilgiler bulunabilir.",
+          "Hata veya olası hak ihlalleri fark edersen lütfen ilgili sayfayı ve somut durumu <a href=\"mailto:{{email}}\">{{email}}</a> adresine bildir. Bu bildirimleri inceler ve gerektiği ölçüde içerikleri düzeltir veya kaldırırım. Yasal hak ve yükümlülükler saklıdır."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "Haricî bağlantılar ve sorumluluk",
+        "paragraphs": [
+          "Web sitemde haricî içerik ve hizmetlere, özellikle basın yazılarına, yazılım dizinlerine ve indirme platformlarına bağlantılar bulunur. Bağlantı verilen içerik ve hizmetler, ilgili sayfalarda belirtilen sağlayıcılar tarafından işletilir. İçerikleri, bağlantı oluşturulduktan sonra değişebilir.",
+          "Hukuka aykırı içerik veya hatalı bağlantılar fark edersen lütfen ilgili internet adresini ve somut durumu <a href=\"mailto:{{email}}\">{{email}}</a> adresine bildir. Bu bildirimleri inceler ve gerektiği ölçüde ilgili bağlantıları kaldırırım.",
+          "Kendi içeriklerime ilişkin yasal sorumluluğum ile yasal inceleme ve kaldırma yükümlülükleri saklıdır. Bu, başka web sitelerinde yayımlanan kendi katkılarım için de geçerlidir."
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "Telif hakkı ve lisanslar",
+        "paragraphs": [
+          "Magnolie Organizer yazılımını GPL-3.0-or-later kapsamında açık kaynak yazılım olarak sunuyorum. Açık veya ayrı bir lisans altında sunulan içerikler için belirtilen lisans koşulları geçerliliğini korur. Bu açıklamalarla, daha önce tanınmış olan kullanma, çoğaltma, değiştirme ve yeniden dağıtma haklarını kısıtlamıyorum.",
+          "Korunan içeriklerin kullanımına yasalar izin vermiyorsa ve kullanım mevcut bir lisans ya da başka bir izin kapsamında değilse ilgili hak sahiplerinin onayı gerekir. Bağlantı verilen basın yazıları ve diğer üçüncü taraf içerikleri üzerindeki haklar, ilgili hak sahiplerinde kalır.",
+          "İlgili bilgiler <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">projenin lisans özetinde</a>, <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">GPL lisans metninde</a> ve <a href=\"{{source_notices_url}}\">bu web sitesinin kaynak ve görsel atıflarında</a> yer alır."
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "Gizlilik",
+        "paragraphs": [
+          "Barındırma, iletişim ve veri koruma haklarınla ilgili bilgileri <a href=\"{{privacy_url}}\">gizlilik bildiriminde</a> bulabilirsin."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Gizlilik",
+    "description": "Magnolie web sitesine ilişkin veri koruma bilgileri: GitHub Pages, haricî bağlantılar, iletişim ve hakların.",
+    "lead": "Bu açıklamalar Magnolie web sitesinin ziyaret edilmesiyle ilgilidir. Yüklü Magnolie uygulamasında verilerin yerel olarak saklanması bundan ayrıdır.",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. Veri sorumlusu",
+        "paragraphs": [
+          "Ben, {{operator_name}}, bu web sitesinden sorumluyum. Posta adresim <a href=\"{{imprint_url}}#anbieter\">yasal bilgiler</a> sayfasında yer alır. Veri koruma konusundaki soruların için <a href=\"mailto:{{email}}\">{{email}}</a> adresine yazabilirsin."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. GitHub Pages üzerinden sunum",
+        "paragraphs": [
+          "Web sitesi GitHub Pages üzerinden sunulur. Siteye erişildiğinde GitHub, IP adresin ve istenen dosyaya ilişkin bilgiler dâhil, teknik olarak gerekli bağlantı verilerini alır. GitHub, GitHub hesabına giriş yapılmasa bile IP adreslerini güvenlik amacıyla kaydettiğini ve sakladığını belirtir. Bkz. <a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">GitHub’ın Pages hizmetinde veri toplanmasına ilişkin bilgileri</a>.",
+          "Barındırmanın amacı bu web sitesinin güvenilir biçimde sunulması ve güvenliğidir. Benim sağladığım teknik sunum, Art. 6 Abs. 1 Buchst. f DSGVO uyarınca bu meşru menfaatlere dayanır. Bağlantı için gerekli veriler iletilmeden web sitesi sunulamaz.",
+          "GitHub, sağlayıcılar olarak GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande ve GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA bilgilerini belirtir. Veriler ABD ve başka ülkelerde de işlenebilir. GitHub, bu tür aktarımlar için koruma mekanizmaları arasında AB standart sözleşme maddelerini de açıklar.",
+          "GitHub, bağlantı verilen bilgilerde Pages bağlantı verileri için sabit bir silme süresi belirtmez. GitHub’a göre saklama süresi, işleme amacına ve yasal yükümlülüklere bağlıdır. Alıcılar, aktarımlar ve saklama hakkında daha fazla bilgi <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">GitHub’ın gizlilik bildiriminde</a> yer alır; orada belirtilen veri koruma iletişim adresi: <a href=\"mailto:privacy@github.com\">privacy@github.com</a>."
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. Web sitesi işlevleri ve gömülü medya",
+        "paragraphs": [
+          "Web sitesinin kodu çerez yerleştirmez, Local Storage veya kendisine ait benzer kalıcı tarayıcı depolama alanları kullanmaz ve analiz ya da reklam izleyicileri içermez. Kayıt olma işlevi ve iletişim formu yoktur.",
+          "Görseller, videolar, altyazılar, stil dosyaları ve JavaScript aynı GitHub Pages barındırması üzerinden yüklenir. Üçüncü taraf video oynatıcıları, haricî yazı tipi hizmetleri ve sosyal medya bileşenleri gömülü değildir. Video meta verilerinin yüklenmesi ve bir videonun oynatılması da barındırma sağlayıcısına istek gönderilmesine yol açar.",
+          "Paylaş düğmesi, ancak tıkladığında sayfa adresini içeren hazırlanmış bir metni panoya kopyalar. Panoda zaten bulunan içerikleri okumaz ve metni bir sosyal hizmete iletmez. Yazdır düğmesi tarayıcının yazdırma işlevini açar.",
+          "Genel başlangıç adresi açıldığında bir betik, tarayıcıda ayarlanmış tercih edilen dillere göre mevcut dil girişlerinden uygun olanını seçer. Açıkça seçilmiş bir dil adresi önceliklidir. Seçim tarayıcında yapılır ve ek bir hizmete gönderilmez. Bunun için çerez yerleştirmiyorum ve dil seçimini Local Storage veya başka bir kalıcı tarayıcı depolama alanında saklamıyorum."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. Diğer sağlayıcılara bağlantılar",
+        "paragraphs": [
+          "İndirmeler, kaynak kodu, geri bildirimler ve basın kaynakları kısmen başka web sitelerine bağlantı verir. Böyle bir hedef sayfayı açtığında, onun sağlayıcısı bağlantı verilerini ve varsa diğer verileri kendi veri koruma açıklamalarına göre işler. Tarayıcıya ve ayarlara bağlı olarak yönlendiren sayfa da iletilebilir.",
+          "Bu bağlantılar söz konusu haricî içerik ve hizmetleri Magnolie sayfasına otomatik olarak gömmez. Bağlantılara ilişkin yasal açıklamalar <a href=\"{{imprint_url}}#externe-links\">yasal bilgiler</a> sayfasında yer alır."
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. E-posta ile iletişim",
+        "paragraphs": [
+          "Bana yazdığında, talebini ele almak için gönderen adresini, mesajını ve mesajında gönüllü olarak paylaştığın bilgileri işlerim. Hukuki dayanak Art. 6 Abs. 1 Buchst. f DSGVO hükmüdür; meşru menfaatim, projeyle ilgili sorulara yanıt vermektir. Sana ulaşabileceğim bir gönderen adresi olmadan yanıt veremem.",
+          "Belirtilen posta kutusu için Gmail kullanılır. Google bu kapsamda mesajları ve bağlantı verilerini işler. Avrupa Ekonomik Alanı’ndaki kullanıcılar için sağlayıcı Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland şirketidir. Avrupa Ekonomik Alanı dışında işleme yapılması mümkündür. Google, bunun için AB-ABD Veri Gizliliği Çerçevesi dâhil yeterlilik mekanizmalarını ve bunların geçerli olmadığı durumlarda standart sözleşme maddelerini belirtir. <a href=\"https://policies.google.com/privacy?hl=de\">Google’ın gizlilik bildirimi</a> ve <a href=\"https://policies.google.com/privacy/frameworks?hl=de\">uluslararası veri aktarımlarına ilişkin bilgiler</a> bunu daha ayrıntılı açıklar ve maddelerin kopyalarını edinmek için bir iletişim noktası belirtir.",
+          "Yazışmalar, talebin ve olası takip sorularının ele alınması için artık gerekli olmadığında silinir. Yasal saklama yükümlülükleri ile hukuki taleplerin ileri sürülmesi, kullanılması veya savunulması için gerekli saklama durumları saklıdır."
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. Hakların",
+        "paragraphs": [
+          "Yasal koşulların sağlanması hâlinde erişim, düzeltme, silme, işlemenin kısıtlanması ve veri taşınabilirliği haklarına sahipsin (Art. 15–20 DSGVO).",
+          "<strong>İtiraz:</strong> Bir veri işleme faaliyeti Art. 6 Abs. 1 Buchst. f DSGVO hükmüne dayanıyorsa, özel durumundan kaynaklanan nedenlerle buna itiraz edebilirsin (Art. 21 DSGVO). Bunun için yukarıda belirtilen iletişim adresine başvur.",
+          "Ayrıca bir veri koruma denetim makamına, özellikle mutat ikametinin, iş yerinin veya iddia edilen ihlalin bulunduğu üye devletteki makama şikâyette bulunabilirsin (Art. 77 DSGVO).",
+          "Bu web sitesi kapsamında hukuki veya benzer derecede önemli sonuçlar doğuran, yalnızca otomatik işlemeye dayalı kararlar almıyorum ve buna yönelik profil oluşturma yapmıyorum."
+        ]
+      }
+    ]
+  }
+}

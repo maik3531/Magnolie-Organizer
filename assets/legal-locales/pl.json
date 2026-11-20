@@ -1,0 +1,150 @@
+{
+  "locale": "pl",
+  "language_name": "Polski",
+  "direction": "ltr",
+  "labels": {
+    "skip": "Przejdź do treści",
+    "main_navigation": "Główna nawigacja",
+    "home": "Strona główna",
+    "press": "Przegląd prasy",
+    "downloads": "Do pobrania",
+    "imprint": "Informacje prawne",
+    "privacy": "Ochrona danych",
+    "contents": "Spis treści tej strony",
+    "more_information": "Więcej informacji",
+    "language": "Język",
+    "german_original": "Niemiecki tekst źródłowy",
+    "email": "E-mail",
+    "country": "Niemcy",
+    "updated": "Stan na 20 listopada 2026 r.",
+    "project": "Kod źródłowy i projekt",
+    "product_information": "Informacje o produkcie",
+    "license": "Licencja",
+    "feedback": "Opinie",
+    "source_note": "Grafiki produktu: oficjalny podręcznik i udostępniony zrzut ekranu programu. Informacje o produkcie sprawdzono 11 listopada 2026 r.",
+    "downloads_note": "Pliki do pobrania i oprogramowanie są dostępne na stronach projektu wskazanych w linkach.",
+    "footer_project": "Mój prywatny projekt open source · Rozwijam w wolnym czasie"
+  },
+  "project_notice": "Magnolie to mój prywatny projekt open source, który rozwijam i utrzymuję w wolnym czasie. Za projektem nie stoi żadna firma.",
+  "imprint": {
+    "title": "Informacje prawne",
+    "description": "Dane usługodawcy i kontakt do witryny Magnolie oraz informacje o linkach zewnętrznych.",
+    "lead": "Usługodawca, kontakt i informacje prawne dotyczące tej witryny.",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "Usługodawca i kontakt",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "Mój prywatny projekt",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "Odpowiedzialność redakcyjna",
+        "paragraphs": [
+          "Osoba odpowiedzialna za treści redakcyjne przeglądu prasy zgodnie z § 18 Abs. 2 MStV:",
+          "{{operator_name}}, <a href=\"#anbieter\">adres jak wyżej</a>."
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "Własne treści",
+        "paragraphs": [
+          "Odpowiadam za własne treści mojej witryny w ramach obowiązujących przepisów. Starannie opracowuję informacje. Mimo to mogą pojawić się błędy lub dane, które z czasem stały się nieaktualne.",
+          "Jeśli zauważysz błędy lub możliwe naruszenia prawa, zgłoś odpowiednią stronę i konkretne okoliczności na adres <a href=\"mailto:{{email}}\">{{email}}</a>. Sprawdzam takie zgłoszenia i w razie potrzeby poprawiam lub usuwam treści. Ustawowe prawa i obowiązki pozostają nienaruszone."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "Linki zewnętrzne i odpowiedzialność",
+        "paragraphs": [
+          "Moja witryna zawiera linki do zasobów zewnętrznych, w szczególności artykułów prasowych, katalogów oprogramowania i platform pobierania. Zasoby wskazywane przez linki są prowadzone przez wymienionych na nich usługodawców. Ich treść może zmienić się po zamieszczeniu linku.",
+          "Jeśli zauważysz treści niezgodne z prawem lub błędne linki, zgłoś odpowiedni adres internetowy i konkretne okoliczności na adres <a href=\"mailto:{{email}}\">{{email}}</a>. Sprawdzam takie zgłoszenia i w razie potrzeby usuwam odpowiednie linki.",
+          "Ustawowa odpowiedzialność za własne treści oraz ustawowe obowiązki sprawdzania i usuwania pozostają nienaruszone. Dotyczy to również moich własnych materiałów opublikowanych w innych witrynach."
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "Prawa autorskie i licencje",
+        "paragraphs": [
+          "Udostępniam Magnolie Organizer jako oprogramowanie open source na licencji GPL-3.0-or-later. Do treści oferowanych na otwartej lub odrębnej licencji nadal mają zastosowanie wskazane dla nich warunki licencyjne. Niniejszymi informacjami nie ograniczam wcześniej przyznanych praw do korzystania, powielania, modyfikowania i dalszego rozpowszechniania.",
+          "Jeżeli korzystanie z chronionych treści nie jest dozwolone ustawowo ani objęte istniejącą licencją lub innym zezwoleniem, wymagana jest zgoda odpowiednich uprawnionych. Prawa do artykułów prasowych wskazywanych przez linki i innych cudzych treści pozostają przy odpowiednich uprawnionych.",
+          "Odpowiednie informacje zawierają <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">przegląd licencji projektu</a>, <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">tekst licencji GPL</a> oraz <a href=\"{{source_notices_url}}\">informacje o źródłach i obrazach tej witryny</a>."
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "Ochrona danych",
+        "paragraphs": [
+          "Informacje o hostingu, kontaktowaniu się i Twoich prawach dotyczących ochrony danych znajdziesz w <a href=\"{{privacy_url}}\">polityce ochrony danych</a>."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Ochrona danych",
+    "description": "Informacje o ochronie danych w witrynie Magnolie: GitHub Pages, linki zewnętrzne, kontakt i Twoje prawa.",
+    "lead": "Te informacje dotyczą odwiedzania witryny Magnolie. Lokalne przechowywanie danych w zainstalowanej aplikacji Magnolie jest odrębną kwestią.",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. Administrator danych",
+        "paragraphs": [
+          "Ja, {{operator_name}}, odpowiadam za tę witrynę. Mój adres pocztowy znajduje się w <a href=\"{{imprint_url}}#anbieter\">informacjach prawnych</a>. W sprawach ochrony danych możesz napisać na adres <a href=\"mailto:{{email}}\">{{email}}</a>."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. Udostępnianie przez GitHub Pages",
+        "paragraphs": [
+          "Witryna jest udostępniana przez GitHub Pages. Podczas jej pobierania GitHub otrzymuje technicznie niezbędne dane połączenia, w tym Twój adres IP i informacje o żądanym pliku. GitHub potwierdza, że rejestruje i przechowuje adresy IP w celach bezpieczeństwa, również bez logowania do GitHub. Zobacz <a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">informacje GitHub o zbieraniu danych w Pages</a>.",
+          "Hosting służy niezawodnemu udostępnianiu i bezpieczeństwu tej witryny. Na tych prawnie uzasadnionych interesach opiera się zainicjowane przeze mnie techniczne udostępnianie zgodnie z Art. 6 Abs. 1 Buchst. f DSGVO. Bez przekazania danych niezbędnych do połączenia nie można udostępnić witryny.",
+          "GitHub wskazuje jako usługodawców GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande, oraz GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA. Dane mogą być przetwarzane także w USA i innych krajach. W odniesieniu do odpowiednich transferów GitHub opisuje między innymi standardowe klauzule umowne UE jako mechanizm zabezpieczający.",
+          "GitHub nie podaje w podlinkowanych informacjach stałego terminu usuwania danych połączeń Pages. Według GitHub przechowywanie zależy od celu przetwarzania i obowiązków prawnych. Dalsze informacje o odbiorcach, przekazywaniu i przechowywaniu znajdują się w <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">polityce prywatności GitHub</a>; kontakt w sprawach ochrony danych: <a href=\"mailto:privacy@github.com\">privacy@github.com</a>."
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. Funkcje witryny i osadzone media",
+        "paragraphs": [
+          "Kod witryny nie ustawia plików cookie, nie korzysta z Local Storage ani podobnych własnych trwałych magazynów danych przeglądarki i nie zawiera narzędzi śledzenia do celów analitycznych lub reklamowych. Nie ma rejestracji ani formularza kontaktowego.",
+          "Obrazy, filmy, napisy, arkusze stylów i JavaScript są ładowane z tego samego hostingu GitHub Pages. Nie są osadzone zewnętrzne odtwarzacze wideo, usługi czcionek ani widżety mediów społecznościowych. Ładowanie metadanych filmu i odtwarzanie filmu również powodują żądania do usługodawcy hostingowego.",
+          "Przycisk udostępniania kopiuje przygotowany tekst z adresem strony do schowka dopiero po Twoim kliknięciu. Nie odczytuje istniejącej zawartości schowka i nie przesyła tekstu do serwisu społecznościowego. Przycisk drukowania otwiera funkcję drukowania Twojej przeglądarki.",
+          "Po otwarciu ogólnego adresu startowego skrypt wybiera odpowiednią dostępną wersję językową na podstawie preferowanych języków ustawionych w przeglądarce. Wyraźnie wybrany adres wersji językowej ma pierwszeństwo. Wybór odbywa się w Twojej przeglądarce i nie jest wysyłany do dodatkowej usługi. Nie ustawiam w tym celu plików cookie i nie zapisuję wyboru języka w Local Storage ani innym trwałym magazynie danych przeglądarki."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. Linki do innych usługodawców",
+        "paragraphs": [
+          "Linki do plików do pobrania, kodu źródłowego, opinii i źródeł prasowych prowadzą częściowo do innych witryn. Gdy otwierasz taką stronę docelową, jej usługodawca przetwarza dane połączenia i ewentualnie inne dane zgodnie z własnymi informacjami o ochronie danych. W zależności od przeglądarki i ustawień może zostać przekazana również strona, z której nastąpiło przejście.",
+          "Linki te nie osadzają automatycznie cudzych zasobów na stronie Magnolie. Informacje prawne dotyczące odnośników znajdują się w <a href=\"{{imprint_url}}#externe-links\">informacjach prawnych</a>."
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. Kontakt przez e-mail",
+        "paragraphs": [
+          "Gdy do mnie piszesz, przetwarzam Twój adres nadawcy, wiadomość i dobrowolnie przekazane w niej informacje, aby rozpatrzyć Twoją sprawę. Podstawą prawną jest Art. 6 Abs. 1 Buchst. f DSGVO; moim prawnie uzasadnionym interesem jest odpowiadanie na zapytania dotyczące projektu. Bez działającego adresu nadawcy nie mogę odpowiedzieć.",
+          "Do obsługi wskazanej skrzynki pocztowej używany jest Gmail. Google przetwarza przy tym wiadomości i dane połączenia. Usługodawcą dla użytkowników w Europejskim Obszarze Gospodarczym jest Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Przetwarzanie poza Europejskim Obszarem Gospodarczym jest możliwe. Google wskazuje w tym celu mechanizmy zapewnienia odpowiedniego stopnia ochrony, w tym ramy ochrony danych UE–USA, a gdy nie mają one zastosowania — standardowe klauzule umowne. <a href=\"https://policies.google.com/privacy?hl=de\">Polityka prywatności Google</a> i <a href=\"https://policies.google.com/privacy/frameworks?hl=de\">informacje o międzynarodowym przekazywaniu danych</a> wyjaśniają to szczegółowo i podają kontakt umożliwiający uzyskanie kopii klauzul.",
+          "Korespondencja jest usuwana, gdy nie jest już potrzebna do rozpatrzenia sprawy i ewentualnych dalszych pytań. Zachowane pozostają ustawowe obowiązki przechowywania oraz niezbędne przechowywanie w celu ustalenia, dochodzenia lub obrony roszczeń prawnych."
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. Twoje prawa",
+        "paragraphs": [
+          "Na warunkach przewidzianych prawem przysługują Ci prawa dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania i przenoszenia danych (Art. 15–20 DSGVO).",
+          "<strong>Sprzeciw:</strong> Jeżeli przetwarzanie opiera się na Art. 6 Abs. 1 Buchst. f DSGVO, możesz wnieść wobec niego sprzeciw z przyczyn związanych z Twoją szczególną sytuacją (Art. 21 DSGVO). W tym celu skorzystaj z podanych wyżej danych kontaktowych.",
+          "Możesz również złożyć skargę do organu nadzorczego ds. ochrony danych, w szczególności w państwie członkowskim swojego zwykłego pobytu, miejsca pracy lub domniemanego naruszenia (Art. 77 DSGVO).",
+          "W ramach tej witryny nie podejmuję decyzji opartych wyłącznie na zautomatyzowanym przetwarzaniu, które wywołują skutki prawne lub w podobny sposób istotnie wpływają na osobę, ani nie prowadzę odpowiedniego profilowania."
+        ]
+      }
+    ]
+  }
+}

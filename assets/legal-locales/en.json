@@ -1,0 +1,150 @@
+{
+  "locale": "en",
+  "language_name": "English",
+  "direction": "ltr",
+  "labels": {
+    "skip": "Skip to content",
+    "main_navigation": "Main navigation",
+    "home": "Home",
+    "press": "Press review",
+    "downloads": "Downloads",
+    "imprint": "Legal notice",
+    "privacy": "Privacy",
+    "contents": "On this page",
+    "more_information": "Further information",
+    "language": "Language",
+    "german_original": "Original German version",
+    "email": "Email",
+    "country": "Germany",
+    "updated": "Last updated: 20 November 2026",
+    "project": "Source code and project",
+    "product_information": "Product information",
+    "license": "License",
+    "feedback": "Feedback",
+    "source_note": "Product images: official handbook and supplied screenshot of the application. Product information checked on 11 November 2026.",
+    "downloads_note": "Downloads and software are available through the linked project pages.",
+    "footer_project": "My personal open-source project · Developed in my spare time"
+  },
+  "project_notice": "Magnolie is my personal open-source project, which I develop and maintain in my spare time. There is no company behind the project.",
+  "imprint": {
+    "title": "Legal notice",
+    "description": "Provider and contact details for the Magnolie website, and information about external links.",
+    "lead": "Provider, contact details and legal information for this website.",
+    "sections": [
+      {
+        "id": "anbieter",
+        "title": "Provider and contact details",
+        "kind": "provider"
+      },
+      {
+        "id": "projekt",
+        "title": "My personal project",
+        "paragraphs": [
+          "{{project_notice}}"
+        ]
+      },
+      {
+        "id": "redaktion",
+        "title": "Editorial responsibility",
+        "paragraphs": [
+          "Responsible for the editorial content of the press review under § 18 Abs. 2 MStV:",
+          "{{operator_name}}, <a href=\"#anbieter\">address as above</a>."
+        ]
+      },
+      {
+        "id": "eigene-inhalte",
+        "title": "My own content",
+        "paragraphs": [
+          "I am responsible for my own website content within the scope of applicable law. I compile the information carefully. Nevertheless, errors may occur or information may become outdated.",
+          "If you notice errors or possible infringements of the law, please report the affected page and the specific circumstances to <a href=\"mailto:{{email}}\">{{email}}</a>. I review such reports and correct or remove content where necessary. Statutory rights and obligations remain unaffected."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "External links and liability",
+        "paragraphs": [
+          "My website contains links to external offerings, in particular press articles, software directories and download platforms. The linked offerings are operated by the providers named on those sites. Their content may change after the link is added.",
+          "If you notice unlawful content or broken links, please report the affected web address and the specific circumstances to <a href=\"mailto:{{email}}\">{{email}}</a>. I review such reports and remove affected links where necessary.",
+          "Legal responsibility for my own content and statutory duties to review and remove content remain unaffected. This also applies to my own contributions published on other websites."
+        ]
+      },
+      {
+        "id": "urheberrecht",
+        "title": "Copyright and licenses",
+        "paragraphs": [
+          "I provide Magnolie Organizer as open-source software under GPL-3.0-or-later. Content offered under an open or separate license remains subject to the respective stated license terms. These notices do not restrict any rights already granted to use, reproduce, modify and redistribute content.",
+          "Where the use of protected content is neither permitted by law nor covered by an existing license or other permission, the consent of the respective rights holders is required. The rights to linked press articles and other third-party content remain with the respective rights holders.",
+          "The <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSING.md\">project's licensing overview</a>, the <a href=\"https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE\">GPL license text</a> and the <a href=\"{{source_notices_url}}\">source and image credits for this website</a> provide the relevant details."
+        ]
+      },
+      {
+        "id": "datenschutz",
+        "title": "Privacy",
+        "paragraphs": [
+          "You can find information about hosting, contacting me and your data protection rights in the <a href=\"{{privacy_url}}\">privacy notice</a>."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Privacy",
+    "description": "Privacy information for the Magnolie website: GitHub Pages, external links, contact and your rights.",
+    "lead": "These notices concern visits to the Magnolie website. Local data storage in the installed Magnolie application is separate from this.",
+    "sections": [
+      {
+        "id": "verantwortlich",
+        "title": "1. Controller",
+        "paragraphs": [
+          "I, {{operator_name}}, am responsible for this website. My postal address is provided in the <a href=\"{{imprint_url}}#anbieter\">legal notice</a>. For data protection questions, you can contact <a href=\"mailto:{{email}}\">{{email}}</a>."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "2. Hosting through GitHub Pages",
+        "paragraphs": [
+          "The website is served through GitHub Pages. When you access it, GitHub receives technically necessary connection data, including your IP address and information about the requested file. GitHub confirms that it logs and stores IP addresses for security purposes, even if you are not signed in to GitHub. See <a href=\"https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages#data-collection\">GitHub's information on data collection by Pages</a>.",
+          "Hosting serves the reliable provision and security of this website. These legitimate interests form the basis for the technical provision I arrange under Art. 6 Abs. 1 Buchst. f DSGVO. The website cannot be served without the transmission of the data necessary for the connection.",
+          "GitHub identifies its providers as GitHub B.V., Prins Bernhardplein 200, 1097 JB Amsterdam, Niederlande, and GitHub, Inc., 88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA. Data may also be processed in the USA and other countries. For such transfers, GitHub describes EU standard contractual clauses, among other mechanisms, as a safeguard.",
+          "GitHub does not specify a fixed deletion period for Pages connection data in the linked information. According to GitHub, retention depends on the purpose of processing and legal obligations. Further details about recipients, transfers and retention are provided in <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\">GitHub's privacy statement</a>; its privacy contact is <a href=\"mailto:privacy@github.com\">privacy@github.com</a>."
+        ]
+      },
+      {
+        "id": "technik",
+        "title": "3. Website features and embedded media",
+        "paragraphs": [
+          "The website code does not set cookies, use Local Storage or comparable persistent browser storage of its own, or contain analytics or advertising trackers. There is no registration and no contact form.",
+          "Images, videos, subtitles, stylesheets and JavaScript are loaded through the same GitHub Pages hosting. No third-party video players, external font services or social media widgets are embedded. Loading video metadata and playing a video also generate requests to the hosting provider.",
+          "The share button copies a prepared text containing the page address to the clipboard only when you click it. It does not read existing clipboard content or transmit the text to a social service. The print button opens your browser's print function.",
+          "When you visit the general home address, a script uses the preferred languages configured in your browser to select a suitable available language entry page. An explicitly selected language address takes precedence. The selection takes place in your browser and is not sent to an additional service. I do not set cookies for this purpose or save the language selection in Local Storage or any other persistent browser storage."
+        ]
+      },
+      {
+        "id": "externe-links",
+        "title": "4. Links to other providers",
+        "paragraphs": [
+          "Some downloads, source code, feedback channels and press sources are linked on other websites. If you visit one of these destination pages, its provider processes connection data and, where applicable, other data under its own privacy notices. Depending on your browser and settings, the referring page may also be transmitted.",
+          "The links do not automatically embed these external offerings in the Magnolie page. Legal information about the links is provided in the <a href=\"{{imprint_url}}#externe-links\">legal notice</a>."
+        ]
+      },
+      {
+        "id": "email",
+        "title": "5. Contact by email",
+        "paragraphs": [
+          "If you write to me, I process your sender address, your message and any information you voluntarily provide in it to deal with your enquiry. The legal basis is Art. 6 Abs. 1 Buchst. f DSGVO; my legitimate interest is responding to enquiries about the project. I cannot reply without a sender address at which you can be reached.",
+          "The stated mailbox uses Gmail. Google processes messages and connection data in this context. The provider for users in the European Economic Area is Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Processing outside the European Economic Area is possible. Google refers to adequacy mechanisms, including the EU-US Data Privacy Framework, and, where these do not apply, standard contractual clauses. <a href=\"https://policies.google.com/privacy?hl=de\">Google's privacy policy</a> and its <a href=\"https://policies.google.com/privacy/frameworks?hl=de\">information on international data transfers</a> explain this in more detail and provide a contact for copies of the clauses.",
+          "Correspondence is deleted once it is no longer necessary to deal with the enquiry and any follow-up questions. This does not affect statutory retention obligations or retention necessary to establish, exercise or defend legal claims."
+        ]
+      },
+      {
+        "id": "rechte",
+        "title": "6. Your rights",
+        "paragraphs": [
+          "Subject to the statutory conditions, you have rights of access, rectification, erasure, restriction of processing and data portability (Art. 15–20 DSGVO).",
+          "<strong>Right to object:</strong> Where processing is based on Art. 6 Abs. 1 Buchst. f DSGVO, you may object on grounds relating to your particular situation (Art. 21 DSGVO). Please use the contact details above for this purpose.",
+          "You may also lodge a complaint with a data protection supervisory authority, in particular in the member state of your habitual residence, place of work or the alleged infringement (Art. 77 DSGVO).",
+          "In connection with this website, I do not make decisions based solely on automated processing that have legal or similarly significant effects, nor do I carry out corresponding profiling."
+        ]
+      }
+    ]
+  }
+}
