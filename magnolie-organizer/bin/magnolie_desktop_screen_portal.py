@@ -5,6 +5,7 @@ This never starts a portal, requests consent, creates an output or grants input.
 """
 
 from dataclasses import dataclass
+from typing import Optional
 
 from gi.repository import Gio, GLib
 
@@ -21,7 +22,7 @@ KEYBOARD, POINTER, TOUCHSCREEN = 1, 2, 4
 
 @dataclass(frozen=True)
 class DesktopScreenProvider:
-    owner: str | None = None
+    owner: Optional[str] = None
     mirror_sources: int = 0
     extended_output: bool = False
     input_devices: int = 0

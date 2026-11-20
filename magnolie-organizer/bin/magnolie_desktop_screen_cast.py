@@ -9,6 +9,7 @@ import os
 from secrets import token_hex
 from threading import Event
 from time import monotonic
+from typing import Optional
 
 from gi.repository import Gio, GLib
 
@@ -34,7 +35,7 @@ def _get(fields, key, signature):
 class ScreenCastTarget:
     mode: str
     node: int
-    serial: int | None
+    serial: Optional[int]
 
 
 class ScreenCastRemote:
