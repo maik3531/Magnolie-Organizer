@@ -1,6 +1,7 @@
 """Dedicated Linux daemon-to-GTK display lane. No JSON or persistent media."""
 
 import math
+import secrets
 import select
 import socket
 import struct
@@ -11,6 +12,10 @@ import time
 _CREDENTIALS = struct.Struct('3i')  # Linux struct ucred, native order.
 _HEADER = struct.Struct('!I')
 _MAX_JPEG = 1_048_576
+_OFFER = struct.Struct('!8s16sHH')
+_READY = struct.Struct('!8s16s')
+_OFFER_MAGIC = b'MGSVL001'
+_READY_MAGIC = b'MGSVACK1'
 
 
 def local_peer(sock):
@@ -22,6 +27,119 @@ def local_peer(sock):
     if pid <= 0 or uid < 0:
         raise PermissionError('screen_local_peer_unavailable')
     return pid, uid
+
+
+def _view_size(width, height):
+    if (type(width) is not int or type(height) is not int or not 2 <= width <= 1920 or
+            not 2 <= height <= 1920 or width * height > 1920 * 1080):
+        raise ValueError('screen_local_view_size_invalid')
+
+
+class PhoneScreenLocalAttach:
+    """One bounded setup conversation on the exact admitted local socket.
+
+    Run these blocking operations in an owner worker, not GTK's main loop.
+    `require_original` must already enforce one original native user choice,
+    plus the peer and desktop/daemon lifetime. Echo proves receipt only, not
+    user consent. Both endpoints receive the *same* already fixed deadline.
+    """
+
+    def __init__(self, sock, *, expected_peer, require_original, deadline):
+        self._sock = sock
+        self._peer = expected_peer
+        self._guard = require_original
+        self._deadline = deadline
+        self._used = False
+        self._phase_lock = threading.Lock()
+
+    def _check(self):
+        self._guard()
+        remaining = self._deadline - time.monotonic()
+        if not 0 < remaining <= 60:
+            raise TimeoutError('screen_local_attach_deadline')
+        return remaining
+
+    def _claim(self):
+        with self._phase_lock:
+            if self._used:
+                raise PermissionError('screen_local_attach_already_used')
+            self._used = True
+
+    def _prepare(self):
+        self._check()
+        if local_peer(self._sock) != self._peer:
+            raise PermissionError('screen_local_original_peer_required')
+        self._sock.setblocking(False)
+
+    def _transfer(self, data, *, writing):
+        poll = select.poll()
+        poll.register(self._sock, select.POLLOUT if writing else select.POLLIN)
+        operation = self._sock.send if writing else self._sock.recv_into
+        remaining = memoryview(data)
+        while remaining:
+            timeout = min(50, math.ceil(1000 * self._check()))
+            try:
+                count = operation(remaining)
+            except BlockingIOError:
+                poll.poll(timeout)
+                continue
+            if not count:
+                raise EOFError('screen_local_attach_disconnected')
+            remaining = remaining[count:]
+        self._check()
+
+    def daemon_offer(self, width, height):
+        """Return the write lane only after the original GUI attached a view."""
+        self._claim()
+        try:
+            _view_size(width, height)
+            self._prepare()
+            token = secrets.token_bytes(16)
+            self._transfer(_OFFER.pack(_OFFER_MAGIC, token, width, height), writing=True)
+            ready = bytearray(_READY.size)
+            self._transfer(ready, writing=False)
+            if _READY.unpack(ready) != (_READY_MAGIC, token):
+                raise PermissionError('screen_local_original_view_not_confirmed')
+            lane = PhoneScreenLocalLane(self._sock, expected_peer=self._peer, require_original=self._guard, writing=True)
+            lane.require_open()
+            return lane
+        except BaseException:
+            self.close()
+            raise
+
+    def gui_accept(self, attach):
+        """`attach` must hand the exact read lane to GTK and return only after
+        it is attached; it must never wait for a first frame. The GTK reader
+        gets only after-setup bytes. The write of READY uses this same socket.
+        """
+        self._claim()
+        lane = None
+        try:
+            self._prepare()
+            offer = bytearray(_OFFER.size)
+            self._transfer(offer, writing=False)
+            magic, token, width, height = _OFFER.unpack(offer)
+            if magic != _OFFER_MAGIC:
+                raise ValueError('screen_local_attach_offer_invalid')
+            _view_size(width, height)
+            lane = PhoneScreenLocalLane(self._sock, expected_peer=self._peer, require_original=self._guard, writing=False)
+            view = attach(lane, width, height, self._deadline)
+            lane.require_open()
+            self._transfer(_READY.pack(_READY_MAGIC, token), writing=True)
+            return view
+        except BaseException:
+            if lane is not None:
+                lane.close()
+            else:
+                self.close()
+            raise
+
+    def close(self):
+        try:
+            self._sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+        self._sock.close()
 
 
 class PhoneScreenLocalLane:

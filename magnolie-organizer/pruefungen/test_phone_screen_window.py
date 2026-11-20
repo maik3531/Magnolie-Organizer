@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenSessionLock, PhoneScreenWindow
 from magnolie_phone_screen_transport import PhoneScreenReceiveRun
 from magnolie_phone_screen_control import PhoneScreenDesktopRun, REQUEST
-from magnolie_phone_screen_local import PhoneScreenLocalLane
+from magnolie_phone_screen_local import PhoneScreenLocalAttach
 from magnolie_telefon import PROTOCOL, PhoneService, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
 
 
@@ -470,9 +470,40 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                     if scenario.startswith('local'):
                         a, b = socket.socketpair()
                         identity = os.getpid(), os.getuid()
-                        relay = PhoneScreenLocalLane(a, expected_peer=identity, require_original=lambda: None, writing=True)
-                        lane = PhoneScreenLocalLane(b, expected_peer=identity, require_original=lambda: None, writing=False)
-                        local = app._phone_screen_begin_local(lane, 17, 16, require_original=lambda: None, deadline=monotonic() + 5)
+                        deadline = monotonic() + 5
+                        daemon_attach = PhoneScreenLocalAttach(a, expected_peer=identity, require_original=lambda: None, deadline=deadline)
+                        gui_attach = PhoneScreenLocalAttach(b, expected_peer=identity, require_original=lambda: None, deadline=deadline)
+                        daemon_results, gui_results = [], []
+
+                        def open_gtk(lane, width, height, expiry):
+                            done = threading.Event()
+                            result = []
+
+                            def show():
+                                try:
+                                    result.append(app._phone_screen_begin_local(lane, width, height,
+                                                                                require_original=lambda: None, deadline=expiry))
+                                finally:
+                                    done.set()
+                                return False
+
+                            GLib.idle_add(show)
+                            assert done.wait(2) and result
+                            return result[0]
+
+                        daemon_worker = Thread(target=lambda: daemon_results.append(daemon_attach.daemon_offer(17, 16)))
+                        gui_worker = Thread(target=lambda: gui_results.append(gui_attach.gui_accept(open_gtk)))
+                        daemon_worker.start()
+                        gui_worker.start()
+                        try:
+                            wait_for(lambda: daemon_results and gui_results)
+                        finally:
+                            if not daemon_results or not gui_results:
+                                daemon_attach.close()
+                                gui_attach.close()
+                            daemon_worker.join(2)
+                            gui_worker.join(2)
+                        relay, local = daemon_results[0], gui_results[0]
                         view = app._phone_screen_window
                         run = PhoneScreenDesktopRun(parent, probe, 17, 16, 160, require_original=lambda: None,
                                                    require_view=lambda: None, local_lane=relay)

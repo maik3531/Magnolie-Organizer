@@ -120,3 +120,12 @@ the GUI decodes only after bounding the agreed image dimensions. No buffer
 queue or retry spans the two owners. The pre-record wait on the GUI is bound
 by the original setup deadline, not by a new grant. Neither endpoint is
 registered as a public proxy operation.
+
+Before either side transfers the local stream to an owner, the daemon
+offers `MGSVL001`, a fresh 16-byte nonce, and two big-endian uint16
+dimensions. The original GUI replies with `MGSVACK1` and the nonce only
+after its native view is attached. Both sides validate kernel peer PID/UID
+and keep the separately admitted native lease and original setup deadline
+throughout. The reply does not authorize Android capture or phone SEND.
+Once setup is complete the socket carries only the one-way record stream
+described above. Failure retires this socket, not the general daemon proxy.

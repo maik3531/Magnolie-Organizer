@@ -4,12 +4,13 @@ import struct
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
-from magnolie_phone_screen_local import PhoneScreenLocalLane, local_peer
+from magnolie_phone_screen_local import PhoneScreenLocalAttach, PhoneScreenLocalLane, local_peer
 
 
 def lane(sock, writing, guard=lambda: None):
@@ -103,3 +104,92 @@ def test_reverse_input_retires_writer_even_with_valid_peer():
         with pytest.raises(OSError, match='disconnected_or_sent_data'):
             writer.write(b'', require_current=lambda: None)
         assert a.fileno() == -1
+
+
+def test_attachment_waits_for_exact_native_gui_and_carries_no_secret_in_media():
+    a, b = socket.socketpair()
+    with a, b:
+        deadline = time.monotonic() + 3
+        peer = os.getpid(), os.getuid()
+        daemon = PhoneScreenLocalAttach(a, expected_peer=peer, require_original=lambda: None, deadline=deadline)
+        gui = PhoneScreenLocalAttach(b, expected_peer=peer, require_original=lambda: None, deadline=deadline)
+        received, permit, ended = threading.Event(), threading.Event(), threading.Event()
+        outcomes = []
+
+        def attach(read, width, height, expiry):
+            assert (width, height, expiry) == (720, 1280, deadline)
+            received.set()
+            assert permit.wait(2)
+            return read
+
+        def offer():
+            try:
+                writer = daemon.daemon_offer(720, 1280)
+                writer.write(b'fixture', require_current=lambda: None)
+            except Exception as error:
+                outcomes.append(error)
+            finally:
+                ended.set()
+
+        def accept():
+            try:
+                outcomes.append(gui.gui_accept(attach).read())
+            except Exception as error:
+                outcomes.append(error)
+
+        server, client = threading.Thread(target=offer), threading.Thread(target=accept)
+        server.start()
+        client.start()
+        try:
+            assert received.wait(1) and not ended.is_set()
+            permit.set()
+            server.join(2)
+            client.join(2)
+            assert not server.is_alive() and not client.is_alive() and outcomes == [b'fixture']
+            with pytest.raises(PermissionError, match='already_used'):
+                daemon.daemon_offer(720, 1280)
+            with pytest.raises(PermissionError, match='already_used'):
+                gui.gui_accept(attach)
+        finally:
+            permit.set()
+            daemon.close()
+            gui.close()
+            server.join(2)
+            client.join(2)
+
+
+@pytest.mark.parametrize('event', ['unrelated_reply', 'expired', 'withdrawn'])
+def test_attachment_cannot_release_media_lane_without_original_guard(event):
+    a, b = socket.socketpair()
+    with a, b:
+        b.settimeout(1)
+        withdrawn = threading.Event()
+        outcome = []
+
+        def guard():
+            if withdrawn.is_set():
+                raise PermissionError('withdrawn')
+
+        def work():
+            attach = PhoneScreenLocalAttach(a, expected_peer=(os.getpid(), os.getuid()),
+                require_original=guard, deadline=time.monotonic() + (.2 if event == 'expired' else 2))
+            try:
+                outcome.append(attach.daemon_offer(720, 1280))
+            except Exception as error:
+                outcome.append(error)
+
+        worker = threading.Thread(target=work)
+        worker.start()
+        try:
+            assert b.recv(28, socket.MSG_WAITALL).startswith(b'MGSVL001')
+            if event == 'unrelated_reply':
+                b.sendall(b'MGSVACK1' + bytes(16))
+            elif event == 'withdrawn':
+                withdrawn.set()
+            worker.join(2)
+            assert not worker.is_alive()
+            assert isinstance(outcome[0], TimeoutError if event == 'expired' else PermissionError)
+            assert b.recv(1) == b''
+        finally:
+            b.close()
+            worker.join(2)
