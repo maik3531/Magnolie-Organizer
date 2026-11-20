@@ -221,7 +221,12 @@ The local Linux reader claims one duplicate of that original descriptor for
 the exact selected target. This reader requires a PipeWire serial even if an
 older portal returned only a node ID; it does not fall back to a node ID or a
 default connection. It exposes only the newest complete frame at a bounded
-size and rate. An incomplete frame does not establish readiness. Readiness is
+size and rate. The isolated draft reader requires the GStreamer GI backend;
+it has no unguarded capture fallback. It pins negotiated source width, height
+and pixel aspect ratio before scaling, and retires on a change rather than
+concealing it in the fixed viewport. This is not a check for compositor
+topology or rotation changes that are not reflected in those fields.
+An incomplete frame does not establish readiness. Readiness is
 local only, not permission to send, proof of an extended output, or a claim
 that the first pixels represent nonblank desktop content. Portal revocation
 makes the frame slot unavailable immediately; reader drain additionally

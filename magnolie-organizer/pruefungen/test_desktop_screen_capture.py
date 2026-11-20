@@ -142,6 +142,43 @@ time.sleep(10)
             with self.assertRaises(PermissionError):
                 capture.DesktopScreenCapture.start(remote, target, 16, 16)
 
+    def test_native_geometry_change_cannot_reach_the_fixed_viewport(self):
+        import gi
+        gi.require_version('Gst', '1.0')
+        from gi.repository import Gst
+
+        Gst.init(None)
+        for width, height, ratio in ((96, 32, '1/1'), (64, 48, '1/1'), (64, 32, '2/1')):
+            with self.subTest(width=width, height=height, ratio=ratio):
+                pipeline = Gst.parse_launch('appsrc name=source format=time ! identity name=source_geometry ! '
+                    'videoscale add-borders=true ! video/x-raw,width=16,height=16,pixel-aspect-ratio=1/1 ! '
+                    'appsink name=output sync=false wait-on-eos=false')
+                source, sink = [pipeline.get_by_name(name) for name in ('source', 'output')]
+                pad = pipeline.get_by_name('source_geometry').get_static_pad('src')
+                retired = capture._pin_source_geometry(Gst, pad)
+
+                def push(w, h, par):
+                    caps = f'video/x-raw,format=RGBx,width={w},height={h},framerate=30/1,pixel-aspect-ratio={par}'
+                    source.set_property('caps', Gst.Caps.from_string(caps))
+                    frame = Gst.Buffer.new_allocate(None, w * h * 4, None)
+                    frame.fill(0, bytes(w * h * 4))
+                    self.assertEqual(source.emit('push-buffer', frame), Gst.FlowReturn.OK)
+
+                try:
+                    self.assertNotEqual(pipeline.set_state(Gst.State.PLAYING), Gst.StateChangeReturn.FAILURE)
+                    for _ in range(2):
+                        push(64, 32, '1/1')
+                        sample = sink.emit('try-pull-sample', Gst.SECOND)
+                        self.assertIsNotNone(sample)
+                        self.assertEqual(capture._source_geometry(sample.get_caps())[:2], (16, 16))
+                        self.assertFalse(retired.is_set())
+                    push(width, height, ratio)
+                    self.assertTrue(retired.wait(1))
+                    push(64, 32, '1/1')  # Old geometry does not reanimate it.
+                    self.assertIsNone(sink.emit('try-pull-sample', 80 * Gst.MSECOND))
+                finally:
+                    pipeline.set_state(Gst.State.NULL)
+
 
 if __name__ == '__main__':
     unittest.main()
