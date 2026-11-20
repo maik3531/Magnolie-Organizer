@@ -145,6 +145,12 @@ not select a new probe on expiry, reconnect, or failure. The ordinary phone
 report can expose only the currently eligible paired device IDs, never the
 capability witness, nonce, socket, approval or phone data secret.
 
+On daemon shutdown, revoke admission before interrupting the exact setup
+socket and stopping the resulting owner. Report a completed drain only after
+both the provisional worker and (if it was created) the original view owner
+have actually drained. The screen shutdown path does not close the original
+phone control connection; the daemon's normal phone lifecycle owns that.
+
 This is a same-UID application boundary, not a defence against arbitrary
 code running as the desktop user. Neither the PID nor a nonce is proof of
 human interaction outside the cooperating native GUI. The phone must still

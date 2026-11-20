@@ -1289,6 +1289,10 @@ class IPCServer:
         self.lifecycle = "ready"
         self._handlers = threading.BoundedSemaphore(MAX_IPC_HANDLERS)
         self._screen_setup = threading.BoundedSemaphore(1)
+        self._screen_lock = threading.Lock()
+        self._screen_worker = None
+        self._screen_owner = None
+        self.screen_view_drained = True
         self._mutation_lock = threading.RLock()
         self.settings_revision = 0
         self.phone_provider = None
@@ -1816,7 +1820,9 @@ class IPCServer:
 
         def serve(original):
             try:
-                serve_daemon_screen(original, phone, expected_uid=self._owner_uid, require_daemon=current)
+                owner = serve_daemon_screen(original, phone, expected_uid=self._owner_uid, require_daemon=current)
+                with self._screen_lock:
+                    self._screen_owner = owner
                 # The viewer now owns this socket and closes it on drain.
             except (OSError, EOFError, ValueError, RuntimeError):
                 original.close()
@@ -1826,11 +1832,37 @@ class IPCServer:
         original = None
         try:
             original = connection.dup()
-            threading.Thread(target=serve, args=(original,), daemon=True, name='magnolie-screen-native-setup').start()
+            worker = threading.Thread(target=serve, args=(original,), daemon=True, name='magnolie-screen-native-setup')
+            with self._screen_lock:
+                current()
+                if self._screen_owner is not None and not self._screen_owner.is_drained():
+                    raise PermissionError('screen_original_daemon_view_busy')
+                self._screen_worker = worker, original
+                worker.start()
         except (OSError, RuntimeError):
             if original is not None:
                 original.close()
             self._screen_setup.release()
+
+    def _stop_screen_view(self):
+        with self._screen_lock:
+            worker = self._screen_worker
+        deadline = time.monotonic() + 3
+        if worker is not None and worker[0].is_alive():
+            # Wake the original setup read, never the general IPC or phone socket.
+            try:
+                worker[1].shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            if worker[0] is not threading.current_thread():
+                worker[0].join(max(0, deadline - time.monotonic()))
+        with self._screen_lock:
+            owner = self._screen_owner
+        if owner is not None:
+            owner.stop()
+            while not owner.is_drained() and time.monotonic() < deadline:
+                time.sleep(.01)
+        return (worker is None or not worker[0].is_alive()) and (owner is None or owner.is_drained())
 
     def _handle_request(self, connection):
             try:
@@ -2180,6 +2212,7 @@ class IPCServer:
         self.lifecycle = "stopping"
         self.setup_sessions.close()
         self.stopped.set()
+        self.screen_view_drained = self._stop_screen_view()
         if self._phone_actor_projections:
             with self.phone_backend.lock:
                 self._reap_actor_projections()

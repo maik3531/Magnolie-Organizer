@@ -317,7 +317,8 @@ def test_daemon_adapter_requires_live_original_candidate_and_closes_only_view_so
                         worker.join(2)
 
 
-def test_daemon_binary_ingress_separates_confirmation_and_normal_ipc(tmp_path):
+@pytest.mark.parametrize('event', ['window-stop', 'daemon-shutdown-during-confirmation', 'daemon-shutdown-active'])
+def test_daemon_binary_ingress_separates_confirmation_and_normal_ipc(tmp_path, event):
     filename = str(tmp_path / 'runtime' / 'control.sock')
     with socket.socket() as listener:
         listener.bind(('127.0.0.1', 0))
@@ -353,14 +354,30 @@ def test_daemon_binary_ingress_separates_confirmation_and_normal_ipc(tmp_path):
                         assert expiry > time.monotonic()
                         assert channel.send_seq == 1
                         assert ipc_request('ping', path=filename)['running']
+                        if event == 'daemon-shutdown-during-confirmation':
+                            daemon.close()
+                            assert daemon.screen_view_drained
                         return True
 
+                    if event == 'daemon-shutdown-during-confirmation':
+                        with pytest.raises((OSError, EOFError)):
+                            request_daemon_screen(filename, phone_id, require_gui=lambda: None, confirm=confirm,
+                                                  attach=lambda *_: pytest.fail('shutdown admitted a window'))
+                        assert channel.send_seq == 1 and native.fileno() >= 0
+                        return
                     view = request_daemon_screen(filename, phone_id, require_gui=lambda: None, confirm=confirm,
                                                  attach=lambda lane, width, height, expiry: lane)
                     assert receive_frame(peer, 8192)['seq'] == 1
-                    view.close()
+                    if event == 'daemon-shutdown-active':
+                        daemon.close()
+                        assert daemon.screen_view_drained
+                        with pytest.raises(EOFError):
+                            view.read()
+                    else:
+                        view.close()
+                        assert ipc_request('ping', path=filename)['running']
                     assert receive_frame(peer, 8192)['seq'] == 2
-                    assert ipc_request('ping', path=filename)['running'] and native.fileno() >= 0
+                    assert native.fileno() >= 0
                 finally:
                     if view is not None:
                         view.close()
