@@ -103,18 +103,30 @@ APK-Signatur verifiziert den neu gebauten Inhalt. Die Einreichung kann deshalb
 F-Droids Verfahren mit übernommener Entwicklersignatur verwenden. Die
 Wiederholbarkeit auf F-Droids eigener Infrastruktur wird dort nochmals geprüft.
 
-### Referenz für Version 1.0.17
+### Historischer Nachweis für Version 1.0.17
 
-Die damalige offizielle APK enthält noch den automatisch vom Android-
-Gradle-Plugin erzeugten Abhängigkeits-Metadatenblock. Für F-Droid gibt es eine
-[gesonderte signierte Referenz-APK](https://gitlab.com/api/v4/projects/78301901/packages/generic/magnolie-notes-fdroid-reference/1.0.17/Magnolie-Notes-1.0.17.apk).
+Die damalige offizielle APK enthielt noch den automatisch vom Android-
+Gradle-Plugin erzeugten Abhängigkeits-Metadatenblock. Für die damalige
+F-Droid-Einreichung wurde eine gesonderte signierte Referenz-APK bereitgestellt.
 In dieser Kopie wurde ausschließlich dieser zusätzliche Signierblockeintrag
-durch gleich großes Null-Padding ersetzt. Alle ZIP-Einträge sind bytegleich;
-die vorhandene APK-Signatur bleibt gültig. Der F-Droid-APK-Scanner und die
-erneute Signaturübernahme-Gegenprobe sind erfolgreich.
+durch gleich großes Null-Padding ersetzt. Alle ZIP-Einträge waren bytegleich;
+die vorhandene APK-Signatur blieb gültig. Der F-Droid-APK-Scanner und die
+erneute Signaturübernahme-Gegenprobe waren erfolgreich.
 
-SHA-256 der F-Droid-Referenz:
+Historische SHA-256 der F-Droid-Referenz für **1.0.17**:
 `6b94a5e63e27f089f8f2ba0da68c8b1e9a5cad829425ddaac3e0a012b68f3a19`.
+
+Diese Referenz-APK wurde bei der GitLab-Altbestandsbereinigung am
+19. November 2026 entfernt
+([Issue #698](https://github.com/maik3531/Magnolie-Organizer/issues/698)).
+Die Prüfsumme bleibt als historischer Nachweis erhalten; die Datei wird hier
+nicht mehr als verfügbarer Download verlinkt.
+
+Aktuelle Magnolie-Notes-Versionen sind über den
+[offiziellen F-Droid-Katalog](https://f-droid.org/en/packages/io.gitlab.maik3531.magnolienotes/)
+erhältlich. Die für den jeweiligen Bau verwendete Signaturreferenz ist in den
+[F-Droid-Build-Metadaten](https://gitlab.com/fdroid/fdroiddata/-/blob/master/metadata/io.gitlab.maik3531.magnolienotes.yml)
+festgelegt.
 
 Die zu künftigen Notes-Versionen passenden signierten Referenzen werden im
 Paket `magnolie-notes-fdroid-reference` bereitgestellt. Bei neuen Builds ist
