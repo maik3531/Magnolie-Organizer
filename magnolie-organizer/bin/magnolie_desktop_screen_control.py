@@ -1,5 +1,6 @@
 """Unregistered #245 draft controls. No product dispatch, persistence or I/O."""
 
+from dataclasses import dataclass
 import hmac
 from math import isfinite
 import re
@@ -88,6 +89,31 @@ class DesktopScreenDraftChannel:
         return PhoneScreenWlanListener(self._channel, guard)
 
 
+@dataclass(frozen=True)
+class DesktopScreenSetupWindow:
+    """Original request and its one wall-to-monotonic conversion."""
+
+    identity: tuple
+    issued: float
+    deadline: float
+
+    @staticmethod
+    def request_identity(request):
+        return request['request'], request['mode'], request['setup_until_ms']
+
+    @classmethod
+    def receive(cls, request, deadline, *, clock=monotonic, wall_ms=None):
+        body = parse_control(request, 'phone')
+        if body['op'] != 'request' or not isfinite(deadline):
+            raise ValueError('desktop_screen_draft_request_required')
+        issued = clock()
+        now = time_ns() // 1_000_000 if wall_ms is None else wall_ms()
+        budget = body['setup_until_ms'] - now
+        if not isfinite(issued) or not 0 < budget <= MAX_SETUP_MS or issued >= deadline:
+            raise TimeoutError('desktop_screen_draft_setup_window')
+        return cls(cls.request_identity(body), issued, min(deadline, issued + budget / 1000))
+
+
 class DesktopScreenDraftControl:
     """One authenticated request from the selected peer. The caller owns the
     original WLAN identity, trusted UI, data socket and guarded control writer.
@@ -96,19 +122,21 @@ class DesktopScreenDraftControl:
     caller owns a one-slot admission and must not reconstruct it from replay.
     """
 
-    def __init__(self, parent, request, require_original, *, deadline, clock=monotonic, wall_ms=None):
+    def __init__(self, parent, request, require_original, *, deadline, clock=monotonic, wall_ms=None,
+                 setup=None):
         request = parse_control(request, 'phone')
         if parent is None or request['op'] != 'request' or not isfinite(deadline):
             raise ValueError('desktop_screen_draft_request_required')
-        now = time_ns() // 1_000_000 if wall_ms is None else wall_ms()
-        budget = request['setup_until_ms'] - now
-        if not 0 < budget <= MAX_SETUP_MS:
-            raise TimeoutError('desktop_screen_draft_setup_window')
+        if setup is None:
+            setup = DesktopScreenSetupWindow.receive(request, deadline, clock=clock, wall_ms=wall_ms)
+        if (type(setup) is not DesktopScreenSetupWindow or setup.identity != setup.request_identity(request) or
+                not isfinite(setup.issued) or not setup.issued < setup.deadline <= setup.issued + MAX_SETUP_MS / 1000):
+            raise ValueError('desktop_screen_draft_original_setup_required')
         self._parent = parent
         self._guard = require_original
         self._clock = clock
-        self._issued = clock()
-        self._deadline = min(deadline, self._issued + budget / 1000)
+        self._issued = setup.issued
+        self._deadline = min(deadline, setup.deadline)
         self._base = {k: request[k] for k in _COMMON if k != 'op'}
         self._lock = Lock()
         self._phase = 'requested'

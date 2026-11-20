@@ -10,6 +10,7 @@ from test_desktop_screen_dispatch import connected, native, ping, request
 from test_phone_screen_window import GLib, Gtk, PhoneScreenSessionLock, wait_for
 import magnolie_desktop_screen_admission as admission
 import magnolie_desktop_screen_attempt as runs
+import magnolie_desktop_screen_control as control
 from desktop_screen_draft_interop_peer import SyntheticLocalRun
 from magnolie_desktop_screen_attempt import DesktopScreenAttemptCleanup, ScreenRunCleanup
 from magnolie_desktop_screen_dispatch import DesktopScreenDraftDispatch
@@ -87,13 +88,14 @@ def test_confirm_then_native_stop_waits_for_exact_drain(connected, gtk_owner, mo
     arm, _, _, factory, attempt, ended = gtk_owner
     owner = arm(mode)
     frame, dialog = show(owner, client, wire_mode)
-    deadline = owner._pending[1]
+    setup = owner._pending[1]
     factory.assert_not_called()
     dialog.get_widget_for_response(Gtk.ResponseType.ACCEPT).clicked()
     attempt.begin.assert_called_once()
     call = factory.call_args
     assert call.args[:2] == (client.channel, frame['body'])
-    assert call.kwargs['mode'] == mode and call.kwargs['deadline'] == deadline
+    assert call.kwargs['mode'] == mode and call.kwargs['deadline'] == setup.deadline
+    assert call.kwargs['setup'] is setup
     call.args[2]()
     stop = dict(frame, body=dict(frame['body'], op='stop', session='12' * 16))
     client.send(stop)
@@ -160,13 +162,16 @@ def test_exit_with_unconfirmed_portal_or_virtual_output_keeps_slot(connected, gt
     ping(client)
 
 
-def test_local_stop_after_offer_before_phone_approval_is_terminal(connected, gtk_owner, monkeypatch):
+@pytest.mark.parametrize('wall_step', [-60, 0, 60])
+def test_local_stop_after_offer_before_phone_approval_is_terminal(connected, gtk_owner, monkeypatch, wall_step):
     _, _, client = connected
     arm, _, _, _, _, ended = gtk_owner
     monkeypatch.setattr(admission, 'DesktopScreenDraftAttempt', runs.DesktopScreenDraftAttempt)
     monkeypatch.setattr(runs, 'DesktopScreenLocalRun', SyntheticLocalRun)
     owner = arm()
     frame, dialog = show(owner, client)
+    # Simulate a system clock correction only after the original intake.
+    monkeypatch.setattr(control, 'time_ns', lambda: time_ns() + wall_step * 10**9)
     dialog.get_widget_for_response(Gtk.ResponseType.ACCEPT).clicked()
     wait_for(lambda: owner._attempt is not None and owner._attempt._media_ready.is_set())
     offer = client.receive()

@@ -8,7 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'magnolie-organizer/bin'))
-from magnolie_desktop_screen_control import DesktopScreenDraftControl, parse_control
+from magnolie_desktop_screen_control import DesktopScreenDraftControl, DesktopScreenSetupWindow, parse_control
 from magnolie_telefon import SecureChannel, receive_frame
 
 
@@ -189,6 +189,22 @@ class TestDesktopScreenDraftControl(unittest.TestCase):
         with self.assertRaises(TimeoutError):
             run.publish_stop(stop)
         self.assertFalse(run.publish_stop(lambda *_: self.fail('terminal retried')))
+
+    def test_original_setup_cannot_be_borrowed_or_reopen_after_expiry(self):
+        setup = DesktopScreenSetupWindow.receive(REQUEST, 104, clock=lambda: 100,
+            wall_ms=lambda: REQUEST['setup_until_ms'] - 6000)
+
+        def open_at(now, request):
+            return DesktopScreenDraftControl(object(), request, lambda: None, deadline=150, clock=lambda: now,
+                wall_ms=lambda: self.fail('sampled the wall clock again'), setup=setup)
+
+        self.assertEqual(open_at(103, REQUEST).setup_deadline, 104)
+        for mutation in ({'request': 'ff' * 16}, {'mode': 3 - REQUEST['mode']},
+                         {'setup_until_ms': REQUEST['setup_until_ms'] + 1}):
+            with self.assertRaises(ValueError):
+                open_at(103, {**REQUEST, **mutation})
+        with self.assertRaises(PermissionError):
+            open_at(104, REQUEST)
 
 
 if __name__ == '__main__':

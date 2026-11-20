@@ -1,10 +1,10 @@
 """One explicit GTK admission on the original reader. Not a product entry point."""
 
 from threading import Event, Lock, current_thread, main_thread
-from time import monotonic, time_ns
+from time import monotonic
 
 from magnolie_desktop_screen_attempt import DesktopScreenDraftAttempt
-from magnolie_desktop_screen_control import MAX_SETUP_MS
+from magnolie_desktop_screen_control import MAX_SETUP_MS, DesktopScreenSetupWindow
 from magnolie_desktop_screen_portal import MONITOR, WINDOW
 from magnolie_phone_screen_window import GLib, Gtk
 
@@ -65,11 +65,11 @@ class DesktopScreenDraftAdmission:
             if attempt is None:
                 if self._pending is not None or body['op'] != 'request' or body['mode'] != self._wire_mode:
                     return False
-                now = monotonic()
-                budget = body['setup_until_ms'] - time_ns() // 1_000_000
-                if not 0 < budget <= MAX_SETUP_MS or now >= self._deadline:
+                try:
+                    setup = DesktopScreenSetupWindow.receive(body, self._deadline)
+                except TimeoutError:
                     return False
-                self._pending = body, min(self._deadline, now + budget / 1000)
+                self._pending = body, setup
                 return True
         return attempt.receive(original.channel, packet)
 
@@ -80,7 +80,7 @@ class DesktopScreenDraftAdmission:
                 with self._state:
                     pending, attempt = self._pending, self._attempt
                 if attempt is None:
-                    deadline = pending[1] if pending is not None else self._deadline
+                    deadline = pending[1].deadline if pending is not None else self._deadline
                     if monotonic() >= deadline or not self._parent.get_visible():
                         self.close()
                     elif pending is not None and not self._showing:
@@ -128,14 +128,15 @@ class DesktopScreenDraftAdmission:
         try:
             self._require_live(self._original)
             with self._state:
-                request, deadline = self._pending
+                request, setup = self._pending
+            deadline = setup.deadline
             if monotonic() >= deadline or not self._parent.get_visible() or not dialog.get_visible():
                 raise PermissionError('desktop_screen_native_approval_expired')
             self._approval.set()
             attempt = DesktopScreenDraftAttempt(self._original.channel, request, self._require_approved,
                 bus=self._bus, provider=self._provider, mode=self._mode, parent_window=self._parent_handle,
                 width=960, height=540, deadline=deadline, ended=self._attempt_ended,
-                require_terminal_parent=self._original.require_terminal_parent)
+                require_terminal_parent=self._original.require_terminal_parent, setup=setup)
             with self._state:
                 self._attempt = attempt
             attempt.begin()

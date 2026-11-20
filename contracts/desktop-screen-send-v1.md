@@ -72,7 +72,9 @@ bytes as lower-case hex), `mode` (1 or 2), and `setup_until_ms` (positive exact
 JSON integer, at most 2^53−1). The phone chooses the request ID after a local
 action. All later messages echo the request, mode and absolute setup deadline
 without changes. The desktop converts a budget of at most 30 seconds to its
-own monotonic clock once, capped by its existing local deadline. Only an
+own monotonic clock once at original intake, capped by its existing local
+deadline. The native dialog and sender use that same request-bound deadline;
+a later wall-clock correction cannot renew or shorten it. Only an
 already active attempt can continue past setup expiry; no later message can
 extend that initial budget. The default phone action requests 27 seconds,
 leaving headroom for a small positive phone clock offset without relaxing the
