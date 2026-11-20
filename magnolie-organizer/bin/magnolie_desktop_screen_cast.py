@@ -257,7 +257,7 @@ class DesktopScreenCast:
 
     def open_pipewire_remote(self, target, ready):
         """Open once after the approved target, not via a default PipeWire socket."""
-        if self._phase != 'selected' or self._target is not target or self._remote_attempted or not self._current():
+        if self._remote_attempted or not self.selection_current(target):
             raise PermissionError('screen_cast_original_selected_target_required')
         self._remote_attempted = self._remote_pending = True
 
@@ -293,6 +293,9 @@ class DesktopScreenCast:
             self._remote_pending = False
             self.stop()
             raise
+
+    def selection_current(self, target):
+        return self._phase == 'selected' and self._target is target and self._current()
 
     def _owner_changed(self, _bus, sender, _path, _iface, _signal, params, _data):
         if sender == _DBUS and params.get_type_string() == '(sss)':

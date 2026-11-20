@@ -222,3 +222,10 @@ local only, not permission to send, proof of an extended output, or a claim
 that the first pixels represent nonblank desktop content. Portal revocation
 makes the frame slot unavailable immediately; reader drain additionally
 requires that the owned child has exited and its descriptors have closed.
+
+The local session owner joins the portal and reader without promoting either
+to network SEND. It rechecks the exact selection before exposing readiness or
+a frame. Portal retirement stops the reader, and reader exit closes the portal.
+The terminal result reports the two cleanup outcomes separately and is not
+delivered while either side still has work outstanding. Compositor output
+removal remains a separate acceptance check.
