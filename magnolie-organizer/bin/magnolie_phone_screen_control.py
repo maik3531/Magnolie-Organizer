@@ -327,3 +327,7 @@ class PhoneScreenDesktopRun:
         with self._lock:
             return bool(self._stop.is_set() and not self._thread.is_alive() and self.cleanup_error is None and
                         (self._receiver is None or self._receiver.is_drained()))
+
+    @property
+    def retired(self):
+        return self._stop.is_set()

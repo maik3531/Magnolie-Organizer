@@ -21677,6 +21677,54 @@ class Fenster(_FENSTER_BASIS):
         else:
             threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
 
+    def _phone_screen_begin_original(self, parent, probe, width, height, density, *, require_original):
+        """GTK-thread entry after the single explicit native viewing action.
+
+        The native caller still owns the selected probe/parent and routes only
+        its authenticated v26 messages. No bridge or saved flag invokes this.
+        """
+        from magnolie_phone_screen_control import PhoneScreenDesktopRun
+        if getattr(self, "_phone_screen_window", None) is not None:
+            raise PermissionError("phone_screen_view_unavailable")
+        withdrawn = threading.Event()
+        run = None
+
+        def require_view():
+            if withdrawn.is_set() or self._gesperrt or self._wirklich_beenden:
+                raise PermissionError("phone_screen_view_retired")
+
+        def is_current():
+            require_view()
+            require_original()
+            return run is None or not run.retired
+
+        def stop(_view):
+            withdrawn.set()
+            if run is not None:
+                run.stop()
+
+        try:
+            view = self._phone_screen_attach(is_current=is_current, request_stop=stop)
+            run = PhoneScreenDesktopRun(parent, probe, width, height, density, require_original=require_original,
+                                        require_view=require_view, offer_rgb=view.offer_rgb)
+            run.start()
+        except Exception:
+            attached = getattr(self, "_phone_screen_window", None)
+            if run is not None:
+                run.stop()
+            if attached is not None and (run is None or run.is_drained()):
+                self._phone_screen_drained(attached)
+            raise
+
+        def poll_drain():
+            if run.is_drained():
+                self._phone_screen_drained(view)
+                return False
+            return True
+
+        GLib.timeout_add(100, poll_drain)
+        return run
+
     def _phone_screen_attach(self, *, is_current, request_stop):
         """Native view owner only; request_stop(view) signals the exact owner.
 

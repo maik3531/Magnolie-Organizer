@@ -7,6 +7,7 @@ import json
 import socket
 import struct
 import sys
+import threading
 import uuid
 from pathlib import Path
 from threading import Thread
@@ -22,7 +23,7 @@ pytest.importorskip("cairo")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_phone_screen_window import Gdk, GdkPixbuf, GLib, Gtk, PhoneScreenJpegReceiver, PhoneScreenWindow
 from magnolie_phone_screen_transport import PhoneScreenReceiveRun
-from magnolie_phone_screen_control import PhoneScreenDesktopRun, REQUEST
+from magnolie_phone_screen_control import REQUEST
 from magnolie_telefon import PROTOCOL, SecureChannel, b64, canonical, now_ms, receive_frame, send_frame, strict_json
 
 
@@ -135,11 +136,11 @@ def organizer_hooks():
     source = Path(__file__).resolve().parents[1] / "bin" / "magnolie-organizer"
     code = ast.parse(source.read_text())
     window = next(node for node in code.body if isinstance(node, ast.ClassDef) and node.name == "Fenster")
-    names = {"_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained",
+    names = {"_phone_screen_begin_original", "_phone_screen_attach", "_phone_screen_stop", "_phone_screen_drained",
              "_tray_telefone_aktualisieren", "_beenden_endgueltig"}
     hooks = ast.Module(body=[node for node in window.body if isinstance(node, ast.FunctionDef) and node.name in names],
                        type_ignores=[])
-    namespace = {"Gtk": Gtk, "GLib": GLib, "_": lambda text: text}
+    namespace = {"Gtk": Gtk, "GLib": GLib, "threading": threading, "_": lambda text: text}
     exec(compile(hooks, str(source), "exec"), namespace)
     return type("OrganizerHooks", (), {name: namespace[name] for name in names})()
 
@@ -342,9 +343,11 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
             with desktop:
                 desktop.settimeout(.3)
                 parent = SecureChannel(desktop, sid, tx, ptx, rx, prx)
-                view = PhoneScreenWindow("Phone screen", is_current=lambda: True, request_stop=lambda: None)
-                run = PhoneScreenDesktopRun(parent, probe, 17, 16, 160, require_original=lambda: None,
-                                           require_view=lambda: None, offer_rgb=view.offer_rgb)
+                app = organizer_hooks()
+                app._gesperrt = app._wirklich_beenden = app._beenden_angefragt = False
+                app._telefon = None
+                app._tray_telefone = Gtk.MenuItem(label="Phones")
+                run = None
 
                 def read_control(sequence):
                     frame = receive_frame(phone, 8192)
@@ -363,9 +366,10 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                     assert run.receive(parent, parent.receive())
 
                 try:
-                    assert view.show()
                     assert parent.send_seq == 0
-                    run.start()
+                    run = app._phone_screen_begin_original(parent, probe, 17, 16, 160, require_original=lambda: None)
+                    view = app._phone_screen_window
+                    assert view._window.get_visible()
                     offer = read_control(0)
                     assert offer["op"] == "offer"
                     session, key = bytes.fromhex(offer["session"]), bytes.fromhex(offer["secret"])
@@ -388,9 +392,12 @@ def test_entire_desktop_owner_with_encrypted_control_socket_until_original_stop(
                         data.sendall(header + AESGCM(material[:32]).encrypt(material[32:] + header[4:], jpeg, context + header))
                         wait_for(lambda: (pixel(view._window, 240, 320) or (0, 0, 0))[0] > 230)
                         write_control(1, dict(body, op="stop"))
-                        wait_for(run.is_drained)
+                        wait_for(lambda: run.is_drained() and app._phone_screen_window is None)
                         assert data.recv(1) == b"" and desktop.fileno() != -1 and run.failure is None
+                        assert not app._tray_telefone.get_visible()
                         assert parent.send_seq == 2  # No STOP echo to an original peer that already stopped.
                 finally:
-                    run.stop()
-                    view.stop()
+                    if run is not None:
+                        run.stop()
+                    app._phone_screen_stop()
+                    app._tray_telefone.destroy()
