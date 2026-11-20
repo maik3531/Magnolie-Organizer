@@ -74,6 +74,7 @@ internal sealed class PhoneCameraSession
     private readonly bool muted, front;
     private readonly CancellationTokenSource stop = new();
     private readonly TaskCompletionSource controlReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource stopSignalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private PhoneCameraControlBinding? binding;
     private Socket? listener;
     private PhoneCameraMediaChannel? media;
@@ -111,11 +112,21 @@ internal sealed class PhoneCameraSession
     {
         if (Interlocked.Exchange(ref stopping, 1) != 0) return;
         // Retire native authority BEFORE cancellation callbacks or output Stop.
-        Volatile.Write(ref outputAdmitted, 0); Volatile.Write(ref sending, 0); stop.Cancel();
-        // Close only this owner's IO before waiting for a media-reader lock.
-        Volatile.Read(ref listener)?.Dispose(); Volatile.Read(ref accepted)?.Dispose();
-        Volatile.Read(ref media)?.Dispose();
-        try { outputs.Stop(); }
+        Volatile.Write(ref outputAdmitted, 0); Volatile.Write(ref sending, 0);
+        try
+        {
+            TryCleanup(stop.Cancel);
+            // Close only this owner's IO before waiting for a media-reader lock.
+            TryCleanup(() => Volatile.Read(ref listener)?.Dispose());
+            TryCleanup(() => Volatile.Read(ref accepted)?.Dispose());
+            TryCleanup(() => Volatile.Read(ref media)?.Dispose());
+            TryCleanup(outputs.Stop);
+        }
+        finally { stopSignalled.TrySetResult(); }
+    }
+    private void TryCleanup(Action action)
+    {
+        try { action(); }
         catch (Exception failure) { Interlocked.CompareExchange(ref cleanupError, failure, null); }
     }
     private void Fail(Exception failure)
@@ -286,8 +297,11 @@ internal sealed class PhoneCameraSession
         finally
         {
             Stop();
+            // A concurrent Stop may still be signalling native outputs; don't
+            // dispose them or certify cleanup while that original call is live.
+            await stopSignalled.Task;
             controlReady.TrySetCanceled(stop.Token);
-            listener?.Dispose(); accepted?.Dispose(); media?.Dispose();
+            TryCleanup(() => listener?.Dispose()); TryCleanup(() => accepted?.Dispose()); TryCleanup(() => media?.Dispose());
             if (controls is not null) await controls;
             if (monitor is not null) await monitor;
             if (binding is not null && probe is not null && session is not null)

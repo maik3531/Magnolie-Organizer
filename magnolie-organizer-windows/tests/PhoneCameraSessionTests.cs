@@ -17,16 +17,19 @@ internal static class PhoneCameraSessionTests
         internal readonly TaskCompletionSource Writing = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly ManualResetEventSlim finishWrite = new(false);
         internal bool HoldPreparation, MissingMicrophone, FailCleanup, HoldWrite;
+        internal Exception? CancellationCallbackFailure;
         internal int Prepared, MicrophoneChecks, Stopped, Disposed;
         internal PhoneCameraSession.OutputAuthority? Authority;
-        internal Action? BeforeVideoReadyReturn;
+        internal Action? BeforeVideoReadyReturn, BeforeStopReturn;
         internal readonly SemaphoreSlim Writes = new(0);
         public async Task PrepareAsync(PhoneCameraSession.OutputAuthority original, CancellationToken cancellation)
         {
             original.RequireCurrent();
+            var wait = HoldPreparation ? ContinuePreparation.Task.WaitAsync(cancellation) : Task.CompletedTask;
+            using var registration = CancellationCallbackFailure is { } fault ? cancellation.Register(() => throw fault) : default;
             Volatile.Write(ref Authority, original);
             Interlocked.Increment(ref Prepared); Preparing.TrySetResult();
-            if (HoldPreparation) await ContinuePreparation.Task.WaitAsync(cancellation);
+            await wait;
         }
         public void RequireVideoReady()
         {
@@ -46,7 +49,7 @@ internal static class PhoneCameraSessionTests
             }
             Written.Enqueue((frame.Video, frame.PresentationTimeUs, frame.Data.ToArray(), Stopwatch.GetTimestamp())); Writes.Release();
         }
-        public void Stop() { Interlocked.Increment(ref Stopped); finishWrite.Set(); }
+        public void Stop() { Interlocked.Increment(ref Stopped); finishWrite.Set(); BeforeStopReturn?.Invoke(); }
         public void Dispose() { Interlocked.Increment(ref Disposed); finishWrite.Dispose(); if (FailCleanup) throw new IOException("controlled cleanup not confirmed"); }
     }
     private sealed class Fixture : IAsyncDisposable
@@ -183,10 +186,42 @@ internal static class PhoneCameraSessionTests
     }
     internal static async Task CleanupFailureRemainsPendingAsync()
     {
-        await using var f = new Fixture(); f.Output.FailCleanup = true;
-        await f.OfferAsync(); f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
-        TestAssert.That(f.Session.CleanupError is IOException && !f.Session.IsCompletelyStopped, "Unconfirmed provider cleanup presented as a stopped reusable owner");
-        TestAssert.Throws<InvalidOperationException>(() => f.Session.RunAsync(), "Unknown cleanup outcome was retried");
+        await using (var f = new Fixture())
+        {
+            f.Output.FailCleanup = true;
+            await f.OfferAsync(); f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
+            TestAssert.That(f.Session.CleanupError is IOException && !f.Session.IsCompletelyStopped, "Unconfirmed provider cleanup presented as a stopped reusable owner");
+            TestAssert.Throws<InvalidOperationException>(() => f.Session.RunAsync(), "Unknown cleanup outcome was retried");
+        }
+        await using (var f = new Fixture())
+        {
+            var failure = new IOException("controlled output cancellation callback failed");
+            f.Output.HoldPreparation = true; f.Output.CancellationCallbackFailure = failure;
+            await f.OfferAsync(); await f.PreparedAsync(); await f.Output.Preparing.Task.WaitAsync(f.Deadline.Token);
+            f.Session.Stop(); await f.Run.WaitAsync(f.Deadline.Token);
+            await f.ReadSendOrStopAsync();
+            TestAssert.That(f.Session.CleanupError is AggregateException errors && errors.Flatten().InnerExceptions.Contains(failure) &&
+                !f.Session.IsCompletelyStopped && !f.SawSend && f.Output.Stopped == 1 && f.Output.Disposed == 1,
+                "Failed output cancellation skipped exact stop/drain, was reported reusable or allowed SEND");
+        }
+        await using (var f = new Fixture())
+        {
+            using var release = new ManualResetEventSlim(false);
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            f.Output.BeforeStopReturn = () => { entered.TrySetResult(); TestAssert.That(release.Wait(TimeSpan.FromSeconds(4)), "Controlled Stop did not return"); };
+            await f.OfferAsync();
+            var stopping = Task.Run(f.Session.Stop);
+            try
+            {
+                await entered.Task.WaitAsync(f.Deadline.Token);
+                await Task.WhenAny(f.Run, Task.Delay(150));
+                TestAssert.That(!f.Run.IsCompleted && !f.Session.IsCompletelyStopped && f.Output.Disposed == 0,
+                    "Runner disposed or released the original owner while outputs.Stop was still on stack");
+            }
+            finally { release.Set(); await stopping; }
+            await f.Run.WaitAsync(f.Deadline.Token);
+            TestAssert.That(f.Session.IsCompletelyStopped && f.Output.Stopped == 1 && f.Output.Disposed == 1, "Original Stop did not drain exactly once");
+        }
     }
     internal static async Task MissingInitialTrackAsync()
     {
