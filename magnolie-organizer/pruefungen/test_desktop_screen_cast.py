@@ -1,8 +1,13 @@
 """Controlled async ScreenCast responses and exact lifecycle, not real capture."""
 
+from io import BytesIO
+import json
 import os
 import socket
+import subprocess
 import sys
+from tempfile import TemporaryDirectory
+from time import monotonic, sleep
 import unittest
 from collections import deque
 from pathlib import Path
@@ -13,6 +18,7 @@ from gi.repository import Gio, GLib
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 import magnolie_desktop_screen_cast as cast
 from magnolie_desktop_screen_portal import DesktopScreenProvider
+from magnolie_desktop_screen_run import DesktopScreenLocalRun, ScreenRunCleanup
 
 
 class Bus:
@@ -342,6 +348,79 @@ class TestDesktopScreenCast(unittest.TestCase):
 
 class TestIsolatedGioScreenCast(unittest.TestCase):
     def test_real_gio_dispatch_with_private_portal_double(self):
+        self._exercise_portal(use_pipewire=False)
+
+    @unittest.skipUnless(os.environ.get('MAGNOLIE_SCREEN_PRIVATE_PIPEWIRE') == '1',
+                         'opt in to private synthetic PipeWire and WirePlumber 0.4')
+    def test_portal_passes_real_pipewire_fd_and_original_source_loss_drains(self):
+        self._exercise_portal(use_pipewire=True)
+
+    def _private_sources(self, address):
+        runtime = TemporaryDirectory(prefix='magnolie-screen-source-')
+        self.addCleanup(runtime.cleanup)
+        root = Path(runtime.name)
+        env = dict(PATH='/usr/bin:/bin', HOME=runtime.name, XDG_RUNTIME_DIR=runtime.name,
+                   PIPEWIRE_RUNTIME_DIR=runtime.name, PIPEWIRE_REMOTE='pipewire-0',
+                   PIPEWIRE_CONFIG_DIR='/usr/share/pipewire', WIREPLUMBER_CONFIG_DIR='/usr/share/wireplumber',
+                   XDG_CACHE_HOME=str(root / 'cache'), XDG_CONFIG_HOME=str(root / 'config'),
+                   XDG_DATA_HOME=str(root / 'data'), XDG_STATE_HOME=str(root / 'state'),
+                   DBUS_SESSION_BUS_ADDRESS=address, DBUS_SYSTEM_BUS_ADDRESS=f'unix:path={root}/no-system-bus',
+                   GIO_USE_VFS='local')
+
+        def launch(argv):
+            child = subprocess.Popen(argv, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+
+            def reap():
+                if child.poll() is None:
+                    child.terminate()
+                    try:
+                        child.wait(2)
+                    except subprocess.TimeoutExpired:
+                        child.kill()
+                        child.wait(2)
+            self.addCleanup(reap)
+            return child
+
+        def wait_for(check):
+            deadline = monotonic() + 4
+            while monotonic() < deadline:
+                value = check()
+                if value:
+                    return value
+                sleep(.04)
+            self.fail('private PipeWire fixture setup timed out')
+
+        launch(['pipewire', '-c', 'pipewire.conf'])
+        endpoint = root / 'pipewire-0'
+        wait_for(endpoint.is_socket)
+        # policy.conf in WirePlumber 0.4 does not load camera/audio monitors.
+        self.assertTrue(Path('/usr/share/wireplumber/policy.conf').is_file())
+        launch(['wireplumber', '-c', 'policy.conf'])
+
+        def serial_for(name):
+            nodes = json.loads(subprocess.check_output(['pw-dump'], env=env, timeout=2))
+            for node in nodes:
+                props = node.get('info', {}).get('props', {})
+                if props.get('node.name') == name:
+                    return props['object.serial']
+
+        def source(pattern):
+            name = 'magnolie-test-screen-' + pattern
+            process = launch(['gst-launch-1.0', '-q', 'videotestsrc', 'is-live=true', f'pattern={pattern}', '!',
+                'video/x-raw,format=RGB,width=57,height=33,framerate=10/1', '!', 'pipewiresink',
+                'mode=provide', f'stream-properties=props,node.name={name},media.class=Video/Source'])
+            return process, wait_for(lambda: serial_for(name))
+
+        original, serial = source('black')
+        unrelated, other_serial = source('white')
+        self.assertNotEqual(serial, other_serial)
+        with socket.socket(socket.AF_UNIX) as connected:
+            connected.connect(str(endpoint))
+            fd = connected.detach()
+        self.addCleanup(os.close, fd)
+        return fd, serial, original, unrelated
+
+    def _exercise_portal(self, *, use_pipewire):
         # The test's separate daemon has no installed desktop portal. Neither
         # connection can ask the real desktop to capture or create an output.
         isolated = Gio.TestDBus.new(Gio.TestDBusFlags.NONE)
@@ -365,10 +444,15 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
         session_xml = Gio.DBusNodeInfo.new_for_xml(f'''<node><interface name="{cast._SESSION}">
             <method name="Close"/></interface></node>''')
         calls, selected, ended, errors, borrowed = [], [], [], [], []
-        read_fd, write_fd = os.pipe2(os.O_CLOEXEC | os.O_NONBLOCK)
-        self.addCleanup(os.close, read_fd)
-        self.addCleanup(os.close, write_fd)
-        os.write(write_fd, b'portal-test-fd')
+        if use_pipewire:
+            from PIL import Image
+            read_fd, serial, original, unrelated = self._private_sources(isolated.get_bus_address())
+        else:
+            serial = 903
+            read_fd, write_fd = os.pipe2(os.O_CLOEXEC | os.O_NONBLOCK)
+            self.addCleanup(os.close, read_fd)
+            self.addCleanup(os.close, write_fd)
+            os.write(write_fd, b'portal-test-fd')
         loop = GLib.MainLoop()
 
         def server(bus, sender, path, iface, method, params, invocation):
@@ -376,12 +460,12 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
                 self.assertEqual(sender, client.get_unique_name())
                 calls.append(method)
                 if method == 'Close':
-                    self.assertEqual(path, run._session)
+                    self.assertEqual(path, portal_owner._session)
                     invocation.return_value(GLib.Variant('()', ()))
                     return
                 values = params.unpack()
                 if method == 'OpenPipeWireRemote':
-                    self.assertEqual(values, (run._session, {}))
+                    self.assertEqual(values, (portal_owner._session, {}))
                     descriptors = Gio.UnixFDList.new()
                     position = descriptors.append(read_fd)
                     invocation.return_value_with_unix_fd_list(GLib.Variant('(h)', (position,)), descriptors)
@@ -390,16 +474,16 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
                 request = f'{cast._ROOT}/request/{sender[1:].replace(".", "_")}/{options["handle_token"]}'
                 if method == 'CreateSession':
                     session = f'{cast._ROOT}/session/{sender[1:].replace(".", "_")}/{options["session_handle_token"]}'
-                    self.assertEqual(session, run._session)
+                    self.assertEqual(session, portal_owner._session)
                     portal.register_object(session, session_xml.interfaces[0], server, None, None)
                     result = {'session_handle': GLib.Variant('s', session)}
                 elif method == 'SelectSources':
-                    self.assertEqual(values[0], run._session)
+                    self.assertEqual(values[0], portal_owner._session)
                     self.assertEqual((options['types'], options['multiple'], options['persist_mode']), (4, False, 0))
                     result = {}
                 else:
-                    self.assertEqual(values[:2], (run._session, 'x11:1234'))
-                    result = streams()
+                    self.assertEqual(values[:2], (portal_owner._session, 'x11:1234'))
+                    result = streams(serial=serial)
                 bus.emit_signal(sender, request, cast._REQUEST, 'Response', GLib.Variant('(ua{sv})', (0, result)))
                 invocation.return_value(GLib.Variant('(o)', (request,)))
             except Exception as error:
@@ -421,17 +505,63 @@ class TestIsolatedGioScreenCast(unittest.TestCase):
             loop.quit()
 
         provider = DesktopScreenProvider(portal.get_unique_name(), 0, True, 0, 6)
-        run = cast.DesktopScreenCast(client, provider, 'extend', 'x11:1234', lambda: None, ready, finished)
-        timeout = GLib.timeout_add(4500, lambda: (loop.quit(), False)[1])
+        frames = []
+        removed = False
+
+        def watch_jpegs():
+            nonlocal removed
+            try:
+                frame = run.take_latest()
+                if frame is not None:
+                    with Image.open(BytesIO(frame.data)) as bitmap:
+                        self.assertEqual(bitmap.size, (57, 33))
+                        self.assertEqual(bitmap.mode, 'RGB')
+                        # RGB conversion and JPEG may round black to 1; the
+                        # unrelated white source is nowhere near this bound.
+                        self.assertTrue(all(high <= 4 for _, high in bitmap.getextrema()))
+                    self.assertTrue(not frames or frame.sequence > frames[-1])
+                    frames.append(frame.sequence)
+                    if len(frames) == 3:
+                        removed = True
+                        original.terminate()  # Only the selected synthetic producer.
+                return True
+            except Exception as error:
+                errors.append(error)
+                run.stop()
+                return False
+
+        if use_pipewire:
+            run = DesktopScreenLocalRun(client, provider, 'extend', 'x11:1234', 57, 33, lambda: None, finished)
+            portal_owner = run._portal
+            watcher = GLib.timeout_add(20, watch_jpegs)
+        else:
+            portal_owner = run = cast.DesktopScreenCast(client, provider, 'extend', 'x11:1234', lambda: None, ready, finished)
+            watcher = None
+
+        def expire():
+            errors.append(TimeoutError('isolated ScreenCast did not end before the test deadline'))
+            loop.quit()
+            return False
+
+        timeout = GLib.timeout_add(6500, expire)
         try:
             run.begin()
             loop.run()
         finally:
             run.stop()
-            if GLib.MainContext.default().find_source_by_id(timeout) is not None:
-                GLib.source_remove(timeout)
+            context = GLib.MainContext.default()
+            for source_id in (watcher, timeout):
+                if source_id is not None and context.find_source_by_id(source_id) is not None:
+                    GLib.source_remove(source_id)
         self.assertEqual(errors, [])
         self.assertEqual(calls, ['CreateSession', 'SelectSources', 'Start', 'OpenPipeWireRemote', 'Close'])
+        if use_pipewire:
+            self.assertTrue(removed)
+            self.assertIsNone(unrelated.poll(), 'Unrelated source must still be available')
+            self.assertEqual(ended, [ScreenRunCleanup(True, True, True, virtual_start_submitted=True)])
+            self.assertFalse(run.ready)
+            self.assertIsNone(run.take_latest())
+            return
         self.assertEqual(selected, [cast.ScreenCastTarget('extend', 54, 903)])
         self.assertEqual(ended, [True])
         fd, data, inherited = borrowed[0]

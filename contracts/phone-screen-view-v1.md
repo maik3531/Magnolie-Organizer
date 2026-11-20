@@ -239,6 +239,12 @@ The terminal result reports the two cleanup outcomes separately and is not
 delivered while either side still has work outstanding. Compositor output
 removal remains a separate acceptance check.
 
+An opt-in Linux check passes a real private PipeWire connection through the
+GIO Unix-FD portal test service into the unchanged reader and JPEG encoder. It
+decodes frames from the selected synthetic source, removes only that source,
+and waits for portal, reader and encoder cleanup while an unrelated source
+remains. This substitutes the portal/compositor and does not create an output.
+
 The desktop-side encoder takes complete RGBx frames at the chosen dimensions
 and emits independent baseline JPEGs with no source metadata. It can retry an
 oversized frame once at lower JPEG quality without changing dimensions, then
