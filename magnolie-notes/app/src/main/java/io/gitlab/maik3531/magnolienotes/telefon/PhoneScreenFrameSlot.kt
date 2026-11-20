@@ -31,6 +31,8 @@ internal class PhoneScreenFrameSlot(private val width: Int, private val height: 
         if (terminal) null else pending.also { pending = null }
     }
 
+    fun requireOpen() = synchronized(gate) { check(!terminal) { "screen_frame_slot_closed" } }
+
     override fun close() {
         val discarded = synchronized(gate) {
             terminal = true
