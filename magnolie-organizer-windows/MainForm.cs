@@ -5,7 +5,7 @@ using Microsoft.Web.WebView2.WinForms;
 
 namespace MagnolieOrganizer.Windows;
 
-internal sealed class MainForm : Form
+internal sealed partial class MainForm : Form
 {
     private const string VirtualHost = "app.magnolie.invalid";
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(46, 58, 52) };
@@ -551,7 +551,11 @@ internal sealed class MainForm : Form
         if (shutdownStarted) return;
         shutdownStarted = true;
         StopPhoneScreen();
+        var webcamExit = Task.CompletedTask;
+        RequestWebcamExit(ref webcamExit);
         closing.Cancel();
+        try { await webcamExit.WaitAsync(TimeSpan.FromSeconds(3)); }
+        catch (Exception error) { WriteWebViewDiagnostic($"Webcam shutdown not confirmed: {error.GetType().Name}"); }
         try
         {
             if (phoneScreenDrain is { } drain) await drain.WaitAsync(TimeSpan.FromSeconds(3));
@@ -673,6 +677,7 @@ internal sealed class MainForm : Form
 
     protected override void WndProc(ref Message message)
     {
+        ObserveWebcamWindowMessage(message);
         if ((uint)message.Msg == NativeMethods.ExitMessage)
         {
             BeginInvoke(RequestClose);
@@ -812,11 +817,12 @@ internal sealed class MainForm : Form
 
     private async void OnFormClosing(object? sender, FormClosingEventArgs eventArgs)
     {
-        if (allowClose || webView.CoreWebView2 is null) { StopPhoneScreen(); return; }
+        if (allowClose || webView.CoreWebView2 is null) { StopPhoneScreen(); SignalWebcamExit(); return; }
         if (eventArgs.CloseReason is CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing)
         {
             shutdownStarted = true;
             StopPhoneScreen(); // Signal before the bounded normal shutdown; never block the OS close on this view.
+            SignalWebcamExit();
             closing.Cancel();
             try { dispatcher?.ShutdownAsync().Wait(TimeSpan.FromSeconds(3)); }
             catch (Exception error) { WriteWebViewDiagnostic(error.Message); }
@@ -843,6 +849,10 @@ internal sealed class MainForm : Form
             ShowSaveWarning();
         }
     }
+
+    partial void RequestWebcamExit(ref Task drained);
+    partial void SignalWebcamExit();
+    partial void ObserveWebcamWindowMessage(Message message);
 
     private void ShowSaveWarning() => MessageBox.Show(this,
         T("Warning: The data could not be saved."),

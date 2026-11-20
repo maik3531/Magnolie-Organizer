@@ -29605,6 +29605,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kdeBlock.append(clipboardLabel, autoClipboardLabel);
     erweitert.id = "kde-erweiterte-funktionen";
     erweitert.append(el("summary", null, _("Advanced functions")));
+    baueTelefonWebcam(erweitert);
     baueTelefonBildschirm(erweitert);
     baueKdeEingabe(erweitert);
     baueKdeSpieler(erweitert);
@@ -29621,12 +29622,62 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function kdeMedienAnfordern(cmd, args = {}) {
     return new Promise(resolve => {
       const requestId = crypto.randomUUID();
-      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, cmd === "kde_player_datei" ? 120000 : cmd === "telefon_screen_start" ? 32000 : cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
+      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, cmd === "kde_player_datei" ? 120000 : ["telefon_screen_start", "telefon_webcam_start"].includes(cmd) ? 32000 : cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
       kdeMedienAnfragen.set(requestId, { resolve, timer });
       if (!Bruecke.sende({ cmd, requestId, ...args })) {
         clearTimeout(timer); kdeMedienAnfragen.delete(requestId); resolve({ ok: false });
       }
     });
+  }
+
+  function baueTelefonWebcam(wurzel) {
+    const block = el("div", "einst-gruppe");
+    block.id = "telefon-webcam";
+    block.hidden = true;
+    const status = el("p", "einst-hinweis", _("Off"));
+    status.setAttribute("aria-live", "polite");
+    const peer = el("select"); peer.setAttribute("aria-label", _("Phone"));
+    const start = el("button", null, _("Start"));
+    const stop = el("button", null, _("Stop"));
+    const refresh = el("button", null, _("Refresh"));
+    for (const button of [start, stop, refresh]) button.type = "button";
+    block.append(el("h4", null, _("Phone webcam")), status, peer, start, stop, refresh);
+    wurzel.append(block);
+    let state = {}, pending = false;
+    function draw(failed) {
+      block.hidden = state.included !== true;
+      const selected = peer.value;
+      peer.replaceChildren();
+      for (const item of state.peers || []) {
+        const option = el("option", null, item.name); option.value = item.id; peer.append(option);
+      }
+      if (Array.from(peer.options).some(item => item.value === selected)) peer.value = selected;
+      const running = state.phase && state.phase !== "off";
+      peer.hidden = start.hidden = !!running;
+      stop.hidden = !running || state.phase === "stopping";
+      peer.disabled = start.disabled = pending || !peer.value;
+      stop.disabled = pending || !state.run;
+      refresh.disabled = pending;
+      status.textContent = failed ? _("Unavailable") : state.phase === "active" ? _("Active") :
+        state.phase === "starting" ? _("Waiting for phone permission and capture …") : state.phase === "stopping" ?
+          _("The previous webcam session must finish stopping first.") : peer.value ? _("Off") : _("Connect Magnolie Notes over WLAN first.");
+    }
+    async function request(cmd, args = {}) {
+      if (pending) return;
+      pending = true; draw(false);
+      let failed = true;
+      try {
+        const reply = await kdeMedienAnfordern(cmd, args);
+        state = reply.webcam || {};
+        failed = !reply.ok;
+      } catch (_) { state = {}; }
+      finally { pending = false; if (block.isConnected) draw(failed); }
+    }
+    start.addEventListener("click", () => { if (state.included === true && state.phase === "off" && peer.value) request("telefon_webcam_start", {peer: peer.value}); });
+    stop.addEventListener("click", () => { if (state.included === true && state.run) request("telefon_webcam_stop", {run: state.run}); });
+    refresh.addEventListener("click", () => request("telefon_webcam_stand"));
+    wurzel.addEventListener("toggle", () => { if (wurzel.open) request("telefon_webcam_stand"); });
+    if (wurzel.open) request("telefon_webcam_stand");
   }
 
   function baueTelefonBildschirm(wurzel) {

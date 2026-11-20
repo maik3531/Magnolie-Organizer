@@ -490,6 +490,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "telefon_screen_stand":
                     case "telefon_screen_start":
                     case "telefon_screen_stop": await PhoneScreenActionAsync(message); break;
+                    case "telefon_webcam_stand":
+                    case "telefon_webcam_start":
+                    case "telefon_webcam_stop": await DesktopWebcamActionAsync(message); break;
                     case "kde_input_stand":
                     case "kde_input_einstellungen":
                     case "kde_input_senden": await KdeInputAsync(message); break;

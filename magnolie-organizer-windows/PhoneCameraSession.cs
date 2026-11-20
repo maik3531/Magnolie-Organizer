@@ -86,6 +86,7 @@ internal sealed class PhoneCameraSession
     internal Exception? Error => Volatile.Read(ref error);
     internal Exception? CleanupError => Volatile.Read(ref cleanupError);
     internal bool IsSending => Volatile.Read(ref stopping) == 0 && Volatile.Read(ref sending) != 0 && !stop.IsCancellationRequested;
+    internal bool IsStopping => Volatile.Read(ref stopping) != 0;
     internal bool IsCompletelyStopped => Volatile.Read(ref done) != 0 && Volatile.Read(ref cleanupConfirmed) != 0;
     internal Task ControlReady => controlReady.Task;
 
@@ -329,9 +330,9 @@ internal sealed class PhoneCameraSession
             TryCleanup(() => listener?.Dispose()); TryCleanup(() => accepted?.Dispose()); TryCleanup(() => media?.Dispose());
             if (controls is not null) await controls;
             if (monitor is not null) await monitor;
-            if (binding is not null && probe is not null && session is not null)
-                try { await binding.SendAsync(Report(probe, "stop", session)); } catch (Exception) { }
             binding?.Dispose();
+            if (binding is not null && probe is not null && session is not null)
+                try { await parent.SendRetiredWebcamStopAsync(binding, Report(probe, "stop", session)); } catch (Exception) { }
             if (binding is not null && requireDiscoveryProvider is not null)
                 try { await parent.WithdrawWebcamAsync(binding); } catch (Exception) { /* No foreign write or retry after parent loss. */ }
             try { outputs.Dispose(); if (CleanupError is null && binding?.RetirementError is null) Volatile.Write(ref cleanupConfirmed, 1); }
@@ -354,9 +355,11 @@ internal sealed class PhoneCameraDesktopSlot
     {
         private readonly PhoneCameraSession session;
         private int retired;
+        internal string Id { get; } = Guid.NewGuid().ToString("D");
         internal Task Completion { get; }
         internal bool Drained => Completion.IsCompletedSuccessfully && session.IsCompletelyStopped;
         internal bool Sending => Volatile.Read(ref retired) == 0 && session.IsSending;
+        internal bool Stopping => Volatile.Read(ref retired) != 0 || session.IsStopping;
 
         internal Run(Func<Action, PhoneCameraSession> create, Action originalCurrent)
         {

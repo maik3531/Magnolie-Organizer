@@ -3,9 +3,27 @@ using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
+internal sealed partial class TelefonCoordinator
+{
+    internal sealed record DesktopWebcamChoice(string Name, TelefonConnection Parent);
+
+    internal DesktopWebcamChoice? SelectDesktopWebcam(string peerId)
+    {
+        lock (gate)
+        {
+            if (disposed || store.RestoreFenced || !Enabled || !online.TryGetValue(peerId, out var parent) ||
+                Peers.FirstOrDefault(peer => peer.Id == peerId) is not { } peer) return null;
+            try { parent.RequireDesktopWebcamParent(); }
+            catch (InvalidOperationException) { return null; }
+            return new(peer.Name, parent);
+        }
+    }
+}
+
 internal sealed partial class TelefonConnection
 {
     private readonly object webcamGate = new();
+    private int webcamParentRetired;
     private PhoneCameraControlBinding? webcamBinding;
     private readonly Queue<(string Request, string Nonce)> webcamProbes = new();
     private sealed class WebcamAck(string id, PhoneCameraControlBinding binding)
@@ -22,10 +40,16 @@ internal sealed partial class TelefonConnection
     partial void NativeWebcamControl(JsonObject message, ref Task? handling) => handling = HandleWebcamControlAsync(message);
     partial void NativeWebcamAck(JsonObject message, ref bool consumed) => consumed = ObserveWebcamAck(message);
     partial void CheckNativeWebcamOwner() => CheckWebcamControl();
-    partial void RetireNativeWebcamOwner() => RetireWebcamControl();
-    internal void RequireWebcamBinding(PhoneCameraControlBinding binding)
+    partial void RetireNativeWebcamOwner() { FenceNativeWebcamParent(); RetireWebcamControl(); }
+    partial void FenceNativeWebcamParent() => Volatile.Write(ref webcamParentRetired, 1);
+    internal void RequireDesktopWebcamParent()
     {
         RequireWebcamParent();
+        if (Volatile.Read(ref webcamParentRetired) != 0) throw new InvalidOperationException("webcam_original_parent_retired");
+    }
+    internal void RequireWebcamBinding(PhoneCameraControlBinding binding)
+    {
+        RequireDesktopWebcamParent();
         if (!ReferenceEquals(Volatile.Read(ref webcamBinding), binding)) throw new InvalidOperationException("webcam_original_binding_required");
         if (binding.DiscoveryWritten && Volatile.Read(ref lastWebcamCapabilities)?.Id != binding.DiscoveryId)
             throw new InvalidOperationException("webcam_original_discovery_superseded");
@@ -47,7 +71,7 @@ internal sealed partial class TelefonConnection
     internal PhoneCameraControlBinding BindWebcamControl(Action originalCurrent, Action retire, bool needsDiscovery = false)
     {
         ArgumentNullException.ThrowIfNull(originalCurrent); ArgumentNullException.ThrowIfNull(retire);
-        RequireWebcamParent(); originalCurrent();
+        RequireDesktopWebcamParent(); originalCurrent();
         var binding = new PhoneCameraControlBinding(this, originalCurrent, retire, needsDiscovery);
         if (Interlocked.CompareExchange(ref webcamBinding, binding, null) is not null)
             throw new InvalidOperationException("webcam_original_owner_busy");
@@ -103,7 +127,11 @@ internal sealed partial class TelefonConnection
             if (webcamAcks.Count == 16) webcamAcks.Dequeue();
             webcamAcks.Enqueue(new WebcamAck(message["message_id"]!.GetValue<string>(), binding));
         }
-        try { await SendWebcamEphemeralAsync(message, Current); }
+        try
+        {
+            var offer = message["body"]!["op"]!.GetValue<string>() == "offer";
+            await SendWebcamFrameAsync(message, Current, offer ? binding.NoteOfferAttempt : null, preserveCompletedFrame: true);
+        }
         catch
         {
             // A pre-commit output loss retires its session, not the original
@@ -112,6 +140,18 @@ internal sealed partial class TelefonConnection
             if (original is null) binding.Dispose();
             throw;
         }
+    }
+
+    internal async Task SendRetiredWebcamStopAsync(PhoneCameraControlBinding binding, JsonObject snapshot)
+    {
+        PhoneCameraControl.ValidateMessage(snapshot, Now());
+        if (!binding.ClaimTerminal(this, snapshot)) return;
+        lock (webcamGate)
+        {
+            if (webcamAcks.Count == 16) webcamAcks.Dequeue();
+            webcamAcks.Enqueue(new WebcamAck(snapshot["message_id"]!.GetValue<string>(), binding));
+        }
+        await SendWebcamFrameAsync(snapshot, RequireDesktopWebcamParent, preserveCompletedFrame: true);
     }
     private bool ObserveWebcamAck(JsonObject ack)
     {
@@ -155,6 +195,7 @@ internal sealed partial class TelefonConnection
         bool withdraw = requireStarting is null;
         void Current()
         {
+            RequireDesktopWebcamParent();
             if (requireStarting is null) return;
             binding.RequireCurrent(); requireStarting();
         }

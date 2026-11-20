@@ -273,7 +273,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         {
             CheckMcpRevision(expectedRevision);
             if (expectedFingerprint is not null) RequireMcpPeer(id, expectedFingerprint, requirePaired: false);
-            online.Remove(id, out connection); calls.Remove(id); RevokeDial(id);
+            online.Remove(id, out connection); connection?.FenceWebcamParent(); calls.Remove(id); RevokeDial(id);
             if (confirmations.Remove(id, out var confirmation)) confirmation.Completion.TrySetResult(false);
             foreach (var token in personalCommits.Where(item => item.Value.PeerId == id).Select(item => item.Key).ToArray())
                 if (personalCommits.Remove(token, out var pending)) pending.Completion.TrySetResult("temporary");
@@ -1398,7 +1398,9 @@ internal sealed partial class TelefonCoordinator : IDisposable
         lock (gate)
         {
             cancellation = serviceCancellation; serviceCancellation = null; listener?.Stop(); listener = null; mdns?.Dispose(); mdns = null;
-            pairingToken = null; pairingUntil = 0; connections = online.Values.ToArray(); online.Clear();
+            pairingToken = null; pairingUntil = 0; connections = online.Values.ToArray();
+            foreach (var original in connections) original.FenceWebcamParent();
+            online.Clear();
             if (pendingDial is { } pendingCall) RevokeDial(pendingCall.PeerId);
             pendingDial = null; callCommands.Clear(); calls.Clear(); callActions.Clear();
             setupPairing?.Deadline.Cancel(); setupPairing?.Deadline.Dispose(); setupPairing = null;
@@ -1678,7 +1680,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             {
                 if (store.RestoreFenced || !Peers.Any(p => p.Id == peer.Id && p.PublicKey.SequenceEqual(peer.PublicKey))) return;
                 if (transport == "bluetooth" && online.TryGetValue(peer.Id, out var wifi) && wifi.Transport == "wifi") return;
-                if (online.Remove(peer.Id, out var previous)) previous.Dispose();
+                if (online.Remove(peer.Id, out var previous)) { previous.FenceWebcamParent(); previous.Dispose(); }
                 if (pendingDial?.PeerId != peer.Id || pendingDial.Identity != Convert.ToBase64String(peer.PublicKey)) calls.Remove(peer.Id);
                 online[peer.Id] = connection;
             }
@@ -1698,8 +1700,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
         {
             var unpaired = connection?.RemoteCloseReason == "unpaired";
             var removedConnection = false;
-            lock (gate) if (connection is not null && online.TryGetValue(peer.Id, out var current) &&
-                ReferenceEquals(current, connection)) removedConnection = online.Remove(peer.Id);
+            lock (gate) if (connection is not null && online.TryGetValue(peer.Id, out var current) && ReferenceEquals(current, connection))
+            { connection.FenceWebcamParent(); removedConnection = online.Remove(peer.Id); }
             connection?.Dispose();
             if (removedConnection) await radioSwitch.ReleaseAllAsync(peer.Id).ConfigureAwait(false);
             foreach (var secret in new[] { shared, root, auth, ephemeralPrivate, sessionShared, material })
@@ -2178,7 +2180,7 @@ internal sealed partial class TelefonConnection : IDisposable
                 if (now - lastSentMs >= 25_000) await SendPlainAsync(new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = now });
             }
         }
-        finally { RetireScreenControl(); }
+        finally { FenceWebcamParent(); RetireScreenControl(); }
     }
     internal async Task InitializeAsync(long capabilityRevision)
     {

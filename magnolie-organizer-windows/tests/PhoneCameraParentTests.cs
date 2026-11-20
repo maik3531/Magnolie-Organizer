@@ -239,9 +239,53 @@ internal static class PhoneCameraParentTests
         storage.NoPersistentControls();
         await WebcamDiscoveryAsync(supersede: false);
         await WebcamDiscoveryAsync(supersede: true);
+        await RetiredWebcamTerminalAsync(revokeAfterPublication: false);
+        await RetiredWebcamTerminalAsync(revokeAfterPublication: true);
         await OriginalScreenControlAsync();
         await ScreenSendRetirementAsync(afterPublication: false);
         await ScreenSendRetirementAsync(afterPublication: true);
+    }
+
+    private static async Task RetiredWebcamTerminalAsync(bool revokeAfterPublication)
+    {
+        using var fixture = new Fixture(); using var foreign = new Fixture();
+        var parent = fixture.Connection;
+        bool approved = true, publishing = false; int checks = 0;
+        using var binding = parent.BindWebcamControl(() =>
+        {
+            // Binding validation, writer admission, locked and pre-write
+            // checks pass. The post-write check is the seventh call.
+            if (!approved || publishing && ++checks == 7) throw new InvalidOperationException("controlled revoke");
+        }, () => { });
+        var probe = Message();
+        await parent.HandlePlainAsync(probe); await fixture.Read(0);
+        const string session = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        binding.BindSession(session);
+        var offer = Follow(probe, "offer", session); offer["kind"] = PhoneCameraControl.Report;
+        offer["body"]!["secret"] = new string('a', 64); offer["body"]!["port"] = 24401;
+        offer["body"]!["muted"] = false; offer["body"]!["front"] = false;
+        var stop = Follow(probe, "stop", session); stop["kind"] = PhoneCameraControl.Report;
+        await parent.SendRetiredWebcamStopAsync(binding, stop);
+        if (revokeAfterPublication)
+        {
+            publishing = true;
+            await TestAssert.ThrowsAsync<InvalidOperationException>(() => binding.SendAsync(offer), "Post-write revoke did not retire the offer");
+        }
+        else await binding.SendAsync(offer);
+        TestAssert.That(JsonNode.DeepEquals(await fixture.Read(1), offer), "Terminal capability existed before the original OFFER");
+        approved = false;
+        TestAssert.Throws<InvalidOperationException>(binding.RequireCurrent, "Original owner not revoked");
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => foreign.Connection.SendRetiredWebcamStopAsync(binding, stop),
+            "Revoked owner retargeted a different WLAN parent");
+        await parent.SendRetiredWebcamStopAsync(binding, stop);
+        await parent.SendRetiredWebcamStopAsync(binding, stop);
+        TestAssert.That(JsonNode.DeepEquals(await fixture.Read(2), stop), "Revoked owner could not send its exact terminal STOP");
+        parent.FenceWebcamParent();
+        TestAssert.Throws<InvalidOperationException>(() => parent.BindWebcamControl(() => { }, () => { }), "Retired parent could accept a replacement activation");
+        var ping = new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = 123 };
+        await parent.SendPlainAsync(ping);
+        TestAssert.That(JsonNode.DeepEquals(await fixture.Read(3), ping), "Terminal retry wrote twice or closed the Notes parent");
+        fixture.NoPersistentControls();
     }
 
     private static async Task WebcamDiscoveryAsync(bool supersede)

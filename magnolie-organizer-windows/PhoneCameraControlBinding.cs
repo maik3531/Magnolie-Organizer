@@ -23,6 +23,7 @@ internal sealed class PhoneCameraControlBinding : IDisposable
     private int stopped;
     private string? discoveryId;
     private int discoveryWritten;
+    private bool offerAttempted, terminalClaimed;
     private Exception? retirementError;
     internal bool IsRetired => Volatile.Read(ref stopped) != 0;
     internal Exception? RetirementError => Volatile.Read(ref retirementError);
@@ -36,6 +37,28 @@ internal sealed class PhoneCameraControlBinding : IDisposable
             throw new InvalidOperationException("webcam_original_discovery_required");
     }
     internal void MarkDiscoveryWritten() => Volatile.Write(ref discoveryWritten, 1);
+    internal void NoteOfferAttempt()
+    {
+        lock (gate)
+        {
+            if (IsRetired || offerAttempted) throw new InvalidOperationException("webcam_original_offer_retired");
+            offerAttempted = true;
+        }
+    }
+
+    internal bool ClaimTerminal(TelefonConnection originalParent, JsonObject report)
+    {
+        var body = report["body"]!.AsObject();
+        if (!ReferenceEquals(parent, originalParent) || report["kind"]!.GetValue<string>() != PhoneCameraControl.Report ||
+            body["op"]!.GetValue<string>() != "stop") throw new InvalidOperationException("webcam_original_terminal_required");
+        lock (gate)
+        {
+            if (!IsRetired || !offerAttempted || terminalClaimed || session is null || session != body["session"]!.GetValue<string>() ||
+                requestId != body["request_id"]!.GetValue<string>() || nonce != body["nonce"]!.GetValue<string>()) return false;
+            terminalClaimed = true;
+            return true;
+        }
+    }
 
     internal void RequireCurrent()
     {

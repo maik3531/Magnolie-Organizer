@@ -151,6 +151,8 @@ internal sealed partial class TelefonConnection
     // actual queued writer task without replacing sender behavior or polling.
     partial void ObserveNativeWebcamWriterWait(JsonObject snapshot, Task waiting);
     partial void RememberNativeWebcamCapabilities(JsonObject frame);
+    partial void FenceNativeWebcamParent();
+    internal void FenceWebcamParent() => FenceNativeWebcamParent();
 
     private async Task DispatchWebcamControlAsync(JsonObject message)
     {
