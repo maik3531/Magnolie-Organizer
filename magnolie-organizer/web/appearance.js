@@ -9,9 +9,31 @@
   const shapes = Object.freeze({
     boots: ["M12 9H29L28 37C31 41 43 42 44 49V55H10V44L14 36Z", "M44 7H61L60 35C63 39 75 40 76 47V53H42V42L46 34Z"],
     santa: ["M19 26Q24 3 48 8L66 24L56 28Q32 17 19 26Z", "M19 29Q36 22 57 29L60 39L53 49L40 68L24 52L17 40Z", "M60 20A6 6 0 1 0 72 20A6 6 0 1 0 60 20"],
-    rocket: ["M36 8Q57 22 56 45L40 56L24 45Q23 23 36 8Z", "M24 33L13 49L24 47M56 33L67 49L56 47", "M31 55L31 71L40 63L47 73L49 55"],
-    glass: ["M24 8H56L52 34Q40 49 28 34ZM40 43V65M27 69H53", "M28 25H52"],
-    eggs: ["M26 22C9 26 6 54 22 60C40 65 44 35 26 22Z", "M53 8C34 14 34 43 51 45C70 46 72 16 53 8Z", "M59 40C40 45 42 70 60 71C78 69 78 46 59 40Z"]
+    rocket: [
+      { d: "M26 24L39 7L52 24Z", "data-motif-part": "paper-cap" },
+      { d: "M29 25H49V47H29Z", fill: "none", "data-motif-part": "firework-body" },
+      { d: "M30 29L48 37M30 37L48 45", fill: "none" },
+      { d: "M39 48V74", fill: "none", "stroke-width": 2.8, "data-motif-part": "guide-stick" },
+      { d: "M29 45C19 48 25 55 16 57", fill: "none", "data-motif-part": "fuse" },
+      { d: "M12 53L9 50M11 58H6M14 62L12 66M19 61L22 64", fill: "none", "data-motif-part": "sparks" }
+    ],
+    glass: [
+      { d: "M17 12H32L31 30C30 40 20 40 19 30Z", fill: "none", transform: "rotate(22 25 40)", "data-motif-part": "flute" },
+      { d: "M25 39V63M16 65H34M20 27H30", fill: "none", transform: "rotate(22 25 40)" },
+      { d: "M48 12H63L61 30C60 40 50 40 49 30Z", fill: "none", transform: "rotate(-22 55 40)", "data-motif-part": "flute" },
+      { d: "M55 39V63M46 65H64M50 27H60", fill: "none", transform: "rotate(-22 55 40)" },
+      { d: "M36 8L32 4M44 8L48 4M40 7V2", fill: "none", "data-motif-part": "clink" },
+      { d: "M8 9L12 13M68 7L65 12M7 35L4 31L8 27M72 28L76 31L72 35M12 49L8 52M68 52L72 56", fill: "none", "data-motif-part": "confetti" },
+      { d: "M18 3H21V6H18ZM60 2H63V5H60ZM3 18H6V21H3ZM74 16H77V19H74Z", "data-motif-part": "confetti" }
+    ],
+    eggs: [
+      { d: "M25 14C18 14 11 33 11 43C11 60 39 60 39 43C39 33 32 14 25 14Z", fill: "none", "data-motif-part": "painted-egg" },
+      { d: "M13 35L19 31L25 35L31 31L37 35M12 44C18 39 22 49 28 44S35 42 38 44", fill: "none", "data-motif-part": "egg-pattern" },
+      { d: "M54 5C46 5 39 24 39 35C39 53 69 53 69 35C69 24 62 5 54 5Z", fill: "none", "data-motif-part": "painted-egg" },
+      { d: "M42 24C48 20 60 29 66 24M40 34L47 30L54 34L61 30L68 34M44 43C50 39 58 47 64 43", fill: "none", "data-motif-part": "egg-pattern" },
+      { d: "M5 67Q40 58 75 67M11 66L7 57M18 64L17 55M65 64L68 55M72 66L77 59", fill: "none", "data-motif-part": "spring-grass" },
+      { d: "M38 63C25 49 21 61 38 65C55 51 59 63 41 65M38 65L30 74M41 65L49 73", fill: "none", "data-motif-part": "ribbon" }
+    ]
   });
   function element(name, attrs = {}) {
     const result = document.createElementNS(ns, name);
@@ -77,7 +99,9 @@
     if (!Object.hasOwn(shapes, kind)) return null;
     const svg = element("svg", { viewBox: "0 0 80 80", "aria-hidden": "true", focusable: "false" });
     svg.dataset.appearanceWatermark = kind;
-    for (const d of shapes[kind]) svg.append(element("path", { d, fill: "currentColor", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    for (const shape of shapes[kind]) svg.append(element("path", { fill: "currentColor", stroke: "currentColor", "stroke-width": 2,
+      "stroke-linecap": "round", "stroke-linejoin": "round", ...(kind === "rocket" ? { transform: "rotate(20 40 40)" } : {}),
+      ...(typeof shape === "string" ? { d: shape } : shape) }));
     return svg;
   }
   function crystal() {

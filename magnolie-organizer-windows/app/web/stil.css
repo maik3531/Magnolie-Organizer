@@ -453,11 +453,11 @@ body[data-hilfsrahmen="an"] :focus-visible {
     radial-gradient(120% 90% at 50% 32%, #3b4a41 0%, #2e3a34 55%, #1e2723 100%);
 }
 
-#magnolie-saison { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: #e5ddc8; opacity: .12; z-index: 0; }
+#magnolie-saison { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: #f7f2e3; opacity: .22; z-index: 0; }
 #magnolie-saison svg { position: absolute; height: auto; max-width: 1cm; max-height: 1cm; }
 #schreibtisch > :not(#magnolie-saison) { z-index: 1; }
 .wo-tag[data-appearance-date] { position: relative; }
-.magnolie-feiertags-schatten { position: absolute; pointer-events: none; width: min(40%, 4cm); height: 75%; right: 8px; bottom: 5px; color: #826846; opacity: .055; }
+.magnolie-feiertags-schatten { position: absolute; pointer-events: none; width: min(40%, 4cm); height: 75%; right: 8px; bottom: 5px; color: #826846; opacity: .09; }
 .magnolie-darstellungstest { margin-block: 14px; }
 .magnolie-testmuster { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .magnolie-testmuster > div { width: 128px; height: 128px; }

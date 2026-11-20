@@ -20,6 +20,26 @@ try {
     assert.equal(svg.getAttribute("aria-hidden"), "true");
   }
   for (const kind of ["boots", "santa", "rocket", "glass", "eggs"]) assert.equal(appearance.stamp(kind).dataset.appearanceWatermark, kind);
+  const rocket = appearance.stamp("rocket"), glasses = appearance.stamp("glass"), eggs = appearance.stamp("eggs");
+  for (const part of ["paper-cap", "firework-body", "guide-stick", "fuse", "sparks"]) assert(rocket.querySelector(`[data-motif-part="${part}"]`), "A firework needs its paper body, stick and fuse, not spacecraft fins");
+  const flutes = [...glasses.querySelectorAll('[data-motif-part="flute"]')];
+  assert.equal(flutes.length, 2); assert.notEqual(flutes[0].getAttribute("transform"), flutes[1].getAttribute("transform"));
+  assert(glasses.querySelector('[data-motif-part="clink"]')); assert(glasses.querySelectorAll('[data-motif-part="confetti"]').length >= 2);
+  assert.equal(eggs.querySelectorAll('[data-motif-part="painted-egg"]').length, 2);
+  assert.equal(eggs.querySelectorAll('[data-motif-part="egg-pattern"]').length, 2);
+  assert(eggs.querySelector('[data-motif-part="spring-grass"]')); assert(eggs.querySelector('[data-motif-part="ribbon"]'));
+  for (const svg of [rocket, glasses, eggs]) {
+    assert.equal(svg.getAttribute("aria-hidden"), "true"); assert.equal(svg.getAttribute("focusable"), "false");
+    assert.equal(svg.querySelectorAll("image,script,foreignObject,a,animate,animateTransform").length, 0);
+    assert(svg.querySelector('path[fill="none"]'), "Outlined detail must not be swallowed by a solid silhouette");
+  }
+  for (const file of ["../web/stil.css", "../../magnolie-organizer-windows/app/web/stil.css"]) {
+    const css = fs.readFileSync(path.join(__dirname, file), "utf8"), rule = css.match(/#magnolie-saison \{([^}]+)\}/)[1];
+    const opacity = Number(rule.match(/opacity:\s*([\d.]+)/)[1]);
+    assert(opacity >= .18 && opacity <= .25, "Winter motifs must be more visible without dominating the desktop");
+    assert(rule.includes("pointer-events: none"));
+    assert(css.includes("@media print { #magnolie-saison, .magnolie-feiertags-schatten, #magnolie-test-hinweis { display: none !important; } }"));
+  }
   assert.equal(appearance.stamp("<svg>"), null);
   assert.throws(() => appearance.tray({ connected: "paired" }));
   assert.throws(() => appearance.tray({ sync: "true" }));
