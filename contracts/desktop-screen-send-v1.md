@@ -153,19 +153,24 @@ the real libwayland client and server, but no actual desktop compositor. EOF
 or invalid records retire the observation. The native helper announces each
 registry output before its name is ready. A known pending name prevents the
 feed from certifying a pre-Start baseline or a final removal. In the private
-run, a caller that already verified the backend can supply one settled feed. The portal records
-the observed pre-Start names at submission; the run waits for the exact new
+run, a caller that already verified the backend can supply one settled feed.
+With the native observer, `SelectSources` must finish before the portal owner
+requests a one-shot Wayland round trip and waits for its ordered acknowledgment.
+If it is missing after one second, the observer is retired; the portal still
+uses the original setup deadline and consent. The portal records the observed
+pre-Start names at submission; the run waits for the exact new
 instance before opening the media remote. Output or observer loss withdraws
 media authority. After successful portal Close, the run can wait up to 1.5 s
 for the disappearance of that instance and reports it separately from media
 drain. The draft attempt rechecks the proof when transport drain finishes;
 it cannot upgrade a missing proof after local completion. The current product
 neither verifies that route nor starts the observer; GTK admission still does
-not reuse the virtual-output slot. Native use must verify the exact broker
-route and an ordered, settled output baseline at Start (including pending
-Wayland name events), not infer either from a desktop name or socket alone.
-Real placement, window movement, and
-compositor cleanup must still be observed independently of media cleanup.
+not reuse the virtual-output slot. This Wayland barrier orders the observed
+events; it is not an atomic cross-service fence with the portal or evidence of
+which backend the broker selected. Native use must verify the exact broker
+route, not infer it from a desktop name or socket alone. Real placement,
+window movement, and compositor cleanup must still be observed independently
+of media cleanup.
 
 ## Retirement and acceptance
 

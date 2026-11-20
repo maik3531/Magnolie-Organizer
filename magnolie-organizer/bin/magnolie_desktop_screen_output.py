@@ -116,14 +116,16 @@ class KWinOutputFeed:
     or process/connection loss. No second observer can continue this feed.
     """
 
-    def __init__(self, *, require_announcement=False):
+    def __init__(self, *, require_announcement=False, synchronize=None):
         self._registry = object()
         self._live = {}
         self._unnamed = set()
         self._require_announcement = require_announcement
+        self._synchronize = synchronize
         self.witness = None
         self._closed = False
         self._taken = False
+        self._marked_start = False
 
     def take_for_run(self):
         if self._taken or self._closed or self.witness is None or self.witness.lost:
@@ -132,9 +134,15 @@ class KWinOutputFeed:
         return self.witness
 
     def mark_start(self):
-        if not self._taken or not self.settled:
+        if not self._taken or self._closed or self._marked_start:
+            raise PermissionError('kwin_original_output_baseline_unavailable')
+        if self._synchronize is not None and not self._synchronize():
+            return False
+        if not self.settled:
             raise PermissionError('kwin_original_output_baseline_unsettled')
         self.witness.mark_start()
+        self._marked_start = True
+        return True
 
     @property
     def settled(self):

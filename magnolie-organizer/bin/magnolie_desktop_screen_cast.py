@@ -159,6 +159,7 @@ class DesktopScreenCast:
         self.parent_window = parent_window
         self._require_original = require_original
         self._before_virtual_start = before_virtual_start
+        self._waiting_start = False
         self._ready, self._ended = selection_ready, ended
         name = bus.get_unique_name()
         if not name or not name.startswith(':'):
@@ -254,12 +255,21 @@ class DesktopScreenCast:
         self._new_request('SelectSources', '(oa{sv})', (self._session,), options, self._selected)
 
     def _selected(self, _fields):
+        self._waiting_start = True
+        self._maybe_start()
+
+    def _maybe_start(self):
+        if not self._waiting_start or not self._current():
+            return
         if self.mode == 'extend':
-            if self._before_virtual_start is not None:
-                self._before_virtual_start()
+            if self._before_virtual_start is not None and self._before_virtual_start() is not True:
+                return
+            if not self._current():
+                return
             # From submission onward the compositor might allocate an output,
             # even if the method reply or the portal Response is later lost.
             self._virtual_start_submitted = True
+        self._waiting_start = False
         self._new_request('Start', '(osa{sv})', (self._session, self.parent_window), {}, self._started)
 
     @property
@@ -356,6 +366,11 @@ class DesktopScreenCast:
             return False
 
     def _tick(self):
+        if self._waiting_start:
+            try:
+                self._maybe_start()
+            except Exception:
+                self.stop()
         # The source may have been removed by synchronous stop/retirement.
         return self._current()
 
