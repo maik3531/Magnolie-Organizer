@@ -62,6 +62,15 @@ capabilities and approvals. Neither grants input, webcam access or audio.
 
 ## Retirement and acceptance
 
+The Android viewer is a one-shot dialog attached to the original resumed
+Activity. Its explicit approval names the paired desktop and distinguishes the
+ordinary view from the extra display. It never requests Android screen-capture
+permission and is not a substitute for SEND. The native decoder checks the
+agreed dimensions again before allocation and before offering the bitmap.
+Only the latest undisplayed bitmap is retained; heartbeats do not redraw.
+Pausing the Activity, locking the phone or dismissing the viewer retires it.
+No image slot, window or approval survives a replacement Activity.
+
 Cancel, lock, viewer closure, source or geometry change, lost control parent,
 revocation or disconnect retire the original session. Stop first prevents future
 frame handoff and interrupts owned I/O. It then waits for the exact sender and
@@ -77,9 +86,9 @@ socket and PREPARED receipt and perform the guarded SEND control write. The
 separate Kotlin draft reader authenticates proof and records on its socket but
 requires the original caller to supply the authenticated SEND receipt. It
 rejects oversized or mismatched baseline JPEG headers before handing off
-the authenticated bytes. It does not decode or display images. The loopback
-interoperability test uses a controlled control handoff, not the application
-protocol or a phone viewer.
+the authenticated bytes. The lane itself does not decode or display images.
+The loopback interoperability test uses a controlled control handoff, not the
+application protocol or a phone viewer.
 Before allocation or advertising, check independent vectors and incompatible
 direction/mode/session rejection, data-before-SEND, stop during blocked I/O, and
 the real native phone viewer. Extended mode additionally needs the compositor

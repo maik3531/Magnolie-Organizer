@@ -1,0 +1,9 @@
+<resources>
+    <string name="desktop_screen_view_title">View desktop screen</string>
+    <string name="desktop_screen_extend_title">Use this phone as an extra display</string>
+    <string name="desktop_screen_view_prompt">Show the selected screen from %1$s? This does not allow remote control.</string>
+    <string name="desktop_screen_extend_prompt">Show the extra display of %1$s on this phone? This does not allow remote control.</string>
+    <string name="desktop_screen_view_accept">Show</string>
+    <string name="desktop_screen_view_stop">Stop viewing</string>
+    <string name="desktop_screen_view_picture">Computer screen</string>
+</resources>

@@ -1,0 +1,9 @@
+<resources>
+    <string name="desktop_screen_view_title">Desktop-Bildschirm ansehen</string>
+    <string name="desktop_screen_extend_title">Dieses Handy als zusätzlichen Bildschirm verwenden</string>
+    <string name="desktop_screen_view_prompt">Den ausgewählten Bildschirm von %1$s anzeigen? Das erlaubt keine Fernsteuerung.</string>
+    <string name="desktop_screen_extend_prompt">Den zusätzlichen Bildschirm von %1$s auf diesem Handy anzeigen? Das erlaubt keine Fernsteuerung.</string>
+    <string name="desktop_screen_view_accept">Anzeigen</string>
+    <string name="desktop_screen_view_stop">Anzeige beenden</string>
+    <string name="desktop_screen_view_picture">Computerbildschirm</string>
+</resources>
