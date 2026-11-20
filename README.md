@@ -1,5 +1,5 @@
 <p align="center">
-  <strong><a href="https://maik3531.github.io/Magnolie-Organizer/en/">Explore the Magnolie website</a></strong> ·
+  <strong><a href="https://maik3531.github.io/Magnolie-Organizer/">Explore the Magnolie website</a></strong> ·
   <a href="https://maik3531.github.io/Magnolie-Organizer/presse/">Press coverage</a>
 </p>
 

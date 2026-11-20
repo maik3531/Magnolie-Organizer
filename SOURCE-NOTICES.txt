@@ -8,6 +8,10 @@ https://github.com/maik3531/Magnolie-Organizer/tree/main/magnolie-handbuch/web
 icon.png is the Magnolie Notes Android application icon from:
 https://github.com/maik3531/Magnolie-Organizer/tree/main/fastlane/metadata/android/de-DE/images
 
+favicon-tray.svg is an unchanged copy of the Magnolie Organizer desktop/tray icon:
+https://github.com/maik3531/Magnolie-Organizer/blob/main/magnolie-organizer/symbole/magnolie-organizer.svg
+The earlier favicon.svg remains only as the decorative flower in the press masthead.
+
 Project licensing:
 https://github.com/maik3531/Magnolie-Organizer/blob/main/LICENSE
 Program and handbook sources: GPL-3.0-or-later, subject to individual notices.
