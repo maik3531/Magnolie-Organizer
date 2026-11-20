@@ -8,6 +8,8 @@ namespace MagnolieOrganizer.Windows.Tests;
 internal static class WindowsUpdateTests
 {
     private static readonly string RepositoryManifest = Path.Combine(AppContext.BaseDirectory, "release-update.xml");
+    private const string RawBase = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/";
+    private const string RegistryBase = "https://gitlab.com/api/v4/projects/78301901/packages/generic/magnolie-desktop/";
 
     internal static async Task RunAsync()
     {
@@ -40,7 +42,8 @@ internal static class WindowsUpdateTests
             "Eine DTD-/ENTITY-Deklaration wurde angenommen.");
         TestAssert.That(!WindowsUpdateService.IsExactPackageUrl(
             "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-Windows-2.0.14-Setup-x64.exe?x=1",
-            "Magnolie-Organizer-Windows-2.0.14-Setup-x64.exe"), "Eine Update-URL mit Query wurde angenommen.");
+            "Magnolie-Organizer-Windows-2.0.14-Setup-x64.exe", "2.0.14"), "Eine Update-URL mit Query wurde angenommen.");
+        CheckRegistryUrlPolicy(signed, parsed.Windows.Version);
 
         using (var command = BridgeDispatcherContract.Parse("{\"cmd\":\"update_herunterladen\"}")) { }
         using (var command = BridgeDispatcherContract.Parse("{\"cmd\":\"update_installieren\"}")) { }
@@ -53,6 +56,7 @@ internal static class WindowsUpdateTests
         var release = new ValidatedRelease("9.8.7",
             "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe",
             sha, "windows");
+        await CheckRegistryDownloadAsync(signed, package, release);
         var root = Path.Combine(Path.GetTempPath(), "magnolie-update-test-" + Guid.NewGuid().ToString("N"));
         string started = "";
         try
@@ -140,6 +144,139 @@ internal static class WindowsUpdateTests
         }
     }
 
+    private static void CheckRegistryUrlPolicy(string signed, string signedVersion)
+    {
+        const string version = "9.8.7";
+        const string installer = "Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe";
+        var registry = RegistryBase + version + "/" + installer;
+        TestAssert.That(WindowsUpdateService.ManifestUrl == RawBase + "update.xml",
+            "Die feste Manifest-Adresse darf durch Registry-Kompatibilität nicht wechseln.");
+        foreach (var file in new[] { installer, "magnolie-organizer_9.8.7_all.deb",
+            "magnolie-handbuch_9.8.7_all.deb", "Magnolie-Organizer-9.8.7-x86_64.AppImage" })
+        {
+            TestAssert.That(WindowsUpdateService.IsExactPackageUrl(RawBase + file, file, version) &&
+                            WindowsUpdateService.IsExactPackageUrl(RegistryBase + version + "/" + file, file, version),
+                "Nur der exakte bestehende Raw- oder zusätzliche Registry-Paketpfad muss angenommen werden.");
+        }
+        var invalid = new[]
+        {
+            registry.Replace("/78301901/", "/78301902/", StringComparison.Ordinal),
+            registry.Replace("/magnolie-desktop/", "/magnolie-notes-fdroid-reference/", StringComparison.Ordinal),
+            registry.Replace("/9.8.7/", "/9.8.8/", StringComparison.Ordinal),
+            registry.Replace("Setup-x64.exe", "Setup-x86.exe", StringComparison.Ordinal),
+            registry.Replace("https://", "http://", StringComparison.Ordinal),
+            registry.Replace("gitlab.com", "gitlab.com.example.invalid", StringComparison.Ordinal),
+            registry.Replace("gitlab.com", "GITLAB.COM", StringComparison.Ordinal),
+            registry.Replace("gitlab.com", "gitlab.com:443", StringComparison.Ordinal),
+            registry.Replace("gitlab.com", "gitlab.com:8443", StringComparison.Ordinal),
+            registry.Replace("gitlab.com", "user@gitlab.com", StringComparison.Ordinal),
+            registry.Replace("/9.8.7/", "/%39.8.7/", StringComparison.Ordinal),
+            registry.Replace("/9.8.7/", "/9.8.7/unused/../", StringComparison.Ordinal),
+            registry.Replace("/9.8.7/", "/9.8.7/./", StringComparison.Ordinal),
+            registry.Replace("/9.8.7/", "/9.8.7/%2e/", StringComparison.Ordinal),
+            registry.Replace("/9.8.7/", "/9.8.7%2f", StringComparison.Ordinal),
+            registry.Replace("/9.8.7/", "/9.8.7\\", StringComparison.Ordinal),
+            registry.Replace(installer, "%4d" + installer[1..], StringComparison.Ordinal),
+            registry + "?", registry + "?download=1", registry + "#", registry + "#payload",
+            registry + "/", " " + registry, registry + "\n"
+        };
+        foreach (var target in invalid)
+            TestAssert.That(!WindowsUpdateService.IsExactPackageUrl(target, installer, version),
+                "Eine fremde oder nicht kanonisch geschriebene Registry-Adresse wurde angenommen.");
+        foreach (var suffix in new[] { "?x=1", "#payload", "/", "\n" })
+            TestAssert.That(!WindowsUpdateService.IsExactPackageUrl(RawBase + installer + suffix, installer, version),
+                "Die bestehende Raw-Route darf keine zusätzlichen URL-Bestandteile akzeptieren.");
+        TestAssert.That(!WindowsUpdateService.IsExactPackageUrl(registry, installer, "9.8.8"),
+            "Das Registry-Verzeichnis muss an die signierte Hauptversion gebunden sein.");
+        TestAssert.That(!WindowsUpdateService.IsExactPackageUrl(RawBase + "../" + installer, "../" + installer, version),
+            "Ein manipuliertes erwartetes Dateinamenargument darf keinen Pfad einschleusen.");
+
+        // There is deliberately no alternate public key or fabricated production
+        // signature. Repointing a real signed Raw manifest must reach signature
+        // verification and fail there even when all new Registry URLs are allowed.
+        var repointed = signed.Replace(RawBase, RegistryBase + signedVersion + "/", StringComparison.Ordinal);
+        TestAssert.That(repointed != signed, "Die Registry-Manipulationsfixture enthält keine URL-Änderung.");
+        try
+        {
+            _ = WindowsUpdateService.ValidateManifest(repointed);
+            throw new InvalidOperationException("Ein nachträglich auf Registry umgebogenes Manifest wurde angenommen.");
+        }
+        catch (InvalidDataException error)
+        {
+            TestAssert.That(error.Message.Contains("signature", StringComparison.OrdinalIgnoreCase),
+                "Die exakten Registry-Adressen müssen die URL-Prüfung passieren; die vorhandene Signatur muss sie dennoch ablehnen.");
+        }
+    }
+
+    private static async Task CheckRegistryDownloadAsync(string signed, byte[] package, ValidatedRelease rawRelease)
+    {
+        var release = rawRelease with { Url = RegistryBase + rawRelease.Version + "/" + Path.GetFileName(new Uri(rawRelease.Url).AbsolutePath) };
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-registry-update-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            // The existing test-only initialRelease seam supplies synthetic bytes;
+            // this is a transport/hash test, never a signed release/native proof.
+            using var updater = new WindowsUpdateService(root, new FixtureHandler(signed, package), false,
+                _ => true, release);
+            TestAssert.That(updater.IsValidatedReleaseUrl(release.Url) &&
+                            !updater.IsValidatedReleaseUrl(rawRelease.Url) &&
+                            !updater.IsValidatedReleaseUrl(release.Url.Replace("/9.8.7/", "/9.8.8/", StringComparison.Ordinal)),
+                "Die manuelle Registry-URL ist nicht an die zuvor geprüfte exakte Adresse gebunden.");
+            TestAssert.That((await updater.DownloadAsync()).Ok && updater.PrepareInstallation().Ok,
+                "Das synthetische Registry-Paket wurde nicht mit bestehender Hash-/Installationsbindung geprüft.");
+        }
+        finally { try { Directory.Delete(root, true); } catch (Exception) { } }
+
+        foreach (var target in new[]
+        {
+            "https://example.invalid/payload.exe", rawRelease.Url,
+            release.Url.Replace("/78301901/", "/78301902/", StringComparison.Ordinal),
+            release.Url.Replace("/9.8.7/", "/9.8.8/", StringComparison.Ordinal),
+            release.Url.Replace("/9.8.7/", "/9.8.7/unused/../", StringComparison.Ordinal),
+            release.Url.Replace("/9.8.7/", "/%39.8.7/", StringComparison.Ordinal),
+            release.Url.Replace("gitlab.com", "gitlab.com:443", StringComparison.Ordinal),
+            "./" + Path.GetFileName(new Uri(release.Url).AbsolutePath)
+        })
+        {
+            root = Path.Combine(Path.GetTempPath(), "magnolie-registry-redirect-test-" + Guid.NewGuid().ToString("N"));
+            var handler = new FixtureHandler(signed, package) { RedirectTarget = new Uri(target, UriKind.RelativeOrAbsolute) };
+            try
+            {
+                using var updater = new WindowsUpdateService(root, handler, false, _ => true, release);
+                TestAssert.That(!(await updater.DownloadAsync()).Ok && handler.Requests == 1 &&
+                                !Directory.EnumerateFiles(Path.Combine(root, "updates")).Any(),
+                    "Ein abweichendes oder zuvor normalisiertes Registry-Redirectziel wurde angefordert.");
+            }
+            finally { try { Directory.Delete(root, true); } catch (Exception) { } }
+        }
+        foreach (var target in new[] { release.Url, new Uri(release.Url).AbsolutePath,
+                                      Path.GetFileName(new Uri(release.Url).AbsolutePath) })
+        {
+            root = Path.Combine(Path.GetTempPath(), "magnolie-registry-exact-redirect-test-" + Guid.NewGuid().ToString("N"));
+            var handler = new FixtureHandler(signed, package)
+            {
+                RedirectTarget = new Uri(target, UriKind.RelativeOrAbsolute), RedirectOnce = true
+            };
+            try
+            {
+                using var updater = new WindowsUpdateService(root, handler, false, _ => true, release);
+                TestAssert.That((await updater.DownloadAsync()).Ok && handler.Requests == 2,
+                    "Eine kanonisch geschriebene Weiterleitung auf dasselbe signierte Registry-Ziel wurde abgelehnt.");
+            }
+            finally { try { Directory.Delete(root, true); } catch (Exception) { } }
+        }
+        root = Path.Combine(Path.GetTempPath(), "magnolie-registry-hash-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            using var updater = new WindowsUpdateService(root, new FixtureHandler(signed, [.. package, 0]), false,
+                _ => throw new InvalidOperationException("Ein falsches Registry-Paket wurde gestartet."), release);
+            TestAssert.That(!(await updater.DownloadAsync()).Ok &&
+                            !Directory.EnumerateFiles(Path.Combine(root, "updates")).Any(),
+                "Ein Registry-Paket mit falschem Hash wurde vorbereitet oder nicht entfernt.");
+        }
+        finally { try { Directory.Delete(root, true); } catch (Exception) { } }
+    }
+
     private sealed class FailingHandler : HttpMessageHandler
     {
         internal const string Secret = "raw-transport-detail";
@@ -151,15 +288,21 @@ internal static class WindowsUpdateTests
     private sealed class FixtureHandler(string manifest, byte[] package) : HttpMessageHandler
     {
         internal bool RedirectPackage { get; init; }
+        internal Uri? RedirectTarget { get; init; }
+        internal bool RedirectOnce { get; init; }
+        internal int Requests { get; private set; }
+        private bool redirected;
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            Requests++;
             if (request.RequestUri?.AbsoluteUri == WindowsUpdateService.ManifestUrl)
                 return Task.FromResult(Response(HttpStatusCode.OK, Encoding.UTF8.GetBytes(manifest), "application/xml"));
-            if (RedirectPackage)
+            if ((RedirectPackage || RedirectTarget is not null) && (!RedirectOnce || !redirected))
             {
+                redirected = true;
                 var response = Response(HttpStatusCode.Redirect, [], "application/octet-stream");
-                response.Headers.Location = new Uri("https://example.invalid/payload.exe");
+                response.Headers.Location = RedirectTarget ?? new Uri("https://example.invalid/payload.exe");
                 return Task.FromResult(response);
             }
             return Task.FromResult(Response(HttpStatusCode.OK, package, "application/octet-stream"));

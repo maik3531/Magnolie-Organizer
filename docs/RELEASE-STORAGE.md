@@ -1,6 +1,7 @@
 # Schutz der GitLab-Releaseablage
 
-Quellarbeit zu [Issue #698](https://github.com/maik3531/Magnolie-Organizer/issues/698).
+Quellarbeit zu [Issue #698](https://github.com/maik3531/Magnolie-Organizer/issues/698)
+und [Anschlussarbeit #707](https://github.com/maik3531/Magnolie-Organizer/issues/707).
 Die bereinigten Git-/LFS-Historien dürfen durch neue Veröffentlichungen oder
 alte Arbeitsklone nicht erneut anwachsen. Pro verwaltetem Programm bleibt nach
 einem erfolgreich abgeschlossenen Wechsel genau eine veröffentlichte Version.
@@ -117,13 +118,60 @@ Betriebsprotokoll waren in dieser Arbeitsumgebung nicht vorhanden. Ihre
 Aufrufstellen müssen den neuen Ablauf übernehmen; der Quellpatch allein
 installiert keinen serverseitigen GitLab-Hook.
 
+## Vorbereiteter Übergang der Updateprogramme
+
+Die Windows- und Linux-Quellen akzeptieren zusätzlich zu den bisherigen
+Raw-Paketadressen ausschließlich diesen Generic-Registry-Kanal:
+
+`https://gitlab.com/api/v4/projects/78301901/packages/generic/magnolie-desktop/<Releaseversion>/<Dateiname>`
+
+Projekt-ID, Paketname, Version und vollständiger Dateiname müssen exakt passen.
+Eine andere Projekt-ID, ein anderer Kanal, eine andere Versionsablage,
+zusätzliche Pfadbestandteile, URL-Kodierungen, Query, Fragment, Zugangsdaten
+oder ein abweichender Port werden nicht als gleichwertiges Ziel behandelt.
+Es gibt keine allgemeine Freigabe von GitLab-URLs. Für Linux-Handbücher mit
+eigener Handbuchversion bleibt der Dateiname an diese signierte Version
+gebunden; der Registry-Ordner gehört zur signierten Desktop-Releaseversion.
+
+| Bezug | Bindung |
+|---|---|
+| Update-Manifest | Unverändert `https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/update.xml` |
+| Organizer-DEB | `magnolie-organizer_<Version>_all.deb` |
+| AppImage | `Magnolie-Organizer-<Version>-x86_64.AppImage`, Architektur `x86_64` |
+| Windows-Installer | `Magnolie-Organizer-Windows-<Version>-Setup-x64.exe` |
+| Linux-Handbuch | `magnolie-handbuch_<Handbuchversion>_all.deb` |
+
+Die Paketadressen bleiben Teil der Ed25519-signierten Nachricht. Das bloße
+Umschreiben eines gültigen Raw-Manifests auf Registry-Adressen macht seine
+Signatur ungültig. Beim Download bleiben SHA-256, Größenbegrenzung und die
+Bindung an die exakt zuvor geprüfte Adresse maßgeblich. Auch eine Weiterleitung
+von einer erlaubten Raw-Adresse zu einer erlaubten Registry-Adresse ist kein
+zulässiger Ersatz für die signierte Adresse.
+
+Diese Quelländerung ist eine Vorbereitung für neu gebaute Clients. Bereits
+installierte ältere Clients akzeptieren weiterhin nur ihre bisherigen
+Raw-Paketadressen. Ein späteres Umschalten des gemeinsam verwendeten Manifests
+auf Registry-Adressen würde deren automatische Aktualisierung blockieren,
+auch wenn zwischenzeitlich eine kompatible Clientversion angeboten wurde.
+Lange ausgeschaltete Geräte können diese Zwischenversion verpasst haben.
+
+Vor einer Aktivierung muss deshalb ein konkreter Übergang einschließlich
+solcher Altclients abgenommen sein. Die Quelländerung entscheidet weder über
+ein Supportende alter Clients noch über dauerhaft zusätzlich aufzubewahrende
+Brückenpakete. Sie ändert keine veröffentlichte Manifestdatei, erzeugt keine
+neue Versionsnummer und ersetzt keine native Installations- oder Updateprüfung.
+Der vorhandene Windows-Manifestvorbereitungsschritt bleibt beim bisherigen
+Raw-Kandidaten; erst `prepare-storage` erzeugt und signiert den gesonderten
+Registry-Export nach der bestehenden Freigabeprüfung.
+
+## Noch erforderlicher Produktivanschluss
+
 Vor der ersten Live-Aktivierung müssen die tatsächlich verwendeten
 Download-Metadaten vollständig in den Plan aufgenommen und ihre Bedeutung
 gegen den freigegebenen Satz geprüft werden. Insbesondere:
 
-- Bereits installierte Windows-/Linux-Updater akzeptieren bisher nur die
-  bisherigen Raw-Pfade. Der Übergang muss mit diesen Clients geprüft werden.
-  Die vorliegenden Sicherheitsprüfungen werden nicht pauschal erweitert.
+- Den oben beschriebenen Übergang mit bereits installierten Windows- und
+  Linux-Clients einschließlich ausgelassener Zwischenversionen nachweisen.
 - Die stabilen Notes- und QR-Bezugswege sowie die F-Droid-Referenz sind
   eigenständige Abhängigkeiten. Ein Desktopmanifest löst diese nicht ab.
 - APT-Pool, `Packages`, `Release`, `InRelease`, Signaturen und By-hash-Verweise
@@ -148,6 +196,14 @@ während einer laufenden Veröffentlichung, Pagination, fehlende Statistiken,
 Reserveüberschreitungen und Fehler während der Bereinigung. Diese Prüfungen
 belegen die Quelllogik; sie ersetzen weder einen Live-GitLab-Durchlauf noch
 native Update- und Paketabnahmen.
+
+Zusätzlich prüfen die Update-Tests die engen Raw-/Registry-Adressgrenzen,
+Signaturbindung, unveränderten Manifestbezug und abgewiesene Umleitungen.
+Ein Integrationstest übergibt einen mit einem flüchtigen Testschlüssel
+signierten echten `prepare-storage`-Export an den Linux-Manifestvalidator.
+Der Windows-Job verwendet die vorhandenen portablen `CoreTests` mit der
+Update-Testgruppe. Ein erfolgreicher Lauf unter Linux belegt keine native
+Windows-Installation, Authenticode-Abnahme oder Bedienprüfung.
 
 ## API-Grundlagen
 

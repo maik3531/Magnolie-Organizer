@@ -22,8 +22,8 @@ eingebundenen Diensten müssen in der Datenschutzerklärung nachvollzogen werden
 Die technische Bereitstellung der Seiten ist kein Nachweis vollständiger
 Rechtskonformität.
 
-Quellen und noch vor der Veröffentlichung zu vervollständigende Angaben sind
-in [WEBSITE-RECHT.md](WEBSITE-RECHT.md) dokumentiert.
+Quellen, bestätigte Anbieterangaben und Hinweise zur weiteren Pflege sind in
+[WEBSITE-RECHT.md](WEBSITE-RECHT.md) dokumentiert.
 
 ## Änderungen und Veröffentlichung
 
