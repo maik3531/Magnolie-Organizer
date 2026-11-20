@@ -36,7 +36,8 @@ class PhoneScreenCaptureServiceTest {
         var targetStarts = 0
         var targetStops = 0
         var joined = false
-        private var stop: AutoCloseable? = null
+        lateinit var handle: PhoneScreenCaptureHandle
+            private set
         private val output = object : PhoneScreenOutput {
             override val surface: Surface = Shadow.newInstanceOf(Surface::class.java)
             override fun requestStop() { targetStops++ }
@@ -62,11 +63,11 @@ class PhoneScreenCaptureServiceTest {
         }
 
         fun enqueue(): Intent {
-            stop = PhoneScreenServiceStarts.start(context, request, consent, 720, 1280, 160) { targetStarts++; output }
+            handle = PhoneScreenServiceStarts.start(context, request, consent, 720, 1280, 160) { targetStarts++; output }
             return checkNotNull(Shadows.shadowOf(context).nextStartedService)
         }
 
-        override fun close() { stop?.close() }
+        override fun close() { if (::handle.isInitialized) handle.close() }
     }
 
     private fun tick(millis: Long = 250) = Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(millis))
@@ -92,7 +93,9 @@ class PhoneScreenCaptureServiceTest {
         val actual = original.get()
         val shadow = Shadows.shadowOf(actual)
         val launch = first.enqueue()
+        assertThrows(IllegalStateException::class.java) { first.handle.requireActive() }
         assertEquals(Service.START_NOT_STICKY, actual.onStartCommand(launch, 0, 1))
+        first.handle.requireActive()
         assertEquals(1, first.opens)
         assertEquals(1, first.api.created)
         assertEquals(1, first.targetStarts)
@@ -107,12 +110,15 @@ class PhoneScreenCaptureServiceTest {
         assertEquals(1, first.targetStops)
         assertEquals(1, first.api.stopped)
         assertFalse(shadow.isStoppedBySelf)
+        assertThrows(IllegalStateException::class.java) { first.handle.requireActive() }
+        assertFalse(first.handle.isDrained())
         assertThrows(IllegalStateException::class.java) { replacement.enqueue() }
 
         // Even forced Android destruction does not make an undrained worker reusable.
         original.destroy()
         assertThrows(IllegalStateException::class.java) { replacement.enqueue() }
         first.joined = true
+        assertTrue(first.handle.isDrained())
         val nextLaunch = replacement.enqueue()
         val next = Robolectric.buildService(PhoneScreenCaptureService::class.java).create()
         try {
@@ -121,6 +127,8 @@ class PhoneScreenCaptureServiceTest {
             first.close()
             assertEquals(1, replacement.opens)
             assertEquals(0, replacement.targetStops)
+            replacement.handle.requireActive()
+            assertThrows(IllegalStateException::class.java) { first.handle.requireActive() }
             replacement.close()
             replacement.joined = true
             tick()

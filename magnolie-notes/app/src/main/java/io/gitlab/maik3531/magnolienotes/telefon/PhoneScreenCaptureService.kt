@@ -32,6 +32,12 @@ internal interface PhoneScreenOutput {
 /** An output setup attempt failed and could not confirm native teardown. */
 internal class PhoneScreenOutputCleanupException(cause: Exception) : IllegalStateException("screen_output_cleanup_unconfirmed", cause)
 
+/** Process-local control handle. Only the exact attached projection can prove capture current. */
+internal interface PhoneScreenCaptureHandle : AutoCloseable {
+    fun requireActive()
+    fun isDrained(): Boolean
+}
+
 /** Process-local one-shot handoff, never an Android grant in an Intent or on disk.
  * The caller supplies the original decoder/transport counterpart and must own
  * the opt-in guard. There is deliberately no boot, retry or browser entry point. */
@@ -52,6 +58,7 @@ internal object PhoneScreenServiceStarts {
         var failure: Exception? = null
             private set
         private var cleanupFailed = false
+        @Volatile private var active = false
 
         fun requireStart() {
             val now = SystemClock.elapsedRealtime()
@@ -82,11 +89,20 @@ internal object PhoneScreenServiceStarts {
             val run = PhoneScreenProjection(service, request, consent, ::stop)
             projection = run
             run.start(target.surface, width, height, density)
+            check(stoppingAt == null) { "screen_service_stopping" }
+            active = true
+        }
+
+        fun requireActive() {
+            check(active) { "screen_service_projection_inactive" }
+            request.requireCurrent()
+            check(active) { "screen_service_projection_inactive" }
         }
 
         fun stop(cause: Exception? = null) {
             if (cause != null && failure == null) failure = cause
             if (stoppingAt != null) return
+            active = false
             stoppingAt = SystemClock.elapsedRealtime()
             request.close() // Close admission before any native close or worker callback.
             val run = projection
@@ -118,7 +134,7 @@ internal object PhoneScreenServiceStarts {
     private var slot: Entry? = null
 
     fun startJpeg(context: Context, request: PhoneScreenViewRequest, consent: PhoneScreenViewConsent,
-        width: Int, height: Int, density: Int, pending: PhoneScreenFrameSlot): AutoCloseable {
+        width: Int, height: Int, density: Int, pending: PhoneScreenFrameSlot): PhoneScreenCaptureHandle {
         require(width in 2..1920 && height in 2..1920 && width * height <= 1920 * 1080)
         require(pending.matchesSize(width, height)) { "screen_original_frame_slot_shape" }
         return start(context, request, consent, width, height, density) {
@@ -133,7 +149,7 @@ internal object PhoneScreenServiceStarts {
     }
 
     fun start(context: Context, request: PhoneScreenViewRequest, consent: PhoneScreenViewConsent,
-        width: Int, height: Int, density: Int, output: () -> PhoneScreenOutput): AutoCloseable {
+        width: Int, height: Int, density: Int, output: () -> PhoneScreenOutput): PhoneScreenCaptureHandle {
         mainThread()
         check(Build.VERSION.SDK_INT >= 29) { "screen_projection_version_unsupported" }
         require(width in 1..4096 && height in 1..4096 && width.toLong() * height <= 4096L * 2160 && density in 1..1000)
@@ -152,9 +168,16 @@ internal object PhoneScreenServiceStarts {
             reap()
             throw error
         }
-        return AutoCloseable {
-            mainThread()
-            if (slot === entry) { entry.stop(); reap() }
+        return object : PhoneScreenCaptureHandle {
+            override fun requireActive() = entry.requireActive()
+            override fun isDrained(): Boolean {
+                mainThread()
+                return entry.service == null && entry.drained()
+            }
+            override fun close() {
+                mainThread()
+                if (slot === entry) { entry.stop(); reap() }
+            }
         }
     }
 
