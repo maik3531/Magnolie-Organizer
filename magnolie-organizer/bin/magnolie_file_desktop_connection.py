@@ -2505,6 +2505,46 @@ class NativeDesktopFileConnection:
                 return owner.prepare_original(owner._issue_confirmed_action(current),journal,selected,destination,
                     first.selection_sha256)
 
+    def _inspect_gif_relocation_recovery(self,action):
+        """Read the original protected selection on this native connection; no replay."""
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal, RelocationOwnerCheckpoint
+        from magnolie_media_relocation_owner import ProtectedRelocationOwner, RelocationOwnerIntent
+        self._take_action(action)
+        with self._operation():
+            if (self._album_worker is not None or self._run is not None or self._source_pending is not None
+                    or self._source_run is not None or self._offer is not None or self._mapped_worker is not None):
+                raise TransferError('file_desktop_receive_already_active')
+            with (closing(ProtectedRelocationOwner(self._authority)) as owner,
+                    closing(ProtectedMediaRelocationJournal(self._authority)) as journal):
+                intent=owner.read_intent()
+                prepared=journal.read()
+                if intent is None:
+                    if prepared.associated or prepared.records or prepared.outcome_version is not None:
+                        raise TransferError('photo_relocation_original_owner_required')
+                    action.validate(self)
+                    return ()  # No visible operation; not evidence of first use.
+                witness=owner.require_checkpoint(intent)
+                binding=self._receive_binding(media_type='images');policy=self._receiving_policy()
+                self._verify_expected_mapping_store()
+                snapshot,roots=self._mappings._lookup_relocation_originals(intent.mappings)
+                destination=roots[0].destination;records={item.original_mapping_sha256:item for item in prepared.records}
+                if (RelocationOwnerCheckpoint.from_snapshot(prepared,destination)!=witness
+                        or RelocationOwnerIntent.for_selection(prepared.records,destination)!=intent
+                        or any(mapping.destination!=destination or (mapping.relative_path,mapping.parent_keys,mapping.file_key)
+                            !=(records[mapping.protected_record_sha256].source,records[mapping.protected_record_sha256].source_parents,
+                                records[mapping.protected_record_sha256].file.file_key) for mapping in roots)):
+                    raise TransferError('photo_relocation_original_mapping_changed')
+                def current():
+                    action.validate(self)
+                    if (self._receive_binding(media_type='images')!=binding or self._receiving_policy()!=policy
+                            or owner.require_checkpoint(intent)!=witness):
+                        raise TransferError('photo_relocation_original_owner_changed')
+                    return True
+                result=owner.inspect_bound_recovery(journal,destination,require_original=current)
+                if self._mappings.read()!=snapshot or journal.read()!=prepared:
+                    raise TransferError('photo_relocation_original_mapping_changed')
+                current();return result
+
     def inspect_photo_recovery(self, action):
         """Bounded native metadata overview; never a repair/publication permit.
 

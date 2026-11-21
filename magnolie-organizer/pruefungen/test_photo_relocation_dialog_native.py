@@ -15,7 +15,7 @@ from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_photo_relocation_dialog import _confirm_gif_relocation_selection
 from test_media_relocation_record import ANIMATED, GIF_FRAME, record
 from test_file_authenticated_desktop import native
-from test_file_desktop_receive import receiving
+from test_file_desktop_receive import receiving, reconnect
 
 
 @pytest.mark.parametrize('response',['yes','no','close','revoked','expired','destroy_parent','revoked_after_yes','expired_after_yes'])
@@ -149,3 +149,18 @@ def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,
         assert owner.require_checkpoint(intent)==witness
         prepared=journal.read()
         assert prepared.records==preview and not prepared.attempts and not prepared.outcomes
+    with reconnect(receiving) as fresh:
+        reopened=fresh[3];out=fresh[2].send.call_count
+        inode=source.stat().st_ino
+        def inspect():return reopened._inspect_gif_relocation_recovery(reopened.issue_receive_action())
+        observation,=inspect()
+        assert (observation.ordinal,observation.state,observation.grants_write_authority)==(0,'prepared_at_source',False)
+        new=b'a later local edit'
+        source.write_bytes(new)
+        observation,=inspect()
+        assert (observation.state,observation.grants_write_authority)==('held',False)
+        assert source.read_bytes()==new and source.stat().st_ino==inode and not target.exists()
+        assert reopened._mappings.read()==mappings and fresh[2].send.call_count==out
+        with (closing(ProtectedRelocationOwner(reopened._authority)) as owner,
+                closing(ProtectedMediaRelocationJournal(reopened._authority)) as journal):
+            assert owner.require_checkpoint(intent)==witness and journal.read()==prepared

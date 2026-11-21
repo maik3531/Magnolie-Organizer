@@ -142,6 +142,12 @@ the journal; opening the journal alone does not establish that owner.
 The private owner entry point now reads its own sealed intent and checkpoint,
 requires the original destination, and supplies the live guard to inspection.
 It does not accept a caller's checkpoint or restart an operation.
+The private connection readback resolves that destination from the complete
+protected historical mapping set. It matches each original path, parent chain
+and inode to the anchored records instead of taking a current preference path
+or a caller-supplied target. A fresh synthetic connection observed a prepared
+original; after a local edit it reported a hold with the file, mappings and
+journal unchanged. This is not yet exposed as a recovery action.
 
 The owner's checkpoint has a strict, path-free encoding: the confirmed
 selection digest (including the operation, preferences, and exact members),
