@@ -223,6 +223,10 @@ The private preparation path can bind the original folder plan, the exact
 materialized selection and the prepared rename journal in an independent sealed
 row. If approval ends after the journal commit but before that row is committed,
 the journal is not adopted or prepared again. No original is renamed here.
+The private connection can consume the original GTK handoff for this complete
+preparation path. Isolated tests cover both the seal-only path and preparation
+through actual parent creation, with an unchanged original and no replay after
+reconnect. The connection still exposes no user-facing move action.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in

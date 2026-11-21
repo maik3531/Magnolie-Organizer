@@ -2492,6 +2492,16 @@ class NativeDesktopFileConnection:
 
     def _record_confirmed_gif_folder_plan(self,confirmation,choices):
         """Bind the disclosed folder plan; this entry creates no directories."""
+        with self._confirmed_gif_folder_preparation(confirmation,choices) as (owner,journal,selected,destination,action):
+            return owner._record_confirmed_folder_plan(action,journal,selected,destination)
+
+    def _prepare_confirmed_gif_folder_relocation(self,confirmation,choices):
+        """Private native handoff through folder creation and journal preparation only."""
+        with self._confirmed_gif_folder_preparation(confirmation,choices) as (owner,journal,selected,destination,action):
+            return owner._prepare_after_gif_folder_creation(action,journal,selected,destination)
+
+    @contextmanager
+    def _confirmed_gif_folder_preparation(self,confirmation,choices):
         from magnolie_media_relocation_record import bind_gif_relocation_folder_plan
         from magnolie_photo_relocation_dialog import _ConfirmedGifFolderPlan
         if type(confirmation) is not _ConfirmedGifFolderPlan:
@@ -2504,7 +2514,7 @@ class NativeDesktopFileConnection:
                 for member in checked.members),first.destination)!=selected:
             raise TransferError('photo_relocation_confirmation_changed')
         with self._confirmed_gif_preparation(evidence,require_original) as (owner,journal,destination,action):
-            return owner._record_confirmed_folder_plan(action,journal,selected,destination)
+            yield owner,journal,selected,destination,action
 
     @contextmanager
     def _confirmed_gif_preparation(self,evidence,require_original):

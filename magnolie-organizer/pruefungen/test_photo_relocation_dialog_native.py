@@ -210,11 +210,12 @@ def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,
             assert owner.require_checkpoint(intent)==witness and journal.read()==prepared
 
 
-def test_confirmed_gif_folder_plan_is_sealed_without_creating_parents_or_a_rename_intent(receiving):
+@pytest.mark.parametrize('prepare_journal',[False,True],ids=['seal_only','prepare_journal'])
+def test_confirmed_gif_folder_plan_keeps_original_even_when_preparing_journal(receiving,prepare_journal):
     import gi
     gi.require_version('Gtk','3.0')
     from gi.repository import GLib, Gtk
-    from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+    from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal, RelocationOwnerCheckpoint
     from magnolie_media_relocation_owner import ProtectedRelocationOwner
     from test_file_desktop_album_worker import ALBUM, phone_batches
     from test_photo_animation_layout import animation
@@ -234,6 +235,8 @@ def test_confirmed_gif_folder_plan_is_sealed_without_creating_parents_or_a_renam
     jobs=connection._catalog.jobs();prefs=connection._preferences.read();messages=channel.send.call_count
     source=root/mapping.relative_path;group=root/'Animationen'
     plan=connection._preview_gif_relocation_selection(connection.issue_receive_action(),choices,_folder_plan=True)
+    handle=(connection._prepare_confirmed_gif_folder_relocation if prepare_journal
+        else connection._record_confirmed_gif_folder_plan)
     parent=Gtk.Window();parent.show()
     def click(response):
         def respond():
@@ -244,29 +247,44 @@ def test_confirmed_gif_folder_plan_is_sealed_without_creating_parents_or_a_renam
         return _confirm_gif_folder_plan(parent,plan,action,connection)
     try:
         with pytest.raises(TransferError,match='native_confirmation_required'):
-            connection._record_confirmed_gif_folder_plan(click(Gtk.ResponseType.NO),choices)
+            handle(click(Gtk.ResponseType.NO),choices)
         stale=click(Gtk.ResponseType.YES)
         group.mkdir(mode=0o700) # Synthetic external writer adds just the first parent.
         with pytest.raises(TransferError,match='confirmation_changed'):
-            connection._record_confirmed_gif_folder_plan(stale,choices)
+            handle(stale,choices)
         with closing(ProtectedRelocationOwner(connection._authority)) as owner:assert owner.read_folder_intent() is None
         group.rmdir()
         confirmed=click(Gtk.ResponseType.YES)
         with pytest.raises(TransferError,match='native_confirmation_required'):
             connection._prepare_confirmed_gif_relocation(confirmed,choices)
-        intent=connection._record_confirmed_gif_folder_plan(confirmed,choices)
+        result=handle(confirmed,choices)
+        if prepare_journal:intent,checkpoint=result
+        else:intent=result
         with pytest.raises(TransferError,match='native_confirmation_ended'):
-            connection._record_confirmed_gif_folder_plan(confirmed,choices)
+            handle(confirmed,choices)
     finally:parent.destroy()
     assert intent.selection_sha256==plan.selection_sha256
-    assert source.read_bytes()==ANIMATED and not group.exists()
+    assert source.read_bytes()==ANIMATED
+    target=group/mapping.relative_path
+    if prepare_journal:
+        assert target.parent.is_dir() and not list(target.parent.iterdir())
+    else:assert not group.exists()
     assert connection._mappings.read()==mappings and connection._catalog.jobs()==jobs
     assert connection._preferences.read()==prefs and channel.send.call_count==messages
     with reconnect(receiving) as fresh:
         reopened=fresh[3]
         with (closing(ProtectedRelocationOwner(reopened._authority)) as owner,
                 closing(ProtectedMediaRelocationJournal(reopened._authority)) as journal):
-            assert owner.read_folder_intent()==intent and not journal.read().records
+            assert owner.read_folder_intent()==intent
+            snapshot=journal.read()
+            if prepare_journal:
+                record,=snapshot.records
+                assert record.target==str(target.relative_to(root)) and not snapshot.attempts and not snapshot.outcomes
+                assert RelocationOwnerCheckpoint.from_snapshot(snapshot,mapping.destination)==checkpoint
+            else:assert not snapshot.records
             with pytest.raises(TransferError,match='folder_plan_held'):owner.read_intent()
-        with pytest.raises(TransferError,match='folder_plan_held'):
+        # A prepared journal rejects a fresh preview even before the owner
+        # check; plan-only has no journal and is rejected by the owner row.
+        hold='owner_already_recorded' if prepare_journal else 'folder_plan_held'
+        with pytest.raises(TransferError,match=f'^photo_relocation_{hold}$'):
             reopened._preview_gif_relocation_selection(reopened.issue_receive_action(),choices,_folder_plan=True)
