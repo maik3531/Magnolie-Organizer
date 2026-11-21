@@ -79,7 +79,7 @@ class PhoneWebcamWerkDispatchTest {
             TelefonRahmen.schreiben(desktop.getOutputStream(), JsonObject(header + ("ciphertext" to JsonPrimitive(TelefonKrypto.b64(encrypted)))))
             val message = parent.receive()
             if (message["type"] == JsonPrimitive("ack")) {
-                if (!work.receiveMediaSupportAck(peer, parent, 0, message))
+                if (!work.receiveMediaSupportAck(peer, parent, 0, message) && !work.receivePrivateMediaSettingsAck(parent, message))
                     work.handleSessionAck(peer, message, session, 0, TelefonTransportArt.WIFI, parent)
             }
             else work.receiveMessage(peer, message, parent, 0)
@@ -100,6 +100,11 @@ class PhoneWebcamWerkDispatchTest {
             val reader = readers[parent] ?: return false
             val attempt = field(reader.javaClass, "attempt").get(reader) as NativeMediaSupportAttempt?
             return attempt?.supports(parent) == true
+        }
+        fun privateMediaSettings(): NativeMediaSettingsLane? {
+            val readers = field(TelefonWerk::class.java, "mediaSupportReaders").get(work) as Map<*, *>
+            val reader = readers[parent] ?: return null
+            return field(reader.javaClass, "settings").get(reader) as NativeMediaSettingsLane?
         }
         fun capabilities(revision: Long, supported: Boolean, marker: Int = 24): JsonObject {
             val items = TelefonCapabilities.phase1().toMutableMap()
@@ -183,8 +188,25 @@ class PhoneWebcamWerkDispatchTest {
             assertFalse(f.supportedMedia())
             f.deliver(NativeMediaSupportAttempt.ack(local))
             assertTrue(f.supportedMedia())
+            assertNull(f.privateMediaSettings()) // Support alone may not create settings or a file owner.
+            val (identity, secret) = f.storage.identity("Controlled phone"); secret.fill(0)
+            val chosen = MediaSyncSettings.change(MediaSyncSettings.create(f.peer.device_id), f.peer.device_id,
+                identity.device_id, "enabled", JsonPrimitive(true))
+            fun settings(body: JsonObject) = TelefonNachrichten.message(MediaSyncSettings.KIND, body, 60_000)
+            val proposal = settings(chosen)
+            control(proposal)
+            val echo = f.receive()
+            assertEquals(JsonPrimitive(MediaSyncSettings.KIND), echo["kind"])
+            val lane = checkNotNull(f.privateMediaSettings())
+            f.deliver(TelefonNachrichten.ack(echo.string("message_id"), "accepted", "none"))
+            assertFalse(lane.matched()) // An ACK alone is not agreement on the merged settings.
+            val confirmation = settings(echo.getValue("body").jsonObject)
+            control(confirmation)
+            assertTrue(lane.matched())
+            assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(f.work))
             control(own(false))
             assertFalse(f.supportedMedia())
+            assertFalse(lane.matched())
             control(own(true))
             f.deliver(NativeMediaSupportAttempt.ack(local))
             f.deliver(remoteProbe())
@@ -194,7 +216,10 @@ class PhoneWebcamWerkDispatchTest {
             assertFalse(f.pipe.isClosed)
             assertFalse(f.work.state.value.mediaPreferencesSupported)
             f.context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
-                for (message in listOf(local, remote)) for (table in listOf("outbox", "inbox", "dedupe")) {
+                db.rawQuery("SELECT COUNT(*) FROM native_media_shared_settings", null).use {
+                    assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0))
+                }
+                for (message in listOf(local, remote, proposal, echo, confirmation)) for (table in listOf("outbox", "inbox", "dedupe")) {
                     db.rawQuery("SELECT COUNT(*) FROM $table WHERE message_id=?", arrayOf(message.string("message_id"))).use {
                         assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
                     }

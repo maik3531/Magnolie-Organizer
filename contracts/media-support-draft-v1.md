@@ -90,9 +90,14 @@ hello in the same ordered channel, so Linux can finish its control loop
 before dispatching the hello. `NativeMediaSupportSessionTest` runs both actual
 session loops with disposable pins over encrypted loopback, including the
 ordinary control phase and a heartbeat after discovery on the same parent.
+A second case opens a separate Linux settings owner on that parent and
+checks protected settings, matching ACK and echo on the actual Notes reader.
+Discovery alone opens no settings owner. The private Notes lane keeps its
+receipt IDs in memory, never in the personal outbox, and does not select the
+legacy gallery runtime. Actual dispatcher tests check loss of agreement on
+withdrawal while the stored preferences and parent connection are retained.
 A probe received by a pre-active reader may not be buffered or replayed. The
 Android private reader tracks only fresh acknowledged controls of that
 original transport, independently of legacy pre-write session flags. It does
-not use this observation for file access or batch authority. Android
-settings routing through this new observation and native file acceptance
-remain separate.
+not use this observation for file access or batch authority. Wiring this
+agreement to explicit UI actions and native file acceptance remains separate.

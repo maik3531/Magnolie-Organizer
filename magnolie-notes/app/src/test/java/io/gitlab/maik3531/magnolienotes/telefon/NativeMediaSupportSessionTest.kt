@@ -25,7 +25,11 @@ import org.robolectric.annotation.LooperMode
 class NativeMediaSupportSessionTest {
     private fun field(type: Class<*>, name: String) = type.getDeclaredField(name).apply { isAccessible = true }
 
-    @Test fun phoneInitiatesOnlyAfterWarmupAndLinuxCompletesOnSamePairing() {
+    @Test fun phoneInitiatesOnlyAfterWarmupAndLinuxCompletesOnSamePairing() = pairedSession(testSettings = false)
+
+    @Test fun phoneAndLinuxAgreeOnSettingsWithoutStartingTransfer() = pairedSession(testSettings = true)
+
+    private fun pairedSession(testSettings: Boolean) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("MediaSessionFixture", 1.0, "Isolated test keys") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -46,7 +50,9 @@ class NativeMediaSupportSessionTest {
             storage.setPersonalSync(true, false, false, false, false)
             val script = File("../magnolie-organizer/pruefungen/media_support_paired_peer.py").canonicalFile
             assertTrue(script.isFile)
-            val process = ProcessBuilder(System.getenv("MAGNOLIE_PYTHON") ?: "/usr/bin/python3", "-B", script.path)
+            val command = listOf(System.getenv("MAGNOLIE_PYTHON") ?: "/usr/bin/python3", "-B", script.path) +
+                if (testSettings) listOf("--settings") else emptyList()
+            val process = ProcessBuilder(command)
                 .redirectError(errors).start().also { host = it }
             val stdout = process.inputStream.bufferedReader()
             fun readHost(): String = tasks.submit<String> { checkNotNull(stdout.readLine()) { errors.readText() } }

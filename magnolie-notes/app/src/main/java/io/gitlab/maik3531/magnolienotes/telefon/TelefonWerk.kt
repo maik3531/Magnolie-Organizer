@@ -693,6 +693,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val controls = mutableMapOf<String, JsonObject>() // Werk monitor; only successfully written ACKs.
         var epoch: String? = null
         var attempt: NativeMediaSupportAttempt? = null
+        var settings: NativeMediaSettingsLane? = null
     }
 
     @Synchronized private fun observeMediaSupportControl(sessionPeer: TelefonPeer, message: JsonObject, reply: JsonObject,
@@ -766,6 +767,36 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (!attempt.ownsAck(channel, payload)) return false
         if (beginMediaSupport(sessionPeer, channel, generation) === attempt) attempt.receive(channel, payload)
         return true
+    }
+
+    @Synchronized private fun privateMediaSettings(channel: TelefonSecureChannel): NativeMediaSettingsLane? {
+        val reader = mediaSupportReaders[channel] ?: return null
+        val attempt = reader.attempt ?: return null
+        val binding = currentMediaBinding() ?: return null
+        // An existing legacy composition must never be replaced by discovery.
+        val peer = safePeer() ?: return null
+        if (MediaSyncSettings.DISCOVERY_VERSION in peer.remote_device_status_versions) return null
+        if (!privateMediaSettingsCurrent(reader, attempt, channel, binding)) return null
+        return reader.settings ?: NativeMediaSettingsLane(binding, mediaPreferences,
+            ready = { privateMediaSettingsCurrent(reader, attempt, channel, binding) },
+            write = { frame -> channel.sendEphemeral(frame, reader.pipe, {
+                check(attempt.supports(channel)) { "media_shared_original_reader_retired" }
+            }) }).also { reader.settings = it }
+    }
+
+    @Synchronized private fun privateMediaSettingsCurrent(reader: MediaSupportReader, attempt: NativeMediaSupportAttempt,
+        channel: TelefonSecureChannel, binding: MediaSettingsBinding): Boolean {
+        val peer = safePeer() ?: return false
+        if (!mediaSupportReaderCurrent(reader, channel, peer) || currentMediaBinding() != binding) {
+            attempt.close()
+            return false
+        }
+        return attempt.supports(channel) && Ablage.hole(context).synchronisationsSchreibbar()
+    }
+
+    internal fun receivePrivateMediaSettingsAck(channel: TelefonSecureChannel, payload: JsonObject): Boolean {
+        val settings = synchronized(this) { mediaSupportReaders[channel]?.settings }
+        return settings?.receiveAck(payload) == true
     }
 
     @Synchronized private fun currentMediaBinding(): MediaSettingsBinding? {
@@ -2872,6 +2903,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         "pong" -> TelefonNachrichten.validateHeartbeat(payload)
                         "ack" -> {
                             if (receiveMediaSupportAck(peer, channel, generation, payload)) continue
+                            if (receivePrivateMediaSettingsAck(channel, payload)) continue
                             mediaTransport(channel)?.acknowledge(payload)
                              handleSessionAck(peer, payload, noteSession, generation, transport, channel)
                         }
@@ -2985,6 +3017,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (message["kind"] in setOf(JsonPrimitive("capabilities.update"), JsonPrimitive("grants.update"), JsonPrimitive("personal_sync.settings")))
             media?.invalidate()
         if (message["kind"] == JsonPrimitive(MediaSyncSettings.KIND)) {
+            val settings = privateMediaSettings(channel)
+            if (settings != null) {
+                settings.receive(message)
+                return // This settings-only lane never enters legacy media workers or the personal outbox.
+            }
             if (media == null) {
                 TelefonNachrichten.validate(message)
                 channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
