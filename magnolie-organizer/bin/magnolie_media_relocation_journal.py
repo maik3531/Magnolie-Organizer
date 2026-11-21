@@ -4,6 +4,7 @@ Not exposed to the UI. A local rename requires a live native owner and a
 durably spent attempt. This journal never changes a saved mapping.
 """
 from dataclasses import dataclass, replace
+from contextlib import ExitStack
 from hashlib import sha256
 import os
 
@@ -11,6 +12,7 @@ from magnolie_file_control import _hex
 from magnolie_file_transfer import TransferError
 from magnolie_media_relocation_anchor import RelocationAnchor
 from magnolie_media_relocation_record import MediaRelocationRecord, bind_relocation_selection
+from magnolie_media_retention import NativeMediaRetention
 from magnolie_photo_destination import NativePhotoDestinationAction, require_media_directory
 from magnolie_photo_mappings import NativeSavedPhotoMapping
 from magnolie_photo_preferences import ProtectedPhotoPreferences
@@ -249,19 +251,29 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                 or type(index) is not int or not 0<=index<len(expected.records) or not callable(require_original)):
             raise TransferError('photo_relocation_original_checkpoint_required')
         action.consume(self)
+        book_check=None
         def current():
             action.validate(self)
             if require_original() is not True:raise TransferError('photo_relocation_original_owner_ended')
+            if book_check is not None:book_check()
             return True
         with self._operation():
             if not self._open():raise TransferError('photo_relocation_original_journal_changed')
-            with self._locked():
+            with self._locked(), ExitStack() as lifetime:
                 self._schema();before=self._anchored_snapshot();current()
                 if before!=expected:raise TransferError('photo_relocation_original_journal_changed')
                 if index in dict(before.outcomes):raise TransferError('photo_relocation_outcome_already_recorded')
                 record=before.records[index]
                 if rename:
                     if index in before.attempts:raise TransferError('photo_relocation_attempt_already_spent')
+                    retention=lifetime.enter_context(NativeMediaRetention(self._native_directory()))
+                    def require_book():
+                        if retention.saved_book_version()!=record.book_sha256:
+                            raise TransferError('photo_relocation_original_book_changed')
+                        return True
+                    lease=lifetime.enter_context(retention.activity(require_book,exclusive=True))
+                    if lease is None:raise TransferError('photo_relocation_media_activity_busy')
+                    book_check=lease;current()
                     require_media_directory(destination.path+'/'+record.source)
                     require_media_directory(destination.path+'/'+record.target)
                     if record.observe_native(destination,current,require_animation=True)!='at_source':

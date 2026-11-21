@@ -55,6 +55,7 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
     from test_media_relocation_record import ANIMATED
     from magnolie_media_relocation_record import MediaRelocationRecord, RelocationFileWitness, bind_relocation_selection
     from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+    from magnolie_media_retention import NativeMediaRetention
     from magnolie_photo_destination import plan_special_folder_path
 
     service,peer,channel,connection,target=receiving
@@ -74,7 +75,9 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
     destination.parent.parent.mkdir(mode=0o700);destination.parent.mkdir(mode=0o700)
     def key(path):
         info=path.stat();return info.st_dev,info.st_ino
-    record=MediaRelocationRecord('4'*32,'0'*64,'1'*64,preference_snapshot.version,origin.mapping_sha256,key(target),
+    with NativeMediaRetention(connection._authority.binding.native_directory) as book:
+        saved_book=book.saved_book_version()
+    record=MediaRelocationRecord('4'*32,'0'*64,saved_book,preference_snapshot.version,origin.mapping_sha256,key(target),
         mapping.parent_keys,(key(target),key(destination.parent.parent),key(destination.parent)),origin.mapped_path,planned,
         RelocationFileWitness(mapping.file_key,len(ANIMATED),sha256(ANIMATED).hexdigest()))
     assert record.file.sha256!=mapping.saved_sha256

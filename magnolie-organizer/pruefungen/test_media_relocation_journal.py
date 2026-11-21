@@ -13,6 +13,7 @@ from test_file_authenticated_desktop import native, bind
 from magnolie_file_transfer import TransferError
 from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
 from magnolie_media_relocation_record import bind_relocation_selection
+from magnolie_media_retention import NativeMediaRetention, saved_book_retention
 from magnolie_optional_phone import selected_modules
 
 
@@ -229,8 +230,10 @@ def test_relocation_modules_follow_the_existing_optional_photo_composition():
 
 def test_native_animation_rename_preserves_inode_bytes_mode_and_mtime(receiving,tmp_path):
     entry,destination,source,target,raw=native_fixture(tmp_path/'relocation',ANIMATED)
-    selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
     authority=receiving[3]._authority;original=source.stat()
+    with NativeMediaRetention(authority.binding.native_directory) as book:
+        entry=replace(entry,book_sha256=book.saved_book_version())
+    selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
     with closing(ProtectedMediaRelocationJournal(authority)) as journal:
         expected=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
         moved=journal.move_prepared_animation(journal.issue_action(),expected,0,destination,require_original=lambda:True)
@@ -248,7 +251,10 @@ def test_native_animation_rename_preserves_inode_bytes_mode_and_mtime(receiving,
 def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receiving,tmp_path,monkeypatch,fault):
     from magnolie_media_trash import _move_no_replace
     entry,destination,source,target,raw=native_fixture(tmp_path/'relocation',ANIMATED)
-    authority=receiving[3]._authority;selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
+    authority=receiving[3]._authority
+    with NativeMediaRetention(authority.binding.native_directory) as book:
+        entry=replace(entry,book_sha256=book.saved_book_version())
+    selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
     moves=[];withdrawn=[]
     def wrapped(*args,**kw):
         moves.append(True)
@@ -280,3 +286,23 @@ def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receivin
     else:assert source.read_bytes()==raw
     if fault=='late_collision':assert target.read_bytes()==b'foreign target'
     if fault=='revoked_after_spend':assert not target.exists()
+
+
+def test_native_move_requires_original_saved_book_and_exclusive_media_lane(receiving,tmp_path):
+    entry,destination,source,target,raw=native_fixture(tmp_path/'relocation',ANIMATED)
+    authority=receiving[3]._authority;directory=authority.binding.native_directory
+    with NativeMediaRetention(directory) as book:
+        entry=replace(entry,book_sha256=book.saved_book_version())
+        selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
+        with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+            prepared=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
+            with book.activity() as copy:
+                assert copy is not None
+                with pytest.raises(TransferError,match='media_activity_busy'):
+                    journal.move_prepared_animation(journal.issue_action(),prepared,0,destination,require_original=lambda:True)
+            with saved_book_retention(directory,{'einstellungen':{'papierkorb':{'an':True,'tage':0}}}) as saved:pass
+            assert not saved
+            with pytest.raises(TransferError,match='original_book_changed'):
+                journal.move_prepared_animation(journal.issue_action(),prepared,0,destination,require_original=lambda:True)
+            assert journal.require_prepared(prepared.version,version)==prepared
+    assert source.read_bytes()==raw and not target.exists()

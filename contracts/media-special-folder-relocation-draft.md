@@ -24,6 +24,11 @@ against coordinated loss or rollback of both stores: the future product owner
 must still bind the operation to the live saved book and hold any missing
 selection there rather than creating a new one.
 
+The private rename also takes the existing exclusive media activity lease
+and checks the exact native saved-book revision before spending an attempt
+and at later I/O boundaries. Changing the book, even to the same values,
+does not renew the original operation.
+
 The native no-replace syscall protects the target name. It does not atomically
 compare the source inode. A conflicting non-cooperating writer can still
 make the outcome uncertain; the draft neither deletes nor attempts a rollback
