@@ -159,11 +159,12 @@ and parent checks. A cut between commits remains held; restart cannot adopt a
 newer journal head or repeat the confirmation. The outer checkpoint is not
 an execution or restart grant. The current single peer-bound owner and the
 conservative hold for unmapped members are not the final conflict scope.
-The private GTK confirmation component defaults to No and matches an explicit
-Yes to the supplied selection digest only while the original window and action
-remain current. Close acts as No; expiry or revocation cannot yield a positive
-response. This component has no product entry point and no disk or permission
-effect. Binding the dialog response to the native move owner remains open.
+The private GTK confirmation component defaults to No. An explicit Yes while
+the original window and action are current returns the exact selection as a
+one-shot native handoff to the original caller. The same action and guard still
+apply when claiming it; its deadline is not renewed. Close acts as No and a
+digest alone is not a handoff. This component has no product entry point and
+no disk or permission effect. Binding it to protected preparation remains open.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in

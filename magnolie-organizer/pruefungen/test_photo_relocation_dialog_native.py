@@ -12,7 +12,7 @@ from magnolie_photo_relocation_dialog import _confirm_gif_relocation_selection
 from test_media_relocation_record import record
 
 
-@pytest.mark.parametrize('response',['yes','no','close','revoked','expired','destroy_parent'])
+@pytest.mark.parametrize('response',['yes','no','close','revoked','expired','destroy_parent','revoked_after_yes','expired_after_yes'])
 def test_native_gif_dialog_is_one_shot_default_no_and_requires_live_yes(response):
     import gi
     gi.require_version('Gtk','3.0')
@@ -47,7 +47,20 @@ def test_native_gif_dialog_is_one_shot_default_no_and_requires_live_yes(response
                 _confirm_gif_relocation_selection(parent,selection,action,owner)
         else:
             result=_confirm_gif_relocation_selection(parent,selection,action,owner)
-            assert result==(selection[0].selection_sha256 if response=='yes' else None)
+            if response in ('yes','revoked_after_yes','expired_after_yes'):
+                assert result.selection_sha256==selection[0].selection_sha256
+                with pytest.raises(TransferError,match='native_confirmation_ended'):result._claim(object())
+                if response=='revoked_after_yes':active[0]=False
+                if response=='expired_after_yes':now[0]=60_001
+                if response=='yes':
+                    originals,require_original=result._claim(owner)
+                    assert originals is selection and require_original() is True
+                    active[0]=False
+                    with pytest.raises(TransferError,match='native_guard_changed'):require_original()
+                else:
+                    with pytest.raises(TransferError,match='native_guard_changed|action_not_current'):result._claim(owner)
+                with pytest.raises(TransferError,match='native_confirmation_ended'):result._claim(owner)
+            else:assert result is None
         assert observed==[(True,True)]
         if response!='destroy_parent':
             with pytest.raises(TransferError,match='action_not_current'):

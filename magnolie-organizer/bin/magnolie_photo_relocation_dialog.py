@@ -1,4 +1,5 @@
 """Private GTK response for an exact GIF selection; no file or policy I/O."""
+from dataclasses import dataclass, field
 from gettext import gettext as _
 import threading
 
@@ -7,14 +8,39 @@ from magnolie_media_relocation_record import bind_relocation_selection
 from magnolie_photo_destination import NativePhotoDestinationAction
 
 
-def _confirm_gif_relocation_selection(parent, selection, action, native_owner):
-    """Return the displayed selection digest only for a live, explicit Yes.
+@dataclass(frozen=True,eq=False,slots=True)
+class _ConfirmedGifSelection:
+    """In-process, one-shot handoff of the exact selection, not a media grant."""
+    _selection: tuple
+    _action: NativePhotoDestinationAction
+    _owner: object
+    _claimed: threading.Event = field(init=False,default_factory=threading.Event,repr=False)
+    _gate: object = field(init=False,default_factory=threading.Lock,repr=False)
 
-    The caller owns the native action and its live UI guard. The digest is not
-    a write grant or a receipt and cannot reopen this prompt on the same action.
+    def _claim(self,native_owner):
+        with self._gate:
+            if self._claimed.is_set() or native_owner is not self._owner:
+                raise TransferError('photo_relocation_native_confirmation_ended')
+            self._claimed.set()
+        def require_original():
+            self._action.validate(native_owner)
+            return True
+        require_original()
+        return self._selection,require_original
+
+    @property
+    def selection_sha256(self):return self._selection[0].selection_sha256
+
+
+def _confirm_gif_relocation_selection(parent, selection, action, native_owner):
+    """Return a native handoff only for a live, explicit Yes.
+
+    The caller owns the original action and the live UI guard (including the
+    parent's lifetime after the response). This is not a write grant or receipt.
     """
     if (threading.current_thread() is not threading.main_thread()
             or type(action) is not NativePhotoDestinationAction
+            or not callable(action._native_current)
             or bind_relocation_selection(selection, occupied=()) != selection):
         raise TransferError('photo_relocation_native_confirmation_required')
     import gi
@@ -47,7 +73,7 @@ def _confirm_gif_relocation_selection(parent, selection, action, native_owner):
         if destroyed or not parent.get_mapped():
             raise TransferError('photo_relocation_native_confirmation_ended')
         action.validate(native_owner)
-        return selection[0].selection_sha256
+        return _ConfirmedGifSelection(selection,action,native_owner)
     finally:
         if dialog is not None:
             dialog.destroy()
