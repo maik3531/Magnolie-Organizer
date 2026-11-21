@@ -24,6 +24,8 @@ internal static class NativeMediaContentMime
             throw DeviceFileControl.Error("media_source_mime_bound");
         if (kind == "images")
         {
+            if (prefix.Length >= 6 && (prefix[..6].SequenceEqual("GIF87a"u8) || prefix[..6].SequenceEqual("GIF89a"u8)) &&
+                GifImage(prefix)) return "image/gif";
             if (prefix.Length >= 33 && prefix[..16].SequenceEqual(new byte[] { 137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82 }))
             {
                 Dimensions(BinaryPrimitives.ReadInt32BigEndian(prefix[16..20]), BinaryPrimitives.ReadInt32BigEndian(prefix[20..24]));
@@ -67,6 +69,45 @@ internal static class NativeMediaContentMime
             }
         }
         throw DeviceFileControl.Error("media_source_mime_unknown");
+    }
+    private static bool GifImage(ReadOnlySpan<byte> prefix)
+    {
+        if (prefix.Length < 13) return false;
+        var width = BinaryPrimitives.ReadUInt16LittleEndian(prefix[6..]);
+        var height = BinaryPrimitives.ReadUInt16LittleEndian(prefix[8..]);
+        Dimensions(width, height);
+        var globalTable = (prefix[10] & 128) != 0 ? 3 * (2 << (prefix[10] & 7)) : 0;
+        var offset = 13 + globalTable;
+        while (offset < prefix.Length)
+        {
+            var marker = prefix[offset++];
+            if (marker == 0x2c)
+            {
+                if (prefix.Length - offset < 9) return false;
+                var left = BinaryPrimitives.ReadUInt16LittleEndian(prefix[offset..]);
+                var top = BinaryPrimitives.ReadUInt16LittleEndian(prefix[(offset + 2)..]);
+                var columns = BinaryPrimitives.ReadUInt16LittleEndian(prefix[(offset + 4)..]);
+                var rows = BinaryPrimitives.ReadUInt16LittleEndian(prefix[(offset + 6)..]);
+                Dimensions(columns, rows);
+                if (left + columns > width || top + rows > height) return false;
+                var flags = prefix[offset + 8];
+                var localTable = (flags & 128) != 0 ? 3 * (2 << (flags & 7)) : 0;
+                if (globalTable == 0 && localTable == 0) return false;
+                offset += 9 + localTable;
+                return prefix.Length - offset >= 3 && prefix[offset] is >= 2 and <= 8 &&
+                    prefix[offset + 1] > 0 && prefix[offset + 1] <= prefix.Length - offset - 2;
+            }
+            if (marker != 0x21 || offset >= prefix.Length) return false;
+            offset++; // Extension label, followed by length-delimited sub-blocks.
+            while (true)
+            {
+                if (offset >= prefix.Length) return false;
+                var size = prefix[offset++];
+                if (size == 0) break;
+                offset += size;
+            }
+        }
+        return false;
     }
     private static void Dimensions(int width, int height)
     {

@@ -30,10 +30,39 @@ def _dimensions(width, height):
         raise TransferError('media_source_mime_dimensions')
 
 
+def _gif_image(prefix):
+    if len(prefix)<13:return False
+    width,height=struct.unpack_from('<HH',prefix,6)
+    _dimensions(width,height)
+    global_table=3*(2<<(prefix[10]&7)) if prefix[10]&128 else 0
+    offset=13+global_table
+    while offset<len(prefix):
+        marker=prefix[offset];offset+=1
+        if marker==0x2c: # Image descriptor, not an extension or an empty trailer.
+            if len(prefix)-offset<9:return False
+            left,top,columns,rows,flags=struct.unpack_from('<HHHHB',prefix,offset)
+            _dimensions(columns,rows)
+            if left+columns>width or top+rows>height:return False
+            local_table=3*(2<<(flags&7)) if flags&128 else 0
+            if not (global_table or local_table):return False
+            offset+=9+local_table
+            return (len(prefix)-offset>=3 and 2<=prefix[offset]<=8
+                    and 0<prefix[offset+1]<=len(prefix)-offset-2)
+        if marker!=0x21 or offset>=len(prefix):return False
+        offset+=1 # Extension label; walk bounded data sub-blocks, not a byte search.
+        while offset<len(prefix):
+            size=prefix[offset];offset+=1
+            if size==0:break
+            offset+=size
+        else:return False
+    return False
+
+
 def identify(prefix, total_bytes, kind):
     if type(prefix) not in (bytes, bytearray) or type(total_bytes) is not int or len(prefix) > PREFIX_BYTES or total_bytes < len(prefix) or total_bytes < 1:
         raise TransferError('media_source_mime_bound')
     if kind == 'images':
+        if prefix[:6] in (b'GIF87a',b'GIF89a') and _gif_image(prefix):return 'image/gif'
         if len(prefix) >= 33 and prefix[:16] == b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR':
             _dimensions(*struct.unpack_from('>ii', prefix, 16))
             if prefix[24] not in (1, 2, 4, 8, 16) or prefix[25] not in (0, 2, 3, 4, 6) or prefix[26] != 0 or prefix[27] != 0 or prefix[28] > 1:

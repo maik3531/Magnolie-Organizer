@@ -10,6 +10,12 @@ internal static class DeviceFileMediaMimeTests
         TestAssert.That(NativeMediaContentMime.Identify(png, png.Length, "images") == "image/png", "Actual PNG was not identified independently of a filename.");
         var jpeg = new byte[] { 255,216,255,224,0,4,0,0,255,192,0,8,8,0,10,0,20,1 };
         TestAssert.That(NativeMediaContentMime.Identify(jpeg, jpeg.Length, "images") == "image/jpeg", "Bounded JPEG frame dimensions were not identified.");
+        var gif = Convert.FromHexString("47494638396101000100800000000000ffffff" +
+            "21f90400010000002c0000000001000100000202440100" + "21f90400010000002c0000000001000100000202440100" + "3b");
+        TestAssert.That(NativeMediaContentMime.Identify(gif, gif.Length, "images") == "image/gif", "A valid GIF was not identified as a photo.");
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(gif, gif.Length, "video"), "GIF was relabeled as video.");
+        foreach (var invalidGif in new[] { gif[..6], gif[..19].Append((byte)0x3b).ToArray(), gif[..31] })
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(invalidGif, invalidGif.Length, "images"), "Truncated or empty GIF obtained a MIME.");
         var video = new byte[] { 0,0,0,20,102,116,121,112,109,112,52,50,0,0,0,0,105,115,111,109 };
         TestAssert.That(NativeMediaContentMime.Identify(video, video.Length, "video") == "video/mp4", "MP4 ftyp was not identified.");
         "qt  "u8.CopyTo(video.AsSpan(8));
