@@ -2395,7 +2395,7 @@ class NativeDesktopFileConnection:
             action.validate(self)
             return result
 
-    def _preview_gif_relocation_selection(self,action,choices):
+    def _preview_gif_relocation_selection(self,action,choices,*,_with_evidence=False):
         """Freeze an exact native selection, without prompting or persisting it."""
         from magnolie_file_control import _hex
         from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
@@ -2457,7 +2457,44 @@ class NativeDesktopFileConnection:
                     if (self._mappings.lookup(associations)!=(snapshot,mappings) or journal.read()!=empty
                             or owner.read_intent() is not None):
                         raise TransferError('photo_relocation_preview_changed')
-                    lease();return selection
+                    lease()
+                    if _with_evidence:
+                        return selection,(policy,binding,destination,snapshot,jobs)
+                    return selection
+
+    def _prepare_confirmed_gif_relocation(self,confirmation,choices):
+        """Revalidate a private native Yes and prepare its exact journal; never rename."""
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+        from magnolie_media_relocation_owner import ProtectedRelocationOwner
+        from magnolie_media_relocation_record import bind_relocation_selection
+        from magnolie_photo_relocation_dialog import _ConfirmedGifSelection
+        if type(confirmation) is not _ConfirmedGifSelection:
+            raise TransferError('photo_relocation_native_confirmation_required')
+        selected,require_original=confirmation._claim(self)
+        # This preview is a new read, not a new dialog, deadline or confirmation.
+        # Rebind only its provisional operation ID for exact snapshot equality.
+        probe=NativePhotoDestinationAction(self,lambda:time.monotonic_ns()//1_000_000,native_current=require_original)
+        checked,evidence=self._preview_gif_relocation_selection(probe,choices,_with_evidence=True)
+        first=selected[0]
+        if bind_relocation_selection(tuple(replace(record,operation=first.operation) for record in checked),occupied=())!=selected:
+            raise TransferError('photo_relocation_confirmation_changed')
+        with self._operation():
+            if (self._album_worker is not None or self._run is not None or self._source_pending is not None
+                    or self._source_run is not None or self._offer is not None or self._mapped_worker is not None):
+                raise TransferError('file_desktop_receive_already_active')
+            # Never replace the last authenticated views with whatever happens
+            # to be current after releasing the preview's shared lease.
+            policy,binding,destination,snapshot,jobs=evidence
+            def current():
+                require_original()
+                if (self._receiving_policy()!=policy or self._receive_binding(media_type='images')!=binding
+                        or self._mappings.read()!=snapshot or self._catalog.jobs()!=jobs):
+                    raise TransferError('photo_relocation_confirmation_changed')
+                return require_original()
+            with (closing(ProtectedRelocationOwner(self._authority)) as owner,
+                    closing(ProtectedMediaRelocationJournal(self._authority)) as journal):
+                return owner.prepare_original(owner._issue_confirmed_action(current),journal,selected,destination,
+                    first.selection_sha256)
 
     def inspect_photo_recovery(self, action):
         """Bounded native metadata overview; never a repair/publication permit.

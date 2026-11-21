@@ -164,7 +164,11 @@ the original window and action are current returns the exact selection as a
 one-shot native handoff to the original caller. The same action and guard still
 apply when claiming it; its deadline is not renewed. Close acts as No and a
 digest alone is not a handoff. This component has no product entry point and
-no disk or permission effect. Binding it to protected preparation remains open.
+no direct disk or permission effect. The private connection now consumes that
+handoff for preparation only. It compares a fresh read-only preview to the
+entire confirmed selection, then carries the same catalog, mapping, policy and
+binding witnesses into exclusive preparation. A changed catalog at that boundary
+holds without intent. Neither preparation nor its result authorizes a rename.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
