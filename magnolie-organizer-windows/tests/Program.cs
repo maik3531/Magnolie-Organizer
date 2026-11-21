@@ -413,6 +413,7 @@ runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent 
 runner.Add("Media offer envelope / strict context and shared canonical vector", MediaOfferEnvelopeTests.RunAsync);
 runner.Add("Published readback / shared vector and metadata-only authority", DevicePublishedReadbackTests.RunAsync);
 runner.Add("Media source MIME / bounded actual bytes and unknown formats", DeviceFileMediaMimeTests.ByteDerivedMimeAsync);
+runner.Add("Media source MIME / finite WebM probe leaves the sender unchanged", DeviceFileMediaMimeTests.WebmProbeAsync);
 runner.Add("Media source collection kinds / known exclusion preserves strict sender MIME", DeviceFileMediaMimeTests.CollectionKindsAsync);
 runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
 runner.Add("Device file native transport / actual secure echo / read-only identity", DeviceFileConnectionTransportTests.HandshakeAsync);

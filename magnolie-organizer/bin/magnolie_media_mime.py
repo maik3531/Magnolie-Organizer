@@ -104,6 +104,85 @@ def _bmp_image(prefix,total_bytes):
     return size in (0,pixel_bytes) and offset+pixel_bytes<=total_bytes
 
 
+def _ebml_element(prefix,offset,parent_end):
+    """Read one finite EBML element header without following SeekHead offsets."""
+    def vint(at,max_width,identifier=False):
+        if at>=min(len(prefix),parent_end) or not prefix[at]:raise ValueError('ebml_vint')
+        width=9-prefix[at].bit_length()
+        if width>max_width or at+width>min(len(prefix),parent_end):raise ValueError('ebml_vint')
+        value=int.from_bytes(prefix[at:at+width],'big')
+        if not identifier:
+            maximum=(1<<(7*width))-1;value&=maximum
+            if value==maximum:raise ValueError('ebml_unknown_length')
+        return value,at+width
+    element,payload=vint(offset,4,True)
+    length,payload=vint(payload,8)
+    end=payload+length
+    if end>parent_end:raise ValueError('ebml_parent_length')
+    return element,payload,end
+
+
+def _ebml_children(prefix,start,end):
+    for _ in range(1024):
+        if start==end:return
+        element,payload,next_element=_ebml_element(prefix,start,end)
+        yield element,payload,next_element
+        start=next_element
+    if start!=end:raise ValueError('ebml_child_bound')
+
+
+def _ebml_witnesses(prefix,start,end,wanted):
+    if end>len(prefix):raise ValueError('ebml_truncated_metadata')
+    items={}
+    for element,payload,next_element in _ebml_children(prefix,start,end):
+        if element in wanted:
+            if element in items:raise ValueError('ebml_duplicate_metadata')
+            items[element]=(payload,next_element)
+    return items
+
+
+def _ebml_uint(prefix,bounds):
+    start,end=bounds
+    if not 1<=end-start<=8:raise ValueError('ebml_integer')
+    return int.from_bytes(prefix[start:end],'big')
+
+
+def _webm_video(prefix,total_bytes):
+    """Conservative source proof for a finite WebM with one VP8/VP9 video track.
+
+    This does not decode frames or authorize a wire offer. Keep separate from
+    identify() until the native counterpart can verify the entire original.
+    """
+    if (type(prefix) not in (bytes,bytearray) or type(total_bytes) is not int or len(prefix)>min(PREFIX_BYTES,total_bytes)
+            or prefix[:4]!=b'\x1a\x45\xdf\xa3'):
+        return False
+    try:
+        _,start,end=_ebml_element(prefix,0,total_bytes)
+        if end>1024:return False
+        doc_start,doc_end=_ebml_witnesses(prefix,start,end,{0x4282})[0x4282]
+        if prefix[doc_start:doc_end]!=b'webm':return False
+        segment,start,end=_ebml_element(prefix,end,total_bytes)
+        if segment!=0x18538067 or end!=total_bytes:return False
+        video=False;seen_tracks=False
+        for element,payload,next_element in _ebml_children(prefix,start,end):
+            if element==0x1F43B675: # The first Cluster must have a payload, not just an empty header.
+                return video and payload<min(next_element,len(prefix))
+            if element!=0x1654AE6B:continue
+            if seen_tracks or next_element>len(prefix):return False
+            seen_tracks=True
+            for entry,track_start,track_end in _ebml_children(prefix,payload,next_element):
+                if entry!=0xAE:continue
+                track=_ebml_witnesses(prefix,track_start,track_end,{0x83,0x86,0xE0})
+                if _ebml_uint(prefix,track[0x83])!=1:continue  # Audio-only is not video.
+                codec_start,codec_end=track[0x86]
+                if video or prefix[codec_start:codec_end] not in (b'V_VP8',b'V_VP9'):return False
+                dimensions=_ebml_witnesses(prefix,*track[0xE0],{0xB0,0xBA})
+                _dimensions(_ebml_uint(prefix,dimensions[0xB0]),_ebml_uint(prefix,dimensions[0xBA]))
+                video=True
+        return False
+    except (KeyError,ValueError,TransferError):return False
+
+
 def identify(prefix, total_bytes, kind):
     if type(prefix) not in (bytes, bytearray) or type(total_bytes) is not int or len(prefix) > PREFIX_BYTES or total_bytes < len(prefix) or total_bytes < 1:
         raise TransferError('media_source_mime_bound')

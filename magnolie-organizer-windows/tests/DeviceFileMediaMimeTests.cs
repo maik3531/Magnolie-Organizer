@@ -71,4 +71,39 @@ internal static class DeviceFileMediaMimeTests
         TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.IdentifyCollection(png, 1, "images"), "Collection relaxed actual prefix bound.");
         return Task.CompletedTask;
     }
+
+    internal static Task WebmProbeAsync()
+    {
+        const string relative = "contracts/media-webm-probe-vectors.json";
+        var vectors = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(relative), relative)))!.AsObject();
+        byte[] Read(string name)
+        {
+            var record = vectors[name]!.AsObject(); var bytes = Convert.FromBase64String(record["base64"]!.GetValue<string>());
+            TestAssert.That(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant() ==
+                record["sha256"]!.GetValue<string>(), "Original synthetic bytes changed: " + name);
+            return bytes;
+        }
+        var webm = Read("webm"); var mkv = Read("matroska");
+        TestAssert.That(NativeMediaContentMime.ProbeFiniteWebmVideo(webm, webm.Length) &&
+            NativeMediaContentMime.ProbeFiniteWebmVideo(webm.AsSpan(0, 407), webm.Length), "Actual finite WebM not found in its bounded prefix.");
+        TestAssert.That(!NativeMediaContentMime.ProbeFiniteWebmVideo(mkv, mkv.Length), "Matroska with VP8 mislabeled as WebM.");
+        foreach (var cutoff in new[] { 0, 4, 17, 52, 250, 315, 406 })
+            TestAssert.That(!NativeMediaContentMime.ProbeFiniteWebmVideo(webm.AsSpan(0, cutoff), webm.Length), "Truncated probe accepted: " + cutoff);
+        foreach (var (oldBytes, newBytes) in new[] {
+            ("webm"u8.ToArray(), "mkv "u8.ToArray()), (new byte[] { 0x83, 0x81, 1 }, new byte[] { 0x83, 0x81, 2 }),
+            ("V_VP8"u8.ToArray(), "V_AV1"u8.ToArray()), (new byte[] { 0xb0, 0x81, 16 }, new byte[] { 0xb0, 0x81, 0 }),
+            (new byte[] { 0xba, 0x81, 16 }, new byte[] { 0xb0, 0x81, 16 }),
+            (new byte[] { 0x18, 0x53, 0x80, 0x67, 1 }, new byte[] { 0x18, 0x53, 0x80, 0x67, 0xff }) })
+        {
+            var changed = webm.ToArray(); var offset = changed.AsSpan().IndexOf(oldBytes);
+            TestAssert.That(offset >= 0, "Mutation no longer matches the source fixture.");
+            newBytes.CopyTo(changed, offset);
+            TestAssert.That(!NativeMediaContentMime.ProbeFiniteWebmVideo(changed, changed.Length), "Mutated WebM probe passed.");
+        }
+        foreach (var delta in new[] { -1, 1 })
+            TestAssert.That(!NativeMediaContentMime.ProbeFiniteWebmVideo(webm, webm.Length + delta), "Wrong saved file size was accepted.");
+        foreach (var kind in new[] { "images", "video" })
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaContentMime.Identify(webm, webm.Length, kind), "Probe changed the transport capability.");
+        return Task.CompletedTask;
+    }
 }

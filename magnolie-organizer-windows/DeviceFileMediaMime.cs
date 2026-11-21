@@ -72,6 +72,102 @@ internal static class NativeMediaContentMime
         }
         throw DeviceFileControl.Error("media_source_mime_unknown");
     }
+    // Probe only. Keep Identify strict until the selected native counterpart
+    // verifies the complete file and has permission to publish an original.
+    internal static bool ProbeFiniteWebmVideo(ReadOnlySpan<byte> prefix, long totalBytes)
+    {
+        if (prefix.Length is < 4 or > PrefixBytes || totalBytes < prefix.Length ||
+            BinaryPrimitives.ReadUInt32BigEndian(prefix) != 0x1a45dfa3) return false;
+        try
+        {
+            var header = EbmlRead(prefix, 0, totalBytes);
+            if (header.End > 1024) return false;
+            var document = EbmlWitnesses(prefix, header.Start, header.End, 0x4282);
+            if (!EbmlBytes(prefix, document[0x4282]).SequenceEqual("webm"u8)) return false;
+            var segment = EbmlRead(prefix, header.End, totalBytes);
+            if (segment.Id != 0x18538067 || segment.End != totalBytes) return false;
+            var tracksSeen = false; var video = false;
+            var offset = segment.Start;
+            for (var count = 0; offset < segment.End && count < 1024; count++)
+            {
+                var box = EbmlRead(prefix, offset, segment.End); offset = box.End;
+                if (box.Id == 0x1f43b675) return video && box.Start < Math.Min(box.End, prefix.Length);
+                if (box.Id != 0x1654ae6b) continue;
+                if (tracksSeen || box.End > prefix.Length) return false;
+                tracksSeen = true; var trackOffset = box.Start;
+                for (var index = 0; trackOffset < box.End; index++)
+                {
+                    if (index >= 1024) return false;
+                    var entry = EbmlRead(prefix, trackOffset, box.End); trackOffset = entry.End;
+                    if (entry.Id != 0xae) continue;
+                    var track = EbmlWitnesses(prefix, entry.Start, entry.End, 0x83, 0x86, 0xe0);
+                    if (EbmlUInt(prefix, track[0x83]) != 1) continue;
+                    var codec = EbmlBytes(prefix, track[0x86]);
+                    if (video || (!codec.SequenceEqual("V_VP8"u8) && !codec.SequenceEqual("V_VP9"u8))) return false;
+                    var settings = track[0xe0];
+                    var dimensions = EbmlWitnesses(prefix, settings.Start, settings.End, 0xb0, 0xba);
+                    Dimensions(checked((int)EbmlUInt(prefix, dimensions[0xb0])), checked((int)EbmlUInt(prefix, dimensions[0xba])));
+                    video = true;
+                }
+            }
+        }
+        catch (Exception error) when (error is InvalidDataException or KeyNotFoundException or OverflowException) { }
+        return false;
+    }
+
+    private readonly record struct EbmlElement(long Id, long Start, long End);
+
+    private static EbmlElement EbmlRead(ReadOnlySpan<byte> prefix, long offset, long parentEnd)
+    {
+        var id = EbmlVint(prefix, ref offset, parentEnd, 4, true);
+        var size = EbmlVint(prefix, ref offset, parentEnd, 8, false);
+        if (size > parentEnd - offset) throw DeviceFileControl.Error("media_ebml_parent_length");
+        return new(id, offset, offset + size);
+    }
+
+    private static long EbmlVint(ReadOnlySpan<byte> prefix, ref long offset, long parentEnd, int maxWidth, bool identifier)
+    {
+        var available = Math.Min(parentEnd, prefix.Length) - offset;
+        if (available < 1 || prefix[(int)offset] == 0) throw DeviceFileControl.Error("media_ebml_vint");
+        var marker = 128; var width = 1;
+        while ((prefix[(int)offset] & marker) == 0) { marker >>= 1; width++; }
+        if (width > maxWidth || width > available) throw DeviceFileControl.Error("media_ebml_vint");
+        long result = 0;
+        for (var i = 0; i < width; i++) result = (result << 8) | prefix[(int)offset++];
+        if (!identifier)
+        {
+            var maximum = (1L << (7 * width)) - 1;
+            result &= maximum;
+            if (result == maximum) throw DeviceFileControl.Error("media_ebml_unknown_length");
+        }
+        return result;
+    }
+
+    private static Dictionary<long, EbmlElement> EbmlWitnesses(ReadOnlySpan<byte> prefix, long start, long end, params long[] wanted)
+    {
+        if (end > prefix.Length) throw DeviceFileControl.Error("media_ebml_truncated_metadata");
+        var witnesses = new Dictionary<long, EbmlElement>();
+        for (var count = 0; start < end; count++)
+        {
+            if (count >= 1024) throw DeviceFileControl.Error("media_ebml_child_bound");
+            var element = EbmlRead(prefix, start, end); start = element.End;
+            if (wanted.Contains(element.Id) && !witnesses.TryAdd(element.Id, element))
+                throw DeviceFileControl.Error("media_ebml_duplicate_metadata");
+        }
+        return witnesses;
+    }
+
+    private static ReadOnlySpan<byte> EbmlBytes(ReadOnlySpan<byte> prefix, EbmlElement item) => prefix[(int)item.Start..(int)item.End];
+
+    private static ulong EbmlUInt(ReadOnlySpan<byte> prefix, EbmlElement item)
+    {
+        var value = EbmlBytes(prefix, item);
+        if (value.Length is < 1 or > 8) throw DeviceFileControl.Error("media_ebml_integer");
+        ulong result = 0;
+        foreach (var part in value) result = (result << 8) | part;
+        return result;
+    }
+
     private static bool GifImage(ReadOnlySpan<byte> prefix)
     {
         if (prefix.Length < 13) return false;
