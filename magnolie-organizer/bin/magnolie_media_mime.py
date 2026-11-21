@@ -154,6 +154,49 @@ def _bmp_image(prefix,total_bytes):
     return size in (0,pixel_bytes) and offset+pixel_bytes<=total_bytes
 
 
+def _tiff_rgb_image(prefix,total_bytes):
+    """Private proof for one classic 8-bit RGB TIFF strip; not sender support."""
+    if not 8<=len(prefix)<=min(PREFIX_BYTES,total_bytes):return False
+    order={b'II\x2a\0':'<',b'MM\0\x2a':'>'}.get(bytes(prefix[:4]))
+    if order is None:return False
+    try:
+        ifd=struct.unpack_from(order+'I',prefix,4)[0]
+        if ifd<8 or ifd&1 or ifd+2>len(prefix):return False
+        count=struct.unpack_from(order+'H',prefix,ifd)[0]
+        end=ifd+2+12*count+4
+        if not 1<=count<=64 or end>len(prefix) or struct.unpack_from(order+'I',prefix,end-4)[0]:return False
+        sizes=(0,1,1,2,4,8,1,1,2,4,8,4,8)
+        fields={};regions=[(0,8),(ifd,end)];previous=0
+        for pos in range(ifd+2,end-4,12):
+            tag,kind,items=struct.unpack_from(order+'HHI',prefix,pos)
+            if tag<=previous or not 1<=kind<len(sizes) or not items:return False
+            if tag in (322,323,324,325,330,338):return False # Tiles, subimages or extra samples.
+            width=sizes[kind]*items;start=pos+8
+            if width>4:
+                start=struct.unpack_from(order+'I',prefix,start)[0]
+                if start<8 or start&1 or start+width>len(prefix):return False
+                regions.append((start,start+width))
+            fields[tag]=(kind,items,start);previous=tag
+
+        def scalar(tag,kinds=(3,),default=None):
+            if tag not in fields and default is not None:return default
+            kind,items,start=fields[tag]
+            if kind not in kinds or items!=1:raise ValueError('not a baseline scalar')
+            return struct.unpack_from(order+('H' if kind==3 else 'I'),prefix,start)[0]
+
+        width,height=scalar(256,(3,4)),scalar(257,(3,4))
+        _dimensions(width,height)
+        kind,items,bits_at=fields[258]
+        if (kind,items)!=(3,3) or struct.unpack_from(order+'HHH',prefix,bits_at)!=(8,8,8):return False
+        if (scalar(259),scalar(262),scalar(266,default=1),scalar(277),scalar(284,default=1))!=(1,2,1,3,1):return False
+        if scalar(278,(3,4))<height:return False
+        strip=scalar(273,(3,4));length=scalar(279,(3,4))
+        if strip<8 or length!=3*width*height or strip+length>total_bytes:return False
+        regions.append((strip,strip+length));regions.sort()
+        return all(boundary<=following for (_,boundary),(following,_) in zip(regions,regions[1:]))
+    except (KeyError,ValueError,struct.error,TransferError):return False
+
+
 def _ebml_element(prefix,offset,parent_end):
     """Read one finite EBML element header without following SeekHead offsets."""
     def vint(at,max_width,identifier=False):
