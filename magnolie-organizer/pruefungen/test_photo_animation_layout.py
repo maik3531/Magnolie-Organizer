@@ -52,10 +52,12 @@ def test_special_folder_origin_uses_authenticated_manifest_not_the_album_prefix(
 
 def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_touching_receive_history(receiving):
     from contextlib import closing
+    import os
     from test_media_relocation_record import ANIMATED
     from magnolie_media_relocation_record import MediaRelocationRecord, RelocationFileWitness, bind_relocation_selection
     from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
     from magnolie_media_retention import NativeMediaRetention
+    from magnolie_media_source import NativeMappedMediaSource
     from magnolie_photo_destination import plan_special_folder_path
 
     service,peer,channel,connection,target=receiving
@@ -97,8 +99,17 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         assert committed.attempts==(0,) and committed.outcomes[0][1].phase=='moved'
         with pytest.raises(TransferError,match='original_journal_changed'):
             journal.resolve_moved_read_location(prepared,mapping,require_original=original_current)
+        def content_changed_at_relocated_path():
+            location=journal.resolve_moved_read_location(committed,mapping,require_original=original_current)
+            with NativeMappedMediaSource._file(location,original_current) as (fd,length,_,unchanged):
+                raw=os.pread(fd,length,0);unchanged();assert len(raw)==length
+                return (length,sha256(raw).hexdigest())!=(mapping.saved_size,mapping.saved_sha256)
+        assert content_changed_at_relocated_path() # The pre-move local edit is still an edit.
+        destination.write_bytes(b'hello') # Restore the exact saved fixture bytes, same inode.
+        assert not content_changed_at_relocated_path() # New path alone is not a change.
         local_edit=b'edited again after moving'
         destination.write_bytes(local_edit)
+        assert content_changed_at_relocated_path()
         located=journal.resolve_moved_read_location(committed,mapping,require_original=original_current)
         assert located.original==mapping and located.original.saved_sha256==sha256(b'hello').hexdigest()
         assert located.relative_path==planned and located.parent_keys==record.target_parents

@@ -35,6 +35,12 @@ class RelocatedReadLocation:
     relative_path: str
     parent_keys: tuple
 
+    @property
+    def destination(self):return self.original.destination
+
+    @property
+    def file_key(self):return self.original.file_key
+
 
 class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
     _SCHEMA={

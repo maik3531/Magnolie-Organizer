@@ -72,8 +72,9 @@ class NativeMappedMediaSource:
     def _signature(value):
         return (value.st_dev,value.st_ino,value.st_mode,value.st_uid,value.st_nlink,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
 
+    @classmethod
     @contextmanager
-    def _file(self,mapping,current):
+    def _file(cls,mapping,current):
         require_media_directory(mapping.destination.path+'/'+mapping.relative_path)
         parts=mapping.relative_path.split('/');fds=[]
         try:
@@ -81,29 +82,29 @@ class NativeMappedMediaSource:
             fds.append(os.open(mapping.destination.path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC))
             for index,name in enumerate(parts):
                 current();parent=os.fstat(fds[-1])
-                if self._key(parent)!=mapping.parent_keys[index] or not stat.S_ISDIR(parent.st_mode) or parent.st_uid!=os.geteuid():
+                if cls._key(parent)!=mapping.parent_keys[index] or not stat.S_ISDIR(parent.st_mode) or parent.st_uid!=os.geteuid():
                     raise TransferError('media_source_original_parent_required')
                 if index<len(parts)-1:fds.append(os.open(name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=fds[-1]))
             parent=fds[-1]
             fd=os.open(parts[-1],os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=parent);fds.append(fd)
             value=os.fstat(fd)
             if (not stat.S_ISREG(value.st_mode) or value.st_uid!=os.geteuid() or value.st_nlink!=1
-                    or self._key(value)!=mapping.file_key or not 1<=value.st_size<=MAX_FILE_BYTES):
+                    or cls._key(value)!=mapping.file_key or not 1<=value.st_size<=MAX_FILE_BYTES):
                 raise TransferError('media_source_original_file_required')
             fcntl.flock(fd,fcntl.LOCK_SH|fcntl.LOCK_NB)
-            signature=self._signature(value)
+            signature=cls._signature(value)
             def unchanged():
                 current();mapping.destination.verify()
                 for index,parent_fd in enumerate(fds[:-1]):
                     actual=os.fstat(parent_fd)
-                    if self._key(actual)!=mapping.parent_keys[index] or actual.st_uid!=os.geteuid():
+                    if cls._key(actual)!=mapping.parent_keys[index] or actual.st_uid!=os.geteuid():
                         raise TransferError('media_source_original_parent_required')
                     if index:
                         named=os.stat(parts[index-1],dir_fd=fds[index-1],follow_symlinks=False)
-                        if not stat.S_ISDIR(named.st_mode) or self._key(named)!=mapping.parent_keys[index]:
+                        if not stat.S_ISDIR(named.st_mode) or cls._key(named)!=mapping.parent_keys[index]:
                             raise TransferError('media_source_original_parent_required')
                 named=os.stat(parts[-1],dir_fd=parent,follow_symlinks=False)
-                if self._signature(os.fstat(fd))!=signature or self._signature(named)!=signature:
+                if cls._signature(os.fstat(fd))!=signature or cls._signature(named)!=signature:
                     raise TransferError('media_source_content_changed')
                 current()
             unchanged();yield fd,value.st_size,signature,unchanged
