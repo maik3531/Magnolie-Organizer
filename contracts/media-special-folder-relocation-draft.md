@@ -79,7 +79,10 @@ acceptance. Resume rechecks the version parent before reopening its original
 stage. Both recheck the owner and journal before emitting ACCEPT.
 An incomplete owner operation holds the receive; with an intent present,
 an unmapped member is not treated as new. Alias evidence is not an alternate
-path. A synthetic GIF verified no download for an unchanged moved original
+path. A private mapping lookup now resolves the complete historical root set
+by exact protected digests even after a version advances the current head.
+Missing or non-root evidence holds; this lookup does not yet lift any receive
+hold. A synthetic GIF verified no download for an unchanged moved original
 and no version publication or Saved reply when that inode was edited during
 download. Ordinary receive still has no entry point to create an intent or
 move a file. SEND, recovery copies, trash, and Saved retry are not enabled by

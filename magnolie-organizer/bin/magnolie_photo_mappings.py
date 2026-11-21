@@ -327,6 +327,41 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
             raise TransferError('photo_mappings_native_receipts_required')
         return self.lookup(associations,saved_receipts=receipts)
 
+    def _lookup_relocation_originals(self,digests):
+        """Authenticate every selected root by its exact historical ciphertext.
+
+        A later version head is not the selected original. A missing member
+        fails the entire lookup; this projection supplies no source or write grant.
+        """
+        if (type(digests) is not tuple or not 1<=len(digests)<=128
+                or any(not _hex(digest) for digest in digests) or len(set(digests))!=len(digests)):
+            raise TransferError('photo_relocation_original_mapping_required')
+        wanted=set(digests);found={}
+        with self._operation():
+            if not self._open():raise TransferError('photo_relocation_original_mapping_required')
+            with self._locked():
+                self._schema();before=self._snapshot()
+                if not before.associated:raise TransferError('photo_relocation_original_mapping_required')
+                for key,blob in self._db.execute('SELECT association,payload FROM mappings ORDER BY association'):
+                    digest=sha256(blob).hexdigest()
+                    if digest not in wanted:continue
+                    try:body=self._unprotect(blob,'mapping/'+key)
+                    except InvalidTag as error:raise TransferError('photo_relocation_original_mapping_required') from error
+                    raw=body.get('association') if type(body) is dict else None
+                    if type(raw) is not dict or set(raw)!={'source_epoch','photo_id','media_type'}:
+                        raise TransferError('photo_mapping_invalid_association')
+                    association=PhotoMappingAssociation(**raw)
+                    if association.key!=key or association.media_type!='images' or digest in found:
+                        raise TransferError('photo_relocation_original_mapping_required')
+                    records=self._mapping_records(association)
+                    original=NativeSavedPhotoMapping.parse(body,association,digest)
+                    if not records or records[-1]!=(key,original):
+                        raise TransferError('photo_relocation_original_mapping_required')
+                    found[digest]=original
+                if set(found)!=wanted or self._snapshot()!=before:
+                    raise TransferError('photo_relocation_original_mapping_required')
+                return before,tuple(found[digest] for digest in digests)
+
     def candidate_page(self,kind,*,after=None,expected=None,limit=128):
         """Bounded latest protected mappings, never a filesystem/source scan.
 

@@ -32,6 +32,26 @@ def changed(full,char,data):
         size=len(data),sha256=sha256(data).hexdigest()),),total_bytes=len(data))
 
 
+def test_relocation_original_lookup_uses_exact_historical_root_not_version_head(receiving):
+    connection=receiving[3];full=prepared(receiving)[0]
+    assert cycle(receiving,full)[0]['state']=='complete'
+    _,(original,),_=connection._mappings.candidate_page('images')
+    assert cycle(receiving,changed(full,'c',b'new version'),b'new version')[0]['state']=='complete'
+    snapshot,(latest,)=connection._mappings.lookup((original.association,))
+    assert latest!=original and latest.association==original.association
+    before=tuple((path.relative_to(receiving[4]),path.read_bytes()) for path in receiving[4].rglob('*') if path.is_file())
+    outputs=receiving[2].send.call_count
+    lookup=connection._mappings._lookup_relocation_originals
+    assert lookup((original.protected_record_sha256,))==(snapshot,(original,))
+    for selected in ((latest.protected_record_sha256,),
+            (original.protected_record_sha256,'0'*64),
+            (original.protected_record_sha256,original.protected_record_sha256)):
+        with pytest.raises(TransferError,match='original_mapping_required'):lookup(selected)
+    assert connection._mappings.lookup((original.association,))==(snapshot,(latest,))
+    assert tuple((path.relative_to(receiving[4]),path.read_bytes()) for path in receiving[4].rglob('*') if path.is_file())==before
+    assert receiving[2].send.call_count==outputs
+
+
 def test_changed_phone_versions_publish_without_replacement_and_preserve_all_receipts_and_pc_crops(receiving):
     connection=receiving[3];target=receiving[4];full=prepared(receiving)[0]
     state,chunks,saved=cycle(receiving,full)
