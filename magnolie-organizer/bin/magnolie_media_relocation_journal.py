@@ -377,7 +377,8 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
         """Private native path: spend once before touching an exact animated original."""
         return self._complete_member(action,expected,index,'moved',destination,require_original=require_original,rename=True)
 
-    def _complete_member(self,action,expected,index,phase,destination,*,require_original,rename):
+    def _complete_member(self,action,expected,index,phase,destination,*,require_original,rename,
+            owner_checkpoint=None):
         if (type(action) is not NativePhotoDestinationAction or type(expected) is not RelocationJournalSnapshot
                 or not expected.associated or not expected.records or not _hex(expected.outcome_version)
                 or type(index) is not int or not 0<=index<len(expected.records) or not callable(require_original)):
@@ -398,25 +399,35 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                 record=before.records[index]
                 if rename:
                     if index in before.attempts:raise TransferError('photo_relocation_attempt_already_spent')
-                    retention=lifetime.enter_context(NativeMediaRetention(self._native_directory()))
-                    def require_book():
-                        if retention.saved_book_version()!=record.book_sha256:
-                            raise TransferError('photo_relocation_original_book_changed')
-                        return True
-                    lease=lifetime.enter_context(retention.activity(require_book,exclusive=True))
-                    if lease is None:raise TransferError('photo_relocation_media_activity_busy')
-                    book_check=lease;current()
+                    if owner_checkpoint is None:
+                        retention=lifetime.enter_context(NativeMediaRetention(self._native_directory()))
+                        def require_book():
+                            if retention.saved_book_version()!=record.book_sha256:
+                                raise TransferError('photo_relocation_original_book_changed')
+                            return True
+                        lease=lifetime.enter_context(retention.activity(require_book,exclusive=True))
+                        if lease is None:raise TransferError('photo_relocation_media_activity_busy')
+                        book_check=lease
+                    else:
+                        # The original owner already holds the exclusive lane.
+                        # Never try to reenter it through a second DB descriptor.
+                        owner_checkpoint.require_active(self,expected)
+                    current()
                     require_media_directory(destination.path+'/'+record.source)
                     require_media_directory(destination.path+'/'+record.target)
                     if record.observe_native(destination,current,require_animation=True)!='at_source':
                         raise TransferError('photo_relocation_original_location_unproven')
-                    before=self._append_member(before,'attempt',index,self._attempt(record),current)
+                    spent=self._append_member(before,'attempt',index,self._attempt(record),current)
+                    if owner_checkpoint is not None:owner_checkpoint.advance(self,before,spent,index,'attempt')
+                    before=spent
                     def spent_current():
                         current();self._anchor.require(before)
                         return True
                     record._rename_prepared_animation(destination,spent_current)
                 entry=record.sync_terminal_evidence(destination,current,phase)
-                return self._append_member(before,'outcome',index,entry.wire(),current)
+                after=self._append_member(before,'outcome',index,entry.wire(),current)
+                if owner_checkpoint is not None:owner_checkpoint.advance(self,before,after,index,'outcome')
+                return after
 
     def _append_member(self,before,kind,index,payload,current):
         if kind not in ('attempt','outcome'):raise TransferError('photo_relocation_invalid_event_table')

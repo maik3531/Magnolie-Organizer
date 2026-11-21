@@ -117,10 +117,13 @@ paired identities. It cannot replace an existing intent or create a journal.
 An intent surviving a failure after commit is a hold, not proof of a completed
 preparation. The live confirmation now binds the exact first prepared journal
 checkpoint in a second sealed row after the anchored preparation readback.
-No phone DB transaction spans journal I/O. A cut between the commits remains
-held; restart cannot adopt a newer journal head or repeat the confirmation.
-Promotion through spent attempts and outcomes, and using this fence in
-production comparisons, are still open.
+No phone DB transaction spans journal I/O. In the private end-to-end GIF
+primitive the same live confirmation and exclusive lane also bind each spent
+attempt in both stores before the rename, and each verified outcome after file
+and parent checks. A cut between commits remains held; restart cannot adopt a
+newer journal head or repeat the confirmation. The outer checkpoint is not
+an execution or restart grant. Using this fence in production comparisons
+and exposing explicit native confirmation are still open.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in

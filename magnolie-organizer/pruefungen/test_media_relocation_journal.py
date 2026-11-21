@@ -45,8 +45,8 @@ def test_protected_selection_reopens_after_fixture_rename_without_restarting_or_
         assert reopened.read()==saved and target.read_bytes()==raw and not source.exists()
 
 
-def two_members(root):
-    entry,destination,source,target,raw=native_fixture(root)
+def two_members(root,raw=b'original with local edits'):
+    entry,destination,source,target,raw=native_fixture(root,raw)
     second=replace(entry,source='Camera/later.gif',target='Animationen/Camera/later.gif',original_mapping_sha256='2'*64)
     later=source.with_name('later.gif');later.write_bytes(raw);info=later.stat()
     second=replace(second,file=replace(entry.file,file_key=(info.st_dev,info.st_ino)))
@@ -158,6 +158,58 @@ def test_journal_committed_without_outer_checkpoint_cannot_be_adopted(relocation
         with pytest.raises(TransferError,match='owner_already_recorded'):
             owner.prepare_original(owner._issue_confirmed_action(lambda:True),journal,records,destination,intent.selection_sha256)
     assert source.read_bytes()==raw and not target.exists()
+
+
+@pytest.mark.parametrize('cut',[None,'attempt','outcome','withdraw_after_attempt'])
+def test_original_selection_pins_attempt_before_rename_and_outcome_after_sync(receiving,tmp_path,monkeypatch,cut):
+    from magnolie_media_trash import _move_no_replace
+    authority=receiving[3]._authority
+    records,destination,source,target,raw=two_members(tmp_path/'relocation',ANIMATED)
+    with NativeMediaRetention(authority.binding.native_directory) as book:
+        version=book.saved_book_version()
+    records=bind_relocation_selection(tuple(replace(r,book_sha256=version) for r in records),occupied=())
+    intent=RelocationOwnerIntent.for_selection(records,destination)
+    moves=[];expected=[];withdrawn=[]
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        advance=owner._advance_checkpoint
+        def checkpoint(active,before,after,live):
+            assert active==intent and owner.require_checkpoint(intent)==before
+            step='attempt' if len(expected)%2==0 else 'outcome'
+            if step==cut:raise OSError('fixture cut after journal '+step)
+            advance(active,before,after,live);expected.append(after)
+            if cut=='withdraw_after_attempt' and step=='attempt':withdrawn.append(True)
+        def rename(*args,**kwargs):
+            assert len(expected)==2*len(moves)+1 and owner.require_checkpoint(intent)==expected[-1]
+            moves.append(True);return _move_no_replace(*args,**kwargs)
+        monkeypatch.setattr(owner,'_advance_checkpoint',checkpoint)
+        monkeypatch.setattr('magnolie_media_trash._move_no_replace',rename)
+        action=owner._issue_confirmed_action(lambda:not withdrawn)
+        if cut is None:
+            assert owner._move_original_animation_selection(action,journal,records,destination,intent.selection_sha256)==(intent,expected[-1])
+        elif cut=='withdraw_after_attempt':
+            with pytest.raises(TransferError,match='native_guard_changed'):
+                owner._move_original_animation_selection(action,journal,records,destination,intent.selection_sha256)
+        else:
+            with pytest.raises(OSError,match='fixture cut after journal '+cut):
+                owner._move_original_animation_selection(action,journal,records,destination,intent.selection_sha256)
+    with closing(ProtectedRelocationOwner(authority)) as owner, closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        before=journal.read();witness=owner.require_checkpoint(intent)
+        def inspect():return journal.inspect_original_recovery(witness,destination,require_original=lambda:owner.require_checkpoint(intent)==witness)
+        if cut is None:
+            assert [v.state for v in inspect()]==['moved','moved'] and len(moves)==2
+            assert all((tmp_path/'relocation'/r.target).read_bytes()==raw for r in records)
+        else:
+            assert before.attempts==(0,) and len(before.outcomes)==(cut=='outcome')
+            assert len(moves)==(cut=='outcome')
+            if cut=='withdraw_after_attempt':
+                assert [v.state for v in inspect()]==['held_spent_at_source','prepared_at_source']
+            else:
+                with pytest.raises(TransferError,match='original_journal_changed'):inspect()
+        with pytest.raises(TransferError,match='owner_already_recorded'):
+            owner._move_original_animation_selection(owner._issue_confirmed_action(lambda:True),journal,records,destination,intent.selection_sha256)
+        assert journal.read()==before
+    assert source.exists()==(cut in ('attempt','withdraw_after_attempt'))
+    assert target.exists()==(cut in (None,'outcome'))
 
 
 @pytest.mark.parametrize('cut',['before_commit','after_commit'])

@@ -4,7 +4,7 @@ No file moves, journal bootstrap, recovery or app bridge. A durable intent
 is a hold, not permission to resume a move after restart.
 """
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 import time
 
@@ -162,6 +162,11 @@ class ProtectedRelocationOwner(NativeMediaRetention):
         survives any split between independent commits and prevents a retry.
         No media file is moved by this operation.
         """
+        with self._prepared_original(action,journal,records,destination,confirmed_sha256) as (intent,snapshot,checkpoint,_):
+            return intent,checkpoint
+
+    @contextmanager
+    def _prepared_original(self,action,journal,records,destination,confirmed_sha256):
         from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal, RelocationOwnerCheckpoint
         if type(journal) is not ProtectedMediaRelocationJournal or journal._authority is not self._authority:
             raise TransferError('photo_relocation_original_owner_required')
@@ -189,7 +194,68 @@ class ProtectedRelocationOwner(NativeMediaRetention):
                 raise TransferError('photo_relocation_original_checkpoint_changed')
             if journal.require_prepared(checkpoint.prepared_version,intent.selection_sha256)!=snapshot:
                 raise TransferError('photo_relocation_original_journal_changed')
-            current();return intent,checkpoint
+            current();yield intent,snapshot,checkpoint,current
+
+    def _move_original_animation_selection(self,action,journal,records,destination,confirmed_sha256):
+        """Private end-to-end primitive; no restart or standalone execution API."""
+        from magnolie_media_relocation_journal import RelocationOwnerCheckpoint
+        with self._prepared_original(action,journal,records,destination,confirmed_sha256) as (intent,snapshot,witness,live):
+            owner=self
+            class Binding:
+                def require_active(self,source,before):
+                    if (source is not journal or RelocationOwnerCheckpoint.from_snapshot(before,destination)!=witness
+                            or not current()):
+                        raise TransferError('photo_relocation_original_checkpoint_changed')
+
+                def advance(self,source,before,after,ordinal,kind):
+                    nonlocal witness
+                    self.require_active(source,before)
+                    if kind=='attempt':
+                        expected=replace(before,attempts=tuple(sorted((*before.attempts,ordinal))))
+                    elif kind=='outcome':
+                        moved=replace(before.records[ordinal],phase='moved')
+                        expected=replace(before,outcomes=tuple(sorted((*before.outcomes,(ordinal,moved)))))
+                    else:
+                        raise TransferError('photo_relocation_original_checkpoint_changed')
+                    if replace(after,outcome_version=before.outcome_version)!=expected:
+                        raise TransferError('photo_relocation_original_checkpoint_changed')
+                    next_witness=RelocationOwnerCheckpoint.from_snapshot(after,destination)
+                    if next_witness.outcome_version==witness.outcome_version:
+                        raise TransferError('photo_relocation_original_checkpoint_changed')
+                    owner._advance_checkpoint(intent,witness,next_witness,live)
+                    witness=next_witness
+                    self.require_active(source,after)
+
+            def current():
+                live()
+                if self.require_checkpoint(intent)!=witness:
+                    raise TransferError('photo_relocation_original_checkpoint_changed')
+                return True
+
+            binding=Binding()
+            for ordinal in range(len(records)):
+                snapshot=journal._complete_member(journal.issue_action(_native_current=current),snapshot,ordinal,'moved',
+                    destination,require_original=current,rename=True,owner_checkpoint=binding)
+            if journal.require_prepared(witness.prepared_version,intent.selection_sha256)!=snapshot:
+                raise TransferError('photo_relocation_original_journal_changed')
+            current();return intent,witness
+
+    def _advance_checkpoint(self,intent,before,after,live):
+        # Called only by the live journal transition, after its durable readback.
+        # Never acquire the journal lock while holding the phone DB transaction.
+        subject=self._subject()
+        body=dict(db=list(self._identity),subject=subject,intent=intent.wire(),checkpoint=after.wire())
+        with self._transaction():
+            live()
+            if self.require_checkpoint(intent)!=before:
+                raise TransferError('photo_relocation_original_checkpoint_changed')
+            cipher=self._protection.seal(canonical(body),self._PREPARED_DOMAIN)
+            changed=self._db.execute('UPDATE meta SET value=? WHERE key=?',(cipher,self._PREPARED_KEY))
+            if changed.rowcount!=1:raise TransferError('photo_relocation_original_checkpoint_changed')
+            live()
+        if self.require_checkpoint(intent)!=after:
+            raise TransferError('photo_relocation_original_checkpoint_changed')
+        live()
 
     def require_checkpoint(self,intent):
         """Read the original outer checkpoint, not the journal's current head."""
