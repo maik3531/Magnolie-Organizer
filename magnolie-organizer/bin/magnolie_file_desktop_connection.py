@@ -2475,8 +2475,6 @@ class NativeDesktopFileConnection:
 
     def _prepare_confirmed_gif_relocation(self,confirmation,choices):
         """Revalidate a private native Yes and prepare its exact journal; never rename."""
-        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
-        from magnolie_media_relocation_owner import ProtectedRelocationOwner
         from magnolie_media_relocation_record import bind_relocation_selection
         from magnolie_photo_relocation_dialog import _ConfirmedGifSelection
         if type(confirmation) is not _ConfirmedGifSelection:
@@ -2489,6 +2487,29 @@ class NativeDesktopFileConnection:
         first=selected[0]
         if bind_relocation_selection(tuple(replace(record,operation=first.operation) for record in checked),occupied=())!=selected:
             raise TransferError('photo_relocation_confirmation_changed')
+        with self._confirmed_gif_preparation(evidence,require_original) as (owner,journal,destination,action):
+            return owner.prepare_original(action,journal,selected,destination,first.selection_sha256)
+
+    def _record_confirmed_gif_folder_plan(self,confirmation,choices):
+        """Bind the disclosed folder plan; this entry creates no directories."""
+        from magnolie_media_relocation_record import bind_gif_relocation_folder_plan
+        from magnolie_photo_relocation_dialog import _ConfirmedGifFolderPlan
+        if type(confirmation) is not _ConfirmedGifFolderPlan:
+            raise TransferError('photo_relocation_native_confirmation_required')
+        selected,require_original=confirmation._claim(self)
+        probe=NativePhotoDestinationAction(self,lambda:time.monotonic_ns()//1_000_000,native_current=require_original)
+        checked,evidence=self._preview_gif_relocation_selection(probe,choices,_with_evidence=True,_folder_plan=True)
+        first=selected.members[0]
+        if bind_gif_relocation_folder_plan(tuple(replace(member,operation=first.operation)
+                for member in checked.members),first.destination)!=selected:
+            raise TransferError('photo_relocation_confirmation_changed')
+        with self._confirmed_gif_preparation(evidence,require_original) as (owner,journal,destination,action):
+            return owner._record_confirmed_folder_plan(action,journal,selected,destination)
+
+    @contextmanager
+    def _confirmed_gif_preparation(self,evidence,require_original):
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+        from magnolie_media_relocation_owner import ProtectedRelocationOwner
         with self._operation():
             if (self._album_worker is not None or self._run is not None or self._source_pending is not None
                     or self._source_run is not None or self._offer is not None or self._mapped_worker is not None):
@@ -2504,8 +2525,7 @@ class NativeDesktopFileConnection:
                 return require_original()
             with (closing(ProtectedRelocationOwner(self._authority)) as owner,
                     closing(ProtectedMediaRelocationJournal(self._authority)) as journal):
-                return owner.prepare_original(owner._issue_confirmed_action(current),journal,selected,destination,
-                    first.selection_sha256)
+                yield owner,journal,destination,owner._issue_confirmed_action(current)
 
     def _inspect_gif_relocation_recovery(self,action):
         """Read the original protected selection on this native connection; no replay."""

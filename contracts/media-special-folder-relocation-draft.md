@@ -196,6 +196,11 @@ When the separate read-only folder plan includes missing parents, a private
 GTK variant discloses folder creation explicitly. No is still the default.
 Yes hands the exact plan back under the original action; the existing rename
 preparation rejects this separate handoff type. The dialog creates no folders.
+The native connection can now revalidate that exact plan and seal its digest
+in a separate owner row before any folder creation. A changed target parent,
+revoked action, or mismatched handoff cannot be used for preparation. A durable
+folder-plan row holds the ordinary rename path and supplies no restart or
+directory-creation authority. No folder or rename journal is created here.
 
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in

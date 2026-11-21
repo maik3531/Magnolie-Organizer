@@ -208,3 +208,65 @@ def test_native_gif_dialog_prepares_only_its_fresh_original_selection(receiving,
         with (closing(ProtectedRelocationOwner(reopened._authority)) as owner,
                 closing(ProtectedMediaRelocationJournal(reopened._authority)) as journal):
             assert owner.require_checkpoint(intent)==witness and journal.read()==prepared
+
+
+def test_confirmed_gif_folder_plan_is_sealed_without_creating_parents_or_a_rename_intent(receiving):
+    import gi
+    gi.require_version('Gtk','3.0')
+    from gi.repository import GLib, Gtk
+    from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+    from magnolie_media_relocation_owner import ProtectedRelocationOwner
+    from test_file_desktop_album_worker import ALBUM, phone_batches
+    from test_photo_animation_layout import animation
+    from test_photo_desktop_workflow import converge_controls
+
+    assert Gtk.init_check()[0], 'Run under an isolated GTK display (Xvfb)'
+    service,peer,channel,connection,root=receiving
+    converge_controls(service,peer,channel)
+    full=animation(receiving);file=replace(full.files[0],size=len(ANIMATED),sha256=sha256(ANIMATED).hexdigest())
+    full=replace(full,files=(file,),total_bytes=len(ANIMATED))
+    with phone_batches(receiving,[full],media_kinds={file.path:'animation'},content=ANIMATED) as (_,saved,_,_,errors):
+        worker=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert worker.join(40) and worker.progress()['state']=='complete',worker.progress()
+        assert not errors and len(saved)==1
+    mappings,(mapping,),_=connection._mappings.candidate_page('images')
+    choices=((mapping.association,mapping.protected_record_sha256),)
+    jobs=connection._catalog.jobs();prefs=connection._preferences.read();messages=channel.send.call_count
+    source=root/mapping.relative_path;group=root/'Animationen'
+    plan=connection._preview_gif_relocation_selection(connection.issue_receive_action(),choices,_folder_plan=True)
+    parent=Gtk.Window();parent.show()
+    def click(response):
+        def respond():
+            dialog,=(w for w in Gtk.Window.list_toplevels() if isinstance(w,Gtk.MessageDialog) and w.get_transient_for() is parent)
+            dialog.response(response);return False
+        GLib.idle_add(respond)
+        action=NativePhotoDestinationAction(connection,lambda:monotonic_ns()//1_000_000,native_current=lambda:True)
+        return _confirm_gif_folder_plan(parent,plan,action,connection)
+    try:
+        with pytest.raises(TransferError,match='native_confirmation_required'):
+            connection._record_confirmed_gif_folder_plan(click(Gtk.ResponseType.NO),choices)
+        stale=click(Gtk.ResponseType.YES)
+        group.mkdir(mode=0o700) # Synthetic external writer adds just the first parent.
+        with pytest.raises(TransferError,match='confirmation_changed'):
+            connection._record_confirmed_gif_folder_plan(stale,choices)
+        with closing(ProtectedRelocationOwner(connection._authority)) as owner:assert owner.read_folder_intent() is None
+        group.rmdir()
+        confirmed=click(Gtk.ResponseType.YES)
+        with pytest.raises(TransferError,match='native_confirmation_required'):
+            connection._prepare_confirmed_gif_relocation(confirmed,choices)
+        intent=connection._record_confirmed_gif_folder_plan(confirmed,choices)
+        with pytest.raises(TransferError,match='native_confirmation_ended'):
+            connection._record_confirmed_gif_folder_plan(confirmed,choices)
+    finally:parent.destroy()
+    assert intent.selection_sha256==plan.selection_sha256
+    assert source.read_bytes()==ANIMATED and not group.exists()
+    assert connection._mappings.read()==mappings and connection._catalog.jobs()==jobs
+    assert connection._preferences.read()==prefs and channel.send.call_count==messages
+    with reconnect(receiving) as fresh:
+        reopened=fresh[3]
+        with (closing(ProtectedRelocationOwner(reopened._authority)) as owner,
+                closing(ProtectedMediaRelocationJournal(reopened._authority)) as journal):
+            assert owner.read_folder_intent()==intent and not journal.read().records
+            with pytest.raises(TransferError,match='folder_plan_held'):owner.read_intent()
+        with pytest.raises(TransferError,match='folder_plan_held'):
+            reopened._preview_gif_relocation_selection(reopened.issue_receive_action(),choices,_folder_plan=True)

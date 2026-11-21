@@ -67,12 +67,14 @@ class ProtectedRelocationOwner(NativeMediaRetention):
     _INTENT_DOMAIN='media-relocation-owner-v1/local'
     _PREPARED_KEY='media_relocation_prepared:local:v1'
     _PREPARED_DOMAIN='media-relocation-prepared-v1/local'
+    _FOLDER_KEY='media_relocation_folder_plan:local:v1'
+    _FOLDER_DOMAIN='media-relocation-folder-plan-v1/local'
     _MAX_CIPHER_BYTES=16384
 
     def __init__(self,authority,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
         if type(authority) is not NativeDesktopFileAuthority or not callable(monotonic_ms):
             raise TransferError('photo_relocation_original_owner_required')
-        self._authority=authority;self._clock=monotonic_ms;self._observed=None;self._held=False
+        self._authority=authority;self._clock=monotonic_ms;self._observed=None;self._folder_observed=None;self._held=False
         super().__init__(authority.binding.native_directory)
 
     def _subject(self):
@@ -85,6 +87,8 @@ class ProtectedRelocationOwner(NativeMediaRetention):
     def _read_intent(self):
         if self._held:raise TransferError('photo_relocation_owner_held')
         subject=self._subject()
+        if self._folder_observed is not None or self._db.execute('SELECT 1 FROM meta WHERE key=?',(self._FOLDER_KEY,)).fetchone():
+            raise TransferError('photo_relocation_folder_plan_held')
         actual=self._db.execute('SELECT value FROM meta WHERE key=?',(self._INTENT_KEY,)).fetchone()
         intent=None
         if actual is not None:
@@ -118,6 +122,64 @@ class ProtectedRelocationOwner(NativeMediaRetention):
         """Private entry for a native confirmation owner, never an IPC action."""
         if not callable(native_current):raise TransferError('photo_relocation_original_owner_required')
         return NativePhotoDestinationAction(self,self._clock,native_current=lambda:native_current() is True)
+
+    def read_folder_intent(self):
+        """Read the independently sealed plan witness, never a mkdir grant."""
+        if self._held:raise TransferError('photo_relocation_owner_held')
+        subject=self._subject()
+        row=self._db.execute('SELECT value FROM meta WHERE key=?',(self._FOLDER_KEY,)).fetchone()
+        intent=None
+        if row is not None:
+            blob,=row
+            if type(blob) is not bytes or not 28<=len(blob)<=self._MAX_CIPHER_BYTES:
+                raise TransferError('photo_relocation_invalid_owner_intent')
+            plain=self._protection.unseal(blob,self._FOLDER_DOMAIN);body=strict_json(plain)
+            if (type(body) is not dict or set(body)!={'db','subject','intent'} or body['db']!=list(self._identity)
+                    or body['subject']!=subject or canonical(body)!=plain):
+                raise TransferError('photo_relocation_original_owner_changed')
+            intent=RelocationOwnerIntent.parse(body['intent'])
+        if (self._folder_observed is not None and intent!=self._folder_observed or self._subject()!=subject
+                or self._db.execute('SELECT value FROM meta WHERE key=?',(self._FOLDER_KEY,)).fetchone()!=row):
+            self._held=True
+            raise TransferError('photo_relocation_original_owner_changed')
+        self._folder_observed=intent
+        return intent
+
+    def _record_confirmed_folder_plan(self,action,journal,plan,destination):
+        """Commit the last confirmed plan before any possible namespace write."""
+        from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+        from magnolie_media_relocation_record import (GifRelocationFolderPlan, bind_gif_relocation_folder_plan,
+            inspect_relocation_target_parents)
+        if (type(action) is not NativePhotoDestinationAction or type(journal) is not ProtectedMediaRelocationJournal
+                or journal._authority is not self._authority or type(plan) is not GifRelocationFolderPlan
+                or bind_gif_relocation_folder_plan(plan.members,destination)!=plan
+                or not any(member.target_parents.missing for member in plan.members)):
+            raise TransferError('photo_relocation_native_confirmation_required')
+        action.consume(self);subject=self._subject();first=plan.members[0]
+        intent=RelocationOwnerIntent(first.operation,plan.selection_sha256,first.book_sha256,
+            relocation_destination_digest(destination),tuple(sorted(member.original_mapping_sha256 for member in plan.members)))
+        def current():
+            action.validate(self)
+            if self.saved_book_version()!=intent.book_sha256 or self._subject()!=subject:
+                raise TransferError('photo_relocation_original_owner_changed')
+            destination.verify();return True
+        with self.activity(current,exclusive=True) as lease:
+            if lease is None:raise TransferError('photo_relocation_activity_busy')
+            empty=journal.read()
+            if empty.associated or empty.records or empty.outcome_version is not None or self._read_intent() is not None:
+                raise TransferError('photo_relocation_owner_already_recorded')
+            for member in plan.members:
+                if inspect_relocation_target_parents(destination,member.target,lease)!=member.target_parents:
+                    raise TransferError('photo_relocation_confirmation_changed')
+            with self._transaction():
+                lease()
+                if self._read_intent() is not None:raise TransferError('photo_relocation_owner_already_recorded')
+                blob=self._protection.seal(canonical(dict(db=list(self._identity),subject=subject,intent=intent.wire())),self._FOLDER_DOMAIN)
+                self._db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._FOLDER_KEY,blob))
+                lease()
+            if self.read_folder_intent()!=intent or journal.read()!=empty:
+                raise TransferError('photo_relocation_original_owner_changed')
+            lease();return intent
 
     def record_confirmed_intent(self,action,records,destination,confirmed_sha256):
         with self._confirming_intent(action,records,destination,confirmed_sha256) as (intent,_):
