@@ -15,6 +15,9 @@ from magnolie_file_transfer import MAX_FILE_BYTES, TransferError, _portable_path
 from magnolie_telefon import canonical
 
 
+_MAX_DIRECTORY_ENTRIES = 10000
+
+
 def _native_key(value):
     if (type(value) is not tuple or len(value)!=2 or not value[1]
             or any(type(part) is not int or not 0<=part<2**64 for part in value)):
@@ -162,20 +165,39 @@ class MediaRelocationRecord:
         def named(parent,name):
             try:return os.stat(name,dir_fd=parent,follow_symlinks=False)
             except FileNotFoundError:return None
+        def require_unique_target_name(parent,name):
+            # Inspect the bound directory, not a reopened path. Use a separate
+            # description so a second scan never inherits a directory offset.
+            folded=name.casefold()
+            scan_fd=os.open('.',directory_flags,dir_fd=parent)
+            try:
+                with os.scandir(scan_fd) as entries:
+                    for index,entry in enumerate(entries):
+                        if index>=_MAX_DIRECTORY_ENTRIES:
+                            raise TransferError('photo_relocation_target_inventory_unproven')
+                        if entry.name!=name and entry.name.casefold()==folded:
+                            raise TransferError('photo_relocation_target_alias_collision')
+            finally:os.close(scan_fd)
         with ExitStack() as close:
             def track(fd):close.callback(os.close,fd);return fd
             require_current();destination.verify()
             root=track(os.open(destination.path,directory_flags))
             if directory(os.fstat(root))!=self.root_key:raise TransferError('photo_relocation_root_changed')
-            held=[]
-            def parent_for(relative,expected):
+            held=[];target_names=[]
+            def parent_for(relative,expected,*,target_path=False):
                 *parts,leaf=relative.split('/');parent=root
                 for part,identity in zip(parts,expected[1:]):
+                    if target_path:
+                        require_unique_target_name(parent,part)
+                        target_names.append((parent,part))
                     require_current();fd=track(os.open(part,directory_flags,dir_fd=parent))
                     if directory(os.fstat(fd))!=identity:raise TransferError('photo_relocation_parent_changed')
                     held.append((parent,part,fd,identity));parent=fd
+                if target_path:
+                    require_unique_target_name(parent,leaf)
+                    target_names.append((parent,leaf))
                 return parent,leaf
-            source=parent_for(self.source,self.source_parents);target=parent_for(self.target,self.target_parents)
+            source=parent_for(self.source,self.source_parents);target=parent_for(self.target,self.target_parents,target_path=True)
             ends=[]
             payloads={}
             def inspect(endpoint):
@@ -212,6 +234,7 @@ class MediaRelocationRecord:
             observed_source,observed_target=inspect(source),inspect(target)
             def recheck():
                 require_current();destination.verify()
+                for parent,name in target_names:require_unique_target_name(parent,name)
                 for parent,part,fd,expected in held:
                     value=named(parent,part)
                     if value is None or directory(value)!=expected or directory(os.fstat(fd))!=expected:

@@ -103,6 +103,12 @@ this comparison.
   case-folded equivalents and targets of members that are staying put. Never
   use a chain of moves to clear an occupied target. Only the user-confirmed
   selection may move. Declining keeps existing files and mappings in place.
+  The private Linux path now also inventories real names at each pinned target
+  directory descriptor, before use and during the endpoint recheck. An alias
+  or an incomplete bounded inventory holds. A case alias discovered after
+  rename does not credit an outcome or trigger an undo; the spent attempt and
+  both files are preserved for inspection. This is not an atomic reservation
+  of differently spelled names from external writers.
 
 ## Native journal requirements
 

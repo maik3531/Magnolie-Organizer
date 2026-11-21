@@ -485,7 +485,22 @@ def test_native_animation_rename_preserves_inode_bytes_mode_and_mtime(receiving,
     assert target.read_bytes()==raw and not source.exists()
 
 
-@pytest.mark.parametrize('fault',['late_collision','revoked_after_spend','interrupted_after_rename'])
+def test_native_move_does_not_spend_attempt_when_case_alias_already_occupies_target(receiving,tmp_path):
+    entry,destination,source,target,raw=native_fixture(tmp_path/'relocation',ANIMATED)
+    authority=receiving[3]._authority
+    with NativeMediaRetention(authority.binding.native_directory) as book:
+        entry=replace(entry,book_sha256=book.saved_book_version())
+    selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        prepared=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
+        alias=target.with_name(target.name.upper());alias.write_bytes(b'existing unrelated file')
+        with pytest.raises(TransferError,match='target_alias_collision'):
+            journal.move_prepared_animation(journal.issue_action(),prepared,0,destination,require_original=lambda:True)
+        assert journal.read()==prepared and not prepared.attempts and not prepared.outcomes
+    assert source.read_bytes()==raw and alias.read_bytes()==b'existing unrelated file' and not target.exists()
+
+
+@pytest.mark.parametrize('fault',['late_collision','late_case_alias','revoked_after_spend','interrupted_after_rename'])
 def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receiving,tmp_path,monkeypatch,fault):
     from magnolie_media_trash import _move_no_replace
     entry,destination,source,target,raw=native_fixture(tmp_path/'relocation',ANIMATED)
@@ -493,11 +508,12 @@ def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receivin
     with NativeMediaRetention(authority.binding.native_directory) as book:
         entry=replace(entry,book_sha256=book.saved_book_version())
     selection=bind_relocation_selection((entry,),occupied=());version=selection[0].selection_sha256
-    moves=[];withdrawn=[];checkpoints=[]
+    moves=[];withdrawn=[];checkpoints=[];alias=target.with_name(target.name.upper())
     def wrapped(*args,**kw):
         moves.append(True)
         if fault=='late_collision':target.write_bytes(b'foreign target')
         _move_no_replace(*args,**kw)
+        if fault=='late_case_alias':alias.write_bytes(b'late unrelated file')
         if fault=='interrupted_after_rename':raise OSError('fixture interruption after atomic rename')
     with closing(ProtectedMediaRelocationJournal(authority)) as journal, monkeypatch.context() as patch:
         expected=journal.prepare(journal.issue_action(),journal.read(),selection,version,destination,require_original=lambda:True)
@@ -508,7 +524,7 @@ def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receivin
             if fault=='revoked_after_spend':withdrawn.append(True)
             return result
         patch.setattr(journal,'_append_member',spend)
-        error=TransferError if fault=='revoked_after_spend' else OSError
+        error=TransferError if fault in ('revoked_after_spend','late_case_alias') else OSError
         with pytest.raises(error):
             journal.move_prepared_animation(journal.issue_action(),expected,0,destination,require_original=lambda:not withdrawn)
     with closing(ProtectedMediaRelocationJournal(authority)) as journal:
@@ -516,7 +532,7 @@ def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receivin
         held=journal.require_prepared(expected.version,version)
         assert RelocationOwnerCheckpoint.from_snapshot(held,destination)==checkpoint and held.attempts==(0,) and not held.outcomes
         observed,=journal.inspect_original_recovery(checkpoint,destination,require_original=lambda:True)
-        assert observed.state=={'late_collision':'held','revoked_after_spend':'held_spent_at_source',
+        assert observed.state=={'late_collision':'held','late_case_alias':'held','revoked_after_spend':'held_spent_at_source',
             'interrupted_after_rename':'held_spent_at_target'}[fault]
         assert not observed.grants_write_authority and journal.read()==held
         with pytest.raises(TransferError,match='attempt_already_spent'):
@@ -525,9 +541,10 @@ def test_spent_native_attempt_cannot_replay_after_failure_or_revocation(receivin
             evidence=journal.record_terminal(journal.issue_action(),held,0,'moved',destination,require_original=lambda:True)
             assert evidence.outcomes==((0,replace(selection[0],phase='moved')),)
     assert len(moves)==(0 if fault=='revoked_after_spend' else 1)
-    if fault=='interrupted_after_rename':assert target.read_bytes()==raw and not source.exists()
+    if fault in ('interrupted_after_rename','late_case_alias'):assert target.read_bytes()==raw and not source.exists()
     else:assert source.read_bytes()==raw
     if fault=='late_collision':assert target.read_bytes()==b'foreign target'
+    if fault=='late_case_alias':assert alias.read_bytes()==b'late unrelated file'
     if fault=='revoked_after_spend':assert not target.exists()
 
 

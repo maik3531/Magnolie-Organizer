@@ -111,6 +111,41 @@ def test_native_rechecks_previously_absent_endpoint_and_parent_after_hashing(tmp
     assert source.read_bytes()==raw and not target.exists()
 
 
+@pytest.mark.parametrize('level',['leaf','album','group'])
+def test_target_inventory_holds_case_equivalent_names_at_any_level(tmp_path,level):
+    entry,destination,source,target,raw=native_fixture(tmp_path)
+    original={'leaf':target,'album':target.parent,'group':target.parent.parent}[level]
+    alias=original.with_name(original.name.upper())
+    alias.write_bytes(b'unrelated occupant')
+    with pytest.raises(TransferError,match='target_alias_collision'):
+        entry.observe_native(destination,lambda:True)
+    assert source.read_bytes()==raw and alias.read_bytes()==b'unrelated occupant'
+    assert not target.exists()
+
+
+def test_target_inventory_rechecks_a_case_alias_created_during_hash(tmp_path,monkeypatch):
+    entry,destination,source,target,raw=native_fixture(tmp_path)
+    alias=target.with_name(target.name.upper());original_read=os.read
+    def read_then_add_alias(fd,count):
+        part=original_read(fd,count)
+        if part and not alias.exists():alias.write_bytes(b'concurrent sibling')
+        return part
+    monkeypatch.setattr(os,'read',read_then_add_alias)
+    with pytest.raises(TransferError,match='target_alias_collision'):
+        entry.observe_native(destination,lambda:True)
+    assert source.read_bytes()==raw and alias.read_bytes()==b'concurrent sibling' and not target.exists()
+
+
+def test_target_inventory_cap_is_not_a_proof_of_absence(tmp_path,monkeypatch):
+    entry,destination,source,target,raw=native_fixture(tmp_path)
+    for name in ('other-a','other-b','other-c'):(target.parent/name).touch()
+    monkeypatch.setattr('magnolie_media_relocation_record._MAX_DIRECTORY_ENTRIES',2)
+    assert len(list(tmp_path.iterdir()))==2
+    with pytest.raises(TransferError,match='target_inventory_unproven'):
+        entry.observe_native(destination,lambda:True)
+    assert source.read_bytes()==raw and not target.exists()
+
+
 def test_strict_roundtrip_and_evidence_is_not_saved_or_authority():
     entry=record()
     assert MediaRelocationRecord.parse(entry.wire())==entry
