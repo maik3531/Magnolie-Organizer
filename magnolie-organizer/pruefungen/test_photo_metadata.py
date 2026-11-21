@@ -9,15 +9,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
 from magnolie_photo_metadata import camera_photo_matches, MAX_METADATA_BYTES
 
 
-def capture_tiff(order='<', taken=b'2026:11:08 13:14:15\0'):
+def capture_tiff(order='<', taken=b'2026:11:08 13:14:15\0', make=b'Phone\0'):
     head = (b'II' if order == '<' else b'MM') + struct.pack(order + 'HIH', 42, 8, 2)
-    tags = struct.pack(order + 'HHII', 0x010f, 2, 6, 38) + struct.pack(order + 'HHII', 0x8769, 4, 1, 44)
-    capture = struct.pack(order + 'HHHIII', 1, 0x9003, 2, 20, 62, 0)
-    return head + tags + struct.pack(order + 'I', 0) + b'Phone\0' + capture + taken
+    assert len(make)>4
+    exif_offset=38+len(make)
+    tags = struct.pack(order + 'HHII', 0x010f, 2, len(make), 38) + struct.pack(order + 'HHII', 0x8769, 4, 1, exif_offset)
+    capture = struct.pack(order + 'HHHIII', 1, 0x9003, 2, 20, exif_offset+18, 0)
+    return head + tags + struct.pack(order + 'I', 0) + make + capture + taken
 
 
-def capture_jpeg(order='<', taken=b'2026:11:08 13:14:15\0'):
-    payload = b'Exif\0\0' + capture_tiff(order, taken)
+def capture_jpeg(order='<', taken=b'2026:11:08 13:14:15\0', make=b'Phone\0'):
+    payload = b'Exif\0\0' + capture_tiff(order, taken, make)
     return b'\xff\xd8\xff\xe1' + struct.pack('>H', len(payload) + 2) + payload + b'\xff\xd9'
 
 
@@ -30,6 +32,12 @@ def test_capture_metadata_in_jpeg_tiff_and_png_uses_actual_tags_not_file_names(o
     assert camera_photo_matches(capture_jpeg(order))
     assert camera_photo_matches(png)
     assert not camera_photo_matches(b'DCIM/Camera/IMG_1234.jpg Phone 2026:11:08 13:14:15')
+
+
+@pytest.mark.parametrize('make',[b'Apple\0',b'Canon\0',b'SAMSUNG\0'])
+def test_capture_metadata_does_not_restrict_camera_manufacturer(make):
+    assert camera_photo_matches(capture_jpeg(make=make))
+    assert not camera_photo_matches(capture_jpeg(taken=b'2026:11:08 25:14:15\0',make=make))
 
 
 @pytest.mark.parametrize('taken', [b'2026:02:29 13:14:15\0', b'0000:00:00 00:00:00\0', b'2026:11:08 25:14:15\0'])

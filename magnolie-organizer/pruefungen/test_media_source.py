@@ -69,7 +69,9 @@ def test_selected_metadata_filter_uses_actual_pc_bytes_before_cache_or_source_ob
     with pytest.raises(TransferError,match='photo_metadata_required'):
         h.source.freeze(h.preferences.issue_action(),h.policy,h.association,h.record.protected_record_sha256)
     assert h.target.read_bytes()==b'hello' and not h.source._prepared
-    image=capture_jpeg();h.target.write_bytes(image)
+    # A mapped PC edit with metadata from a different camera is eligible even
+    # though the connection is to the original phone, not to that camera.
+    image=capture_jpeg(make=b'Canon\0');h.target.write_bytes(image)
     observed=inspect(h)
     assert observed.sha256==sha256(image).hexdigest() and observed.size==len(image)
     assert h.target.read_bytes()==image and observed.original_reference==h.record.phone_original_reference()
