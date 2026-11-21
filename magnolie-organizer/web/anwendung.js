@@ -43558,6 +43558,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     $("#ecke-links").addEventListener("click", () => { if (eckeLinksFn) eckeLinksFn(); });
     $("#ecke-rechts").addEventListener("click", () => { if (eckeRechtsFn) eckeRechtsFn(); });
+    document.addEventListener("keydown", (ev) => {
+      if (ev.defaultPrevented || ev.isComposing || ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey ||
+          zustand.sektion !== "kalender" || gesperrt || !$("#buch").classList.contains("offen") || modalStapel.length) return;
+      const blaettere = ev.key === "ArrowLeft" ? eckeLinksFn : ev.key === "ArrowRight" ? eckeRechtsFn : null;
+      if (!blaettere || ev.target?.isContentEditable || ev.target?.closest?.(
+          "input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='grid'], [role='tablist'], " +
+          "[role='menu'], [role='listbox'], [role='combobox'], [role='slider'], [role='spinbutton'], [role='dialog']")) return;
+      ev.preventDefault();
+      blaettere();
+    });
 
     $("#dialog-ja").addEventListener("click", () => dialogAntwort(true));
     $("#dialog-nein").addEventListener("click", () => dialogAntwort(false));

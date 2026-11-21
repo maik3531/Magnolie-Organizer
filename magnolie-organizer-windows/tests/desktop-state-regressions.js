@@ -347,6 +347,59 @@ async function run(web) {
     b.ack(); assert.ok(b.messages.some(message => message.cmd === "beenden_bereit"));
   });
 
+  await test("calendar arrows turn the current spread without taking keys from focused controls", async b => {
+    const d = b.w.document, calendar = b.t.zustand().kalender;
+    const key = (name, target = d.body, options = {}) => {
+      const event = new b.w.KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true, ...options });
+      target.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    d.querySelector("#deckel").click();
+    const original = JSON.stringify(b.t.daten());
+    for (const [view, expected, previous] of [["month", 0, 11], ["week", "2027-01-07", "2026-12-31"], ["day", "2027-01-02", "2026-12-31"]]) {
+      await b.t.wechsel("aufgaben");
+      Object.assign(calendar, { ansicht: view, jahr: 2026, monat: 11, tag: "2026-12-31", uebersichtAb: "2026-12-31" });
+      await b.t.wechsel("kalender");
+      assert.equal(key("ArrowRight"), true);
+      assert.deepEqual(view === "month" ? [calendar.jahr, calendar.monat] : calendar.tag,
+        view === "month" ? [2027, expected] : expected);
+      assert.equal(key("ArrowLeft"), true);
+      assert.deepEqual(view === "month" ? [calendar.jahr, calendar.monat] : calendar.tag,
+        view === "month" ? [2026, previous] : previous);
+    }
+    assert.equal(key("ArrowRight", d.body, { altKey: true }), false);
+    assert.equal(key("ArrowRight", d.body, { shiftKey: true }), false);
+    const input = d.createElement("input"); input.value = "Editable text"; d.body.append(input);
+    input.focus();
+    assert.equal(key("ArrowRight", input), false);
+    assert.equal(input.value, "Editable text"); input.remove();
+    const text = d.createElement("div"); text.setAttribute("contenteditable", "true"); const inner = d.createElement("span");
+    text.append(inner); d.body.append(text);
+    assert.equal(key("ArrowRight", inner), false); text.remove();
+    b.t.oeffneTerminBlatt(null, "2026-12-31");
+    assert.equal(key("ArrowRight"), false);
+    assert.equal(calendar.tag, "2026-12-31");
+    assert.equal(JSON.stringify(b.t.daten()), original);
+    assert.equal(b.saves().length, 0);
+  });
+
+  await test("a focused calendar day retains arrow-key day navigation", async b => {
+    const d = b.w.document, calendar = b.t.zustand().kalender;
+    d.querySelector("#deckel").click();
+    await b.t.wechsel("aufgaben");
+    assert.equal(d.body.dispatchEvent(new b.w.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true })), true);
+    Object.assign(calendar, { ansicht: "month", jahr: 2026, monat: 11, tag: "2026-12-15", uebersichtAb: "2026-12-15" });
+    await b.t.wechsel("kalender");
+    const day = d.querySelector('[data-fokus="kalender-tag:2026-12-15"]');
+    day.focus();
+    const event = new b.w.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    day.dispatchEvent(event);
+    assert.equal(event.defaultPrevented, true);
+    assert.equal(d.activeElement.getAttribute("data-fokus"), "kalender-tag:2026-12-16");
+    assert.equal(calendar.tag, "2026-12-15");
+    assert.equal(calendar.monat, 11);
+  });
+
   await test("grid time is initialized before the dirty snapshot and time-wheel baseline", async b => {
     await b.t.wechsel("aufgaben");
     b.t.zustand().kalender.ansicht = "day";

@@ -118,6 +118,19 @@ async function run() {
     "opening an already paginated handbook must not paginate again");
   assert.ok(w.document.querySelector("#buch").classList.contains("offen"),
     "the optimized handbook opening must still open the book");
+  const arrow = (key, target = w.document.body) => {
+    const event = new w.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  const startSpread = H.bogen();
+  assert.strictEqual(arrow("ArrowRight"), true);
+  assert.strictEqual(H.bogen(), startSpread + 1);
+  const search = w.document.querySelector("#handbuch-suchfeld");
+  assert.strictEqual(arrow("ArrowLeft", search), false, "search retains its caret keys");
+  assert.strictEqual(H.bogen(), startSpread + 1);
+  assert.strictEqual(arrow("ArrowLeft"), true);
+  assert.strictEqual(H.bogen(), startSpread);
 
   assert.strictEqual(parts("intro").length, 2, "blocks must break at measured height");
   assert.strictEqual(parts("ordered").length, 2, "lists must break between list items");
