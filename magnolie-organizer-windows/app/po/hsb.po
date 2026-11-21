@@ -8881,3 +8881,51 @@ msgstr "Jenož fota"
 #. Shared phone-media.js control; existing Linux translation. Refs #594.
 msgid "Selected PC source folders"
 msgstr "Wubrane žórłowe rjadowaki na PC"
+
+msgid "Active"
+msgstr "Aktiwny"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Zwjazajće najprjedy Magnolie Notes přez WLAN."
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "Wočińće Magnolie Notes na zwjazanym telefonje přez WLAN a wobnowće napohlad."
+
+msgid "Phone screen"
+msgstr "Wobrazowka telefona"
+
+msgid "Phone screen mirroring"
+msgstr "Špihelenje telefonoweje wobrazowki"
+
+msgid "Phone webcam"
+msgstr "Webkamera telefona"
+
+msgid "Screen mirroring did not start."
+msgstr "Špihelenje wobrazowki njeje so započało."
+
+msgid "Show phone screen"
+msgstr "Wobrazowku telefona pokazać"
+
+msgid "Start"
+msgstr "Startować"
+
+msgid "Stop screen mirroring"
+msgstr "Špihelenje wobrazowki skónčić"
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "Předchadne posedźenje webkamery dyrbi so najprjedy dospołnje skónčić."
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "Separatne wokno telefonoweje wobrazowki je wočinjene abo so začinja."
+
+msgid "View phone screen"
+msgstr "Wobrazowku telefona sej wobhladać"
+
+msgid "View this phone's screen?"
+msgstr "Chceće sej wobrazowku tutoho telefona wobhladać?"
+
+msgid "Waiting for phone permission and capture …"
+msgstr "Čaka so na dowolnosć telefona a zaznam …"
+
+msgid "Your phone must approve screen sharing."
+msgstr "Wobkrućće dźělenje wobrazowki na telefonje."

@@ -8746,3 +8746,51 @@ msgstr "Yalnızca fotoğraflar"
 #. Shared phone-media.js control; existing Linux translation. Refs #594.
 msgid "Selected PC source folders"
 msgstr "Seçili bilgisayar kaynak klasörleri"
+
+msgid "Active"
+msgstr "Etkin"
+
+msgid "Connect Magnolie Notes over WLAN first."
+msgstr "Önce Magnolie Notes’u Wi-Fi üzerinden bağlayın."
+
+msgid "Open Magnolie Notes on the paired phone over WLAN, then refresh."
+msgstr "Eşleştirilmiş telefonda Wi-Fi üzerinden Magnolie Notes’u açın, ardından görünümü yenileyin."
+
+msgid "Phone screen"
+msgstr "Telefon ekranı"
+
+msgid "Phone screen mirroring"
+msgstr "Telefon ekranı yansıtma"
+
+msgid "Phone webcam"
+msgstr "Telefon web kamerası"
+
+msgid "Screen mirroring did not start."
+msgstr "Ekran yansıtma başlamadı."
+
+msgid "Show phone screen"
+msgstr "Telefon ekranını göster"
+
+msgid "Start"
+msgstr "Başlat"
+
+msgid "Stop screen mirroring"
+msgstr "Ekran yansıtmayı durdur"
+
+msgid "The previous webcam session must finish stopping first."
+msgstr "Önce önceki web kamerası oturumunun tamamen durması gerekir."
+
+msgid "The separate phone screen window is open or stopping."
+msgstr "Ayrı telefon ekranı penceresi açık veya kapanıyor."
+
+msgid "View phone screen"
+msgstr "Telefon ekranını görüntüle"
+
+msgid "View this phone's screen?"
+msgstr "Bu telefonun ekranını görüntülemek ister misiniz?"
+
+msgid "Waiting for phone permission and capture …"
+msgstr "Telefon izni ve yakalama bekleniyor…"
+
+msgid "Your phone must approve screen sharing."
+msgstr "Ekran paylaşımını telefonda onaylayın."
