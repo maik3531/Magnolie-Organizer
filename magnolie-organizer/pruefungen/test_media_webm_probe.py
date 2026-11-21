@@ -1,5 +1,6 @@
 """#749: container evidence and Linux receive/restore, not desktop SEND."""
 from base64 import b64decode
+from gzip import decompress
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -14,7 +15,8 @@ from test_file_authenticated_desktop import native
 from test_file_desktop_receive import receiving
 
 
-VECTORS=json.loads((Path(__file__).resolve().parents[2]/'contracts'/'media-webm-probe-vectors.json').read_text())
+CONTRACTS=Path(__file__).resolve().parents[2]/'contracts'
+VECTORS=json.loads((CONTRACTS/'media-webm-probe-vectors.json').read_text())
 WEBM=b64decode(VECTORS['webm']['base64'],validate=True)
 
 
@@ -32,14 +34,22 @@ def test_mkv_remux_with_same_video_codec_is_not_webm():
     assert not _webm_video(mkv,len(mkv))
 
 
-@pytest.mark.parametrize(('name','suffix'),[('webm','.webm'),('matroska','.mkv')])
+@pytest.mark.parametrize(('name','suffix'),[('webm','.webm'),('matroska','.mkv'),('avi','.avi')])
 def test_typed_linux_video_receive_and_offline_restore_preserve_original(receiving,tmp_path,monkeypatch,name,suffix):
     from dataclasses import replace
     from magnolie_file_acceptance import NativeAcceptedDestination
     from magnolie_media_backups import NativeMediaBackupLocations, NativeMediaBackupRestoreOwner, NativeMediaBackups
     from test_file_desktop_video_album_worker import ALBUM, prepared_video, video_phone
 
-    vector=VECTORS[name];raw=b64decode(vector['base64'],validate=True)
+    if name=='avi':
+        vector=json.loads((CONTRACTS/'media-avi-original-vector.json').read_text())
+        raw=decompress(b64decode(vector['gzip_base64'],validate=True))
+        assert raw[:4]==b'RIFF' and raw[8:12]==b'AVI '
+        assert all(vector[tag].encode() in raw for tag in ('title','comment'))
+        with pytest.raises(TransferError,match='media_source_mime_unknown'):identify(raw,len(raw),'video')
+    else:
+        vector=VECTORS[name];raw=b64decode(vector['base64'],validate=True)
+    assert sha256(raw).hexdigest()==vector['sha256']
     connection=receiving[3]
     root,(seed,_)=prepared_video(receiving,tmp_path,monkeypatch)
     relative='Camera/original'+suffix

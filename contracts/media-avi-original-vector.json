@@ -1,0 +1,8 @@
+{
+  "description": "Two synthetic 16×16 raw RGB test-pattern frames in AVI (BGR24 on disk), with title and comment in RIFF INFO. Independently decoded with FFmpeg; no source admission inferred.",
+  "sha256": "b04de4b25cbe5568cdf85e000d2a5f5d9625ac01996a3b7418b08dceaaa3b551",
+  "decoded_rgb_sha256": "4fc65026e05a770a0ee354e08ef3252b59f2190759e6859c660dc2c0b482614e",
+  "title": "Magnolie synthetic AVI",
+  "comment": "Original bytes and INFO metadata fixture",
+  "gzip_base64": "H4sIAAAAAAACA+2ZwU7CQBCGB0swJh6MMZGDiXvEG964KdGQVAUSRa5aaaGblELaSvCkb6I+ib6JnDx75LbOdlsoNRhJ5MR8bbM7O//OkGbakOmlXql87gGUmzq70K8apW0A2/QcY8DtEgCw13WAHIRsbQCsqSlk1AoeEF5pZKwROvzAc/AKYw246ad1Mk4cMxw1AIHEfpkB97cLOC9Eub7Qn4G8Emg/c59d187zKMxGdrFotoAgCIIgCIIgCIIgiJVi0Pf6pwlb9h3iPkYGj+l8uj6vzyF7DVkU9syug6c9XuH7Kns+TRz1WqWun1QbBzive7zDXcNhdw+B5TPDNZl0s64VGKYRGKzNh8G9Z8ld5eou7qgaHbfncIv5D25gWwFvsXJTV3d6rFH1EsSqvl12cgDd3oCHHd3Eu0DIU6hRQNg+VkvKUEOiqxzpQ480IBJN9qT1Qkw8aX2UNaGPnb/po6CL61Wev+gnP5308/UCbgW8o+sDxCOI/WMBL0r7DOII3UzAk4DRG4gbtXG5+sXqk54Dqut/0csSxPWoCmdLFheiqp0t2WXqF6xPbg4PGagvffJfevjlT5vam5qyvwF/1UDL7hwAAA=="
+}
