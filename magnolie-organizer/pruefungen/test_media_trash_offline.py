@@ -6,6 +6,7 @@ import pytest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_media_trash import ProtectedMediaTrash,NativeLocalMediaTrashAuthority
+from magnolie_media_retention import NativeMediaActivity
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_photo_mappings import ProtectedPhotoMappings
 from magnolie_file_transfer import TransferError
@@ -36,6 +37,12 @@ def test_actual_trashed_bytes_restore_after_disconnect_or_unpair_without_any_pho
             owner.prepare_local(owner.issue_action(),current,mappings,association,mapping.protected_record_sha256)
         with pytest.raises(TransferError,match='native_authority_required'):ProtectedPhotoPreferences(authority)
         with pytest.raises(TransferError,match='native_authority_required'):ProtectedPhotoMappings(authority)
+        with NativeMediaActivity(root) as other, other.activity(exclusive=True) as relocation:
+            assert relocation is not None
+            for method in (owner.restore,owner.purge_manual):
+                with pytest.raises(TransferError,match='media_activity_busy'):
+                    method(owner.issue_action(),current,entry.operation,lambda:True)
+            assert owner.read()==(current,entries) and payload.read_bytes()==b'hello' and not original.exists()
         restored,entry=owner.restore(owner.issue_action(),current,entry.operation,lambda:authority.current_peer() is not None)
         assert entry.state=='restored' and original.read_bytes()==b'hello' and not payload.exists()
         assert fixture[2].send.call_count==sent and set(root.iterdir())==before

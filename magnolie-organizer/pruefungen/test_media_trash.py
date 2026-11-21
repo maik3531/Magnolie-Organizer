@@ -8,6 +8,7 @@ import pytest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_media_trash import ProtectedMediaTrash
+from magnolie_media_retention import NativeMediaActivity
 from magnolie_file_transfer import TransferError
 from test_file_authenticated_desktop import native,bind
 from test_file_desktop_receive import receiving
@@ -79,6 +80,26 @@ def test_actual_saved_bytes_move_to_trash_and_restore_without_deletion_replay(tr
     assert owner._db.execute('SELECT count(*) FROM events').fetchone()==(4,)
     raw=(Path(trash[0][0].store.root)/owner._name/'prefs.sqlite').read_bytes()
     assert mapping.relative_path.encode() not in raw and mapping.saved_sha256.encode() not in raw
+
+
+def test_exclusive_relocation_holds_trash_prepare_move_and_cancel_without_journal_side_effects(trash):
+    fixture,_,_,mapping,owner=trash
+    root=Path(fixture[0].store.root);before=set(root.iterdir())
+    with NativeMediaActivity(root) as other:
+        with other.activity(exclusive=True) as relocation:
+            assert relocation is not None
+            with pytest.raises(TransferError,match='media_activity_busy'):prepare(trash)
+            assert set(root.iterdir())==before and owner.read()[1]==()
+        snapshot,entry=prepare(trash);original,payload=paths(trash,entry)
+        with other.activity(exclusive=True) as relocation:
+            assert relocation is not None
+            for method in (owner.trash,owner.cancel_prepared):
+                with pytest.raises(TransferError,match='media_activity_busy'):
+                    method(owner.issue_action(),snapshot,entry.operation,lambda:True)
+            assert owner.read()==(snapshot,(entry,)) and not payload.exists()
+        snapshot,entry=owner.cancel_prepared(owner.issue_action(),snapshot,entry.operation,lambda:True)
+        with other.activity(exclusive=True) as relocation:assert relocation is not None
+    assert entry.state=='canceled' and original.stat().st_ino==mapping.file_key[1] and original.read_bytes()==b'hello'
 
 
 @pytest.mark.parametrize('boundary',['prepared','moved','trashed','restore_prepared','restored_move'])

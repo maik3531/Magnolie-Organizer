@@ -39,6 +39,11 @@ stops the action before a new read, mapping write or Saved output.
 The pre-download review also takes the shared lane before comparing an old
 target, and a media resume takes it before reopening the original stage.
 Neither can turn a busy lane into missing-file evidence or an acceptance.
+Preparing or moving a trash entry, canceling, restoring and explicitly
+purging also use the shared lane. It needs the existing local phone DB inode,
+not an active connection, a SQLite session or current pairing. A read-only
+trash listing still does not acquire the lane. Expiry already has its own
+exclusive retention permit and is not admitted through the shared lane again.
 
 The native no-replace syscall protects the target name. It does not atomically
 compare the source inode. A conflicting non-cooperating writer can still

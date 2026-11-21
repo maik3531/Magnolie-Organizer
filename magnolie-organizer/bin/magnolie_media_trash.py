@@ -5,7 +5,7 @@ stay at a random private filename in the ORIGINAL parent, on the same filesystem
 No unlink, automatic purge, guessed absence tombstone or cross-device ACK exists.
 """
 from dataclasses import dataclass
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from hashlib import sha256
 import ctypes
 import os
@@ -403,22 +403,37 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not MediaTrashSnapshot:
             raise TransferError('media_trash_native_action_required')
 
+    @contextmanager
+    def _media_activity(self,action,native_gate=lambda:True):
+        from magnolie_media_retention import NativeMediaActivity
+        def current():
+            action.validate(self)
+            if native_gate() is not True:raise TransferError('media_trash_native_gate_revoked')
+            return True
+        # Use the existing local inode, also when disconnected. No connection,
+        # pairing, lock file or policy is bootstrapped to recover old bytes.
+        with NativeMediaActivity(self._authority.protection.native_directory) as media:
+            with media.activity(current) as lease:
+                if lease is None:raise TransferError('media_trash_media_activity_busy')
+                yield lease
+
     def prepare_local(self,action,expected,mappings,association,expected_mapping_sha256):
         """Explicit native selection, not a missing-scan inference or remote claim."""
         self._action(action,expected);action.consume(self)
         if self._recovery_only:raise TransferError('media_trash_local_recovery_only')
         if type(mappings) is not ProtectedPhotoMappings or mappings._authority is not self._authority:
             raise TransferError('media_trash_original_mapping_store_required')
-        mapping_snapshot,records=mappings.lookup((association,));mapping=records[0]
-        if not mapping_snapshot.associated or mapping is None or mapping.protected_record_sha256!=expected_mapping_sha256:
-            raise TransferError('media_trash_original_mapping_changed')
-        require_media_directory(os.path.join(mapping.destination.path,mapping.relative_path))
-        with self._operation():
-            self._open(create=True,validate=lambda:action.validate(self))
+        with self._operation(), self._media_activity(action) as activity:
+            mapping_snapshot,records=mappings.lookup((association,));mapping=records[0]
+            if not mapping_snapshot.associated or mapping is None or mapping.protected_record_sha256!=expected_mapping_sha256:
+                raise TransferError('media_trash_original_mapping_changed')
+            require_media_directory(os.path.join(mapping.destination.path,mapping.relative_path))
+            self._open(create=True,validate=activity)
             with self._locked():
                 current=self._require(action,expected);entries,_,_=self._entries()
                 if any(entry.mapping.association==association and entry.state not in ('restored','canceled') for entry in entries.values()):
                     raise TransferError('media_trash_original_operation_required')
+                activity()
                 result=self._append(action,current,secrets.token_hex(16),'prepared',mapping)
                 self._boundary('prepared');return result
 
@@ -470,14 +485,13 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
     def cancel_prepared(self,action,expected,operation,native_gate):
         self._action(action,expected);action.consume(self)
         if not callable(native_gate):raise TransferError('media_trash_native_gate_required')
-        with self._operation():
+        with self._operation(), self._media_activity(action,native_gate) as activity:
             if not self._open():raise TransferError('media_trash_original_operation_required')
             with self._locked():
                 current=self._require(action,expected);entries,_,_=self._entries();entry=entries.get(operation)
                 if entry is None or entry.state!='prepared':raise TransferError('media_trash_cancel_not_current')
                 def fresh():
-                    action.validate(self);self._fresh()
-                    if native_gate() is not True:raise TransferError('media_trash_native_gate_revoked')
+                    activity();self._fresh()
                 self._move(entry,fresh,restore=False,cancel=True)
                 fresh();return self._append(action,current,operation,'canceled',entry.mapping)
 
@@ -485,14 +499,13 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
         self._action(action,expected);action.consume(self)
         if self._recovery_only and not restore:raise TransferError('media_trash_local_recovery_only')
         if not callable(native_gate):raise TransferError('media_trash_native_gate_required')
-        with self._operation():
+        with self._operation(), self._media_activity(action,native_gate) as activity:
             if not self._open():raise TransferError('media_trash_original_operation_required')
             with self._locked():
                 current=self._require(action,expected);entries,_,_=self._entries();entry=entries.get(operation)
                 if entry is None:raise TransferError('media_trash_original_operation_required')
                 def fresh():
-                    action.validate(self);self._fresh()
-                    if native_gate() is not True:raise TransferError('media_trash_native_gate_revoked')
+                    activity();self._fresh()
                 if restore:
                     if entry.state=='purge_prepared':
                         self._restore_purge(entry,fresh)
@@ -503,6 +516,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
                         self._move(entry,fresh,restore=False,observe_moved=True)
                         current,entry=self._append(action,current,operation,'trashed',entry.mapping)
                     if entry.state=='trashed':
+                        fresh()
                         current,entry=self._append(action,current,operation,'restore_prepared',entry.mapping)
                         self._boundary('restore_prepared')
                     if entry.state!='restore_prepared':raise TransferError('media_trash_restore_not_current')
@@ -657,14 +671,21 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
         self._action(action,expected);action.consume(self)
         if type(permit) not in (NativeMediaRetentionPermit,_ManualMediaPurgePermit):
             raise TransferError('media_trash_native_retention_required')
-        with self._operation():
+        with self._operation(), ExitStack() as lifetime:
+            # Retention maintenance already holds the EX lane, via its permit.
+            def manual_current():
+                permit.require_current()
+                return True
+            activity=lifetime.enter_context(self._media_activity(action,manual_current)) if type(permit) is _ManualMediaPurgePermit else None
             if not self._open():raise TransferError('media_trash_original_operation_required')
             with self._locked():
                 current=self._require(action,expected);entries,_,_=self._entries();entry=entries.get(operation)
                 if entry is None or entry.state not in ('trashed','purge_prepared'):
                     raise TransferError('media_trash_purge_not_current')
                 def fresh():
-                    action.validate(self);self._fresh();permit.require_current()
+                    if activity is None:action.validate(self);permit.require_current()
+                    else:activity()
+                    self._fresh()
                 fresh()
                 if entry.state=='trashed':
                     if not self._purge_due(entry,permit):return current,entry

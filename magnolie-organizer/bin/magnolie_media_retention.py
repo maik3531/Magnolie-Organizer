@@ -39,25 +39,17 @@ class NativeMediaBackupCopyPermit:
     def grants_write_authority(self):return False
 
 
-class NativeMediaRetention:
-    KEY='media_trash_retention:local:v1'
-    DOMAIN='media-trash-retention-v1/local'
-    MAX_ACTIVE_COPY_SECONDS=2*60*60
+class NativeMediaActivity:
+    """Coordinate media on the existing phone DB inode without opening SQLite."""
 
     def __init__(self,native_directory):
         self._protection=ExistingFileTransferProtection(native_directory)
-        self._fd=None;self._db=None;self._activity_held=False
+        self._fd=None;self._activity_held=False
         try:
             root=Path(self._protection.native_directory)
             self._fd=os.open(root/'phone.db',os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK)
             self._identity=self._protection._key(os.fstat(self._fd))
             self._path=root/'phone.db';self._fresh()
-            self._db=sqlite3.connect(self._path.as_uri()+'?mode=rw',uri=True,timeout=5)
-            self._db.execute('PRAGMA synchronous=FULL')
-            if self._db.execute('PRAGMA table_info(meta)').fetchall()!=[
-                    (0,'key','TEXT',0,None,1),(1,'value','BLOB',1,None,0)]:
-                raise TransferError('media_retention_existing_meta_required')
-            self._fresh()
         except BaseException:
             self.close();raise
 
@@ -67,6 +59,60 @@ class NativeMediaRetention:
         ProtectedPhotoPreferences._private(held);ProtectedPhotoPreferences._private(named)
         if self._protection._key(held)!=self._identity or self._protection._key(named)!=self._identity:
             raise TransferError('media_retention_database_changed')
+
+    @contextmanager
+    def activity(self,current=lambda:True,*,exclusive=False):
+        """Cross-process media activity on the EXISTING native phone DB inode.
+
+        flock is independent of SQLite byte-range locks: an active copy never
+        holds a DB transaction and concurrent saved-book writers can retire it.
+        No extra lock path/key/metadata or missing-lock bootstrap is needed.
+        Maintenance uses exclusive admission; copies/sync use shared admission.
+        """
+        if self._activity_held or type(exclusive) is not bool or not callable(current):
+            raise TransferError('media_retention_activity_owner_required')
+        self._fresh()
+        if current() is not True:raise TransferError('media_retention_lease_changed')
+        try:fcntl.flock(self._fd,(fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)|fcntl.LOCK_NB)
+        except BlockingIOError:
+            yield None;return
+        self._activity_held=True;active=[True]
+        def require():
+            if not active[0] or not self._activity_held:raise TransferError('media_retention_activity_ended')
+            self._fresh()
+            if current() is not True:raise TransferError('media_retention_lease_changed')
+            return True
+        try:
+            require();yield require
+        finally:
+            active[0]=False;self._activity_held=False
+            fcntl.flock(self._fd,fcntl.LOCK_UN)
+
+    def close(self):
+        if self._fd is not None:os.close(self._fd);self._fd=None
+        self._protection.close()
+
+    def __enter__(self):return self
+    def __exit__(self,*_):self.close()
+
+
+class NativeMediaRetention(NativeMediaActivity):
+    KEY='media_trash_retention:local:v1'
+    DOMAIN='media-trash-retention-v1/local'
+    MAX_ACTIVE_COPY_SECONDS=2*60*60
+
+    def __init__(self,native_directory):
+        self._db=None
+        super().__init__(native_directory)
+        try:
+            self._db=sqlite3.connect(self._path.as_uri()+'?mode=rw',uri=True,timeout=5)
+            self._db.execute('PRAGMA synchronous=FULL')
+            if self._db.execute('PRAGMA table_info(meta)').fetchall()!=[
+                    (0,'key','TEXT',0,None,1),(1,'value','BLOB',1,None,0)]:
+                raise TransferError('media_retention_existing_meta_required')
+            self._fresh()
+        except BaseException:
+            self.close();raise
 
     @contextmanager
     def _transaction(self):
@@ -171,34 +217,6 @@ class NativeMediaRetention:
             return True
 
     @contextmanager
-    def activity(self,current=lambda:True,*,exclusive=False):
-        """Cross-process media activity on the EXISTING native phone DB inode.
-
-        flock is independent of SQLite byte-range locks: an active copy never
-        holds a DB transaction and concurrent saved-book writers can retire it.
-        No extra lock path/key/metadata or missing-lock bootstrap is needed.
-        Maintenance uses exclusive admission; copies/sync use shared admission.
-        """
-        if self._activity_held or type(exclusive) is not bool or not callable(current):
-            raise TransferError('media_retention_activity_owner_required')
-        self._fresh()
-        if current() is not True:raise TransferError('media_retention_lease_changed')
-        try:fcntl.flock(self._fd,(fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)|fcntl.LOCK_NB)
-        except BlockingIOError:
-            yield None;return
-        self._activity_held=True;active=[True]
-        def require():
-            if not active[0] or not self._activity_held:raise TransferError('media_retention_activity_ended')
-            self._fresh()
-            if current() is not True:raise TransferError('media_retention_lease_changed')
-            return True
-        try:
-            require();yield require
-        finally:
-            active[0]=False;self._activity_held=False
-            fcntl.flock(self._fd,fcntl.LOCK_UN)
-
-    @contextmanager
     def active_copy_permit(self,current):
         """Recheck the actual saved book without holding a DB writer lock.
 
@@ -262,12 +280,9 @@ class NativeMediaRetention:
             yield NativeMediaRetentionPermit(value['days'],days)
 
     def close(self):
-        if self._db is not None:self._db.close();self._db=None
-        if self._fd is not None:os.close(self._fd);self._fd=None
-        self._protection.close()
-
-    def __enter__(self):return self
-    def __exit__(self,*_):self.close()
+        try:
+            if self._db is not None:self._db.close();self._db=None
+        finally:super().close()
 
 
 @contextmanager

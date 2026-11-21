@@ -292,10 +292,11 @@ def test_actual_automatic_session_runs_native_maintenance_before_source_discover
     with saved_book_retention(directory,book(7)):pass
     session=object.__new__(NativePhotoDesktopSession)
     session.connection=SimpleNamespace(_authority=SimpleNamespace(binding=SimpleNamespace(native_directory=directory)),
-        _closed=threading.Event(),_source_catalog=None)
+        _closed=threading.Event(),_source_catalog=None,_media_transport=None)
     session._lock=threading.RLock();session._stop=threading.Event();session._video_enabled=False
     session._disable_pending=False;session._video_disable_pending=False;session._pending_mode=None
-    session._state='albums';session._running=True;session._automatic_paused=False
+    session._state='albums';session._running=True;session._automatic_paused=False;session._shared_automatic=False
+    session._error=None
     session._sync_activity=lambda active:None;session._notify=lambda:None;session._ensure_timer=lambda:None
     discovered=[]
     def discover(media_type):
@@ -303,7 +304,7 @@ def test_actual_automatic_session_runs_native_maintenance_before_source_discover
         discovered.append(media_type);session._albums=[]
     session._discover=discover
     session._run('automatic',None)
-    assert discovered==['images'] and not session._running and session._state!='held'
+    assert discovered==['images'] and not session._running and session._state!='held',session._error
     assert not original.exists() and (original.parent/('.magnolie-purge-'+entry.operation)/'payload').stat().st_size==0
 
 
