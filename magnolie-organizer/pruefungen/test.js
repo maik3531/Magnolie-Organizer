@@ -7671,7 +7671,18 @@ function knopfMit(text, wurzel) {
    assert.ok(!medienGruppe.open && !fotoGruppe.open, "Aktivierung darf keine Gruppe aufklappen");
   assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.kennung === fotoPeer.device_id &&
     value.fingerprint === fotoPeer.fingerprint && value.request.action === "enable"), "explizite Fotoaktivierung erreicht den nativen Einstieg");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, ok: true });
+  fotoStand({ available: true, enabled: false, state: "enable", busy: true, albums: [] });
+  let aktivierungsstatus = bd.querySelector("[data-photo-activation-status]");
+  assert.ok(aktivierungsstatus?.textContent.includes(bw.MagnolieI18n.gettext("Preparing photo synchronization…")));
+  const rawNativeError = "synthetic private path or native exception";
+  fotoStand({ available: true, enabled: false, state: "held", busy: false, error: rawNativeError, albums: [] });
+  aktivierungsstatus = bd.querySelector("[data-photo-activation-status]");
+  assert.strictEqual(aktivierungsstatus?.textContent, bw.MagnolieI18n.gettext("Photo synchronization could not be started."));
+  assert.ok(!bd.querySelector(".notes-foto-sync").textContent.includes(rawNativeError));
+  assert.ok(!bd.querySelector('.notes-foto-sync summary input').checked, "Angenommener Auftrag ist noch keine Aktivierung");
   fotoStand({ available: true, enabled: true, state: "permission_required", mode: "manual", albums: [], destination: "/native/Pictures/Notes-Fotos" });
+  assert.ok(!bd.querySelector("[data-photo-activation-status]"), "Bestätigter Status ersetzt den früheren Startfehler");
    fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen"); fotoGruppe.open = true;
    assert.ok(fotoGruppe.querySelector("[data-photo-destination]").disabled && fotoGruppe.querySelector("[data-photo-destination-default]").disabled,
      "Aktiver Fotoabgleich bietet keine nur ausgeschaltet nutzbare Zieländerung an");

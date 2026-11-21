@@ -29678,6 +29678,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           gruppe.append(formZeile(_("Mode"), modus));
         } else gruppe.append(formZeile(_("Mode"), el("span", null, pgettext("photo synchronization", "Manual"))));
       }
+      // The worker can fail or ask for access after IPC has accepted Enable,
+      // before the native receive preference is active. Never render raw errors.
+      if (!stand.enabled && stand.mapped_outgoing !== true) {
+        const pending = stand.state === "enable" && stand.busy === true;
+        const failed = stand.state === "held" && !telefonFotoFehler.has(peer.device_id);
+        if (pending || failed) {
+          const activation = el("p", failed ? "einst-warnung" : "einst-hinweis", failed
+            ? _("Photo synchronization could not be started.") : _("Preparing photo synchronization…"));
+          activation.dataset.photoActivationStatus = "true";
+          activation.setAttribute("role", "status");
+          gruppe.append(activation);
+        }
+      }
       if (!stand.enabled && stand.mapped_outgoing === true) {
         const ausgangStatus = { syncing: _("Photo synchronization active"), stopping: _("Stopping photo synchronization…"),
           complete: _("Done"), canceled: _("Canceled"),
