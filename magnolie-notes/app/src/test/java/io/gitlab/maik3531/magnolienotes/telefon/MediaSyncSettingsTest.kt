@@ -41,22 +41,31 @@ class MediaSyncSettingsTest {
         assertEquals(0L, active.getValue("settings").jsonObject.getValue("photos_enabled").jsonObject.getValue(pc).jsonObject.getValue("counter").jsonPrimitive.long)
     }
 
-    @Test fun scopeDirectionMatrixRetainsIndependentChoiceAndImportNeverExports() {
+    @Test fun scopeDirectionScheduleMatrixRetainsIndependentChoicesAndImportNeverExports() {
         for (scope in listOf("phone_inventory", "entire_collection", "import_only"))
-        for (direction in listOf("phone_to_pc", "two_way", "pc_to_phone")) {
+        for (direction in listOf("phone_to_pc", "two_way", "pc_to_phone"))
+        for (schedule in listOf("manual", "wifi")) {
             var body = MediaSyncSettings.change(MediaSyncSettings.create(pc), pc, phone, "enabled", JsonPrimitive(true))
             body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive(scope))
             body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive(direction))
+            body = MediaSyncSettings.change(body, pc, phone, "auto_mode", JsonPrimitive(schedule))
             val before = body.toString(); val activeDirection = if (scope == "import_only") "phone_to_pc" else direction
             assertEquals(JsonPrimitive(direction), MediaSyncSettings.configured(body)["direction"])
             assertEquals(JsonPrimitive(scope), MediaSyncSettings.configured(body)["collection_mode"])
             assertEquals(JsonPrimitive(activeDirection), MediaSyncSettings.effective(body)["direction"])
+            assertEquals(JsonPrimitive(schedule), MediaSyncSettings.effective(body)["auto_mode"])
             assertEquals(activeDirection in setOf("phone_to_pc", "two_way"), MediaSyncSettings.transferRequestedFor(body, "images", false))
             assertEquals(activeDirection in setOf("pc_to_phone", "two_way"), MediaSyncSettings.transferRequestedFor(body, "images", true))
+            assertFalse(MediaSyncSettings.transferRequestedFor(body, "video", false))
+            assertFalse(MediaSyncSettings.transferRequestedFor(body, "video", true))
             assertEquals(before, body.toString())
             val restored = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("phone_inventory"))
             assertEquals(JsonPrimitive(direction), MediaSyncSettings.effective(restored)["direction"])
             assertEquals(body.getValue("settings").jsonObject["direction"], restored.getValue("settings").jsonObject["direction"])
+            assertEquals(body.getValue("settings").jsonObject["auto_mode"], restored.getValue("settings").jsonObject["auto_mode"])
+            val switched = MediaSyncSettings.change(body, pc, phone, "auto_mode", JsonPrimitive(if (schedule == "manual") "wifi" else "manual"))
+            assertEquals(body.getValue("settings").jsonObject["direction"], switched.getValue("settings").jsonObject["direction"])
+            assertEquals(body.getValue("settings").jsonObject["collection_mode"], switched.getValue("settings").jsonObject["collection_mode"])
         }
     }
 
