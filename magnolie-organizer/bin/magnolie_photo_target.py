@@ -36,6 +36,11 @@ def observe_saved_target(accepted, receipt, current_binding):
     Callers must obtain and revalidate receipt provenance through the protected
     native index, not accept a constructed/serialized receipt from a UI or peer.
     """
+    _require_receipt_context(accepted, receipt, current_binding)
+    return _observe_target(accepted, receipt, current_binding, receipt.relative_path, receipt.parent_keys)
+
+
+def _require_receipt_context(accepted, receipt, current_binding):
     if (type(accepted) is not NativeAcceptedTransfer or type(receipt) is not NativeSavedFileReceipt
             or not callable(current_binding) or receipt.manifest_sha256 != accepted.manifest.fingerprint
             or receipt.accepted_sha256 != accepted.fingerprint
@@ -43,22 +48,27 @@ def observe_saved_target(accepted, receipt, current_binding):
             or len(receipt.parent_keys) != len(receipt.relative_path.split('/'))
             or not receipt.parent_keys or receipt.parent_keys[0] != accepted.destination.ancestor_keys[0]):
         raise TransferError('photo_target_native_receipt_context_required')
-    names = receipt.relative_path.split('/')
+
+
+def _observe_target(accepted, receipt, current_binding, path, parent_keys, *, require_moved=None):
+    names = path.split('/')
     fds = []
 
     def fresh():
         accepted.verify(current_binding)
+        if require_moved is not None:
+            require_moved()
 
     def directories():
         fresh()
         for index, fd in enumerate(fds):
             value = os.fstat(fd)
-            if (not stat.S_ISDIR(value.st_mode) or (value.st_dev, value.st_ino) != receipt.parent_keys[index]
+            if (not stat.S_ISDIR(value.st_mode) or (value.st_dev, value.st_ino) != parent_keys[index]
                     or value.st_uid != os.geteuid() or value.st_mode & 0o022):
                 raise TransferError('photo_target_original_parent_changed')
             if index:
                 named = os.stat(names[index-1], dir_fd=fds[index-1], follow_symlinks=False)
-                if not stat.S_ISDIR(named.st_mode) or (named.st_dev, named.st_ino) != receipt.parent_keys[index]:
+                if not stat.S_ISDIR(named.st_mode) or (named.st_dev, named.st_ino) != parent_keys[index]:
                     raise TransferError('photo_target_original_parent_changed')
 
     def result(state, content=None, managed=False):
@@ -86,6 +96,7 @@ def observe_saved_target(accepted, receipt, current_binding):
             before = os.fstat(fd)
             managed = (before.st_dev, before.st_ino) == receipt.file_key
             if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid() or before.st_mode & 0o077
+                    or require_moved is not None and (not managed or before.st_nlink != 1)
                     or before.st_nlink not in ({1, 2} if managed else {1})
                     or not 0 <= before.st_size <= MAX_FILE_BYTES):
                 return result('unknown')
@@ -109,7 +120,7 @@ def observe_saved_target(accepted, receipt, current_binding):
     except FileNotFoundError:
         # This is only an observed absence, not a tombstone or a complete scan.
         directories()
-        return result('missing')
+        return result('unknown' if require_moved is not None else 'missing')
     except (OSError, TransferError):
         # Native root/consent revocation is never downgraded to valid metadata.
         fresh()

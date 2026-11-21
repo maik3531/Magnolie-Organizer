@@ -50,15 +50,17 @@ def test_special_folder_origin_uses_authenticated_manifest_not_the_album_prefix(
     assert channel.send.call_count==wire_before
 
 
-def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_touching_receive_history(receiving):
+def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_touching_receive_history(receiving,monkeypatch):
     from contextlib import closing
     import os
     from test_media_relocation_record import ANIMATED
     from magnolie_media_relocation_record import MediaRelocationRecord, RelocationFileWitness, bind_relocation_selection
     from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
-    from magnolie_media_retention import NativeMediaRetention
+    from magnolie_media_retention import NativeMediaActivity, NativeMediaRetention
     from magnolie_media_source import NativeMappedMediaSource
     from magnolie_photo_destination import plan_special_folder_path
+    from magnolie_photo_plan import NativePhotoAssociation, NativePhotoBaseline, NativePhotoObservation, PhotoContentWitness, compare_photo
+    from magnolie_transfer_job_index import ProtectedTransferJobIndex
 
     service,peer,channel,connection,target=receiving
     converge_controls(service,peer,channel)
@@ -69,6 +71,15 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         assert not errors and len(saved)==1
     mapping_snapshot,(mapping,),_=connection._mappings.candidate_page('images')
     preference_snapshot=connection._preferences.read();jobs=connection._catalog.jobs();messages=channel.send.call_count
+    protection=connection._authority.protection
+    with connection._catalog.inspect_jobs() as (parent,catalog_jobs):
+        job=next(item for item in catalog_jobs if item.owner==mapping.job_owner)
+        accepted=job.accepted
+        with ProtectedTransferJobIndex(parent,accepted.manifest,accepted.binding,connection._receive_binding,
+                protection.seal,protection.unseal,owner=job.owner,accepted=accepted) as index:
+            with index._locked():
+                receipt,=index.saved_receipts()
+    assert receipt.protected_record_sha256==mapping.receipt_sha256
     origin=connection.inspect_special_folder_origin(connection.issue_receive_action(),mapping.association,mapping.protected_record_sha256)
     original=target/origin.mapped_path;original.write_bytes(ANIMATED)
     planned=plan_special_folder_path(origin.original_path,origin.mapped_path,was_animation=origin.was_animation,
@@ -104,9 +115,31 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
             with NativeMappedMediaSource._file(location,original_current) as (fd,length,_,unchanged):
                 raw=os.pread(fd,length,0);unchanged();assert len(raw)==length
                 return (length,sha256(raw).hexdigest())!=(mapping.saved_size,mapping.saved_sha256)
+        def observe(*,record=mapping,check=original_current):
+            return journal.observe_moved_saved_target(committed,record,accepted,receipt,connection._receive_binding,
+                require_original=check)
+        association=NativePhotoAssociation(accepted.binding,mapping.association.source_epoch,mapping.association.photo_id,
+            mapping.protected_record_sha256)
+        saved_content=PhotoContentWitness(receipt.sha256,receipt.size)
+        baseline=NativePhotoBaseline(association,saved_content,receipt.protected_record_sha256)
+        phone=NativePhotoObservation('present',saved_content,insertion_proven=True)
+        with pytest.raises(TransferError,match='original_receipt_changed'):
+            observe(record=replace(mapping,receipt_sha256='0'*64))
+        with pytest.raises(TransferError,match='lease_changed'):
+            observe(check=lambda:False)
+        with NativeMediaActivity(connection._authority.binding.native_directory) as activity:
+            with activity.activity(exclusive=True) as exclusive:
+                assert exclusive is not None
+                with pytest.raises(TransferError,match='activity_busy'):observe()
         assert content_changed_at_relocated_path() # The pre-move local edit is still an edit.
+        changed=observe()
+        assert changed.saved_record_sha256==receipt.protected_record_sha256 and changed.observation.managed
+        assert not changed.is_saved_receipt and not changed.grants_write_authority
+        assert compare_photo(association,baseline,phone,changed.observation).kind=='keep_local_edit'
         destination.write_bytes(b'hello') # Restore the exact saved fixture bytes, same inode.
         assert not content_changed_at_relocated_path() # New path alone is not a change.
+        assert observe().observation.content==saved_content
+        assert compare_photo(association,baseline,phone,observe().observation).kind=='unchanged'
         local_edit=b'edited again after moving'
         destination.write_bytes(local_edit)
         assert content_changed_at_relocated_path()
@@ -114,7 +147,21 @@ def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_
         assert located.original==mapping and located.original.saved_sha256==sha256(b'hello').hexdigest()
         assert located.relative_path==planned and located.parent_keys==record.target_parents
         assert (target/located.relative_path).read_bytes()==local_edit and key(destination)==mapping.file_key
+        read=os.read
+        injected=[]
+        def recreate_source_during_read(fd,count):
+            data=read(fd,count)
+            info=os.fstat(fd)
+            if not injected and data and (info.st_dev,info.st_ino)==mapping.file_key:
+                original.write_bytes(b'concurrent original-path occupant')
+                injected.append(True)
+            return data
+        with monkeypatch.context() as patch:
+            patch.setattr(os,'read',recreate_source_during_read)
+            with pytest.raises(TransferError,match='original_file_changed'):observe()
+        assert injected and original.read_bytes()==b'concurrent original-path occupant'
         original.write_bytes(b'unrelated new original')
+        with pytest.raises(TransferError,match='original_file_changed'):observe()
         with pytest.raises(TransferError,match='original_file_changed'):
             journal.resolve_moved_read_location(committed,mapping,require_original=original_current)
     assert original_current() and channel.send.call_count==messages

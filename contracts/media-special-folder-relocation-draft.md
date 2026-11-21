@@ -56,8 +56,14 @@ The read-only path projection needs the exact anchored `moved` outcome and
 the unchanged protected mapping. It checks both names and their directories
 again and returns the new location separately from the saved receipt. Later
 edits to the moved inode can still be compared against the original digest;
-the location check itself does not classify an edit or grant access. No
-production reader uses this projection yet.
+the location check itself does not classify an edit or grant access. A private
+bridge now compares actual bytes through the existing target reader, using
+the authenticated original receipt and a shared media activity lease. It
+rechecks the moved checkpoint and both names after reading, and never falls
+back to the old path or rewrites the receipt. It preserves an edit on the
+same inode and classifies unchanged bytes independently of the new path. The
+native caller still has to supply the live book and exact checkpoint. No
+production workflow uses the bridge yet.
 
 ## Selection
 

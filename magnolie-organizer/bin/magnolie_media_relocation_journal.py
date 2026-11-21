@@ -12,7 +12,7 @@ from magnolie_file_control import _hex
 from magnolie_file_transfer import TransferError
 from magnolie_media_relocation_anchor import RelocationAnchor
 from magnolie_media_relocation_record import MediaRelocationRecord, bind_relocation_selection
-from magnolie_media_retention import NativeMediaRetention
+from magnolie_media_retention import NativeMediaActivity, NativeMediaRetention
 from magnolie_photo_destination import NativePhotoDestinationAction, require_media_directory
 from magnolie_photo_mappings import NativeSavedPhotoMapping
 from magnolie_photo_preferences import ProtectedPhotoPreferences
@@ -203,6 +203,35 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                 if self._anchored_snapshot()!=before:raise TransferError('photo_relocation_original_journal_changed')
                 current()
                 return RelocatedReadLocation(mapping,moved.target,moved.target_parents)
+
+    def observe_moved_saved_target(self,expected,mapping,accepted,receipt,current_binding,*,require_original):
+        """Compare bytes at a proven moved name without rewriting a receipt.
+
+        The native caller must supply and keep current the original book,
+        journal checkpoint and protected mapping/receipt. No path fallback.
+        """
+        from magnolie_photo_target import _observe_target, _require_receipt_context
+        _require_receipt_context(accepted,receipt,current_binding)
+        if (type(mapping) is not NativeSavedPhotoMapping or not callable(require_original)
+                or (mapping.destination,mapping.source_file_id,mapping.relative_path,mapping.parent_keys,mapping.file_key,
+                    mapping.saved_size,mapping.saved_sha256,mapping.receipt_sha256,mapping.manifest_sha256,mapping.accepted_sha256)
+                != (accepted.destination,receipt.file_id,receipt.relative_path,receipt.parent_keys,receipt.file_key,
+                    receipt.size,receipt.sha256,receipt.protected_record_sha256,receipt.manifest_sha256,receipt.accepted_sha256)):
+            raise TransferError('photo_relocation_original_receipt_changed')
+
+        def current():
+            accepted.verify(current_binding)
+            return require_original()
+
+        with NativeMediaActivity(self._native_directory()) as activity:
+            with activity.activity(current) as lease:
+                if lease is None:raise TransferError('photo_relocation_activity_busy')
+                location=self.resolve_moved_read_location(expected,mapping,require_original=lease)
+                observed=_observe_target(accepted,receipt,current_binding,location.relative_path,location.parent_keys,
+                    require_moved=lease)
+                if self.resolve_moved_read_location(expected,mapping,require_original=lease)!=location:
+                    raise TransferError('photo_relocation_original_location_unproven')
+                return observed
 
     def prepare(self,action,expected,records,confirmed_sha256,destination,*,require_original):
         """Store the whole exact selection or none. No files are moved here.
