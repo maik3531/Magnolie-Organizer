@@ -50,6 +50,46 @@ def test_special_folder_origin_uses_authenticated_manifest_not_the_album_prefix(
     assert channel.send.call_count==wire_before
 
 
+def test_saved_job_and_edited_animation_can_prepare_exact_local_journal_without_touching_receive_history(receiving):
+    from contextlib import closing
+    from test_media_relocation_record import ANIMATED
+    from magnolie_media_relocation_record import MediaRelocationRecord, RelocationFileWitness, bind_relocation_selection
+    from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal
+    from magnolie_photo_destination import plan_special_folder_path
+
+    service,peer,channel,connection,target=receiving
+    converge_controls(service,peer,channel)
+    full=animation(receiving)
+    with phone_batches(receiving,[full],media_kinds={'Camera/old.gif':'animation'}) as (_,saved,_,_,errors):
+        worker=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert worker.join(40) and worker.progress()['state']=='complete',worker.progress()
+        assert not errors and len(saved)==1
+    mapping_snapshot,(mapping,),_=connection._mappings.candidate_page('images')
+    preference_snapshot=connection._preferences.read();jobs=connection._catalog.jobs();messages=channel.send.call_count
+    origin=connection.inspect_special_folder_origin(connection.issue_receive_action(),mapping.association,mapping.protected_record_sha256)
+    original=target/origin.mapped_path;original.write_bytes(ANIMATED)
+    planned=plan_special_folder_path(origin.original_path,origin.mapped_path,was_animation=origin.was_animation,
+        was_capture=origin.was_capture,verified_animation=True,verified_capture=False,setting='animation',separate=True)
+    destination=target/planned
+    destination.parent.parent.mkdir(mode=0o700);destination.parent.mkdir(mode=0o700)
+    def key(path):
+        info=path.stat();return info.st_dev,info.st_ino
+    record=MediaRelocationRecord('4'*32,'0'*64,'1'*64,preference_snapshot.version,origin.mapping_sha256,key(target),
+        mapping.parent_keys,(key(target),key(destination.parent.parent),key(destination.parent)),origin.mapped_path,planned,
+        RelocationFileWitness(mapping.file_key,len(ANIMATED),sha256(ANIMATED).hexdigest()))
+    assert record.file.sha256!=mapping.saved_sha256
+    selection=bind_relocation_selection((record,),occupied=());confirmed=selection[0].selection_sha256
+    def original_current():
+        return (connection._mappings.lookup((mapping.association,))==(mapping_snapshot,(mapping,))
+            and connection._preferences.read()==preference_snapshot and connection._catalog.jobs()==jobs)
+    with closing(ProtectedMediaRelocationJournal(connection._authority)) as journal:
+        assert record.observe_native(mapping.destination,original_current,require_animation=True)=='at_source'
+        prepared=journal.prepare(journal.issue_action(),journal.read(),selection,confirmed,mapping.destination,require_original=original_current)
+        assert journal.require_prepared(prepared.version,confirmed).records==selection
+    assert original_current() and channel.send.call_count==messages
+    assert original.read_bytes()==ANIMATED and key(original)==mapping.file_key and not destination.exists()
+
+
 @pytest.mark.parametrize('capture',[False,True],ids=['animations_only','camera_and_animations'])
 def test_gtk_layout_applies_only_to_new_animations_and_preserves_pc_edits_and_original_grants(receiving,request,capture):
     service,peer,channel,connection,target=receiving;converge_controls(service,peer,channel)
