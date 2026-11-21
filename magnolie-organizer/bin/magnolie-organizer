@@ -17527,6 +17527,15 @@ def _update_antwort_oeffnen(antrag, zeitlimit, erlaubt):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             if not erlaubt(newurl):
                 raise urllib.error.HTTPError(newurl, code, msg, headers, fp)
+            if code == 308:
+                # Jammy's urllib accepts 307 but not 308 in this method.
+                # Both preserve the read method; do not replay requests with data.
+                methode = req.get_method()
+                if methode not in ("GET", "HEAD") or req.data is not None:
+                    raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
+                weiter = super().redirect_request(req, fp, 307, msg, headers, newurl)
+                weiter.method = methode
+                return weiter
             return super().redirect_request(req, fp, code, msg, headers, newurl)
 
     if not erlaubt(antrag.full_url):

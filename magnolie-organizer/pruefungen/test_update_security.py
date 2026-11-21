@@ -402,7 +402,7 @@ def signiertes_release(ablage="registry", aenderungen=None):
     return ET.tostring(wurzel, encoding="unicode"), oeffentlich
 
 
-def netz_attrappe(monkeypatch, inhalt, umleitung=None, status=302):
+def netz_attrappe(monkeypatch, inhalt, umleitung=None, status=302, *, methoden=None):
     """Benutzt den echten Redirect-Handler, ohne eine Netzverbindung zu öffnen."""
     anfragen = []
 
@@ -413,6 +413,8 @@ def netz_attrappe(monkeypatch, inhalt, umleitung=None, status=302):
 
         def open(self, antrag, timeout):
             anfragen.append(antrag.full_url)
+            if methoden is not None:
+                methoden.append((antrag.get_method(), antrag.data))
             antrag.timeout = timeout
             if umleitung is not None and len(anfragen) == 1:
                 headers = Message()
@@ -640,6 +642,27 @@ def test_kanonische_redirects_koennen_nur_dieselbe_registry_datei_erreichen(
 
     assert anfragen == [url, url]
     assert Path(pfad).read_bytes() == inhalt
+
+
+@pytest.mark.parametrize("methode,daten,erlaubt", (
+    ("GET", None, True), ("HEAD", None, True),
+    ("POST", b"test", False), ("GET", b"test", False),
+))
+def test_308_behaelt_lesemethode_und_sendet_keine_daten(monkeypatch, methode, daten, erlaubt):
+    xml, _ = signiertes_release()
+    url = ET.fromstring(xml).findtext("deb")
+    methoden = []
+    anfragen = netz_attrappe(monkeypatch, b"", url, 308, methoden=methoden)
+    antrag = urllib.request.Request(url, data=daten, method=methode)
+    if erlaubt:
+        m._update_antwort_oeffnen(antrag, 1, lambda ziel: ziel == url)
+        assert anfragen == [url, url]
+        assert methoden == [(methode, None)] * 2
+    else:
+        with pytest.raises(urllib.error.HTTPError) as fehler:
+            m._update_antwort_oeffnen(antrag, 1, lambda ziel: ziel == url)
+        assert fehler.value.code == 308
+        assert anfragen == [url]
 
 
 def test_raw_paket_erlaubt_keine_stille_umleitung_zur_registry(tmp_path, monkeypatch):
