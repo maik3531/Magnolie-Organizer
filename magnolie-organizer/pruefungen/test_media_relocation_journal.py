@@ -1,5 +1,5 @@
 """Actual protected preparation store; no product rename or Saved update."""
-from contextlib import closing
+from contextlib import closing, contextmanager
 from dataclasses import replace
 from pathlib import Path
 import os
@@ -12,6 +12,7 @@ from test_file_desktop_receive import receiving
 from test_file_authenticated_desktop import native, bind
 from magnolie_file_transfer import TransferError
 from magnolie_media_relocation_journal import ProtectedMediaRelocationJournal, RelocationOwnerCheckpoint
+from magnolie_media_relocation_owner import ProtectedRelocationOwner, RelocationOwnerIntent
 from magnolie_media_relocation_record import bind_relocation_selection
 from magnolie_media_retention import NativeMediaRetention, saved_book_retention
 from magnolie_optional_phone import selected_modules
@@ -50,6 +51,104 @@ def two_members(root):
     later=source.with_name('later.gif');later.write_bytes(raw);info=later.stat()
     second=replace(second,file=replace(entry.file,file_key=(info.st_dev,info.st_ino)))
     return bind_relocation_selection((entry,second),occupied=()),destination,source,target,raw
+
+
+@pytest.fixture
+def relocation_owner_case(receiving,tmp_path):
+    records,destination,source,target,raw=two_members(tmp_path/'relocation')
+    authority=receiving[3]._authority
+    with NativeMediaRetention(authority.binding.native_directory) as book:
+        version=book.saved_book_version()
+    records=bind_relocation_selection(tuple(replace(r,book_sha256=version) for r in records),occupied=())
+    return authority,records,destination,source,target,raw
+
+
+def test_confirmed_intent_is_independent_of_the_journal_and_survives_reopen(relocation_owner_case):
+    authority,records,destination,source,target,raw=relocation_owner_case
+    selection=records[0].selection_sha256
+    expected=RelocationOwnerIntent.for_selection(records,destination)
+    assert RelocationOwnerIntent.parse(expected.wire())==expected
+    assert expected.mappings==tuple(sorted(r.original_mapping_sha256 for r in records))
+    with closing(ProtectedRelocationOwner(authority)) as owner:
+        assert owner.read_intent() is None
+        with pytest.raises(TransferError,match='confirmation_changed'):
+            owner.record_confirmed_intent(owner._issue_confirmed_action(lambda:True),records,destination,'f'*64)
+        assert owner.read_intent() is None
+        ticket=owner._issue_confirmed_action(lambda:True)
+        assert owner.record_confirmed_intent(ticket,records,destination,selection)==expected
+        with pytest.raises(TransferError,match='action_not_current'):
+            owner.record_confirmed_intent(ticket,records,destination,selection)
+    with closing(ProtectedMediaRelocationJournal(authority)) as absent_journal:
+        assert not absent_journal.read().records
+    with closing(ProtectedRelocationOwner(authority)) as reopened:
+        assert reopened.require_intent(expected)
+        with pytest.raises(TransferError,match='owner_already_recorded'):
+            reopened.record_confirmed_intent(reopened._issue_confirmed_action(lambda:True),records,destination,selection)
+        assert reopened.require_intent(expected)
+        blob,=reopened._db.execute('SELECT value FROM meta WHERE key=?',(reopened._INTENT_KEY,)).fetchone()
+        assert selection.encode() not in blob and str(source).encode() not in blob
+    assert source.read_bytes()==raw and not target.exists()
+
+
+def test_owner_intent_holds_busy_lane_withdrawn_confirmation_and_stale_book(relocation_owner_case):
+    authority,records,destination,source,target,raw=relocation_owner_case
+    directory=authority.binding.native_directory
+    with closing(ProtectedRelocationOwner(authority)) as owner:
+        def confirm(current):
+            return owner.record_confirmed_intent(owner._issue_confirmed_action(current),records,destination,records[0].selection_sha256)
+        with NativeMediaRetention(directory) as other, other.activity() as lease:
+            assert lease is not None
+            with pytest.raises(TransferError,match='activity_busy'):confirm(lambda:True)
+        with pytest.raises(TransferError,match='native_guard_changed'):confirm(lambda:False)
+        assert owner.read_intent() is None
+        with saved_book_retention(directory,{'einstellungen':{'papierkorb':{'an':False,'tage':30}}}) as previous:pass
+        assert not previous
+        with pytest.raises(TransferError,match='original_book_changed'):confirm(lambda:True)
+        assert owner.read_intent() is None
+    assert source.read_bytes()==raw and not target.exists()
+
+
+def test_owner_intent_fails_closed_after_row_loss(relocation_owner_case):
+    authority,records,destination,source,target,raw=relocation_owner_case
+    with closing(ProtectedRelocationOwner(authority)) as owner:
+        expected=owner.record_confirmed_intent(owner._issue_confirmed_action(lambda:True),records,destination,records[0].selection_sha256)
+        with closing(sqlite3.connect(owner._path)) as db, db:
+            db.execute('DELETE FROM meta WHERE key=?',(owner._INTENT_KEY,))
+        with pytest.raises(TransferError,match='original_owner_changed'):owner.require_intent(expected)
+        with pytest.raises(TransferError,match='owner_held'):owner.read_intent()
+    with closing(ProtectedRelocationOwner(authority)) as reopened:
+        with pytest.raises(TransferError,match='original_owner_changed'):reopened.require_intent(expected)
+    assert source.read_bytes()==raw and not target.exists()
+
+
+@pytest.mark.parametrize('cut',['before_commit','after_commit'])
+def test_confirmation_cut_cannot_return_move_authority_or_bootstrap_journal(relocation_owner_case,monkeypatch,cut):
+    authority,records,destination,source,target,raw=relocation_owner_case
+    intent=RelocationOwnerIntent.for_selection(records,destination)
+    active=True
+    with closing(ProtectedRelocationOwner(authority)) as owner:
+        if cut=='before_commit':
+            seal=owner._protection.seal
+            def interrupted_seal(*args):
+                nonlocal active
+                value=seal(*args);active=False;return value
+            monkeypatch.setattr(owner._protection,'seal',interrupted_seal)
+        else:
+            original=owner._transaction
+            @contextmanager
+            def interrupted_transaction():
+                nonlocal active
+                with original():yield
+                active=False
+            monkeypatch.setattr(owner,'_transaction',interrupted_transaction)
+        with pytest.raises(TransferError,match='native_guard_changed'):
+            owner.record_confirmed_intent(owner._issue_confirmed_action(lambda:active),records,destination,intent.selection_sha256)
+    with closing(ProtectedRelocationOwner(authority)) as reopened:
+        if cut=='before_commit':assert reopened.read_intent() is None
+        else:assert reopened.require_intent(intent)
+    with closing(ProtectedMediaRelocationJournal(authority)) as journal:
+        assert not journal.read().records
+    assert source.read_bytes()==raw and not target.exists()
 
 
 def test_foreign_occupant_or_withdrawal_never_prepares_partial_journal(receiving,tmp_path):
@@ -267,7 +366,8 @@ def test_terminal_target_replaced_during_directory_sync_is_not_credited(receivin
 
 
 def test_relocation_modules_follow_the_existing_optional_photo_composition():
-    modules={'magnolie_media_relocation_record.py','magnolie_media_relocation_journal.py','magnolie_media_relocation_anchor.py'}
+    modules={'magnolie_media_relocation_record.py','magnolie_media_relocation_journal.py','magnolie_media_relocation_anchor.py',
+        'magnolie_media_relocation_owner.py'}
     assert not selected_modules(modules,dict(photo_sync=False,phone_camera=True))
     assert selected_modules(modules,dict(photo_sync=True,phone_camera=False))==modules
 

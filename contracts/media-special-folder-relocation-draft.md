@@ -109,6 +109,15 @@ persist it separately and be able to hold affected comparisons when either
 store is missing or out of step. Until that store and native confirmation
 are connected, the product must not enable relocation.
 
+The first independent step is implemented privately: a one-shot native action
+can persist a sealed confirmation intent in the existing `phone.db` under the
+exclusive media lane. It binds the original operation, selection, saved book,
+destination and exact historical mapping digests to the original local and
+paired identities. It cannot replace an existing intent or create a journal.
+An intent surviving a failure after commit is a hold, not proof of a completed
+preparation. Attaching the exact journal checkpoint in the live original
+operation and using this fence in production comparisons are still open.
+
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
 the existing source directory; preserve local edits rather than replacing them

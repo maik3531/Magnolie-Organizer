@@ -12,7 +12,8 @@ PHOTO_PREFIXES = ('magnolie_file_', 'magnolie_photo_', 'magnolie_transfer_', 'ma
 PHOTO_MODULES = frozenset(('magnolie_catalog_membership.py', 'magnolie_job_catalog_witness.py',
     'magnolie_media_storage_bootstrap.py', 'magnolie_media_retention.py', 'magnolie_media_trash.py', 'magnolie_media_trash_ui.py', 'magnolie_publication_journal.py',
     'magnolie_media_sync.py', 'magnolie_media_transport.py', 'magnolie_media_support.py', 'magnolie_media_preview.py', 'magnolie_media_offer.py', 'magnolie_media_mime.py',
-    'magnolie_media_relocation_record.py', 'magnolie_media_relocation_journal.py', 'magnolie_media_relocation_anchor.py'))
+    'magnolie_media_relocation_record.py', 'magnolie_media_relocation_journal.py', 'magnolie_media_relocation_anchor.py',
+    'magnolie_media_relocation_owner.py'))
 CAMERA_PREFIXES = ('magnolie_phone_camera', 'magnolie_phone_webcam')
 
 

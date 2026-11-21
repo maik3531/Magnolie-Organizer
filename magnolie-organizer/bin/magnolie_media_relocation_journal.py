@@ -12,12 +12,12 @@ from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import _hex
 from magnolie_file_transfer import TransferError
 from magnolie_media_relocation_anchor import RelocationAnchor
+from magnolie_media_relocation_owner import relocation_destination_digest
 from magnolie_media_relocation_record import MediaRelocationRecord, bind_relocation_selection
 from magnolie_media_retention import NativeMediaActivity, NativeMediaRetention
 from magnolie_photo_destination import NativePhotoDestinationAction, require_media_directory
 from magnolie_photo_mappings import NativeSavedPhotoMapping
 from magnolie_photo_preferences import ProtectedPhotoPreferences
-from magnolie_telefon import canonical
 
 
 @dataclass(frozen=True)
@@ -61,7 +61,7 @@ class RelocationOwnerCheckpoint:
         original=snapshot.records[0]
         # The selection digest commits to operation ID, preferences, members,
         # endpoint chains and bytes. The destination also pins its full path.
-        address=sha256(b'magnolie-relocation-owner-destination-v1\0'+canonical(destination.wire())).hexdigest()
+        address=relocation_destination_digest(destination)
         return cls(original.selection_sha256,original.book_sha256,address,snapshot.version,snapshot.outcome_version)
 
 
