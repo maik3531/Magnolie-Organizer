@@ -82,14 +82,16 @@ def test_changed_phone_versions_publish_without_replacement_and_preserve_all_rec
     assert (original_target.stat().st_ino,original_target.read_bytes())==before
 
 
-def test_version_clean_stop_resumes_exact_verified_job_and_publishes_once_from_native_end_proof(receiving):
+@pytest.mark.parametrize('edit_before_resume',[False,True],ids=['unchanged_parent','edited_parent'])
+def test_version_clean_stop_resumes_only_with_exact_current_parent(receiving,edit_before_resume):
     connection=receiving[3];full=prepared(receiving)[0]
     assert cycle(receiving,full)[0]['state']=='complete'
     original=receiving[4]/full.files[0].path;before=(original.stat().st_ino,original.read_bytes())
     full=changed(full,'c',b'world')
     with phone_batches(receiving,[full],insertion_witness=True,content=b'world',block_chunk=True) as (_,saved,entered,release,errors):
         worker=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
-        assert entered.wait(10),worker.progress()
+        # Wait for native review and stage setup, not for stop or resume.
+        assert entered.wait(20),worker.progress()
         job=connection._run.job
         history=connection._run.receiver._index.media_history
         assert history.version_parents and history.wire()['format']==3
@@ -105,6 +107,18 @@ def test_version_clean_stop_resumes_exact_verified_job_and_publishes_once_from_n
     reply['body']['page']['entries'][0]['photo_id']=history.entries[0].photo_id
     dispatch(receiving,reply)
     offered,result=send_offer(receiving,job.accepted.manifest);dispatch(receiving,result)
+    if edit_before_resume:
+        edit=b'local edit before original version resume'
+        original.write_bytes(edit)
+        jobs=connection._catalog.jobs();mapping=connection._mappings.read()
+        outputs=receiving[2].send.call_count
+        with pytest.raises(TransferError, match='^file_desktop_photo_version_parent_edited$'):
+            connection.resume_pending_offer(connection.issue_receive_action(),offered['message_id'],job.owner)
+        assert connection._run is None and receiving[2].send.call_count==outputs
+        assert connection._catalog.jobs()==jobs and connection._catalog._registry.attempts(jobs)==events
+        assert connection._mappings.read()==mapping and (original.stat().st_ino,original.read_bytes())==(before[0],edit)
+        assert not list(receiving[4].glob('Versionen/**/*.jpg'))
+        return
     connection.resume_pending_offer(connection.issue_receive_action(),offered['message_id'],job.owner)
     assert connection._run.job.owner==job.owner and connection._run.receiver._index.media_history==history
     assert connection._run.receiver._publisher is not None

@@ -72,10 +72,11 @@ trying the old path. This private comparison does not change any mapping or
 provide a new Saved receipt.
 
 Linux receive now checks this fence under its shared media activity lease in
-review, fresh admission, resume admission and pre-publication. Review and
-the pre-publication version-parent check compare the moved inode using its
-immutable original receipt. Admission checks the protected owner and mapping;
-it does not yet recheck version-parent bytes in the same admission lease.
+review, fresh admission, resume admission and pre-publication. The comparison
+uses the moved inode and its immutable original receipt. Fresh admission
+repeats the version review in the same connection operation and lease as
+acceptance. Resume rechecks the version parent before reopening its original
+stage. Both recheck the owner and journal before emitting ACCEPT.
 An incomplete owner operation holds the receive; with an intent present,
 an unmapped member is not treated as new. Alias evidence is not an alternate
 path. A synthetic GIF verified no download for an unchanged moved original
