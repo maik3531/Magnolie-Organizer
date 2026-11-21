@@ -30143,7 +30143,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function baueTelefonBildschirm(wurzel) {
     const block = el("details", "einst-gruppe");
     block.id = "telefon-bildschirm";
-    block.hidden = true;
     block.append(el("summary", null, _("Phone screen mirroring")));
     const status = el("p", "einst-hinweis");
     status.setAttribute("aria-live", "polite");
@@ -30158,20 +30157,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     let pending = false;
     let state = {};
     const draw = failed => {
-      block.hidden = state.included !== true;
+      const included = state.included === true;
       const selected = peer.value;
       peer.replaceChildren();
-      for (const item of state.peers || []) {
+      for (const item of included ? state.peers || [] : []) {
         const option = el("option", null, item.name);
         option.value = item.id;
         peer.append(option);
       }
       if (Array.from(peer.options).some(item => item.value === selected)) peer.value = selected;
-      peer.hidden = start.hidden = state.active === true;
-      stop.hidden = state.active !== true;
-      peer.disabled = start.disabled = pending || !peer.value;
-      stop.disabled = refresh.disabled = pending;
-      status.textContent = failed ? _("Screen mirroring did not start.") : state.active ?
+      peer.hidden = start.hidden = !included || state.active === true;
+      stop.hidden = !included || state.active !== true;
+      peer.disabled = start.disabled = pending || !included || !peer.value;
+      stop.disabled = pending || stop.hidden; refresh.disabled = pending;
+      status.textContent = !included ? (pending ? _("Loading …") : _("Unavailable")) :
+        failed ? _("Screen mirroring did not start.") : state.active ?
         _("The separate phone screen window is open or stopping.") : peer.value ?
           _("Your phone must approve screen sharing.") : _("Open Magnolie Notes on the paired phone over WLAN, then refresh.");
     };
@@ -30191,8 +30191,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         pending = false;
       }
     }
-    start.addEventListener("click", () => request("telefon_screen_start", {peer: peer.value}));
-    stop.addEventListener("click", () => request("telefon_screen_stop"));
+    draw(false);
+    start.addEventListener("click", () => { if (!start.disabled && !start.hidden) request("telefon_screen_start", {peer: peer.value}); });
+    stop.addEventListener("click", () => { if (!stop.disabled && !stop.hidden) request("telefon_screen_stop"); });
     refresh.addEventListener("click", () => request("telefon_screen_stand"));
     wurzel.addEventListener("toggle", () => { if (wurzel.open) request("telefon_screen_stand"); });
     block.addEventListener("toggle", () => { if (block.open) request("telefon_screen_stand"); });
@@ -30201,11 +30202,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function baueTelefonWebcam(wurzel) {
     const block = el("div", "einst-gruppe"); block.id = "telefon-webcam";
-    block.hidden = true;
     block.append(el("h4", null, _("Phone webcam")), el("p", "einst-hinweis",
       _("Off by default. Uses a virtual camera and microphone. Driver setup may request administrator permission.")));
     block.append(el("p", "einst-hinweis", _("During initial setup, a restart may be required to install a necessary driver.")));
-    const status = el("p", "einst-hinweis", _("Off"));
+    const status = el("p", "einst-hinweis", _("Loading …"));
+    status.setAttribute("aria-live", "polite");
+    const settings = el("div");
     const provider = el("select");
     for (const [value, label] of [["auto", _("Automatic")], ["notes", "Magnolie Notes"], ["kdeconnect", "KDE Connect"]]) {
       const option = el("option", null, label); option.value = value; provider.append(option);
@@ -30216,7 +30218,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const front = el("input"); front.type = "checkbox";
     const muteLabel = el("label"); muteLabel.append(muted, document.createTextNode(_("Mute microphone")));
     const frontLabel = el("label"); frontLabel.append(front, document.createTextNode(_("Use front camera")));
-    let action = "", installOffer = "", lease = "", busy = false, confirming = false, installationPending = false, revision = 0, enabled = false, included = true, timer = null;
+    let action = "", installOffer = "", lease = "", busy = false, confirming = false, installationPending = false, revision = 0, enabled = false, ready = false, timer = null;
     const visible = () => block.isConnected && wurzel.open && !gesperrt;
     const reasonText = reason => ({
       virtual_camera_missing: _("An existing virtual camera driver is required. Nothing was installed."),
@@ -30238,20 +30240,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       not_in_build: _("Unavailable")
     })[reason] || _("Unavailable");
     function controls() {
-      prepare.disabled = busy || confirming || installationPending || enabled || !included;
-      start.disabled = busy || confirming || enabled || !action || !choices.value;
-      stop.disabled = busy || !lease;
+      settings.hidden = !ready;
+      prepare.disabled = !ready || busy || confirming || installationPending || enabled;
+      start.disabled = !ready || busy || confirming || enabled || !action || !choices.value;
+      stop.disabled = !ready || busy || !lease;
       provider.disabled = busy || enabled;
       choices.disabled = busy || enabled;
       muted.disabled = front.disabled = busy || enabled;
     }
     function apply(value) {
-      block.hidden = value.visible !== true;
-      if (block.hidden) discard();
-      included = value.included !== false;
+      ready = value.included === true && value.visible === true;
+      if (!ready) discard();
       installationPending = value.reason === "driver_installation_pending";
       enabled = value.enabled === true; lease = value.lease || "";
-      status.textContent = value.reason ? reasonText(value.reason) : value.phase === "active" ? _("Active") :
+      status.textContent = value.included !== true ? _("Unavailable") : !ready ? reasonText("phone_unavailable") :
+        value.reason ? reasonText(value.reason) : value.phase === "active" ? _("Active") :
         value.phase === "starting" ? _("Waiting for phone permission and capture …") :
         value.phase === "shutdown_pending" ? reasonText("shutdown_pending") : _("Off");
       controls();
@@ -30264,7 +30267,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       busy = false;
       if (!block.isConnected) return;
       if (result.ok && result.webcam) apply(result.webcam);
-      else { block.hidden = true; discard(); status.textContent = _("Unavailable"); controls(); }
+      else { ready = false; discard(); status.textContent = _("Unavailable"); }
       return result.webcam;
     }
     function discard() {
@@ -30274,7 +30277,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (oldInstall) Bruecke.sende({cmd: "telefon_webcam_aktion", request: {action: "cancel", action_token: oldInstall}});
     }
     const prepare = knopf(_("Enable"), "klein", async () => {
-      if (block.hidden) return;
+      if (prepare.disabled || !visible()) return;
       discard();
       const original = revision;
       let value = await request({action: "prepare", provider: provider.value});
@@ -30309,15 +30312,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     });
     const start = knopf(_("Start"), "klein", async () => {
-      if (block.hidden) return;
+      if (start.disabled || !visible()) return;
       const token = action, choice = choices.value;
       action = ""; choices.hidden = true;
       await request({action: "start", action_token: token, choice_token: choice, muted: muted.checked, front: front.checked});
     });
-    const stop = knopf(_("Stop"), "klein rot", () => request({action: "stop", lease}));
+    const stop = knopf(_("Stop"), "klein rot", () => { if (!stop.disabled && visible()) request({action: "stop", lease}); });
     provider.addEventListener("change", discard);
     choices.addEventListener("change", controls);
-    block.append(status, provider, prepare, choices, muteLabel, frontLabel, start, stop);
+    settings.append(provider, prepare, choices, muteLabel, frontLabel, start, stop);
+    block.append(status, settings);
     wurzel.append(block); controls();
     async function refresh() {
       clearTimeout(timer);

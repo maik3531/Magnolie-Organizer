@@ -23,14 +23,24 @@ const build = new Function("el", "_", "kdeMedienAnfordern", `${source.slice(begi
   el, value => value, (cmd, args) => new Promise(resolve => requests.push({cmd, args, resolve})));
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function main() {
+  // Let jsdom deliver the initial <details open> toggle before mounting.
+  await new Promise(resolve => setTimeout(resolve, 0));
   const root = document.querySelector("details");
   build(root);
   const panel = document.querySelector("#telefon-bildschirm");
   const [start, stop, refresh] = panel.querySelectorAll("button");
-  assert(panel.hidden && start.disabled);
-  requests.shift().resolve({ok: true, screen: {included: false}});
+  assert.equal(panel.hidden, windows);
+  assert(start.disabled);
+  requests.shift().resolve({ok: true, screen: {included: false, peers: [{id: "unexpected", name: "Ignored"}]}});
   await tick();
-  assert(panel.hidden);
+  assert.equal(panel.hidden, windows);
+  if (!windows) {
+    assert.equal(panel.querySelector("summary").textContent, "Phone screen mirroring");
+    assert.equal(panel.querySelector("[aria-live]").textContent, "Unavailable");
+    assert(start.hidden && start.disabled && stop.hidden && stop.disabled);
+    start.click(); stop.click();
+    assert.equal(requests.length, 0);
+  }
   root.dispatchEvent(new dom.window.Event("toggle"));
   assert.equal(requests[0].cmd, "telefon_screen_stand");
   requests.shift().resolve({ok: true, screen: {included: true, active: false, peers: []}});
