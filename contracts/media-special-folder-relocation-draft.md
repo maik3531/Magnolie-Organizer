@@ -91,6 +91,16 @@ operation identity, one confirmed selection and no automatic renewal. Bind it
 to the unlocked book, current preferences and destination identity. The
 original saved receipt and transfer baseline must remain immutable.
 
+A private read-only restart inspection now takes the exact externally held
+checkpoint for the complete selection, rechecks the original saved book, and
+uses the shared media lane. It distinguishes an unspent member at its source,
+spent attempts found at either endpoint, recorded outcomes and uncertain
+entries. Even a spent attempt found at the target stays held until the original
+owner separately proves and commits the outcome. Missing or stale checkpoints
+fail the whole inspection. The product still has no durable external owner
+that supplies this checkpoint after restart; opening the journal alone does not
+establish that owner.
+
 For each member, open both original parent directories on the same volume
 without following links. Bind the current file identity, size and content in
 the existing source directory; preserve local edits rather than replacing them

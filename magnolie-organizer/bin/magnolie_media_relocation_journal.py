@@ -8,6 +8,7 @@ from contextlib import ExitStack
 from hashlib import sha256
 import os
 
+from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import _hex
 from magnolie_file_transfer import TransferError
 from magnolie_media_relocation_anchor import RelocationAnchor
@@ -40,6 +41,15 @@ class RelocatedReadLocation:
 
     @property
     def file_key(self):return self.original.file_key
+
+
+@dataclass(frozen=True)
+class RelocationRecoveryObservation:
+    ordinal: int
+    state: str
+
+    @property
+    def grants_write_authority(self):return False
 
 
 class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
@@ -173,6 +183,59 @@ class ProtectedMediaRelocationJournal(ProtectedPhotoPreferences):
                 or current.records[0].selection_sha256!=confirmed_sha256):
             raise TransferError('photo_relocation_original_journal_changed')
         return current
+
+    def inspect_original_recovery(self,expected,destination,*,require_original):
+        """Observe all original members, never repair, adopt, or spend an attempt.
+
+        `expected` must come from the original owner outside this journal. In
+        particular, reading a checkpoint after restart is not an owner proof.
+        """
+        if (type(expected) is not RelocationJournalSnapshot or not expected.associated or not expected.records
+                or not _hex(expected.outcome_version) or type(destination) is not NativeAcceptedDestination
+                or not callable(require_original)):
+            raise TransferError('photo_relocation_original_checkpoint_required')
+        with NativeMediaRetention(self._native_directory()) as retention:
+            def current_book():
+                if require_original() is not True:raise TransferError('photo_relocation_original_owner_ended')
+                if retention.saved_book_version()!=expected.records[0].book_sha256:
+                    raise TransferError('photo_relocation_original_book_changed')
+                return True
+            with retention.activity(current_book) as lease:
+                if lease is None:raise TransferError('photo_relocation_activity_busy')
+                with self._operation():
+                    if not self._open():raise TransferError('photo_relocation_original_journal_changed')
+                    with self._locked():
+                        def current():
+                            lease();self._fresh();return True
+                        self._schema();before=self._anchored_snapshot();current()
+                        if before!=expected:raise TransferError('photo_relocation_original_journal_changed')
+                        if destination.ancestor_keys[0]!=before.records[0].root_key:
+                            raise TransferError('photo_relocation_original_destination_required')
+                        outcomes=dict(before.outcomes);attempts=set(before.attempts);observations=[]
+                        for ordinal,record in enumerate(before.records):
+                            state='held'
+                            try:
+                                require_media_directory(destination.path+'/'+record.source)
+                                require_media_directory(destination.path+'/'+record.target)
+                                outcome=outcomes.get(ordinal)
+                                if outcome is not None and outcome.phase=='moved' and ordinal in attempts:
+                                    outcome.require_moved_location(destination,current)
+                                    state='moved'
+                                else:
+                                    location=record.observe_native(destination,current)
+                                    if outcome is not None:
+                                        if outcome.phase=='canceled' and location=='at_source':state='canceled'
+                                    elif location=='at_source':
+                                        state='held_spent_at_source' if ordinal in attempts else 'prepared_at_source'
+                                    elif location=='at_target' and ordinal in attempts:
+                                        state='held_spent_at_target'
+                            except (OSError,TransferError):
+                                # Endpoint uncertainty is not absence. An ended
+                                # owner or changed book retires the whole scan.
+                                current()
+                            observations.append(RelocationRecoveryObservation(ordinal,state))
+                        if self._anchored_snapshot()!=before:raise TransferError('photo_relocation_original_journal_changed')
+                        current();return tuple(observations)
 
     def resolve_moved_read_location(self,expected,mapping,*,require_original):
         """Read a moved location under the exact externally bound outcome.
