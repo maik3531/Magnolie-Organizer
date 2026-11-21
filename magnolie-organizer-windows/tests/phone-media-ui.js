@@ -221,11 +221,18 @@ const state = { supported: true, version: "a".repeat(64), destination_choices: {
     assert(target.compareDocumentPosition(recovery) & w.Node.DOCUMENT_POSITION_FOLLOWING);
     assert(recovery.compareDocumentPosition(start) & w.Node.DOCUMENT_POSITION_FOLLOWING,
       "Restore belongs after the destination and before the manual sync action");
+    const trash = [...recovery.querySelectorAll("details")].find(fold => fold.querySelector("summary")?.textContent === "Media recycle bin");
+    assert(trash && !trash.hidden && !trash.open, "Media trash belongs inside Restore, closed by default");
+    const beforeTrashOpen = messages.length;
+    recovery.open = true; trash.open = true; await tick();
+    assert.equal(messages.length, beforeTrashOpen, "Opening either fold must not start an operation");
+    trash.open = false; recovery.open = false;
     assert(!recovery.open);
     refreshCombined.click(); await tick();
     reply({ supported: false });
     assert.notEqual(recovery.parentElement, start.closest("details"));
     assert(!recovery.hidden && !recovery.open);
+    assert(trash.hidden, "History stays reachable offline without exposing phone-dependent actions");
    combined.remove();
   const legacyPanel = api.createPanel(peer, x => x, value => { messages.push(JSON.parse(JSON.stringify(value))); return true; }, async () => { saves++; });
   w.document.body.append(legacyPanel);

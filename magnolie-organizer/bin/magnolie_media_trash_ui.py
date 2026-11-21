@@ -118,8 +118,7 @@ class NativeMediaTrashUi:
             # verified restore because another scope could not be listed.
             return dict(ok=True,supported=True,request_id=request['request_id'],action=action,restored_name=restored_name,
                 completed=dict(scope=request['scope'],operation=completed.operation,state=completed.state))
-        if not request.get('cursor',0):
-            from magnolie_media_retention import maintain_native_media_trash
-            maintain_native_media_trash(self._root,self._current)
+        # A recovery view may list these entries merely by opening a fold.
+        # Expiry belongs to the independently guarded retention maintenance.
         result=self._list(request.get('cursor',0))
         return dict(result,ok=True,supported=True,request_id=request['request_id'],action=action,restored_name=restored_name)

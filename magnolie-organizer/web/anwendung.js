@@ -31689,20 +31689,40 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return root;
   }
 
+  function medienWiederherstellungSichtbarkeit(root) {
+    root.hidden = gesperrt || !Bruecke.vorhanden ||
+      medienBackupWiederherstellung.supported === false && medienPapierkorb.supported === false;
+    const local = root.closest("[data-local-media-only]");
+    if (local) local.hidden = root.hidden && !local.dataset.livePhone;
+  }
+
   function zeichneMedienBackupWiederherstellung(einzelneWurzel = null) {
     const state = medienBackupWiederherstellung;
     for (const root of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-media-backup-recovery]")) {
-      root.replaceChildren(); root.hidden = gesperrt || !Bruecke.vorhanden || state.supported === false;
-      const local = root.closest("[data-local-media-only]");
-      if (local) local.hidden = root.hidden && !local.dataset.livePhone;
+      // Keep the trash mount across backup replies; an in-flight preview is
+      // bound to that exact node, not to the visible filename or DOM position.
+      const trash = root.querySelector("#medien-papierkorb") || el("div", "einst-gruppe");
+      const firstTrashMount = !trash.id;
+      trash.id = "medien-papierkorb";
+      root.replaceChildren(); medienWiederherstellungSichtbarkeit(root);
       if (root.hidden) continue;
       const fold = el("details", "einst-gruppe"); fold.open = state.open;
       fold.append(el("summary", null, _("Restore")));
       fold.addEventListener("toggle", () => {
+        if (!fold.isConnected) return;
         state.open = fold.open;
-        if (fold.open && !state.tried && !state.pending) medienBackupAnfordern();
+        if (fold.open && medienPapierkorb.supported === null && !medienPapierkorb.pending) medienPapierkorbAnfordern();
+        if (fold.open && !state.tried && !state.pending && state.supported !== false) medienBackupAnfordern();
       });
       fold.append(el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
+      fold.append(trash);
+      if (state.supported !== false) baueMedienVersionswahl(fold, state);
+      root.append(fold);
+      if (firstTrashMount) zeichneMedienPapierkorb();
+    }
+  }
+
+  function baueMedienVersionswahl(fold, state) {
       if (state.error) fold.append(el("p", "einst-warnung", _("Failed") + " · " + _("Refresh")));
       const refresh = knopf(_("Refresh"), "klein", () => medienBackupAnfordern());
       refresh.dataset.backupRecovery = "refresh"; refresh.disabled = !!state.pending; fold.append(refresh);
@@ -31738,8 +31758,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const more = knopf(_("Show more"), "klein", () => medienBackupAnfordern("versions", selected, null, state.nextVersions));
         more.dataset.backupRecovery = "more-versions"; more.disabled = !!state.pending; fold.append(more);
       }
-      root.append(fold);
-    }
   }
 
   function medienBackupErgebnis(value) {
@@ -31891,11 +31909,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       starteMedienVorschaubilder();
     });
     root.replaceChildren(); root.hidden = medienPapierkorb.supported !== true;
-    const stand = $("#papierkorb-stand");
-    if (stand) stand.hidden = !DATEN.papierkorb.length && medienPapierkorb.supported === true && (medienPapierkorb.total > 0 || medienPapierkorb.error);
+    medienWiederherstellungSichtbarkeit(root.closest("[data-media-backup-recovery]"));
     if (root.hidden) return;
     root.append(el("h3", null, _("Photos and videos") + (medienPapierkorb.error && !medienPapierkorb.entries.length
       ? "" : " (" + zahlText(medienPapierkorb.total) + ")")));
+    const policy = DATEN.einstellungen.papierkorb;
+    const enabled = document.createElement("input"); enabled.type = "checkbox";
+    enabled.checked = !!policy.an; enabled.dataset.mediaTrashEnabled = "true";
+    const policyRow = el("label", "hak"); policyRow.append(enabled, document.createTextNode(" " + _("Use the recycle bin")));
+    const days = auswahlFeld([
+      ["7", _("after 7 days")], ["30", _("after 30 days")], ["90", _("after 90 days")],
+      ["365", _("after one year")], ["0", _("never – empty manually")]
+    ], String(policy.tage));
+    days.dataset.mediaTrashDays = "true"; days.disabled = !enabled.checked;
+    const savePolicy = () => {
+      if (gesperrt || DATEN.einstellungen.papierkorb !== policy || !policyRow.isConnected || medienPapierkorb.pending) return;
+      wendePapierkorbEinstellungenDatenAn({ an: enabled.checked, tage: Number(days.value) || 0 });
+      days.disabled = !enabled.checked; planeSpeichern();
+    };
+    enabled.disabled = !!medienPapierkorb.pending;
+    days.disabled ||= !!medienPapierkorb.pending;
+    enabled.addEventListener("change", savePolicy); days.addEventListener("change", savePolicy);
+    root.append(policyRow, formZeile(_("Delete permanently"), days));
     root.append(el("p", "einst-hinweis", _("Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file.")));
     const vorschauOption = el("label", "hak"), vorschauHak = document.createElement("input");
     vorschauHak.type = "checkbox"; vorschauHak.checked = medienThumbnailsAn; vorschauHak.id = "medien-thumbnails-an";
@@ -32108,11 +32143,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       reihe.append(leerKnopf);
       ab.append(reihe);
     }
-    if (Bruecke.vorhanden) {
-      const media = el("div", "einst-gruppe"); media.id = "medien-papierkorb"; media.hidden = true; ab.append(media);
-      if (medienPapierkorb.supported === null && !medienPapierkorb.pending) medienPapierkorbAnfordern();
-    }
-    wurzel.append(ab); zeichneMedienPapierkorb();
+    wurzel.append(ab);
 
     /* ----------------------------- Kennwortschutz ------------------------ */
     const ks = abschnitt(_("Password protection"),

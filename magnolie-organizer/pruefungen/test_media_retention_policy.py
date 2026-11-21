@@ -206,17 +206,20 @@ def test_tampered_policy_is_held_and_never_overwritten_by_save(trash):
         assert policy._db.execute('SELECT value FROM meta WHERE key=?',(policy.KEY,)).fetchone()==(b'broken-authentication',)
 
 
-def test_actual_native_ui_maintenance_respects_never_then_saved_days_without_network(trash):
+def test_ui_list_stays_read_only_and_independent_maintenance_respects_saved_days(trash):
     owner=trash[4];owner._wall_clock_ms=lambda:1_600_000_000_000
     snapshot,entry=prepare(trash);original,payload=paths(trash,entry)
     snapshot,entry=owner.trash(owner.issue_action(),snapshot,entry.operation,lambda:True)
     directory=str(root(trash));sent=trash[0][2].send.call_count
     ui=NativeMediaTrashUi(directory,lambda:True)
     request=dict(cmd='medien_papierkorb',request_id='retention_fixture_01',action='list')
-    assert ui.handle(request)['total']==1 # First adoption reads native saved 0, not a default grant.
+    assert ui.handle(request)['total']==1
+    assert maintain_native_media_trash(directory)==0 # Saved 0 is not a default grant.
     with saved_book_retention(directory,book(0)):pass
     assert ui.handle(request)['total']==1 and payload.read_bytes()==b'hello'
     with saved_book_retention(directory,book(7)):pass
+    assert ui.handle(request)['total']==1 and payload.read_bytes()==b'hello'
+    assert maintain_native_media_trash(directory)==1
     assert ui.handle(request)['total']==0 and not payload.exists() and not original.exists()
     assert (original.parent/('.magnolie-purge-'+entry.operation)/'payload').stat().st_size==0
     assert trash[0][2].send.call_count==sent

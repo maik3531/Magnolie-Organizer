@@ -8,6 +8,12 @@
     root.className = "telefon-medien einst-gruppe"; root.hidden = true;
     const node = (tag, text) => { const e = document.createElement(tag); if (text) e.textContent = t(text); return e; };
     const manualArea = node("section");
+    const trashArea = node("details");
+    // Standalone panels (without the local history view) still nest trash in
+    // a recovery fold. With local history, keep that fold alive across WLAN.
+    const restoreArea = recovery || node("details");
+    if (!recovery) restoreArea.append(node("summary", "Restore"));
+    restoreArea.append(trashArea);
     const advanced = node("details"); advanced.className = "telefon-erweitert telefon-freigaben einst-gruppe";
     advanced.hidden = !mountLive; advanced.open = false;
     advanced.append(node("summary", "Advanced functions"), root);
@@ -17,6 +23,8 @@
     if (mountLive) mountLive(advanced);
     function updateVisibility() {
       if (recovery) {
+        trashArea.hidden = root.hidden;
+        recovery.hidden = root.hidden && ![...recovery.querySelectorAll(".telefon-medien-sicherungen")].some(panel => !panel.hidden);
         const parent = root.hidden ? recoveryOnly : root;
         if (recovery.parentElement !== parent) parent.insertBefore(recovery, parent === root ? manualArea : null);
         recoveryOnly.hidden = !root.hidden || recovery.hidden;
@@ -35,7 +43,7 @@
     rightsArea.append(node("h4", "Access rights"));
     settingsArea.append(node("h4", "Synchronization settings"), note);
     manualArea.append(node("h4", "Manual synchronization"));
-    root.append(title, status, rightsArea, settingsArea, manualArea);
+    root.append(title, status, rightsArea, settingsArea, ...(!recovery ? [restoreArea] : []), manualArea);
     const masterRow = node("label"), master = node("input"); master.type = "checkbox"; master.dataset.media = "enabled";
     masterRow.className = "telefon-medien-aktivierung"; masterRow.hidden = true;
     master.setAttribute("aria-label", t("Enable photo and video synchronization"));
@@ -80,9 +88,8 @@
     const sourceArea = node("section"), sourceRows = new Map(); sourceArea.hidden = true;
     sourceArea.append(node("h4", "Selected PC source folders"), node("p", "PC source folders are separate from receive destinations."));
     settingsArea.append(mode, destinations, sourceArea); manualArea.append(controls, albumList, review);
-    const trashArea = node("details"), trashRows = node("ul"); trashArea.append(node("summary", "Media recycle bin"),
+    const trashRows = node("ul"); trashArea.append(node("summary", "Media recycle bin"),
       node("p", "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."), trashRows);
-    settingsArea.append(trashArea);
     let nextTrash = null;
     const trashThumbnails = node("input"), trashThumbnailLabel = node("label", "Preview");
     trashThumbnails.type = "checkbox"; trashThumbnails.dataset.mediaThumbnails = "";

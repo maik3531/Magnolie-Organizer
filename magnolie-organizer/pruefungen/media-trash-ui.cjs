@@ -21,6 +21,7 @@ for (const locale of Object.keys(messages).filter(locale => locale !== "en")) {
 const row = (index = 1) => ({ scope: "a".repeat(64), operation: index.toString(16).padStart(32, "0"), version: "b".repeat(64),
   name: index === 1 ? "<img src=x onerror=bad>.mp4" : `video-${index}.mp4`, media_type: "video", state: "trashed" });
 const plain = value => JSON.parse(JSON.stringify(value));
+const tick = () => new Promise(resolve => setImmediate(resolve));
 
 (async () => {
   let cases = 0;
@@ -36,12 +37,28 @@ const plain = value => JSON.parse(JSON.stringify(value));
       if (path.resolve(web) !== linux) {
         assert.equal(root(), null); assert.equal(calls().length, 0, "Unsupported Windows UI must not dispatch a copied native trash action"); cases++; continue;
       }
+      async function openRecovery() {
+        const baum = d.querySelector("#einst-tab-baum") || [...d.querySelectorAll(".einst-reiter-knopf")]
+          .find(button => button.textContent === "Magnolienbaum");
+        baum.click();
+        const fold = d.querySelector("[data-media-backup-recovery] > details");
+        assert(fold);
+        const media = fold.closest(".notes-foto-sync"), advanced = media.closest(".notes-erweiterte-funktionen");
+        advanced.open = media.open = true;
+        fold.open = true;
+        await tick(); await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      assert.equal(root(), null, "Security has no second media recycle bin");
+      assert.equal(calls().length, 0);
+      await openRecovery();
       const before = JSON.stringify(b.t.daten()), saves = b.saves().length;
       assert.ok(root().hidden && calls().length === 1);
       const answer = (value, request = calls().at(-1)) => b.w.App.medienPapierkorbStand({ ok: true, supported: true,
         request_id: request.request_id, action: request.action, scopes: [row().scope], ...value });
       answer({ entries: [row()], total: 1, next_cursor: null });
       assert.ok(!root().hidden && root().textContent.includes(locale === "de" ? "Fotos und Videos" : "Photos and videos"));
+      assert.equal(root().querySelector("[data-media-trash-days]").value, "0", "A saved Never selection must not default back to 30 days");
+      assert.equal(root().querySelector("[data-media-trash-enabled]").checked, true);
       assert.equal(root().querySelector("img"), null, "Native filenames must use text, never HTML");
       const restore = () => root().querySelector("[data-media-restore]");
       assert.ok(restore()); restore().click();
@@ -61,7 +78,6 @@ const plain = value => JSON.parse(JSON.stringify(value));
       assert.equal(b.saves().length, saves, "Native media restore must not manufacture a book save");
       cases++;
 
-      const tick = () => new Promise(resolve => setImmediate(resolve));
       const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aX0AAAAASUVORK5CYII=";
       const preview = { mime_type: "image/png", width: 1, height: 1, data_base64: png };
       const previewAnswer = (extra = {}) => {
@@ -120,7 +136,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
         "Lock removes the larger private preview source, not just its controls");
       b.w.App.init({ daten: unlockedBook, neu: false, regional: plain(unlockedBook.einstellungen.regional) });
       b.w.MagnolieI18n.setLocale(locale);
-      b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-sicherheit").click();
+       b.t.oeffneEinstellungen(); await openRecovery();
       answer({ entries: [], total: 0, next_cursor: null }); cases++;
       d.querySelector("#medien-papierkorb-aktualisieren").click(); answer({ entries: [row()], total: 1, next_cursor: null });
       assert.ok(root().textContent.includes(locale === "de" ? "Aufbewahrungsfrist" : "retention period"));
@@ -177,7 +193,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
       assert.ok(root().hidden && !restore(), "Unavailable native implementation must leave no controls"); cases++;
 
       b.w.App.init({ daten: plain(b.t.daten()), neu: false, regional: { language: locale, timeZone: "UTC" } });
-      b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-sicherheit").click();
+       b.t.oeffneEinstellungen(); await openRecovery();
       const old = calls().at(-1);
       answer({ entries: [row()], total: 1, next_cursor: null }); purge().click();
       called = calls().length;
@@ -187,6 +203,16 @@ const plain = value => JSON.parse(JSON.stringify(value));
       answer({ entries: [row()], total: 1, next_cursor: null }, old);
       assert.ok(!root() || root().hidden); assert.equal(d.querySelectorAll("[data-media-restore]").length, 0,
         "Lock/book initialization must discard private native rows and stale callbacks"); cases++;
+
+      b.w.App.init({ daten: unlockedBook, neu: false, regional: plain(unlockedBook.einstellungen.regional) });
+      b.t.oeffneEinstellungen(); await openRecovery();
+      answer({ entries: [row()], total: 1, next_cursor: null });
+      const beforeOptOut = calls().length;
+      root().querySelector("[data-media-trash-enabled]").click();
+      assert.equal(b.t.daten().einstellungen.papierkorb.an, false);
+      assert.equal(b.t.daten().einstellungen.papierkorb.tage, 0);
+      assert.equal(calls().length, beforeOptOut, "Disabling the saved policy must not empty media trash");
+      assert.ok(restore(), "Existing trash stays visible and restorable after opting out"); cases++;
     } finally { b.close(); }
   }
   console.log(`Media recycle bin UI: ${cases} frontend/locale cases PASS; 19 catalogs checked. No installed GUI acceptance claimed.`);
